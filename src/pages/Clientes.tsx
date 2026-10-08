@@ -1,0 +1,73 @@
+import { CrudPage, type CampoForm } from "@/components/CrudPage";
+import { Contato, NomeCadastro } from "@/components/Contato";
+import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
+import { notify } from "@/lib/notify";
+import { digitos, docFormat } from "@/lib/format";
+import type { Cliente } from "@/lib/types";
+
+const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
+
+const FIELDS: CampoForm[] = [
+  { name: "codigo", label: "Código", type: "readonly", span: 1 },
+  { name: "tipo_pessoa", label: "Tipo", type: "select", span: 1, options: [{ value: "PF", label: "Pessoa física" }, { value: "PJ", label: "Pessoa jurídica" }] },
+  { name: "cpf_cnpj", label: "CPF / CNPJ (o CNPJ preenche o resto)", mask: "doc", buscar: true },
+  { name: "nome_fantasia", label: "Nome (fantasia / como chamamos)", placeholder: "Ex.: Gelato Nobre" },
+  { name: "nome", label: "Razão social (pessoa física: nome completo)", required: true },
+  { name: "inscricao_estadual", label: "Inscrição estadual (vem pelo CNPJ)", mask: "ie" },
+  {
+    name: "contribuinte_icms", label: "Contribuinte ICMS", type: "select",
+    options: [
+      { value: 9, label: "Não contribuinte (consumidor final)" },
+      { value: 1, label: "Contribuinte (tem IE)" },
+      { value: 2, label: "Isento de inscrição" },
+    ],
+  },
+  { name: "c", label: "Contato", type: "secao" },
+  { name: "whatsapp", label: "WhatsApp", mask: "whatsapp" },
+  { name: "telefone", label: "Telefone", mask: "telefone" },
+  { name: "email", label: "E-mail", mask: "email", span: 3 },
+  { name: "avisos_email", label: "Recebe avisos por e-mail", type: "checkbox", span: 1 },
+  { name: "e", label: "Endereço", type: "secao" },
+  { name: "cep", label: "CEP", mask: "cep", buscar: true, span: 1 },
+  { name: "logradouro", label: "Logradouro", span: 3 },
+  { name: "numero", label: "Número", span: 1 },
+  { name: "complemento", label: "Complemento", span: 1 },
+  { name: "bairro", label: "Bairro" },
+  { name: "municipio", label: "Município", span: 3 },
+  { name: "uf", label: "UF", mask: "uf", span: 1 },
+  { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
+];
+
+export default function Clientes() {
+  return (
+    <CrudPage<Cliente>
+      anexos="cliente"
+      title="Clientes"
+      table="clientes"
+      order="nome"
+      defaults={{ tipo_pessoa: "PF", contribuinte_icms: 9, nome: "", avisos_email: true }}
+      searchKeys={["codigo", "nome", "nome_fantasia", "cpf_cnpj", "whatsapp", "telefone", "email", "municipio"]}
+      beforeSave={(r) => ({ ...r, contribuinte_icms: Number(r.contribuinte_icms), uf: r.uf?.toUpperCase() })}
+      onFieldChange={async (name, value, row, forcar) => {
+        if (name === "cep" && (forcar || digitos(value).length === 8)) return completarPorCep(value, forcar);
+        if (name !== "cpf_cnpj") return null;
+        const d = digitos(value);
+        if (d.length === 11) return row.tipo_pessoa === "PF" ? null : { tipo_pessoa: "PF" };
+        if (d.length === 14) {
+          const p = await completarPorCnpj(row, d, CAMPOS_RECEITA, forcar);
+          return { tipo_pessoa: "PJ", ...(p ?? {}), ...(p?.inscricao_estadual ? { contribuinte_icms: 1 } : {}) };
+        }
+        if (forcar) notify("Digite o CNPJ completo (14 números) para buscar na Receita", "erro");
+        return null;
+      }}
+      fields={FIELDS}
+      columns={[
+        { label: "Cód.", render: (r) => <span className="font-mono text-xs text-slate-500">{r.codigo ?? "—"}</span>, className: "w-14" },
+        { label: "Nome", render: (r) => <NomeCadastro r={r} /> },
+        { label: "CPF/CNPJ", render: (r) => <span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span> },
+        { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
+        { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
+      ]}
+    />
+  );
+}

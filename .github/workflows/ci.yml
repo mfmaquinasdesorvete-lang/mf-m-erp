@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://exemplo.supabase.co
+          VITE_SUPABASE_ANON_KEY: exemplo
+
+  edge-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Verificar tipos das Edge Functions
+        working-directory: supabase/functions
+        env:
+          DENO_NO_PACKAGE_JSON: "1"
+        run: deno check --node-modules-dir=none */index.ts

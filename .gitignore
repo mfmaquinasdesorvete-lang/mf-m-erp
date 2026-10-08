@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+.env.local
+supabase/.temp
+dist-demo
+previa-erp-mf-maquinas.html

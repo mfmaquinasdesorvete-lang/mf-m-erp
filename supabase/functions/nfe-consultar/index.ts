@@ -1,0 +1,101 @@
+// Ações sobre NF-e emitidas.
+// POST { nota_id, acao?: "consultar" }                         -> atualiza o status
+// POST { nota_id, acao: "cancelar", justificativa }            -> cancela (até 24 h, regra da SEFAZ)
+// POST { nota_id, acao: "carta_correcao", correcao }           -> carta de correção eletrônica (CC-e)
+// POST { nota_id, acao: "reenviar" }                           -> reenvia agora uma nota da fila de contingência
+// POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
+import { corsHeaders, json } from "../_shared/cors.ts";
+import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
+import { focus, focusUrl } from "../_shared/focusnfe.ts";
+import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
+import { enviarNfe } from "../_shared/nfe-envio.ts";
+
+const msgFocus = (b: any, padrao: string) =>
+  [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const corpo = await req.json();
+    const { nota_id, acao = "consultar" } = corpo;
+    const db = adminClient();
+    const { userId } = await requireErpUser(req, acao === "inutilizar" ? ["financeiro"] : ["vendas", "financeiro"]);
+
+    if (acao === "inutilizar") {
+      const { unidade_id, justificativa } = corpo;
+      const serie = Number(corpo.serie), ini = Number(corpo.numero_inicial), fim = Number(corpo.numero_final);
+      if (!Number.isInteger(serie) || !Number.isInteger(ini) || !Number.isInteger(fim) || ini < 1 || fim < ini) throw new HttpError(400, "informe série e a faixa de números");
+      if (fim - ini > 999) throw new HttpError(400, "inutilize no máximo 1.000 números por vez");
+      if (!justificativa || justificativa.trim().length < 15) throw new HttpError(400, "a justificativa deve ter ao menos 15 caracteres");
+      const { data: u } = await db.from("unidades").select("*").eq("id", unidade_id).single();
+      if (!u || onlyDigits(u.cnpj).length !== 14) throw new HttpError(400, "unidade sem CNPJ");
+      // não deixa inutilizar número que já virou nota
+      const { data: usadas } = await db.from("notas_fiscais").select("numero").eq("unidade_id", unidade_id).eq("serie", String(serie)).not("numero", "is", null);
+      const conflito = (usadas ?? []).map((n) => Number(n.numero)).filter((n) => n >= ini && n <= fim);
+      if (conflito.length) throw new HttpError(400, `os números ${conflito.join(", ")} já são notas emitidas`);
+
+      const res = await focus("/v2/nfe/inutilizacao", {
+        method: "POST",
+        body: JSON.stringify({ cnpj: onlyDigits(u.cnpj), serie: String(serie), numero_inicial: String(ini), numero_final: String(fim), justificativa: justificativa.trim() }),
+      });
+      const body = await res.json().catch(() => ({}));
+      const ok = res.ok && body.status === "autorizado";
+      const { data } = await db.from("nfe_inutilizacoes").insert({
+        unidade_id, serie, numero_inicial: ini, numero_final: fim, justificativa: justificativa.trim(), created_by: userId,
+        status: ok ? "autorizada" : "erro", mensagem: ok ? body.mensagem_sefaz ?? null : msgFocus(body, "inutilização não aceita"),
+        xml_url: focusUrl(body.caminho_xml), resposta: body,
+      }).select().single();
+      if (!ok) throw new HttpError(422, data?.mensagem ?? "inutilização não aceita");
+      return json({ ok: true, inutilizacao: data });
+    }
+
+    const { data: nota } = await db.from("notas_fiscais").select("*").eq("id", nota_id).single();
+    if (!nota) throw new HttpError(404, "nota não encontrada");
+    const ref = encodeURIComponent(nota.referencia);
+
+    if (acao === "cancelar") {
+      const { justificativa } = corpo;
+      if (nota.status !== "autorizada") throw new HttpError(400, "só notas autorizadas podem ser canceladas");
+      if (!justificativa || justificativa.length < 15) throw new HttpError(400, "a justificativa deve ter ao menos 15 caracteres");
+      const res = await focus(`/v2/nfe/${ref}`, { method: "DELETE", body: JSON.stringify({ justificativa }) });
+      const body = await res.json().catch(() => ({}));
+      if (body.status !== "cancelado") throw new HttpError(422, msgFocus(body, "cancelamento não aceito"));
+      return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, body) });
+    }
+
+    if (acao === "carta_correcao") {
+      const correcao = String(corpo.correcao ?? "").trim();
+      if (nota.status !== "autorizada") throw new HttpError(400, "só notas autorizadas recebem carta de correção");
+      if (correcao.length < 15 || correcao.length > 1000) throw new HttpError(400, "a correção deve ter entre 15 e 1.000 caracteres");
+      const res = await focus(`/v2/nfe/${ref}/carta_correcao`, { method: "POST", body: JSON.stringify({ correcao }) });
+      const body = await res.json().catch(() => ({}));
+      const ok = res.ok && body.status === "autorizado";
+      const { data } = await db.from("nfe_cartas_correcao").insert({
+        nota_id, correcao, created_by: userId, status: ok ? "autorizada" : "erro",
+        sequencia: body.numero_carta_correcao ?? null, mensagem: ok ? body.mensagem_sefaz ?? null : msgFocus(body, "carta de correção não aceita"),
+        pdf_url: focusUrl(body.caminho_pdf_carta_correcao), xml_url: focusUrl(body.caminho_xml_carta_correcao), resposta: body,
+      }).select().single();
+      if (!ok) throw new HttpError(422, data?.mensagem ?? "carta de correção não aceita");
+      return json({ ok: true, carta: data });
+    }
+
+    if (acao === "reenviar") {
+      if (nota.status !== "contingencia") throw new HttpError(400, "esta nota não está na fila de contingência");
+      const c = await focus(`/v2/nfe/${ref}?completa=0`).catch(() => null);
+      if (c?.ok) return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, await c.json()) });
+      const r = await enviarNfe(nota.referencia, nota.payload);
+      const { data } = await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: nota.tentativas + 1, updated_at: new Date().toISOString() })
+        .eq("id", nota.id).select().single();
+      return json({ ok: r.status !== "erro", nota: data });
+    }
+
+    const res = await focus(`/v2/nfe/${ref}?completa=0`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new HttpError(502, body.mensagem || `Focus NFe HTTP ${res.status}`);
+    return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, body) });
+  } catch (e) {
+    const status = e instanceof HttpError ? e.status : 500;
+    return json({ error: (e as Error).message }, status);
+  }
+});

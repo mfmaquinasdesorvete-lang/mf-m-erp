@@ -1,0 +1,51 @@
+# Publica o site do ERP na Hostinger a cada alteração na main.
+# Configure em GitHub → Settings → Secrets and variables → Actions:
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY  (do Supabase → Settings → API)
+#   HOSTINGER_FTP_HOST, HOSTINGER_FTP_USER, HOSTINGER_FTP_PASSWORD  (hPanel → Arquivos → Contas FTP)
+#   HOSTINGER_FTP_DIR  (pasta do subdomínio, ex.: /domains/myfrost.ai/public_html/erp/ — termine com /)
+# Sem esses secrets o workflow só avisa e não publica nada.
+name: Publicar na Hostinger
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confere a configuração
+        id: cfg
+        env:
+          HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$URL" ]; then
+            echo "Secrets da Hostinger/Supabase ainda não configurados: nada a publicar."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ok == 'true'
+        with:
+          node-version: 20
+          cache: npm
+      - name: Build
+        if: steps.cfg.outputs.ok == 'true'
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm ci && npm run build
+      - name: Envia por FTP
+        if: steps.cfg.outputs.ok == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_HOST }}
+          username: ${{ secrets.HOSTINGER_FTP_USER }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.HOSTINGER_FTP_DIR }}

@@ -1,0 +1,23 @@
+# Hostinger (LiteSpeed/Apache): todas as rotas do ERP (/pedidos, /loja, /proposta/...) abrem o index.html
+Options -Indexes
+RewriteEngine On
+RewriteBase /
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  # arquivos com hash no nome podem ficar em cache; o index.html não (para pegar a versão nova)
+  <FilesMatch "\.(js|css|woff2?|png|jpg|webp|svg)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

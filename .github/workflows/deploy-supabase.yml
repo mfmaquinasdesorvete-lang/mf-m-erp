@@ -1,0 +1,35 @@
+# Publica o banco (migrações) e as Edge Functions no Supabase.
+# Rode manualmente em GitHub → Actions → "Publicar Supabase" → Run workflow.
+# Secrets do repositório necessários (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  (supabase.com → Account → Access Tokens)
+#   SUPABASE_PROJECT_REF   (o "Reference ID" do projeto)
+#   SUPABASE_DB_PASSWORD   (senha do banco definida ao criar o projeto)
+name: Publicar Supabase
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+      - name: Migrações do banco
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+      - name: Edge Functions
+        run: |
+          for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar; do
+            supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
+          done
+          # chamadas externas (Focus, Telegram, agendamento) não enviam o login do Supabase
+          for fn in focus-webhook nfe-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote; do
+            supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
+          done

@@ -1,0 +1,34 @@
+project_id = "erp-mf-maquinas"
+
+# Edge Functions do ERP chamadas por serviços externos (sem login do Supabase).
+
+# Gatilhos da Focus NFe: protegido pelo header Authorization (FOCUS_WEBHOOK_TOKEN).
+[functions.focus-webhook]
+verify_jwt = false
+
+# Execução agendada (pg_cron): protegida por Authorization: Bearer ERP_CRON_TOKEN.
+[functions.nfe-processar]
+verify_jwt = false
+
+# Avisos: fila (pg_cron, Bearer ERP_CRON_TOKEN), robô do Telegram (secret token do webhook)
+# e link de descadastro dos e-mails (token do cliente na URL).
+[functions.avisos-enviar]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.email-descadastrar]
+verify_jwt = false
+
+# Catálogo do WhatsApp: lista pública de produtos (a Meta busca sem login).
+[functions.catalogo-feed]
+verify_jwt = false
+
+# Caixa de e-mail: o agendamento chama com Authorization: Bearer ERP_CRON_TOKEN;
+# chamadas do ERP são conferidas dentro da função (requireErpUser).
+[functions.email-caixa]
+verify_jwt = false
+
+[functions.contador-pacote]
+verify_jwt = false

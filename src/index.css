@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Paleta. Valores em "R G B" para o Tailwind aplicar transparência (bg-brand/15 etc.). */
+:root {
+  color-scheme: light;
+  --sombra: 0.05;
+  --canvas: 244 246 249;
+  --surface: 255 255 255;
+  --fg: 13 27 46;
+  --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225; --slate-400: 148 163 184;
+  --slate-500: 100 116 139; --slate-600: 71 85 105; --slate-700: 51 65 85; --slate-800: 30 41 59; --slate-900: 15 23 42;
+  --emerald-50: 236 253 245; --emerald-100: 209 250 229; --emerald-200: 167 243 208; --emerald-500: 16 185 129; --emerald-600: 5 150 105; --emerald-700: 4 120 87; --emerald-800: 6 95 70; --emerald-900: 6 78 59;
+  --amber-50: 255 251 235; --amber-100: 254 243 199; --amber-200: 253 230 138; --amber-500: 245 158 11; --amber-600: 217 119 6; --amber-700: 180 83 9; --amber-800: 146 64 14; --amber-900: 120 53 15;
+  --red-50: 254 242 242; --red-100: 254 226 226; --red-200: 254 202 202; --red-500: 239 68 68; --red-600: 220 38 38; --red-700: 185 28 28; --red-800: 153 27 27; --red-900: 127 29 29;
+  --sky-50: 239 246 255; --sky-100: 219 234 254; --sky-200: 191 219 254; --sky-500: 59 130 246; --sky-600: 37 99 235; --sky-700: 29 78 216; --sky-800: 30 64 175; --sky-900: 30 58 138;
+  --indigo-50: 238 242 255; --indigo-100: 224 231 255; --indigo-200: 199 210 254; --indigo-500: 99 102 241; --indigo-600: 79 70 229; --indigo-700: 67 56 202; --indigo-800: 55 48 163; --indigo-900: 49 46 129;
+  --purple-50: 250 245 255; --purple-100: 243 232 255; --purple-200: 233 213 255; --purple-500: 168 85 247; --purple-600: 147 51 234; --purple-700: 126 34 206; --purple-800: 107 33 168; --purple-900: 88 28 135;
+  --orange-50: 255 247 237; --orange-100: 255 237 213; --orange-200: 254 215 170; --orange-500: 249 115 22; --orange-600: 234 88 12; --orange-700: 194 65 12; --orange-800: 154 52 18; --orange-900: 124 45 18;
+  /* séries dos gráficos (paleta validada para daltonismo) */
+  /* cartões de indicadores (dashboard) */
+  --kpi-ciano: #0891b2; --kpi-verde: #059669; --kpi-laranja: #ea580c; --kpi-rosa: #db2777; --kpi-roxo: #7c3aed; --kpi-azul: #2563eb;
+  --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; --grade: #e8ecf2; --eixo: #cbd5e1; --eixo-texto: #64748b; --hover: #f1f5f9;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --sombra: 0.35;
+  /* navy profundo (#0B1F3A nas superfícies) */
+  --canvas: 6 18 38;
+  --surface: 11 31 58;
+  --fg: 241 245 249;
+  /* escala invertida: 50 = superfície sutil, 900 = texto mais forte */
+  --slate-50: 14 38 70; --slate-100: 18 46 84; --slate-200: 27 58 99; --slate-300: 38 74 120; --slate-400: 100 125 160;
+  --slate-500: 145 163 192; --slate-600: 178 192 212; --slate-700: 205 215 229; --slate-800: 226 232 240; --slate-900: 241 245 249;
+  --emerald-50: 9 48 49; --emerald-100: 12 62 60; --emerald-200: 18 90 80; --emerald-500: 16 185 129; --emerald-600: 52 211 153; --emerald-700: 110 231 183; --emerald-800: 167 243 208; --emerald-900: 209 250 229;
+  --amber-50: 47 40 30; --amber-100: 64 52 32; --amber-200: 96 74 34; --amber-500: 245 158 11; --amber-600: 251 191 36; --amber-700: 252 211 77; --amber-800: 253 230 138; --amber-900: 254 243 199;
+  --red-50: 52 26 46; --red-100: 70 30 52; --red-200: 104 38 62; --red-500: 239 68 68; --red-600: 248 113 113; --red-700: 252 165 165; --red-800: 254 202 202; --red-900: 254 226 226;
+  --sky-50: 13 48 88; --sky-100: 17 60 108; --sky-200: 24 80 140; --sky-500: 59 130 246; --sky-600: 96 165 250; --sky-700: 147 197 253; --sky-800: 191 219 254; --sky-900: 219 234 254;
+  --indigo-50: 26 36 84; --indigo-100: 34 44 104; --indigo-200: 49 58 136; --indigo-500: 99 102 241; --indigo-600: 129 140 248; --indigo-700: 165 180 252; --indigo-800: 199 210 254; --indigo-900: 224 231 255;
+  --purple-50: 38 30 78; --purple-100: 50 36 98; --purple-200: 72 46 130; --purple-500: 168 85 247; --purple-600: 192 132 252; --purple-700: 216 180 254; --purple-800: 233 213 255; --purple-900: 243 232 255;
+  --orange-50: 52 36 34; --orange-100: 70 44 36; --orange-200: 102 58 38; --orange-500: 249 115 22; --orange-600: 251 146 60; --orange-700: 253 186 116; --orange-800: 254 215 170; --orange-900: 255 237 213;
+  --kpi-ciano: #00d4ff; --kpi-verde: #2ee59d; --kpi-laranja: #ff7a1a; --kpi-rosa: #ff4fa3; --kpi-roxo: #a78bfa; --kpi-azul: #5aa2ff;
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --grade: #18365e; --eixo: #2a4a75; --eixo-texto: #91a3c0; --hover: #10294a;
+}
+
+/* Cor de destaque (escolhida em Aparência). --brand-nav é o tom usado no menu lateral navy. */
+:root, :root[data-accent="ciano"] { --brand: 8 131 166; --brand-dark: 6 109 140; --brand-light: 224 246 252; --brand-fg: 255 255 255; --brand-nav: 0 212 255; }
+:root[data-theme="dark"], :root[data-theme="dark"][data-accent="ciano"] { --brand: 0 212 255; --brand-dark: 77 225 255; --brand-light: 8 52 80; --brand-fg: 4 22 40; }
+:root[data-accent="laranja"] { --brand: 194 65 12; --brand-dark: 160 52 8; --brand-light: 255 237 222; --brand-fg: 255 255 255; --brand-nav: 255 122 26; }
+:root[data-theme="dark"][data-accent="laranja"] { --brand: 255 107 0; --brand-dark: 255 140 51; --brand-light: 66 38 20; --brand-fg: 26 11 0; }
+:root[data-accent="roxo"] { --brand: 108 43 217; --brand-dark: 88 28 190; --brand-light: 241 233 255; --brand-fg: 255 255 255; --brand-nav: 255 79 163; }
+:root[data-theme="dark"][data-accent="roxo"] { --brand: 255 79 163; --brand-dark: 255 120 186; --brand-light: 62 24 66; --brand-fg: 40 6 24; }
+:root[data-accent="dourado"] { --brand: 168 107 31; --brand-dark: 141 89 22; --brand-light: 251 243 230; --brand-fg: 255 255 255; --brand-nav: 240 194 122; }
+:root[data-theme="dark"][data-accent="dourado"] { --brand: 224 166 90; --brand-dark: 236 186 119; --brand-light: 56 44 24; --brand-fg: 26 18 6; }
+:root[data-accent="verde"] { --brand: 4 120 87; --brand-dark: 6 95 70; --brand-light: 220 252 238; --brand-fg: 255 255 255; --brand-nav: 46 229 157; }
+:root[data-theme="dark"][data-accent="verde"] { --brand: 46 229 157; --brand-dark: 110 240 190; --brand-light: 8 56 44; --brand-fg: 4 30 22; }
+:root[data-accent="azul"] { --brand: 37 99 235; --brand-dark: 29 78 216; --brand-light: 224 234 255; --brand-fg: 255 255 255; --brand-nav: 96 165 250; }
+:root[data-theme="dark"][data-accent="azul"] { --brand: 96 165 250; --brand-dark: 147 197 253; --brand-light: 18 40 82; --brand-fg: 6 18 40; }
+
+html { font-size: 17px; }
+body { @apply bg-canvas font-sans text-slate-800 antialiased; }
+h1, h2, h3 { text-wrap: balance; }
+
+@layer components {
+  /* 16px no celular evita o zoom automático do iPhone ao tocar no campo */
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
+           placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20
+           disabled:bg-slate-50 disabled:text-slate-500;
+  }
+  .th { @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500; }
+  .td { @apply px-4 py-3 text-sm align-top; }
+}
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
+select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
+@keyframes entrar { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* Tabelas no celular: cada linha vira um cartão "rótulo → valor" (ver Table em ui.tsx) */
+@media (max-width: 767px) {
+  .tabela thead { display: none; }
+  .tabela, .tabela > tbody, .tabela > tbody > tr, .tabela > tbody > tr > td { display: block; width: 100%; }
+  .tabela > tbody > tr { padding: 14px 16px; }
+  .tabela > tbody > tr > td {
+    position: relative; padding: 4px 0 4px 42%; min-height: 28px; text-align: right;
+    white-space: normal; overflow-wrap: anywhere; font-size: 15px;
+  }
+  .tabela > tbody > tr > td::before {
+    content: attr(data-label); position: absolute; left: 0; top: 5px; width: 40%;
+    text-align: left; font-size: 13px; color: rgb(var(--slate-500));
+  }
+  .tabela > tbody > tr > td:empty { display: none; }
+  /* 1ª coluna = título do cartão */
+  .tabela > tbody > tr > td:first-child { padding: 0 0 6px; text-align: left; font-size: 16px; font-weight: 700; color: rgb(var(--fg)); }
+  .tabela > tbody > tr > td:first-child::before { position: static; display: block; width: auto; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  /* coluna sem título = ações */
+  .tabela > tbody > tr > td[data-label=""] { padding: 10px 0 0; text-align: right; }
+  .tabela > tbody > tr > td[data-label=""]::before { content: none; }
+  .tabela > tbody > tr > td[data-label=""] > div { justify-content: flex-end; }
+  .tabela > tbody > tr > td .max-w-xs { max-width: none; }
+}
