@@ -28,8 +28,11 @@ export async function focusJson<T = any>(path: string, init: RequestInit = {}): 
   const res = await focus(path, init);
   const body = await res.json().catch(() => ({}));
   if (res.status === 401 || res.status === 403) {
-    const qual = focusProducao() ? "de Produção" : "de Homologação";
-    throw new HttpError(502, `${body?.mensagem || "A Focus recusou o token"}. Confira se o FOCUS_NFE_TOKEN no Supabase é o Token ${qual} da Focus.`);
+    const msg = String(body?.mensagem || "A Focus recusou o token").replace(/\.+$/, "");
+    const dica = /cnpj/i.test(msg)
+      ? "O token é de outra empresa cadastrada na Focus: use o token da empresa com o CNPJ desta unidade"
+      : `Confira se o FOCUS_NFE_TOKEN no Supabase é o Token ${focusProducao() ? "de Produção" : "de Homologação"} da Focus`;
+    throw new HttpError(502, `${msg}. ${dica}.`);
   }
   if (!res.ok && res.status !== 422) {
     throw new HttpError(502, body?.mensagem || `Focus NFe HTTP ${res.status}`);

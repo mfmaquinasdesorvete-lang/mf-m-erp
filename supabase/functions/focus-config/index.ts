@@ -41,6 +41,8 @@ Deno.serve(async (req) => {
           const r = await focusJson(`/v2/hooks`, {
             method: "POST",
             body: JSON.stringify({ cnpj, event, url, authorization: token }),
+          }).catch((e) => {
+            throw new HttpError(502, `${(e as Error).message} (CNPJ ${cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")})`);
           });
           if (r?.erros || r?.codigo) throw new HttpError(422, r.mensagem || `falha ao criar gatilho ${event} (${cnpj})`);
           criados.push(`${event}:${cnpj}`);
