@@ -3,7 +3,7 @@
 // POST { acao: "registrar" }  -> cadastra os gatilhos "nfe" e "nfe_recebida" (se faltarem)
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { focusJson } from "../_shared/focusnfe.ts";
+import { focusJson, focusProducao } from "../_shared/focusnfe.ts";
 
 const EVENTOS = ["nfe", "nfe_recebida"];
 
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       const hooks = await listar();
       // um evento só conta como ativo se estiver registrado para todas as unidades
       const eventos = EVENTOS.filter((e) => cnpjs.every((c) => hooks.some((h) => h.event === e && onlyDigits(h.cnpj) === c)));
-      return json({ ok: true, ambiente: Deno.env.get("FOCUS_NFE_ENV") ?? "homologacao", eventos });
+      return json({ ok: true, ambiente: focusProducao() ? "producao" : "homologacao", eventos });
     }
 
     if (acao === "registrar") {

@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { zipSync, strToU8 } from "npm:fflate@0.8.2";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError } from "../_shared/supabase.ts";
-import { focusBaseUrl, focusUrl } from "../_shared/focusnfe.ts";
+import { focusBaseUrl, focusToken, focusUrl } from "../_shared/focusnfe.ts";
 import { baixarXml } from "../_shared/nfe-recebidas.ts";
 import { enviarEmail } from "../_shared/email.ts";
 
@@ -29,7 +29,7 @@ async function autorizar(req: Request) {
 /** Baixa um arquivo da Focus (com o token) ou de qualquer URL pública. */
 async function baixar(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
-  const token = Deno.env.get("FOCUS_NFE_TOKEN");
+  const token = focusToken();
   const headers: Record<string, string> = url.startsWith(focusBaseUrl()) && token ? { Authorization: "Basic " + btoa(`${token}:`) } : {};
   try {
     const r = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });

@@ -2,13 +2,16 @@
 // Secrets: FOCUS_NFE_TOKEN, FOCUS_NFE_ENV ("homologacao" | "producao")
 import { HttpError } from "./supabase.ts";
 
+export const focusProducao = () => Deno.env.get("FOCUS_NFE_ENV")?.trim().toLowerCase() === "producao";
+
 export const focusBaseUrl = () =>
-  Deno.env.get("FOCUS_NFE_ENV") === "producao"
-    ? "https://api.focusnfe.com.br"
-    : "https://homologacao.focusnfe.com.br";
+  focusProducao() ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
+
+/** Token sem espaços ou quebras de linha que às vezes vêm junto ao colar no painel do Supabase. */
+export const focusToken = () => Deno.env.get("FOCUS_NFE_TOKEN")?.replace(/\s+/g, "") || null;
 
 export async function focus(path: string, init: RequestInit = {}): Promise<Response> {
-  const token = Deno.env.get("FOCUS_NFE_TOKEN");
+  const token = focusToken();
   if (!token) throw new HttpError(500, "FOCUS_NFE_TOKEN não configurado");
 
   return fetch(focusBaseUrl() + path, {
@@ -24,6 +27,10 @@ export async function focus(path: string, init: RequestInit = {}): Promise<Respo
 export async function focusJson<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await focus(path, init);
   const body = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 403) {
+    const qual = focusProducao() ? "de Produção" : "de Homologação";
+    throw new HttpError(502, `${body?.mensagem || "A Focus recusou o token"}. Confira se o FOCUS_NFE_TOKEN no Supabase é o Token ${qual} da Focus.`);
+  }
   if (!res.ok && res.status !== 422) {
     throw new HttpError(502, body?.mensagem || `Focus NFe HTTP ${res.status}`);
   }
