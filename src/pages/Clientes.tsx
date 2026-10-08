@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileSpreadsheet } from "lucide-react";
-import { CrudPage, type CampoForm } from "@/components/CrudPage";
+import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
+import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
@@ -43,6 +44,17 @@ const FIELDS: CampoForm[] = [
   { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
 ];
 
+const FILTROS: FiltroCrud<Cliente>[] = [
+  ...filtrosLocal<Cliente>(),
+  { label: "Tipo", opcoes: [{ label: "Pessoa jurídica", teste: (r) => r.tipo_pessoa === "PJ" }, { label: "Pessoa física", teste: (r) => r.tipo_pessoa === "PF" }] },
+  filtroCompletude<Cliente>((r) => r.cpf_cnpj, [
+    { label: "Contribuinte de ICMS (tem IE)", teste: (r) => Number(r.contribuinte_icms) === 1 },
+    { label: "Não contribuinte", teste: (r) => Number(r.contribuinte_icms) === 9 },
+  ]),
+  filtroCadastradoEm<Cliente>(),
+];
+const ORDENS = ordensCadastro<Cliente>();
+
 export default function Clientes() {
   const { papel } = usePerfil();
   const [importar, setImportar] = useState(false);
@@ -52,6 +64,10 @@ export default function Clientes() {
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
     <CrudPage<Cliente>
+      filtros={FILTROS}
+      ordens={ORDENS}
+      podeExcluir={papel === "admin"}
+      plural="clientes"
       extraActions={podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
       anexos="cliente"
       title="Clientes"

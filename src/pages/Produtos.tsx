@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
-import { CrudPage } from "@/components/CrudPage";
+import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { FotoProduto } from "@/components/FotoProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table } from "@/components/ui";
@@ -24,8 +24,44 @@ const tipos = [
   { value: "insumo", label: "Insumo" },
 ];
 
+const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças", acessorio: "Acessórios", insumo: "Insumos" };
+const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
+const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [
+  { label: "Tipo", opcoes: Object.entries(TIPOS_PRODUTO).map(([v, label]) => ({ label, teste: (r: Produto) => r.tipo === v })) },
+  { label: "Categoria", valor: (r) => r.categoria },
+  { label: "Marca", valor: (r) => r.marca },
+  { label: "Estoque", opcoes: [
+    { label: "Com estoque", teste: (r) => Number(r.estoque_atual) > 0 },
+    { label: "Sem estoque", teste: (r) => Number(r.estoque_atual) <= 0 },
+    { label: "No mínimo ou abaixo", teste: (r) => Number(r.estoque_minimo) > 0 && Number(r.estoque_atual) <= Number(r.estoque_minimo) },
+  ] },
+  { label: "Situação", opcoes: [{ label: "Ativos", teste: (r) => r.ativo !== false }, { label: "Inativos", teste: (r) => r.ativo === false }] },
+  { label: "Fiscal", opcoes: [
+    { label: "Sem NCM válido", teste: (r) => String(r.ncm ?? "").replace(/\D/g, "").length !== 8 },
+    { label: "Sem preço de venda", teste: (r) => !Number(r.preco_venda) },
+    { label: "Sem custo", teste: (r) => !Number(r.preco_custo) },
+  ] },
+];
+const ORDENS_PRODUTO: OrdemCrud<Produto>[] = [
+  { label: "descrição (A–Z)", comparar: (a, b) => txt(a.descricao, b.descricao) },
+  { label: "SKU", comparar: (a, b) => txt(a.sku, b.sku) },
+  { label: "maior estoque", comparar: (a, b) => Number(b.estoque_atual) - Number(a.estoque_atual) },
+  { label: "menor estoque", comparar: (a, b) => Number(a.estoque_atual) - Number(b.estoque_atual) },
+  { label: "maior preço", comparar: (a, b) => Number(b.preco_venda) - Number(a.preco_venda) },
+  { label: "mais recentes", comparar: (a, b) => Date.parse((b as any).created_at ?? 0) - Date.parse((a as any).created_at ?? 0) },
+];
+
+/** Ativa/inativa vários produtos de uma vez (produto com movimentação não pode ser excluído). */
+async function situacaoProdutos(ids: string[], ativo: boolean) {
+  for (let i = 0; i < ids.length; i += 200) {
+    const { error } = await supabase.from("produtos").update({ ativo }).in("id", ids.slice(i, i + 200));
+    if (error) throw error;
+  }
+  return `${ids.length} produto(s) ${ativo ? "ativado(s)" : "inativado(s)"}`;
+}
+
 export default function Produtos() {
-  const { pode } = usePerfil();
+  const { pode, papel } = usePerfil();
   const { data: fornecedores = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
   const [movimentar, setMovimentar] = useState<Produto | null>(null);
   const [historico, setHistorico] = useState<Produto | null>(null);
@@ -59,6 +95,14 @@ export default function Produtos() {
         order="descricao"
         defaults={{ tipo: "maquina", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, descricao: "", no_catalogo: false }}
         searchKeys={["descricao", "sku", "ncm", "marca", "categoria", "codigo_barras"]}
+        filtros={FILTROS_PRODUTO}
+        ordens={ORDENS_PRODUTO}
+        podeExcluir={papel === "admin"}
+        plural="produtos"
+        acoesLote={pode("editar_produtos") ? [
+          { label: "Inativar", executar: (ids) => situacaoProdutos(ids, false) },
+          { label: "Ativar", executar: (ids) => situacaoProdutos(ids, true) },
+        ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={pode("editar_produtos") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
         beforeSave={(r) => {

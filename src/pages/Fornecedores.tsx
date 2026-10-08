@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { FileSpreadsheet } from "lucide-react";
 import { ImportarContatos } from "@/components/ImportarContatos";
-import { CrudPage, type CampoForm } from "@/components/CrudPage";
+import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
+import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
+import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { Button, Tabs } from "@/components/ui";
 import { digitos, docFormat } from "@/lib/format";
@@ -47,6 +49,25 @@ const colunas = <T extends { codigo?: number | null; nome: string; nome_fantasia
   { label: "Contato", render: (r: T) => <Contato r={r as any} mensagem={msg} /> },
 ];
 
+const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [...filtrosLocal<Fornecedor>(), filtroCompletude<Fornecedor>((r) => r.cnpj), filtroCadastradoEm<Fornecedor>()];
+const ORDENS_FORN = ordensCadastro<Fornecedor>();
+const FILTROS_TRANSP: FiltroCrud<Transportadora>[] = [
+  ...filtrosLocal<Transportadora>(),
+  { label: "Situação", opcoes: [{ label: "Ativas", teste: (r) => r.ativo !== false }, { label: "Inativas", teste: (r) => r.ativo === false }] },
+  filtroCompletude<Transportadora>((r) => r.cnpj),
+  filtroCadastradoEm<Transportadora>(),
+];
+const ORDENS_TRANSP = ordensCadastro<Transportadora>();
+
+/** Ativa/inativa várias transportadoras de uma vez. */
+async function situacaoTransportadoras(ids: string[], ativo: boolean) {
+  for (let i = 0; i < ids.length; i += 200) {
+    const { error } = await supabase.from("transportadoras").update({ ativo }).in("id", ids.slice(i, i + 200));
+    if (error) throw error;
+  }
+  return `${ids.length} transportadora(s) ${ativo ? "ativada(s)" : "inativada(s)"}`;
+}
+
 export default function Fornecedores() {
   const { pode, papel } = usePerfil();
   const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
@@ -68,6 +89,10 @@ export default function Fornecedores() {
           key="f"
           readOnly={!pode("editar_fornecedores")}
           extraActions={botaoImportar("fornecedor")}
+          filtros={FILTROS_FORN}
+          ordens={ORDENS_FORN}
+          podeExcluir={papel === "admin"}
+          plural="fornecedores"
           title="Fornecedores"
           table="fornecedores"
           order="nome"
@@ -94,6 +119,14 @@ export default function Fornecedores() {
           key="t"
           readOnly={!pode("editar_transportadoras")}
           extraActions={botaoImportar("transportadora")}
+          filtros={FILTROS_TRANSP}
+          ordens={ORDENS_TRANSP}
+          podeExcluir={papel === "admin"}
+          plural="transportadoras"
+          acoesLote={pode("editar_transportadoras") ? [
+            { label: "Inativar", executar: (ids) => situacaoTransportadoras(ids, false) },
+            { label: "Ativar", executar: (ids) => situacaoTransportadoras(ids, true) },
+          ] : []}
           title="Transportadoras"
           table="transportadoras"
           order="nome"

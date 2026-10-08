@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search } from "lucide-react";
-import { limpar, useRows, useSave } from "@/lib/data";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2, X } from "lucide-react";
+import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { Button, Field, Modal, PageHeader, Table } from "./ui";
 import { baixarPlanilha, celula } from "@/lib/exportar";
@@ -27,6 +28,17 @@ export type CampoForm = {
 
 export type Coluna<T> = { label: string; render: (row: T) => ReactNode; className?: string };
 
+/**
+ * Filtro da lista: opções fixas (cada uma com o seu teste) ou os valores que existem na coluna
+ * (ex.: cidades e UFs dos cadastros).
+ */
+export type FiltroCrud<T> =
+  | { label: string; opcoes: { label: string; teste: (row: T) => boolean }[] }
+  | { label: string; valor: (row: T) => string | null | undefined };
+export type OrdemCrud<T> = { label: string; comparar: (a: T, b: T) => number };
+
+const POR_VEZ = 200;
+
 type Props<T> = {
   title: string;
   table: string;
@@ -47,24 +59,91 @@ type Props<T> = {
   exportExtra?: (row: T) => Record<string, unknown>;
   /** Só consulta: esconde "Novo" e "Editar". */
   readOnly?: boolean;
+  filtros?: FiltroCrud<T>[];
+  /** Ordenações da lista (a primeira é a padrão). */
+  ordens?: OrdemCrud<T>[];
+  /** Seleção de várias linhas para excluir de uma vez (só admin pode excluir cadastros). */
+  podeExcluir?: boolean;
+  /** Nome no plural para as mensagens (ex.: "clientes"). */
+  plural?: string;
+  /** Outras ações para os selecionados (ex.: inativar produtos). Devolve a mensagem de sucesso. */
+  acoesLote?: { label: string; executar: (ids: string[]) => Promise<string | void> }[];
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
 
 export function CrudPage<T extends { id: string }>(props: Props<T>) {
-  const { title, table, fields, columns, searchKeys, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos } = props;
+  const { title, table, fields, columns, searchKeys, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos,
+    filtros = [], ordens = [], podeExcluir = false, plural = "registros", acoesLote = [] } = props;
+  const selecionavel = podeExcluir || acoesLote.length > 0;
   const { data = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
   const save = useSave(table);
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Record<string, any> | null>(null);
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
+  const [escolhas, setEscolhas] = useState<Record<string, string>>({});
+  const [ordem, setOrdem] = useState(0);
+  const [limite, setLimite] = useState(POR_VEZ);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+  const invalidar = useInvalidate();
+
+  // valores existentes para os filtros "por coluna" (ex.: cidades)
+  const valoresFiltro = useMemo(() => filtros.map((f) => "valor" in f
+    ? [...new Set(data.map((r) => (f.valor(r) ?? "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"))
+    : []), [data, filtros]);
 
   const filtrados = useMemo(() => {
     const b = busca.trim().toLowerCase();
-    if (!b) return data;
-    return data.filter((r) => searchKeys.some((k) => String(r[k] ?? "").toLowerCase().includes(b)));
-  }, [data, busca, searchKeys]);
+    let lista = b ? data.filter((r) => searchKeys.some((k) => String(r[k] ?? "").toLowerCase().includes(b))) : data;
+    filtros.forEach((f) => {
+      const v = escolhas[f.label];
+      if (!v) return;
+      if ("valor" in f) lista = lista.filter((r) => (f.valor(r) ?? "").trim() === v);
+      else { const op = f.opcoes.find((o) => o.label === v); if (op) lista = lista.filter(op.teste); }
+    });
+    return ordens[ordem] ? [...lista].sort(ordens[ordem].comparar) : lista;
+  }, [data, busca, searchKeys, filtros, escolhas, ordens, ordem]);
+
+  // mudou o filtro ou a busca: volta ao começo da lista
+  useEffect(() => { setLimite(POR_VEZ); }, [busca, escolhas, ordem]);
+  // a seleção só guarda o que ainda existe
+  useEffect(() => { setSel((s) => (s.size ? new Set([...s].filter((id) => data.some((r) => r.id === id))) : s)); }, [data]);
+
+  const filtrosAtivos = Object.values(escolhas).filter(Boolean).length;
+  const todosMarcados = filtrados.length > 0 && filtrados.every((r) => sel.has(r.id));
+  const marcar = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const marcarTodos = () => setSel(todosMarcados ? new Set() : new Set(filtrados.map((r) => r.id)));
+
+  /** Exclui os selecionados. O que tem vínculo (pedido, nota, conta…) o banco não deixa apagar: fica e é avisado. */
+  async function excluirSelecionados() {
+    const ids = [...sel];
+    if (!ids.length || !confirm(`Excluir ${ids.length} ${plural}? Isso não pode ser desfeito.`)) return;
+    let feitos = 0;
+    const presos: string[] = [];
+    const apagar = async (lote: string[]) => {
+      const { error, count } = await supabase.from(table).delete({ count: "exact" }).in("id", lote);
+      if (!error) { feitos += count ?? lote.length; return true; }
+      return false;
+    };
+    try {
+      for (let i = 0; i < ids.length; i += 100) {
+        const lote = ids.slice(i, i + 100);
+        setExcluindo(`${Math.min(ids.length, i + lote.length)} de ${ids.length}…`);
+        if (await apagar(lote)) continue;
+        // algum do lote tem vínculo: tenta um por um
+        for (const id of lote) if (!(await apagar([id]))) presos.push(id);
+      }
+    } finally {
+      setExcluindo(null);
+      invalidar(table);
+    }
+    setSel(new Set(presos));
+    if (presos.length) {
+      notify(`${feitos} excluído(s). ${presos.length} não puderam ser excluídos porque têm pedidos, notas, contas ou outros registros ligados (continuam selecionados).`, "erro");
+    } else notify(`${feitos} ${plural} excluído(s)`);
+  }
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -101,8 +180,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   // Exporta o que está na tela (respeita a busca), com os nomes dos campos do formulário
   function exportar() {
     const campos = fields.filter((f) => f.type !== "secao" && f.type !== "custom");
-    const linhas = filtrados.length
-      ? filtrados.map((r: any) => Object.fromEntries(campos.map((f) => {
+    const base = sel.size ? filtrados.filter((r) => sel.has(r.id)) : filtrados;
+    const linhas = base.length
+      ? base.map((r: any) => Object.fromEntries(campos.map((f) => {
         const v = r[f.name];
         const opcao = f.options?.find((o) => String(o.value) === String(v));
         return [f.label, opcao ? opcao.label : celula(v)];
@@ -117,26 +197,77 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       <PageHeader
         title={title}
         actions={<>
-          <Button variant="secondary" onClick={exportar} title={filtrados.length ? "Baixar planilha do Excel" : "Baixar o modelo da planilha (lista vazia)"}><FileDown size={16} /> {filtrados.length ? "Exportar" : "Baixar modelo"}</Button>
+          <Button variant="secondary" onClick={exportar} title={filtrados.length ? "Baixar planilha do Excel (o que está filtrado, ou só os selecionados)" : "Baixar o modelo da planilha (lista vazia)"}>
+            <FileDown size={16} /> {sel.size ? `Exportar ${sel.size} selecionado(s)` : filtrados.length ? "Exportar" : "Baixar modelo"}
+          </Button>
           {extraActions}
           {!readOnly && <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
         </>}
       />
 
-      <div className="relative mb-3 max-w-md">
-        <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-        <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="mb-3 flex flex-wrap items-end gap-2">
+        <div className="relative w-full max-w-md">
+          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+          <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        {filtros.map((f, i) => (
+          <select key={f.label} className={`input !w-auto max-w-[14rem] ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
+            value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
+            <option value="">{f.label}: todos</option>
+            {"valor" in f
+              ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
+              : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+          </select>
+        ))}
+        {ordens.length > 1 && (
+          <select className="input !w-auto" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
+            {ordens.map((o, i) => <option key={o.label} value={i}>Ordem: {o.label}</option>)}
+          </select>
+        )}
+        {(filtrosAtivos > 0 || busca) && (
+          <button type="button" className="px-2 py-2 text-sm text-brand hover:underline" onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
+        )}
+      </div>
+
+      <div className="mb-2 flex min-h-[2.25rem] flex-wrap items-center gap-2 text-sm text-slate-500">
+        <span>{filtrados.length === data.length ? `${data.length} ${plural}` : `${filtrados.length} de ${data.length} ${plural}`}</span>
+        {sel.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-1 text-fg">
+            <b>{sel.size} selecionado(s)</b>
+            {acoesLote.map((a) => (
+              <Button key={a.label} variant="ghost" disabled={!!excluindo} onClick={async () => {
+                setExcluindo(`${a.label.toLowerCase()}…`);
+                try { notify((await a.executar([...sel])) || "Feito"); setSel(new Set()); invalidar(table); } catch (e) { notifyError(e); } finally { setExcluindo(null); }
+              }}>{a.label}</Button>
+            ))}
+            {podeExcluir && (
+              <Button variant="ghost" className="!text-red-600" disabled={!!excluindo} onClick={excluirSelecionados}>
+                <Trash2 size={15} /> {excluindo ? `Excluindo ${excluindo}` : "Excluir"}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setSel(new Set())}><X size={15} /> Limpar seleção</Button>
+          </div>
+        )}
       </div>
 
       <Table
         empty={!isLoading && filtrados.length === 0}
         head={<>
+          {selecionavel && (
+            <th className="th w-10">
+              <input type="checkbox" className="h-4 w-4" checked={todosMarcados} onChange={marcarTodos}
+                title={`Selecionar os ${filtrados.length} da lista`} aria-label="Selecionar todos" />
+            </th>
+          )}
           {columns.map((c) => <th key={c.label} className={`th ${c.className ?? ""}`}>{c.label}</th>)}
           <th className="th" />
         </>}
       >
-        {filtrados.map((row) => (
-          <tr key={row.id} className="hover:bg-slate-50">
+        {filtrados.slice(0, limite).map((row) => (
+          <tr key={row.id} className={`hover:bg-slate-50 ${sel.has(row.id) ? "bg-brand-light/40" : ""}`}>
+            {selecionavel && (
+              <td className="td w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
+            )}
             {columns.map((c) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}</td>)}
             <td className="td whitespace-nowrap text-right">
               {rowActions?.(row)}
@@ -145,6 +276,13 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           </tr>
         ))}
       </Table>
+      {filtrados.length > limite && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="secondary" onClick={() => setLimite((l) => l + POR_VEZ)}>
+            Mostrar mais ({filtrados.length - limite} restantes)
+          </Button>
+        </div>
+      )}
 
       <Modal open={!!editando} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (

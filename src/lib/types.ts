@@ -3,7 +3,7 @@ export type Cliente = {
   inscricao_estadual: string | null; contribuinte_icms: number; email: string | null;
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
-  uf: string | null; observacoes: string | null; avisos_email?: boolean;
+  uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string;
 };
 
 export type Produto = {
@@ -74,8 +74,8 @@ export type KitComponente = { id: string; kit_id: string; componente_id: string;
 export type EscolhaKit = { componente_id: string; quantidade: number }[];
 
 type Endereco = { cep?: string | null; logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null; municipio: string | null; uf: string | null };
-export type Fornecedor = Endereco & { id: string; codigo?: number | null; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null };
-export type Transportadora = Endereco & { id: string; codigo?: number | null; nome: string; nome_fantasia?: string | null; cnpj?: string | null; inscricao_estadual?: string | null; contato?: string | null; whatsapp: string | null; telefone: string | null; email: string | null; regioes: string | null; ativo: boolean };
+export type Fornecedor = Endereco & { id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null };
+export type Transportadora = Endereco & { id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj?: string | null; inscricao_estadual?: string | null; contato?: string | null; whatsapp: string | null; telefone: string | null; email: string | null; regioes: string | null; ativo: boolean };
 
 export type OrdemProducao = {
   id: string; numero: number; produto_id: string; quantidade: number; status: string; previsao: string | null;
