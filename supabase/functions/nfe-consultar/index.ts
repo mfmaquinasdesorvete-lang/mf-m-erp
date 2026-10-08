@@ -4,10 +4,11 @@
 // POST { nota_id, acao: "carta_correcao", correcao }           -> carta de correção eletrônica (CC-e)
 // POST { nota_id, acao: "reenviar" }                           -> reenvia agora uma nota da fila de contingência
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
+// POST { acao: "ambiente" }                                   -> "producao" ou "homologacao" (para avisar na tela)
 // POST { acao: "importar_xml", xmls: string[] }                -> NF-e emitidas em outro sistema (ex.: Tiny) e seus cancelamentos
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { codigoUnidade, focus, focusUrl } from "../_shared/focusnfe.ts";
+import { codigoUnidade, focus, focusProducao, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
@@ -23,6 +24,8 @@ Deno.serve(async (req) => {
     const { nota_id, acao = "consultar" } = corpo;
     const db = adminClient();
     const { userId } = await requireErpUser(req, ["inutilizar", "importar_xml"].includes(acao) ? ["financeiro"] : ["vendas", "financeiro"]);
+
+    if (acao === "ambiente") return json({ ok: true, ambiente: focusProducao() ? "producao" : "homologacao" });
 
     if (acao === "importar_xml") {
       const xmls = corpo.xmls;

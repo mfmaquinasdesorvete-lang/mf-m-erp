@@ -1420,6 +1420,7 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true, nota };
   },
   "nfe-consultar": (b) => {
+    if (b.acao === "ambiente") return { ok: true, ambiente: "homologacao" };
     if (b.acao === "importar_xml") {
       return { ok: true, resultados: (b.xmls as string[]).map((xml) => {
         const x = lerXmlDemo(xml);

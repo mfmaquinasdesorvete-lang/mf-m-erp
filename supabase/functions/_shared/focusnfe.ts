@@ -7,7 +7,11 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError } from "./supabase.ts";
 
-export const focusProducao = () => Deno.env.get("FOCUS_NFE_ENV")?.trim().toLowerCase() === "producao";
+/** FOCUS_NFE_ENV = "producao" (aceita também "produção", "PRODUCAO", "production"). */
+export const focusProducao = () => {
+  const v = (Deno.env.get("FOCUS_NFE_ENV") ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return v === "producao" || v === "production" || v === "prod";
+};
 
 export const focusBaseUrl = () =>
   focusProducao() ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";

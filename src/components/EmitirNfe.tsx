@@ -1,6 +1,7 @@
 // Notas fiscais → Emitir NF-e: lista os pedidos aprovados que ainda não têm nota,
 // confere o cadastro (mesma conferência do pedido) e manda para a SEFAZ.
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
 import { Button, Modal, Table } from "./ui";
@@ -25,6 +26,10 @@ export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
   const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
   const [conferindo, setConferindo] = useState<{ pedido: Pedido; pendencias: Pendencia[] } | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const { data: ambiente } = useQuery({
+    queryKey: ["nfe-ambiente"], staleTime: 60_000,
+    queryFn: async () => (await callFunction<{ ambiente: string }>("nfe-consultar", { acao: "ambiente" })).ambiente,
+  });
 
   const pendentes = filtrar(pedidosTodos).filter((p) => p.status === "aprovado" && !(p.notas ?? []).some((n) => n.ambiente !== "homologacao" && COM_NOTA.includes(n.status)));
 
@@ -73,6 +78,11 @@ export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal open onClose={onClose} title="Emitir NF-e" wide>
+      {ambiente && (
+        <p className={`mb-3 rounded-lg px-3 py-2 text-sm font-semibold ${ambiente === "producao" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
+          {ambiente === "producao" ? "Ambiente de PRODUÇÃO: a nota é real, tem valor fiscal e vai para o cliente." : "Ambiente de HOMOLOGAÇÃO (teste): a nota não tem valor fiscal."}
+        </p>
+      )}
       <p className="mb-3 text-sm text-slate-600">
         A NF-e de venda sai de um pedido aprovado (ele já tem cliente, itens, frete e pagamento). Estes são os pedidos aprovados que ainda não têm nota:
       </p>
