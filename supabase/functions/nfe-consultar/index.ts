@@ -4,11 +4,13 @@
 // POST { nota_id, acao: "carta_correcao", correcao }           -> carta de correção eletrônica (CC-e)
 // POST { nota_id, acao: "reenviar" }                           -> reenvia agora uma nota da fila de contingência
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
+// POST { acao: "importar_xml", xmls: string[] }                -> NF-e emitidas em outro sistema (ex.: Tiny) e seus cancelamentos
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { codigoUnidade, focus, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
+import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
 
 const msgFocus = (b: any, padrao: string) =>
   [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
@@ -20,7 +22,17 @@ Deno.serve(async (req) => {
     const corpo = await req.json();
     const { nota_id, acao = "consultar" } = corpo;
     const db = adminClient();
-    const { userId } = await requireErpUser(req, acao === "inutilizar" ? ["financeiro"] : ["vendas", "financeiro"]);
+    const { userId } = await requireErpUser(req, ["inutilizar", "importar_xml"].includes(acao) ? ["financeiro"] : ["vendas", "financeiro"]);
+
+    if (acao === "importar_xml") {
+      const xmls = corpo.xmls;
+      if (!Array.isArray(xmls) || !xmls.length || xmls.length > 50 || xmls.some((x) => typeof x !== "string" || x.length > 3_000_000)) {
+        throw new HttpError(400, "envie de 1 a 50 XML por vez");
+      }
+      const resultados = [];
+      for (const xml of xmls) resultados.push(await importarXmlEmitida(db, xml));
+      return json({ ok: true, resultados });
+    }
 
     if (acao === "inutilizar") {
       const { unidade_id, justificativa } = corpo;

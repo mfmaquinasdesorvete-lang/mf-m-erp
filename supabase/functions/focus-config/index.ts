@@ -4,9 +4,11 @@
 //                               a unidade que a Focus recusar volta em "falhas" sem impedir as outras
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { focusJson, focusProducao } from "../_shared/focusnfe.ts";
+import { focusJson, focusProducao, type OpcoesFocus, recebidasDisponiveis } from "../_shared/focusnfe.ts";
 
 const EVENTOS = ["nfe", "nfe_recebida"];
+/** As notas recebidas ficam em produção mesmo com a emissão em homologação: o gatilho delas também. */
+const opcoes = (evento: string): OpcoesFocus => (evento === "nfe_recebida" && recebidasDisponiveis() ? { recebidas: true } : {});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -22,10 +24,20 @@ Deno.serve(async (req) => {
     if (!lista.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
 
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/focus-webhook`;
-    /** Gatilhos de uma unidade, consultados com o token dela (cada CNPJ tem o seu na Focus). */
+    /** Gatilhos de uma unidade, consultados com o token dela (cada CNPJ tem o seu na Focus), no ambiente de cada evento. */
     const gatilhos = async (u: (typeof lista)[number]) => {
-      const hooks = await focusJson<any[]>(`/v2/hooks`, {}, u.codigo);
-      return (Array.isArray(hooks) ? hooks : []).filter((h) => onlyDigits(h.cnpj) === u.cnpj && h.url === url);
+      const porAmbiente = new Map<string, any[]>();
+      const achados: any[] = [];
+      for (const evento of EVENTOS) {
+        const op = opcoes(evento);
+        const k = op.recebidas ? "recebidas" : "padrao";
+        if (!porAmbiente.has(k)) {
+          const hooks = await focusJson<any[]>(`/v2/hooks`, {}, u.codigo, op);
+          porAmbiente.set(k, (Array.isArray(hooks) ? hooks : []).filter((h) => onlyDigits(h.cnpj) === u.cnpj && h.url === url));
+        }
+        achados.push(...porAmbiente.get(k)!.filter((h) => h.event === evento));
+      }
+      return achados;
     };
     // Cada unidade separada: uma filial ainda sem token não impede a matriz
     const situacao = async () => {
@@ -61,7 +73,7 @@ Deno.serve(async (req) => {
             const r = await focusJson(`/v2/hooks`, {
               method: "POST",
               body: JSON.stringify({ cnpj: u.cnpj, event, url, authorization: token }),
-            }, u.codigo);
+            }, u.codigo, opcoes(event));
             if (r?.erros || r?.codigo) throw new HttpError(422, r.mensagem || `falha ao criar o gatilho ${event}`);
             criados.push(`${event}:${u.cnpj}`);
           }

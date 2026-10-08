@@ -6,6 +6,7 @@
 // POST { acao: "lancar_conta", nfe_id, vencimento? }  -> contas a pagar pelas duplicatas do XML
 // POST { acao: "xml", chave }                         -> devolve o XML da nota
 // POST { acao: "importar_xml", xml }                  -> nota de compra pelo arquivo XML (entra no estoque/contas)
+// POST { acao: "importar_xmls", xmls: string[] }       -> várias de uma vez (ex.: .zip do sistema anterior), resultado por arquivo
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import {
@@ -94,6 +95,27 @@ Deno.serve(async (req) => {
         const r = await importarXml(db, body.xml);
         const { data } = await db.from("nfe_recebidas").select("processamento, processamento_msg").eq("id", r.id).single();
         return json({ ok: true, ...r, ...data });
+      }
+
+      case "importar_xmls": {
+        const xmls = body.xmls;
+        if (!Array.isArray(xmls) || !xmls.length || xmls.length > 50 || xmls.some((x: unknown) => typeof x !== "string" || x.length > 3_000_000)) {
+          throw new HttpError(400, "envie de 1 a 50 XML por vez");
+        }
+        const resultados = [];
+        for (const xml of xmls as string[]) {
+          try {
+            const r = await importarXml(db, xml);
+            const { data } = await db.from("nfe_recebidas").select("processamento, processamento_msg, situacao").eq("id", r.id).single();
+            resultados.push({
+              situacao: r.ja_existia ? "atualizada" : "importada", numero: r.numero, emitente: r.emitente,
+              processamento: data?.processamento, mensagem: data?.processamento_msg, cancelada: data?.situacao === "cancelada",
+            });
+          } catch (e) {
+            resultados.push({ situacao: e instanceof HttpError && e.status < 500 ? "ignorada" : "erro", mensagem: (e as Error).message });
+          }
+        }
+        return json({ ok: true, resultados });
       }
 
       case "xml": {

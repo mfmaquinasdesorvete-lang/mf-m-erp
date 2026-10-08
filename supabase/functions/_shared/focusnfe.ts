@@ -2,6 +2,8 @@
 // Secrets: FOCUS_NFE_TOKEN, FOCUS_NFE_ENV ("homologacao" | "producao")
 // Cada CNPJ tem o seu token na Focus: a unidade usa FOCUS_NFE_TOKEN_<código> (ex.: FOCUS_NFE_TOKEN_SP)
 // e, se ele não existir, o FOCUS_NFE_TOKEN geral (o da matriz).
+// NF-e recebidas de fornecedores só existem em produção (a homologação da SEFAZ não tem notas reais):
+// enquanto a emissão está em homologação, elas usam FOCUS_NFE_TOKEN_PRODUCAO(_<código>).
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError } from "./supabase.ts";
 
@@ -28,11 +30,32 @@ export async function codigoUnidade(db: SupabaseClient, unidadeId?: string | nul
   return codigos.get(unidadeId) ?? null;
 }
 
-export async function focus(path: string, init: RequestInit = {}, codigo?: string | null): Promise<Response> {
-  const token = focusToken(codigo);
-  if (!token) throw new HttpError(500, "FOCUS_NFE_TOKEN não configurado");
+/** Token de produção da unidade para as notas recebidas (ou null se não houver). */
+const tokenProducao = (codigo?: string | null) =>
+  (codigo ? limpo(Deno.env.get(`FOCUS_NFE_TOKEN_PRODUCAO_${codigo.trim().toUpperCase()}`)) : null)
+  ?? limpo(Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO"))
+  ?? (focusProducao() ? focusToken(codigo) : null);
 
-  return fetch(focusBaseUrl() + path, {
+/** As notas recebidas podem ser buscadas (produção ligada ou token de produção cadastrado). */
+export const recebidasDisponiveis = () => focusProducao() || !!limpo(Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO"));
+
+export type OpcoesFocus = { /** chamada de NF-e recebidas (sempre em produção) */ recebidas?: boolean };
+
+function conexao(codigo?: string | null, op: OpcoesFocus = {}) {
+  const cod = codigo?.trim().toUpperCase();
+  if (op.recebidas && !focusProducao()) {
+    const especifico = cod && limpo(Deno.env.get(`FOCUS_NFE_TOKEN_PRODUCAO_${cod}`)) ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : "FOCUS_NFE_TOKEN_PRODUCAO";
+    return { base: "https://api.focusnfe.com.br", token: tokenProducao(codigo), secret: especifico, producao: true };
+  }
+  const especifico = cod && Deno.env.get(`FOCUS_NFE_TOKEN_${cod}`) !== undefined ? `FOCUS_NFE_TOKEN_${cod}` : "FOCUS_NFE_TOKEN";
+  return { base: focusBaseUrl(), token: focusToken(codigo), secret: especifico, producao: focusProducao() };
+}
+
+export async function focus(path: string, init: RequestInit = {}, codigo?: string | null, op: OpcoesFocus = {}): Promise<Response> {
+  const { base, token, secret } = conexao(codigo, op);
+  if (!token) throw new HttpError(500, `${secret} não configurado no Supabase`);
+
+  return fetch(base + path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -42,21 +65,25 @@ export async function focus(path: string, init: RequestInit = {}, codigo?: strin
   });
 }
 
-export async function focusJson<T = any>(path: string, init: RequestInit = {}, codigo?: string | null): Promise<T> {
-  const res = await focus(path, init, codigo);
+export async function focusJson<T = any>(path: string, init: RequestInit = {}, codigo?: string | null, op: OpcoesFocus = {}): Promise<T> {
+  const res = await focus(path, init, codigo, op);
   const body = await res.json().catch(() => ({}));
-  if (res.status === 401 || res.status === 403) {
-    const msg = String(body?.mensagem || "A Focus recusou o token").replace(/\.+$/, "");
-    const secret = codigo && Deno.env.get(`FOCUS_NFE_TOKEN_${codigo.trim().toUpperCase()}`) !== undefined ? `FOCUS_NFE_TOKEN_${codigo.trim().toUpperCase()}` : "FOCUS_NFE_TOKEN";
-    const dica = /cnpj/i.test(msg)
-      ? `O token é de outra empresa cadastrada na Focus: cadastre no Supabase o token desta unidade${codigo ? ` como FOCUS_NFE_TOKEN_${codigo.trim().toUpperCase()}` : ""}`
-      : `Confira se o ${secret} no Supabase é o Token ${focusProducao() ? "de Produção" : "de Homologação"} da Focus`;
-    throw new HttpError(502, `${msg}. ${dica}.`);
-  }
+  if (res.status === 401 || res.status === 403) throw erroDeToken(body, codigo, op);
   if (!res.ok && res.status !== 422) {
     throw new HttpError(502, body?.mensagem || `Focus NFe HTTP ${res.status}`);
   }
   return body as T;
+}
+
+/** Token recusado pela Focus: diz qual secret conferir. */
+export function erroDeToken(body: any, codigo?: string | null, op: OpcoesFocus = {}) {
+  const { secret, producao } = conexao(codigo, op);
+  const cod = codigo?.trim().toUpperCase();
+  const msg = String(body?.mensagem || "A Focus recusou o token").replace(/\.+$/, "");
+  const dica = /cnpj/i.test(msg)
+    ? `O token é de outra empresa cadastrada na Focus: cadastre no Supabase o token desta unidade${cod ? ` como ${op.recebidas && !focusProducao() ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : `FOCUS_NFE_TOKEN_${cod}`}` : ""}`
+    : `Confira se o ${secret} no Supabase é o Token ${producao ? "de Produção" : "de Homologação"} da Focus`;
+  return new HttpError(502, `${msg}. ${dica}.`);
 }
 
 /** Os caminhos de XML/DANFE vêm relativos; transforma em URL absoluta. */

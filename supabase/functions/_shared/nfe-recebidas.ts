@@ -3,7 +3,7 @@
 // e pelo agendamento (nfe-processar).
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError, onlyDigits } from "./supabase.ts";
-import { codigoUnidade, focus, focusJson } from "./focusnfe.ts";
+import { codigoUnidade, erroDeToken, focus, focusJson, recebidasDisponiveis } from "./focusnfe.ts";
 import { type Duplicata, type ItemNota, lerCabecalho, lerNfe } from "./nfe-xml.ts";
 
 export type RecebidaFocus = {
@@ -56,7 +56,7 @@ export async function manifestar(db: SupabaseClient, chave: string, tipo: string
   const res = await focusJson(`/v2/nfes_recebidas/${chave}/manifesto`, {
     method: "POST",
     body: JSON.stringify({ tipo, justificativa }),
-  }, await codigoDaChave(db, chave));
+  }, await codigoDaChave(db, chave), { recebidas: true });
   if (res.status && res.status !== "evento_registrado") {
     throw new HttpError(422, res.mensagem_sefaz || res.mensagem || "manifestação rejeitada");
   }
@@ -66,7 +66,7 @@ export async function manifestar(db: SupabaseClient, chave: string, tipo: string
 
 /** Baixa o XML da nota na Focus. Só existe depois da ciência da operação. */
 export async function baixarXml(db: SupabaseClient, chave: string): Promise<string | null> {
-  const res = await focus(`/v2/nfes_recebidas/${chave}.xml`, {}, await codigoDaChave(db, chave));
+  const res = await focus(`/v2/nfes_recebidas/${chave}.xml`, {}, await codigoDaChave(db, chave), { recebidas: true });
   if (!res.ok) return null;
   const xml = await res.text();
   return xml.includes("<infNFe") ? xml : null;
@@ -132,7 +132,13 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
 // Outras operações (remessa p/ conserto, demonstração, comodato, devolução…) vão para revisão manual.
 const CFOP_COMPRA = /^(51|54|61|64|71)/;
 
-type Config = { entrada_automatica_estoque: boolean; conta_pagar_automatica: boolean };
+type Config = {
+  entrada_automatica_estoque: boolean; conta_pagar_automatica: boolean;
+  /** Notas de fornecedor emitidas antes desta data já foram lançadas no sistema anterior: não entram sozinhas. */
+  recebidas_processar_desde?: string | null;
+};
+/** Campos de configuracoes usados no processamento automático. */
+export const CONFIG_RECEBIDAS = "entrada_automatica_estoque, conta_pagar_automatica, recebidas_processar_desde";
 
 /**
  * Processa uma NF-e recebida: ciência -> XML -> contas a pagar -> entrada no estoque.
@@ -150,6 +156,9 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
       return await marcar("ignorada", "Nota cancelada ou não reconhecida");
     }
     if (nfe.estoque_lancado) return await marcar("concluido", null);
+    if (cfg.recebidas_processar_desde && nfe.data_emissao && String(nfe.data_emissao).slice(0, 10) < cfg.recebidas_processar_desde) {
+      return await marcar("ignorada", "Histórico: já lançada no sistema anterior.");
+    }
 
     // A ciência libera o XML. Se já foi dada por fora (ex.: painel da Focus), a SEFAZ recusa a repetição: segue assim mesmo.
     if (!nfe.manifestacao && nfe.origem !== "xml") await manifestar(db, nfe.chave, "ciencia").catch(() => null);
@@ -189,8 +198,7 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
 
 /** Processa as notas pendentes (no máximo `limite` por execução). */
 export async function processarPendentes(db: SupabaseClient, limite = 20) {
-  const { data: cfg } = await db.from("configuracoes")
-    .select("entrada_automatica_estoque, conta_pagar_automatica").eq("id", 1).single();
+  const { data: cfg } = await db.from("configuracoes").select(CONFIG_RECEBIDAS).eq("id", 1).single();
   if (!cfg) return 0;
   const { data: notas } = await db.from("nfe_recebidas").select("*")
     .in("processamento", ["pendente", "aguardando_xml"])
@@ -215,6 +223,10 @@ export async function unidadePorCnpj(db: SupabaseClient, cnpj: string | null | u
  * sem impedir as outras; só dá erro se nenhuma unidade funcionar.
  */
 export async function sincronizarRecebidas(db: SupabaseClient, avisos: string[] = []) {
+  if (!recebidasDisponiveis()) {
+    throw new HttpError(400, "As notas de fornecedores só existem no ambiente de produção da SEFAZ (a homologação não tem notas reais). " +
+      "Cadastre no Supabase o secret FOCUS_NFE_TOKEN_PRODUCAO com o Token de Produção da Focus (matriz) e busque de novo.");
+  }
   const { data: unidades } = await db.from("unidades").select("id, codigo, nome, cnpj").eq("ativo", true);
   const comCnpj = (unidades ?? []).filter((u: any) => onlyDigits(u.cnpj).length === 14);
   if (!comCnpj.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
@@ -240,9 +252,10 @@ async function sincronizarCnpj(db: SupabaseClient, cnpj: string, unidadeId: stri
   let processadas = 0;
 
   for (let pagina = 0; pagina < 50; pagina++) {
-    const res = await focus(`/v2/nfes_recebidas?cnpj=${cnpj}&versao=${versao}`, {}, codigo);
+    const res = await focus(`/v2/nfes_recebidas?cnpj=${cnpj}&versao=${versao}`, {}, codigo, { recebidas: true });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) throw erroDeToken(err, codigo, { recebidas: true });
       throw new HttpError(502, err.mensagem || `Focus NFe HTTP ${res.status}`);
     }
     const lista = (await res.json()) as RecebidaFocus[];
@@ -266,10 +279,12 @@ async function sincronizarCnpj(db: SupabaseClient, cnpj: string, unidadeId: stri
 /**
  * Importa uma NF-e de compra pelo XML (arquivo enviado na tela ou anexo de e-mail).
  * A nota entra no mesmo fluxo das que vêm da SEFAZ: contas a pagar e entrada no estoque.
+ * A emitida antes de configuracoes.recebidas_processar_desde fica só como histórico.
  */
 export async function importarXml(db: SupabaseClient, xml: string) {
   if (!xml.includes("<infNFe")) throw new HttpError(400, "o arquivo não é o XML de uma NF-e");
-  const cab = lerCabecalho(xml);
+  let cab;
+  try { cab = lerCabecalho(xml); } catch (e) { throw new HttpError(400, (e as Error).message); }
   const unidadeId = await unidadePorCnpj(db, cab.destinatario_cnpj);
   if (!unidadeId) {
     throw new HttpError(400, `esta nota não é para a MF (destinatário ${cab.destinatario_cnpj ?? "sem CNPJ"}). Confira o CNPJ das unidades.`);
@@ -279,12 +294,12 @@ export async function importarXml(db: SupabaseClient, xml: string) {
   await salvarRecebida(db, {
     chave_nfe: cab.chave, nome_emitente: cab.emitente_nome, documento_emitente: cab.emitente_cnpj,
     valor_total: cab.valor_total, data_emissao: cab.data_emissao ?? new Date().toISOString(),
-    situacao: "autorizada", manifestacao_destinatario: null, nfe_completa: true,
+    situacao: cab.situacao === "cancelada" ? "cancelada" : "autorizada", manifestacao_destinatario: null, nfe_completa: true,
   }, unidadeId);
   const { data: nfe } = await db.from("nfe_recebidas")
     .update({ xml, ...(existente ? {} : { origem: "xml" }), processamento: "pendente", tentativas: 0 })
     .eq("chave", cab.chave).select("*").single();
-  const { data: cfg } = await db.from("configuracoes").select("entrada_automatica_estoque, conta_pagar_automatica").eq("id", 1).single();
+  const { data: cfg } = await db.from("configuracoes").select(CONFIG_RECEBIDAS).eq("id", 1).single();
   if (nfe && cfg) await processarNota(db, nfe, cfg);
   return { id: nfe?.id as string, ja_existia: !!existente, numero: cab.numero, emitente: cab.emitente_nome };
 }

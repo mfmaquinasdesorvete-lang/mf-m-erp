@@ -14,6 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
     "@tanstack/react-query": "^5.83.0",
+    "fflate": "^0.8.2",
     "jsbarcode": "^3.12.3",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",

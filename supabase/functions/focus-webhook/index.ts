@@ -6,7 +6,7 @@
 import { json } from "../_shared/cors.ts";
 import { adminClient } from "../_shared/supabase.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
-import { processarNota, salvarRecebida, unidadePorCnpj } from "../_shared/nfe-recebidas.ts";
+import { CONFIG_RECEBIDAS, processarNota, salvarRecebida, unidadePorCnpj } from "../_shared/nfe-recebidas.ts";
 
 Deno.serve(async (req) => {
   const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN")?.trim();
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // liberado pela SEFAZ, o agendamento (nfe-processar) tenta de novo depois.
     const [{ data: nfe }, { data: cfg }] = await Promise.all([
       db.from("nfe_recebidas").select("*").eq("chave", body.chave_nfe).single(),
-      db.from("configuracoes").select("entrada_automatica_estoque, conta_pagar_automatica").eq("id", 1).single(),
+      db.from("configuracoes").select(CONFIG_RECEBIDAS).eq("id", 1).single(),
     ]);
     if (nfe && cfg && ["pendente", "aguardando_xml"].includes(nfe.processamento)) await processarNota(db, nfe, cfg);
   }

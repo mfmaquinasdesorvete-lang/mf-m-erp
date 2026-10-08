@@ -9,6 +9,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError } from "../_shared/supabase.ts";
 import { focusBaseUrl, focusToken, focusUrl } from "../_shared/focusnfe.ts";
 import { baixarXml } from "../_shared/nfe-recebidas.ts";
+import { lerNfe } from "../_shared/nfe-xml.ts";
 import { enviarEmail } from "../_shared/email.ts";
 
 type Db = ReturnType<typeof adminClient>;
@@ -59,16 +60,17 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
 
   // NF-e emitidas no mês (autorizadas e canceladas)
   const { data: notas } = await db.from("notas_fiscais")
-    .select("id, numero, serie, chave, status, valor_total, created_at, xml_url, danfe_url, resposta, payload, pedido:pedidos(numero, cliente:clientes(nome, cpf_cnpj, uf))")
+    .select("id, numero, serie, chave, status, valor_total, created_at, xml_url, danfe_url, resposta, payload, destinatario_nome, destinatario_doc, pedido:pedidos(numero, cliente:clientes(nome, cpf_cnpj, uf)), importado:notas_fiscais_xml(xml, xml_cancelamento)")
     .eq("unidade_id", unidadeId).gte("created_at", ini).lt("created_at", fim).in("status", ["autorizada", "cancelada"]);
   const cfops = new Map<string, { base: number; icms: number; ipi: number; pis: number; cofins: number; valor: number; n: number }>();
   for (const n of notas ?? []) {
     const nome = n.chave || `nota-${n.numero}`;
-    const xml = await baixar(n.xml_url, u.codigo);
+    const imp = (Array.isArray(n.importado) ? n.importado[0] : n.importado) as { xml: string; xml_cancelamento: string | null } | null;
+    const xml = imp?.xml ?? await baixar(n.xml_url, u.codigo);
     if (xml) arquivos[`saidas/${n.status === "cancelada" ? "canceladas/" : ""}${nome}.xml`] = strToU8(xml);
     else faltando.push(`XML da NF-e ${n.numero ?? n.id}`);
     if (n.status === "cancelada") {
-      const canc = await baixar(focusUrl(n.resposta?.caminho_xml_cancelamento), u.codigo);
+      const canc = imp?.xml_cancelamento ?? await baixar(focusUrl(n.resposta?.caminho_xml_cancelamento), u.codigo);
       if (canc) arquivos[`saidas/canceladas/${nome}-cancelamento.xml`] = strToU8(canc);
       continue;
     }
@@ -89,13 +91,16 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
   for (const i of inut ?? []) { const x = await baixar(i.xml_url, u.codigo); if (x) arquivos[`saidas/inutilizacoes/serie${i.serie}-${i.numero_inicial}-${i.numero_final}.xml`] = strToU8(x); }
 
   // NF-e recebidas (entradas)
-  const { data: recebidas } = await db.from("nfe_recebidas").select("id, chave, numero, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, xml, itens")
+  const { data: recebidas } = await db.from("nfe_recebidas").select("id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, xml, itens")
     .eq("unidade_id", unidadeId).gte("data_emissao", ini).lt("data_emissao", fim);
   const entradas = new Map<string, { valor: number; n: number }>();
   for (const r of recebidas ?? []) {
     const xml = r.xml || await baixarXml(db, r.chave);
     if (xml) arquivos[`entradas/${r.chave}.xml`] = strToU8(xml); else faltando.push(`XML da nota de ${r.emitente_nome} (${r.chave})`);
-    for (const i of (r.itens ?? []) as any[]) {
+    // nota antiga importada do XML ainda sem itens lidos: lê do próprio XML
+    let itens = (r.itens ?? []) as any[];
+    if (!itens.length && xml) try { itens = lerNfe(xml).itens; } catch (_) { /* XML ilegível: fica sem o resumo por CFOP */ }
+    for (const i of itens) {
       const k = i.cfop ?? "sem CFOP";
       const e = entradas.get(k) ?? { valor: 0, n: 0 };
       e.valor += Number(i.valor_total ?? 0); e.n++;
@@ -115,9 +120,9 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
     ...[...cfops.entries()].sort().map(([k, c]) => [k, c.n, c.valor, c.base, c.icms, c.ipi, c.pis, c.cofins])]));
   arquivos["entradas-por-cfop.csv"] = strToU8(csv([["CFOP do fornecedor", "Itens", "Valor dos produtos"], ...[...entradas.entries()].sort().map(([k, e]) => [k, e.n, e.valor])]));
   arquivos["notas-emitidas.csv"] = strToU8(csv([["Número", "Série", "Chave", "Data", "Situação", "Destinatário", "CPF/CNPJ", "UF", "Valor"],
-    ...(notas ?? []).map((n: any) => [n.numero, n.serie, n.chave, n.created_at.slice(0, 10), n.status, n.pedido?.cliente?.nome, n.pedido?.cliente?.cpf_cnpj, n.pedido?.cliente?.uf, Number(n.valor_total)])]));
+    ...(notas ?? []).map((n: any) => [n.numero, n.serie, n.chave, n.created_at.slice(0, 10), n.status, n.pedido?.cliente?.nome ?? n.destinatario_nome, n.pedido?.cliente?.cpf_cnpj ?? n.destinatario_doc, n.pedido?.cliente?.uf ?? n.payload?.uf_destinatario, Number(n.valor_total)])]));
   arquivos["notas-recebidas.csv"] = strToU8(csv([["Número", "Chave", "Emissão", "Fornecedor", "CNPJ", "Valor", "Situação", "Manifestação"],
-    ...(recebidas ?? []).map((r) => [r.numero, r.chave, r.data_emissao?.slice(0, 10), r.emitente_nome, r.emitente_cnpj, Number(r.valor_total), r.situacao, r.manifestacao])]));
+    ...(recebidas ?? []).map((r) => [r.chave.slice(25, 34).replace(/^0+/, ""), r.chave, r.data_emissao?.slice(0, 10), r.emitente_nome, r.emitente_cnpj, Number(r.valor_total), r.situacao, r.manifestacao])]));
   arquivos["recebimentos.csv"] = strToU8(csv([["Data", "Cliente", "Descrição", "Forma", "Valor recebido"],
     ...(recebido ?? []).map((c: any) => [c.data_pagamento, c.cliente?.nome, c.descricao, c.forma_pagamento, Number(c.valor_pago ?? c.valor)])]));
   arquivos["pagamentos.csv"] = strToU8(csv([["Data", "Fornecedor", "CNPJ", "Descrição", "Categoria", "Documento", "Valor pago"],

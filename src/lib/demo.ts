@@ -26,6 +26,17 @@ export const USUARIOS_DEMO = [
   { user_id: "u-cont", nome: "Escritório Contábil Exemplo", papel: "contador", email: "contador@escritorio.com.br" },
 ];
 
+/** Leitura simples do XML de NF-e para a demonstração. */
+function lerXmlDemo(xml: string) {
+  const tag = (t: string, dentro = xml) => dentro.match(new RegExp(`<${t}>([^<]*)</${t}>`))?.[1] ?? "";
+  const bloco = (t: string) => xml.match(new RegExp(`<${t}[\\s>][\\s\\S]*?</${t}>`))?.[0] ?? "";
+  const chave = xml.match(/Id="NFe(\d{44})"/)?.[1];
+  if (!chave) return null;
+  const emit = bloco("emit"), dest = bloco("dest");
+  return { chave, numero: tag("nNF"), emit: tag("CNPJ", emit), emitente: tag("xNome", emit), dest: tag("CNPJ", dest) || tag("CPF", dest), destNome: tag("xNome", dest),
+    valor: Number(tag("vNF")), data: tag("dhEmi") || quando(0), cancelada: ["101", "151"].includes(tag("cStat", bloco("infProt"))) };
+}
+
 // ---------------------------------------------------------------------
 // Dados de exemplo
 // ---------------------------------------------------------------------
@@ -1365,6 +1376,20 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true, nota };
   },
   "nfe-consultar": (b) => {
+    if (b.acao === "importar_xml") {
+      return { ok: true, resultados: (b.xmls as string[]).map((xml) => {
+        const x = lerXmlDemo(xml);
+        if (!x) return { situacao: "ignorada", mensagem: "não é XML de NF-e" };
+        const u = db.unidades.find((un) => un.cnpj === x.emit);
+        if (!u) return { situacao: "ignorada", numero: x.numero, mensagem: `emitente ${x.emit} não é uma unidade da MF` };
+        const existe = db.notas_fiscais.find((n) => n.chave === x.chave);
+        const n: Row = existe ?? { id: uid(), referencia: `importada-${x.chave}`, origem: "importada", unidade_id: u.id };
+        Object.assign(n, { status: x.cancelada ? "cancelada" : "autorizada", numero: x.numero, serie: "1", chave: x.chave, valor_total: x.valor, created_at: x.data,
+          destinatario_nome: x.destNome, mensagem: "Importada do sistema anterior" });
+        if (!existe) db.notas_fiscais.push(n);
+        return { situacao: existe ? "atualizada" : "importada", numero: x.numero };
+      }) };
+    }
     if (b.acao === "inutilizar") {
       if (!b.justificativa || b.justificativa.trim().length < 15) throw new Error("a justificativa deve ter ao menos 15 caracteres");
       const i = { id: uid(), unidade_id: b.unidade_id, serie: Number(b.serie), numero_inicial: Number(b.numero_inicial), numero_final: Number(b.numero_final),
@@ -1410,6 +1435,22 @@ const funcoes: Record<string, (b: any) => any> = {
   // na prévia as fotos continuam pelo link (não há armazenamento)
   "produtos-fotos": () => ({ copiadas: 0, falharam: 0, restantes: 0 }),
   "nfe-recebidas-sync": (b) => {
+    if (b.acao === "importar_xmls") {
+      const desde = db.configuracoes[0].recebidas_processar_desde ?? hojeISO();
+      return { ok: true, resultados: (b.xmls as string[]).map((xml) => {
+        const x = lerXmlDemo(xml);
+        if (!x) return { situacao: "ignorada", mensagem: "não é XML de NF-e" };
+        if (!db.unidades.some((u) => u.cnpj === x.dest)) return { situacao: "ignorada", numero: x.numero, mensagem: "esta nota não é para a MF" };
+        const existe = db.nfe_recebidas.find((n) => n.chave === x.chave);
+        const historico = x.data.slice(0, 10) < desde;
+        const n: Row = existe ?? { id: uid(), chave: x.chave, created_at: quando(0), conta_pagar_id: null, estoque_lancado: false, origem: "xml" };
+        Object.assign(n, { emitente_nome: x.emitente, emitente_cnpj: x.emit, valor_total: x.valor, data_emissao: x.data, situacao: x.cancelada ? "cancelada" : "autorizada",
+          manifestacao: null, processamento: historico || x.cancelada ? "ignorada" : "pendente",
+          processamento_msg: historico ? "Histórico: já lançada no sistema anterior." : null });
+        if (!existe) db.nfe_recebidas.push(n);
+        return { situacao: existe ? "atualizada" : "importada", numero: x.numero, processamento: n.processamento, cancelada: !!x.cancelada };
+      }) };
+    }
     if (b.acao === "sincronizar") {
       const n: Row = {
         id: uid(), chave: `352610${Date.now()}`.padEnd(44, "7"), emitente_nome: "Refrigeração Andrade Ltda", emitente_cnpj: "11222333000181",

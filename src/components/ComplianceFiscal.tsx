@@ -10,7 +10,7 @@ import { buracosNumeracao, conferirCliente, conferirProduto, conferirUnidade, RE
 import type { Cliente, Produto } from "@/lib/types";
 
 type Nota = { id: string; status: string; numero: string | null; serie: string | null; unidade_id: string | null; valor_total: number; created_at: string; mensagem: string | null; payload?: { items?: Record<string, number>[] } | null };
-type Recebida = { id: string; emitente_nome: string; valor_total: number; data_emissao: string | null; manifestacao: string | null; situacao: string | null };
+type Recebida = { id: string; emitente_nome: string; valor_total: number; data_emissao: string | null; manifestacao: string | null; situacao: string | null; origem: string | null; processamento: string | null };
 
 type Grupo = { titulo: string; itens: Pendencia[]; ok: string };
 
@@ -19,7 +19,7 @@ export function ComplianceFiscal() {
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; status: string }>("pedidos", { select: "cliente_id, created_at, status" });
   const { data: notas = [] } = useRows<Nota>("notas_fiscais", {});
-  const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", {});
+  const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", { select: "id, emitente_nome, valor_total, data_emissao, manifestacao, situacao, origem, processamento" });
   const { data: ufs = [] } = useRows<{ uf: string; aliquota_interna: number }>("icms_uf", { order: "uf", ascending: true });
   const { unidades, nome } = useUnidade();
 
@@ -31,7 +31,8 @@ export function ComplianceFiscal() {
     const comMovimento = new Set(pedidos.filter((p) => p.created_at >= limite || p.status === "orcamento").map((p) => p.cliente_id));
     const hoje = Date.now();
     const recebidasPend: Pendencia[] = recebidas
-      .filter((n) => n.situacao !== "cancelada" && n.data_emissao && !["confirmacao", "desconhecimento", "nao_realizada"].includes(n.manifestacao ?? ""))
+      // XML importado (a MF já tem a nota) e histórico do sistema anterior não pedem manifestação aqui
+      .filter((n) => n.situacao !== "cancelada" && n.origem !== "xml" && n.processamento !== "ignorada" && n.data_emissao && !["confirmacao", "desconhecimento", "nao_realizada"].includes(n.manifestacao ?? ""))
       .map((n) => ({ n, dias: Math.floor((hoje - new Date(n.data_emissao!).getTime()) / 864e5) }))
       .filter((x) => x.dias > 30)
       .map(({ n, dias }) => ({ nivel: dias > 150 ? "erro" as const : "alerta" as const,

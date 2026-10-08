@@ -1,28 +1,72 @@
 import { useEffect, useState } from "react";
-import { Ban, Download, ExternalLink, FilePen, PackagePlus, RefreshCw, Send, Upload } from "lucide-react";
+import { Ban, Download, ExternalLink, FilePen, PackagePlus, RefreshCw, Search, Send, Upload } from "lucide-react";
 import { Badge, Button, PageHeader, Table, Tabs } from "@/components/ui";
 import { EntradaEstoqueModal } from "@/components/EntradaEstoqueModal";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { callFunction } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { CartaCorrecaoModal, InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
 import { EmitirNfeModal } from "@/components/EmitirNfe";
 import { ConfigNfe } from "@/components/ConfigNfe";
+import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlNotas";
 
 type Emitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null;
   valor_total: number; xml_url: string | null; danfe_url: string | null; mensagem: string | null; created_at: string;
+  origem?: "erp" | "importada"; destinatario_nome?: string | null;
   pedido?: { numero: number; cliente?: { nome: string } } | null;
 };
 type Recebida = {
   id: string; chave: string; emitente_nome: string; emitente_cnpj: string; valor_total: number; data_emissao: string;
   situacao: string; manifestacao: string | null; conta_pagar_id: string | null;
-  estoque_lancado: boolean; processamento: string; processamento_msg: string | null;
+  estoque_lancado: boolean; processamento: string; processamento_msg: string | null; origem?: string;
 };
+const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem";
+const POR_VEZ = 200;
+const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Busca + "mostrar mais" para listas grandes (as notas importadas do sistema anterior). */
+function useBusca<T>(lista: T[], texto: (x: T) => string) {
+  const [busca, setBusca] = useState("");
+  const [limite, setLimite] = useState(POR_VEZ);
+  const termos = sem(busca).split(/\s+/).filter(Boolean);
+  const filtrada = termos.length ? lista.filter((x) => { const t = sem(texto(x)); return termos.every((p) => t.includes(p)); }) : lista;
+  const campo = (
+    <label className="relative block w-full sm:w-72">
+      <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <input className="input pl-9" placeholder="Buscar nº, nome, CNPJ ou chave" value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(POR_VEZ); }} />
+    </label>
+  );
+  const mais = filtrada.length > limite && (
+    <div className="mt-3 flex items-center justify-center gap-3 text-sm text-slate-500">
+      Mostrando {limite} de {filtrada.length}
+      <Button variant="secondary" onClick={() => setLimite(limite + POR_VEZ)}>Mostrar mais</Button>
+    </div>
+  );
+  return { visiveis: filtrada.slice(0, limite), total: filtrada.length, campo, mais };
+}
+
+function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <Button variant="secondary" onClick={() => setAberto(true)}><Upload size={16} /> {rotulo}</Button>
+      {aberto && <ImportarXmlNotas tipo={tipo} onClose={() => setAberto(false)} />}
+    </>
+  );
+}
+
+async function baixarXmlImportado(n: Emitida) {
+  const { data, error } = await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle();
+  if (error || !data?.xml) return notifyError(error ?? new Error("XML não encontrado"));
+  const url = URL.createObjectURL(new Blob([data.xml], { type: "application/xml" }));
+  Object.assign(document.createElement("a"), { href: url, download: `${n.chave ?? n.numero}.xml` }).click();
+  URL.revokeObjectURL(url);
+}
 
 export default function NotasFiscais() {
   const { pode, papel } = usePerfil();
@@ -47,6 +91,7 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<Emitida>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome)), transferencia:transferencias(numero, destino_id)" });
   const data = filtrar(dataTodos);
+  const { visiveis, campo: campoBusca, mais } = useBusca(data, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.destinatario_nome, n.status].join(" "));
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [carta, setCarta] = useState<Emitida | null>(null);
   const [inutilizar, setInutilizar] = useState(false);
@@ -84,8 +129,9 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-500">A NF-e de venda sai de um pedido aprovado: clique em <b>Emitir NF-e</b> e escolha o pedido.</p>
+        {campoBusca}
         <div className="flex flex-wrap gap-2">
+          {!leitura && pode("nfe_recebidas") && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
           {pode("nfe_recebidas") && <Button variant="secondary" onClick={() => setInutilizar(true)}><Ban size={16} /> Inutilizar numeração</Button>}
           {!leitura && pode("emitir_nfe") && <Button onClick={() => setEmitir(true)}><Send size={16} /> Emitir NF-e</Button>}
         </div>
@@ -103,14 +149,15 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
         empty={!isLoading && data.length === 0}
         head={<><th className="th">Data</th><th className="th">Pedido</th><th className="th">Cliente</th><th className="th">Nº / Série</th><th className="th">Status</th><th className="th text-right">Valor</th><th className="th" /></>}
       >
-        {data.map((n) => {
+        {visiveis.map((n) => {
+          const importada = n.origem === "importada";
           // nota de transferência só quando a transferência veio de fato (vínculo vazio = nota de pedido)
           const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
           return (
           <tr key={n.id}>
             <td className="td">{dataBR(n.created_at)}</td>
-            <td className="td">{transf ? `Transf. #${transf.numero}` : n.pedido?.numero != null ? `#${n.pedido.numero}` : "—"}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
-            <td className="td">{transf ? <NomeUnidade id={transf.destino_id} /> : n.pedido?.cliente?.nome ?? "—"}</td>
+            <td className="td">{transf ? `Transf. #${transf.numero}` : n.pedido?.numero != null ? `#${n.pedido.numero}` : importada ? <span className="text-xs text-slate-500">Importada</span> : "—"}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
+            <td className="td">{transf ? <NomeUnidade id={transf.destino_id} /> : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? "—"}</td>
             <td className="td">{n.numero ? `${n.numero} / ${n.serie}` : "—"}</td>
             <td className="td"><Badge value={n.status} />{n.mensagem && <div className="mt-1 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}</td>
             <td className="td text-right">{brl(n.valor_total)}</td>
@@ -123,25 +170,28 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
                 )}
                 {n.danfe_url && <a href={n.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm text-brand hover:bg-brand-light"><ExternalLink size={15} /> DANFE</a>}
                 {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
+                {importada && <Button variant="ghost" onClick={() => baixarXmlImportado(n)}><Download size={15} /> XML</Button>}
                 {!leitura && n.status === "contingencia" && (
                   <Button variant="secondary" disabled={ocupado === n.id} onClick={() => acao(n, { acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>
                 )}
-                {!leitura && n.status === "autorizada" && <Button variant="secondary" onClick={() => setCarta(n)}><FilePen size={15} /> Carta de correção</Button>}
-                {!leitura && n.status === "autorizada" && <Button variant="ghost" className="!text-red-600" disabled={ocupado === n.id} onClick={() => cancelar(n)}>Cancelar</Button>}
+                {!leitura && !importada && n.status === "autorizada" && <Button variant="secondary" onClick={() => setCarta(n)}><FilePen size={15} /> Carta de correção</Button>}
+                {!leitura && !importada && n.status === "autorizada" && <Button variant="ghost" className="!text-red-600" disabled={ocupado === n.id} onClick={() => cancelar(n)}>Cancelar</Button>}
               </div>
             </td>
           </tr>
           );
         })}
       </Table>
+      {mais}
     </>
   );
 }
 
 function Recebidas({ leitura = false }: { leitura?: boolean }) {
   const { filtrar } = useUnidade();
-  const { data: dataTodos = [], isLoading } = useRows<Recebida>("nfe_recebidas", { order: "data_emissao" });
+  const { data: dataTodos = [], isLoading } = useRows<Recebida>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
   const data = filtrar(dataTodos);
+  const { visiveis, campo: campoBusca, mais } = useBusca(data, (n) => [n.chave.slice(25, 34).replace(/^0+/, ""), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento].join(" "));
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [entrada, setEntrada] = useState<Recebida | null>(null);
   const invalidate = useInvalidate();
@@ -185,29 +235,20 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
         <Button onClick={() => executar("sync", { acao: "sincronizar" }, (r) => `${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`)} disabled={ocupado === "sync"}>
           <RefreshCw size={16} className={ocupado === "sync" ? "animate-spin" : ""} /> Buscar notas na SEFAZ
         </Button>
-        <label className={`inline-flex min-h-[42px] cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-3.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0 sm:py-2 ${ocupado === "xml" ? "pointer-events-none opacity-50" : ""}`}>
-          <Upload size={16} /> {ocupado === "xml" ? "Importando…" : "Importar XML"}
-          <input type="file" accept=".xml,text/xml,application/xml" multiple className="hidden" onChange={async (ev) => {
-            const arquivos = Array.from(ev.target.files ?? []);
-            ev.target.value = "";
-            for (const f of arquivos) {
-              await executar("xml", { acao: "importar_xml", xml: await f.text() },
-                (r) => r.ja_existia ? `${f.name}: nota já estava no ERP` : `NF ${r.numero ?? ""} de ${r.emitente ?? "fornecedor"}: ${r.processamento === "concluido" ? "estoque e contas lançados" : r.processamento_msg ?? "importada"}`);
-            }
-          }} />
-        </label>
+        <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
         <p className="text-sm text-slate-500">
           Notas emitidas contra os CNPJs da MF (ou o XML que o fornecedor mandou). O ERP dá ciência, lê o XML, lança o contas a pagar e dá entrada no estoque
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
+      <div className="mb-3">{campoBusca}</div>
       <Table
         empty={!isLoading && data.length === 0}
         head={<><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th">Situação</th><th className="th">Processamento</th><th className="th">Manifestação</th><th className="th text-right">Valor</th><th className="th" /></>}
       >
-        {data.map((n) => (
+        {visiveis.map((n) => (
           <tr key={n.id}>
-            <td className="td">{dataBR(n.data_emissao)}</td>
+            <td className="td">{dataBR(n.data_emissao)}<div className="text-xs text-slate-500">NF {n.chave.slice(25, 34).replace(/^0+/, "")}</div></td>
             <td className="td">{n.emitente_nome}<EtiquetaUnidade id={(n as any).unidade_id} /><div className="text-xs text-slate-500">{docFormat(n.emitente_cnpj)}</div></td>
             <td className="td"><Badge value={n.situacao} /></td>
             <td className="td">
@@ -256,6 +297,7 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
           </tr>
         ))}
       </Table>
+      {mais}
 
       {entrada && <EntradaEstoqueModal nota={entrada} onClose={() => setEntrada(null)} />}
     </>
