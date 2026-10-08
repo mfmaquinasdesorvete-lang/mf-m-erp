@@ -1,0 +1,2 @@
+Site pronto do ERP Line para a Hostinger (gerado a partir do branch main).
+Não edite à mão.
