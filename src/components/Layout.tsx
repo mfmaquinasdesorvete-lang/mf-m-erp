@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
-  Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert,
+  Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -15,57 +15,80 @@ import { MeusAvisos } from "./Avisos";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 
-type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes };
+type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes; busca?: string };
 
+// Menu por área, na ordem do trabalho: vender → atender → estoque/compras → financeiro → fiscal → análises.
+// "busca" são outros nomes que as pessoas usam para achar a tela (campo Buscar no menu).
 const grupos: { titulo: string; itens: Item[] }[] = [
   {
-    titulo: "Comercial",
+    titulo: "",
     itens: [
-      { to: "/", tela: "painel", label: "Painel", curto: "Início", icon: LayoutDashboard },
-      { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow },
-      { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart },
-      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users },
-      { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox },
-      { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins },
+      { to: "/", tela: "painel", label: "Painel", curto: "Início", icon: LayoutDashboard, busca: "início dashboard resumo" },
+      { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
+    ],
+  },
+  {
+    titulo: "Vendas",
+    itens: [
+      { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
+      { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
+      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
+      { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante" },
     ],
   },
   {
     titulo: "Pós-venda",
     itens: [
-      { to: "/assistencia", tela: "assistencia", label: "Assistência técnica", curto: "OS", icon: Wrench },
-      { to: "/garantias", tela: "garantias", label: "Garantias e manutenção", curto: "Garantias", icon: ShieldCheck },
+      { to: "/assistencia", tela: "assistencia", label: "Assistência técnica", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico" },
+      { to: "/garantias", tela: "garantias", label: "Garantias e manutenção", curto: "Garantias", icon: ShieldCheck, busca: "preventiva equipamento" },
     ],
   },
   {
-    titulo: "Fábrica",
+    titulo: "Estoque e compras",
     itens: [
-      { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory },
-      { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes },
-      { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight },
-      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores e fretes", curto: "Fornec.", icon: Truck },
+      { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto peça máquina inventário ncm" },
+      { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica" },
+      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores e fretes", curto: "Fornec.", icon: Truck, busca: "fornecedor transportadora frete" },
+      { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },
   {
     titulo: "Financeiro",
     itens: [
-      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet },
-      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark },
-      { to: "/auditoria", tela: "auditoria", label: "Auditoria", curto: "Auditoria", icon: ShieldAlert },
-      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText },
-      { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3 },
-      { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart },
-      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator },
-      { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip },
+      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela" },
+      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
+      { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
+    ],
+  },
+  {
+    titulo: "Fiscal",
+    itens: [
+      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus" },
+      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
+    ],
+  },
+  {
+    titulo: "Análises",
+    itens: [
+      { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
+      { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
     ],
   },
   {
     titulo: "Administração",
     itens: [
-      { to: "/usuarios", tela: "usuarios", label: "Usuários", curto: "Usuários", icon: UserCog },
-      { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings },
+      { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
+      { to: "/usuarios", tela: "usuarios", label: "Usuários", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel" },
+      { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa unidades focus tiny importar integração" },
     ],
   },
 ];
+
+const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const combina = (m: Item, termo: string) => {
+  const t = semAcento(`${m.label} ${m.busca ?? ""}`);
+  return semAcento(termo).split(/\s+/).filter(Boolean).every((p) => t.includes(p));
+};
 
 /** Atalhos da barra inferior do celular, na ordem de prioridade de cada papel. */
 const ATALHOS: Record<string, string[]> = {
@@ -111,6 +134,8 @@ export function Layout() {
   const perfil = usePerfil();
   const location = useLocation();
   const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState("");
+  const navigate = useNavigate();
   // menu maior que a tela (notebook 1366x768): mostra "mais opções" enquanto houver itens escondidos embaixo
   const navRef = useRef<HTMLElement>(null);
   const [maisAbaixo, setMaisAbaixo] = useState(false);
@@ -131,7 +156,7 @@ export function Layout() {
   const [meusAvisos, setMeusAvisos] = useState(false);
   const iniciais = perfil.nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
-  useEffect(() => { setAberto(false); }, [location.pathname]);
+  useEffect(() => { setAberto(false); setBusca(""); }, [location.pathname]);
   useEffect(() => {
     if (!aberto) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
@@ -157,13 +182,28 @@ export function Layout() {
       <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-72 md:shrink-0 md:flex-col md:border-r md:border-ink-line`}>
         <div className="hidden px-5 pb-4 pt-6 md:block [@media(min-width:768px)_and_(max-height:860px)]:pb-3 [@media(min-width:768px)_and_(max-height:860px)]:pt-4"><div className="flex items-center justify-between gap-2"><Marca /><Sino /></div><div className="mt-4"><SeletorUnidade /></div></div>
         <div className="relative flex min-h-0 flex-1 flex-col">
-        <nav ref={navRef} onScroll={medirNav} className="flex-1 overflow-y-auto px-3 pb-4 pt-2 md:pt-0">
-          {grupos.map((g) => {
-            const itens = g.itens.filter((m) => perfil.podeVer(m.tela));
+        <form className="px-3 pb-2 pt-2 md:pt-0" role="search" onSubmit={(e) => {
+          e.preventDefault();
+          const primeiro = todosItens.find((m) => perfil.podeVer(m.tela) && combina(m, busca));
+          if (primeiro) navigate(primeiro.to);
+        }}>
+          <label className="relative block">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nav-fraco" />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setBusca("")}
+              placeholder="Buscar no menu" aria-label="Buscar no menu"
+              className="w-full rounded-lg border border-ink-line bg-ink-soft py-1.5 pl-9 pr-3 text-sm text-white placeholder:text-nav-fraco focus:border-brand-ice focus:outline-none" />
+          </label>
+        </form>
+        <nav ref={navRef} onScroll={medirNav} className="flex-1 overflow-y-auto px-3 pb-4">
+          {busca.trim() && !todosItens.some((m) => perfil.podeVer(m.tela) && combina(m, busca)) && (
+            <p className="px-3 py-2 text-sm text-nav-fraco">Nada com "{busca.trim()}".</p>
+          )}
+          {grupos.map((g, gi) => {
+            const itens = g.itens.filter((m) => perfil.podeVer(m.tela) && (!busca.trim() || combina(m, busca)));
             if (!itens.length) return null;
             return (
-              <div key={g.titulo} className="mt-4 first:mt-0 [@media(min-width:768px)_and_(max-height:860px)]:mt-2.5">
-                <div className="px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-nav-titulo [@media(min-width:768px)_and_(max-height:860px)]:pb-1 [@media(min-width:768px)_and_(max-height:860px)]:text-[11px]">{g.titulo}</div>
+              <div key={gi} className="mt-4 first:mt-0 [@media(min-width:768px)_and_(max-height:860px)]:mt-2.5">
+                {g.titulo && <div className="px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-nav-titulo [@media(min-width:768px)_and_(max-height:860px)]:pb-1 [@media(min-width:768px)_and_(max-height:860px)]:text-[11px]">{g.titulo}</div>}
                 {itens.map(({ to, label, icon: Icon }) => (
                   <NavLink
                     key={to}

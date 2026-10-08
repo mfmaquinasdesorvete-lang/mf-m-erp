@@ -10,29 +10,38 @@ import { useUnidade } from "@/lib/unidade";
 import { calcularExcecoes, faixasAtraso, TIPOS, type Excecao, type TipoExcecao } from "@/lib/auditoria";
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { baixarPlanilha } from "@/lib/exportar";
+import { ChecklistAuditoria } from "@/components/ChecklistAuditoria";
 
-type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
+export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
 
 const TABELAS: Record<string, string> = {
   contas_receber: "Conta a receber", contas_pagar: "Conta a pagar", pedidos: "Pedido", clientes: "Cliente", fornecedores: "Fornecedor",
   transportadoras: "Transportadora", produtos: "Produto", usuarios_erp: "Usuário", configuracoes: "Configurações", unidades: "Unidade",
-  vendedores: "Vendedor", comissoes: "Comissão", contas_bancarias: "Conta bancária", extrato_lancamentos: "Extrato", auditoria_excecoes: "Exceção",
+  vendedores: "Vendedor", comissoes: "Comissão", contas_bancarias: "Conta bancária", extrato_lancamentos: "Extrato", auditoria_excecoes: "Exceção", auditoria_checklist: "Checklist da auditoria",
 };
 
 export default function Auditoria() {
-  const [aba, setAba] = useState<"excecoes" | "historico">("excecoes");
+  const [aba, setAba] = useState<"checklist" | "excecoes" | "historico">("checklist");
+  const [tipoInicial, setTipoInicial] = useState<"" | TipoExcecao>("");
+  const dados = useExcecoes();
   return (
     <div>
-      <PageHeader title="Auditoria" subtitle="Exceções para conferir e o histórico de tudo o que foi alterado" />
-      <Tabs value={aba} onChange={setAba} options={[{ value: "excecoes", label: "Exceções" }, { value: "historico", label: "Histórico de alterações" }]} />
-      {aba === "excecoes" ? <Excecoes /> : <HistoricoGeral />}
+      <PageHeader title="Auditoria financeira" subtitle="Checklist do mês, exceções para conferir e o histórico de tudo o que foi alterado" />
+      <Tabs value={aba} onChange={(a) => { setAba(a); setTipoInicial(""); }} options={[
+        { value: "checklist", label: "Checklist do mês" }, { value: "excecoes", label: "Exceções" }, { value: "historico", label: "Histórico de alterações" },
+      ]} />
+      {aba === "checklist" ? <ChecklistAuditoria dados={dados} verExcecoes={(t) => { setTipoInicial(t); setAba("excecoes"); }} />
+        : aba === "excecoes" ? <Excecoes dados={dados} tipoInicial={tipoInicial} key={tipoInicial} /> : <HistoricoGeral />}
     </div>
   );
 }
 
 /* ------------------------------------ Exceções ------------------------------------ */
 
-function Excecoes() {
+export type DadosExcecoes = ReturnType<typeof useExcecoes>;
+
+/** Exceções calculadas pelas regras + as registradas à mão pelo checklist, com a tratativa de cada uma. */
+function useExcecoes() {
   const { filtrar } = useUnidade();
   const { data: receber = [] } = useRows<any>("contas_receber");
   const { data: pagar = [] } = useRows<any>("contas_pagar");
@@ -41,30 +50,46 @@ function Excecoes() {
   const { data: importacoes = [] } = useRows<any>("extrato_importacoes");
   const { data: auditoria = [] } = useRows<any>("auditoria");
   const { data: documentos = [] } = useRows<any>("documentos", { select: "entidade, entidade_id" });
-  const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id" });
+  const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total" });
+  const { data: recebidas = [] } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
+  const { data: usuarios = [] } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
   const { data: ordens = [] } = useRows<any>("ordens_servico", { select: "id, numero, status, em_garantia, valor_total, unidade_id" });
   const { data: fornecedores = [] } = useRows<any>("fornecedores", { select: "id, nome" });
   const { data: tratativas = [] } = useRows<Tratativa>("auditoria_excecoes");
-  const [tipo, setTipo] = useState<"" | TipoExcecao>("");
-  const [ver, setVer] = useState<"abertas" | "todas" | "fechadas">("abertas");
-  const [editar, setEditar] = useState<{ e: Excecao; t: Tratativa } | null>(null);
 
   const bancosU = filtrar(bancos);
   const idsBancos = new Set(bancosU.map((b: any) => b.id));
-  const excecoes = useMemo(() => calcularExcecoes({
-    receber: filtrar(receber), pagar: filtrar(pagar), lancamentos: lancamentos.filter((l: any) => idsBancos.has(l.conta_bancaria_id)), bancos: bancosU,
-    importacoes: importacoes.filter((i: any) => idsBancos.has(i.conta_bancaria_id)), auditoria, documentos, pedidos: filtrar(pedidos), ordens: filtrar(ordens), fornecedores, hoje: hoje(),
+  const excecoes = useMemo(() => [
+    ...calcularExcecoes({
+      receber: filtrar(receber), pagar: filtrar(pagar), lancamentos: lancamentos.filter((l: any) => idsBancos.has(l.conta_bancaria_id)), bancos: bancosU,
+      importacoes: importacoes.filter((i: any) => idsBancos.has(i.conta_bancaria_id)), auditoria, documentos, pedidos: filtrar(pedidos), ordens: filtrar(ordens), fornecedores,
+      recebidas: filtrar(recebidas), usuarios, hoje: hoje(),
+    }),
+    // itens do checklist marcados como não conformes viram exceção para tratar (responsável, prazo, evidência)
+    ...tratativas.filter((t) => t.tipo === "checklist").map((t): Excecao => ({
+      chave: t.chave, tipo: "checklist", gravidade: "media", link: "/auditoria", titulo: t.titulo ?? "Item do checklist",
+      detalhe: `Competência ${t.chave.split(":")[1] ?? ""}`, data: t.updated_at?.slice(0, 10),
+    })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, filtrar]);
+  ], [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, recebidas, usuarios, tratativas, filtrar]);
 
   const trat = (e: Excecao): Tratativa => tratativas.find((t) => t.chave === e.chave) ?? { chave: e.chave, tipo: e.tipo, situacao: "indicio", impacto: null, responsavel: null, prazo: null, observacao: null };
   const fechada = (t: Tratativa) => t.situacao === "resolvido" || t.situacao === "descartado";
+  const abertasPorTipo = (k: TipoExcecao) => excecoes.filter((e) => e.tipo === k && !fechada(trat(e))).length;
+  return { excecoes, trat, fechada, abertasPorTipo, receber: filtrar(receber), pagar: filtrar(pagar) };
+}
+
+function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "" | TipoExcecao }) {
+  const { excecoes, trat, fechada, receber, pagar } = dados;
+  const [tipo, setTipo] = useState<"" | TipoExcecao>(tipoInicial);
+  const [ver, setVer] = useState<"abertas" | "todas" | "fechadas">("abertas");
+  const [editar, setEditar] = useState<{ e: Excecao; t: Tratativa } | null>(null);
   const lista = excecoes
     .filter((e) => !tipo || e.tipo === tipo)
     .filter((e) => ver === "todas" || (ver === "abertas" ? !fechada(trat(e)) : fechada(trat(e))));
   const contagem = Object.keys(TIPOS).map((k) => ({ k: k as TipoExcecao, n: excecoes.filter((e) => e.tipo === k && !fechada(trat(e))).length }));
-  const atrasoR = faixasAtraso(filtrar(receber), hoje());
-  const atrasoP = faixasAtraso(filtrar(pagar), hoje());
+  const atrasoR = faixasAtraso(receber, hoje());
+  const atrasoP = faixasAtraso(pagar, hoje());
   const atrasados = (t: Tratativa) => t.prazo && t.prazo < hoje() && !fechada(t);
 
   function exportar() {

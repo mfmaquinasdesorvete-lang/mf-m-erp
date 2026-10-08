@@ -358,6 +358,7 @@ function bancosDemo(db: Db) {
   }));
   db.auditoria = [];
   db.auditoria_excecoes = [];
+  db.auditoria_checklist = [];
   const aud = (tabela: string, registro: string, acao: string, usuario: string, antes: Row | null, depois: Row | null, motivo: string | null, quandoDias: number) => {
     const u = USUARIOS_DEMO.find((x) => x.user_id === usuario);
     db.auditoria.push({ id: db.auditoria.length + 1, tabela, registro_id: registro, acao, usuario, usuario_nome: u?.nome ?? null,
@@ -514,6 +515,7 @@ let numeroTransf = 2;
 const proximoCodigo = (t: string) => Math.max(0, ...(db[t] ?? []).map((r) => Number(r.codigo) || 0)) + 1;
 
 const DEFAULTS: Record<string, () => Row> = {
+  auditoria_checklist: () => ({ revisado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "Você", updated_at: new Date().toISOString() }),
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
   pedidos: () => ({ numero: ++numeroPedido, status: "orcamento", estoque_baixado: false, created_at: quando(0) }),
   ordens_servico: () => ({ numero: ++numeroOS, status: "aberta", data_entrada: hojeISO(), estoque_baixado: false, created_at: quando(0) }),
@@ -683,7 +685,14 @@ class Query {
   }
   select(sel = "*") { this.sel = sel; return this; }
   insert(p: any) { this.op = "insert"; this.payload = Array.isArray(p) ? p : [p]; return this; }
-  upsert(p: any) { this.op = "upsert"; this.payload = Array.isArray(p) ? p : [p]; return this; }
+  private conflito: string[] = [];
+  private ignorarDuplicados = false;
+  upsert(p: any, o?: { onConflict?: string; ignoreDuplicates?: boolean }) {
+    this.op = "upsert"; this.payload = Array.isArray(p) ? p : [p];
+    this.conflito = o?.onConflict ? o.onConflict.split(",").map((x) => x.trim()) : [];
+    this.ignorarDuplicados = !!o?.ignoreDuplicates;
+    return this;
+  }
   update(p: any) { this.op = "update"; this.payload = p; return this; }
   delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
@@ -701,8 +710,9 @@ class Query {
     let linhas: Row[];
     if (this.op === "insert" || this.op === "upsert") {
       linhas = this.payload.map((p: Row) => {
-        const existente = this.op === "upsert" && p.chave ? t.find((r) => r.chave === p.chave) : null;
-        if (existente) return Object.assign(existente, p);
+        const chaves = this.conflito.length ? this.conflito : p.chave ? ["chave"] : [];
+        const existente = this.op === "upsert" && chaves.length ? t.find((r) => chaves.every((k) => r[k] === p[k])) : null;
+        if (existente) return this.ignorarDuplicados ? existente : Object.assign(existente, p, { updated_at: new Date().toISOString() });
         const novo: Row = { id: uid(), created_at: new Date().toISOString(), ...(DEFAULTS[this.tabela]?.() ?? {}), ...p };
         if (TABELAS_COM_UNIDADE.includes(this.tabela) && !novo.unidade_id) novo.unidade_id = unidadeDoUsuario();
         t.push(novo);
