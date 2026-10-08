@@ -6,13 +6,17 @@ const BASE = "https://api.tiny.com.br/api2/";
 
 export const tinyToken = () => Deno.env.get("TINY_API_TOKEN")?.replace(/\s+/g, "") || null;
 
-/** codigo: código de erro do Tiny (2 token inválido, 6/11 excesso de consultas, 20 sem registros…). */
+/** codigo: código de erro do Tiny (2 token inválido, 5/8 API bloqueada na conta, 6/11 excesso de consultas, 20 sem registros…). */
 export class TinyErro extends Error {
   constructor(public codigo: number | null, mensagem: string) {
     super(mensagem);
   }
-  get excessoDeConsultas() { return this.codigo === 6 || this.codigo === 11; }
-  get tokenInvalido() { return this.codigo === 1 || this.codigo === 2 || this.codigo === 5 || this.codigo === 8; }
+  get excessoDeConsultas() { return this.codigo === 6 || this.codigo === 11 || /excedid|concorrentes/i.test(this.message); }
+  get tokenInvalido() { return this.codigo === 1 || this.codigo === 2; }
+  /** O token é aceito, mas o Tiny não libera a API para a conta (plano ou bloqueio: só o Tiny resolve). */
+  get acessoBloqueado() { return this.codigo === 5 || this.codigo === 8 || /bloquead/i.test(this.message) && !this.excessoDeConsultas; }
+  /** Erro que impede continuar (não adianta pular para o próximo registro). */
+  get fatal() { return this.tokenInvalido || this.acessoBloqueado; }
 }
 
 /** Espaça as chamadas para caber no limite por minuto do plano do Tiny. */

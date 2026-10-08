@@ -19,6 +19,11 @@ type Estado = {
   atualizado_em: string | null;
 };
 
+/** Mensagem para quem está na tela quando o Tiny não deixa continuar. */
+const motivoFatal = (e: TinyErro) => e.acessoBloqueado
+  ? `o Tiny bloqueou o acesso à API desta conta ("${e.message}"). Isso é liberado pelo Tiny: peça ao suporte para ativar a API (token) da conta. Enquanto isso, os produtos podem vir pela planilha (Produtos → Importar).`
+  : `o Tiny recusou o token: ${e.message}. Confira o TINY_API_TOKEN no Supabase.`;
+
 const soma = (alvo: Record<string, number>, r: Record<string, unknown>) => {
   for (const [k, v] of Object.entries(r ?? {})) if (typeof v === "number") alvo[k] = (alvo[k] ?? 0) + v;
 };
@@ -47,7 +52,7 @@ Deno.serve(async (req) => {
       try {
         conta = (await tiny("info.obter.php", {}, token, ritmo))?.conta ?? null;
       } catch (e) {
-        if (e instanceof TinyErro && e.tokenInvalido) throw new HttpError(400, `o Tiny recusou o token: ${e.message}. Confira o TINY_API_TOKEN no Supabase.`);
+        if (e instanceof TinyErro && e.fatal) throw new HttpError(400, motivoFatal(e));
         if (!(e instanceof TinyErro)) throw e;
       }
       const estado = {
@@ -123,7 +128,7 @@ Deno.serve(async (req) => {
                 lidos++;
               } catch (x) {
                 if (x instanceof TinyErro && x.excessoDeConsultas) { aguardar = 60; break; }
-                if (x instanceof TinyErro && x.tokenInvalido) throw x;
+                if (x instanceof TinyErro && x.fatal) throw x;
                 erro(`${r.nome ?? r.id}: ${(x as Error).message}`);
                 lidos++;
               }
@@ -166,9 +171,9 @@ Deno.serve(async (req) => {
       if (x instanceof TinyErro && x.excessoDeConsultas) {
         aguardar = 60;
         await salvar();
-      } else if (x instanceof TinyErro && x.tokenInvalido) {
+      } else if (x instanceof TinyErro && x.fatal) {
         await salvar();
-        throw new HttpError(400, `o Tiny recusou o token: ${x.message}. Confira o TINY_API_TOKEN no Supabase.`);
+        throw new HttpError(400, motivoFatal(x));
       } else {
         erro((x as Error).message);
         await salvar();
