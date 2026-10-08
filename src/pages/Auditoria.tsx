@@ -53,6 +53,7 @@ function useExcecoes() {
   const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total" });
   const { data: recebidas = [] } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
   const { data: usuarios = [] } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
+  const { data: produtos = [] } = useRows<any>("produtos", { select: "id, sku, descricao, tipo, unidade, ncm, preco_custo, preco_venda, estoque_atual, estoque_minimo, ativo, vendavel, kit, categoria, localizacao, fornecedor_padrao_id, fora_de_linha, created_at" });
   const { data: ordens = [] } = useRows<any>("ordens_servico", { select: "id, numero, status, em_garantia, valor_total, unidade_id" });
   const { data: fornecedores = [] } = useRows<any>("fornecedores", { select: "id, nome" });
   const { data: tratativas = [] } = useRows<Tratativa>("auditoria_excecoes");
@@ -63,7 +64,7 @@ function useExcecoes() {
     ...calcularExcecoes({
       receber: filtrar(receber), pagar: filtrar(pagar), lancamentos: lancamentos.filter((l: any) => idsBancos.has(l.conta_bancaria_id)), bancos: bancosU,
       importacoes: importacoes.filter((i: any) => idsBancos.has(i.conta_bancaria_id)), auditoria, documentos, pedidos: filtrar(pedidos), ordens: filtrar(ordens), fornecedores,
-      recebidas: filtrar(recebidas), usuarios, hoje: hoje(),
+      recebidas: filtrar(recebidas), usuarios, produtos, hoje: hoje(),
     }),
     // itens do checklist marcados como não conformes viram exceção para tratar (responsável, prazo, evidência)
     ...tratativas.filter((t) => t.tipo === "checklist").map((t): Excecao => ({
@@ -71,7 +72,7 @@ function useExcecoes() {
       detalhe: `Competência ${t.chave.split(":")[1] ?? ""}`, data: t.updated_at?.slice(0, 10),
     })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, recebidas, usuarios, tratativas, filtrar]);
+  ], [receber, pagar, lancamentos, bancos, importacoes, auditoria, documentos, pedidos, ordens, fornecedores, recebidas, usuarios, produtos, tratativas, filtrar]);
 
   const trat = (e: Excecao): Tratativa => tratativas.find((t) => t.chave === e.chave) ?? { chave: e.chave, tipo: e.tipo, situacao: "indicio", impacto: null, responsavel: null, prazo: null, observacao: null };
   const fechada = (t: Tratativa) => t.situacao === "resolvido" || t.situacao === "descartado";

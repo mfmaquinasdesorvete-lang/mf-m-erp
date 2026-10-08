@@ -19,14 +19,14 @@ export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
   const { filtrar, unidades } = useUnidade();
   const invalidar = useInvalidate();
   const { data: pedidosTodos = [], isLoading } = useRows<Pedido>("pedidos", {
-    select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status)", order: "numero", ascending: false,
+    select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, ambiente)", order: "numero", ascending: false,
   });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
   const [conferindo, setConferindo] = useState<{ pedido: Pedido; pendencias: Pendencia[] } | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
 
-  const pendentes = filtrar(pedidosTodos).filter((p) => p.status === "aprovado" && !(p.notas ?? []).some((n) => COM_NOTA.includes(n.status)));
+  const pendentes = filtrar(pedidosTodos).filter((p) => p.status === "aprovado" && !(p.notas ?? []).some((n) => n.ambiente !== "homologacao" && COM_NOTA.includes(n.status)));
 
   async function emitir(p: Pedido, conferido = false) {
     if (!conferido) {

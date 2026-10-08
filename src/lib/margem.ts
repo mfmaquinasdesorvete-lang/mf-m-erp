@@ -46,7 +46,7 @@ export function margemPedido(p: PedidoMargem, ctx: Contexto): ResultadoPedido {
   const total = Number(p.valor_total) || brutos.reduce((a, b) => a + b, 0) - desconto + freteCobrado;
 
   // impostos destacados na NF-e autorizada; sem nota, estimados com o cadastro da unidade
-  const nota = ctx.notas.find((n) => n.pedido_id === p.id && n.status === "autorizada" && n.payload?.items?.length === itens.length);
+  const nota = ctx.notas.find((n) => n.pedido_id === p.id && n.status === "autorizada" && (n as { ambiente?: string }).ambiente !== "homologacao" && n.payload?.items?.length === itens.length);
   const u = ctx.unidades.find((x) => x.id === p.unidade_id) ?? ctx.unidades.find((x) => x.matriz);
   const c = p.cliente;
   const contribuinte = c?.tipo_pessoa === "PJ" && Number(c?.contribuinte_icms) === 1;

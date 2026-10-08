@@ -1,4 +1,6 @@
 // Painel de exceções: regras que apontam o que merece conferência.
+import { avaliarCadastro } from "./qualidadeProdutos";
+import type { Produto } from "./types";
 // Cada item é um INDÍCIO até alguém confirmar com documento ou extrato; nunca é prova sozinho.
 
 export type Excecao = {
@@ -8,7 +10,8 @@ export type TipoExcecao =
   | "duplicidade" | "sem_documento" | "valor_redondo" | "alteracao" | "baixa_sem_extrato" | "extrato_pendente"
   | "pedido_cancelado" | "os_sem_cobranca" | "saldo_divergente" | "segregacao"
   | "recebimento_sem_origem" | "recebido_a_menor" | "pagamento_fora_fluxo" | "cobranca_os_cancelada"
-  | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist";
+  | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist"
+  | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto";
 
 export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = {
   duplicidade: { rotulo: "Possível duplicidade", criterio: "Contas a pagar do mesmo fornecedor com o mesmo valor e vencimento em até 5 dias, ou com o mesmo número de documento." },
@@ -30,6 +33,10 @@ export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = 
   acesso_sem_uso: { rotulo: "Acesso sem uso", criterio: "Usuário ativo que não entra no ERP há mais de 90 dias: revogue se não precisa mais." },
   administradores: { rotulo: "Muitos administradores", criterio: "Mais de 2 usuários ativos com papel de administrador (acesso total)." },
   checklist: { rotulo: "Checklist: não conforme", criterio: "Item do checklist mensal marcado como não conforme por quem conferiu." },
+  produto_duplicado: { rotulo: "Produto duplicado", criterio: "Código (SKU) repetido ou descrição igual escrita de outro jeito (Produtos → Qualidade do cadastro)." },
+  produto_sem_custo: { rotulo: "Produto sem custo ou preço", criterio: "Produto ativo sem custo, vendável sem preço ou com preço abaixo do custo." },
+  estoque_negativo: { rotulo: "Estoque negativo", criterio: "Saldo menor que zero: falta lançar entrada ou houve baixa errada." },
+  alteracao_produto: { rotulo: "Alteração de produto", criterio: "Código, unidade, tipo, custo ou preço de produto alterado à mão (últimos 90 dias): confira o motivo." },
 };
 
 type Conta = {
@@ -51,6 +58,7 @@ export type DadosAuditoria = {
   fornecedores: { id: string; nome: string }[];
   recebidas?: { id: string; chave: string; emitente_nome: string; valor_total: number; data_emissao: string | null; situacao: string; processamento: string; conta_pagar_id: string | null; estoque_lancado: boolean }[];
   usuarios?: { user_id: string; nome: string; papel: string; ativo: boolean; ultimo_acesso: string | null; created_at?: string }[];
+  produtos?: Produto[];
   hoje: string;
 };
 
@@ -283,6 +291,39 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
     chave: `administradores:${admins.map((u) => u.user_id).sort().join(",")}`, tipo: "administradores", gravidade: "baixa", link: "/usuarios",
     titulo: `${admins.length} administradores ativos`, detalhe: `${admins.map((u) => u.nome).join(", ")}: administrador vê e muda tudo. Deixe só quem precisa.`,
   });
+
+  // 19 a 22. cadastro de produtos (resumo; o detalhe está em Produtos → Qualidade do cadastro)
+  if (d.produtos?.length) {
+    const q = avaliarCadastro(d.produtos, { comFornecedor: new Set(), movimentos: [], hoje: d.hoje });
+    const itens = (...ids: string[]) => [...new Map(q.filter((x) => ids.includes(x.id)).flatMap((x) => x.itens).map((i) => [i.produto.id, i])).values()];
+    const dup = itens("sku_duplicado", "descricao_parecida");
+    if (dup.length) out.push({
+      chave: "produto_duplicado", tipo: "produto_duplicado", gravidade: "media", link: "/estoque",
+      titulo: `${dup.length} produto(s) com código repetido ou descrição quase igual`, detalhe: dup.slice(0, 4).map((i) => i.produto.descricao).join("; ") + (dup.length > 4 ? "…" : ""),
+    });
+    const custo = itens("custo_zerado", "preco_zerado", "abaixo_custo");
+    if (custo.length) out.push({
+      chave: "produto_sem_custo", tipo: "produto_sem_custo", gravidade: "baixa", link: "/estoque",
+      titulo: `${custo.length} produto(s) sem custo, sem preço ou abaixo do custo`, detalhe: "Margem e valor do estoque ficam errados enquanto não forem preenchidos.",
+    });
+    for (const i of itens("estoque_negativo")) out.push({
+      chave: `estoque_negativo:${i.produto.id}`, tipo: "estoque_negativo", gravidade: "media", link: "/estoque",
+      titulo: i.produto.descricao, detalhe: `${i.detalhe}: investigue a entrada que faltou antes de ajustar`,
+    });
+  }
+  const CAMPOS_PRODUTO = ["sku", "unidade", "tipo", "preco_custo", "preco_venda"];
+  for (const a of d.auditoria) {
+    if (a.tabela !== "produtos" || a.acao !== "update" || a.origem !== "usuario" || a.created_at.slice(0, 10) < desde) continue;
+    const campos = (a.campos ?? []).filter((c) => CAMPOS_PRODUTO.includes(c));
+    if (!campos.length) continue;
+    const prod = d.produtos?.find((p) => p.id === a.registro_id);
+    const nomes: Record<string, string> = { sku: "código", unidade: "unidade", tipo: "tipo", preco_custo: "custo", preco_venda: "preço" };
+    out.push({
+      chave: `alteracao_produto:${a.id}`, tipo: "alteracao_produto", gravidade: "baixa", data: a.created_at.slice(0, 10), link: "/estoque",
+      titulo: `${prod?.descricao ?? "Produto"} · ${campos.map((c) => `${nomes[c]} ${a.antes?.[c] ?? "vazio"} → ${a.depois?.[c] ?? "vazio"}`).join(", ")}`,
+      detalhe: `${a.usuario_nome ?? "usuário"} em ${new Date(a.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${a.motivo ? ` · motivo: ${a.motivo}` : " · sem motivo"}`,
+    });
+  }
 
   const peso = { alta: 0, media: 1, baixa: 2 };
   return out.sort((a, b) => peso[a.gravidade] - peso[b.gravidade] || (b.data ?? "").localeCompare(a.data ?? ""));

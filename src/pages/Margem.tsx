@@ -28,7 +28,7 @@ export default function Margem() {
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: comissoes = [] } = useRows<{ pedido_id: string; valor: number; status: string }>("comissoes", {});
   const { data: cotacoes = [] } = useRows<{ pedido_id: string; valor: number; escolhida: boolean }>("cotacoes_frete", {});
-  const { data: notas = [] } = useRows<Contexto["notas"][number]>("notas_fiscais", { select: "pedido_id, status, payload" });
+  const { data: notas = [] } = useRows<Contexto["notas"][number]>("notas_fiscais", { select: "pedido_id, status, payload, ambiente" });
   const { data: ufs = [] } = useRows<{ uf: string; aliquota_interna: number; fcp: number }>("icms_uf", { order: "uf", ascending: true });
   const [de, setDe] = useState(mesesAtras(2));
   const [ate, setAte] = useState(mesAtual());

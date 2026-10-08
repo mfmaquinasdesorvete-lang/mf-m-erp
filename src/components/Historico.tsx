@@ -18,6 +18,8 @@ export const ROTULO_CAMPO: Record<string, string> = {
   desconto: "desconto", parcelas: "parcelas", preco_venda: "preço de venda", preco_custo: "custo", percentual: "percentual",
   saldo_inicial: "saldo inicial", conta_receber_id: "conta a receber", conta_pagar_id: "conta a pagar", situacao: "situação",
   responsavel: "responsável", prazo: "prazo", impacto: "impacto", observacao: "observação", inscricao_estadual: "IE",
+  sku: "código (SKU)", unidade: "unidade", tipo: "tipo", estoque_minimo: "estoque mínimo", fora_de_linha: "fora de linha",
+  localizacao: "localização", ncm: "NCM", marca: "marca", modelo: "modelo",
 };
 const DINHEIRO = ["valor", "valor_pago", "desconto", "preco_venda", "preco_custo", "saldo_inicial", "valor_total", "frete"];
 const DATA = ["vencimento", "data_pagamento", "prazo", "data"];

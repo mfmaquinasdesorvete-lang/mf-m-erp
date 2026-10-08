@@ -32,7 +32,7 @@ const FORMAS = [
   { value: "dinheiro", label: "Dinheiro" },
 ];
 
-const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave)";
+const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente)";
 
 function exportarPedidos(lista: Pedido[]) {
   const ped = lista.map((p: any) => ({
@@ -305,7 +305,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (data) setP((x) => ({ ...x, ...data, itens: x.itens }));
   }
 
-  const temNotaValida = p.notas?.some((n) => n.status === "autorizada" || n.status === "processando");
+  const temNotaValida = p.notas?.some((n) => n.ambiente !== "homologacao" && (n.status === "autorizada" || n.status === "processando"));
 
   return (
     <Modal open onClose={onClose} title={p.id ? `Pedido #${p.numero}` : "Novo pedido"} wide>

@@ -11,7 +11,7 @@ import type { Cliente, Transportadora } from "./types";
 type PedidoEtiqueta = {
   numero: number; unidade_id?: string | null; cliente?: Cliente; volumes?: number | null; peso_total_kg?: number | null;
   transportadora_id?: string | null; codigo_rastreio?: string | null;
-  notas?: { status: string; numero: string | null; serie?: string | null; chave?: string | null }[];
+  notas?: { status: string; numero: string | null; serie?: string | null; chave?: string | null; ambiente?: string }[];
 };
 type ExpEtiqueta = { volumes: number | null; peso_kg: number | null; transportadora_id: string | null; codigo_rastreio: string | null };
 
@@ -27,7 +27,7 @@ export function useEtiquetas() {
     try {
       const envios: EnvioEtiqueta[] = lista.map(({ p, e, volumes, transportadora_id, rastreio }) => {
         const u = unidades.find((x) => x.id === p.unidade_id) ?? unidades.find((x) => x.matriz);
-        const nota = p.notas?.find((n) => n.status === "autorizada");
+        const nota = p.notas?.find((n) => n.status === "autorizada" && n.ambiente !== "homologacao");
         const tid = transportadora_id ?? e?.transportadora_id ?? p.transportadora_id;
         return {
           numero: p.numero, cliente: p.cliente!, volumes: volumes ?? e?.volumes ?? p.volumes ?? 1, peso: e?.peso_kg ?? p.peso_total_kg,

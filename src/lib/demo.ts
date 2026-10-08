@@ -359,6 +359,8 @@ function bancosDemo(db: Db) {
   db.auditoria = [];
   db.auditoria_excecoes = [];
   db.auditoria_checklist = [];
+  db.contagens_estoque = [];
+  db.contagem_itens = [];
   const aud = (tabela: string, registro: string, acao: string, usuario: string, antes: Row | null, depois: Row | null, motivo: string | null, quandoDias: number) => {
     const u = USUARIOS_DEMO.find((x) => x.user_id === usuario);
     db.auditoria.push({ id: db.auditoria.length + 1, tabela, registro_id: registro, acao, usuario, usuario_nome: u?.nome ?? null,
@@ -939,6 +941,38 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       itens: db.pedido_itens.filter((i) => i.pedido_id === p.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valor: i.quantidade * i.valor_unitario })),
     })),
   }),
+  abrir_contagem: ({ p_unidade, p_produtos, p_escopo }) => {
+    const c: Row = { id: uid(), numero: db.contagens_estoque.length + 1, unidade_id: p_unidade, escopo: p_escopo, status: "aberta",
+      criada_nome: "Você", created_at: new Date().toISOString() };
+    db.contagens_estoque.unshift(c);
+    for (const id of p_produtos as string[]) {
+      const s = db.estoque_unidade?.find((x) => x.produto_id === id && x.unidade_id === p_unidade);
+      db.contagem_itens.push({ id: uid(), contagem_id: c.id, produto_id: id, saldo_sistema: Number(s?.quantidade ?? 0), contado: null, justificativa: null });
+    }
+    return { data: c.id, error: null };
+  },
+  concluir_contagem: ({ p_contagem }) => {
+    const c = db.contagens_estoque.find((x) => x.id === p_contagem);
+    if (!c || c.status !== "aberta") return { data: null, error: { message: "contagem não está aberta" } };
+    let ajustes = 0, contados = 0;
+    for (const i of db.contagem_itens.filter((x) => x.contagem_id === p_contagem && x.contado != null)) {
+      contados++;
+      const atual = Number(db.estoque_unidade?.find((x) => x.produto_id === i.produto_id && x.unidade_id === c.unidade_id)?.quantidade ?? 0);
+      const dif = Number(i.contado) - atual;
+      if (!dif) continue;
+      if (!i.justificativa) return { data: null, error: { message: `justifique a divergência de "${db.produtos.find((p) => p.id === i.produto_id)?.descricao}" antes de concluir` } };
+      movimentar(i.produto_id, "ajuste", dif, `Contagem nº ${c.numero}: ${i.justificativa}`, { unidade_id: c.unidade_id });
+      ajustes++;
+    }
+    if (!contados) return { data: null, error: { message: "nenhum item foi contado" } };
+    Object.assign(c, { status: "concluida", ajustes, concluida_em: new Date().toISOString(), concluida_nome: "Você" });
+    return { data: { ajustes, contados }, error: null };
+  },
+  cancelar_contagem: ({ p_contagem }) => {
+    const c = db.contagens_estoque.find((x) => x.id === p_contagem);
+    if (c) c.status = "cancelada";
+    return { data: null, error: null };
+  },
   importar_contatos: ({ p_itens }) => {
     const r = { clientes: 0, fornecedores: 0, transportadoras: 0, atualizados: 0 };
     const tabelas = { cliente: ["clientes", "cpf_cnpj"], fornecedor: ["fornecedores", "cnpj"], transportadora: ["transportadoras", "cnpj"] } as const;

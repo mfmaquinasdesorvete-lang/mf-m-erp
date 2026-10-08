@@ -18,7 +18,8 @@ export function ComplianceFiscal() {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; status: string }>("pedidos", { select: "cliente_id, created_at, status" });
-  const { data: notas = [] } = useRows<Nota>("notas_fiscais", {});
+  const { data: notasTodas = [] } = useRows<Nota & { ambiente?: string }>("notas_fiscais", {});
+  const notas = notasTodas.filter((n) => n.ambiente !== "homologacao"); // notas de teste (homologação) não contam
   const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", { select: "id, emitente_nome, valor_total, data_emissao, manifestacao, situacao, origem, processamento" });
   const { data: ufs = [] } = useRows<{ uf: string; aliquota_interna: number }>("icms_uf", { order: "uf", ascending: true });
   const { unidades, nome } = useUnidade();

@@ -7,7 +7,7 @@ import { json } from "./cors.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
-import { codigoUnidade } from "./focusnfe.ts";
+import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -41,7 +41,7 @@ const itemBase = (p: any, descricao: string, quantidade: number, valor: number, 
 async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
   const r = await enviarNfe(referencia, payload, await codigoUnidade(db, nota.unidade_id as string));
   const { data: gravada } = await db.from("notas_fiscais").insert({
-    ...nota, referencia, status: r.status, mensagem: r.mensagem, payload, resposta: r.resposta, tentativas: 1,
+    ...nota, ambiente: focusProducao() ? "producao" : "homologacao", referencia, status: r.status, mensagem: r.mensagem, payload, resposta: r.resposta, tentativas: 1,
   }).select().single();
   const data = await aplicarRetornoDoEnvio(db, gravada, r);
   const recusada = r.status === "erro" || data?.status === "erro" || data?.status === "denegada";
@@ -77,8 +77,8 @@ export async function emitirPedido(db: any, pedidoId: string) {
   const u = pedido.unidade;
   exigirEmitente(u);
 
-  const { data: existentes } = await db.from("notas_fiscais").select("status").eq("pedido_id", pedidoId);
-  if (existentes?.some((n: any) => ["autorizada", "processando", "contingencia"].includes(n.status))) {
+  const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente").eq("pedido_id", pedidoId);
+  if (existentes?.some((n: any) => n.ambiente !== "homologacao" && ["autorizada", "processando", "contingencia"].includes(n.status))) {
     throw new HttpError(400, "pedido já possui NF-e autorizada ou em processamento");
   }
 
@@ -157,8 +157,8 @@ export async function emitirTransferencia(db: any, transferenciaId: string) {
   const semNcm = t.itens.filter((i: any) => onlyDigits(i.produto?.ncm).length !== 8);
   if (semNcm.length) throw new HttpError(400, `produto(s) sem NCM válido: ${semNcm.map((i: any) => i.descricao).join(", ")}`);
 
-  const { data: existentes } = await db.from("notas_fiscais").select("status").eq("transferencia_id", transferenciaId);
-  if (existentes?.some((n: any) => ["autorizada", "processando", "contingencia"].includes(n.status))) {
+  const { data: existentes } = await db.from("notas_fiscais").select("status, ambiente").eq("transferencia_id", transferenciaId);
+  if (existentes?.some((n: any) => n.ambiente !== "homologacao" && ["autorizada", "processando", "contingencia"].includes(n.status))) {
     throw new HttpError(400, "transferência já possui NF-e autorizada ou em processamento");
   }
   const inter = d.uf.toUpperCase() !== t.origem.uf.toUpperCase();

@@ -17,7 +17,7 @@ import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlN
 type Emitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null;
   valor_total: number; xml_url: string | null; danfe_url: string | null; mensagem: string | null; created_at: string;
-  origem?: "erp" | "importada"; destinatario_nome?: string | null;
+  origem?: "erp" | "importada"; destinatario_nome?: string | null; ambiente?: "producao" | "homologacao";
   pedido?: { numero: number; cliente?: { nome: string } } | null;
 };
 type Recebida = {
@@ -159,7 +159,7 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
             <td className="td">{transf ? `Transf. #${transf.numero}` : n.pedido?.numero != null ? `#${n.pedido.numero}` : importada ? <span className="text-xs text-slate-500">Importada</span> : "—"}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
             <td className="td">{transf ? <NomeUnidade id={transf.destino_id} /> : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? "—"}</td>
             <td className="td">{n.numero ? `${n.numero} / ${n.serie}` : "—"}</td>
-            <td className="td"><Badge value={n.status} />{n.mensagem && <div className="mt-1 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}</td>
+            <td className="td"><Badge value={n.status} />{n.ambiente === "homologacao" && <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ">teste · sem valor fiscal</span>}{n.mensagem && <div className="mt-1 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}</td>
             <td className="td text-right">{brl(n.valor_total)}</td>
             <td className="td">
               <div className="flex flex-wrap justify-end gap-1">

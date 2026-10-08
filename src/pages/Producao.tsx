@@ -434,7 +434,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
             if (prod) set({ itens: [...p.itens, { produto_id: prod.id, descricao: prod.descricao, quantidade: 1, custo_unitario: Number(prod.preco_custo) }] });
           }}>
             <option value="">+ Adicionar peça ou insumo…</option>
-            {produtos.filter((x) => x.tipo !== "maquina" && x.ativo).map((x) => (
+            {produtos.filter((x) => x.tipo !== "maquina" && x.ativo && !x.fora_de_linha).map((x) => (
               <option key={x.id} value={x.id}>{x.descricao} — estoque {Number(x.estoque_atual)} (mín. {Number(x.estoque_minimo)})</option>
             ))}
           </select>

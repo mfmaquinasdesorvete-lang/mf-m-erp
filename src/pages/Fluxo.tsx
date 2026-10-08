@@ -21,7 +21,7 @@ type Exp = {
   transportadora_id: string | null; codigo_rastreio: string | null; responsavel: string | null; observacoes: string | null;
   separando_em: string | null; conferido_em: string | null; embalado_em: string | null; despachado_em: string | null; entregue_em: string | null; created_at: string;
 };
-type P = Omit<Pedido, "itens" | "notas" | "cliente"> & { itens: (Item & { id: string })[]; cliente: Cliente; notas: { id: string; status: string; numero: string | null; serie?: string | null; chave?: string | null; mensagem: string | null }[]; aprovado_em?: string | null };
+type P = Omit<Pedido, "itens" | "notas" | "cliente"> & { itens: (Item & { id: string })[]; cliente: Cliente; notas: { id: string; status: string; numero: string | null; serie?: string | null; chave?: string | null; mensagem: string | null; ambiente?: string }[]; aprovado_em?: string | null };
 
 const COLUNAS = [
   { id: "orcamento", titulo: "Orçamentos e propostas", cor: "var(--kpi-roxo)" },
@@ -47,7 +47,7 @@ function coluna(p: P, e?: Exp) {
 
 export default function Fluxo() {
   const { filtrar } = useUnidade();
-  const { data: todos = [] } = useRows<P>("pedidos", { select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, numero, serie, chave, mensagem)" });
+  const { data: todos = [] } = useRows<P>("pedidos", { select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente)" });
   const etiquetas = useEtiquetas();
   const { data: exps = [] } = useRows<Exp>("expedicoes", {});
   const { data: cfg } = useConfig();
@@ -160,7 +160,7 @@ function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Exp; onCl
   const [scan, setScan] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const etiquetasImp = useEtiquetas();
-  const nota = p.notas?.find((n) => n.status === "autorizada");
+  const nota = p.notas?.find((n) => n.status === "autorizada" && n.ambiente !== "homologacao");
   const prod = (id: string) => produtos.find((x) => x.id === id);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const atual = PASSOS.indexOf(exp.status);

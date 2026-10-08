@@ -68,6 +68,8 @@ type Props<T> = {
   plural?: string;
   /** Outras ações para os selecionados (ex.: inativar produtos). Devolve a mensagem de sucesso. */
   acoesLote?: { label: string; executar: (ids: string[]) => Promise<string | void> }[];
+  /** Abre o formulário deste registro (ex.: "Corrigir" vindo de outra aba). Mande um objeto novo a cada pedido. */
+  editarAgora?: T | null;
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
@@ -80,6 +82,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const save = useSave(table);
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Record<string, any> | null>(null);
+  useEffect(() => { if (props.editarAgora) setEditando({ ...props.editarAgora }); }, [props.editarAgora]);
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});

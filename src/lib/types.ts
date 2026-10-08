@@ -15,6 +15,8 @@ export type Produto = {
   no_catalogo?: boolean; descricao_catalogo?: string | null; foto_caminho?: string | null;
   id_externo?: string | null; marca?: string | null; categoria?: string | null; observacoes?: string | null;
   estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean;
+  modelo?: string | null; codigo_fabricante?: string | null; codigos_alternativos?: string | null; fora_de_linha?: boolean;
+  prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
 };
 
 export type Item = {
@@ -27,7 +29,8 @@ export type Pedido = {
   forma_pagamento: string; parcelas: number; primeiro_vencimento: string | null; intervalo_dias: number;
   modalidade_frete: number; valor_produtos: number; desconto: number; frete: number; valor_total: number;
   observacoes: string | null; created_at: string; cliente?: Cliente; itens?: Item[];
-  notas?: { id: string; status: string }[];
+  /** ambiente "homologacao" = nota de teste, sem valor fiscal */
+  notas?: { id: string; status: string; ambiente?: string }[];
   vendedor_id?: string | null; comissao_percentual?: number | null; unidade_id?: string | null;
   transportadora_id?: string | null; codigo_rastreio?: string | null; aprovado_em?: string | null; volumes?: number | null; peso_total_kg?: number | null;
   proposta_token?: string; proposta_status?: string | null; proposta_enviada_em?: string | null; proposta_visualizada_em?: string | null;

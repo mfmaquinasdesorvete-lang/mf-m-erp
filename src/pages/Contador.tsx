@@ -56,7 +56,8 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
   const { papel, nome: meuNome } = usePerfil();
   const invalidar = useInvalidate();
   const { data: fechamentos = [] } = useRows<Fechamento>("fechamentos", {});
-  const { data: notas = [] } = useRows<Nota>("notas_fiscais", { select: "id, unidade_id, status, numero, serie, valor_total, created_at, payload" });
+  const { data: notasTodas = [] } = useRows<Nota & { ambiente?: string }>("notas_fiscais", { select: "id, unidade_id, status, numero, serie, valor_total, created_at, payload, ambiente" });
+  const notas = notasTodas.filter((n) => n.ambiente !== "homologacao"); // nota de teste não vai para o contador
   const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", { select: "id, unidade_id, valor_total, data_emissao, manifestacao, situacao, emitente_nome, itens" });
   const { data: cartas = [] } = useRows<{ nota_id: string; status: string; created_at: string }>("nfe_cartas_correcao", {});
   const { data: inut = [] } = useRows<{ unidade_id: string; status: string; created_at: string }>("nfe_inutilizacoes", {});

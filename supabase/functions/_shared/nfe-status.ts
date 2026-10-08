@@ -23,7 +23,8 @@ export async function aplicarRetornoNfe(db: SupabaseClient, nota: { id: string; 
 
   const { data } = await db.from("notas_fiscais").update(patch).eq("id", nota.id).select().single();
 
-  if (nota.pedido_id) {
+  // nota de teste (homologação) não fatura nem reabre o pedido
+  if (nota.pedido_id && data?.ambiente !== "homologacao") {
     if (status === "autorizada") {
       await db.from("pedidos").update({ status: "faturado" }).eq("id", nota.pedido_id).eq("status", "aprovado");
     } else if (status === "cancelada") {

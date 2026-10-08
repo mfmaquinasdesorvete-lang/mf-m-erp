@@ -81,6 +81,19 @@ export const CHECKLIST: SecaoChecklist[] = [
       { id: "a6", texto: "Existe revisão periódica de usuários, perfis e permissões?", alertas: ["acesso_sem_uso", "administradores"] },
     ],
   },
+  {
+    id: "produtos", titulo: "Cadastro de produtos e estoque",
+    teste: "Para uma amostra de produtos, confira em Produtos → Qualidade do cadastro e na Contagem de estoque: código, unidade, custo com a NF de compra, mínimo e local, e se o saldo bate com a contagem física.",
+    itens: [
+      { id: "pr1", texto: "O código (SKU) é único e a descrição identifica o item sem ambiguidade?", alertas: ["produto_duplicado"] },
+      { id: "pr2", texto: "Categoria e unidade de medida estão corretas e padronizadas?" },
+      { id: "pr3", texto: "Custo, preço e fornecedor têm suporte documental (NF de compra, tabela de preço)?", alertas: ["produto_sem_custo"] },
+      { id: "pr4", texto: "Estoque mínimo e localização fazem sentido para a operação?" },
+      { id: "pr5", texto: "Alterações relevantes (código, unidade, custo, preço) têm usuário, data e justificativa?", alertas: ["alteracao_produto"] },
+      { id: "pr6", texto: "O saldo no ERP pode ser rastreado às movimentações e às contagens físicas?", alertas: ["estoque_negativo"] },
+      { id: "pr7", texto: "Produtos inativos preservam o histórico e não aparecem para novas vendas e compras?" },
+    ],
+  },
 ];
 
 export const ITENS_CHECKLIST = CHECKLIST.flatMap((s) => s.itens.map((i) => ({ ...i, secao: s.titulo })));
