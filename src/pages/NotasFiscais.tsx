@@ -10,6 +10,7 @@ import { callFunction } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { CartaCorrecaoModal, InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
+import { EmitirNfeModal } from "@/components/EmitirNfe";
 
 type Emitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null;
@@ -47,6 +48,7 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [carta, setCarta] = useState<Emitida | null>(null);
   const [inutilizar, setInutilizar] = useState(false);
+  const [emitir, setEmitir] = useState(false);
   const { pode } = usePerfil();
   const invalidate = useInvalidate();
 
@@ -80,9 +82,13 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-500">Para emitir, abra um pedido aprovado e clique em <b>Emitir NF-e</b>.</p>
-        {pode("nfe_recebidas") && <Button variant="secondary" onClick={() => setInutilizar(true)}><Ban size={16} /> Inutilizar numeração</Button>}
+        <p className="text-sm text-slate-500">A NF-e de venda sai de um pedido aprovado: clique em <b>Emitir NF-e</b> e escolha o pedido.</p>
+        <div className="flex flex-wrap gap-2">
+          {pode("nfe_recebidas") && <Button variant="secondary" onClick={() => setInutilizar(true)}><Ban size={16} /> Inutilizar numeração</Button>}
+          {!leitura && pode("emitir_nfe") && <Button onClick={() => setEmitir(true)}><Send size={16} /> Emitir NF-e</Button>}
+        </div>
       </div>
+      {emitir && <EmitirNfeModal onClose={() => setEmitir(false)} />}
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <b>Contingência:</b> a SEFAZ ou a Focus não respondeu e há nota(s) na fila. O ERP reenvia sozinho a cada 15 minutos
@@ -95,11 +101,14 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
         empty={!isLoading && data.length === 0}
         head={<><th className="th">Data</th><th className="th">Pedido</th><th className="th">Cliente</th><th className="th">Nº / Série</th><th className="th">Status</th><th className="th text-right">Valor</th><th className="th" /></>}
       >
-        {data.map((n) => (
+        {data.map((n) => {
+          // nota de transferência só quando a transferência veio de fato (vínculo vazio = nota de pedido)
+          const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
+          return (
           <tr key={n.id}>
             <td className="td">{dataBR(n.created_at)}</td>
-            <td className="td">{(n as any).transferencia ? `Transf. #${(n as any).transferencia.numero}` : `#${n.pedido?.numero}`}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
-            <td className="td">{(n as any).transferencia ? <NomeUnidade id={(n as any).transferencia.destino_id} /> : n.pedido?.cliente?.nome}</td>
+            <td className="td">{transf ? `Transf. #${transf.numero}` : n.pedido?.numero != null ? `#${n.pedido.numero}` : "—"}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
+            <td className="td">{transf ? <NomeUnidade id={transf.destino_id} /> : n.pedido?.cliente?.nome ?? "—"}</td>
             <td className="td">{n.numero ? `${n.numero} / ${n.serie}` : "—"}</td>
             <td className="td"><Badge value={n.status} />{n.mensagem && <div className="mt-1 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}</td>
             <td className="td text-right">{brl(n.valor_total)}</td>
@@ -120,7 +129,8 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
               </div>
             </td>
           </tr>
-        ))}
+          );
+        })}
       </Table>
     </>
   );
