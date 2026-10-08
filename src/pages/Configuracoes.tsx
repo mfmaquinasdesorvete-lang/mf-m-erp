@@ -9,6 +9,7 @@ import { AvisosConfig } from "@/components/Avisos";
 import { CatalogoConfig } from "@/components/CatalogoConfig";
 import { UnidadesConfig } from "@/components/UnidadesConfig";
 import { EmailConfig } from "@/components/EmailConfig";
+import { ImportarTiny } from "@/components/ImportarTiny";
 import { useUnidade } from "@/lib/unidade";
 
 export default function Configuracoes() {
@@ -231,6 +232,7 @@ export default function Configuracoes() {
       </Card>
     </form>
       <Card className="p-4"><EmailConfig /></Card>
+      <ImportarTiny />
       <BackupCard />
     </div>
   );

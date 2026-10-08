@@ -89,7 +89,7 @@ As permissões valem em três camadas: o menu (a tela some), as Edge Functions (
      supabase link --project-ref SEU_PROJECT_REF
      supabase db push
      # funções (as 3 últimas recebem chamadas externas, por isso --no-verify-jwt)
-     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar; do supabase functions deploy $f; done
+     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar; do supabase functions deploy $f; done
      for f in focus-webhook nfe-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote; do supabase functions deploy $f --no-verify-jwt; done
      ```
 3. **Primeiro administrador:** depois de publicar o site (passo 6), abra o endereço e clique em **Primeiro acesso? Criar conta de administrador**. A primeira conta criada vira administradora automaticamente, e depois disso a opção some. Os demais usuários você cria pelo próprio ERP, em **Usuários**.
@@ -109,6 +109,7 @@ No Supabase, em *Edge Functions → Secrets* (ou `supabase secrets set ...`):
 | `TELEGRAM_WEBHOOK_SECRET` | outra senha qualquer (só letras, números, `_` e `-`) |
 | `RESEND_API_KEY` | chave da API do Resend (passo 4c) |
 | `EMAIL_REMETENTE` | ex.: `MF Máquinas <avisos@myfrost.ai>` |
+| `TINY_API_TOKEN` | token da API do Tiny / Olist (Tiny → Configurações → Token API), para **Configurações → Importar do Tiny** |
 | `ERP_SITE_URL` | endereço do ERP (`https://erp.myfrost.ai`), para os links dos avisos e o logo no e-mail |
 
 ### 3. Matriz SC e filial SP (lucro real)

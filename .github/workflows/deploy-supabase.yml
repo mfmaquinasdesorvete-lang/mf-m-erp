@@ -23,7 +23,7 @@ jobs:
           version: 2.120.0
       - name: Edge Functions
         run: |
-          for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar; do
+          for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
           done
           # chamadas externas (Focus, Telegram, agendamento) não enviam o login do Supabase

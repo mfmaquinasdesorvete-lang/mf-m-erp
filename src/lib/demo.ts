@@ -1441,6 +1441,7 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true };
   },
   "focus-config": () => ({ ok: true, ambiente: "homologacao", eventos: ["nfe", "nfe_recebida"] }),
+  "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
     if (b.acao === "listar") return { ok: true, usuarios: db.usuarios_erp };
     if (b.acao === "criar") { db.usuarios_erp.push({ user_id: uid(), nome: b.nome, papel: b.papel, email: b.email, ativo: true, ultimo_acesso: null }); return { ok: true }; }
