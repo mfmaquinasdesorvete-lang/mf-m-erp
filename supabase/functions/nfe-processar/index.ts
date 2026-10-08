@@ -15,8 +15,10 @@ Deno.serve(async (req) => {
   const db = adminClient();
   let sincronizadas = 0;
   let erroSync: string | null = null;
+  const avisos: string[] = [];
   try {
-    sincronizadas = await sincronizarRecebidas(db);
+    sincronizadas = await sincronizarRecebidas(db, avisos);
+    erroSync = avisos.join(" | ") || null;
   } catch (e) {
     // em homologação a busca na SEFAZ não funciona; segue processando o que já existe
     erroSync = (e as Error).message;

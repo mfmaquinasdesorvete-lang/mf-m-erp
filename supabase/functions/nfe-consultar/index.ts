@@ -6,7 +6,7 @@
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { focus, focusUrl } from "../_shared/focusnfe.ts";
+import { codigoUnidade, focus, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       const res = await focus("/v2/nfe/inutilizacao", {
         method: "POST",
         body: JSON.stringify({ cnpj: onlyDigits(u.cnpj), serie: String(serie), numero_inicial: String(ini), numero_final: String(fim), justificativa: justificativa.trim() }),
-      });
+      }, u.codigo);
       const body = await res.json().catch(() => ({}));
       const ok = res.ok && body.status === "autorizado";
       const { data } = await db.from("nfe_inutilizacoes").insert({
@@ -53,12 +53,13 @@ Deno.serve(async (req) => {
     const { data: nota } = await db.from("notas_fiscais").select("*").eq("id", nota_id).single();
     if (!nota) throw new HttpError(404, "nota não encontrada");
     const ref = encodeURIComponent(nota.referencia);
+    const codigo = await codigoUnidade(db, nota.unidade_id);
 
     if (acao === "cancelar") {
       const { justificativa } = corpo;
       if (nota.status !== "autorizada") throw new HttpError(400, "só notas autorizadas podem ser canceladas");
       if (!justificativa || justificativa.length < 15) throw new HttpError(400, "a justificativa deve ter ao menos 15 caracteres");
-      const res = await focus(`/v2/nfe/${ref}`, { method: "DELETE", body: JSON.stringify({ justificativa }) });
+      const res = await focus(`/v2/nfe/${ref}`, { method: "DELETE", body: JSON.stringify({ justificativa }) }, codigo);
       const body = await res.json().catch(() => ({}));
       if (body.status !== "cancelado") throw new HttpError(422, msgFocus(body, "cancelamento não aceito"));
       return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, body) });
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
       const correcao = String(corpo.correcao ?? "").trim();
       if (nota.status !== "autorizada") throw new HttpError(400, "só notas autorizadas recebem carta de correção");
       if (correcao.length < 15 || correcao.length > 1000) throw new HttpError(400, "a correção deve ter entre 15 e 1.000 caracteres");
-      const res = await focus(`/v2/nfe/${ref}/carta_correcao`, { method: "POST", body: JSON.stringify({ correcao }) });
+      const res = await focus(`/v2/nfe/${ref}/carta_correcao`, { method: "POST", body: JSON.stringify({ correcao }) }, codigo);
       const body = await res.json().catch(() => ({}));
       const ok = res.ok && body.status === "autorizado";
       const { data } = await db.from("nfe_cartas_correcao").insert({
@@ -82,16 +83,16 @@ Deno.serve(async (req) => {
 
     if (acao === "reenviar") {
       if (nota.status !== "contingencia") throw new HttpError(400, "esta nota não está na fila de contingência");
-      const c = await focus(`/v2/nfe/${ref}?completa=0`).catch(() => null);
+      const c = await focus(`/v2/nfe/${ref}?completa=0`, {}, codigo).catch(() => null);
       if (c?.ok) return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, await c.json()) });
-      const r = await enviarNfe(nota.referencia, nota.payload);
+      const r = await enviarNfe(nota.referencia, nota.payload, codigo);
       const { data: gravada } = await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: nota.tentativas + 1, updated_at: new Date().toISOString() })
         .eq("id", nota.id).select().single();
       const data = await aplicarRetornoDoEnvio(db, gravada, r);
       return json({ ok: r.status !== "erro" && data?.status !== "erro", nota: data });
     }
 
-    const res = await focus(`/v2/nfe/${ref}?completa=0`);
+    const res = await focus(`/v2/nfe/${ref}?completa=0`, {}, codigo);
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new HttpError(502, body.mensagem || `Focus NFe HTTP ${res.status}`);
     return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, body) });

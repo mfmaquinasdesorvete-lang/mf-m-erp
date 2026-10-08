@@ -9,7 +9,7 @@ import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { processarNota, salvarRecebida, unidadePorCnpj } from "../_shared/nfe-recebidas.ts";
 
 Deno.serve(async (req) => {
-  const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN");
+  const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN")?.trim();
   if (!token || req.headers.get("Authorization") !== token) return json({ error: "não autorizado" }, 401);
 
   const body = await req.json().catch(() => null);

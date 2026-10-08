@@ -261,8 +261,16 @@ function BackupCard() {
   );
 }
 
+type SituacaoFocus = {
+  ambiente: string;
+  eventos: string[];
+  unidades?: { nome: string; cnpj: string; eventos: string[]; erro?: string }[];
+  falhas?: { nome: string; mensagem: string }[];
+};
+
 function FocusNfeCard() {
-  const [estado, setEstado] = useState<{ ambiente: string; eventos: string[] } | null>(null);
+  const [estado, setEstado] = useState<SituacaoFocus | null>(null);
+  const [falhas, setFalhas] = useState<SituacaoFocus["falhas"]>([]);
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
 
@@ -270,9 +278,12 @@ function FocusNfeCard() {
     setOcupado(true);
     setErro("");
     try {
-      const r = await callFunction("focus-config", { acao });
-      setEstado((e) => ({ ambiente: r.ambiente ?? e?.ambiente ?? "", eventos: r.eventos }));
-      if (acao === "registrar") notify("Atualização automática ativada na Focus NFe");
+      const r: SituacaoFocus = await callFunction("focus-config", { acao });
+      setEstado((e) => ({ ...r, ambiente: r.ambiente ?? e?.ambiente ?? "" }));
+      if (acao === "registrar") {
+        setFalhas(r.falhas ?? []);
+        notify(r.falhas?.length ? "Atualização automática ativada nas unidades liberadas na Focus" : "Atualização automática ativada na Focus NFe");
+      }
     } catch (e) {
       setErro((e as Error).message);
     } finally {
@@ -282,7 +293,11 @@ function FocusNfeCard() {
 
   useEffect(() => { chamar("status"); }, []);
 
-  const ativo = (ev: string) => estado?.eventos.includes(ev);
+  const auto = (lista: string[], ev: string) => lista.includes(ev);
+  const situacao = (lista: string[], ev: string, manual: string) =>
+    auto(lista, ev) ? <span className="text-green-700">automático ✓</span> : <span className="text-amber-700">{manual}</span>;
+  const unidades = estado?.unidades;
+  const tudoAtivo = !!estado && estado.eventos.includes("nfe") && estado.eventos.includes("nfe_recebida");
 
   return (
     <Card className="p-4">
@@ -293,12 +308,28 @@ function FocusNfeCard() {
       {estado && (
         <ul className="mb-3 space-y-1 text-sm">
           <li>Ambiente: <b>{estado.ambiente === "producao" ? "Produção" : "Homologação (testes)"}</b></li>
-          <li>Status das notas emitidas: {ativo("nfe") ? <span className="text-green-700">automático ✓</span> : <span className="text-amber-700">manual</span>}</li>
-          <li>Notas de fornecedores: {ativo("nfe_recebida") ? <span className="text-green-700">automático ✓</span> : <span className="text-amber-700">manual (botão "Buscar notas")</span>}</li>
+          {unidades ? unidades.map((u) => (
+            <li key={u.cnpj}>
+              <b>{u.nome}</b>:{" "}
+              {u.erro ? <span className="text-red-600">{u.erro}</span> : (
+                <>notas emitidas {situacao(u.eventos, "nfe", "manual")} · notas de fornecedores {situacao(u.eventos, "nfe_recebida", "manual (botão \"Buscar notas\")")}</>
+              )}
+            </li>
+          )) : (
+            <>
+              <li>Status das notas emitidas: {situacao(estado.eventos, "nfe", "manual")}</li>
+              <li>Notas de fornecedores: {situacao(estado.eventos, "nfe_recebida", "manual (botão \"Buscar notas\")")}</li>
+            </>
+          )}
         </ul>
       )}
+      {!!falhas?.length && (
+        <div className="mb-3 space-y-1 text-sm text-amber-700">
+          {falhas.map((f) => <p key={f.nome}><b>{f.nome}</b> ficou de fora: {f.mensagem}</p>)}
+        </div>
+      )}
       {erro && <p className="mb-3 text-sm text-red-600">{erro}</p>}
-      <Button type="button" variant="secondary" disabled={ocupado || (ativo("nfe") && ativo("nfe_recebida"))} onClick={() => chamar("registrar")}>
+      <Button type="button" variant="secondary" disabled={ocupado || tudoAtivo} onClick={() => chamar("registrar")}>
         {ocupado ? "Aguarde…" : "Ativar atualização automática"}
       </Button>
     </Card>

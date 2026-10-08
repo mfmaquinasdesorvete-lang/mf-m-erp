@@ -170,7 +170,7 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
   return (
     <>
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
-        <Button onClick={() => executar("sync", { acao: "sincronizar" }, (r) => `${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente`)} disabled={ocupado === "sync"}>
+        <Button onClick={() => executar("sync", { acao: "sincronizar" }, (r) => `${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`)} disabled={ocupado === "sync"}>
           <RefreshCw size={16} className={ocupado === "sync" ? "animate-spin" : ""} /> Buscar notas na SEFAZ
         </Button>
         <label className={`inline-flex min-h-[42px] cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-3.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0 sm:py-2 ${ocupado === "xml" ? "pointer-events-none opacity-50" : ""}`}>

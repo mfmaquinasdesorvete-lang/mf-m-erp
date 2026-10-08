@@ -101,6 +101,7 @@ No Supabase, em *Edge Functions → Secrets* (ou `supabase secrets set ...`):
 | Secret | Valor |
 |---|---|
 | `FOCUS_NFE_TOKEN` | token da Focus (comece pelo de homologação) |
+| `FOCUS_NFE_TOKEN_SP` | token da Focus da **Filial SP** (cada CNPJ tem o seu; vale `FOCUS_NFE_TOKEN_<código da unidade>`, e a unidade sem token próprio usa o `FOCUS_NFE_TOKEN`) |
 | `FOCUS_NFE_ENV` | `homologacao`, depois `producao` |
 | `FOCUS_WEBHOOK_TOKEN` | outra senha qualquer, que você inventa |
 | `ERP_CRON_TOKEN` | outra senha qualquer, que você inventa |

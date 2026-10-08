@@ -3,7 +3,7 @@
 // e pelo agendamento (nfe-processar).
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError, onlyDigits } from "./supabase.ts";
-import { focus, focusJson } from "./focusnfe.ts";
+import { codigoUnidade, focus, focusJson } from "./focusnfe.ts";
 import { type Duplicata, type ItemNota, lerCabecalho, lerNfe } from "./nfe-xml.ts";
 
 export type RecebidaFocus = {
@@ -46,11 +46,17 @@ export async function salvarRecebida(db: SupabaseClient, n: RecebidaFocus, unida
   return !error;
 }
 
+/** Código da unidade destinatária da nota (escolhe o token da Focus). */
+async function codigoDaChave(db: SupabaseClient, chave: string) {
+  const { data } = await db.from("nfe_recebidas").select("unidade_id").eq("chave", chave).maybeSingle();
+  return await codigoUnidade(db, data?.unidade_id);
+}
+
 export async function manifestar(db: SupabaseClient, chave: string, tipo: string, justificativa?: string) {
   const res = await focusJson(`/v2/nfes_recebidas/${chave}/manifesto`, {
     method: "POST",
     body: JSON.stringify({ tipo, justificativa }),
-  });
+  }, await codigoDaChave(db, chave));
   if (res.status && res.status !== "evento_registrado") {
     throw new HttpError(422, res.mensagem_sefaz || res.mensagem || "manifestação rejeitada");
   }
@@ -59,8 +65,8 @@ export async function manifestar(db: SupabaseClient, chave: string, tipo: string
 }
 
 /** Baixa o XML da nota na Focus. Só existe depois da ciência da operação. */
-export async function baixarXml(chave: string): Promise<string | null> {
-  const res = await focus(`/v2/nfes_recebidas/${chave}.xml`);
+export async function baixarXml(db: SupabaseClient, chave: string): Promise<string | null> {
+  const res = await focus(`/v2/nfes_recebidas/${chave}.xml`, {}, await codigoDaChave(db, chave));
   if (!res.ok) return null;
   const xml = await res.text();
   return xml.includes("<infNFe") ? xml : null;
@@ -68,7 +74,7 @@ export async function baixarXml(chave: string): Promise<string | null> {
 
 /** Lê itens e duplicatas do XML (o importado ou o da SEFAZ) e guarda os itens na nota. */
 export async function carregarItens(db: SupabaseClient, nfe: { id: string; chave: string; xml?: string | null }) {
-  const xml = nfe.xml || await baixarXml(nfe.chave);
+  const xml = nfe.xml || await baixarXml(db, nfe.chave);
   if (!xml) return null;
   const lido = lerNfe(xml);
   await db.from("nfe_recebidas").update({ itens: lido.itens, nfe_completa: true }).eq("id", nfe.id);
@@ -203,13 +209,26 @@ export async function unidadePorCnpj(db: SupabaseClient, cnpj: string | null | u
   return (data ?? []).find((u: any) => onlyDigits(u.cnpj) === doc)?.id ?? null;
 }
 
-/** Busca na Focus as notas novas contra o CNPJ de cada unidade (matriz e filial). */
-export async function sincronizarRecebidas(db: SupabaseClient) {
+/**
+ * Busca na Focus as notas novas contra o CNPJ de cada unidade (matriz e filial).
+ * Uma unidade que a Focus recusar (ex.: filial ainda não cadastrada lá) vai para `avisos`
+ * sem impedir as outras; só dá erro se nenhuma unidade funcionar.
+ */
+export async function sincronizarRecebidas(db: SupabaseClient, avisos: string[] = []) {
   const { data: unidades } = await db.from("unidades").select("id, codigo, nome, cnpj").eq("ativo", true);
   const comCnpj = (unidades ?? []).filter((u: any) => onlyDigits(u.cnpj).length === 14);
   if (!comCnpj.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
   let total = 0;
-  for (const u of comCnpj) total += await sincronizarCnpj(db, onlyDigits(u.cnpj), u.id, u.codigo);
+  const falhas: string[] = [];
+  for (const u of comCnpj) {
+    try {
+      total += await sincronizarCnpj(db, onlyDigits(u.cnpj), u.id, u.codigo);
+    } catch (e) {
+      falhas.push(`${u.nome}: ${(e as Error).message}`);
+    }
+  }
+  if (falhas.length === comCnpj.length) throw new HttpError(502, falhas.join(" | "));
+  avisos.push(...falhas);
   return total;
 }
 
@@ -221,7 +240,7 @@ async function sincronizarCnpj(db: SupabaseClient, cnpj: string, unidadeId: stri
   let processadas = 0;
 
   for (let pagina = 0; pagina < 50; pagina++) {
-    const res = await focus(`/v2/nfes_recebidas?cnpj=${cnpj}&versao=${versao}`);
+    const res = await focus(`/v2/nfes_recebidas?cnpj=${cnpj}&versao=${versao}`, {}, codigo);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new HttpError(502, err.mensagem || `Focus NFe HTTP ${res.status}`);

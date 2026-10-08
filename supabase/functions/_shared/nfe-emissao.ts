@@ -7,6 +7,7 @@ import { json } from "./cors.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
+import { codigoUnidade } from "./focusnfe.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -32,7 +33,7 @@ const itemBase = (p: any, descricao: string, quantidade: number, valor: number, 
 });
 
 async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
-  const r = await enviarNfe(referencia, payload);
+  const r = await enviarNfe(referencia, payload, await codigoUnidade(db, nota.unidade_id as string));
   const { data: gravada } = await db.from("notas_fiscais").insert({
     ...nota, referencia, status: r.status, mensagem: r.mensagem, payload, resposta: r.resposta, tentativas: 1,
   }).select().single();

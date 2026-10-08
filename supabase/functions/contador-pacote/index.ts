@@ -27,9 +27,9 @@ async function autorizar(req: Request) {
 }
 
 /** Baixa um arquivo da Focus (com o token) ou de qualquer URL pública. */
-async function baixar(url: string | null | undefined): Promise<string | null> {
+async function baixar(url: string | null | undefined, codigo?: string | null): Promise<string | null> {
   if (!url) return null;
-  const token = focusToken();
+  const token = focusToken(codigo);
   const headers: Record<string, string> = url.startsWith(focusBaseUrl()) && token ? { Authorization: "Basic " + btoa(`${token}:`) } : {};
   try {
     const r = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
@@ -64,11 +64,11 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
   const cfops = new Map<string, { base: number; icms: number; ipi: number; pis: number; cofins: number; valor: number; n: number }>();
   for (const n of notas ?? []) {
     const nome = n.chave || `nota-${n.numero}`;
-    const xml = await baixar(n.xml_url);
+    const xml = await baixar(n.xml_url, u.codigo);
     if (xml) arquivos[`saidas/${n.status === "cancelada" ? "canceladas/" : ""}${nome}.xml`] = strToU8(xml);
     else faltando.push(`XML da NF-e ${n.numero ?? n.id}`);
     if (n.status === "cancelada") {
-      const canc = await baixar(focusUrl(n.resposta?.caminho_xml_cancelamento));
+      const canc = await baixar(focusUrl(n.resposta?.caminho_xml_cancelamento), u.codigo);
       if (canc) arquivos[`saidas/canceladas/${nome}-cancelamento.xml`] = strToU8(canc);
       continue;
     }
@@ -83,17 +83,17 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
   // Cartas de correção e inutilizações do mês
   const { data: cartas } = await db.from("nfe_cartas_correcao").select("sequencia, xml_url, nota:notas_fiscais!inner(chave, unidade_id)")
     .eq("status", "autorizada").eq("nota.unidade_id", unidadeId).gte("created_at", ini).lt("created_at", fim);
-  for (const c of cartas ?? []) { const x = await baixar(c.xml_url); if (x) arquivos[`saidas/cartas-correcao/${(c as any).nota?.chave}-cce${c.sequencia ?? ""}.xml`] = strToU8(x); }
+  for (const c of cartas ?? []) { const x = await baixar(c.xml_url, u.codigo); if (x) arquivos[`saidas/cartas-correcao/${(c as any).nota?.chave}-cce${c.sequencia ?? ""}.xml`] = strToU8(x); }
   const { data: inut } = await db.from("nfe_inutilizacoes").select("serie, numero_inicial, numero_final, xml_url").eq("unidade_id", unidadeId)
     .eq("status", "autorizada").gte("created_at", ini).lt("created_at", fim);
-  for (const i of inut ?? []) { const x = await baixar(i.xml_url); if (x) arquivos[`saidas/inutilizacoes/serie${i.serie}-${i.numero_inicial}-${i.numero_final}.xml`] = strToU8(x); }
+  for (const i of inut ?? []) { const x = await baixar(i.xml_url, u.codigo); if (x) arquivos[`saidas/inutilizacoes/serie${i.serie}-${i.numero_inicial}-${i.numero_final}.xml`] = strToU8(x); }
 
   // NF-e recebidas (entradas)
   const { data: recebidas } = await db.from("nfe_recebidas").select("id, chave, numero, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, xml, itens")
     .eq("unidade_id", unidadeId).gte("data_emissao", ini).lt("data_emissao", fim);
   const entradas = new Map<string, { valor: number; n: number }>();
   for (const r of recebidas ?? []) {
-    const xml = r.xml || await baixarXml(r.chave);
+    const xml = r.xml || await baixarXml(db, r.chave);
     if (xml) arquivos[`entradas/${r.chave}.xml`] = strToU8(xml); else faltando.push(`XML da nota de ${r.emitente_nome} (${r.chave})`);
     for (const i of (r.itens ?? []) as any[]) {
       const k = i.cfop ?? "sem CFOP";

@@ -42,9 +42,10 @@ Deno.serve(async (req) => {
 
     switch (body.acao) {
       case "sincronizar": {
-        const processadas = await sincronizarRecebidas(db);
+        const avisos: string[] = [];
+        const processadas = await sincronizarRecebidas(db, avisos);
         const automaticas = await processarPendentes(db);
-        return json({ ok: true, processadas, automaticas });
+        return json({ ok: true, processadas, automaticas, avisos });
       }
 
       case "processar": {
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
 
       case "xml": {
         const { data: salvo } = await db.from("nfe_recebidas").select("xml").eq("chave", body.chave).maybeSingle();
-        const xml = salvo?.xml || await baixarXml(body.chave);
+        const xml = salvo?.xml || await baixarXml(db, body.chave);
         if (!xml) throw new HttpError(422, "XML indisponível — faça a ciência da operação e tente novamente");
         return json({ ok: true, xml });
       }

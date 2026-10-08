@@ -1,6 +1,7 @@
 // Configura os gatilhos (webhooks) da Focus NFe apontando para a função focus-webhook.
-// POST { acao: "status" }     -> lista os gatilhos cadastrados para o CNPJ
-// POST { acao: "registrar" }  -> cadastra os gatilhos "nfe" e "nfe_recebida" (se faltarem)
+// POST { acao: "status" }     -> lista os gatilhos cadastrados, por unidade
+// POST { acao: "registrar" }  -> cadastra os gatilhos "nfe" e "nfe_recebida" (se faltarem) em cada unidade;
+//                               a unidade que a Focus recusar volta em "falhas" sem impedir as outras
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { focusJson, focusProducao } from "../_shared/focusnfe.ts";
@@ -14,41 +15,62 @@ Deno.serve(async (req) => {
     await requireErpUser(req, []);
     const { acao } = await req.json();
     const db = adminClient();
-    const { data: unidades } = await db.from("unidades").select("cnpj").eq("ativo", true);
-    const cnpjs = (unidades ?? []).map((u: any) => onlyDigits(u.cnpj)).filter((c: string) => c.length === 14);
-    if (!cnpjs.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
+    const { data: unidades } = await db.from("unidades").select("nome, codigo, cnpj").eq("ativo", true);
+    const lista = (unidades ?? [])
+      .map((u: any) => ({ nome: u.nome as string, codigo: u.codigo as string, cnpj: onlyDigits(u.cnpj) }))
+      .filter((u) => u.cnpj.length === 14);
+    if (!lista.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
 
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/focus-webhook`;
-    const listar = async () => {
-      const hooks = await focusJson<any[]>(`/v2/hooks`);
-      return (Array.isArray(hooks) ? hooks : []).filter((h) => cnpjs.includes(onlyDigits(h.cnpj)) && h.url === url);
+    /** Gatilhos de uma unidade, consultados com o token dela (cada CNPJ tem o seu na Focus). */
+    const gatilhos = async (u: (typeof lista)[number]) => {
+      const hooks = await focusJson<any[]>(`/v2/hooks`, {}, u.codigo);
+      return (Array.isArray(hooks) ? hooks : []).filter((h) => onlyDigits(h.cnpj) === u.cnpj && h.url === url);
+    };
+    // Cada unidade separada: uma filial ainda sem token não impede a matriz
+    const situacao = async () => {
+      const porUnidade = await Promise.all(lista.map(async (u) => {
+        try {
+          const hooks = await gatilhos(u);
+          return { nome: u.nome, cnpj: u.cnpj, eventos: EVENTOS.filter((e) => hooks.some((h) => h.event === e)) };
+        } catch (e) {
+          return { nome: u.nome, cnpj: u.cnpj, eventos: [] as string[], erro: (e as Error).message };
+        }
+      }));
+      if (porUnidade.every((u) => u.erro)) throw new HttpError(502, porUnidade.map((u) => `${u.nome}: ${u.erro}`).join(" | "));
+      return {
+        ok: true,
+        ambiente: focusProducao() ? "producao" : "homologacao",
+        // um evento só conta como ativo se estiver registrado para todas as unidades
+        eventos: EVENTOS.filter((e) => porUnidade.every((u) => u.eventos.includes(e))),
+        unidades: porUnidade,
+      };
     };
 
-    if (acao === "status") {
-      const hooks = await listar();
-      // um evento só conta como ativo se estiver registrado para todas as unidades
-      const eventos = EVENTOS.filter((e) => cnpjs.every((c) => hooks.some((h) => h.event === e && onlyDigits(h.cnpj) === c)));
-      return json({ ok: true, ambiente: focusProducao() ? "producao" : "homologacao", eventos });
-    }
+    if (acao === "status") return json(await situacao());
 
     if (acao === "registrar") {
-      const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN");
+      const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN")?.trim();
       if (!token) throw new HttpError(500, "defina o secret FOCUS_WEBHOOK_TOKEN no Supabase");
-      const existentes = await listar();
       const criados: string[] = [];
-      for (const cnpj of cnpjs) {
-        for (const event of EVENTOS.filter((e) => !existentes.some((h) => h.event === e && onlyDigits(h.cnpj) === cnpj))) {
-          const r = await focusJson(`/v2/hooks`, {
-            method: "POST",
-            body: JSON.stringify({ cnpj, event, url, authorization: token }),
-          }).catch((e) => {
-            throw new HttpError(502, `${(e as Error).message} (CNPJ ${cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")})`);
-          });
-          if (r?.erros || r?.codigo) throw new HttpError(422, r.mensagem || `falha ao criar gatilho ${event} (${cnpj})`);
-          criados.push(`${event}:${cnpj}`);
+      const falhas: { nome: string; cnpj: string; mensagem: string }[] = [];
+      for (const u of lista) {
+        try {
+          const existentes = await gatilhos(u);
+          for (const event of EVENTOS.filter((e) => !existentes.some((h) => h.event === e))) {
+            const r = await focusJson(`/v2/hooks`, {
+              method: "POST",
+              body: JSON.stringify({ cnpj: u.cnpj, event, url, authorization: token }),
+            }, u.codigo);
+            if (r?.erros || r?.codigo) throw new HttpError(422, r.mensagem || `falha ao criar o gatilho ${event}`);
+            criados.push(`${event}:${u.cnpj}`);
+          }
+        } catch (e) {
+          falhas.push({ nome: u.nome, cnpj: u.cnpj, mensagem: (e as Error).message });
         }
       }
-      return json({ ok: true, criados, eventos: EVENTOS });
+      if (falhas.length === lista.length) throw new HttpError(502, falhas.map((f) => `${f.nome}: ${f.mensagem}`).join(" | "));
+      return json({ ...(await situacao()), criados, falhas });
     }
 
     throw new HttpError(400, "ação inválida");
