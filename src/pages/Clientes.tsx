@@ -1,4 +1,9 @@
+import { useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { CrudPage, type CampoForm } from "@/components/CrudPage";
+import { ImportarContatos } from "@/components/ImportarContatos";
+import { Button } from "@/components/ui";
+import { usePerfil } from "@/lib/auth";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { notify } from "@/lib/notify";
@@ -39,8 +44,15 @@ const FIELDS: CampoForm[] = [
 ];
 
 export default function Clientes() {
+  const { papel } = usePerfil();
+  const [importar, setImportar] = useState(false);
+  // a importação em lote é do financeiro (e admin), como a de produtos
+  const podeImportar = papel === "admin" || papel === "financeiro";
   return (
+    <>
+    {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
     <CrudPage<Cliente>
+      extraActions={podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
       anexos="cliente"
       title="Clientes"
       table="clientes"
@@ -69,5 +81,6 @@ export default function Clientes() {
         { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
       ]}
     />
+    </>
   );
 }

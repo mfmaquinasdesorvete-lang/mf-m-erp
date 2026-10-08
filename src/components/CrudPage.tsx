@@ -101,11 +101,14 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   // Exporta o que está na tela (respeita a busca), com os nomes dos campos do formulário
   function exportar() {
     const campos = fields.filter((f) => f.type !== "secao" && f.type !== "custom");
-    const linhas = filtrados.map((r: any) => Object.fromEntries(campos.map((f) => {
-      const v = r[f.name];
-      const opcao = f.options?.find((o) => String(o.value) === String(v));
-      return [f.label, opcao ? opcao.label : celula(v)];
-    }).concat(Object.entries(exportExtra?.(r) ?? {}))));
+    const linhas = filtrados.length
+      ? filtrados.map((r: any) => Object.fromEntries(campos.map((f) => {
+        const v = r[f.name];
+        const opcao = f.options?.find((o) => String(o.value) === String(v));
+        return [f.label, opcao ? opcao.label : celula(v)];
+      }).concat(Object.entries(exportExtra?.(r) ?? {}))))
+      // lista vazia: baixa o modelo (só os nomes das colunas), para preencher e importar
+      : [Object.fromEntries(campos.filter((f) => f.type !== "readonly").map((f) => [f.label, ""]))];
     baixarPlanilha(table, [{ nome: title, linhas }]).catch(notifyError);
   }
 
@@ -114,7 +117,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       <PageHeader
         title={title}
         actions={<>
-          <Button variant="secondary" onClick={exportar} disabled={!filtrados.length} title="Baixar planilha do Excel"><FileDown size={16} /> Exportar</Button>
+          <Button variant="secondary" onClick={exportar} title={filtrados.length ? "Baixar planilha do Excel" : "Baixar o modelo da planilha (lista vazia)"}><FileDown size={16} /> {filtrados.length ? "Exportar" : "Baixar modelo"}</Button>
           {extraActions}
           {!readOnly && <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
         </>}

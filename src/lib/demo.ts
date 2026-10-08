@@ -916,6 +916,30 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       itens: db.pedido_itens.filter((i) => i.pedido_id === p.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valor: i.quantidade * i.valor_unitario })),
     })),
   }),
+  importar_contatos: ({ p_itens }) => {
+    const r = { clientes: 0, fornecedores: 0, transportadoras: 0, atualizados: 0 };
+    const tabelas = { cliente: ["clientes", "cpf_cnpj"], fornecedor: ["fornecedores", "cnpj"], transportadora: ["transportadoras", "cnpj"] } as const;
+    for (const it of p_itens as Row[]) {
+      if (!it.nome) continue;
+      for (const t of (it.tipos?.length ? it.tipos : ["cliente"]) as (keyof typeof tabelas)[]) {
+        const [tabela, doc] = tabelas[t];
+        const lista = db[tabela] as Row[];
+        let c = lista.find((x) => (it.id_externo && x.id_externo === it.id_externo) || (it.cpf_cnpj && x[doc] === it.cpf_cnpj)
+          || (!it.id_externo && !it.cpf_cnpj && x.nome.trim().toLowerCase() === it.nome.trim().toLowerCase()));
+        if (!c) {
+          c = { id: uid(), codigo: lista.reduce((m, x) => Math.max(m, Number(x.codigo ?? 0)), 0) + 1, created_at: quando(0), ...(t === "transportadora" ? { ativo: true } : {}) };
+          lista.push(c);
+          r[tabela] += 1;
+        } else r.atualizados++;
+        Object.assign(c, Object.fromEntries(Object.entries({
+          id_externo: it.id_externo, nome: it.nome, nome_fantasia: it.fantasia, [doc]: it.cpf_cnpj, inscricao_estadual: it.ie,
+          email: it.email, telefone: it.fone, whatsapp: it.celular, cep: it.cep, logradouro: it.endereco, numero: it.numero,
+          complemento: it.complemento, bairro: it.bairro, municipio: it.cidade, uf: it.uf,
+        }).filter(([, v]) => v !== "" && v != null)));
+      }
+    }
+    return { data: r, error: null };
+  },
   importar_produtos: ({ p_itens, p_unidade, p_lancar_estoque }) => {
     const r = { criados: 0, atualizados: 0, fornecedores_criados: 0, com_estoque: 0, negativos: 0 };
     for (const it of p_itens as Row[]) {

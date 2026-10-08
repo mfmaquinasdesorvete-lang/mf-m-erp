@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
+import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm } from "@/components/CrudPage";
 import { Contato, NomeCadastro } from "@/components/Contato";
-import { Tabs } from "@/components/ui";
+import { Button, Tabs } from "@/components/ui";
 import { digitos, docFormat } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
@@ -46,11 +48,16 @@ const colunas = <T extends { codigo?: number | null; nome: string; nome_fantasia
 ];
 
 export default function Fornecedores() {
-  const { pode } = usePerfil();
+  const { pode, papel } = usePerfil();
+  const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
+  const podeImportar = papel === "admin" || papel === "financeiro";
+  const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
+    podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
   const [aba, setAba] = useState<"fornecedores" | "transportadoras">(pode("editar_fornecedores") ? "fornecedores" : "transportadoras");
 
   return (
     <div>
+      {importar && <ImportarContatos tipo={importar} onClose={() => setImportar(null)} />}
       <Tabs value={aba} onChange={setAba} options={[
         { value: "fornecedores", label: "Fornecedores de peças" },
         { value: "transportadoras", label: "Transportadoras" },
@@ -60,6 +67,7 @@ export default function Fornecedores() {
           anexos="fornecedor"
           key="f"
           readOnly={!pode("editar_fornecedores")}
+          extraActions={botaoImportar("fornecedor")}
           title="Fornecedores"
           table="fornecedores"
           order="nome"
@@ -85,6 +93,7 @@ export default function Fornecedores() {
         <CrudPage<Transportadora>
           key="t"
           readOnly={!pode("editar_transportadoras")}
+          extraActions={botaoImportar("transportadora")}
           title="Transportadoras"
           table="transportadoras"
           order="nome"

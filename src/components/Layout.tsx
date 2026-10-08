@@ -40,7 +40,7 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     titulo: "Fábrica",
     itens: [
       { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory },
-      { to: "/estoque", tela: "estoque", label: "Estoque", curto: "Estoque", icon: Boxes },
+      { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores e fretes", curto: "Fornec.", icon: Truck },
     ],

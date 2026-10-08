@@ -53,7 +53,7 @@ export default function Produtos() {
 
       <CrudPage<Produto>
         anexos="produto"
-        title="Estoque — máquinas e peças"
+        title="Produtos e estoque"
         readOnly={!pode("editar_produtos")}
         table="produtos"
         order="descricao"
