@@ -7,6 +7,8 @@ import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { dataBR } from "@/lib/format";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
+import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/lib/codigosFiscais";
+import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
 
 type Carta = { id: string; nota_id: string; sequencia: number | null; correcao: string; status: string; mensagem: string | null; pdf_url: string | null; created_at: string };
@@ -144,6 +146,7 @@ function resumoCondicao(r: Regra, nomeUn: (id: string) => string) {
     r.unidade_id && nomeUn(r.unidade_id), r.operacao && rotulo("operacao", r.operacao), r.destino && rotulo("destino", r.destino),
     r.tipo_cliente && rotulo("tipo_cliente", r.tipo_cliente), r.tipo_produto && rotulo("tipo_produto", r.tipo_produto),
     r.origem_mercadoria && rotulo("origem_mercadoria", r.origem_mercadoria), r.ncm_prefixo && `NCM ${r.ncm_prefixo}…`, r.cfop && `CFOP ${r.cfop}`,
+    r.ufs_destino?.length && `para ${r.ufs_destino.join(", ")}`,
   ].filter(Boolean);
   return p.length ? p.join(" · ") : "Todas as operações";
 }
@@ -155,6 +158,7 @@ function resumoResultado(r: Regra) {
     (r.ipi_cst || r.ipi_aliquota != null) && `IPI ${[r.ipi_cst && `CST ${r.ipi_cst}`, r.ipi_aliquota != null && `${r.ipi_aliquota}%`].filter(Boolean).join(" ")}`,
     (r.pis_cst || r.pis_aliquota != null) && `PIS ${[r.pis_cst, r.pis_aliquota != null && `${r.pis_aliquota}%`].filter(Boolean).join(" ")}`,
     (r.cofins_cst || r.cofins_aliquota != null) && `COFINS ${[r.cofins_cst, r.cofins_aliquota != null && `${r.cofins_aliquota}%`].filter(Boolean).join(" ")}`,
+    (r.ibs_cbs_cst || r.ibs_cbs_class_trib) && `IBS/CBS ${[r.ibs_cbs_cst && `CST ${r.ibs_cbs_cst}`, r.ibs_cbs_class_trib].filter(Boolean).join(" ")}`,
     r.observacao_nfe && "observação na nota",
   ].filter(Boolean);
   return p.length ? p.join(" · ") : "—";
@@ -177,7 +181,7 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
     <div>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-3xl text-sm text-slate-600">
-          Sem regra, cada nota usa o padrão da unidade (Configurações → Unidades → Impostos). Uma regra troca só o que você preencher,
+          Sem regra, cada nota usa o padrão da unidade (aba Configurações da NF-e). Uma regra troca só o que você preencher,
           para as notas que combinam com as condições. Vale a primeira regra que combinar, pela ordem de prioridade.
           <b> Confira cada regra com o contador e teste em homologação.</b>
         </p>
@@ -208,13 +212,16 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
 const NUM = ["icms_aliquota", "icms_reducao_base", "ipi_aliquota", "pis_aliquota", "cofins_aliquota"] as const;
 
 function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
-  const [r, setR] = useState<Record<string, any>>({ ...regra, difal: regra.difal == null ? "" : regra.difal ? "sim" : "nao" });
+  const [r, setR] = useState<Record<string, any>>({ ...regra, difal: regra.difal == null ? "" : regra.difal ? "sim" : "nao", ufs_destino: (regra.ufs_destino ?? []).join(", ") });
   const invalidar = useInvalidate();
   const set = (k: string) => (e: { target: { value: string } }) => setR({ ...r, [k]: e.target.value });
   const sel = (k: keyof typeof OPCOES, label: string) => (
     <Field label={label}><select className="input" value={r[k] ?? ""} onChange={set(k)}>{OPCOES[k].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
   );
   const txt = (k: string, label: string, ph = "") => <Field label={label}><input className="input" value={r[k] ?? ""} onChange={set(k)} placeholder={ph} /></Field>;
+  const cod = (k: string, label: string, lista: Codigo[]) => (
+    <Field label={label}><SelectCodigo lista={lista} value={r[k]} onChange={(v) => setR({ ...r, [k]: v })} vazio="Padrão da unidade" /></Field>
+  );
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -223,6 +230,8 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
     row.prioridade = Number(row.prioridade || 100);
     row.difal = r.difal === "" ? null : r.difal === "sim";
     row.ativo = !!r.ativo;
+    const ufs = String(r.ufs_destino ?? "").toUpperCase().split(/[^A-Z]+/).filter((x) => x.length === 2);
+    row.ufs_destino = ufs.length ? [...new Set(ufs)] : null;
     const { error } = row.id
       ? await supabase.from("regras_tributacao").update(row).eq("id", row.id)
       : await supabase.from("regras_tributacao").insert(row);
@@ -251,25 +260,30 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
             {sel("origem_mercadoria", "Origem da mercadoria")}
             {txt("ncm_prefixo", "NCM começa com", "8418")}
             {txt("cfop", "CFOP calculado", "6102")}
+            <Field label="Estados de destino (vazio = todos)" className="sm:col-span-2">
+              <input className="input" value={r.ufs_destino} onChange={set("ufs_destino")} placeholder="MG, PR, RJ, RS, SP" />
+            </Field>
           </div>
         </fieldset>
         <fieldset className="rounded-xl border border-slate-200 p-3">
           <legend className="px-1 text-sm font-semibold">Aplica (vazio = padrão da unidade)</legend>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {txt("cfop_saida", "Trocar CFOP para", "6108")}
-            {txt("icms_cst", "ICMS CST", "00, 20, 41…")}
+            {cod("icms_cst", "ICMS CST", CST_ICMS)}
             {txt("icms_aliquota", "ICMS alíquota %", "auto")}
             {txt("icms_reducao_base", "ICMS redução da base %")}
             <Field label="DIFAL">
               <select className="input" value={r.difal} onChange={set("difal")}><option value="">Padrão</option><option value="sim">Calcular</option><option value="nao">Não calcular</option></select>
             </Field>
-            {txt("ipi_cst", "IPI CST", "50, 53…")}
+            {cod("ipi_cst", "IPI CST", CST_IPI)}
             {txt("ipi_aliquota", "IPI alíquota %", "TIPI do produto")}
             {txt("ipi_enquadramento", "IPI enquadramento", "999")}
-            {txt("pis_cst", "PIS CST", "01")}
+            {cod("pis_cst", "PIS CST", CST_PIS_COFINS)}
             {txt("pis_aliquota", "PIS %", "1,65")}
-            {txt("cofins_cst", "COFINS CST", "01")}
+            {cod("cofins_cst", "COFINS CST", CST_PIS_COFINS)}
             {txt("cofins_aliquota", "COFINS %", "7,6")}
+            {cod("ibs_cbs_cst", "IBS/CBS CST", CST_IBS_CBS)}
+            {txt("ibs_cbs_class_trib", "IBS/CBS cClassTrib", "000001")}
             <Field label="Texto nas informações complementares da nota" className="col-span-2 sm:col-span-4">
               <textarea className="input" rows={2} value={r.observacao_nfe ?? ""} onChange={set("observacao_nfe")} placeholder="Ex.: Base de cálculo reduzida conforme art. … do RICMS/SC" />
             </Field>

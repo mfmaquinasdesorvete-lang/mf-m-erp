@@ -16,6 +16,8 @@ export type Unidade = {
   pis_cst: string; pis_aliquota: number; cofins_cst: string; cofins_aliquota: number; pis_cofins_exclui_icms: boolean;
   ipi_cst: string; ipi_enquadramento: string; difal_ativo: boolean;
   transf_icms_cst: string; transf_pis_cofins_cst: string; transf_destacar_ipi: boolean;
+  ipi_cst_aliquota_zero?: string; ibs_cbs_cst?: string; ibs_cbs_class_trib?: string;
+  transf_ibs_cbs_cst?: string; transf_ibs_cbs_class_trib?: string; informacoes_complementares?: string | null;
 };
 
 type Ctx = {

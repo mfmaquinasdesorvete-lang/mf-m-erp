@@ -11,6 +11,7 @@ import { usePerfil } from "@/lib/auth";
 import { CartaCorrecaoModal, InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
 import { EmitirNfeModal } from "@/components/EmitirNfe";
+import { ConfigNfe } from "@/components/ConfigNfe";
 
 type Emitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null;
@@ -26,17 +27,18 @@ type Recebida = {
 export default function NotasFiscais() {
   const { pode, papel } = usePerfil();
   const contador = papel === "contador";
-  const [aba, setAba] = useState<"emitidas" | "recebidas" | "regras" | "compliance">("emitidas");
+  const [aba, setAba] = useState<"emitidas" | "recebidas" | "config" | "regras" | "compliance">("emitidas");
   return (
     <div>
       <PageHeader title="Notas fiscais" />
       <Tabs value={aba} onChange={setAba} options={[
         { value: "emitidas", label: "NF-e emitidas (vendas)" },
         ...(pode("nfe_recebidas") || contador ? [{ value: "recebidas" as const, label: "NF-e recebidas (fornecedores)" }] : []),
+        { value: "config", label: "Configurações da NF-e" },
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "compliance" ? <ComplianceFiscal /> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} />}
+      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} />}
     </div>
   );
 }

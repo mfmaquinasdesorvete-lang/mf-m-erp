@@ -5,7 +5,7 @@
 // de cada unidade e produto. Valide com o contador e teste em homologação antes da produção.
 import { json } from "./cors.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
-import { type AliquotasUf, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
+import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade } from "./focusnfe.ts";
 
@@ -19,6 +19,12 @@ function ratear(total: number, bases: number[]): number[] {
   partes[partes.length - 1] = r2(total - partes.slice(0, -1).reduce((a, b) => a + b, 0));
   return partes;
 }
+
+/** Alíquotas do IBS/CBS das Configurações da NF-e (2026: CBS 0,9% e IBS 0,1%). */
+const configIbsCbs = (cfg: any): ConfigIbsCbs => ({
+  ativo: cfg?.ibs_cbs_ativo !== false,
+  cbs: Number(cfg?.cbs_aliquota ?? 0.9), ibs_uf: Number(cfg?.ibs_uf_aliquota ?? 0.1), ibs_mun: Number(cfg?.ibs_mun_aliquota ?? 0),
+});
 
 /** Confere se a unidade tem o necessário para emitir. */
 function exigirEmitente(u: any) {
@@ -99,7 +105,7 @@ export async function emitirPedido(db: any, pedidoId: string) {
   const usadas = new Set<RegraTributaria>();
   const items = itensVenda(u, { uf: c.uf.toUpperCase(), contribuinte }, pedido.itens.map((i: any, idx: number) =>
     itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade, i.valor_unitario,
-      { desconto: descontos[idx], frete: fretes[idx] })), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas });
+      { desconto: descontos[idx], frete: fretes[idx] })), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg) });
 
   const payload = {
     natureza_operacao: u.natureza_operacao,
@@ -126,7 +132,7 @@ export async function emitirPedido(db: any, pedidoId: string) {
     telefone_destinatario: onlyDigits(c.telefone || c.whatsapp) || undefined,
     email_destinatario: c.email || undefined,
     modalidade_frete: pedido.modalidade_frete,
-    informacoes_adicionais_contribuinte: [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas)].filter(Boolean).join(" - "),
+    informacoes_adicionais_contribuinte: [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), u.informacoes_complementares].filter(Boolean).join(" - "),
     items,
   };
 
@@ -156,10 +162,11 @@ export async function emitirTransferencia(db: any, transferenciaId: string) {
     throw new HttpError(400, "transferência já possui NF-e autorizada ou em processamento");
   }
   const inter = d.uf.toUpperCase() !== t.origem.uf.toUpperCase();
+  const { data: cfg } = await db.from("configuracoes").select("*").eq("id", 1).single();
   const usadas = new Set<RegraTributaria>();
   const items = itensTransferencia(t.origem, d.uf.toUpperCase(), t.itens.map((i: any) =>
     itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade,
-      Number(i.custo_unitario) || Number(i.produto.preco_custo) || 0.01)), { regras: await regrasDa(db, t.origem_id), unidade_id: t.origem_id, usadas });
+      Number(i.custo_unitario) || Number(i.produto.preco_custo) || 0.01)), { regras: await regrasDa(db, t.origem_id), unidade_id: t.origem_id, usadas, ibsCbs: configIbsCbs(cfg) });
   const payload = {
     natureza_operacao: "Transferência de mercadoria",
     data_emissao: new Date().toISOString(),

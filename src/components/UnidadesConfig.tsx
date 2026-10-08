@@ -1,7 +1,8 @@
-// Configurações → Unidades: matriz SC e filial SP (CNPJ, IE, endereço e regras fiscais do lucro real).
+// Configurações → Unidades: matriz SC e filial SP (CNPJ, IE e endereço). Os impostos da nota ficam em
+// Notas fiscais → Configurações da NF-e.
 import { useState, type FormEvent } from "react";
 import { Building2, Pencil } from "lucide-react";
-import { Badge, Button, Field, Modal, Tabs } from "./ui";
+import { Badge, Button, Field, Modal } from "./ui";
 import { useSave } from "@/lib/data";
 import { docFormat } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
@@ -9,7 +10,7 @@ import { buscarCnpj, inscricaoDoEstado, preencherVazios } from "@/lib/cnpj";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade, type Unidade } from "@/lib/unidade";
 
-const NUMEROS = ["serie_nfe", "icms_aliquota_interna", "icms_reducao_base", "pis_aliquota", "cofins_aliquota"] as const;
+const NUMEROS = ["serie_nfe"] as const;
 
 export function UnidadesConfig() {
   const { unidades } = useUnidade();
@@ -42,7 +43,8 @@ export function UnidadesConfig() {
         })}
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        Na Focus NFe, cadastre as duas empresas (CNPJ, certificado A1 e numeração).
+        Na Focus NFe, cadastre as duas empresas (CNPJ, certificado A1 e numeração). CFOP, CST, alíquotas e IBS/CBS de cada unidade:
+        <b> Notas fiscais → Configurações da NF-e</b>.
       </p>
       {editando && <UnidadeModal unidade={editando} onClose={() => setEditando(null)} />}
     </div>
@@ -51,7 +53,6 @@ export function UnidadesConfig() {
 
 function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => void }) {
   const [u, setU] = useState<Record<string, any>>(unidade);
-  const [aba, setAba] = useState<"dados" | "fiscal" | "transf">("dados");
   const save = useSave("unidades");
   const set = (k: string) => (e: { target: { value: string } }) => setU({ ...u, [k]: e.target.value });
   const chk = (k: string, label: string) => (
@@ -76,8 +77,6 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
   return (
     <Modal open wide onClose={onClose} title={`Unidade: ${unidade.nome}`}>
       <form onSubmit={salvar}>
-        <Tabs value={aba} onChange={setAba} options={[{ value: "dados", label: "Dados e endereço" }, { value: "fiscal", label: "Impostos (lucro real)" }, { value: "transf", label: "Transferências" }]} />
-        {aba === "dados" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {campo("nome", "Nome no ERP", "sm:col-span-2")}
             {campo("codigo", "Sigla")}
@@ -102,37 +101,8 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
               <textarea className="input" rows={2} placeholder={"Pix (CNPJ): 12.345.678/0001-90\nBanco do Brasil · Ag. 1234-5 · C/C 98765-4"} value={u.instrucoes_pagamento ?? ""} onChange={set("instrucoes_pagamento")} />
             </Field>
             <div className="flex flex-wrap gap-5 sm:col-span-4">{chk("fabrica", "Fabrica máquinas aqui")}{chk("assistencia", "Faz assistência técnica")}{chk("ativo", "Ativa")}</div>
+            <p className="text-xs text-slate-500 sm:col-span-4">CFOP, CST, alíquotas e IBS/CBS desta unidade: Notas fiscais → Configurações da NF-e.</p>
           </div>
-        )}
-        {aba === "fiscal" && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:col-span-4">Valores iniciais típicos do lucro real. Confirme cada um com o contador e teste em homologação.</p>
-            {campo("natureza_operacao", "Natureza da operação", "sm:col-span-2")}
-            {campo("cfop_venda_producao", "CFOP venda de produção própria")}
-            {campo("cfop_venda_revenda", "CFOP revenda (peças, máquinas da outra unidade)")}
-            {campo("icms_cst", "CST ICMS")}
-            {campo("icms_aliquota_interna", "ICMS interno (%)", "", "number")}
-            {campo("icms_reducao_base", "Redução da base ICMS (%)", "", "number")}
-            <div className="flex items-end pb-2">{chk("difal_ativo", "Calcular DIFAL (consumidor final de outro estado)")}</div>
-            {campo("pis_cst", "CST PIS")}
-            {campo("pis_aliquota", "PIS (%)", "", "number")}
-            {campo("cofins_cst", "CST COFINS")}
-            {campo("cofins_aliquota", "COFINS (%)", "", "number")}
-            <div className="sm:col-span-4">{chk("pis_cofins_exclui_icms", "Excluir o ICMS da base do PIS/COFINS (Tema 69 do STF)")}</div>
-            {campo("ipi_cst", "CST IPI (saída)")}
-            {campo("ipi_enquadramento", "Enquadramento IPI")}
-            <p className="self-end pb-2 text-xs text-slate-500 sm:col-span-2">A alíquota do IPI fica no cadastro de cada máquina (TIPI do NCM). Só sai IPI no que esta unidade fabrica.</p>
-            <p className="text-xs text-slate-500 sm:col-span-4">Venda para outro estado: 12% (S/SE) ou 7% (N, NE, CO e ES); 4% para produto com conteúdo importado. CFOP 5 vira 6 sozinho.</p>
-          </div>
-        )}
-        {aba === "transf" && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <p className="text-sm text-slate-600 sm:col-span-4">Regras da NF-e quando esta unidade <b>envia</b> mercadoria para a outra (CFOP 5151/6151 para o que fabrica, 5152/6152 para o resto, valor pelo custo).</p>
-            {campo("transf_icms_cst", "CST ICMS na transferência (41 = sem ICMS)")}
-            {campo("transf_pis_cofins_cst", "CST PIS/COFINS na transferência")}
-            <div className="flex items-end pb-2 sm:col-span-2">{chk("transf_destacar_ipi", "Destacar IPI ao transferir máquina fabricada aqui")}</div>
-          </div>
-        )}
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button disabled={save.isPending}>Salvar</Button>
