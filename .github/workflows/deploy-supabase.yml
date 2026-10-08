@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.120.0
       - run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - name: Migrações do banco
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
