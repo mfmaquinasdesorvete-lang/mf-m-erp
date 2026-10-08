@@ -19,8 +19,18 @@ export async function enviarNfe(referencia: string, payload: unknown): Promise<E
   const resposta = await res.json().catch(() => ({}));
   if (res.status >= 500 || res.status === 429) return { status: "contingencia", mensagem: FILA, resposta };
   if (res.ok) return { status: "processando", mensagem: null, resposta };
-  const mensagem = [resposta.mensagem, ...(resposta.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ");
+  const mensagem = [resposta.mensagem, resposta.mensagem_sefaz, ...(resposta.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ");
   return { status: "erro", mensagem: mensagem || `Focus NFe HTTP ${res.status}`, resposta };
+}
+
+/**
+ * Com o "envio síncrono" ligado na Focus, a resposta do envio já traz a nota autorizada
+ * (ou rejeitada pela SEFAZ): aplica na hora número, chave, DANFE e o faturamento do pedido.
+ * No envio assíncrono a resposta é "processando_autorizacao" e nada muda.
+ */
+export async function aplicarRetornoDoEnvio<T extends { id: string; status: string; pedido_id: string | null }>(db: SupabaseClient, nota: T | null, r: Envio) {
+  if (!nota || r.status !== "processando" || !(r.resposta as any)?.status) return nota;
+  return (await aplicarRetornoNfe(db, nota, r.resposta)) ?? nota;
 }
 
 /** Reenvia as notas da fila de contingência (chamado pelo agendamento). */
@@ -39,7 +49,9 @@ export async function reenviarContingencia(db: SupabaseClient) {
       continue;
     }
     const r = await enviarNfe(n.referencia, n.payload);
-    await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: n.tentativas + 1, updated_at: new Date().toISOString() }).eq("id", n.id);
+    const { data } = await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: n.tentativas + 1, updated_at: new Date().toISOString() })
+      .eq("id", n.id).select().single();
+    await aplicarRetornoDoEnvio(db, data, r);
     if (r.status !== "contingencia") reenviadas++;
   }
   return reenviadas;

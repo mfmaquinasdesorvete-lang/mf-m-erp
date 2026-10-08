@@ -6,7 +6,7 @@
 import { json } from "./cors.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
-import { enviarNfe } from "./nfe-envio.ts";
+import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -33,10 +33,15 @@ const itemBase = (p: any, descricao: string, quantidade: number, valor: number, 
 
 async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
   const r = await enviarNfe(referencia, payload);
-  const { data } = await db.from("notas_fiscais").insert({
+  const { data: gravada } = await db.from("notas_fiscais").insert({
     ...nota, referencia, status: r.status, mensagem: r.mensagem, payload, resposta: r.resposta, tentativas: 1,
   }).select().single();
-  return json({ ok: r.status !== "erro", nota: data, contingencia: r.status === "contingencia" }, r.status === "erro" ? 422 : 200);
+  const data = await aplicarRetornoDoEnvio(db, gravada, r);
+  const recusada = r.status === "erro" || data?.status === "erro" || data?.status === "denegada";
+  return json(
+    { ok: !recusada, nota: data, contingencia: r.status === "contingencia", ...(recusada ? { error: `NF-e não autorizada: ${data?.mensagem || r.mensagem || "sem motivo informado"}` } : {}) },
+    recusada ? 422 : 200,
+  );
 }
 
 /** Regras de tributação ativas desta unidade (ou de todas). */

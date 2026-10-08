@@ -8,7 +8,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { focus, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
-import { enviarNfe } from "../_shared/nfe-envio.ts";
+import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 
 const msgFocus = (b: any, padrao: string) =>
   [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
@@ -85,9 +85,10 @@ Deno.serve(async (req) => {
       const c = await focus(`/v2/nfe/${ref}?completa=0`).catch(() => null);
       if (c?.ok) return json({ ok: true, nota: await aplicarRetornoNfe(db, nota, await c.json()) });
       const r = await enviarNfe(nota.referencia, nota.payload);
-      const { data } = await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: nota.tentativas + 1, updated_at: new Date().toISOString() })
+      const { data: gravada } = await db.from("notas_fiscais").update({ status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: nota.tentativas + 1, updated_at: new Date().toISOString() })
         .eq("id", nota.id).select().single();
-      return json({ ok: r.status !== "erro", nota: data });
+      const data = await aplicarRetornoDoEnvio(db, gravada, r);
+      return json({ ok: r.status !== "erro" && data?.status !== "erro", nota: data });
     }
 
     const res = await focus(`/v2/nfe/${ref}?completa=0`);
