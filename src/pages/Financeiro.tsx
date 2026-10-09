@@ -16,16 +16,23 @@ import { Anexos } from "@/components/Anexos";
 import { Historico } from "@/components/Historico";
 import { BaixaModal } from "@/components/financeiro/BaixaModal";
 import { VisaoGeral } from "@/components/financeiro/VisaoGeral";
+import { CampoCategoria, CampoRateio, rateioOk } from "@/components/financeiro/CategoriaRateio";
+import { ContasFixas } from "@/components/financeiro/ContasFixas";
+import { Dre } from "@/components/financeiro/Dre";
+import { PlanoContas } from "@/components/financeiro/PlanoContas";
+import type { LancDre, Rateio } from "@/lib/dre";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
   forma_pagamento: string; data_pagamento: string | null; valor_pago: number | null; unidade_id?: string | null;
   conta_bancaria_id?: string | null; motivo_alteracao?: string | null; cliente?: Cliente | null;
+  categoria?: string; rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null;
 };
 type Pagar = {
   id: string; descricao: string; fornecedor_id: string | null; categoria: string; documento: string | null;
   valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null; fornecedor?: { nome: string } | null;
+  rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 
@@ -55,7 +62,7 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 export default function Financeiro() {
   const { pode, papel } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
-  const [aba, setAba] = useState<"visao" | "receber" | "pagar">("visao");
+  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "fixas" | "dre" | "plano">("visao");
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
@@ -76,15 +83,23 @@ export default function Financeiro() {
     receber: receber.map((c) => ({ ...c, terceiro: c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null })),
     pagar: pagar.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })),
   }), [receber, pagar]);
+  const paraDre = useMemo<LancDre[]>(() => [
+    ...receber.map((c) => ({ ...c, tipo: "receber" as const })),
+    ...pagar.map((c) => ({ ...c, tipo: "pagar" as const })),
+  ], [receber, pagar]);
 
   return (
     <div>
       <PageHeader title="Financeiro" />
       <Tabs value={aba} onChange={setAba} options={[
         { value: "visao", label: "Visão geral" }, { value: "receber", label: "Contas a receber" },
-        ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),
+        ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }, { value: "fixas" as const, label: "Contas fixas" },
+          { value: "dre" as const, label: "DRE" }, { value: "plano" as const, label: "Plano de contas" }] : []),
       ]} />
-      {aba === "visao" ? (
+      {aba === "fixas" && veContasPagar ? <ContasFixas />
+        : aba === "dre" && veContasPagar ? <Dre lancamentos={paraDre} />
+        : aba === "plano" && veContasPagar ? <PlanoContas />
+        : aba === "visao" ? (
         <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}
           veSaldo={papel === "admin" || papel === "financeiro" || papel === "contador"} podeBaixar={pode("editar_financeiro")} />
       ) : (
@@ -204,6 +219,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
     e.preventDefault();
     try {
       const { cliente: _c, ...row } = nova as any;
+      if (!rateioOk(row.rateio)) return notify("Os centros de custo precisam somar 100%", "erro");
       if (!precisaMotivo(contas.find((c) => c.id === row.id), row)) delete row.motivo_alteracao;
       await save.mutateAsync(limpar({ ...row, valor: Number(row.valor) }));
       notify(row.id ? "Conta salva" : "Conta lançada");
@@ -218,7 +234,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       {rel.visor}
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Forma: c.forma_pagamento }))}
-        onNovo={podeEditar ? () => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao } as any) : undefined} />
+        onNovo={podeEditar ? () => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao, categoria: "vendas", rateio: [] } as any) : undefined} />
       <Table
         empty={lista.length === 0}
         head={<><th className="th">Vencimento</th><th className="th">Descrição</th><th className="th">Cliente</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
@@ -276,6 +292,9 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
                 <option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option>
               </select>
             </Field>
+            <CampoCategoria tipo="receita" value={nova.categoria} onChange={(v) => setNova({ ...nova, categoria: v })} className="sm:col-span-2" />
+            <div className="sm:col-span-2"><CampoRateio value={nova.rateio} disabled={somenteVer} onChange={(v) => setNova({ ...nova, rateio: v })} /></div>
+            {nova.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Financeiro → Contas fixas).</p>}
             {precisaMotivo(contas.find((c) => c.id === nova.id), nova) && (
               <Field label="Motivo da alteração de valor/vencimento (fica no histórico)" className="sm:col-span-2">
                 <input className="input" value={nova.motivo_alteracao ?? ""} onChange={(e) => setNova({ ...nova, motivo_alteracao: e.target.value })} required minLength={3} placeholder="Ex.: cliente pediu prorrogação por e-mail" />
@@ -321,6 +340,7 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
     e.preventDefault();
     try {
       const { fornecedor: _f, ...row } = editando as any;
+      if (!rateioOk(row.rateio)) return notify("Os centros de custo precisam somar 100%", "erro");
       if (!precisaMotivo(contas.find((c) => c.id === row.id), row)) delete row.motivo_alteracao;
       await save.mutateAsync(limpar({ ...row, valor: Number(row.valor) }));
       notify("Conta salva");
@@ -335,7 +355,7 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
       {rel.visor}
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))}
-        onNovo={() => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao } as any)} />
+        onNovo={() => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any)} />
       <Table
         empty={lista.length === 0}
         head={<><th className="th">Vencimento</th><th className="th">Descrição</th><th className="th">Fornecedor</th><th className="th">Categoria</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
@@ -368,15 +388,13 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
                 {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
               </select>
             </Field>
-            <Field label="Categoria">
-              <select className="input" value={editando.categoria} onChange={(e) => setEditando({ ...editando, categoria: e.target.value })}>
-                {["fornecedores", "impostos", "folha", "aluguel", "frete", "energia/água/internet", "marketing", "manutenção", "outros"].map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </Field>
+            <CampoCategoria tipo="despesa" value={editando.categoria} onChange={(v) => setEditando({ ...editando, categoria: v })} />
             <Field label="Valor"><input className="input" type="number" step="0.01" min={0.01} value={editando.valor ?? ""} onChange={(e) => setEditando({ ...editando, valor: Number(e.target.value) })} required /></Field>
             <Field label="Vencimento"><input className="input" type="date" value={editando.vencimento} onChange={(e) => setEditando({ ...editando, vencimento: e.target.value })} required /></Field>
             <Field label="Documento (NF, boleto…)" className="sm:col-span-2"><input className="input" value={editando.documento ?? ""} onChange={(e) => setEditando({ ...editando, documento: e.target.value })} /></Field>
             <Field label="Observações" className="sm:col-span-2"><textarea className="input" rows={2} value={editando.observacoes ?? ""} onChange={(e) => setEditando({ ...editando, observacoes: e.target.value })} /></Field>
+            <div className="sm:col-span-2"><CampoRateio value={editando.rateio} onChange={(v) => setEditando({ ...editando, rateio: v })} /></div>
+            {editando.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Financeiro → Contas fixas).</p>}
             {precisaMotivo(contas.find((c) => c.id === editando.id), editando) && (
               <Field label="Motivo da alteração de valor/vencimento (fica no histórico)" className="sm:col-span-2">
                 <input className="input" value={editando.motivo_alteracao ?? ""} onChange={(e) => setEditando({ ...editando, motivo_alteracao: e.target.value })} required minLength={3} placeholder="Ex.: fornecedor enviou boleto corrigido" />

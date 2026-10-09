@@ -5,6 +5,7 @@ import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { brl, dataBR, digitos, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
+import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
@@ -25,7 +26,6 @@ type Conta = {
 };
 
 export const BANCOS: Record<string, string> = { unicred: "Unicred", nubank: "Nubank", infinitepay: "InfinitePay", outro: "Outro banco", caixa: "Caixa (dinheiro)" };
-const CATEGORIAS = ["tarifas bancárias", "juros e multas", "impostos", "fornecedores", "frete", "folha", "aluguel", "energia/água/internet", "marketing", "manutenção", "outros"];
 
 export default function Conciliacao() {
   const { pode } = usePerfil();
@@ -339,7 +339,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
   const unidade = bancos.find((b) => b.id === lanc.conta_bancaria_id)?.unidade_id;
   const [modo, setModo] = useState<"conta" | "lancar" | "transferencia" | "ignorar">("conta");
   const [busca, setBusca] = useState("");
-  const [categoria, setCategoria] = useState(entrada ? "outros" : "tarifas bancárias");
+  const [categoria, setCategoria] = useState(entrada ? "outras receitas" : "tarifas bancárias");
   const [descricao, setDescricao] = useState(lanc.descricao ?? "");
   const [motivo, setMotivo] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -415,11 +415,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
       {modo === "lancar" && (
         <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); rodar(() => supabase.rpc("lancar_do_extrato", { p_lanc: lanc.id, p_categoria: categoria, p_descricao: descricao }), `${entrada ? "Receita" : "Despesa"} lançada e conciliada`); }}>
           <Field label="Descrição"><input className="input" value={descricao} onChange={(e) => setDescricao(e.target.value)} required /></Field>
-          {!entrada && (
-            <Field label="Categoria">
-              <select className="input" value={categoria} onChange={(e) => setCategoria(e.target.value)}>{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</select>
-            </Field>
-          )}
+          <CampoCategoria tipo={entrada ? "receita" : "despesa"} value={categoria} onChange={setCategoria} />
           <p className="text-xs text-slate-500 sm:col-span-2">Cria a conta já paga em {dataBR(lanc.data)}, nesta conta bancária, e entra no resultado (DRE).</p>
           <div className="flex justify-end sm:col-span-2"><Button disabled={ocupado}><Receipt size={15} /> Lançar</Button></div>
         </form>

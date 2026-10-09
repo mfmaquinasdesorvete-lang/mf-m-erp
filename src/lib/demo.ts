@@ -321,7 +321,73 @@ function seed(): Db {
   recalcular(db);
   comercialDemo(db);
   bancosDemo(db);
+  planoDemo(db);
   return db;
+}
+
+/** Plano de contas, centros de custo e contas fixas de exemplo. */
+function planoDemo(db: Db) {
+  const cat = (nome: string, tipo: string, grupo: string, ordem: number) => ({ id: `cat-${nome}`, nome, tipo, grupo, ordem, ativo: true, created_at: quando(-60) });
+  db.categorias_financeiras = [
+    cat("vendas", "receita", "receita", 10), cat("assistência técnica", "receita", "receita", 20), cat("receitas financeiras", "receita", "receita_financeira", 80),
+    cat("outras receitas", "receita", "outros", 90), cat("impostos", "despesa", "deducao", 10), cat("fornecedores", "despesa", "custo", 20), cat("frete", "despesa", "custo", 30),
+    cat("comissoes", "despesa", "despesa_operacional", 40), cat("folha", "despesa", "despesa_operacional", 41), cat("pró-labore", "despesa", "despesa_operacional", 42),
+    cat("aluguel", "despesa", "despesa_operacional", 43), cat("energia/água/internet", "despesa", "despesa_operacional", 44), cat("marketing", "despesa", "despesa_operacional", 45),
+    cat("manutenção", "despesa", "despesa_operacional", 46), cat("sistemas e assinaturas", "despesa", "despesa_operacional", 47), cat("tarifas bancárias", "despesa", "despesa_financeira", 60),
+    cat("juros e multas", "despesa", "despesa_financeira", 61), cat("outros", "despesa", "outros", 90), cat("investimentos", "despesa", "investimento", 95),
+    cat("distribuição de lucros", "despesa", "retirada", 96),
+  ];
+  db.centros_custo = [
+    { id: "cc1", nome: "Fábrica", descricao: "Produção das máquinas", ativo: true, created_at: quando(-60) },
+    { id: "cc2", nome: "Loja e vendas", descricao: null, ativo: true, created_at: quando(-60) },
+    { id: "cc3", nome: "Assistência técnica", descricao: null, ativo: true, created_at: quando(-60) },
+  ];
+  for (const c of db.contas_receber) c.categoria ??= c.os_id ? "assistência técnica" : "vendas";
+  for (const c of db.contas_pagar) c.rateio ??= c.categoria === "fornecedores" ? [{ centro_custo_id: "cc1", percentual: 100 }] : c.categoria === "aluguel" ? [{ centro_custo_id: "cc1", percentual: 70 }, { centro_custo_id: "cc2", percentual: 30 }] : [];
+  db.contas_recorrentes = [
+    { id: "rec1", tipo: "pagar", descricao: "Internet e telefone", fornecedor_id: null, cliente_id: null, categoria: "energia/água/internet", rateio: [], valor: 389.9, dia_vencimento: 15,
+      frequencia: "mensal", inicio: dias(-1), fim: null, antecedencia_dias: 45, unidade_id: U_SC, forma_pagamento: null, observacoes: null, ativo: true, created_at: quando(-1) },
+    { id: "rec2", tipo: "receber", descricao: "Contrato de manutenção - Gelato Nobre", fornecedor_id: null, cliente_id: "c1", categoria: "assistência técnica", rateio: [{ centro_custo_id: "cc3", percentual: 100 }],
+      valor: 450, dia_vencimento: 28, frequencia: "trimestral", inicio: dias(-1), fim: null, antecedencia_dias: 60, unidade_id: U_SC, forma_pagamento: "boleto", observacoes: null, ativo: true, created_at: quando(-1) },
+  ];
+  gerarRecorrentesDemo(db);
+}
+
+const FREQ_MESES: Record<string, number> = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+function gerarRecorrentesDemo(base: Db, id?: string) {
+  let n = 0;
+  const pad = (x: number) => String(x).padStart(2, "0");
+  for (const r of (base.contas_recorrentes ?? []).filter((x) => x.ativo && (!id || x.id === id))) {
+    const passo = FREQ_MESES[r.frequencia] ?? 1;
+    const limite = [r.fim ?? "9999-12-31", dias(Number(r.antecedencia_dias ?? 45))].sort()[0];
+    const desde = [r.inicio, String(r.created_at).slice(0, 10)].sort()[1];
+    let y = Number(r.inicio.slice(0, 4)), m = Number(r.inicio.slice(5, 7));
+    for (let k = 0; k < 400; k++) {
+      const comp = `${y}-${pad(m)}-01`;
+      if (comp > limite) break;
+      const venc = `${y}-${pad(m)}-${pad(Math.min(Number(r.dia_vencimento), new Date(Date.UTC(y, m, 0)).getUTCDate()))}`;
+      const tab = r.tipo === "pagar" ? "contas_pagar" : "contas_receber";
+      if (venc >= desde && venc <= limite && !base[tab].some((c) => c.recorrente_id === r.id && c.competencia === comp)) {
+        base[tab].push({ id: uid(), descricao: `${r.descricao} · ${pad(m)}/${y}`, fornecedor_id: r.fornecedor_id ?? null, cliente_id: r.cliente_id ?? null,
+          categoria: r.categoria ?? (r.tipo === "pagar" ? "outros" : "outras receitas"), rateio: r.rateio ?? [], valor: Number(r.valor), vencimento: venc, status: "aberto",
+          unidade_id: r.unidade_id ?? U_SC, recorrente_id: r.id, competencia: comp, ...(r.tipo === "receber" ? { forma_pagamento: r.forma_pagamento ?? "boleto", parcela: 1, total_parcelas: 1 } : {}),
+          observacoes: r.tipo === "pagar" ? "Conta fixa lançada pelo ERP" : undefined, created_at: new Date().toISOString() });
+        n++;
+      }
+      m += passo; while (m > 12) { m -= 12; y++; }
+    }
+  }
+  return n;
+}
+/** Conta fixa alterada: próximas em aberto acompanham; desativada ou encerrada cancela as próximas. */
+function aplicarRecorrenteDemo(r: Row) {
+  const tab = r.tipo === "pagar" ? "contas_pagar" : "contas_receber";
+  for (const c of db[tab].filter((x) => x.recorrente_id === r.id && x.status === "aberto" && x.vencimento >= hojeISO())) {
+    if (!r.ativo || (r.fim && c.vencimento > r.fim)) { c.status = "cancelado"; continue; }
+    const ult = new Date(Date.UTC(Number(c.competencia.slice(0, 4)), Number(c.competencia.slice(5, 7)), 0)).getUTCDate();
+    Object.assign(c, { valor: Number(r.valor), categoria: r.categoria ?? c.categoria, rateio: r.rateio ?? [], vencimento: `${c.competencia.slice(0, 8)}${String(Math.min(Number(r.dia_vencimento), ult)).padStart(2, "0")}` });
+  }
+  gerarRecorrentesDemo(db, r.id);
 }
 
 /** Contas bancárias (Unicred, Nubank, InfinitePay), extrato, histórico e exceções de exemplo. */
@@ -737,6 +803,7 @@ class Query {
         if (TABELAS_COM_UNIDADE.includes(this.tabela) && !novo.unidade_id) novo.unidade_id = unidadeDoUsuario();
         t.push(novo);
         if (AUDITADAS.has(this.tabela)) registrarDemo(this.tabela, "insert", null, { ...novo }, null, "usuario");
+        if (this.tabela === "contas_recorrentes") setTimeout(() => gerarRecorrentesDemo(db, novo.id));
         if (this.tabela === "estoque_movimentos") {
           t.pop();
           movimentar(novo.produto_id, novo.tipo, Number(novo.quantidade), novo.motivo ?? "", { numero_serie: novo.numero_serie, unidade_id: novo.unidade_id });
@@ -753,6 +820,7 @@ class Query {
         const copia = AUDITADAS.has(this.tabela) ? { ...r } : null;
         Object.assign(r, this.payload);
         if (copia) { registrarDemo(this.tabela, "update", copia, { ...r }, this.payload.motivo_alteracao ?? null, "usuario"); delete r.motivo_alteracao; }
+        if (this.tabela === "contas_recorrentes") aplicarRecorrenteDemo(r);
         if (this.tabela === "contas_pagar" && r.status === "pago" && antes !== "pago") {
           (db.comissoes ?? []).filter((c) => c.conta_pagar_id === r.id && c.status === "a_pagar").forEach((c) => Object.assign(c, { status: "paga", pago_em: r.data_pagamento ?? hojeISO() }));
         }
@@ -859,6 +927,7 @@ function saldosDemo() {
 const reaisDemo = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  gerar_recorrentes: () => (podeFinanceiro() ? { data: gerarRecorrentesDemo(db), error: null } : erro("sem permissão para esta ação")),
   saldos_bancarios: () => (podeFinanceiro() ? { data: saldosDemo(), error: null } : erro("sem permissão para esta ação")),
   movimentos_realizados: ({ p_de, p_ate }) => (podeFinanceiro() ? { data: movimentosDemo(p_de, p_ate), error: null } : erro("sem permissão para esta ação")),
   baixar_conta: ({ p_tabela, p_id, p_data, p_valor, p_conta_bancaria, p_restante_vencimento }) => {
