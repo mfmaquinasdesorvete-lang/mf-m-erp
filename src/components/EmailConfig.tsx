@@ -1,24 +1,18 @@
 // Configurações → Caixa de e-mail: liga a caixa da empresa (IMAP para ler, SMTP para responder).
-import { useState, type FormEvent } from "react";
-import { Inbox, Pencil, Plus, Trash2 } from "lucide-react";
+import { useRef, useState, type FormEvent } from "react";
+import { AlertTriangle, Inbox, Info, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge, Button, Field, Modal } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { callFunction } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { PAPEL_ROTULO } from "@/lib/avisos";
 import { useUnidade } from "@/lib/unidade";
+import { PROVEDORES, provedorPorDominio, type Provedor } from "../../supabase/functions/_shared/email-diagnostico";
 
 type Conta = {
   id?: string; nome: string; email: string; imap_host: string; imap_porta: number; smtp_host: string | null; smtp_porta: number;
   usuario: string; senha?: string; unidade_id: string | null; papeis: string[]; ativo: boolean; sincronizado_em?: string | null; erro?: string | null;
 };
-
-/** Servidores mais comuns (o usuário só confere). */
-const PROVEDORES: { nome: string; dominio: RegExp; imap: string; smtp: string }[] = [
-  { nome: "Hostinger", dominio: /.*/, imap: "imap.hostinger.com", smtp: "smtp.hostinger.com" },
-  { nome: "Gmail / Google Workspace", dominio: /gmail\.com$/, imap: "imap.gmail.com", smtp: "smtp.gmail.com" },
-  { nome: "Outlook / Microsoft 365", dominio: /(outlook|hotmail|live)\.com$/, imap: "outlook.office365.com", smtp: "smtp.office365.com" },
-];
 
 export function EmailConfig() {
   const { data: contas = [] } = useRows<Conta>("email_contas", { order: "nome", ascending: true,
@@ -69,34 +63,66 @@ export function EmailConfig() {
 function ContaModal({ conta, onClose }: { conta: Conta; onClose: () => void }) {
   const [c, setC] = useState<Conta>(conta);
   const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [provedor, setProvedor] = useState<Provedor | null>(() => provedorPorDominio(conta.email.split("@")[1] ?? "") ?? PROVEDORES.find((p) => p.imap === conta.imap_host) ?? null);
   const { unidades } = useUnidade();
   const invalidar = useInvalidate();
+  // servidores que o próprio ERP preencheu: trocam quando o e-mail muda; o que a pessoa digitou fica
+  const auto = useRef({ imap: "", smtp: "" });
   const set = (k: keyof Conta) => (e: { target: { value: string } }) => setC({ ...c, [k]: e.target.value });
 
+  function aplicar(p: Provedor | null) {
+    setProvedor(p);
+    if (!p) return;
+    setC((x) => {
+      const trocaImap = !x.imap_host || x.imap_host === auto.current.imap;
+      const trocaSmtp = !x.smtp_host || x.smtp_host === auto.current.smtp;
+      if (trocaImap) auto.current.imap = p.imap;
+      if (trocaSmtp) auto.current.smtp = p.smtp;
+      return {
+        ...x,
+        ...(trocaImap ? { imap_host: p.imap, imap_porta: p.imap_porta } : {}),
+        ...(trocaSmtp ? { smtp_host: p.smtp, smtp_porta: p.smtp_porta === 587 ? 465 : p.smtp_porta } : {}),
+      };
+    });
+  }
+
   function aoDigitarEmail(email: string) {
-    const dominio = email.split("@")[1]?.toLowerCase() ?? "";
-    const p = PROVEDORES.slice(1).find((x) => x.dominio.test(dominio)) ?? PROVEDORES[0];
-    setC((x) => ({ ...x, email, usuario: x.usuario && x.usuario !== x.email ? x.usuario : email,
-      imap_host: x.imap_host || (dominio ? p.imap : ""), smtp_host: x.smtp_host || (dominio ? p.smtp : "") }));
+    setC((x) => ({ ...x, email, usuario: x.usuario && x.usuario !== x.email ? x.usuario : email }));
+    const p = provedorPorDominio(email.split("@")[1] ?? "");
+    if (p) aplicar(p);
+  }
+
+  /** Ao sair do campo: descobre o provedor pelo domínio (registro MX), ex.: e-mail da empresa no Google ou na Hostinger. */
+  async function descobrirServidor() {
+    const dominio = c.email.split("@")[1] ?? "";
+    if (!dominio.includes(".") || provedorPorDominio(dominio)) return;
+    try {
+      const r = await callFunction<{ provedor: Provedor | null }>("email-caixa", { acao: "sugerir_servidor", email: c.email });
+      aplicar(r.provedor ?? PROVEDORES.find((p) => p.id === "hostinger")!);
+    } catch { /* sem sugestão: a pessoa preenche */ }
   }
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     setOcupado(true);
+    setErro(null);
     try {
       await callFunction("email-caixa", { acao: "salvar_conta", conta: c });
       notify("Caixa ligada! Os e-mails aparecem em alguns instantes.");
       invalidar("email_contas");
       callFunction("email-caixa", { acao: "sincronizar" }).then(() => invalidar("emails", "email_contas")).catch(() => null);
       onClose();
-    } catch (err) { notifyError(err); } finally { setOcupado(false); }
+    } catch (err) {
+      setErro((err as Error).message);
+    } finally { setOcupado(false); }
   }
 
   return (
     <Modal open onClose={onClose} title={c.id ? `Caixa: ${c.email}` : "Ligar caixa de e-mail"}>
       <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Field label="Nome (aparece no ERP)" className="sm:col-span-2"><input className="input" value={c.nome} onChange={set("nome")} required /></Field>
-        <Field label="E-mail" className="sm:col-span-2"><input className="input" type="email" value={c.email} onChange={(e) => aoDigitarEmail(e.target.value)} required /></Field>
+        <Field label="E-mail" className="sm:col-span-2"><input className="input" type="email" value={c.email} onChange={(e) => aoDigitarEmail(e.target.value)} onBlur={descobrirServidor} required /></Field>
         <Field label="Usuário (normalmente o próprio e-mail)" className="sm:col-span-2"><input className="input" value={c.usuario} onChange={set("usuario")} required /></Field>
         <Field label={c.id ? "Senha (vazio = manter a atual)" : "Senha do e-mail"} className="sm:col-span-2">
           <input className="input" type="password" value={c.senha ?? ""} onChange={set("senha")} required={!c.id} autoComplete="new-password" />
@@ -124,10 +150,26 @@ function ContaModal({ conta, onClose }: { conta: Conta; onClose: () => void }) {
             ))}
           </div>
         </div>
+        {provedor ? (
+          <div className="flex gap-2 rounded-lg bg-sky-50 p-2.5 text-sm text-sky-900 sm:col-span-4">
+            <Info size={16} className="mt-0.5 shrink-0" />
+            <span><b>{provedor.nome}.</b> {provedor.dica}</span>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500 sm:col-span-4">
+            Hostinger: imap.hostinger.com (993) e smtp.hostinger.com (465). Gmail: imap.gmail.com e smtp.gmail.com com uma <b>senha de app</b>.
+          </p>
+        )}
         <p className="text-xs text-slate-500 sm:col-span-4">
-          Hostinger: imap.hostinger.com (993) e smtp.hostinger.com (465). Gmail: use uma <b>senha de app</b> (Conta Google → Segurança).
+          Ao salvar, o ERP entra na caixa e testa o envio (sem mandar nada). A porta de envio é a 465 (SSL): a 587 é bloqueada no servidor do ERP.
           A senha fica guardada só no servidor do ERP; o navegador nunca vê.
         </p>
+        {erro && (
+          <div role="alert" className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-sm text-red-800 sm:col-span-4">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span className="min-w-0 break-words">{erro}</span>
+          </div>
+        )}
         <div className="flex justify-end gap-2 sm:col-span-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button disabled={ocupado}>{ocupado ? "Testando acesso…" : "Salvar e testar"}</Button>

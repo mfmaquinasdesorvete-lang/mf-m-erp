@@ -15,14 +15,43 @@ export function imap(c: Pick<Conta, "imap_host" | "imap_porta" | "usuario" | "se
   return new ImapFlow({
     host: c.imap_host, port: Number(c.imap_porta) || 993, secure: Number(c.imap_porta) !== 143,
     auth: { user: c.usuario, pass: c.senha }, logger: false, emitLogs: false,
+    connectionTimeout: 15_000, greetingTimeout: 10_000, socketTimeout: 60_000,
   });
 }
 
-/** Testa o acesso (usado ao salvar a conta). */
+/** Testa a leitura (IMAP), usado ao salvar a conta. */
 export async function testarConta(c: Pick<Conta, "imap_host" | "imap_porta" | "usuario" | "senha">) {
   const cli = imap(c);
   await cli.connect();
   await cli.logout();
+}
+
+export function smtp(c: Pick<Conta, "smtp_host" | "smtp_porta" | "usuario" | "senha">) {
+  const porta = Number(c.smtp_porta) || 465;
+  return nodemailer.createTransport({
+    host: c.smtp_host!, port: porta, secure: porta === 465, auth: { user: c.usuario, pass: c.senha },
+    connectionTimeout: 15_000, greetingTimeout: 10_000, socketTimeout: 30_000,
+  });
+}
+
+/** Testa o envio (SMTP): conecta e faz login, sem mandar nada. */
+export async function testarSmtp(c: Pick<Conta, "smtp_host" | "smtp_porta" | "usuario" | "senha">) {
+  const t = smtp(c);
+  try { await t.verify(); } finally { t.close(); }
+}
+
+/** Servidores que recebem os e-mails do domínio (registro MX); vazio se não der para consultar. */
+export async function mxDoDominio(dominio: string): Promise<string[]> {
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(dominio)) return [];
+  try {
+    const r = await Deno.resolveDns(dominio, "MX");
+    return r.map((x) => x.exchange);
+  } catch { /* sem DNS no runtime: tenta pelo DNS do Google */ }
+  try {
+    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(dominio)}&type=MX`, { signal: AbortSignal.timeout(4000) });
+    const j = await res.json();
+    return (j.Answer ?? []).map((a: { data: string }) => String(a.data).split(" ").pop() ?? "");
+  } catch { return []; }
 }
 
 const ehNfe = (nome: string, conteudo: Uint8Array) =>
@@ -129,8 +158,7 @@ export async function baixarAnexo(conta: Conta, uid: number, indice: number) {
 /** Envia (ou responde) pelo SMTP da própria conta, para a resposta sair do mesmo endereço. */
 export async function enviarPelaConta(conta: Conta, m: { para: string; assunto: string; texto: string; responderA?: string | null }) {
   if (!conta.smtp_host) throw new Error(`a conta ${conta.nome} não tem servidor de envio (SMTP) configurado`);
-  const porta = Number(conta.smtp_porta) || 465;
-  const t = nodemailer.createTransport({ host: conta.smtp_host, port: porta, secure: porta === 465, auth: { user: conta.usuario, pass: conta.senha } });
+  const t = smtp(conta);
   await t.sendMail({
     from: `${conta.nome} <${conta.email}>`, to: m.para, subject: m.assunto, text: m.texto,
     ...(m.responderA ? { inReplyTo: m.responderA, references: m.responderA } : {}),

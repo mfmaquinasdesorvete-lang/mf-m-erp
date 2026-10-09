@@ -1,6 +1,7 @@
 // Caixa de entrada de e-mail dentro do ERP.
 // POST { acao: "sincronizar", conta_id? }                 -> busca e-mails novos (também pelo agendamento)
-// POST { acao: "salvar_conta", conta }                    -> (admin) cria/edita a conta e testa o acesso
+// POST { acao: "salvar_conta", conta }                    -> (admin) cria/edita a conta e testa a leitura e o envio
+// POST { acao: "sugerir_servidor", email }                -> (admin) provedor e servidores certos para o e-mail
 // POST { acao: "remover_conta", conta_id }                -> (admin)
 // POST { acao: "anexo", email_id, indice }                -> conteúdo do anexo (base64)
 // POST { acao: "importar_nfe", email_id, indice }         -> importa o XML anexo como NF-e de entrada
@@ -9,9 +10,17 @@
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
-import { baixarAnexo, type Conta, enviarPelaConta, sincronizarConta, testarConta } from "../_shared/email-caixa.ts";
+import { baixarAnexo, type Conta, enviarPelaConta, mxDoDominio, sincronizarConta, testarConta, testarSmtp } from "../_shared/email-caixa.ts";
+import { explicarErroEmail, portaSmtpBloqueada, provedorPorDominio, provedorPorMx } from "../_shared/email-diagnostico.ts";
 import { importarXml } from "../_shared/nfe-recebidas.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
+
+/** Provedor do e-mail: pelos domínios gratuitos conhecidos ou pelo registro MX do domínio da empresa. */
+async function provedorDoEmail(email: string) {
+  const dominio = email.split("@")[1]?.trim().toLowerCase() ?? "";
+  if (!dominio) return null;
+  return provedorPorDominio(dominio) ?? provedorPorMx(await mxDoDominio(dominio));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -41,6 +50,12 @@ Deno.serve(async (req) => {
       return json({ ok: true, resultado });
     }
 
+    // Servidores certos para o e-mail (pelo domínio e pelo registro MX)
+    if (body.acao === "sugerir_servidor") {
+      await requireErpUser(req, []);
+      return json({ ok: true, provedor: await provedorDoEmail(String(body.email ?? "")) });
+    }
+
     if (body.acao === "salvar_conta" || body.acao === "remover_conta") {
       await requireErpUser(req, []);
       if (body.acao === "remover_conta") {
@@ -59,10 +74,21 @@ Deno.serve(async (req) => {
       let senha: string | undefined = c.senha || undefined;
       if (!senha && c.id) senha = (await db.from("email_contas").select("senha").eq("id", c.id).single()).data?.senha;
       if (!senha) throw new HttpError(400, "informe a senha do e-mail");
-      try {
-        await testarConta({ ...campos, senha });
-      } catch (e) {
-        throw new HttpError(400, `não consegui entrar na caixa: ${(e as Error).message}. Confira servidor, porta, usuário e senha.`);
+      senha = senha.trim();
+      const provedor = await provedorDoEmail(campos.email);
+      // senha de app do Google/Yahoo vem em grupos ("abcd efgh ijkl mnop"): vale sem os espaços
+      if (/^[a-z]{4}( [a-z]{4}){3}$/i.test(senha)) senha = senha.replace(/ /g, "");
+      if (campos.smtp_host && portaSmtpBloqueada(campos.smtp_porta)) campos.smtp_porta = 465; // 25 e 587 são bloqueadas no Supabase
+      const falhou = (etapa: "imap" | "smtp", host: string, porta: number, e: unknown): never => {
+        const x = e as { code?: string; message?: string; responseText?: string; response?: string; authenticationFailed?: boolean };
+        console.warn("email-caixa: teste falhou", JSON.stringify({ etapa, host, porta, provedor: provedor?.id ?? null, code: x?.code ?? null,
+          auth: x?.authenticationFailed ?? null, mensagem: String(x?.message ?? "").slice(0, 200), resposta: String(x?.responseText ?? x?.response ?? "").slice(0, 200) }));
+        const texto = explicarErroEmail(e, { etapa, host, porta, provedor });
+        throw new HttpError(400, etapa === "imap" ? `Não consegui entrar na caixa. ${texto}` : `A leitura funcionou, mas o envio não. ${texto}`);
+      };
+      try { await testarConta({ ...campos, senha }); } catch (e) { falhou("imap", campos.imap_host, campos.imap_porta, e); }
+      if (campos.smtp_host) {
+        try { await testarSmtp({ ...campos, senha }); } catch (e) { falhou("smtp", campos.smtp_host, campos.smtp_porta, e); }
       }
       const { data, error } = c.id
         ? await db.from("email_contas").update({ ...campos, senha }).eq("id", c.id).select("id").single()
