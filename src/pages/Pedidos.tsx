@@ -10,7 +10,7 @@ import { Badge, CelulaAbrir, Button, Field, Modal, PageHeader, Table, Tabs } fro
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, rotuloCliente, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
 import { MEIOS_VENDA, useFormasPagamento } from "@/lib/formasPagamento";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -25,6 +25,8 @@ import { VendedorSelect } from "@/components/VendedorSelect";
 import { MotivoAcao } from "@/components/MotivoAcao";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
+import { ClienteBusca } from "@/components/ClienteBusca";
+import { combinaBusca } from "@/lib/buscaCliente";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -86,7 +88,7 @@ export default function Pedidos() {
 
   const lista = useMemo(() => pedidos.filter((p) =>
     (filtro === "todos" || p.status === filtro) &&
-    (!busca || `${p.numero} ${p.cliente?.nome ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
+    (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
   ), [pedidos, filtro, busca]);
 
   return (
@@ -98,7 +100,7 @@ export default function Pedidos() {
         </>} />
 
       <div className="mb-4 space-y-3">
-        <input className="input max-w-md" placeholder="Buscar nº ou cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input className="input max-w-md" placeholder="Buscar nº, cliente, CPF ou CNPJ…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS.map((st) => {
             const n = st === "todos" ? pedidos.length : pedidos.filter((x) => x.status === st).length;
@@ -397,10 +399,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         {aba === "pedido" && (<>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Field label="Cliente" className="sm:col-span-2">
-            <select className="input" value={p.cliente_id ?? ""} disabled={!editavel} onChange={(e) => set({ cliente_id: e.target.value })} required>
-              <option value="">Selecione…</option>
-              {clientes.map((c) => <option key={c.id} value={c.id}>{rotuloCliente(c)}</option>)}
-            </select>
+            <ClienteBusca clientes={clientes} value={p.cliente_id} disabled={!editavel} required onChange={(id) => set({ cliente_id: id })} />
           </Field>
           <div className="sm:col-span-2"><CampoUnidade value={(p as any).unidade_id} disabled={!editavel} onChange={(v) => set({ unidade_id: v } as Partial<Pedido>)} /></div>
           <Field label="Origem">

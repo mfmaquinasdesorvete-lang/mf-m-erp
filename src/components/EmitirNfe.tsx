@@ -17,6 +17,7 @@ import { AVISO_TESTE, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import type { Cliente, Item, Pedido, Produto } from "@/lib/types";
 import { OPERACOES_NOTA, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
+import { ClienteBusca } from "@/components/ClienteBusca";
 
 const COM_NOTA = ["autorizada", "processando", "contingencia"];
 
@@ -76,7 +77,6 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const { data: regras = [] } = useRows<{ cfop: string | null; ativo: boolean }>("regras_tributacao", { order: "prioridade", ascending: true });
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
   const [clienteId, setClienteId] = useState("");
-  const [buscaCli, setBuscaCli] = useState("");
   const [operacao, setOperacao] = useState("venda");
   const [natureza, setNatureza] = useState("");
   const [itens, setItens] = useState<Item[]>([]);
@@ -89,8 +89,6 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const op = operacaoNota(operacao)!;
   const unidade = unidades.find((u) => u.id === unidadeId) ?? unidades[0];
   const cliente = clientes.find((c) => c.id === clienteId);
-  const termo = buscaCli.trim().toLowerCase();
-  const opcoesCli = (termo ? clientes.filter((c) => [c.nome, c.nome_fantasia, c.cpf_cnpj, c.municipio].join(" ").toLowerCase().includes(termo)) : clientes).slice(0, 200);
   const subtotal = totalItens(itens);
   const total = subtotal - Number(desconto.replace(",", ".") || 0) + Number(frete.replace(",", ".") || 0);
   const cfopOp = op.cfop && cliente?.uf && unidade?.uf && cliente.uf.toUpperCase() !== unidade.uf.toUpperCase() ? "6" + op.cfop.slice(1) : op.cfop;
@@ -138,13 +136,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
           <span className="mt-1 block text-xs text-slate-500">{op.ajuda}</span>
         </Field>
         <Field label="Cliente (destinatário)" className="sm:col-span-2">
-          <div className="flex flex-col gap-1.5 sm:flex-row">
-            <input className="input sm:max-w-[16rem]" placeholder="Buscar nome, CNPJ, cidade" value={buscaCli} onChange={(e) => setBuscaCli(e.target.value)} />
-            <select className="input" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
-              <option value="">Selecione…</option>
-              {opcoesCli.map((c) => <option key={c.id} value={c.id}>{rotuloCliente(c)}{c.municipio ? ` · ${c.municipio}/${c.uf ?? ""}` : ""}</option>)}
-            </select>
-          </div>
+          <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => setClienteId(id)} />
         </Field>
         <Field label="Natureza da operação (como sai na nota)" className="sm:col-span-2">
           <input className="input" value={natureza} placeholder={op.natureza ?? unidade?.natureza_operacao ?? "Venda de mercadoria"} onChange={(e) => setNatureza(e.target.value)} />

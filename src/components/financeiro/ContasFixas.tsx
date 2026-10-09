@@ -5,7 +5,7 @@ import { CalendarClock, Pencil, Plus, RefreshCw } from "lucide-react";
 import { Badge, Button, Field, Modal, Table } from "@/components/ui";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje, rotuloCliente } from "@/lib/format";
+import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -14,6 +14,7 @@ import { CampoCategoria, CampoRateio, rateioOk } from "./CategoriaRateio";
 import type { Rateio } from "@/lib/dre";
 import type { Cliente } from "@/lib/types";
 import { useFormasPagamento } from "@/lib/formasPagamento";
+import { ClienteBusca } from "@/components/ClienteBusca";
 
 type Fixa = {
   id: string; tipo: "pagar" | "receber"; descricao: string; fornecedor_id: string | null; cliente_id: string | null; categoria: string | null;
@@ -145,9 +146,7 @@ export function ContasFixas() {
                 </Field>
               ) : (
                 <Field label="Cliente" className="sm:col-span-2">
-                  <select className="input" value={editando.cliente_id ?? ""} required onChange={(e) => setEditando({ ...editando, cliente_id: e.target.value })}>
-                    <option value="">Escolha…</option>{clientes.map((c) => <option key={c.id} value={c.id}>{rotuloCliente(c)}</option>)}
-                  </select>
+                  <ClienteBusca clientes={clientes} value={editando.cliente_id} required onChange={(id) => setEditando({ ...editando, cliente_id: id })} />
                 </Field>
               )}
               <CampoCategoria tipo={editando.tipo === "pagar" ? "despesa" : "receita"} value={editando.categoria} onChange={(v) => setEditando({ ...editando, categoria: v })} />

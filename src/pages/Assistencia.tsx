@@ -20,6 +20,7 @@ import { pdfOS } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
+import { ClienteBusca } from "@/components/ClienteBusca";
 
 const STATUS_EDITAVEIS = [
   { value: "aberta", label: "Aberta" },
@@ -309,10 +310,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         {aba === "atendimento" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Field label="Cliente" className="sm:col-span-2">
-              <select className="input" value={o.cliente_id ?? ""} disabled={somenteLeitura} onChange={(e) => set({ cliente_id: e.target.value, equipamento_id: null })} required>
-                <option value="">Selecione…</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <ClienteBusca clientes={clientes} value={o.cliente_id} disabled={somenteLeitura} required onChange={(id) => set({ cliente_id: id, equipamento_id: null })} />
             </Field>
             <div className="sm:col-span-2"><CampoUnidade value={(o as any).unidade_id} disabled={somenteLeitura} label="Unidade que atende" onChange={(v) => set({ unidade_id: v } as any)} /></div>
             <Field label="Situação">

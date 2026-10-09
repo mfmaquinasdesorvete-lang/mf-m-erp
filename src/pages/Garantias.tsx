@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, Produto } from "@/lib/types";
+import { ClienteBusca } from "@/components/ClienteBusca";
 
 type Filtro = "todos" | "em_garantia" | "vence_logo" | "fora_garantia" | "prev_atrasada" | "prev_proxima";
 
@@ -240,10 +241,7 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
       {!e.id && <p className="mb-4 text-sm text-slate-500">Use para máquinas vendidas antes do ERP. As vendas novas entram aqui sozinhas quando o pedido é aprovado.</p>}
       <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Cliente" className="sm:col-span-2">
-          <select className="input" value={e.cliente_id ?? ""} onChange={(x) => set({ cliente_id: x.target.value })} required>
-            <option value="">Selecione…</option>
-            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <ClienteBusca clientes={clientes} value={e.cliente_id} required onChange={(id) => set({ cliente_id: id })} />
         </Field>
         <Field label="Modelo" className="sm:col-span-2">
           <select className="input" value={e.produto_id ?? ""} onChange={(x) => {

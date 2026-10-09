@@ -8,6 +8,7 @@ import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
 import { whatsappLink } from "@/lib/format";
+import { combinaBusca } from "@/lib/buscaCliente";
 
 export type CampoForm = {
   name: string;
@@ -102,8 +103,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     : []), [data, filtros]);
 
   const filtrados = useMemo(() => {
-    const b = busca.trim().toLowerCase();
-    let lista = b ? data.filter((r) => searchKeys.some((k) => String(r[k] ?? "").toLowerCase().includes(b))) : data;
+    let lista = busca.trim() ? data.filter((r) => combinaBusca(searchKeys.map((k) => r[k]), busca)) : data;
     filtros.forEach((f) => {
       const v = escolhas[f.label];
       if (!v) return;

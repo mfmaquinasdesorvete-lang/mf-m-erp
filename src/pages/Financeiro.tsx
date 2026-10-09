@@ -4,7 +4,7 @@ import { Ban, CheckCheck, Copy, Eye, FileDown, MessageCircle, Pencil, Plus, Prin
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, rotuloCliente, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import type { Cliente } from "@/lib/types";
@@ -27,6 +27,7 @@ import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
 import { aDecidir, filtrarDecisao, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
+import { ClienteBusca } from "@/components/ClienteBusca";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -312,10 +313,8 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
             <div className="sm:col-span-2"><CampoUnidade value={(nova as any).unidade_id} disabled={!!nova.id} onChange={(v) => setNova({ ...nova, unidade_id: v } as any)} label="Unidade que recebe" /></div>
             <Field label="Descrição" className="sm:col-span-2"><input className="input" value={nova.descricao ?? ""} onChange={(e) => setNova({ ...nova, descricao: e.target.value })} required /></Field>
             <Field label="Cliente" className="sm:col-span-2">
-              <select className="input" value={nova.cliente_id ?? ""} onChange={(e) => setNova({ ...nova, cliente_id: e.target.value })} required={nova.forma_pagamento === "boleto"}>
-                <option value="">—</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{rotuloCliente(c)}</option>)}
-              </select>
+              <ClienteBusca clientes={clientes} value={nova.cliente_id} disabled={somenteVer} required={nova.forma_pagamento === "boleto"}
+                onChange={(id) => setNova({ ...nova, cliente_id: id || null })} />
             </Field>
             <Field label="Valor"><input className="input" type="number" step="0.01" min={0.01} value={nova.valor ?? ""} onChange={(e) => setNova({ ...nova, valor: Number(e.target.value) })} required /></Field>
             <Field label="Vencimento"><input className="input" type="date" value={nova.vencimento} onChange={(e) => setNova({ ...nova, vencimento: e.target.value })} required /></Field>
