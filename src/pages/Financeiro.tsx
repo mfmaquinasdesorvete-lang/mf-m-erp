@@ -14,6 +14,8 @@ import { baixarPlanilha, celula } from "@/lib/exportar";
 import { PdfViewer } from "@/components/PdfViewer";
 import { Anexos } from "@/components/Anexos";
 import { Historico } from "@/components/Historico";
+import { BaixaModal } from "@/components/financeiro/BaixaModal";
+import { VisaoGeral } from "@/components/financeiro/VisaoGeral";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -53,7 +55,7 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 export default function Financeiro() {
   const { pode, papel } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
-  const [aba, setAba] = useState<"receber" | "pagar">("receber");
+  const [aba, setAba] = useState<"visao" | "receber" | "pagar">("visao");
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
@@ -70,22 +72,33 @@ export default function Financeiro() {
       pagar7dias: soma(p.filter((c) => c.vencimento <= somarDias(7))),
     };
   }, [receber, pagar]);
+  const paraVisao = useMemo(() => ({
+    receber: receber.map((c) => ({ ...c, terceiro: c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null })),
+    pagar: pagar.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })),
+  }), [receber, pagar]);
 
   return (
     <div>
       <PageHeader title="Financeiro" />
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Resumo label="A receber (aberto)" valor={resumo.aReceber} />
-        <Resumo label="Recebimentos vencidos" valor={resumo.vencidoReceber} alerta />
-        {veContasPagar && <Resumo label="A pagar (aberto)" valor={resumo.aPagar} />}
-        {veContasPagar && <Resumo label="A pagar nos próximos 7 dias" valor={resumo.pagar7dias} alerta={resumo.vencidoPagar > 0}
-          sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
-      </div>
-
-      {veContasPagar && (
-        <Tabs value={aba} onChange={setAba} options={[{ value: "receber", label: "Contas a receber" }, { value: "pagar", label: "Contas a pagar" }]} />
+      <Tabs value={aba} onChange={setAba} options={[
+        { value: "visao", label: "Visão geral" }, { value: "receber", label: "Contas a receber" },
+        ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),
+      ]} />
+      {aba === "visao" ? (
+        <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}
+          veSaldo={papel === "admin" || papel === "financeiro" || papel === "contador"} podeBaixar={pode("editar_financeiro")} />
+      ) : (
+        <>
+          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Resumo label="A receber (aberto)" valor={resumo.aReceber} />
+            <Resumo label="Recebimentos vencidos" valor={resumo.vencidoReceber} alerta />
+            {veContasPagar && <Resumo label="A pagar (aberto)" valor={resumo.aPagar} />}
+            {veContasPagar && <Resumo label="A pagar nos próximos 7 dias" valor={resumo.pagar7dias} alerta={resumo.vencidoPagar > 0}
+              sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
+          </div>
+          {aba === "pagar" && veContasPagar ? <ContasPagar contas={pagar} /> : <ContasReceber contas={receber} />}
+        </>
       )}
-      {aba === "receber" || !veContasPagar ? <ContasReceber contas={receber} /> : <ContasPagar contas={pagar} />}
     </div>
   );
 }
@@ -389,47 +402,6 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
 }
 
 /* --------------------------- Baixa manual (pagamento) --------------------------- */
-
-function BaixaModal({ conta, tabela, onClose }: {
-  conta: { id: string; descricao: string; valor: number; unidade_id?: string | null }; tabela: "contas_receber" | "contas_pagar"; onClose: () => void;
-}) {
-  const [data, setData] = useState(hoje());
-  const [valor, setValor] = useState(String(conta.valor));
-  const { data: bancos = [] } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
-  const daUnidade = bancos.filter((b) => b.ativo && (!conta.unidade_id || b.unidade_id === conta.unidade_id));
-  const [banco, setBanco] = useState("");
-  const invalidate = useInvalidate();
-
-  async function confirmar(e: FormEvent) {
-    e.preventDefault();
-    const { error } = await supabase.from(tabela)
-      .update({ status: "pago", data_pagamento: data, valor_pago: Number(valor), conta_bancaria_id: banco || null }).eq("id", conta.id);
-    if (error) return notifyError(error);
-    notify("Baixa registrada");
-    invalidate(tabela);
-    onClose();
-  }
-
-  return (
-    <Modal open onClose={onClose} title={`Registrar pagamento — ${conta.descricao}`}>
-      <form onSubmit={confirmar} className="grid grid-cols-2 gap-3">
-        <Field label="Data do pagamento"><input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} required /></Field>
-        <Field label="Valor pago"><input className="input" type="number" step="0.01" min={0.01} value={valor} onChange={(e) => setValor(e.target.value)} required /></Field>
-        <Field label={tabela === "contas_receber" ? "Entrou em qual conta?" : "Saiu de qual conta?"} className="col-span-2">
-          <select className="input" value={banco} onChange={(e) => setBanco(e.target.value)} required={daUnidade.length > 0}>
-            <option value="">{daUnidade.length ? "Escolha a conta…" : "— (cadastre as contas em Bancos e conciliação)"}</option>
-            {daUnidade.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
-          </select>
-        </Field>
-        <p className="col-span-2 text-xs text-slate-500">Dica: importando o extrato em <b>Bancos e conciliação</b>, a baixa é feita sozinha com a data e o valor do banco.</p>
-        <div className="col-span-2 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button>Confirmar baixa</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
 
 /* --------------------- Cancelar conta / estornar baixa (com motivo) --------------------- */
 

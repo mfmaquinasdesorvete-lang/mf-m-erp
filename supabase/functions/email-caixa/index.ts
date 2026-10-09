@@ -1,5 +1,5 @@
 // Caixa de entrada de e-mail dentro do ERP.
-// POST { acao: "sincronizar", conta_id? }                 -> busca e-mails novos (também pelo agendamento, com ERP_CRON_TOKEN)
+// POST { acao: "sincronizar", conta_id? }                 -> busca e-mails novos (também pelo agendamento)
 // POST { acao: "salvar_conta", conta }                    -> (admin) cria/edita a conta e testa o acesso
 // POST { acao: "remover_conta", conta_id }                -> (admin)
 // POST { acao: "anexo", email_id, indice }                -> conteúdo do anexo (base64)
@@ -11,14 +11,14 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { baixarAnexo, type Conta, enviarPelaConta, sincronizarConta, testarConta } from "../_shared/email-caixa.ts";
 import { importarXml } from "../_shared/nfe-recebidas.ts";
+import { chamadaDoAgendamento } from "../_shared/cron.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const db = adminClient();
   try {
     const body = await req.json().catch(() => ({}));
-    const cron = Deno.env.get("ERP_CRON_TOKEN");
-    const peloAgendamento = !!cron && req.headers.get("Authorization") === `Bearer ${cron}`;
+    const peloAgendamento = await chamadaDoAgendamento(req);
 
     const contas = async (id?: string) => {
       let q = db.from("email_contas").select("*").eq("ativo", true);

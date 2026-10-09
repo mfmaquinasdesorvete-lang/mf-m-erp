@@ -325,3 +325,131 @@ export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl }: 
     </div>
   );
 }
+
+/** Escala com valores negativos (saldo pode ficar abaixo de zero): limites "limpos" e 4 a 5 divisões. */
+function escalaFaixa(min: number, max: number) {
+  const lo = Math.min(0, min), hi = Math.max(0, max);
+  if (hi === lo) return { base: lo, topo: lo + 1, ticks: [lo] };
+  const bruto = (hi - lo) / 4;
+  const mag = 10 ** Math.floor(Math.log10(bruto));
+  const passo = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((p) => p >= bruto)!;
+  const base = Math.floor(lo / passo) * passo, topo = Math.ceil(hi / passo) * passo;
+  const ticks: number[] = [];
+  for (let t = base; t <= topo + passo / 2; t += passo) ticks.push(Math.round(t * 100) / 100);
+  return { base, topo, ticks };
+}
+
+export type PontoSaldo = { dia: string; realizado: number | null; previsto: number | null; entradas: number; saidas: number };
+
+/**
+ * Saldo dia a dia: linha cheia até hoje (realizado) e tracejada depois (previsto), na mesma cor porque é a mesma conta.
+ * Marca "Hoje", rotula o saldo previsto no fim, cursor com o detalhe do dia e alternativa em tabela.
+ */
+export function SaldoPrevisto({ dados, hoje, altura = 260, formatar = brl }: { dados: PontoSaldo[]; hoje: string; altura?: number; formatar?: (v: number) => string }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const [tabela, setTabela] = useState(false);
+  const [ref, largura] = useLargura();
+  const m = { t: 34, r: 16, b: 28, l: 58 };
+  const ih = altura - m.t - m.b;
+  const iw = largura - m.l - m.r;
+  const valores = dados.flatMap((d) => [d.realizado, d.previsto]).filter((v): v is number => v !== null);
+  const { base, topo, ticks } = useMemo(() => escalaFaixa(Math.min(...valores, 0), Math.max(...valores, 0)), [valores.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  const passo = iw / Math.max(dados.length - 1, 1);
+  const x = (i: number) => m.l + i * passo;
+  const y = (v: number) => m.t + ih - ((v - base) / (topo - base)) * ih;
+  const id = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const iHoje = dados.findIndex((d) => d.dia === hoje);
+  const real = dados.map((d, i) => [i, d.realizado] as const).filter(([, v]) => v !== null).map(([i, v]) => [x(i), y(v!)] as [number, number]);
+  const prev = dados.map((d, i) => [i, d.previsto] as const).filter(([, v]) => v !== null).map(([i, v]) => [x(i), y(v!)] as [number, number]);
+  const ultimo = [...dados].reverse().find((d) => d.previsto !== null);
+  const iUlt = ultimo ? dados.indexOf(ultimo) : -1;
+  const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const linha = (p: [number, number][]) => p.map((q, i) => `${i ? "L" : "M"}${q[0]},${q[1]}`).join(" ");
+  const cada = Math.max(1, Math.ceil((dados.length * 34) / Math.max(iw, 1)));
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-1.5"><svg width="18" height="4" aria-hidden><line x1="0" x2="18" y1="2" y2="2" stroke="var(--serie-1)" strokeWidth="2.5" /></svg> Realizado</span>
+        <span className="inline-flex items-center gap-1.5"><svg width="18" height="4" aria-hidden><line x1="0" x2="18" y1="2" y2="2" stroke="var(--serie-1)" strokeWidth="2.5" strokeDasharray="4 3" /></svg> Previsto (contas em aberto)</span>
+        <button onClick={() => setTabela(!tabela)} className="ml-auto text-xs font-semibold text-brand hover:underline">{tabela ? "Ver gráfico" : "Ver tabela"}</button>
+      </div>
+      {tabela ? (
+        <div className="max-h-80 overflow-auto">
+          <table className="min-w-full text-sm">
+            <thead><tr><th className="th pl-0">Dia</th><th className="th text-right">Entradas</th><th className="th text-right">Saídas</th><th className="th text-right">Saldo</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {dados.map((d) => (
+                <tr key={d.dia}>
+                  <td className="py-1.5 text-slate-600">{dm(d.dia)}{d.dia === hoje ? " (hoje)" : d.dia > hoje ? " (previsto)" : ""}</td>
+                  <td className="num py-1.5 text-right">{d.entradas ? formatar(d.entradas) : "—"}</td>
+                  <td className="num py-1.5 text-right">{d.saidas ? formatar(d.saidas) : "—"}</td>
+                  <td className="num py-1.5 text-right font-semibold">{formatar((d.dia >= hoje ? d.previsto : d.realizado) ?? 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="relative" ref={ref}>
+          <svg viewBox={`0 0 ${largura} ${altura}`} width={largura} height={altura} className="block w-full touch-pan-y" role="img"
+            aria-label="Saldo realizado até hoje e previsto até o fim do período"
+            onMouseLeave={() => setHover(null)}
+            onPointerMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              const px = ((e.clientX - r.left) / r.width) * largura;
+              setHover(Math.max(0, Math.min(dados.length - 1, Math.round((px - m.l) / passo))));
+            }}>
+            <defs>
+              <linearGradient id={`s${id}`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--serie-1)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--serie-1)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            {ticks.map((t) => (
+              <g key={t}>
+                <line x1={m.l} x2={largura - m.r} y1={y(t)} y2={y(t)} stroke={t === 0 && base < 0 ? "var(--eixo)" : "var(--grade)"} strokeWidth={1} />
+                <text x={m.l - 8} y={y(t) + 3.5} textAnchor="end" fontSize={12} fill="var(--eixo-texto)" className="num">{compacto(t)}</text>
+              </g>
+            ))}
+            {real.length > 1 && <path d={`${linha(real)} L${real[real.length - 1][0]},${y(Math.max(base, 0))} L${real[0][0]},${y(Math.max(base, 0))} Z`} fill={`url(#s${id})`} />}
+            {real.length > 0 && <path d={linha(real)} fill="none" stroke="var(--serie-1)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />}
+            {prev.length > 0 && <path d={linha(real.length ? [real[real.length - 1], ...prev] : prev)} fill="none" stroke="var(--serie-1)" strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" />}
+            {iHoje >= 0 && (
+              <g>
+                <line x1={x(iHoje)} x2={x(iHoje)} y1={m.t - 6} y2={m.t + ih} stroke="var(--eixo)" strokeWidth={1} strokeDasharray="3 3" />
+                <text x={x(iHoje)} y={m.t - 12} textAnchor="middle" fontSize={12} fontWeight={600} fill="var(--eixo-texto)">Hoje · {dm(hoje)}</text>
+                {dados[iHoje].realizado !== null && <circle cx={x(iHoje)} cy={y(dados[iHoje].realizado!)} r={5} fill="var(--serie-1)" stroke="rgb(var(--surface))" strokeWidth={2} />}
+              </g>
+            )}
+            {iUlt > iHoje && ultimo && (
+              <g>
+                <circle cx={x(iUlt)} cy={y(ultimo.previsto!)} r={4.5} fill="rgb(var(--surface))" stroke="var(--serie-1)" strokeWidth={2} />
+                <text x={Math.min(x(iUlt), largura - m.r)} y={y(ultimo.previsto!) - 10} textAnchor="end" fontSize={12} fontWeight={600} fill="currentColor" className="num text-fg">
+                  {dm(ultimo.dia)} · {formatar(ultimo.previsto!)}
+                </text>
+              </g>
+            )}
+            {dados.map((d, i) => (dados.length - 1 - i) % cada === 0 && (
+              <text key={d.dia} x={x(i)} y={altura - 8} textAnchor="middle" fontSize={12} fill="var(--eixo-texto)">{d.dia.slice(8, 10)}</text>
+            ))}
+            {hover !== null && (
+              <g>
+                <line x1={x(hover)} x2={x(hover)} y1={m.t} y2={m.t + ih} stroke="var(--eixo)" strokeWidth={1} strokeDasharray="3 3" />
+                {(() => { const v = dados[hover].dia >= hoje ? dados[hover].previsto : dados[hover].realizado; return v === null ? null : <circle cx={x(hover)} cy={y(v)} r={4.5} fill="var(--serie-1)" stroke="rgb(var(--surface))" strokeWidth={2} />; })()}
+              </g>
+            )}
+          </svg>
+          {hover !== null && (
+            <Dica esquerda={(x(hover) / largura) * 100}>
+              <div className="mb-1 font-semibold text-fg">{dm(dados[hover].dia)}{dados[hover].dia === hoje ? " · hoje" : dados[hover].dia > hoje ? " · previsto" : ""}</div>
+              <div className="flex justify-between gap-3"><span className="text-slate-500">Saldo</span><span className="num font-semibold text-fg">{formatar((dados[hover].dia >= hoje ? dados[hover].previsto : dados[hover].realizado) ?? 0)}</span></div>
+              {dados[hover].entradas > 0 && <div className="flex justify-between gap-3"><span className="text-slate-500">Entradas</span><span className="num text-fg">+ {formatar(dados[hover].entradas)}</span></div>}
+              {dados[hover].saidas > 0 && <div className="flex justify-between gap-3"><span className="text-slate-500">Saídas</span><span className="num text-fg">− {formatar(dados[hover].saidas)}</span></div>}
+            </Dica>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

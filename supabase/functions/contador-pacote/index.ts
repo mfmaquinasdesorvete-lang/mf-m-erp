@@ -2,7 +2,7 @@
 // cartas de correção e inutilizações) e planilhas (saídas e entradas por CFOP, notas, pagamentos e recebimentos).
 // POST { acao: "gerar", competencia: "2026-09", unidade_id, enviar_email? } -> { url, arquivos, faltando }
 // POST { acao: "link", fechamento_id }                                    -> link novo para baixar o último pacote
-// Agendamento (Authorization: Bearer ERP_CRON_TOKEN): envia sozinho o mês anterior no dia configurado.
+// Agendamento (Authorization: Bearer <token do agendamento>): envia sozinho o mês anterior no dia configurado.
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { zipSync, strToU8 } from "npm:fflate@0.8.2";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -11,6 +11,7 @@ import { focusBaseUrl, focusToken, focusUrl } from "../_shared/focusnfe.ts";
 import { baixarXml } from "../_shared/nfe-recebidas.ts";
 import { lerNfe } from "../_shared/nfe-xml.ts";
 import { enviarEmail } from "../_shared/email.ts";
+import { chamadaDoAgendamento } from "../_shared/cron.ts";
 
 type Db = ReturnType<typeof adminClient>;
 const SETE_DIAS = 7 * 24 * 3600;
@@ -186,8 +187,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const db = adminClient();
   try {
-    const cron = Deno.env.get("ERP_CRON_TOKEN");
-    if (cron && req.headers.get("Authorization") === `Bearer ${cron}`) {
+    if (await chamadaDoAgendamento(req)) {
       const { data: cfg } = await db.from("configuracoes").select("contador_envio_auto, contador_envio_dia, contador_email").eq("id", 1).single();
       const hojeSP = new Date(Date.now() - 3 * 3600_000);
       if (!cfg?.contador_envio_auto || !cfg.contador_email || hojeSP.getUTCDate() !== cfg.contador_envio_dia) return json({ ok: true, enviado: 0 });

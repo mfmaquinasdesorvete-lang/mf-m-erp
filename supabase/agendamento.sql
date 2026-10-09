@@ -1,107 +1,59 @@
 -- =====================================================================
--- Agendamento: processa as NF-e de fornecedores a cada 15 minutos.
--- Rode UMA vez no SQL Editor do Supabase, depois de:
---   1) fazer o deploy da função nfe-processar
---   2) definir o secret ERP_CRON_TOKEN (supabase secrets set ERP_CRON_TOKEN=...)
--- Troque SEU_PROJECT_REF e COLE_O_ERP_CRON_TOKEN abaixo.
+-- Agendamento automático das rotinas do ERP (pg_cron + pg_net).
+-- O token que protege as chamadas é gerado aqui mesmo e fica no Vault (erp_cron_token);
+-- as Edge Functions conferem pelo banco (public.cron_token_valido). Não precisa copiar
+-- token nem criar secret. Pode rodar de novo: atualiza os agendamentos sem duplicar.
+-- Em outro projeto, troque o endereço das funções (erp_functions_url).
 -- =====================================================================
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
-select vault.create_secret('https://SEU_PROJECT_REF.supabase.co/functions/v1/nfe-processar', 'erp_nfe_processar_url');
-select vault.create_secret('COLE_O_ERP_CRON_TOKEN', 'erp_cron_token');
+do $$
+begin
+  if not exists (select 1 from vault.secrets where name = 'erp_cron_token') then
+    perform vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'erp_cron_token');
+  end if;
+  if not exists (select 1 from vault.secrets where name = 'erp_functions_url') then
+    perform vault.create_secret('https://antfofmwrmkadiavjycg.supabase.co/functions/v1', 'erp_functions_url');
+  end if;
+end $$;
 
-select cron.schedule(
-  'erp-nfe-processar',
-  '*/15 * * * *',
-  $$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets where name = 'erp_nfe_processar_url'),
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'erp_cron_token')
-    ),
-    body := '{}'::jsonb,
-    timeout_milliseconds := 60000
-  );
-  $$
-);
+-- Chama uma Edge Function do ERP com o token do agendamento
+create or replace function public.chamar_funcao(p_funcao text, p_corpo jsonb default '{}'::jsonb, p_timeout int default 60000)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare v_url text; v_tok text;
+begin
+  select decrypted_secret into v_url from vault.decrypted_secrets where name = 'erp_functions_url';
+  select decrypted_secret into v_tok from vault.decrypted_secrets where name = 'erp_cron_token';
+  return net.http_post(
+    url := v_url || '/' || p_funcao,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_tok),
+    body := p_corpo,
+    timeout_milliseconds := p_timeout);
+end $$;
+revoke execute on function public.chamar_funcao(text, jsonb, int) from public, anon, authenticated;
 
--- Para conferir:   select * from cron.job_run_details order by start_time desc limit 10;
--- Para desligar:   select cron.unschedule('erp-nfe-processar');
+-- Avisos (Telegram da equipe e e-mail dos clientes): entrega a fila a cada minuto
+select cron.schedule('erp-avisos-enviar', '* * * * *',
+  $$ select public.chamar_funcao('avisos-enviar')
+      where exists (select 1 from public.avisos where status in ('pendente', 'erro', 'enviando') and tentativas < 5) $$);
 
--- =====================================================================
--- Avisos (Telegram da equipe e e-mail dos clientes)
--- Depois do deploy das funções avisos-enviar, telegram-webhook,
--- email-descadastrar e avisos-config. Troque SEU_PROJECT_REF abaixo.
--- =====================================================================
-select vault.create_secret('https://SEU_PROJECT_REF.supabase.co/functions/v1/avisos-enviar', 'erp_avisos_enviar_url');
+-- Resumo do dia, lembretes de vencimento, contas fixas: 8h de Brasília (11h UTC)
+select cron.schedule('erp-avisos-diarios', '0 11 * * *', $$ select public.gerar_avisos_diarios() $$);
 
--- Entrega a fila a cada minuto
-select cron.schedule(
-  'erp-avisos-enviar',
-  '* * * * *',
-  $$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets where name = 'erp_avisos_enviar_url'),
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'erp_cron_token')
-    ),
-    body := '{}'::jsonb,
-    timeout_milliseconds := 60000
-  )
-  where exists (select 1 from public.avisos where status in ('pendente', 'erro', 'enviando') and tentativas < 5);
-  $$
-);
+-- NF-e de fornecedores, fila de contingência e NF-e automática: a cada 15 minutos
+select cron.schedule('erp-nfe-processar', '*/15 * * * *', $$ select public.chamar_funcao('nfe-processar') $$);
 
--- Resumo do dia e lembretes para clientes: 8h de Brasília (11h UTC)
-select cron.schedule('erp-avisos-diarios', '0 11 * * *', $$ select public.gerar_avisos_diarios(); $$);
+-- Caixa de e-mail: busca e-mails novos a cada 5 minutos (só se houver caixa ligada)
+select cron.schedule('erp-email-caixa', '*/5 * * * *',
+  $$ select public.chamar_funcao('email-caixa', '{"acao":"sincronizar"}'::jsonb, 120000)
+      where exists (select 1 from public.email_contas where ativo) $$);
 
--- Para desligar:   select cron.unschedule('erp-avisos-enviar'); select cron.unschedule('erp-avisos-diarios');
+-- Fechamento para o contador: todo dia às 8h confere se é o dia do envio (Configurações → Contador)
+select cron.schedule('erp-contador-pacote', '0 11 * * *',
+  $$ select public.chamar_funcao('contador-pacote', '{"acao":"automatico"}'::jsonb, 300000) $$);
 
--- =====================================================================
--- Caixa de entrada de e-mail: busca e-mails novos a cada 5 minutos
--- (depois do deploy da função email-caixa)
--- =====================================================================
-select vault.create_secret('https://SEU_PROJECT_REF.supabase.co/functions/v1/email-caixa', 'erp_email_caixa_url');
-
-select cron.schedule(
-  'erp-email-caixa',
-  '*/5 * * * *',
-  $$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets where name = 'erp_email_caixa_url'),
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'erp_cron_token')
-    ),
-    body := '{"acao":"sincronizar"}'::jsonb,
-    timeout_milliseconds := 120000
-  )
-  where exists (select 1 from public.email_contas where ativo);
-  $$
-);
-
--- =====================================================================
--- Fechamento para o contador: todo dia às 8h confere se é o dia do envio
--- (Configurações → Contador) e manda o pacote do mês anterior por e-mail
--- (depois do deploy da função contador-pacote)
--- =====================================================================
-select vault.create_secret('https://SEU_PROJECT_REF.supabase.co/functions/v1/contador-pacote', 'erp_contador_url');
-
-select cron.schedule(
-  'erp-contador-pacote',
-  '0 11 * * *',  -- 11h UTC = 8h em Brasília
-  $$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets where name = 'erp_contador_url'),
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'erp_cron_token')
-    ),
-    body := '{"acao":"automatico"}'::jsonb,
-    timeout_milliseconds := 300000
-  );
-  $$
-);
+-- Para conferir:   select jobname, schedule, active from cron.job;
+--                  select * from cron.job_run_details order by start_time desc limit 20;
+--                  select * from net._http_response order by created desc limit 20;
+-- Para desligar:   select cron.unschedule('erp-avisos-enviar');  (e os outros pelo nome)

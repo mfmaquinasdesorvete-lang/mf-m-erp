@@ -830,7 +830,57 @@ function conciliarAutoDemo(contaBancaria: string) {
   return n;
 }
 
+// Financeiro: movimentos realizados (contas pagas + extrato sem conta) e saldo de cada conta bancária
+const somaDiaDemo = (d: string, n: number) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+function movimentosDemo(de: string, ate: string) {
+  const m = new Map<string, Row>();
+  const add = (cb: string | null, d: string | null, v: number) => {
+    if (!cb || !d || d < de || d > ate) return;
+    const x = m.get(cb + "|" + d) ?? { conta_bancaria_id: cb, dia: d, entradas: 0, saidas: 0 };
+    if (v > 0) x.entradas = r2(x.entradas + v); else x.saidas = r2(x.saidas - v);
+    m.set(cb + "|" + d, x);
+  };
+  for (const c of db.contas_receber) if (c.status === "pago") add(c.conta_bancaria_id, c.data_pagamento, Number(c.valor_pago ?? c.valor));
+  for (const c of db.contas_pagar) if (c.status === "pago") add(c.conta_bancaria_id, c.data_pagamento, -Number(c.valor_pago ?? c.valor));
+  for (const l of db.extrato_lancamentos) if (["pendente", "ignorado", "transferencia"].includes(l.status)) add(l.conta_bancaria_id, l.data, Number(l.valor));
+  return [...m.values()];
+}
+function saldosDemo() {
+  return db.contas_bancarias.filter((b) => b.ativo).map((b) => {
+    const imp = db.extrato_importacoes.filter((i) => i.conta_bancaria_id === b.id && i.saldo_final != null && i.saldo_final_data)
+      .sort((a, c) => String(c.saldo_final_data).localeCompare(a.saldo_final_data))[0];
+    const usa = !!imp && imp.saldo_final_data >= b.saldo_inicial_data;
+    const base = usa ? Number(imp.saldo_final) : Number(b.saldo_inicial);
+    const data = usa ? imp.saldo_final_data : b.saldo_inicial_data;
+    const mov = movimentosDemo(usa ? somaDiaDemo(data, 1) : data, hojeISO()).filter((x) => x.conta_bancaria_id === b.id).reduce((s, x) => s + x.entradas - x.saidas, 0);
+    return { conta_id: b.id, nome: b.nome, unidade_id: b.unidade_id, tipo: b.tipo, saldo: r2(base + mov), data_base: data, saldo_base: base, origem: usa ? "extrato" : "cadastro" };
+  });
+}
+const reaisDemo = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  saldos_bancarios: () => (podeFinanceiro() ? { data: saldosDemo(), error: null } : erro("sem permissão para esta ação")),
+  movimentos_realizados: ({ p_de, p_ate }) => (podeFinanceiro() ? { data: movimentosDemo(p_de, p_ate), error: null } : erro("sem permissão para esta ação")),
+  baixar_conta: ({ p_tabela, p_id, p_data, p_valor, p_conta_bancaria, p_restante_vencimento }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const c = db[p_tabela]?.find((x: Row) => x.id === p_id);
+    if (!c) return erro("conta não encontrada");
+    if (c.status !== "aberto") return erro("esta conta não está em aberto");
+    const v = r2(Number(p_valor));
+    if (!(v > 0)) return erro("informe o valor pago");
+    if (p_restante_vencimento && v < Number(c.valor)) {
+      const rest = r2(Number(c.valor) - v);
+      const novo = { ...c, id: uid(), valor: rest, vencimento: p_restante_vencimento, status: "aberto", descricao: String(c.descricao).replace(/ \(restante\)$/, "") + " (restante)",
+        conta_origem_id: c.id, data_pagamento: null, valor_pago: null, conta_bancaria_id: null, created_at: new Date().toISOString() };
+      db[p_tabela].push(novo);
+      atualizarDemo(p_tabela, c, { valor: v, status: "pago", data_pagamento: p_data, valor_pago: v, conta_bancaria_id: p_conta_bancaria ?? null },
+        `Pagamento parcial: o restante de ${reaisDemo(rest)} ficou em aberto`);
+      return { data: novo.id, error: null };
+    }
+    atualizarDemo(p_tabela, c, { status: "pago", data_pagamento: p_data, valor_pago: v, conta_bancaria_id: p_conta_bancaria ?? null },
+      v === Number(c.valor) ? null : v < Number(c.valor) ? `Pago com desconto de ${reaisDemo(Number(c.valor) - v)}` : `Pago com juros/multa de ${reaisDemo(v - Number(c.valor))}`);
+    return { data: null, error: null };
+  },
   importar_extrato: ({ p_conta, p_arquivo, p_formato, p_linhas, p_saldo_final, p_saldo_data }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     if (!p_linhas?.length) return erro("o arquivo não tem lançamentos");
