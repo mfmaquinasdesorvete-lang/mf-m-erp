@@ -192,5 +192,19 @@ export async function sondarServidor(host: string, porta: number) {
     for (const ev of ["end", "close", "timeout"]) s.on(ev, () => { eventos.push(ev); if (ev !== "timeout") acabar({ ok: false, erro: `conexão terminou (${ev})` }); });
     s.on("error", (e: Error) => acabar({ ok: false, erro: e.message.slice(0, 200) }));
   });
-  return { host, porta, deno, node };
+  // como as bibliotecas usam a conexão (ImapFlow / nodemailer), com um usuário inexistente: o esperado é "senha recusada"
+  const biblioteca = await (async () => {
+    const t0 = Date.now();
+    const falso = { usuario: "diagnostico-erp@example.com", senha: "senha-invalida-diagnostico" };
+    try {
+      if (porta === 993) await testarConta({ imap_host: host, imap_porta: porta, ...falso });
+      else await testarSmtp({ smtp_host: host, smtp_porta: porta, ...falso });
+      return { ok: true, ms: Date.now() - t0 };
+    } catch (e) {
+      const x = e as { code?: string; message?: string; authenticationFailed?: boolean; responseText?: string; response?: string };
+      return { ok: false, code: x.code ?? null, auth: x.authenticationFailed ?? null, erro: String(x.message ?? e).slice(0, 160),
+        resposta: String(x.responseText ?? x.response ?? "").slice(0, 160), ms: Date.now() - t0 };
+    }
+  })();
+  return { host, porta, deno, node, biblioteca };
 }

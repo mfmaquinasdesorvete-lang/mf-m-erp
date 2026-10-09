@@ -127,7 +127,7 @@ export function erroDeToken(body: any, codigo?: string | null, op: OpcoesFocus =
   const lido = ambienteParaMensagem();
   const motivo = lido === "não cadastrado" ? "o secret FOCUS_NFE_ENV não existe" : lido === "vazio" ? "o FOCUS_NFE_ENV está vazio"
     : lido.startsWith("um texto") ? `o FOCUS_NFE_ENV tem ${lido}` : `o FOCUS_NFE_ENV está ${lido}`;
-  const ambiente = producao ? "" : ` O ERP está em HOMOLOGAÇÃO (teste) porque ${motivo}. ` +
+  const ambiente = producao || /cnpj/i.test(msg) ? "" : ` O ERP está em HOMOLOGAÇÃO (teste) porque ${motivo}. ` +
     "Para emitir de verdade, deixe no Supabase o secret FOCUS_NFE_ENV com só a palavra producao e o token de produção de cada empresa em FOCUS_NFE_TOKEN_PRODUCAO (SC) e FOCUS_NFE_TOKEN_PRODUCAO_SP (SP).";
   return new HttpError(502, `${msg}. ${dica}.${ambiente}`);
 }
