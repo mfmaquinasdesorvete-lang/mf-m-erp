@@ -2,6 +2,10 @@
 // jsPDF é carregado só quando um PDF é gerado, para não pesar na abertura do sistema.
 import type { Cliente, Config, Item, ItemChecklist } from "./types";
 import { brl, dataBR, docFormat } from "./format";
+import {
+  AVISOS, cepFmt, codigoTransporte, codigoVolume, medidasTxt, pesoDoVolume, pesoTxt, volumeVazio,
+  type AvisoId, type EtiquetaDados, type ModeloEtiqueta,
+} from "./etiquetaDados";
 import logoPdf from "@/assets/logo-pdf.jpg";
 
 let logoCache: Promise<string | null> | null = null;
@@ -396,90 +400,261 @@ export async function pdfComissoes(r: {
 }
 
 // ---------------------------------------------------------------------
-// Etiquetas de envio e volume (uma por volume): 10 x 15 cm (térmica) ou A4 com 4 por folha
+// Etiquetas de transporte (endereçamento, uma por volume) e de volume (identificação: nº grande, conteúdo,
+// peso, medidas e avisos de manuseio). 10 x 15 cm ou 10 x 10 cm (térmica) ou A4 com guia de corte.
 // ---------------------------------------------------------------------
-export type EnvioEtiqueta = {
-  numero: number; cliente: Cliente; volumes: number; peso?: number | null;
-  nota?: { numero: string | null; serie: string | null; chave: string | null } | null;
-  transportadora?: string | null; rastreio?: string | null;
-  remetente?: { nome: string; logradouro?: string | null; numero?: string | null; bairro?: string | null; municipio?: string | null; uf?: string | null; cep?: string | null; cnpj?: string | null; telefone?: string | null } | null;
-};
 
 /** Código de barras CODE128 como imagem (gerado no navegador). */
 async function codigoBarras(texto: string) {
   const { default: JsBarcode } = await import("jsbarcode");
   const c = document.createElement("canvas");
   JsBarcode(c, texto, { format: "CODE128", displayValue: false, margin: 0, height: 80, width: 2, background: "#ffffff", lineColor: "#000000" });
-  return { png: c.toDataURL("image/png"), proporcao: c.width / c.height };
+  return { png: c.toDataURL("image/png"), modulos: c.width / 2 };
 }
 
-const cepFmt = (c?: string | null) => (c ?? "").replace(/\D/g, "").replace(/^(\d{5})(\d{3})$/, "$1-$2");
+type Barras = Map<string, Awaited<ReturnType<typeof codigoBarras>> | null>;
+async function barraDe(barras: Barras, texto: string) {
+  if (!barras.has(texto)) barras.set(texto, await codigoBarras(texto).catch(() => null));
+  return barras.get(texto) ?? null;
+}
 
-export async function pdfEtiquetasEnvio(envios: EnvioEtiqueta[], cfg: Config, formato: "10x15" | "a4" = "10x15") {
-  const { jsPDF } = await import("jspdf");
-  const a4 = formato === "a4";
-  const doc = new jsPDF({ unit: "mm", format: a4 ? "a4" : [100, 150] });
-  const W = 100, H = a4 ? 143 : 150;
-  const posA4 = [[5, 5], [105, 5], [5, 150], [105, 150]];
-  const barras = new Map<string, Awaited<ReturnType<typeof codigoBarras>>>();
-  let n = 0;
+/** Desenha o código centralizado: largura proporcional ao tamanho do código (curto não estica a etiqueta toda). */
+function desenharBarra(doc: Doc, b: { png: string; modulos: number }, xCentro: number, y: number, largMax: number, altura: number) {
+  const bw = Math.min(largMax, Math.max(45, b.modulos * 0.42));
+  doc.addImage(b.png, "PNG", xCentro - bw / 2, y, bw, altura);
+}
 
-  for (const e of envios) {
-    const cod = e.nota?.chave && /^\d{44}$/.test(e.nota.chave) ? e.nota.chave : `PED${e.numero}`;
-    if (!barras.has(cod)) barras.set(cod, await codigoBarras(cod));
-    const vol = Math.max(1, Number(e.volumes) || 1);
-    for (let v = 1; v <= vol; v++, n++) {
-      if (n > 0 && (!a4 || n % 4 === 0)) doc.addPage(a4 ? "a4" : [100, 150]);
-      const [x0, y0] = a4 ? posA4[n % 4] : [0, 0];
-      const X = (mm: number) => x0 + mm, Y = (mm: number) => y0 + mm;
-      doc.setDrawColor(0); doc.setLineWidth(0.3);
-      if (a4) doc.rect(x0, y0, W, H);
+const corta = (doc: Doc, s: string, larg: number) => (s ? String(doc.splitTextToSize(s, larg)[0] ?? "") : "");
+const altLinha = (pt: number) => pt * 1.15 * 0.3528;
+
+/** Avisos de manuseio em tarjas pretas (quebra em linhas). Devolve a altura ocupada. */
+function avisosLinhas(doc: Doc, ids: AvisoId[], larg: number) {
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+  const linhas: { t: string; w: number }[][] = [];
+  let atual: { t: string; w: number }[] = [], usado = 0;
+  for (const id of ids) {
+    const t = AVISOS.find((a) => a.id === id)?.texto;
+    if (!t) continue;
+    const w = doc.getTextWidth(t) + 3;
+    if (atual.length && usado + w > larg) { linhas.push(atual); atual = []; usado = 0; }
+    atual.push({ t, w }); usado += w + 1.5;
+  }
+  if (atual.length) linhas.push(atual);
+  return { linhas, altura: linhas.length ? linhas.length * 5 + (linhas.length - 1) * 1.2 : 0 };
+}
+function desenharAvisos(doc: Doc, l: ReturnType<typeof avisosLinhas>, x: number, y: number) {
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+  l.linhas.forEach((linha, k) => {
+    let xx = x;
+    const yy = y + k * 6.2;
+    for (const a of linha) {
+      doc.setFillColor(0, 0, 0); doc.roundedRect(xx, yy, a.w, 5, 0.8, 0.8, "F");
+      doc.setTextColor(255, 255, 255); doc.text(a.t, xx + 1.5, yy + 3.55);
+      xx += a.w + 1.5;
+    }
+  });
+  doc.setTextColor(0, 0, 0);
+}
+
+const docTipo = (d: string) => `${d.length === 14 ? "CNPJ" : "CPF"} ${docFormat(d)}`;
+
+async function etiquetaTransporte(doc: Doc, d: EtiquetaDados, i: number, x0: number, y0: number, W: number, H: number,
+  m: ModeloEtiqueta, logo: string | null, barras: Barras) {
+  const X = (mm: number) => x0 + mm, Y = (mm: number) => y0 + mm;
+  const total = d.volumes.length;
+  doc.setTextColor(0, 0, 0); doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
+
+  // Remetente
+  const r = d.remetente;
+  let xr = 4;
+  if (logo) { doc.addImage(logo, "JPEG", X(3.5), Y(3.5), 13, 13); xr = 19.5; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.text("REMETENTE", X(xr), Y(5.2));
+  doc.setFontSize(8); doc.text(corta(doc, r.nome, W - xr - 4), X(xr), Y(9));
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+  [
+    [r.endereco, r.bairro].filter(Boolean).join(" - "),
+    [r.municipio && `${r.municipio}/${r.uf}`, r.cep && `CEP ${cepFmt(r.cep)}`].filter(Boolean).join("   "),
+    [m.mostrar_cnpj && r.documento && docTipo(r.documento), m.mostrar_telefone && r.telefone && `Tel. ${r.telefone}`].filter(Boolean).join("  ·  "),
+  ].filter(Boolean).forEach((l, k) => doc.text(corta(doc, l, W - xr - 4), X(xr), Y(12.6 + k * 3.4)));
+  doc.line(X(3), Y(22), X(W - 3), Y(22));
+
+  // Destinatário
+  const c = d.destinatario;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.text("DESTINATÁRIO", X(4), Y(26.5));
+  const fNome = m.destinatario_grande ? 15 : 13;
+  doc.setFontSize(fNome);
+  const nomeL = doc.splitTextToSize(c.nome || "—", W - 8).slice(0, 2);
+  let y = 32.5;
+  doc.text(nomeL, X(4), Y(y)); y += nomeL.length * altLinha(fNome);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  if (c.ac) { doc.text(corta(doc, `A/C ${c.ac}`, W - 8), X(4), Y(y)); y += altLinha(9) + 0.3; }
+  doc.setFontSize(10);
+  const end = [`${c.logradouro}${c.logradouro ? (c.numero ? `, ${c.numero}` : ", s/n") : ""}`, c.complemento].filter(Boolean).join(" - ");
+  if (end) { const l = doc.splitTextToSize(end, W - 8).slice(0, 2); doc.text(l, X(4), Y(y)); y += l.length * altLinha(10); }
+  const bairro = [c.bairro, c.referencia && `Ref.: ${c.referencia}`].filter(Boolean).join(" · ");
+  if (bairro) doc.text(corta(doc, bairro, W - 8), X(4), Y(y));
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text(corta(doc, [c.municipio, c.uf].filter(Boolean).join("/"), W - 8), X(4), Y(64));
+  doc.text(`CEP ${cepFmt(c.cep)}`, X(4), Y(70.5));
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  if (m.mostrar_telefone && c.telefone) doc.text(`Tel. ${c.telefone}`, X(W - 4), Y(70.5), { align: "right" });
+  doc.line(X(3), Y(74), X(W - 3), Y(74));
+
+  // Pedido, nota e volume
+  doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
+  doc.text("PEDIDO", X(4), Y(78.5)); doc.text("NF-E", X(36), Y(78.5)); doc.text("VOLUME", X(70), Y(78.5));
+  doc.setFontSize(16);
+  doc.text(d.pedido ? `#${d.pedido}` : "—", X(4), Y(86));
+  doc.text(d.nota.numero ? `${d.nota.numero}${d.nota.serie ? `/${d.nota.serie}` : ""}` : "—", X(36), Y(86));
+  doc.text(`${i + 1}/${total}`, X(70), Y(86));
+
+  // Transporte, rastreio, peso e medidas do volume, observação
+  let yi = 91.5;
+  const info = (t: string, negrito = false) => {
+    if (!t) return;
+    doc.setFont("helvetica", negrito ? "bold" : "normal"); doc.setFontSize(8.5);
+    doc.text(corta(doc, t, W - 8), X(4), Y(yi)); yi += 4.1;
+  };
+  info([d.transportadora && `Transp.: ${d.transportadora}`, d.cte && `CT-e ${d.cte}`].filter(Boolean).join("   "));
+  if (d.rastreio) info(`Rastreio: ${d.rastreio}`, true);
+  const pv = pesoDoVolume(d, i), med = medidasTxt(d.volumes[i] ?? volumeVazio());
+  info([
+    m.mostrar_peso && pv && `Peso: ${pesoTxt(pv)}`, m.mostrar_medidas && med && `Medidas: ${med}`,
+    m.mostrar_peso && total > 1 && d.peso_total_kg && `Total: ${pesoTxt(d.peso_total_kg)}`,
+  ].filter(Boolean).join("   "));
+  if (d.observacao) info(d.observacao);
+
+  const av = avisosLinhas(doc, d.avisos, W - 8);
+  const yAv = yi - 1.6;
+  if (av.altura) desenharAvisos(doc, av, X(4), Y(yAv));
+  const topo = (av.altura ? yAv + av.altura : yi - 3) + 2;
+
+  // Rodapé e código de barras
+  let base = H - 2;
+  if (m.rodape) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(60, 60, 60);
+    doc.text(corta(doc, m.rodape, W - 6), X(W / 2), Y(H - 1.8), { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    base = H - 4.6;
+  }
+  const cod = codigoTransporte(d, m);
+  const b = cod ? await barraDe(barras, cod.valor) : null;
+  if (cod && b) {
+    const yTxt = base - 3.2;
+    const fundo = yTxt - 3.3;
+    const alt = Math.min(22, fundo - topo);
+    if (alt >= 7) {
+      desenharBarra(doc, b, X(W / 2), Y(fundo - alt), W - 10, alt);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(cod.valor.length > 30 ? 7 : 9);
+      doc.text(cod.valor.length === 44 ? cod.valor.replace(/(\d{4})/g, "$1 ").trim() : cod.valor, X(W / 2), Y(yTxt), { align: "center" });
+      doc.setFontSize(6); doc.setTextColor(100, 100, 100);
+      doc.text(cod.rotulo, X(W / 2), Y(base), { align: "center" });
       doc.setTextColor(0, 0, 0);
-      // Remetente
-      const r = e.remetente;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.text("REMETENTE", X(4), Y(5));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-      doc.text([
-        (r?.nome ?? cfg.razao_social).slice(0, 55),
-        r ? [`${r.logradouro ?? ""}${r.numero ? `, ${r.numero}` : ""}`, r.bairro].filter(Boolean).join(" - ").slice(0, 60) : (cfg.endereco ?? "").slice(0, 60),
-        r ? `${r.municipio ?? ""}/${r.uf ?? ""}  CEP ${cepFmt(r.cep)}` : `${cfg.municipio ?? ""}/${cfg.uf ?? ""}`,
-      ], X(4), Y(9));
-      doc.line(X(3), Y(21), X(W - 3), Y(21));
-      // Destinatário
-      const c = e.cliente;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.text("DESTINATÁRIO", X(4), Y(26));
-      doc.setFontSize(13); doc.text(doc.splitTextToSize(c.nome, W - 8).slice(0, 2), X(4), Y(32));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-      doc.text(doc.splitTextToSize(`${c.logradouro ?? ""}, ${c.numero ?? "s/n"}${c.complemento ? ` - ${c.complemento}` : ""}`, W - 8).slice(0, 2), X(4), Y(44));
-      if (c.bairro) doc.text(c.bairro.slice(0, 45), X(4), Y(53));
-      doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-      doc.text(`${c.municipio ?? ""}/${c.uf ?? ""}`.slice(0, 32), X(4), Y(61));
-      doc.text(`CEP ${cepFmt(c.cep)}`, X(4), Y(68));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      if (c.whatsapp || c.telefone) doc.text(`Tel. ${c.whatsapp || c.telefone}`, X(W - 4), Y(68), { align: "right" });
-      doc.line(X(3), Y(72), X(W - 3), Y(72));
-      // Pedido, nota e volume
-      doc.setFontSize(7); doc.setFont("helvetica", "bold");
-      doc.text("PEDIDO", X(4), Y(77)); doc.text("NF-E", X(34), Y(77)); doc.text("VOLUME", X(68), Y(77));
-      doc.setFontSize(17);
-      doc.text(`#${e.numero}`, X(4), Y(85));
-      doc.text(e.nota?.numero ? `${e.nota.numero}${e.nota.serie ? `/${e.nota.serie}` : ""}` : "—", X(34), Y(85));
-      doc.text(`${v}/${vol}`, X(68), Y(85));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      const linha = [e.transportadora && `Transp.: ${e.transportadora}`, e.peso ? `Peso total: ${Number(e.peso).toLocaleString("pt-BR")} kg` : ""].filter(Boolean).join("   ");
-      if (linha) doc.text(linha.slice(0, 60), X(4), Y(92));
-      if (e.rastreio) { doc.setFont("helvetica", "bold"); doc.text(`Rastreio: ${e.rastreio}`, X(4), Y(97)); doc.setFont("helvetica", "normal"); }
-      // Código de barras (chave da NF-e ou nº do pedido)
-      const b = barras.get(cod)!;
-      const bw = W - 10, bh = Math.min(26, bw / b.proporcao);
-      doc.addImage(b.png, "PNG", X(5), Y(H - bh - 13), bw, bh);
-      doc.setFontSize(cod.length > 30 ? 7 : 9);
-      doc.text(cod.length === 44 ? cod.replace(/(\d{4})/g, "$1 ").trim() : cod, X(W / 2), Y(H - 8), { align: "center" });
-      doc.setFontSize(6); doc.setTextColor(100);
-      doc.text(cod.length === 44 ? "Chave de acesso da NF-e" : "Pedido", X(W / 2), Y(H - 4.5), { align: "center" });
     }
   }
-  return doc.output("blob");
+}
+
+async function etiquetaVolume(doc: Doc, d: EtiquetaDados, i: number, x0: number, y0: number, W: number, H: number,
+  m: ModeloEtiqueta, barras: Barras) {
+  const X = (mm: number) => x0 + mm, Y = (mm: number) => y0 + mm;
+  const g = H >= 140;
+  const total = d.volumes.length, vol = d.volumes[i] ?? volumeVazio();
+  doc.setTextColor(0, 0, 0); doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("VOLUME", X(W / 2), Y(6), { align: "center" });
+  const yNum = g ? 30 : 22.5;
+  doc.setFontSize(g ? 64 : 46); doc.text(`${i + 1}/${total}`, X(W / 2), Y(yNum), { align: "center" });
+  let y = yNum + 4;
+  doc.line(X(3), Y(y), X(W - 3), Y(y));
+
+  // Pedido, NF-e e peso
+  const pv = pesoDoVolume(d, i);
+  const cols: [string, string][] = [["PEDIDO", d.pedido ? `#${d.pedido}` : "—"], ["NF-E", d.nota.numero ? `${d.nota.numero}${d.nota.serie ? `/${d.nota.serie}` : ""}` : "—"]];
+  if (m.mostrar_peso) cols.push(["PESO", pv ? pesoTxt(pv) : "—"]);
+  const cw = (W - 8) / cols.length;
+  doc.setFontSize(6.5); cols.forEach(([rot], k) => doc.text(rot, X(4 + k * cw), Y(y + 4)));
+  doc.setFontSize(g ? 14 : 12); cols.forEach(([, t], k) => doc.text(corta(doc, t, cw - 2), X(4 + k * cw), Y(y + (g ? 10.5 : 9.5))));
+  y += g ? 14 : 12.5;
+  doc.line(X(3), Y(y), X(W - 3), Y(y));
+
+  // Destino
+  const c = d.destinatario;
+  doc.setFontSize(6.5); doc.text("DESTINO", X(4), Y(y + 4));
+  doc.setFontSize(g ? 12 : 10.5); doc.text(corta(doc, c.nome || "—", W - 8), X(4), Y(y + (g ? 9.5 : 8.5)));
+  doc.setFont("helvetica", "normal"); doc.setFontSize(g ? 10.5 : 9.5);
+  doc.text(corta(doc, [[c.municipio, c.uf].filter(Boolean).join("/"), c.cep && `CEP ${cepFmt(c.cep)}`].filter(Boolean).join("   "), W - 8), X(4), Y(y + (g ? 14.5 : 12.8)));
+  y += g ? 18 : 15.5;
+  doc.line(X(3), Y(y), X(W - 3), Y(y));
+
+  // Embaixo: código do volume (para conferir na saída) e avisos
+  const cod = codigoVolume(d, i + 1, total);
+  const bh = g ? 16 : 10;
+  const yTxt = H - 2.5, yBar = yTxt - 3 - bh;
+  const b = await barraDe(barras, cod);
+  if (b) desenharBarra(doc, b, X(W / 2), Y(yBar), W - 16, bh);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.text(cod, X(W / 2), Y(yTxt), { align: "center" });
+  const av = avisosLinhas(doc, d.avisos, W - 8);
+  const yAv = yBar - 2 - av.altura;
+  if (av.altura) desenharAvisos(doc, av, X(4), Y(yAv));
+  const limite = (av.altura ? yAv : yBar) - 1.5;
+
+  // Meio: conteúdo e medidas
+  const med = m.mostrar_medidas ? medidasTxt(vol) : "";
+  const fC = g ? 10.5 : 9.5, lh = altLinha(fC);
+  if (m.mostrar_conteudo && vol.descricao) {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.text("CONTEÚDO", X(4), Y(y + 4));
+    doc.setFont("helvetica", "normal"); doc.setFontSize(fC);
+    const y1 = y + 8.3;
+    const cabem = Math.max(1, Math.floor((limite - y1 - (med ? lh : 0)) / lh) + 1);
+    const linhas = doc.splitTextToSize(vol.descricao, W - 8).slice(0, cabem);
+    doc.text(linhas, X(4), Y(y1));
+    y = y1 + linhas.length * lh;
+  } else y += 5;
+  if (med) { doc.setFont("helvetica", "bold"); doc.setFontSize(fC); doc.text(corta(doc, `Medidas: ${med}`, W - 8), X(4), Y(Math.min(y, limite))); }
+}
+
+type FormatoFolha = { pagina: "a4" | [number, number]; w: number; h: number; slots: [number, number][] };
+const FOLHAS: Record<string, FormatoFolha> = {
+  "10x15": { pagina: [100, 150], w: 100, h: 150, slots: [[0, 0]] },
+  "10x10": { pagina: [100, 100], w: 100, h: 100, slots: [[0, 0]] },
+  "a4-transporte": { pagina: "a4", w: 100, h: 143, slots: [[5, 5], [105, 5], [5, 150], [105, 150]] },
+  "a4-volume": { pagina: "a4", w: 100, h: 95, slots: [[5, 5], [105, 5], [5, 100], [105, 100], [5, 195], [105, 195]] },
+};
+
+/**
+ * PDF das etiquetas. Cada volume ganha a sua etiqueta de transporte e/ou de volume (conforme o modelo).
+ * Na mesma bobina (10x15 nas duas), as duas de cada caixa saem em seguida; em formatos diferentes, cada tipo sai junto.
+ * `soVolume` limita a um volume (pré-visualização do editor).
+ */
+export async function pdfEtiquetas(lista: EtiquetaDados[], m: ModeloEtiqueta, soVolume?: number) {
+  const [{ jsPDF }, logo] = await Promise.all([import("jspdf"), m.mostrar_logo ? logoDataUrl() : Promise.resolve(null)]);
+  const quer = (t: "transporte" | "volume") => m.imprimir === "ambas" || m.imprimir === t;
+  const fT = m.formato_transporte === "a4" ? "a4-transporte" : "10x15";
+  const fV = m.formato_volume === "a4" ? "a4-volume" : m.formato_volume;
+  const juntas = quer("transporte") && quer("volume") && fT === fV;
+  const paginas: { tipo: "transporte" | "volume"; d: EtiquetaDados; i: number }[] = [];
+  const idx = (d: EtiquetaDados) => (soVolume != null ? [Math.min(soVolume, d.volumes.length - 1)] : d.volumes.map((_, i) => i)).filter((i) => i >= 0);
+  for (const d of lista) for (const i of idx(d)) {
+    if (quer("transporte")) paginas.push({ tipo: "transporte", d, i });
+    if (juntas) paginas.push({ tipo: "volume", d, i });
+  }
+  if (quer("volume") && !juntas) for (const d of lista) for (const i of idx(d)) paginas.push({ tipo: "volume", d, i });
+
+  const barras: Barras = new Map();
+  let doc: Doc | null = null, atual = "", slot = 0;
+  for (const p of paginas) {
+    const chave = p.tipo === "transporte" ? fT : fV;
+    const F = FOLHAS[chave];
+    if (!doc) doc = new jsPDF({ unit: "mm", format: F.pagina }) as unknown as Doc;
+    else if (chave !== atual || slot >= F.slots.length) { doc.addPage(F.pagina); slot = 0; }
+    atual = chave;
+    const [x0, y0] = F.slots[slot++];
+    if (F.slots.length > 1) { doc.setDrawColor(170, 170, 170); doc.setLineWidth(0.15); doc.rect(x0, y0, F.w, F.h); }
+    if (p.tipo === "transporte") await etiquetaTransporte(doc, p.d, p.i, x0, y0, F.w, F.h, m, logo, barras);
+    else await etiquetaVolume(doc, p.d, p.i, x0, y0, F.w, F.h, m, barras);
+  }
+  doc ??= new jsPDF({ unit: "mm", format: [100, 150] }) as unknown as Doc;
+  return { blob: doc.output("blob") as Blob, paginas: paginas.length };
 }
 
 // ---------------------------------------------------------------------

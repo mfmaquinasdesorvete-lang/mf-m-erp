@@ -3,9 +3,10 @@
 // de entrega, o frete final e as ocorrências.
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ClipboardCopy, MessageCircle, PackageCheck, Plus, Search, Send, Trash2, Truck, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardCopy, MessageCircle, PackageCheck, Plus, Printer, Search, Send, Trash2, Truck, X } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
+import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -43,6 +44,7 @@ export function EnvioForm({ envioId, inicial, onClose }: { envioId?: string | nu
   }));
   const [ocupado, setOcupado] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const etiquetas = useEtiquetas();
 
   const carregado = useQuery({
     queryKey: ["envios", "um", id],
@@ -321,6 +323,7 @@ export function EnvioForm({ envioId, inicial, onClose }: { envioId?: string | nu
             <a href={whatsappLink(cliente.whatsapp, msgCliente)} target="_blank" rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"><Send size={15} /> Avisar o cliente</a>
           )}
+          {id && <Button type="button" variant="secondary" title="Etiquetas de transporte e de volume com os volumes deste envio" onClick={() => etiquetas.abrir({ tipo: "envio", envio_id: id, envio: e })}><Printer size={15} /> Etiquetas</Button>}
           <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
           {podeEditar && <Button disabled={ocupado}>{ocupado ? "Salvando…" : id ? "Salvar" : "Criar envio"}</Button>}
         </div>
@@ -334,6 +337,7 @@ export function EnvioForm({ envioId, inicial, onClose }: { envioId?: string | nu
           <Anexos entidade="geral" id={id} titulo="Comprovante de entrega, CT-e e fotos" />
         </div>
       )}
+      {etiquetas.modal}
     </Modal>
   );
 }

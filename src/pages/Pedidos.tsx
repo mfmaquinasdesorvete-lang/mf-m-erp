@@ -18,7 +18,7 @@ import { usePerfil } from "@/lib/auth";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "@/components/Anexos";
 import { PropostaPainel } from "@/components/PropostaPainel";
-import { useEtiquetas } from "@/lib/etiquetas";
+import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import { VendedorSelect } from "@/components/VendedorSelect";
 import { MotivoAcao } from "@/components/MotivoAcao";
@@ -490,8 +490,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             <Button type="button" variant="secondary" onClick={() => emitirNfe()} disabled={ocupado}><FileText size={16} /> Emitir NF-e</Button>
           )}
           {p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
-            <Button type="button" variant="secondary" disabled={etiquetas.ocupado} title="Etiquetas de envio, uma por volume"
-              onClick={() => etiquetas.imprimir([{ p: { ...(p as any), cliente } }])}><Printer size={16} /> Etiquetas</Button>
+            <Button type="button" variant="secondary" title="Conferir, editar e imprimir as etiquetas de transporte e de volume"
+              onClick={() => etiquetas.abrir({ tipo: "pedido", pedido_id: p.id! })}><Printer size={16} /> Etiquetas</Button>
           )}
           {podeEditar && (p.status === "aprovado" || p.status === "faturado") && (
             <Button type="button" variant="secondary" onClick={entregar} disabled={ocupado}><Truck size={16} /> Marcar entregue</Button>
@@ -524,6 +524,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           </div>
         </Modal>
       )}
+      {etiquetas.modal}
       {acaoMotivo === "editar" && (
         <MotivoAcao titulo={`Alterar pedido #${p.numero}`} rotulo="Salvar alterações" onConfirmar={editarAprovado} onClose={() => setAcaoMotivo(null)}>
           <p>O pedido já foi aprovado. A alteração fica na auditoria do pedido com o seu nome e o motivo.</p>

@@ -57,6 +57,7 @@ function seed(): Db {
       telegram_bot: "MFMaquinasAvisosBot", avisos_email_ativo: true, email_responder_para: "comercial@mfmaquinas.com.br",
       ibs_cbs_ativo: true, cbs_aliquota: 0.9, ibs_uf_aliquota: 0.1, ibs_mun_aliquota: 0,
       validade_orcamento_dias: 7, garantia_meses_padrao: 12, preventiva_meses: 6, comissao_percentual: 3,
+      etiqueta_formato: "10x15", etiqueta_modelo: {},
       termo_garantia: "Garantia contra defeitos de fabricação conforme prazo indicado. Não cobre mau uso, quedas, ligação em tensão errada, falta de limpeza ou manutenção preventiva, nem peças de desgaste natural (vedações, correias, bicos).",
     }],
     clientes: [
@@ -729,6 +730,7 @@ let numeroTransf = 2;
 const proximoCodigo = (t: string) => Math.max(0, ...(db[t] ?? []).map((r) => Number(r.codigo) || 0)) + 1;
 
 const DEFAULTS: Record<string, () => Row> = {
+  etiquetas_envio: () => ({ impressoes: 0, editados: [], dados: {}, atualizado_em: new Date().toISOString() }),
   auditoria_checklist: () => ({ revisado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "Você", updated_at: new Date().toISOString() }),
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
   pedidos: () => ({ numero: ++numeroPedido, status: "orcamento", estoque_baixado: false, created_at: quando(0) }),
@@ -1081,6 +1083,16 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  salvar_modelo_etiqueta: ({ p_modelo }) => {
+    const papel = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel;
+    if (!["admin", "vendas", "financeiro"].includes(papel)) return erro("sem permissão para esta ação");
+    if (!p_modelo || typeof p_modelo !== "object" || Array.isArray(p_modelo)) return erro("modelo inválido");
+    const { formato_transporte, ...resto } = p_modelo;
+    const c = db.configuracoes[0];
+    c.etiqueta_modelo = resto;
+    if (["10x15", "a4"].includes(formato_transporte)) c.etiqueta_formato = formato_transporte;
+    return { data: null, error: null };
+  },
   preencher_whatsapp_cadastros: () => {
     const n = { clientes: 0, fornecedores: 0, transportadoras: 0 };
     for (const t of ["clientes", "fornecedores", "transportadoras"] as const) {

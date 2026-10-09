@@ -140,11 +140,12 @@ export default function Configuracoes() {
           <span><b>Aprovar venda sem estoque</b> (o estoque da unidade pode ficar negativo). Desligado, a aprovação é bloqueada e mostra o que falta; produtos marcados como <i>sob encomenda</i> passam sempre.</span>
         </label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          <Field label="Etiquetas de envio" className="sm:col-span-2">
+          <Field label="Etiqueta de transporte" className="sm:col-span-2">
             <select className="input" value={cfg.etiqueta_formato ?? "10x15"} onChange={set("etiqueta_formato")}>
               <option value="10x15">10 x 15 cm (impressora térmica de etiquetas)</option>
               <option value="a4">Folha A4, 4 etiquetas por folha (impressora comum)</option>
             </select>
+            <span className="mt-1 block text-xs text-slate-500">O resto do modelo (etiqueta de volume, o que aparece, avisos, rodapé) fica em qualquer pedido: Etiquetas → Modelo das etiquetas.</span>
           </Field>
           <Field label="Pedido entra na expedição" className="sm:col-span-2">
             <select className="input" value={cfg.expedicao_apos ?? "nfe"} onChange={set("expedicao_apos")}>

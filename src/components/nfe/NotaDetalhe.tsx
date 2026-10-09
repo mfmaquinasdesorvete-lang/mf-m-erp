@@ -2,7 +2,7 @@
 // (atualizar, reenviar, corrigir e reenviar a rejeitada, carta de correção, cancelar, devolução, excluir).
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, ExternalLink, FilePen, FlaskConical, RefreshCw, Send, Tags, Trash2, Undo2, Wrench } from "lucide-react";
+import { Copy, Download, ExternalLink, FilePen, FlaskConical, Printer, RefreshCw, Send, Tags, Trash2, Undo2, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { supabase, callFunction } from "@/lib/supabase";
 import { brl, dataBR, docFormat } from "@/lib/format";
@@ -15,6 +15,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
+import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 
 export type NotaEmitida = {
@@ -324,6 +325,7 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
   const [form, setForm] = useState<{ parcelas: string; primeiro: string; intervalo: string; forma: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [estoque, setEstoque] = useState(!!n.estoque_lancado);
+  const etiquetas = useEtiquetas();
   const { data: contas = [], refetch } = useQuery({
     queryKey: ["contas_receber", "nota", n.id],
     queryFn: async () => ((await supabase.from("contas_receber").select("id, valor, status, vencimento").eq("nota_fiscal_id", n.id)).data ?? []) as { id: string; valor: number; status: string; vencimento: string }[],
@@ -398,6 +400,13 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
           }}>Estornar estoque</Button>
         )}
       </div>
+      {autorizada && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="min-w-0 flex-1"><b>Etiquetas:</b> <span className="text-slate-500">transporte e volume, com os itens da nota</span></span>
+          <Button type="button" variant="secondary" onClick={() => etiquetas.abrir({ tipo: "nota", nota_id: n.id })}><Printer size={15} /> Etiquetas</Button>
+        </div>
+      )}
+      {etiquetas.modal}
     </div>
   );
 }

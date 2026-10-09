@@ -12,7 +12,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR } from "@/lib/format";
 import { useConfig } from "@/lib/useConfig";
 import { composicao } from "@/lib/kits";
-import { useEtiquetas } from "@/lib/etiquetas";
+import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { CANAIS } from "@/lib/margem";
 import { usePerfil } from "@/lib/auth";
 import type { Cliente, Item, KitComponente, Pedido, Produto, Transportadora } from "@/lib/types";
@@ -92,7 +92,7 @@ export default function Fluxo() {
                 <div className="flex items-center justify-between gap-1 px-1.5 pb-2">
                   <span className="num text-xs text-slate-500">{brl(lista.reduce((s, p) => s + Number(p.valor_total), 0))}</span>
                   {c.id === "embalar" && lista.length > 0 && (
-                    <button type="button" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((p) => ({ p, e: expDe(p.id) })))}
+                    <button type="button" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((p) => ({ tipo: "pedido" as const, pedido_id: p.id })))}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-surface px-2 py-1 text-xs font-semibold text-fg hover:border-brand disabled:opacity-50" title="Imprimir as etiquetas de todos os pedidos desta coluna">
                       <Printer size={13} /> Imprimir todas
                     </button>
@@ -102,7 +102,7 @@ export default function Fluxo() {
                   {lista.slice(0, 40).map((p) => {
                     const e = expDe(p.id);
                     return <Cartao key={p.id} p={p} e={e} onClick={() => abrir(p)}
-                      onEtiquetas={e && ["conferido", "embalado", "despachado"].includes(e.status) ? () => etiquetas.imprimir([{ p, e }]) : undefined} />;
+                      onEtiquetas={e && ["conferido", "embalado", "despachado"].includes(e.status) ? () => etiquetas.imprimir([{ tipo: "pedido", pedido_id: p.id }]) : undefined} />;
                   })}
                   {!lista.length && <p className="px-2 py-6 text-center text-xs text-slate-400">Nada aqui</p>}
                 </div>
@@ -188,7 +188,8 @@ function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Exp; onCl
     if (item) { setConf(new Set([...conf, item.id])); notify(`Conferido: ${item.descricao}`); } else notify("Código não confere com nenhum item pendente", "erro");
     setScan("");
   }
-  const etiquetas = () => etiquetasImp.imprimir([{ p, e: exp, volumes: Number(f.volumes) || 1, transportadora_id: f.transportadora_id || null, rastreio: f.codigo_rastreio || null }]);
+  // abre o editor com o que está na tela (volumes, peso, transportadora e rastreio ainda não salvos)
+  const etiquetas = () => etiquetasImp.abrir({ tipo: "pedido", pedido_id: p.id, sobrepor: { volumes: Number(f.volumes) || 1, peso_kg: f.peso_kg, transportadora_id: f.transportadora_id || null, rastreio: f.codigo_rastreio || null } });
 
   return (
     <Modal open onClose={onClose} title={`Expedição · pedido #${p.numero} · ${p.cliente?.nome ?? ""}`} wide>
@@ -256,7 +257,7 @@ function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Exp; onCl
             {exp.status === "embalado" && <Field label="Código de rastreio" className="col-span-2 sm:col-span-4"><input className="input" value={f.codigo_rastreio} onChange={set("codigo_rastreio")} placeholder="o cliente recebe por e-mail ao despachar" /></Field>}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={etiquetas} disabled={etiquetasImp.ocupado}><Printer size={16} /> Imprimir etiquetas</Button>
+            <Button type="button" variant="secondary" onClick={etiquetas} title="Conferir, editar e imprimir as etiquetas"><Printer size={16} /> Etiquetas</Button>
             {exp.status === "conferido"
               ? <Button type="button" disabled={ocupado} onClick={() => avancar("embalado", { volumes: Number(f.volumes), peso_kg: f.peso_kg ? Number(f.peso_kg.replace(",", ".")) : null, transportadora_id: f.transportadora_id || null })}><PackageCheck size={16} /> Embalado</Button>
               : <Button type="button" disabled={ocupado || !nota} title={nota ? "" : "emita a NF-e antes"} onClick={() => avancar("despachado", { transportadora_id: f.transportadora_id || null, codigo_rastreio: f.codigo_rastreio })}><Send size={16} /> Despachar</Button>}
@@ -271,6 +272,7 @@ function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Exp; onCl
         </div>
       )}
       {exp.status === "entregue" && <p className="text-sm text-emerald-700">Entregue em {dataBR(exp.entregue_em)}.</p>}
+      {etiquetasImp.modal}
     </Modal>
   );
 }
