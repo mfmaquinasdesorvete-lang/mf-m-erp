@@ -3,6 +3,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { type Empresa, htmlEmail, mensagemCliente, textoEmail, textoTelegram } from "./avisos-modelos.ts";
 import { chatPerdido, enviarTelegram } from "./telegram.ts";
 import { enviarEmail } from "./email.ts";
+import { prepararCobranca } from "./cobranca.ts";
 
 export async function empresaDoErp(db: SupabaseClient): Promise<Empresa & { responder: string | null }> {
   const { data: c } = await db.from("configuracoes").select("*").eq("id", 1).single();
@@ -49,7 +50,7 @@ export async function entregarFila(db: SupabaseClient, limite = 40) {
       } else {
         const c = cliente.get(a.cliente_id);
         if (!c?.avisos_email) throw new Desistir("cliente pediu para não receber e-mails");
-        const m = mensagemCliente(a.tipo, a.dados, empresa);
+        const m = mensagemCliente(a.tipo, a.tipo === "cli_cobranca" ? prepararCobranca(a.dados, empresa.nome) : a.dados, empresa);
         const sair = linkDescadastro(c.email_token);
         await enviarEmail({
           para: a.destino, assunto: m.assunto, html: htmlEmail(m, empresa, sair, logoEmail(empresa)), texto: textoEmail(m, empresa, sair),

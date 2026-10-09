@@ -67,6 +67,11 @@ export const EXEMPLOS: Record<string, Dados> = {
   cli_cobranca_lembrete: { cliente: "Sorveteria Gelato", descricao: "Pedido #102 - parcela 2/2", valor: 14500, vencimento: "2026-11-05", forma: "pix", pagamento: "Pix (CNPJ): 12.345.678/0001-90\nBanco do Brasil · Ag. 1234-5 · C/C 98765-4" },
   cli_cobranca_vencida: { cliente: "Sorveteria Gelato", descricao: "Pedido #102 - parcela 2/2", valor: 14500, vencimento: "2026-10-05", forma: "pix", pagamento: "Pix (CNPJ): 12.345.678/0001-90" },
   cli_pagamento: { cliente: "Sorveteria Gelato", descricao: "Pedido #102 - parcela 1/2", valor: 14500, data: "2026-10-03" },
+  cli_cobranca: { cliente: "Sorveteria Gelato", etapa: "3 dias antes", descricao: "Pedido #102 - parcela 2/2", valor: 14500, vencimento: "2026-11-05", dias_atraso: 0,
+    assunto_final: "Lembrete: pagamento vence em 05/11/2026", link: "https://erp.myfrost.ai/cliente/exemplo",
+    texto: "Olá, Sorveteria! Passando para lembrar que Pedido #102 - parcela 2/2 (R$ 14.500,00) vence em 05/11/2026. Se já pagou, pode desconsiderar.\n\nSuas contas e a segunda via: https://erp.myfrost.ai/cliente/exemplo",
+    pix_codigo: "00020126360014br.gov.bcb.pix0114123456780001905204000053039865408145005802BR5913MF MAQUINAS6008SAO JOSE62070503***6304ABCD",
+    pagamento: "Banco do Brasil · Ag. 1234-5 · C/C 98765-4" },
   cli_nfe: { cliente: "Sorveteria Gelato", numero: "1301", pedido: 102, valor: 29000, danfe_url: "https://exemplo.com/danfe.pdf", chave: "35261012345678000190550010000013011000013010" },
   cli_pedido_enviado: { cliente: "Açaí do Porto", numero: 103, transportadora: "Rodonaves", rastreio: "RDN123456789BR", volumes: 2 },
   cli_preventiva: { cliente: "Sorveteria Gelato", equipamento: "Máquina de Sorvete Soft MF-300", numero_serie: "MF300-2025-0012", data: "2026-10-14", em_garantia: true },
@@ -180,6 +185,17 @@ export function mensagemCliente(tipo: string, d: Dados, empresa: Empresa): Mensa
           "Se já pagou, desconsidere: pode levar até 2 dias úteis para aparecer. Se precisar de outra data, fale com a gente.", falar],
         ...cobranca(),
         botao: zap(`Olá! Quero combinar o pagamento de ${s(d.descricao)}.`) ? { texto: "Combinar pelo WhatsApp", url: zap(`Olá! Quero combinar o pagamento de ${s(d.descricao)}.`) } : undefined };
+    case "cli_cobranca": {
+      // régua de cobrança: assunto, texto e Pix já montados por prepararCobranca (cobranca.ts)
+      const paragrafos = s(d.texto).split(/\n{2,}/).map((p) => p.replace(/\n/g, " ").trim()).filter(Boolean);
+      return { assunto: s(d.assunto_final) || `Cobrança · ${s(d.descricao)}`, titulo: s(d.etapa) === "No vencimento" ? "Seu pagamento vence hoje" : Number(d.dias_atraso) > 0 ? "Pagamento em aberto" : "Cobrança",
+        paragrafos: [...paragrafos, falar],
+        destaques: [["Referente a", s(d.descricao)], ["Valor", brl(d.valor)], ["Vencimento", dataBR(d.vencimento)]],
+        codigos: [...(d.pix_codigo ? [{ rotulo: "Pix copia e cola (copie e cole no app do banco)", valor: s(d.pix_codigo) }] : []),
+          ...(d.pagamento ? [{ rotulo: "Outras formas de pagamento", valor: s(d.pagamento) }] : [])],
+        botao: d.link ? { texto: "Ver minhas contas e pagar", url: s(d.link) }
+          : zap(`Olá! Sobre o pagamento de ${s(d.descricao)} (vencimento ${dataBR(d.vencimento)}).`) ? { texto: "Falar pelo WhatsApp", url: zap(`Olá! Sobre o pagamento de ${s(d.descricao)} (vencimento ${dataBR(d.vencimento)}).`) } : undefined };
+    }
     case "cli_pagamento":
       return { assunto: `Pagamento recebido · obrigado!`, titulo: "Recebemos seu pagamento",
         paragrafos: [ola, "Confirmamos o seu pagamento. Muito obrigado pela confiança!", falar],

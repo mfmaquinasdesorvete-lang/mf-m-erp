@@ -3,10 +3,11 @@
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Info, Lightbulb, MessageSquarePlus, Save, XCircle } from "lucide-react";
+import { AlertTriangle, Info, Lightbulb, Link2, MessageSquarePlus, Save, XCircle } from "lucide-react";
 import { Badge, Button, Field, Modal, Tabs } from "@/components/ui";
 import { Contato } from "@/components/Contato";
-import { supabase } from "@/lib/supabase";
+import { DEMO, supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import { brl, dataBR, digitos, docFormat, hoje, situacaoConta } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
@@ -58,6 +59,7 @@ function useFicha(c: Cliente) {
 }
 
 export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClose: () => void }) {
+  const navigate = useNavigate();
   const [aba, setAba] = useState<Aba>("resumo");
   const { data, isLoading, error } = useFicha(c);
   const dia = hoje();
@@ -81,6 +83,16 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
         <div className="flex items-center gap-3">
           {calc && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}
           <Contato r={c} mensagem={`Olá, ${nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />
+          {c.portal_token && (
+            <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
+              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
+              <Link2 size={15} /> Link do cliente
+            </Button>
+          )}
+          {c.portal_token && (
+            <a href={`/cliente/${c.portal_token}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand hover:underline"
+              onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_token}`); } }}>Ver como o cliente vê</a>
+          )}
         </div>
       </div>
 

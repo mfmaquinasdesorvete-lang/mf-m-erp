@@ -20,6 +20,8 @@ import { CampoCategoria, CampoRateio, rateioOk } from "@/components/financeiro/C
 import { ContasFixas } from "@/components/financeiro/ContasFixas";
 import { Dre } from "@/components/financeiro/Dre";
 import { PlanoContas } from "@/components/financeiro/PlanoContas";
+import { Cobranca } from "@/components/financeiro/Cobranca";
+import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 
 type Receber = {
@@ -62,7 +64,8 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 export default function Financeiro() {
   const { pode, papel } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
-  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "fixas" | "dre" | "plano">("visao");
+  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "fixas" | "dre" | "plano">("visao");
+  const veCobranca = papel === "admin" || papel === "financeiro" || papel === "vendas";
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
@@ -93,10 +96,13 @@ export default function Financeiro() {
       <PageHeader title="Financeiro" />
       <Tabs value={aba} onChange={setAba} options={[
         { value: "visao", label: "Visão geral" }, { value: "receber", label: "Contas a receber" },
-        ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }, { value: "fixas" as const, label: "Contas fixas" },
+        ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),
+        ...(veCobranca ? [{ value: "cobranca" as const, label: "Cobrança" }] : []),
+        ...(veContasPagar ? [{ value: "fixas" as const, label: "Contas fixas" },
           { value: "dre" as const, label: "DRE" }, { value: "plano" as const, label: "Plano de contas" }] : []),
       ]} />
-      {aba === "fixas" && veContasPagar ? <ContasFixas />
+      {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
+        : aba === "fixas" && veContasPagar ? <ContasFixas />
         : aba === "dre" && veContasPagar ? <Dre lancamentos={paraDre} />
         : aba === "plano" && veContasPagar ? <PlanoContas />
         : aba === "visao" ? (
@@ -206,12 +212,18 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
   const copiar = (texto: string, o: string) => navigator.clipboard.writeText(texto).then(() => notify(`${o} copiado`));
 
   const pagamentoDe = (c: Receber) => unidades.find((u) => u.id === c.unidade_id)?.instrucoes_pagamento ?? "";
-  const mensagemCobranca = (c: Receber) => [
-    `Olá ${c.cliente?.nome.split(" ")[0] ?? ""}! Segue a cobrança da *MF Máquinas*:`,
-    `${c.descricao}`,
-    `Valor: ${brl(c.valor)} · Vencimento: ${dataBR(c.vencimento)}`,
-    pagamentoDe(c) ? `\n*Como pagar:*\n${pagamentoDe(c)}` : "",
-  ].filter(Boolean).join("\n");
+  const mensagemCobranca = (c: Receber) => {
+    const u = unidades.find((x) => x.id === c.unidade_id);
+    const pix = pixDaConta(u, Number(c.valor), c.id);
+    return [
+      `Olá ${c.cliente?.nome.split(" ")[0] ?? ""}! Segue a cobrança da *MF Máquinas*:`,
+      `${c.descricao}`,
+      `Valor: ${brl(c.valor)} · Vencimento: ${dataBR(c.vencimento)}`,
+      pix ? `\n*Pix copia e cola:*\n${pix}` : "",
+      pagamentoDe(c) ? `\n*Como pagar:*\n${pagamentoDe(c)}` : "",
+      c.cliente?.portal_token ? `\nSuas contas e a segunda via: ${window.location.origin}/cliente/${c.cliente.portal_token}` : "",
+    ].filter(Boolean).join("\n");
+  };
 
   const somenteVer = !!nova?.id && (!podeEditar || nova.status !== "aberto");
 

@@ -10,7 +10,7 @@ export type Unidade = {
   razao_social: string | null; cnpj: string | null; inscricao_estadual: string | null; inscricao_municipal: string | null;
   logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null;
   municipio: string | null; uf: string | null; cep: string | null; telefone: string | null; whatsapp: string | null; email: string | null;
-  instrucoes_pagamento: string | null;
+  instrucoes_pagamento: string | null; pix_chave?: string | null; pix_nome?: string | null; pix_cidade?: string | null;
   serie_nfe: number; natureza_operacao: string; cfop_venda_producao: string; cfop_venda_revenda: string;
   icms_cst: string; icms_aliquota_interna: number; icms_reducao_base: number;
   pis_cst: string; pis_aliquota: number; cofins_cst: string; cofins_aliquota: number; pis_cofins_exclui_icms: boolean;

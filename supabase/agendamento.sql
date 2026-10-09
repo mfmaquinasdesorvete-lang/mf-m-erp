@@ -44,6 +44,9 @@ select cron.schedule('erp-avisos-diarios', '0 11 * * *', $$ select public.gerar_
 -- Contas fixas: lança as próximas contas (aluguel, salários, contratos) todo dia às 7h50 de Brasília
 select cron.schedule('erp-contas-fixas', '50 10 * * *', $$ select public.gerar_recorrentes_interno() $$);
 
+-- Régua de cobrança: e-mails antes/no/depois do vencimento, todo dia às 8h02 de Brasília
+select cron.schedule('erp-regua-cobranca', '2 11 * * *', $$ select public.gerar_cobrancas_regua() $$);
+
 -- NF-e de fornecedores, fila de contingência e NF-e automática: a cada 15 minutos
 select cron.schedule('erp-nfe-processar', '*/15 * * * *', $$ select public.chamar_funcao('nfe-processar') $$);
 

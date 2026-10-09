@@ -351,6 +351,23 @@ function planoDemo(db: Db) {
       valor: 450, dia_vencimento: 28, frequencia: "trimestral", inicio: dias(-1), fim: null, antecedencia_dias: 60, unidade_id: U_SC, forma_pagamento: "boleto", observacoes: null, ativo: true, created_at: quando(-1) },
   ];
   gerarRecorrentesDemo(db);
+  // Régua de cobrança, Pix das unidades e página do cliente
+  const etapa = (id: string, evento: string, dias: number, nome: string, canal_email: boolean, canal_whatsapp: boolean, ativo: boolean, ordem: number, assunto: string, mensagem: string) =>
+    ({ id, evento, dias, nome, canal_email, canal_whatsapp, ativo, ordem, assunto, mensagem, created_at: quando(-30) });
+  db.regua_cobranca = [
+    etapa("rg1", "criacao", 0, "Na criação da cobrança", false, false, false, 1, "Cobrança: {descricao}", "Olá, {cliente}! Segue a cobrança de *{descricao}*, no valor de *{valor}*, com vencimento em *{vencimento}*.\n\n{pagamento}\n\nSuas contas e a segunda via: {link}"),
+    etapa("rg2", "vencimento", -3, "3 dias antes", true, false, true, 2, "Lembrete: pagamento vence em {vencimento}", "Olá, {cliente}! Passando para lembrar que *{descricao}* ({valor}) vence em *{vencimento}*. Se já pagou, pode desconsiderar.\n\n{pagamento}\n\nSuas contas e a segunda via: {link}"),
+    etapa("rg3", "vencimento", 0, "No vencimento", false, true, true, 3, "Vence hoje: {descricao}", "Olá, {cliente}! Hoje vence *{descricao}*, no valor de *{valor}*.\n\n{pagamento}\n\nSe já pagou, pode desconsiderar. Qualquer dúvida, é só responder aqui."),
+    etapa("rg4", "vencimento", 5, "5 dias depois", true, true, true, 4, "Pagamento em aberto desde {vencimento}", "Olá, {cliente}! Não identificamos o pagamento de *{descricao}* ({valor}), que venceu em {vencimento}. Se já pagou, desconsidere. Se precisar de outra data, é só responder.\n\n{pagamento}\n\nSuas contas e a segunda via: {link}"),
+    etapa("rg5", "pagamento", 0, "No pagamento", true, false, true, 5, "Pagamento recebido · obrigado!", "Olá, {cliente}! Recebemos o pagamento de *{descricao}* ({valor}). Muito obrigado pela confiança!"),
+  ];
+  db.cobranca_envios = [];
+  for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
+  db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
+  db.configuracoes[0].site_url ??= null;
+  // uma conta que vence hoje, para a fila do WhatsApp
+  db.contas_receber.push({ id: "r9", descricao: "Pedido #104 - parcela 1/1", cliente_id: "c2", parcela: 1, total_parcelas: 1, valor: 1890, vencimento: dias(0), status: "aberto",
+    forma_pagamento: "pix", unidade_id: U_SC, categoria: "vendas", rateio: [], created_at: quando(-20) });
 }
 
 const FREQ_MESES: Record<string, number> = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
@@ -784,6 +801,8 @@ class Query {
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
   lt(c: string, v: any) { this.filtros.push((r) => r[c] < v); return this; }
+  gte(c: string, v: any) { this.filtros.push((r) => r[c] >= v); return this; }
+  lte(c: string, v: any) { this.filtros.push((r) => r[c] <= v); return this; }
   order(col: string, o?: { ascending?: boolean }) { this.ordem = { col, asc: o?.ascending ?? true }; return this; }
   limit(n: number) { this.lim = n; return this; }
   range(de: number, ate: number) { this.ini = de; this.lim = ate - de + 1; return this; }
@@ -927,6 +946,34 @@ function saldosDemo() {
 const reaisDemo = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  registrar_cobranca: ({ p_conta, p_etapa, p_canal, p_situacao }) => {
+    const c = db.contas_receber.find((x) => x.id === p_conta), e = db.regua_cobranca.find((x) => x.id === p_etapa);
+    if (!c || !e) return erro("conta ou etapa da régua não encontrada");
+    if (!db.cobranca_envios.some((x) => x.conta_receber_id === p_conta && x.etapa_id === p_etapa && x.canal === (p_canal ?? "whatsapp"))) {
+      db.cobranca_envios.push({ id: uid(), conta_receber_id: p_conta, etapa_id: p_etapa, canal: p_canal ?? "whatsapp", situacao: p_situacao ?? "enviado", created_at: new Date().toISOString() });
+    }
+    if ((p_situacao ?? "enviado") === "enviado" && c.cliente_id) {
+      db.contatos_cliente.push({ id: uid(), cliente_id: c.cliente_id, tipo: "cobranca", canal: p_canal ?? "whatsapp", resultado: `Régua de cobrança (${e.nome}): ${c.descricao} · ${reaisDemo(Number(c.valor))}`, created_at: new Date().toISOString() });
+    }
+    return { data: null, error: null };
+  },
+  area_cliente: ({ p_token }) => {
+    const c = db.clientes.find((x) => x.portal_token === p_token);
+    if (!c) return { data: null, error: null };
+    const cfg = db.configuracoes[0];
+    const u = (id: string) => db.unidades.find((x) => x.id === id) ?? {};
+    return { data: {
+      cliente: c.nome_fantasia?.trim() || c.nome,
+      empresa: { nome: cfg.nome_fantasia || cfg.razao_social, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email },
+      abertas: db.contas_receber.filter((r) => r.cliente_id === c.id && r.status === "aberto").sort((a, b) => a.vencimento.localeCompare(b.vencimento)).map((r) => {
+        const un: Row = u(r.unidade_id);
+        return { id: r.id, descricao: r.descricao, valor: r.valor, vencimento: r.vencimento, forma: r.forma_pagamento, pagamento: un.instrucoes_pagamento ?? null,
+          pix_chave: un.pix_chave ?? null, pix_nome: un.pix_nome || un.razao_social || un.nome, pix_cidade: un.pix_cidade || un.municipio };
+      }),
+      pagas: db.contas_receber.filter((r) => r.cliente_id === c.id && r.status === "pago").sort((a, b) => String(b.data_pagamento).localeCompare(a.data_pagamento)).slice(0, 10)
+        .map((r) => ({ descricao: r.descricao, valor: r.valor_pago ?? r.valor, data_pagamento: r.data_pagamento })),
+    }, error: null };
+  },
   gerar_recorrentes: () => (podeFinanceiro() ? { data: gerarRecorrentesDemo(db), error: null } : erro("sem permissão para esta ação")),
   saldos_bancarios: () => (podeFinanceiro() ? { data: saldosDemo(), error: null } : erro("sem permissão para esta ação")),
   movimentos_realizados: ({ p_de, p_ate }) => (podeFinanceiro() ? { data: movimentosDemo(p_de, p_ate), error: null } : erro("sem permissão para esta ação")),

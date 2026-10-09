@@ -100,6 +100,12 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
             <Field label="Dados para pagamento (Pix, banco, agência e conta) — vão nos lembretes e na cobrança pelo WhatsApp" className="sm:col-span-4">
               <textarea className="input" rows={2} placeholder={"Pix (CNPJ): 12.345.678/0001-90\nBanco do Brasil · Ag. 1234-5 · C/C 98765-4"} value={u.instrucoes_pagamento ?? ""} onChange={set("instrucoes_pagamento")} />
             </Field>
+            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-4 sm:grid-cols-3">
+              <p className="text-xs text-slate-600 sm:col-span-3">Pix para cobrança: com a chave, cada conta a receber ganha o <b>Pix copia e cola</b> (e QR Code) com o valor certo, no e-mail, no WhatsApp e na página do cliente.</p>
+              {campo("pix_chave", "Chave Pix (CNPJ, e-mail, telefone ou aleatória)")}
+              {campo("pix_nome", "Nome do recebedor (como no banco)")}
+              {campo("pix_cidade", "Cidade do recebedor")}
+            </div>
             <div className="flex flex-wrap gap-5 sm:col-span-4">{chk("fabrica", "Fabrica máquinas aqui")}{chk("assistencia", "Faz assistência técnica")}{chk("ativo", "Ativa")}</div>
             <p className="text-xs text-slate-500 sm:col-span-4">CFOP, CST, alíquotas e IBS/CBS desta unidade: Notas fiscais → Configurações da NF-e.</p>
           </div>

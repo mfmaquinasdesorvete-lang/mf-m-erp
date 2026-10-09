@@ -38,6 +38,7 @@ const Documentos = lazy(() => import("@/pages/Documentos"));
 const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
 const Auditoria = lazy(() => import("@/pages/Auditoria"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
+const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -100,6 +101,10 @@ export default function App() {
   // Proposta comercial: o cliente abre pelo link, sem login
   if (pathname.startsWith("/proposta/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><PropostaPublica /></Suspense></>;
+  }
+  // Página do cliente (contas em aberto, Pix e segunda via): link da régua de cobrança, sem login
+  if (pathname.startsWith("/cliente/")) {
+    return <><Toaster /><Suspense fallback={<Carregando />}><AreaCliente /></Suspense></>;
   }
   if (pathname === "/loja" || pathname.startsWith("/loja/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><Loja /></Suspense></>;
