@@ -322,7 +322,94 @@ function seed(): Db {
   comercialDemo(db);
   bancosDemo(db);
   planoDemo(db);
+  fretesDemo(db);
   return db;
+}
+
+/** Formas de pagamento, embalagens e envios em todas as situações do painel de fretes. */
+function fretesDemo(db: Db) {
+  const fp = (id: string, nome: string, meio: string, uso: string, parcelas: number, primeiro: number, ordem: number, taxa = 0, tarifa = 0) =>
+    ({ id, nome, meio, uso, parcelas, intervalo_dias: 30, primeiro_em_dias: primeiro, taxa_percentual: taxa, tarifa_fixa: tarifa, conta_bancaria_id: null, ativo: true, ordem, observacoes: null, created_at: quando(-30) });
+  db.formas_pagamento = [
+    fp("fp1", "Pix à vista", "pix", "ambos", 1, 0, 10), fp("fp2", "Boleto à vista", "boleto", "ambos", 1, 3, 20, 0, 2.5), fp("fp3", "Boleto 30 dias", "boleto", "ambos", 1, 30, 21, 0, 2.5),
+    fp("fp4", "Boleto 30/60/90", "boleto", "ambos", 3, 30, 22, 0, 2.5), fp("fp5", "Cartão de crédito à vista", "cartao", "receber", 1, 30, 30, 3.2),
+    fp("fp6", "Cartão de crédito parcelado (até 12x)", "cartao", "receber", 10, 30, 31, 4.9), fp("fp7", "Cartão de débito", "cartao", "receber", 1, 1, 32, 1.5),
+    fp("fp8", "Transferência (TED)", "transferencia", "ambos", 1, 0, 40), fp("fp9", "Dinheiro", "dinheiro", "ambos", 1, 0, 50),
+    fp("fp10", "Débito automático", "debito_automatico", "pagar", 1, 0, 60), fp("fp11", "Cheque", "cheque", "ambos", 1, 0, 70),
+  ];
+  db.embalagens = [
+    { id: "em1", descricao: "Engradado MF-300", tipo: "engradado", largura_cm: 80, altura_cm: 150, comprimento_cm: 70, peso_kg: 30, ativo: true, observacoes: "Máquina de piso, sempre em pé", created_at: quando(-30) },
+    { id: "em2", descricao: "Caixa MF-150 Balcão", tipo: "caixa", largura_cm: 60, altura_cm: 90, comprimento_cm: 75, peso_kg: 12, ativo: true, observacoes: null, created_at: quando(-30) },
+    { id: "em3", descricao: "Fardo Franquia", tipo: "fardo", largura_cm: 27, altura_cm: 17, comprimento_cm: 46, peso_kg: 11, ativo: true, observacoes: null, created_at: quando(-30) },
+    { id: "em4", descricao: "Caixa de peças P", tipo: "caixa", largura_cm: 30, altura_cm: 20, comprimento_cm: 40, peso_kg: 1, ativo: true, observacoes: null, created_at: quando(-30) },
+  ];
+  const p1 = db.produtos.find((p) => p.id === "p1"); if (p1) Object.assign(p1, { embalagem_id: "em1", peso_kg: p1.peso_kg ?? 165 });
+  const p2 = db.produtos.find((p) => p.id === "p2"); if (p2) Object.assign(p2, { embalagem_id: "em2", peso_kg: p2.peso_kg ?? 78 });
+  const ped = (id: string) => db.pedidos.find((p) => p.id === id);
+  const cli = (id: string) => db.clientes.find((c) => c.id === id) ?? {};
+  const envio = (id: string, numero: number, x: Row): Row => {
+    const p = x.pedido_id ? ped(x.pedido_id) : null;
+    const c: Row = p ? cli(p.cliente_id) : {};
+    return calcularEnvioDemo({
+      id, numero, pedido_id: null, os_id: null, cliente_id: p?.cliente_id ?? null, unidade_id: U_SC, vendedor_id: p?.vendedor_id ?? null,
+      cep_origem: "88117010", cidade_origem: "São José", uf_origem: "SC", cep_destino: c.cep ?? null, cidade_destino: c.municipio ?? null, uf_destino: c.uf ?? null,
+      endereco_destino: c.logradouro ? `${c.logradouro}, ${c.numero ?? ""}` : null, valor_mercadoria: p?.valor_total ?? 0, seguro: true, tipo_equipamento: null, restricoes: [], restricoes_obs: null,
+      prazo_desejado: null, modalidade: "cif", pagador: "empresa", centro_custo_id: null, transportadora_id: null, transportadora_nome: null, prazo_dias: null, valor_aprovado: null,
+      aprovado_em: null, aprovado_por: null, coleta_prevista: null, coletado_em: null, codigo_rastreio: null, entrega_prevista: null, entregue_em: null, comprovante_em: null,
+      valor_final: null, cte_numero: null, observacoes: null, created_at: quando(-5), ...x,
+    });
+  };
+  const maq300 = { embalagem_id: "em1", descricao: "Engradado MF-300 · Máquina de Sorvete Soft MF-300", quantidade: 1, largura_cm: 80, altura_cm: 150, comprimento_cm: 70, peso_kg: 165 };
+  const maq150 = { embalagem_id: "em2", descricao: "Caixa MF-150 Balcão · Máquina MF-150", quantidade: 2, largura_cm: 60, altura_cm: 90, comprimento_cm: 75, peso_kg: 78 };
+  const pecas = { embalagem_id: "em4", descricao: "Caixa de peças P", quantidade: 1, largura_cm: 30, altura_cm: 20, comprimento_cm: 40, peso_kg: 4 };
+  db.envios = [
+    envio("ev1", 1, { pedido_id: "pd1", status: "entregue", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe", "empilhadeira"], transportadora_id: "t1",
+      prazo_dias: 4, valor_aprovado: 690, aprovado_em: quando(-30), coletado_em: dias(-28), codigo_rastreio: "RDN-558120", entrega_prevista: dias(-24), entregue_em: dias(-24), valor_final: 780, cte_numero: "CT-e 4471", created_at: quando(-31) }),
+    envio("ev2", 2, { pedido_id: "pd2", status: "entregue", volumes: [maq150], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", restricoes: ["manter_em_pe"], modalidade: "fob", pagador: "cliente", transportadora_id: "t2",
+      prazo_dias: 5, valor_aprovado: 845, aprovado_em: quando(-6), coletado_em: dias(-5), codigo_rastreio: "BRP-90311", entrega_prevista: dias(-1), entregue_em: dias(-1), comprovante_em: dias(-1), valor_final: 845, created_at: quando(-6) }),
+    envio("ev3", 3, { status: "cotacao", volumes: [pecas], tipo_equipamento: "Peças e acessórios", cep_destino: "01310100", cidade_destino: "São Paulo", uf_destino: "SP", valor_mercadoria: 1250, centro_custo_id: "cc3",
+      observacoes: "Peças para o técnico de SP (OS de garantia)", created_at: quando(-1) }),
+    envio("ev4", 4, { status: "aprovacao", volumes: [{ ...maq300, peso_kg: 165 }], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe", "sem_doca", "agendar"], cep_destino: "90010000", cidade_destino: "Porto Alegre", uf_destino: "RS",
+      valor_mercadoria: 23900, prazo_desejado: dias(8), created_at: quando(-2) }),
+    envio("ev5", 5, { status: "coleta", volumes: [maq150], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", cep_destino: "80010000", cidade_destino: "Curitiba", uf_destino: "PR", valor_mercadoria: 29000,
+      transportadora_id: "t2", prazo_dias: 3, valor_aprovado: 520, aprovado_em: quando(-4), coleta_prevista: dias(-1), created_at: quando(-5) }),
+    envio("ev6", 6, { status: "transito", volumes: [pecas, { ...pecas, descricao: "Fardo Franquia", embalagem_id: "em3", largura_cm: 27, altura_cm: 17, comprimento_cm: 46, peso_kg: 11, quantidade: 3 }], tipo_equipamento: "Peças e acessórios",
+      cep_destino: "38400000", cidade_destino: "Uberlândia", uf_destino: "MG", valor_mercadoria: 3400, transportadora_id: "t3", prazo_dias: 2, valor_aprovado: 210, aprovado_em: quando(-3), coletado_em: dias(-2), entrega_prevista: dias(0), created_at: quando(-3) }),
+    envio("ev7", 7, { status: "transito", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe"], cep_destino: "74000000", cidade_destino: "Goiânia", uf_destino: "GO", valor_mercadoria: 23900,
+      transportadora_id: "t1", prazo_dias: 4, valor_aprovado: 980, aprovado_em: quando(-9), coletado_em: dias(-8), codigo_rastreio: "RDN-559004", entrega_prevista: dias(-2), prazo_desejado: dias(-1), created_at: quando(-10) }),
+  ];
+  db.envio_cotacoes = [
+    { id: "ec1", envio_id: "ev4", transportadora_id: "t1", transportadora_nome: null, valor: 1180, prazo_dias: 5, validade: dias(3), observacoes: "veículo com plataforma", escolhida: false, ativa: true, created_at: quando(-1) },
+    { id: "ec2", envio_id: "ev4", transportadora_id: "t2", transportadora_nome: null, valor: 1320, prazo_dias: 4, validade: dias(2), observacoes: "seguro incluso", escolhida: false, ativa: true, created_at: quando(-1) },
+    { id: "ec3", envio_id: "ev5", transportadora_id: "t2", transportadora_nome: null, valor: 520, prazo_dias: 3, validade: null, observacoes: null, escolhida: true, ativa: true, created_at: quando(-4) },
+  ];
+  db.envio_ocorrencias = [
+    { id: "eo1", envio_id: "ev7", tipo: "atraso", descricao: "Carga parada no centro de distribuição de Goiânia", responsavel: null, andamento: null, status: "aberta", resolvida_em: null, created_at: quando(-4), atualizado_em: quando(-4) },
+    { id: "eo2", envio_id: "ev1", tipo: "cobranca", descricao: "CT-e veio R$ 90 acima da cotação (taxa de descarga)", responsavel: "Rafael", andamento: "Pedimos o abatimento à Rodonaves", status: "aberta", resolvida_em: null, created_at: quando(-20), atualizado_em: quando(-1) },
+  ];
+}
+
+/** Totais da carga e status pelo andamento (no sistema real: gatilho do banco). */
+function calcularEnvioDemo(e: Row): Row {
+  let qtd = 0, peso = 0, m3 = 0;
+  for (const v of e.volumes ?? []) {
+    const q = Number(v.quantidade) || 0;
+    qtd += q; peso += q * (Number(v.peso_kg) || 0);
+    m3 += q * (Number(v.largura_cm) || 0) * (Number(v.altura_cm) || 0) * (Number(v.comprimento_cm) || 0) / 1e6;
+  }
+  Object.assign(e, { qtd_volumes: qtd, peso_total_kg: r2(peso), cubagem_m3: Math.round(m3 * 1e4) / 1e4, atualizado_em: new Date().toISOString() });
+  e.status ??= "cotacao";
+  e.restricoes ??= [];
+  if (e.status !== "cancelado") {
+    if (e.entregue_em) e.status = "entregue";
+    else if (e.coletado_em && ["cotacao", "aprovacao", "coleta"].includes(e.status)) e.status = "transito";
+  }
+  if (e.coletado_em && !e.entrega_prevista && e.prazo_dias != null) {
+    const d = new Date(e.coletado_em + "T12:00:00"); let n = 0;
+    while (n < e.prazo_dias) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n++; }
+    e.entrega_prevista = d.toISOString().slice(0, 10);
+  }
+  return e;
 }
 
 /** Plano de contas, centros de custo e contas fixas de exemplo. */
@@ -838,6 +925,9 @@ class Query {
         t.push(novo);
         if (AUDITADAS.has(this.tabela)) registrarDemo(this.tabela, "insert", null, { ...novo }, null, "usuario");
         if (this.tabela === "contas_recorrentes") setTimeout(() => gerarRecorrentesDemo(db, novo.id));
+        if (this.tabela === "envios") { novo.numero ??= Math.max(0, ...t.map((r) => Number(r.numero) || 0)) + 1; calcularEnvioDemo(novo); }
+        if (this.tabela === "envio_cotacoes") { novo.ativa ??= true; novo.escolhida ??= false; const ev = db.envios.find((x) => x.id === novo.envio_id); if (ev?.status === "cotacao") ev.status = "aprovacao"; }
+        if (this.tabela === "envio_ocorrencias") { novo.status ??= "aberta"; novo.atualizado_em = novo.created_at; }
         if (this.tabela === "estoque_movimentos") {
           t.pop();
           movimentar(novo.produto_id, novo.tipo, Number(novo.quantidade), novo.motivo ?? "", { numero_serie: novo.numero_serie, unidade_id: novo.unidade_id });
@@ -855,6 +945,12 @@ class Query {
         Object.assign(r, this.payload);
         if (copia) { registrarDemo(this.tabela, "update", copia, { ...r }, this.payload.motivo_alteracao ?? null, "usuario"); delete r.motivo_alteracao; }
         if (this.tabela === "contas_recorrentes") aplicarRecorrenteDemo(r);
+        if (this.tabela === "envios") calcularEnvioDemo(r);
+        if (this.tabela === "envio_ocorrencias") { r.atualizado_em = new Date().toISOString(); if (r.status === "resolvida") r.resolvida_em ??= r.atualizado_em; }
+        if (this.tabela === "pedidos" && this.payload.forma_pagamento_id) {
+          const f = db.formas_pagamento?.find((x) => x.id === this.payload.forma_pagamento_id);
+          if (f && ["boleto", "pix", "cartao", "dinheiro", "transferencia"].includes(f.meio)) r.forma_pagamento = f.meio;
+        }
         if (this.tabela === "contas_pagar" && r.status === "pago" && antes !== "pago") {
           (db.comissoes ?? []).filter((c) => c.conta_pagar_id === r.id && c.status === "a_pagar").forEach((c) => Object.assign(c, { status: "paga", pago_em: r.data_pagamento ?? hojeISO() }));
         }
@@ -1651,6 +1747,46 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     movimentar(op.produto_id, "entrada", op.quantidade, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
     db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(comps.reduce((s, c) => s + c.quantidade * db.produtos.find((p) => p.id === c.componente_id)!.preco_custo, 0));
     Object.assign(op, { status: "concluida", concluida_em: quando(0) });
+    return { data: null, error: null };
+  },
+  criar_envio_pedido: ({ p_pedido }) => {
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!p) return erro("pedido não encontrado");
+    const ja = db.envios.find((e) => e.pedido_id === p_pedido && e.status !== "cancelado");
+    if (ja) return { data: ja.id, error: null };
+    const c = db.clientes.find((x) => x.id === p.cliente_id) ?? {};
+    const u = db.unidades.find((x) => x.id === (p.unidade_id ?? U_SC)) ?? {};
+    let maquina: string | null = null;
+    const volumes = db.pedido_itens.filter((i) => i.pedido_id === p_pedido).map((i) => {
+      const pr = db.produtos.find((x) => x.id === i.produto_id) ?? {};
+      const em = db.embalagens.find((x) => x.id === pr.embalagem_id);
+      if (pr.tipo === "maquina") maquina ??= i.descricao;
+      return { embalagem_id: em?.id, descricao: (em ? `${em.descricao} · ` : "") + i.descricao, quantidade: Math.ceil(i.quantidade),
+        largura_cm: em?.largura_cm ?? pr.largura_cm, altura_cm: em?.altura_cm ?? pr.altura_cm, comprimento_cm: em?.comprimento_cm ?? pr.profundidade_cm, peso_kg: pr.peso_kg ?? em?.peso_kg };
+    });
+    const mod = Number(p.modalidade_frete);
+    const novo = calcularEnvioDemo({
+      id: uid(), numero: Math.max(0, ...db.envios.map((r) => Number(r.numero) || 0)) + 1, pedido_id: p.id, cliente_id: p.cliente_id, unidade_id: u.id ?? U_SC, vendedor_id: p.vendedor_id ?? null,
+      status: "cotacao", cep_origem: u.cep ?? "88117010", cidade_origem: u.municipio ?? "São José", uf_origem: u.uf ?? "SC",
+      cep_destino: c.cep ?? null, cidade_destino: c.municipio ?? null, uf_destino: c.uf ?? null, endereco_destino: c.logradouro ? `${c.logradouro}, ${c.numero ?? ""}` : null,
+      volumes, valor_mercadoria: p.valor_total ?? 0, seguro: true, tipo_equipamento: maquina ?? "Peças e acessórios", restricoes: maquina ? ["manter_em_pe"] : [],
+      modalidade: mod === 1 ? "fob" : mod === 2 ? "terceiros" : mod === 3 ? "proprio" : mod === 4 ? "retira" : "cif",
+      pagador: mod === 1 || mod === 4 ? "cliente" : mod === 2 ? "terceiro" : "empresa", transportadora_id: p.transportadora_id ?? null, created_at: new Date().toISOString(),
+    });
+    db.envios.push(novo);
+    return { data: novo.id, error: null };
+  },
+  aprovar_cotacao_envio: ({ p_cotacao, p_cobrar_cliente = false }) => {
+    const c = db.envio_cotacoes.find((x) => x.id === p_cotacao && x.ativa);
+    if (!c) return erro("cotação não encontrada");
+    const e = db.envios.find((x) => x.id === c.envio_id)!;
+    if (["entregue", "cancelado"].includes(e.status)) return erro(`este envio já foi ${e.status}`);
+    db.envio_cotacoes.filter((x) => x.envio_id === c.envio_id).forEach((x) => (x.escolhida = x.id === c.id));
+    Object.assign(e, { transportadora_id: c.transportadora_id, transportadora_nome: c.transportadora_id ? null : c.transportadora_nome, valor_aprovado: c.valor, prazo_dias: c.prazo_dias,
+      aprovado_em: new Date().toISOString(), status: ["cotacao", "aprovacao"].includes(e.status) ? "coleta" : e.status });
+    const p = db.pedidos.find((x) => x.id === e.pedido_id);
+    if (p) { p.transportadora_id = c.transportadora_id; if (p_cobrar_cliente && p.status === "orcamento") Object.assign(p, { frete: c.valor, modalidade_frete: 0 }); }
+    recalcular(db);
     return { data: null, error: null };
   },
   escolher_cotacao_frete: ({ p_cotacao, p_cobrar_cliente = true }) => {

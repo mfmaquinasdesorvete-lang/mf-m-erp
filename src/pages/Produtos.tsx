@@ -84,6 +84,7 @@ export default function Produtos() {
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
     "produto_fornecedor", { select: "produto_id, codigo_fornecedor, fator_conversao, fornecedor:fornecedores(nome)", order: "produto_id" });
   const { data: fornecedores = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
+  const { data: embalagens = [] } = useRows<{ id: string; descricao: string; ativo: boolean }>("embalagens", { order: "descricao", ascending: true });
   const [movimentar, setMovimentar] = useState<Produto | null>(null);
   const [historico, setHistorico] = useState<Produto | null>(null);
   const [importar, setImportar] = useState(false);
@@ -157,6 +158,7 @@ export default function Produtos() {
             ipi_aliquota: r.ipi_aliquota === "" || r.ipi_aliquota == null ? null : Number(r.ipi_aliquota),
             ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
             fornecedor_padrao_id: r.fornecedor_padrao_id || null,
+            embalagem_id: r.embalagem_id || null,
             foto_caminho: r.foto_caminho || null,
             prazo_reposicao_dias: r.prazo_reposicao_dias === "" || r.prazo_reposicao_dias == null ? null : Number(r.prazo_reposicao_dias),
             compra_minima: r.compra_minima === "" || r.compra_minima == null ? null : Number(r.compra_minima),
@@ -219,6 +221,8 @@ export default function Produtos() {
           { name: "altura_cm", label: "Altura (cm)", type: "number", span: 1 },
           { name: "largura_cm", label: "Largura (cm)", type: "number", span: 1 },
           { name: "profundidade_cm", label: "Profundidade (cm)", type: "number", span: 1 },
+          { name: "embalagem_id", label: "Embalagem padrão (envio)", type: "select", span: 2, ajuda: "As medidas da embalagem entram na cotação de frete (cubagem)",
+            options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
           { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "Custo de compra = valor do item na NF do fornecedor (atualizado na entrada). Alterar custo ou preço já preenchido pede o motivo, que fica no histórico." },
           { name: "preco_custo", label: "Custo de compra", type: "number" },
           { name: "preco_venda", label: "Preço de venda", type: "number" },

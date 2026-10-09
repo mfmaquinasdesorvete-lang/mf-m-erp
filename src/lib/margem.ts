@@ -24,6 +24,10 @@ export type Contexto = {
   notas: { pedido_id: string | null; status: string; payload?: { items?: Record<string, number>[] } | null }[];
   ufs: { uf: string; aliquota_interna: number; fcp: number }[];
   cfg: Config;
+  /** Formas de pagamento cadastradas: a taxa e a tarifa da forma escolhida no pedido valem mais que as da configuração. */
+  formas?: { id: string; taxa_percentual: number; tarifa_fixa: number }[];
+  /** Envios (Fretes): o frete final (ou o aprovado) do envio pago pela MF é o custo de frete da venda. */
+  envios?: { pedido_id: string | null; status: string; pagador: string; valor_aprovado: number | null; valor_final: number | null }[];
 };
 export type ItemMargem = Valores & { produto_id: string; descricao: string; quantidade: number };
 export type ResultadoPedido = { total: Valores; itens: ItemMargem[]; impostosEstimados: boolean };
@@ -76,12 +80,18 @@ export function margemPedido(p: PedidoMargem, ctx: Contexto): ResultadoPedido {
 
   // frete pago pela MF (frete por conta do emitente): a cotação escolhida ou o valor cobrado
   const cot = ctx.cotacoes.find((x) => x.pedido_id === p.id && x.escolhida);
-  const freteCusto = Number(p.modalidade_frete) === 0 ? Number(cot?.valor ?? freteCobrado) : 0;
+  const envio = ctx.envios?.find((e) => e.pedido_id === p.id && e.status !== "cancelado");
+  const freteCusto = envio
+    ? (envio.pagador === "empresa" ? Number(envio.valor_final ?? envio.valor_aprovado ?? (Number(p.modalidade_frete) === 0 ? cot?.valor ?? freteCobrado : 0)) : 0)
+    : Number(p.modalidade_frete) === 0 ? Number(cot?.valor ?? freteCobrado) : 0;
 
   // taxa do meio de pagamento
   const cp = ctx.cfg.custos_pagamento ?? {};
   const pctPag: Record<string, number | undefined> = { cartao: cp.cartao_pct, pix: cp.pix_pct, transferencia: cp.transferencia_pct, dinheiro: cp.dinheiro_pct };
-  const taxaTotal = p.forma_pagamento === "boleto" ? Number(cp.boleto_fixo ?? 0) * Number(p.parcelas || 1) : total * Number(pctPag[p.forma_pagamento] ?? 0) / 100;
+  const forma = ctx.formas?.find((f) => f.id === (p as { forma_pagamento_id?: string | null }).forma_pagamento_id);
+  const taxaTotal = forma && (Number(forma.taxa_percentual) || Number(forma.tarifa_fixa))
+    ? total * Number(forma.taxa_percentual) / 100 + Number(forma.tarifa_fixa) * Number(p.parcelas || 1)
+    : p.forma_pagamento === "boleto" ? Number(cp.boleto_fixo ?? 0) * Number(p.parcelas || 1) : total * Number(pctPag[p.forma_pagamento] ?? 0) / 100;
 
   const linhas: ItemMargem[] = itens.map((i, k) => {
     const receita = brutos[k] - parte(desconto, k) + parte(freteCobrado, k);

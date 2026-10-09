@@ -28,6 +28,8 @@ export default function Margem() {
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: comissoes = [] } = useRows<{ pedido_id: string; valor: number; status: string }>("comissoes", {});
   const { data: cotacoes = [] } = useRows<{ pedido_id: string; valor: number; escolhida: boolean }>("cotacoes_frete", {});
+  const { data: formas = [] } = useRows<{ id: string; taxa_percentual: number; tarifa_fixa: number }>("formas_pagamento", { order: "ordem", ascending: true });
+  const { data: envios = [] } = useRows<{ pedido_id: string | null; status: string; pagador: string; valor_aprovado: number | null; valor_final: number | null }>("envios", { order: "created_at", ascending: true });
   const { data: notas = [] } = useRows<Contexto["notas"][number]>("notas_fiscais", { select: "pedido_id, status, payload, ambiente" });
   const { data: ufs = [] } = useRows<{ uf: string; aliquota_interna: number; fcp: number }>("icms_uf", { order: "uf", ascending: true });
   const [de, setDe] = useState(mesesAtras(2));
@@ -38,7 +40,7 @@ export default function Margem() {
 
   const dados = useMemo(() => {
     if (!cfg) return null;
-    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, cfg };
+    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, cfg, formas, envios };
     const vendas = filtrar(pedidosTodos).filter((p) => {
       const d = (p.aprovado_em ?? p.created_at).slice(0, 7);
       return VALIDOS.includes(p.status) && d >= de && d <= ate && (!canal || p.origem === canal);
@@ -61,7 +63,7 @@ export default function Margem() {
     }
     const linhas = [...grupos.values()].sort((a, b) => ordem === "pct" ? pctMc(b) - pctMc(a) : ordem === "receita" ? b.receita - a.receita : b.mc - a.mc);
     return { total, linhas, n: vendas.length, estimadas: calc.filter((x) => x.r.impostosEstimados).length };
-  }, [cfg, produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
+  }, [cfg, produtos, comps, unidades, vendedores, comissoes, cotacoes, formas, envios, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
 
   function exportar() {
     if (!dados) return;

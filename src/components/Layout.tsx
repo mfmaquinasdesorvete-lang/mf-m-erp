@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
-  Store,
+  Store, PackageSearch, CreditCard, Package,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -33,6 +33,7 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     itens: [
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
+      { to: "/fretes", tela: "fretes", label: "Fretes e envios", curto: "Fretes", icon: PackageSearch, busca: "frete cotação transportadora coleta rastreio entrega comprovante ocorrência cte painel" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante" },
     ],
   },
@@ -43,6 +44,8 @@ const grupos: { titulo: string; itens: Item[] }[] = [
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto peça máquina inventário ncm categoria kit" },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
       { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
+      { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
+      { to: "/embalagens", tela: "fretes", label: "Embalagens", curto: "Embal.", icon: Package, busca: "caixa engradado palete medidas peso cubagem" },
     ],
   },
   {

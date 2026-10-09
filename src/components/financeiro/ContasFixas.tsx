@@ -13,11 +13,12 @@ import { Historico } from "@/components/Historico";
 import { CampoCategoria, CampoRateio, rateioOk } from "./CategoriaRateio";
 import type { Rateio } from "@/lib/dre";
 import type { Cliente } from "@/lib/types";
+import { useFormasPagamento } from "@/lib/formasPagamento";
 
 type Fixa = {
   id: string; tipo: "pagar" | "receber"; descricao: string; fornecedor_id: string | null; cliente_id: string | null; categoria: string | null;
   rateio: Rateio; valor: number; dia_vencimento: number; frequencia: string; inicio: string; fim: string | null; antecedencia_dias: number;
-  unidade_id: string | null; forma_pagamento: string | null; observacoes: string | null; ativo: boolean;
+  unidade_id: string | null; forma_pagamento: string | null; forma_pagamento_id?: string | null; observacoes: string | null; ativo: boolean;
 };
 const FREQ: Record<string, { rotulo: string; meses: number }> = {
   mensal: { rotulo: "todo mês", meses: 1 }, bimestral: { rotulo: "a cada 2 meses", meses: 2 }, trimestral: { rotulo: "a cada 3 meses", meses: 3 },
@@ -53,6 +54,7 @@ export function ContasFixas() {
   const fixas = filtrar(todas);
   const { data: fornecedores = [] } = useRows<{ id: string; nome: string; chave_pix?: string | null }>("fornecedores", { order: "nome", ascending: true });
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: formas = [] } = useFormasPagamento();
   const [editando, setEditando] = useState<Partial<Fixa> | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const invalidate = useInvalidate();
@@ -73,7 +75,7 @@ export function ContasFixas() {
       const dados = {
         ...row, valor: Number(row.valor), dia_vencimento: Number(row.dia_vencimento), antecedencia_dias: Number(row.antecedencia_dias ?? 45),
         fim: row.fim || null, fornecedor_id: row.tipo === "pagar" ? row.fornecedor_id || null : null, cliente_id: row.tipo === "receber" ? row.cliente_id || null : null,
-        forma_pagamento: row.forma_pagamento || (row.tipo === "receber" ? "boleto" : null), observacoes: row.observacoes || null,
+        forma_pagamento: row.forma_pagamento || (row.tipo === "receber" ? "boleto" : null), forma_pagamento_id: row.forma_pagamento_id || null, observacoes: row.observacoes || null,
       };
       const { error } = id ? await supabase.from("contas_recorrentes").update(dados).eq("id", id) : await supabase.from("contas_recorrentes").insert(dados);
       if (error) throw error;
@@ -102,7 +104,7 @@ export function ContasFixas() {
           Por mês: <b className="text-red-700">{brl(totais.pagar)}</b> a pagar e <b className="text-emerald-700">{brl(totais.receber)}</b> a receber.
         </p>
         {podeEditar && <Button variant="secondary" onClick={lancarAgora}><RefreshCw size={16} /> Lançar o que falta</Button>}
-        {podeEditar && <Button onClick={() => setEditando({ tipo: "pagar", frequencia: "mensal", dia_vencimento: 10, forma_pagamento: "pix", inicio: dia, antecedencia_dias: 45, ativo: true, rateio: [], unidade_id: padrao, categoria: "aluguel" })}><Plus size={16} /> Nova conta fixa</Button>}
+        {podeEditar && <Button onClick={() => setEditando({ tipo: "pagar", frequencia: "mensal", dia_vencimento: 10, forma_pagamento: "pix", forma_pagamento_id: formas.find((x) => x.meio === "pix" && x.ativo)?.id ?? null, inicio: dia, antecedencia_dias: 45, ativo: true, rateio: [], unidade_id: padrao, categoria: "aluguel" })}><Plus size={16} /> Nova conta fixa</Button>}
       </div>
       <Table empty={!fixas.length}
         head={<><th className="th">Descrição</th><th className="th">Tipo</th><th className="th">Vencimento</th><th className="th">Próxima</th><th className="th text-right">Valor</th><th className="th" /></>}>
@@ -110,7 +112,7 @@ export function ContasFixas() {
           const prox = proximoVencimento(f, dia);
           return (
             <tr key={f.id} className={f.ativo ? "" : "opacity-60"}>
-              <td className="td"><div className="font-medium">{f.descricao}<EtiquetaUnidade id={f.unidade_id} /></div><div className="text-xs text-slate-500">{[nomeDe(f), f.categoria, rotuloForma(f.forma_pagamento)].filter(Boolean).join(" · ")}</div></td>
+              <td className="td"><div className="font-medium">{f.descricao}<EtiquetaUnidade id={f.unidade_id} /></div><div className="text-xs text-slate-500">{[nomeDe(f), f.categoria, formas.find((x) => x.id === f.forma_pagamento_id)?.nome ?? rotuloForma(f.forma_pagamento)].filter(Boolean).join(" · ")}</div></td>
               <td className="td"><span className={`rounded border px-1.5 py-px text-xs font-semibold ${f.tipo === "pagar" ? "border-red-300 bg-red-50 text-red-800" : "border-emerald-300 bg-emerald-50 text-emerald-800"}`}>{f.tipo === "pagar" ? "A pagar" : "A receber"}</span></td>
               <td className="td whitespace-nowrap">{rotuloDia(f.dia_vencimento)}, {FREQ[f.frequencia]?.rotulo}{f.fim && <div className="text-xs text-slate-500">até {dataBR(f.fim)}</div>}</td>
               <td className="td whitespace-nowrap">{f.ativo ? (prox ? dataBR(prox) : "encerrada") : <Badge value="desativada" />}</td>
@@ -167,10 +169,24 @@ export function ContasFixas() {
               <Field label="Termina em (opcional)"><input className="input" type="date" value={editando.fim ?? ""} min={editando.inicio} onChange={(e) => setEditando({ ...editando, fim: e.target.value })} /></Field>
               <Field label="Lançar com quantos dias de antecedência"><input className="input" type="number" min={0} max={120} value={editando.antecedencia_dias ?? 45} onChange={(e) => setEditando({ ...editando, antecedencia_dias: Number(e.target.value) })} /></Field>
               <Field label="Forma de pagamento">
-                <select className="input" value={editando.forma_pagamento ?? (editando.tipo === "receber" ? "boleto" : "")} onChange={(e) => setEditando({ ...editando, forma_pagamento: e.target.value })}>
-                  {editando.tipo === "pagar" && <option value="">—</option>}
-                  {(editando.tipo === "pagar" ? FORMAS_PAGAR : FORMAS_RECEBER).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-                </select>
+                {(() => {
+                  const lista = formas.filter((x) => (x.ativo || x.id === editando.forma_pagamento_id) && x.uso !== (editando.tipo === "pagar" ? "receber" : "pagar"));
+                  if (!lista.length) return (
+                    <select className="input" value={editando.forma_pagamento ?? (editando.tipo === "receber" ? "boleto" : "")} onChange={(e) => setEditando({ ...editando, forma_pagamento: e.target.value })}>
+                      {editando.tipo === "pagar" && <option value="">—</option>}
+                      {(editando.tipo === "pagar" ? FORMAS_PAGAR : FORMAS_RECEBER).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+                    </select>
+                  );
+                  return (
+                    <select className="input" value={editando.forma_pagamento_id ?? ""} onChange={(e) => {
+                      const f = lista.find((x) => x.id === e.target.value);
+                      setEditando({ ...editando, forma_pagamento_id: f?.id ?? null, forma_pagamento: f?.meio ?? (editando.tipo === "receber" ? "boleto" : null) });
+                    }}>
+                      <option value="">{editando.forma_pagamento && !editando.forma_pagamento_id ? rotuloForma(editando.forma_pagamento) ?? "—" : "—"}</option>
+                      {lista.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                    </select>
+                  );
+                })()}
                 {editando.tipo === "pagar" && editando.forma_pagamento === "pix" && (() => {
                   const chave = fornecedores.find((x) => x.id === editando.fornecedor_id)?.chave_pix;
                   return <span className="mt-1 block text-xs text-slate-600">{chave ? <>Chave Pix: <b>{chave}</b> (vai na conta lançada)</> : editando.fornecedor_id ? "Este fornecedor ainda não tem chave Pix: coloque em Cadastros → Fornecedores." : "Escolha o fornecedor para a chave Pix ir junto."}</span>;

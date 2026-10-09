@@ -9,7 +9,8 @@ import { Badge, CelulaAbrir, Button, Field, Modal, PageHeader, Table, Tabs } fro
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, rotuloCliente, whatsappLink } from "@/lib/format";
+import { brl, dataBR, rotuloCliente, somarDias, whatsappLink } from "@/lib/format";
+import { MEIOS_VENDA, useFormasPagamento } from "@/lib/formasPagamento";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import type { Cliente, Item, Pedido, Produto, Vendedor } from "@/lib/types";
@@ -164,6 +165,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  // formas de pagamento cadastradas que a venda aceita (a já escolhida aparece mesmo se for inativada depois)
+  const { data: formas = [] } = useFormasPagamento();
+  const formasVenda = formas.filter((f) => MEIOS_VENDA.includes(f.meio) && f.uso !== "pagar" && (f.ativo || f.id === (p as any).forma_pagamento_id));
   const [pdf, setPdf] = useState<Blob | null>(null);
   const [aba, setAba] = useState<"pedido" | "frete" | "auditoria">("pedido");
   const [acaoMotivo, setAcaoMotivo] = useState<"editar" | "reabrir" | null>(null);
@@ -423,8 +427,15 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
           <Field label="Pagamento" className="col-span-2">
-            <select className="input" value={p.forma_pagamento} disabled={!editavel} onChange={(e) => set({ forma_pagamento: e.target.value })}>
-              {FORMAS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+            <select className="input" value={(p as any).forma_pagamento_id ?? `meio:${p.forma_pagamento}`} disabled={!editavel} onChange={(e) => {
+              const v = e.target.value;
+              if (v.startsWith("meio:")) return set({ forma_pagamento: v.slice(5), forma_pagamento_id: null } as any);
+              const f = formasVenda.find((x) => x.id === v);
+              if (f) set({ forma_pagamento_id: f.id, forma_pagamento: f.meio, parcelas: f.parcelas, intervalo_dias: f.intervalo_dias, primeiro_vencimento: somarDias(f.primeiro_em_dias) } as any);
+            }}>
+              {formasVenda.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              {(!(p as any).forma_pagamento_id || !formasVenda.length) && <option value={`meio:${p.forma_pagamento}`}>{FORMAS.find((f) => f.value === p.forma_pagamento)?.label ?? p.forma_pagamento}</option>}
+              {!formasVenda.length && FORMAS.filter((f) => f.value !== p.forma_pagamento).map((f) => <option key={f.value} value={`meio:${f.value}`}>{f.label}</option>)}
             </select>
           </Field>
           <Field label="Parcelas">

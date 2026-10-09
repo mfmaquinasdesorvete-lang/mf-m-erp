@@ -37,6 +37,9 @@ const Contador = lazy(() => import("@/pages/Contador"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
 const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
 const Auditoria = lazy(() => import("@/pages/Auditoria"));
+const Fretes = lazy(() => import("@/pages/Fretes"));
+const FormasPagamento = lazy(() => import("@/pages/FormasPagamento"));
+const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 
@@ -64,6 +67,9 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "documentos", tela: "documentos", element: <Documentos /> },
   { path: "conciliacao", tela: "conciliacao", element: <Conciliacao /> },
   { path: "auditoria", tela: "auditoria", element: <Auditoria /> },
+  { path: "fretes", tela: "fretes", element: <Fretes /> },
+  { path: "formas-pagamento", tela: "financeiro", element: <FormasPagamento /> },
+  { path: "embalagens", tela: "fretes", element: <Embalagens /> },
 ];
 
 const Carregando = () => <div className="p-8 text-slate-500">Carregando…</div>;

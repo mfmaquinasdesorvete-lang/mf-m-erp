@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import type { Cliente, Item, Produto, Transportadora } from "@/lib/types";
 import { useConfig } from "@/lib/useConfig";
+import { EnvioForm } from "@/components/fretes/EnvioForm";
+import { STATUS_ENVIO, type Envio } from "@/lib/fretes";
 
 type Cotacao = {
   id: string; pedido_id: string; transportadora_id: string | null; transportadora_nome: string | null;
@@ -34,6 +36,19 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
   });
   const [nova, setNova] = useState<{ transportadora_id: string; transportadora_nome: string; valor: string; prazo_dias: string; observacoes: string } | null>(null);
   const [cobrar, setCobrar] = useState(true);
+  // envio padronizado (Fretes e envios): quando existe, as cotações e o rastreio ficam nele
+  const { data: envios = [], refetch: recarregarEnvios } = useQuery({
+    queryKey: ["envios", "pedido", pedido.id],
+    queryFn: async () => ((await supabase.from("envios").select("*").eq("pedido_id", pedido.id).order("created_at", { ascending: true })).data ?? []) as Envio[],
+  });
+  const [envioAberto, setEnvioAberto] = useState<string | null>(null);
+  const envioAtivo = envios.find((e) => e.status !== "cancelado");
+  async function criarEnvio() {
+    const { data, error } = await supabase.rpc("criar_envio_pedido", { p_pedido: pedido.id });
+    if (error) return notifyError(error);
+    await recarregarEnvios();
+    setEnvioAberto(data as string);
+  }
   const [envio, setEnvio] = useState({ codigo_rastreio: pedido.codigo_rastreio ?? "", enviado_em: pedido.enviado_em ?? hoje(), volumes: pedido.volumes ?? undefined });
 
   // Resumo da carga para a transportadora calcular
@@ -104,8 +119,51 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
     `Qualquer dúvida, é só chamar!`,
   ].filter(Boolean).join("\n");
 
+  const blocoEnvio = (
+    <div className="rounded-xl border-2 border-brand/30 bg-brand-light/40 p-3 text-sm">
+      {envioAberto && <EnvioForm envioId={envioAberto} onClose={() => { setEnvioAberto(null); recarregarEnvios(); invalidate("pedidos"); }} />}
+      {envioAtivo ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <PackageOpen size={18} className="text-brand" />
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-fg">Envio #{envioAtivo.numero} <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_ENVIO[envioAtivo.status].cor}`}>{STATUS_ENVIO[envioAtivo.status].rotulo}</span></div>
+            <div className="text-xs text-slate-600">{envioAtivo.qtd_volumes} volume(s) · {Number(envioAtivo.peso_total_kg).toLocaleString("pt-BR")} kg{envioAtivo.valor_aprovado != null ? ` · frete aprovado ${brl(envioAtivo.valor_aprovado)}` : ""}{envioAtivo.codigo_rastreio ? ` · rastreio ${envioAtivo.codigo_rastreio}` : ""}</div>
+          </div>
+          <Button type="button" onClick={() => setEnvioAberto(envioAtivo.id)}><Truck size={15} /> Abrir envio</Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <PackageOpen size={18} className="text-brand" />
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-fg">Cotação padronizada</div>
+            <div className="text-xs text-slate-600">Cria o envio já com CEPs, volumes e medidas das embalagens, valor, equipamento e modalidade. Cotações, coleta, rastreio e entrega ficam no painel de fretes.</div>
+          </div>
+          {podeCotar && <Button type="button" onClick={criarEnvio}><Plus size={15} /> Criar envio</Button>}
+        </div>
+      )}
+    </div>
+  );
+
+  if (envioAtivo) return (
+    <div className="space-y-4">
+      {blocoEnvio}
+      {cotacoes.length > 0 && (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-500">Cotações registradas antes do envio</div>
+          {cotacoes.map((c) => (
+            <div key={c.id} className="flex flex-wrap items-center gap-3 border-b border-slate-100 py-1.5 text-sm">
+              <span className="flex-1">{nome(c)}{c.prazo_dias ? ` · ${c.prazo_dias} dia(s)` : ""}</span>
+              <span className="font-semibold">{brl(c.valor)}</span>{c.escolhida && <Badge value="escolhida" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
+      {blocoEnvio}
       <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-4">
         <div><div className="text-xs text-slate-500">Destino</div><div className="font-semibold text-fg">{destino}</div></div>
         <div><div className="text-xs text-slate-500">Peso</div><div className="num font-semibold text-fg">{peso ? `${peso.toLocaleString("pt-BR")} kg` : "—"}</div>

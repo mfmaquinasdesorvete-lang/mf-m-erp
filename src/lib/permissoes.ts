@@ -10,12 +10,12 @@ export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
 
 export type Tela =
   | "painel" | "pedidos" | "assistencia" | "estoque" | "financeiro" | "notas"
-  | "clientes" | "fornecedores" | "configuracoes" | "usuarios" | "garantias" | "relatorios" | "producao" | "email" | "comissoes" | "documentos" | "fluxo" | "margem" | "contador" | "conciliacao" | "auditoria";
+  | "clientes" | "fornecedores" | "configuracoes" | "usuarios" | "garantias" | "relatorios" | "producao" | "email" | "comissoes" | "documentos" | "fluxo" | "margem" | "contador" | "conciliacao" | "auditoria" | "fretes";
 
 /** Telas que cada papel vê (admin vê todas). */
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
-  vendas: ["painel", "fluxo", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
-  financeiro: ["painel", "contador", "conciliacao", "auditoria", "fluxo", "margem", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores"],
+  vendas: ["painel", "fluxo", "fretes", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
+  financeiro: ["painel", "contador", "conciliacao", "auditoria", "fluxo", "fretes", "margem", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
   tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "estoque", "clientes"],
 };

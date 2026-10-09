@@ -12,7 +12,7 @@ export type Produto = {
   cest: string | null; cfop: string | null; origem: number; icms_situacao: string | null;
   preco_custo: number; preco_venda: number; estoque_atual: number; estoque_minimo: number;
   localizacao: string | null; ativo: boolean; fornecedor_padrao_id?: string | null; garantia_meses?: number | null;
-  peso_kg?: number | null; altura_cm?: number | null; largura_cm?: number | null; profundidade_cm?: number | null;
+  peso_kg?: number | null; altura_cm?: number | null; largura_cm?: number | null; profundidade_cm?: number | null; embalagem_id?: string | null;
   no_catalogo?: boolean; descricao_catalogo?: string | null; foto_caminho?: string | null;
   id_externo?: string | null; marca?: string | null; categoria?: string | null; observacoes?: string | null;
   estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean;
