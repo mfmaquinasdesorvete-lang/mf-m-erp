@@ -9,6 +9,7 @@ import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
+import { sugerir, type Sugestao } from "@/lib/conciliacao";
 
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
@@ -47,10 +48,33 @@ export default function Conciliacao() {
   const [desfazer, setDesfazer] = useState<Lancamento | null>(null);
 
   const idsBancos = new Set(bancos.map((b) => b.id));
+  const invalidate = useInvalidate();
+  const [aprovando, setAprovando] = useState(false);
+  const { sugestoes, divergentes } = useMemo(() => sugerir(
+    lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id)), receber, pagar, new Map(contasTodas.map((b) => [b.id, b.unidade_id])),
+  ), [lancamentos, receber, pagar, contasTodas, bancos]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = lancamentos
     .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
-    .filter((l) => situacao === "todos" || l.status === situacao)
+    .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
+      : situacao === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === situacao))
     .filter((l) => !mes || l.data.startsWith(mes));
+  const sugeridasNaLista = lista.filter((l) => l.status === "pendente" && sugestoes.has(l.id));
+
+  async function aprovar(ids: string[]) {
+    setAprovando(true);
+    let ok = 0; const erros: string[] = [];
+    for (const id of ids) {
+      const s = sugestoes.get(id) as Sugestao;
+      const { error } = s.tipo === "transferencia"
+        ? await supabase.rpc("marcar_transferencia", { p_lanc: id, p_par: s.parId })
+        : await supabase.rpc("conciliar_lancamento", { p_lanc: id, p_tipo: s.tipo, p_conta: s.contaId });
+      if (error) erros.push(error.message); else ok++;
+    }
+    setAprovando(false);
+    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "saldos_bancarios", "movimentos_realizados");
+    if (ok) notify(`${ok} lançamento(s) conciliado(s)`);
+    if (erros.length) notify(`${erros.length} não foram: ${[...new Set(erros)].join("; ")}`, "erro");
+  }
 
   const saldos = useMemo(() => Object.fromEntries(bancos.map((b) => {
     const desde = b.saldo_inicial_data;
@@ -129,7 +153,8 @@ export default function Conciliacao() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
-          <option value="pendente">Pendentes</option><option value="conciliado">Conciliados</option>
+          <option value="pendente">Pendentes</option><option value="sugestao">Com sugestão ({[...sugestoes.keys()].length})</option>
+          <option value="divergente">Divergentes ({divergentes.size})</option><option value="conciliado">Conciliados</option>
           <option value="transferencia">Transferências</option><option value="ignorado">Ignorados</option><option value="todos">Todos</option>
         </select>
         <select className="input w-auto" value={contaSel} onChange={(e) => setContaSel(e.target.value)} aria-label="Conta">
@@ -137,6 +162,9 @@ export default function Conciliacao() {
           {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-600">Mês <input type="month" className="input w-auto" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês do extrato" /></label>
+        {podeEditar && sugeridasNaLista.length > 0 && (
+          <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
+        )}
         <span className="ml-auto text-sm text-slate-500">{lista.length} lançamento(s) · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>
       </div>
 
@@ -147,11 +175,18 @@ export default function Conciliacao() {
             <td className="td whitespace-nowrap">{dataBR(l.data)}</td>
             <td className="td">{l.descricao}{l.documento && <div className="text-xs text-slate-500">doc. {l.documento}</div>}</td>
             <td className="td whitespace-nowrap text-sm">{nomeConta(l.conta_bancaria_id)}</td>
-            <td className="td"><Badge value={l.status} /></td>
-            <td className="td text-sm text-slate-600">{vinculo(l)}</td>
+            <td className="td">
+              {l.status === "pendente" && sugestoes.has(l.id) ? <span className="inline-flex rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Sugestão</span>
+                : l.status === "pendente" && divergentes.has(l.id) ? <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900" title="Nenhuma conta com este valor e data próxima: lance como receita/despesa, ligue a mano ou ignore">Divergente</span>
+                : <Badge value={l.status} />}
+            </td>
+            <td className="td text-sm text-slate-600">
+              {l.status === "pendente" && sugestoes.has(l.id) ? <span className="italic text-sky-800">→ {sugestoes.get(l.id)!.rotulo}</span> : vinculo(l)}
+            </td>
             <td className={`td whitespace-nowrap text-right font-semibold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</td>
             <td className="td whitespace-nowrap text-right">
-              {podeEditar && l.status === "pendente" && <Button onClick={() => setTratar(l)}><Link2 size={15} /> Conciliar</Button>}
+              {podeEditar && l.status === "pendente" && sugestoes.has(l.id) && <Button variant="secondary" className="mr-1" disabled={aprovando} onClick={() => aprovar([l.id])}><Check size={15} /> Aprovar</Button>}
+              {podeEditar && l.status === "pendente" && <Button variant={sugestoes.has(l.id) ? "ghost" : "primary"} onClick={() => setTratar(l)}><Link2 size={15} /> {sugestoes.has(l.id) ? "Outra" : "Conciliar"}</Button>}
               {podeEditar && l.status !== "pendente" && <Button variant="ghost" title="Desfazer" onClick={() => setDesfazer(l)}><Undo2 size={15} /></Button>}
             </td>
           </tr>
