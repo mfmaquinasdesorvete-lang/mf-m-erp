@@ -1,4 +1,5 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Ban, Copy, Eye, FileDown, MessageCircle, Pencil, Plus, Printer, Undo2 } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
@@ -67,6 +68,18 @@ export default function Financeiro() {
   const veContasPagar = pode("contas_pagar") || papel === "contador";
   const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "recibos" | "fixas" | "dre" | "plano">("visao");
   const veCobranca = papel === "admin" || papel === "financeiro" || papel === "vendas";
+  // "+ Conta a pagar" do menu: abre a aba e o formulário da conta nova
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [novaAoAbrir, setNovaAoAbrir] = useState(false);
+  useEffect(() => {
+    const st = location.state as { aba?: typeof aba; nova?: boolean } | null;
+    if (st?.aba) {
+      setAba(st.aba === "pagar" && !veContasPagar ? "receber" : st.aba);
+      setNovaAoAbrir(!!st.nova);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
@@ -120,7 +133,7 @@ export default function Financeiro() {
             {veContasPagar && <Resumo label="A pagar nos próximos 7 dias" valor={resumo.pagar7dias} alerta={resumo.vencidoPagar > 0}
               sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>
-          {aba === "pagar" && veContasPagar ? <ContasPagar contas={pagar} /> : <ContasReceber contas={receber} />}
+          {aba === "pagar" && veContasPagar ? <ContasPagar contas={pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)} /> : <ContasReceber contas={receber} />}
         </>
       )}
     </div>
@@ -339,7 +352,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas }: { contas: Pagar[] }) {
+function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void }) {
   const { padrao, unidades } = useUnidade();
   const { data: cfgRecibo } = useConfig();
   const [filtro, setFiltro] = useState("pendentes");
@@ -352,6 +365,11 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
   const save = useSave("contas_pagar");
   // "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
   const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;
+  useEffect(() => {
+    if (!novaAoAbrir) return;
+    setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
+    onNovaAberta?.();
+  }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = filtrar(contas, filtro, mes);
   const rel = useRelatorio("pagar", filtro, mes);
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));

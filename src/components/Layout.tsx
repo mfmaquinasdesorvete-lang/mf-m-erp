@@ -17,19 +17,27 @@ import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 
 type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes; busca?: string };
+type Grupo = {
+  id: string; titulo: string; itens: Item[];
+  /** cor da área (a mesma dos botões coloridos) e ícone do bloco */
+  cor?: string; icone?: typeof Boxes;
+  /** ação direta da área (ex.: "+ Pedido" abre o pedido novo) */
+  acao?: { label: string; dica: string; to: string; state?: Record<string, unknown>; tela: Tela };
+};
 
-// Menu por área, na ordem do trabalho: vender → atender → estoque/compras → financeiro → fiscal → análises.
+// Menu por área de trabalho: cada área é um bloco separado (abre só a área em uso).
 // "busca" são outros nomes que as pessoas usam para achar a tela (campo Buscar no menu).
-const grupos: { titulo: string; itens: Item[] }[] = [
+const grupos: Grupo[] = [
   {
-    titulo: "",
+    id: "inicio", titulo: "",
     itens: [
       { to: "/", tela: "painel", label: "Painel", curto: "Início", icon: LayoutDashboard, busca: "início dashboard resumo" },
       { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
     ],
   },
   {
-    titulo: "Vendas",
+    id: "vendas", titulo: "Vendas", cor: "from-[#10b981] to-[#059669]", icone: ShoppingCart,
+    acao: { label: "Pedido", dica: "Novo pedido ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos" },
     itens: [
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
@@ -38,47 +46,50 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     ],
   },
   {
-    titulo: "Cadastros",
+    id: "notas", titulo: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]", icone: FileText,
+    acao: { label: "NF-e", dica: "Emitir nota fiscal", to: "/notas", state: { emitir: true }, tela: "notas" },
+    itens: [
+      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus emitir emitida recebida fornecedor" },
+      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
+    ],
+  },
+  {
+    id: "financeiro", titulo: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]", icone: Wallet,
+    acao: { label: "Conta", dica: "Lançar conta a pagar", to: "/financeiro", state: { aba: "pagar", nova: true }, tela: "financeiro" },
+    itens: [
+      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo contas fixas" },
+      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
+      { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
+      { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
+    ],
+  },
+  {
+    id: "cadastros", titulo: "Cadastros", cor: "from-[#a855f7] to-[#6d28d9]", icone: Users,
     itens: [
       { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto peça máquina inventário ncm categoria kit" },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
       { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
-      { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
       { to: "/embalagens", tela: "fretes", label: "Embalagens", curto: "Embal.", icon: Package, busca: "caixa engradado palete medidas peso cubagem" },
     ],
   },
   {
-    titulo: "Fiscal",
-    itens: [
-      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus" },
-      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
-    ],
-  },
-  {
-    titulo: "Financeiro",
-    itens: [
-      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo" },
-      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
-      { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
-    ],
-  },
-  {
-    titulo: "Pós-venda",
+    id: "posvenda", titulo: "Pós-venda", cor: "from-[#14b8a6] to-[#0e7490]", icone: Wrench,
+    acao: { label: "OS", dica: "Abrir ordem de serviço", to: "/assistencia", state: { novaOS: {} }, tela: "assistencia" },
     itens: [
       { to: "/assistencia", tela: "assistencia", label: "Assistência técnica", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico" },
       { to: "/garantias", tela: "garantias", label: "Garantias e manutenção", curto: "Garantias", icon: ShieldCheck, busca: "preventiva equipamento" },
     ],
   },
   {
-    titulo: "Produção e estoque",
+    id: "producao", titulo: "Produção e estoque", cor: "from-[#f97316] to-[#dc2626]", icone: Factory,
     itens: [
       { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica ficha técnica" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },
   {
-    titulo: "Análises",
+    id: "analises", titulo: "Análises", cor: "from-[#6366f1] to-[#4338ca]", icone: BarChart3,
     itens: [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
@@ -86,7 +97,7 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     ],
   },
   {
-    titulo: "Administração",
+    id: "admin", titulo: "Administração", cor: "from-[#64748b] to-[#334155]", icone: Settings,
     itens: [
       { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
       { to: "/usuarios", tela: "usuarios", label: "Usuários", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel" },
@@ -94,6 +105,8 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     ],
   },
 ];
+/** Área de uma rota (para abrir o bloco certo). */
+const grupoDaRota = (path: string) => grupos.find((g) => g.id !== "inicio" && g.itens.some((i) => i.to !== "/" && (path === i.to || path.startsWith(i.to + "/"))))?.id ?? null;
 
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 const RAPIDOS: { to: string; label: string; cor: string }[] = [
@@ -189,6 +202,9 @@ export function Layout() {
     ro.observe(n);
     return () => ro.disconnect();
   }, [medirNav, aberto]);
+  // área aberta no menu: a da tela atual (as outras ficam fechadas, só o título)
+  const [areaAberta, setAreaAberta] = useState<string | null>(() => grupoDaRota(location.pathname));
+  useEffect(() => { const g = grupoDaRota(location.pathname); if (g) setAreaAberta(g); }, [location.pathname]);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [aparencia, setAparencia] = useState(false);
   const [meusAvisos, setMeusAvisos] = useState(false);
@@ -237,34 +253,54 @@ export function Layout() {
           {busca.trim() && !todosItens.some((m) => perfil.podeVer(m.tela) && combina(m, busca)) && (
             <p className="px-3 py-2 text-sm text-nav-fraco">Nada com "{busca.trim()}".</p>
           )}
-          {grupos.map((g, gi) => {
-            const itens = g.itens.filter((m) => perfil.podeVer(m.tela) && (!busca.trim() || combina(m, busca)));
+          {grupos.map((g) => {
+            const buscando = !!busca.trim();
+            const itens = g.itens.filter((m) => perfil.podeVer(m.tela) && (!buscando || combina(m, busca)));
             if (!itens.length) return null;
+            const link = ({ to, label, curto, icon: Icon }: Item) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                onClick={() => setAberto(false)}
+                className={({ isActive }) =>
+                  `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[6px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
+                    isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-brand-ice" aria-hidden />}
+                    <Icon size={18} className={isActive ? "text-brand-ice" : "text-nav-fraco group-hover:text-nav-texto"} />
+                    {g.titulo ? label : curto}
+                  </>
+                )}
+              </NavLink>
+            );
+            // Painel e e-mail: soltos no alto
+            if (!g.titulo) return <div key={g.id} className="mb-3 grid grid-cols-2 gap-1">{itens.map(link)}</div>;
+            const aberta = buscando || areaAberta === g.id;
+            const Icone = g.icone ?? Boxes;
+            const acao = g.acao && perfil.podeVer(g.acao.tela) ? g.acao : null;
             return (
-              <div key={gi} className="mt-4 first:mt-0 [@media(min-width:768px)_and_(max-height:860px)]:mt-2.5">
-                {g.titulo && <div className="px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-nav-titulo [@media(min-width:768px)_and_(max-height:860px)]:pb-1 [@media(min-width:768px)_and_(max-height:860px)]:text-[11px]">{g.titulo}</div>}
-                {itens.map(({ to, label, icon: Icon }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={to === "/"}
-                    onClick={() => setAberto(false)}
-                    className={({ isActive }) =>
-                      `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[7px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
-                        isActive ? "bg-ink-soft text-white" : "hover:bg-ink-soft/70 hover:text-white"
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        {isActive && <span className="absolute inset-y-2 left-0 w-1 rounded-r bg-brand-ice" aria-hidden />}
-                        <Icon size={19} className={isActive ? "text-brand-ice" : "text-nav-fraco group-hover:text-nav-texto"} />
-                        {label}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
+              <section key={g.id} className={`mb-2 overflow-hidden rounded-xl border transition ${aberta ? "border-white/15 bg-white/[0.04]" : "border-transparent"}`}>
+                <div className="flex items-center gap-1 pr-1.5">
+                  <button type="button" onClick={() => setAreaAberta(aberta && !buscando ? null : g.id)} aria-expanded={aberta}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-white/5">
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${g.cor} text-white shadow-sm`}><Icone size={16} /></span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-white">{g.titulo}</span>
+                    <ChevronDown size={16} className={`shrink-0 text-nav-fraco transition ${aberta ? "rotate-180" : ""}`} />
+                  </button>
+                  {acao && (
+                    <button type="button" title={acao.dica} onClick={() => { setAberto(false); navigate(acao.to, { state: acao.state }); }}
+                      className={`shrink-0 whitespace-nowrap rounded-lg bg-gradient-to-br ${g.cor} px-2 py-1 text-[11px] font-bold text-white shadow-sm hover:brightness-110`}>
+                      + {acao.label}
+                    </button>
+                  )}
+                </div>
+                {aberta && <div className="space-y-0.5 px-1.5 pb-2">{itens.map(link)}</div>}
+              </section>
             );
           })}
         </nav>

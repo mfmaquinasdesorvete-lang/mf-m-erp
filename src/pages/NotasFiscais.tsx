@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -108,6 +109,16 @@ export default function NotasFiscais() {
   const { pode, papel } = usePerfil();
   const contador = papel === "contador";
   const [aba, setAba] = useState<"emitidas" | "recebidas" | "config" | "regras" | "compliance">("emitidas");
+  // "+ Emitir NF-e" do menu: abre a emissão
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [emitirAgora, setEmitirAgora] = useState(false);
+  useEffect(() => {
+    if ((location.state as { emitir?: boolean } | null)?.emitir) {
+      setAba("emitidas"); setEmitirAgora(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div>
       <PageHeader title="Notas fiscais" />
@@ -118,12 +129,12 @@ export default function NotasFiscais() {
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} />}
+      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
     </div>
   );
 }
 
-function Emitidas({ leitura = false }: { leitura?: boolean }) {
+function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
@@ -139,6 +150,11 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
   const [janela, setJanela] = useState<"inutilizar" | "emitir" | "marcadores" | "gerenciar" | null>(null);
   const invalidate = useInvalidate();
+  useEffect(() => {
+    if (!emitirAgora) return;
+    if (!leitura && pode("emitir_nfe")) setJanela("emitir");
+    onEmitirAberto?.();
+  }, [emitirAgora]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Com os gatilhos da Focus ativos o status muda sozinho no banco; recarrega enquanto houver nota processando.
   const processando = data.some((n) => n.status === "processando" || n.status === "contingencia");
