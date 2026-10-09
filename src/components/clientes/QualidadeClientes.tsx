@@ -6,18 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Building2, CheckCircle2, Copy, MapPin, MessageCircle, Merge, RefreshCw, ShieldAlert, Truck } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
-import { useInvalidate } from "@/lib/data";
+import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { dataBR, docFormat } from "@/lib/format";
 import { formatarTelefone } from "@/lib/mascaras";
-import type { Cliente } from "@/lib/types";
+import type { Cliente, Fornecedor } from "@/lib/types";
 import { possiveisDuplicados, type DadosReceita } from "../../../supabase/functions/_shared/receita";
 
-const tem = (c: Cliente, t: string) => (c.tags ?? []).includes(t);
+type ComEtiquetas = { tags?: string[] | null; receita_situacao?: string | null };
+const tem = (c: ComEtiquetas, t: string) => (c.tags ?? []).includes(t);
 const ROTULO_IE: Record<string, string> = { ativa: "IE ativa", baixada: "IE baixada", nao_encontrada: "IE não encontrada na Receita", sem_ie: "sem IE na Receita" };
 
-/** Ícones ao lado do nome na lista. */
-export function EtiquetasCliente({ c }: { c: Cliente }) {
+/** Ícones ao lado do nome na lista (clientes e fornecedores). */
+export function EtiquetasCliente({ c }: { c: ComEtiquetas }) {
   const itens: { Icon: typeof ShieldAlert; texto: string; cor: string; titulo: string }[] = [];
   if (tem(c, "cnpj_irregular")) itens.push({ Icon: ShieldAlert, texto: `CNPJ ${String(c.receita_situacao ?? "irregular").toLowerCase()}`, cor: "bg-red-100 text-red-800", titulo: "Situação do CNPJ na Receita: não está ativo" });
   if (tem(c, "ie_baixada")) itens.push({ Icon: AlertTriangle, texto: "IE baixada", cor: "bg-amber-100 text-amber-800", titulo: "A inscrição estadual está baixada/inativa: confira antes de emitir nota como contribuinte" });
@@ -137,6 +138,84 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
   );
 }
 
+/** Painel para arrumar o cadastro de fornecedores: WhatsApp, conferência com a Receita, o que falta e repetidos. */
+export function ArrumarFornecedores({ onClose }: { onClose: () => void }) {
+  const invalidar = useInvalidate();
+  // mesma consulta da lista de fornecedores (fica em cache)
+  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const [verRepetidos, setVerRepetidos] = useState(false);
+  const situacao = useQuery({ queryKey: ["fornecedores_receita"], queryFn: () => callFunction<any>("clientes-receita", { acao: "situacao", tabela: "fornecedores" }), refetchInterval: 60_000 });
+  // os repetidos usam o mesmo critério dos clientes (o CNPJ do fornecedor fica em "cnpj")
+  const repetidos = useMemo(() => possiveisDuplicados(fornecedores.map((f) => ({ ...f, cpf_cnpj: f.cnpj }))), [fornecedores]);
+  const faltando = [
+    { rotulo: "sem CNPJ", n: fornecedores.filter((f) => digitosDoc(f.cnpj).length !== 14).length },
+    { rotulo: "sem WhatsApp", n: fornecedores.filter((f) => !f.whatsapp).length },
+    { rotulo: "sem e-mail", n: fornecedores.filter((f) => !f.email).length },
+    { rotulo: "sem endereço", n: fornecedores.filter((f) => !f.logradouro || !f.municipio).length },
+  ];
+
+  async function executar(chave: string, f: () => Promise<string>) {
+    setOcupado(chave);
+    try { notify(await f()); } catch (e) { notifyError(e); } finally { setOcupado(null); }
+  }
+
+  const s = situacao.data;
+  return (
+    <Modal open wide onClose={onClose} title="Arrumar o cadastro de fornecedores">
+      <div className="space-y-5 text-sm">
+        <section className="rounded-xl border border-slate-200 p-4">
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Building2 size={16} className="text-brand" /> Conferência com a Receita</h3>
+          <p className="mb-2 text-slate-600">
+            O ERP confere sozinho cada CNPJ de fornecedor (depois dos clientes, 3 por minuto): situação do CNPJ, inscrição estadual, endereço, telefone e e-mail.
+            Preenche só o que está vazio. Se o endereço for diferente, os dois ficam e o fornecedor ganha a etiqueta <b>2 endereços</b>.
+          </p>
+          {s ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Numero rotulo="CNPJs conferidos" valor={`${s.conferidos} de ${s.com_cnpj}`} />
+              <Numero rotulo="CNPJ baixado/inapto" valor={s.irregulares} tom={s.irregulares ? "ruim" : undefined} />
+              <Numero rotulo="IE baixada" valor={s.ie_baixada} tom={s.ie_baixada ? "atencao" : undefined} />
+              <Numero rotulo="Endereço diferente" valor={s.endereco_diferente} />
+            </div>
+          ) : <p className="text-slate-500">{situacao.isError ? "Não consegui ver o andamento agora." : "Carregando…"}</p>}
+          {s && s.conferidos < s.com_cnpj && <p className="mt-2 text-xs text-slate-500">Faltam {s.com_cnpj - s.conferidos}. Corre sozinho; pode fechar esta tela. Na lista, o botão <b>Receita</b> confere um fornecedor na hora.</p>}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 p-4">
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><AlertTriangle size={16} className="text-amber-600" /> O que ainda falta no cadastro</h3>
+          <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {faltando.map((f) => <Numero key={f.rotulo} rotulo={f.rotulo} valor={f.n} tom={f.n ? "atencao" : undefined} />)}
+          </div>
+          <p className="mb-2 text-slate-600">Use os filtros da lista (Receita, WhatsApp, Completude) para achar cada grupo. O WhatsApp sai do celular do campo telefone:</p>
+          <Button type="button" disabled={!!ocupado} onClick={() => executar("whats", async () => {
+            const { data, error } = await supabase.rpc("preencher_whatsapp_cadastros");
+            if (error) throw error;
+            invalidar("clientes", "fornecedores", "transportadoras");
+            return `WhatsApp preenchido: ${data.fornecedores} fornecedor(es), ${data.transportadoras} transportadora(s), ${data.clientes} cliente(s)`;
+          })}><MessageCircle size={15} /> {ocupado === "whats" ? "Preenchendo…" : "Preencher WhatsApp pelo celular"}</Button>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 p-4">
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Copy size={16} className="text-amber-600" /> Possíveis cadastros repetidos</h3>
+          <p className="mb-2 text-slate-600">Mesmo nome, mesmo CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} grupo(s). Confira e deixe um só (as notas de compra continuam ligadas pelo CNPJ).</p>
+          {repetidos.length > 0 && <Button type="button" variant="secondary" onClick={() => setVerRepetidos(!verRepetidos)}>{verRepetidos ? "Esconder" : "Ver os grupos"}</Button>}
+          {verRepetidos && (
+            <ul className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+              {repetidos.map((g) => (
+                <li key={g[0].id} className="space-y-0.5 p-2.5">
+                  {g.map((f) => <div key={f.id} className="truncate"><b>{f.nome}</b> <span className="text-xs text-slate-500">{[docFormat(f.cnpj), f.whatsapp && formatarTelefone(f.whatsapp), f.email, f.municipio].filter(Boolean).join(" · ")}</span></div>)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </Modal>
+  );
+}
+
+const digitosDoc = (v?: string | null) => String(v ?? "").replace(/\D/g, "");
+
 const tempo = (min: number) => (min < 60 ? `${min} minuto(s)` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
 
 function Numero({ rotulo, valor, tom }: { rotulo: string; valor: string | number; tom?: "ruim" | "atencao" }) {
@@ -196,25 +275,30 @@ export function UnificarClientes({ clientes, onClose }: { clientes: Cliente[]; o
 }
 
 /** Na ficha: o que a Receita diz e os dois endereços, com a escolha de qual vale. */
-export function ReceitaCliente({ c: inicial }: { c: Cliente }) {
+export function ReceitaCliente({ c }: { c: Cliente }) {
+  return <ReceitaCadastro registro={c} tabela="clientes" />;
+}
+
+/** Quadro da Receita para cliente ou fornecedor (o fornecedor guarda o CNPJ em "cnpj"). */
+export function ReceitaCadastro({ registro: inicial, tabela }: { registro: Cliente | (Omit<Cliente, "cpf_cnpj"> & { cnpj?: string | null }); tabela: "clientes" | "fornecedores" }) {
   const invalidar = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
-  // a ficha abre com o cliente da lista; depois de conferir, lê de novo do banco
+  // abre com o registro da lista; depois de conferir, lê de novo do banco
   const { data: atual } = useQuery({
-    queryKey: ["ficha_cliente", inicial.id, "receita"],
-    queryFn: async () => (await supabase.from("clientes").select("*").eq("id", inicial.id).maybeSingle()).data as Cliente | null,
+    queryKey: ["ficha_cliente", tabela, inicial.id, "receita"],
+    queryFn: async () => (await supabase.from(tabela).select("*").eq("id", inicial.id).maybeSingle()).data as Cliente | null,
   });
-  const c = { ...inicial, ...(atual ?? {}) } as Cliente;
+  const c = { ...inicial, ...(atual ?? {}) } as Cliente & { cnpj?: string | null };
   const r = c.receita as DadosReceita | null | undefined;
-  const cnpj = (c.cpf_cnpj ?? "").replace(/\D/g, "").length === 14;
+  const cnpj = String((tabela === "clientes" ? c.cpf_cnpj : c.cnpj) ?? "").replace(/\D/g, "").length === 14;
   if (!cnpj) return null;
 
   async function conferir() {
     setOcupado(true);
     try {
-      await callFunction("clientes-receita", { acao: "um", cliente_id: c.id });
+      await callFunction("clientes-receita", tabela === "clientes" ? { acao: "um", cliente_id: c.id } : { acao: "um", fornecedor_id: c.id });
       notify("Conferido na Receita");
-      invalidar("clientes", "ficha_cliente");
+      invalidar(tabela, "ficha_cliente");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
   async function escolher(usarReceita: boolean) {
@@ -222,12 +306,12 @@ export function ReceitaCliente({ c: inicial }: { c: Cliente }) {
     try {
       const tags = (c.tags ?? []).filter((t) => t !== "endereco_receita");
       const e = r?.endereco;
-      const { error } = await supabase.from("clientes").update(usarReceita && e
+      const { error } = await supabase.from(tabela).update(usarReceita && e
         ? { tags, cep: e.cep, logradouro: e.logradouro, numero: e.numero, complemento: e.complemento, bairro: e.bairro, municipio: e.municipio, uf: e.uf }
         : { tags }).eq("id", c.id);
       if (error) throw error;
       notify(usarReceita ? "Endereço da Receita aplicado" : "Mantido o endereço do cadastro");
-      invalidar("clientes", "ficha_cliente");
+      invalidar(tabela, "ficha_cliente");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
 

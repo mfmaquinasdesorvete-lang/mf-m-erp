@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { Building2, FileSpreadsheet, Wrench } from "lucide-react";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
+import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
 import { digitos, docFormat } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
@@ -49,7 +50,22 @@ const colunas = <T extends { codigo?: number | null; nome: string; nome_fantasia
   { label: "Contato", render: (r: T) => <Contato r={r as any} mensagem={msg} /> },
 ];
 
-const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [...filtrosLocal<Fornecedor>(), filtroCompletude<Fornecedor>((r) => r.cnpj), filtroCadastradoEm<Fornecedor>()];
+const tag = (r: Fornecedor, t: string) => (r.tags ?? []).includes(t);
+const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [
+  ...filtrosLocal<Fornecedor>(),
+  filtroCompletude<Fornecedor>((r) => r.cnpj),
+  {
+    label: "Receita", opcoes: [
+      { label: "CNPJ baixado/inapto", teste: (r) => tag(r, "cnpj_irregular") },
+      { label: "IE baixada", teste: (r) => tag(r, "ie_baixada") },
+      { label: "Endereço diferente da Receita (2 endereços)", teste: (r) => tag(r, "endereco_receita") },
+      { label: "CNPJ ainda não conferido", teste: (r) => digitos(r.cnpj).length === 14 && !r.receita_em },
+      { label: "CNPJ ativo e conferido", teste: (r) => !!r.receita_em && r.receita_situacao === "ATIVA" },
+    ],
+  },
+  { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
+  filtroCadastradoEm<Fornecedor>(),
+];
 const ORDENS_FORN = ordensCadastro<Fornecedor>();
 const FILTROS_TRANSP: FiltroCrud<Transportadora>[] = [
   ...filtrosLocal<Transportadora>(),
@@ -72,6 +88,8 @@ async function situacaoTransportadoras(ids: string[], ativo: boolean) {
 export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "transportadoras" }) {
   const { pode, papel } = usePerfil();
   const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
+  const [arrumar, setArrumar] = useState(false);
+  const [receita, setReceita] = useState<Fornecedor | null>(null);
   const podeImportar = papel === "admin" || papel === "financeiro";
   const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
     podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
@@ -79,12 +97,30 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
   return (
     <div>
       {importar && <ImportarContatos tipo={importar} onClose={() => setImportar(null)} />}
+      {arrumar && <ArrumarFornecedores onClose={() => setArrumar(false)} />}
+      {receita && (
+        <Modal open onClose={() => setReceita(null)} title={`Receita · ${receita.nome_fantasia || receita.nome}`}>
+          <ReceitaCadastro registro={receita as any} tabela="fornecedores" />
+        </Modal>
+      )}
       {aba === "fornecedores" ? (
         <CrudPage<Fornecedor>
           anexos="fornecedor"
           key="f"
           readOnly={!pode("editar_fornecedores")}
-          extraActions={botaoImportar("fornecedor")}
+          extraActions={<>
+            {pode("editar_fornecedores") && <Button variant="secondary" onClick={() => setArrumar(true)}><Wrench size={16} /> Arrumar cadastro</Button>}
+            {botaoImportar("fornecedor")}
+          </>}
+          rowActions={(r) => digitos(r.cnpj).length === 14 && (
+            <button type="button" onClick={() => setReceita(r)}
+              title={r.receita_em ? "O que a Receita diz deste fornecedor (e os dois endereços, se forem diferentes)" : "Conferir este CNPJ na Receita agora"}
+              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[13px] font-semibold transition ${r.receita_em
+                ? "bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-sm hover:brightness-110"
+                : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
+              <Building2 size={15} /> Receita
+            </button>
+          )}
           filtros={FILTROS_FORN}
           ordens={ORDENS_FORN}
           podeExcluir={papel === "admin"}
@@ -101,12 +137,14 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             { name: "c", label: "Contato", type: "secao" },
             { name: "whatsapp", label: "WhatsApp (pedidos e cotações)", mask: "whatsapp" },
             { name: "telefone", label: "Telefone", mask: "telefone" },
-            { name: "email", label: "E-mail", mask: "email", span: 4 },
+            { name: "email", label: "E-mail", mask: "email", span: 2 },
+            { name: "chave_pix", label: "Chave Pix (para pagar)", placeholder: "CPF/CNPJ, e-mail, celular ou chave aleatória", span: 2 },
             ...endereco,
             { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
           ]}
           columns={[
-            ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas."),
+            ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").map((c) => c.label === "Nome"
+              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} /><EtiquetasCliente c={r} /></> } : c),
             { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
           ]}
         />
