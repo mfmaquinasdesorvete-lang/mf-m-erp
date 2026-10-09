@@ -17,6 +17,7 @@ import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, useMarcadores,
 import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
 import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
+import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
 
 const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
@@ -117,7 +118,7 @@ export default function NotasFiscais() {
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} />}
+      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} />}
     </div>
   );
 }

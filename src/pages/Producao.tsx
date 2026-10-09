@@ -15,8 +15,9 @@ import { pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
+import { Reposicao } from "@/components/Reposicao";
 
-type Aba = "producao" | "compras" | "ficha";
+type Aba = "producao" | "reposicao" | "compras" | "ficha";
 
 
 /** Quanto falta comprar de cada peça para a OP. */
@@ -40,7 +41,7 @@ export default function Producao() {
 
   const abas: { value: Aba; label: string }[] = [
     { value: "producao", label: "Ordens de produção" },
-    ...(verCompras ? [{ value: "compras" as Aba, label: "Pedidos de compra" }] : []),
+    ...(verCompras ? [{ value: "reposicao" as Aba, label: "Reposição de estoque" }, { value: "compras" as Aba, label: "Pedidos de compra" }] : []),
     { value: "ficha", label: "Ficha técnica" },
   ];
 
@@ -49,6 +50,7 @@ export default function Producao() {
       <PageHeader title="Produção e compras" subtitle="Monte as máquinas, veja quais peças faltam e peça aos fornecedores com cotação." />
       <Tabs value={aba} onChange={setAba} options={abas} />
       {aba === "producao" && <OrdensProducao irParaCompras={() => setAba("compras")} />}
+      {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")} />}
       {aba === "compras" && verCompras && <PedidosCompra abrirNovo={novaCompra} onAberto={() => setNovaCompra(false)} />}
       {aba === "ficha" && <FichaTecnica />}
     </div>

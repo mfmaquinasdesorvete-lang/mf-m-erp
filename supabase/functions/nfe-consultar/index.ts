@@ -5,6 +5,7 @@
 // POST { nota_id, acao: "reenviar" }                           -> reenvia agora uma nota da fila de contingência
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
 // POST { acao: "ambiente" }                                   -> "producao" ou "homologacao" (para avisar na tela)
+// POST { acao: "diagnostico" }                                -> confere ambiente, tokens na Focus, cadastro e numeração
 // POST { acao: "importar_xml", xmls: string[] }                -> NF-e emitidas em outro sistema (ex.: Tiny) e seus cancelamentos
 // POST { nota_id, acao: "reenviar_corrigida", alteracoes }      -> nota rejeitada: corrige natureza, informações, destinatário
 //                                                                 e NCM/CFOP/descrição dos itens e manda de novo (valores não mudam)
@@ -15,6 +16,7 @@ import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
 import { corrigirPayload } from "../_shared/nfe-correcao.ts";
+import { diagnosticoNfe } from "../_shared/nfe-diagnostico.ts";
 
 const msgFocus = (b: any, padrao: string) =>
   [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
@@ -26,9 +28,10 @@ Deno.serve(async (req) => {
     const corpo = await req.json();
     const { nota_id, acao = "consultar" } = corpo;
     const db = adminClient();
-    const { userId } = await requireErpUser(req, ["inutilizar", "importar_xml"].includes(acao) ? ["financeiro"] : ["vendas", "financeiro"]);
+    const { userId } = await requireErpUser(req, ["inutilizar", "importar_xml", "diagnostico"].includes(acao) ? ["financeiro"] : ["vendas", "financeiro"]);
 
     if (acao === "ambiente") return json({ ok: true, ambiente: focusProducao() ? "producao" : "homologacao" });
+    if (acao === "diagnostico") return json({ ok: true, ...(await diagnosticoNfe(db)) });
 
     if (acao === "importar_xml") {
       const xmls = corpo.xmls;

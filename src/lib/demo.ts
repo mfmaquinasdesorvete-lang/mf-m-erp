@@ -1578,6 +1578,11 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "nfe-consultar": (b) => {
     if (b.acao === "ambiente") return { ok: true, ambiente: "homologacao" };
+    if (b.acao === "diagnostico") return { ok: true, ambiente: "homologacao", itens: [
+      { grupo: "Ambiente", titulo: "FOCUS_NFE_ENV", nivel: "erro", detalhe: "O ERP leu um texto de 32 caracteres que não é o nome de um ambiente (parece um token colado no lugar errado) e por isso está emitindo em HOMOLOGAÇÃO.", acao: "No Supabase (Edge Functions → Secrets), deixe FOCUS_NFE_ENV com a palavra producao e coloque o Token de Produção em FOCUS_NFE_TOKEN_PRODUCAO." },
+      { grupo: "Matriz SC (SC)", titulo: "Token da Focus (homologação) · FOCUS_NFE_TOKEN", nivel: "ok", detalhe: "A Focus aceitou o token neste ambiente." },
+      { grupo: "Matriz SC (SC)", titulo: "Numeração (série 1)", nivel: "info", detalhe: "A última nota real desta unidade é a 430. Na Focus (Documentos fiscais → Produção), o próximo número deve ser 431." },
+    ] };
     if (b.acao === "importar_xml") {
       return { ok: true, resultados: (b.xmls as string[]).map((xml) => {
         const x = lerXmlDemo(xml);

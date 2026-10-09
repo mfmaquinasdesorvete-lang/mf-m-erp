@@ -4,14 +4,27 @@
 // e, se ele não existir, o FOCUS_NFE_TOKEN geral (o da matriz).
 // NF-e recebidas de fornecedores só existem em produção (a homologação da SEFAZ não tem notas reais):
 // enquanto a emissão está em homologação, elas usam FOCUS_NFE_TOKEN_PRODUCAO(_<código>).
+// Em produção, o FOCUS_NFE_TOKEN_PRODUCAO(_<código>) também vale para a emissão e tem preferência sobre o
+// FOCUS_NFE_TOKEN(_<código>), que costuma ficar com o token de homologação.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError } from "./supabase.ts";
 
-/** FOCUS_NFE_ENV = "producao" (aceita também "produção", "PRODUCAO", "production"). */
-export const focusProducao = () => {
-  const v = (Deno.env.get("FOCUS_NFE_ENV") ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-  return v === "producao" || v === "production" || v === "prod";
-};
+/** Valor de FOCUS_NFE_ENV como o ERP entende: sem acento, sem aspas, sem espaços, minúsculo. */
+export const ambienteLido = () =>
+  (Deno.env.get("FOCUS_NFE_ENV") ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/["'`\s]/g, "").toLowerCase();
+
+/** FOCUS_NFE_ENV = "producao" (aceita também "produção", "PRODUCAO", "production", "prod", com ou sem aspas). */
+export const focusProducao = () => ["producao", "production", "prod", "prd"].includes(ambienteLido());
+
+const NOMES_AMBIENTE = ["producao", "production", "prod", "prd", "homologacao", "homologation", "homolog", "teste", "test", "sandbox"];
+/** Como mostrar o FOCUS_NFE_ENV numa mensagem sem nunca expor um token colado nele por engano. */
+export function ambienteParaMensagem() {
+  const bruto = Deno.env.get("FOCUS_NFE_ENV");
+  if (bruto === undefined) return "não cadastrado";
+  if (!bruto.trim()) return "vazio";
+  if (NOMES_AMBIENTE.includes(ambienteLido())) return JSON.stringify(bruto.trim());
+  return `um texto de ${bruto.trim().length} caracteres que não é o nome de um ambiente (parece um token colado no lugar errado)`;
+}
 
 export const focusBaseUrl = () =>
   focusProducao() ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
@@ -19,9 +32,28 @@ export const focusBaseUrl = () =>
 /** Sem espaços ou quebras de linha que às vezes vêm junto ao colar no painel do Supabase. */
 const limpo = (v: string | undefined) => v?.replace(/\s+/g, "") || null;
 
+/** Ordem dos secrets do token da unidade: o da própria unidade antes do geral e, em produção, o
+ * FOCUS_NFE_TOKEN_PRODUCAO(_SP) antes do FOCUS_NFE_TOKEN(_SP) (é o token de produção cadastrado para as notas recebidas). */
+function ordemSecrets(codigo?: string | null, producao = focusProducao()) {
+  const cod = codigo?.trim().toUpperCase();
+  return [
+    producao && cod && `FOCUS_NFE_TOKEN_PRODUCAO_${cod}`, cod && `FOCUS_NFE_TOKEN_${cod}`,
+    producao && "FOCUS_NFE_TOKEN_PRODUCAO", "FOCUS_NFE_TOKEN",
+  ].filter(Boolean) as string[];
+}
+
 /** Token da unidade (pelo código, ex.: "SP") ou o geral. */
 export const focusToken = (codigo?: string | null) =>
-  (codigo ? limpo(Deno.env.get(`FOCUS_NFE_TOKEN_${codigo.trim().toUpperCase()}`)) : null) ?? limpo(Deno.env.get("FOCUS_NFE_TOKEN"));
+  ordemSecrets(codigo).map((n) => limpo(Deno.env.get(n))).find(Boolean) ?? null;
+
+/** Nome do secret que fornece o token (para as mensagens e o diagnóstico; nunca o valor). */
+export function secretDoToken(codigo?: string | null, op: OpcoesFocus = {}) {
+  const cod = codigo?.trim().toUpperCase();
+  const ordem = op.recebidas && !focusProducao()
+    ? [cod && `FOCUS_NFE_TOKEN_PRODUCAO_${cod}`, "FOCUS_NFE_TOKEN_PRODUCAO"].filter(Boolean) as string[]
+    : ordemSecrets(codigo);
+  return ordem.find((n) => !!limpo(Deno.env.get(n))) ?? null;
+}
 
 const codigos = new Map<string, string | null>();
 /** Código da unidade (SC, SP…) para escolher o token. */
@@ -51,7 +83,7 @@ function conexao(codigo?: string | null, op: OpcoesFocus = {}) {
     const especifico = cod && limpo(Deno.env.get(`FOCUS_NFE_TOKEN_PRODUCAO_${cod}`)) ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : "FOCUS_NFE_TOKEN_PRODUCAO";
     return { base: "https://api.focusnfe.com.br", token: tokenProducao(codigo), secret: especifico, producao: true };
   }
-  const especifico = cod && Deno.env.get(`FOCUS_NFE_TOKEN_${cod}`) !== undefined ? `FOCUS_NFE_TOKEN_${cod}` : "FOCUS_NFE_TOKEN";
+  const especifico = secretDoToken(codigo) ?? (cod ? `FOCUS_NFE_TOKEN_${cod}` : "FOCUS_NFE_TOKEN");
   return { base: focusBaseUrl(), token: focusToken(codigo), secret: especifico, producao: focusProducao() };
 }
 

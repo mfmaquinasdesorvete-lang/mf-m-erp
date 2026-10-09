@@ -3,7 +3,7 @@
 // e pelo agendamento (nfe-processar).
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError, onlyDigits } from "./supabase.ts";
-import { codigoUnidade, erroDeToken, focus, focusJson, recebidasDisponiveis } from "./focusnfe.ts";
+import { ambienteParaMensagem, codigoUnidade, erroDeToken, focus, focusJson, recebidasDisponiveis } from "./focusnfe.ts";
 import { type Duplicata, type ItemNota, lerCabecalho, lerNfe } from "./nfe-xml.ts";
 
 export type RecebidaFocus = {
@@ -240,10 +240,9 @@ export async function unidadePorCnpj(db: SupabaseClient, cnpj: string | null | u
  */
 export async function sincronizarRecebidas(db: SupabaseClient, avisos: string[] = []) {
   if (!recebidasDisponiveis()) {
-    // mostra o valor lido (não é segredo) para achar erro de digitação no secret
-    const env = Deno.env.get("FOCUS_NFE_ENV");
+    // diz o que foi lido para achar erro no secret, sem nunca mostrar um token colado nele por engano
     throw new HttpError(400, "As notas de fornecedores só existem no ambiente de produção da SEFAZ (a homologação não tem notas reais). " +
-      `O ERP leu FOCUS_NFE_ENV = ${env === undefined ? "(não cadastrado)" : `"${env}"`}: para buscar, ele precisa ser "producao" ` +
+      `O ERP leu em FOCUS_NFE_ENV ${ambienteParaMensagem()}: para buscar, ele precisa ser producao ` +
       "ou é preciso cadastrar o secret FOCUS_NFE_TOKEN_PRODUCAO com o Token de Produção da Focus. Depois de mudar, busque de novo.");
   }
   const { data: unidades } = await db.from("unidades").select("id, codigo, nome, cnpj").eq("ativo", true);
