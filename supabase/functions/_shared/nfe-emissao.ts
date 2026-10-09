@@ -202,7 +202,8 @@ export async function emitirTransferencia(db: any, transferenciaId: string) {
  */
 export async function emitirAutomaticas(db: any) {
   const { data: cfg } = await db.from("configuracoes").select("nfe_automatica").eq("id", 1).single();
-  if (!cfg?.nfe_automatica) return 0;
+  // em homologação a nota sairia só como teste (sem valor fiscal): a automática espera a produção
+  if (!cfg?.nfe_automatica || !focusProducao()) return 0;
   const { data: pedidos } = await db.from("pedidos").select("id, notas:notas_fiscais(id)").eq("status", "aprovado").order("aprovado_em").limit(20);
   let n = 0;
   for (const p of pedidos ?? []) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Undo2 } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { callFunction } from "@/lib/supabase";
+import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { brl, docFormat } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
@@ -41,7 +42,7 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
   const invalido = escolhidos.some((i) => Number(String(qtd[i.numero]).replace(",", ".")) > i.disponivel + 1e-9);
 
   async function emitir() {
-    if (!previa) return;
+    if (!previa || !(await confirmarSeTeste())) return;
     setOcupado(true);
     try {
       const r = await callFunction("nfe-emitir", {

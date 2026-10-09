@@ -7,7 +7,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { telegram, enviarTelegram } from "../_shared/telegram.ts";
-import { enviarEmail } from "../_shared/email.ts";
+import { enviarEmail, envioConfigurado } from "../_shared/email.ts";
 import { EXEMPLOS, htmlEmail, mensagemCliente, textoEmail, textoTelegram } from "../_shared/avisos-modelos.ts";
 import { empresaDoErp, entregarFila, logoEmail } from "../_shared/avisos.ts";
 
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         erro = (e as Error).message;
       }
-      return json({ ok: true, robo, webhook, conectados: count ?? 0, erro, email: !!(Deno.env.get("RESEND_API_KEY") && Deno.env.get("EMAIL_REMETENTE")) });
+      return json({ ok: true, robo, webhook, conectados: count ?? 0, erro, email: await envioConfigurado() });
     }
 
     if (acao === "telegram_configurar") {

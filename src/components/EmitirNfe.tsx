@@ -10,6 +10,7 @@ import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, rotuloCliente } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction } from "@/lib/supabase";
+import { AVISO_TESTE, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import type { Pedido, Produto } from "@/lib/types";
 
@@ -42,6 +43,7 @@ export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
       if (lista.length) return setConferindo({ pedido: p, pendencias: lista });
     }
     setConferindo(null);
+    if (!(await confirmarSeTeste())) return;
     setOcupado(p.id);
     try {
       const r = await callFunction<{ nota?: { status: string; numero?: string | null } }>("nfe-emitir", { pedido_id: p.id });
@@ -80,7 +82,7 @@ export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Emitir NF-e" wide>
       {ambiente && (
         <p className={`mb-3 rounded-lg px-3 py-2 text-sm font-semibold ${ambiente === "producao" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
-          {ambiente === "producao" ? "Ambiente de PRODUÇÃO: a nota é real, tem valor fiscal e vai para o cliente." : "Ambiente de HOMOLOGAÇÃO (teste): a nota não tem valor fiscal."}
+          {ambiente === "producao" ? "Ambiente de PRODUÇÃO: a nota é real, tem valor fiscal e vai para o cliente." : AVISO_TESTE}
         </p>
       )}
       <p className="mb-3 text-sm text-slate-600">

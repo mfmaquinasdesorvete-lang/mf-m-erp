@@ -290,7 +290,7 @@ export function AvisosConfig() {
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-fg">Enviar e-mails para os clientes</div>
               <div className="text-sm text-slate-500">
-                {status?.email ? "Envio configurado ✓" : "Falta configurar o envio (secrets RESEND_API_KEY e EMAIL_REMETENTE)."} Só recebe quem tem e-mail no cadastro e não pediu para sair da lista.
+                {status?.email ? "Envio configurado ✓" : "Falta configurar o envio: ligue a caixa de e-mail da empresa (com SMTP) em Configurações → Caixa de e-mail."} Só recebe quem tem e-mail no cadastro e não pediu para sair da lista.
               </div>
             </div>
             <Interruptor rotulo="Enviar e-mails para os clientes" ligado={local.avisos_email_ativo} onChange={(v) => salvarCfg({ avisos_email_ativo: v })} />

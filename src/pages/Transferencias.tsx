@@ -7,6 +7,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
+import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import type { Produto } from "@/lib/types";
@@ -116,6 +117,7 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
   });
 
   const emitirNota = () => acao(async () => {
+    if (!(await confirmarSeTeste())) throw new Error("Emissão cancelada: ambiente de teste");
     const r = await callFunction("nfe-emitir", { transferencia_id: t.id });
     invalidar("notas_fiscais");
     notify(r?.ok === false ? "A nota voltou com erro: veja a mensagem" : "NF-e de transferência enviada para a SEFAZ");

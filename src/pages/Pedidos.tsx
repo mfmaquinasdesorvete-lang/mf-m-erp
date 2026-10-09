@@ -22,6 +22,7 @@ import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import { VendedorSelect } from "@/components/VendedorSelect";
 import { MotivoAcao } from "@/components/MotivoAcao";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
+import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -265,6 +266,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (cfg?.nfe_automatica) {
       const lista = conferirPedido({ cliente, unidade: unidades.find((u) => u.id === (p as any).unidade_id), produtos, itens: p.itens, aliquotasUf: ufsIcms.map((u) => u.uf) });
       if (lista.some((x) => x.nivel === "erro")) notify(`NF-e automática não enviada: ${lista.find((x) => x.nivel === "erro")!.texto}`, "erro");
+      // em homologação a nota automática sairia só como teste: não emite sozinha
+      else if ((await ambienteNfe().catch(() => "producao")) !== "producao") notify("NF-e automática não enviada: o ERP está em homologação (teste). Ajuste o FOCUS_NFE_ENV para producao.", "erro");
       else await callFunction("nfe-emitir", { pedido_id: id }).catch((e) => notify(`NF-e automática: ${(e as Error).message}`, "erro"));
     }
   }, cfg?.nfe_automatica ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro");
@@ -308,6 +311,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     }
     setPendencias(null);
     executar(async () => {
+      if (!(await confirmarSeTeste())) throw new Error("Emissão cancelada: ambiente de teste");
       await callFunction("nfe-emitir", { pedido_id: p.id });
     }, "NF-e enviada para a SEFAZ. Acompanhe em Notas fiscais.");
   };

@@ -7,6 +7,7 @@ import { Badge, Button, Field, Modal, PageHeader } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { callFunction, supabase } from "@/lib/supabase";
+import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR } from "@/lib/format";
 import { useConfig } from "@/lib/useConfig";
@@ -175,6 +176,7 @@ function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Exp; onCl
     onClose();
   }
   async function emitirNota() {
+    if (!(await confirmarSeTeste())) return;
     setOcupado(true);
     try { await callFunction("nfe-emitir", { pedido_id: p.id }); notify("NF-e enviada para a SEFAZ"); invalidar("pedidos", "notas_fiscais"); onClose(); }
     catch (e) { notifyError(e); } finally { setOcupado(false); }
