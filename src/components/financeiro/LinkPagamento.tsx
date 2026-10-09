@@ -5,11 +5,13 @@ import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { brl, dataBR, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
+import { resumoTaxas, type TaxasInfinitePay } from "@/lib/infinitepay";
 
 /** Link de pagamento da InfinitePay (Pix ou cartão) ligado a uma conta a receber. */
 export type CobrancaLink = {
   id: string; conta_receber_id: string | null; status: "aberto" | "pago" | "descartado" | "erro"; url: string | null; valor: number;
   handle: string; metodo: string | null; parcelas: number | null; recibo_url: string | null; pago_em: string | null; erro: string | null; created_at: string;
+  taxa_percentual?: number | null; taxa_valor?: number | null;
 };
 type Conta = { id: string; descricao: string; valor: number; vencimento: string; status: string; cliente?: { nome: string; whatsapp?: string | null } | null };
 
@@ -31,7 +33,7 @@ export function SituacaoLink({ links }: { links: CobrancaLink[] }) {
   const pago = links.find((l) => l.status === "pago");
   if (pago) return (
     <span className="text-xs text-emerald-700">
-      · pago pelo link ({comoPagou(pago)})
+      · pago pelo link ({comoPagou(pago)}{pago.taxa_valor ? `, taxa ${brl(pago.taxa_valor)}` : ""})
       {pago.recibo_url && <> · <a href={pago.recibo_url} target="_blank" rel="noreferrer" className="underline">recibo</a></>}
       {pago.erro && <span className="text-amber-700"> · {pago.erro}</span>}
     </span>
@@ -40,7 +42,16 @@ export function SituacaoLink({ links }: { links: CobrancaLink[] }) {
   return null;
 }
 
-export function LinkPagamentoModal({ conta, links, onClose }: { conta: Conta; links: CobrancaLink[]; onClose: () => void }) {
+/** Taxa do link já pago, como ficou no financeiro. */
+function TaxaDoLink({ l }: { l: CobrancaLink }) {
+  if (l.taxa_valor != null && Number(l.taxa_valor) > 0) {
+    return <p className="mt-1">Taxa da InfinitePay (paga pela MF): <b>{brl(l.taxa_valor)}</b> ({String(l.taxa_percentual).replace(".", ",")}%), lançada em contas a pagar como tarifa bancária.</p>;
+  }
+  if (l.taxa_valor != null) return <p className="mt-1">Sem taxa neste pagamento.</p>;
+  return <p className="mt-1 text-amber-800">Taxa não cadastrada para este meio: preencha as taxas em Configurações → Unidades e lance esta à mão em contas a pagar.</p>;
+}
+
+export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Conta; links: CobrancaLink[]; taxas?: TaxasInfinitePay | null; onClose: () => void }) {
   const invalidar = useInvalidate();
   const [gerando, setGerando] = useState(false);
   const aberto = links.find((l) => l.status === "aberto" && l.url);
@@ -81,6 +92,7 @@ export function LinkPagamentoModal({ conta, links, onClose }: { conta: Conta; li
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
             <b>Pago pelo link</b> em {pago.pago_em ? new Date(pago.pago_em).toLocaleString("pt-BR") : "—"} por {comoPagou(pago)}.
             {pago.recibo_url && <a href={pago.recibo_url} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 font-semibold underline"><Receipt size={14} /> Recibo</a>}
+            <TaxaDoLink l={pago} />
             {pago.erro && <p className="mt-1 text-amber-800">{pago.erro}</p>}
           </div>
         )}
@@ -114,7 +126,8 @@ export function LinkPagamentoModal({ conta, links, onClose }: { conta: Conta; li
           <div className="flex flex-wrap items-center justify-between gap-2">
             {aberto
               ? <button type="button" className="text-xs text-slate-500 hover:underline" onClick={() => descartar(aberto.id)}>Tirar este link da conta</button>
-              : <span className="text-xs text-slate-500">O cliente escolhe Pix ou cartão (em até 12x) na página da InfinitePay.</span>}
+              : <span className="text-xs text-slate-500">O cliente escolhe Pix ou cartão (em até 12x) na página da InfinitePay.
+                  {resumoTaxas(taxas) ? <> Taxa paga pela MF: {resumoTaxas(taxas)}.</> : " A taxa é paga pela MF."}</span>}
             {(!aberto || desatualizado) && (
               <Button type="button" disabled={gerando} onClick={gerar}>
                 {gerando ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} {aberto ? "Gerar de novo" : "Gerar link"}

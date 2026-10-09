@@ -359,7 +359,8 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       </Modal>
 
       {baixa && <BaixaModal conta={baixa.conta} tabela={baixa.tabela} onClose={() => setBaixa(null)} />}
-      {linkDe && <LinkPagamentoModal conta={contas.find((x) => x.id === linkDe.id) ?? linkDe} links={linksDa.get(linkDe.id) ?? []} onClose={() => setLinkDe(null)} />}
+      {linkDe && <LinkPagamentoModal conta={contas.find((x) => x.id === linkDe.id) ?? linkDe} links={linksDa.get(linkDe.id) ?? []}
+        taxas={(unidades.find((u) => u.id === linkDe.unidade_id) ?? unidades.find((u) => u.matriz))?.infinitepay_taxas} onClose={() => setLinkDe(null)} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_receber" onClose={() => setMotivo(null)} />}
     </>
   );

@@ -8,6 +8,7 @@ import { docFormat } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
 import { buscarCnpj, inscricaoDoEstado, preencherVazios } from "@/lib/cnpj";
 import { notify, notifyError } from "@/lib/notify";
+import { normalizarTaxas } from "@/lib/infinitepay";
 import { useUnidade, type Unidade } from "@/lib/unidade";
 
 const NUMEROS = ["serie_nfe"] as const;
@@ -62,10 +63,29 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
     <Field label={label} className={cls}><input className="input" type={type} step={type === "number" ? "any" : undefined} value={u[k] ?? ""} onChange={set(k)} /></Field>
   );
 
+  // taxa da InfinitePay: ["pix"], ["debito"] ou ["credito", 0..11]
+  const taxaCampo = (label: string, caminho: [string] | [string, number]) => {
+    const t = (u.infinitepay_taxas ?? {}) as Record<string, any>;
+    const valor = caminho.length === 1 ? t[caminho[0]] : t.credito?.[caminho[1]];
+    const mudar = (v: string) => {
+      const novo = { ...t };
+      if (caminho.length === 1) novo[caminho[0]] = v;
+      else { const c = [...(t.credito ?? Array(12).fill(null))]; c[caminho[1]] = v; novo.credito = c; }
+      setU({ ...u, infinitepay_taxas: novo });
+    };
+    return (
+      <label key={label} className="block">
+        <span className="mb-1 block text-[11px] font-semibold text-slate-500">{label}</span>
+        <input className="input text-right" inputMode="decimal" placeholder="—" value={valor ?? ""} onChange={(e) => mudar(e.target.value)} aria-label={`Taxa ${label}`} />
+      </label>
+    );
+  };
+
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
       const { created_at: _c, ...row } = u;
+      row.infinitepay_taxas = normalizarTaxas(row.infinitepay_taxas);
       for (const k of NUMEROS) row[k] = Number(row[k] || 0);
       row.uf = row.uf?.toUpperCase();
       await save.mutateAsync(row);
@@ -115,6 +135,18 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
                 <input className="input" value={u.infinitepay_tag ?? ""} placeholder="ex.: minhaloja" autoCapitalize="none"
                   onChange={(e) => setU({ ...u, infinitepay_tag: e.target.value.replace(/^\$/, "").trim().toLowerCase() || null })} />
               </Field>
+              <div className="sm:col-span-3">
+                <div className="text-xs font-semibold text-slate-600">Taxas do plano, em % (pagas pela MF)</div>
+                <p className="mb-2 text-xs text-slate-500">
+                  Copie do app da InfinitePay (taxas do link de pagamento). Quando o cliente paga, o ERP lança a taxa como despesa já paga
+                  (tarifas bancárias) na conta InfinitePay da unidade, para o saldo bater com o que cai na conta. Em branco = não lança.
+                </p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                  {taxaCampo("Pix", ["pix"])}
+                  {taxaCampo("Débito", ["debito"])}
+                  {Array.from({ length: 12 }, (_, i) => taxaCampo(i ? `Crédito ${i + 1}x` : "Crédito 1x", ["credito", i]))}
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap gap-5 sm:col-span-4">{chk("fabrica", "Fabrica máquinas aqui")}{chk("assistencia", "Faz assistência técnica")}{chk("ativo", "Ativa")}</div>
             <p className="text-xs text-slate-500 sm:col-span-4">CFOP, CST, alíquotas e IBS/CBS desta unidade: Notas fiscais → Configurações da NF-e.</p>
