@@ -114,7 +114,7 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
   );
 }
 
-function Fluxo({ receber, pagar, dia }: { receber: ContaFin[]; pagar: ContaFin[]; dia: string }) {
+export function Fluxo({ receber, pagar, dia }: { receber: ContaFin[]; pagar: ContaFin[]; dia: string }) {
   const [hz, setHz] = useState<Horizonte>("mes");
   const { filtrar } = useUnidade();
   const de = hz === "mes" ? `${dia.slice(0, 7)}-01` : somarDias(dia, hz === "30" ? -14 : -30);

@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties } from "react";
+import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch, Plus,
@@ -44,7 +45,31 @@ const dentro = (data: string | null | undefined, [a, b]: string[]) => !!data && 
 type Acao = { label: string; icon: LucideIcon; to: string; state?: unknown; cor: string; aviso?: number };
 type Kpi = { id: string; label: string; valor: string | number; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
 
+/** Início: o financeiro já entra no painel financeiro (feito para o celular); o administrador escolhe. */
 export default function Dashboard() {
+  const { papel } = usePerfil();
+  const podeEscolher = papel === "admin" || papel === "financeiro";
+  const [visao, setVisao] = useState<"geral" | "financeiro">(() => {
+    try { return (localStorage.getItem("erp.painel.visao") as "geral" | "financeiro") || (papel === "financeiro" ? "financeiro" : "geral"); }
+    catch { return papel === "financeiro" ? "financeiro" : "geral"; }
+  });
+  const escolher = (v: "geral" | "financeiro") => { setVisao(v); try { localStorage.setItem("erp.painel.visao", v); } catch { /* sem armazenamento */ } };
+  return (
+    <>
+      {podeEscolher && (
+        <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="Painel">
+          {([["geral", "Painel geral"], ["financeiro", "Painel financeiro"]] as const).map(([v, r]) => (
+            <button key={v} type="button" role="tab" aria-selected={visao === v} onClick={() => escolher(v)}
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${visao === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>{r}</button>
+          ))}
+        </div>
+      )}
+      {podeEscolher && visao === "financeiro" ? <PainelFinanceiro /> : <PainelGeral />}
+    </>
+  );
+}
+
+function PainelGeral() {
   const { nome, pode, podeVer } = usePerfil();
   const navigate = useNavigate();
   const [periodo, setPeriodo] = useState<Periodo>(() => {

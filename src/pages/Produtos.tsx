@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
@@ -24,12 +24,24 @@ import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } 
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
-  { value: "peca", label: "Peça de reposição" },
+  { value: "peca", label: "Peça de reposição (cliente compra)" },
   { value: "acessorio", label: "Acessório" },
-  { value: "insumo", label: "Insumo" },
+  { value: "insumo", label: "Componente de produção (uso interno)" },
 ];
 
-const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças", acessorio: "Acessórios", insumo: "Insumos" };
+const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção" };
+
+/** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
+type Cadastro = "maquinas" | "pecas" | "componentes" | "todos";
+const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
+  { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-[#10b981] to-[#059669]",
+    padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
+  { id: "pecas", titulo: "Peças de reposição", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-[#0ea5e9] to-[#2563eb]",
+    padrao: { tipo: "peca", vendavel: true, no_catalogo: true } },
+  { id: "componentes", titulo: "Componentes de produção", ajuda: "O que vai dentro das máquinas (ficha técnica). Peça de reposição que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-[#f97316] to-[#dc2626]",
+    padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
+  { id: "todos", titulo: "Todos", ajuda: "Todos os produtos, de qualquer cadastro.", cor: "from-[#64748b] to-[#334155]", padrao: {} },
+];
 const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
 const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [
   { label: "Tipo", opcoes: Object.entries(TIPOS_PRODUTO).map(([v, label]) => ({ label, teste: (r: Produto) => r.tipo === v })) },
@@ -90,10 +102,40 @@ export default function Produtos() {
   const [importar, setImportar] = useState(false);
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
+  const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
+  const [cadastro, setCadastro] = useState<Cadastro>(() => { try { return (localStorage.getItem("erp.produtos.cadastro") as Cadastro) || "pecas"; } catch { return "pecas"; } });
+  const escolherCadastro = (c: Cadastro) => { setCadastro(c); try { localStorage.setItem("erp.produtos.cadastro", c); } catch { /* sem armazenamento */ } };
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
   const saldo = (p: string, u: string) => Number(saldos.find((s) => s.produto_id === p && s.unidade_id === u)?.quantidade ?? 0);
+  // componentes da ficha técnica das máquinas: são da produção (mesmo os que também vendemos como reposição)
+  const naProducao = useMemo(() => new Set(fichas.map((f) => f.componente_id)), [fichas]);
+  const doCadastro = useMemo(() => ({
+    maquinas: (r: Produto) => r.tipo === "maquina",
+    pecas: (r: Produto) => r.tipo === "peca" || r.tipo === "acessorio",
+    componentes: (r: Produto) => r.tipo === "insumo" || (r.tipo !== "maquina" && naProducao.has(r.id)),
+    todos: undefined,
+  }), [naProducao]);
+  const contagem = (c: Cadastro) => (c === "todos" ? produtos.length : produtos.filter(doCadastro[c]!).length);
+  const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
+
+  /** Move os selecionados para outro cadastro (o banco pede o motivo quando o produto já foi movimentado). */
+  async function moverPara(ids: string[], tipo: string, nome: string) {
+    const motivo = prompt(`Mover ${ids.length} produto(s) para "${nome}". Motivo (fica no histórico):`, "Separação dos cadastros: máquinas, peças de reposição e componentes")?.trim();
+    if (!motivo) return "Nada mudou";
+    const extra = tipo === "insumo" ? { vendavel: false, no_catalogo: false } : {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await supabase.from("produtos").update({ tipo, motivo_alteracao: motivo, ...extra }).in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+    }
+    return `${ids.length} produto(s) agora em ${nome}`;
+  }
+  async function catalogo(ids: string[], no: boolean) {
+    const { error } = await supabase.from("produtos").update({ no_catalogo: no }).in("id", ids);
+    if (error) throw error;
+    return `${ids.length} produto(s) ${no ? "no catálogo" : "fora do catálogo"}`;
+  }
   const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo));
   const consumo = resumoMovimentos(movimentos, hoje());
   const unidadesUsadas = [...new Set(produtos.map((p) => String(p.unidade ?? "").toUpperCase()))].filter((u) => u && !UNIDADES.some(([c]) => c === u));
@@ -125,13 +167,26 @@ export default function Produtos() {
         </div>
       )}
 
+      <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Cadastro de produtos">
+        {CADASTROS.map((c) => (
+          <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
+            className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
+            <span className="num text-2xl font-bold">{contagem(c.id)}</span>
+            <span className="min-w-0 text-sm font-bold leading-tight">{c.titulo}</span>
+          </button>
+        ))}
+      </div>
+      <p className="-mt-2 mb-3 text-sm text-slate-600">{atualCad.ajuda}</p>
+
       <CrudPage<Produto>
+        key={cadastro}
         anexos="produto"
-        title="Produtos e estoque"
+        title={cadastro === "todos" ? "Produtos e estoque" : atualCad.titulo}
+        filtroBase={doCadastro[cadastro]}
         readOnly={!pode("editar_produtos")}
         table="produtos"
         order="descricao"
-        defaults={{ tipo: "maquina", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, fora_de_linha: false, descricao: "", no_catalogo: false }}
+        defaults={{ tipo: "peca", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, fora_de_linha: false, descricao: "", no_catalogo: false, ...atualCad.padrao }}
         searchKeys={["descricao", "sku", "ncm", "marca", "modelo", "categoria", "codigo_barras", "codigo_fabricante", "codigos_alternativos"]}
         editarAgora={editarAgora}
         filtros={FILTROS_PRODUTO}
@@ -141,6 +196,10 @@ export default function Produtos() {
         acoesLote={pode("editar_produtos") ? [
           { label: "Inativar", executar: (ids) => situacaoProdutos(ids, false) },
           { label: "Ativar", executar: (ids) => situacaoProdutos(ids, true) },
+          ...(cadastro !== "maquinas" ? [{ label: "Mover para Máquinas", executar: (ids: string[]) => moverPara(ids, "maquina", "Máquinas") }] : []),
+          ...(cadastro !== "pecas" ? [{ label: "Mover para Peças de reposição", executar: (ids: string[]) => moverPara(ids, "peca", "Peças de reposição") }] : []),
+          ...(cadastro !== "componentes" ? [{ label: "Mover para Componentes de produção", executar: (ids: string[]) => moverPara(ids, "insumo", "Componentes de produção") }] : []),
+          ...(cadastro === "pecas" ? [{ label: "Pôr no catálogo", executar: (ids: string[]) => catalogo(ids, true) }, { label: "Tirar do catálogo", executar: (ids: string[]) => catalogo(ids, false) }] : []),
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={pode("editar_produtos") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
@@ -281,6 +340,8 @@ export default function Produtos() {
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
                   <div className="text-xs text-slate-500">{[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}{r.vendavel === false && " · não vende"}</div>
+                  {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
+                  {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[11px] font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
                   {(r.ativo === false || r.fora_de_linha) && <span className="text-xs font-semibold text-slate-500">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
                   {r.no_catalogo && (pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })
                     ? <span className="text-xs font-semibold text-amber-700">catálogo: {pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })}</span>
@@ -289,7 +350,7 @@ export default function Produtos() {
               </div>
             ),
           },
-          { label: "Tipo", render: (r) => tipos.find((t) => t.value === r.tipo)?.label },
+          { label: "Cadastro", render: (r) => ({ maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção" } as Record<string, string>)[r.tipo] ?? r.tipo },
           { label: "Venda", render: (r) => brl(r.preco_venda), className: "text-right" },
           {
             label: "Estoque",

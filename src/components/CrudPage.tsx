@@ -68,6 +68,8 @@ type Props<T> = {
   plural?: string;
   /** Outras ações para os selecionados (ex.: inativar produtos). Devolve a mensagem de sucesso. */
   acoesLote?: { label: string; executar: (ids: string[]) => Promise<string | void> }[];
+  /** Recorte fixo da lista (ex.: só as máquinas); a busca e os filtros valem dentro dele. */
+  filtroBase?: (row: T) => boolean;
   /** Abre o formulário deste registro (ex.: "Corrigir" vindo de outra aba). Mande um objeto novo a cada pedido. */
   editarAgora?: T | null;
 };
@@ -78,7 +80,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const { title, table, fields, columns, searchKeys, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos,
     filtros = [], ordens = [], podeExcluir = false, plural = "registros", acoesLote = [] } = props;
   const selecionavel = podeExcluir || acoesLote.length > 0;
-  const { data = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
+  const { data: todos = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
+  const filtroBase = props.filtroBase;
+  const data = useMemo(() => (filtroBase ? todos.filter(filtroBase) : todos), [todos, filtroBase]);
   const save = useSave(table);
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Record<string, any> | null>(null);

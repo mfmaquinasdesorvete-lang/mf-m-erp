@@ -128,7 +128,7 @@ const combina = (m: Item, termo: string) => {
 const ATALHOS: Record<string, string[]> = {
   admin: ["/", "/pedidos", "/assistencia", "/financeiro"],
   vendas: ["/", "/pedidos", "/clientes", "/garantias"],
-  financeiro: ["/", "/financeiro", "/producao", "/notas"],
+  financeiro: ["/", "/financeiro", "/conciliacao", "/notas"],
   tecnico: ["/", "/assistencia", "/garantias", "/producao"],
   contador: ["/contador", "/notas", "/financeiro", "/documentos"],
 };
