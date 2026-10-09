@@ -6,6 +6,7 @@
 // =====================================================================
 
 import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
+import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
 type Db = Record<string, Row[]>;
@@ -375,33 +376,107 @@ function fretesDemo(db: Db) {
       endereco_destino: c.logradouro ? `${c.logradouro}, ${c.numero ?? ""}` : null, valor_mercadoria: p?.valor_total ?? 0, seguro: true, tipo_equipamento: null, restricoes: [], restricoes_obs: null,
       prazo_desejado: null, modalidade: "cif", pagador: "empresa", centro_custo_id: null, transportadora_id: null, transportadora_nome: null, prazo_dias: null, valor_aprovado: null,
       aprovado_em: null, aprovado_por: null, coleta_prevista: null, coletado_em: null, codigo_rastreio: null, entrega_prevista: null, entregue_em: null, comprovante_em: null,
-      valor_final: null, cte_numero: null, observacoes: null, created_at: quando(-5), ...x,
+      valor_final: null, cte_numero: null, observacoes: null, created_at: quando(-5),
+      valor_cobrado_cliente: p ? Number(p.frete ?? 0) : null, tipo_servico: null, tabela_versao: null, valor_cotado: null, cotacao_aprovada_id: null, justificativa_escolha: null,
+      sem_comprovante_motivo: null, sem_comprovante_por: null, sem_comprovante_em: null, conferencia_obs: null, conferido_por: null, conferido_em: null,
+      conta_pagar_id: null, motivo_excecao: null, ...x,
     });
+  };
+  // cotação com adicionais e total (no sistema real o total vem do gatilho)
+  const cot = (id: string, envio_id: string, transportadora_id: string | null, valor: number, x: Row = {}): Row => {
+    const adicionais: Row[] = x.adicionais ?? [];
+    return {
+      id, envio_id, transportadora_id, transportadora_nome: null, valor, prazo_dias: 4, validade: dias(5), observacoes: null, escolhida: false, ativa: true,
+      created_at: quando(-1), tipo_servico: "padrao", tabela_versao: null, ...x, adicionais, valor_total: r2(valor + adicionais.reduce((s, a) => s + Number(a.valor), 0)),
+    };
   };
   const maq300 = { embalagem_id: "em1", descricao: "Engradado MF-300 · Máquina de Sorvete Soft MF-300", quantidade: 1, largura_cm: 80, altura_cm: 150, comprimento_cm: 70, peso_kg: 165 };
   const maq150 = { embalagem_id: "em2", descricao: "Caixa MF-150 Balcão · Máquina MF-150", quantidade: 2, largura_cm: 60, altura_cm: 90, comprimento_cm: 75, peso_kg: 78 };
   const pecas = { embalagem_id: "em4", descricao: "Caixa de peças P", quantidade: 1, largura_cm: 30, altura_cm: 20, comprimento_cm: 40, peso_kg: 4 };
+  const hora = (d: number, h: number) => new Date(Date.now() + d * 864e5 + h * 36e5).toISOString();
+  const shake = { embalagem_id: null, descricao: "Caixa MF-MS2 · Máquina de Milk Shake", quantidade: 2, largura_cm: 40, altura_cm: 65, comprimento_cm: 35, peso_kg: 18 };
   db.envios = [
     envio("ev1", 1, { pedido_id: "pd1", status: "entregue", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe", "empilhadeira"], transportadora_id: "t1",
-      prazo_dias: 4, valor_aprovado: 690, aprovado_em: quando(-30), coletado_em: dias(-28), codigo_rastreio: "RDN-558120", entrega_prevista: dias(-24), entregue_em: dias(-24), valor_final: 780, cte_numero: "CT-e 4471", created_at: quando(-31) }),
+      prazo_dias: 4, valor_aprovado: 690, aprovado_em: quando(-30), coletado_em: dias(-28), codigo_rastreio: "RDN-558120", entrega_prevista: dias(-24), entregue_em: dias(-24), valor_final: 780, cte_numero: "CT-e 4471", created_at: quando(-31),
+      tipo_servico: "padrao", tabela_versao: "RDN 2026/09", valor_cotado: 690, cotacao_aprovada_id: "ec0", aprovado_por: "u-vendas" }),
     envio("ev2", 2, { pedido_id: "pd2", status: "entregue", volumes: [maq150], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", restricoes: ["manter_em_pe"], modalidade: "fob", pagador: "cliente", transportadora_id: "t2",
-      prazo_dias: 5, valor_aprovado: 845, aprovado_em: quando(-6), coletado_em: dias(-5), codigo_rastreio: "BRP-90311", entrega_prevista: dias(-1), entregue_em: dias(-1), comprovante_em: dias(-1), valor_final: 845, created_at: quando(-6) }),
+      prazo_dias: 5, valor_aprovado: 845, aprovado_em: quando(-6), coletado_em: dias(-5), codigo_rastreio: "BRP-90311", entrega_prevista: dias(-1), entregue_em: dias(-1), comprovante_em: dias(-1), valor_final: 845, created_at: quando(-6),
+      tipo_servico: "economico", tabela_versao: "BRP-2026", valor_cotado: 845, cotacao_aprovada_id: "ec7", aprovado_por: "u-vendas" }),
     envio("ev3", 3, { status: "cotacao", volumes: [pecas], tipo_equipamento: "Peças e acessórios", cep_destino: "01310100", cidade_destino: "São Paulo", uf_destino: "SP", valor_mercadoria: 1250, centro_custo_id: "cc3",
       observacoes: "Peças para o técnico de SP (OS de garantia)", created_at: quando(-1) }),
     envio("ev4", 4, { status: "aprovacao", volumes: [{ ...maq300, peso_kg: 165 }], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe", "sem_doca", "agendar"], cep_destino: "90010000", cidade_destino: "Porto Alegre", uf_destino: "RS",
       valor_mercadoria: 23900, prazo_desejado: dias(8), created_at: quando(-2) }),
     envio("ev5", 5, { status: "coleta", volumes: [maq150], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", cep_destino: "80010000", cidade_destino: "Curitiba", uf_destino: "PR", valor_mercadoria: 29000,
-      transportadora_id: "t2", prazo_dias: 3, valor_aprovado: 520, aprovado_em: quando(-4), coleta_prevista: dias(-1), created_at: quando(-5) }),
+      transportadora_id: "t2", prazo_dias: 3, valor_aprovado: 520, aprovado_em: quando(-4), coleta_prevista: dias(-1), created_at: quando(-5),
+      tipo_servico: "expresso", tabela_versao: "BRP-2026", valor_cotado: 520, cotacao_aprovada_id: "ec3", aprovado_por: "u-vendas" }),
     envio("ev6", 6, { status: "transito", volumes: [pecas, { ...pecas, descricao: "Fardo Franquia", embalagem_id: "em3", largura_cm: 27, altura_cm: 17, comprimento_cm: 46, peso_kg: 11, quantidade: 3 }], tipo_equipamento: "Peças e acessórios",
-      cep_destino: "38400000", cidade_destino: "Uberlândia", uf_destino: "MG", valor_mercadoria: 3400, transportadora_id: "t3", prazo_dias: 2, valor_aprovado: 210, aprovado_em: quando(-3), coletado_em: dias(-2), entrega_prevista: dias(0), created_at: quando(-3) }),
+      cep_destino: "38400000", cidade_destino: "Uberlândia", uf_destino: "MG", valor_mercadoria: 3400, transportadora_id: "t3", prazo_dias: 2, valor_aprovado: 210, aprovado_em: quando(-3), coletado_em: dias(-2), entrega_prevista: dias(0), created_at: quando(-3),
+      tipo_servico: "economico", tabela_versao: "MOG 2026/10", valor_cotado: 210, cotacao_aprovada_id: "ec5", aprovado_por: "u-vendas" }),
     envio("ev7", 7, { status: "transito", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe"], cep_destino: "74000000", cidade_destino: "Goiânia", uf_destino: "GO", valor_mercadoria: 23900,
-      transportadora_id: "t1", prazo_dias: 4, valor_aprovado: 980, aprovado_em: quando(-9), coletado_em: dias(-8), codigo_rastreio: "RDN-559004", entrega_prevista: dias(-2), prazo_desejado: dias(-1), created_at: quando(-10) }),
+      transportadora_id: "t1", prazo_dias: 4, valor_aprovado: 980, aprovado_em: quando(-9), coletado_em: dias(-8), codigo_rastreio: "RDN-559004", entrega_prevista: dias(-2), prazo_desejado: dias(-1), created_at: quando(-10),
+      tipo_servico: "padrao", tabela_versao: "RDN 2026/09", valor_cotado: 980, cotacao_aprovada_id: "ec6", aprovado_por: "u-fin" }),
+    // meses anteriores: entregues, para os indicadores do mês terem o que mostrar
+    envio("ev8", 8, { pedido_id: "ph0", status: "entregue", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe"], valor_mercadoria: 24470, transportadora_id: "t1",
+      prazo_dias: 4, valor_aprovado: 650, valor_cotado: 650, aprovado_em: hora(-43, 2), aprovado_por: "u-vendas", coletado_em: dias(-42), codigo_rastreio: "RDN-551870", entrega_prevista: dias(-38), entregue_em: dias(-38),
+      comprovante_em: dias(-37), valor_final: 650, cte_numero: "CT-e 4102", tipo_servico: "padrao", tabela_versao: "RDN 2026/08", cotacao_aprovada_id: "ec8", conta_pagar_id: "cpf8", created_at: quando(-44) }),
+    envio("ev9", 9, { pedido_id: "ph1", status: "entregue", volumes: [{ ...maq150, quantidade: 1 }], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", valor_mercadoria: 14500, transportadora_id: "t2",
+      prazo_dias: 2, valor_aprovado: 820, valor_cotado: 820, aprovado_em: hora(-57, 3), aprovado_por: "u-vendas", coletado_em: dias(-56), codigo_rastreio: "BRP-87002", entrega_prevista: dias(-54), entregue_em: dias(-53),
+      comprovante_em: dias(-52), valor_final: 870, cte_numero: "CT-e 88120", tipo_servico: "expresso", tabela_versao: "BRP-2026", cotacao_aprovada_id: "ec9", conta_pagar_id: "cpf9", created_at: quando(-58),
+      conferencia_obs: "CT-e cobrou TDE de R$ 50 (cliente em zona de restrição); aceito, a Braspress confirmou a tabela", conferido_por: "u-fin", conferido_em: quando(-50) }),
+    envio("ev10", 10, { pedido_id: "ph2", status: "entregue", volumes: [shake], tipo_equipamento: "Máquina de Milk Shake MF-MS2", valor_mercadoria: 7947, transportadora_id: "t3",
+      prazo_dias: 3, valor_aprovado: 380, valor_cotado: 380, aprovado_em: hora(-74, 0), aprovado_por: "u-fin", coletado_em: dias(-73), codigo_rastreio: "MOG-22013", entrega_prevista: dias(-69), entregue_em: dias(-69),
+      comprovante_em: dias(-68), valor_final: 380, cte_numero: "CT-e 3310", tipo_servico: "economico", tabela_versao: "MOG 2026/07", cotacao_aprovada_id: "ec10", created_at: quando(-76) }),
+    envio("ev11", 11, { pedido_id: "ph3", status: "entregue", volumes: [maq150], tipo_equipamento: "Máquina de Sorvete Expressa MF-150 Balcão", restricoes: ["manter_em_pe"], valor_mercadoria: 28400, transportadora_id: "t1",
+      prazo_dias: 4, valor_aprovado: 990, valor_cotado: 990, aprovado_em: hora(-19, 4), aprovado_por: "u-vendas", coletado_em: dias(-18), codigo_rastreio: "RDN-556640", entrega_prevista: dias(-14), entregue_em: dias(-12),
+      valor_final: 990, cte_numero: "CT-e 4390", tipo_servico: "padrao", tabela_versao: "RDN 2026/09", cotacao_aprovada_id: "ec11", created_at: quando(-20),
+      sem_comprovante_motivo: "Cliente recebeu e não assinou o canhoto; confirmou o recebimento por WhatsApp", sem_comprovante_por: "u-vendas", sem_comprovante_em: quando(-11) }),
+    envio("ev12", 12, { pedido_id: "ph4", status: "entregue", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe"], valor_mercadoria: 23900, transportadora_id: "t2",
+      prazo_dias: 4, valor_aprovado: 410, valor_cotado: 410, aprovado_em: hora(-14, 6), aprovado_por: "u-vendas", coletado_em: dias(-13), codigo_rastreio: "BRP-89411", entrega_prevista: dias(-9), entregue_em: dias(-9),
+      comprovante_em: dias(-8), valor_final: 410, cte_numero: "CT-e 88731", tipo_servico: "economico", tabela_versao: "BRP-2026", cotacao_aprovada_id: "ec12", conta_pagar_id: "cpf12", created_at: quando(-15) }),
+    envio("ev13", 13, { status: "entregue", volumes: [maq300], tipo_equipamento: "Máquina de Sorvete Soft MF-300", restricoes: ["manter_em_pe"], cep_destino: "90010000", cidade_destino: "Porto Alegre", uf_destino: "RS", valor_mercadoria: 23900,
+      transportadora_id: "t2", prazo_dias: 2, valor_aprovado: 1450, valor_cotado: 1450, aprovado_em: hora(-24, 3), aprovado_por: "u-vendas", coletado_em: dias(-23), codigo_rastreio: "BRP-88100", entrega_prevista: dias(-21), entregue_em: dias(-21),
+      comprovante_em: dias(-20), valor_final: 1450.5, cte_numero: "CT-e 88402", tipo_servico: "expresso", tabela_versao: "BRP-2026", cotacao_aprovada_id: "ec13b", created_at: quando(-25),
+      justificativa_escolha: "Cliente precisava antes do feriado: a Rodonaves só entregava em 6 dias" }),
+    envio("ev14", 14, { status: "entregue", volumes: [pecas], tipo_equipamento: "Peças e acessórios", cep_destino: "80010000", cidade_destino: "Curitiba", uf_destino: "PR", valor_mercadoria: 1800,
+      transportadora_id: "t1", prazo_dias: 3, valor_aprovado: 180, valor_cotado: 180, aprovado_em: hora(-7, 3), aprovado_por: "u-vendas", coletado_em: dias(-6), codigo_rastreio: "RDN-560221", entrega_prevista: dias(-3), entregue_em: dias(-3),
+      comprovante_em: dias(-2), valor_final: 180, cte_numero: "CT-e 4502", tipo_servico: "padrao", tabela_versao: "RDN 2026/10", cotacao_aprovada_id: "ec14", created_at: quando(-8) }),
+    envio("ev15", 15, { status: "entregue", volumes: [pecas, { ...pecas, quantidade: 2 }], tipo_equipamento: "Peças e acessórios", cep_destino: "01310100", cidade_destino: "São Paulo", uf_destino: "SP", valor_mercadoria: 2600,
+      transportadora_id: "t3", prazo_dias: 2, valor_aprovado: 260, valor_cotado: 260, aprovado_em: hora(-7, 8), aprovado_por: "u-fin", coletado_em: dias(-5), codigo_rastreio: "MOG-22988", entrega_prevista: dias(-2), entregue_em: dias(-1),
+      comprovante_em: dias(-1), valor_final: 295, cte_numero: "CT-e 3502", tipo_servico: "economico", tabela_versao: "MOG 2026/10", cotacao_aprovada_id: "ec15", created_at: quando(-7) }),
   ];
   db.envio_cotacoes = [
-    { id: "ec1", envio_id: "ev4", transportadora_id: "t1", transportadora_nome: null, valor: 1180, prazo_dias: 5, validade: dias(3), observacoes: "veículo com plataforma", escolhida: false, ativa: true, created_at: quando(-1) },
-    { id: "ec2", envio_id: "ev4", transportadora_id: "t2", transportadora_nome: null, valor: 1320, prazo_dias: 4, validade: dias(2), observacoes: "seguro incluso", escolhida: false, ativa: true, created_at: quando(-1) },
-    { id: "ec3", envio_id: "ev5", transportadora_id: "t2", transportadora_nome: null, valor: 520, prazo_dias: 3, validade: null, observacoes: null, escolhida: true, ativa: true, created_at: quando(-4) },
+    cot("ec0", "ev1", "t1", 690, { prazo_dias: 4, validade: dias(-26), escolhida: true, tabela_versao: "RDN 2026/09", created_at: hora(-31, 6) }),
+    cot("ec1", "ev4", "t1", 1100, { prazo_dias: 5, validade: dias(3), observacoes: "veículo com plataforma", tabela_versao: "RDN 2026/10", adicionais: [{ tipo: "tde", valor: 80 }] }),
+    cot("ec2", "ev4", "t2", 1250, { prazo_dias: 3, validade: dias(2), observacoes: "seguro incluso", tipo_servico: "expresso", tabela_versao: "BRP-2026", adicionais: [{ tipo: "gris", valor: 40 }, { tipo: "pedagio", valor: 30 }] }),
+    cot("ec4", "ev4", "t3", 990, { prazo_dias: 7, validade: dias(-2), observacoes: "tabela de agosto", tipo_servico: "economico", tabela_versao: "MOG 2026/08", created_at: hora(-2, 3) }),
+    cot("ec3", "ev5", "t2", 520, { prazo_dias: 3, validade: dias(1), escolhida: true, tipo_servico: "expresso", tabela_versao: "BRP-2026", created_at: hora(-5, 4) }),
+    cot("ec5", "ev6", "t3", 210, { prazo_dias: 2, validade: dias(4), escolhida: true, tipo_servico: "economico", tabela_versao: "MOG 2026/10", created_at: hora(-3, 1) }),
+    cot("ec6", "ev7", "t1", 980, { prazo_dias: 4, validade: dias(-5), escolhida: true, tabela_versao: "RDN 2026/09", created_at: hora(-10, 3) }),
+    cot("ec7", "ev2", "t2", 845, { prazo_dias: 5, validade: dias(-1), escolhida: true, tipo_servico: "economico", tabela_versao: "BRP-2026", created_at: hora(-6, 2) }),
+    cot("ec8", "ev8", "t1", 650, { validade: dias(-40), escolhida: true, tabela_versao: "RDN 2026/08", created_at: hora(-44, 5) }),
+    cot("ec9", "ev9", "t2", 820, { prazo_dias: 2, validade: dias(-55), escolhida: true, tipo_servico: "expresso", tabela_versao: "BRP-2026", created_at: hora(-58, 20) }),
+    cot("ec10", "ev10", "t3", 380, { prazo_dias: 3, validade: dias(-72), escolhida: true, tipo_servico: "economico", tabela_versao: "MOG 2026/07", created_at: hora(-75, 10) }),
+    cot("ec11", "ev11", "t1", 990, { validade: dias(-16), escolhida: true, tabela_versao: "RDN 2026/09", created_at: hora(-20, 7) }),
+    cot("ec12", "ev12", "t2", 410, { validade: dias(-11), escolhida: true, tipo_servico: "economico", tabela_versao: "BRP-2026", created_at: hora(-15, 3) }),
+    cot("ec13a", "ev13", "t1", 1290, { prazo_dias: 6, validade: dias(-22), tabela_versao: "RDN 2026/09", created_at: hora(-25, 2) }),
+    cot("ec13b", "ev13", "t2", 1380, { prazo_dias: 2, validade: dias(-22), escolhida: true, tipo_servico: "expresso", tabela_versao: "BRP-2026", adicionais: [{ tipo: "gris", valor: 70 }], created_at: hora(-25, 4) }),
+    cot("ec14", "ev14", "t1", 180, { prazo_dias: 3, validade: dias(-4), escolhida: true, tabela_versao: "RDN 2026/10", created_at: hora(-8, 6) }),
+    cot("ec15", "ev15", "t3", 260, { prazo_dias: 2, validade: dias(-4), escolhida: true, tipo_servico: "economico", tabela_versao: "MOG 2026/10", created_at: hora(-7, 2) }),
   ];
+  db.envio_excecoes = [
+    { id: "ex1", envio_id: "ev13", tipo: "cotacao_mais_cara", justificativa: "Cliente precisava antes do feriado: a Rodonaves só entregava em 6 dias",
+      detalhe: "Braspress por R$ 1.450,00; a mais barata válida era Rodonaves por R$ 1.290,00", valor: 160, created_by: "u-vendas", created_at: hora(-24, 3) },
+    { id: "ex2", envio_id: "ev9", tipo: "conferencia_frete", justificativa: "CT-e cobrou TDE de R$ 50 (cliente em zona de restrição); aceito, a Braspress confirmou a tabela",
+      detalhe: "Aprovado R$ 820,00 · faturado R$ 870,00", valor: 50, created_by: "u-fin", created_at: quando(-50) },
+    { id: "ex3", envio_id: "ev11", tipo: "sem_comprovante", justificativa: "Cliente recebeu e não assinou o canhoto; confirmou o recebimento por WhatsApp", detalhe: null, valor: null, created_by: "u-vendas", created_at: quando(-11) },
+  ];
+  // frete pago: contas a pagar dos envios já fechados
+  const contaFrete = (id: string, envio: number, transp: string, doc: string, valor: number, venc: number, pago: boolean) => ({
+    id, descricao: `Frete envio #${envio} · ${transp}`, categoria: "frete", documento: doc, valor, vencimento: dias(venc), status: pago ? "pago" : "aberto",
+    data_pagamento: pago ? dias(venc) : null, valor_pago: pago ? valor : null, unidade_id: U_SC, rateio: [], observacoes: `Gerado pelo ERP a partir do envio #${envio}`, created_at: quando(venc - 20),
+  });
+  db.contas_pagar.push(contaFrete("cpf8", 8, "Rodonaves", "CT-e 4102", 650, -20, true), contaFrete("cpf9", 9, "Braspress", "CT-e 88120", 870, -35, true),
+    contaFrete("cpf12", 12, "Braspress", "CT-e 88731", 410, 15, false));
   // um recibo de exemplo (conta recebida)
   const paga = db.contas_receber.find((c) => c.status === "pago" && c.cliente_id);
   const cliPaga = paga ? db.clientes.find((c) => c.id === paga.cliente_id) : null;
@@ -414,6 +489,12 @@ function fretesDemo(db: Db) {
   db.envio_ocorrencias = [
     { id: "eo1", envio_id: "ev7", tipo: "atraso", descricao: "Carga parada no centro de distribuição de Goiânia", responsavel: null, andamento: null, status: "aberta", resolvida_em: null, created_at: quando(-4), atualizado_em: quando(-4) },
     { id: "eo2", envio_id: "ev1", tipo: "cobranca", descricao: "CT-e veio R$ 90 acima da cotação (taxa de descarga)", responsavel: "Rafael", andamento: "Pedimos o abatimento à Rodonaves", status: "aberta", resolvida_em: null, created_at: quando(-20), atualizado_em: quando(-1) },
+    { id: "eo3", envio_id: "ev10", tipo: "avaria", descricao: "Lateral do gabinete amassada na descarga", responsavel: "Rafael", andamento: "Fotos enviadas à Mogiana", status: "resolvida",
+      resolucao: "Mogiana reembolsou o conserto (R$ 180) no abatimento da fatura", resolvida_por: "u-fin", resolvida_em: quando(-60), created_at: quando(-69), atualizado_em: quando(-60) },
+    { id: "eo4", envio_id: "ev11", tipo: "reentrega", descricao: "Cliente fechado na primeira tentativa de entrega", responsavel: "Carla", andamento: null, status: "resolvida",
+      resolucao: "Reentregue no dia seguinte sem custo extra (combinado com a Rodonaves)", resolvida_por: "u-vendas", resolvida_em: quando(-12), created_at: quando(-13), atualizado_em: quando(-12) },
+    { id: "eo5", envio_id: "ev9", tipo: "atraso", descricao: "Entrega um dia depois do previsto (chuva na rodovia)", responsavel: "Carla", andamento: null, status: "resolvida",
+      resolucao: "Cliente avisado no mesmo dia; sem prejuízo", resolvida_por: "u-vendas", resolvida_em: quando(-53), created_at: quando(-54), atualizado_em: quando(-53) },
   ];
 }
 
@@ -438,6 +519,103 @@ function calcularEnvioDemo(e: Row): Row {
     e.entrega_prevista = d.toISOString().slice(0, 10);
   }
   return e;
+}
+
+// ---------------------------------------------------------------------
+// Regras dos fretes (no sistema real: gatilhos da migração 0020). Validam e completam a linha antes de gravar.
+// ---------------------------------------------------------------------
+const REGRAS_FRETE = new Set(["envios", "envio_cotacoes", "envio_ocorrencias"]);
+const TIPOS_ADICIONAL_DEMO = ["tde", "trt", "agendamento", "pedagio", "gris", "ad_valorem", "outro"];
+const ROTULO_ADICIONAL_DEMO: Record<string, string> = { tde: "TDE", trt: "TRT", agendamento: "Agendamento", pedagio: "Pedágio", gris: "GRIS", ad_valorem: "Ad valorem", outro: "Outro" };
+const nomeTranspDemo = (id?: string | null, nome?: string | null) => db.transportadoras.find((t) => t.id === id)?.nome ?? (nome?.trim() || "sem transportadora");
+const brlTxt = (v: unknown) => `R$ ${r2(Number(v ?? 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const numOuNulo = (v: unknown) => (v == null || v === "" ? null : Number(v));
+const texto = (v: unknown) => String(v ?? "").trim() || null;
+function excecaoDemo(envio_id: string, tipo: string, justificativa: string, detalhe: string | null = null, valor: number | null = null) {
+  (db.envio_excecoes ??= []).push({ id: uid(), envio_id, tipo, justificativa, detalhe, valor, created_by: sessao?.user.id ?? null, created_at: new Date().toISOString() });
+}
+
+function regraFreteDemo(tabela: string, antes: Row | null, n: Row): string | null {
+  const eu = sessao?.user.id ?? null, agora = new Date().toISOString();
+  if (tabela === "envio_cotacoes") {
+    n.adicionais = Array.isArray(n.adicionais) ? n.adicionais : [];
+    for (const a of n.adicionais) {
+      if (!TIPOS_ADICIONAL_DEMO.includes(a.tipo)) return "adicional inválido: use TDE, TRT, agendamento, pedágio, GRIS, ad valorem ou outro";
+      if (!(Number(a.valor) >= 0)) return "informe o valor de cada adicional";
+    }
+    n.valor_total = r2(Number(n.valor) + n.adicionais.reduce((s: number, a: Row) => s + Number(a.valor), 0));
+    n.tabela_versao = texto(n.tabela_versao);
+    if (!antes) {
+      const ev = db.envios.find((x) => x.id === n.envio_id);
+      if (!cargaComparavel(ev?.volumes ?? [])) return "cotação sem medidas não é comparável: preencha largura, altura, comprimento e peso de todos os volumes (carga embalada) e salve o envio";
+      if (!n.validade) return "informe até quando a cotação vale (validade)";
+      n.escolhida = false;
+      n.tipo_servico ??= "padrao";
+    } else {
+      if (!!n.escolhida !== !!antes.escolhida) return "a cotação é escolhida pelo botão Aprovar";
+      if (antes.escolhida && (["valor", "tipo_servico", "tabela_versao", "validade", "transportadora_id", "transportadora_nome"].some((k) => (n[k] ?? null) !== (antes[k] ?? null))
+        || JSON.stringify(n.adicionais) !== JSON.stringify(antes.adicionais ?? []))) {
+        return "a cotação aprovada não muda: para um adicional que não estava previsto, use \"Adicional não previsto\" (com justificativa)";
+      }
+      if (antes.escolhida && antes.ativa && !n.ativa) return "a cotação aprovada não sai da lista: aprove outra antes";
+    }
+    return null;
+  }
+  if (tabela === "envio_ocorrencias") {
+    n.resolucao = texto(n.resolucao);
+    n.responsavel = texto(n.responsavel);
+    if (n.status === "resolvida") {
+      if (!antes || antes.status !== "resolvida" || (antes.resolucao && !n.resolucao)) {
+        if (!n.resolucao || n.resolucao.length < 3) return "para marcar como resolvida, escreva como a ocorrência foi resolvida";
+        if (!antes || antes.status !== "resolvida") n.resolvida_por = eu;
+      }
+    } else n.resolvida_por = null;
+    return null;
+  }
+  // envios
+  const motivo = String(n.motivo_excecao ?? "").trim();
+  n.sem_comprovante_motivo = texto(n.sem_comprovante_motivo);
+  n.conferencia_obs = texto(n.conferencia_obs);
+  const protegidos = ["valor_aprovado", "valor_cotado", "aprovado_em", "aprovado_por", "cotacao_aprovada_id", "justificativa_escolha", "conta_pagar_id"];
+  if (!antes) {
+    for (const k of protegidos) n[k] = null;
+    if (n.valor_cobrado_cliente == null && n.pedido_id) n.valor_cobrado_cliente = Number(db.pedidos.find((p) => p.id === n.pedido_id)?.frete ?? 0);
+  } else {
+    if (protegidos.some((k) => (n[k] ?? null) !== (antes[k] ?? null))) return "o frete aprovado e a conta a pagar mudam só pelos botões (Aprovar, Adicional não previsto, Lançar no contas a pagar)";
+    const troca = !!antes.aprovado_em && n.status !== "cancelado" && ((n.transportadora_id ?? null) !== (antes.transportadora_id ?? null)
+      || (!n.transportadora_id && (n.transportadora_nome ?? "").trim() !== (antes.transportadora_nome ?? "").trim()));
+    if (troca) {
+      if (motivo.length < 5) return `o frete já foi aprovado com ${nomeTranspDemo(antes.transportadora_id, antes.transportadora_nome)}: informe a justificativa da troca de transportadora`;
+      excecaoDemo(antes.id, "troca_transportadora", motivo, `De ${nomeTranspDemo(antes.transportadora_id, antes.transportadora_nome)} para ${nomeTranspDemo(n.transportadora_id, n.transportadora_nome)}`);
+    }
+  }
+  // sem comprovante: o motivo, com quem e quando
+  const motivoAntes = antes ? texto(antes.sem_comprovante_motivo) : null;
+  if (!n.sem_comprovante_motivo) { n.sem_comprovante_por = null; n.sem_comprovante_em = null; }
+  else if (n.sem_comprovante_motivo !== motivoAntes) {
+    if (n.sem_comprovante_motivo.length < 5) return "explique por que não há comprovante de entrega";
+    n.sem_comprovante_por = eu; n.sem_comprovante_em = agora;
+    if (antes) excecaoDemo(antes.id, "sem_comprovante", n.sem_comprovante_motivo);
+  } else { n.sem_comprovante_por = antes!.sem_comprovante_por; n.sem_comprovante_em = antes!.sem_comprovante_em; }
+  // não fecha sem prova de entrega
+  const status = n.status !== "cancelado" && n.entregue_em ? "entregue" : n.status;
+  const anexo = !!antes && (db.documentos ?? []).some((d) => d.entidade === "geral" && d.entidade_id === antes.id);
+  if (status === "entregue" && !n.comprovante_em && !n.sem_comprovante_motivo && !anexo) {
+    const provaAntes = !!antes && antes.status === "entregue" && (!!antes.comprovante_em || !!texto(antes.sem_comprovante_motivo));
+    if (!antes || antes.status !== "entregue" || provaAntes) return "para marcar como entregue, informe a data do comprovante, anexe o comprovante ou escreva por que não há comprovante";
+  }
+  // conferência do frete final: mudou o valor, confere de novo
+  const confAntes = antes ? texto(antes.conferencia_obs) : null;
+  if (antes && n.conferencia_obs === confAntes && (numOuNulo(n.valor_final) !== numOuNulo(antes.valor_final) || numOuNulo(n.valor_aprovado) !== numOuNulo(antes.valor_aprovado))) n.conferencia_obs = null;
+  if (!n.conferencia_obs) { n.conferido_por = null; n.conferido_em = null; }
+  else if (n.conferencia_obs !== confAntes) {
+    if (numOuNulo(n.valor_final) == null) return "informe o frete final faturado antes de registrar a conferência";
+    if (n.conferencia_obs.length < 5) return "escreva o que foi conferido no frete final";
+    n.conferido_por = eu; n.conferido_em = agora;
+    if (antes) excecaoDemo(antes.id, "conferencia_frete", n.conferencia_obs, `Aprovado ${brlTxt(n.valor_aprovado)} · faturado ${brlTxt(n.valor_final)}`, r2(Number(n.valor_final) - Number(n.valor_aprovado ?? 0)));
+  } else { n.conferido_por = antes!.conferido_por; n.conferido_em = antes!.conferido_em; }
+  n.motivo_excecao = null;
+  return null;
 }
 
 /** Plano de contas, centros de custo e contas fixas de exemplo. */
@@ -946,6 +1124,9 @@ class Query {
     const t = db[this.tabela];
     let linhas: Row[];
     if (this.op === "insert" || this.op === "upsert") {
+      if (REGRAS_FRETE.has(this.tabela)) {
+        for (const p of this.payload) { const falha = regraFreteDemo(this.tabela, null, p); if (falha) return erro(falha); }
+      }
       linhas = this.payload.map((p: Row) => {
         const chaves = this.conflito.length ? this.conflito : p.chave ? ["chave"] : [];
         const existente = this.op === "upsert" && chaves.length ? t.find((r) => chaves.every((k) => r[k] === p[k])) : null;
@@ -969,10 +1150,20 @@ class Query {
       const conta = this.tabela === "contas_receber" || this.tabela === "contas_pagar";
       if (conta && this.op === "delete" && linhas.length) return erro("contas não podem ser excluídas: cancele a conta informando o motivo");
       if (conta && this.op === "update" && linhas.some((r) => faltaMotivo(r, this.payload))) return erro("informe o motivo da alteração (valor, vencimento, cancelamento ou estorno)");
+      // regras dos fretes: cada linha validada e completada antes de gravar
+      const candidatos = new Map<Row, Row>();
+      if (this.op === "update" && REGRAS_FRETE.has(this.tabela)) {
+        for (const r of linhas) {
+          const cand = { ...r, ...this.payload };
+          const falha = regraFreteDemo(this.tabela, r, cand);
+          if (falha) return erro(falha);
+          candidatos.set(r, cand);
+        }
+      }
       if (this.op === "update") linhas.forEach((r) => {
         const antes = r.status;
         const copia = AUDITADAS.has(this.tabela) ? { ...r } : null;
-        Object.assign(r, this.payload);
+        Object.assign(r, candidatos.get(r) ?? this.payload);
         if (copia) { registrarDemo(this.tabela, "update", copia, { ...r }, this.payload.motivo_alteracao ?? null, "usuario"); delete r.motivo_alteracao; }
         if (this.tabela === "contas_recorrentes") aplicarRecorrenteDemo(r);
         if (this.tabela === "envios") calcularEnvioDemo(r);
@@ -1943,18 +2134,75 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     db.envios.push(novo);
     return { data: novo.id, error: null };
   },
-  aprovar_cotacao_envio: ({ p_cotacao, p_cobrar_cliente = false }) => {
+  // aprovação com as regras: carga completa, cotação na validade, justificativa se não for a mais barata válida ou se trocar a transportadora
+  aprovar_frete_envio: ({ p_cotacao, p_justificativa = null, p_cobrar_cliente = false }) => {
     const c = db.envio_cotacoes.find((x) => x.id === p_cotacao && x.ativa);
     if (!c) return erro("cotação não encontrada");
     const e = db.envios.find((x) => x.id === c.envio_id)!;
     if (["entregue", "cancelado"].includes(e.status)) return erro(`este envio já foi ${e.status}`);
-    db.envio_cotacoes.filter((x) => x.envio_id === c.envio_id).forEach((x) => (x.escolhida = x.id === c.id));
-    Object.assign(e, { transportadora_id: c.transportadora_id, transportadora_nome: c.transportadora_id ? null : c.transportadora_nome, valor_aprovado: c.valor, prazo_dias: c.prazo_dias,
-      aprovado_em: new Date().toISOString(), status: ["cotacao", "aprovacao"].includes(e.status) ? "coleta" : e.status });
+    if (c.escolhida && e.cotacao_aprovada_id === c.id) return { data: null, error: null };
+    const doEnvio = db.envio_cotacoes.filter((x) => x.envio_id === c.envio_id);
+    const r = analisarAprovacao(c as CotacaoEnvio, doEnvio as CotacaoEnvio[], e as Envio, hojeISO());
+    if (r.bloqueio) return erro(r.bloqueio);
+    const just = String(p_justificativa ?? "").trim();
+    const total = totalCotacao(c as CotacaoEnvio);
+    if (r.maisCara && just.length < 5) return erro(`esta não é a opção mais barata (${nomeTranspDemo(r.barata!.transportadora_id, r.barata!.transportadora_nome)} por ${brlTxt(totalCotacao(r.barata!))}): informe a justificativa da escolha`);
+    if (r.troca && just.length < 5) return erro(`o frete já foi aprovado com ${nomeTranspDemo(e.transportadora_id, e.transportadora_nome)}: informe a justificativa da troca de transportadora`);
+    if (r.maisCara) excecaoDemo(e.id, "cotacao_mais_cara", just, `${nomeTranspDemo(c.transportadora_id, c.transportadora_nome)} por ${brlTxt(total)}; a mais barata válida era ${nomeTranspDemo(r.barata!.transportadora_id, r.barata!.transportadora_nome)} por ${brlTxt(totalCotacao(r.barata!))}`, r2(total - totalCotacao(r.barata!)));
+    if (r.troca) excecaoDemo(e.id, "troca_transportadora", just, `De ${nomeTranspDemo(e.transportadora_id, e.transportadora_nome)} para ${nomeTranspDemo(c.transportadora_id, c.transportadora_nome)}`);
+    doEnvio.forEach((x) => (x.escolhida = x.id === c.id));
+    if (e.valor_aprovado !== total) Object.assign(e, { conferencia_obs: null, conferido_por: null, conferido_em: null });
+    Object.assign(e, { transportadora_id: c.transportadora_id, transportadora_nome: c.transportadora_id ? null : c.transportadora_nome, valor_cotado: total, valor_aprovado: total, prazo_dias: c.prazo_dias,
+      tipo_servico: c.tipo_servico ?? "padrao", tabela_versao: c.tabela_versao ?? null, cotacao_aprovada_id: c.id, justificativa_escolha: r.maisCara || r.troca ? just : null,
+      aprovado_em: new Date().toISOString(), aprovado_por: sessao?.user.id ?? null, status: ["cotacao", "aprovacao"].includes(e.status) ? "coleta" : e.status });
     const p = db.pedidos.find((x) => x.id === e.pedido_id);
-    if (p) { p.transportadora_id = c.transportadora_id; if (p_cobrar_cliente && p.status === "orcamento") Object.assign(p, { frete: c.valor, modalidade_frete: 0 }); }
+    if (p) {
+      p.transportadora_id = c.transportadora_id;
+      if (p_cobrar_cliente && p.status === "orcamento") { Object.assign(p, { frete: total, modalidade_frete: 0 }); e.valor_cobrado_cliente = total; }
+    }
     recalcular(db);
     return { data: null, error: null };
+  },
+  aprovar_cotacao_envio: ({ p_cotacao, p_cobrar_cliente = false }) => rpcs.aprovar_frete_envio({ p_cotacao, p_justificativa: null, p_cobrar_cliente }),
+  // adicional fora da cotação aprovada: só com justificativa; soma no aprovado
+  registrar_adicional_envio: ({ p_envio, p_tipo, p_valor, p_justificativa, p_descricao = null }) => {
+    const e = db.envios.find((x) => x.id === p_envio);
+    if (!e) return erro("envio não encontrado");
+    if (e.status === "cancelado") return erro("este envio foi cancelado");
+    const c = db.envio_cotacoes.find((x) => x.id === e.cotacao_aprovada_id) ?? db.envio_cotacoes.find((x) => x.envio_id === p_envio && x.escolhida && x.ativa);
+    if (!e.aprovado_em || !c) return erro("o frete ainda não foi aprovado: registre o adicional na própria cotação");
+    if (!TIPOS_ADICIONAL_DEMO.includes(p_tipo)) return erro("adicional inválido: use TDE, TRT, agendamento, pedágio, GRIS, ad valorem ou outro");
+    if (!(Number(p_valor) > 0)) return erro("informe o valor do adicional");
+    const just = String(p_justificativa ?? "").trim();
+    if (just.length < 5) return erro("adicional fora da cotação aprovada só com justificativa (quem pediu e por quê)");
+    const valor = r2(Number(p_valor));
+    c.adicionais = [...(c.adicionais ?? []), { tipo: p_tipo, ...(texto(p_descricao) ? { descricao: texto(p_descricao) } : {}), valor, previsto: false, justificativa: just, por: sessao?.user.id ?? null, em: new Date().toISOString() }];
+    c.valor_total = r2(Number(c.valor) + c.adicionais.reduce((s: number, a: Row) => s + Number(a.valor), 0));
+    if (e.valor_final != null) Object.assign(e, { conferencia_obs: null, conferido_por: null, conferido_em: null });
+    e.valor_aprovado = r2(Number(e.valor_aprovado ?? 0) + valor);
+    excecaoDemo(e.id, "adicional_nao_previsto", just, ROTULO_ADICIONAL_DEMO[p_tipo] + (texto(p_descricao) ? ` · ${texto(p_descricao)}` : ""), valor);
+    return { data: null, error: null };
+  },
+  // frete pago: lança o frete final no contas a pagar (categoria frete) e liga ao envio
+  lancar_frete_contas_pagar: ({ p_envio, p_vencimento = null }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const e = db.envios.find((x) => x.id === p_envio);
+    if (!e) return erro("envio não encontrado");
+    if (e.status === "cancelado") return erro("este envio foi cancelado");
+    if (!(Number(e.valor_final) > 0)) return erro("informe o frete final faturado pela transportadora (valor do CT-e) antes de lançar");
+    if (e.pagador !== "empresa") return erro(`o frete deste envio é pago pelo ${e.pagador === "cliente" ? "cliente" : "terceiro"}`);
+    if (e.conta_pagar_id && db.contas_pagar.some((c) => c.id === e.conta_pagar_id && c.status !== "cancelado")) return erro("o frete deste envio já está no contas a pagar");
+    if (freteDivergente(e.valor_aprovado, e.valor_final) && !e.conferido_em) return erro("o frete final diverge do aprovado: registre a conferência antes de lançar");
+    const ped = db.pedidos.find((p) => p.id === e.pedido_id);
+    const conta: Row = {
+      id: uid(), descricao: `Frete envio #${e.numero} · ${nomeTranspDemo(e.transportadora_id, e.transportadora_nome)}`, categoria: "frete", documento: texto(e.cte_numero),
+      valor: Number(e.valor_final), vencimento: p_vencimento ?? dias(30), status: "aberto", data_pagamento: null, valor_pago: null, unidade_id: e.unidade_id ?? U_SC,
+      rateio: e.centro_custo_id ? [{ centro_custo_id: e.centro_custo_id, percentual: 100 }] : [], observacoes: `Gerado pelo ERP a partir do envio #${e.numero}${ped ? ` (pedido #${ped.numero})` : ""}`, created_at: quando(0),
+    };
+    db.contas_pagar.push(conta);
+    registrarDemo("contas_pagar", "insert", null, { ...conta }, null, "sistema");
+    e.conta_pagar_id = conta.id;
+    return { data: conta.id, error: null };
   },
   escolher_cotacao_frete: ({ p_cotacao, p_cobrar_cliente = true }) => {
     const c = db.cotacoes_frete.find((x) => x.id === p_cotacao);

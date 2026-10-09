@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FreteVenda } from "@/components/FreteVenda";
+import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, RotateCcw, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
 import { pdfOrcamento } from "@/lib/pdf";
@@ -469,6 +470,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         {p.itens.length > 0 && (p.status === "orcamento" || !p.id || p.proposta_status) && (
           <PropostaPainel pedido={p} cliente={cliente} podeEditar={podeEditar} gravar={gravar} pdfBase64={pdfBase64} onAlterado={recarregar} />
         )}
+        {p.id && <OcorrenciasPedido pedidoId={p.id} statusPedido={p.status ?? ""} />}
         {p.id && <Anexos entidade="pedido" id={p.id} />}
 
         </>)}
