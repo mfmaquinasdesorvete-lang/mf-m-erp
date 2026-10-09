@@ -11,7 +11,8 @@ export type TipoExcecao =
   | "pedido_cancelado" | "os_sem_cobranca" | "saldo_divergente" | "segregacao"
   | "recebimento_sem_origem" | "recebido_a_menor" | "pagamento_fora_fluxo" | "cobranca_os_cancelada"
   | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist"
-  | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto";
+  | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto"
+  | "pedido_sem_vendedor" | "entregue_sem_nfe" | "desconto_alto" | "alteracao_pedido";
 
 export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = {
   duplicidade: { rotulo: "Possível duplicidade", criterio: "Contas a pagar do mesmo fornecedor com o mesmo valor e vencimento em até 5 dias, ou com o mesmo número de documento." },
@@ -36,6 +37,10 @@ export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = 
   produto_duplicado: { rotulo: "Produto duplicado", criterio: "Código (SKU) repetido ou descrição igual escrita de outro jeito (Produtos → Qualidade do cadastro)." },
   produto_sem_custo: { rotulo: "Produto sem custo ou preço", criterio: "Produto ativo sem custo, vendável sem preço ou com preço abaixo do custo." },
   estoque_negativo: { rotulo: "Estoque negativo", criterio: "Saldo menor que zero: falta lançar entrada ou houve baixa errada." },
+  pedido_sem_vendedor: { rotulo: "Venda sem vendedor", criterio: "Pedido aprovado, faturado ou entregue sem vendedor (a loja virtual não entra): sem comissão e sem dono da venda." },
+  entregue_sem_nfe: { rotulo: "Entregue sem NF-e", criterio: "Pedido faturado ou entregue sem NF-e autorizada em produção (a nota de teste não vale)." },
+  desconto_alto: { rotulo: "Desconto alto", criterio: "Pedido com desconto acima de 20% do valor dos itens: confira quem autorizou." },
+  alteracao_pedido: { rotulo: "Pedido alterado depois de aprovado", criterio: "Vendedor, comissão, origem ou observação alterados, ou pedido reaberto, depois da aprovação (últimos 90 dias): confira o motivo." },
   alteracao_produto: { rotulo: "Alteração de produto", criterio: "Código, unidade, tipo, custo ou preço de produto alterado à mão (últimos 90 dias): confira o motivo." },
 };
 
@@ -53,7 +58,8 @@ type Importacao = { conta_bancaria_id: string; saldo_final: number | null; saldo
 export type DadosAuditoria = {
   receber: Conta[]; pagar: Conta[]; lancamentos: Lanc[]; bancos: Banco[]; importacoes: Importacao[]; auditoria: Auditoria[];
   documentos: { entidade: string; entidade_id: string | null }[];
-  pedidos: { id: string; numero: number; status: string; valor_total?: number }[];
+  pedidos: { id: string; numero: number; status: string; valor_total?: number; valor_produtos?: number; desconto?: number; vendedor_id?: string | null; origem?: string | null;
+    notas?: { status: string; ambiente?: string | null }[] }[];
   ordens: { id: string; numero: number; status: string; em_garantia: boolean; valor_total: number }[];
   fornecedores: { id: string; nome: string }[];
   recebidas?: { id: string; chave: string; emitente_nome: string; valor_total: number; data_emissao: string | null; situacao: string; processamento: string; conta_pagar_id: string | null; estoque_lancado: boolean }[];
@@ -322,6 +328,36 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
       chave: `alteracao_produto:${a.id}`, tipo: "alteracao_produto", gravidade: "baixa", data: a.created_at.slice(0, 10), link: "/estoque",
       titulo: `${prod?.descricao ?? "Produto"} · ${campos.map((c) => `${nomes[c]} ${a.antes?.[c] ?? "vazio"} → ${a.depois?.[c] ?? "vazio"}`).join(", ")}`,
       detalhe: `${a.usuario_nome ?? "usuário"} em ${new Date(a.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${a.motivo ? ` · motivo: ${a.motivo}` : " · sem motivo"}`,
+    });
+  }
+
+  // 23 a 26. vendas
+  for (const p of d.pedidos.filter((p) => ["aprovado", "faturado", "entregue"].includes(p.status))) {
+    if (!p.vendedor_id && p.origem !== "loja" && "vendedor_id" in p) out.push({
+      chave: `pedido_sem_vendedor:${p.id}`, tipo: "pedido_sem_vendedor", gravidade: "baixa", valor: Number(p.valor_total ?? 0), link: "/pedidos",
+      titulo: `Pedido #${p.numero} sem vendedor`, detalhe: "Abra o pedido e escolha o vendedor (fica registrado com o motivo).",
+    });
+    if (p.status !== "aprovado" && p.notas && !p.notas.some((n) => n.status === "autorizada" && n.ambiente !== "homologacao")) out.push({
+      chave: `entregue_sem_nfe:${p.id}`, tipo: "entregue_sem_nfe", gravidade: "alta", valor: Number(p.valor_total ?? 0), link: "/pedidos",
+      titulo: `Pedido #${p.numero} ${p.status} sem NF-e`, detalhe: p.notas.some((n) => n.ambiente === "homologacao")
+        ? "Só tem nota de teste (homologação, sem valor fiscal). Emita a NF-e de produção." : "Mercadoria saiu sem nota fiscal: emita a NF-e.",
+    });
+    const itens = Number(p.valor_produtos ?? 0), desc = Number(p.desconto ?? 0);
+    if (itens > 0 && desc / itens > 0.2) out.push({
+      chave: `desconto_alto:${p.id}`, tipo: "desconto_alto", gravidade: "media", valor: desc, link: "/pedidos",
+      titulo: `Pedido #${p.numero}: desconto de ${Math.round((desc / itens) * 100)}%`, detalhe: `${brl(desc)} sobre ${brl(itens)} em itens. Confira quem autorizou.`,
+    });
+  }
+  const CAMPOS_PEDIDO = ["vendedor_id", "comissao_percentual", "origem", "observacoes", "status"];
+  for (const a of d.auditoria) {
+    if (a.tabela !== "pedidos" || a.acao !== "update" || !a.motivo || a.created_at.slice(0, 10) < desde) continue;
+    const reaberto = /^Reaberto:/.test(a.motivo);
+    if (!reaberto && !(a.campos ?? []).some((c) => CAMPOS_PEDIDO.includes(c))) continue;
+    const ped = d.pedidos.find((p) => p.id === a.registro_id);
+    out.push({
+      chave: `alteracao_pedido:${a.id}`, tipo: "alteracao_pedido", gravidade: reaberto ? "media" : "baixa", data: a.created_at.slice(0, 10), link: "/pedidos",
+      titulo: `Pedido #${ped?.numero ?? "?"} ${reaberto ? "reaberto" : "alterado depois de aprovado"}`,
+      detalhe: `${a.usuario_nome ?? "usuário"} em ${new Date(a.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · ${reaberto ? a.motivo : `motivo: ${a.motivo}`}`,
     });
   }
 

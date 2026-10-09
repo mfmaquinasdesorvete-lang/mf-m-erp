@@ -53,8 +53,10 @@ export const CHECKLIST: SecaoChecklist[] = [
       { id: "v2", texto: "Cancelamentos de pedidos revertem as parcelas em aberto sem apagar a trilha?", alertas: ["pedido_cancelado"] },
       { id: "v3", texto: "OS concluídas geram cobrança quando aplicável e não cobram o que é garantia?", alertas: ["os_sem_cobranca", "cobranca_os_cancelada"] },
       { id: "v4", texto: "Os custos das peças baixadas em OS podem ser relacionados ao estoque e ao serviço?" },
-      { id: "v5", texto: "Notas fiscais emitidas batem com os pedidos e os valores faturados?" },
+      { id: "v5", texto: "Notas fiscais emitidas batem com os pedidos e os valores faturados?", alertas: ["entregue_sem_nfe"] },
       { id: "v6", texto: "Recebimento não é confundido com faturamento, nem pagamento com custo reconhecido?" },
+      { id: "v7", texto: "Toda venda tem vendedor e as alterações depois da aprovação (ou a reabertura) têm motivo?", alertas: ["pedido_sem_vendedor", "alteracao_pedido"] },
+      { id: "v8", texto: "Descontos acima do padrão foram autorizados por quem pode?", alertas: ["desconto_alto"] },
     ],
   },
   {

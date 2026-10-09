@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FreteVenda } from "@/components/FreteVenda";
-import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Plus, Printer, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, RotateCcw, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
 import { pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
@@ -19,6 +19,9 @@ import { Anexos } from "@/components/Anexos";
 import { PropostaPainel } from "@/components/PropostaPainel";
 import { useEtiquetas } from "@/lib/etiquetas";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
+import { VendedorSelect } from "@/components/VendedorSelect";
+import { MotivoAcao } from "@/components/MotivoAcao";
+import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -161,11 +164,25 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: cfg } = useConfig();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const [pdf, setPdf] = useState<Blob | null>(null);
-  const [aba, setAba] = useState<"pedido" | "frete">("pedido");
+  const [aba, setAba] = useState<"pedido" | "frete" | "auditoria">("pedido");
+  const [acaoMotivo, setAcaoMotivo] = useState<"editar" | "reabrir" | null>(null);
   const invalidate = useInvalidate();
-  const { pode } = usePerfil();
+  const { pode, user_id } = usePerfil();
   const podeEditar = pode("editar_pedidos");
   const editavel = podeEditar && (!p.id || p.status === "orcamento");
+  // pedido aprovado: vendedor, comissão, origem e observações mudam com motivo; itens e valores só reabrindo
+  const ajustavel = podeEditar && !!p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "");
+  const livre = editavel || ajustavel;
+  const [salvo, setSalvo] = useState(() => ({ vendedor_id: inicial.vendedor_id ?? null, comissao_percentual: inicial.comissao_percentual ?? null, origem: inicial.origem, observacoes: inicial.observacoes ?? null }));
+  const alterado = ajustavel && (["vendedor_id", "comissao_percentual", "origem", "observacoes"] as const).some((k) => ((p as any)[k] ?? null) !== ((salvo as any)[k] ?? null));
+  // orçamento novo já vem com quem está vendendo (se a pessoa tem cadastro de vendedor)
+  const vendedorPadrao = useRef(false);
+  useEffect(() => {
+    if (vendedorPadrao.current || p.id || p.vendedor_id || !vendedores.length) return;
+    vendedorPadrao.current = true;
+    const meu = vendedores.find((v) => v.user_id === user_id && v.ativo);
+    if (meu) setP((x) => ({ ...x, vendedor_id: meu.id, vendedor: meu.nome }));
+  }, [vendedores, p.id, p.vendedor_id, user_id]);
   const cliente = clientes.find((c) => c.id === p.cliente_id);
   const subtotal = totalItens(p.itens);
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
@@ -208,16 +225,33 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (error) throw error;
     if (!p.id) setP((x) => ({ ...x, id: data.id, numero: data.numero, status: x.status ?? "orcamento" }));
 
-    const { error: delErr } = await supabase.from("pedido_itens").delete().eq("pedido_id", data.id);
-    if (delErr) throw delErr;
-    const { error: insErr } = await supabase.from("pedido_itens").insert(
-      itens.map((i: Item) => ({
-        pedido_id: data.id, produto_id: i.produto_id, descricao: i.descricao,
-        quantidade: i.quantidade, valor_unitario: i.valor_unitario, numero_serie: i.numero_serie || null,
-        kit_escolha: i.kit_escolha?.length ? i.kit_escolha : null,
-      })),
-    );
-    if (insErr) throw insErr;
+    // Grava só o que mudou nos itens (o histórico do pedido mostra o que foi incluído, alterado e removido)
+    const linha = (i: Item) => ({
+      pedido_id: data.id, produto_id: i.produto_id, descricao: i.descricao,
+      quantidade: i.quantidade, valor_unitario: i.valor_unitario, numero_serie: i.numero_serie || null,
+      kit_escolha: i.kit_escolha?.length ? i.kit_escolha : null,
+    });
+    const { data: atuais, error: lerErr } = await supabase.from("pedido_itens").select("id").eq("pedido_id", data.id);
+    if (lerErr) throw lerErr;
+    const manter = new Set(itens.filter((i: Item) => i.id).map((i: Item) => i.id));
+    const remover = (atuais ?? []).map((x: { id: string }) => x.id).filter((id: string) => !manter.has(id));
+    if (remover.length) {
+      const { error } = await supabase.from("pedido_itens").delete().in("id", remover);
+      if (error) throw error;
+    }
+    for (const i of itens.filter((i: Item) => i.id && (atuais ?? []).some((x: { id: string }) => x.id === i.id))) {
+      const { error } = await supabase.from("pedido_itens").update(linha(i)).eq("id", i.id!);
+      if (error) throw error;
+    }
+    const novos = itens.filter((i: Item) => !i.id || !(atuais ?? []).some((x: { id: string }) => x.id === i.id));
+    if (novos.length) {
+      const { data: criados, error } = await supabase.from("pedido_itens").insert(novos.map(linha)).select("id");
+      if (error) throw error;
+      // os itens novos ganham o id (salvar de novo não duplica)
+      let k = 0;
+      const comId = itens.map((i: Item) => (!i.id || !(atuais ?? []).some((x: { id: string }) => x.id === i.id) ? { ...i, id: criados?.[k++]?.id } : i));
+      setP((x) => ({ ...x, itens: comId }));
+    }
     return data.id;
   }
 
@@ -242,6 +276,24 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       if (error) throw error;
     }, "Pedido cancelado");
   };
+
+  async function editarAprovado(motivo: string) {
+    const dados = { vendedor_id: p.vendedor_id ?? "", comissao_percentual: p.comissao_percentual ?? "", origem: p.origem, observacoes: p.observacoes ?? "" };
+    const { error } = await supabase.rpc("editar_pedido_aprovado", { p_pedido: p.id, p_dados: dados, p_motivo: motivo });
+    if (error) throw error;
+    setSalvo({ vendedor_id: p.vendedor_id ?? null, comissao_percentual: p.comissao_percentual ?? null, origem: p.origem, observacoes: p.observacoes ?? null });
+    notify("Pedido alterado (comissões refeitas, se mudou o vendedor ou o %)");
+    invalidate("pedidos", "comissoes", "auditoria");
+  }
+
+  async function reabrir(motivo: string) {
+    const { error } = await supabase.rpc("reabrir_pedido", { p_pedido: p.id, p_motivo: motivo });
+    if (error) throw error;
+    const { data } = await supabase.from("pedidos").select(SELECT).eq("id", p.id!).single();
+    if (data) setP({ ...(data as any), itens: (data as any).itens ?? [] });
+    notify("Pedido reaberto: agora é orçamento. Altere e aprove de novo.");
+    invalidate("pedidos", "produtos", "contas_receber", "comissoes", "auditoria", "expedicoes");
+  }
 
   const entregar = () => executar(async () => {
     const { error } = await supabase.from("pedidos").update({ status: "entregue" }).eq("id", p.id!);
@@ -312,11 +364,25 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       <form onSubmit={salvar} className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {p.status && <Badge value={p.status} />}
-          {p.id && <Tabs value={aba} onChange={setAba} options={[{ value: "pedido", label: "Pedido" }, { value: "frete", label: "Frete e envio" }]} />}
+          {p.id && <Tabs value={aba} onChange={setAba} options={[{ value: "pedido", label: "Pedido" }, { value: "frete", label: "Frete e envio" }, { value: "auditoria", label: "Auditoria" }]} />}
         </div>
 
         {aba === "frete" && p.id && (
           <FreteVenda pedido={{ ...(p as any), cliente, itens: p.itens }} onAlterado={(patch) => set(patch as Partial<Pedido>)} />
+        )}
+
+        {aba === "auditoria" && p.id && (
+          <AuditoriaPedido pedido={{ ...(p as any), itens: p.itens }} produtos={produtos}
+            baseComissao={vendedores.find((v) => v.id === p.vendedor_id)?.base ?? null} />
+        )}
+
+        {aba === "pedido" && ajustavel && (
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+            Pedido {p.status}: vendedor, comissão, origem e observações podem ser alterados (pede o motivo, que fica na auditoria).
+            {temNotaValida
+              ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou emita uma NF de devolução."
+              : <> Para mudar itens, valores ou pagamento, use <b>Reabrir pedido</b>: o estoque volta, as parcelas em aberto são canceladas e o pedido vira orçamento de novo.</>}
+          </div>
         )}
 
         {aba === "pedido" && (<>
@@ -329,7 +395,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           </Field>
           <div className="sm:col-span-2"><CampoUnidade value={(p as any).unidade_id} disabled={!editavel} onChange={(v) => set({ unidade_id: v } as Partial<Pedido>)} /></div>
           <Field label="Origem">
-            <select className="input" value={p.origem} disabled={!editavel} onChange={(e) => set({ origem: e.target.value })}>
+            <select className="input" value={p.origem} disabled={!livre} onChange={(e) => set({ origem: e.target.value })}>
               <option value="whatsapp">WhatsApp</option>
               <option value="telefone">Telefone</option>
               <option value="presencial">Presencial</option>
@@ -338,15 +404,12 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             </select>
           </Field>
           <Field label="Vendedor / representante">
-            <select className="input" value={p.vendedor_id ?? ""} disabled={!editavel}
-              onChange={(e) => set({ vendedor_id: e.target.value || null, vendedor: vendedores.find((v) => v.id === e.target.value)?.nome ?? null, comissao_percentual: null })}>
-              <option value="">{p.vendedor && !p.vendedor_id ? p.vendedor : "—"}</option>
-              {vendedores.filter((v) => v.ativo || v.id === p.vendedor_id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-            </select>
+            <VendedorSelect value={p.vendedor_id} textoAntigo={p.vendedor} disabled={!livre}
+              onChange={(id, nome) => set({ vendedor_id: id, vendedor: nome, comissao_percentual: null })} />
           </Field>
           {p.vendedor_id && (
             <Field label="Comissão (%)">
-              <input className="input" inputMode="decimal" disabled={!editavel} value={p.comissao_percentual ?? ""} placeholder={String(vendedores.find((v) => v.id === p.vendedor_id)?.percentual ?? "")}
+              <input className="input" inputMode="decimal" disabled={!livre} value={p.comissao_percentual ?? ""} placeholder={String(vendedores.find((v) => v.id === p.vendedor_id)?.percentual ?? "")}
                 onChange={(e) => set({ comissao_percentual: e.target.value === "" ? null : Number(e.target.value.replace(",", ".")) })} />
             </Field>
           )}
@@ -380,7 +443,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             </select>
           </Field>
           <Field label="Observações" className="col-span-2 sm:col-span-4">
-            <input className="input" value={p.observacoes ?? ""} disabled={!editavel} onChange={(e) => set({ observacoes: e.target.value })} />
+            <input className="input" value={p.observacoes ?? ""} disabled={!livre} onChange={(e) => set({ observacoes: e.target.value })} />
           </Field>
         </div>
 
@@ -418,6 +481,12 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           {podeEditar && (p.status === "aprovado" || p.status === "faturado") && (
             <Button type="button" variant="secondary" onClick={entregar} disabled={ocupado}><Truck size={16} /> Marcar entregue</Button>
           )}
+          {ajustavel && !temNotaValida && (
+            <Button type="button" variant="secondary" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
+          )}
+          {ajustavel && alterado && (
+            <Button type="button" onClick={() => setAcaoMotivo("editar")} disabled={ocupado}><Pencil size={16} /> Salvar alterações</Button>
+          )}
           {editavel && <Button disabled={ocupado} variant="secondary">Salvar orçamento</Button>}
           {editavel && (
             <Button type="button" onClick={aprovar} disabled={ocupado}><CheckCircle2 size={16} /> Aprovar venda</Button>
@@ -439,6 +508,24 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             {!pendencias.some((x) => x.nivel === "erro") && <Button type="button" onClick={() => emitirNfe(true)}>Emitir mesmo assim</Button>}
           </div>
         </Modal>
+      )}
+      {acaoMotivo === "editar" && (
+        <MotivoAcao titulo={`Alterar pedido #${p.numero}`} rotulo="Salvar alterações" onConfirmar={editarAprovado} onClose={() => setAcaoMotivo(null)}>
+          <p>O pedido já foi aprovado. A alteração fica na auditoria do pedido com o seu nome e o motivo.</p>
+          {(p.vendedor_id ?? null) !== (salvo.vendedor_id ?? null) || (p.comissao_percentual ?? null) !== (salvo.comissao_percentual ?? null)
+            ? <p>As comissões deste pedido que ainda não foram pagas são refeitas com o vendedor e o percentual novos.</p> : null}
+        </MotivoAcao>
+      )}
+      {acaoMotivo === "reabrir" && (
+        <MotivoAcao titulo={`Reabrir pedido #${p.numero}`} rotulo="Reabrir pedido" perigo onConfirmar={reabrir} onClose={() => setAcaoMotivo(null)}>
+          <p>O pedido volta a ser orçamento para você mudar itens, valores e pagamento. Ao reabrir:</p>
+          <ul className="list-disc pl-5">
+            <li>o estoque que saiu volta;</li>
+            <li>as parcelas em aberto no contas a receber são canceladas (novas são geradas ao aprovar de novo);</li>
+            <li>as comissões ainda não pagas são canceladas.</li>
+          </ul>
+          <p>Não reabre se houver NF-e válida, parcela recebida ou comissão já paga.</p>
+        </MotivoAcao>
       )}
       {pdf && (
         <PdfViewer blob={pdf} nome={`${p.status && p.status !== "orcamento" ? "pedido" : "orcamento"}-${p.numero ?? "rascunho"}-mf-maquinas.pdf`}

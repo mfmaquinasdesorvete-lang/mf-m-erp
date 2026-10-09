@@ -224,8 +224,11 @@ export async function unidadePorCnpj(db: SupabaseClient, cnpj: string | null | u
  */
 export async function sincronizarRecebidas(db: SupabaseClient, avisos: string[] = []) {
   if (!recebidasDisponiveis()) {
+    // mostra o valor lido (não é segredo) para achar erro de digitação no secret
+    const env = Deno.env.get("FOCUS_NFE_ENV");
     throw new HttpError(400, "As notas de fornecedores só existem no ambiente de produção da SEFAZ (a homologação não tem notas reais). " +
-      "Cadastre no Supabase o secret FOCUS_NFE_TOKEN_PRODUCAO com o Token de Produção da Focus (matriz) e busque de novo.");
+      `O ERP leu FOCUS_NFE_ENV = ${env === undefined ? "(não cadastrado)" : `"${env}"`}: para buscar, ele precisa ser "producao" ` +
+      "ou é preciso cadastrar o secret FOCUS_NFE_TOKEN_PRODUCAO com o Token de Produção da Focus. Depois de mudar, busque de novo.");
   }
   const { data: unidades } = await db.from("unidades").select("id, codigo, nome, cnpj").eq("ativo", true);
   const comCnpj = (unidades ?? []).filter((u: any) => onlyDigits(u.cnpj).length === 14);

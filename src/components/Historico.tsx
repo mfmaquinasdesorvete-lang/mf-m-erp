@@ -20,9 +20,14 @@ export const ROTULO_CAMPO: Record<string, string> = {
   responsavel: "responsável", prazo: "prazo", impacto: "impacto", observacao: "observação", inscricao_estadual: "IE",
   sku: "código (SKU)", unidade: "unidade", tipo: "tipo", estoque_minimo: "estoque mínimo", fora_de_linha: "fora de linha",
   localizacao: "localização", ncm: "NCM", marca: "marca", modelo: "modelo",
+  vendedor: "vendedor", comissao_percentual: "comissão (%)", origem: "origem", aprovado_em: "aprovado em", reaberto_em: "reaberto em",
+  estoque_baixado: "estoque baixado", frete: "frete", valor_total: "total", modalidade_frete: "frete por conta", unidade_id: "unidade",
+  primeiro_vencimento: "1º vencimento", codigo_rastreio: "rastreio", marcadores: "marcadores", observacao_interna: "observação interna",
 };
+/** Itens do pedido no histórico do pedido. */
+const ITEM: Record<string, string> = { item_incluido: "incluiu item", item_removido: "removeu item", item_alterado: "alterou item" };
 const DINHEIRO = ["valor", "valor_pago", "desconto", "preco_venda", "preco_custo", "saldo_inicial", "valor_total", "frete"];
-const DATA = ["vencimento", "data_pagamento", "prazo", "data"];
+const DATA = ["vencimento", "data_pagamento", "prazo", "data", "primeiro_vencimento", "aprovado_em", "reaberto_em", "enviado_em"];
 
 export function valorCampo(campo: string, v: unknown): string {
   if (v == null || v === "") return "vazio";
@@ -37,9 +42,16 @@ export function valorCampo(campo: string, v: unknown): string {
 export function DescricaoMudanca({ l }: { l: LinhaAuditoria }) {
   if (l.acao === "insert") return <span>criou o registro</span>;
   if (l.acao === "delete") return <span className="text-red-600">excluiu o registro</span>;
+  const item = (l.campos ?? []).find((c) => ITEM[c]);
+  if (item) {
+    const antes = l.antes?.[item] as string | undefined, depois = l.depois?.[item] as string | undefined;
+    return <span><b>{ITEM[item]}</b>: {item === "item_alterado" ? <>{antes} → {depois}</> : depois ?? antes}</span>;
+  }
+  // o nome do vendedor já diz quem é: o id não precisa aparecer
+  const campos = (l.campos ?? []).filter((c) => !(c === "vendedor_id" && l.campos?.includes("vendedor")));
   return (
     <span>
-      {(l.campos ?? []).filter((c) => !["conciliado_em", "conciliado_por", "baixou_conta", "updated_at", "atualizado_por"].includes(c)).map((c, i) => (
+      {campos.filter((c) => !["conciliado_em", "conciliado_por", "baixou_conta", "updated_at", "atualizado_por"].includes(c)).map((c, i) => (
         <span key={c}>{i > 0 && "; "}<b>{ROTULO_CAMPO[c] ?? c.replace(/_/g, " ")}</b>: {valorCampo(c, l.antes?.[c])} → {valorCampo(c, l.depois?.[c])}</span>
       ))}
     </span>

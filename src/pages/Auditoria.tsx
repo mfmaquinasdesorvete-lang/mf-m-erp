@@ -50,7 +50,7 @@ function useExcecoes() {
   const { data: importacoes = [] } = useRows<any>("extrato_importacoes");
   const { data: auditoria = [] } = useRows<any>("auditoria");
   const { data: documentos = [] } = useRows<any>("documentos", { select: "entidade, entidade_id" });
-  const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total" });
+  const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
   const { data: recebidas = [] } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
   const { data: usuarios = [] } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
   const { data: produtos = [] } = useRows<any>("produtos", { select: "id, sku, descricao, tipo, unidade, ncm, preco_custo, preco_venda, estoque_atual, estoque_minimo, ativo, vendavel, kit, categoria, localizacao, fornecedor_padrao_id, fora_de_linha, created_at" });

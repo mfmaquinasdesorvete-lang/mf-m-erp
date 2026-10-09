@@ -1259,6 +1259,64 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     Object.assign(p, { status: "cancelado", estoque_baixado: false });
     return { data: null, error: null };
   },
+  usuarios_vendedores: () => ({
+    data: db.usuarios_erp.filter((u) => u.ativo !== false && ["admin", "vendas", "financeiro"].includes(u.papel))
+      .map((u) => ({ user_id: u.user_id, nome: u.nome, papel: u.papel, vendedor_id: db.vendedores.find((v) => v.user_id === u.user_id)?.id ?? null })),
+    error: null,
+  }),
+  vendedor_do_usuario: ({ p_user }) => {
+    const ja = db.vendedores.find((v) => v.user_id === p_user);
+    if (ja) return { data: ja.id, error: null };
+    const u = db.usuarios_erp.find((x) => x.user_id === p_user);
+    if (!u) return erro("usuário não encontrado ou inativo");
+    const novo = { id: uid(), nome: u.nome, tipo: "vendedor", user_id: p_user, percentual: Number(db.configuracoes[0].comissao_percentual ?? 0), base: "recebimento", descontar_frete: true, ativo: true, created_at: quando(0) };
+    db.vendedores.push(novo);
+    registrarDemo("vendedores", "insert", null, novo, null, "usuario");
+    return { data: novo.id, error: null };
+  },
+  editar_pedido_aprovado: ({ p_pedido, p_dados, p_motivo }) => {
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!p) return erro("pedido não encontrado");
+    if (String(p_motivo ?? "").trim().length < 5) return erro("informe o motivo da alteração (mínimo 5 letras)");
+    if (p.status === "cancelado" || p.status === "orcamento") return erro("só pedidos aprovados");
+    const antes = { ...p };
+    const vend = p_dados.vendedor_id || null, pct = p_dados.comissao_percentual === "" || p_dados.comissao_percentual == null ? null : Number(p_dados.comissao_percentual);
+    Object.assign(p, { vendedor_id: vend, vendedor: vend !== antes.vendedor_id ? db.vendedores.find((v) => v.id === vend)?.nome ?? null : p.vendedor, comissao_percentual: vend ? pct : null,
+      origem: p_dados.origem || p.origem, observacoes: p_dados.observacoes || null });
+    registrarDemo("pedidos", "update", antes, p, String(p_motivo).trim(), "usuario");
+    if (vend !== antes.vendedor_id || p.comissao_percentual !== antes.comissao_percentual) {
+      (db.comissoes ?? []).filter((c) => c.pedido_id === p.id && c.status === "a_pagar" && !c.conta_pagar_id).forEach((c) => Object.assign(c, { status: "cancelada", conta_receber_id: null }));
+      const v = db.vendedores.find((x) => x.id === vend);
+      if (v?.base === "faturamento") comissaoDemo(p, p.valor_total, null, `Pedido #${p.numero}`);
+      else if (v) for (const c of db.contas_receber.filter((c) => c.pedido_id === p.id && c.status === "pago")) comissaoDemo(p, Number(c.valor_pago ?? c.valor), c.id, c.descricao);
+    }
+    return { data: null, error: null };
+  },
+  reabrir_pedido: ({ p_pedido, p_motivo }) => {
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!p) return erro("pedido não encontrado");
+    const motivo = String(p_motivo ?? "").trim();
+    if (motivo.length < 5) return erro("informe o motivo para reabrir o pedido (mínimo 5 letras)");
+    if (!["aprovado", "faturado", "entregue"].includes(p.status)) return erro("só pedidos aprovados, faturados ou entregues podem ser reabertos");
+    if (db.notas_fiscais.some((n) => n.pedido_id === p.id && n.ambiente !== "homologacao" && ["autorizada", "processando", "contingencia"].includes(n.status))) return erro("o pedido tem NF-e válida: cancele a nota ou emita uma NF de devolução antes de reabrir");
+    if (db.contas_receber.some((c) => c.pedido_id === p.id && c.status === "pago")) return erro("o pedido tem parcela recebida: estorne o recebimento antes de reabrir");
+    const antes = { ...p };
+    const saiu = new Map<string, number>();
+    for (const m of db.estoque_movimentos.filter((m) => m.referencia_tipo === "pedido" && m.referencia_id === p.id)) {
+      saiu.set(m.produto_id, (saiu.get(m.produto_id) ?? 0) + (m.tipo === "saida" ? Math.abs(m.quantidade) : -Math.abs(m.quantidade)));
+    }
+    for (const [prod, q] of saiu) if (q > 0) movimentar(prod, "entrada", q, `Pedido #${p.numero} reaberto: ${motivo}`, { unidade_id: p.unidade_id, referencia_tipo: "pedido", referencia_id: p.id });
+    (db.comissoes ?? []).filter((c) => c.pedido_id === p.id && c.status === "a_pagar" && !c.conta_pagar_id).forEach((c) => Object.assign(c, { status: "cancelada", conta_receber_id: null }));
+    (db.expedicoes ?? []).filter((e) => e.pedido_id === p.id && !["despachado", "entregue"].includes(e.status)).forEach((e) => (e.status = "cancelada"));
+    for (const c of db.contas_receber.filter((c) => c.pedido_id === p.id && c.status === "aberto")) {
+      const a = { ...c };
+      c.status = "cancelado";
+      registrarDemo("contas_receber", "update", a, c, `Pedido #${p.numero} reaberto: ${motivo}`, "usuario");
+    }
+    Object.assign(p, { status: "orcamento", estoque_baixado: false, aprovado_em: null, reaberto_em: quando(0) });
+    registrarDemo("pedidos", "update", antes, p, `Reaberto: ${motivo}`, "usuario");
+    return { data: null, error: null };
+  },
   concluir_os: ({ p_os }) => {
     const o = db.ordens_servico.find((x) => x.id === p_os);
     if (!o) return erro("OS não encontrada");
