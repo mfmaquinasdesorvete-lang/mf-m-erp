@@ -18,6 +18,9 @@ import { KitComponentesModal } from "@/components/KitComponentes";
 import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
 import { QualidadeProdutos } from "@/components/QualidadeProdutos";
+import { AuditoriaProdutos } from "@/components/produtos/AuditoriaProdutos";
+import { useConfig } from "@/lib/useConfig";
+import { avaliarAnuncio, correcaoAutomatica, slugDe, LIMITE_META, LIMITE_TITULO } from "@/lib/marketplace";
 import { ContagemEstoque } from "@/components/ContagemEstoque";
 import { CategoriasProdutos, opcoesCategoria, useCategoriasProduto } from "@/components/CategoriasProdutos";
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
@@ -92,9 +95,24 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
 export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/produtos/pecas", componentes: "/produtos/componentes", todos: "/estoque" };
 
 export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } = {}) {
+  const { data: produtosTodos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: cfgProd } = useConfig();
+  /** Anúncio ao salvar: palavras-chave em lista, endereço válido e o que ficou vazio preenchido no padrão (só produtos que vendem). */
+  function anuncioAoSalvar(r: Record<string, any>) {
+    const palavras = Array.isArray(r.palavras_chave) ? r.palavras_chave : String(r.palavras_chave ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const base = { ...r, palavras_chave: palavras, slug: r.slug ? slugDe(r.slug) || null : null };
+    if (!r.descricao || r.tipo === "insumo" || r.vendavel === false) return { palavras_chave: palavras, slug: base.slug };
+    const usados = new Set(produtosTodos.filter((p) => p.id !== r.id && p.slug && p.ativo !== false).map((p) => p.slug as string));
+    if (base.slug && usados.has(base.slug)) base.slug = null;
+    const auto = correcaoAutomatica(base as any, usados, Number(cfgProd?.garantia_meses_padrao) || 3);
+    const { descricao: _nome, ...semNome } = auto;   // o nome só muda se a pessoa mudar (ou pela auditoria)
+    return { palavras_chave: semNome.palavras_chave ?? palavras, slug: semNome.slug ?? base.slug, titulo_anuncio: semNome.titulo_anuncio ?? (r.titulo_anuncio || null),
+      meta_descricao: semNome.meta_descricao ?? (r.meta_descricao || null), descricao_anuncio: semNome.descricao_anuncio ?? (r.descricao_anuncio || null),
+      ...(semNome.marca ? { marca: semNome.marca } : {}) };
+  }
   const navigate = useNavigate();
   const { pode, papel } = usePerfil();
-  const [aba, setAba] = useState<"produtos" | "qualidade" | "contagem" | "categorias">("produtos");
+  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias">("produtos");
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
@@ -156,11 +174,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={[
         { value: "produtos", label: "Produtos e estoque" },
         { value: "qualidade", label: "Qualidade do cadastro" },
+        { value: "auditoria", label: "Auditoria e marketplace" },
         { value: "categorias", label: "Categorias" },
         ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
       ]} />
       {aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
+      ) : aba === "auditoria" ? (
+        <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "qualidade" ? (
         <QualidadeProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onCorrigir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "contagem" ? (
@@ -242,6 +263,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             prazo_reposicao_dias: r.prazo_reposicao_dias === "" || r.prazo_reposicao_dias == null ? null : Number(r.prazo_reposicao_dias),
             compra_minima: r.compra_minima === "" || r.compra_minima == null ? null : Number(r.compra_minima),
             motivo_alteracao: String(r.motivo_alteracao ?? "").trim() || null,
+            ...anuncioAoSalvar(r),
           };
         }}
         fields={[
@@ -331,6 +353,44 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "no_catalogo", label: "Mostrar no catálogo", type: "checkbox", span: 1 },
           { name: "foto_caminho", label: "Foto", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
+          { name: "secao_anuncio", label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
+          {
+            name: "anuncio_nota", label: "Pronto para anunciar?", type: "custom", span: 4,
+            render: (_v, _s, row) => {
+              const a = avaliarAnuncio({ ...row, ...anuncioAoSalvar(row) } as any);
+              return (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className={`num rounded-lg px-2 py-1 font-bold ${a.nota >= 90 ? "bg-emerald-100 text-emerald-800" : a.nota >= 70 ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-800"}`}>{a.nota}/100</span>
+                  {a.pendencias.length ? <span className="text-xs text-slate-600">Falta: {a.pendencias.map((x) => x.texto).join(" · ")}</span> : <span className="text-xs font-semibold text-emerald-700">pronto para anunciar</span>}
+                </div>
+              );
+            },
+          },
+          {
+            name: "titulo_anuncio", label: "Título do anúncio (até 60 letras)", type: "custom", span: 4,
+            render: (v, set) => (
+              <div className="relative">
+                <input className="input pr-14" value={v ?? ""} maxLength={120} onChange={(e) => set(e.target.value)} placeholder="O que é + para que serve + marca. Ex.: Parafuso de Chave para Máquina de Sorvete My Frost" />
+                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold ${String(v ?? "").length > LIMITE_TITULO ? "text-red-600" : "text-slate-400"}`}>{String(v ?? "").length}/{LIMITE_TITULO}</span>
+              </div>
+            ),
+          },
+          { name: "slug", label: "Endereço da página (slug)", span: 2, placeholder: "parafuso-de-chave-para-maquina-de-sorvete" },
+          {
+            name: "palavras_chave", label: "Palavras-chave (separadas por vírgula)", type: "custom", span: 2,
+            render: (v, set) => <input className="input" value={Array.isArray(v) ? v.join(", ") : (v ?? "")} onChange={(e) => set(e.target.value)} placeholder="parafuso, chave extratora, peça para máquina de sorvete" />,
+          },
+          {
+            name: "meta_descricao", label: "Descrição para o Google (até 160 letras)", type: "custom", span: 4,
+            render: (v, set) => (
+              <div className="relative">
+                <input className="input pr-16" value={v ?? ""} maxLength={300} onChange={(e) => set(e.target.value)} />
+                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold ${String(v ?? "").length > LIMITE_META ? "text-red-600" : "text-slate-400"}`}>{String(v ?? "").length}/{LIMITE_META}</span>
+              </div>
+            ),
+          },
+          { name: "descricao_anuncio", label: "Texto do anúncio (sem telefone, e-mail ou link: os marketplaces proíbem)", type: "textarea", span: 4 },
+          { name: "gtin_isento", label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
           { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao" },
           { name: "ncm", label: "NCM (8 dígitos)", span: 1 },
           { name: "cest", label: "CEST", span: 1 },

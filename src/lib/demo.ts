@@ -256,6 +256,17 @@ function seed(): Db {
   for (const t of ["pedidos", "ordens_servico", "contas_receber", "contas_pagar", "notas_fiscais", "nfe_recebidas", "ordens_producao", "pedidos_compra", "equipamentos"]) {
     for (const r of db[t] ?? []) r.unidade_id = naFilial.has(r.id) || naFilial.has(r.pedido_id) || naFilial.has(r.os_id) ? U_SP : U_SC;
   }
+  // cadastros repetidos que vieram do sistema antigo (Produtos → Auditoria e marketplace mostra e unifica)
+  const rep = (id: string, extra: Row) => ({ id, sku: null, tipo: "peca", unidade: "UN", ncm: "84186910", origem: 0, preco_custo: 10, preco_venda: 45, estoque_atual: 0, estoque_minimo: 0, ativo: true, created_at: quando(-30), ...extra });
+  db.produtos.push(
+    rep("pdup1", { descricao: "Parafuso de Chave - UN", estoque_atual: 3, id_externo: "920759745" }),
+    rep("pdup2", { descricao: "Parafuso de Chave - UN", id_externo: "922445508", foto_caminho: null }),
+    rep("pdup3", { descricao: "Parafuso de chave", estoque_atual: 2, id_externo: "922445539" }),
+    rep("pdup4", { descricao: "Motor Ventilador Exaustor My Frost", sku: "FS/4-350", ncm: "84145990", preco_custo: 261.46, preco_venda: 522.92, estoque_atual: 2, marca: "My Frost" }),
+    rep("pdup5", { descricao: "Motor Ventilador Exaustor My Frost", sku: "FS/4-300 EM", ncm: "84145990", preco_custo: 285.89, preco_venda: 579, estoque_atual: 10, marca: "My Frost" }),
+    rep("pdup6", { descricao: "Rele Sub Sobretensao Voltimetro 63a 220v Monofasico Regulavel", preco_custo: 111.25, preco_venda: 333.75, ncm: "85364900" }),
+    rep("pdup7", { descricao: "Rele Sub Sobretensao Voltimetro 63a 220v Monofasico Regulavel", preco_custo: 111.25, preco_venda: 333.75, ncm: "85364900" }),
+  );
   // estoque: 60% na matriz, o resto na filial
   db.estoque_unidade = db.produtos.flatMap((p) => {
     const sc = Math.ceil(Number(p.estoque_atual) * 0.6), sp = Number(p.estoque_atual) - sc;
@@ -1088,6 +1099,37 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  unificar_produtos: ({ p_principal, p_outros, p_motivo }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const m = db.produtos.find((p) => p.id === p_principal);
+    if (!m || m.ativo === false) return erro("o principal está inativo: escolha um ativo");
+    let n = 0;
+    for (const id of p_outros ?? []) {
+      const o = db.produtos.find((p) => p.id === id);
+      if (!o || id === p_principal || o.unificado_em) continue;
+      if (!!o.kit !== !!m.kit) return erro(`"${o.kit ? o.descricao : m.descricao}" é kit e o outro não é: não dá para unificar`);
+      for (const e of db.estoque_unidade.filter((x) => x.produto_id === id && Number(x.quantidade))) {
+        const q = Number(e.quantidade);
+        movimentar(id, q > 0 ? "saida" : "entrada", Math.abs(q), `Unificação de cadastro: saldo passou para "${m.descricao}"`, { unidade_id: e.unidade_id, referencia_tipo: "unificacao" });
+        movimentar(p_principal, q > 0 ? "entrada" : "saida", Math.abs(q), `Unificação de cadastro: saldo veio de "${o.descricao}"`, { unidade_id: e.unidade_id, referencia_tipo: "unificacao" });
+      }
+      for (const t of ["pedido_itens", "os_itens", "pedido_compra_itens", "produto_fornecedor", "equipamentos", "ordens_producao", "transferencia_itens", "ordens_servico"]) {
+        (db[t] ?? []).forEach((r) => { if (r.produto_id === id) r.produto_id = p_principal; });
+      }
+      (db.kit_componentes ?? []).forEach((r) => { if (r.kit_id === id) r.kit_id = p_principal; if (r.componente_id === id) r.componente_id = p_principal; });
+      (db.produto_componentes ?? []).forEach((r) => { if (r.produto_id === id) r.produto_id = p_principal; if (r.componente_id === id) r.componente_id = p_principal; });
+      const alt = [...String(m.codigos_alternativos ?? "").split(","), o.sku, o.codigo_barras, o.id_externo && `Tiny ${o.id_externo}`]
+        .map((x) => String(x ?? "").trim()).filter((x) => x && x !== (m.sku ?? o.sku) && x !== (m.codigo_barras || o.codigo_barras));
+      const skuOutro = o.sku;
+      Object.assign(o, { ativo: false, no_catalogo: false, unificado_em: p_principal, unificado_quando: new Date().toISOString(), sku: null, slug: null,
+        observacoes: [o.observacoes, `Unificado em "${m.descricao}" em ${new Date().toLocaleDateString("pt-BR")}: ${p_motivo || "cadastro repetido"}${skuOutro ? `. SKU era ${skuOutro}` : ""}`].filter(Boolean).join("\n") });
+      Object.assign(m, { sku: m.sku ?? skuOutro, codigo_barras: m.codigo_barras || o.codigo_barras, foto_caminho: m.foto_caminho ?? o.foto_caminho, ncm: m.ncm ?? o.ncm,
+        marca: m.marca ?? o.marca, modelo: m.modelo ?? o.modelo, peso_kg: m.peso_kg || o.peso_kg, no_catalogo: !!(m.no_catalogo || o.no_catalogo),
+        codigos_alternativos: [...new Set(alt)].join(", ") || null });
+      n++;
+    }
+    return { data: n, error: null };
+  },
   evolucao_notas: () => {
     const dia = hojeISO();
     const cfg = db.configuracoes[0];
