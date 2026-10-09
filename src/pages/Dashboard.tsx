@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useMemo, useState, type CSSProperties } from "react";
 import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -13,6 +13,8 @@ import { brl, hoje, somarDias } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
+
+const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
 type Conta = { valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null };
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -45,26 +47,43 @@ const dentro = (data: string | null | undefined, [a, b]: string[]) => !!data && 
 type Acao = { label: string; icon: LucideIcon; to: string; state?: unknown; cor: string; aviso?: number };
 type Kpi = { id: string; label: string; valor: string | number; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
 
-/** Início: o financeiro já entra no painel financeiro (feito para o celular); o administrador escolhe. */
+type Visao = "geral" | "financeiro" | "fluxo";
+const VISOES: Record<Visao, [string, string]> = { geral: ["Painel geral", "Geral"], financeiro: ["Painel financeiro", "Financeiro"], fluxo: ["Fluxo de pedidos", "Fluxo"] };
+
+/**
+ * Início: vendas já entra no fluxo de pedidos, o financeiro no painel financeiro (feito para o celular);
+ * cada um pode trocar e a escolha fica lembrada (por papel, para quem divide o computador).
+ */
 export default function Dashboard() {
-  const { papel } = usePerfil();
-  const podeEscolher = papel === "admin" || papel === "financeiro";
-  const [visao, setVisao] = useState<"geral" | "financeiro">(() => {
-    try { return (localStorage.getItem("erp.painel.visao") as "geral" | "financeiro") || (papel === "financeiro" ? "financeiro" : "geral"); }
-    catch { return papel === "financeiro" ? "financeiro" : "geral"; }
+  const { papel, podeVer } = usePerfil();
+  const opcoes: Visao[] = papel === "vendas" ? ["fluxo", "geral"]
+    : [ "geral" as const, ...(papel === "admin" || papel === "financeiro" ? ["financeiro" as const] : []), ...(podeVer("fluxo") ? ["fluxo" as const] : [])];
+  const padrao: Visao = papel === "vendas" ? "fluxo" : papel === "financeiro" ? "financeiro" : "geral";
+  const chave = `erp.painel.visao.${papel}`;
+  const [visao, setVisao] = useState<Visao>(() => {
+    try {
+      // "erp.painel.visao" era a chave única de antes (admin e financeiro)
+      const v = (localStorage.getItem(chave) ?? (papel !== "vendas" ? localStorage.getItem("erp.painel.visao") : null)) as Visao | null;
+      return v && opcoes.includes(v) ? v : padrao;
+    } catch { return padrao; }
   });
-  const escolher = (v: "geral" | "financeiro") => { setVisao(v); try { localStorage.setItem("erp.painel.visao", v); } catch { /* sem armazenamento */ } };
+  const escolher = (v: Visao) => { setVisao(v); try { localStorage.setItem(chave, v); } catch { /* sem armazenamento */ } };
+  const atual = opcoes.includes(visao) ? visao : padrao;
   return (
     <>
-      {podeEscolher && (
-        <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="Painel">
-          {([["geral", "Painel geral"], ["financeiro", "Painel financeiro"]] as const).map(([v, r]) => (
-            <button key={v} type="button" role="tab" aria-selected={visao === v} onClick={() => escolher(v)}
-              className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${visao === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>{r}</button>
+      {opcoes.length > 1 && (
+        <div className="mb-4 inline-flex max-w-full rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="O que ver no início">
+          {opcoes.map((v) => (
+            <button key={v} type="button" role="tab" aria-selected={atual === v} onClick={() => escolher(v)}
+              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition sm:px-3.5 ${atual === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
+              {opcoes.length > 2 ? <><span className="sm:hidden">{VISOES[v][1]}</span><span className="hidden sm:inline">{VISOES[v][0]}</span></> : VISOES[v][0]}
+            </button>
           ))}
         </div>
       )}
-      {podeEscolher && visao === "financeiro" ? <PainelFinanceiro /> : <PainelGeral />}
+      {atual === "financeiro" ? <PainelFinanceiro />
+        : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>
+        : <PainelGeral />}
     </>
   );
 }
