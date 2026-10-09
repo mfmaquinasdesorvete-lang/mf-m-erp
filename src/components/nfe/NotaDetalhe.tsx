@@ -15,6 +15,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
+import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -23,6 +24,8 @@ export type NotaEmitida = {
   finalidade?: string; tipo_operacao?: string; payload?: any; resposta?: any; marcadores?: string[]; observacao_interna?: string | null;
   historico_envios?: { referencia: string; mensagem: string | null; em: string }[]; nota_referenciada_id?: string | null; chave_referenciada?: string | null;
   estoque_lancado?: boolean; pedido_id?: string | null; unidade_id?: string | null;
+  /** nota direta (sem pedido): operação e itens, para lançar a conta a receber e baixar o estoque */
+  operacao?: string | null; itens?: { produto_id: string; descricao: string; quantidade: number; valor_unitario: number }[] | null;
   pedido?: { numero: number; cliente?: { nome: string; nome_fantasia?: string | null } } | null;
 };
 
@@ -168,6 +171,8 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           </div>
         </Field>
 
+        {!n.pedido_id && n.itens?.length && !importada ? <AcoesNotaDireta n={n} leitura={!!leitura} teste={teste} /> : null}
+
         <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
           {n.danfe_url && <a href={n.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><ExternalLink size={15} /> DANFE</a>}
           {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
@@ -309,5 +314,90 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
         </form>
       )}
     </Modal>
+  );
+}
+
+/** Nota direta: depois de autorizada, lançar a conta a receber e baixar o estoque (como no Tiny). */
+function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boolean; teste: boolean }) {
+  const invalidate = useInvalidate();
+  const op = operacaoNota(n.operacao ?? "venda");
+  const [form, setForm] = useState<{ parcelas: string; primeiro: string; intervalo: string; forma: string } | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [estoque, setEstoque] = useState(!!n.estoque_lancado);
+  const { data: contas = [], refetch } = useQuery({
+    queryKey: ["contas_receber", "nota", n.id],
+    queryFn: async () => ((await supabase.from("contas_receber").select("id, valor, status, vencimento").eq("nota_fiscal_id", n.id)).data ?? []) as { id: string; valor: number; status: string; vencimento: string }[],
+  });
+  const validas = contas.filter((c) => c.status !== "cancelado");
+  const autorizada = n.status === "autorizada";
+
+  async function rodar(f: () => Promise<string>) {
+    setOcupado(true);
+    try { notify(await f()); invalidate("notas_fiscais", "contas_receber", "produtos", "estoque_movimentos"); } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-slate-200 p-3 text-sm">
+      <div className="font-semibold text-fg">Nota direta{op ? ` · ${op.rotulo}` : ""}</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1">
+          <b>Conta a receber:</b>{" "}
+          {validas.length ? <span className="text-emerald-700">{validas.length} parcela(s) lançada(s), {brl(validas.reduce((s, c) => s + Number(c.valor), 0))}</span>
+            : <span className="text-slate-500">{op?.financeiro ? "ainda não lançada" : "não precisa (não é venda), mas pode lançar"}</span>}
+        </span>
+        {!leitura && autorizada && !validas.length && !form && (
+          <Button type="button" variant="secondary" onClick={() => setForm({ parcelas: "1", primeiro: new Date().toISOString().slice(0, 10), intervalo: "30", forma: "boleto" })}>Lançar conta a receber</Button>
+        )}
+      </div>
+      {form && (
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-5">
+          <Field label="Parcelas"><input className="input" inputMode="numeric" value={form.parcelas} onChange={(e) => setForm({ ...form, parcelas: e.target.value })} /></Field>
+          <Field label="1º vencimento"><input className="input" type="date" value={form.primeiro} onChange={(e) => setForm({ ...form, primeiro: e.target.value })} /></Field>
+          <Field label="Intervalo (dias)"><input className="input" inputMode="numeric" value={form.intervalo} onChange={(e) => setForm({ ...form, intervalo: e.target.value })} /></Field>
+          <Field label="Forma">
+            <select className="input" value={form.forma} onChange={(e) => setForm({ ...form, forma: e.target.value })}>
+              <option value="boleto">Boleto</option><option value="pix">Pix</option><option value="cartao">Cartão</option><option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option>
+            </select>
+          </Field>
+          <div className="flex items-end gap-1">
+            <Button type="button" disabled={ocupado} onClick={() => rodar(async () => {
+              const { data, error } = await supabase.rpc("lancar_contas_nota", { p_nota: n.id, p_parcelas: Number(form.parcelas) || 1, p_primeiro: form.primeiro, p_intervalo: Number(form.intervalo) || 30, p_forma: form.forma });
+              if (error) throw error;
+              setForm(null); refetch();
+              return `${data} conta(s) a receber lançada(s)`;
+            })}>Lançar</Button>
+            <Button type="button" variant="ghost" onClick={() => setForm(null)}>×</Button>
+          </div>
+          <p className="col-span-2 text-xs text-slate-500 sm:col-span-5">Valor da nota: {brl(n.valor_total)}, dividido nas parcelas (os centavos vão na última).</p>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1">
+          <b>Estoque:</b>{" "}
+          {teste ? <span className="text-slate-500">nota de teste não mexe no estoque</span>
+            : estoque ? <span className="text-emerald-700">baixado</span>
+            : <span className="text-slate-500">{op?.estoque ? "ainda não baixado" : "não sai do estoque da MF"}</span>}
+        </span>
+        {!leitura && !teste && autorizada && !estoque && (
+          <Button type="button" variant="secondary" disabled={ocupado} onClick={() => rodar(async () => {
+            const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: false });
+            if (error) throw error;
+            setEstoque(true);
+            return `Estoque baixado (${data} movimento(s))`;
+          })}>Baixar estoque</Button>
+        )}
+        {!leitura && !teste && estoque && (
+          <Button type="button" variant="ghost" disabled={ocupado} title="Devolve ao estoque o que esta nota baixou (ex.: nota cancelada)" onClick={() => {
+            if (!confirm("Devolver ao estoque os itens desta nota?")) return;
+            rodar(async () => {
+              const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: true });
+              if (error) throw error;
+              setEstoque(false);
+              return `Estoque devolvido (${data} movimento(s))`;
+            });
+          }}>Estornar estoque</Button>
+        )}
+      </div>
+    </div>
   );
 }

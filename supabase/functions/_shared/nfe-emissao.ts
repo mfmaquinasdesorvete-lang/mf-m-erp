@@ -12,7 +12,7 @@ import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Distribui um valor (desconto/frete) entre os itens proporcionalmente, sem perder centavos. */
-function ratear(total: number, bases: number[]): number[] {
+export function ratear(total: number, bases: number[]): number[] {
   const soma = bases.reduce((a, b) => a + b, 0);
   if (!total || !soma) return bases.map(() => 0);
   const partes = bases.map((b) => r2((total * b) / soma));
@@ -32,7 +32,7 @@ export function exigirEmitente(u: any) {
   if (faltando.length) throw new HttpError(400, `preencha em Configurações → Unidades (${u?.nome ?? "unidade"}): ${faltando.join(", ")}`);
 }
 
-const itemBase = (p: any, descricao: string, quantidade: number, valor: number, extra: Partial<ItemBase> = {}): ItemBase => ({
+export const itemBase = (p: any, descricao: string, quantidade: number, valor: number, extra: Partial<ItemBase> = {}): ItemBase => ({
   codigo: p.sku || p.id.slice(0, 8), descricao, ncm: onlyDigits(p.ncm), cest: p.cest ? onlyDigits(p.cest) : null,
   unidade: p.unidade, origem: Number(p.origem ?? 0), tipo: p.tipo, quantidade: Number(quantidade), valor_unitario: Number(valor),
   cfop: p.cfop || null, ipi_aliquota: p.ipi_aliquota == null ? null : Number(p.ipi_aliquota), ...extra,
@@ -52,11 +52,11 @@ export async function emitir(db: any, referencia: string, payload: Record<string
 }
 
 /** Regras de tributação ativas desta unidade (ou de todas). */
-async function regrasDa(db: any, unidadeId: string): Promise<RegraTributaria[]> {
+export async function regrasDa(db: any, unidadeId: string): Promise<RegraTributaria[]> {
   const { data } = await db.from("regras_tributacao").select("*").eq("ativo", true);
   return (data ?? []).filter((r: RegraTributaria) => !r.unidade_id || r.unidade_id === unidadeId);
 }
-const observacoes = (usadas: Set<RegraTributaria>) =>
+export const observacoes = (usadas: Set<RegraTributaria>) =>
   [...usadas].map((r) => r.observacao_nfe).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" ");
 
 

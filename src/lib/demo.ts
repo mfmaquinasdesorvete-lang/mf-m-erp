@@ -1759,6 +1759,26 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     Object.assign(op, { status: "concluida", concluida_em: quando(0) });
     return { data: null, error: null };
   },
+  lancar_contas_nota: ({ p_nota, p_parcelas = 1, p_primeiro, p_intervalo = 30, p_forma = "boleto" }) => {
+    const n = db.notas_fiscais.find((x) => x.id === p_nota);
+    if (!n || n.status !== "autorizada") return erro("só depois que a nota for autorizada");
+    if (db.contas_receber.some((c) => c.nota_fiscal_id === p_nota && c.status !== "cancelado")) return erro("as contas desta nota já foram lançadas");
+    const parc = r2(n.valor_total / p_parcelas);
+    for (let k = 1; k <= p_parcelas; k++) {
+      const venc = new Date(Date.parse((p_primeiro ?? hojeISO()) + "T12:00:00Z") + (k - 1) * p_intervalo * 864e5).toISOString().slice(0, 10);
+      db.contas_receber.push({ id: uid(), descricao: `NF-e ${n.numero}${p_parcelas > 1 ? ` - parcela ${k}/${p_parcelas}` : ""}`, cliente_id: n.cliente_id, valor: k === p_parcelas ? r2(n.valor_total - parc * (p_parcelas - 1)) : parc,
+        vencimento: venc, forma_pagamento: p_forma, unidade_id: n.unidade_id, categoria: "vendas", parcela: k, total_parcelas: p_parcelas, status: "aberto", nota_fiscal_id: n.id, created_at: quando(0) });
+    }
+    return { data: p_parcelas, error: null };
+  },
+  estoque_nota_direta: ({ p_nota, p_estornar = false }) => {
+    const n = db.notas_fiscais.find((x) => x.id === p_nota);
+    if (!n?.itens) return erro("só para nota direta");
+    if (!!n.estoque_lancado === !p_estornar) return erro(p_estornar ? "o estoque desta nota não foi baixado" : "o estoque desta nota já foi baixado");
+    for (const i of n.itens) movimentar(i.produto_id, p_estornar ? "entrada" : "saida", Number(i.quantidade), `${p_estornar ? "Estorno da " : ""}NF-e ${n.numero} (nota direta)`, { unidade_id: n.unidade_id });
+    n.estoque_lancado = !p_estornar;
+    return { data: n.itens.length, error: null };
+  },
   criar_envio_pedido: ({ p_pedido }) => {
     const p = db.pedidos.find((x) => x.id === p_pedido);
     if (!p) return erro("pedido não encontrado");
@@ -1933,6 +1953,20 @@ function devolucaoDemo(b: any) {
 const funcoes: Record<string, (b: any) => any> = {
   "nfe-emitir": (b) => {
     if (b.devolucao) return devolucaoDemo(b);
+    if (b.avulsa) {
+      const a = b.avulsa;
+      const c = db.clientes.find((x) => x.id === a.cliente_id);
+      if (!c) throw new Error("escolha o cliente");
+      const itens = (a.itens ?? []).map((i: Row) => ({ ...i, descricao: i.descricao || db.produtos.find((p) => p.id === i.produto_id)?.descricao }));
+      const total = r2(itens.reduce((s2: number, i: Row) => s2 + i.quantidade * i.valor_unitario, 0) - Number(a.desconto ?? 0) + Number(a.frete ?? 0));
+      const nota: Row = { id: uid(), pedido_id: null, unidade_id: a.unidade_id, cliente_id: c.id, destinatario_nome: c.nome, destinatario_doc: c.cpf_cnpj,
+        referencia: `direta-${uid()}`, status: "processando", valor_total: total, created_at: quando(0), operacao: a.operacao, itens, estoque_lancado: false,
+        tipo_operacao: "saida", finalidade: "normal", observacao_interna: "Nota direta",
+        payload: { natureza_operacao: a.natureza || "Venda de mercadoria", items: itens.map((i: Row, k: number) => ({ numero_item: k + 1, descricao: i.descricao, quantidade_comercial: i.quantidade, valor_unitario_comercial: i.valor_unitario, valor_bruto: r2(i.quantidade * i.valor_unitario) })) } };
+      db.notas_fiscais.push(nota);
+      setTimeout(() => Object.assign(nota, { status: "autorizada", numero: String(++numeroNfe), serie: "1", mensagem: "Autorizado o uso da NF-e" }), 3000);
+      return { ok: true, nota };
+    }
     if (b.transferencia_id) {
       const t = db.transferencias.find((x) => x.id === b.transferencia_id)!;
       const valor = db.transferencia_itens.filter((i) => i.transferencia_id === t.id).reduce((s, i) => s + i.quantidade * i.custo_unitario, 0);

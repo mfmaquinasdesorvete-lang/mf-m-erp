@@ -3,11 +3,13 @@
 // POST { transferencia_id }  -> transferência de mercadoria entre as unidades
 // POST { devolucao: { tipo: "emitida" | "recebida", id }, previa: true }            -> o que dá para devolver
 // POST { devolucao: { tipo, id }, itens: [{ numero, quantidade, cfop?, produto_id? }], motivo } -> NF-e de devolução
+// POST { avulsa: { unidade_id, cliente_id, operacao, itens, desconto?, frete?, ... } } -> NF-e direta, sem pedido
 // A lógica fica em _shared/nfe-emissao.ts (também usada pela NF-e automática do agendamento).
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { emitirPedido, emitirTransferencia } from "../_shared/nfe-emissao.ts";
 import { emitirDevolucao, previaDevolucao } from "../_shared/nfe-devolucao-emissao.ts";
+import { emitirAvulsa } from "../_shared/nfe-avulsa.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -20,6 +22,10 @@ Deno.serve(async (req) => {
       await requireErpUser(req, devolucao.tipo === "recebida" ? ["financeiro"] : ["vendas", "financeiro"]);
       if (corpo.previa) return json({ ok: true, ...(await previaDevolucao(db, devolucao)) });
       return await emitirDevolucao(db, devolucao, corpo.itens, corpo.motivo);
+    }
+    if (corpo.avulsa) {
+      await requireErpUser(req, ["vendas", "financeiro"]);
+      return await emitirAvulsa(db, corpo.avulsa);
     }
     if (transferencia_id) {
       await requireErpUser(req, ["financeiro", "tecnico"]);
