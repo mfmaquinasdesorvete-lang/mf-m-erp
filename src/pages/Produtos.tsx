@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
@@ -32,7 +33,7 @@ const tipos = [
 const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção" };
 
 /** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
-type Cadastro = "maquinas" | "pecas" | "componentes" | "todos";
+export type Cadastro = "maquinas" | "pecas" | "componentes" | "todos";
 const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
   { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-[#10b981] to-[#059669]",
     padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
@@ -87,7 +88,11 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
   return `${ids.length} produto(s) ${ativo ? "ativado(s)" : "inativado(s)"}`;
 }
 
-export default function Produtos() {
+/** Rota de cada cadastro no menu (Cadastros → Máquinas, Peças de reposição, Componentes de produção). */
+export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/produtos/pecas", componentes: "/produtos/componentes", todos: "/estoque" };
+
+export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } = {}) {
+  const navigate = useNavigate();
   const { pode, papel } = usePerfil();
   const [aba, setAba] = useState<"produtos" | "qualidade" | "contagem" | "categorias">("produtos");
   const { data: categorias = [] } = useCategoriasProduto();
@@ -103,8 +108,10 @@ export default function Produtos() {
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
-  const [cadastro, setCadastro] = useState<Cadastro>(() => { try { return (localStorage.getItem("erp.produtos.cadastro") as Cadastro) || "pecas"; } catch { return "pecas"; } });
-  const escolherCadastro = (c: Cadastro) => { setCadastro(c); try { localStorage.setItem("erp.produtos.cadastro", c); } catch { /* sem armazenamento */ } };
+  // cada cadastro tem a sua entrada no menu; "Todos" (/estoque) mostra tudo
+  const cadastro: Cadastro = cadastroFixo ?? "todos";
+  const escolherCadastro = (c: Cadastro) => navigate(ROTA_CADASTRO[c]);
+  const [verSugestao, setVerSugestao] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
@@ -119,6 +126,9 @@ export default function Produtos() {
   }), [naProducao]);
   const contagem = (c: Cadastro) => (c === "todos" ? produtos.length : produtos.filter(doCadastro[c]!).length);
   const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
+  const podeMover = pode("editar_produtos") && (papel === "admin" || papel === "financeiro");
+  const sugeridos = useMemo(() => produtos.filter((p) => p.tipo === "peca" && p.vendavel === false && p.ativo !== false), [produtos]);
+  const invalidar = useInvalidate();
 
   /** Move os selecionados para outro cadastro (o banco pede o motivo quando o produto já foi movimentado). */
   async function moverPara(ids: string[], tipo: string, nome: string) {
@@ -177,6 +187,16 @@ export default function Produtos() {
         ))}
       </div>
       <p className="-mt-2 mb-3 text-sm text-slate-600">{atualCad.ajuda}</p>
+      {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
+          <Boxes size={18} className="shrink-0" />
+          <span className="min-w-0 flex-1"><b>Sugestão de separação:</b> {sugeridos.length} produto(s) estão como peça de reposição mas marcados <b>"não vende"</b> (o cliente não compra). Pelo jeito são componentes de produção.</span>
+          <Button variant="secondary" onClick={() => setVerSugestao(true)}>Conferir e mover</Button>
+        </div>
+      )}
+      {verSugestao && <SugestaoComponentes produtos={sugeridos} onClose={() => setVerSugestao(false)} onMover={async (ids) => {
+        try { notify(await moverPara(ids, "insumo", "Componentes de produção")); invalidar("produtos"); setVerSugestao(false); } catch (e) { notifyError(e); }
+      }} />}
 
       <CrudPage<Produto>
         key={cadastro}
@@ -513,6 +533,35 @@ function HistoricoModal({ produto, onClose }: { produto: Produto | null; onClose
           </tr>
         ))}
       </Table>
+    </Modal>
+  );
+}
+
+/** Confere a lista sugerida (todos marcados) e move para Componentes de produção. */
+function SugestaoComponentes({ produtos, onClose, onMover }: { produtos: Produto[]; onClose: () => void; onMover: (ids: string[]) => Promise<void> }) {
+  const [marcados, setMarcados] = useState<Set<string>>(() => new Set(produtos.map((p) => p.id)));
+  const [ocupado, setOcupado] = useState(false);
+  const alternar = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  return (
+    <Modal open onClose={onClose} title="Mover para Componentes de produção">
+      <p className="mb-3 text-sm text-slate-600">Estão como peça de reposição, mas marcados "não vende". Desmarque o que for mesmo peça que o cliente compra.</p>
+      <ul className="max-h-[55vh] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+        {produtos.map((p) => (
+          <li key={p.id}>
+            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50">
+              <input type="checkbox" checked={marcados.has(p.id)} onChange={() => alternar(p.id)} />
+              <span className="min-w-0 flex-1"><span className="block truncate font-medium">{p.descricao}</span><span className="text-xs text-slate-500">{[p.sku, p.categoria].filter(Boolean).join(" · ")}</span></span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+        <span className="mr-auto text-sm text-slate-600">{marcados.size} de {produtos.length} marcado(s)</span>
+        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button disabled={ocupado || !marcados.size} onClick={async () => { setOcupado(true); await onMover([...marcados]); setOcupado(false); }}>
+          {ocupado ? "Movendo…" : `Mover ${marcados.size} para Componentes`}
+        </Button>
+      </div>
     </Modal>
   );
 }
