@@ -124,8 +124,10 @@ function seed(): Db {
     contas_pagar: [
       { id: "cp1", descricao: "NF 48211 - Refrigeração Andrade Ltda (1/2)", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48211 dup 001", valor: 4050, vencimento: dias(5), status: "aberto", nfe_recebida_id: "nr1" },
       { id: "cp2", descricao: "NF 48211 - Refrigeração Andrade Ltda (2/2)", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48211 dup 002", valor: 4050, vencimento: dias(35), status: "aberto", nfe_recebida_id: "nr1" },
-      { id: "cp3", descricao: "Aluguel do galpão", categoria: "aluguel", valor: 6500, vencimento: dias(-2), status: "aberto" },
-      { id: "cp4", descricao: "Energia elétrica", categoria: "energia/água/internet", valor: 1380, vencimento: dias(8), status: "aberto" },
+      { id: "cp3", descricao: "Aluguel do galpão", categoria: "aluguel", valor: 6500, vencimento: dias(-2), status: "aberto", decisao: "pagar", pagar_em: dias(0), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
+      { id: "cp4", descricao: "Energia elétrica", categoria: "energia/água/internet", valor: 1380, vencimento: dias(8), status: "aberto", decisao: "agendado", pagar_em: dias(6), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
+      { id: "cp20", descricao: "Manutenção da empilhadeira", categoria: "manutenção", valor: 2240, vencimento: dias(3), status: "aberto", decisao: "nao_pagar", decisao_motivo: "Esperando boleto ou NF correta", decisao_por_nome: "Fabiano", decisao_em: quando(-2) },
+      { id: "cp21", descricao: "Frete Braspress - NF 1290", categoria: "fretes", valor: 386.4, vencimento: dias(0), status: "aberto" },
       { id: "cp5", descricao: "DAS Simples Nacional", categoria: "impostos", valor: 3920, vencimento: dias(-12), status: "pago", data_pagamento: dias(-13), valor_pago: 3920 },
     ],
     notas_fiscais: [
@@ -1269,6 +1271,39 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     atualizarDemo(p_tabela, c, { status: "pago", data_pagamento: p_data, valor_pago: v, conta_bancaria_id: p_conta_bancaria ?? null },
       v === Number(c.valor) ? null : v < Number(c.valor) ? `Pago com desconto de ${reaisDemo(Number(c.valor) - v)}` : `Pago com juros/multa de ${reaisDemo(v - Number(c.valor))}`);
     return { data: null, error: null };
+  },
+  programar_pagamento: ({ p_ids, p_acao, p_data, p_motivo }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (!["pagar", "agendar", "nao_pagar", "limpar"].includes(p_acao)) return erro("ação inválida");
+    const dia = hojeISO();
+    if (p_acao === "agendar" && !p_data) return erro("escolha o dia do pagamento");
+    if (p_acao === "agendar" && p_data < dia) return erro("o dia do pagamento não pode ser no passado");
+    const motivo = String(p_motivo ?? "").trim();
+    if (p_acao === "nao_pagar" && motivo.length < 3) return erro("diga por que não vai pagar (fica no histórico)");
+    const nome = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id)?.nome ?? null;
+    let n = 0;
+    for (const c of db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id) && x.status === "aberto")) {
+      const quando = p_acao === "pagar" ? (c.vencimento > dia ? c.vencimento : dia) : p_acao === "agendar" ? p_data : null;
+      const limpar = p_acao === "limpar";
+      atualizarDemo("contas_pagar", c, {
+        decisao: limpar ? null : p_acao === "agendar" ? "agendado" : p_acao, pagar_em: quando, decisao_motivo: limpar ? null : motivo || null,
+        decisao_por_nome: limpar ? null : nome, decisao_em: limpar ? null : new Date().toISOString(),
+      }, p_acao === "pagar" ? `Aprovada para pagar em ${quando}` : p_acao === "agendar" ? `Agendada para pagar em ${quando}` : p_acao === "nao_pagar" ? `Não pagar: ${motivo}` : "Decisão de pagamento desfeita");
+      n++;
+    }
+    return { data: n, error: null };
+  },
+  pagar_em_lote: ({ p_ids, p_data, p_conta_bancaria, p_incluir_nao_pagar }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (!p_data) return erro("informe a data do pagamento");
+    const banco = p_conta_bancaria ? db.contas_bancarias.find((b) => b.id === p_conta_bancaria && b.ativo) : null;
+    if (p_conta_bancaria && !banco) return erro("conta bancária não encontrada");
+    const contas = db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id));
+    const ok = contas.filter((c) => c.status === "aberto" && (p_incluir_nao_pagar || c.decisao !== "nao_pagar"));
+    const fora = ok.find((c) => banco && c.unidade_id && c.unidade_id !== banco.unidade_id);
+    if (fora) return erro(`"${fora.descricao}" é de outra unidade que a conta bancária ${banco?.nome}: pague essa num lote separado`);
+    for (const c of ok) atualizarDemo("contas_pagar", c, { status: "pago", data_pagamento: p_data, valor_pago: Number(c.valor), conta_bancaria_id: p_conta_bancaria ?? null });
+    return { data: { pagas: ok.length, total: r2(ok.reduce((s2, c) => s2 + Number(c.valor), 0)), puladas: contas.length - ok.length }, error: null };
   },
   importar_extrato: ({ p_conta, p_arquivo, p_formato, p_linhas, p_saldo_final, p_saldo_data }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

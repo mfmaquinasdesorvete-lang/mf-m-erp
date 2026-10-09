@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje } from "@/lib/format";
 import { useUnidade } from "@/lib/unidade";
 import { contasDoPeriodo, fluxoDoPeriodo, intervalo, situacao, somarDias, type ContaFin, type Periodo } from "@/lib/financeiro";
+import { paraFluxo, type ContaDecisao } from "@/lib/programacao";
 
 type Saldo = { conta_id: string; nome: string; unidade_id: string; saldo: number; data_base: string; origem: "extrato" | "cadastro" };
 type Horizonte = "mes" | "30" | "90";
@@ -133,10 +134,13 @@ export function Fluxo({ receber, pagar, dia }: { receber: ContaFin[]; pagar: Con
       return (data ?? []) as { conta_bancaria_id: string; dia: string; entradas: number; saidas: number }[];
     },
   });
+  // a pagar entra na data escolhida (agendada/aprovada); as marcadas "não pagar" ficam fora da previsão
+  const pagarFluxo = useMemo(() => paraFluxo(pagar as (ContaFin & ContaDecisao)[]), [pagar]);
+  const segurado = useMemo(() => (pagar as (ContaFin & ContaDecisao)[]).filter((c) => c.status === "aberto" && c.decisao === "nao_pagar"), [pagar]);
   const f = useMemo(() => fluxoDoPeriodo({
     saldoHoje: saldos.reduce((s, x) => s + Number(x.saldo), 0),
-    movimentos: movTodos.filter((m) => ids.has(m.conta_bancaria_id)), receber, pagar, hoje: dia, de, ate,
-  }), [saldos, movTodos, receber, pagar, dia, de, ate]); // eslint-disable-line react-hooks/exhaustive-deps
+    movimentos: movTodos.filter((m) => ids.has(m.conta_bancaria_id)), receber, pagar: pagarFluxo, hoje: dia, de, ate,
+  }), [saldos, movTodos, receber, pagarFluxo, dia, de, ate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="p-4 sm:p-5">
@@ -167,6 +171,10 @@ export function Fluxo({ receber, pagar, dia }: { receber: ContaFin[]; pagar: Con
         {(f.vencidosReceber > 0 || f.vencidosPagar > 0) && (
           <li className="flex gap-2 text-amber-900"><AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
             <span>Fora da previsão (vencidas e ainda em aberto): {[f.vencidosReceber > 0 && `${brl(f.vencidosReceber)} a receber`, f.vencidosPagar > 0 && `${brl(f.vencidosPagar)} a pagar`].filter(Boolean).join(" e ")}.</span></li>
+        )}
+        {segurado.length > 0 && (
+          <li className="flex gap-2 text-slate-700"><Info size={16} className="mt-0.5 shrink-0 text-slate-500" aria-hidden />
+            <span>{segurado.length} conta(s) marcada(s) para não pagar ({brl(segurado.reduce((s, c) => s + Number(c.valor), 0))}) ficam fora da previsão.</span></li>
         )}
       </ul>
       {saldos.length > 0 && (

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowUpCircle, Building2, CalendarDays, ChevronRight, FileWarning, Landmark, MessageCircle, Plus, ReceiptText, Send, TrendingDown, TrendingUp, Users,
+  AlertTriangle, ArrowDownCircle, ArrowUpCircle, Building2, CalendarClock, CalendarDays, CheckCheck, ChevronRight, FileWarning, HelpCircle, Landmark, MessageCircle, Plus, ReceiptText, Send, TrendingDown, TrendingUp, Users,
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { BaixaModal } from "./BaixaModal";
@@ -19,9 +19,11 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
 import { somarDias, type ContaFin } from "@/lib/financeiro";
+import { BotoesDecisao, ChipDecisao, PagarLoteModal } from "./DecisaoPagamento";
+import { aDecidir, filtrarDecisao, paraPagarHoje, type ContaDecisao } from "@/lib/programacao";
 
 type Receber = ContaFin & { cliente_id?: string | null; cliente?: { nome: string; nome_fantasia?: string | null; whatsapp?: string | null; cpf_cnpj?: string | null } | null };
-type Pagar = ContaFin & { fornecedor_id?: string | null; observacoes?: string | null; fornecedor?: { nome: string; cnpj?: string | null } | null };
+type Pagar = ContaFin & ContaDecisao & { fornecedor_id?: string | null; observacoes?: string | null; fornecedor?: { nome: string; cnpj?: string | null } | null };
 type Lista = { titulo: string; tipo: "receber" | "pagar"; contas: (Receber | Pagar)[] };
 
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -72,10 +74,14 @@ export function PainelFinanceiro() {
       recebidoMes: soma(pagoNo(rec, mes)), pagoMes: soma(pagoNo(pag, mes)),
       recebidoAnt: soma(pagoAte(rec, mesAnt, ateDiaAnt)), pagoAnt: soma(pagoAte(pag, mesAnt, ateDiaAnt)),
       recebidosHoje: rec.filter((c) => c.status === "pago" && c.data_pagamento === dia),
+      // decisão de pagamento: o que pagar hoje (aprovadas/agendadas), o que falta decidir e o que está agendado
+      pagarHoje: paraPagarHoje(ap, dia), decidir: aDecidir(ap).sort((a, b) => a.vencimento.localeCompare(b.vencimento)),
+      agendadas: filtrarDecisao(ap, "agendadas", dia).sort((a, b) => (a.pagar_em ?? "").localeCompare(b.pagar_em ?? "")),
     };
   }, [rec, pag, dia]);
 
   const previsto7 = saldoBancos + k.entra7 - k.sai7;
+  const porId = useMemo(() => new Map<string, Receber | Pagar>([...rec, ...pag].map((c) => [c.id, c])), [rec, pag]);
 
   // Por empresa: quanto tem (bancos), quanto vai entrar (a receber em dia) e inadimplentes (vencidas)
   const matrizId = unidades.find((u) => u.matriz)?.id ?? unidades[0]?.id ?? null;
@@ -124,7 +130,7 @@ export function PainelFinanceiro() {
   return (
     <div className="space-y-4">
       {baixa && <BaixaModal conta={baixa.conta} tabela={baixa.tabela} onClose={() => setBaixa(null)} />}
-      {lista && <ListaContas lista={lista} dia={dia} podeBaixar={podeBaixar} onClose={() => setLista(null)}
+      {lista && <ListaContas lista={{ ...lista, contas: lista.contas.map((c) => porId.get(c.id) ?? c) }} dia={dia} podeBaixar={podeBaixar} onClose={() => setLista(null)}
         onBaixa={(c) => setBaixa({ conta: c, tabela: lista.tipo === "receber" ? "contas_receber" : "contas_pagar" })} />}
 
       <div>
@@ -206,8 +212,12 @@ export function PainelFinanceiro() {
 
       {/* contas a pagar (secundário) */}
       <div className="grid grid-cols-2 gap-2.5">
-        <Tile icone={ArrowUpCircle} cor="text-orange-600" titulo="Paga hoje" valor={soma(k.pagHoje)} sub={`${k.pagHoje.length} conta(s)`}
-          onClick={() => setLista({ titulo: "A pagar hoje", tipo: "pagar", contas: k.pagHoje })} />
+        <Tile icone={CheckCheck} cor="text-emerald-600" titulo="Pagar hoje" valor={soma(k.pagarHoje)} sub={`${k.pagarHoje.length} aprovada(s) ou agendada(s)`}
+          onClick={() => setLista({ titulo: "Pagar hoje", tipo: "pagar", contas: k.pagarHoje })} />
+        <Tile icone={HelpCircle} cor="text-amber-600" titulo="A decidir" valor={soma(k.decidir)} sub={`${k.decidir.length} conta(s): pagar, agendar ou não`}
+          onClick={() => setLista({ titulo: "A decidir", tipo: "pagar", contas: k.decidir })} />
+        <Tile icone={CalendarClock} cor="text-sky-600" titulo="Agendadas" valor={soma(k.agendadas)} sub={`${k.agendadas.length} para os próximos dias`}
+          onClick={() => setLista({ titulo: "Agendadas", tipo: "pagar", contas: k.agendadas })} />
         <Tile icone={FileWarning} cor="text-red-600" titulo="Contas atrasadas" valor={soma(k.pagVencidas)} sub={`${k.pagVencidas.length} a pagar vencida(s)`} alerta={k.pagVencidas.length > 0}
           onClick={() => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas })} />
       </div>
@@ -340,8 +350,17 @@ function ListaContas({ lista, dia, podeBaixar, onClose, onBaixa }: {
   const { data: cfg } = useConfig();
   const total = soma(lista.contas);
   const ehReceber = (c: Receber | Pagar): c is Receber => "cliente_id" in c;
+  const [lote, setLote] = useState(false);
+  const abertasPagar = lista.tipo === "pagar" ? lista.contas.filter((c): c is Pagar => !ehReceber(c)).filter((c) => c.status === "aberto" && c.decisao !== "nao_pagar") : [];
   return (
     <Modal open onClose={onClose} title={`${lista.titulo} · ${brl(total)}`}>
+      {lote && <PagarLoteModal contas={abertasPagar} onClose={() => setLote(false)} />}
+      {podeBaixar && abertasPagar.length > 1 && (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-emerald-50 p-2.5 text-sm text-emerald-900">
+          <span>{abertasPagar.length} conta(s) · <b className="num">{brl(soma(abertasPagar))}</b></span>
+          <Button type="button" onClick={() => setLote(true)} className="!min-h-0 !px-3 !py-1.5 text-xs"><CheckCheck size={14} /> Pagar todas</Button>
+        </div>
+      )}
       {!lista.contas.length ? <p className="py-6 text-center text-sm text-slate-500">Nada por aqui.</p> : (
         <ul className="-mx-1 divide-y divide-slate-100">
           {lista.contas.map((c) => {
@@ -360,9 +379,11 @@ function ListaContas({ lista, dia, podeBaixar, onClose, onBaixa }: {
                   <span className={`block truncate text-xs ${vencida ? "font-semibold text-red-700" : "text-slate-500"}`}>
                     {c.terceiro ? `${c.descricao} · ` : ""}{c.status === "pago" ? `pago em ${dataBR(c.data_pagamento)}` : vencida ? `venceu ${dataBR(c.vencimento)}` : `vence ${dataBR(c.vencimento)}`}
                   </span>
+                  {!receber && <span className="mt-0.5 block"><ChipDecisao conta={c as Pagar} hoje={dia} /></span>}
                 </span>
                 <span className="num shrink-0 font-bold text-fg">{brl(c.status === "pago" ? c.valor_pago ?? c.valor : c.valor)}</span>
-                <span className="flex w-full justify-end gap-1.5 pl-10">
+                <span className="flex w-full flex-wrap justify-end gap-1.5 pl-10">
+                  {!receber && podeBaixar && c.status === "aberto" && <span className="mr-auto"><BotoesDecisao conta={c as Pagar} compacto /></span>}
                   {receber && c.status === "aberto" && c.cliente?.whatsapp && (
                     <a href={whatsappLink(c.cliente.whatsapp, msg)} target="_blank" rel="noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg border border-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"><Send size={13} /> Cobrar</a>
@@ -371,7 +392,7 @@ function ListaContas({ lista, dia, podeBaixar, onClose, onBaixa }: {
                     ? <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber({ ...c, valor_pago: c.valor_pago ?? null, data_pagamento: c.data_pagamento ?? null, forma_pagamento: c.forma_pagamento ?? null }, unidades.find((u) => u.id === c.unidade_id), cfg)} />
                     : <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar({ ...c, valor_pago: c.valor_pago ?? null, data_pagamento: c.data_pagamento ?? null }, (c as Pagar).fornecedor ?? undefined, unidades.find((u) => u.id === c.unidade_id), cfg, /pagar por ([^·]+)/.exec((c as Pagar).observacoes ?? "")?.[1]?.trim() ?? null)} />)}
                   {podeBaixar && c.status === "aberto" && (
-                    <Button type="button" onClick={() => onBaixa(c)} className="!min-h-0 !px-3 !py-1.5 text-xs">{receber ? "Receber" : "Pagar"}</Button>
+                    <Button type="button" onClick={() => onBaixa(c)} className="!min-h-0 !px-3 !py-1.5 text-xs" variant={receber ? "primary" : "secondary"}>{receber ? "Receber" : "Baixa"}</Button>
                   )}
                 </span>
               </li>

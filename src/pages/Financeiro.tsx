@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Ban, Copy, Eye, FileDown, MessageCircle, Pencil, Plus, Printer, Undo2 } from "lucide-react";
+import { Ban, CheckCheck, Copy, Eye, FileDown, MessageCircle, Pencil, Plus, Printer, Undo2, Wallet } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
@@ -25,6 +25,8 @@ import { Cobranca } from "@/components/financeiro/Cobranca";
 import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/components/financeiro/Recibos";
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
+import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
+import { aDecidir, filtrarDecisao, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -37,6 +39,7 @@ type Pagar = {
   valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null; fornecedor?: { nome: string } | null;
   rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
+  decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 
@@ -354,8 +357,14 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 
 function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void }) {
   const { padrao, unidades } = useUnidade();
+  const { pode } = usePerfil();
+  const podeDecidir = pode("editar_financeiro");
   const { data: cfgRecibo } = useConfig();
   const [filtro, setFiltro] = useState("pendentes");
+  const [filtroDec, setFiltroDec] = useState<FiltroDecisao>("todas");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [lotePagarHoje, setLotePagarHoje] = useState(false);
+  const dia = hoje();
   const [mes, setMes] = useState("");
   const [editando, setEditando] = useState<Partial<Pagar> | null>(null);
   const [baixa, setBaixa] = useState<Pagar | null>(null);
@@ -370,7 +379,22 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
     setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
     onNovaAberta?.();
   }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lista = filtrar(contas, filtro, mes);
+  const doFiltro = filtrar(contas, filtro, mes);
+  const lista = filtrarDecisao(doFiltro, filtroDec, dia);
+  const pagarHoje = paraPagarHoje(contas, dia);
+  const marcadas = contas.filter((c) => sel.has(c.id));
+  const abertasVisiveis = lista.filter((c) => c.status === "aberto");
+  const todasMarcadas = abertasVisiveis.length > 0 && abertasVisiveis.every((c) => sel.has(c.id));
+  const marcar = (id: string) => setSel((s0) => { const s1 = new Set(s0); if (s1.has(id)) s1.delete(id); else s1.add(id); return s1; });
+  const marcarTodas = () => setSel(todasMarcadas ? new Set() : new Set(abertasVisiveis.map((c) => c.id)));
+  const somaDe = (l: Pagar[]) => l.reduce((s0, c) => s0 + Number(c.valor), 0);
+  const chipsDec: { v: FiltroDecisao; rotulo: string; l: Pagar[] }[] = [
+    { v: "todas", rotulo: "Todas", l: doFiltro },
+    { v: "decidir", rotulo: "A decidir", l: aDecidir(doFiltro) },
+    { v: "hoje", rotulo: "Pagar hoje", l: filtrarDecisao(doFiltro, "hoje", dia) },
+    { v: "agendadas", rotulo: "Agendadas", l: filtrarDecisao(doFiltro, "agendadas", dia) },
+    { v: "nao_pagar", rotulo: "Não pagar", l: filtrarDecisao(doFiltro, "nao_pagar", dia) },
+  ];
   const rel = useRelatorio("pagar", filtro, mes);
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
 
@@ -394,23 +418,45 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))}
         onNovo={() => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any)} />
+      {podeDecidir && pagarHoje.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <Wallet size={18} className="shrink-0" aria-hidden />
+          <span className="mr-auto"><b>{pagarHoje.length} conta(s) para pagar hoje</b> (aprovadas ou agendadas) · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
+          <Button type="button" variant="secondary" onClick={() => setFiltroDec("hoje")}>Ver</Button>
+          <Button type="button" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Pagar todas</Button>
+        </div>
+      )}
+      {filtro !== "pago" && (
+        <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar pela decisão de pagamento">
+          {chipsDec.map((x) => (
+            <button key={x.v} type="button" aria-pressed={filtroDec === x.v} onClick={() => setFiltroDec(x.v)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroDec === x.v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
+              {x.rotulo} <span className="opacity-80">{x.l.length}{x.v !== "todas" && x.l.length > 0 ? ` · ${brl(somaDe(x.l))}` : ""}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <Table
         empty={lista.length === 0}
-        head={<><th className="th">Vencimento</th><th className="th">Descrição</th><th className="th">Fornecedor</th><th className="th">Categoria</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
+        head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Descrição e fornecedor</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
       >
         {lista.map((c) => (
-          <tr key={c.id}>
+          <tr key={c.id} className={sel.has(c.id) ? "bg-brand/5" : undefined}>
+            {podeDecidir && <td className="td" data-label="Marcar">{c.status === "aberto" && <input type="checkbox" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />}</td>}
             <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
-            <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />{(c.documento || c.data_pagamento) && <div className="text-xs text-slate-500">{[c.documento, c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
-            <td className="td">{c.fornecedor?.nome ?? "—"}</td>
-            <td className="td">{c.categoria}</td>
-            <td className="td"><Badge value={situacaoConta(c.status, c.vencimento)} /></td>
-            <td className="td text-right font-medium">{brl(c.valor)}</td>
-            <td className="td whitespace-nowrap text-right">
-              {c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa(c)}>Pagar</Button>}
+            <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />
+              <div className="text-xs text-slate-500">{[c.fornecedor?.nome, c.categoria].filter(Boolean).join(" · ")}</div>
+              {(c.documento || c.data_pagamento) && <div className="text-xs text-slate-500">{[c.documento, c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
+            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /></span>{c.decisao === "nao_pagar" && c.decisao_motivo && <div className="mt-0.5 text-xs text-slate-500">{c.decisao_motivo}</div>}</td>
+            <td className="td whitespace-nowrap text-right font-medium">{brl(c.valor)}</td>
+            <td className="td text-right">
+              {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}
+              <div className="flex flex-wrap justify-end gap-1">
+              {c.status === "aberto" && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
               {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
               {c.status === "pago" && <Button variant="ghost" title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
-              <Button variant="secondary" onClick={() => setEditando(c)}><Pencil size={15} /> Editar</Button>
+              <Button variant="secondary" title="Editar" aria-label="Editar" onClick={() => setEditando(c)}><Pencil size={15} /></Button>
+              </div>
             </td>
           </tr>
         ))}
@@ -452,6 +498,8 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
         )}
       </Modal>
 
+      {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())} />}
+      {lotePagarHoje && <PagarLoteModal contas={pagarHoje} onClose={() => setLotePagarHoje(false)} />}
       {baixa && <BaixaModal conta={baixa} tabela="contas_pagar" onClose={() => setBaixa(null)} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
     </>
