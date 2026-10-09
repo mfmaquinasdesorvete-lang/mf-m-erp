@@ -16,6 +16,7 @@ import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
+import { ProdutoBusca } from "@/components/ProdutoBusca";
 
 type Aba = "producao" | "reposicao" | "compras" | "ficha";
 
@@ -431,15 +432,10 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
           </table>
         </div>
         {editavel && (
-          <select className="input" value="" onChange={(e) => {
-            const prod = produtos.find((x) => x.id === e.target.value);
-            if (prod) set({ itens: [...p.itens, { produto_id: prod.id, descricao: prod.descricao, quantidade: 1, custo_unitario: Number(prod.preco_custo) }] });
-          }}>
-            <option value="">+ Adicionar peça ou insumo…</option>
-            {produtos.filter((x) => x.tipo !== "maquina" && x.ativo && !x.fora_de_linha).map((x) => (
-              <option key={x.id} value={x.id}>{x.descricao} — estoque {Number(x.estoque_atual)} (mín. {Number(x.estoque_minimo)})</option>
-            ))}
-          </select>
+          <ProdutoBusca produtos={produtos.filter((x) => x.tipo !== "maquina" && x.ativo && !x.fora_de_linha)}
+            placeholder="Adicionar peça ou insumo: nome ou SKU"
+            onEscolher={(prod) => set({ itens: [...p.itens, { produto_id: prod.id, descricao: prod.descricao, quantidade: 1, custo_unitario: Number(prod.preco_custo) }] })}
+            detalhe={(x) => [x.sku, `custo ${brl(x.preco_custo)}`, `estoque ${Number(x.estoque_atual)} (mín. ${Number(x.estoque_minimo)})`].filter(Boolean).join(" · ")} />
         )}
         <div className="text-right text-sm text-slate-600">Itens {brl(subtotal)} · Frete {brl(p.frete)} · <span className="num text-lg font-bold text-fg">Total {brl(subtotal + Number(p.frete || 0))}</span></div>
 
@@ -587,11 +583,10 @@ function FichaTecnica() {
             })}
           </div>
           {editavel && (
-            <select className="input mt-3" value="" onChange={(e) => e.target.value && !lista.some((c) => c.componente_id === e.target.value)
-              && setLista([...lista, { produto_id: maquina.id, componente_id: e.target.value, quantidade: 1 }])}>
-              <option value="">+ Adicionar peça…</option>
-              {produtos.filter((p) => p.tipo !== "maquina").map((p) => <option key={p.id} value={p.id}>{p.descricao}</option>)}
-            </select>
+            <ProdutoBusca className="mt-3" placeholder="Adicionar peça: nome, SKU ou código"
+              produtos={produtos.filter((p) => p.tipo !== "maquina" && !lista.some((c) => c.componente_id === p.id))}
+              onEscolher={(p) => setLista([...lista, { produto_id: maquina.id, componente_id: p.id, quantidade: 1 }])}
+              detalhe={(p) => [p.sku, `custo ${brl(p.preco_custo)}`, `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
           )}
           <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-sm">
             <div><div className="text-slate-500">Custo das peças</div><div className="num text-lg font-bold text-fg">{brl(custo)}</div></div>

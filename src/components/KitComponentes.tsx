@@ -1,7 +1,7 @@
 // Estoque → produto do tipo kit → Componentes: o que sai do estoque quando o kit é vendido.
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button, Modal } from "./ui";
+import { ProdutoBusca } from "./ProdutoBusca";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
@@ -13,7 +13,6 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
   const { data: todos = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const comps = todos.filter((c) => c.kit_id === kit.id);
-  const [novo, setNovo] = useState("");
   const invalidar = useInvalidate();
   const prod = (id: string) => produtos.find((p) => p.id === id);
   const saldo = (id: string) => Number(prod(id)?.estoque_atual ?? 0);
@@ -25,7 +24,7 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
     invalidar("kit_componentes");
   }
   const atualizar = (c: KitComponente, patch: Partial<KitComponente>) => gravar(supabase.from("kit_componentes").update(patch).eq("id", c.id));
-  const adicionar = (id: string) => { if (id) gravar(supabase.from("kit_componentes").insert({ kit_id: kit.id, componente_id: id, quantidade: 1 })); setNovo(""); };
+  const adicionar = (id: string) => gravar(supabase.from("kit_componentes").insert({ kit_id: kit.id, componente_id: id, quantidade: 1 }));
   const remover = (c: KitComponente) => gravar(supabase.from("kit_componentes").delete().eq("id", c.id));
 
   return (
@@ -59,15 +58,10 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
         </table>
       </div>
       {podeEditar && (
-        <div className="mt-3 flex items-center gap-2">
-          <Plus size={16} className="text-slate-400" />
-          <select className="input" value={novo} onChange={(e) => adicionar(e.target.value)}>
-            <option value="">Adicionar componente…</option>
-            {produtos.filter((p) => p.id !== kit.id && !p.kit && !comps.some((c) => c.componente_id === p.id)).map((p) => (
-              <option key={p.id} value={p.id}>{p.descricao} (estoque {Number(p.estoque_atual)})</option>
-            ))}
-          </select>
-        </div>
+        <ProdutoBusca className="mt-3" placeholder="Adicionar componente: nome ou SKU"
+          produtos={produtos.filter((p) => p.id !== kit.id && !p.kit && !comps.some((c) => c.componente_id === p.id))}
+          onEscolher={(p) => adicionar(p.id)}
+          detalhe={(p) => [p.sku, `custo ${brl(p.preco_custo)}`, `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
       )}
     </Modal>
   );

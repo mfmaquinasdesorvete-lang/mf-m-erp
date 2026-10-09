@@ -5,6 +5,7 @@ import { useRows } from "@/lib/data";
 import type { EscolhaKit, Item, KitComponente, Produto } from "@/lib/types";
 import { composicao, estoqueKit } from "@/lib/kits";
 import { Button, Modal } from "./ui";
+import { ProdutoBusca } from "./ProdutoBusca";
 
 type Props = {
   itens: Item[];
@@ -37,7 +38,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Pro
   return (
     <div>
       <div className="overflow-x-auto rounded-md border">
-        <table className="min-w-full divide-y">
+        <table className="itens min-w-full divide-y">
           <thead className="bg-slate-50">
             <tr>
               <th className="th">Item</th>
@@ -54,7 +55,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Pro
               const estoque = prod ? (prod.kit ? estoqueKit(prod.id, comps, saldo, it.kit_escolha) : prod.estoque_atual) : undefined;
               return (
                 <tr key={idx}>
-                  <td className="td">
+                  <td className="td it-largo" data-label="Item">
                     <input className="input" value={it.descricao} disabled={disabled} onChange={(e) => atualizar(idx, { descricao: e.target.value })} />
                     {estoque !== undefined && Number(estoque) < it.quantidade && !disabled && (
                       <p className="mt-1 text-xs text-red-600">{prod?.kit ? "Kits que dá para montar" : "Estoque disponível"}: {Number(estoque)}</p>
@@ -69,20 +70,20 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Pro
                     )}
                   </td>
                   {comSerie && (
-                    <td className="td">
+                    <td className="td it-largo" data-label="Nº série">
                       <input className="input" value={it.numero_serie ?? ""} disabled={disabled} onChange={(e) => atualizar(idx, { numero_serie: e.target.value })} />
                     </td>
                   )}
-                  <td className="td">
+                  <td className="td" data-label="Qtd">
                     <input className="input text-right" type="number" min={0.001} step="any" value={it.quantidade} disabled={disabled}
                       onChange={(e) => atualizar(idx, { quantidade: Number(e.target.value) })} />
                   </td>
-                  <td className="td">
+                  <td className="td" data-label="Unitário">
                     <input className="input text-right" type="number" min={0} step="0.01" value={it.valor_unitario} disabled={disabled}
                       onChange={(e) => atualizar(idx, { valor_unitario: Number(e.target.value) })} />
                   </td>
-                  <td className="td pt-4 text-right">{brl(it.quantidade * it.valor_unitario)}</td>
-                  <td className="td">
+                  <td className="td it-total pt-4 text-right" data-label="Total">{brl(it.quantidade * it.valor_unitario)}</td>
+                  <td className="td it-acao">
                     {!disabled && (
                       <Button type="button" variant="ghost" onClick={() => onChange(itens.filter((_, i) => i !== idx))} aria-label="Remover">
                         <Trash2 size={16} />
@@ -99,14 +100,16 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Pro
         </table>
       </div>
       {!disabled && (
-        <select className="input mt-2" value="" onChange={(e) => adicionar(e.target.value)}>
-          <option value="">+ Adicionar item…</option>
-          {disponiveis.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.kit ? "[KIT] " : ""}{p.descricao} — {brl(p.preco_venda)} (estoque {estoqueDe(p)})
-            </option>
-          ))}
-        </select>
+        <ProdutoBusca className="mt-2" produtos={disponiveis} onEscolher={(p) => adicionar(p.id)}
+          detalhe={(p) => {
+            const est = estoqueDe(p);
+            return (
+              <>
+                {[p.sku, p.modelo, p.marca].filter(Boolean).map((x) => `${x} · `).join("")}
+                <b className="text-fg">{brl(p.preco_venda)}</b> · <span className={est > 0 ? "" : "font-semibold text-red-600"}>{p.kit ? "dá para montar" : "estoque"} {est}</span>
+              </>
+            );
+          }} />
       )}
       {kitIdx !== null && itens[kitIdx] && (
         <EscolhaKitModal kitId={itens[kitIdx].produto_id} comps={comps} nome={nomeProd} saldo={saldo}

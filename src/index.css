@@ -106,6 +106,16 @@ select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
   .tabela > tbody > tr > td.sel { position: absolute; top: 12px; right: 14px; width: auto; min-height: 0; padding: 0; }
   .tabela > tbody > tr > td.sel + td { padding-right: 34px; }
   .tabela > tbody > tr > td.sel + td:not(:first-child) { padding-left: 42%; }
+  /* itens do pedido, OS e NF-e: cada item vira um cartão (descrição em cima; quantidade, valor e lixeira embaixo) */
+  .itens thead { display: none; }
+  .itens, .itens > tbody { display: block; width: 100%; }
+  .itens > tbody > tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px 10px; align-items: end; padding: 12px; }
+  .itens > tbody > tr > td { display: block; padding: 0; min-width: 0; }
+  .itens > tbody > tr > td[colspan], .itens > tbody > tr > td.it-largo { grid-column: 1 / -1; }
+  .itens > tbody > tr > td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: rgb(var(--slate-500)); }
+  .itens > tbody > tr > td.it-total { order: 1; grid-column: 1 / -1; padding: 0; font-weight: 700; }
+  .itens > tbody > tr > td.it-total::before { display: inline; margin-right: 6px; font-weight: 400; }
+  .itens > tbody > tr > td.it-acao:empty { display: none; }
   /* letra de campo menor que 16px faz o iPhone dar zoom ao tocar e a página fica maior que a tela */
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), select, textarea { font-size: 16px !important; }
 }
