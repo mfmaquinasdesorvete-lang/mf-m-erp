@@ -120,8 +120,10 @@ export function erroDeToken(body: any, codigo?: string | null, op: OpcoesFocus =
   const { secret, producao } = conexao(codigo, op);
   const cod = codigo?.trim().toUpperCase();
   const msg = String(body?.mensagem || "A Focus recusou o token").replace(/\.+$/, "");
+  const sugerido = cod ? (op.recebidas || producao ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : `FOCUS_NFE_TOKEN_${cod}`) : null;
   const dica = /cnpj/i.test(msg)
-    ? `O token é de outra empresa cadastrada na Focus: cadastre no Supabase o token desta unidade${cod ? ` como ${op.recebidas && !focusProducao() ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : `FOCUS_NFE_TOKEN_${cod}`}` : ""}`
+    ? `O token usado (${secret}) é de outra empresa cadastrada na Focus: cadastre no Supabase o token ${producao ? "de produção " : ""}desta unidade` +
+      `${sugerido ? ` como ${sugerido}` : ""} (na Focus: Empresas → esta empresa → Tokens)`
     : `Confira se o ${secret} no Supabase é o Token ${producao ? "de Produção" : "de Homologação"} da Focus`;
   // em homologação por engano: o token de produção é recusado no servidor de teste
   const lido = ambienteParaMensagem();

@@ -273,7 +273,8 @@ async function sincronizarCnpj(db: SupabaseClient, cnpj: string, unidadeId: stri
     const res = await focus(`/v2/nfes_recebidas?cnpj=${cnpj}&versao=${versao}`, {}, codigo, { recebidas: true });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      if (res.status === 401 || res.status === 403) throw erroDeToken(err, codigo, { recebidas: true });
+      // a Focus às vezes responde 400/422 para token de outra empresa ("CNPJ do emitente não autorizado")
+      if (res.status === 401 || res.status === 403 || /cnpj|token/i.test(String(err?.mensagem ?? ""))) throw erroDeToken(err, codigo, { recebidas: true });
       throw new HttpError(502, err.mensagem || `Focus NFe HTTP ${res.status}`);
     }
     const lista = (await res.json()) as RecebidaFocus[];
