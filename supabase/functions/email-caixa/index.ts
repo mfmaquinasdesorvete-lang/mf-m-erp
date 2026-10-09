@@ -10,8 +10,8 @@
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
-import { baixarAnexo, type Conta, enviarPelaConta, mxDoDominio, sincronizarConta, testarConta, testarSmtp } from "../_shared/email-caixa.ts";
-import { explicarErroEmail, portaSmtpBloqueada, provedorPorDominio, provedorPorMx } from "../_shared/email-diagnostico.ts";
+import { baixarAnexo, type Conta, enviarPelaConta, mxDoDominio, sincronizarConta, sondarServidor, testarConta, testarSmtp } from "../_shared/email-caixa.ts";
+import { explicarErroEmail, portaSmtpBloqueada, PROVEDORES, provedorPorDominio, provedorPorMx } from "../_shared/email-diagnostico.ts";
 import { importarXml } from "../_shared/nfe-recebidas.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 
@@ -35,6 +35,16 @@ Deno.serve(async (req) => {
       const { data } = await q;
       return (data ?? []) as Conta[];
     };
+
+    // Diagnóstico de rede com os servidores de e-mail conhecidos (sem login): admin ou o agendamento do próprio banco
+    if (body.acao === "sondar") {
+      if (!peloAgendamento) await requireErpUser(req, []);
+      const conhecidos = new Set(PROVEDORES.flatMap((p) => [`${p.imap}:${p.imap_porta}`, `${p.smtp}:465`]));
+      const alvos = (Array.isArray(body.alvos) ? body.alvos : ["imap.hostinger.com:993", "imap.gmail.com:993"]).map(String).filter((a: string) => conhecidos.has(a)).slice(0, 4);
+      const resultado = [];
+      for (const a of alvos) { const [h, p] = a.split(":"); resultado.push(await sondarServidor(h, Number(p))); }
+      return json({ ok: true, resultado });
+    }
 
     if (peloAgendamento || body.acao === "sincronizar") {
       let lista = await contas(body.conta_id);

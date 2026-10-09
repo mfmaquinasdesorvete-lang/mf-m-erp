@@ -3,6 +3,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { ImapFlow } from "npm:imapflow@1.0.171";
 import { simpleParser } from "npm:mailparser@3.7.2";
 import nodemailer from "npm:nodemailer@6.9.16";
+import tls from "node:tls";
 
 export type Conta = {
   id: string; nome: string; email: string; imap_host: string; imap_porta: number; smtp_host: string | null; smtp_porta: number;
@@ -163,4 +164,33 @@ export async function enviarPelaConta(conta: Conta, m: { para: string; assunto: 
     from: `${conta.nome} <${conta.email}>`, to: m.para, subject: m.assunto, text: m.texto,
     ...(m.responderA ? { inReplyTo: m.responderA, references: m.responderA } : {}),
   });
+}
+
+/** Diagnóstico de rede (sem login): abre a conexão segura com o servidor e lê a saudação, pelo Deno e pelo node:tls. */
+export async function sondarServidor(host: string, porta: number) {
+  const ate = <T>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<never>((_, r) => setTimeout(() => r(new Error(`sem resposta em ${ms} ms`)), ms))]);
+  const deno = await (async () => {
+    const t0 = Date.now();
+    let conn: Deno.TlsConn | null = null;
+    try {
+      conn = await ate(Deno.connectTls({ hostname: host, port: porta }), 10_000);
+      const buf = new Uint8Array(512);
+      const n = await ate(conn.read(buf), 10_000);
+      return { ok: n !== null && n > 0, saudacao: n ? new TextDecoder().decode(buf.subarray(0, n)).split("\r\n")[0].slice(0, 120) : "(fechou sem enviar nada)", ms: Date.now() - t0 };
+    } catch (e) {
+      return { ok: false, erro: String((e as Error).message).slice(0, 200), ms: Date.now() - t0 };
+    } finally { try { conn?.close(); } catch { /* já fechada */ } }
+  })();
+  const node = await new Promise<Record<string, unknown>>((resolve) => {
+    const t0 = Date.now();
+    const eventos: string[] = [];
+    let fim = false;
+    const acabar = (r: Record<string, unknown>) => { if (fim) return; fim = true; clearTimeout(timer); try { s.destroy(); } catch { /* ok */ } resolve({ ...r, eventos, ms: Date.now() - t0 }); };
+    const s = tls.connect({ host, port: porta, servername: host }, () => eventos.push("secureConnect"));
+    const timer = setTimeout(() => acabar({ ok: false, erro: "sem saudação em 10 s" }), 10_000);
+    s.on("data", (d: Uint8Array) => acabar({ ok: true, saudacao: new TextDecoder().decode(d).split("\r\n")[0].slice(0, 120) }));
+    for (const ev of ["end", "close", "timeout"]) s.on(ev, () => { eventos.push(ev); if (ev !== "timeout") acabar({ ok: false, erro: `conexão terminou (${ev})` }); });
+    s.on("error", (e: Error) => acabar({ ok: false, erro: e.message.slice(0, 200) }));
+  });
+  return { host, porta, deno, node };
 }
