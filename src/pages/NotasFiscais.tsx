@@ -4,7 +4,7 @@ import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, T
 import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
-import { brl, dataBR, docFormat } from "@/lib/format";
+import { brl, dataBR, docFormat, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -19,8 +19,11 @@ import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
 import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
 import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
+import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebidas } from "@/components/nfe/Evolucao";
+import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
+import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 
-const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
+const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
 const sem = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
@@ -95,6 +98,15 @@ function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: 
   );
 }
 
+function FiltroEtapa({ valor, onChange, opcoes }: { valor: string; onChange: (v: string) => void; opcoes: { valor: string; rotulo: string }[] }) {
+  return (
+    <select className="input w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar pela evolução">
+      <option value="">Todas as etapas</option>
+      {opcoes.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+    </select>
+  );
+}
+
 function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
   const { data: marcadores = [] } = useMarcadores();
   return (
@@ -143,8 +155,19 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
   const podeFin = !leitura && pode("nfe_recebidas");
   const [aba, setAba] = useState("todas");
   const [marcador, setMarcador] = useState("");
+  const [etapa, setEtapa] = useState("");
   const { data: excluidas = [] } = useExcluidas("notas_fiscais", podeFin);
-  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador));
+  // evolução de cada nota (e-mail, contas, estoque, etiqueta, despacho, entrega)
+  const { data: evolucoes } = useEvolucaoEmitidas();
+  const evolucao = useMemo(() => {
+    const dia = hoje();
+    const m = new Map<string, Evolucao>();
+    for (const n of data) m.set(n.id, evolucaoEmitida(n as any, evolucoes?.get(n.id), dia, n.pedido_id ? null : operacaoNota(n.operacao ?? "venda")));
+    return m;
+  }, [data, evolucoes]);
+  const filtroEtapa = FILTROS_EMITIDAS.find((f) => f.valor === etapa);
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
+    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
   const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
@@ -175,7 +198,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /></>}</div>
+        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></>}</div>
         <div className="flex flex-wrap gap-2">
           {!leitura && <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>}
           {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
@@ -184,6 +207,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
         </div>
       </div>
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
+      <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <b>Contingência:</b> a SEFAZ ou a Focus não respondeu e há nota(s) na fila. O ERP reenvia sozinho a cada 15 minutos
@@ -195,7 +219,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th">UF</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Marcadores</th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th">UF</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th">Marcadores</th><th className="th" /></>}
           >
             {visiveis.map((n) => {
               const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
@@ -215,6 +239,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
                     {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
                   </td>
+                  <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
                   <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
                   <CelulaAbrir />
                 </tr>
@@ -240,8 +265,13 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
   const { data: marcadores = [] } = useMarcadores();
   const [aba, setAba] = useState("todas");
   const [marcador, setMarcador] = useState("");
+  const [etapa, setEtapa] = useState("");
   const { data: excluidas = [] } = useExcluidas("nfe_recebidas", !leitura);
-  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador));
+  const { data: evolucoes } = useEvolucaoRecebidas();
+  const evolucao = useMemo(() => new Map(data.map((n) => [n.id, evolucaoRecebida(n as any, evolucoes?.get(n.id))])), [data, evolucoes]);
+  const filtroEtapa = FILTROS_RECEBIDAS.find((f) => f.valor === etapa);
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
+    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
   const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
@@ -289,14 +319,15 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /></>}</div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></>}</div>
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
+      <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Marcadores</th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th">Marcadores</th><th className="th" /></>}
           >
             {visiveis.map((n) => (
               <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
@@ -310,6 +341,7 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
                   {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                   {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
                 </td>
+                <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
                 <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
                 <CelulaAbrir />
               </tr>

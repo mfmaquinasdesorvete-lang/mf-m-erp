@@ -297,6 +297,11 @@ function seed(): Db {
     destino: canal === "email" ? db.clientes.find((c) => c.id === cliente)?.email : String(5000 + USUARIOS_DEMO.findIndex((u) => u.user_id === usuario)),
     dados: dados ?? EXEMPLOS[tipo], created_at: quando(d), enviado_em: status === "enviado" ? quando(d) : null,
   })).reverse();
+  // DANFE por e-mail ao cliente das notas de pedido (a evolução das NF mostra)
+  for (const [nota, cli, d] of [["nf1", "c1", -33], ["nf2", "c4", -5]] as const) {
+    db.avisos.push({ id: db.avisos.length + 1, tipo: "cli_nfe", canal: "email", cliente_id: cli, status: "enviado", tentativas: 1, erro: null, chave: `nfe:${nota}`,
+      destino: db.clientes.find((c) => c.id === cli)?.email, dados: {}, created_at: quando(d), enviado_em: quando(d) });
+  }
   // ERP Line: notificações, loja, caixa de e-mail
   db.usuarios_erp.forEach((u) => { u.preferencias = {}; u.notificacoes_vistas_em = quando(-1); });
   db.notificacoes = [
@@ -1083,6 +1088,49 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  evolucao_notas: () => {
+    const dia = hojeISO();
+    const cfg = db.configuracoes[0];
+    const data = db.notas_fiscais.filter((n) => !n.excluida_em && n.origem !== "importada").map((n) => {
+      const p = db.pedidos.find((x) => x.id === n.pedido_id);
+      const c = db.clientes.find((x) => x.id === (p?.cliente_id ?? n.cliente_id));
+      const av = (db.avisos ?? []).filter((a) => a.tipo === "cli_nfe" && a.chave === `nfe:${n.id}`).slice(-1)[0];
+      const contas = db.contas_receber.filter((r) => r.status !== "cancelado" && ((n.pedido_id && r.pedido_id === n.pedido_id) || r.nota_fiscal_id === n.id));
+      const et = (db.etiquetas_envio ?? []).filter((e) => e.impressa_em && (e.nota_fiscal_id === n.id || (n.pedido_id && e.pedido_id === n.pedido_id)))
+        .sort((a, b) => (a.impressa_em < b.impressa_em ? 1 : -1))[0];
+      const ex = n.pedido_id ? (db.expedicoes ?? []).find((e) => e.pedido_id === n.pedido_id) : null;
+      const ev = n.pedido_id ? (db.envios ?? []).filter((v) => v.pedido_id === n.pedido_id && v.status !== "cancelado").sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] : null;
+      const pagos = contas.filter((r) => r.data_pagamento).map((r) => r.data_pagamento).sort();
+      return {
+        nota_id: n.id, email_status: av?.status ?? null, email_em: av?.enviado_em ?? null,
+        email_possivel: !!(cfg.avisos_email_ativo && c?.avisos_email !== false && /@/.test(c?.email ?? "")),
+        contas_qtd: contas.length, contas_pagas: contas.filter((r) => r.status === "pago").length,
+        contas_vencidas: contas.filter((r) => r.status === "aberto" && r.vencimento < dia).length,
+        contas_aberto: contas.filter((r) => r.status === "aberto").reduce((t, r) => t + Number(r.valor) - Number(r.valor_pago ?? 0), 0),
+        pago_em: pagos.slice(-1)[0] ?? null, estoque: !!(n.estoque_lancado || p?.estoque_baixado),
+        etiqueta_em: et?.impressa_em ?? null, etiqueta_vezes: et?.impressoes ?? 0,
+        exp_status: ex?.status ?? null, separando_em: ex?.separando_em ?? null, embalado_em: ex?.embalado_em ?? null, despachado_em: ex?.despachado_em ?? null, exp_entregue_em: ex?.entregue_em ?? null,
+        envio_status: ev?.status ?? null, coletado_em: ev?.coletado_em ?? null, entrega_prevista: ev?.entrega_prevista ?? null, envio_entregue_em: ev?.entregue_em ?? null,
+        rastreio: ev?.codigo_rastreio ?? ex?.codigo_rastreio ?? p?.codigo_rastreio ?? null, pedido_status: p?.status ?? null,
+        cce: (db.nfe_cartas_correcao ?? []).filter((k) => k.nota_id === n.id && k.status === "autorizada").length,
+        devolucao: db.notas_fiscais.some((d) => d.nota_referenciada_id === n.id && !d.excluida_em && ["autorizada", "processando", "contingencia"].includes(d.status)),
+      };
+    });
+    return { data, error: null };
+  },
+  evolucao_recebidas: () => {
+    const dia = hojeISO();
+    const data = (db.nfe_recebidas ?? []).filter((n) => !n.excluida_em).map((n) => {
+      const cp = db.contas_pagar.filter((c) => c.status !== "cancelado" && (c.nfe_recebida_id === n.id || c.id === n.conta_pagar_id));
+      return cp.length ? {
+        nota_id: n.id, contas_qtd: cp.length, contas_pagas: cp.filter((c) => c.status === "pago").length,
+        contas_vencidas: cp.filter((c) => c.status === "aberto" && c.vencimento < dia).length,
+        contas_aberto: cp.filter((c) => c.status === "aberto").reduce((t, c) => t + Number(c.valor) - Number(c.valor_pago ?? 0), 0),
+        pago_em: cp.map((c) => c.data_pagamento).filter(Boolean).sort().slice(-1)[0] ?? null,
+      } : null;
+    }).filter(Boolean);
+    return { data, error: null };
+  },
   salvar_modelo_etiqueta: ({ p_modelo }) => {
     const papel = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel;
     if (!["admin", "vendas", "financeiro"].includes(papel)) return erro("sem permissão para esta ação");

@@ -14,12 +14,14 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
+import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
+import { evolucaoRecebida } from "@/lib/evolucaoNota";
 
 export type Recebida = {
   id: string; chave: string; emitente_nome: string; emitente_cnpj: string; valor_total: number; data_emissao: string;
   situacao: string; manifestacao: string | null; conta_pagar_id: string | null; estoque_lancado: boolean; processamento: string;
   processamento_msg: string | null; origem?: string; unidade_id?: string | null; marcadores?: string[]; observacao_interna?: string | null;
-  finalidade?: string | null;
+  finalidade?: string | null; nfe_completa?: boolean | null; fornecedor_id?: string | null;
 };
 
 export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida; leitura?: boolean; onClose: () => void }) {
@@ -151,6 +153,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             {!n.estoque_lancado && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
           </div>
         )}
+        <EvolucaoRecebida n={n} />
         <Historico tabela="nfe_recebidas" id={n.id} />
       </div>
 
@@ -180,6 +183,19 @@ function Info({ rotulo, valor, extra, forte }: { rotulo: string; valor: string; 
       <div className="text-xs text-slate-500">{rotulo}</div>
       <div className={forte ? "text-base font-bold text-fg" : "font-medium text-fg"}>{valor}</div>
       {extra && <div className="text-xs text-slate-500">{extra}</div>}
+    </div>
+  );
+}
+
+/** Linha do tempo da nota de fornecedor: ciência, XML, fornecedor, estoque e conta a pagar. */
+function EvolucaoRecebida({ n }: { n: Recebida }) {
+  const { data } = useEvolucaoRecebidas();
+  const e = evolucaoRecebida(n, data?.get(n.id));
+  if (!e.historico && !e.etapas.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-200 p-3">
+      <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Evolução</div>
+      <LinhaDoTempo e={e} />
     </div>
   );
 }

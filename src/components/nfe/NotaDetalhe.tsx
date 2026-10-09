@@ -16,6 +16,8 @@ import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
+import { LinhaDoTempo, useEvolucaoEmitidas } from "./Evolucao";
+import { evolucaoEmitida } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 
 export type NotaEmitida = {
@@ -122,6 +124,8 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
             {n.chave ? <button type="button" onClick={() => copiar(n.chave!)} className="flex items-start gap-1 break-all text-left text-xs font-medium text-fg hover:text-brand"><Copy size={13} className="mt-0.5 shrink-0" /> {n.chave}</button> : <span className="text-slate-400">—</span>}
           </div>
         </div>
+
+        <EvolucaoDaNota n={n} />
 
         {relacionadas.length > 0 && (
           <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-900">
@@ -319,6 +323,19 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
 }
 
 /** Nota direta: depois de autorizada, lançar a conta a receber e baixar o estoque (como no Tiny). */
+/** Linha do tempo: o que já aconteceu com a nota depois da SEFAZ. */
+function EvolucaoDaNota({ n }: { n: NotaEmitida }) {
+  const { data } = useEvolucaoEmitidas();
+  const e = evolucaoEmitida(n as any, data?.get(n.id), new Date().toISOString().slice(0, 10), n.pedido_id ? null : operacaoNota(n.operacao ?? "venda"));
+  if (!e.historico && !e.etapas.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-200 p-3">
+      <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Evolução</div>
+      <LinhaDoTempo e={e} />
+    </div>
+  );
+}
+
 function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boolean; teste: boolean }) {
   const invalidate = useInvalidate();
   const op = operacaoNota(n.operacao ?? "venda");
