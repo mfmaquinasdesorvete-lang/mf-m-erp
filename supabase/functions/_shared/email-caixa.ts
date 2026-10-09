@@ -3,6 +3,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { simpleParser } from "npm:mailparser@3.7.2";
 import nodemailer from "npm:nodemailer@6.9.16";
 import tls from "node:tls";
+import { Buffer } from "node:buffer";
 import { ErroImap, ImapNativo } from "./imap-nativo.ts";
 
 export type Conta = {
@@ -98,7 +99,7 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
       (lista ?? []).find((x) => x.email?.trim().toLowerCase() === e)?.id ?? null;
 
     for (const m of mensagens) {
-      const p = await simpleParser(m.source);
+      const p = await simpleParser(Buffer.from(m.source));
       const de = p.from?.value?.[0];
       const deEmail = (de?.address ?? "").toLowerCase();
       const texto = (p.text ?? "").slice(0, 100_000);
@@ -153,7 +154,7 @@ export async function baixarAnexo(conta: Conta, uid: number, indice: number) {
     await cli.sair();
   }
   if (!m) throw new Error("e-mail não encontrado no servidor (pode ter sido apagado)");
-  const p = await simpleParser(m.source);
+  const p = await simpleParser(Buffer.from(m.source));
   const a = (p.attachments ?? [])[indice];
   if (!a) throw new Error("anexo não encontrado");
   return { nome: a.filename ?? `anexo-${indice + 1}`, tipo: a.contentType, conteudo: a.content as Uint8Array };
