@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FileDown } from "lucide-react";
 import { Button, Card, Field, PageHeader } from "@/components/ui";
@@ -25,6 +26,9 @@ export default function Configuracoes() {
   const { unidades } = useUnidade();
   const [cfg, setCfg] = useState<Record<string, any> | null>(null);
   useEffect(() => { if (data) setCfg(data); }, [data]);
+  // Vindo de outra tela (ex.: Fluxo de pedidos → ligar a NF-e automática): rola até a seção pedida
+  const secao = (useLocation().state as { secao?: string } | null)?.secao;
+  useEffect(() => { if (cfg && secao) document.getElementById(secao)?.scrollIntoView({ block: "start" }); }, [!!cfg, secao]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
   const set = (k: string) => (e: { target: { value: string } }) => setCfg({ ...cfg, [k]: e.target.value });
@@ -128,6 +132,7 @@ export default function Configuracoes() {
         </div>
       </Card>
 
+      <div id="automacao-pedidos" className="scroll-mt-20">
       <Card className="p-4">
         <h2 className="mb-1 font-semibold">Automação de pedidos</h2>
         <p className="mb-3 text-sm text-slate-500">O que o ERP faz sozinho depois que a venda é aprovada (no ERP, na loja virtual ou pela proposta).</p>
@@ -164,6 +169,7 @@ export default function Configuracoes() {
           ))}
         </div>
       </Card>
+      </div>
 
       <Card className="p-4">
         <h2 className="mb-1 font-semibold">Proposta comercial (layout)</h2>
