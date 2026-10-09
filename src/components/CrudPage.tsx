@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2, X } from "lucide-react";
+import { FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -119,6 +119,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   useEffect(() => { setSel((s) => (s.size ? new Set([...s].filter((id) => data.some((r) => r.id === id))) : s)); }, [data]);
 
   const filtrosAtivos = Object.values(escolhas).filter(Boolean).length;
+  const temFiltros = filtros.length > 0 || ordens.length > 1;
+  const [painel, setPainel] = useState(false);
+  const celular = useCelular();
   const todosMarcados = filtrados.length > 0 && filtrados.every((r) => sel.has(r.id));
   const marcar = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const marcarTodos = () => setSel(todosMarcados ? new Set() : new Set(filtrados.map((r) => r.id)));
@@ -212,27 +215,55 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         </>}
       />
 
+      {/* No celular os filtros ficam guardados no botão "Filtros" (a lista aparece logo abaixo da busca);
+          no computador continuam na mesma linha da busca. */}
       <div className="mb-3 flex flex-wrap items-end gap-2">
-        <div className="relative w-full max-w-md">
-          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+        <div className="relative min-w-0 flex-1 md:w-full md:max-w-md md:flex-none">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        {filtros.map((f, i) => (
-          <select key={f.label} className={`input !w-auto max-w-[14rem] ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
-            value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
-            <option value="">{f.label}: todos</option>
-            {"valor" in f
-              ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
-              : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
-          </select>
-        ))}
-        {ordens.length > 1 && (
-          <select className="input !w-auto" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
-            {ordens.map((o, i) => <option key={o.label} value={i}>Ordem: {o.label}</option>)}
-          </select>
+        {temFiltros && (
+          <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
+            className={`inline-flex min-h-[46px] shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold md:hidden ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
+            <SlidersHorizontal size={16} /> Filtros
+            {filtrosAtivos > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-white">{filtrosAtivos}</span>}
+          </button>
         )}
+        <div className={`${painel ? "grid" : "hidden"} w-full grid-cols-2 gap-x-2 gap-y-2.5 md:contents`}>
+          {filtros.map((f, i) => (
+            <label key={f.label} className="min-w-0 md:contents">
+              <span className="mb-1 block truncate text-xs font-semibold text-slate-500 md:hidden">{f.label}</span>
+              <select className={`input min-w-0 md:!w-auto md:max-w-[14rem] ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
+                value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
+                <option value="">{celular ? "Todos" : `${f.label}: todos`}</option>
+                {"valor" in f
+                  ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
+                  : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+              </select>
+            </label>
+          ))}
+          {ordens.length > 1 && (
+            <label className="min-w-0 md:contents">
+              <span className="mb-1 block text-xs font-semibold text-slate-500 md:hidden">Ordem</span>
+              <select className="input min-w-0 md:!w-auto" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
+                {ordens.map((o, i) => <option key={o.label} value={i}>{celular ? o.label : `Ordem: ${o.label}`}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
         {(filtrosAtivos > 0 || busca) && (
-          <button type="button" className="px-2 py-2 text-sm text-brand hover:underline" onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
+          <button type="button" className={`px-2 py-2 text-sm text-brand hover:underline ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
+        )}
+        {/* filtros escolhidos, à vista com o painel fechado (celular) */}
+        {!painel && filtrosAtivos > 0 && (
+          <div className="flex w-full flex-wrap gap-1.5 md:hidden">
+            {Object.entries(escolhas).filter(([, v]) => v).map(([k, v]) => (
+              <button key={k} type="button" onClick={() => setEscolhas((x) => ({ ...x, [k]: "" }))} aria-label={`Tirar o filtro ${k}`}
+                className="inline-flex max-w-full items-center gap-1 rounded-full bg-brand-light px-2.5 py-1 text-xs font-semibold text-fg">
+                <span className="truncate">{k}: {v}</span> <X size={13} className="shrink-0" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
@@ -273,7 +304,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         {filtrados.slice(0, limite).map((row) => (
           <tr key={row.id} className={`hover:bg-slate-50 ${sel.has(row.id) ? "bg-brand-light/40" : ""}`}>
             {selecionavel && (
-              <td className="td w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
+              <td className="td sel w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
             )}
             {columns.map((c) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}</td>)}
             <td className="td whitespace-nowrap text-right">
@@ -348,6 +379,20 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       </Modal>
     </div>
   );
+}
+
+/** Tela de celular (abaixo de 768px): os filtros mostram o nome em cima e "Todos" dentro. */
+function useCelular(q = "(max-width: 767px)") {
+  const [ok, setOk] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return;
+    const f = () => setOk(m.matches);
+    f();
+    m.addEventListener?.("change", f);
+    return () => m.removeEventListener?.("change", f);
+  }, [q]);
+  return ok;
 }
 
 const PLACEHOLDER: Partial<Record<Mascara, string>> = {

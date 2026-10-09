@@ -99,6 +99,13 @@ select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
   /* coluna sem título = ações */
   .tabela > tbody > tr > td[data-label=""] { padding: 10px 0 0; text-align: right; }
   .tabela > tbody > tr > td[data-label=""]::before { content: none; }
-  .tabela > tbody > tr > td[data-label=""] > div { justify-content: flex-end; }
+  .tabela > tbody > tr > td[data-label=""] > div { justify-content: flex-end; flex-direction: row; flex-wrap: wrap; align-items: center; }
   .tabela > tbody > tr > td .max-w-xs { max-width: none; }
+  /* caixinha de selecionar no canto do cartão, sem ocupar uma linha */
+  .tabela > tbody > tr { position: relative; }
+  .tabela > tbody > tr > td.sel { position: absolute; top: 12px; right: 14px; width: auto; min-height: 0; padding: 0; }
+  .tabela > tbody > tr > td.sel + td { padding-right: 34px; }
+  .tabela > tbody > tr > td.sel + td:not(:first-child) { padding-left: 42%; }
+  /* letra de campo menor que 16px faz o iPhone dar zoom ao tocar e a página fica maior que a tela */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), select, textarea { font-size: 16px !important; }
 }
