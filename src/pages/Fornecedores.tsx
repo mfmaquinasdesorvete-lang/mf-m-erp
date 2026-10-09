@@ -5,7 +5,7 @@ import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
-import { Button, Tabs } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { digitos, docFormat } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
@@ -68,21 +68,17 @@ async function situacaoTransportadoras(ids: string[], ativo: boolean) {
   return `${ids.length} transportadora(s) ${ativo ? "ativada(s)" : "inativada(s)"}`;
 }
 
-export default function Fornecedores() {
+/** Fornecedores e transportadoras: cada um no seu item do menu (mesma permissão de tela). */
+export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "transportadoras" }) {
   const { pode, papel } = usePerfil();
   const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
   const podeImportar = papel === "admin" || papel === "financeiro";
   const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
     podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
-  const [aba, setAba] = useState<"fornecedores" | "transportadoras">(pode("editar_fornecedores") ? "fornecedores" : "transportadoras");
 
   return (
     <div>
       {importar && <ImportarContatos tipo={importar} onClose={() => setImportar(null)} />}
-      <Tabs value={aba} onChange={setAba} options={[
-        { value: "fornecedores", label: "Fornecedores de peças" },
-        { value: "transportadoras", label: "Transportadoras" },
-      ]} />
       {aba === "fornecedores" ? (
         <CrudPage<Fornecedor>
           anexos="fornecedor"

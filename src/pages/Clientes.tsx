@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FileSpreadsheet, IdCard } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { FileSpreadsheet, IdCard, Wrench } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
@@ -11,6 +12,12 @@ import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { notify } from "@/lib/notify";
 import { digitos, docFormat } from "@/lib/format";
 import type { Cliente } from "@/lib/types";
+import { useRows } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
+import { ArrumarCadastro, EtiquetasCliente, UnificarClientes } from "@/components/clientes/QualidadeClientes";
+
+const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
+const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
 
 const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
 
@@ -53,6 +60,17 @@ const FILTROS: FiltroCrud<Cliente>[] = [
     { label: "Contribuinte de ICMS (tem IE)", teste: (r) => Number(r.contribuinte_icms) === 1 },
     { label: "Não contribuinte", teste: (r) => Number(r.contribuinte_icms) === 9 },
   ]),
+  {
+    label: "Receita", opcoes: [
+      { label: "CNPJ baixado/inapto", teste: (r) => tag(r, "cnpj_irregular") },
+      { label: "IE baixada", teste: (r) => tag(r, "ie_baixada") },
+      { label: "Endereço diferente da Receita (2 endereços)", teste: (r) => tag(r, "endereco_receita") },
+      { label: "CNPJ ainda não conferido", teste: (r) => temCnpj(r) && !r.receita_em },
+      { label: "CNPJ ativo e conferido", teste: (r) => !!r.receita_em && r.receita_situacao === "ATIVA" },
+    ],
+  },
+  { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
+  { label: "Etiqueta", opcoes: [{ label: "Também é fornecedor", teste: (r) => tag(r, "fornecedor") }] },
   filtroCadastradoEm<Cliente>(),
 ];
 const ORDENS = ordensCadastro<Cliente>();
@@ -61,18 +79,47 @@ export default function Clientes() {
   const { papel } = usePerfil();
   const [importar, setImportar] = useState(false);
   const [ficha, setFicha] = useState<Cliente | null>(null);
+  const [arrumar, setArrumar] = useState(false);
+  const [unificar, setUnificar] = useState<string[] | null>(null);
+  // mesma consulta da lista (fica em cache): para os repetidos e para unificar
+  const { data: todos = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  // quem tem histórico ganha o botão da ficha colorido
+  const { data: comHistorico } = useQuery({
+    queryKey: ["clientes_com_historico"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clientes_com_historico");
+      if (error) throw error;
+      return new Set((data ?? []).map((x: any) => (typeof x === "string" ? x : x.clientes_com_historico ?? x.id)) as string[]);
+    },
+    staleTime: 60_000,
+  });
   // a importação em lote é do financeiro (e admin), como a de produtos
   const podeImportar = papel === "admin" || papel === "financeiro";
+  const podeArrumar = papel === "admin" || papel === "financeiro" || papel === "vendas";
+  const selecionados = unificar ? todos.filter((c) => unificar.includes(c.id)) : [];
   return (
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
     {ficha && <FichaCliente cliente={ficha} onClose={() => setFicha(null)} />}
+    {arrumar && <ArrumarCadastro clientes={todos} onClose={() => setArrumar(false)} onUnificar={(ids) => setUnificar(ids)} />}
+    {unificar && selecionados.length > 1 && <UnificarClientes key={unificar.join()} clientes={selecionados} onClose={() => setUnificar(null)} />}
     <CrudPage<Cliente>
       filtros={FILTROS}
       ordens={ORDENS}
       podeExcluir={papel === "admin"}
       plural="clientes"
-      extraActions={podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
+      extraActions={<>
+        {podeArrumar && <Button variant="secondary" onClick={() => setArrumar(true)} title="WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores na lista"><Wrench size={16} /> Arrumar cadastro</Button>}
+        {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
+      </>}
+      acoesLote={podeArrumar ? [{
+        label: "Unificar",
+        executar: async (ids) => {
+          if (ids.length < 2) throw new Error("Selecione 2 ou mais cadastros da mesma pessoa/empresa para unificar");
+          setUnificar(ids);
+          return "Escolha qual cadastro fica";
+        },
+      }] : []}
       anexos="cliente"
       title="Clientes"
       table="clientes"
@@ -93,10 +140,21 @@ export default function Clientes() {
         return null;
       }}
       fields={FIELDS}
-      rowActions={(r) => <Button variant="ghost" title="Ficha do cliente: compras, financeiro, assistência e atendimentos" onClick={() => setFicha(r)}><IdCard size={16} /> Ficha</Button>}
+      rowActions={(r) => {
+        const temHistorico = comHistorico?.has(r.id);
+        return (
+          <button type="button" onClick={() => setFicha(r)}
+            title={temHistorico ? "Ficha 360: compras, financeiro, assistência e atendimentos deste cliente" : "Ficha 360: este cliente ainda não tem compras, contas nem atendimentos"}
+            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[13px] font-semibold transition ${temHistorico
+              ? "bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-sm hover:brightness-110"
+              : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
+            <IdCard size={15} /> Ficha 360
+          </button>
+        );
+      }}
       columns={[
         { label: "Cód.", render: (r) => <span className="font-mono text-xs text-slate-500">{r.codigo ?? "—"}</span>, className: "w-14" },
-        { label: "Nome", render: (r) => <NomeCadastro r={r} /> },
+        { label: "Nome", render: (r) => <><NomeCadastro r={r} /><EtiquetasCliente c={r} /></> },
         { label: "CPF/CNPJ", render: (r) => <span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span> },
         { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
         { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },

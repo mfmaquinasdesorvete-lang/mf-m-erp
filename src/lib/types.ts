@@ -4,6 +4,7 @@ export type Cliente = {
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null; portal_token?: string;
+  tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
 };
 
 export type Produto = {

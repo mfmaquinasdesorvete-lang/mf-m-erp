@@ -14,6 +14,7 @@ import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
 import type { Cliente } from "@/lib/types";
+import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
@@ -74,7 +75,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 
   const nome = c.nome_fantasia?.trim() || c.nome;
   return (
-    <Modal open onClose={onClose} title={`Ficha do cliente · ${nome}`} wide>
+    <Modal open onClose={onClose} title={`Ficha 360 · ${nome}`} wide>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="text-sm text-slate-600">
           <div className="font-semibold text-fg">{c.nome}{c.codigo ? <span className="ml-2 font-mono text-xs text-slate-500">cód. {c.codigo}</span> : null}</div>
@@ -168,6 +169,8 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
         <Indicador rotulo="Pontualidade" valor={r.pagas ? `${r.pagas - r.pagasComAtraso} de ${r.pagas} em dia` : "—"}
           sub={r.pagasComAtraso ? `atraso médio de ${r.atrasoMedio} dias` : undefined} tom={r.pagasComAtraso > 1 ? "atencao" : r.pagas ? "bom" : undefined} />
       </div>
+
+      <ReceitaCliente c={c} />
 
       <div>
         <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb size={16} className="text-amber-500" /> O que fazer com este cliente</h3>

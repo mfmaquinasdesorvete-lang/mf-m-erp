@@ -273,8 +273,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             )}
             {columns.map((c) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}</td>)}
             <td className="td whitespace-nowrap text-right">
-              {rowActions?.(row)}
-              {!readOnly && <Button variant="secondary" className="ml-1" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+              {/* em tela estreita os botões ficam um embaixo do outro, para a tabela não passar da largura */}
+              <div className="flex flex-col items-end gap-1 2xl:flex-row 2xl:items-center 2xl:justify-end">
+                {rowActions?.(row)}
+                {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+              </div>
             </td>
           </tr>
         ))}

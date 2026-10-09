@@ -3,6 +3,7 @@ import { buscarCep } from "./cep";
 import { buscarCnpj, inscricaoDoEstado, preencherVazios } from "./cnpj";
 import { notify } from "./notify";
 import { cnpjValido } from "./compliance";
+import { nomeProprio, separarNomeMei } from "../../supabase/functions/_shared/receita";
 
 /** Campos do cadastro ← dados da Receita. */
 export const MAPA_CNPJ = {
@@ -28,11 +29,16 @@ export async function completarPorCnpj(row: Record<string, any>, cnpj: string, c
     return null;
   }
   const ie = inscricaoDoEstado(d, d.uf);
-  const fonte = { ...d, inscricao_estadual: ie } as Record<string, unknown>;
+  // MEI: "52.431.268 BRUNO JOSE SALM" vira "Bruno Jose Salm" (o original vai para as observações ao salvar)
+  const mei = separarNomeMei(d.nome);
+  const fonte = { ...d, nome: nomeProprio(mei.nome), nome_fantasia: d.nome_fantasia ? nomeProprio(d.nome_fantasia) : d.nome_fantasia, inscricao_estadual: ie } as Record<string, unknown>;
   const mapa = Object.fromEntries(Object.entries(MAPA_CNPJ).filter(([k]) => campos.includes(k)));
   const patch = forcar
     ? Object.fromEntries(Object.entries(mapa).filter(([, o]) => fonte[o]).map(([k, o]) => [k, fonte[o]]))
     : preencherVazios(row, fonte, mapa);
+  if (mei.original && "nome" in patch && !String(row.observacoes ?? "").includes(mei.original)) {
+    patch.observacoes = [String(row.observacoes ?? "").trim(), `Razão social na Receita: ${mei.original}`].filter(Boolean).join("\n");
+  }
   if (d.situacao && d.situacao !== "ATIVA") notify(`Atenção: CNPJ com situação ${d.situacao} na Receita`, "erro");
   else if (campos.includes("inscricao_estadual") && !ie && !row.inscricao_estadual)
     notify("Dados preenchidos pela Receita. Inscrição estadual não encontrada: confira no SINTEGRA do estado.");

@@ -59,6 +59,11 @@ select cron.schedule('erp-email-caixa', '*/5 * * * *',
 select cron.schedule('erp-contador-pacote', '0 11 * * *',
   $$ select public.chamar_funcao('contador-pacote', '{"acao":"automatico"}'::jsonb, 300000) $$);
 
+-- Clientes: confere os CNPJs na Receita (3 por minuto, limite das consultas públicas)
+select cron.schedule('erp-clientes-receita', '* * * * *',
+  $$ select public.chamar_funcao('clientes-receita', '{"acao":"lote"}'::jsonb, 120000)
+      where exists (select 1 from public.clientes_para_receita(1)) $$);
+
 -- Para conferir:   select jobname, schedule, active from cron.job;
 --                  select * from cron.job_run_details order by start_time desc limit 20;
 --                  select * from net._http_response order by created desc limit 20;

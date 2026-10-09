@@ -364,6 +364,16 @@ function planoDemo(db: Db) {
   db.cobranca_envios = [];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
+  // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
+  Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
+    receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],
+      endereco: { cep: "74115050", logradouro: "Rua 9", numero: "1200", complemento: "Sala 4", bairro: "Setor Oeste", municipio: "Goiânia", uf: "GO" } } });
+  Object.assign(db.clientes[4], { tags: ["cnpj_irregular"], receita_situacao: "BAIXADA", receita_em: quando(-1) });
+  db.clientes.push(
+    { ...db.clientes[2], id: "c6", codigo: 6, cpf_cnpj: null, email: null, whatsapp: null, telefone: "34999112233", portal_token: "demo-portal-6", tags: [], receita: null },
+    { id: "c7", codigo: 7, tipo_pessoa: "PJ", nome: "Refrigeração Andrade Ltda", cpf_cnpj: "11222333000181", contribuinte_icms: 1, telefone: "1132221100", municipio: "São Paulo", uf: "SP", avisos_email: true, portal_token: "demo-portal-7", tags: [] } as any,
+    { id: "c8", codigo: 8, tipo_pessoa: "PF", nome: "Marileia Prestes", cpf_cnpj: "98765432100", contribuinte_icms: 9, telefone: "5599864949", municipio: "Campina das Missões", uf: "RS", avisos_email: true, portal_token: "demo-portal-8", tags: [] } as any,
+  );
   db.configuracoes[0].site_url ??= null;
   // uma conta que vence hoje, para a fila do WhatsApp
   db.contas_receber.push({ id: "r9", descricao: "Pedido #104 - parcela 1/1", cliente_id: "c2", parcela: 1, total_parcelas: 1, valor: 1890, vencimento: dias(0), status: "aberto",
@@ -945,7 +955,57 @@ function saldosDemo() {
 }
 const reaisDemo = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const soDig = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+const whatsDemo = (t: unknown) => {
+  let d = soDig(t);
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 11 && d[2] === "9") return d;
+  if (d.length === 10 && /[6-9]/.test(d[2])) return d.slice(0, 2) + "9" + d.slice(2);
+  return null;
+};
+const temMovimentoDemo = (id: string) => db.pedidos.some((p) => p.cliente_id === id) || db.contas_receber.some((r) => r.cliente_id === id)
+  || db.ordens_servico.some((o) => o.cliente_id === id) || (db.contatos_cliente ?? []).some((c: any) => c.cliente_id === id);
+const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? []).includes("fornecedor") && soDig(c.cpf_cnpj).length >= 11
+  && (db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) || db.transportadoras.some((t) => soDig(t.cnpj) === soDig(c.cpf_cnpj))))
+  .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  preencher_whatsapp_cadastros: () => {
+    const n = { clientes: 0, fornecedores: 0, transportadoras: 0 };
+    for (const t of ["clientes", "fornecedores", "transportadoras"] as const) {
+      for (const c of (db as any)[t]) { const w = whatsDemo(c.whatsapp) ?? whatsDemo(c.telefone); if (w && w !== c.whatsapp) { c.whatsapp = w; n[t]++; } }
+    }
+    return { data: n, error: null };
+  },
+  clientes_com_historico: () => ({ data: db.clientes.filter((c) => temMovimentoDemo(c.id)).map((c) => c.id), error: null }),
+  clientes_fornecedores: () => ({ data: fornecedoresNosClientesDemo(), error: null }),
+  retirar_fornecedores_clientes: ({ p_ids }) => {
+    let retirados = 0, mantidos = 0;
+    for (const f of fornecedoresNosClientesDemo().filter((x) => p_ids.includes(x.id))) {
+      const c = db.clientes.find((x) => x.id === f.id)!;
+      if (f.tem_movimento) { c.tags = [...new Set([...(c.tags ?? []), "fornecedor"])]; mantidos++; } else { db.clientes = db.clientes.filter((x) => x.id !== f.id); retirados++; }
+    }
+    return { data: { retirados, mantidos_com_etiqueta: mantidos, fornecedores_criados: 0 }, error: null };
+  },
+  unificar_clientes: ({ p_manter, p_outros }) => {
+    const m = db.clientes.find((x) => x.id === p_manter);
+    if (!m) return { data: null, error: { message: "cliente principal não encontrado" } };
+    let n = 0;
+    for (const id of p_outros) {
+      const o = db.clientes.find((x) => x.id === id);
+      if (!o || id === p_manter) continue;
+      for (const t of ["pedidos", "contas_receber", "ordens_servico", "equipamentos", "contatos_cliente", "notas_fiscais", "emails"]) {
+        for (const r of ((db as any)[t] ?? [])) if (r.cliente_id === id) r.cliente_id = p_manter;
+      }
+      for (const k of ["nome_fantasia", "cpf_cnpj", "inscricao_estadual", "email", "telefone", "whatsapp", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf"]) {
+        if (!m[k] && o[k]) m[k] = o[k];
+      }
+      m.tags = [...new Set([...(m.tags ?? []), ...(o.tags ?? [])])];
+      db.clientes = db.clientes.filter((x) => x.id !== id);
+      n++;
+    }
+    return { data: n, error: null };
+  },
   registrar_cobranca: ({ p_conta, p_etapa, p_canal, p_situacao }) => {
     const c = db.contas_receber.find((x) => x.id === p_conta), e = db.regua_cobranca.find((x) => x.id === p_etapa);
     if (!c || !e) return erro("conta ou etapa da régua não encontrada");
@@ -1890,6 +1950,16 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true };
   },
   "focus-config": () => ({ ok: true, ambiente: "homologacao", eventos: ["nfe", "nfe_recebida"] }),
+  "clientes-receita": (b) => {
+    const comCnpj = db.clientes.filter((c) => soDig(c.cpf_cnpj).length === 14);
+    if (b.acao === "um") {
+      const c = db.clientes.find((x) => x.id === b.cliente_id);
+      if (c) Object.assign(c, { receita_em: new Date().toISOString(), receita_situacao: c.receita_situacao ?? "ATIVA", ie_situacao: c.ie_situacao ?? "ativa" });
+      return { ok: true };
+    }
+    const n = (t: string) => comCnpj.filter((c) => (c.tags ?? []).includes(t)).length;
+    return { ok: true, com_cnpj: comCnpj.length, conferidos: comCnpj.filter((c) => c.receita_em).length, irregulares: n("cnpj_irregular"), ie_baixada: n("ie_baixada"), endereco_diferente: n("endereco_receita") };
+  },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
     if (b.acao === "listar") return { ok: true, usuarios: db.usuarios_erp };
