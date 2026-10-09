@@ -21,6 +21,7 @@ import { ContasFixas } from "@/components/financeiro/ContasFixas";
 import { Dre } from "@/components/financeiro/Dre";
 import { PlanoContas } from "@/components/financeiro/PlanoContas";
 import { Cobranca } from "@/components/financeiro/Cobranca";
+import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/components/financeiro/Recibos";
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 
@@ -64,7 +65,7 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 export default function Financeiro() {
   const { pode, papel } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
-  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "fixas" | "dre" | "plano">("visao");
+  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "recibos" | "fixas" | "dre" | "plano">("visao");
   const veCobranca = papel === "admin" || papel === "financeiro" || papel === "vendas";
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
@@ -98,10 +99,12 @@ export default function Financeiro() {
         { value: "visao", label: "Visão geral" }, { value: "receber", label: "Contas a receber" },
         ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),
         ...(veCobranca ? [{ value: "cobranca" as const, label: "Cobrança" }] : []),
+        { value: "recibos" as const, label: "Recibos" },
         ...(veContasPagar ? [{ value: "fixas" as const, label: "Contas fixas" },
           { value: "dre" as const, label: "DRE" }, { value: "plano" as const, label: "Plano de contas" }] : []),
       ]} />
       {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
+        : aba === "recibos" ? <Recibos />
         : aba === "fixas" && veContasPagar ? <ContasFixas />
         : aba === "dre" && veContasPagar ? <Dre lancamentos={paraDre} />
         : aba === "plano" && veContasPagar ? <PlanoContas />
@@ -193,6 +196,7 @@ function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string) {
 /* ----------------------------- Contas a receber ----------------------------- */
 
 function ContasReceber({ contas }: { contas: Receber[] }) {
+  const { data: cfgRecibo } = useConfig();
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
@@ -268,6 +272,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
                       className="inline-flex items-center rounded-md px-2 py-2 text-green-700 hover:bg-green-50"><MessageCircle size={16} /></a>
                   )}
                   {podeEditar && c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })}>Baixar</Button>}
+                  {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
                   {podeEditar && c.status === "pago" && <Button variant="ghost" title="Estornar a baixa (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
                   <Button variant="secondary" onClick={() => setNova({ ...c })}>{podeEditar && c.status === "aberto" ? <><Pencil size={15} /> Editar</> : <><Eye size={15} /> Ver</>}</Button>
                 </div>
@@ -335,15 +340,18 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 /* ------------------------------ Contas a pagar ------------------------------ */
 
 function ContasPagar({ contas }: { contas: Pagar[] }) {
-  const { padrao } = useUnidade();
+  const { padrao, unidades } = useUnidade();
+  const { data: cfgRecibo } = useConfig();
   const [filtro, setFiltro] = useState("pendentes");
   const [mes, setMes] = useState("");
   const [editando, setEditando] = useState<Partial<Pagar> | null>(null);
   const [baixa, setBaixa] = useState<Pagar | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Pagar; acao: "cancelar" | "estornar" } | null>(null);
   const contaBanco = useNomeContaBancaria();
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; cnpj?: string | null }>("fornecedores", { order: "nome", ascending: true });
   const save = useSave("contas_pagar");
+  // "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
+  const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;
   const lista = filtrar(contas, filtro, mes);
   const rel = useRelatorio("pagar", filtro, mes);
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
@@ -382,6 +390,7 @@ function ContasPagar({ contas }: { contas: Pagar[] }) {
             <td className="td text-right font-medium">{brl(c.valor)}</td>
             <td className="td whitespace-nowrap text-right">
               {c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa(c)}>Pagar</Button>}
+              {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
               {c.status === "pago" && <Button variant="ghost" title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
               <Button variant="secondary" onClick={() => setEditando(c)}><Pencil size={15} /> Editar</Button>
             </td>

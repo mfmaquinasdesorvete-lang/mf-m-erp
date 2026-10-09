@@ -383,6 +383,15 @@ function fretesDemo(db: Db) {
     { id: "ec2", envio_id: "ev4", transportadora_id: "t2", transportadora_nome: null, valor: 1320, prazo_dias: 4, validade: dias(2), observacoes: "seguro incluso", escolhida: false, ativa: true, created_at: quando(-1) },
     { id: "ec3", envio_id: "ev5", transportadora_id: "t2", transportadora_nome: null, valor: 520, prazo_dias: 3, validade: null, observacoes: null, escolhida: true, ativa: true, created_at: quando(-4) },
   ];
+  // um recibo de exemplo (conta recebida)
+  const paga = db.contas_receber.find((c) => c.status === "pago" && c.cliente_id);
+  const cliPaga = paga ? db.clientes.find((c) => c.id === paga.cliente_id) : null;
+  db.recibos = paga ? [{
+    id: "rc1", numero: 1, tipo: "recebimento", unidade_id: U_SC, conta_receber_id: paga.id, conta_pagar_id: null,
+    pagador_nome: cliPaga?.nome ?? "Cliente", pagador_doc: cliPaga?.cpf_cnpj ?? null, recebedor_nome: "MF MAQUINAS LTDA", recebedor_doc: "46942855000132",
+    valor: Number(paga.valor_pago ?? paga.valor), referente: paga.descricao, forma_pagamento: "Boleto", data_pagamento: paga.data_pagamento ?? dias(-3), cidade: "São José/SC",
+    observacoes: null, cancelado_em: null, cancelado_motivo: null, created_at: quando(-3),
+  }] : [];
   db.envio_ocorrencias = [
     { id: "eo1", envio_id: "ev7", tipo: "atraso", descricao: "Carga parada no centro de distribuição de Goiânia", responsavel: null, andamento: null, status: "aberta", resolvida_em: null, created_at: quando(-4), atualizado_em: quando(-4) },
     { id: "eo2", envio_id: "ev1", tipo: "cobranca", descricao: "CT-e veio R$ 90 acima da cotação (taxa de descarga)", responsavel: "Rafael", andamento: "Pedimos o abatimento à Rodonaves", status: "aberta", resolvida_em: null, created_at: quando(-20), atualizado_em: quando(-1) },
@@ -731,6 +740,7 @@ const DEFAULTS: Record<string, () => Row> = {
   pedidos_compra: () => ({ numero: ++numeroPC, status: "cotacao", frete: 0, created_at: quando(0) }),
   pedido_compra_itens: () => ({ quantidade_recebida: 0 }),
   cotacoes_frete: () => ({ escolhida: false, created_at: quando(0) }),
+  recibos: () => ({ numero: Math.max(0, ...(db.recibos ?? []).map((r) => Number(r.numero) || 0)) + 1, cancelado_em: null, cancelado_motivo: null, data_pagamento: hojeISO() }),
   transportadoras: () => ({ ativo: true, codigo: proximoCodigo("transportadoras"), created_at: quando(0) }),
   clientes: () => ({ codigo: proximoCodigo("clientes"), created_at: quando(0) }),
   fornecedores: () => ({ codigo: proximoCodigo("fornecedores"), created_at: quando(0) }),

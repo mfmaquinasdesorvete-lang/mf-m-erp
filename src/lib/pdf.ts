@@ -481,3 +481,129 @@ export async function pdfEtiquetasEnvio(envios: EnvioEtiqueta[], cfg: Config, fo
   }
   return doc.output("blob");
 }
+
+// ---------------------------------------------------------------------
+// Recibo (A4 com duas vias: a de quem paga e a de quem recebe, com linha de corte)
+// ---------------------------------------------------------------------
+export type ReciboPdf = {
+  numero: number; tipo: "recebimento" | "pagamento";
+  pagador_nome: string; pagador_doc: string | null; recebedor_nome: string; recebedor_doc: string | null;
+  valor: number; referente: string; forma_pagamento: string | null; data_pagamento: string; cidade: string | null;
+  observacoes: string | null; cancelado_em?: string | null; cancelado_motivo?: string | null;
+  emitente: { nome: string; razao_social?: string | null; cnpj?: string | null; endereco?: string | null; contato?: string | null };
+};
+
+export async function pdfRecibo(r: ReciboPdf, vias: 1 | 2 = 2) {
+  const [{ doc, logo }, { valorPorExtenso, dataPorExtenso }] = await Promise.all([novoDoc(), import("./extenso")]);
+  const w = doc.internal.pageSize.getWidth();
+  const metade = doc.internal.pageSize.getHeight() / 2;
+  const numero = `Nº ${String(r.numero).padStart(6, "0")}`;
+  const plural = (d: string | null) => String(d ?? "").replace(/\D/g, "").length === 14;   // empresa assina no plural
+  const nos = plural(r.recebedor_doc) || (r.tipo === "recebimento" && !r.recebedor_doc);
+  const docTxt = (d: string | null) => (d ? `${String(d).replace(/\D/g, "").length === 14 ? "CNPJ" : "CPF"} ${docFormat(d)}` : "");
+
+  const via = (y0: number, rotuloVia: string) => {
+    // faixa do emitente
+    doc.setFillColor(...NAVY);
+    doc.rect(0, y0, w, 24, "F");
+    if (logo) doc.addImage(logo, "JPEG", 12, y0 + 4, 16, 16);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text(r.emitente.nome, 32, y0 + 9.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+    const larg = w - 32 - 50;   // não encosta no "RECIBO Nº"
+    const linhaCab = (t: string | null | undefined, yy: number) => { if (t) doc.text(doc.splitTextToSize(t, larg)[0], 32, yy); };
+    linhaCab([r.emitente.razao_social, r.emitente.cnpj && `CNPJ ${docFormat(r.emitente.cnpj)}`].filter(Boolean).join("  ·  "), y0 + 14);
+    linhaCab(r.emitente.endereco, y0 + 17.8);
+    linhaCab(r.emitente.contato, y0 + 21.6);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+    doc.text("RECIBO", w - 12, y0 + 12, { align: "right" });
+    doc.setFontSize(10);
+    doc.setTextColor(...AZUL);
+    doc.text(numero, w - 12, y0 + 19, { align: "right" });
+
+    // tipo, via e o valor em destaque
+    let y = y0 + 31;
+    doc.setTextColor(...CINZA);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.text((r.tipo === "recebimento" ? "RECIBO DE RECEBIMENTO" : "RECIBO DE PAGAMENTO") + `   ·   ${rotuloVia.toUpperCase()}`, 12, y + 3);
+    doc.setFillColor(...AZUL);
+    doc.roundedRect(w - 72, y - 3, 60, 15, 2.5, 2.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7); doc.text("VALOR", w - 68, y + 1.5);
+    doc.setFontSize(15); doc.text(brl(r.valor), w - 15, y + 8.5, { align: "right" });
+
+    // quadro: de quem, quanto (por extenso) e referente a quê
+    y += 16;
+    const extenso = valorPorExtenso(r.valor);
+    const textos: [string, string, number][] = [
+      [nos ? "RECEBEMOS DE" : "RECEBI DE", [r.pagador_nome, docTxt(r.pagador_doc)].filter(Boolean).join("   ·   "), 10.5],
+      ["A IMPORTÂNCIA DE", `${brl(r.valor)} (${extenso})`, 10],
+      ["REFERENTE A", r.referente, 10],
+    ];
+    // altura do quadro pelo que vai dentro (cada texto até 2 linhas)
+    const linhasDe = (t: string, tam: number) => { doc.setFontSize(tam); doc.setFont("helvetica", "bold"); return Math.min(2, doc.splitTextToSize(t, w - 34).length); };
+    const altura = 6 + textos.reduce((s2, [, t, tam]) => s2 + 5 + linhasDe(t, tam) * tam * 0.42 + 2.5, 0);
+    doc.setDrawColor(226, 232, 240); doc.setFillColor(248, 250, 252);
+    doc.roundedRect(12, y, w - 24, altura, 2.5, 2.5, "FD");
+    const campo = (rotulo: string, texto: string, yy: number, tam = 10.5) => {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...CINZA);
+      doc.text(rotulo, 17, yy);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(tam); doc.setTextColor(15, 23, 42);
+      const linhas = doc.splitTextToSize(texto, w - 34).slice(0, 2);
+      doc.text(linhas, 17, yy + 5);
+      return yy + 5 + linhas.length * (tam * 0.42);
+    };
+    let yy = y + 6;
+    for (const [k, [rot, txt, tam]] of textos.entries()) yy = campo(rot, txt, k ? yy + 2.5 : yy, tam);
+
+    // detalhes do pagamento
+    y += altura + 6;
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(51, 65, 85);
+    const det = [r.forma_pagamento && `Forma de pagamento: ${r.forma_pagamento}`, `Data do pagamento: ${dataBR(r.data_pagamento)}`].filter(Boolean).join("      ");
+    doc.text(det, 12, y);
+    if (r.observacoes) { doc.text(doc.splitTextToSize(`Obs.: ${r.observacoes}`, w - 24).slice(0, 1), 12, y + 4.5); }
+    y += r.observacoes ? 10 : 6;
+    doc.setFontSize(8.5);
+    doc.text(doc.splitTextToSize(`Para maior clareza, ${nos ? "firmamos" : "firmo"} o presente recibo, dando plena, geral e irrevogável quitação do valor acima.`, w - 24), 12, y);
+
+    // local, data e assinatura
+    y += 10;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(15, 23, 42);
+    doc.text(`${r.cidade ? `${r.cidade}, ` : ""}${dataPorExtenso(r.data_pagamento)}.`, w - 12, y, { align: "right" });
+    y = Math.max(y + 16, y0 + metade - 26);
+    doc.setDrawColor(100, 116, 139); doc.setLineWidth(0.3);
+    doc.line(w / 2 - 45, y, w / 2 + 45, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.text(r.recebedor_nome, w / 2, y + 4.5, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...CINZA);
+    if (r.recebedor_doc) doc.text(docTxt(r.recebedor_doc), w / 2, y + 8.5, { align: "center" });
+
+    // rodapé da via
+    doc.setFontSize(6.5);
+    doc.text(`Recibo ${numero} · emitido pelo ERP Line em ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · ${rotuloVia}`, 12, y0 + metade - 5);
+
+    if (r.cancelado_em) {
+      doc.saveGraphicsState?.();
+      doc.setTextColor(220, 38, 38); doc.setFont("helvetica", "bold"); doc.setFontSize(46);
+      doc.text("CANCELADO", w / 2, y0 + metade / 2 + 12, { align: "center", angle: 18 });
+      doc.setFontSize(9);
+      if (r.cancelado_motivo) doc.text(`Motivo: ${r.cancelado_motivo}`, w / 2, y0 + metade / 2 + 26, { align: "center" });
+      doc.restoreGraphicsState?.();
+    }
+    doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2);
+  };
+
+  via(0, vias === 2 ? "1ª via · quem pagou" : "via única");
+  if (vias === 2) {
+    // linha de corte
+    doc.setDrawColor(148, 163, 184);
+    (doc as any).setLineDashPattern?.([2, 1.5], 0);
+    doc.line(8, metade, w - 8, metade);
+    (doc as any).setLineDashPattern?.([], 0);
+    doc.setFontSize(6.5); doc.setTextColor(...CINZA);
+    doc.text("recorte aqui", w / 2, metade - 1.2, { align: "center" });
+    via(metade, "2ª via · quem recebeu");
+  }
+  return doc.output("blob");
+}
