@@ -9,9 +9,13 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError } from "./supabase.ts";
 
-/** Valor de FOCUS_NFE_ENV como o ERP entende: sem acento, sem aspas, sem espaços, minúsculo. */
+/**
+ * Valor de FOCUS_NFE_ENV como o ERP entende: sem acento, sem aspas, sem espaços, minúsculo, sem pontuação no fim
+ * e sem o nome do secret colado junto ("FOCUS_NFE_ENV=producao" vale como "producao").
+ */
 export const ambienteLido = () =>
-  (Deno.env.get("FOCUS_NFE_ENV") ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/["'`\s]/g, "").toLowerCase();
+  (Deno.env.get("FOCUS_NFE_ENV") ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/["'`\s]/g, "").toLowerCase()
+    .replace(/^focus_?nfe_?env[=:]/, "").replace(/[.;,]+$/, "");
 
 /** FOCUS_NFE_ENV = "producao" (aceita também "produção", "PRODUCAO", "production", "prod", com ou sem aspas). */
 export const focusProducao = () => ["producao", "production", "prod", "prd"].includes(ambienteLido());
@@ -119,7 +123,13 @@ export function erroDeToken(body: any, codigo?: string | null, op: OpcoesFocus =
   const dica = /cnpj/i.test(msg)
     ? `O token é de outra empresa cadastrada na Focus: cadastre no Supabase o token desta unidade${cod ? ` como ${op.recebidas && !focusProducao() ? `FOCUS_NFE_TOKEN_PRODUCAO_${cod}` : `FOCUS_NFE_TOKEN_${cod}`}` : ""}`
     : `Confira se o ${secret} no Supabase é o Token ${producao ? "de Produção" : "de Homologação"} da Focus`;
-  return new HttpError(502, `${msg}. ${dica}.`);
+  // em homologação por engano: o token de produção é recusado no servidor de teste
+  const lido = ambienteParaMensagem();
+  const motivo = lido === "não cadastrado" ? "o secret FOCUS_NFE_ENV não existe" : lido === "vazio" ? "o FOCUS_NFE_ENV está vazio"
+    : lido.startsWith("um texto") ? `o FOCUS_NFE_ENV tem ${lido}` : `o FOCUS_NFE_ENV está ${lido}`;
+  const ambiente = producao ? "" : ` O ERP está em HOMOLOGAÇÃO (teste) porque ${motivo}. ` +
+    "Para emitir de verdade, deixe no Supabase o secret FOCUS_NFE_ENV com só a palavra producao e o token de produção de cada empresa em FOCUS_NFE_TOKEN_PRODUCAO (SC) e FOCUS_NFE_TOKEN_PRODUCAO_SP (SP).";
+  return new HttpError(502, `${msg}. ${dica}.${ambiente}`);
 }
 
 /** Os caminhos de XML/DANFE vêm relativos; transforma em URL absoluta. */
