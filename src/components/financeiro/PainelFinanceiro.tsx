@@ -1,11 +1,12 @@
-// Painel do Financeiro (pensado para o celular): saldo nos bancos, o que entra e sai hoje, vencidas,
+// Painel do Financeiro (pensado para o celular). Foco, por empresa (Matriz SC e Filial SP): quanto tem nos bancos,
+// quanto vai entrar e quem está inadimplente. Depois: contas a pagar, vencidas,
 // os próximos 7 dias, o que pede atenção e o mês. Cada número abre a lista com a ação ali mesmo
 // (receber, pagar, cobrar no WhatsApp, recibo).
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowUpCircle, CalendarDays, ChevronRight, FileWarning, Landmark, MessageCircle, Plus, ReceiptText, Send, TrendingDown, TrendingUp,
+  AlertTriangle, ArrowDownCircle, ArrowUpCircle, Building2, CalendarDays, ChevronRight, FileWarning, Landmark, MessageCircle, Plus, ReceiptText, Send, TrendingDown, TrendingUp, Users,
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { BaixaModal } from "./BaixaModal";
@@ -32,7 +33,7 @@ export function PainelFinanceiro() {
   const { nome, pode } = usePerfil();
   const podeBaixar = pode("editar_financeiro");
   const navigate = useNavigate();
-  const { filtrar } = useUnidade();
+  const { filtrar, unidades, atual } = useUnidade();
   const dia = hojeISO();
   const { data: recTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia, whatsapp, cpf_cnpj)", key: ["painel"] });
   const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj)", key: ["painel"] });
@@ -40,7 +41,7 @@ export function PainelFinanceiro() {
   const { data: extrato = [] } = useRows<{ status: string }>("extrato_lancamentos", { select: "status", order: "status", key: ["painel"] });
   const { data: saldosTodos = [] } = useQuery({
     queryKey: ["saldos_bancarios"],
-    queryFn: async () => { const { data, error } = await supabase.rpc("saldos_bancarios"); if (error) throw error; return (data ?? []) as { conta_id: string; unidade_id: string; saldo: number }[]; },
+    queryFn: async () => { const { data, error } = await supabase.rpc("saldos_bancarios"); if (error) throw error; return (data ?? []) as { conta_id: string; nome: string; unidade_id: string; saldo: number }[]; },
   });
   const rec = useMemo(() => filtrar(recTodos).filter((c) => c.status !== "cancelado").map((c) => ({ ...c, terceiro: c.cliente?.nome_fantasia?.trim() || c.cliente?.nome || null })), [recTodos, filtrar]);
   const pag = useMemo(() => filtrar(pagTodos).filter((c) => c.status !== "cancelado").map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })), [pagTodos, filtrar]);
@@ -75,6 +76,38 @@ export function PainelFinanceiro() {
   }, [rec, pag, dia]);
 
   const previsto7 = saldoBancos + k.entra7 - k.sai7;
+
+  // Por empresa: quanto tem (bancos), quanto vai entrar (a receber em dia) e inadimplentes (vencidas)
+  const matrizId = unidades.find((u) => u.matriz)?.id ?? unidades[0]?.id ?? null;
+  const daUnidade = (c: { unidade_id?: string | null }, u: string) => (c.unidade_id ?? matrizId) === u;
+  const empresas = useMemo(() => (atual ? unidades.filter((u) => u.id === atual) : unidades).map((u) => {
+    const bancos = saldosTodos.filter((b) => b.unidade_id === u.id);
+    const abertas = rec.filter((c) => c.status === "aberto" && daUnidade(c, u.id));
+    const emDia = abertas.filter((c) => c.vencimento >= dia).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+    const vencidas = abertas.filter((c) => c.vencimento < dia).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+    return {
+      u, bancos, tem: bancos.reduce((s2, b) => s2 + Number(b.saldo), 0),
+      emDia, vaiEntrar: soma(emDia), entra7: soma(emDia.filter((c) => c.vencimento <= somarDias(dia, 6))), entra30: soma(emDia.filter((c) => c.vencimento <= somarDias(dia, 29))),
+      vencidas, inadimplente: soma(vencidas), clientes: new Set(vencidas.map((c) => c.cliente_id ?? c.terceiro)).size,
+      maiorAtraso: vencidas.length ? diasEntre(vencidas[0].vencimento, dia) : 0,
+    };
+  }), [unidades, atual, saldosTodos, rec, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const total = {
+    tem: empresas.reduce((s2, e) => s2 + e.tem, 0), vaiEntrar: empresas.reduce((s2, e) => s2 + e.vaiEntrar, 0),
+    inadimplente: empresas.reduce((s2, e) => s2 + e.inadimplente, 0),
+  };
+  // inadimplentes por cliente (as duas empresas), do maior valor para o menor
+  const inadimplentes = useMemo(() => {
+    const m = new Map<string, { chave: string; nome: string; whatsapp: string | null; contas: Receber[]; valor: number; atraso: number; unidades: Set<string> }>();
+    for (const e of empresas) for (const c of e.vencidas) {
+      const chave = c.cliente_id ?? c.terceiro ?? c.id;
+      const g = m.get(chave) ?? { chave, nome: c.terceiro ?? c.descricao, whatsapp: c.cliente?.whatsapp ?? null, contas: [], valor: 0, atraso: 0, unidades: new Set<string>() };
+      g.contas.push(c); g.valor += Number(c.valor); g.atraso = Math.max(g.atraso, diasEntre(c.vencimento, dia)); g.unidades.add(e.u.codigo);
+      m.set(chave, g);
+    }
+    return [...m.values()].sort((a, b) => b.valor - a.valor);
+  }, [empresas, dia]);
+  const [todosInad, setTodosInad] = useState(false);
   const nfeConferir = filtrar(recebidasTodas).filter((n) => ["aguardando_vinculo", "revisao"].includes(n.processamento)).length;
   const extratoPendente = extrato.filter((l) => l.status === "pendente").length;
   const resultadoMes = k.recebidoMes - k.pagoMes;
@@ -99,27 +132,82 @@ export function PainelFinanceiro() {
         <p className="text-sm text-slate-500">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} · seu financeiro de hoje</p>
       </div>
 
-      {/* saldo: o número principal */}
-      <button type="button" onClick={() => navigate("/conciliacao")}
-        className="w-full rounded-2xl bg-gradient-to-br from-[#f59e0b] to-[#ea580c] p-5 text-left text-white shadow-pop transition active:scale-[0.99]">
-        <div className="flex items-center justify-between text-sm font-semibold text-white/90"><span className="flex items-center gap-1.5"><Landmark size={16} /> Saldo nos bancos hoje</span><ChevronRight size={18} /></div>
-        <div className="num mt-1 text-[clamp(1.9rem,8vw,2.6rem)] font-extrabold leading-tight">{temBancos ? brl(saldoBancos) : "—"}</div>
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/25 pt-2.5 text-xs">
-          <span className="min-w-0"><span className="block text-white/85">entra em 7 dias</span><b className="num block whitespace-nowrap text-[clamp(0.72rem,3.3vw,0.9rem)]">+{brl(k.entra7)}</b></span>
-          <span className="min-w-0"><span className="block text-white/85">sai em 7 dias</span><b className="num block whitespace-nowrap text-[clamp(0.72rem,3.3vw,0.9rem)]">−{brl(k.sai7)}</b></span>
-          <span className="min-w-0"><span className="block text-white/85">saldo em 7 dias</span><b className="num block whitespace-nowrap text-[clamp(0.72rem,3.3vw,0.9rem)]">{temBancos ? brl(previsto7) : "—"}</b></span>
+      {/* foco: quanto tem, quanto vai entrar e quem está inadimplente, por empresa */}
+      {empresas.length > 1 && (
+        <div className="rounded-2xl bg-gradient-to-br from-[#f59e0b] to-[#ea580c] p-4 text-white shadow-pop">
+          <div className="text-sm font-semibold text-white/90">As duas empresas juntas</div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {([["Tem hoje", total.tem, false], ["Vai entrar", total.vaiEntrar, false], ["Inadimplentes", total.inadimplente, true]] as const).map(([r, v, alerta]) => (
+              <span key={r} className="min-w-0">
+                <span className="block text-xs text-white/85">{r}</span>
+                <b className={`num block whitespace-nowrap text-[clamp(0.85rem,4vw,1.35rem)] ${alerta && v > 0 ? "underline decoration-white/60 decoration-2 underline-offset-4" : ""}`}>{brl(v)}</b>
+              </span>
+            ))}
+          </div>
         </div>
-        {!temBancos && <p className="mt-2 text-xs text-white/90">Cadastre as contas bancárias com o saldo inicial (toque aqui) para o saldo aparecer.</p>}
-      </button>
+      )}
 
-      {/* hoje e vencidas: cada um abre a lista com a ação */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {empresas.map((e) => (
+          <section key={e.u.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
+              <Building2 size={17} className="text-brand" />
+              <h2 className="min-w-0 flex-1 truncate font-bold text-fg">{e.u.nome}</h2>
+              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">{e.u.codigo}</span>
+            </div>
+            <Linha icone={Landmark} cor="text-sky-600" titulo="Quanto tem" valor={e.bancos.length ? brl(e.tem) : "—"}
+              sub={e.bancos.length ? e.bancos.map((b) => `${b.nome} ${brl(b.saldo)}`).join(" · ") : "cadastre as contas bancárias com o saldo inicial"}
+              onClick={() => navigate("/conciliacao")} />
+            <Linha icone={ArrowDownCircle} cor="text-emerald-600" titulo="Vai entrar" valor={brl(e.vaiEntrar)}
+              sub={`7 dias ${brl(e.entra7)} · 30 dias ${brl(e.entra30)} · ${e.emDia.length} conta(s)`}
+              onClick={() => setLista({ titulo: `Vai entrar · ${e.u.codigo}`, tipo: "receber", contas: e.emDia })} />
+            <Linha icone={AlertTriangle} cor="text-red-600" titulo="Inadimplentes" valor={brl(e.inadimplente)} alerta={e.inadimplente > 0}
+              sub={e.vencidas.length ? `${e.clientes} cliente(s) · ${e.vencidas.length} conta(s) · maior atraso ${e.maiorAtraso} dia(s)` : "ninguém em atraso"}
+              onClick={() => setLista({ titulo: `Inadimplentes · ${e.u.codigo}`, tipo: "receber", contas: e.vencidas })} />
+          </section>
+        ))}
+      </div>
+
+      {/* quem está devendo: um por cliente, com o botão de cobrar */}
+      <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+        <div className="mb-1 flex items-center gap-2">
+          <Users size={17} className="text-red-600" />
+          <h2 className="flex-1 font-bold text-fg">Clientes inadimplentes</h2>
+          <span className="num text-sm font-bold text-red-700">{brl(total.inadimplente)}</span>
+        </div>
+        {!inadimplentes.length ? <p className="py-2 text-sm text-emerald-700">Nenhum cliente em atraso.</p> : (
+          <ul className="divide-y divide-slate-100">
+            {(todosInad ? inadimplentes : inadimplentes.slice(0, 6)).map((g) => {
+              const msg = `Olá ${g.nome.split(" ")[0]}! Aqui é do financeiro da MF Máquinas. Consta em aberto ${g.contas.length > 1 ? `${g.contas.length} parcelas, somando` : "o valor de"} *${brl(g.valor)}*, com vencimento desde ${dataBR(g.contas.reduce((m, c) => (c.vencimento < m ? c.vencimento : m), g.contas[0].vencimento))}. Podemos ajudar com a segunda via ou combinar o pagamento?`;
+              return (
+                <li key={g.chave} className="flex items-center gap-2.5 py-2.5">
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setLista({ titulo: g.nome, tipo: "receber", contas: g.contas })}>
+                    <span className="block truncate font-semibold text-fg">{g.nome}</span>
+                    <span className="block text-xs text-slate-500">
+                      <span className={`font-semibold ${g.atraso > 30 ? "text-red-700" : "text-amber-700"}`}>{g.atraso} dia(s) de atraso</span> · {g.contas.length} conta(s){empresas.length > 1 ? ` · ${[...g.unidades].join(" e ")}` : ""}
+                    </span>
+                  </button>
+                  <span className="num shrink-0 font-bold text-fg">{brl(g.valor)}</span>
+                  {g.whatsapp ? (
+                    <a href={whatsappLink(g.whatsapp, msg)} target="_blank" rel="noreferrer" title="Cobrar no WhatsApp"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50"><Send size={15} /></a>
+                  ) : <span className="w-9 shrink-0" title="Cliente sem WhatsApp no cadastro" />}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {inadimplentes.length > 6 && (
+          <button type="button" onClick={() => setTodosInad(!todosInad)} className="mt-1 text-sm font-semibold text-brand hover:underline">
+            {todosInad ? "Mostrar menos" : `Ver todos (${inadimplentes.length})`}
+          </button>
+        )}
+      </section>
+
+      {/* contas a pagar (secundário) */}
       <div className="grid grid-cols-2 gap-2.5">
-        <Tile icone={ArrowDownCircle} cor="text-emerald-600" titulo="Recebe hoje" valor={soma(k.recHoje)} sub={`${k.recHoje.length} conta(s)${k.recebidosHoje.length ? ` · ${k.recebidosHoje.length} já recebida(s)` : ""}`}
-          onClick={() => setLista({ titulo: "A receber hoje", tipo: "receber", contas: k.recHoje })} />
         <Tile icone={ArrowUpCircle} cor="text-orange-600" titulo="Paga hoje" valor={soma(k.pagHoje)} sub={`${k.pagHoje.length} conta(s)`}
           onClick={() => setLista({ titulo: "A pagar hoje", tipo: "pagar", contas: k.pagHoje })} />
-        <Tile icone={AlertTriangle} cor="text-red-600" titulo="Clientes atrasados" valor={soma(k.recVencidas)} sub={`${k.recVencidas.length} conta(s) vencida(s)`} alerta={k.recVencidas.length > 0}
-          onClick={() => setLista({ titulo: "A receber vencidas", tipo: "receber", contas: k.recVencidas })} />
         <Tile icone={FileWarning} cor="text-red-600" titulo="Contas atrasadas" valor={soma(k.pagVencidas)} sub={`${k.pagVencidas.length} a pagar vencida(s)`} alerta={k.pagVencidas.length > 0}
           onClick={() => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas })} />
       </div>
@@ -192,6 +280,26 @@ export function PainelFinanceiro() {
 
       <div id="fluxo-caixa"><Fluxo receber={rec} pagar={pag} dia={dia} /></div>
     </div>
+  );
+}
+
+const diasEntre = (de: string, ate: string) => Math.round((Date.parse(ate + "T12:00:00Z") - Date.parse(de + "T12:00:00Z")) / 864e5);
+
+function Linha({ icone: Icone, cor, titulo, valor, sub, alerta, onClick }: {
+  icone: typeof Landmark; cor: string; titulo: string; valor: string; sub: string; alerta?: boolean; onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50 active:bg-slate-100">
+      <Icone size={20} className={`shrink-0 ${cor}`} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-600">{titulo}</span>
+          <span className={`num whitespace-nowrap text-[clamp(1.05rem,4.8vw,1.35rem)] font-bold ${alerta ? "text-red-700" : "text-fg"}`}>{valor}</span>
+        </span>
+        <span className="block truncate text-xs text-slate-500">{sub}</span>
+      </span>
+      <ChevronRight size={16} className="shrink-0 text-slate-400" />
+    </button>
   );
 }
 
