@@ -161,7 +161,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             { label: "Inativar", executar: (ids) => situacaoTransportadoras(ids, false) },
             { label: "Ativar", executar: (ids) => situacaoTransportadoras(ids, true) },
           ] : []}
-          title="Transportadoras"
+          title="Lista completa"
           table="transportadoras"
           order="nome"
           defaults={{ nome: "", ativo: true }}

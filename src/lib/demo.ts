@@ -188,9 +188,32 @@ function seed(): Db {
       { id: "pf2", fornecedor_id: "f2", codigo_fornecedor: "BD-INOX-01", produto_id: "p7", fator_conversao: 10 },
     ],
     transportadoras: [
-      { id: "t1", nome: "Rodonaves", whatsapp: "16997770001", regioes: "SP, MG, GO, PR", ativo: true },
-      { id: "t2", nome: "Braspress", whatsapp: "11997770002", regioes: "Todo o Brasil", ativo: true },
-      { id: "t3", nome: "Transportes Mogiana", whatsapp: "16997770003", regioes: "Interior de SP", ativo: true },
+      { id: "t1", nome: "Rodonaves Transportes e Encomendas Ltda", nome_fantasia: "Rodonaves", whatsapp: "16997770001", regioes: "SP, MG, GO, PR", ativo: true, tipo: "transportadora",
+        site: "https://www.rodonaves.com.br", rastreio_url: "https://rodonaves.com.br/rastreio-de-mercadoria", api: "sim", api_doc_url: "https://dev.rodonaves.com.br/",
+        api_recursos: ["cotacao", "rastreio", "coleta", "comprovante"], api_como_obter: "Pedir o acesso ao comercial da unidade.", servicos: ["fracionado", "expresso", "aereo"],
+        abrangencia: ["SP", "SC", "PR", "MG"], pesquisa_em: quando(-1), pesquisa_fontes: ["https://dev.rodonaves.com.br/"],
+        contatos: [{ nome: "Equipe comercial 133", cargo: "Comercial", email: "comercial.133@exemplo.com", telefone: "(48) 3202-7150", filial: "Biguaçu-SC" }],
+        emails_operacionais: [{ email: "coleta.133@exemplo.com", uso: "pedir coleta" }],
+        condicoes: "• Reajuste de 12,8% a partir de 05/10/2025.\n• Cotação vale 15 dias.", ultimo_contato: dias(-15),
+        rede: [{ nome: "Unidade 766 - Vinhedo", municipio: "Vinhedo", uf: "SP", telefone: "(19) 3341-4200", origem: "e-mail" }] },
+      { id: "t4", nome: "Rodonaves Transportes e Encomendas Ltda", nome_fantasia: "Rodonaves · Biguaçu", cnpj: "44914992002424", municipio: "Biguaçu", uf: "SC", telefone: "4832027150", ativo: true, tipo: "transportadora", matriz_id: "t1" },
+      { id: "t5", nome: "Rodonaves Transportes e Encomendas Ltda", nome_fantasia: "Rodonaves · Ribeirão Preto", cnpj: "44914992000138", municipio: "Ribeirão Preto", uf: "SP", ativo: true, tipo: "transportadora", matriz_id: "t1" },
+      { id: "t2", nome: "Braspress Transportes Urgentes Ltda", nome_fantasia: "Braspress", whatsapp: "11997770002", regioes: "Todo o Brasil", ativo: true, tipo: "transportadora",
+        site: "https://www.braspress.com", api: "sim", api_recursos: ["cotacao", "rastreio"], api_doc_url: "https://api.braspress.com/home", pesquisa_em: quando(-1) },
+      { id: "t3", nome: "Transportes Mogiana", whatsapp: "16997770003", regioes: "Interior de SP", ativo: true, tipo: "transportadora" },
+      { id: "t6", nome: "Expresso São Miguel S.A.", nome_fantasia: "São Miguel", ativo: true, tipo: "transportadora", site: "https://www.expressosaomiguel.com.br", api: "parcial",
+        api_recursos: ["rastreio", "comprovante"], servicos: ["fracionado"], abrangencia: ["SC", "PR", "RS", "SP"], pesquisa_em: quando(-1), conferido_em: quando(0), conferido_por: "Fabiano",
+        contatos: [{ nome: "Atendimento Palhoça", email: "atendimento@exemplo.com", telefone: "(48) 3382-1300", filial: "Palhoça-SC" }],
+        rede: [{ nome: "Filial Joinville", cnpj: "00428307001089", municipio: "Joinville", uf: "SC", origem: "e-mail" }, { nome: "Filial Palhoça", cnpj: "00428307001160", municipio: "Palhoça", uf: "SC", origem: "e-mail" }] },
+      { id: "t7", nome: "Expresso São Miguel S.A.", nome_fantasia: "São Miguel · Palhoça", cnpj: "00428307001160", municipio: "Palhoça", uf: "SC", telefone: "4833821300", email: "atendimento@exemplo.com", ativo: true, tipo: "transportadora", matriz_id: "t6" },
+      { id: "t8", nome: "Expresso São Miguel S.A.", nome_fantasia: "São Miguel · Campinas", cnpj: "00428307001917", municipio: "Campinas", uf: "SP", ativo: true, tipo: "transportadora", matriz_id: "t6" },
+      { id: "t9", nome: "Expresso São Miguel - Curitiba/Pr", cnpj: "00428307001240", municipio: "Curitiba", uf: "PR", telefone: "4135673100", ativo: true, tipo: "transportadora" },
+      { id: "t10", nome: "Correios", nome_fantasia: "Correios", ativo: true, tipo: "correios", site: "https://www.correios.com.br", api: "sim", api_recursos: ["cotacao", "rastreio", "etiqueta"], pesquisa_em: quando(-1) },
+      { id: "t11", nome: "Correios Pac", ativo: true, tipo: "correios", matriz_id: "t10" },
+      { id: "t12", nome: "Melhor Envio", nome_fantasia: "Melhor Envio", ativo: true, tipo: "plataforma", site: "https://melhorenvio.com.br", api: "sim", api_recursos: ["cotacao", "etiqueta", "rastreio"],
+        integracoes: ["Jadlog", "Latam Cargo", "Azul Cargo", "Correios", "Loggi"], pesquisa_em: quando(-1) },
+      { id: "t13", nome: "Fedex Brasil (Tnt Mercúrio)", nome_fantasia: "Fedex", ativo: true, tipo: "transportadora", api: "sim",
+        alerta: "Na internet consta que a FedEx encerrou coletas e entregas dentro do Brasil em 06/02/2026. Confirme antes de cotar.", pesquisa_em: quando(-1) },
     ],
     cotacoes_frete: [
       { id: "cf1", pedido_id: "pd4", transportadora_id: "t1", valor: 690, prazo_dias: 4, observacoes: "coleta amanhã", escolhida: false, created_at: quando(-1) },
@@ -1213,6 +1236,7 @@ function erro(message: string) { return { data: null, error: { message } }; }
 
 // Conciliação bancária (no sistema real: funções SQL importar_extrato, conciliar_lancamento…)
 const podeFinanceiro = () => ["admin", "financeiro"].includes(db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel);
+const temPapelDemo = (...p: string[]) => { const pa = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel; return pa === "admin" || p.includes(pa); };
 function atualizarDemo(tabela: string, r: Row, patch: Row, motivo: string | null = null) {
   const antes = { ...r };
   Object.assign(r, patch);
@@ -1495,6 +1519,45 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (fora) return erro(`"${fora.descricao}" é de outra unidade que a conta bancária ${banco?.nome}: pague essa num lote separado`);
     for (const c of ok) atualizarDemo("contas_pagar", c, { status: "pago", data_pagamento: p_data, valor_pago: Number(c.valor), conta_bancaria_id: p_conta_bancaria ?? null });
     return { data: { pagas: ok.length, total: r2(ok.reduce((s2, c) => s2 + Number(c.valor), 0)), puladas: contas.length - ok.length }, error: null };
+  },
+  agrupar_transportadoras: ({ p_marca, p_filiais, p_nova_marca }) => {
+    if (!temPapelDemo("vendas", "financeiro")) return erro("sem permissão para esta ação");
+    let marca = p_marca;
+    if (!marca) {
+      if (String(p_nova_marca ?? "").trim().length < 2) return erro("informe o nome da marca");
+      const tipo = db.transportadoras.find((t) => (p_filiais ?? []).includes(t.id))?.tipo ?? "transportadora";
+      const n = { id: uid(), nome: String(p_nova_marca).trim(), tipo, ativo: true, codigo: proximoCodigo("transportadoras"), created_at: quando(0) };
+      db.transportadoras.push(n);
+      marca = n.id;
+    } else if (db.transportadoras.find((t) => t.id === marca)?.matriz_id) return erro("a marca escolhida não existe ou já é filial de outra");
+    for (const f of p_filiais ?? []) {
+      if (f === marca) continue;
+      for (const t of db.transportadoras.filter((x) => x.matriz_id === f)) t.matriz_id = marca;
+      const t = db.transportadoras.find((x) => x.id === f);
+      if (t) atualizarDemo("transportadoras", t, { matriz_id: marca });
+    }
+    return { data: marca, error: null };
+  },
+  unificar_transportadoras: ({ p_principal, p_outros, p_motivo }) => {
+    if (!temPapelDemo("vendas", "financeiro")) return erro("sem permissão para esta ação");
+    const m = db.transportadoras.find((t) => t.id === p_principal);
+    if (!m || !m.ativo) return erro("o principal está inativo: escolha um ativo");
+    let n = 0;
+    for (const id of p_outros ?? []) {
+      const o = db.transportadoras.find((t) => t.id === id);
+      if (!o || id === p_principal || o.unificado_em) continue;
+      for (const tab of ["pedidos", "envios", "envio_cotacoes", "cotacoes_frete", "expedicoes"]) for (const r of db[tab] ?? []) if (r.transportadora_id === id) r.transportadora_id = p_principal;
+      for (const t of db.transportadoras.filter((x) => x.matriz_id === id)) t.matriz_id = m.matriz_id ?? m.id;
+      for (const k of ["cnpj", "telefone", "email", "whatsapp", "municipio", "uf", "logradouro", "cep"]) if (!m[k] && o[k]) m[k] = o[k];
+      atualizarDemo("transportadoras", o, { ativo: false, matriz_id: null, unificado_em: p_principal, observacoes: [o.observacoes, `Unificado em "${m.nome}": ${p_motivo ?? "cadastro repetido"}`].filter(Boolean).join("\n") });
+      n++;
+    }
+    return { data: n, error: null };
+  },
+  conferir_transportadora: ({ p_id }) => {
+    const t = db.transportadoras.find((x) => x.id === p_id);
+    if (t) atualizarDemo("transportadoras", t, { conferido_em: new Date().toISOString(), conferido_por: db.usuarios_erp.find((x) => x.user_id === sessao?.user.id)?.nome ?? null });
+    return { data: null, error: null };
   },
   importar_extrato: ({ p_conta, p_arquivo, p_formato, p_linhas, p_saldo_final, p_saldo_data }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

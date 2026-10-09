@@ -83,7 +83,23 @@ type Endereco = { cep?: string | null; logradouro?: string | null; numero?: stri
 export type Fornecedor = Endereco & { id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null; observacoes?: string | null; chave_pix?: string | null;
   // conferência com a Receita (como nos clientes)
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null };
-export type Transportadora = Endereco & { id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj?: string | null; inscricao_estadual?: string | null; contato?: string | null; whatsapp: string | null; telefone: string | null; email: string | null; regioes: string | null; ativo: boolean };
+export type TipoTransportadora = "transportadora" | "correios" | "agencia" | "aerea" | "plataforma" | "aplicativo" | "autonomo" | "proprio" | "retira" | "outro";
+export type ApiTransportadora = "sim" | "parcial" | "plataforma" | "nao" | "desconhecido";
+export type ContatoTransportadora = { nome?: string; cargo?: string; email?: string; telefone?: string; whatsapp?: string; filial?: string };
+export type UnidadeRede = { nome?: string; cnpj?: string; municipio?: string; uf?: string; endereco?: string; telefone?: string; email?: string; origem?: string };
+export type Transportadora = Endereco & {
+  id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj?: string | null; inscricao_estadual?: string | null;
+  contato?: string | null; whatsapp: string | null; telefone: string | null; email: string | null; regioes: string | null; ativo: boolean; observacoes?: string | null;
+  /** marca a que esta filial pertence (nulo = é a marca, o cartão da lista) */
+  matriz_id?: string | null; tipo?: TipoTransportadora;
+  site?: string | null; rastreio_url?: string | null; portal_url?: string | null; cotacao_url?: string | null;
+  api?: ApiTransportadora; api_doc_url?: string | null; api_recursos?: string[]; api_como_obter?: string | null; sistema?: string | null;
+  integracoes?: string[]; servicos?: string[]; abrangencia?: string[]; sac_telefone?: string | null; sac_email?: string | null;
+  contatos?: ContatoTransportadora[]; emails_operacionais?: { email: string; uso?: string }[]; rede?: UnidadeRede[];
+  condicoes?: string | null; restricoes?: string | null; alerta?: string | null; ultimo_contato?: string | null;
+  pesquisa_em?: string | null; pesquisa_fontes?: string[]; conferido_em?: string | null; conferido_por?: string | null;
+  unificado_em?: string | null;
+};
 
 export type OrdemProducao = {
   id: string; numero: number; produto_id: string; quantidade: number; status: string; previsao: string | null;

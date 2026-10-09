@@ -178,3 +178,42 @@ begin
 end $$;
 revoke execute on function public.conferir_transportadora(uuid) from public, anon;
 grant execute on function public.conferir_transportadora(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Manutenção (só o administrador do banco): completa um cadastro com dados de pesquisa/e-mails sem
+-- apagar o que já foi preenchido à mão (só preenche o vazio; observação nova entra uma vez só).
+create or replace function public.completar_transportadora(p_id uuid, p jsonb)
+returns void language plpgsql set search_path = public as $$
+begin
+  if p_id is null or p is null then return; end if;
+  update transportadoras t set
+    tipo = coalesce(p->>'tipo', t.tipo),
+    site = coalesce(t.site, p->>'site'),
+    rastreio_url = coalesce(t.rastreio_url, p->>'rastreio_url'),
+    portal_url = coalesce(t.portal_url, p->>'portal_url'),
+    cotacao_url = coalesce(t.cotacao_url, p->>'cotacao_url'),
+    api = case when t.api = 'desconhecido' and p ? 'api' then p->>'api' else t.api end,
+    api_doc_url = coalesce(t.api_doc_url, p->>'api_doc_url'),
+    api_como_obter = coalesce(t.api_como_obter, p->>'api_como_obter'),
+    sistema = coalesce(t.sistema, p->>'sistema'),
+    api_recursos = case when cardinality(t.api_recursos) = 0 and jsonb_typeof(p->'api_recursos') = 'array' then array(select jsonb_array_elements_text(p->'api_recursos')) else t.api_recursos end,
+    integracoes = case when cardinality(t.integracoes) = 0 and jsonb_typeof(p->'integracoes') = 'array' then array(select jsonb_array_elements_text(p->'integracoes')) else t.integracoes end,
+    servicos = case when cardinality(t.servicos) = 0 and jsonb_typeof(p->'servicos') = 'array' then array(select jsonb_array_elements_text(p->'servicos')) else t.servicos end,
+    abrangencia = case when cardinality(t.abrangencia) = 0 and jsonb_typeof(p->'abrangencia') = 'array' then array(select jsonb_array_elements_text(p->'abrangencia')) else t.abrangencia end,
+    pesquisa_fontes = case when cardinality(t.pesquisa_fontes) = 0 and jsonb_typeof(p->'fontes') = 'array' then array(select jsonb_array_elements_text(p->'fontes')) else t.pesquisa_fontes end,
+    pesquisa_em = case when coalesce((p->>'pesquisa')::boolean, false) then coalesce(t.pesquisa_em, now()) else t.pesquisa_em end,
+    sac_telefone = coalesce(t.sac_telefone, p->>'sac_telefone'),
+    sac_email = coalesce(t.sac_email, p->>'sac_email'),
+    alerta = coalesce(t.alerta, p->>'alerta'),
+    contatos = case when jsonb_array_length(t.contatos) = 0 and jsonb_typeof(p->'contatos') = 'array' then p->'contatos' else t.contatos end,
+    emails_operacionais = case when jsonb_array_length(t.emails_operacionais) = 0 and jsonb_typeof(p->'emails_operacionais') = 'array' then p->'emails_operacionais' else t.emails_operacionais end,
+    rede = case when jsonb_array_length(t.rede) = 0 and jsonb_typeof(p->'rede') = 'array' then p->'rede' else t.rede end,
+    condicoes = coalesce(t.condicoes, p->>'condicoes'),
+    ultimo_contato = greatest(t.ultimo_contato, (p->>'ultimo_contato')::date),
+    observacoes = case when p->>'obs' is null or position(left(p->>'obs', 40) in coalesce(t.observacoes, '')) > 0 then t.observacoes
+                       else left(concat_ws(E'\n', nullif(btrim(t.observacoes), ''), p->>'obs'), 4000) end,
+    nome_fantasia = case when p ? 'fantasia' and (t.nome_fantasia is null or lower(btrim(t.nome_fantasia)) in ('transportadora', 'transporte', 'transp.encomendas', 'entregas rapidas', 'motoboy'))
+                         then p->>'fantasia' else t.nome_fantasia end
+  where t.id = p_id;
+end $$;
+revoke execute on function public.completar_transportadora(uuid, jsonb) from public, anon, authenticated;

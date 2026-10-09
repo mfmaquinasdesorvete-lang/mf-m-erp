@@ -21,6 +21,7 @@ const Financeiro = lazy(() => import("@/pages/Financeiro"));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const Clientes = lazy(() => import("@/pages/Clientes"));
 const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
+const Transportadoras = lazy(() => import("@/pages/Transportadoras"));
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const Usuarios = lazy(() => import("@/pages/Usuarios"));
 const Garantias = lazy(() => import("@/pages/Garantias"));
@@ -54,7 +55,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "notas", tela: "notas", element: <NotasFiscais /> },
   { path: "clientes", tela: "clientes", element: <Clientes /> },
   { path: "fornecedores", tela: "fornecedores", element: <Fornecedores tipo="fornecedores" /> },
-  { path: "transportadoras", tela: "fornecedores", element: <Fornecedores tipo="transportadoras" /> },
+  { path: "transportadoras", tela: "fornecedores", element: <Transportadoras /> },
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "garantias", tela: "garantias", element: <Garantias /> },
