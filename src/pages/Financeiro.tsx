@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Ban, CheckCheck, Copy, Eye, FileDown, MessageCircle, Pencil, Plus, Printer, Undo2, Wallet } from "lucide-react";
+import { Ban, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, Undo2, Wallet } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
@@ -28,6 +28,7 @@ import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
 import { aDecidir, filtrarDecisao, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -222,6 +223,13 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
   const [nova, setNova] = useState<Partial<Receber> | null>(null);
   const [baixa, setBaixa] = useState<{ conta: Receber; tabela: "contas_receber" } | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Receber; acao: "cancelar" | "estornar" } | null>(null);
+  const [linkDe, setLinkDe] = useState<Receber | null>(null);
+  const { data: links = [] } = useRows<CobrancaLink>("cobrancas_link");
+  const linksDa = useMemo(() => {
+    const m = new Map<string, CobrancaLink[]>();
+    for (const l of links) if (l.conta_receber_id) m.set(l.conta_receber_id, [...(m.get(l.conta_receber_id) ?? []), l]);
+    return m;
+  }, [links]);
   const contaBanco = useNomeContaBancaria();
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const save = useSave("contas_receber");
@@ -277,7 +285,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
           return (
             <tr key={c.id}>
               <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
-              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}</div></td>
+              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={linksDa.get(c.id) ?? []} /></div></td>
               <td className="td">{c.cliente?.nome ?? "—"}</td>
               <td className="td"><Badge value={s} /></td>
               <td className="td text-right font-medium">{brl(c.valor)}</td>
@@ -287,6 +295,10 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
                   {c.status === "aberto" && c.cliente?.whatsapp && (
                     <a href={whatsappLink(c.cliente.whatsapp, mensagemCobranca(c))} target="_blank" rel="noreferrer" title="Enviar cobrança no WhatsApp"
                       className="inline-flex items-center rounded-md px-2 py-2 text-green-700 hover:bg-green-50"><MessageCircle size={16} /></a>
+                  )}
+                  {c.status === "aberto" && (
+                    <Button variant="ghost" title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)}
+                      className={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "!text-sky-700" : ""}><Link2 size={15} /></Button>
                   )}
                   {podeEditar && c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })}>Baixar</Button>}
                   {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
@@ -347,6 +359,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       </Modal>
 
       {baixa && <BaixaModal conta={baixa.conta} tabela={baixa.tabela} onClose={() => setBaixa(null)} />}
+      {linkDe && <LinkPagamentoModal conta={contas.find((x) => x.id === linkDe.id) ?? linkDe} links={linksDa.get(linkDe.id) ?? []} onClose={() => setLinkDe(null)} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_receber" onClose={() => setMotivo(null)} />}
     </>
   );

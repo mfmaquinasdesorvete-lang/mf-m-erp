@@ -106,6 +106,16 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
               {campo("pix_nome", "Nome do recebedor (como no banco)")}
               {campo("pix_cidade", "Cidade do recebedor")}
             </div>
+            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-4 sm:grid-cols-3">
+              <p className="text-xs text-slate-600 sm:col-span-3">
+                Link de pagamento (InfinitePay): com a InfiniteTag da conta desta unidade, cada conta a receber ganha o botão de <b>link</b> para o cliente pagar por Pix ou cartão,
+                e a conta é baixada sozinha quando o pagamento entra. A tag é o nome que aparece com <b>$</b> no app (sem o $).
+              </p>
+              <Field label="InfiniteTag (sem o $)">
+                <input className="input" value={u.infinitepay_tag ?? ""} placeholder="ex.: minhaloja" autoCapitalize="none"
+                  onChange={(e) => setU({ ...u, infinitepay_tag: e.target.value.replace(/^\$/, "").trim().toLowerCase() || null })} />
+              </Field>
+            </div>
             <div className="flex flex-wrap gap-5 sm:col-span-4">{chk("fabrica", "Fabrica máquinas aqui")}{chk("assistencia", "Faz assistência técnica")}{chk("ativo", "Ativa")}</div>
             <p className="text-xs text-slate-500 sm:col-span-4">CFOP, CST, alíquotas e IBS/CBS desta unidade: Notas fiscais → Configurações da NF-e.</p>
           </div>

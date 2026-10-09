@@ -679,6 +679,7 @@ function planoDemo(db: Db) {
   ];
   db.cobranca_envios = [];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
+  for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
   // categorias dos produtos (como no Tiny)
   const cats = ["As Máquinas My Frost", "Chave Extratora - Portelo", "Peças de Reposição", "Peças Eletrica - My Frost", "Peças Mecânica - My Frost",
@@ -1553,6 +1554,11 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       n++;
     }
     return { data: n, error: null };
+  },
+  descartar_cobranca_link: ({ p_id }) => {
+    const l = (db.cobrancas_link ?? []).find((x) => x.id === p_id && ["aberto", "erro"].includes(x.status));
+    if (l) l.status = "descartado";
+    return { data: null, error: null };
   },
   conferir_transportadora: ({ p_id }) => {
     const t = db.transportadoras.find((x) => x.id === p_id);
@@ -2583,6 +2589,23 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true };
   },
   "focus-config": () => ({ ok: true, ambiente: "homologacao", eventos: ["nfe", "nfe_recebida"] }),
+  infinitepay: (b) => {
+    if (b.acao !== "criar") return { ok: true };
+    const c = db.contas_receber.find((x) => x.id === b.conta_id);
+    if (!c) throw new Error("conta não encontrada");
+    if (c.status !== "aberto") throw new Error("esta conta não está em aberto");
+    const u = db.unidades.find((x) => x.id === c.unidade_id) ?? db.unidades.find((x) => x.matriz);
+    if (!u?.infinitepay_tag) throw new Error(`Cadastre a InfiniteTag da ${u?.nome ?? "unidade"} em Configurações → Unidades.`);
+    if (!db.cobrancas_link) db.cobrancas_link = [];
+    const igual = db.cobrancas_link.find((l) => l.conta_receber_id === c.id && l.status === "aberto" && Number(l.valor) === Number(c.valor));
+    if (igual) return { id: igual.id, url: igual.url, reaproveitado: true };
+    for (const l of db.cobrancas_link) if (l.conta_receber_id === c.id && l.status === "aberto") l.status = "descartado";
+    const l: Row = { id: uid(), conta_receber_id: c.id, unidade_id: u.id, handle: u.infinitepay_tag, descricao: c.descricao, valor: c.valor, status: "aberto",
+      url: `https://checkout.infinitepay.io/${u.infinitepay_tag}?demo=${uid().slice(0, 8)}`, created_at: new Date().toISOString(),
+      metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
+    db.cobrancas_link.push(l);
+    return { id: l.id, url: l.url, reaproveitado: false };
+  },
   "clientes-receita": (b) => {
     const comCnpj = db.clientes.filter((c) => soDig(c.cpf_cnpj).length === 14);
     if (b.acao === "um") {

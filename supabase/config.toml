@@ -32,3 +32,8 @@ verify_jwt = false
 
 [functions.contador-pacote]
 verify_jwt = false
+
+# Link de pagamento da InfinitePay: o aviso de pagamento chega sem login (a função confere o pagamento
+# direto na InfinitePay); a criação do link confere o usuário dentro da função (requireErpUser).
+[functions.infinitepay]
+verify_jwt = false
