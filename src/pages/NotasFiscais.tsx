@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Ban, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
+import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { callFunction } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
@@ -258,6 +258,15 @@ function Recebidas({ leitura = false }: { leitura?: boolean }) {
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
         <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
         <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
+        <Button variant="secondary" title="Das notas importadas que ficaram só como histórico: as duplicatas que ainda vão vencer viram contas a pagar (sem repetir)"
+          onClick={async () => {
+            try {
+              const { data: n, error } = await supabase.rpc("lancar_duplicatas_a_vencer");
+              if (error) throw error;
+              notify(n ? `${n} parcela(s) a vencer lançada(s) no contas a pagar` : "Nenhuma parcela a vencer sem conta lançada");
+              invalidate("contas_pagar");
+            } catch (e) { notifyError(e); }
+          }}><CalendarClock size={16} /> Lançar contas a vencer</Button>
         <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
         <p className="text-sm text-slate-500">
           Notas emitidas contra os CNPJs da MF (ou o XML que o fornecedor mandou). O ERP dá ciência, lê o XML, lança o contas a pagar e dá entrada no estoque

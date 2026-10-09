@@ -364,6 +364,11 @@ function planoDemo(db: Db) {
   db.cobranca_envios = [];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
+  // categorias dos produtos (como no Tiny)
+  const cats = ["As Máquinas My Frost", "Chave Extratora - Portelo", "Peças de Reposição", "Peças Eletrica - My Frost", "Peças Mecânica - My Frost",
+    "Peças Refrigeração - My Frost", "Vedantes/ Orings My Frost", "As Extrutura Máquinas", "As Extrutura Máquinas > Cilindros", "Batedor de Milk"];
+  db.produtos.forEach((p) => { p.categoria ??= p.tipo === "maquina" ? "As Máquinas My Frost" : /veda|o-?ring|borracha/i.test(p.descricao) ? "Vedantes/ Orings My Frost" : "Peças de Reposição"; });
+  db.categorias_produto = [...new Set([...cats, ...db.produtos.map((p) => p.categoria).filter(Boolean)])].map((nome, i) => ({ id: `cat${i + 1}`, nome, ativo: true }));
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
   Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
     receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],

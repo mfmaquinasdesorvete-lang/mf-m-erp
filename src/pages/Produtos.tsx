@@ -18,6 +18,7 @@ import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
 import { QualidadeProdutos } from "@/components/QualidadeProdutos";
 import { ContagemEstoque } from "@/components/ContagemEstoque";
+import { CategoriasProdutos, opcoesCategoria, useCategoriasProduto } from "@/components/CategoriasProdutos";
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
 
@@ -76,7 +77,8 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
 
 export default function Produtos() {
   const { pode, papel } = usePerfil();
-  const [aba, setAba] = useState<"produtos" | "qualidade" | "contagem">("produtos");
+  const [aba, setAba] = useState<"produtos" | "qualidade" | "contagem" | "categorias">("produtos");
+  const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
@@ -101,9 +103,12 @@ export default function Produtos() {
       <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={[
         { value: "produtos", label: "Produtos e estoque" },
         { value: "qualidade", label: "Qualidade do cadastro" },
+        { value: "categorias", label: "Categorias" },
         ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
       ]} />
-      {aba === "qualidade" ? (
+      {aba === "categorias" ? (
+        <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
+      ) : aba === "qualidade" ? (
         <QualidadeProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onCorrigir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "contagem" ? (
         <ContagemEstoque produtos={produtos} podeEditar={pode("movimentar_estoque")} />
@@ -174,7 +179,7 @@ export default function Produtos() {
           },
           { name: "tipo", label: "Tipo", type: "select", options: tipos },
           { name: "unidade", label: "Unidade de medida", type: "select", options: opcoesUnidade },
-          { name: "categoria", label: "Categoria", span: 1 },
+          { name: "categoria", label: "Categoria", type: "select", span: 1, options: opcoesCategoria(categorias, produtos) },
           { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
           { name: "marca", label: "Marca", span: 1 },
           { name: "modelo", label: "Modelo", span: 1 },

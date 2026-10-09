@@ -33,8 +33,31 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     itens: [
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
-      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante" },
+    ],
+  },
+  {
+    titulo: "Cadastros",
+    itens: [
+      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
+      { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto peça máquina inventário ncm categoria kit" },
+      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
+      { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
+    ],
+  },
+  {
+    titulo: "Fiscal",
+    itens: [
+      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus" },
+      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
+    ],
+  },
+  {
+    titulo: "Financeiro",
+    itens: [
+      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa" },
+      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
+      { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],
   },
   {
@@ -45,28 +68,10 @@ const grupos: { titulo: string; itens: Item[] }[] = [
     ],
   },
   {
-    titulo: "Estoque e compras",
+    titulo: "Produção e estoque",
     itens: [
-      { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto peça máquina inventário ncm" },
-      { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica" },
-      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
-      { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
+      { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica ficha técnica" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
-    ],
-  },
-  {
-    titulo: "Financeiro",
-    itens: [
-      { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela" },
-      { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
-      { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
-    ],
-  },
-  {
-    titulo: "Fiscal",
-    itens: [
-      { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus" },
-      { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
     ],
   },
   {
@@ -87,6 +92,16 @@ const grupos: { titulo: string; itens: Item[] }[] = [
   },
 ];
 
+/** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
+const RAPIDOS: { to: string; label: string; cor: string }[] = [
+  { to: "/pedidos", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
+  { to: "/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
+  { to: "/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
+  { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
+  { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
+  { to: "/assistencia", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
+];
+
 const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const combina = (m: Item, termo: string) => {
   const t = semAcento(`${m.label} ${m.busca ?? ""}`);
@@ -102,6 +117,23 @@ const ATALHOS: Record<string, string[]> = {
   contador: ["/contador", "/notas", "/financeiro", "/documentos"],
 };
 const todosItens = grupos.flatMap((g) => g.itens);
+
+/** Botões coloridos do acesso rápido (3 por linha). */
+function AcessoRapido({ podeVer, onIr }: { podeVer: (t: Tela) => boolean; onIr: () => void }) {
+  const itens = RAPIDOS.map((r) => ({ ...r, item: todosItens.find((i) => i.to === r.to)! })).filter((r) => r.item && podeVer(r.item.tela));
+  if (!itens.length) return null;
+  return (
+    <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
+      {itens.map(({ to, label, cor, item: { icon: Icon } }) => (
+        <NavLink key={to} to={to} onClick={onIr} title={label}
+          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center text-[11.5px] font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
+          <Icon size={18} aria-hidden />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </div>
+  );
+}
 
 function Marca({ compacta }: { compacta?: boolean }) {
   return (
@@ -185,6 +217,7 @@ export function Layout() {
       <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-72 md:shrink-0 md:flex-col md:border-r md:border-ink-line`}>
         <div className="hidden px-5 pb-4 pt-6 md:block [@media(min-width:768px)_and_(max-height:860px)]:pb-3 [@media(min-width:768px)_and_(max-height:860px)]:pt-4"><div className="flex items-center justify-between gap-2"><Marca /><Sino /></div><div className="mt-4"><SeletorUnidade /></div></div>
         <div className="relative flex min-h-0 flex-1 flex-col">
+        <AcessoRapido podeVer={perfil.podeVer} onIr={() => setAberto(false)} />
         <form className="px-3 pb-2 pt-2 md:pt-0" role="search" onSubmit={(e) => {
           e.preventDefault();
           const primeiro = todosItens.find((m) => perfil.podeVer(m.tela) && combina(m, busca));
