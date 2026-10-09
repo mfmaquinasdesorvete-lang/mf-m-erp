@@ -280,26 +280,29 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
           const maquinaNaGarantia = equip ? garantia !== "fora_garantia" : !!o.em_garantia;
           const texto = equip?.garantia_ate
             ? maquinaNaGarantia
-              ? `Máquina em garantia até ${dataBR(equip.garantia_ate)}${garantia === "vence_logo" ? " (vence em menos de 30 dias)" : ""}.`
+              ? `Garantia até ${dataBR(equip.garantia_ate)}${garantia === "vence_logo" ? " (vence em menos de 30 dias)" : ""}.`
               : `Garantia encerrada em ${dataBR(equip.garantia_ate)}.`
             : maquinaNaGarantia ? "Atendimento em garantia." : "Sem garantia registrada para esta máquina.";
           const cobranca = o.em_garantia
             ? " Esta OS não será cobrada."
             : maquinaNaGarantia ? " Esta OS está marcada como cobrada (ex.: mau uso ou peça de desgaste)." : " Serviço cobrado.";
           return (
-            <div className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 ${maquinaNaGarantia ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-slate-50"}`}>
-              <span className={`grid h-10 w-10 place-items-center rounded-lg ${maquinaNaGarantia ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
-                {maquinaNaGarantia ? <ShieldCheck size={20} /> : <ShieldOff size={20} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="font-bold text-fg">
-                  {o.equipamento}{o.numero_serie && <span className="font-medium text-slate-500"> · série {o.numero_serie}</span>}
-                  <span className="ml-2 align-middle"><Badge value={equip ? garantia : maquinaNaGarantia ? "em_garantia" : "fora_garantia"} /></span>
+            <div className={`gap-3 rounded-xl border p-3 sm:flex sm:items-center ${maquinaNaGarantia ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-slate-50"}`}>
+              {/* no celular o botão desce para baixo do texto (lado a lado o texto ficava com uma palavra por linha) */}
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${maquinaNaGarantia ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                  {maquinaNaGarantia ? <ShieldCheck size={20} /> : <ShieldOff size={20} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-bold leading-snug text-fg sm:text-base">
+                    {o.equipamento}{o.numero_serie && <span className="font-medium text-slate-500"> · série {o.numero_serie}</span>}
+                  </div>
+                  <div className="mt-1"><Badge value={equip ? garantia : maquinaNaGarantia ? "em_garantia" : "fora_garantia"} /></div>
+                  <div className="mt-1 text-sm text-slate-600">{texto}{cobranca}</div>
                 </div>
-                <div className="text-sm text-slate-600">{texto}{cobranca}</div>
               </div>
               {(o.equipamento_id || o.numero_serie) && (
-                <Button type="button" variant="secondary" onClick={() => setHistorico(true)}><History size={15} /> Histórico da máquina</Button>
+                <Button type="button" variant="secondary" className="mt-3 w-full shrink-0 sm:mt-0 sm:w-auto" onClick={() => setHistorico(true)}><History size={15} /> Histórico da máquina</Button>
               )}
             </div>
           );
@@ -409,9 +412,9 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                   Coberto (sem cobrança)
                 </label>
               </Field>
-              <Card className="col-span-2 flex items-center justify-between p-3">
+              <Card className="col-span-2 flex items-center justify-between gap-3 p-3">
                 <span className="text-sm text-slate-500">Peças {brl(pecas)} · Mão de obra {brl(Number(o.valor_mao_obra || 0))}</span>
-                <span className="num text-xl font-bold text-fg">{o.em_garantia ? "R$ 0,00" : brl(total)}</span>
+                <span className="num shrink-0 whitespace-nowrap text-xl font-bold text-fg">{o.em_garantia ? "R$ 0,00" : brl(total)}</span>
               </Card>
             </div>
           </div>
@@ -438,21 +441,28 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
 
         {o.id && <Anexos entidade="os" id={o.id} />}
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
-          <Button type="button" variant="ghost" onClick={() => gerarPdf("entrada")} disabled={!o.defeito_relatado}><FileDown size={16} /> Comprovante de entrada</Button>
-          {(o.diagnostico || encerrada) && <Button type="button" variant="ghost" onClick={() => gerarPdf("laudo")}><FileDown size={16} /> Laudo / entrega</Button>}
-          {o.id && cliente?.whatsapp && (
-            <a href={whatsappLink(cliente.whatsapp, mensagem)} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
-              <MessageCircle size={16} /> Avisar cliente
-            </a>
-          )}
-          <span className="flex-1" />
-          {podeEditar && o.status === "concluida" && <Button type="button" variant="secondary" onClick={entregar} disabled={ocupado}><PackageCheck size={16} /> Marcar entregue</Button>}
-          {!somenteLeitura && <Button variant="secondary" disabled={ocupado}>Salvar</Button>}
-          {o.id && !somenteLeitura && (
-            <Button type="button" onClick={concluir} disabled={ocupado}><CheckCircle2 size={16} /> Concluir serviço</Button>
-          )}
+        {/* no celular: documentos em cima (2 por linha) e as ações principais embaixo, largas */}
+        <div className="space-y-2 border-t border-slate-100 pt-4 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:space-y-0">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <Button type="button" variant="ghost" className="border border-slate-200 sm:border-0" onClick={() => gerarPdf("entrada")} disabled={!o.defeito_relatado}>
+              <FileDown size={16} /> <span className="sm:hidden">Comprovante</span><span className="hidden sm:inline">Comprovante de entrada</span>
+            </Button>
+            {(o.diagnostico || encerrada) && <Button type="button" variant="ghost" className="border border-slate-200 sm:border-0" onClick={() => gerarPdf("laudo")}><FileDown size={16} /> Laudo<span className="hidden sm:inline"> / entrega</span></Button>}
+            {o.id && cliente?.whatsapp && (
+              <a href={whatsappLink(cliente.whatsapp, mensagem)} target="_blank" rel="noreferrer"
+                className="col-span-2 inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 sm:min-h-0">
+                <MessageCircle size={16} /> Avisar cliente
+              </a>
+            )}
+          </div>
+          <span className="hidden sm:block sm:flex-1" />
+          <div className="grid grid-cols-3 gap-2 sm:flex">
+            {podeEditar && o.status === "concluida" && <Button type="button" variant="secondary" className="col-span-3" onClick={entregar} disabled={ocupado}><PackageCheck size={16} /> Marcar entregue</Button>}
+            {!somenteLeitura && <Button variant="secondary" className={o.id ? "" : "col-span-3"} disabled={ocupado}>Salvar</Button>}
+            {o.id && !somenteLeitura && (
+              <Button type="button" className="col-span-2 whitespace-nowrap" onClick={concluir} disabled={ocupado}><CheckCircle2 size={16} /> Concluir serviço</Button>
+            )}
+          </div>
         </div>
       </form>
 
