@@ -3,7 +3,7 @@ export type Cliente = {
   inscricao_estadual: string | null; contribuinte_icms: number; email: string | null;
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
-  uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string;
+  uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null;
 };
 
 export type Produto = {

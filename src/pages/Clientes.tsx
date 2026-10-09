@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, IdCard } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
+import { FichaCliente } from "@/components/FichaCliente";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { Contato, NomeCadastro } from "@/components/Contato";
@@ -42,6 +43,7 @@ const FIELDS: CampoForm[] = [
   { name: "municipio", label: "Município", span: 3 },
   { name: "uf", label: "UF", mask: "uf", span: 1 },
   { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
+  { name: "preferencias", label: "Preferências (como gosta de ser atendido, forma de pagamento, linhas que trabalha)", type: "textarea", span: 4 },
 ];
 
 const FILTROS: FiltroCrud<Cliente>[] = [
@@ -58,11 +60,13 @@ const ORDENS = ordensCadastro<Cliente>();
 export default function Clientes() {
   const { papel } = usePerfil();
   const [importar, setImportar] = useState(false);
+  const [ficha, setFicha] = useState<Cliente | null>(null);
   // a importação em lote é do financeiro (e admin), como a de produtos
   const podeImportar = papel === "admin" || papel === "financeiro";
   return (
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
+    {ficha && <FichaCliente cliente={ficha} onClose={() => setFicha(null)} />}
     <CrudPage<Cliente>
       filtros={FILTROS}
       ordens={ORDENS}
@@ -89,6 +93,7 @@ export default function Clientes() {
         return null;
       }}
       fields={FIELDS}
+      rowActions={(r) => <Button variant="ghost" title="Ficha do cliente: compras, financeiro, assistência e atendimentos" onClick={() => setFicha(r)}><IdCard size={16} /> Ficha</Button>}
       columns={[
         { label: "Cód.", render: (r) => <span className="font-mono text-xs text-slate-500">{r.codigo ?? "—"}</span>, className: "w-14" },
         { label: "Nome", render: (r) => <NomeCadastro r={r} /> },

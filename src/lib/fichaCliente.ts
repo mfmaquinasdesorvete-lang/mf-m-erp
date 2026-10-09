@@ -11,24 +11,33 @@ const APROVADO = ["aprovado", "faturado", "entregue"];
 /** CFOP de venda (5101, 6102, 6108, 5405…); remessas, transferências e devoluções ficam de fora. */
 export const cfopVenda = (cfop?: string | null) => /^[567](1(0[1-9]|1[0-9]|2[0-5])|40[1-5]|551)$/.test(String(cfop ?? ""));
 
-type PedidoFicha = { id: string; numero: number; status: string; valor_total: number; created_at: string; aprovado_em?: string | null; itens?: { produto_id: string; descricao: string; quantidade: number; valor_unitario: number }[] };
-type NotaFicha = { id: string; numero: string | null; status: string; ambiente?: string | null; finalidade?: string | null; tipo_operacao?: string | null; pedido_id?: string | null; valor_total: number; created_at: string; payload?: any };
+export type PedidoFicha = {
+  id: string; numero: number; status: string; valor_total: number; created_at: string; aprovado_em?: string | null;
+  itens?: { produto_id: string; descricao: string; quantidade: number; valor_unitario: number; produto?: { sku?: string | null } | null }[];
+};
+export type NotaFicha = { id: string; numero: string | null; status: string; ambiente?: string | null; finalidade?: string | null; tipo_operacao?: string | null; pedido_id?: string | null; valor_total: number; created_at: string; payload?: any };
+
+/** Pedido aprovado do ERP como compra (orçamento e cancelado não contam). */
+export function compraDoPedido(p: PedidoFicha): CompraCliente | null {
+  if (!APROVADO.includes(p.status)) return null;
+  return { data: p.aprovado_em ?? p.created_at, valor: Number(p.valor_total), origem: "pedido", ref: `Pedido #${p.numero}`,
+    // a chave é o SKU, para somar com as notas do sistema anterior (que só têm o código do produto)
+    itens: (p.itens ?? []).map((i) => ({ chave: i.produto?.sku || i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), valor: r2(Number(i.quantidade) * Number(i.valor_unitario)) })) };
+}
+
+/** Nota de venda que não veio de pedido (histórico do Tiny); teste, devolução, entrada, remessa e transferência ficam de fora. */
+export function compraDaNota(n: NotaFicha): CompraCliente | null {
+  if (n.pedido_id || n.status !== "autorizada" || n.ambiente === "homologacao" || (n.finalidade ?? "normal") !== "normal" || (n.tipo_operacao ?? "saida") !== "saida") return null;
+  const itens = ((n.payload?.items ?? []) as any[]).filter((i) => cfopVenda(i.cfop));
+  if (n.payload?.items?.length && !itens.length) return null; // nota que não é de venda (remessa, transferência…)
+  return { data: n.created_at, valor: Number(n.valor_total), origem: "nota", ref: `NF ${n.numero ?? ""}`,
+    itens: itens.map((i) => ({ chave: String(i.codigo_produto || i.descricao), descricao: String(i.descricao ?? ""), quantidade: Number(i.quantidade_comercial ?? 0), valor: Number(i.valor_bruto ?? 0) })) };
+}
 
 /** Compras do cliente: pedidos aprovados do ERP + notas de venda que não vieram de pedido (histórico do Tiny). */
 export function comprasDoCliente(pedidos: PedidoFicha[], notas: NotaFicha[]): CompraCliente[] {
-  const out: CompraCliente[] = [];
-  for (const p of pedidos.filter((x) => APROVADO.includes(x.status))) {
-    out.push({ data: p.aprovado_em ?? p.created_at, valor: Number(p.valor_total), origem: "pedido", ref: `Pedido #${p.numero}`,
-      itens: (p.itens ?? []).map((i) => ({ chave: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), valor: r2(Number(i.quantidade) * Number(i.valor_unitario)) })) });
-  }
-  for (const n of notas) {
-    if (n.pedido_id || n.status !== "autorizada" || n.ambiente === "homologacao" || (n.finalidade ?? "normal") !== "normal" || (n.tipo_operacao ?? "saida") !== "saida") continue;
-    const itens = ((n.payload?.items ?? []) as any[]).filter((i) => cfopVenda(i.cfop));
-    if (n.payload?.items?.length && !itens.length) continue; // nota que não é de venda (remessa, transferência…)
-    out.push({ data: n.created_at, valor: Number(n.valor_total), origem: "nota", ref: `NF ${n.numero ?? ""}`,
-      itens: itens.map((i) => ({ chave: String(i.codigo_produto || i.descricao), descricao: String(i.descricao ?? ""), quantidade: Number(i.quantidade_comercial ?? 0), valor: Number(i.valor_bruto ?? 0) })) });
-  }
-  return out.sort((a, b) => b.data.localeCompare(a.data));
+  return [...pedidos.map(compraDoPedido), ...notas.map(compraDaNota)].filter((c): c is CompraCliente => !!c)
+    .sort((a, b) => b.data.localeCompare(a.data));
 }
 
 export function resumoCliente(compras: CompraCliente[], contas: ContaCliente[], hoje: string) {
@@ -72,6 +81,52 @@ export function produtosDoCliente(compras: CompraCliente[]) {
     m.set(k, x);
   }
   return [...m.values()].sort((a, b) => b.valor - a.valor);
+}
+
+export type Resumo = ReturnType<typeof resumoCliente>;
+export type Sugestao = { nivel: "erro" | "alerta" | "info"; texto: string };
+type EquipFicha = { descricao: string; numero_serie?: string | null; garantia_ate?: string | null; proxima_preventiva?: string | null; preventiva_agendada?: string | null };
+type OsFicha = { numero: number; status: string; equipamento: string };
+
+const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const somar = (d: string, n: number) => new Date(Date.parse(d.slice(0, 10)) + n * 864e5).toISOString().slice(0, 10);
+const OS_FECHADA = ["concluida", "entregue", "cancelada"];
+
+/** O que fazer com o cliente agora: cobrar, chamar de volta, oferecer reposição, agendar preventiva. */
+export function sugestoesCliente(r: Resumo, produtos: ReturnType<typeof produtosDoCliente>, equipamentos: EquipFicha[], oss: OsFicha[], hoje: string): Sugestao[] {
+  const out: Sugestao[] = [];
+  if (r.vencido > 0) out.push({ nivel: "erro", texto: `Tem ${moeda(r.vencido)} vencido em ${r.vencidas} parcela(s): cobre antes de vender a prazo.` });
+  if (r.pagasComAtraso >= 2 && r.atrasoMedio > 5) {
+    out.push({ nivel: "alerta", texto: `Pagou ${r.pagasComAtraso} de ${r.pagas} parcelas com atraso (em média ${r.atrasoMedio} dias): prefira à vista, entrada ou prazo menor.` });
+  }
+  if (r.situacao === "em_risco") {
+    out.push({ nivel: "alerta", texto: `Está há ${r.semComprar} dias sem comprar${r.intervaloMedio ? ` (costuma voltar a cada ${r.intervaloMedio} dias)` : ""}: vale um contato.` });
+  } else if (r.situacao === "inativo") {
+    out.push({ nivel: "alerta", texto: `Sem compras há ${r.semComprar} dias: ofereça novidades ou uma condição para voltar.` });
+  } else if (r.situacao === "novo") {
+    out.push({ nivel: "info", texto: "Cliente novo: faça o contato de pós-venda (chegou bem? ficou alguma dúvida?)." });
+  } else if (r.proximaPrevista && r.proximaPrevista >= hoje && r.proximaPrevista <= somar(hoje, 15)) {
+    out.push({ nivel: "info", texto: `Pelo histórico, a próxima compra deve vir até ${br(r.proximaPrevista)}: prepare uma oferta.` });
+  }
+  // o que compra sempre e já passou do tempo de repor
+  const limite = Math.max(30, r.intervaloMedio ?? 60);
+  for (const p of produtos.filter((x) => x.vezes >= 2 && Math.round((Date.parse(hoje) - Date.parse(x.ultima.slice(0, 10))) / 864e5) > limite).slice(0, 3)) {
+    out.push({ nivel: "info", texto: `Comprou ${p.descricao} ${p.vezes} vezes; a última foi em ${br(p.ultima)}: ofereça reposição.` });
+  }
+  for (const e of equipamentos) {
+    const nome = `${e.descricao}${e.numero_serie ? ` (série ${e.numero_serie})` : ""}`;
+    if (e.proxima_preventiva && e.proxima_preventiva <= somar(hoje, 15) && !(e.preventiva_agendada && e.preventiva_agendada >= hoje)) {
+      out.push({ nivel: e.proxima_preventiva < hoje ? "alerta" : "info", texto: `Preventiva do ${nome} ${e.proxima_preventiva < hoje ? "venceu" : "vence"} em ${br(e.proxima_preventiva)}: agende.` });
+    }
+    if (e.garantia_ate && e.garantia_ate >= hoje && e.garantia_ate <= somar(hoje, 30)) {
+      out.push({ nivel: "info", texto: `A garantia do ${nome} termina em ${br(e.garantia_ate)}: ofereça a preventiva ou um contrato de manutenção.` });
+    }
+  }
+  for (const o of oss.filter((x) => !OS_FECHADA.includes(x.status))) {
+    out.push({ nivel: "info", texto: `OS #${o.numero} (${o.equipamento}) está em andamento: ${o.status.replace(/_/g, " ")}.` });
+  }
+  return out;
 }
 
 export const ROTULO_SITUACAO = {

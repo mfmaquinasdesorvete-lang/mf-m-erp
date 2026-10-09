@@ -248,7 +248,8 @@ export function Area({ dados, series, altura = 240, formatar = brl }: {
                 </g>
               );
             })}
-            {dados.map((d, i) => (
+            {/* tela estreita: mostra 1 rótulo a cada `passo` (sempre o mais recente) para não encavalar */}
+            {dados.map((d, i) => (dados.length - 1 - i) % Math.max(1, Math.ceil((dados.length * 48) / Math.max(iw, 1))) === 0 && (
               <text key={d.rotulo} x={x(i)} y={altura - 8} textAnchor="middle" fontSize={12} fill="var(--eixo-texto)">{d.rotulo}</text>
             ))}
             {hover !== null && (
