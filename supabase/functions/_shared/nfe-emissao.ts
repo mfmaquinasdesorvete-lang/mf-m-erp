@@ -21,13 +21,13 @@ function ratear(total: number, bases: number[]): number[] {
 }
 
 /** Alíquotas do IBS/CBS das Configurações da NF-e (2026: CBS 0,9% e IBS 0,1%). */
-const configIbsCbs = (cfg: any): ConfigIbsCbs => ({
+export const configIbsCbs = (cfg: any): ConfigIbsCbs => ({
   ativo: cfg?.ibs_cbs_ativo !== false,
   cbs: Number(cfg?.cbs_aliquota ?? 0.9), ibs_uf: Number(cfg?.ibs_uf_aliquota ?? 0.1), ibs_mun: Number(cfg?.ibs_mun_aliquota ?? 0),
 });
 
 /** Confere se a unidade tem o necessário para emitir. */
-function exigirEmitente(u: any) {
+export function exigirEmitente(u: any) {
   const faltando = [onlyDigits(u?.cnpj).length !== 14 && "CNPJ", !u?.inscricao_estadual && "inscrição estadual", !u?.uf && "UF"].filter(Boolean);
   if (faltando.length) throw new HttpError(400, `preencha em Configurações → Unidades (${u?.nome ?? "unidade"}): ${faltando.join(", ")}`);
 }
@@ -38,7 +38,7 @@ const itemBase = (p: any, descricao: string, quantidade: number, valor: number, 
   cfop: p.cfop || null, ipi_aliquota: p.ipi_aliquota == null ? null : Number(p.ipi_aliquota), ...extra,
 });
 
-async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
+export async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
   const r = await enviarNfe(referencia, payload, await codigoUnidade(db, nota.unidade_id as string));
   const { data: gravada } = await db.from("notas_fiscais").insert({
     ...nota, ambiente: focusProducao() ? "producao" : "homologacao", referencia, status: r.status, mensagem: r.mensagem, payload, resposta: r.resposta, tentativas: 1,

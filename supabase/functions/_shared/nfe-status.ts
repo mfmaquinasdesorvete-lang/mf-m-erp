@@ -23,6 +23,12 @@ export async function aplicarRetornoNfe(db: SupabaseClient, nota: { id: string; 
 
   const { data } = await db.from("notas_fiscais").update(patch).eq("id", nota.id).select().single();
 
+  // NF de devolução: o estoque entra (devolução de venda) ou sai (de compra) ao autorizar e volta se cancelar
+  if (data?.finalidade === "devolucao" && data?.ambiente !== "homologacao") {
+    if (status === "autorizada" && !data.estoque_lancado) await db.rpc("estoque_devolucao", { p_nota: data.id, p_estornar: false });
+    if (status === "cancelada" && data.estoque_lancado) await db.rpc("estoque_devolucao", { p_nota: data.id, p_estornar: true });
+  }
+
   // nota de teste (homologação) não fatura nem reabre o pedido
   if (nota.pedido_id && data?.ambiente !== "homologacao") {
     if (status === "autorizada") {

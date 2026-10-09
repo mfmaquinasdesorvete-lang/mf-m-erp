@@ -91,6 +91,8 @@ const grupo = (g: any) => (g && typeof g === "object" ? Object.values(g)[0] as a
 
 export type NotaEmitida = Cabecalho & {
   serie: string; natureza: string; protocolo: string | null;
+  /** finNFe 4 = devolução; tpNF 0 = entrada; refNFe = nota referenciada */
+  finalidade: "normal" | "devolucao" | "complementar" | "ajuste"; tipo_operacao: "saida" | "entrada"; chave_referenciada: string | null;
   destinatario_nome: string; destinatario_doc: string; destinatario_uf: string | null;
   /** No formato dos itens enviados à Focus, para os relatórios do contador (CFOP, bases e impostos). */
   items: Record<string, unknown>[];
@@ -107,6 +109,9 @@ export function lerNotaEmitida(xml: string): NotaEmitida {
     serie: String(inf.ide?.serie ?? ""),
     natureza: String(inf.ide?.natOp ?? ""),
     protocolo: prot?.nProt ? String(prot.nProt) : null,
+    finalidade: ({ "2": "complementar", "3": "ajuste", "4": "devolucao" } as const)[String(inf.ide?.finNFe ?? "1") as "2" | "3" | "4"] ?? "normal",
+    tipo_operacao: String(inf.ide?.tpNF ?? "1") === "0" ? "entrada" : "saida",
+    chave_referenciada: lista(inf.ide?.NFref).map((r: any) => r?.refNFe).find(Boolean) ? String(lista(inf.ide?.NFref).map((r: any) => r?.refNFe).find(Boolean)) : null,
     destinatario_nome: String(inf.dest?.xNome ?? ""),
     destinatario_doc: String(inf.dest?.CNPJ ?? inf.dest?.CPF ?? ""),
     destinatario_uf: inf.dest?.enderDest?.UF ? String(inf.dest.enderDest.UF) : null,

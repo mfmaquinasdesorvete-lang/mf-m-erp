@@ -131,6 +131,16 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
 // Compra para revenda/industrialização/uso (vendas do fornecedor: 51xx, 54xx, 61xx, 64xx, 71xx).
 // Outras operações (remessa p/ conserto, demonstração, comodato, devolução…) vão para revisão manual.
 const CFOP_COMPRA = /^(51|54|61|64|71)/;
+// Devolução de mercadoria (o cliente devolvendo o que a MF vendeu): 5201/5202, com ST 5410/5411, ativo 5553, uso 5556
+const CFOP_DEVOLUCAO = /^[567](201|202|410|411|553|556)$/;
+
+/** Põe o marcador "Devolução" na nota recebida. */
+async function marcarDevolucao(db: SupabaseClient, id: string) {
+  const { data: m } = await db.from("marcadores").select("id").ilike("nome", "devolução").maybeSingle();
+  const { data: n } = await db.from("nfe_recebidas").select("marcadores").eq("id", id).single();
+  const lista: string[] = n?.marcadores ?? [];
+  await db.from("nfe_recebidas").update({ finalidade: "devolucao", ...(m?.id && !lista.includes(m.id) ? { marcadores: [...lista, m.id] } : {}) }).eq("id", id);
+}
 
 type Config = {
   entrada_automatica_estoque: boolean; conta_pagar_automatica: boolean;
@@ -167,6 +177,11 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
     if (!lido) return await marcar("aguardando_xml", "A SEFAZ ainda não liberou o XML. Nova tentativa automática em alguns minutos.");
 
     const naoCompra = [...new Set(lido.itens.map((i) => i.cfop ?? "").filter((c) => !CFOP_COMPRA.test(c)))];
+    if (naoCompra.length && lido.itens.length && lido.itens.every((i) => CFOP_DEVOLUCAO.test(i.cfop ?? ""))) {
+      await marcarDevolucao(db, nfe.id);
+      return await marcar("revisao", `NF de devolução (CFOP ${naoCompra.join(", ")}): mercadoria voltando para a MF. Confira o que chegou e use ` +
+        "\"Entrada no estoque\"; a devolução do dinheiro ou o crédito ao cliente é feito no financeiro.");
+    }
     if (naoCompra.length) {
       return await marcar("revisao", `Não parece compra (CFOP ${naoCompra.join(", ")}). Ex.: remessa para conserto. Confira e lance manualmente se for o caso.`);
     }
@@ -202,6 +217,7 @@ export async function processarPendentes(db: SupabaseClient, limite = 20) {
   if (!cfg) return 0;
   const { data: notas } = await db.from("nfe_recebidas").select("*")
     .in("processamento", ["pendente", "aguardando_xml"])
+    .is("excluida_em", null)
     .lt("tentativas", 60)
     .order("created_at")
     .limit(limite);
@@ -299,8 +315,9 @@ export async function importarXml(db: SupabaseClient, xml: string) {
     valor_total: cab.valor_total, data_emissao: cab.data_emissao ?? new Date().toISOString(),
     situacao: cab.situacao === "cancelada" ? "cancelada" : "autorizada", manifestacao_destinatario: null, nfe_completa: true,
   }, unidadeId);
+  // importar de novo uma nota excluída traz ela de volta
   const { data: nfe } = await db.from("nfe_recebidas")
-    .update({ xml, ...(existente ? {} : { origem: "xml" }), processamento: "pendente", tentativas: 0 })
+    .update({ xml, ...(existente ? {} : { origem: "xml" }), processamento: "pendente", tentativas: 0, excluida_em: null, excluida_por: null, excluida_motivo: null })
     .eq("chave", cab.chave).select("*").single();
   const { data: cfg } = await db.from("configuracoes").select(CONFIG_RECEBIDAS).eq("id", 1).single();
   if (nfe && cfg) await processarNota(db, nfe, cfg);

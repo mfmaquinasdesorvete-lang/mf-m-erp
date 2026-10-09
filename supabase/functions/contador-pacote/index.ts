@@ -60,14 +60,17 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
 
   // NF-e emitidas no mês (autorizadas e canceladas)
   const { data: notas } = await db.from("notas_fiscais")
-    .select("id, numero, serie, chave, status, valor_total, created_at, xml_url, danfe_url, resposta, payload, destinatario_nome, destinatario_doc, pedido:pedidos(numero, cliente:clientes(nome, cpf_cnpj, uf)), importado:notas_fiscais_xml(xml, xml_cancelamento)")
-    .eq("unidade_id", unidadeId).gte("created_at", ini).lt("created_at", fim).in("status", ["autorizada", "cancelada"]).neq("ambiente", "homologacao");
+    .select("id, numero, serie, chave, status, valor_total, created_at, xml_url, danfe_url, resposta, payload, destinatario_nome, destinatario_doc, tipo_operacao, pedido:pedidos(numero, cliente:clientes(nome, cpf_cnpj, uf)), importado:notas_fiscais_xml(xml, xml_cancelamento)")
+    .eq("unidade_id", unidadeId).gte("created_at", ini).lt("created_at", fim).in("status", ["autorizada", "cancelada"]).neq("ambiente", "homologacao")
+    .is("excluida_em", null);
   const cfops = new Map<string, { base: number; icms: number; ipi: number; pis: number; cofins: number; valor: number; n: number }>();
   for (const n of notas ?? []) {
     const nome = n.chave || `nota-${n.numero}`;
     const imp = (Array.isArray(n.importado) ? n.importado[0] : n.importado) as { xml: string; xml_cancelamento: string | null } | null;
     const xml = imp?.xml ?? await baixar(n.xml_url, u.codigo);
-    if (xml) arquivos[`saidas/${n.status === "cancelada" ? "canceladas/" : ""}${nome}.xml`] = strToU8(xml);
+    // nota de entrada emitida pela MF (devolução de venda) vai em pasta própria
+    const pasta = n.tipo_operacao === "entrada" ? "entradas-emitidas" : "saidas";
+    if (xml) arquivos[`${pasta}/${n.status === "cancelada" ? "canceladas/" : ""}${nome}.xml`] = strToU8(xml);
     else faltando.push(`XML da NF-e ${n.numero ?? n.id}`);
     if (n.status === "cancelada") {
       const canc = imp?.xml_cancelamento ?? await baixar(focusUrl(n.resposta?.caminho_xml_cancelamento), u.codigo);
@@ -92,7 +95,7 @@ async function gerar(db: Db, competencia: string, unidadeId: string) {
 
   // NF-e recebidas (entradas)
   const { data: recebidas } = await db.from("nfe_recebidas").select("id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, xml, itens")
-    .eq("unidade_id", unidadeId).gte("data_emissao", ini).lt("data_emissao", fim);
+    .eq("unidade_id", unidadeId).gte("data_emissao", ini).lt("data_emissao", fim).is("excluida_em", null);
   const entradas = new Map<string, { valor: number; n: number }>();
   for (const r of recebidas ?? []) {
     const xml = r.xml || await baixarXml(db, r.chave);

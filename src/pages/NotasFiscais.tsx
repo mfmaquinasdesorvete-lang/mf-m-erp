@@ -1,33 +1,26 @@
-import { useEffect, useState } from "react";
-import { Ban, Download, ExternalLink, FilePen, PackagePlus, RefreshCw, Search, Send, Upload } from "lucide-react";
-import { Badge, Button, PageHeader, Table, Tabs } from "@/components/ui";
-import { EntradaEstoqueModal } from "@/components/EntradaEstoqueModal";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Ban, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
+import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
+import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { callFunction, supabase } from "@/lib/supabase";
+import { callFunction } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { CartaCorrecaoModal, InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
+import { InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
 import { EmitirNfeModal } from "@/components/EmitirNfe";
 import { ConfigNfe } from "@/components/ConfigNfe";
 import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlNotas";
+import { ABAS_EMITIDAS, ABAS_RECEBIDAS, numeroDaChave, situacaoEmitida, situacaoRecebida, type Situacao } from "@/lib/notas";
+import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
+import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
+import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
+import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
 
-type Emitida = {
-  id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null;
-  valor_total: number; xml_url: string | null; danfe_url: string | null; mensagem: string | null; created_at: string;
-  origem?: "erp" | "importada"; destinatario_nome?: string | null; ambiente?: "producao" | "homologacao";
-  pedido?: { numero: number; cliente?: { nome: string } } | null;
-};
-type Recebida = {
-  id: string; chave: string; emitente_nome: string; emitente_cnpj: string; valor_total: number; data_emissao: string;
-  situacao: string; manifestacao: string | null; conta_pagar_id: string | null;
-  estoque_lancado: boolean; processamento: string; processamento_msg: string | null; origem?: string;
-};
-const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem";
+const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
-const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const sem = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Busca + "mostrar mais" para listas grandes (as notas importadas do sistema anterior). */
 function useBusca<T>(lista: T[], texto: (x: T) => string) {
@@ -60,12 +53,54 @@ function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string 
   );
 }
 
-async function baixarXmlImportado(n: Emitida) {
-  const { data, error } = await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle();
-  if (error || !data?.xml) return notifyError(error ?? new Error("XML não encontrado"));
-  const url = URL.createObjectURL(new Blob([data.xml], { type: "application/xml" }));
-  Object.assign(document.createElement("a"), { href: url, download: `${n.chave ?? n.numero}.xml` }).click();
-  URL.revokeObjectURL(url);
+/** Abas com contagem (Todas 388 · Pendentes 4 …), como no Tiny. */
+function AbasContagem({ abas, valor, onChange }: { abas: { valor: string; rotulo: string; n: number; icone?: ReactNode }[]; valor: string; onChange: (v: string) => void }) {
+  return (
+    <div className="mb-3 flex flex-wrap gap-1.5" role="tablist">
+      {abas.map((a) => (
+        <button key={a.valor} type="button" role="tab" aria-selected={valor === a.valor} onClick={() => onChange(a.valor)}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${valor === a.valor ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:bg-slate-50"}`}>
+          {a.icone}{a.rotulo}
+          <span className={`rounded-full px-1.5 text-xs ${valor === a.valor ? "bg-black/15" : "bg-slate-100 text-slate-600"}`}>{a.n}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function IconeSituacao({ s }: { s: Situacao }) {
+  return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold ${s.cor}`}><s.Icone size={16} aria-hidden /> {s.rotulo}</span>;
+}
+
+/** Seleção de várias linhas para aplicar marcadores de uma vez. */
+function useSelecao(ids: string[]) {
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const todos = ids.length > 0 && ids.every((id) => sel.has(id));
+  const alternar = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const alternarTodos = () => setSel(todos ? new Set() : new Set(ids));
+  const caixaTodos = <input type="checkbox" aria-label="Selecionar todas" checked={todos} onChange={alternarTodos} />;
+  return { sel, setSel, alternar, caixaTodos };
+}
+
+function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: () => void; onLimpar: () => void }) {
+  if (!n) return null;
+  return (
+    <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-brand/40 bg-surface p-2 text-sm shadow-card">
+      <b className="px-1">{n} selecionada(s)</b>
+      <Button type="button" variant="secondary" onClick={onMarcadores}><Tags size={15} /> Marcadores</Button>
+      <Button type="button" variant="ghost" onClick={onLimpar}>Limpar seleção</Button>
+    </div>
+  );
+}
+
+function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
+  const { data: marcadores = [] } = useMarcadores();
+  return (
+    <select className="input w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar por marcador">
+      <option value="">Todos os marcadores</option>
+      {marcadores.filter((m) => m.ativo).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+    </select>
+  );
 }
 
 export default function NotasFiscais() {
@@ -89,14 +124,19 @@ export default function NotasFiscais() {
 
 function Emitidas({ leitura = false }: { leitura?: boolean }) {
   const { filtrar } = useUnidade();
-  const { data: dataTodos = [], isLoading } = useRows<Emitida>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome)), transferencia:transferencias(numero, destino_id)" });
-  const data = filtrar(dataTodos);
-  const { visiveis, campo: campoBusca, mais } = useBusca(data, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.destinatario_nome, n.status].join(" "));
-  const [ocupado, setOcupado] = useState<string | null>(null);
-  const [carta, setCarta] = useState<Emitida | null>(null);
-  const [inutilizar, setInutilizar] = useState(false);
-  const [emitir, setEmitir] = useState(false);
+  const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
+  const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
+  const { data: marcadores = [] } = useMarcadores();
   const { pode } = usePerfil();
+  const podeFin = !leitura && pode("nfe_recebidas");
+  const [aba, setAba] = useState("todas");
+  const [marcador, setMarcador] = useState("");
+  const { data: excluidas = [] } = useExcluidas("notas_fiscais", podeFin);
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador));
+  const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
+  const [aberta, setAberta] = useState<NotaEmitida | null>(null);
+  const [janela, setJanela] = useState<"inutilizar" | "emitir" | "marcadores" | "gerenciar" | null>(null);
   const invalidate = useInvalidate();
 
   // Com os gatilhos da Focus ativos o status muda sozinho no banco; recarrega enquanto houver nota processando.
@@ -107,204 +147,154 @@ function Emitidas({ leitura = false }: { leitura?: boolean }) {
     return () => clearInterval(t);
   }, [processando]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function acao(n: Emitida, body: Record<string, unknown>, ok: string) {
-    setOcupado(n.id);
-    try {
-      const r = await callFunction("nfe-consultar", { nota_id: n.id, ...body });
-      notify(r.nota?.status === "erro" ? `Rejeitada: ${r.nota.mensagem}` : ok, r.nota?.status === "erro" ? "erro" : "ok");
-      invalidate("notas_fiscais", "pedidos");
-    } catch (e) {
-      notifyError(e);
-    } finally {
-      setOcupado(null);
-    }
-  }
-
-  function cancelar(n: Emitida) {
-    const justificativa = prompt("Motivo do cancelamento (mínimo 15 caracteres). Prazo legal: até 24h após a autorização.");
-    if (!justificativa) return;
-    acao(n, { acao: "cancelar", justificativa }, "NF-e cancelada");
-  }
+  // a nota aberta acompanha a lista (marcadores e situação atualizados)
+  const abertaAtual = aberta ? data.find((n) => n.id === aberta.id) ?? aberta : null;
+  const abas = [
+    ...ABAS_EMITIDAS.map((a) => ({ valor: a.valor, rotulo: a.rotulo, n: data.filter(a.filtro).length,
+      icone: a.valor === "teste" ? <FlaskConical size={14} /> : a.valor === "devolucoes" ? <Undo2 size={14} /> : undefined })),
+    ...(podeFin ? [{ valor: "excluidas", rotulo: "Excluídas", n: excluidas.length }] : []),
+  ].filter((a) => a.n > 0 || ["todas", "pendentes", "autorizadas", "canceladas"].includes(a.valor) || a.valor === aba);
 
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        {campoBusca}
+        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /></>}</div>
         <div className="flex flex-wrap gap-2">
-          {!leitura && pode("nfe_recebidas") && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
-          {pode("nfe_recebidas") && <Button variant="secondary" onClick={() => setInutilizar(true)}><Ban size={16} /> Inutilizar numeração</Button>}
-          {!leitura && pode("emitir_nfe") && <Button onClick={() => setEmitir(true)}><Send size={16} /> Emitir NF-e</Button>}
+          {!leitura && <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>}
+          {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
+          {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
+          {!leitura && pode("emitir_nfe") && <Button onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
         </div>
       </div>
-      {emitir && <EmitirNfeModal onClose={() => setEmitir(false)} />}
+      <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <b>Contingência:</b> a SEFAZ ou a Focus não respondeu e há nota(s) na fila. O ERP reenvia sozinho a cada 15 minutos
-          (e a Focus usa o ambiente de contingência SVC quando a SEFAZ do estado está fora). Você pode tentar agora em <b>Reenviar</b>.
+          (e a Focus usa o ambiente de contingência SVC quando a SEFAZ do estado está fora). Abra a nota para tentar agora.
         </div>
       )}
-      {carta && <CartaCorrecaoModal nota={carta} onClose={() => setCarta(null)} />}
-      {inutilizar && <InutilizarModal onClose={() => setInutilizar(false)} />}
-      <Table
-        empty={!isLoading && data.length === 0}
-        head={<><th className="th">Data</th><th className="th">Pedido</th><th className="th">Cliente</th><th className="th">Nº / Série</th><th className="th">Status</th><th className="th text-right">Valor</th><th className="th" /></>}
-      >
-        {visiveis.map((n) => {
-          const importada = n.origem === "importada";
-          // nota de transferência só quando a transferência veio de fato (vínculo vazio = nota de pedido)
-          const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
-          return (
-          <tr key={n.id}>
-            <td className="td">{dataBR(n.created_at)}</td>
-            <td className="td">{transf ? `Transf. #${transf.numero}` : n.pedido?.numero != null ? `#${n.pedido.numero}` : importada ? <span className="text-xs text-slate-500">Importada</span> : "—"}<EtiquetaUnidade id={(n as any).unidade_id} /></td>
-            <td className="td">{transf ? <NomeUnidade id={transf.destino_id} /> : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? "—"}</td>
-            <td className="td">{n.numero ? `${n.numero} / ${n.serie}` : "—"}</td>
-            <td className="td"><Badge value={n.status} />{n.ambiente === "homologacao" && <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ">teste · sem valor fiscal</span>}{n.mensagem && <div className="mt-1 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}</td>
-            <td className="td text-right">{brl(n.valor_total)}</td>
-            <td className="td">
-              <div className="flex flex-wrap justify-end gap-1">
-                {n.status === "processando" && (
-                  <Button variant="secondary" disabled={ocupado === n.id} onClick={() => acao(n, {}, "Status atualizado")}>
-                    <RefreshCw size={15} /> Atualizar
-                  </Button>
-                )}
-                {n.danfe_url && <a href={n.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm text-brand hover:bg-brand-light"><ExternalLink size={15} /> DANFE</a>}
-                {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
-                {importada && <Button variant="ghost" onClick={() => baixarXmlImportado(n)}><Download size={15} /> XML</Button>}
-                {!leitura && n.status === "contingencia" && (
-                  <Button variant="secondary" disabled={ocupado === n.id} onClick={() => acao(n, { acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>
-                )}
-                {!leitura && !importada && n.status === "autorizada" && <Button variant="secondary" onClick={() => setCarta(n)}><FilePen size={15} /> Carta de correção</Button>}
-                {!leitura && !importada && n.status === "autorizada" && <Button variant="ghost" className="!text-red-600" disabled={ocupado === n.id} onClick={() => cancelar(n)}>Cancelar</Button>}
-              </div>
-            </td>
-          </tr>
-          );
-        })}
-      </Table>
-      {mais}
+      {aba === "excluidas" ? <Excluidas tabela="notas_fiscais" /> : (
+        <>
+          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
+          <Table
+            empty={!isLoading && daAba.length === 0}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th">UF</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Marcadores</th><th className="th" /></>}
+          >
+            {visiveis.map((n) => {
+              const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
+              const nome = transf ? `Transferência #${transf.numero}` : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? n.payload?.nome_destinatario ?? "—";
+              const fantasia = n.pedido?.cliente?.nome_fantasia;
+              return (
+                <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
+                  {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${n.numero ?? ""}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
+                  <td className="td font-semibold">{n.numero ?? "—"}<div className="text-xs font-normal text-slate-500">{n.pedido?.numero != null ? `pedido #${n.pedido.numero}` : n.origem === "importada" ? "importada" : ""}</div></td>
+                  <td className="td">{dataBR(n.created_at)}</td>
+                  <td className="td">{nome}{fantasia && fantasia !== nome && <div className="text-xs text-slate-500">{fantasia}</div>}{!fantasia && n.destinatario_doc && <div className="text-xs text-slate-500">{docFormat(n.destinatario_doc)}</div>}<EtiquetaUnidade id={n.unidade_id ?? undefined} /></td>
+                  <td className="td">{n.payload?.uf_destinatario ?? "—"}</td>
+                  <td className="td text-right">{brl(n.valor_total)}</td>
+                  <td className="td">
+                    <IconeSituacao s={situacaoEmitida(n)} />
+                    {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
+                    {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
+                    {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
+                  </td>
+                  <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
+                  <CelulaAbrir />
+                </tr>
+              );
+            })}
+          </Table>
+          {mais}
+        </>
+      )}
+      {janela === "emitir" && <EmitirNfeModal onClose={() => setJanela(null)} />}
+      {janela === "inutilizar" && <InutilizarModal onClose={() => setJanela(null)} />}
+      {janela === "gerenciar" && <GerenciarMarcadores onClose={() => setJanela(null)} />}
+      {janela === "marcadores" && <AplicarMarcadores tabela="notas_fiscais" notas={data.filter((n) => sel.has(n.id))} onClose={() => setJanela(null)} />}
+      {abertaAtual && <NotaDetalhe nota={abertaAtual} leitura={leitura} onClose={() => setAberta(null)} />}
     </>
   );
 }
 
 function Recebidas({ leitura = false }: { leitura?: boolean }) {
   const { filtrar } = useUnidade();
-  const { data: dataTodos = [], isLoading } = useRows<Recebida>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
-  const data = filtrar(dataTodos);
-  const { visiveis, campo: campoBusca, mais } = useBusca(data, (n) => [n.chave.slice(25, 34).replace(/^0+/, ""), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento].join(" "));
-  const [ocupado, setOcupado] = useState<string | null>(null);
-  const [entrada, setEntrada] = useState<Recebida | null>(null);
+  const { data: dataTodos = [], isLoading } = useRows<Recebida & { excluida_em?: string | null }>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
+  const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
+  const { data: marcadores = [] } = useMarcadores();
+  const [aba, setAba] = useState("todas");
+  const [marcador, setMarcador] = useState("");
+  const { data: excluidas = [] } = useExcluidas("nfe_recebidas", !leitura);
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador));
+  const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
+  const [aberta, setAberta] = useState<Recebida | null>(null);
+  const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
+  const [buscando, setBuscando] = useState(false);
   const invalidate = useInvalidate();
 
-  async function executar(id: string, body: Record<string, unknown>, ok: (r: any) => string) {
-    setOcupado(id);
+  async function sincronizar() {
+    setBuscando(true);
     try {
-      const r = await callFunction("nfe-recebidas-sync", body);
-      notify(ok(r));
+      const r = await callFunction("nfe-recebidas-sync", { acao: "sincronizar" });
+      notify(`${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`);
       invalidate("nfe_recebidas", "fornecedores", "contas_pagar");
-      return r;
     } catch (e) {
       notifyError(e);
     } finally {
-      setOcupado(null);
+      setBuscando(false);
     }
   }
 
-  async function baixarXml(n: Recebida) {
-    const r = await executar(n.id, { acao: "xml", chave: n.chave }, () => "XML baixado");
-    if (!r?.xml) return;
-    const url = URL.createObjectURL(new Blob([r.xml], { type: "application/xml" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `${n.chave}.xml` });
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function manifestar(n: Recebida, tipo: string) {
-    let justificativa: string | undefined;
-    if (tipo === "nao_realizada") {
-      justificativa = prompt("Justificativa (mínimo 15 caracteres):") ?? undefined;
-      if (!justificativa) return;
-    }
-    if (tipo !== "ciencia" && !confirm("Esta manifestação é definitiva junto à SEFAZ. Confirmar?")) return;
-    executar(n.id, { acao: "manifestar", chave: n.chave, tipo, justificativa }, () => "Manifestação registrada");
-  }
+  const abertaAtual = aberta ? data.find((n) => n.id === aberta.id) ?? aberta : null;
+  const abas = [
+    ...ABAS_RECEBIDAS.map((a) => ({ valor: a.valor, rotulo: a.rotulo, n: data.filter(a.filtro).length, icone: a.valor === "devolucoes" ? <Undo2 size={14} /> : undefined })),
+    ...(!leitura ? [{ valor: "excluidas", rotulo: "Excluídas", n: excluidas.length }] : []),
+  ].filter((a) => a.n > 0 || ["todas", "pendentes", "lancadas"].includes(a.valor) || a.valor === aba);
+  const tabela: TabelaNota = "nfe_recebidas";
 
   return (
     <>
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
-        <Button onClick={() => executar("sync", { acao: "sincronizar" }, (r) => `${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`)} disabled={ocupado === "sync"}>
-          <RefreshCw size={16} className={ocupado === "sync" ? "animate-spin" : ""} /> Buscar notas na SEFAZ
-        </Button>
+        <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
         <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
+        <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
         <p className="text-sm text-slate-500">
           Notas emitidas contra os CNPJs da MF (ou o XML que o fornecedor mandou). O ERP dá ciência, lê o XML, lança o contas a pagar e dá entrada no estoque
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3">{campoBusca}</div>
-      <Table
-        empty={!isLoading && data.length === 0}
-        head={<><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th">Situação</th><th className="th">Processamento</th><th className="th">Manifestação</th><th className="th text-right">Valor</th><th className="th" /></>}
-      >
-        {visiveis.map((n) => (
-          <tr key={n.id}>
-            <td className="td">{dataBR(n.data_emissao)}<div className="text-xs text-slate-500">NF {n.chave.slice(25, 34).replace(/^0+/, "")}</div></td>
-            <td className="td">{n.emitente_nome}<EtiquetaUnidade id={(n as any).unidade_id} /><div className="text-xs text-slate-500">{docFormat(n.emitente_cnpj)}</div></td>
-            <td className="td"><Badge value={n.situacao} /></td>
-            <td className="td">
-              <Badge value={n.processamento} />
-              {n.processamento_msg && n.processamento !== "concluido" && (
-                <div className="mt-1 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>
-              )}
-            </td>
-            <td className="td">
-              <select className="input w-auto py-1 text-xs" value={n.manifestacao ?? ""} disabled={leitura || ocupado === n.id || n.situacao === "cancelada"}
-                onChange={(e) => e.target.value && manifestar(n, e.target.value)}>
-                <option value="">Sem manifestação</option>
-                <option value="ciencia">Ciência da operação</option>
-                <option value="confirmacao">Confirmação da operação</option>
-                <option value="desconhecimento">Desconhecimento</option>
-                <option value="nao_realizada">Operação não realizada</option>
-              </select>
-            </td>
-            <td className="td text-right">{brl(n.valor_total)}</td>
-            <td className="td">
-              {!leitura && <div className="flex flex-wrap justify-end gap-1">
-                <Button variant="ghost" disabled={ocupado === n.id} onClick={() => baixarXml(n)}><Download size={15} /> XML</Button>
-                {["pendente", "aguardando_xml"].includes(n.processamento) && (
-                  <Button variant="ghost" title="Tentar processar agora" disabled={ocupado === n.id}
-                    onClick={() => executar(n.id, { acao: "processar", nfe_id: n.id }, (r) => `Situação: ${r.processamento.replace(/_/g, " ")}`)}>
-                    <RefreshCw size={15} />
-                  </Button>
-                )}
-                {n.estoque_lancado ? (
-                  <span className="px-2 py-2 text-xs text-green-700">Estoque lançado</span>
-                ) : n.situacao !== "cancelada" && (
-                  <Button variant="secondary" disabled={ocupado === n.id} onClick={() => setEntrada(n)}>
-                    <PackagePlus size={15} /> Entrada no estoque
-                  </Button>
-                )}
-                {n.conta_pagar_id ? (
-                  <span className="px-2 py-2 text-xs text-green-700">Lançada no financeiro</span>
-                ) : n.situacao !== "cancelada" && (
-                  <Button variant="secondary" disabled={ocupado === n.id}
-                    onClick={() => executar(n.id, { acao: "lancar_conta", nfe_id: n.id }, (r) => `${r.contas} parcela(s) lançada(s) em contas a pagar`)}>
-                    Lançar a pagar
-                  </Button>
-                )}
-              </div>}
-            </td>
-          </tr>
-        ))}
-      </Table>
-      {mais}
-
-      {entrada && <EntradaEstoqueModal nota={entrada} onClose={() => setEntrada(null)} />}
+      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /></>}</div>
+      <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
+      {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
+        <>
+          <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
+          <Table
+            empty={!isLoading && daAba.length === 0}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Marcadores</th><th className="th" /></>}
+          >
+            {visiveis.map((n) => (
+              <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
+                {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${numeroDaChave(n.chave)}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
+                <td className="td font-semibold">{numeroDaChave(n.chave)}</td>
+                <td className="td">{dataBR(n.data_emissao)}</td>
+                <td className="td">{n.emitente_nome}<EtiquetaUnidade id={n.unidade_id ?? undefined} /><div className="text-xs text-slate-500">{docFormat(n.emitente_cnpj)}</div></td>
+                <td className="td text-right">{brl(n.valor_total)}</td>
+                <td className="td">
+                  <IconeSituacao s={situacaoRecebida(n)} />
+                  {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
+                  {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
+                </td>
+                <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
+                <CelulaAbrir />
+              </tr>
+            ))}
+          </Table>
+          {mais}
+        </>
+      )}
+      {janela === "gerenciar" && <GerenciarMarcadores onClose={() => setJanela(null)} />}
+      {janela === "marcadores" && <AplicarMarcadores tabela={tabela} notas={data.filter((n) => sel.has(n.id))} onClose={() => setJanela(null)} />}
+      {abertaAtual && <RecebidaDetalhe nota={abertaAtual} leitura={leitura} onClose={() => setAberta(null)} />}
     </>
   );
-}
-
-function NomeUnidade({ id }: { id: string }) {
-  const { nome } = useUnidade();
-  return <>{nome(id)}</>;
 }

@@ -47,6 +47,11 @@ export async function importarXmlEmitida(db: SupabaseClient, xml: string): Promi
       destinatario_doc: doc || null,
       cliente_id: clientes?.[0]?.id ?? null,
       mensagem: "Importada do sistema anterior",
+      finalidade: nota.finalidade,
+      tipo_operacao: nota.tipo_operacao,
+      chave_referenciada: nota.chave_referenciada,
+      // importar de novo uma nota excluída traz ela de volta
+      excluida_em: null, excluida_por: null, excluida_motivo: null,
       payload: { importada: true, natureza_operacao: nota.natureza, uf_destinatario: nota.destinatario_uf, items: nota.items },
     }, { onConflict: "referencia" }).select("id").single();
     if (error || !salva) return { situacao: "erro", numero: nota.numero, mensagem: error?.message ?? "não gravou" };

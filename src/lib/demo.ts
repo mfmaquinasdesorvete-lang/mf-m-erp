@@ -128,11 +128,25 @@ function seed(): Db {
       { id: "cp5", descricao: "DAS Simples Nacional", categoria: "impostos", valor: 3920, vencimento: dias(-12), status: "pago", data_pagamento: dias(-13), valor_pago: 3920 },
     ],
     notas_fiscais: [
-      { id: "nf1", pedido_id: "pd1", referencia: "pedido-101-1", status: "autorizada", numero: "1287", serie: "1", chave: "35261012345678000190550010000012871000012870", valor_total: 23728, mensagem: "Autorizado o uso da NF-e", created_at: quando(-33) },
+      { id: "nf1", pedido_id: "pd1", referencia: "pedido-101-1", status: "autorizada", numero: "1287", serie: "1", chave: "35261012345678000190550010000012871000012870", valor_total: 23728, mensagem: "Autorizado o uso da NF-e", created_at: quando(-33), marcadores: ["mk1", "mk2"],
+        payload: { natureza_operacao: "Venda de mercadoria", nome_destinatario: "Sorveteria Gelato Nobre Ltda", cnpj_destinatario: "12345678000190", uf_destinatario: "SP", municipio_destinatario: "Campinas",
+        items: [{ numero_item: 1, codigo_produto: "MF-300", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", cfop: "5101", codigo_ncm: "84186990", unidade_comercial: "UN", quantidade_comercial: 1, valor_unitario_comercial: 23078, valor_bruto: 23078, icms_situacao_tributaria: "00", icms_base_calculo: 23078, icms_aliquota: 18, icms_valor: 4154.04, ipi_valor: 0, pis_valor: 380.79, cofins_valor: 1753.93 },
+          { numero_item: 2, codigo_produto: "SUP-20", descricao: "Suporte para casquinhas inox (20 un.)", cfop: "5102", codigo_ncm: "73239300", unidade_comercial: "UN", quantidade_comercial: 2, valor_unitario_comercial: 600, valor_bruto: 1200, icms_situacao_tributaria: "00", icms_base_calculo: 1200, icms_aliquota: 18, icms_valor: 216 }] }, },
+      { id: "nf0", pedido_id: null, referencia: "pedido-99-1", status: "erro", numero: null, serie: null, chave: null, valor_total: 3590, ambiente: "producao", created_at: quando(-2), marcadores: ["mk8"],
+        mensagem: "Rejeição 233: IE do destinatário não cadastrada", destinatario_nome: "Açaí & Cia Franca ME",
+        payload: { natureza_operacao: "Venda de mercadoria", nome_destinatario: "Açaí & Cia Franca ME", cnpj_destinatario: "44555666000177", indicador_inscricao_estadual_destinatario: 1, inscricao_estadual_destinatario: "123", uf_destinatario: "SP", municipio_destinatario: "Franca", cep_destinatario: "14400000", logradouro_destinatario: "Rua X", numero_destinatario: "10", bairro_destinatario: "Centro",
+          items: [{ numero_item: 1, codigo_produto: "MF-150", descricao: "Máquina MF-150", cfop: "6101", codigo_ncm: "84186990", quantidade_comercial: 1, valor_unitario_comercial: 3590, valor_bruto: 3590 }] } },
+      { id: "nfh", pedido_id: null, referencia: "pedido-1-teste", status: "autorizada", numero: "431", serie: "1", chave: "42261011222333000181550010000004311000004310", valor_total: 30, ambiente: "homologacao", created_at: quando(-1), destinatario_nome: "Elem Cilene", mensagem: "Autorizado o uso da NF-e" },
       { id: "nf2", pedido_id: "pd2", referencia: "pedido-102-1", status: "autorizada", numero: "1301", serie: "1", chave: "35261012345678000190550010000013011000013010", valor_total: 29000, mensagem: "Autorizado o uso da NF-e", created_at: quando(-5) },
     ],
     nfe_cartas_correcao: [],
     nfe_inutilizacoes: [],
+    marcadores: [
+      { id: "mk1", nome: "1ª venda", cor: "indigo", icone: "star", ativo: true, ordem: 1 }, { id: "mk2", nome: "Pago", cor: "emerald", icone: "circle-check", ativo: true, ordem: 2 },
+      { id: "mk3", nome: "Aguardando pagamento", cor: "amber", icone: "clock", ativo: true, ordem: 3 }, { id: "mk4", nome: "Carta de correção", cor: "orange", icone: "file-pen", ativo: true, ordem: 4 },
+      { id: "mk5", nome: "Enviado ao cliente", cor: "sky", icone: "send", ativo: true, ordem: 5 }, { id: "mk6", nome: "Garantia", cor: "slate", icone: "shield", ativo: true, ordem: 6 },
+      { id: "mk7", nome: "Devolução", cor: "purple", icone: "undo-2", ativo: true, ordem: 7 }, { id: "mk8", nome: "Conferir", cor: "red", icone: "triangle-alert", ativo: true, ordem: 8 },
+    ],
     regras_tributacao: [
       { id: "rt1", nome: "Venda para consumidor final de outro estado", ativo: true, prioridade: 50, operacao: "venda", destino: "interestadual", tipo_cliente: "nao_contribuinte",
         difal: true, observacao_nfe: "DIFAL recolhido conforme EC 87/2015 e LC 190/2022.", created_at: quando(-20) },
@@ -431,10 +445,14 @@ function comercialDemo(db: Db) {
     const p = db.pedidos.find((x) => x.id === n.pedido_id);
     const c = db.clientes.find((x) => x.id === p?.cliente_id);
     const inter = (c?.uf ?? "SC") !== "SC";
-    n.payload = { items: db.pedido_itens.filter((i) => i.pedido_id === n.pedido_id).map((i) => {
+    n.payload = { natureza_operacao: "Venda de mercadoria", nome_destinatario: c?.nome, cnpj_destinatario: c?.cpf_cnpj, uf_destinatario: c?.uf ?? "SC", municipio_destinatario: c?.municipio,
+      items: db.pedido_itens.filter((i) => i.pedido_id === n.pedido_id).map((i, k) => {
       const v = i.quantidade * i.valor_unitario, aliq = inter ? 12 : 17, icms = r2(v * aliq / 100);
-      const maquina = db.produtos.find((x) => x.id === i.produto_id)?.tipo === "maquina";
-      return { cfop: `${inter ? 6 : 5}${maquina ? "101" : "102"}`, valor_bruto: v, icms_base_calculo: v, icms_valor: icms,
+      const prod = db.produtos.find((x) => x.id === i.produto_id);
+      const maquina = prod?.tipo === "maquina";
+      return { numero_item: k + 1, codigo_produto: prod?.sku ?? "", descricao: i.descricao, codigo_ncm: prod?.ncm ?? "84186990", unidade_comercial: prod?.unidade ?? "UN",
+        quantidade_comercial: i.quantidade, valor_unitario_comercial: i.valor_unitario,
+        cfop: `${inter ? 6 : 5}${maquina ? "101" : "102"}`, valor_bruto: v, icms_situacao_tributaria: "00", icms_base_calculo: v, icms_aliquota: aliq, icms_valor: icms,
         ipi_valor: maquina ? r2(v * 0.05) : 0, pis_valor: r2((v - icms) * 0.0165), cofins_valor: r2((v - icms) * 0.076) };
     }) };
   }
@@ -1259,6 +1277,45 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     Object.assign(p, { status: "cancelado", estoque_baixado: false });
     return { data: null, error: null };
   },
+  marcar_notas: ({ p_tabela, p_ids, p_adicionar, p_remover }) => {
+    const linhas = (db[p_tabela] ?? []).filter((n: Row) => p_ids.includes(n.id) && !n.excluida_em);
+    for (const n of linhas) {
+      const antes = { ...n };
+      n.marcadores = [...new Set([...(n.marcadores ?? []), ...(p_adicionar ?? [])])].filter((x) => !(p_remover ?? []).includes(x));
+      registrarDemo(p_tabela, "update", antes, n, null, "usuario");
+    }
+    return { data: linhas.length, error: null };
+  },
+  anotar_nota: ({ p_tabela, p_id, p_texto }) => {
+    const n = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id);
+    if (n) { const antes = { ...n }; n.observacao_interna = String(p_texto ?? "").trim() || null; registrarDemo(p_tabela, "update", antes, n, null, "usuario"); }
+    return { data: null, error: null };
+  },
+  excluir_nota: ({ p_tabela, p_id, p_motivo }) => {
+    const n = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id);
+    if (!n) return erro("nota não encontrada");
+    if (String(p_motivo ?? "").trim().length < 5) return erro("informe o motivo da exclusão (mínimo 5 letras)");
+    if (p_tabela === "notas_fiscais" && !(n.status === "erro" || n.ambiente === "homologacao" || n.origem === "importada")) return erro("só dá para excluir nota rejeitada, de teste ou importada. Nota autorizada se cancela (até 24 h) ou se corrige com NF de devolução");
+    if (p_tabela === "nfe_recebidas" && n.estoque_lancado) return erro("a entrada desta nota já foi lançada no estoque: estorne a entrada antes de excluir");
+    if (p_tabela === "nfe_recebidas" && db.contas_pagar.some((c) => c.nfe_recebida_id === n.id && c.status !== "cancelado")) return erro("a nota tem contas a pagar lançadas: cancele as contas (com motivo) antes de excluir");
+    const antes = { ...n };
+    Object.assign(n, { excluida_em: quando(0), excluida_por: sessao?.user.id, excluida_motivo: String(p_motivo).trim() });
+    registrarDemo(p_tabela, "update", antes, n, n.excluida_motivo, "usuario");
+    return { data: null, error: null };
+  },
+  restaurar_nota: ({ p_tabela, p_id }) => {
+    const n = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id);
+    if (n) Object.assign(n, { excluida_em: null, excluida_por: null, excluida_motivo: null });
+    return { data: null, error: null };
+  },
+  notas_excluidas: ({ p_tabela }) => ({
+    data: (db[p_tabela] ?? []).filter((n: Row) => n.excluida_em).map((n: Row) => ({
+      id: n.id, numero: n.numero ?? (n.chave ? n.chave.slice(25, 34).replace(/^0+/, "") : null), chave: n.chave, nome: n.destinatario_nome ?? n.emitente_nome ?? null,
+      valor: n.valor_total, status: n.status ?? n.situacao, emissao: n.created_at ?? n.data_emissao, excluida_em: n.excluida_em, excluida_motivo: n.excluida_motivo,
+      excluida_por: db.usuarios_erp.find((u) => u.user_id === n.excluida_por)?.nome ?? null,
+    })),
+    error: null,
+  }),
   usuarios_vendedores: () => ({
     data: db.usuarios_erp.filter((u) => u.ativo !== false && ["admin", "vendas", "financeiro"].includes(u.papel))
       .map((u) => ({ user_id: u.user_id, nome: u.nome, papel: u.papel, vendedor_id: db.vendedores.find((v) => v.user_id === u.user_id)?.id ?? null })),
@@ -1455,8 +1512,50 @@ function processarRecebida(n: Row) {
   rpcs.lancar_estoque_nfe({ p_nfe: n.id, p_itens: itens.map((i: Row) => ({ ...i, atualizar_custo: true })) });
 }
 
+/** NF de devolução na prévia: usa os itens da nota (payload) ou da nota de fornecedor. */
+function devolucaoDemo(b: any) {
+  const o = b.devolucao;
+  const emitida: Row | null = o.tipo === "emitida" ? db.notas_fiscais.find((n) => n.id === o.id) ?? null : null;
+  const recebida: Row = o.tipo === "recebida" ? db.nfe_recebidas.find((n) => n.id === o.id) ?? {} : {};
+  const itensOrig = emitida ? (emitida.payload?.items ?? []).map((i: Row) => ({ numero: i.numero_item, codigo: i.codigo_produto, descricao: i.descricao, unidade: i.unidade_comercial ?? "UN", quantidade: i.quantidade_comercial, valor_unitario: i.valor_unitario_comercial, cfop: i.cfop }))
+    : (recebida?.itens ?? []).map((i: Row) => ({ numero: i.numero, codigo: i.codigo, descricao: i.descricao, unidade: i.unidade, quantidade: i.quantidade, valor_unitario: i.valor_unitario, cfop: i.cfop }));
+  if (!itensOrig.length) throw new Error("a nota não tem os itens enviados à SEFAZ");
+  const tipo = emitida ? "venda" : "compra";
+  const inter = emitida ? emitida.payload?.uf_destinatario !== "SC" : true;
+  const ja = new Map<number, number>();
+  for (const d of db.notas_fiscais.filter((n) => n.finalidade === "devolucao" && (n.nota_referenciada_id === o.id || n.nfe_recebida_id === o.id) && n.status !== "cancelada")) for (const i of d.devolucao_itens ?? []) ja.set(i.numero, (ja.get(i.numero) ?? 0) + i.quantidade);
+  const cfopDev = (c: string) => tipo === "venda" ? ({ "5": "1", "6": "2" } as Row)[c[0]] + (["101", "107"].includes(c.slice(1)) ? "201" : "202") : (inter ? "6" : "5") + "202";
+  const prod = (codigo: string) => db.produtos.find((p) => p.sku === codigo);
+  if (b.previa) return {
+    ok: true, tipo, original: { numero: emitida?.numero ?? recebida.chave.slice(25, 34).replace(/^0+/, ""), serie: "1", chave: emitida?.chave ?? recebida.chave, data: emitida?.created_at ?? recebida.data_emissao },
+    destinatario: emitida ? { nome: emitida.payload?.nome_destinatario, doc: emitida.payload.cnpj_destinatario ?? emitida.payload.cpf_destinatario, uf: emitida.payload.uf_destinatario, municipio: emitida.payload.municipio_destinatario ?? "" }
+      : { nome: recebida.emitente_nome, doc: recebida.emitente_cnpj, uf: recebida.chave.slice(0, 2) === "35" ? "SP" : "SC", municipio: "" },
+    faltas: [], interestadual: inter,
+    avisos: ["Emissão em homologação (teste): a devolução sai sem valor fiscal e não mexe no estoque.", ...(tipo === "venda" && emitida?.payload?.cnpj_destinatario ? ["O cliente é contribuinte do ICMS: normalmente é ele quem emite a NF de devolução (ela chega em NF-e recebidas). Emita esta só se ele não emitir a dele."] : [])],
+    cfops: tipo === "compra" ? [["202", "compra para comercialização"], ["201", "compra para industrialização"], ["556", "compra de material de uso ou consumo"]].map(([c, d]) => ({ cfop: (inter ? "6" : "5") + c, descricao: d })) : [],
+    itens: itensOrig.map((i: Row) => ({ ...i, devolvida: ja.get(i.numero) ?? 0, disponivel: i.quantidade - (ja.get(i.numero) ?? 0), cfop_original: i.cfop, cfop: cfopDev(i.cfop),
+      produto_id: prod(i.codigo)?.id ?? null, produto_nome: prod(i.codigo)?.descricao ?? null, kit: false })),
+  };
+  if (String(b.motivo ?? "").trim().length < 15) throw new Error("descreva o motivo da devolução (mínimo 15 caracteres): ele vai na nota");
+  const sel = (b.itens ?? []).filter((x: Row) => x.quantidade > 0);
+  const valor = r2(sel.reduce((s: number, x: Row) => s + x.quantidade * (itensOrig.find((i: Row) => i.numero === x.numero)?.valor_unitario ?? 0), 0));
+  const nota: Row = { id: uid(), referencia: `devolucao-${tipo}-${uid().slice(0, 4)}`, status: "processando", ambiente: "homologacao", finalidade: "devolucao", tipo_operacao: tipo === "venda" ? "entrada" : "saida",
+    nota_referenciada_id: emitida?.id ?? null, nfe_recebida_id: recebida?.id ?? null, chave_referenciada: emitida?.chave ?? recebida?.chave, valor_total: valor, created_at: quando(0),
+    destinatario_nome: emitida?.payload?.nome_destinatario ?? recebida?.emitente_nome, marcadores: ["mk7"], unidade_id: emitida?.unidade_id ?? db.unidades[0].id,
+    devolucao_itens: sel.map((x: Row) => ({ numero: x.numero, quantidade: x.quantidade })),
+    payload: { natureza_operacao: tipo === "venda" ? "Devolução de venda" : "Devolução de compra", nome_destinatario: emitida?.payload?.nome_destinatario ?? recebida?.emitente_nome,
+      informacoes_adicionais_contribuinte: `Devolução referente à NF-e ${emitida?.numero ?? ""}. Motivo: ${b.motivo}`,
+      items: sel.map((x: Row, k: number) => { const i = itensOrig.find((y: Row) => y.numero === x.numero); return { numero_item: k + 1, codigo_produto: i.codigo, descricao: i.descricao, cfop: x.cfop, quantidade_comercial: x.quantidade, valor_bruto: r2(x.quantidade * i.valor_unitario) }; }) } };
+  db.notas_fiscais.push(nota);
+  const orig: Row = emitida ?? recebida;
+  orig.marcadores = [...new Set([...(orig.marcadores ?? []), "mk7"])];
+  setTimeout(() => Object.assign(nota, { status: "autorizada", numero: String(++numeroNfe), serie: "1", mensagem: "Autorizado o uso da NF-e" }), 2500);
+  return { ok: true, nota };
+}
+
 const funcoes: Record<string, (b: any) => any> = {
   "nfe-emitir": (b) => {
+    if (b.devolucao) return devolucaoDemo(b);
     if (b.transferencia_id) {
       const t = db.transferencias.find((x) => x.id === b.transferencia_id)!;
       const valor = db.transferencia_itens.filter((i) => i.transferencia_id === t.id).reduce((s, i) => s + i.quantidade * i.custo_unitario, 0);
@@ -1501,6 +1600,15 @@ const funcoes: Record<string, (b: any) => any> = {
       return { ok: true, inutilizacao: i };
     }
     const n = db.notas_fiscais.find((x) => x.id === b.nota_id)!;
+    if (b.acao === "reenviar_corrigida") {
+      if (n.status !== "erro") throw new Error("só nota rejeitada pode ser corrigida e reenviada");
+      const a = b.alteracoes ?? {};
+      const p = { ...n.payload, ...(a.natureza_operacao ? { natureza_operacao: a.natureza_operacao } : {}), ...(a.destinatario ?? {}) };
+      p.items = (n.payload?.items ?? []).map((i: Row) => ({ ...i, ...((a.itens ?? []).find((x: Row) => x.numero_item === i.numero_item) ?? {}) }));
+      Object.assign(n, { payload: p, status: "processando", mensagem: null, historico_envios: [...(n.historico_envios ?? []), { referencia: n.referencia, mensagem: n.mensagem, em: quando(0) }], referencia: `${n.referencia}-c2` });
+      setTimeout(() => Object.assign(n, { status: "autorizada", numero: String(++numeroNfe), serie: "1", chave: `352610123456780001905500100000${numeroNfe}1000${numeroNfe}0`.slice(0, 44), mensagem: "Autorizado o uso da NF-e" }), 2500);
+      return { ok: true, nota: n };
+    }
     if (b.acao === "carta_correcao") {
       if (String(b.correcao ?? "").trim().length < 15) throw new Error("a correção deve ter entre 15 e 1.000 caracteres");
       const seq = (db.nfe_cartas_correcao ?? []).filter((c) => c.nota_id === n.id).length + 1;

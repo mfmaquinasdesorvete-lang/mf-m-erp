@@ -6,12 +6,15 @@
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
 // POST { acao: "ambiente" }                                   -> "producao" ou "homologacao" (para avisar na tela)
 // POST { acao: "importar_xml", xmls: string[] }                -> NF-e emitidas em outro sistema (ex.: Tiny) e seus cancelamentos
+// POST { nota_id, acao: "reenviar_corrigida", alteracoes }      -> nota rejeitada: corrige natureza, informações, destinatário
+//                                                                 e NCM/CFOP/descrição dos itens e manda de novo (valores não mudam)
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { codigoUnidade, focus, focusProducao, focusUrl } from "../_shared/focusnfe.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
+import { corrigirPayload } from "../_shared/nfe-correcao.ts";
 
 const msgFocus = (b: any, padrao: string) =>
   [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
@@ -46,7 +49,9 @@ Deno.serve(async (req) => {
       const { data: u } = await db.from("unidades").select("*").eq("id", unidade_id).single();
       if (!u || onlyDigits(u.cnpj).length !== 14) throw new HttpError(400, "unidade sem CNPJ");
       // não deixa inutilizar número que já virou nota
-      const { data: usadas } = await db.from("notas_fiscais").select("numero").eq("unidade_id", unidade_id).eq("serie", String(serie)).not("numero", "is", null);
+      // nota rejeitada não usou o número (é justamente o que se inutiliza)
+      const { data: usadas } = await db.from("notas_fiscais").select("numero").eq("unidade_id", unidade_id).eq("serie", String(serie)).not("numero", "is", null)
+        .in("status", ["autorizada", "cancelada", "denegada", "processando", "contingencia"]).neq("ambiente", "homologacao");
       const conflito = (usadas ?? []).map((n) => Number(n.numero)).filter((n) => n >= ini && n <= fim);
       if (conflito.length) throw new HttpError(400, `os números ${conflito.join(", ")} já são notas emitidas`);
 
@@ -94,6 +99,27 @@ Deno.serve(async (req) => {
       }).select().single();
       if (!ok) throw new HttpError(422, data?.mensagem ?? "carta de correção não aceita");
       return json({ ok: true, carta: data });
+    }
+
+    if (acao === "reenviar_corrigida") {
+      if (nota.excluida_em) throw new HttpError(404, "nota excluída");
+      if (nota.status !== "erro") throw new HttpError(400, "só nota rejeitada pode ser corrigida e reenviada");
+      if (nota.origem === "importada" || !nota.payload?.items?.length) {
+        throw new HttpError(400, "esta tentativa não chegou a ser montada (faltava cadastro): corrija o cadastro e emita de novo pelo pedido");
+      }
+      const payload = corrigirPayload(nota.payload, corpo.alteracoes ?? {});
+      const base = nota.referencia.replace(/-c\d+$/, "");
+      let k = Number(nota.tentativas ?? 1) + 1;
+      let referencia = `${base}-c${k}`;
+      while ((await db.from("notas_fiscais").select("id").eq("referencia", referencia).maybeSingle()).data) referencia = `${base}-c${++k}`;
+      const r = await enviarNfe(referencia, payload, codigo);
+      const historico = [...(nota.historico_envios ?? []), { referencia: nota.referencia, mensagem: nota.mensagem, em: nota.updated_at ?? nota.created_at, por: userId }];
+      const { data: gravada } = await db.from("notas_fiscais").update({
+        referencia, payload, status: r.status, mensagem: r.mensagem, resposta: r.resposta, tentativas: k, historico_envios: historico,
+        ambiente: focusProducao() ? "producao" : "homologacao", updated_at: new Date().toISOString(),
+      }).eq("id", nota.id).select().single();
+      const data = await aplicarRetornoDoEnvio(db, gravada, r);
+      return json({ ok: r.status !== "erro" && data?.status !== "erro", nota: data });
     }
 
     if (acao === "reenviar") {
