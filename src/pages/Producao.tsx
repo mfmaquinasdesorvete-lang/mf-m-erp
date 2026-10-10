@@ -11,7 +11,7 @@ import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
-import { pdfPedidoCompra } from "@/lib/pdf";
+import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
@@ -327,6 +327,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
+  const { unidades } = useUnidade();
   const invalidate = useInvalidate();
   const editavel = pode("editar_producao") && ["cotacao", "enviado"].includes(p.status ?? "cotacao");
   const fornecedor = fornecedores.find((f) => f.id === p.fornecedor_id);
@@ -387,7 +388,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
         numero: p.numero, status: p.status ?? "cotacao", fornecedor, frete: Number(p.frete || 0), previsao_entrega: p.previsao_entrega,
         condicao_pagamento: p.condicao_pagamento, observacoes: p.observacoes,
         itens: p.itens.map((i) => ({ ...i, unidade: produtos.find((x) => x.id === i.produto_id)?.unidade })),
-      }, cfg));
+      }, comUnidade(cfg, unidades.find((u) => u.id === (p as any).unidade_id))));
     } catch (e) { notifyError(e); }
   }
 

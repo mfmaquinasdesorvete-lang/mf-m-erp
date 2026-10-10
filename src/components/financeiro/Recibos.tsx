@@ -14,6 +14,7 @@ import { useConfig } from "@/lib/useConfig";
 import { MEIOS } from "@/lib/formasPagamento";
 import { valorPorExtenso } from "@/lib/extenso";
 import { pdfRecibo } from "@/lib/pdf";
+import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
 
 export type Recibo = {
@@ -37,7 +38,7 @@ function emitente(u: Unidade | undefined, cfg: Config | undefined) {
     razao_social: u?.razao_social ?? cfg?.razao_social ?? null,
     cnpj: u?.cnpj ?? cfg?.cnpj ?? null,
     endereco: endereco || null,
-    contato: [u?.whatsapp || cfg?.whatsapp, u?.email || cfg?.email].filter(Boolean).join("  ·  ") || null,
+    contato: [formatarTelefone(u?.whatsapp || cfg?.whatsapp), u?.email || cfg?.email].filter(Boolean).join("  ·  ") || null,
     cidade: u?.municipio ? `${u.municipio}/${u.uf ?? ""}` : cfg?.municipio ? `${cfg.municipio}/${cfg.uf ?? ""}` : null,
   };
 }

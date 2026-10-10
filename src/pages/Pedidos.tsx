@@ -4,7 +4,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, RotateCcw, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
-import { pdfOrcamento } from "@/lib/pdf";
+import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { Badge, CelulaAbrir, Button, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
@@ -346,7 +346,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       numero: p.numero, status: p.status, cliente, itens: p.itens, desconto: Number(p.desconto || 0), frete: Number(p.frete || 0),
       forma_pagamento: p.forma_pagamento ?? "boleto", parcelas: Number(p.parcelas || 1), observacoes: p.observacoes,
       vendedor: vendedores.find((v) => v.id === p.vendedor_id)?.nome ?? p.vendedor, garantias, validade: p.proposta_validade,
-    }, cfg);
+    }, comUnidade(cfg, unidades.find((u) => u.id === p.unidade_id)));
   }
   async function gerarPdf() {
     if (!p.itens.length) return notify("Adicione itens antes de gerar o PDF", "erro");

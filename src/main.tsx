@@ -11,6 +11,10 @@ import { aplicarDestaque, aplicarTema, lerDestaque, lerTema } from "./lib/tema";
 aplicarTema(lerTema());
 aplicarDestaque(lerDestaque());
 
+// Arquivo de uma versão que já saiu do servidor (aba aberta antes da atualização): mostra a faixa
+// "Nova versão do ERP" em vez de recarregar sozinho e perder o que está sendo digitado.
+window.addEventListener("vite:preloadError", () => window.dispatchEvent(new Event("erp-versao-nova")));
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: DEMO ? 0 : 30_000, retry: 1 } } });
 
 if (DEMO) {

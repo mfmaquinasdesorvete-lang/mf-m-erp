@@ -16,7 +16,7 @@ import { situacaoGarantia } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { apagarFotoOS, enviarFotoOS, urlsFotos } from "@/lib/fotos";
-import { pdfOS } from "@/lib/pdf";
+import { comUnidade, pdfOS } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
@@ -128,7 +128,7 @@ export default function Assistencia() {
 type Aba = "atendimento" | "checklist" | "fotos" | "pecas" | "entrega";
 
 function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
-  const { padrao } = useUnidade();
+  const { padrao, unidades } = useUnidade();
   const [o, setO] = useState({ ...inicial, unidade_id: (inicial as any).unidade_id ?? padrao });
   const [aba, setAba] = useState<Aba>("atendimento");
   const [ocupado, setOcupado] = useState(false);
@@ -248,7 +248,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         itens: o.itens, valor_mao_obra: Number(o.valor_mao_obra || 0), em_garantia: !!o.em_garantia, garantia_ate: equip?.garantia_ate,
         data_entrada: o.data_entrada, previsao: o.previsao, tecnico: o.tecnico,
         assinatura: tipo === "entrada" ? o.assinatura_entrada : o.assinatura_entrega, recebido_por: tipo === "laudo" ? o.recebido_por : null,
-      }, cfg);
+      }, comUnidade(cfg, unidades.find((u) => u.id === (o as any).unidade_id)));
       setPdf({ blob, nome: `OS-${o.numero ?? "nova"}-${tipo}.pdf`, titulo: tipo === "entrada" ? "Comprovante de entrada" : "Laudo técnico e entrega" });
     } catch (e) {
       notifyError(e);

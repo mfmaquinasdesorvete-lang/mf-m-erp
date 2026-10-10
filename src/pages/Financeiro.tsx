@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import type { Cliente } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
-import { pdfFinanceiro } from "@/lib/pdf";
+import { comUnidade, pdfFinanceiro } from "@/lib/pdf";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { PdfViewer } from "@/components/PdfViewer";
 import { Anexos } from "@/components/Anexos";
@@ -179,7 +179,7 @@ type LinhaRel = { vencimento: string; descricao: string; terceiro: string; statu
 
 function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string) {
   const { data: cfg } = useConfig();
-  const { nome, atual } = useUnidade();
+  const { nome, atual, unidades } = useUnidade();
   const [pdf, setPdf] = useState<Blob | null>(null);
   const titulo = tipo === "receber" ? "Contas a receber" : "Contas a pagar";
   const terceiro = tipo === "receber" ? "Cliente" : "Fornecedor";
@@ -196,7 +196,7 @@ function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string) {
         titulo, terceiro, filtros: filtros(),
         linhas: lista.map((c) => ({ vencimento: c.vencimento, descricao: c.descricao, terceiro: c.terceiro, situacao: situacaoConta(c.status, c.vencimento),
           pagamento: c.data_pagamento, valor: Number(c.valor), pago: c.valor_pago == null ? null : Number(c.valor_pago) })),
-      }, cfg));
+      }, comUnidade(cfg, unidades.find((u) => u.id === atual))));
     } catch (e) { notifyError(e); }
   }
   function exportar(lista: LinhaRel[], extra: (c: any) => Record<string, unknown> = () => ({})) {

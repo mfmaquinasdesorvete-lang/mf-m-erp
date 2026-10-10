@@ -1,7 +1,9 @@
 // Geração de PDFs (orçamento/pedido e ordem de serviço) no próprio navegador.
 // jsPDF é carregado só quando um PDF é gerado, para não pesar na abertura do sistema.
 import type { Cliente, Config, Item, ItemChecklist } from "./types";
+import type { Unidade } from "./unidade";
 import { brl, dataBR, docFormat } from "./format";
+import { formatarTelefone } from "./mascaras";
 import {
   AVISOS, cepFmt, codigoTransporte, codigoVolume, medidasTxt, pesoDoVolume, pesoTxt, volumeVazio,
   type AvisoId, type EtiquetaDados, type ModeloEtiqueta,
@@ -27,10 +29,56 @@ const hexRgb = (h?: string | null): [number, number, number] | null => {
 const AZUL: [number, number, number] = [214, 153, 72];
 const CINZA: [number, number, number] = [100, 116, 139];
 
+// A fonte padrão do PDF (Helvetica) só tem o alfabeto latino: setas, emojis e símbolos fora dele
+// saem como lixo. Troca pelo equivalente mais próximo e tira o resto.
+const TROCAS: Record<string, string> = {
+  "→": "->", "←": "<-", "⇒": "=>", "≥": ">=", "≤": "<=", "≠": "<>", "✓": "v", "✔": "v", "✗": "x", "✘": "x",
+  "−": "-", "‐": "-", "‑": "-", "′": "'", "″": '"', "⁄": "/", "∅": "Ø", "Ω": "ohm", "µ": "µ", "²": "²", "³": "³",
+};
+// Windows-1252: o que a fonte padrão consegue desenhar além do latino básico
+const EXTRA_1252 = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+export function textoPdf(t: string): string {
+  return t.normalize("NFC").replace(/[\s\S]/gu, (c) => {
+    const n = c.codePointAt(0)!;
+    if (n === 10 || n === 9 || (n >= 32 && n <= 126) || (n >= 160 && n <= 255) || EXTRA_1252.includes(c)) return c;
+    return TROCAS[c] ?? (/\p{Zs}/u.test(c) ? " " : "");
+  });
+}
+
 async function novoDoc() {
   const [{ jsPDF }, { default: autoTable }, logo] = await Promise.all([import("jspdf"), import("jspdf-autotable"), logoDataUrl()]);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  return { doc, autoTable, logo };
+  // todo texto passa pela troca de caracteres (textos, quebras de linha e células das tabelas)
+  const texto = doc.text.bind(doc);
+  (doc as any).text = (t: string | string[], ...resto: unknown[]) => (texto as any)(Array.isArray(t) ? t.map(textoPdf) : textoPdf(String(t)), ...resto);
+  const quebra = doc.splitTextToSize.bind(doc);
+  // a tabela manda várias linhas de uma vez (lista): cada linha é tratada separada
+  (doc as any).splitTextToSize = (t: string | string[], ...resto: unknown[]) =>
+    (quebra as any)(Array.isArray(t) ? t.map((x) => textoPdf(String(x ?? ""))) : textoPdf(String(t ?? "")), ...resto);
+  const tabela = ((d: any, o: any) => autoTable(d, {
+    ...o,
+    didParseCell: (c: any) => { c.cell.text = (c.cell.text ?? []).map((x: string) => textoPdf(String(x))); o.didParseCell?.(c); },
+  })) as typeof autoTable;
+  return { doc, autoTable: tabela, logo };
+}
+
+/** Dados da empresa no PDF: os da unidade do documento (CNPJ, endereço e contato de SC ou SP). */
+export function comUnidade(cfg: Config, u?: Unidade | null): Config {
+  if (!u) return cfg;
+  const endereco = [[u.logradouro, u.numero].filter(Boolean).join(", "), u.complemento, u.bairro, u.cep && `CEP ${String(u.cep).replace(/^(\d{5})(\d{3})$/, "$1-$2")}`]
+    .filter(Boolean).join(" - ");
+  return {
+    ...cfg,
+    razao_social: u.razao_social || cfg.razao_social,
+    cnpj: u.cnpj || cfg.cnpj,
+    inscricao_estadual: u.inscricao_estadual || cfg.inscricao_estadual,
+    endereco: endereco || cfg.endereco,
+    municipio: u.municipio || cfg.municipio,
+    uf: u.uf || cfg.uf,
+    telefone: u.telefone || cfg.telefone,
+    whatsapp: u.whatsapp || cfg.whatsapp,
+    email: u.email || cfg.email,
+  };
 }
 
 type Doc = Awaited<ReturnType<typeof novoDoc>>["doc"];
@@ -51,14 +99,35 @@ function cabecalho(doc: Doc, cfg: Config, titulo: string, numero: string, logo?:
   doc.text(cfg.nome_fantasia || cfg.razao_social, 34, 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  const linha1 = [cfg.razao_social, cfg.cnpj && `CNPJ ${cfg.cnpj}`].filter(Boolean).join("  ·  ");
+  const linha1 = [cfg.razao_social, cfg.cnpj && `CNPJ ${docFormat(cfg.cnpj)}`, cfg.inscricao_estadual && `IE ${cfg.inscricao_estadual}`].filter(Boolean).join("  ·  ");
   const linha2 = [cfg.endereco, cfg.municipio && `${cfg.municipio}/${cfg.uf ?? ""}`].filter(Boolean).join(" - ");
-  const linha3 = [cfg.whatsapp && `WhatsApp ${cfg.whatsapp}`, cfg.telefone, cfg.email].filter(Boolean).join("  ·  ");
-  doc.text(linha1, 34, 19);
-  if (linha2) doc.text(linha2, 34, 23);
-  if (linha3) doc.text(linha3, 34, 27);
+  const mesmoNumero = (cfg.whatsapp ?? "").replace(/\D/g, "") === (cfg.telefone ?? "").replace(/\D/g, "");
+  const linha3 = [cfg.whatsapp && `WhatsApp ${formatarTelefone(cfg.whatsapp)}`, cfg.telefone && !mesmoNumero && formatarTelefone(cfg.telefone), cfg.email]
+    .filter(Boolean).join("  ·  ");
+  // até onde o texto da empresa pode ir sem encostar no título (alinhado à direita)
+  const tamTitulo = titulo.length > 20 ? 10.5 : 12;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(tamTitulo);
+  const larguraTitulo = Math.max(doc.getTextWidth(titulo), 40);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  const max = w - 14 - larguraTitulo - 6 - 34;
+  // linha comprida: primeiro diminui a letra (até 6,5); só então corta com reticências
+  const escrever = (t: string, y: number) => {
+    let tam = 8;
+    doc.setFontSize(tam);
+    while (doc.getTextWidth(t) > max && tam > 6) { tam -= 0.25; doc.setFontSize(tam); }
+    let s = t;
+    if (doc.getTextWidth(s) > max) {
+      while (s.length > 4 && doc.getTextWidth(`${s}…`) > max) s = s.slice(0, -1);
+      s = `${s.trimEnd()}…`;
+    }
+    doc.text(s, 34, y);
+    doc.setFontSize(8);
+  };
+  escrever(linha1, 19);
+  if (linha2) escrever(linha2, 23);
+  if (linha3) escrever(linha3, 27);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(tamTitulo);
   doc.text(titulo, w - 14, 14, { align: "right" });
   doc.setFontSize(10);
   doc.text(numero, w - 14, 20, { align: "right" });
@@ -101,19 +170,28 @@ function rodape(doc: Doc) {
   }
 }
 
+const LIMITE_Y = 280; // abaixo disso fica o "Página x de y"
+
 function paragrafo(doc: Doc, titulo: string, texto: string, y: number) {
   const w = doc.internal.pageSize.getWidth();
   if (y > 260) { doc.addPage(); y = 20; }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(15, 23, 42);
-  doc.text(titulo, 14, y);
+  if (titulo) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text(titulo, 14, y);
+    y += 5;
+  }
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85);
-  const linhas = doc.splitTextToSize(texto, w - 28);
-  doc.text(linhas, 14, y + 5);
-  return y + 7 + linhas.length * 4;
+  const linhas: string[] = doc.splitTextToSize(texto, w - 28);
+  for (const l of linhas) {
+    if (y > LIMITE_Y) { doc.addPage(); y = 20; doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(51, 65, 85); }
+    doc.text(l, 14, y);
+    y += 4;
+  }
+  return y + 3;
 }
 
 // ---------------------------------------------------------------------
@@ -134,9 +212,7 @@ export async function pdfOrcamento(p: {
   let y = blocoCliente(doc, p.cliente, 36);
   if (ehOrcamento && cfg.proposta_apresentacao) {
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(51, 65, 85);
-    const linhas = doc.splitTextToSize(cfg.proposta_apresentacao, doc.internal.pageSize.getWidth() - 28);
-    doc.text(linhas, 14, y);
-    y += linhas.length * 4 + 4;
+    y = paragrafo(doc, "", cfg.proposta_apresentacao, y) + 1;
   }
 
   const subtotal = p.itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
@@ -156,6 +232,7 @@ export async function pdfOrcamento(p: {
     margin: { left: 14, right: 14 },
   });
   y = (doc as any).lastAutoTable.finalY + 6;
+  if (y > 255) { doc.addPage(); y = 20; }
 
   const w = doc.internal.pageSize.getWidth();
   const linhaTotal = (rotulo: string, valor: string, forte = false) => {
@@ -215,7 +292,7 @@ export async function pdfOS(o: {
       ...(o.tipo === "laudo" && o.diagnostico ? [["Diagnóstico", o.diagnostico]] : []),
       ...(o.tipo === "laudo" && o.solucao ? [["Serviço executado", o.solucao]] : []),
     ],
-    styles: { fontSize: 9, cellPadding: 2.2, textColor: [30, 41, 59] },
+    styles: { fontSize: 9, cellPadding: 1.7, textColor: [30, 41, 59] },
     columnStyles: { 0: { fontStyle: "bold", cellWidth: 38, textColor: [71, 85, 105] } },
     theme: "plain",
     margin: { left: 14, right: 14 },
@@ -227,7 +304,7 @@ export async function pdfOS(o: {
       startY: y,
       head: [["Checklist de recebimento", "Situação", "Observação"]],
       body: o.checklist.map((c) => [c.item, c.ok ? "OK" : "Atenção", c.obs ?? ""]),
-      styles: { fontSize: 8.5, cellPadding: 2 },
+      styles: { fontSize: 8.5, cellPadding: 1.5 },
       headStyles: { fillColor: NAVY, textColor: 255 },
       columnStyles: { 1: { cellWidth: 22, halign: "center" } },
       margin: { left: 14, right: 14 },
@@ -257,8 +334,8 @@ export async function pdfOS(o: {
     ? "O orçamento do conserto será enviado pelo WhatsApp antes de qualquer serviço. Equipamentos não retirados em até 90 dias após o aviso de conclusão poderão ser cobrados por armazenagem."
     : `Garantia do serviço executado: 90 dias para as peças trocadas e a mão de obra. ${cfg.termo_garantia}`, y);
 
-  if (y > 240) { doc.addPage(); y = 20; }
-  y += 6;
+  if (y > 250) { doc.addPage(); y = 20; }
+  y += 4;
   if (o.assinatura) {
     try { doc.addImage(o.assinatura, "PNG", 14, y, 60, 22); } catch { /* assinatura inválida: segue sem imagem */ }
   }
@@ -307,6 +384,7 @@ export async function pdfPedidoCompra(pc: {
     margin: { left: 14, right: 14 },
   });
   y = (doc as any).lastAutoTable.finalY + 6;
+  if (y > 260) { doc.addPage(); y = 20; }
   if (!cotacao) {
     const total = pc.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0) + Number(pc.frete || 0);
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
@@ -390,7 +468,8 @@ export async function pdfComissoes(r: {
     columnStyles: { 0: { cellWidth: 19 }, 3: { halign: "right", cellWidth: 24 }, 4: { halign: "right", cellWidth: 12 }, 5: { halign: "right", cellWidth: 24 }, 6: { cellWidth: 18 } },
     margin: { left: 14, right: 14 },
   });
-  const y = (doc as any).lastAutoTable.finalY + 7;
+  let y = (doc as any).lastAutoTable.finalY + 7;
+  if (y > LIMITE_Y - 6) { doc.addPage(); y = 20; }
   const w = doc.internal.pageSize.getWidth();
   doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(30, 41, 59);
   doc.text("TOTAL", w - 75, y);

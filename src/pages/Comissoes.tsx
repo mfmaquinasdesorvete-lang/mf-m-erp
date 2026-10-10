@@ -11,7 +11,8 @@ import { brl, dataBR, hoje, somarDias } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { useConfig } from "@/lib/useConfig";
-import { pdfComissoes } from "@/lib/pdf";
+import { comUnidade, pdfComissoes } from "@/lib/pdf";
+import { useUnidade } from "@/lib/unidade";
 import type { Vendedor } from "@/lib/types";
 
 type Comissao = {
@@ -44,6 +45,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
   const [pagar, setPagar] = useState(false);
   const [pdf, setPdf] = useState<Blob | null>(null);
   const { data: cfg } = useConfig();
+  const { atual, unidades } = useUnidade();
   const nome = (id: string) => vendedores.find((v) => v.id === id)?.nome ?? "—";
 
   const filtradas = useMemo(() => lista
@@ -77,7 +79,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
         filtros: [vend ? nome(vend) : "todos os vendedores", status === "todas" ? "todas" : ROTULO[status], mes ? `mês ${mes.split("-").reverse().join("/")}` : "todo o período"].join(" · "),
         linhas: filtradas.map((c) => ({ data: c.created_at, vendedor: nome(c.vendedor_id), pedido: c.pedido?.numero ?? null, cliente: c.pedido?.cliente?.nome ?? "",
           descricao: c.descricao, base: Number(c.base), percentual: Number(c.percentual), valor: Number(c.valor), status: ROTULO[c.status] })),
-      }, cfg));
+      }, comUnidade(cfg, unidades.find((u) => u.id === atual))));
     } catch (e) { notifyError(e); }
   }
 

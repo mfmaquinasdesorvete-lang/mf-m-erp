@@ -15,6 +15,7 @@ import { Button, Field, Modal } from "./ui";
 import { MeusAvisos } from "./Avisos";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
+import { AvisoVersao, ErroTela } from "./ErroTela";
 
 type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes; busca?: string };
 type Grupo = {
@@ -344,9 +345,10 @@ export function Layout() {
               Use <b>Sair</b> para trocar de perfil.</span><span className="sm:hidden"> Nada é salvo.</span>
             </div>
           )}
-          <Outlet />
+          <ErroTela key={location.pathname}><Outlet /></ErroTela>
         </div>
       </main>
+      <AvisoVersao />
 
       {/* Celular: atalhos fixos embaixo, ao alcance do polegar */}
       <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-ink-line bg-ink/95 backdrop-blur md:hidden"
