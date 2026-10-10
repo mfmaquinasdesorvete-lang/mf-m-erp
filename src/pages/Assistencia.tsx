@@ -21,6 +21,7 @@ import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
 
 const STATUS_EDITAVEIS = [
   { value: "aberta", label: "Aberta" },
@@ -112,7 +113,8 @@ export default function Assistencia() {
             <td className="td num">{dataBR(o.data_entrada)}</td>
             <td className="td">{o.cliente?.nome}</td>
             <td className="td">{o.equipamento}{o.numero_serie && <div className="text-xs text-slate-500">Série {o.numero_serie}</div>}</td>
-            <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}</div></td>
+            <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}
+              {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">faturada ✓</span>}</div></td>
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
             <CelulaAbrir texto="Ver / editar" />
@@ -125,7 +127,7 @@ export default function Assistencia() {
   );
 }
 
-type Aba = "atendimento" | "checklist" | "fotos" | "pecas" | "entrega";
+type Aba = "atendimento" | "checklist" | "fotos" | "pecas" | "entrega" | "nota";
 
 function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const { padrao, unidades } = useUnidade();
@@ -134,6 +136,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const [ocupado, setOcupado] = useState(false);
   const [pdf, setPdf] = useState<{ blob: Blob; nome: string; titulo: string } | null>(null);
   const [historico, setHistorico] = useState(false);
+  const { data: notasOS = [] } = useNfsesDaOS(o.id);
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda" });
@@ -264,12 +267,15 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     o.previsao ? `Previsão: ${dataBR(o.previsao)}` : "",
   ].filter(Boolean).join("\n");
 
+  // faturada: a NFS-e autorizada em produção (acompanha a nota enquanto a janela está aberta)
+  const faturada = !!o.faturada_em || notasOS.some((n) => n.status === "autorizada" && n.ambiente === "producao");
   const abas: { value: Aba; label: string }[] = [
     { value: "atendimento", label: "Atendimento" },
     { value: "checklist", label: `Checklist${o.checklist?.some((c) => !c.ok) ? " ⚠" : ""}` },
     { value: "fotos", label: `Fotos (${o.fotos?.length ?? 0})` },
     { value: "pecas", label: "Peças e valores" },
     { value: "entrega", label: "Assinaturas" },
+    ...(o.id ? [{ value: "nota" as const, label: faturada ? "Nota de serviço ✓" : "Nota de serviço" }] : []),
   ];
 
   return (
@@ -419,6 +425,8 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
             </div>
           </div>
         )}
+
+        {aba === "nota" && <NfseOS os={o} telefone={cliente?.whatsapp ?? cliente?.telefone} />}
 
         {aba === "entrega" && (
           <div className="grid gap-5 md:grid-cols-2">

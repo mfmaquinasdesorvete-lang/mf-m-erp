@@ -50,6 +50,12 @@ select cron.schedule('erp-regua-cobranca', '2 11 * * *', $$ select public.gerar_
 -- NF-e de fornecedores, fila de contingência e NF-e automática: a cada 15 minutos
 select cron.schedule('erp-nfe-processar', '*/15 * * * *', $$ select public.chamar_funcao('nfe-processar') $$);
 
+-- NFS-e: consulta as notas de serviço sem resultado (e cancelamentos pedidos) a cada 5 minutos, só se houver alguma
+select cron.schedule('erp-nfse-processar', '*/5 * * * *',
+  $$ select public.chamar_funcao('nfse-processar', '{}'::jsonb, 150000)
+      where exists (select 1 from public.nfse where status in ('pendente', 'processando', 'incerto')
+                       or (status = 'autorizada' and cancelada_em is null and cancelamento_solicitado_em > now() - interval '2 days')) $$);
+
 -- Caixa de e-mail: busca e-mails novos a cada 5 minutos (só se houver caixa ligada)
 select cron.schedule('erp-email-caixa', '*/5 * * * *',
   $$ select public.chamar_funcao('email-caixa', '{"acao":"sincronizar"}'::jsonb, 120000)

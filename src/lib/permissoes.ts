@@ -24,13 +24,15 @@ const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
 export type Acao =
   | "editar_pedidos" | "editar_os" | "editar_produtos" | "movimentar_estoque" | "editar_fornecedores"
   | "editar_clientes" | "editar_financeiro" | "contas_pagar" | "emitir_nfe" | "nfe_recebidas"
-  | "editar_equipamentos" | "editar_producao" | "receber_compras" | "editar_transportadoras" | "cotar_frete";
+  | "editar_equipamentos" | "editar_producao" | "receber_compras" | "editar_transportadoras" | "cotar_frete"
+  | "emitir_nfse" | "cancelar_nfse" | "configurar_nfse";
 
 const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
-  vendas: ["editar_pedidos", "editar_clientes", "emitir_nfe", "editar_equipamentos", "editar_transportadoras", "cotar_frete"],
+  vendas: ["editar_pedidos", "editar_clientes", "emitir_nfe", "emitir_nfse", "editar_equipamentos", "editar_transportadoras", "cotar_frete"],
   financeiro: [
     "editar_produtos", "movimentar_estoque", "editar_fornecedores", "editar_clientes",
     "editar_financeiro", "contas_pagar", "emitir_nfe", "nfe_recebidas", "editar_producao", "receber_compras", "editar_transportadoras",
+    "emitir_nfse", "cancelar_nfse", "configurar_nfse",
   ],
   tecnico: ["editar_os", "editar_clientes", "editar_equipamentos", "editar_producao"],
   contador: [],

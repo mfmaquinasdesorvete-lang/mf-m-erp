@@ -10,6 +10,10 @@ verify_jwt = false
 [functions.nfe-processar]
 verify_jwt = false
 
+# NFS-e: consulta agendada das notas de serviço em andamento (Bearer ERP_CRON_TOKEN).
+[functions.nfse-processar]
+verify_jwt = false
+
 # Avisos: fila (pg_cron, Bearer ERP_CRON_TOKEN), robô do Telegram (secret token do webhook)
 # e link de descadastro dos e-mails (token do cliente na URL).
 [functions.avisos-enviar]

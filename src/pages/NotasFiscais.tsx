@@ -12,6 +12,7 @@ import { InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
 import { ComplianceFiscal } from "@/components/ComplianceFiscal";
 import { EmitirNfeModal } from "@/components/EmitirNfe";
 import { ConfigNfe } from "@/components/ConfigNfe";
+import { NfsePainel } from "@/components/nfse/NfsePainel";
 import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlNotas";
 import { ABAS_EMITIDAS, ABAS_RECEBIDAS, numeroDaChave, situacaoEmitida, situacaoRecebida, type Situacao } from "@/lib/notas";
 import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
@@ -120,7 +121,7 @@ function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: stri
 export default function NotasFiscais() {
   const { pode, papel } = usePerfil();
   const contador = papel === "contador";
-  const [aba, setAba] = useState<"emitidas" | "recebidas" | "config" | "regras" | "compliance">("emitidas");
+  const [aba, setAba] = useState<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse">("emitidas");
   // "+ Emitir NF-e" do menu: abre a emissão
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,11 +138,12 @@ export default function NotasFiscais() {
       <Tabs value={aba} onChange={setAba} options={[
         { value: "emitidas", label: "NF-e emitidas (vendas)" },
         ...(pode("nfe_recebidas") || contador ? [{ value: "recebidas" as const, label: "NF-e recebidas (fornecedores)" }] : []),
+        { value: "nfse" as const, label: "NFS-e (serviços)" },
         { value: "config", label: "Configurações da NF-e" },
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
+      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
     </div>
   );
 }

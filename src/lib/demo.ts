@@ -754,6 +754,14 @@ function planoDemo(db: Db) {
     { id: "revenda", chave: "revenda", nome: "Revenda", cor: "indigo", ordem: 2, ativo: true, sistema: false },
     { id: "parceiro", chave: "parceiro", nome: "Técnico parceiro", cor: "orange", ordem: 3, ativo: true, sistema: true },
   ];
+  // NFS-e: matriz configurada no padrão nacional (a OS #50 está concluída e pode ser faturada)
+  db.nfse_config = [{ unidade_id: U_SC, ativo: true, padrao: "nacional", codigo_municipio: "4216602", item_lista_servico: "14.01", codigo_tributacao_nacional: "140101",
+    codigo_tributario_municipio: null, codigo_nbs: null, codigo_cnae: null, aliquota_iss: 2, iss_retido: false, optante_simples_nacional: false,
+    regime_especial_tributacao: null, natureza_operacao: null, incluir_pecas: false, enviar_email_tomador: true, observacoes: null,
+    discriminacao_modelo: "Serviço de assistência técnica — OS nº {os}. Equipamento: {equipamento}. Serviço realizado: {solucao}",
+    serie_dps: 1, proximo_numero_dps: 1, ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", codigo_indicador_operacao: null, consumidor_final: false }];
+  db.nfse = [];
+  db.nfse_eventos = [];
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
   Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
     receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],
@@ -1088,7 +1096,7 @@ const saldoUn = (produto: string, unidade: string) => Number(db.estoque_unidade.
 // ---------------------------------------------------------------------
 // Consultas no estilo do supabase-js (select com relacionamentos)
 // ---------------------------------------------------------------------
-const FK_PAI: Record<string, string> = { clientes: "cliente_id", fornecedores: "fornecedor_id", pedidos: "pedido_id", produtos: "produto_id", transferencias: "transferencia_id", unidades: "unidade_id" };
+const FK_PAI: Record<string, string> = { clientes: "cliente_id", fornecedores: "fornecedor_id", pedidos: "pedido_id", produtos: "produto_id", transferencias: "transferencia_id", unidades: "unidade_id", ordens_servico: "os_id" };
 const FK_FILHO: Record<string, string> = { pedidos: "pedido_id", ordens_servico: "os_id", pedidos_compra: "pedido_compra_id", transferencias: "transferencia_id" };
 
 function dividir(sel: string) {
@@ -1106,7 +1114,7 @@ function dividir(sel: string) {
 function projetar(tabela: string, row: Row, sel: string): Row {
   const out: Row = {};
   for (const parte of dividir(sel)) {
-    const rel = parte.match(/^(\w+):(\w+)\((.*)\)$/s);
+    const rel = parte.match(/^(\w+):(\w+)(?:!\w+)?\((.*)\)$/s);
     if (parte === "*") Object.assign(out, row);
     else if (rel) {
       const [, alias, alvo, sub] = rel;
@@ -2579,7 +2587,93 @@ function devolucaoDemo(b: any) {
   return { ok: true, nota };
 }
 
+// NFS-e: simula a Focus/prefeitura (autoriza alguns segundos depois; o texto com "rejeitar" volta rejeitado)
+let numeroNfse = 120;
+function nfseDemo(b: Row) {
+  const evento = (n: Row, tipo: string, detalhe: string | null, antes: string | null = null, depois: string | null = null) =>
+    db.nfse_eventos.push({ id: db.nfse_eventos.length + 1, nfse_id: n.id, tipo, status_antes: antes, status_depois: depois, http_status: null, detalhe, created_at: quando(0) });
+  const mudar = (n: Row, status: string, extra: Row = {}) => {
+    const antes = n.status;
+    Object.assign(n, extra, { status, updated_at: quando(0) });
+    evento(n, "status", extra.mensagem ?? null, antes, status);
+    const os = db.ordens_servico.find((o) => o.id === n.os_id);
+    if (status === "autorizada" && os) {
+      Object.assign(os, { faturada_em: quando(0), nfse_id: n.id });
+      db.contas_receber.filter((c) => c.os_id === os.id && !c.nfse_id).forEach((c) => { c.nfse_id = n.id; });
+    }
+    if (status === "cancelada" && os && os.nfse_id === n.id) {
+      Object.assign(os, { faturada_em: null, nfse_id: null });
+      db.contas_receber.filter((c) => c.nfse_id === n.id).forEach((c) => { c.nfse_id = null; });
+    }
+  };
+  const nota = () => { const n = db.nfse.find((x) => x.id === b.id); if (!n) throw new Error("NFS-e não encontrada"); return n; };
+  if (b.acao === "previa" || b.acao === "emitir") {
+    const os = db.ordens_servico.find((o) => o.id === b.os_id);
+    if (!os) throw new Error("OS não encontrada");
+    const c = db.clientes.find((x) => x.id === os.cliente_id);
+    const cfg = db.nfse_config.find((x) => x.unidade_id === (os.unidade_id ?? U_SC));
+    const valor = r2(Number(os.valor_mao_obra ?? 0) + (cfg?.incluir_pecas ? Number(os.valor_pecas ?? 0) : 0));
+    const pendencias: string[] = [];
+    if (!cfg?.ativo) pendencias.push("A NFS-e não está ativada para esta unidade: Notas fiscais → NFS-e (serviços) → Configuração por unidade");
+    if (!["concluida", "entregue"].includes(os.status)) pendencias.push("Conclua a OS antes de emitir a nota de serviço");
+    if (valor <= 0) pendencias.push(os.em_garantia ? "OS em garantia sem valor cobrado: não há serviço a faturar" : "A OS não tem valor de mão de obra");
+    if (!c?.cpf_cnpj) pendencias.push("O cliente não tem CPF/CNPJ válido no cadastro");
+    const viva = db.nfse.find((n) => n.os_id === os.id && ["pendente", "processando", "autorizada", "incerto"].includes(n.status));
+    if (viva) pendencias.push(viva.status === "autorizada" ? `Esta OS já tem NFS-e autorizada (nº ${viva.numero})` : "Esta OS já tem uma NFS-e em andamento: aguarde o resultado");
+    const aliquota = cfg?.aliquota_iss ?? null;
+    const discriminacao = (b.discriminacao?.trim() || String(cfg?.discriminacao_modelo ?? "Serviço de assistência técnica — OS nº {os}. Equipamento: {equipamento}. Serviço realizado: {solucao}").replace("{os}", String(os.numero)).replace("{equipamento}", os.equipamento ?? "—")
+      .replace("{solucao}", os.solucao || os.diagnostico || "—").replace("{serie}", os.numero_serie ?? "—").replace("{defeito}", os.defeito_relatado ?? "—").replace("{cliente}", c?.nome ?? ""));
+    const previa = {
+      pendencias, avisos: c?.email ? [] : ["Cliente sem e-mail: a nota não será enviada por e-mail (dá para mandar o PDF pelo WhatsApp)"],
+      ambiente: "producao", padrao: cfg?.padrao ?? "nacional",
+      tomador: { nome: c?.nome ?? "—", documento: c?.cpf_cnpj ?? "", email: c?.email ?? null,
+        endereco: [[c?.logradouro, c?.numero].filter(Boolean).join(", "), c?.bairro, [c?.municipio, c?.uf].filter(Boolean).join("/")].filter(Boolean).join(" · "),
+        municipio: [c?.municipio, c?.uf].filter(Boolean).join("/") || null },
+      valor_servicos: valor, valor_pecas: Number(os.valor_pecas ?? 0), incluir_pecas: !!cfg?.incluir_pecas, aliquota_iss: aliquota,
+      valor_iss: aliquota != null ? r2(valor * aliquota / 100) : null, iss_retido: !!cfg?.iss_retido, discriminacao,
+    };
+    if (b.acao === "previa") return previa;
+    if (pendencias.length) throw new Error(`Antes de emitir: ${pendencias.join("; ")}`);
+    const tentativa = db.nfse.filter((n) => n.os_id === os.id).length + 1;
+    const dps = cfg ? cfg.proximo_numero_dps++ : null;
+    const n: Row = {
+      id: uid(), referencia: `nfse-os-${os.numero}-${tentativa}-${uid().slice(-6)}`, unidade_id: os.unidade_id ?? U_SC, os_id: os.id, cliente_id: os.cliente_id,
+      substitui_id: b.substitui_id ?? null, status: "pendente", ambiente: "producao", padrao: previa.padrao, valor_servicos: valor, aliquota_iss: aliquota,
+      valor_iss: previa.valor_iss, iss_retido: previa.iss_retido, discriminacao, tomador: previa.tomador, servico: { os_numero: os.numero }, serie_dps: dps ? cfg!.serie_dps : null,
+      numero_dps: dps, numero: null, codigo_verificacao: null, chave_acesso: null, data_emissao: null, url: null, url_danfse: null, xml_url: null, mensagem: null,
+      tentativas: 1, solicitado_em: quando(0), solicitado_por: sessao?.user.id ?? null, autorizada_em: null, cancelada_em: null, cancelamento_motivo: null, created_at: quando(0),
+    };
+    db.nfse.push(n);
+    evento(n, "status", null, null, "pendente");
+    evento(n, "envio", "recebida, aguardando a prefeitura");
+    mudar(n, "processando");
+    setTimeout(() => {
+      if (/rejeitar/i.test(discriminacao)) mudar(n, "rejeitada", { mensagem: "L99 — Regime Especial de Tributação ausente/inválido — Correção: Corrija o Regime Especial de Tributação" });
+      else {
+        const numero = String(++numeroNfse);
+        mudar(n, "autorizada", { numero, codigo_verificacao: "ABC" + numero, data_emissao: quando(0), autorizada_em: quando(0),
+          chave_acesso: `4216602212345678000190000000000${numero}2610${numero}`.padEnd(50, "0").slice(0, 50),
+          url: "https://www.nfse.gov.br/consultapublica", url_danfse: "https://www.nfse.gov.br/consultapublica" });
+      }
+    }, 2500);
+    return { ok: true, nfse: n };
+  }
+  if (b.acao === "consultar") { const n = nota(); evento(n, "consulta", n.status); return { ok: true, nfse: n }; }
+  if (b.acao === "cancelar") {
+    const n = nota();
+    const motivo = String(b.motivo ?? "").trim();
+    if (motivo.length < 15) throw new Error("Escreva o motivo do cancelamento (de 15 a 255 caracteres)");
+    if (n.status !== "autorizada") throw new Error("Só uma NFS-e autorizada pode ser cancelada");
+    Object.assign(n, { cancelamento_motivo: motivo, cancelamento_solicitado_em: quando(0) });
+    evento(n, "cancelamento_solicitado", motivo);
+    mudar(n, "cancelada", { cancelada_em: quando(0) });
+    return { ok: true, nfse: n };
+  }
+  throw new Error("ação inválida");
+}
+
 const funcoes: Record<string, (b: any) => any> = {
+  nfse: (b) => nfseDemo(b),
   "nfe-emitir": (b) => {
     if (b.devolucao) return devolucaoDemo(b);
     if (b.avulsa) {

@@ -1,12 +1,15 @@
 // Configura os gatilhos (webhooks) da Focus NFe apontando para a função focus-webhook.
 // POST { acao: "status" }     -> lista os gatilhos cadastrados, por unidade
-// POST { acao: "registrar" }  -> cadastra os gatilhos "nfe" e "nfe_recebida" (se faltarem) em cada unidade;
+// POST { acao: "registrar" }  -> cadastra os gatilhos "nfe" e "nfe_recebida" (se faltarem) em cada unidade e, onde a NFS-e
+//                               estiver ativada, o da nota de serviço ("nfsen" no padrão nacional, "nfse" no da prefeitura);
 //                               a unidade que a Focus recusar volta em "falhas" sem impedir as outras
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { focusJson, focusProducao, type OpcoesFocus, recebidasDisponiveis } from "../_shared/focusnfe.ts";
 
 const EVENTOS = ["nfe", "nfe_recebida"];
+/** Evento da NFS-e conforme o padrão configurado na unidade. */
+const eventoNfse = (padrao: string) => (padrao === "municipal" ? "nfse" : "nfsen");
 /** As notas recebidas ficam em produção mesmo com a emissão em homologação: o gatilho delas também. */
 const opcoes = (evento: string): OpcoesFocus => (evento === "nfe_recebida" && recebidasDisponiveis() ? { recebidas: true } : {});
 
@@ -17,9 +20,15 @@ Deno.serve(async (req) => {
     await requireErpUser(req, []);
     const { acao } = await req.json();
     const db = adminClient();
-    const { data: unidades } = await db.from("unidades").select("nome, codigo, cnpj").eq("ativo", true);
+    const [{ data: unidades }, { data: nfse }] = await Promise.all([
+      db.from("unidades").select("id, nome, codigo, cnpj").eq("ativo", true),
+      db.from("nfse_config").select("unidade_id, ativo, padrao"),
+    ]);
     const lista = (unidades ?? [])
-      .map((u: any) => ({ nome: u.nome as string, codigo: u.codigo as string, cnpj: onlyDigits(u.cnpj) }))
+      .map((u: any) => {
+        const cfg = (nfse ?? []).find((c: any) => c.unidade_id === u.id && c.ativo);
+        return { nome: u.nome as string, codigo: u.codigo as string, cnpj: onlyDigits(u.cnpj), eventos: [...EVENTOS, ...(cfg ? [eventoNfse(cfg.padrao)] : [])] };
+      })
       .filter((u) => u.cnpj.length === 14);
     if (!lista.length) throw new HttpError(400, "preencha o CNPJ das unidades em Configurações → Unidades");
 
@@ -28,7 +37,7 @@ Deno.serve(async (req) => {
     const gatilhos = async (u: (typeof lista)[number]) => {
       const porAmbiente = new Map<string, any[]>();
       const achados: any[] = [];
-      for (const evento of EVENTOS) {
+      for (const evento of u.eventos) {
         const op = opcoes(evento);
         const k = op.recebidas ? "recebidas" : "padrao";
         if (!porAmbiente.has(k)) {
@@ -44,9 +53,9 @@ Deno.serve(async (req) => {
       const porUnidade = await Promise.all(lista.map(async (u) => {
         try {
           const hooks = await gatilhos(u);
-          return { nome: u.nome, cnpj: u.cnpj, eventos: EVENTOS.filter((e) => hooks.some((h) => h.event === e)) };
+          return { nome: u.nome, cnpj: u.cnpj, esperados: u.eventos, eventos: u.eventos.filter((e) => hooks.some((h) => h.event === e)) };
         } catch (e) {
-          return { nome: u.nome, cnpj: u.cnpj, eventos: [] as string[], erro: (e as Error).message };
+          return { nome: u.nome, cnpj: u.cnpj, esperados: u.eventos, eventos: [] as string[], erro: (e as Error).message };
         }
       }));
       if (porUnidade.every((u) => u.erro)) throw new HttpError(502, porUnidade.map((u) => `${u.nome}: ${u.erro}`).join(" | "));
@@ -69,7 +78,7 @@ Deno.serve(async (req) => {
       for (const u of lista) {
         try {
           const existentes = await gatilhos(u);
-          for (const event of EVENTOS.filter((e) => !existentes.some((h) => h.event === e))) {
+          for (const event of u.eventos.filter((e) => !existentes.some((h) => h.event === e))) {
             const r = await focusJson(`/v2/hooks`, {
               method: "POST",
               body: JSON.stringify({ cnpj: u.cnpj, event, url, authorization: token }),

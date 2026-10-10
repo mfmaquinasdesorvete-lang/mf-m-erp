@@ -62,6 +62,7 @@ export type OrdemServico = {
   numero_serie: string | null; defeito_relatado: string; diagnostico: string | null; solucao: string | null;
   status: string; em_garantia: boolean; tecnico: string | null; valor_mao_obra: number; valor_pecas: number;
   valor_total: number; data_entrada: string; previsao: string | null; observacoes: string | null;
+  faturada_em?: string | null; nfse_id?: string | null;   // NFS-e autorizada (só o servidor grava)
   cliente?: Cliente; itens?: Item[];
 };
 

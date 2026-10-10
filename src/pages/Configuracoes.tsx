@@ -277,7 +277,7 @@ function BackupCard() {
 type SituacaoFocus = {
   ambiente: string;
   eventos: string[];
-  unidades?: { nome: string; cnpj: string; eventos: string[]; erro?: string }[];
+  unidades?: { nome: string; cnpj: string; eventos: string[]; esperados?: string[]; erro?: string }[];
   falhas?: { nome: string; mensagem: string }[];
 };
 
@@ -325,7 +325,8 @@ function FocusNfeCard() {
             <li key={u.cnpj}>
               <b>{u.nome}</b>:{" "}
               {u.erro ? <span className="text-red-600">{u.erro}</span> : (
-                <>notas emitidas {situacao(u.eventos, "nfe", "manual")} · notas de fornecedores {situacao(u.eventos, "nfe_recebida", "manual (botão \"Buscar notas\")")}</>
+                <>notas emitidas {situacao(u.eventos, "nfe", "manual")} · notas de fornecedores {situacao(u.eventos, "nfe_recebida", "manual (botão \"Buscar notas\")")}
+                  {u.esperados?.find((e) => e === "nfse" || e === "nfsen") && <> · notas de serviço {situacao(u.eventos, u.esperados.find((e) => e === "nfse" || e === "nfsen")!, "consulta a cada 5 min")}</>}</>
               )}
             </li>
           )) : (

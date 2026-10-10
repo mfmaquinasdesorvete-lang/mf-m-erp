@@ -1,12 +1,15 @@
 // Gatilhos (webhooks) da Focus NFe:
 //  - evento "nfe": mudança de status de uma NF-e emitida (autorizada, rejeitada, cancelada)
 //  - evento "nfe_recebida": nova NF-e emitida contra o CNPJ da MF (fornecedores)
+//  - eventos "nfse" / "nfsen": NFS-e (nota de serviço) autorizada, rejeitada ou cancelada; o ERP não confia no aviso:
+//    consulta a Focus pela mesma referência e aplica o resultado de lá
 // Registre os gatilhos em Configurações (função focus-config). Deploy com --no-verify-jwt:
 // a Focus envia no header Authorization o token FOCUS_WEBHOOK_TOKEN.
 import { json } from "../_shared/cors.ts";
 import { adminClient } from "../_shared/supabase.ts";
 import { aplicarRetornoNfe } from "../_shared/nfe-status.ts";
 import { CONFIG_RECEBIDAS, processarNota, salvarRecebida, unidadePorCnpj } from "../_shared/nfe-recebidas.ts";
+import { consultarNfse, type Nfse } from "../_shared/nfse.ts";
 
 Deno.serve(async (req) => {
   const token = Deno.env.get("FOCUS_WEBHOOK_TOKEN")?.trim();
@@ -15,6 +18,13 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => null);
   if (!body) return json({ error: "corpo inválido" }, 400);
   const db = adminClient();
+
+  // NFS-e: referências "nfse-..." (gravadas antes do envio)
+  if (typeof body.ref === "string" && body.ref.startsWith("nfse-")) {
+    const { data: nfse } = await db.from("nfse").select("*").eq("referencia", body.ref).maybeSingle();
+    if (nfse) await consultarNfse(db, nfse as Nfse, "webhook").catch(() => null); // se falhar, o agendamento consulta depois
+    return json({ ok: true });
+  }
 
   // NF-e emitida por nós: vem com a referência usada na emissão
   if (body.ref) {
