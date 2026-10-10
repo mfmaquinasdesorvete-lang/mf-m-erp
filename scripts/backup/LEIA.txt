@@ -29,6 +29,8 @@ Como restaurar o banco num projeto Supabase novo (quem faz: técnico)
        --file banco/roles.sql --file banco/schema.sql \
        --command 'SET session_replication_role = replica' --file banco/data.sql \
        --dbname "<connection string>"
+   Se o roles.sql reclamar de "permission denied for parameter", rode só ele com um usuário administrador
+   (ou apague a linha do ajuste de log citada no erro): é configuração de log, não são dados.
 3. Suba os arquivos: cada pasta de arquivos/ é um bucket do Storage (mesmo nome, mesmos caminhos).
    A pasta produtos-fotos é pública; as outras são privadas.
 4. Publique as Edge Functions e o site a partir do GitHub (código do ERP) e cadastre de novo os secrets

@@ -4,7 +4,7 @@
 import { adminClient } from "../_shared/supabase.ts";
 import { json } from "../_shared/cors.ts";
 
-const HORAS = 36;
+const HORAS = 20; // só o backup desta madrugada (sem repetir o de ontem com a data de hoje)
 
 async function sha256(texto: string) {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
