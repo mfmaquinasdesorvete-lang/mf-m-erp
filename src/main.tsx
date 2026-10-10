@@ -4,6 +4,8 @@ import { BrowserRouter, MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { DEMO } from "./lib/supabase";
+// fonte servida pelo próprio site (sem depender do Google Fonts)
+import "@fontsource-variable/plus-jakarta-sans";
 import "./index.css";
 import { aplicarDestaque, aplicarTema, lerDestaque, lerTema } from "./lib/tema";
 

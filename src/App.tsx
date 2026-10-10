@@ -10,7 +10,7 @@ import { podeVer, type Tela } from "@/lib/permissoes";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
-import Login from "@/pages/Login";
+import Login, { NovaSenha } from "@/pages/Login";
 
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -79,15 +79,23 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
 
 const Carregando = () => <div className="p-8 text-slate-500">Carregando…</div>;
 
+// Volta do link "Esqueci minha senha" (lido antes de o Supabase limpar o endereço)
+const LINK_RECUPERACAO = typeof window !== "undefined" && (/[?&]nova-senha=1/.test(window.location.search) || /type=recovery/.test(window.location.hash));
+const LINK_EXPIRADO = typeof window !== "undefined" && /error_code=otp_expired|error=access_denied/.test(window.location.hash + window.location.search);
+
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined);
+  const [novaSenha, setNovaSenha] = useState(LINK_RECUPERACAO && !LINK_EXPIRADO);
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data } = supabase.auth.onAuthStateChange((evento, s) => {
+      setSession(s);
+      if (evento === "PASSWORD_RECOVERY" && !window.location.pathname.startsWith("/loja")) setNovaSenha(true);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -126,13 +134,15 @@ export default function App() {
     return <><Toaster /><Suspense fallback={<Carregando />}><Loja /></Suspense></>;
   }
 
-  if (session === undefined || (session && perfil === undefined)) return <Carregando />;
+  if (session === undefined) return <Carregando />;
+  if (novaSenha && session) return <><Toaster /><NovaSenha onPronto={() => setNovaSenha(false)} /></>;
+  if (session && perfil === undefined) return <Carregando />;
 
   return (
     <>
       <Toaster />
       {!session ? (
-        <Login />
+        <Login linkExpirado={LINK_EXPIRADO} />
       ) : !perfil ? (
         <SemAcesso email={session.user.email ?? ""} />
       ) : (
