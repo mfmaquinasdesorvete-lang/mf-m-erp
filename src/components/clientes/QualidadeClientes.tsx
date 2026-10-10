@@ -3,7 +3,7 @@
 // e unificação de cadastros repetidos.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Building2, CheckCircle2, Copy, MapPin, MessageCircle, Merge, RefreshCw, ShieldAlert, Truck } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Copy, MapPin, MessageCircle, Merge, RefreshCw, ShieldAlert, Store, Truck, Wrench } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -24,6 +24,8 @@ export function EtiquetasCliente({ c }: { c: ComEtiquetas }) {
   if (tem(c, "ie_baixada")) itens.push({ Icon: AlertTriangle, texto: "IE baixada", cor: "bg-amber-100 text-amber-800", titulo: "A inscrição estadual está baixada/inativa: confira antes de emitir nota como contribuinte" });
   if (tem(c, "endereco_receita")) itens.push({ Icon: MapPin, texto: "2 endereços", cor: "bg-sky-100 text-sky-800", titulo: "O endereço do cadastro é diferente do endereço na Receita (os dois ficam na ficha)" });
   if (tem(c, "fornecedor")) itens.push({ Icon: Truck, texto: "fornecedor", cor: "bg-purple-100 text-purple-800", titulo: "Também é fornecedor da MF" });
+  if (tem(c, "revenda")) itens.push({ Icon: Store, texto: "revenda", cor: "bg-indigo-100 text-indigo-800", titulo: "Revende as máquinas e peças da MF" });
+  if (tem(c, "parceiro")) itens.push({ Icon: Wrench, texto: "técnico parceiro", cor: "bg-orange-100 text-orange-800", titulo: "Técnico parceiro da assistência" });
   if (!itens.length) return null;
   return (
     <div className="mt-0.5 flex flex-wrap gap-1">

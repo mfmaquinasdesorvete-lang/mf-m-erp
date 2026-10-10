@@ -5,6 +5,22 @@ export type Cliente = {
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null; portal_token?: string;
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
+  telefone_adicional?: string | null; website?: string | null; email_nfe?: string | null; contato_observacoes?: string | null;
+  inscricao_municipal?: string | null; inscricao_suframa?: string | null; regime_tributario?: number | null; data_nascimento?: string | null;
+  status_crm?: string | null; vendedor_id?: string | null; forma_pagamento_id?: string | null; condicao_pagamento?: string | null;
+  desconto_padrao?: number | null; limite_credito?: number | null; cobranca_diferente?: boolean;
+  cobranca_cep?: string | null; cobranca_logradouro?: string | null; cobranca_numero?: string | null; cobranca_complemento?: string | null;
+  cobranca_bairro?: string | null; cobranca_municipio?: string | null; cobranca_uf?: string | null;
+};
+
+/** Pessoa de contato do cliente (compras, financeiro…). Excluir = ativo false. */
+export type PessoaContato = { id?: string; cliente_id?: string; nome: string; setor: string | null; email: string | null; telefone: string | null; ramal: string | null; ativo?: boolean };
+
+/** Assinatura eletrônica da ficha cadastral (sem o desenho, que só vem no comprovante). */
+export type AssinaturaFicha = {
+  id: string; cliente_id: string; token: string; canal: "link" | "presencial"; status: "pendente" | "assinado" | "cancelado";
+  nome: string | null; cpf: string | null; ip: string | null; hash: string | null; alteracoes: Record<string, { antes: string | null; depois: string | null }> | null;
+  visualizado_em: string | null; assinado_em: string | null; expira_em: string; created_at: string;
 };
 
 export type Produto = {

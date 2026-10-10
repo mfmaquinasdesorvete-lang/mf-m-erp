@@ -861,3 +861,132 @@ export async function pdfRecibo(r: ReciboPdf, vias: 1 | 2 = 2) {
   }
   return doc.output("blob");
 }
+
+// ---------------------------------------------------------------------
+// Ficha cadastral assinada (comprovante da assinatura eletrônica)
+// ---------------------------------------------------------------------
+export type FichaAssinadaPdf = {
+  canal: "link" | "presencial"; termo: string; dados: Record<string, any> | null; nome: string | null; cpf: string | null;
+  assinatura_png: string | null; ip: string | null; user_agent: string | null; assinado_em: string | null; hash: string | null;
+  alteracoes: Record<string, { antes: string | null; depois: string | null }> | null;
+};
+
+/** CPF de quem assinou com o meio à mostra: ***.456.789-** */
+export const cpfMascarado = (cpf: string | null | undefined) => {
+  const d = String(cpf ?? "").replace(/\D/g, "");
+  return d.length === 11 ? `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**` : "";
+};
+
+/** Navegador e sistema em poucas palavras ("Chrome no Android"). */
+export function navegadorCurto(ua: string | null | undefined) {
+  const s = String(ua ?? "");
+  if (!s) return "";
+  const nav = /Edg\//.test(s) ? "Edge" : /OPR\//.test(s) ? "Opera" : /Chrome\//.test(s) ? "Chrome" : /Firefox\//.test(s) ? "Firefox" : /Safari\//.test(s) ? "Safari" : "";
+  const so = /Android/.test(s) ? "Android" : /iPhone|iPad/.test(s) ? "iPhone/iPad" : /Windows/.test(s) ? "Windows" : /Mac OS X/.test(s) ? "Mac" : /Linux/.test(s) ? "Linux" : "";
+  return [nav, so].filter(Boolean).join(" no ") || s.slice(0, 60);
+}
+
+export async function pdfFichaCadastral(a: FichaAssinadaPdf, cfg: Config, rotulos: Record<string, string>) {
+  const { doc, autoTable, logo } = await novoDoc();
+  const w = doc.internal.pageSize.getWidth();
+  const d = a.dados ?? {};
+  cabecalho(doc, cfg, "FICHA CADASTRAL", d.codigo ? `Cliente nº ${d.codigo}` : "Cliente", logo);
+  const tel = (v: string | null | undefined) => (v ? formatarTelefone(v) : "");
+  const endereco = (p = "") => [[d[`${p}logradouro`], d[`${p}numero`]].filter(Boolean).join(", "), d[`${p}complemento`], d[`${p}bairro`],
+    d[`${p}municipio`] && `${d[`${p}municipio`]}/${d[`${p}uf`] ?? ""}`, d[`${p}cep`] && `CEP ${cepFmt(d[`${p}cep`])}`].filter(Boolean).join(" - ");
+  const pj = d.tipo_pessoa === "PJ";
+  const linhas: [string, string][] = [
+    [pj ? "Razão social" : "Nome", d.nome ?? ""],
+    ["Nome fantasia", d.nome_fantasia ?? ""],
+    [pj ? "CNPJ" : "CPF", d.cpf_cnpj ? docFormat(d.cpf_cnpj) : ""],
+    ["Inscrição estadual", d.inscricao_estadual ?? ""],
+    ["Inscrição municipal", d.inscricao_municipal ?? ""],
+    [pj ? "Data de abertura" : "Data de nascimento", d.data_nascimento ? dataBR(d.data_nascimento) : ""],
+    ["WhatsApp", tel(d.whatsapp)],
+    ["Telefone", [tel(d.telefone), tel(d.telefone_adicional)].filter(Boolean).join("  ·  ")],
+    ["E-mail", d.email ?? ""],
+    ["E-mail para nota fiscal", d.email_nfe ?? ""],
+    ["Site", d.website ?? ""],
+    ["Endereço", endereco()],
+    ["Endereço de cobrança", d.cobranca_diferente ? endereco("cobranca_") : ""],
+  ];
+  autoTable(doc, {
+    startY: 36,
+    head: [["Dados do cliente", ""]],
+    body: linhas.filter(([, v]) => v),
+    styles: { fontSize: 9, cellPadding: 1.6, textColor: [30, 41, 59] },
+    headStyles: { fillColor: NAVY, textColor: 255 },
+    columnStyles: { 0: { fontStyle: "bold", cellWidth: 46, textColor: [71, 85, 105] } },
+    theme: "striped",
+    margin: { left: 14, right: 14 },
+  });
+  let y = (doc as any).lastAutoTable.finalY + 5;
+  const pessoas: any[] = Array.isArray(d.pessoas) ? d.pessoas : [];
+  if (pessoas.length) {
+    autoTable(doc, {
+      startY: y,
+      head: [["Pessoas de contato", "Setor", "E-mail", "Telefone"]],
+      body: pessoas.map((p) => [p.nome, p.setor ?? "", p.email ?? "", [tel(p.telefone), p.ramal && `ramal ${p.ramal}`].filter(Boolean).join(" ")]),
+      styles: { fontSize: 8.5, cellPadding: 1.5 },
+      headStyles: { fillColor: NAVY, textColor: 255 },
+      margin: { left: 14, right: 14 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 5;
+  }
+  y = paragrafo(doc, "Declaração", a.termo, y + 1);
+
+  // assinatura
+  if (y > 222) { doc.addPage(); y = 20; }
+  if (a.assinatura_png) {
+    try { doc.addImage(a.assinatura_png, "PNG", 14, y, 70, 26); } catch { /* desenho inválido: segue sem imagem */ }
+  }
+  doc.setDrawColor(148, 163, 184);
+  doc.line(14, y + 27, 94, y + 27);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text(a.nome ?? "", 14, y + 31.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...CINZA);
+  doc.text([cpfMascarado(a.cpf) && `CPF ${cpfMascarado(a.cpf)}`, "Assinatura eletrônica"].filter(Boolean).join("  ·  "), 14, y + 35.5);
+
+  // registro da assinatura (prova)
+  const x = 104, larg = w - 14 - x;
+  const quando = a.assinado_em ? new Date(a.assinado_em) : null;
+  const registro: [string, string][] = [
+    ["Assinado em", quando ? `${quando.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${quando.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })} (Brasília)` : ""],
+    ["Forma", a.canal === "presencial" ? "Presencial, no aparelho da empresa" : "Pelo link enviado ao cliente"],
+    ["Endereço IP", a.ip ?? "não registrado"],
+    ["Navegador", navegadorCurto(a.user_agent)],
+  ].filter(([, v]) => v) as [string, string][];
+  const hashLinhas = (a.hash ?? "").match(/.{1,32}/g) ?? [];
+  const altura = 8 + registro.length * 4.2 + 5 + hashLinhas.length * 3.8 + 2;
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(x, y - 2, larg, altura, 2, 2, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(15, 23, 42);
+  doc.text("REGISTRO DA ASSINATURA ELETRÔNICA", x + 3, y + 3);
+  let yy = y + 7.5;
+  doc.setFontSize(7.5);
+  for (const [k, v] of registro) {
+    doc.setFont("helvetica", "bold"); doc.setTextColor(71, 85, 105); doc.text(k, x + 3, yy);
+    doc.setFont("helvetica", "normal"); doc.setTextColor(30, 41, 59); doc.text(corta(doc, v, larg - 30), x + 27, yy);
+    yy += 4.2;
+  }
+  doc.setFont("helvetica", "bold"); doc.setTextColor(71, 85, 105); doc.text("Código de verificação (SHA-256)", x + 3, yy + 0.5);
+  doc.setFont("courier", "normal"); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59);
+  hashLinhas.forEach((l, i) => doc.text(l.replace(/(.{4})/g, "$1 ").trim(), x + 3, yy + 4.3 + i * 3.8));
+  doc.setFont("helvetica", "normal");
+  y = Math.max(y + 40, y - 2 + altura + 6);
+
+  const alt = Object.entries(a.alteracoes ?? {});
+  if (alt.length) {
+    y = paragrafo(doc, "Dados atualizados pelo cliente ao assinar",
+      alt.map(([k, v]) => `${rotulos[k] ?? k}: ${v.antes || "(vazio)"} -> ${v.depois || "(vazio)"}`).join("\n"), y);
+  }
+  paragrafo(doc, "", "Este documento foi assinado eletronicamente. O código de verificação é calculado sobre o termo, os dados da ficha, o nome, o CPF, o desenho da assinatura, o IP, o navegador e a data/hora: qualquer alteração posterior gera um código diferente.", y);
+  rodape(doc);
+  return doc.output("blob");
+}

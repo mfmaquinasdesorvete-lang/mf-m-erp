@@ -192,6 +192,18 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (meu) setP((x) => ({ ...x, vendedor_id: meu.id, vendedor: meu.nome }));
   }, [vendedores, p.id, p.vendedor_id, user_id]);
   const cliente = clientes.find((c) => c.id === p.cliente_id);
+  // orçamento novo: vendedor e forma de pagamento padrão do cadastro do cliente
+  function escolherCliente(id: string) {
+    const c = clientes.find((x) => x.id === id);
+    const patch: Record<string, unknown> = { cliente_id: id };
+    if (c && !p.id) {
+      const v = c.vendedor_id && vendedores.find((x) => x.id === c.vendedor_id && x.ativo);
+      if (v) Object.assign(patch, { vendedor_id: v.id, vendedor: v.nome, comissao_percentual: null });
+      const f = c.forma_pagamento_id && formasVenda.find((x) => x.id === c.forma_pagamento_id && x.ativo);
+      if (f) Object.assign(patch, { forma_pagamento_id: f.id, forma_pagamento: f.meio, parcelas: f.parcelas, intervalo_dias: f.intervalo_dias, primeiro_vencimento: somarDias(f.primeiro_em_dias) });
+    }
+    set(patch as Partial<Pedido>);
+  }
   const subtotal = totalItens(p.itens);
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
@@ -399,7 +411,14 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         {aba === "pedido" && (<>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Field label="Cliente" className="sm:col-span-2">
-            <ClienteBusca clientes={clientes} value={p.cliente_id} disabled={!editavel} required onChange={(id) => set({ cliente_id: id })} />
+            <ClienteBusca clientes={clientes} value={p.cliente_id} disabled={!editavel} required onChange={(id) => escolherCliente(id)} />
+            {cliente && (cliente.condicao_pagamento || cliente.limite_credito != null || cliente.desconto_padrao) && (
+              <span className="mt-1 block text-xs text-slate-500">
+                {[cliente.condicao_pagamento && `Condição: ${cliente.condicao_pagamento}`,
+                  cliente.desconto_padrao ? `desconto padrão ${String(cliente.desconto_padrao).replace(".", ",")}%` : null,
+                  cliente.limite_credito != null && `limite de crédito ${brl(Number(cliente.limite_credito))}`].filter(Boolean).join(" · ")}
+              </span>
+            )}
           </Field>
           <div className="sm:col-span-2"><CampoUnidade value={(p as any).unidade_id} disabled={!editavel} onChange={(v) => set({ unidade_id: v } as Partial<Pedido>)} /></div>
           <Field label="Origem">

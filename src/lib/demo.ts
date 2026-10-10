@@ -366,7 +366,62 @@ function seed(): Db {
   bancosDemo(db);
   planoDemo(db);
   fretesDemo(db);
+  fichaDemo(db);
   return db;
+}
+
+/** Cadastro completo dos clientes (CRM, vendedor, condição, crédito), pessoas de contato e fichas assinadas. */
+function fichaDemo(db: Db) {
+  const set = (id: string, x: Row) => Object.assign(db.clientes.find((c) => c.id === id) ?? {}, x);
+  set("c1", { nome_fantasia: "Gelato Nobre", status_crm: "cliente", vendedor_id: "v1", forma_pagamento_id: "fp4", condicao_pagamento: "30 60 90", limite_credito: 50000,
+    desconto_padrao: 3, email_nfe: "nfe@gelatonobre.com.br", telefone_adicional: "1633335555", website: "https://gelatonobre.com.br", inscricao_municipal: "123456",
+    regime_tributario: 1, contato_observacoes: "Compras com o Marcos; boletos para a Ana no financeiro.", cobranca_diferente: false });
+  set("c2", { status_crm: "negociacao", vendedor_id: "v2", condicao_pagamento: "À vista" });
+  set("c3", { status_crm: "cliente", vendedor_id: "v1", data_nascimento: "1990-05-14" });
+  set("c4", { status_crm: "cliente", vendedor_id: "v3", forma_pagamento_id: "fp3", limite_credito: 20000, cobranca_diferente: true,
+    cobranca_cep: "74115060", cobranca_logradouro: "Rua 9", cobranca_numero: "120", cobranca_bairro: "Setor Oeste", cobranca_municipio: "Goiânia", cobranca_uf: "GO" });
+  set("c5", { status_crm: "lead" });
+  db.clientes_pessoas = [
+    { id: "cp1", cliente_id: "c1", nome: "Marcos Lima", setor: "Compras", email: "compras@gelatonobre.com.br", telefone: "16988880001", ramal: "21", ativo: true, created_at: quando(-60) },
+    { id: "cp2", cliente_id: "c1", nome: "Ana Paula Souza", setor: "Financeiro", email: "financeiro@gelatonobre.com.br", telefone: "1633334444", ramal: "30", ativo: true, created_at: quando(-60) },
+  ];
+  db.clientes_assinaturas = [];
+  const c1 = db.clientes.find((c) => c.id === "c1")!;
+  const a: Row = { id: "as1", cliente_id: "c1", token: "4c1a7e2b-9d3f-4a51-8e6c-0b2d9f7a1c01", canal: "presencial", status: "assinado", termo: termoDemo(db), dados: fichaClienteDemo(c1, db),
+    alteracoes: null, nome: "Marcos Lima", cpf: "12345678909", assinatura_png: ASSINATURA_DEMO, ip: "177.38.12.40", user_agent: "Mozilla/5.0 (Linux; Android 14) Chrome/129.0 Mobile Safari/537.36",
+    visualizado_em: null, assinado_em: quando(-40), expira_em: quando(-40), created_at: quando(-40) };
+  a.hash = hashDemo(a);
+  db.clientes_assinaturas.push(a);
+  db.clientes_assinaturas.push({ id: "as2", cliente_id: "c2", token: "4c1a7e2b-9d3f-4a51-8e6c-0b2d9f7a1c02", canal: "link", status: "pendente", termo: termoDemo(db), dados: null, alteracoes: null,
+    nome: null, cpf: null, assinatura_png: null, ip: null, user_agent: null, hash: null, visualizado_em: quando(-1), assinado_em: null,
+    expira_em: new Date(Date.now() + 12 * 864e5).toISOString(), created_at: quando(-3) });
+}
+
+const ASSINATURA_DEMO = "data:image/png;base64,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";
+function termoDemo(base: Db = db) {
+  const e = base.configuracoes?.[0]?.nome_fantasia || "MF Máquinas";
+  return `Declaro que as informações desta ficha cadastral são verdadeiras e me comprometo a avisar a ${e} sobre qualquer alteração. Autorizo o uso destes dados para emissão de notas fiscais, entregas, cobranças, garantia, assistência técnica e contato comercial, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). Reconheço como válida esta assinatura eletrônica, registrada com data, hora, endereço IP e código de verificação (Medida Provisória nº 2.200-2/2001, art. 10, § 2º).`;
+}
+function fichaClienteDemo(c: Row, base: Db = db): Row {
+  const k = ["codigo", "tipo_pessoa", "nome", "nome_fantasia", "cpf_cnpj", "inscricao_estadual", "inscricao_municipal", "data_nascimento", "email", "email_nfe", "telefone",
+    "telefone_adicional", "whatsapp", "website", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "cobranca_diferente", "cobranca_cep",
+    "cobranca_logradouro", "cobranca_numero", "cobranca_complemento", "cobranca_bairro", "cobranca_municipio", "cobranca_uf"];
+  const out: Row = Object.fromEntries(k.filter((x) => c[x] != null && c[x] !== "").map((x) => [x, c[x]]));
+  const pessoas = (base.clientes_pessoas ?? []).filter((p) => p.cliente_id === c.id && p.ativo)
+    .map((p) => Object.fromEntries(["nome", "setor", "email", "telefone", "ramal"].filter((x) => p[x]).map((x) => [x, p[x]])));
+  if (pessoas.length) out.pessoas = pessoas;
+  return out;
+}
+/** Na prévia o código é um resumo simples (no sistema real: SHA-256 no banco). */
+function hashDemo(a: Row) {
+  const t = [a.id, a.cliente_id, a.canal, a.termo, JSON.stringify(a.dados ?? ""), a.nome, a.cpf, a.assinatura_png, a.ip, a.user_agent, a.assinado_em].join("|");
+  let out = "";
+  for (let k = 0; k < 8; k++) {
+    let h = 2166136261 ^ k;
+    for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+    out += (h >>> 0).toString(16).padStart(8, "0");
+  }
+  return out;
 }
 
 /** Formas de pagamento, embalagens e envios em todas as situações do painel de fretes. */
@@ -967,6 +1022,7 @@ const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({ codigo: proximoCodigo("clientes"), created_at: quando(0) }),
   fornecedores: () => ({ codigo: proximoCodigo("fornecedores"), created_at: quando(0) }),
   contatos_cliente: () => ({ created_at: quando(0) }),
+  clientes_pessoas: () => ({ ativo: true, created_at: quando(0) }),
   equipamentos: () => ({ created_at: quando(0) }),
 };
 
@@ -1237,6 +1293,12 @@ function erro(message: string) { return { data: null, error: { message } }; }
 
 // Conciliação bancária (no sistema real: funções SQL importar_extrato, conciliar_lancamento…)
 const podeFinanceiro = () => ["admin", "financeiro"].includes(db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel);
+function assinanteDemo(nome: string, cpf: string, png: string) {
+  if (String(nome ?? "").trim().length < 5 || !/\s/.test(String(nome).trim())) return "informe o nome completo de quem assina";
+  if (String(cpf ?? "").replace(/\D/g, "").length !== 11) return "informe o CPF de quem assina (11 números)";
+  if (!String(png ?? "").startsWith("data:image/png;base64,")) return "faça a assinatura no quadro";
+  return null;
+}
 const temPapelDemo = (...p: string[]) => { const pa = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel; return pa === "admin" || p.includes(pa); };
 function atualizarDemo(tabela: string, r: Row, patch: Row, motivo: string | null = null) {
   const antes = { ...r };
@@ -1418,6 +1480,79 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: { retirados, mantidos_com_etiqueta: mantidos, fornecedores_criados: 0 }, error: null };
   },
+  termo_ficha_cadastral: () => ({ data: termoDemo(), error: null }),
+  ficha_cadastral_link: ({ p_cliente }) => {
+    if (!temPapelDemo("vendas", "financeiro", "tecnico")) return erro("sem permissão para esta ação");
+    db.clientes_assinaturas ??= [];
+    let a = db.clientes_assinaturas.find((x) => x.cliente_id === p_cliente && x.canal === "link" && x.status === "pendente" && Date.parse(x.expira_em) > Date.now() + 2 * 864e5);
+    if (!a) {
+      a = { id: uid(), cliente_id: p_cliente, token: crypto.randomUUID(), canal: "link", status: "pendente", termo: termoDemo(), dados: null, alteracoes: null, nome: null, cpf: null,
+        assinatura_png: null, ip: null, user_agent: null, hash: null, visualizado_em: null, assinado_em: null, expira_em: new Date(Date.now() + 15 * 864e5).toISOString(), created_at: new Date().toISOString() };
+      db.clientes_assinaturas.push(a);
+    }
+    return { data: { id: a.id, token: a.token, expira_em: a.expira_em }, error: null };
+  },
+  ficha_cadastral_assinar_presencial: ({ p_cliente, p_nome, p_cpf, p_png, p_user_agent }) => {
+    if (!temPapelDemo("vendas", "financeiro", "tecnico")) return erro("sem permissão para esta ação");
+    const falha = assinanteDemo(p_nome, p_cpf, p_png);
+    if (falha) return erro(falha);
+    const c = db.clientes.find((x) => x.id === p_cliente);
+    if (!c) return erro("cliente não encontrado");
+    const agora = new Date().toISOString();
+    const a: Row = { id: uid(), cliente_id: p_cliente, token: crypto.randomUUID(), canal: "presencial", status: "assinado", termo: termoDemo(), dados: fichaClienteDemo(c), alteracoes: null,
+      nome: String(p_nome).trim(), cpf: String(p_cpf).replace(/\D/g, ""), assinatura_png: p_png, ip: "189.6.20.15", user_agent: p_user_agent ?? null, visualizado_em: null, assinado_em: agora, expira_em: agora, created_at: agora };
+    a.hash = hashDemo(a);
+    (db.clientes_assinaturas ??= []).push(a);
+    if (!c.status_crm || ["lead", "negociacao"].includes(c.status_crm)) c.status_crm = "cliente";
+    return { data: { id: a.id, hash: a.hash, assinado_em: a.assinado_em }, error: null };
+  },
+  ficha_cadastral_cancelar: ({ p_id }) => {
+    const a = (db.clientes_assinaturas ?? []).find((x) => x.id === p_id && x.status === "pendente");
+    if (!a) return erro("só dá para cancelar um link que ainda não foi assinado");
+    Object.assign(a, { status: "cancelado", cancelado_em: new Date().toISOString() });
+    return { data: null, error: null };
+  },
+  ficha_cadastral_conferir: ({ p_id }) => {
+    const a = (db.clientes_assinaturas ?? []).find((x) => x.id === p_id);
+    return { data: !!a?.hash && a.hash === hashDemo(a), error: null };
+  },
+  ficha_cadastral_publica: ({ p_token }) => {
+    const a = (db.clientes_assinaturas ?? []).find((x) => x.token === p_token && x.canal === "link");
+    if (!a) return { data: null, error: null };
+    const status = a.status === "pendente" && Date.parse(a.expira_em) < Date.now() ? "vencido" : a.status;
+    if (status === "pendente") a.visualizado_em ??= new Date().toISOString();
+    const cfg = db.configuracoes[0];
+    const c = db.clientes.find((x) => x.id === a.cliente_id);
+    return { data: { status, termo: a.termo, dados: status === "pendente" ? fichaClienteDemo(c ?? {}) : status === "assinado" ? a.dados : null, nome: a.nome, assinado_em: a.assinado_em,
+      hash: a.hash, expira_em: a.expira_em, empresa: { nome: cfg.nome_fantasia || cfg.razao_social, razao_social: cfg.razao_social, cnpj: cfg.cnpj, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email } }, error: null };
+  },
+  ficha_cadastral_assinar: ({ p_token, p_nome, p_cpf, p_png, p_dados, p_user_agent }) => {
+    const a = (db.clientes_assinaturas ?? []).find((x) => x.token === p_token && x.canal === "link");
+    if (!a) return erro("link não encontrado");
+    if (a.status === "assinado") return erro("esta ficha já foi assinada");
+    if (a.status !== "pendente") return erro("este link foi cancelado: peça um novo");
+    if (Date.parse(a.expira_em) < Date.now()) return erro("link vencido: peça um novo");
+    const falha = assinanteDemo(p_nome, p_cpf, p_png);
+    if (falha) return erro(falha);
+    const c = db.clientes.find((x) => x.id === a.cliente_id)!;
+    const alt: Row = {};
+    for (const k of ["email", "email_nfe", "telefone", "whatsapp", "data_nascimento", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf"]) {
+      if (!p_dados || !(k in p_dados)) continue;
+      let v: string | null = String(p_dados[k] ?? "").trim().slice(0, 200) || null;
+      if (v && ["telefone", "whatsapp", "cep"].includes(k)) v = v.replace(/\D/g, "") || null;
+      if (v && ["email", "email_nfe"].includes(k)) { v = v.toLowerCase(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return erro(`e-mail inválido: ${v}`); }
+      if (v && k === "uf") v = v.slice(0, 2).toUpperCase();
+      if ((c[k] ?? null) !== v) alt[k] = { antes: c[k] ?? null, depois: v };
+    }
+    for (const [k, v] of Object.entries(alt)) c[k] = (v as Row).depois;
+    const agora = new Date().toISOString();
+    Object.assign(a, { status: "assinado", nome: String(p_nome).trim(), cpf: String(p_cpf).replace(/\D/g, ""), assinatura_png: p_png, ip: "200.150.12.7", user_agent: p_user_agent ?? null,
+      assinado_em: agora, dados: fichaClienteDemo(c), alteracoes: Object.keys(alt).length ? alt : null });
+    a.hash = hashDemo(a);
+    if (!c.status_crm || ["lead", "negociacao"].includes(c.status_crm)) c.status_crm = "cliente";
+    notificarDemo("outro", "Ficha cadastral assinada", [c.nome_fantasia || c.nome, Object.keys(alt).length ? `atualizou ${Object.keys(alt).sort().join(", ")}` : ""].filter(Boolean).join(" · "), "/clientes", ["vendas", "financeiro"]);
+    return { data: { hash: a.hash, assinado_em: a.assinado_em, ip: a.ip, dados: a.dados }, error: null };
+  },
   unificar_clientes: ({ p_manter, p_outros }) => {
     const m = db.clientes.find((x) => x.id === p_manter);
     if (!m) return { data: null, error: { message: "cliente principal não encontrado" } };
@@ -1425,10 +1560,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     for (const id of p_outros) {
       const o = db.clientes.find((x) => x.id === id);
       if (!o || id === p_manter) continue;
-      for (const t of ["pedidos", "contas_receber", "ordens_servico", "equipamentos", "contatos_cliente", "notas_fiscais", "emails"]) {
+      for (const t of ["pedidos", "contas_receber", "ordens_servico", "equipamentos", "contatos_cliente", "notas_fiscais", "emails", "clientes_pessoas", "clientes_assinaturas"]) {
         for (const r of ((db as any)[t] ?? [])) if (r.cliente_id === id) r.cliente_id = p_manter;
       }
-      for (const k of ["nome_fantasia", "cpf_cnpj", "inscricao_estadual", "email", "telefone", "whatsapp", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf"]) {
+      for (const k of ["nome_fantasia", "cpf_cnpj", "inscricao_estadual", "email", "telefone", "whatsapp", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf",
+        "telefone_adicional", "website", "email_nfe", "contato_observacoes", "inscricao_municipal", "inscricao_suframa", "regime_tributario", "data_nascimento", "status_crm",
+        "vendedor_id", "forma_pagamento_id", "condicao_pagamento", "desconto_padrao", "limite_credito"]) {
         if (!m[k] && o[k]) m[k] = o[k];
       }
       m.tags = [...new Set([...(m.tags ?? []), ...(o.tags ?? [])])];

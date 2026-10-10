@@ -73,6 +73,8 @@ type Props<T> = {
   filtroBase?: (row: T) => boolean;
   /** Abre o formulário deste registro (ex.: "Corrigir" vindo de outra aba). Mande um objeto novo a cada pedido. */
   editarAgora?: T | null;
+  /** Formulário próprio no lugar do padrão (ex.: cadastro de clientes em abas). */
+  formulario?: (registro: Record<string, any>, fechar: () => void) => ReactNode;
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
@@ -325,7 +327,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         </div>
       )}
 
-      <Modal open={!!editando} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
+      {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
+      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (
           <form onSubmit={salvar}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -401,7 +404,7 @@ const PLACEHOLDER: Partial<Record<Mascara, string>> = {
 };
 
 /** Campo com máscara, validação e atalhos (WhatsApp, ligar, e-mail, buscar CNPJ/CEP). */
-function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onChange, onBuscar }: {
+export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onChange, onBuscar }: {
   f: CampoForm; valor: any; row: Record<string, any>; buscando: boolean; mostrarErro: boolean;
   onBlur: () => void; onChange: (v: string) => void; onBuscar: () => void;
 }) {

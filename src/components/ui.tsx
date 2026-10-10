@@ -171,14 +171,12 @@ export function Badge({ value }: { value: string | null | undefined }) {
 
 const pilhaModais: symbol[] = [];
 
-export function Modal({
-  open, onClose, title, children, wide,
-}: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
+/** Esc fecha só a janela de cima (ex.: o PDF aberto por cima da ficha). */
+export function useFecharComEsc(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
     const id = Symbol();
     pilhaModais.push(id);
-    // Esc fecha só a janela de cima (ex.: o PDF aberto por cima da ficha)
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && pilhaModais[pilhaModais.length - 1] === id && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
@@ -186,6 +184,12 @@ export function Modal({
       pilhaModais.splice(pilhaModais.indexOf(id), 1);
     };
   }, [open, onClose]);
+}
+
+export function Modal({
+  open, onClose, title, children, wide,
+}: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
+  useFecharComEsc(open, onClose);
 
   if (!open) return null;
   // Portal: a janela fica fora do formulário que a abriu (formulário dentro de formulário recarregava a página),
