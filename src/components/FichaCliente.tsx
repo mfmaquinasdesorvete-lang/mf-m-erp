@@ -1,7 +1,7 @@
 // Ficha do cliente 360°: tudo o que o cliente já fez com a empresa numa tela só. Compras (pedidos do ERP e notas
 // do sistema anterior), o que costuma comprar, como paga, assistência e equipamentos, atendimentos registrados,
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Info, Lightbulb, Link2, MessageSquarePlus, Save, XCircle } from "lucide-react";
 import { Badge, Button, Field, Modal, Tabs } from "@/components/ui";
@@ -23,6 +23,25 @@ const TIPOS: Record<string, string> = { pos_venda: "Pós-venda", cobranca: "Cobr
 const CANAIS: Record<string, string> = { whatsapp: "WhatsApp", telefone: "Telefone", email: "E-mail", visita: "Visita", loja: "Na loja" };
 const ICONE = { erro: { Icon: XCircle, cor: "text-red-600" }, alerta: { Icon: AlertTriangle, cor: "text-amber-600" }, info: { Icon: Info, cor: "text-sky-600" } };
 const diasEntre = (a: string, b: string) => Math.round((Date.parse(b.slice(0, 10)) - Date.parse(a.slice(0, 10))) / 864e5);
+// a parcela só entra se a descrição ainda não diz qual é (ex.: "Pedido #101 - parcela 3/3")
+const descricaoConta = (x: any) => {
+  const parc = `${x.parcela}/${x.total_parcelas}`;
+  return x.total_parcelas > 1 && !String(x.descricao ?? "").includes(parc) ? `${x.descricao} (${parc})` : x.descricao;
+};
+const pagamentoConta = (x: any) => {
+  const atraso = x.status === "pago" && x.data_pagamento ? diasEntre(x.vencimento, x.data_pagamento) : 0;
+  return `${dataBR(x.data_pagamento)}${atraso > 0 ? ` · ${atraso} dia(s) de atraso` : ""}`;
+};
+
+/** Linha dos cartões do celular: texto à esquerda (quebra linha) e valor à direita (nunca quebra). */
+function Linha({ esq, dir }: { esq: ReactNode; dir: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="min-w-0 [overflow-wrap:anywhere]">{esq}</span>
+      <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{dir}</span>
+    </div>
+  );
+}
 
 function useFicha(c: Cliente) {
   return useQuery({
@@ -76,23 +95,24 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
   const nome = c.nome_fantasia?.trim() || c.nome;
   return (
     <Modal open onClose={onClose} title={`Ficha 360 · ${nome}`} wide>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="text-sm text-slate-600">
-          <div className="font-semibold text-fg">{c.nome}{c.codigo ? <span className="ml-2 font-mono text-xs text-slate-500">cód. {c.codigo}</span> : null}</div>
+      {/* no celular tudo quebra linha: nada pode passar da largura da janela (senão ela desliza para os lados) */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 [overflow-wrap:anywhere]">
+        <div className="min-w-0 text-sm text-slate-600">
+          <div className="font-semibold text-fg">{c.nome}{c.codigo ? <span className="ml-2 whitespace-nowrap font-mono text-xs text-slate-500">cód. {c.codigo}</span> : null}</div>
           <div>{[docFormat(c.cpf_cnpj), [c.municipio, c.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") || "—"}</div>
         </div>
-        <div className="flex items-center gap-3">
-          {calc && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}
-          <Contato r={c} mensagem={`Olá, ${nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          {calc && <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}
+          <div className="min-w-0"><Contato r={c} mensagem={`Olá, ${nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /></div>
           {c.portal_token && (
-            <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
-              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
-              <Link2 size={15} /> Link do cliente
-            </Button>
-          )}
-          {c.portal_token && (
-            <a href={`/cliente/${c.portal_token}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand hover:underline"
-              onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_token}`); } }}>Ver como o cliente vê</a>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
+                <Link2 size={15} /> Link do cliente
+              </Button>
+              <a href={`/cliente/${c.portal_token}`} target="_blank" rel="noreferrer" className="whitespace-nowrap text-sm font-semibold text-brand hover:underline"
+                onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_token}`); } }}>Ver como o cliente vê</a>
+            </div>
           )}
         </div>
       </div>
@@ -125,9 +145,9 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 function Indicador({ rotulo, valor, sub, tom }: { rotulo: string; valor: string; sub?: string; tom?: "bom" | "ruim" | "atencao" }) {
   const cor = tom === "ruim" ? "text-red-700" : tom === "atencao" ? "text-amber-700" : tom === "bom" ? "text-emerald-700" : "text-fg";
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
+    <div className="min-w-0 rounded-xl border border-slate-200 p-3">
       <div className="text-xs font-semibold uppercase text-slate-500">{rotulo}</div>
-      <div className={`mt-0.5 text-lg font-bold ${cor}`}>{valor}</div>
+      <div className={`mt-0.5 text-base font-bold tabular-nums [overflow-wrap:anywhere] sm:text-lg ${cor}`}>{valor}</div>
       {sub && <div className="text-xs text-slate-500">{sub}</div>}
     </div>
   );
@@ -191,7 +211,7 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
         </Field>
         <div>
           <span className="mb-1.5 block text-xs font-semibold text-slate-600">Observações do cadastro</span>
-          <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{c.observacoes || "—"}</p>
+          <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700 [overflow-wrap:anywhere]">{c.observacoes || "—"}</p>
         </div>
       </div>
       {podeEditar && pref !== (c.preferencias ?? "") && (
@@ -205,23 +225,32 @@ function Compras({ compras, pedidos }: { compras: ReturnType<typeof comprasDoCli
   const orcamentos = pedidos.filter((p) => ["orcamento", "cancelado"].includes(p.status));
   return (
     <div className="space-y-5">
-      {!compras.length ? <p className="text-sm text-slate-500">Nenhuma compra registrada (pedidos aprovados ou notas de venda).</p> : (
-        <div className="overflow-x-auto">
+      {!compras.length ? <p className="text-sm text-slate-500">Nenhuma compra registrada (pedidos aprovados ou notas de venda).</p> : (<>
+        <ul className="divide-y divide-slate-100 text-sm sm:hidden">
+          {compras.map((x, i) => (
+            <li key={i} className="py-2">
+              <Linha esq={<span className="font-semibold">{x.ref}</span>} dir={brl(x.valor)} />
+              <div className="text-xs text-slate-500">{dataBR(x.data)}{x.origem === "nota" && " · sistema anterior"}</div>
+              {x.itens.length > 0 && <div className="mt-0.5 text-slate-600">{x.itens.map((it) => `${it.quantidade}× ${it.descricao}`).join("; ")}</div>}
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Data</th><th>Documento</th><th className="hidden sm:table-cell">Itens</th><th className="text-right">Valor</th></tr></thead>
+            <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Data</th><th>Documento</th><th>Itens</th><th className="text-right">Valor</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {compras.map((x, i) => (
                 <tr key={i}>
                   <td className="whitespace-nowrap py-1.5">{dataBR(x.data)}</td>
                   <td className="whitespace-nowrap">{x.ref}{x.origem === "nota" && <span className="ml-1 text-xs text-slate-400">(sistema anterior)</span>}</td>
-                  <td className="hidden text-slate-600 sm:table-cell">{x.itens.map((it) => `${it.quantidade}× ${it.descricao}`).join("; ") || "—"}</td>
+                  <td className="text-slate-600">{x.itens.map((it) => `${it.quantidade}× ${it.descricao}`).join("; ") || "—"}</td>
                   <td className="whitespace-nowrap text-right font-semibold">{brl(x.valor)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
+      </>)}
       {orcamentos.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">Orçamentos e propostas que não viraram venda</h3>
@@ -231,7 +260,7 @@ function Compras({ compras, pedidos }: { compras: ReturnType<typeof comprasDoCli
                 <span className="font-semibold">#{p.numero}</span> <span className="text-slate-500">{dataBR(p.created_at)}</span>
                 <Badge value={p.status} /> {p.proposta_status && <Badge value={p.proposta_status} />}
                 <span className="font-semibold">{brl(p.valor_total)}</span>
-                {(p.motivo_rejeicao || p.motivo_rejeicao_texto) && <span className="text-slate-600">· motivo: {[p.motivo_rejeicao, p.motivo_rejeicao_texto].filter(Boolean).join(" — ")}</span>}
+                {(p.motivo_rejeicao || p.motivo_rejeicao_texto) && <span className="min-w-0 text-slate-600 [overflow-wrap:anywhere]">· motivo: {[p.motivo_rejeicao, p.motivo_rejeicao_texto].filter(Boolean).join(" — ")}</span>}
               </li>
             ))}
           </ul>
@@ -243,16 +272,26 @@ function Compras({ compras, pedidos }: { compras: ReturnType<typeof comprasDoCli
 
 function Produtos({ produtos }: { produtos: ReturnType<typeof produtosDoCliente> }) {
   if (!produtos.length) return <p className="text-sm text-slate-500">Ainda sem produtos comprados.</p>;
-  return (
-    <div className="overflow-x-auto">
+  return (<>
+    <ul className="divide-y divide-slate-100 text-sm sm:hidden">
+      {produtos.map((p, i) => (
+        <li key={i} className="py-2">
+          <Linha esq={p.descricao} dir={brl(p.valor)} />
+          <div className="text-xs text-slate-500">
+            {p.vezes} {p.vezes === 1 ? "vez" : "vezes"} · {p.quantidade.toLocaleString("pt-BR")} un. · última em {dataBR(p.ultima)}
+          </div>
+        </li>
+      ))}
+    </ul>
+    <div className="hidden overflow-x-auto sm:block">
       <table className="w-full text-sm">
-        <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Produto</th><th className="text-right">Vezes</th><th className="hidden text-right sm:table-cell">Quantidade</th><th className="text-right">Total</th><th className="text-right">Última</th></tr></thead>
+        <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Produto</th><th className="text-right">Vezes</th><th className="text-right">Quantidade</th><th className="text-right">Total</th><th className="text-right">Última</th></tr></thead>
         <tbody className="divide-y divide-slate-100">
           {produtos.map((p, i) => (
             <tr key={i}>
               <td className="py-1.5">{p.descricao}</td>
               <td className="text-right">{p.vezes}</td>
-              <td className="hidden text-right sm:table-cell">{p.quantidade.toLocaleString("pt-BR")}</td>
+              <td className="text-right">{p.quantidade.toLocaleString("pt-BR")}</td>
               <td className="whitespace-nowrap text-right font-semibold">{brl(p.valor)}</td>
               <td className="whitespace-nowrap text-right">{dataBR(p.ultima)}</td>
             </tr>
@@ -260,7 +299,7 @@ function Produtos({ produtos }: { produtos: ReturnType<typeof produtosDoCliente>
         </tbody>
       </table>
     </div>
-  );
+  </>);
 }
 
 function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoCliente> }) {
@@ -272,27 +311,36 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
         <Indicador rotulo="Pagas com atraso" valor={`${r.pagasComAtraso} de ${r.pagas}`} tom={r.pagasComAtraso > 1 ? "atencao" : undefined} />
         <Indicador rotulo="Atraso médio" valor={r.atrasoMedio ? `${r.atrasoMedio} dias` : "—"} />
       </div>
-      {!contas.length ? <p className="text-sm text-slate-500">Nenhuma conta a receber deste cliente.</p> : (
-        <div className="overflow-x-auto">
+      {!contas.length ? <p className="text-sm text-slate-500">Nenhuma conta a receber deste cliente.</p> : (<>
+        <ul className="divide-y divide-slate-100 text-sm sm:hidden">
+          {contas.map((x) => (
+            <li key={x.id} className="py-2">
+              <Linha esq={<span>vence <b>{dataBR(x.vencimento)}</b></span>} dir={brl(x.valor)} />
+              <div className="text-slate-600">{descricaoConta(x)}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                <Badge value={situacaoConta(x.status, x.vencimento)} />
+                {x.data_pagamento && <span>pago em {pagamentoConta(x)}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Vencimento</th><th className="hidden sm:table-cell">Descrição</th><th className="text-right">Valor</th><th>Situação</th><th>Pagamento</th></tr></thead>
+            <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Vencimento</th><th>Descrição</th><th className="text-right">Valor</th><th className="pl-4">Situação</th><th>Pagamento</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {contas.map((x) => {
-                const atraso = x.status === "pago" && x.data_pagamento ? diasEntre(x.vencimento, x.data_pagamento) : 0;
-                return (
-                  <tr key={x.id}>
-                    <td className="whitespace-nowrap py-1.5">{dataBR(x.vencimento)}</td>
-                    <td className="hidden sm:table-cell">{x.descricao}{x.total_parcelas > 1 ? ` (${x.parcela}/${x.total_parcelas})` : ""}</td>
-                    <td className="whitespace-nowrap text-right font-semibold">{brl(x.valor)}</td>
-                    <td><Badge value={situacaoConta(x.status, x.vencimento)} /></td>
-                    <td className="whitespace-nowrap">{x.data_pagamento ? `${dataBR(x.data_pagamento)}${atraso > 0 ? ` · ${atraso} dia(s) de atraso` : ""}` : "—"}</td>
-                  </tr>
-                );
-              })}
+              {contas.map((x) => (
+                <tr key={x.id}>
+                  <td className="whitespace-nowrap py-1.5">{dataBR(x.vencimento)}</td>
+                  <td>{descricaoConta(x)}</td>
+                  <td className="whitespace-nowrap text-right font-semibold">{brl(x.valor)}</td>
+                  <td className="pl-4"><Badge value={situacaoConta(x.status, x.vencimento)} /></td>
+                  <td className="whitespace-nowrap">{x.data_pagamento ? pagamentoConta(x) : "—"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      )}
+      </>)}
     </div>
   );
 }
@@ -306,7 +354,7 @@ function Assistencia({ oss, equipamentos }: { oss: any[]; equipamentos: any[] })
         {!equipamentos.length ? <p className="text-sm text-slate-500">Nenhum equipamento registrado.</p> : (
           <ul className="space-y-1.5 text-sm">
             {equipamentos.map((e) => (
-              <li key={e.id} className="flex flex-wrap gap-x-3">
+              <li key={e.id} className="flex flex-wrap gap-x-3 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
                 <span>vendido em {dataBR(e.data_venda)}</span>
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}
@@ -327,7 +375,7 @@ function Assistencia({ oss, equipamentos }: { oss: any[]; equipamentos: any[] })
                   {o.em_garantia && <span className="text-xs font-semibold text-emerald-700">garantia</span>}
                   <span className="ml-auto font-semibold">{brl(o.valor_total)}</span>
                 </div>
-                <div className="text-slate-600">{o.equipamento}{o.numero_serie ? ` (série ${o.numero_serie})` : ""}: {o.defeito_relatado}</div>
+                <div className="text-slate-600 [overflow-wrap:anywhere]">{o.equipamento}{o.numero_serie ? ` (série ${o.numero_serie})` : ""}: {o.defeito_relatado}</div>
               </li>
             ))}
           </ul>
@@ -398,7 +446,7 @@ function Atendimentos({ cliente, contatos, nomes }: { cliente: Cliente; contatos
                 {x.created_by && nomes.get(x.created_by) && <span>por {nomes.get(x.created_by)}</span>}
                 {x.proximo_contato && <span className={x.proximo_contato < hoje() ? "font-semibold text-red-700" : "text-sky-700"}>retornar em {dataBR(x.proximo_contato)}</span>}
               </div>
-              {x.resultado && <p className="mt-1 whitespace-pre-wrap text-slate-700">{x.resultado}</p>}
+              {x.resultado && <p className="mt-1 whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{x.resultado}</p>}
             </li>
           ))}
         </ol>

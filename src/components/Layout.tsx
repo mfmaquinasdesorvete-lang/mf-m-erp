@@ -159,7 +159,8 @@ function Marca({ compacta }: { compacta?: boolean }) {
   return (
     <div className={`flex shrink-0 items-center ${compacta ? "gap-2" : "gap-3"}`}>
       <img src={logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl ring-1 ring-white/10`} />
-      <span className="whitespace-nowrap leading-tight">
+      {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
+      <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
         <span className="block text-lg font-extrabold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
         <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-[11px] font-semibold uppercase tracking-[0.16em] text-nav-fraco`}>MF Máquinas</span>
       </span>

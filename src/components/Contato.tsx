@@ -26,7 +26,7 @@ export function Contato({ r, mensagem }: { r: { whatsapp?: string | null; telefo
       )}
       {r.telefone && r.telefone !== r.whatsapp && <div className="whitespace-nowrap text-slate-600">{formatarTelefone(r.telefone)}</div>}
       {r.email && (
-        <a href={`mailto:${r.email}`} className="flex items-center gap-1 text-xs text-slate-500 hover:underline"><Mail size={12} /> {r.email}</a>
+        <a href={`mailto:${r.email}`} className="flex items-center gap-1 text-xs text-slate-500 [overflow-wrap:anywhere] hover:underline"><Mail size={12} /> {r.email}</a>
       )}
     </div>
   );
