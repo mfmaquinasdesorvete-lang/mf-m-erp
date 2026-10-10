@@ -748,6 +748,12 @@ function planoDemo(db: Db) {
     "Peças Refrigeração - My Frost", "Vedantes/ Orings My Frost", "As Extrutura Máquinas", "As Extrutura Máquinas > Cilindros", "Batedor de Milk"];
   db.produtos.forEach((p) => { p.categoria ??= p.tipo === "maquina" ? "As Máquinas My Frost" : /veda|o-?ring|borracha/i.test(p.descricao) ? "Vedantes/ Orings My Frost" : "Peças de Reposição"; });
   db.categorias_produto = [...new Set([...cats, ...db.produtos.map((p) => p.categoria).filter(Boolean)])].map((nome, i) => ({ id: `cat${i + 1}`, nome, ativo: true }));
+  // categorias dos cadastros (tipo de contato)
+  db.tipos_contato = [
+    { id: "fornecedor", chave: "fornecedor", nome: "Fornecedor", cor: "purple", ordem: 1, ativo: true, sistema: true },
+    { id: "revenda", chave: "revenda", nome: "Revenda", cor: "indigo", ordem: 2, ativo: true, sistema: false },
+    { id: "parceiro", chave: "parceiro", nome: "Técnico parceiro", cor: "orange", ordem: 3, ativo: true, sistema: true },
+  ];
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
   Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
     receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],
@@ -1486,6 +1492,31 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       if (f.tem_movimento) { c.tags = [...new Set([...(c.tags ?? []), "fornecedor"])]; mantidos++; } else { db.clientes = db.clientes.filter((x) => x.id !== f.id); retirados++; }
     }
     return { data: { retirados, mantidos_com_etiqueta: mantidos, fornecedores_criados: 0 }, error: null };
+  },
+  clientes_virar_fornecedor: ({ p_ids, p_manter_cliente }) => {
+    if (!temPapelDemo("vendas", "financeiro")) return erro("sem permissão para esta ação");
+    const r = { movidos: 0, mantidos: 0, fornecedores_criados: 0, anexos: 0, fornecedor_id: null as string | null };
+    for (const id of p_ids ?? []) {
+      const c = db.clientes.find((x) => x.id === id);
+      if (!c) continue;
+      const doc = String(c.cpf_cnpj ?? "").replace(/\D/g, "");
+      let f = db.fornecedores.find((x) => (doc ? String(x.cnpj ?? "").replace(/\D/g, "") === doc : !x.cnpj && x.nome.trim().toLowerCase() === c.nome.trim().toLowerCase()));
+      if (!f) {
+        f = { id: uid(), nome: c.nome, nome_fantasia: c.nome_fantasia ?? null, cnpj: doc || null, inscricao_estadual: c.inscricao_estadual ?? null, email: c.email ?? null,
+          telefone: c.telefone ?? null, whatsapp: c.whatsapp ?? null, cep: c.cep ?? null, logradouro: c.logradouro ?? null, numero: c.numero ?? null, complemento: c.complemento ?? null,
+          bairro: c.bairro ?? null, municipio: c.municipio ?? null, uf: c.uf ?? null, observacoes: c.observacoes ?? null, tags: [], created_at: new Date().toISOString() };
+        db.fornecedores.push(f);
+        r.fornecedores_criados++;
+      }
+      if (p_manter_cliente) { c.tags = [...new Set([...(c.tags ?? []), "fornecedor"])].sort(); r.mantidos++; }
+      else {
+        for (const d of db.documentos ?? []) if (d.entidade === "cliente" && d.entidade_id === c.id) { d.entidade = "fornecedor"; d.entidade_id = f.id; r.anexos++; }
+        db.clientes = db.clientes.filter((x) => x.id !== c.id);
+        r.movidos++;
+      }
+      r.fornecedor_id = f.id;
+    }
+    return { data: r, error: null };
   },
   termo_ficha_cadastral: () => ({ data: termoDemo(), error: null }),
   ficha_cadastral_link: ({ p_cliente }) => {

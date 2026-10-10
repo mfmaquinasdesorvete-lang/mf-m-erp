@@ -3,7 +3,7 @@
 // e unificação de cadastros repetidos.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Building2, CheckCircle2, Copy, MapPin, MessageCircle, Merge, RefreshCw, ShieldAlert, Store, Truck, Wrench } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Copy, MapPin, MessageCircle, Merge, RefreshCw, ShieldAlert, Store, Tags, Truck, Wrench } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -11,6 +11,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { dataBR, docFormat } from "@/lib/format";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Cliente, Fornecedor } from "@/lib/types";
+import { corTipo, type TipoContato } from "./TiposContato";
 import { possiveisDuplicados, type DadosReceita } from "../../../supabase/functions/_shared/receita";
 
 type ComEtiquetas = { tags?: string[] | null; receita_situacao?: string | null };
@@ -18,14 +19,21 @@ const tem = (c: ComEtiquetas, t: string) => (c.tags ?? []).includes(t);
 const ROTULO_IE: Record<string, string> = { ativa: "IE ativa", baixada: "IE baixada", nao_encontrada: "IE não encontrada na Receita", sem_ie: "sem IE na Receita" };
 
 /** Ícones ao lado do nome na lista (clientes e fornecedores). */
-export function EtiquetasCliente({ c }: { c: ComEtiquetas }) {
+const FIXAS = ["fornecedor", "revenda", "parceiro"];
+
+export function EtiquetasCliente({ c, tipos }: { c: ComEtiquetas; tipos?: TipoContato[] }) {
   const itens: { Icon: typeof ShieldAlert; texto: string; cor: string; titulo: string }[] = [];
+  // nome que a MF deu à categoria (Configurações dos cadastros); sem a lista, o nome de sempre
+  const nome = (chave: string, padrao: string) => tipos?.find((t) => t.chave === chave)?.nome.toLowerCase() ?? padrao;
   if (tem(c, "cnpj_irregular")) itens.push({ Icon: ShieldAlert, texto: `CNPJ ${String(c.receita_situacao ?? "irregular").toLowerCase()}`, cor: "bg-red-100 text-red-800", titulo: "Situação do CNPJ na Receita: não está ativo" });
   if (tem(c, "ie_baixada")) itens.push({ Icon: AlertTriangle, texto: "IE baixada", cor: "bg-amber-100 text-amber-800", titulo: "A inscrição estadual está baixada/inativa: confira antes de emitir nota como contribuinte" });
   if (tem(c, "endereco_receita")) itens.push({ Icon: MapPin, texto: "2 endereços", cor: "bg-sky-100 text-sky-800", titulo: "O endereço do cadastro é diferente do endereço na Receita (os dois ficam na ficha)" });
-  if (tem(c, "fornecedor")) itens.push({ Icon: Truck, texto: "fornecedor", cor: "bg-purple-100 text-purple-800", titulo: "Também é fornecedor da MF" });
-  if (tem(c, "revenda")) itens.push({ Icon: Store, texto: "revenda", cor: "bg-indigo-100 text-indigo-800", titulo: "Revende as máquinas e peças da MF" });
-  if (tem(c, "parceiro")) itens.push({ Icon: Wrench, texto: "técnico parceiro", cor: "bg-orange-100 text-orange-800", titulo: "Técnico parceiro da assistência" });
+  if (tem(c, "fornecedor")) itens.push({ Icon: Truck, texto: nome("fornecedor", "fornecedor"), cor: "bg-purple-100 text-purple-800", titulo: "Também é fornecedor da MF" });
+  if (tem(c, "revenda")) itens.push({ Icon: Store, texto: nome("revenda", "revenda"), cor: "bg-indigo-100 text-indigo-800", titulo: "Revende as máquinas e peças da MF" });
+  if (tem(c, "parceiro")) itens.push({ Icon: Wrench, texto: nome("parceiro", "técnico parceiro"), cor: "bg-orange-100 text-orange-800", titulo: "Técnico parceiro da assistência" });
+  for (const t of tipos ?? []) {
+    if (!FIXAS.includes(t.chave) && tem(c, t.chave)) itens.push({ Icon: Tags, texto: t.nome.toLowerCase(), cor: corTipo(t.cor).chip.replace(/border-\S+ /, ""), titulo: t.nome });
+  }
   if (!itens.length) return null;
   return (
     <div className="mt-0.5 flex flex-wrap gap-1">

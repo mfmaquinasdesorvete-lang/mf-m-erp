@@ -10,11 +10,12 @@ import { usePerfil } from "@/lib/auth";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { digitos, docFormat } from "@/lib/format";
 import type { Cliente } from "@/lib/types";
-import { useRows } from "@/lib/data";
+import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { ArrumarCadastro, EtiquetasCliente, UnificarClientes } from "@/components/clientes/QualidadeClientes";
 import { ClienteForm } from "@/components/clientes/ClienteForm";
 import { useAssinaturasFicha } from "@/components/clientes/AssinaturaFicha";
+import { useTiposContato } from "@/components/clientes/TiposContato";
 import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral";
 import type { Vendedor } from "@/lib/types";
 
@@ -86,7 +87,6 @@ const filtrosBase = (): FiltroCrud<Cliente>[] => [
     ],
   },
   { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
-  { label: "Etiqueta", opcoes: [{ label: "Também é fornecedor", teste: (r) => tag(r, "fornecedor") }] },
   {
     label: "CRM", opcoes: [
       ...STATUS_CRM.map((x) => ({ label: x.label, teste: (r: Cliente) => r.status_crm === x.value })),
@@ -103,6 +103,8 @@ export default function Clientes() {
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [arrumar, setArrumar] = useState(false);
   const [unificar, setUnificar] = useState<string[] | null>(null);
+  const tipos = useTiposContato();
+  const invalidar = useInvalidate();
   // mesma consulta da lista (fica em cache): para os repetidos e para unificar
   const { data: todos = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   // quem tem histórico ganha o botão da ficha colorido
@@ -133,6 +135,11 @@ export default function Clientes() {
   const filtros = useMemo<FiltroCrud<Cliente>[]>(() => [
     ...filtrosBase(),
     {
+      label: "Etiqueta", opcoes: tipos.map((t) => ({
+        label: t.chave === "fornecedor" ? `Também é ${t.nome.toLowerCase()}` : t.nome, teste: (r: Cliente) => tag(r, t.chave),
+      })),
+    },
+    {
       label: "Ficha", opcoes: [
         { label: "Assinada", teste: (r) => situacaoFicha.get(r.id) === "assinado" },
         { label: "Link enviado, aguardando", teste: (r) => situacaoFicha.get(r.id) === "pendente" },
@@ -141,7 +148,7 @@ export default function Clientes() {
       ],
     },
     { label: "Vendedor", valor: (r) => vendedores.find((v) => v.id === r.vendedor_id)?.nome ?? null },
-  ], [situacaoFicha, vendedores]);
+  ], [situacaoFicha, vendedores, tipos]);
   return (
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
@@ -163,6 +170,17 @@ export default function Clientes() {
           if (ids.length < 2) throw new Error("Selecione 2 ou mais cadastros da mesma pessoa/empresa para unificar");
           setUnificar(ids);
           return "Escolha qual cadastro fica";
+        },
+      }, {
+        label: "Mover para fornecedores",
+        executar: async (ids) => {
+          if (!confirm(`${ids.length} cadastro(s) vão para Fornecedores e saem da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`)) {
+            throw new Error("Nada foi movido");
+          }
+          const { data, error } = await supabase.rpc("clientes_virar_fornecedor", { p_ids: ids, p_manter_cliente: false });
+          if (error) throw error;
+          invalidar("fornecedores", "documentos");
+          return `${data?.movidos ?? 0} movido(s) para Fornecedores (${data?.fornecedores_criados ?? 0} fornecedor(es) novo(s), os outros juntaram com o do mesmo CNPJ)`;
         },
       }] : []}
       anexos="cliente"
@@ -198,7 +216,7 @@ export default function Clientes() {
                 {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
                 {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
               </div>
-              <EtiquetasCliente c={r} />
+              <EtiquetasCliente c={r} tipos={tipos} />
             </>);
           },
         },

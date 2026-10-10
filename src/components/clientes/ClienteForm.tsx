@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CircleCheck, Copy, Globe, HandCoins, IdCard, Landmark, Mail, MapPin, MapPinned,
-  MessageCircle, Paperclip, PenLine, Phone, Receipt, Save, StickyNote, Tags, UserRound, Users, Wallet, X, type LucideIcon,
+  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, StickyNote, Tags, Truck, UserRound, Users, Wallet, X, type LucideIcon,
 } from "lucide-react";
 import { Button, Field, useFecharComEsc } from "../ui";
 import { CampoMascara } from "../CrudPage";
@@ -15,6 +15,7 @@ import { VendedorSelect } from "../VendedorSelect";
 import { EtiquetasCliente } from "./QualidadeClientes";
 import { PessoasContato, type PessoaEditada } from "./PessoasContato";
 import { AssinaturaFicha, useAssinaturasFicha } from "./AssinaturaFicha";
+import { CategoriasContato, corTipo, useTiposContato } from "./TiposContato";
 import { limpar, useInvalidate, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -56,13 +57,6 @@ const ROTULO: Record<string, string> = {
 const SPAN = { 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4", 5: "sm:col-span-5", 6: "sm:col-span-6", 7: "sm:col-span-7", 8: "sm:col-span-8", 12: "sm:col-span-12" } as const;
 type Span = keyof typeof SPAN;
 
-/** Etiquetas de "tipo de contato" (o cliente é sempre cliente). */
-const TIPOS_CONTATO = [
-  { tag: "fornecedor", label: "Fornecedor" },
-  { tag: "revenda", label: "Revenda" },
-  { tag: "parceiro", label: "Técnico parceiro" },
-];
-
 const COR_SECAO = {
   sky: "bg-sky-50 text-sky-600", emerald: "bg-emerald-50 text-emerald-600", amber: "bg-amber-50 text-amber-600",
   purple: "bg-purple-50 text-purple-600", indigo: "bg-indigo-50 text-indigo-600", slate: "bg-slate-100 text-slate-600",
@@ -102,6 +96,13 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const invalidar = useInvalidate();
   const { papel } = usePerfil();
   const podeEditar = papel === "admin" || papel === "vendas" || papel === "financeiro" || papel === "tecnico";
+  // mandar para Fornecedores e mexer nas categorias: vendas e financeiro (e admin)
+  const podeMover = papel === "admin" || papel === "vendas" || papel === "financeiro";
+  const tipos = useTiposContato();
+  const [gerirTipos, setGerirTipos] = useState(false);
+  /** Desmarcou "Cliente": ao salvar, vai para Fornecedores e sai da lista de clientes. */
+  const [deixaCliente, setDeixaCliente] = useState(false);
+  const tagsAntes = useRef<string[]>(registro.tags ?? []);
   const { data: formas = [] } = useFormasPagamento();
   const { data: assinaturas = [] } = useAssinaturasFicha();
   const assinado = !!c.id && assinaturas.some((a) => a.cliente_id === c.id && a.status === "assinado");
@@ -136,7 +137,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
 
   const pend = useMemo(() => pendenciasCadastro(c, assinado), [c, assinado]);
   const pct = completude(c, assinado);
-  const sujo = JSON.stringify(c) !== base.current || pessoas.some((p) => p.alterada || p.removida);
+  const sujo = JSON.stringify(c) !== base.current || pessoas.some((p) => p.alterada || p.removida) || deixaCliente;
   const pj = c.tipo_pessoa === "PJ";
   const crm = rotuloCrm(c.status_crm);
   const nomeTopo = String(c.nome_fantasia || c.nome || "").trim();
@@ -262,13 +263,37 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
 
   async function salvar() {
     const eraNovo = !c.id;
+    const quem = nomeTopo || "Este cadastro";
+    if (deixaCliente && !confirm(`${quem} vai para Fornecedores e sai da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`)) return;
     const salvo = await gravar();
     if (!salvo) return;
+    if (deixaCliente) {
+      setSalvando(true);
+      try {
+        const { data, error } = await supabase.rpc("clientes_virar_fornecedor", { p_ids: [salvo.id], p_manter_cliente: false });
+        if (error) throw error;
+        invalidar("clientes", "fornecedores", "documentos");
+        notify(`${quem} agora está em Fornecedores${data?.fornecedores_criados ? "" : " (juntou com o fornecedor do mesmo CNPJ)"} e saiu da lista de clientes`);
+        onClose();
+      } catch (e) {
+        notifyError(e);
+      } finally {
+        setSalvando(false);
+      }
+      return;
+    }
+    // marcou "Fornecedor": continua cliente e passa a existir também em Fornecedores (para notas de entrada e contas a pagar)
+    const virouFornecedor = podeMover && (salvo.tags ?? []).includes("fornecedor") && !tagsAntes.current.includes("fornecedor");
+    tagsAntes.current = salvo.tags ?? [];
+    if (virouFornecedor) {
+      const { error } = await supabase.rpc("clientes_virar_fornecedor", { p_ids: [salvo.id], p_manter_cliente: true });
+      if (error) notifyError(error); else invalidar("fornecedores");
+    }
     if (eraNovo) {
       notify("Cliente cadastrado. Agora é só pedir a assinatura da ficha.");
       setAba("assinatura");
     } else {
-      notify("Salvo com sucesso");
+      notify(virouFornecedor ? "Salvo. Ele continua cliente e também está em Fornecedores" : "Salvo com sucesso");
       onClose();
     }
   }
@@ -297,7 +322,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold">{pj ? "Pessoa jurídica" : "Pessoa física"}</span>
                 {crm && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${crm.cor}`}>{crm.label}</span>}
                 {assinado && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[11px] font-semibold"><BadgeCheck size={12} /> ficha assinada</span>}
-                <EtiquetasCliente c={c as any} />
+                <EtiquetasCliente c={c as any} tipos={tipos} />
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -378,20 +403,44 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("inscricao_municipal", "Inscrição municipal", { span: 4 })}
               </div>
             </Secao>
-            <Secao icone={Tags} titulo="Tipo de contato" sub="Além de cliente, o que mais ele é para a MF" cor="purple">
+            <Secao icone={Tags} titulo="Tipo de contato" cor="purple"
+              sub={c.id && podeMover ? "O que ele é para a MF. Desmarque Cliente para mandar o cadastro para Fornecedores" : "Além de cliente, o que mais ele é para a MF"}
+              acao={podeMover ? (
+                <button type="button" onClick={() => setGerirTipos(true)} title="Criar, renomear e trocar a cor das categorias"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                  <Pencil size={13} /> <span className="hidden sm:inline">Editar categorias</span>
+                </button>
+              ) : undefined}>
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-brand-fg"><CircleCheck size={15} /> Cliente</span>
-                {TIPOS_CONTATO.map((t) => {
-                  const on = (c.tags ?? []).includes(t.tag);
+                <button type="button" aria-pressed={!deixaCliente} disabled={!c.id || !podeMover} onClick={() => setDeixaCliente((v) => !v)}
+                  title={!c.id ? "Cadastro novo de cliente" : deixaCliente ? "Continuar como cliente" : "Desmarque para mandar para Fornecedores (sai da lista de clientes)"}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition disabled:cursor-default ${deixaCliente
+                    ? "border-dashed border-slate-300 text-slate-500 line-through hover:bg-slate-50"
+                    : "border-transparent bg-brand text-brand-fg"}`}>
+                  {deixaCliente ? <span className="text-base leading-none">+</span> : <CircleCheck size={15} />} Cliente
+                </button>
+                {tipos.filter((t) => t.ativo || (c.tags ?? []).includes(t.chave)).map((t) => {
+                  const on = (c.tags ?? []).includes(t.chave);
                   return (
-                    <button key={t.tag} type="button" aria-pressed={on} disabled={!podeEditar} onClick={() => toggleTag(t.tag)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? "border-purple-200 bg-purple-100 text-purple-800" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
-                      {on ? <CircleCheck size={15} /> : <span className="text-base leading-none">+</span>} {t.label}
+                    <button key={t.chave} type="button" aria-pressed={on} disabled={!podeEditar} onClick={() => toggleTag(t.chave)}
+                      title={t.ativo ? undefined : "Categoria fora da lista: desmarque para tirar a etiqueta"}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? corTipo(t.cor).chip : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                      {on ? <CircleCheck size={15} /> : <span className="text-base leading-none">+</span>} {t.nome}
                     </button>
                   );
                 })}
               </div>
+              {deixaCliente && (
+                <div className="mt-3 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <Truck size={18} className="mt-0.5 shrink-0" />
+                  <div>
+                    <b>Ao salvar, {nomeTopo || "este cadastro"} vai para Fornecedores e sai da lista de clientes.</b> Os anexos vão junto;
+                    pedidos, notas e contas antigos continuam no histórico. Se já existe fornecedor com o mesmo CNPJ, os dois se juntam.
+                  </div>
+                </div>
+              )}
             </Secao>
+            <CategoriasContato open={gerirTipos} onClose={() => setGerirTipos(false)} podeEditar={podeMover} />
           </>)}
 
           {aba === "contato" && (<>
@@ -569,7 +618,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           {sujo && <span className="hidden text-xs font-semibold text-amber-700 sm:inline">Alterações não salvas</span>}
           <Button type="button" variant="secondary" onClick={fechar} className="hidden sm:inline-flex">Cancelar</Button>
           {podeEditar && (
-            <Button type="button" disabled={salvando} onClick={salvar}><Save size={16} /> {salvando ? "Salvando…" : "Salvar"}</Button>
+            <Button type="button" disabled={salvando} onClick={salvar}>
+              {deixaCliente ? <Truck size={16} /> : <Save size={16} />} {salvando ? "Salvando…" : deixaCliente ? <><span className="sm:hidden">Mover para fornecedores</span><span className="hidden sm:inline">Salvar e mover para fornecedores</span></> : "Salvar"}
+            </Button>
           )}
         </div>
       </div>
