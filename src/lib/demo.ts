@@ -392,6 +392,13 @@ function fichaDemo(db: Db) {
     visualizado_em: null, assinado_em: quando(-40), expira_em: quando(-40), created_at: quando(-40) };
   a.hash = hashDemo(a);
   db.clientes_assinaturas.push(a);
+  const h = (dias: number, horasDepois = 0) => new Date(Date.now() - dias * 864e5 - 6 * 36e5 + horasDepois * 36e5).toISOString();
+  db.backups_registro = [0, 1, 2, 3].map((d) => ({
+    id: `bk${d}`, data: h(d).slice(0, 10), status: "ok", pasta: `erp-${h(d).slice(0, 10)}`, partes: 1, tamanho: 31_400_000 - d * 120_000, sha256: "demo",
+    tabelas: 74, linhas: 48_210 - d * 140, arquivos: 107, restauracao_ok: true, detalhe: null, hostinger_em: d === 0 ? null : h(d, 4), created_at: h(d),
+  }));
+  db.backups_registro.splice(3, 0, { id: "bkx", data: h(3).slice(0, 10), status: "erro", pasta: null, partes: null, tamanho: null, sha256: null, tabelas: null, linhas: null,
+    arquivos: null, restauracao_ok: null, detalhe: "O backup de hoje falhou no GitHub (exemplo da prévia)", hostinger_em: null, created_at: h(3, 1) });
   db.clientes_assinaturas.push({ id: "as2", cliente_id: "c2", token: "4c1a7e2b-9d3f-4a51-8e6c-0b2d9f7a1c02", canal: "link", status: "pendente", termo: termoDemo(db), dados: null, alteracoes: null,
     nome: null, cpf: null, assinatura_png: null, ip: null, user_agent: null, hash: null, visualizado_em: quando(-1), assinado_em: null,
     expira_em: new Date(Date.now() + 12 * 864e5).toISOString(), created_at: quando(-3) });

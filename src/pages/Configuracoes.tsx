@@ -11,6 +11,8 @@ import { CatalogoConfig } from "@/components/CatalogoConfig";
 import { UnidadesConfig } from "@/components/UnidadesConfig";
 import { EmailConfig } from "@/components/EmailConfig";
 import { ImportarTiny } from "@/components/ImportarTiny";
+import { BackupsConfig } from "@/components/BackupsConfig";
+import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 
 export default function Configuracoes() {
@@ -24,6 +26,7 @@ export default function Configuracoes() {
   });
   const save = useSave("configuracoes");
   const { unidades } = useUnidade();
+  const { papel } = usePerfil();
   const [cfg, setCfg] = useState<Record<string, any> | null>(null);
   useEffect(() => { if (data) setCfg(data); }, [data]);
   // Vindo de outra tela (ex.: Fluxo de pedidos → ligar a NF-e automática): rola até a seção pedida
@@ -240,6 +243,7 @@ export default function Configuracoes() {
     </form>
       <Card className="p-4"><EmailConfig /></Card>
       <ImportarTiny />
+      {(papel === "admin" || papel === "financeiro") && <BackupsConfig />}
       <BackupCard />
     </div>
   );
