@@ -65,6 +65,9 @@ select cron.schedule('erp-clientes-receita', '* * * * *',
       where exists (select 1 from public.clientes_para_receita(1))
          or exists (select 1 from public.fornecedores_para_receita(1)) $$);
 
+-- Backup diário: confere às 09:07 (Brasília) se o backup da madrugada saiu e se a Hostinger baixou a cópia
+select cron.schedule('erp-backups-conferir', '7 12 * * *', $$ select public.conferir_backups() $$);
+
 -- Para conferir:   select jobname, schedule, active from cron.job;
 --                  select * from cron.job_run_details order by start_time desc limit 20;
 --                  select * from net._http_response order by created desc limit 20;
