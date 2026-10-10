@@ -1,0 +1,37 @@
+BACKUP DO ERP MF MÁQUINAS
+=========================
+
+O que tem aqui
+--------------
+banco/roles.sql      papéis (usuários do banco) criados pelo ERP
+banco/schema.sql     estrutura: tabelas, funções, regras de acesso
+banco/data.sql       todos os dados: clientes, produtos, pedidos, notas, financeiro, usuários do login, etc.
+arquivos/<pasta>/    todos os arquivos guardados no ERP: fotos de produtos, fotos de OS, documentos, anexos, pacotes do contador
+manifesto.json       lista de tudo, com tamanho e código SHA-256 de cada arquivo e o número de linhas de cada tabela
+
+Como abrir o arquivo .gpg
+-------------------------
+O backup vem criptografado (AES-256). Para abrir é preciso a frase do backup (secret BACKUP_CHAVE do GitHub).
+Sem essa frase ninguém abre o backup: guarde uma cópia dela em lugar seguro, fora do computador.
+
+Na Hostinger o arquivo do dia fica em /home/u735419389/backups-erp/erp-AAAA-MM-DD.tar.gz.gpg
+(hPanel → Arquivos → Gerenciador de arquivos, pasta backups-erp, fora do public_html).
+
+  Windows:  instale o Gpg4win (gpg4win.org), clique com o botão direito no arquivo → "Descriptografar e verificar",
+            digite a frase. Depois abra o .tar.gz com o 7-Zip.
+  Linux/Mac: gpg -d erp-AAAA-MM-DD.tar.gz.gpg > erp.tar.gz && tar xzf erp.tar.gz
+
+Como restaurar o banco num projeto Supabase novo (quem faz: técnico)
+-------------------------------------------------------------------
+1. Crie o projeto no Supabase (mesma região, Postgres 17) e pegue a "Connection string" (Session pooler).
+2. Rode, nesta ordem:
+     psql --single-transaction --variable ON_ERROR_STOP=1 \
+       --file banco/roles.sql --file banco/schema.sql \
+       --command 'SET session_replication_role = replica' --file banco/data.sql \
+       --dbname "<connection string>"
+3. Suba os arquivos: cada pasta de arquivos/ é um bucket do Storage (mesmo nome, mesmos caminhos).
+   A pasta produtos-fotos é pública; as outras são privadas.
+4. Publique as Edge Functions e o site a partir do GitHub (código do ERP) e cadastre de novo os secrets
+   (Focus NFe, e-mail, InfinitePay…): eles não ficam no backup.
+
+Este backup é testado todo dia: o GitHub restaura o banco num Supabase de teste e confere tabela por tabela.

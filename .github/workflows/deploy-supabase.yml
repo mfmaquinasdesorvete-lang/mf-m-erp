@@ -27,7 +27,7 @@ jobs:
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
           done
           # chamadas externas (Focus, Telegram, agendamento) não enviam o login do Supabase
-          for fn in focus-webhook nfe-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay; do
+          for fn in focus-webhook nfe-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay backup-baixar; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
           done
       # por último: as funções acima não dependem da senha do banco

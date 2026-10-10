@@ -37,3 +37,7 @@ verify_jwt = false
 # direto na InfinitePay); a criação do link confere o usuário dentro da função (requireErpUser).
 [functions.infinitepay]
 verify_jwt = false
+
+# Backup: a Hostinger baixa a cópia do dia com o header x-backup-token (hash em backups_config).
+[functions.backup-baixar]
+verify_jwt = false

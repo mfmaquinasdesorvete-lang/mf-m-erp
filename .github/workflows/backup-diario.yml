@@ -1,0 +1,60 @@
+# Backup diário completo do ERP: banco (papéis, estrutura e dados, inclusive os usuários do login) e todos os
+# arquivos do Storage. É restaurado num Supabase de teste para conferir, criptografado (GPG AES-256) e guardado no
+# bucket privado "backups" (7 dias). A Hostinger baixa a cópia do dia para uma pasta fora do site (30 dias + 1 por mês).
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  já existe (o mesmo do "Publicar Supabase"); o CLI cria um acesso temporário ao banco
+#   BACKUP_CHAVE           frase longa para criptografar. GUARDE UMA CÓPIA FORA DO GITHUB: sem ela o backup não abre.
+#
+# O repositório é público: os logs só mostram totais, nunca dados.
+name: Backup diário
+
+on:
+  schedule:
+    - cron: "15 5 * * *"   # 02:15 em Brasília
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "completo = guarda o backup; teste = só gera e testa a restauração (não guarda nada)"
+        type: choice
+        options: [completo, teste]
+        default: completo
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-diario
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      BACKUP_CHAVE: ${{ secrets.BACKUP_CHAVE }}
+      PROJECT_REF: antfofmwrmkadiavjycg  # ELO ERP (São Paulo)
+      MODO: ${{ inputs.modo || 'completo' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Pasta do backup
+        run: echo "BACKUP_DIR=$RUNNER_TEMP/backup/erp-$(TZ=America/Sao_Paulo date +%F)" >> "$GITHUB_ENV"
+      - name: Gerar (banco e arquivos)
+        run: bash scripts/backup/gerar.sh
+      - name: Testar a restauração
+        id: teste
+        continue-on-error: true
+        run: bash scripts/backup/testar.sh
+      - name: Criptografar e guardar
+        if: env.MODO == 'completo'
+        run: bash scripts/backup/guardar.sh
+      - name: Avisar no ERP que falhou
+        if: failure() && env.MODO == 'completo'
+        run: node scripts/backup/registrar.mjs erro
+      - name: Apagar a cópia aberta
+        if: always()
+        run: rm -rf "${RUNNER_TEMP:?}/backup"
