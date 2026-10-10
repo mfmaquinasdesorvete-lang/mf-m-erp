@@ -50,7 +50,7 @@ for (const bucket of buckets) {
 }
 
 const banco = {};
-for (const f of ["roles.sql", "schema.sql", "data.sql"]) {
+for (const f of ["roles.sql", "schema.sql", "data.sql", "interno.sql"]) {
   const p = join(DIR, "banco", f);
   banco[f] = { bytes: (await stat(p)).size, sha256: await sha256Arquivo(p) };
 }

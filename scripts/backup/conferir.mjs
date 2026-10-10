@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 const [url, saida, segundos] = process.argv.slice(2);
 const manifesto = JSON.parse(await readFile(join(process.env.BACKUP_DIR, "manifesto.json"), "utf8"));
-const esperado = Object.fromEntries(Object.entries(manifesto.linhas_por_tabela).filter(([t]) => !/^(cron|net|supabase_functions)\./.test(t)));
+const esperado = manifesto.linhas_por_tabela;
 const nomes = Object.keys(esperado);
 const sql = nomes.map((t) => {
   const [s, n] = t.split(".");

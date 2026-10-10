@@ -6,6 +6,7 @@ O que tem aqui
 banco/roles.sql      papéis (usuários do banco) criados pelo ERP
 banco/schema.sql     estrutura: tabelas, funções, regras de acesso
 banco/data.sql       todos os dados: clientes, produtos, pedidos, notas, financeiro, usuários do login, etc.
+banco/interno.sql    só para consulta (não restaurar): agendamentos, fila HTTP e segredos do Vault do projeto antigo
 arquivos/<pasta>/    todos os arquivos guardados no ERP: fotos de produtos, fotos de OS, documentos, anexos, pacotes do contador
 manifesto.json       lista de tudo, com tamanho e código SHA-256 de cada arquivo e o número de linhas de cada tabela
 
@@ -35,5 +36,7 @@ Como restaurar o banco num projeto Supabase novo (quem faz: técnico)
    A pasta produtos-fotos é pública; as outras são privadas.
 4. Publique as Edge Functions e o site a partir do GitHub (código do ERP) e cadastre de novo os secrets
    (Focus NFe, e-mail, InfinitePay…): eles não ficam no backup.
+5. Rode o supabase/agendamento.sql do GitHub (recria os agendamentos) e cadastre de novo os segredos do Vault
+   que ele pede: os do interno.sql estão cifrados com a chave do projeto antigo e não servem no novo.
 
 Este backup é testado todo dia: o GitHub restaura o banco num Supabase de teste e confere tabela por tabela.
