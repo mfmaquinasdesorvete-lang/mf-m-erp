@@ -390,9 +390,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={pode("editar_produtos") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
+        // estrela no bloco "Fornecedores deste produto" → o select "Fornecedor preferencial" acompanha
+        onFieldChange={(nome, valor) => (nome === "fornecedores_produto" && valor ? Promise.resolve({ fornecedor_padrao_id: valor }) : Promise.resolve(null))}
         beforeSave={(r) => {
           // estoque_atual só muda por movimentação, nunca pela edição do cadastro
-          const { estoque_atual: _ignorado, ...resto } = r;
+          const { estoque_atual: _ignorado, fornecedores_produto: _preferido, ...resto } = r;
           return {
             ...resto,
             origem: Number(r.origem),
@@ -455,7 +457,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           {
             name: "fornecedores_produto", label: "Fornecedores deste produto (preço, prazo e preferido)", type: "custom", span: 4,
-            render: (_v, _s, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && ["admin", "financeiro", "tecnico"].includes(papel ?? "")} />,
+            render: (_v, set, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && ["admin", "financeiro", "tecnico"].includes(papel ?? "")} aoMudarPreferido={set} />,
           },
           { name: "estoque_minimo", label: "Estoque mínimo", type: "number" },
           { name: "estoque_maximo", label: "Estoque máximo", type: "number" },

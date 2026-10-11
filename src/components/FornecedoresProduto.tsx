@@ -13,7 +13,7 @@ type Fornecimento = { id: string; produto_id: string; fornecedor_id: string; cod
   preco_origem: string | null; prazo_dias: number | null; preferido: boolean; ativo: boolean; ultima_compra_em: string | null };
 const ORIGEM: Record<string, string> = { nota: "NF-e", pedido: "pedido de compra", cotacao: "cotação", manual: "informado" };
 
-export function FornecedoresProduto({ produtoId, podeEditar }: { produtoId?: string | null; podeEditar: boolean }) {
+export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }: { produtoId?: string | null; podeEditar: boolean; aoMudarPreferido?: (fornecedorId: string) => void }) {
   const { data: todos = [] } = useRows<Fornecimento>("fornecimentos");
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const invalidate = useInvalidate();
@@ -23,9 +23,10 @@ export function FornecedoresProduto({ produtoId, podeEditar }: { produtoId?: str
   const menor = Math.min(...lista.filter((f) => f.preco != null).map((f) => Number(f.preco)));
   const nome = (id: string) => { const f = fornecedores.find((x) => x.id === id); return f ? (f.nome_fantasia?.trim() || f.nome) : "fornecedor"; };
 
-  async function preferido(id: string) {
-    const { error } = await supabase.from("fornecimentos").update({ preferido: true, updated_at: new Date().toISOString() }).eq("id", id);
+  async function preferido(f: Fornecimento) {
+    const { error } = await supabase.from("fornecimentos").update({ preferido: true, updated_at: new Date().toISOString() }).eq("id", f.id);
     if (error) return notifyError(error);
+    aoMudarPreferido?.(f.fornecedor_id); // o formulário aberto acompanha (senão, ao salvar, voltaria o antigo)
     notify("Fornecedor preferido alterado"); invalidate("fornecimentos", "produtos");
   }
   async function incluir() {
@@ -56,7 +57,7 @@ export function FornecedoresProduto({ produtoId, podeEditar }: { produtoId?: str
                 {f.preco_em && <span className="block text-[11px] text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
               </span>
               {podeEditar && !f.preferido && (
-                <Button type="button" variant="ghost" className="!min-h-0 !px-2" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f.id)}><Star size={15} aria-hidden /></Button>
+                <Button type="button" variant="ghost" className="!min-h-0 !px-2" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f)}><Star size={15} aria-hidden /></Button>
               )}
             </li>
           ))}
@@ -69,7 +70,7 @@ export function FornecedoresProduto({ produtoId, podeEditar }: { produtoId?: str
             {fornecedores.filter((f) => !lista.some((x) => x.fornecedor_id === f.id)).map((f) => <option key={f.id} value={f.id}>{f.nome_fantasia?.trim() || f.nome}</option>)}
           </select>
           <input className="input w-28 text-right" inputMode="decimal" placeholder="preço" aria-label="Preço do fornecedor" value={novo.preco} onChange={(e) => setNovo({ ...novo, preco: e.target.value })} />
-          <input className="input w-24" inputMode="numeric" placeholder="prazo (dias)" aria-label="Prazo do fornecedor em dias" value={novo.prazo} onChange={(e) => setNovo({ ...novo, prazo: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
+          <input className="input w-28" inputMode="numeric" placeholder="prazo (dias)" aria-label="Prazo do fornecedor em dias" value={novo.prazo} onChange={(e) => setNovo({ ...novo, prazo: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
           <Button type="button" variant="secondary" disabled={!novo.fornecedor_id} onClick={incluir}><Plus size={15} aria-hidden /> Incluir</Button>
         </div>
       )}
