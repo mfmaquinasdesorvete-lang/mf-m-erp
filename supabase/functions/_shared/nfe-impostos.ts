@@ -106,6 +106,14 @@ export function aliquotaInterestadual(ufOrigem: string, ufDestino: string, orige
 
 const trocarParaInterestadual = (cfop: string, inter: boolean) => (inter && cfop.startsWith("5") ? "6" + cfop.slice(1) : cfop);
 
+/** CFOP de venda do item: o do cadastro do produto ou o padrão da unidade (produção x revenda). O CFOP de venda de
+ * produção própria (x101) só vale em unidade que fabrica: a filial que só revende usa o CFOP de revenda dela. */
+export function cfopDoItem(cfopProduto: string | null | undefined, unidade: Pick<UnidadeFiscal, "fabrica" | "cfop_venda_producao" | "cfop_venda_revenda">, produzido: boolean) {
+  const proprio = String(cfopProduto ?? "").replace(/\D/g, "");
+  if (proprio && !(unidade.fabrica === false && /^[56]101$/.test(proprio))) return proprio;
+  return produzido ? unidade.cfop_venda_producao : unidade.cfop_venda_revenda;
+}
+
 function base(i: ItemBase) {
   const bruto = r2(i.quantidade * i.valor_unitario);
   return { bruto, liquido: r2(bruto - (i.desconto ?? 0) + (i.frete ?? 0)) };
@@ -167,7 +175,7 @@ export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribui
   return itens.map((i, idx) => {
     const { liquido } = base(i);
     const produzido = i.tipo === "maquina" && unidade.fabrica;
-    const cfopPadrao = trocarParaInterestadual(i.cfop || (produzido ? unidade.cfop_venda_producao : unidade.cfop_venda_revenda), inter);
+    const cfopPadrao = trocarParaInterestadual(cfopDoItem(i.cfop, unidade, produzido), inter);
     const regra = regraAplicavel(opc.regras, { operacao: "venda", interestadual: inter, contribuinte: dest.contribuinte, tipo: i.tipo, ncm: i.ncm, origem: i.origem, cfop: cfopPadrao, unidade_id: opc.unidade_id, uf_destino: dest.uf.toUpperCase() });
     if (regra) opc.usadas?.add(regra);
     const u = comRegra(unidade, regra);
