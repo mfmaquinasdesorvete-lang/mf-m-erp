@@ -31,7 +31,7 @@ export type Produto = {
   peso_kg?: number | null; altura_cm?: number | null; largura_cm?: number | null; profundidade_cm?: number | null; embalagem_id?: string | null;
   no_catalogo?: boolean; descricao_catalogo?: string | null; foto_caminho?: string | null;
   id_externo?: string | null; marca?: string | null; categoria?: string | null; observacoes?: string | null;
-  estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean;
+  estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean; margem_desejada?: number | null;
   modelo?: string | null; codigo_fabricante?: string | null; codigos_alternativos?: string | null; fora_de_linha?: boolean;
   prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
   titulo_anuncio?: string | null; slug?: string | null; meta_descricao?: string | null; palavras_chave?: string[] | null;

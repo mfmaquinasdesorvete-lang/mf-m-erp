@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
@@ -27,6 +27,8 @@ import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
 import { vendidosPorProduto } from "@/lib/gerencial";
 import { custoUnitario } from "@/lib/margem";
+import { FormacaoPreco, usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
+import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -114,7 +116,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }
   const navigate = useNavigate();
   const { pode, papel } = usePerfil();
-  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias">("produtos");
+  // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
+  const [busca] = useSearchParams();
+  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos">(busca.get("aba") === "precos" ? "precos" : "produtos");
+  const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
@@ -293,6 +298,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     { value: "qualidade" as const, label: "Qualidade do cadastro" },
     { value: "auditoria" as const, label: "Auditoria e marketplace" },
     { value: "categorias" as const, label: "Categorias" },
+    { value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" },
     ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
   ];
   return (
@@ -307,7 +313,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <div className="hidden md:block">
         <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={abasProdutos} />
       </div>
-      {aba === "categorias" ? (
+      {aba === "precos" ? (
+        <FormacaoPreco categorias={categorias} podeAprovar={podeMover} />
+      ) : aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
       ) : aba === "auditoria" ? (
         <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
@@ -316,6 +324,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       ) : aba === "contagem" ? (
         <ContagemEstoque produtos={produtos} podeEditar={pode("movimentar_estoque")} />
       ) : <>
+      {podeMover && precosPendentes > 0 && (
+        <button type="button" onClick={() => setAba("precos")}
+          className="mb-3 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
+          <AlertTriangle size={18} className="shrink-0" />
+          <span className="min-w-0 flex-1"><b>{precosPendentes} preço(s) para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
+          <span className="shrink-0 font-semibold underline">Revisar</span>
+        </button>
+      )}
       {baixos.length > 0 && (
         <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
@@ -385,6 +401,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             estoque_maximo: Number(r.estoque_maximo || 0),
             garantia_meses: r.garantia_meses === "" || r.garantia_meses == null ? null : Number(r.garantia_meses),
             ipi_aliquota: r.ipi_aliquota === "" || r.ipi_aliquota == null ? null : Number(r.ipi_aliquota),
+            margem_desejada: r.margem_desejada === "" || r.margem_desejada == null ? null : Number(String(r.margem_desejada).replace(",", ".")),
             ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
             fornecedor_padrao_id: r.fornecedor_padrao_id || null,
             embalagem_id: r.embalagem_id || null,
@@ -457,6 +474,21 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "preco_custo", label: "Custo de compra", type: "number" },
           { name: "preco_venda", label: "Preço de venda", type: "number" },
           { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
+          { name: "margem_desejada", label: "Margem desejada (%) — vazio usa a da categoria ou do tipo", type: "number", span: 2 },
+          {
+            name: "preco_sugerido_info", label: "Preço sugerido", type: "custom", span: 2,
+            render: (_v, _s, row) => {
+              const cfgPreco = configPreco(cfgProd?.precificacao);
+              const alvo = margemAlvo({ tipo: row.tipo, categoria: row.categoria, margem_desejada: row.margem_desejada === "" ? null : row.margem_desejada }, cfgPreco, categorias);
+              const sug = precoSugerido(Number(row.preco_custo || 0), alvo.margem, cfgPreco);
+              if (!sug) return <span className="text-xs text-slate-500">preencha o custo para calcular</span>;
+              return (
+                <span className="text-sm">
+                  <b>{brl(sug)}</b> <span className="text-xs text-slate-500">· margem {String(alvo.margem).replace(".", ",")}% {alvo.origem}</span>
+                </span>
+              );
+            },
+          },
           {
             name: "margem_info", label: "Margem bruta", type: "custom", span: 1,
             render: (_v, _s, row) => {

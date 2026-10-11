@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import type { Produto } from "@/lib/types";
 
-export type Categoria = { id: string; nome: string; ativo: boolean };
+export type Categoria = { id: string; nome: string; ativo: boolean; margem_desejada?: number | null };
 
 export function useCategoriasProduto() {
   return useRows<Categoria>("categorias_produto", { order: "nome", ascending: true });

@@ -6,6 +6,7 @@
 // =====================================================================
 
 import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
+import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -57,7 +58,7 @@ function seed(): Db {
       catalogo_texto: "Máquinas de sorvete soft, expresso e milk shake com garantia, peças e assistência técnica própria.",
       telegram_bot: "MFMaquinasAvisosBot", avisos_email_ativo: true, email_responder_para: "comercial@mfmaquinas.com.br",
       ibs_cbs_ativo: true, cbs_aliquota: 0.9, ibs_uf_aliquota: 0.1, ibs_mun_aliquota: 0,
-      validade_orcamento_dias: 7, garantia_meses_padrao: 12, preventiva_meses: 6, comissao_percentual: 3,
+      validade_orcamento_dias: 7, garantia_meses_padrao: 12, preventiva_meses: 6, comissao_percentual: 3, precificacao: PRECO_PADRAO,
       etiqueta_formato: "10x15", etiqueta_modelo: {},
       termo_garantia: "Garantia contra defeitos de fabricação conforme prazo indicado. Não cobre mau uso, quedas, ligação em tensão errada, falta de limpeza ou manutenção preventiva, nem peças de desgaste natural (vedações, correias, bicos).",
     }],
@@ -749,6 +750,14 @@ function planoDemo(db: Db) {
     "Peças Refrigeração - My Frost", "Vedantes/ Orings My Frost", "As Extrutura Máquinas", "As Extrutura Máquinas > Cilindros", "Batedor de Milk"];
   db.produtos.forEach((p) => { p.categoria ??= p.tipo === "maquina" ? "As Máquinas My Frost" : /veda|o-?ring|borracha/i.test(p.descricao) ? "Vedantes/ Orings My Frost" : "Peças de Reposição"; });
   db.categorias_produto = [...new Set([...cats, ...db.produtos.map((p) => p.categoria).filter(Boolean)])].map((nome, i) => ({ id: `cat${i + 1}`, nome, ativo: true }));
+  // formação de preço: três peças cujo custo subiu na última nota e ficaram abaixo da margem desejada
+  db.preco_sugestoes = [["p6", 560], ["p4", 390], ["p8", 1290]].map(([id, anterior], i) => {
+    const p = db.produtos.find((x) => x.id === id)!;
+    const alvo = margemAlvo(p as any, PRECO_PADRAO, db.categorias_produto as any).margem;
+    return { id: `ps${i + 1}`, produto_id: id, status: "pendente", origem: "custo", custo_anterior: anterior, custo_novo: p.preco_custo,
+      preco_atual: p.preco_venda, preco_sugerido: precoSugerido(Number(p.preco_custo), alvo, PRECO_PADRAO), margem_alvo: alvo,
+      preco_aprovado: null, decidido_por: null, decidido_em: null, created_at: quando(-i) };
+  });
   // categorias dos cadastros (tipo de contato)
   db.tipos_contato = [
     { id: "fornecedor", chave: "fornecedor", nome: "Fornecedor", cor: "purple", ordem: 1, ativo: true, sistema: true },
@@ -1401,6 +1410,43 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // formação de preço (no sistema real: public.gerar_sugestoes_preco e public.decidir_precos)
+  gerar_sugestoes_preco: () => {
+    if (!podeFinanceiro()) return erro("só o financeiro ou o administrador revisa os preços");
+    const cfg = configPreco(db.configuracoes[0]?.precificacao);
+    let n = 0;
+    for (const p of db.produtos.filter((x) => x.ativo !== false && x.vendavel !== false && !x.kit && Number(x.preco_custo) > 0)) {
+      db.preco_sugestoes.filter((s) => s.produto_id === p.id && s.status === "pendente").forEach((s) => Object.assign(s, { status: "substituida", decidido_em: new Date().toISOString() }));
+      const alvo = margemAlvo(p as any, cfg, db.categorias_produto as any).margem;
+      const sug = precoSugerido(Number(p.preco_custo), alvo, cfg);
+      if (sug == null || !foraDaFaixa(Number(p.preco_venda || 0), sug, cfg)) continue;
+      db.preco_sugestoes.push({ id: `ps${Date.now()}${n}`, produto_id: p.id, status: "pendente", origem: "revisao", custo_anterior: null, custo_novo: p.preco_custo,
+        preco_atual: Number(p.preco_venda || 0), preco_sugerido: sug, margem_alvo: alvo, preco_aprovado: null, decidido_por: null, decidido_em: null, created_at: new Date().toISOString() });
+      n++;
+    }
+    return { data: n, error: null };
+  },
+  decidir_precos: ({ p_ids, p_aprovar, p_precos }) => {
+    if (!podeFinanceiro()) return erro("só o financeiro ou o administrador aprova preços");
+    let n = 0;
+    for (const [k, id] of (p_ids as string[]).entries()) {
+      const s = db.preco_sugestoes.find((x) => x.id === id && x.status === "pendente");
+      if (!s) continue;
+      const agora = new Date().toISOString(), quem = sessao?.user.id ?? null;
+      if (p_aprovar) {
+        const v = Math.round(Number(p_precos?.[k] ?? s.preco_sugerido) * 100) / 100;
+        if (!(v > 0)) return erro("preço inválido");
+        const p = db.produtos.find((x) => x.id === s.produto_id);
+        if (p) {
+          const antes = { ...p }; p.preco_venda = v;
+          registrarDemo("produtos", "update", antes, { ...p }, `Formação de preço: custo ${brlDemo(s.custo_anterior ?? s.custo_novo)} → ${brlDemo(s.custo_novo)}, margem desejada ${s.margem_alvo}%`, "usuario");
+        }
+        Object.assign(s, { status: "aprovada", preco_aprovado: v, decidido_por: quem, decidido_em: agora });
+      } else Object.assign(s, { status: "recusada", decidido_por: quem, decidido_em: agora });
+      n++;
+    }
+    return { data: n, error: null };
+  },
   unificar_produtos: ({ p_principal, p_outros, p_motivo }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     const m = db.produtos.find((p) => p.id === p_principal);
