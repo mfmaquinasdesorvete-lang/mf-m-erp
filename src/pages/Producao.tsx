@@ -16,9 +16,10 @@ import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
+import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 
-type Aba = "producao" | "reposicao" | "compras" | "ficha";
+type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
 
 /** Quantidade no jeito brasileiro: 0,5 · 1.250 · 2,375 */
@@ -36,6 +37,12 @@ export default function Producao() {
   const [aba, setAba] = useState<Aba>("producao");
   const [novaCompra, setNovaCompra] = useState(false);
 
+  const [cotarItens, setCotarItens] = useState<{ produto_id: string; quantidade: number }[] | null>(null);
+  // aviso "cotação respondida" abre com ?aba=cotacoes
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("aba") as Aba | null;
+    if (q && ["producao", "reposicao", "compras", "cotacoes", "ficha"].includes(q)) setAba(q);
+  }, [location.search]);
   useEffect(() => {
     const st = location.state as any;
     if (st?.aba) setAba(st.aba);
@@ -45,7 +52,7 @@ export default function Producao() {
 
   const abas: { value: Aba; label: string }[] = [
     { value: "producao", label: "Ordens de produção" },
-    ...(verCompras ? [{ value: "reposicao" as Aba, label: "Reposição de estoque" }, { value: "compras" as Aba, label: "Pedidos de compra" }] : []),
+    ...(verCompras ? [{ value: "reposicao" as Aba, label: "Reposição de estoque" }, { value: "cotacoes" as Aba, label: "Cotações" }, { value: "compras" as Aba, label: "Pedidos de compra" }] : []),
     { value: "ficha", label: "Ficha técnica" },
   ];
 
@@ -54,7 +61,10 @@ export default function Producao() {
       <PageHeader title="Produção e compras" subtitle="Monte as máquinas, veja quais peças faltam e peça aos fornecedores com cotação." />
       <Tabs value={aba} onChange={setAba} options={abas} />
       {aba === "producao" && <OrdensProducao irParaCompras={() => setAba("compras")} />}
-      {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")} />}
+      {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
+        aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
+      {aba === "cotacoes" && verCompras && <Cotacoes podeEditar={pode("editar_producao")} inicial={cotarItens}
+        aoGerarPedidos={() => { setCotarItens(null); setAba("compras"); }} />}
       {aba === "compras" && verCompras && <PedidosCompra abrirNovo={novaCompra} onAberto={() => setNovaCompra(false)} />}
       {aba === "ficha" && <FichaTecnica />}
     </div>

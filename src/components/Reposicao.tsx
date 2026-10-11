@@ -1,7 +1,7 @@
 // Produção e compras → Reposição: o que está acabando, quanto comprar e de quem, agrupado por fornecedor.
 // "Gerar pedido de compra" cria a cotação com os itens marcados (e as quantidades ajustadas).
 import { useMemo, useState } from "react";
-import { AlertTriangle, PackageX, ShoppingCart, Truck } from "lucide-react";
+import { AlertTriangle, PackageX, ShoppingCart, Truck, Scale } from "lucide-react";
 import { Button, Card, Stat } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -13,7 +13,7 @@ import type { Fornecedor, Produto } from "@/lib/types";
 const MOTIVO = { zerado: "sem estoque", abaixo_minimo: "abaixo do mínimo", ponto_reposicao: "no ponto de reposição" };
 const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
-export function Reposicao({ podeComprar, aoGerar }: { podeComprar: boolean; aoGerar: () => void }) {
+export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: boolean; aoGerar: () => void; aoCotar?: (itens: { produto_id: string; quantidade: number }[]) => void }) {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: movimentos = [] } = useRows<MovimentoRep>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at, referencia_tipo" });
   const { data: abertos = [] } = useRows<AbertoCompra & { pedido: { status: string } | null }>("pedido_compra_itens", { select: "produto_id, quantidade, quantidade_recebida, pedido:pedidos_compra(status)", order: "produto_id" });
@@ -77,6 +77,14 @@ export function Reposicao({ podeComprar, aoGerar }: { podeComprar: boolean; aoGe
               <div className="font-semibold text-fg">{nomeForn(g.fornecedor_id)}</div>
               <div className="text-xs text-slate-500">{g.itens.length} item(ns) · {brl(g.valor)}{!g.fornecedor_id && " · defina o fornecedor no pedido ou no cadastro do produto"}</div>
             </div>
+            {podeComprar && aoCotar && (
+              <Button variant="secondary" disabled={ocupado !== null} title="Pedir preço a vários fornecedores antes de comprar"
+                onClick={() => {
+                  const itens = g.itens.filter((x) => !fora.has(x.produto.id) && quant(x.produto.id, x.sugerido) > 0).map((x) => ({ produto_id: x.produto.id, quantidade: quant(x.produto.id, x.sugerido) }));
+                  if (!itens.length) return notify("Marque ao menos um item", "erro");
+                  aoCotar(itens);
+                }}><Scale size={16} aria-hidden /> Cotar</Button>
+            )}
             {podeComprar && <Button disabled={ocupado !== null} onClick={() => gerar(g.fornecedor_id, g.itens)}><ShoppingCart size={16} /> Gerar pedido de compra</Button>}
           </div>
           <div className="overflow-x-auto">
