@@ -1,148 +1,384 @@
-import { useState, type FormEvent } from "react";
+// Usuários e permissões: quem acessa o ERP, com qual papel (principal + adicionais), unidade, função e contato;
+// senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
+import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { KeyRound, Plus } from "lucide-react";
-import { Badge, Button, Field, Modal, PageHeader, Table } from "@/components/ui";
-import { useInvalidate } from "@/lib/data";
-import { dataBR } from "@/lib/format";
+import { Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
+import { Historico } from "@/components/Historico";
+import { useInvalidate, useRows } from "@/lib/data";
+import { dataBR, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { callFunction } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { PAPEIS, type Papel } from "@/lib/permissoes";
+import { useUnidade } from "@/lib/unidade";
+import {
+  ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type Papel, type Tela,
+} from "@/lib/permissoes";
 
-type Usuario = { user_id: string; nome: string; papel: Papel; ativo: boolean; email: string; ultimo_acesso: string | null };
+type Usuario = {
+  user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
+  unidade_id: string | null; ativo: boolean; trocar_senha: boolean | null; created_at?: string; email: string; ultimo_acesso: string | null;
+};
+type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
+
+const COR_PAPEL: Record<Papel, string> = {
+  admin: "bg-slate-800 text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
+  tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800",
+};
+const SITE = typeof window !== "undefined" ? window.location.origin : "https://erp.myfrost.ai";
+
+/** Senha provisória fácil de ditar: 3 blocos sem letras parecidas (ex.: kfrm-4827-tpzw). */
+function gerarSenha() {
+  const letras = "abcdefghjkmnpqrstuvwxyz", nums = "23456789";
+  const r = new Uint32Array(12); crypto.getRandomValues(r);
+  const pega = (s: string, i: number) => s[r[i] % s.length];
+  return [0, 1, 2, 3].map((i) => pega(letras, i)).join("") + "-" + [4, 5, 6, 7].map((i) => pega(nums, i)).join("") + "-" + [8, 9, 10, 11].map((i) => pega(letras, i)).join("");
+}
+
+function quando(v: string | null) {
+  if (!v) return "nunca entrou";
+  const dias = Math.floor((Date.now() - new Date(v).getTime()) / 86_400_000);
+  return dias <= 0 ? "hoje" : dias === 1 ? "ontem" : dias < 30 ? `há ${dias} dias` : dataBR(v);
+}
+const iniciais = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+const fone = (t: string | null) => {
+  const d = (t ?? "").replace(/\D/g, "");
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : t ?? "";
+};
+
+function ChipPapel({ p, extra }: { p: Papel; extra?: boolean }) {
+  return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${COR_PAPEL[p]} ${extra ? "opacity-90" : ""}`}>{extra ? "+ " : ""}{rotuloPapel(p)}</span>;
+}
 
 export default function Usuarios() {
   const eu = usePerfil();
-  const invalidate = useInvalidate();
+  const { nome: nomeUnidade } = useUnidade();
   const { data: usuarios = [], isLoading } = useQuery({
-    queryKey: ["usuarios_erp"],
+    queryKey: ["usuarios_erp", "admin"],
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
-  const [novo, setNovo] = useState(false);
+  const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const [aba, setAba] = useState<"usuarios" | "permissoes">("usuarios");
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [editando, setEditando] = useState<Usuario | "novo" | null>(null);
   const [senhaDe, setSenhaDe] = useState<Usuario | null>(null);
 
-  async function atualizar(u: Usuario, patch: Partial<Usuario>) {
-    try {
-      await callFunction("usuarios-admin", { acao: "atualizar", user_id: u.user_id, ...patch });
-      notify("Usuário atualizado");
-      invalidate("usuarios_erp");
-    } catch (e) {
-      notifyError(e);
-    }
-  }
+  const lista = usuarios
+    .filter((u) => (filtro === "todos" ? true : filtro === "ativos" ? u.ativo : !u.ativo))
+    .filter((u) => !busca.trim() || `${u.nome} ${u.email} ${u.cargo ?? ""} ${u.telefone ?? ""} ${rotuloPapel(u.papel)}`.toLowerCase().includes(busca.trim().toLowerCase()));
+  const ativos = usuarios.filter((u) => u.ativo);
+  const provisoria = ativos.filter((u) => u.trocar_senha).length;
+  const nuncaEntrou = ativos.filter((u) => !u.ultimo_acesso).length;
+  const admins = ativos.filter((u) => u.papel === "admin").length;
 
   return (
     <div>
-      <PageHeader title="Usuários" actions={<Button onClick={() => setNovo(true)}><Plus size={16} /> Novo usuário</Button>} />
+      <PageHeader title="Usuários e permissões" actions={<Button onClick={() => setEditando("novo")}><Plus size={16} aria-hidden /> Novo usuário</Button>} />
+      <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "O que cada papel pode" }]} />
 
-      <div className="mb-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        {PAPEIS.map((p) => (
-          <div key={p.value} className="rounded-md border bg-surface p-3">
-            <div className="font-medium">{p.label}</div>
-            <div className="text-xs text-slate-500">{p.descricao}</div>
+      {aba === "permissoes" ? <MatrizPermissoes /> : (
+        <>
+          {(provisoria > 0 || nuncaEntrou > 0 || admins === 1) && (
+            <div className="mb-3 flex flex-wrap gap-2 text-sm">
+              {provisoria > 0 && <span className="rounded-lg bg-amber-50 px-3 py-1.5 text-amber-900">{provisoria} com senha provisória (trocam no próximo acesso)</span>}
+              {nuncaEntrou > 0 && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-slate-700">{nuncaEntrou} ainda não entrou</span>}
+              {admins === 1 && <span className="rounded-lg bg-sky-50 px-3 py-1.5 text-sky-900">Só 1 administrador ativo: vale ter um segundo, para não ficar sem acesso</span>}
+            </div>
+          )}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-0 flex-1 sm:max-w-sm">
+              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+              <input className="input pl-9" placeholder="Buscar nome, e-mail, função…" aria-label="Buscar usuário" value={busca} onChange={(e) => setBusca(e.target.value)} />
+            </div>
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Situação">
+              {(["ativos", "inativos", "todos"] as const).map((f) => (
+                <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
+                  className={`rounded-md px-3 py-1 font-semibold ${filtro === f ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>{f}</button>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
 
-      <Table
-        empty={!isLoading && usuarios.length === 0}
-        head={<><th className="th">Nome</th><th className="th">E-mail</th><th className="th">Papel</th><th className="th">Situação</th><th className="th">Último acesso</th><th className="th" /></>}
-      >
-        {usuarios.map((u) => {
-          const souEu = u.user_id === eu.user_id;
-          return (
-            <tr key={u.user_id}>
-              <td className="td font-medium">{u.nome}{souEu && <span className="ml-1 text-xs text-slate-400">(você)</span>}</td>
-              <td className="td">{u.email}</td>
-              <td className="td">
-                <select className="input w-auto py-1" value={u.papel} disabled={souEu} onChange={(e) => atualizar(u, { papel: e.target.value as Papel })}>
-                  {PAPEIS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              </td>
-              <td className="td"><Badge value={u.ativo ? "ativo" : "inativo"} /></td>
-              <td className="td">{u.ultimo_acesso ? dataBR(u.ultimo_acesso) : "nunca"}</td>
-              <td className="td whitespace-nowrap text-right">
-                <Button variant="ghost" title="Definir nova senha" onClick={() => setSenhaDe(u)}><KeyRound size={15} /></Button>
-                {!souEu && (
-                  <Button variant="ghost" className={u.ativo ? "text-red-600" : ""} onClick={() => atualizar(u, { ativo: !u.ativo })}>
-                    {u.ativo ? "Desativar" : "Reativar"}
-                  </Button>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </Table>
+          <Card>
+            {isLoading ? <p className="p-6 text-center text-sm text-slate-500">Carregando…</p> : !lista.length ? <p className="p-6 text-center text-sm text-slate-500">Nenhum usuário {filtro !== "todos" ? filtro.slice(0, -1) : ""}.</p> : (
+              <ul className="divide-y divide-slate-100">
+                {lista.map((u) => {
+                  const souEu = u.user_id === eu.user_id;
+                  const vend = vendedores.find((v) => v.user_id === u.user_id);
+                  return (
+                    <li key={u.user_id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${u.ativo ? "" : "opacity-70"}`}>
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-700" aria-hidden>{iniciais(u.nome)}</span>
+                      <div className="min-w-0 flex-1 basis-56">
+                        <div className="font-semibold">{u.nome}{souEu && <span className="ml-1 text-xs font-normal text-slate-500">(você)</span>}
+                          {u.cargo && <span className="ml-2 text-sm font-normal text-slate-600">· {u.cargo}</span>}</div>
+                        <div className="truncate text-sm text-slate-600">{u.email}{u.telefone ? ` · ${fone(u.telefone)}` : ""}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          <ChipPapel p={u.papel} />{(u.papeis_extras ?? []).map((p) => <ChipPapel key={p} p={p} extra />)}
+                          <span className="text-xs text-slate-500">· {u.unidade_id ? nomeUnidade(u.unidade_id) : "todas as unidades"}{vend ? ` · vendedor: ${vend.nome}` : ""}</span>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs text-slate-600">
+                        {!u.ativo ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-semibold text-slate-700">inativo</span>
+                          : u.trocar_senha ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">senha provisória</span> : null}
+                        <div className="mt-0.5">último acesso: {quando(u.ultimo_acesso)}</div>
+                      </div>
+                      <div className="flex gap-1">
+                        {u.telefone && <a className="inline-flex items-center rounded-lg px-2 py-2 text-emerald-700 hover:bg-slate-100" href={whatsappLink(u.telefone, `Olá, ${u.nome.split(" ")[0]}!`)} target="_blank" rel="noreferrer" aria-label={`WhatsApp de ${u.nome}`} title="WhatsApp"><MessageCircle size={16} aria-hidden /></a>}
+                        <Button variant="ghost" className="!px-2" title="Definir senha provisória" aria-label={`Nova senha para ${u.nome}`} onClick={() => setSenhaDe(u)}><KeyRound size={16} aria-hidden /></Button>
+                        <Button variant="secondary" onClick={() => setEditando(u)} aria-label={`Editar ${u.nome}`}><Pencil size={15} aria-hidden /> Editar</Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
 
-      {novo && <NovoUsuario onClose={() => setNovo(false)} />}
-      {senhaDe && <NovaSenha usuario={senhaDe} onClose={() => setSenhaDe(null)} />}
+      {editando && <UsuarioModal usuario={editando === "novo" ? null : editando} vendedores={vendedores} admins={admins} onClose={() => setEditando(null)} />}
+      {senhaDe && <SenhaModal usuario={senhaDe} onClose={() => setSenhaDe(null)} />}
     </div>
   );
 }
 
-function NovoUsuario({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ nome: "", email: "", papel: "vendas" as Papel, senha: "" });
-  const [salvando, setSalvando] = useState(false);
+/** Cadastro do usuário (novo ou edição). */
+function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuario | null; vendedores: Vendedor[]; admins: number; onClose: () => void }) {
+  const eu = usePerfil();
+  const { unidades } = useUnidade();
   const invalidate = useInvalidate();
-  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
+  const souEu = usuario?.user_id === eu.user_id;
+  const vendAtual = usuario ? vendedores.find((v) => v.user_id === usuario.user_id)?.id ?? "" : "";
+  const [f, setF] = useState({
+    nome: usuario?.nome ?? "", email: usuario?.email ?? "", cargo: usuario?.cargo ?? "", telefone: usuario?.telefone ?? "",
+    papel: (usuario?.papel ?? "vendas") as Papel, extras: (usuario?.papeis_extras ?? []) as Papel[], unidade_id: usuario?.unidade_id ?? "",
+    ativo: usuario?.ativo ?? true, vendedor_id: vendAtual, senha: usuario ? "" : gerarSenha(),
+  });
+  const [salvando, setSalvando] = useState(false);
+  const [criado, setCriado] = useState<{ nome: string; email: string; senha: string; telefone: string } | null>(null);
+  const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
+  const comExtras = f.papel !== "admin" && f.papel !== "contador";
+  const extras = comExtras ? f.extras.filter((p) => p !== f.papel) : [];
+  const vendeTambem = f.papel === "admin" || f.papel === "vendas" || extras.includes("vendas");
+  const telasVistas = (Object.keys(TELAS_ROTULO) as Tela[]).filter((t) => podeVer(f.papel, t, extras));
+  const ultimoAdmin = !!usuario && usuario.papel === "admin" && usuario.ativo && admins <= 1;
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
+    if (f.papel !== "admin" && ultimoAdmin) return notifyError(new Error("é preciso manter ao menos um administrador ativo"));
     setSalvando(true);
     try {
-      await callFunction("usuarios-admin", { acao: "criar", ...form });
-      notify(`Usuário criado. Passe o e-mail e a senha provisória para ${form.nome.split(" ")[0]}.`);
+      const dados = { nome: f.nome, cargo: f.cargo, telefone: f.telefone, papel: f.papel, papeis_extras: extras, unidade_id: f.unidade_id || null };
+      let userId = usuario?.user_id;
+      if (!usuario) {
+        const r = await callFunction<{ user_id: string }>("usuarios-admin", { acao: "criar", ...dados, email: f.email, senha: f.senha });
+        userId = r.user_id;
+      } else {
+        await callFunction("usuarios-admin", {
+          acao: "atualizar", user_id: usuario.user_id, ...dados,
+          ...(f.email.trim().toLowerCase() !== usuario.email ? { email: f.email } : {}),
+          ...(!souEu && f.ativo !== usuario.ativo ? { ativo: f.ativo } : {}),
+        });
+      }
+      // vínculo com o cadastro de vendedor (comissões e "meus pedidos")
+      if (userId && f.vendedor_id !== vendAtual) {
+        if (vendAtual) await supabase.from("vendedores").update({ user_id: null }).eq("id", vendAtual);
+        if (f.vendedor_id) {
+          const { error } = await supabase.from("vendedores").update({ user_id: userId }).eq("id", f.vendedor_id);
+          if (error) throw error;
+        }
+        invalidate("vendedores");
+      }
       invalidate("usuarios_erp");
-      onClose();
-    } catch (err) {
-      notifyError(err);
-    } finally {
-      setSalvando(false);
-    }
+      if (!usuario) setCriado({ nome: f.nome, email: f.email.trim().toLowerCase(), senha: f.senha, telefone: f.telefone });
+      else { notify("Usuário atualizado"); onClose(); }
+    } catch (err) { notifyError(err); } finally { setSalvando(false); }
   }
 
+  if (criado) return <Modal open onClose={onClose} title="Usuário criado"><Credenciais {...criado} onClose={onClose} /></Modal>;
+
   return (
-    <Modal open onClose={onClose} title="Novo usuário">
-      <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Nome" className="sm:col-span-2"><input className="input" value={form.nome} onChange={set("nome")} required /></Field>
-        <Field label="E-mail" className="sm:col-span-2"><input className="input" type="email" value={form.email} onChange={set("email")} required /></Field>
-        <Field label="Papel">
-          <select className="input" value={form.papel} onChange={set("papel")}>
-            {PAPEIS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
-        </Field>
-        <Field label="Senha provisória (mín. 8)"><input className="input" value={form.senha} onChange={set("senha")} minLength={8} required /></Field>
-        <p className="text-xs text-slate-500 sm:col-span-2">{PAPEIS.find((p) => p.value === form.papel)?.descricao}. A pessoa pode trocar a senha em “Alterar senha”.</p>
-        <div className="flex justify-end gap-2 sm:col-span-2">
+    <Modal open onClose={onClose} title={usuario ? `Editar ${usuario.nome}` : "Novo usuário"} wide>
+      <form onSubmit={salvar} className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nome *"><input className="input" value={f.nome} onChange={(e) => set({ nome: e.target.value })} required maxLength={120} autoComplete="off" /></Field>
+          <Field label="E-mail de acesso *"><input className="input" type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} required autoComplete="off" /></Field>
+          <Field label="Função (cargo)"><input className="input" value={f.cargo} placeholder="ex.: vendedora, técnico de campo" maxLength={80} onChange={(e) => set({ cargo: e.target.value })} /></Field>
+          <Field label="Telefone / WhatsApp"><input className="input" inputMode="tel" value={f.telefone} placeholder="(48) 99999-9999" onChange={(e) => set({ telefone: e.target.value })} /></Field>
+        </div>
+        {usuario && f.email.trim().toLowerCase() !== usuario.email && <p className="text-xs text-amber-800">O acesso passa a ser pelo e-mail novo (a senha continua a mesma).</p>}
+
+        <fieldset>
+          <legend className="mb-1.5 text-xs font-semibold text-slate-600">Papel principal</legend>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {PAPEIS.map((p) => (
+              <label key={p.value} className={`flex cursor-pointer gap-2 rounded-lg border p-2.5 text-sm ${f.papel === p.value ? "border-modulo bg-slate-50 ring-1 ring-modulo" : "border-slate-200"} ${souEu && p.value !== "admin" ? "cursor-not-allowed opacity-60" : ""}`}>
+                <input type="radio" name="papel" className="mt-0.5" checked={f.papel === p.value} disabled={souEu && p.value !== "admin"} onChange={() => set({ papel: p.value })} />
+                <span><b>{p.label}</b><span className="block text-xs text-slate-600">{p.descricao}</span></span>
+              </label>
+            ))}
+          </div>
+          {souEu && <p className="mt-1 text-xs text-slate-500">Você não pode tirar o seu próprio acesso de administrador.</p>}
+          {ultimoAdmin && !souEu && <p className="mt-1 text-xs text-slate-500">É o único administrador ativo: o papel não pode mudar.</p>}
+        </fieldset>
+
+        {comExtras && (
+          <fieldset>
+            <legend className="mb-1.5 text-xs font-semibold text-slate-600">Papéis adicionais (a pessoa também faz)</legend>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {PAPEIS_ADICIONAIS.filter((p) => p !== f.papel).map((p) => (
+                <label key={p} className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={extras.includes(p)}
+                  onChange={(e) => set({ extras: e.target.checked ? [...extras, p] : extras.filter((x) => x !== p) })} /> {rotuloPapel(p)}</label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Unidade em que trabalha">
+            <select className="input" value={f.unidade_id} onChange={(e) => set({ unidade_id: e.target.value })}>
+              <option value="">Todas as unidades</option>
+              {unidades.filter((u) => u.ativo).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </Field>
+          {vendeTambem && (
+            <Field label="Cadastro de vendedor (comissões)">
+              <select className="input" value={f.vendedor_id} onChange={(e) => set({ vendedor_id: e.target.value })}>
+                <option value="">Não vinculado</option>
+                {vendedores.filter((v) => v.ativo && (!v.user_id || v.user_id === usuario?.user_id)).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+              </select>
+            </Field>
+          )}
+        </div>
+
+        {!usuario && (
+          <Field label="Senha provisória (a pessoa troca no primeiro acesso)">
+            <span className="flex gap-2">
+              <input className="input font-mono" value={f.senha} onChange={(e) => set({ senha: e.target.value })} minLength={8} required autoComplete="off" />
+              <Button type="button" variant="secondary" onClick={() => set({ senha: gerarSenha() })} title="Gerar outra"><RefreshCw size={15} aria-hidden /> Gerar</Button>
+            </span>
+          </Field>
+        )}
+
+        {usuario && !souEu && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" className="h-4 w-4" checked={f.ativo} disabled={ultimoAdmin} onChange={(e) => set({ ativo: e.target.checked })} />
+            Acesso liberado <span className="text-xs text-slate-500">(desmarque para bloquear a entrada; o histórico fica guardado)</span>
+          </label>
+        )}
+
+        <div className="rounded-lg bg-slate-50 p-3 text-sm">
+          <div className="mb-1 flex items-center gap-1.5 font-semibold"><ShieldCheck size={15} aria-hidden /> Com esse acesso, vê:</div>
+          <p className="text-slate-700">{f.papel === "admin" ? "Tudo, inclusive usuários e configurações." : telasVistas.map((t) => TELAS_ROTULO[t]).join(" · ")}</p>
+        </div>
+
+        {usuario && <Historico tabela="usuarios_erp" id={usuario.user_id} />}
+
+        <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button disabled={salvando}>{salvando ? "Criando…" : "Criar usuário"}</Button>
+          <Button disabled={salvando}>{salvando ? "Salvando…" : usuario ? "Salvar" : "Criar usuário"}</Button>
         </div>
       </form>
     </Modal>
   );
 }
 
-function NovaSenha({ usuario, onClose }: { usuario: Usuario; onClose: () => void }) {
-  const [senha, setSenha] = useState("");
+/** Senha provisória nova (a pessoa troca no próximo acesso). */
+function SenhaModal({ usuario, onClose }: { usuario: Usuario; onClose: () => void }) {
+  const eu = usePerfil();
+  const invalidate = useInvalidate();
+  const [senha, setSenha] = useState(gerarSenha);
+  const [pronto, setPronto] = useState(false);
+  const souEu = usuario.user_id === eu.user_id;
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
       await callFunction("usuarios-admin", { acao: "redefinir_senha", user_id: usuario.user_id, senha });
-      notify("Senha redefinida");
-      onClose();
-    } catch (err) {
-      notifyError(err);
-    }
+      invalidate("usuarios_erp");
+      if (souEu) { notify("Senha alterada"); onClose(); } else setPronto(true);
+    } catch (err) { notifyError(err); }
   }
   return (
-    <Modal open onClose={onClose} title={`Nova senha — ${usuario.nome}`}>
-      <form onSubmit={salvar} className="space-y-3">
-        <Field label="Nova senha (mín. 8)"><input className="input" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={8} required autoFocus /></Field>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button>Salvar</Button>
-        </div>
-      </form>
+    <Modal open onClose={onClose} title={`Nova senha · ${usuario.nome}`}>
+      {pronto ? <Credenciais nome={usuario.nome} email={usuario.email} senha={senha} telefone={usuario.telefone ?? ""} onClose={onClose} /> : (
+        <form onSubmit={salvar} className="space-y-3">
+          <Field label={souEu ? "Sua nova senha (mín. 8)" : "Senha provisória (mín. 8)"}>
+            <span className="flex gap-2">
+              <input className="input font-mono" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={8} required autoFocus autoComplete="off" />
+              <Button type="button" variant="secondary" onClick={() => setSenha(gerarSenha())}><RefreshCw size={15} aria-hidden /> Gerar</Button>
+            </span>
+          </Field>
+          {!souEu && <p className="text-xs text-slate-600">{usuario.nome.split(" ")[0]} entra com ela e cria uma senha pessoal no mesmo momento.</p>}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+            <Button>Salvar senha</Button>
+          </div>
+        </form>
+      )}
     </Modal>
+  );
+}
+
+/** Dados de acesso para passar à pessoa (copiar ou WhatsApp). */
+function Credenciais({ nome, email, senha, telefone, onClose }: { nome: string; email: string; senha: string; telefone: string; onClose: () => void }) {
+  const texto = `Olá, ${nome.split(" ")[0]}! Seu acesso ao ERP da MF Máquinas:\n${SITE}\nE-mail: ${email}\nSenha provisória: ${senha}\nNo primeiro acesso você cria a sua senha pessoal.`;
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); } catch { notifyError(new Error("não deu para copiar: selecione o texto e copie")); }
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-slate-700">Passe estes dados para {nome.split(" ")[0]}. A senha é provisória: no primeiro acesso a pessoa cria a própria.</p>
+      <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-800">{texto}</pre>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={copiar}>{copiado ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />} {copiado ? "Copiado" : "Copiar"}</Button>
+        {telefone.replace(/\D/g, "").length >= 10 && (
+          <a className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-3.5 py-2 text-sm font-semibold text-white sm:min-h-0" href={whatsappLink(telefone, texto)} target="_blank" rel="noreferrer">
+            <MessageCircle size={15} aria-hidden /> Enviar pelo WhatsApp
+          </a>
+        )}
+        <Button type="button" onClick={onClose}>Concluir</Button>
+      </div>
+    </div>
+  );
+}
+
+/** Tabela: telas que cada papel vê e o que pode alterar. */
+function MatrizPermissoes() {
+  const telas = Object.keys(TELAS_ROTULO) as Tela[];
+  const acoes = Object.keys(ACOES_ROTULO) as (keyof typeof ACOES_ROTULO)[];
+  const vis = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(telasDoPapel(p.value))])), []);
+  const faz = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
+  const Marca = ({ ok }: { ok: boolean }) => ok
+    ? <Check size={16} className="mx-auto text-emerald-700" aria-label="sim" />
+    : <Minus size={14} className="mx-auto text-slate-300" aria-label="não" />;
+  const Tabela = ({ titulo, linhas, rotulo, tem }: { titulo: string; linhas: string[]; rotulo: (k: string) => string; tem: (p: Papel, k: string) => boolean }) => (
+    <Card className="overflow-x-auto">
+      <table className="w-full min-w-[560px] text-sm">
+        <caption className="px-4 pt-3 text-left font-semibold">{titulo}</caption>
+        <thead><tr className="border-b border-slate-200">
+          <th className="th" />{PAPEIS.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
+        </tr></thead>
+        <tbody>
+          {linhas.map((k) => (
+            <tr key={k} className="border-b border-slate-100 last:border-0">
+              <th scope="row" className="td text-left font-normal">{rotulo(k)}</th>
+              {PAPEIS.map((p) => <td key={p.value} className="td text-center"><Marca ok={tem(p.value, k)} /></td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  );
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-600">
+        Cada pessoa tem um <b>papel principal</b> e pode ter <b>papéis adicionais</b> (vendas, financeiro, técnico): as permissões se somam.
+        O banco de dados aplica as mesmas regras, então ninguém faz pelo sistema o que o papel não permite.
+      </p>
+      <Tabela titulo="Telas que vê" linhas={telas} rotulo={(k) => TELAS_ROTULO[k as Tela]} tem={(p, k) => vis[p].has(k)} />
+      <Tabela titulo="O que pode criar ou alterar" linhas={acoes} rotulo={(k) => ACOES_ROTULO[k as keyof typeof ACOES_ROTULO]} tem={(p, k) => faz[p].has(k)} />
+      <p className="text-xs text-slate-500">Usuários, unidades, configurações e exclusões ficam só com o administrador. O contador só consulta (e fecha o mês).</p>
+    </div>
   );
 }

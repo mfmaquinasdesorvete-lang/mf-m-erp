@@ -23,6 +23,7 @@ export const ROTULO_CAMPO: Record<string, string> = {
   vendedor: "vendedor", comissao_percentual: "comissão (%)", origem: "origem", aprovado_em: "aprovado em", reaberto_em: "reaberto em",
   estoque_baixado: "estoque baixado", frete: "frete", valor_total: "total", modalidade_frete: "frete por conta", unidade_id: "unidade",
   primeiro_vencimento: "1º vencimento", codigo_rastreio: "rastreio", marcadores: "marcadores", observacao_interna: "observação interna",
+  papeis_extras: "papéis adicionais", cargo: "função", trocar_senha: "senha provisória",
 };
 /** Itens do pedido no histórico do pedido. */
 const ITEM: Record<string, string> = { item_incluido: "incluiu item", item_removido: "removeu item", item_alterado: "alterou item" };
@@ -34,6 +35,7 @@ export function valorCampo(campo: string, v: unknown): string {
   if (DINHEIRO.includes(campo)) return brl(Number(v));
   if (DATA.includes(campo)) return dataBR(String(v));
   if (typeof v === "boolean") return v ? "sim" : "não";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "nenhum";
   if (typeof v === "object") return JSON.stringify(v).slice(0, 80);
   const s = String(v);
   return /^[0-9a-f-]{36}$/.test(s) ? "(registro)" : s.length > 80 ? s.slice(0, 80) + "…" : s;

@@ -45,7 +45,9 @@ function lerXmlDemo(xml: string) {
 function seed(): Db {
   const db: Db = {
     usuarios_erp: USUARIOS_DEMO.map((u, i) => ({
-      ...u, ativo: true, created_at: quando(-200 + i), ultimo_acesso: quando(-i), avisos: {},
+      ...u, ativo: true, created_at: quando(-200 + i), ultimo_acesso: quando(-i), avisos: {}, trocar_senha: false,
+      papeis_extras: u.user_id === "u-vendas" ? ["tecnico"] : [], cargo: ({ "u-admin": "Diretora", "u-vendas": "Vendedora", "u-fin": "Financeiro", "u-tec": "Técnico de campo", "u-cont": "Contabilidade" } as Record<string, string>)[u.user_id] ?? null,
+      telefone: u.user_id === "u-cont" ? null : "4899999" + String(1000 + i),
       telegram_chat_id: ["u-fin", "u-tec"].includes(u.user_id) ? 5000 + i : null,
     })),
     configuracoes: [{
@@ -2324,6 +2326,11 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     sel.forEach((c) => (c.conta_pagar_id = conta.id));
     return { data: conta.id, error: null };
   },
+  marcar_senha_trocada: () => {
+    const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
+    if (u) u.trocar_senha = false;
+    return { data: null, error: null };
+  },
   definir_minha_unidade: ({ p_unidade }) => {
     const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
     if (u) u.unidade_id = p_unidade;
@@ -3167,9 +3174,36 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
+    const ADIC = ["vendas", "financeiro", "tecnico"];
+    const extras = (v: any, papel: string) => (Array.isArray(v) && !["admin", "contador"].includes(papel) ? [...new Set(v as string[])].filter((p) => ADIC.includes(p) && p !== papel) : []);
+    const ultimoAdmin = (u: Row, papel: string, ativo: boolean) => u.papel === "admin" && u.ativo && (papel !== "admin" || !ativo)
+      && !db.usuarios_erp.some((x) => x.user_id !== u.user_id && x.papel === "admin" && x.ativo);
     if (b.acao === "listar") return { ok: true, usuarios: db.usuarios_erp };
-    if (b.acao === "criar") { db.usuarios_erp.push({ user_id: uid(), nome: b.nome, papel: b.papel, email: b.email, ativo: true, ultimo_acesso: null }); return { ok: true }; }
-    if (b.acao === "atualizar") { Object.assign(db.usuarios_erp.find((u) => u.user_id === b.user_id)!, b); return { ok: true }; }
+    if (b.acao === "criar") {
+      if (db.usuarios_erp.some((u) => u.email === String(b.email).toLowerCase())) throw new Error("já existe um usuário com este e-mail");
+      const user_id = uid();
+      db.usuarios_erp.push({ user_id, nome: b.nome, papel: b.papel, papeis_extras: extras(b.papeis_extras, b.papel), cargo: b.cargo || null,
+        telefone: String(b.telefone ?? "").replace(/\D/g, "") || null, unidade_id: b.unidade_id || null, email: String(b.email).toLowerCase(),
+        ativo: true, trocar_senha: true, ultimo_acesso: null, created_at: new Date().toISOString(), avisos: {} });
+      return { ok: true, user_id };
+    }
+    if (b.acao === "atualizar") {
+      const u = db.usuarios_erp.find((x) => x.user_id === b.user_id);
+      if (!u) throw new Error("usuário não encontrado");
+      const papel = b.papel ?? u.papel, ativo = b.ativo ?? u.ativo;
+      if (b.user_id === sessao?.user.id && (ativo === false || papel !== "admin")) throw new Error("você não pode desativar nem tirar o próprio acesso de administrador");
+      if (ultimoAdmin(u, papel, ativo)) throw new Error("é preciso manter ao menos um administrador ativo");
+      const { acao: _a, user_id: _u, ...resto } = b;
+      Object.assign(u, resto, { papel, ativo, papeis_extras: extras(b.papeis_extras ?? u.papeis_extras, papel),
+        ...(b.telefone !== undefined ? { telefone: String(b.telefone ?? "").replace(/\D/g, "") || null } : {}),
+        ...(b.email !== undefined ? { email: String(b.email).toLowerCase() } : {}) });
+      return { ok: true };
+    }
+    if (b.acao === "redefinir_senha") {
+      const u = db.usuarios_erp.find((x) => x.user_id === b.user_id);
+      if (u && b.user_id !== sessao?.user.id) u.trocar_senha = true;
+      return { ok: true };
+    }
     return { ok: true };
   },
 };
