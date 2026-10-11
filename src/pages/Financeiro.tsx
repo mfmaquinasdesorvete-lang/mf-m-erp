@@ -69,10 +69,10 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 }
 
 export default function Financeiro() {
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
   const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "recibos" | "fixas" | "dre" | "plano">("visao");
-  const veCobranca = papel === "admin" || papel === "financeiro" || papel === "vendas";
+  const veCobranca = tem("financeiro", "vendas");
   // "+ Conta a pagar" do menu: abre a aba e o formulário da conta nova
   const location = useLocation();
   const navigate = useNavigate();
@@ -128,7 +128,7 @@ export default function Financeiro() {
         : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
         <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}
-          veSaldo={papel === "admin" || papel === "financeiro" || papel === "contador"} podeBaixar={pode("editar_financeiro")} />
+          veSaldo={tem("financeiro", "contador")} podeBaixar={pode("editar_financeiro")} />
       ) : (
         <>
           <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">

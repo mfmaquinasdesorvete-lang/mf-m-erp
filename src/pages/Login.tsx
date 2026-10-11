@@ -196,8 +196,9 @@ function LoginReal({ linkExpirado }: { linkExpirado: boolean }) {
   );
 }
 
-/** Depois do link do e-mail: cria a senha nova (a sessão temporária do link já está ativa). */
-export function NovaSenha({ onPronto }: { onPronto: () => void }) {
+/** Depois do link do e-mail: cria a senha nova (a sessão temporária do link já está ativa).
+ *  obrigatoria: primeiro acesso com a senha provisória (ou redefinida pelo administrador). */
+export function NovaSenha({ onPronto, obrigatoria = false }: { onPronto: () => void; obrigatoria?: boolean }) {
   const [senha, setSenha] = useState("");
   const [repetir, setRepetir] = useState("");
   const [erro, setErro] = useState("");
@@ -218,15 +219,17 @@ export function NovaSenha({ onPronto }: { onPronto: () => void }) {
         : /session|expired|jwt/i.test(error.message) ? "O link expirou. Volte e peça um novo em “Esqueci minha senha”." : error.message);
       return;
     }
+    if (obrigatoria) await supabase.rpc("marcar_senha_trocada");
     setAviso("Senha nova salva. Entrando…");
-    window.history.replaceState(null, "", "/");
+    if (!obrigatoria) window.history.replaceState(null, "", "/");
     setTimeout(onPronto, 900);
   }
 
   return (
     <main className={MOLDURA}>
       <Card className="w-full max-w-sm p-6">
-        <Marca sub="Crie a sua senha nova" />
+        <Marca sub={obrigatoria ? "Troque a senha provisória" : "Crie a sua senha nova"} />
+        {obrigatoria && <p className="mb-4 text-sm text-slate-600">Você entrou com uma senha provisória. Crie agora a sua senha pessoal: só você vai saber.</p>}
         <form onSubmit={salvar} className="space-y-4">
           <CampoSenha rotulo="Senha nova" valor={senha} onChange={setSenha} autoComplete="new-password" minLength={8} descricao="Mínimo de 8 caracteres. Evite datas e o nome da empresa." />
           <CampoSenha rotulo="Repita a senha nova" valor={repetir} onChange={setRepetir} autoComplete="new-password" minLength={8} />
@@ -235,7 +238,7 @@ export function NovaSenha({ onPronto }: { onPronto: () => void }) {
         </form>
         <button type="button" className="mt-4 w-full rounded text-center text-sm text-slate-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           onClick={async () => { await supabase.auth.signOut(); window.history.replaceState(null, "", "/"); onPronto(); }}>
-          Cancelar
+          {obrigatoria ? "Sair" : "Cancelar"}
         </button>
       </Card>
     </main>

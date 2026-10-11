@@ -98,7 +98,7 @@ const filtrosBase = (): FiltroCrud<Cliente>[] => [
 const ORDENS = ordensCadastro<Cliente>();
 
 export default function Clientes() {
-  const { papel } = usePerfil();
+  const { papel, tem } = usePerfil();
   const [importar, setImportar] = useState(false);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [arrumar, setArrumar] = useState(false);
@@ -118,8 +118,8 @@ export default function Clientes() {
     staleTime: 60_000,
   });
   // a importação em lote é do financeiro (e admin), como a de produtos
-  const podeImportar = papel === "admin" || papel === "financeiro";
-  const podeArrumar = papel === "admin" || papel === "financeiro" || papel === "vendas";
+  const podeImportar = tem("financeiro");
+  const podeArrumar = tem("financeiro", "vendas");
   const selecionados = unificar ? todos.filter((c) => unificar.includes(c.id)) : [];
   // ficha assinada / link enviado, por cliente
   const { data: assinaturas = [] } = useAssinaturasFicha();

@@ -116,7 +116,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       ...(semNome.marca ? { marca: semNome.marca } : {}) };
   }
   const navigate = useNavigate();
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem } = usePerfil();
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
   const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos">(busca.get("aba") === "precos" ? "precos" : "produtos");
@@ -179,7 +179,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }), [naProducao]);
   const contagem = (c: Cadastro) => (c === "todos" ? produtos.length : produtos.filter(doCadastro[c]!).length);
   const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
-  const podeMover = pode("editar_produtos") && (papel === "admin" || papel === "financeiro");
+  const podeMover = pode("editar_produtos") && tem("financeiro");
   const sugeridos = useMemo(() => produtos.filter((p) => p.tipo === "peca" && p.vendavel === false && p.ativo !== false), [produtos]);
   const invalidar = useInvalidate();
 
@@ -457,7 +457,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           {
             name: "fornecedores_produto", label: "Fornecedores deste produto (preço, prazo e preferido)", type: "custom", span: 4,
-            render: (_v, set, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && ["admin", "financeiro", "tecnico"].includes(papel ?? "")} aoMudarPreferido={set} />,
+            render: (_v, set, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && tem("financeiro", "tecnico")} aoMudarPreferido={set} />,
           },
           { name: "estoque_minimo", label: "Estoque mínimo", type: "number" },
           { name: "estoque_maximo", label: "Estoque máximo", type: "number" },

@@ -70,7 +70,7 @@ function useAcoesExpedicao() {
 
 export default function Fluxo() {
   const { filtrar } = useUnidade();
-  const { papel, user_id, nome: nomeUsuario, pode, podeVer } = usePerfil();
+  const { papel, user_id, nome: nomeUsuario, pode, podeVer, tem } = usePerfil();
   const { data: todos = [], isLoading } = useRows<P>("pedidos", { select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at)" });
   const { data: exps = [] } = useRows<Exp>("expedicoes", {});
   const { data: envios = [] } = useRows<EnvioFluxo>("envios", { select: "id, pedido_id, status, entrega_prevista, codigo_rastreio" });
@@ -93,7 +93,7 @@ export default function Fluxo() {
   const [aberta, setAberta] = useState<{ p: P; e: Exp } | null>(null);
 
   const meuVendedor = vendedores.find((v) => v.user_id === user_id);
-  const escolheVendedor = papel === "admin" || papel === "financeiro";
+  const escolheVendedor = tem("financeiro");
   const filtroVendedor = escolheVendedor ? vendedorSel : minhas && meuVendedor ? meuVendedor.id : "";
   const nomeVendedor = (p: P) => (meuVendedor && p.vendedor_id === meuVendedor.id ? "você" : vendedores.find((v) => v.id === p.vendedor_id)?.nome ?? p.vendedor);
 

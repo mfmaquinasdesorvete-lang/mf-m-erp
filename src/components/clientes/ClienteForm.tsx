@@ -94,10 +94,10 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const [salvando, setSalvando] = useState(false);
   const save = useSave("clientes");
   const invalidar = useInvalidate();
-  const { papel } = usePerfil();
-  const podeEditar = papel === "admin" || papel === "vendas" || papel === "financeiro" || papel === "tecnico";
+  const { tem } = usePerfil();
+  const podeEditar = tem("vendas", "financeiro", "tecnico");
   // mandar para Fornecedores e mexer nas categorias: vendas e financeiro (e admin)
-  const podeMover = papel === "admin" || papel === "vendas" || papel === "financeiro";
+  const podeMover = tem("vendas", "financeiro");
   const tipos = useTiposContato();
   const [gerirTipos, setGerirTipos] = useState(false);
   /** Desmarcou "Cliente": ao salvar, vai para Fornecedores e sai da lista de clientes. */

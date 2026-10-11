@@ -55,9 +55,9 @@ const VISOES: Record<Visao, [string, string]> = { geral: ["Painel geral", "Geral
  * cada um pode trocar e a escolha fica lembrada (por papel, para quem divide o computador).
  */
 export default function Dashboard() {
-  const { papel, podeVer } = usePerfil();
+  const { papel, podeVer, tem } = usePerfil();
   const opcoes: Visao[] = papel === "vendas" ? ["fluxo", "geral"]
-    : [ "geral" as const, ...(papel === "admin" || papel === "financeiro" ? ["financeiro" as const] : []), ...(podeVer("fluxo") ? ["fluxo" as const] : [])];
+    : [ "geral" as const, ...(tem("financeiro") ? ["financeiro" as const] : []), ...(podeVer("fluxo") ? ["fluxo" as const] : [])];
   const padrao: Visao = papel === "vendas" ? "fluxo" : papel === "financeiro" ? "financeiro" : "geral";
   const chave = `erp.painel.visao.${papel}`;
   const [visao, setVisao] = useState<Visao>(() => {

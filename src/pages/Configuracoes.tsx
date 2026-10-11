@@ -27,7 +27,7 @@ export default function Configuracoes() {
   });
   const save = useSave("configuracoes");
   const { unidades } = useUnidade();
-  const { papel } = usePerfil();
+  const { papel, tem } = usePerfil();
   const [cfg, setCfg] = useState<Record<string, any> | null>(null);
   useEffect(() => { if (data) setCfg(data); }, [data]);
   // Vindo de outra tela (ex.: Fluxo de pedidos → ligar a NF-e automática): rola até a seção pedida
@@ -244,7 +244,7 @@ export default function Configuracoes() {
     </form>
       <Card className="p-4"><EmailConfig /></Card>
       <ImportarTiny />
-      {(papel === "admin" || papel === "financeiro") && <BackupsConfig />}
+      {tem("financeiro") && <BackupsConfig />}
       <BackupCard />
       {papel === "admin" && <ApagarTestes />}
     </div>

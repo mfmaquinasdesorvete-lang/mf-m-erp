@@ -21,8 +21,8 @@ type Resposta = {
 const ROTULO: Record<SituacaoItem, string> = { pendente: "A conferir", ok: "Conforme", nao_conforme: "Não conforme", na: "Não se aplica" };
 
 export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoes; verExcecoes: (t: TipoExcecao) => void }) {
-  const { papel } = usePerfil();
-  const podeEditar = ["admin", "financeiro", "contador"].includes(papel);
+  const { tem } = usePerfil();
+  const podeEditar = tem("financeiro", "contador");
   const [comp, setComp] = useState(hoje().slice(0, 7));
   const { data: respostas = [] } = useRows<Resposta>("auditoria_checklist", { order: "item", ascending: true });
   const invalidar = useInvalidate();

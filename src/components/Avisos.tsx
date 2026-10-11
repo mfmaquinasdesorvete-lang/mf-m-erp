@@ -94,7 +94,7 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
   const conectado = !!eu.data?.telegram_chat_id;
   useEffect(() => { if (conectado && esperando) { setEsperando(false); notify("Telegram conectado!"); } }, [conectado, esperando]);
 
-  const meus = tipos.filter((t) => t.publico === "equipe" && (perfil.papel === "admin" || t.papeis.includes(perfil.papel)));
+  const meus = tipos.filter((t) => t.publico === "equipe" && (perfil.papel === "admin" || t.papeis.includes(perfil.papel) || (perfil.papeis_extras ?? []).some((x) => t.papeis.includes(x))));
   const robo: string | null = cfg?.telegram_bot ?? null;
 
   async function conectar() {

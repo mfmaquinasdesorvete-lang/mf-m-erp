@@ -71,8 +71,8 @@ export function reciboDePagar(c: { id: string; descricao: string; valor: number;
 
 /** Emite (rascunho) ou mostra (recibo já emitido) o recibo. */
 export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; onClose: () => void }) {
-  const { pode, papel } = usePerfil();
-  const podeEmitir = pode("editar_financeiro") || papel === "vendas";
+  const { pode, tem } = usePerfil();
+  const podeEmitir = pode("editar_financeiro") || tem("vendas");
   const { unidades } = useUnidade();
   const { data: cfg } = useConfig();
   const invalidar = useInvalidate();
@@ -169,8 +169,8 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
 
 /** Aba Financeiro → Recibos: todos os recibos emitidos, com reimpressão e cancelamento. */
 export function Recibos() {
-  const { pode, papel } = usePerfil();
-  const podeEmitir = pode("editar_financeiro") || papel === "vendas";
+  const { pode, tem } = usePerfil();
+  const podeEmitir = pode("editar_financeiro") || tem("vendas");
   const { filtrar, padrao, unidades } = useUnidade();
   const { data: cfg } = useConfig();
   const invalidar = useInvalidate();

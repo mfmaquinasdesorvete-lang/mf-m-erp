@@ -106,7 +106,7 @@ export default function App() {
     queryClient.clear(); // dados de outro usuário não podem aparecer
     if (!userId) return setPerfil(session === null ? null : undefined);
     setPerfil(undefined);
-    const carregar = () => supabase.from("usuarios_erp").select("user_id, nome, papel, ativo, unidade_id, preferencias").eq("user_id", userId).maybeSingle();
+    const carregar = () => supabase.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, trocar_senha, ativo, unidade_id, preferencias").eq("user_id", userId).maybeSingle();
     carregar().then(async ({ data }) => {
       if (!data) {
         // Primeiro acesso de um sistema novo: o primeiro usuário vira administrador.
@@ -143,6 +143,8 @@ export default function App() {
   if (session === undefined) return <Carregando />;
   if (novaSenha && session) return <><Toaster /><NovaSenha onPronto={() => setNovaSenha(false)} /></>;
   if (session && perfil === undefined) return <Carregando />;
+  // senha provisória (usuário novo ou senha redefinida pelo administrador): troca antes de entrar
+  if (session && perfil?.trocar_senha) return <><Toaster /><NovaSenha obrigatoria onPronto={() => setPerfil({ ...perfil, trocar_senha: false })} /></>;
 
   return (
     <>
@@ -157,10 +159,10 @@ export default function App() {
           <Suspense fallback={<Carregando />}>
             <Routes>
               {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
-              {podeVer(perfil.papel, "pedidos") && <Route path="pdv" element={<Pdv />} />}
+              {podeVer(perfil.papel, "pedidos", perfil.papeis_extras) && <Route path="pdv" element={<Pdv />} />}
               <Route element={<Layout />}>
                 <Route index element={perfil.papel === "contador" ? <Navigate to="/contador" replace /> : <Dashboard />} />
-                {ROTAS.filter((r) => podeVer(perfil.papel, r.tela)).map((r) => (
+                {ROTAS.filter((r) => podeVer(perfil.papel, r.tela, perfil.papeis_extras)).map((r) => (
                   <Route key={r.path} path={r.path} element={r.element} />
                 ))}
                 <Route path="*" element={<Navigate to="/" replace />} />

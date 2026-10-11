@@ -86,11 +86,11 @@ async function situacaoTransportadoras(ids: string[], ativo: boolean) {
 
 /** Fornecedores e transportadoras: cada um no seu item do menu (mesma permissão de tela). */
 export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "transportadoras" }) {
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem } = usePerfil();
   const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
   const [arrumar, setArrumar] = useState(false);
   const [receita, setReceita] = useState<Fornecedor | null>(null);
-  const podeImportar = papel === "admin" || papel === "financeiro";
+  const podeImportar = tem("financeiro");
   const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
     podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
 

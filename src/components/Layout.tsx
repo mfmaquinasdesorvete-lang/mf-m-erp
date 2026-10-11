@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
-import { PAPEIS, type Tela } from "@/lib/permissoes";
+import { rotuloPapel, type Tela } from "@/lib/permissoes";
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
@@ -332,7 +332,7 @@ export function Layout() {
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-soft text-sm font-bold text-brand-ice">{iniciais}</span>
             <span className="min-w-0 flex-1 leading-tight" title={perfil.nome}>
               <span className="block truncate text-sm font-semibold text-white">{perfil.nome}</span>
-              <span className="block truncate text-xs text-nav-fraco">{PAPEIS.find((p) => p.value === perfil.papel)?.label}</span>
+              <span className="block truncate text-xs text-nav-fraco">{[perfil.papel, ...(perfil.papeis_extras ?? [])].map(rotuloPapel).join(" · ")}</span>
             </span>
             {([
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
