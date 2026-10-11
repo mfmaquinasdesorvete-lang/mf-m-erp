@@ -81,16 +81,18 @@ As permissões valem em três camadas: o menu (a tela some), as Edge Functions (
 
 ### 1. Supabase (banco e login)
 1. Crie um projeto **novo** em https://supabase.com (região São Paulo). Anote a **senha do banco**.
-2. Publique o banco e as funções. Há dois jeitos:
-   - **Pelo GitHub (sem instalar nada):** no repositório, abra *Settings → Secrets and variables → Actions* e crie `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` e `SUPABASE_DB_PASSWORD`. Depois vá em *Actions → Publicar Supabase → Run workflow*.
-   - **Pelo terminal:**
+2. Publique o banco e as funções:
+   - **Banco:** aplique os arquivos de `supabase/migrations` no *SQL Editor*, na ordem descrita em
+     `supabase/MIGRACOES.md` (ou restaure um backup do ERP).
+   - **Funções pelo GitHub (sem instalar nada):** em *Settings → Secrets and variables → Actions* crie
+     `SUPABASE_ACCESS_TOKEN` e rode *Actions → Publicar Supabase → Run workflow*.
+   - **Funções pelo terminal:**
      ```bash
      npm i -g supabase && supabase login
      supabase link --project-ref SEU_PROJECT_REF
-     supabase db push
-     # funções (as 3 últimas recebem chamadas externas, por isso --no-verify-jwt)
-     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar; do supabase functions deploy $f; done
-     for f in focus-webhook nfe-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote; do supabase functions deploy $f --no-verify-jwt; done
+     # as da segunda linha recebem chamadas externas (Focus, Telegram, agendamento), por isso --no-verify-jwt
+     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse; do supabase functions deploy $f; done
+     for f in focus-webhook nfe-processar nfse-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay backup-baixar; do supabase functions deploy $f --no-verify-jwt; done
      ```
 3. **Primeiro administrador:** depois de publicar o site (passo 6), abra o endereço e clique em **Primeiro acesso? Criar conta de administrador**. A primeira conta criada vira administradora automaticamente, e depois disso a opção some. Os demais usuários você cria pelo próprio ERP, em **Usuários**.
    - Deixe ligada em *Supabase → Authentication → Sign In / Providers* a opção **Allow new users to sign up**: é por ela que os clientes criam conta na loja. Quem se cadastra pela loja nunca vira usuário do ERP (nem administrador); a equipe continua sendo criada só pela tela de Usuários.
@@ -171,17 +173,13 @@ Abra o arquivo `supabase/agendamento.sql`, troque `SEU_PROJECT_REF` e o token (`
 ### 6. Publicar o site na Hostinger (erp.myfrost.ai)
 O site é só arquivos (HTML/JS); o banco, o login e as funções ficam no Supabase. Qualquer plano de hospedagem da Hostinger serve.
 1. **Subdomínio:** hPanel → *Domínios → Subdomínios* → crie `erp` em `myfrost.ai` (pasta, ex.: `public_html/erp`). Ative o **SSL** (gratuito) em *Segurança → SSL*.
-2. **Publicação automática (recomendado):** no GitHub do projeto, *Settings → Secrets and variables → Actions*, crie:
-   - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Supabase → *Settings → API*);
-   - `HOSTINGER_FTP_HOST`, `HOSTINGER_FTP_USER`, `HOSTINGER_FTP_PASSWORD` (hPanel → *Arquivos → Contas FTP*);
-   - `HOSTINGER_FTP_DIR` = a pasta do subdomínio terminando com `/` (ex.: `/domains/myfrost.ai/public_html/erp/`).
-   
-   A cada alteração na `main`, o GitHub monta o site e envia para a Hostinger (workflow *Publicar na Hostinger*).
+2. **Publicação:** `npm run build`; o conteúdo da pasta `dist` vai num `site.zip` no ramo `site` do GitHub, junto com os
+   arquivos das 6 versões anteriores (quem está com o ERP aberto não vê erro ao trocar de tela depois de uma
+   atualização). A Hostinger baixa o ramo `site` e publica o `site.zip`.
 3. **Ou manual:** `npm run build` e envie o conteúdo da pasta `dist` (inclusive o arquivo oculto `.htaccess`) para a pasta do subdomínio pelo Gerenciador de Arquivos.
 4. No Supabase, *Authentication → URL Configuration*: **Site URL** `https://erp.myfrost.ai`; em *Edge Functions → Secrets*, `ERP_SITE_URL` = `https://erp.myfrost.ai`.
 
 O `.htaccess` já faz as rotas (`/pedidos`, `/loja`, `/proposta/...`) abrirem direto, força HTTPS e cuida do cache.
-Também funciona na Vercel, Netlify ou Cloudflare Pages (comando `npm run build`, pasta `dist`).
 
 **Por que o banco não fica na Hostinger:** o banco da hospedagem da Hostinger é MySQL, e o ERP usa PostgreSQL com login, arquivos,
 tempo real (avisos na tela), funções e agendamentos do Supabase. Para produção use o plano **Pro** do Supabase (o gratuito pausa

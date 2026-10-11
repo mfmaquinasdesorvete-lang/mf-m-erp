@@ -1,9 +1,10 @@
-# Publica o banco (migrações) e as Edge Functions no Supabase.
+# Publica as Edge Functions no Supabase.
 # Rode manualmente em GitHub → Actions → "Publicar Supabase" → Run workflow.
-# Secrets do repositório necessários (Settings → Secrets and variables → Actions):
+# Secret do repositório necessário (Settings → Secrets and variables → Actions):
 #   SUPABASE_ACCESS_TOKEN  (supabase.com → Account → Access Tokens, começa com sbp_)
-#   SUPABASE_DB_PASSWORD   (senha do banco definida ao criar o projeto; só para as migrações)
 # O Reference ID do projeto não é segredo (aparece na URL pública do Supabase).
+# As mudanças do banco não passam por aqui: são aplicadas no Supabase e guardadas em supabase/migrations
+# com o mesmo número que o Supabase registra (veja supabase/MIGRACOES.md).
 name: Publicar Supabase
 
 on:
@@ -14,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: antfofmwrmkadiavjycg  # ELO ERP (São Paulo)
     steps:
       - uses: actions/checkout@v4
@@ -30,8 +30,3 @@ jobs:
           for fn in focus-webhook nfe-processar nfse-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay backup-baixar; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
           done
-      # por último: as funções acima não dependem da senha do banco
-      - name: Migrações do banco
-        run: |
-          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
-          supabase db push --password "$SUPABASE_DB_PASSWORD"
