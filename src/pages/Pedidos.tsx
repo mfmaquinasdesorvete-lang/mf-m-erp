@@ -207,6 +207,19 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const subtotal = totalItens(p.itens);
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
+  // desconto digitado em %; o pedido guarda o valor em R$. Pedido já salvo só muda se o % for digitado
+  // (e aí acompanha a troca de itens).
+  const [descPct, setDescPct] = useState(() => {
+    const st = totalItens(inicial.itens), d = Number(inicial.desconto || 0);
+    return d > 0 && st > 0 ? String(Math.round((d / st) * 10000) / 100).replace(".", ",") : "";
+  });
+  const pctDigitado = useRef(false);
+  useEffect(() => {
+    if (!pctDigitado.current) return;
+    const pct = Math.min(100, Math.max(0, Number(descPct.replace(",", ".")) || 0));
+    const v = Math.round(subtotal * pct) / 100;
+    if (v !== Number(p.desconto || 0)) set({ desconto: v });
+  }, [subtotal, descPct]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function executar(acao: () => Promise<unknown>, ok: string, fechar = true) {
     setOcupado(true);
@@ -463,8 +476,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           <Field label="1º vencimento">
             <input className="input" type="date" value={p.primeiro_vencimento ?? ""} disabled={!editavel} onChange={(e) => set({ primeiro_vencimento: e.target.value })} />
           </Field>
-          <Field label="Desconto (R$)">
-            <input className="input" type="number" step="0.01" min={0} value={p.desconto} disabled={!editavel} onChange={(e) => set({ desconto: Number(e.target.value) })} />
+          <Field label="Desconto (%)">
+            <span className="relative block">
+              <input className="input pr-8 text-right" inputMode="decimal" placeholder="0" value={descPct} disabled={!editavel}
+                onChange={(e) => { pctDigitado.current = true; setDescPct(e.target.value.replace(/[^\d,.]/g, "").slice(0, 6)); }} />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500" aria-hidden>%</span>
+            </span>
+            {Number(p.desconto) > 0 && <span className="mt-1 block text-xs text-slate-600">= {brl(p.desconto)} de desconto</span>}
           </Field>
           <Field label="Frete (R$)">
             <input className="input" type="number" step="0.01" min={0} value={p.frete} disabled={!editavel} onChange={(e) => set({ frete: Number(e.target.value) })} />

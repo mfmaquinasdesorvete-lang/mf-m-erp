@@ -66,7 +66,6 @@ export default function Pdv() {
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [descontoTxt, setDescontoTxt] = useState("");
-  const [descontoPct, setDescontoPct] = useState(false);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [dividir, setDividir] = useState(false);
   const [recebidoTxt, setRecebidoTxt] = useState("");
@@ -100,7 +99,8 @@ export default function Pdv() {
   const cliente = clientes.find((c) => c.id === clienteId) ?? null;
   const qtdItens = itens.reduce((t, i) => t + i.quantidade, 0);
   const subtotal = r2(itens.reduce((s, i) => s + r2(i.quantidade * i.valor_unitario), 0));
-  const descontoValor = Math.min(subtotal, r2(descontoPct ? (subtotal * num(descontoTxt)) / 100 : num(descontoTxt)));
+  // desconto em % sobre o subtotal
+  const descontoValor = r2((subtotal * Math.min(100, Math.max(0, Number(descontoTxt.replace(",", ".")) || 0))) / 100);
   const total = r2(subtotal - descontoValor);
   const somaPag = r2(pagamentos.reduce((s, p) => s + p.valor, 0));
   const falta = r2(total - somaPag);
@@ -140,7 +140,7 @@ export default function Pdv() {
   };
 
   function novaVenda() {
-    setItens([]); setClienteId(null); setDescontoTxt(""); setDescontoPct(false); setPagamentos([]); setDividir(false);
+    setItens([]); setClienteId(null); setDescontoTxt(""); setPagamentos([]); setDividir(false);
     setRecebidoTxt(""); setObs(""); setFeito(null); setNfe("");
     setTimeout(() => busca.current?.querySelector("input")?.focus(), 50);
   }
@@ -311,11 +311,10 @@ export default function Pdv() {
               <div className="flex justify-between"><dt>Subtotal ({qtdItens.toLocaleString("pt-BR")} {qtdItens === 1 ? "item" : "itens"})</dt><dd>{brl(subtotal)}</dd></div>
               <div className="flex items-center justify-between gap-2">
                 <dt>Desconto</dt>
-                <dd className="flex items-center gap-1">
-                  <input className="input w-24 py-1 text-right" inputMode="decimal" value={descontoTxt} placeholder="0" aria-label="Desconto"
-                    disabled={!pode("editar_pedidos")} onChange={(e) => setDescontoTxt(e.target.value)} />
-                  <button type="button" className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold" aria-pressed={descontoPct}
-                    onClick={() => setDescontoPct(!descontoPct)}>{descontoPct ? "%" : "R$"}</button>
+                <dd className="relative">
+                  <input className="input w-24 py-1 pr-7 text-right" inputMode="decimal" value={descontoTxt} placeholder="0" aria-label="Desconto em %"
+                    disabled={!pode("editar_pedidos")} onChange={(e) => setDescontoTxt(e.target.value.replace(/[^\d,.]/g, "").slice(0, 6))} />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-500" aria-hidden>%</span>
                 </dd>
               </div>
               {descontoValor > 0 && <div className="flex justify-between text-xs text-slate-500"><dt>desconto aplicado</dt><dd>- {brl(descontoValor)}</dd></div>}
