@@ -251,7 +251,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               </span>
             </span>
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
-              {[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
+              {[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
             {r.vendavel !== false && <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}</span>}
           </span>
@@ -414,7 +414,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         }}
         fields={[
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
-          { name: "sku", label: "Código / SKU (único, não reaproveite)", span: 1 },
+          { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
           {
             name: "conferencia", label: "Já cadastrados parecidos", type: "custom", span: 4,
             render: (_v, _s, row) => {
@@ -432,7 +432,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
           { name: "marca", label: "Marca", span: 1 },
           { name: "modelo", label: "Modelo", span: 1 },
-          { name: "codigo_fabricante", label: "Código do fabricante", span: 1 },
+          { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
           { name: "codigo_barras", label: "Código de barras (EAN)" },
           { name: "codigos_alternativos", label: "Códigos alternativos (separados por vírgula)", span: 3, placeholder: "Código antigo, código do Tiny, EAN da caixa…" },
           { name: "garantia_meses", label: "Garantia (meses, vazio = padrão)", type: "number" },
@@ -580,7 +580,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 {r.foto_caminho && <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
-                  <div className="text-xs text-slate-500">{[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
+                  <div className="text-xs text-slate-500">{[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
                   {r.vendavel === false && (
                     <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Não aparece no pedido">
                       <AlertTriangle size={12} /> não vende

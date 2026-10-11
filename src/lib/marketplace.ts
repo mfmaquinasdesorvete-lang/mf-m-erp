@@ -315,6 +315,59 @@ export function gruposRepetidos(produtos: ProdutoAnuncio[], uso: Map<string, num
   // mesmo EAN válido com nomes diferentes
   const porEan = new Map<string, ProdutoAnuncio[]>();
   for (const p of ativos) if (gtinValido(p.codigo_barras) && !vistos.has(p.id)) porEan.set(String(p.codigo_barras), [...(porEan.get(String(p.codigo_barras)) ?? []), p]);
-  for (const [ean, lista] of porEan) if (lista.length > 1) montar(`ean:${ean}`, `mesmo EAN ${ean}`, lista);
+  // o último grupo montado nunca une sozinho: alguém confere e marca o que é o mesmo produto
+  const conferir = (aviso: string) => {
+    const g = grupos[grupos.length - 1];
+    g.identicos = false;
+    g.alerta = [aviso, g.alerta].filter(Boolean).join("; ");
+  };
+  for (const [ean, lista] of porEan) if (lista.length > 1) {
+    montar(`ean:${ean}`, `mesmo EAN ${ean}`, lista);
+    if (lista.some((a, i) => lista.some((b, j) => j > i && !nomesParecidos(a, b)))) {
+      conferir("produtos diferentes com o mesmo EAN: o EAN deve estar errado em algum deles — corrija o EAN em vez de juntar");
+    }
+  }
+  // nome parecido (palavras quase iguais, mesmos números): pode ser o mesmo produto escrito de outro jeito
+  const resto = ativos.filter((p) => !vistos.has(p.id));
+  const pai = new Map(resto.map((p) => [p.id, p.id]));
+  const raiz = (id: string): string => (pai.get(id) === id ? id : raiz(pai.get(id)!));
+  for (let i = 0; i < resto.length; i++) for (let j = i + 1; j < resto.length; j++) {
+    if (nomesParecidos(resto[i], resto[j])) pai.set(raiz(resto[j].id), raiz(resto[i].id));
+  }
+  const porRaiz = new Map<string, ProdutoAnuncio[]>();
+  for (const p of resto) porRaiz.set(raiz(p.id), [...(porRaiz.get(raiz(p.id)) ?? []), p]);
+  for (const [k, lista] of porRaiz) if (lista.length > 1) {
+    montar(`parecido:${k}`, "nome parecido", lista);
+    conferir("nomes parecidos: confira se é o mesmo produto");
+  }
   return grupos.sort((a, b) => Number(b.identicos) - Number(a.identicos) || b.produtos.length - a.produtos.length);
+}
+
+// palavras que não ajudam a diferenciar ("My Frost", "de", "para"…); "c" e "s" ficam (C/ freio x S/ freio)
+const VAZIAS = new Set(["my", "frost", "de", "da", "do", "das", "dos", "para", "p", "com", "e", "em", "o", "a", "os", "as", "un", "und", "unid", "maquina", "maquinas", "modelo", "modelos"]);
+const radical = (w: string) => (w.length > 4 ? w.replace(/(oes|aes)$/, "ao").replace(/s$/, "") : w);
+// medidas viram uma palavra só: "40 x 40 x 1,0" → 40x40x1d0, "1/4" → 1f4, "6mm" → 6
+const palavras = (d: string) => new Set(semAcento(String(d ?? "").toLowerCase()).replace(/(\d)\s*mm\b/g, "$1")
+  .replace(/(\d)\s*[,.]\s*(?=\d)/g, "$1d").replace(/(\d)\s*\/\s*(?=\d)/g, "$1f").replace(/(\d)\s*x\s*(?=\d)/g, "$1x")
+  .replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w && !VAZIAS.has(w)).map(radical));
+const semelhanca = (A: Set<string>, B: Set<string>) => [...A].filter((w) => B.has(w)).length / (new Set([...A, ...B]).size || 1);
+const pacote = (d: string) => /\b\d+\s*(un|unid|unidades|pcs|pecas|pc)\b/i.test(semAcento(String(d ?? "")));
+// palavras que, sozinhas, já fazem ser outro produto (versão, tamanho, lado, cor, ligação)
+const DIFERENCIA = /^(antig|nov[oa]$|usad|seminov|grande|pequen|medi[oa]$|mini$|slim$|simples$|dupl|tripl|esquerd|direit|superior$|inferior$|dianteir|traseir|frontal$|intern|extern|macho$|feme|branc|pret[oa]$|azul$|vermelh|verde$|amarel|cinza$|monofasic|bifasic|trifasic)/;
+
+/** Dois cadastros com cara de ser o mesmo produto: os mesmos números e medidas, nenhuma palavra que
+ *  diferencia (antigo/novo, grande/pequena, cor, lado…), nenhum é pacote ou combinação ("A + B") só de
+ *  um lado, e as palavras quase todas iguais (ou parecidas e com o mesmo preço). */
+export function nomesParecidos(a: ProdutoAnuncio, b: ProdutoAnuncio) {
+  if ((a.tipo === "maquina") !== (b.tipo === "maquina") || !!a.kit !== !!b.kit) return false;
+  if (pacote(a.descricao) !== pacote(b.descricao)) return false;
+  if (String(a.descricao ?? "").includes("+") !== String(b.descricao ?? "").includes("+")) return false;
+  const A = palavras(a.descricao), B = palavras(b.descricao);
+  if (A.size < 2 || B.size < 2) return false;
+  const so = [...A].filter((w) => !B.has(w)).concat([...B].filter((w) => !A.has(w)));
+  if (so.some((w) => /\d/.test(w) || w.length === 1 || DIFERENCIA.test(w))) return false;
+  const j = semelhanca(A, B);
+  const pa = num(a.preco_venda), pb = num(b.preco_venda);
+  const mesmoPreco = pa > 0 && pb > 0 && Math.abs(pa - pb) <= 0.1 * Math.max(pa, pb);
+  return j >= 0.75 || (mesmoPreco && j >= 0.7);
 }

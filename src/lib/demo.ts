@@ -294,6 +294,8 @@ function seed(): Db {
     rep("pdup5", { descricao: "Motor Ventilador Exaustor My Frost", sku: "FS/4-300 EM", ncm: "84145990", preco_custo: 285.89, preco_venda: 579, estoque_atual: 10, marca: "My Frost" }),
     rep("pdup6", { descricao: "Rele Sub Sobretensao Voltimetro 63a 220v Monofasico Regulavel", preco_custo: 111.25, preco_venda: 333.75, ncm: "85364900" }),
     rep("pdup7", { descricao: "Rele Sub Sobretensao Voltimetro 63a 220v Monofasico Regulavel", preco_custo: 111.25, preco_venda: 333.75, ncm: "85364900" }),
+    rep("pdup8", { descricao: "Pistão da Chave Extratora - Simples + Vedações", sku: "PC-PISTAO-001", preco_custo: 32, preco_venda: 95.97, estoque_atual: 4 }),
+    rep("pdup9", { descricao: "Pistão My Frost da Chave Extratora - Simples + Vedação", sku: "P140", preco_custo: 32, preco_venda: 95.97, codigo_fabricante: "CE-140" }),
   );
   // estoque: 60% na matriz, o resto na filial
   db.estoque_unidade = db.produtos.flatMap((p) => {
