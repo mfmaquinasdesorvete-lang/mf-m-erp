@@ -48,7 +48,6 @@ const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
-  { path: "pdv", tela: "pedidos", element: <Pdv /> },
   { path: "assistencia", tela: "assistencia", element: <Assistencia /> },
   { path: "estoque", tela: "estoque", element: <Produtos /> },
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },
@@ -152,6 +151,8 @@ export default function App() {
           <UnidadeProvider inicial={perfil.unidade_id ?? null}>
           <Suspense fallback={<Carregando />}>
             <Routes>
+              {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
+              {podeVer(perfil.papel, "pedidos") && <Route path="pdv" element={<Pdv />} />}
               <Route element={<Layout />}>
                 <Route index element={perfil.papel === "contador" ? <Navigate to="/contador" replace /> : <Dashboard />} />
                 {ROTAS.filter((r) => podeVer(perfil.papel, r.tela)).map((r) => (

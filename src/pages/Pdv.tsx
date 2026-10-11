@@ -1,12 +1,16 @@
-// Vendas → PDV: venda de balcão rápida. Bipa (ou digita) os produtos, escolhe como o cliente paga (dá para dividir:
+// PDV (erp.myfrost.ai/pdv): venda de balcão rápida, em tela própria (sem o menu do ERP) e só com as peças de
+// reposição (o catálogo). Bipa (ou digita) os produtos, escolhe como o cliente paga (dá para dividir:
 // parte em dinheiro, parte no Pix…) e finaliza: pedido entregue, estoque da loja baixado, conta recebida e
 // comprovante de 80 mm. Tudo numa função do banco (pdv_finalizar): se faltar estoque ou os valores não fecharem,
 // nada é gravado. Link InfinitePay e "a prazo" deixam a conta em aberto (o link dá baixa sozinho quando pago).
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  Banknote, CalendarClock, CheckCircle2, CreditCard, FileText, Link2, Minus, Plus, Printer, QrCode, ShoppingCart, Split, Trash2, UserRound,
+  ArrowLeft, Banknote, CalendarClock, CheckCircle2, CreditCard, FileText, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShoppingCart, Split, Trash2, UserRound,
 } from "lucide-react";
-import { Button, Card, Field, Modal, PageHeader } from "@/components/ui";
+import { Button, Card, Field, Modal } from "@/components/ui";
+import { ModuloContext } from "@/lib/modulo";
+import logo from "@/assets/logo.webp";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { VendedorSelect } from "@/components/VendedorSelect";
@@ -46,7 +50,7 @@ const num = (s: string) => { const v = Number(String(s).replace(/\./g, "").repla
 const moeda = (n: number) => (n ? n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
 
 export default function Pdv() {
-  const { pode, user_id } = usePerfil();
+  const { pode, user_id, nome: nomeUsuario } = usePerfil();
   const { data: cfg } = useConfig();
   const { padrao, unidades, nome: nomeUnidade } = useUnidade();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -80,7 +84,15 @@ export default function Pdv() {
     if (!vendedorId) { const v = vendedores.find((x) => x.user_id === user_id && x.ativo); if (v) setVendedorId(v.id); }
   }, [vendedores, user_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const vendaveis = useMemo(() => produtos.filter((p) => p.ativo !== false && p.vendavel !== false), [produtos]);
+  // só o catálogo: peças de reposição e acessórios que vendem (máquinas e componentes de produção ficam de fora)
+  const vendaveis = useMemo(() => produtos.filter((p) => p.ativo !== false && p.vendavel !== false && (p.tipo === "peca" || p.tipo === "acessorio")), [produtos]);
+
+  // tela própria: cor da área de vendas e título da aba
+  useEffect(() => {
+    const raiz = document.documentElement, antes = raiz.dataset.modulo, titulo = document.title;
+    raiz.dataset.modulo = "vendas"; document.title = "PDV · ERP Line";
+    return () => { raiz.dataset.modulo = antes ?? ""; document.title = titulo; };
+  }, []);
   const saldo = (id: string) => {
     const e = estoques.find((x) => x.produto_id === id && x.unidade_id === unidadeId);
     return e ? Number(e.quantidade) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0);
@@ -195,19 +207,39 @@ export default function Pdv() {
   const nfeDados = cliente && digitos(cliente.cpf_cnpj).length >= 11 && cliente.logradouro && cliente.municipio && cliente.cep;
 
   return (
-    <div className="pb-24 lg:pb-0">
-      <PageHeader title="PDV · venda de balcão" subtitle="Bipe ou digite o produto, escolha como o cliente paga e finalize (F2)." />
+    <ModuloContext.Provider value={{ id: "vendas", titulo: "PDV", icone: ScanBarcode }}>
+    <div className="min-h-screen bg-canvas text-fg">
+      <header className="sticky top-0 z-30 flex items-center gap-3 bg-ink px-3 py-2 text-white shadow-pop sm:px-5">
+        <img src={logo} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-bold leading-tight">PDV · venda de balcão</div>
+          <div className="truncate text-xs text-nav-texto">{nomeUsuario}{unidades.length > 1 && unidadeId ? ` · ${nomeUnidade(unidadeId)}` : ""}</div>
+        </div>
+        {unidades.length > 1 && (
+          <select className="input hidden w-auto border-white/20 bg-ink-soft py-1.5 text-sm text-white sm:block" value={unidadeId ?? ""} onChange={(e) => setUnidadeId(e.target.value)} aria-label="Loja (estoque e CNPJ)">
+            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+          </select>
+        )}
+        <button type="button" className="hidden rounded-lg p-2 text-nav-texto hover:bg-white/10 hover:text-white sm:block" title="Tela cheia" aria-label="Tela cheia"
+          onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {})}>
+          <Maximize2 size={18} aria-hidden />
+        </button>
+        <Link to="/" className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-nav-texto hover:bg-white/10 hover:text-white">
+          <ArrowLeft size={16} aria-hidden /> <span className="hidden sm:inline">Voltar ao ERP</span><span className="sm:hidden">ERP</span>
+        </Link>
+      </header>
+      <main className="fundo-modulo mx-auto max-w-[1500px] px-3 pb-28 pt-4 sm:px-5 lg:pb-6">
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* itens */}
         <Card className="p-4">
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <div ref={busca} className="min-w-0 flex-1">
-              <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Produto: nome, código ou código de barras (leitor)"
+              <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Peça: nome, código ou código de barras (leitor)"
                 detalhe={(p) => <span className="num">{brl(p.preco_venda)} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
             </div>
             {unidades.length > 1 && (
-              <select className="input w-auto" value={unidadeId ?? ""} onChange={(e) => setUnidadeId(e.target.value)} aria-label="Loja (estoque e CNPJ)">
+              <select className="input w-auto sm:hidden" value={unidadeId ?? ""} onChange={(e) => setUnidadeId(e.target.value)} aria-label="Loja (estoque e CNPJ)">
                 {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </select>
             )}
@@ -369,7 +401,7 @@ export default function Pdv() {
 
       {/* celular: total sempre à vista */}
       {itens.length > 0 && !feito && (
-        <div className="fixed inset-x-0 bottom-16 z-20 flex items-center gap-3 border-t border-slate-200 bg-surface px-4 py-2.5 shadow-pop lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-slate-200 bg-surface px-4 py-2.5 shadow-pop lg:hidden">
           <div className="flex-1"><div className="text-xs text-slate-500">{itens.length} {itens.length === 1 ? "item" : "itens"}</div><div className="num text-lg font-extrabold">{brl(total)}</div></div>
           <Button type="button" onClick={() => (pronto ? finalizar() : pagar.current?.scrollIntoView({ behavior: "smooth" }))} disabled={enviando}>
             {pronto ? "Finalizar" : "Cobrar"}
@@ -416,7 +448,9 @@ export default function Pdv() {
           links={links.filter((l) => (l as CobrancaLink & { conta_receber_id?: string }).conta_receber_id === contaLink.id)}
           taxas={unidades.find((u) => u.id === unidadeId)?.infinitepay_taxas} onClose={() => setLinkConta(null)} />
       )}
+      </main>
     </div>
+    </ModuloContext.Provider>
   );
 }
 
