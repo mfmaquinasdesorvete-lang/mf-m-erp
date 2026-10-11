@@ -2,7 +2,7 @@
 // com filtro por centro de custo, detalhe por categoria e exportação para Excel.
 // O gráfico escolhe o mês em foco. Celular: só esse mês, em linhas com % da receita e comparação com o mês
 // anterior. Computador: a tabela com todos os meses, o mês em foco destacado.
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { Button, Card, Tabs } from "@/components/ui";
 import { brl, hoje } from "@/lib/format";
@@ -39,6 +39,16 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
   const lucros = linha("liquido").valores;
   const temDados = meses.map((_, k) => d.linhas.some((l) => l.valores[k]));
   const nomeCentro = centro ? centros.find((c) => c.id === centro)?.nome ?? "sem centro de custo" : "todos os centros de custo";
+  const caixa = useRef<HTMLDivElement>(null);
+  // computador: a tabela é mais larga que a tela; rola até o mês em foco (o último mostra também o total)
+  useEffect(() => {
+    const c = caixa.current, th = c?.querySelector<HTMLElement>(`th[data-mes="${mes}"]`);
+    if (!c || !th) return;
+    if (i === meses.length - 1) { c.scrollLeft = c.scrollWidth; return; }
+    const r = th.getBoundingClientRect(), cr = c.getBoundingClientRect();
+    if (r.right > cr.right) c.scrollLeft += r.right - cr.right + 16;
+    else if (r.left < cr.left + 208) c.scrollLeft -= cr.left + 208 - r.left;
+  }, [mes, meses.length, i]);
   const alternar = (k: string) => setAbertos((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   function exportar() {
@@ -133,13 +143,14 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
       </Card>
 
       {/* computador: todos os meses */}
-      <Card className="hidden overflow-x-auto md:block">
+      <Card className="hidden md:block">
+        <div ref={caixa} className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-slate-50/80">
             <tr>
               <th className="th sticky left-0 z-10 min-w-[13rem] bg-slate-50">Linha</th>
               {meses.map((m, k) => (
-                <th key={m} className={`th text-right ${k === i ? "bg-modulo/15" : ""}`}>
+                <th key={m} data-mes={m} className={`th text-right ${k === i ? "bg-modulo/15" : ""}`}>
                   <button type="button" className="uppercase hover:underline" aria-pressed={k === i} onClick={() => setFoco(m)}>{rotuloMes(m)}</button>
                 </th>
               ))}
@@ -182,6 +193,7 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
             </tr>
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );
