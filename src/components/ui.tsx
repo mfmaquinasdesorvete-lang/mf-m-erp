@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ChevronRight, X, type LucideIcon } from "lucide-react";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
@@ -190,6 +190,15 @@ export function Modal({
   open, onClose, title, children, wide,
 }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   useFecharComEsc(open, onClose);
+  const tituloId = useId();
+  const caixa = useRef<HTMLDivElement>(null);
+  // leitor de tela e teclado entram na janela ao abrir e voltam para onde estavam ao fechar
+  useEffect(() => {
+    if (!open) return;
+    const antes = document.activeElement as HTMLElement | null;
+    if (caixa.current && !caixa.current.contains(document.activeElement)) caixa.current.focus({ preventScroll: true });
+    return () => { if (antes && document.contains(antes)) antes.focus({ preventScroll: true }); };
+  }, [open]);
 
   if (!open) return null;
   // Portal: a janela fica fora do formulário que a abriu (formulário dentro de formulário recarregava a página),
@@ -197,14 +206,15 @@ export function Modal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
       onSubmit={(e) => e.stopPropagation()}>
-      <div className={`w-full ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop`}>
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="text-base font-bold text-fg">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
-            <X size={18} />
+      <div ref={caixa} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
+        className={`w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop focus:outline-none`}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
+          <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>
+          <button type="button" onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
+            <X size={18} aria-hidden />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5">{children}</div>
       </div>
     </div>,
     document.body,

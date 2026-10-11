@@ -12,6 +12,7 @@ import { brl, dataBR, docFormat } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import { buracosNumeracao } from "@/lib/compliance";
+import { nomeCfop } from "@/lib/cfop";
 
 type Fechamento = { id: string; unidade_id: string; competencia: string; status: string; enviado_em: string | null; fechado_em: string | null; arquivo_caminho: string | null; observacoes: string | null };
 type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; payload?: { items?: Record<string, any>[] } | null };
@@ -160,10 +161,10 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Section title="Saídas por CFOP (NF-e autorizadas)">
-          <TabelaCfop linhas={r.saidas.map(([c, x]) => [c, x.valor, x.icms, x.ipi, x.pis + x.cofins])} cab={["CFOP", "Valor", "ICMS", "IPI", "PIS + COFINS"]} />
+          <TabelaCfop titulo="Saídas por CFOP" linhas={r.saidas.map(([c, x]) => [c, x.valor, x.icms, x.ipi, x.pis + x.cofins])} cab={["CFOP", "Valor", "ICMS", "IPI", "PIS + COFINS"]} />
         </Section>
         <Section title="Entradas por CFOP do fornecedor">
-          <TabelaCfop linhas={r.entradas.map(([c, v]) => [c, v])} cab={["CFOP", "Valor dos produtos"]} />
+          <TabelaCfop titulo="Entradas por CFOP do fornecedor" linhas={r.entradas.map(([c, v]) => [c, v])} cab={["CFOP", "Valor dos produtos"]} />
         </Section>
       </div>
 
@@ -175,16 +176,37 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
   );
 }
 
-function TabelaCfop({ linhas, cab }: { linhas: (string | number)[][]; cab: string[] }) {
+/** No computador é tabela; no celular cada CFOP vira um cartão "rótulo → valor" (classe .tabela). */
+function TabelaCfop({ linhas, cab, titulo }: { linhas: (string | number)[][]; cab: string[]; titulo: string }) {
   if (!linhas.length) return <p className="text-sm text-slate-500">Nada neste mês.</p>;
+  const total = cab.slice(1).map((_, i) => linhas.reduce((s, l) => s + Number(l[i + 1] || 0), 0));
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead><tr>{cab.map((c, i) => <th key={c} className={`th ${i ? "text-right" : "pl-0"}`}>{c}</th>)}</tr></thead>
+    <div className="-mx-4 overflow-x-auto sm:-mx-5 md:mx-0">
+      <table className="tabela w-full text-sm">
+        <caption className="sr-only">{titulo}</caption>
+        <thead><tr>{cab.map((c, i) => <th key={c} scope="col" className={`th ${i ? "text-right" : "pl-0"}`}>{c}</th>)}</tr></thead>
         <tbody className="divide-y divide-slate-100">
-          {linhas.map((l) => <tr key={String(l[0])}>{l.map((v, i) => <td key={i} className={`py-1.5 ${i ? "num text-right" : "font-semibold"}`}>{typeof v === "number" ? brl(v) : v}</td>)}</tr>)}
+          {linhas.map((l) => (
+            <tr key={String(l[0])}>
+              {l.map((v, i) => i === 0 ? (
+                <td key={i} role="rowheader" data-label="CFOP" className="py-2 pr-3 align-top font-semibold text-fg md:pl-0">
+                  {v}<span className="block text-xs font-normal text-slate-500">{nomeCfop(String(v))}</span>
+                </td>
+              ) : (
+                <td key={i} data-label={cab[i]} className="num py-2 text-right md:whitespace-nowrap md:pl-3">{brl(Number(v))}</td>
+              ))}
+            </tr>
+          ))}
         </tbody>
+        {linhas.length > 1 && (
+          <tfoot className="hidden border-t-2 border-slate-200 font-bold text-fg md:table-footer-group">
+            <tr><th scope="row" className="py-2 text-left">Total</th>{total.map((t, i) => <td key={i} className="num py-2 pl-3 text-right">{brl(t)}</td>)}</tr>
+          </tfoot>
+        )}
       </table>
+      {linhas.length > 1 && (
+        <p className="mt-2 px-4 text-right text-sm font-bold text-fg sm:px-5 md:hidden">Total {brl(total[0])}</p>
+      )}
     </div>
   );
 }
@@ -214,7 +236,7 @@ function Mensagens({ unidadeId, comp, meuNome }: { unidadeId: string; comp: stri
             <li key={m.id} className={`rounded-xl border p-2.5 text-sm ${m.resolvida ? "border-slate-100 opacity-60" : "border-slate-200"}`}>
               <div className="mb-0.5 flex items-center gap-2 text-xs text-slate-500">
                 <b className="text-slate-700">{m.autor_nome ?? "—"}</b> {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "agora"}
-                <button type="button" onClick={() => resolver(m)} className="ml-auto font-semibold text-brand">{m.resolvida ? "reabrir" : "resolvido ✓"}</button>
+                <button type="button" onClick={() => resolver(m)} className="ml-auto rounded px-1 font-semibold text-brand" aria-pressed={!!m.resolvida}>{m.resolvida ? "reabrir" : "resolvido ✓"}</button>
               </div>
               <p className="whitespace-pre-line text-fg">{m.texto}</p>
             </li>
@@ -222,8 +244,9 @@ function Mensagens({ unidadeId, comp, meuNome }: { unidadeId: string; comp: stri
         </ul>
       ) : <p className="mb-3 flex items-center gap-1.5 text-sm text-slate-500"><MessageSquare size={15} /> Nenhuma mensagem neste mês.</p>}
       <form onSubmit={enviar} className="flex gap-2">
-        <textarea className="input min-h-[44px] flex-1" rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: falta a nota da compra de compressores do dia 12" />
-        <Button disabled={!texto.trim()}><Send size={16} /></Button>
+        <textarea className="input min-h-[44px] flex-1" rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Mensagem para o financeiro"
+          placeholder="Ex.: falta a nota da compra de compressores do dia 12" />
+        <Button disabled={!texto.trim()} aria-label="Enviar mensagem" className="self-end"><Send size={16} aria-hidden /></Button>
       </form>
     </div>
   );

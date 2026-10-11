@@ -70,6 +70,11 @@ h1, h2, h3 { text-wrap: balance; }
            placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20
            disabled:bg-slate-50 disabled:text-slate-500;
   }
+  /* iPhone: data e hora não passam da largura do campo nem ficam centralizadas */
+  input.input[type="date"], input.input[type="time"], input.input[type="datetime-local"], input.input[type="month"] {
+    -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%; display: block; min-height: 2.75rem;
+  }
+  input.input::-webkit-date-and-time-value { text-align: left; }
   .th { @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500; }
   .td { @apply px-4 py-3 text-sm align-top; }
 }

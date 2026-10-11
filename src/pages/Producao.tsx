@@ -21,6 +21,9 @@ import { ProdutoBusca } from "@/components/ProdutoBusca";
 type Aba = "producao" | "reposicao" | "compras" | "ficha";
 
 
+/** Quantidade no jeito brasileiro: 0,5 · 1.250 · 2,375 */
+const qtd = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+
 /** Quanto falta comprar de cada peça para a OP. */
 const falta = (n: Necessidade) =>
   Math.max(0, Number(n.necessario) - Math.max(0, Number(n.estoque_atual) - Number(n.reservado_outras_op)) - Number(n.a_caminho));
@@ -130,6 +133,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: necessidade = [] } = useNecessidade();
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor_id: string; ativo: boolean }>("fornecimentos", { select: "produto_id, fornecedor_id, ativo", order: "produto_id" });
   const invalidate = useInvalidate();
   const podeEditar = pode("editar_producao") && !["concluida", "cancelada"].includes(o.status ?? "");
   const nec = necessidade.filter((n) => n.ordem_id === o.id);
@@ -195,7 +199,11 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     irParaCompras();
   }, "Pedidos de compra criados em cotação. Confira e envie aos fornecedores.");
 
-  const nomeForn = (id: string | null) => fornecedores.find((f) => f.id === id)?.nome ?? "sem fornecedor padrão";
+  const nomeForn = (n: Necessidade) => {
+    if (n.fornecedor_padrao_id) return fornecedores.find((f) => f.id === n.fornecedor_padrao_id)?.nome ?? "fornecedor padrão";
+    const outros = fornecimentos.filter((f) => f.produto_id === n.componente_id && f.ativo !== false).length;
+    return outros ? `sem preferido · ${outros} fornecedor(es) conhecido(s)` : "sem fornecedor cadastrado";
+  };
 
   return (
     <Modal open onClose={onClose} title={o.id ? `Ordem de produção #${o.numero}` : "Nova ordem de produção"} wide>
@@ -207,7 +215,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
               {produtos.filter((p) => p.tipo === "maquina").map((p) => <option key={p.id} value={p.id}>{p.descricao}</option>)}
             </select>
           </Field>
-          <Field label="Quantidade"><input className="input" type="number" min={1} value={o.quantidade ?? 1} disabled={!podeEditar} onChange={(e) => set({ quantidade: Number(e.target.value) })} /></Field>
+          <Field label="Quantidade"><input className="input" type="number" inputMode="numeric" min={1} value={o.quantidade ?? 1} disabled={!podeEditar} onChange={(e) => set({ quantidade: Number(e.target.value) })} /></Field>
           <Field label="Previsão"><input className="input" type="date" value={o.previsao ?? ""} disabled={!podeEditar} onChange={(e) => set({ previsao: e.target.value })} /></Field>
           <Field label="Responsável" className="sm:col-span-2"><input className="input" value={o.responsavel ?? ""} disabled={!podeEditar} onChange={(e) => set({ responsavel: e.target.value })} /></Field>
           <Field label="Nº de série das máquinas (separe por vírgula)" className="sm:col-span-2">
@@ -219,9 +227,11 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
         {o.id && (
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-fg">Peças necessárias</h3>
+              <h3 id="op-pecas" className="text-sm font-bold text-fg">
+                Peças necessárias{nec.length > 0 && <span className="ml-1 font-normal text-slate-500">· {faltantes.length ? `faltam ${faltantes.length} de ${nec.length}` : `todas as ${nec.length} em estoque`}</span>}
+              </h3>
               {faltantes.length > 0 && podeEditar && (
-                <Button type="button" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} /> Pedir as {faltantes.length} peça(s) que faltam</Button>
+                <Button type="button" className="w-full sm:w-auto" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} aria-hidden /> Pedir as {faltantes.length} peça(s) que faltam</Button>
               )}
             </div>
             {!nec.length ? (
@@ -230,22 +240,23 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
               </p>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full min-w-[640px] text-sm">
+                <table className="tabela w-full text-sm md:min-w-[640px]" aria-labelledby="op-pecas">
                   <thead className="bg-slate-50"><tr>
-                    <th className="th">Peça</th><th className="th text-right">Precisa</th><th className="th text-right">Em estoque</th>
-                    <th className="th text-right">Reservado (outras OP)</th><th className="th text-right">A caminho</th><th className="th text-right">Falta</th>
+                    <th scope="col" className="th">Peça</th><th scope="col" className="th text-right">Precisa</th><th scope="col" className="th text-right">Em estoque</th>
+                    <th scope="col" className="th text-right">Reservado (outras OP)</th><th scope="col" className="th text-right">A caminho</th><th scope="col" className="th text-right">Falta</th>
                   </tr></thead>
                   <tbody className="divide-y divide-slate-100">
-                    {nec.map((n) => {
+                    {[...nec].sort((a, b) => Number(falta(b) > 0) - Number(falta(a) > 0)).map((n) => {
                       const f = falta(n);
+                      const un = n.unidade ?? "";
                       return (
                         <tr key={n.componente_id}>
-                          <td className="td">{n.descricao}<div className="text-xs text-slate-500">{nomeForn(n.fornecedor_padrao_id)}</div></td>
-                          <td className="td num text-right">{Number(n.necessario)} {n.unidade}</td>
-                          <td className="td num text-right">{Number(n.estoque_atual)}</td>
-                          <td className="td num text-right text-slate-500">{Number(n.reservado_outras_op) || "—"}</td>
-                          <td className="td num text-right text-slate-500">{Number(n.a_caminho) || "—"}</td>
-                          <td className={`td num text-right font-bold ${f ? "text-red-600" : "text-emerald-700"}`}>{f ? f : "ok"}</td>
+                          <td className="td" data-label="Peça">{n.descricao}<span className="block text-xs font-normal text-slate-500">{nomeForn(n)}</span></td>
+                          <td className="td num text-right" data-label="Precisa">{qtd(n.necessario)} {un}</td>
+                          <td className="td num text-right" data-label="Em estoque">{qtd(n.estoque_atual)} {un}</td>
+                          <td className="td num text-right text-slate-500" data-label="Reservado (outras OP)">{Number(n.reservado_outras_op) ? qtd(n.reservado_outras_op) : "—"}</td>
+                          <td className="td num text-right text-slate-500" data-label="A caminho">{Number(n.a_caminho) ? qtd(n.a_caminho) : "—"}</td>
+                          <td className={`td num text-right font-bold ${f ? "text-red-600" : "text-emerald-700"}`} data-label="Falta">{f ? `${qtd(f)} ${un}` : "ok"}</td>
                         </tr>
                       );
                     })}
@@ -412,20 +423,26 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full min-w-[620px] text-sm">
+          <table className="itens w-full text-sm md:min-w-[620px]" aria-label="Itens do pedido de compra">
             <thead className="bg-slate-50"><tr>
-              <th className="th">Peça / insumo</th><th className="th w-28 text-right">Qtd</th><th className="th w-36 text-right">Custo unit.</th>
-              <th className="th w-32 text-right">Total</th>{p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <th className="th text-right">Recebido</th>}<th className="th w-10" />
+              <th scope="col" className="th">Peça / insumo</th><th scope="col" className="th w-28 text-right">Qtd</th><th scope="col" className="th w-36 text-right">Custo unit.</th>
+              <th scope="col" className="th w-32 text-right">Total</th>{p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <th scope="col" className="th text-right">Recebido</th>}<th className="th w-10"><span className="sr-only">Ações</span></th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {p.itens.map((i, k) => (
                 <tr key={k}>
-                  <td className="td">{i.descricao}</td>
-                  <td className="td"><input className="input text-right" type="number" min={0.001} step="any" value={i.quantidade} disabled={!editavel} onChange={(e) => atualizarItem(k, { quantidade: Number(e.target.value) })} /></td>
-                  <td className="td"><input className="input text-right" type="number" min={0} step="0.01" value={i.custo_unitario} disabled={!editavel} onChange={(e) => atualizarItem(k, { custo_unitario: Number(e.target.value) })} /></td>
-                  <td className="td num pt-5 text-right">{brl(i.quantidade * i.custo_unitario)}</td>
-                  {p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <td className="td num pt-5 text-right">{Number(i.quantidade_recebida ?? 0)} / {i.quantidade}</td>}
-                  <td className="td">{editavel && <Button type="button" variant="ghost" aria-label="Remover" onClick={() => set({ itens: p.itens.filter((_, j) => j !== k) })}><Trash2 size={16} /></Button>}</td>
+                  <td className="td it-largo font-medium text-fg">{i.descricao}</td>
+                  <td className="td" data-label="Qtd">
+                    <input className="input text-right" type="number" inputMode="decimal" min={0.001} step="any" value={i.quantidade} disabled={!editavel}
+                      aria-label={`Quantidade de ${i.descricao}`} onChange={(e) => atualizarItem(k, { quantidade: Number(e.target.value) })} />
+                  </td>
+                  <td className="td" data-label="Custo unit.">
+                    <input className="input text-right" type="number" inputMode="decimal" min={0} step="0.01" value={i.custo_unitario} disabled={!editavel}
+                      aria-label={`Custo unitário de ${i.descricao}`} onChange={(e) => atualizarItem(k, { custo_unitario: Number(e.target.value) })} />
+                  </td>
+                  <td className="td it-total num text-right md:pt-5" data-label="Total">{brl(i.quantidade * i.custo_unitario)}</td>
+                  {p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <td className="td num text-right md:pt-5" data-label="Recebido">{Number(i.quantidade_recebida ?? 0)} / {i.quantidade}</td>}
+                  <td className="td it-acao">{editavel && <Button type="button" variant="ghost" aria-label={`Remover ${i.descricao}`} onClick={() => set({ itens: p.itens.filter((_, j) => j !== k) })}><Trash2 size={16} aria-hidden /></Button>}</td>
                 </tr>
               ))}
               {!p.itens.length && <tr><td colSpan={6} className="td py-6 text-center text-slate-500">Adicione as peças abaixo.</td></tr>}
@@ -555,48 +572,95 @@ function FichaTecnica() {
   }
 
   if (!maquinas.length) return <p className="py-8 text-center text-slate-500">Cadastre as máquinas em Estoque (tipo “Máquina”) para montar a ficha técnica.</p>;
+  const semCusto = lista.filter((c) => !(Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo) > 0)).length;
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="p-2 lg:col-span-1">
-        {maquinas.map((m) => (
-          <button key={m.id} onClick={() => setMaquinaId(m.id)}
-            className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${m.id === maquina?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
-            {m.descricao}
-          </button>
-        ))}
+      {/* celular: escolhe a máquina numa lista; computador: coluna com todas */}
+      <Field label="Máquina" className="lg:hidden">
+        <select className="input" value={maquina?.id ?? ""} onChange={(e) => setMaquinaId(e.target.value)}>
+          {maquinas.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}
+        </select>
+      </Field>
+      <Card className="hidden p-2 lg:col-span-1 lg:block">
+        <nav aria-label="Máquinas">
+          {maquinas.map((m) => (
+            <button key={m.id} type="button" onClick={() => setMaquinaId(m.id)} aria-current={m.id === maquina?.id ? "true" : undefined}
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${m.id === maquina?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
+              {m.descricao}
+            </button>
+          ))}
+        </nav>
       </Card>
       {maquina && (
         <Card className="p-4 lg:col-span-2">
-          <h3 className="mb-1 text-base font-bold text-fg">{maquina.descricao}</h3>
-          <p className="mb-3 text-sm text-slate-500">Peças e insumos usados para montar <b>uma</b> unidade.</p>
-          <div className="space-y-2">
+          <h3 id="ficha-titulo" className="mb-1 text-base font-bold text-fg">{maquina.descricao}</h3>
+          <p className="mb-3 text-sm text-slate-500">Peças e insumos usados para montar <b>uma</b> unidade · {lista.length} item(ns).</p>
+          {semCusto > 0 && (
+            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900" role="status">
+              {semCusto} peça(s) sem custo no cadastro: o custo da máquina abaixo está incompleto.
+            </p>
+          )}
+          <ul className="divide-y divide-slate-100" aria-labelledby="ficha-titulo">
             {lista.map((c, k) => {
               const peca = produtos.find((p) => p.id === c.componente_id);
+              const custoUn = Number(peca?.preco_custo ?? 0);
+              const nome = peca?.descricao ?? "Peça";
               return (
-                <div key={k} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm">{peca?.descricao}<span className="block text-xs text-slate-500">custo {brl(peca?.preco_custo)} · estoque {Number(peca?.estoque_atual ?? 0)}</span></span>
-                  <input className="input w-24 text-right" type="number" min={0.001} step="any" value={c.quantidade} disabled={!editavel}
-                    onChange={(e) => setLista(lista.map((x, j) => (j === k ? { ...x, quantidade: Number(e.target.value) } : x)))} />
-                  {editavel && <Button variant="ghost" aria-label="Remover" onClick={() => setLista(lista.filter((_, j) => j !== k))}><Trash2 size={16} /></Button>}
-                </div>
+                <li key={c.componente_id} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1 py-2.5">
+                  <span className="min-w-0 text-sm text-fg">
+                    <span className="line-clamp-2">{nome}</span>
+                    <span className="block text-xs text-slate-500">
+                      {custoUn > 0 ? <>{brl(custoUn)}/{peca?.unidade ?? "un"} · linha <b className="num">{brl(custoUn * c.quantidade)}</b></> : <span className="font-semibold text-amber-700">sem custo</span>}
+                      {` · estoque ${qtd(peca?.estoque_atual)}`}
+                    </span>
+                  </span>
+                  <label className="flex items-center gap-1">
+                    <span className="sr-only">Quantidade de {nome} por máquina</span>
+                    <CampoQtd valor={c.quantidade} disabled={!editavel}
+                      onChange={(v) => setLista(lista.map((x, j) => (j === k ? { ...x, quantidade: v } : x)))} />
+                    <span className="w-7 text-xs text-slate-500" aria-hidden>{peca?.unidade ?? ""}</span>
+                  </label>
+                  {editavel
+                    ? <Button type="button" variant="ghost" className="!px-2" aria-label={`Remover ${nome}`} onClick={() => setLista(lista.filter((_, j) => j !== k))}><Trash2 size={16} aria-hidden /></Button>
+                    : <span />}
+                </li>
               );
             })}
-          </div>
+          </ul>
           {editavel && (
             <ProdutoBusca className="mt-3" placeholder="Adicionar peça: nome, SKU ou código"
               produtos={produtos.filter((p) => p.tipo !== "maquina" && !lista.some((c) => c.componente_id === p.id))}
               onEscolher={(p) => setLista([...lista, { produto_id: maquina.id, componente_id: p.id, quantidade: 1 }])}
               detalhe={(p) => [p.sku, `custo ${brl(p.preco_custo)}`, `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
           )}
-          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-sm">
-            <div><div className="text-slate-500">Custo das peças</div><div className="num text-lg font-bold text-fg">{brl(custo)}</div></div>
-            <div><div className="text-slate-500">Preço de venda</div><div className="num text-lg font-bold text-fg">{brl(maquina.preco_venda)}</div></div>
-            <div><div className="text-slate-500">Margem sobre peças</div><div className={`num text-lg font-bold ${margem < 0.25 ? "text-amber-700" : "text-emerald-700"}`}>{(margem * 100).toFixed(0)}%</div></div>
-          </div>
-          {editavel && <div className="mt-4 flex justify-end"><Button onClick={salvar}>Salvar ficha técnica</Button></div>}
+          <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-3">
+            <div><dt className="text-slate-500">Custo das peças</dt><dd className="num text-lg font-bold text-fg">{brl(custo)}</dd></div>
+            <div><dt className="text-slate-500">Preço de venda</dt><dd className="num text-lg font-bold text-fg">{brl(maquina.preco_venda)}</dd></div>
+            <div><dt className="text-slate-500">Margem sobre peças</dt><dd className={`num text-lg font-bold ${margem < 0.25 ? "text-amber-700" : "text-emerald-700"}`}>{(margem * 100).toFixed(0)}%</dd></div>
+          </dl>
+          {editavel && <div className="mt-4 flex justify-end"><Button type="button" className="w-full sm:w-auto" onClick={salvar}>Salvar ficha técnica</Button></div>}
         </Card>
       )}
     </div>
+  );
+}
+
+/** Quantidade com vírgula ("0,4") e teclado numérico do celular; guarda o texto enquanto a pessoa digita. */
+const qtdCampo = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 3, useGrouping: false });
+const lerQtd = (t: string) => Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+
+function CampoQtd({ valor, onChange, disabled }: { valor: number; onChange: (v: number) => void; disabled?: boolean }) {
+  const [txt, setTxt] = useState(qtdCampo(valor));
+  useEffect(() => { if (lerQtd(txt) !== valor) setTxt(qtdCampo(valor)); }, [valor]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <input className="input w-20 py-1.5 text-right" inputMode="decimal" value={txt} disabled={disabled}
+      onChange={(e) => {
+        const t = e.target.value.replace(/[^\d.,]/g, "");
+        setTxt(t);
+        const v = lerQtd(t);
+        if (Number.isFinite(v) && v > 0) onChange(v);
+      }}
+      onBlur={() => setTxt(qtdCampo(valor))} />
   );
 }
