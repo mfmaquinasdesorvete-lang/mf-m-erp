@@ -35,7 +35,7 @@ export type ResultadoPedido = { total: Valores; itens: ItemMargem[]; impostosEst
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Custo atual de 1 unidade do produto (kit = soma dos componentes da composição vendida). */
-export function custoUnitario(p: Produto | undefined, ctx: Contexto, escolha?: Item["kit_escolha"]): number {
+export function custoUnitario(p: Produto | undefined, ctx: Pick<Contexto, "produtos" | "comps">, escolha?: Item["kit_escolha"]): number {
   if (!p) return 0;
   if (!p.kit) return Number(p.preco_custo ?? 0);
   return composicao(p.id, ctx.comps, escolha).reduce((s, c) => s + c.quantidade * Number(ctx.produtos.find((x) => x.id === c.componente_id)?.preco_custo ?? 0), 0);

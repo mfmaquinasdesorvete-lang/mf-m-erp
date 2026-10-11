@@ -25,6 +25,8 @@ import { ContagemEstoque } from "@/components/ContagemEstoque";
 import { CategoriasProdutos, opcoesCategoria, useCategoriasProduto } from "@/components/CategoriasProdutos";
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
+import { vendidosPorProduto } from "@/lib/gerencial";
+import { custoUnitario } from "@/lib/margem";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -134,6 +136,33 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
   const saldo = (p: string, u: string) => Number(saldos.find((s) => s.produto_id === p && s.unidade_id === u)?.quantidade ?? 0);
+  // vendidos nos últimos 3 meses (pedidos aprovados + notas do sistema anterior), da unidade escolhida
+  const desde3m = useMemo(() => new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10), []);
+  const { data: pedidos3m = [] } = useQuery({
+    queryKey: ["pedidos", "vendidos-3m", desde3m],
+    queryFn: async () => {
+      // o pedido conta na data da aprovação: busca os criados até 1 ano antes
+      const { data, error } = await supabase.from("pedidos")
+        .select("id, numero, status, valor_total, created_at, aprovado_em, unidade_id, itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario)")
+        .gte("created_at", new Date(Date.parse(desde3m) - 365 * 864e5).toISOString());
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const { data: notas3m = [] } = useQuery({
+    queryKey: ["notas_fiscais", "vendidos-3m", desde3m],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("notas_fiscais")
+        .select("id, numero, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, unidade_id, payload")
+        .gte("created_at", desde3m);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const vendidos3m = useMemo(() => {
+    const daUnidade = (x: { unidade_id?: string | null }) => !atual || x.unidade_id === atual;
+    return vendidosPorProduto(pedidos3m.filter(daUnidade), notas3m.filter(daUnidade), produtos, desde3m);
+  }, [pedidos3m, notas3m, produtos, atual, desde3m]);
   // componentes da ficha técnica das máquinas: são da produção (mesmo os que também vendemos como reposição)
   const naProducao = useMemo(() => new Set(fichas.map((f) => f.componente_id)), [fichas]);
   const doCadastro = useMemo(() => ({
@@ -193,9 +222,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       alerta: qtd < 0 || (Number(r.estoque_minimo) > 0 && qtd <= Number(r.estoque_minimo)),
     };
   };
-  /** Celular: nome e foto em cima (largura toda), e preço, estoque e NCM lado a lado embaixo. */
+  /** Margem bruta sobre o preço de venda (só com custo e preço preenchidos). */
+  const custo = (r: Produto) => custoUnitario(r, { produtos, comps });   // kit: soma dos componentes
+  const margem = (r: Produto) => {
+    const c = custo(r), v = Number(r.preco_venda || 0);
+    return c > 0 && v > 0 ? Math.round(((v - c) / v) * 100) : null;
+  };
+  /** Celular: nome (com o NCM pequeno ao lado) e foto em cima; custo, venda, estoque e vendidos em 3 meses embaixo. */
   const cartaoProduto = (r: Produto, abrir: () => void) => {
-    const e = estoque(r);
+    const e = estoque(r), c = custo(r), m = margem(r), v = vendidos3m.get(r.id);
+    const ncm = String(r.ncm ?? "").replace(/\D/g, "");
     return (
       <div>
         <button type="button" onClick={abrir} className="flex w-full items-start gap-3 pr-8 text-left">
@@ -203,7 +239,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ? <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
             : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400"><Boxes size={22} /></span>}
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold leading-snug text-fg [overflow-wrap:anywhere]">{r.descricao}</span>
+            <span className="block font-semibold leading-snug text-fg [overflow-wrap:anywhere]">
+              {r.descricao}{" "}
+              <span className={`inline-block whitespace-nowrap rounded px-1 align-middle text-[10px] font-medium leading-4 ${ncm.length === 8 ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-600"}`}>
+                {ncm ? `NCM ${ncm}` : "sem NCM"}
+              </span>
+            </span>
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
               {[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
@@ -213,19 +254,26 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         {(r.ativo === false || r.fora_de_linha || r.no_catalogo || naProducao.has(r.id) || (cadastro === "componentes" && r.tipo !== "insumo")) && (
           <div className="mt-2 flex flex-wrap items-center gap-1">{selos(r)}</div>
         )}
-        <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-slate-50 px-1 py-2">
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
+            <dt className="text-[11px] font-semibold uppercase text-slate-500">Custo</dt>
+            <dd className={`text-sm font-bold tabular-nums ${c ? "" : "text-amber-600"}`}>{c ? brl(c) : "sem custo"}</dd>
+            {r.kit && c > 0 && <dd className="text-[11px] text-slate-500">pelos componentes</dd>}
+          </div>
+          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
             <dt className="text-[11px] font-semibold uppercase text-slate-500">Venda</dt>
             <dd className="text-sm font-bold tabular-nums">{brl(r.preco_venda)}</dd>
+            {m !== null && <dd className={`text-[11px] ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</dd>}
           </div>
-          <div className="rounded-xl bg-slate-50 px-1 py-2">
+          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
             <dt className="text-[11px] font-semibold uppercase text-slate-500">Estoque</dt>
             <dd className={`text-sm font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
             {e.detalhe && <dd className="text-[11px] text-slate-500">{e.detalhe}</dd>}
           </div>
-          <div className="rounded-xl bg-slate-50 px-1 py-2">
-            <dt className="text-[11px] font-semibold uppercase text-slate-500">NCM</dt>
-            <dd className={`text-sm font-bold tabular-nums ${r.ncm ? "" : "text-red-600"}`}>{r.ncm ?? "falta"}</dd>
+          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
+            <dt className="text-[11px] font-semibold uppercase text-slate-500">Vendidos 3 meses</dt>
+            <dd className="text-sm font-bold tabular-nums">{v ? `${v.quantidade} ${r.unidade ?? ""}`.trim() : "0"}</dd>
+            <dd className="text-[11px] text-slate-500">{v ? `em ${v.vendas} venda${v.vendas > 1 ? "s" : ""}` : "nenhuma venda"}</dd>
           </div>
         </dl>
       </div>
@@ -498,16 +546,30 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ),
           },
           { label: "Cadastro", render: (r) => NOME_CADASTRO[r.tipo] ?? r.tipo },
-          { label: "Venda", render: (r) => brl(r.preco_venda), className: "text-right" },
+          {
+            label: "Venda",
+            className: "text-right",
+            render: (r) => {
+              const c = custo(r), m = margem(r);
+              return (
+                <span>
+                  {brl(r.preco_venda)}
+                  <span className={`block text-xs ${c ? "text-slate-500" : "text-amber-600"}`}>{c ? `custo ${brl(c)}` : "sem custo"}</span>
+                  {m !== null && <span className={`block whitespace-nowrap text-xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</span>}
+                </span>
+              );
+            },
+          },
           {
             label: "Estoque",
             className: "text-right",
             render: (r) => {
-              const e = estoque(r);
+              const e = estoque(r), v = vendidos3m.get(r.id);
               return (
                 <span>
                   <span className={e.alerta ? "font-semibold text-red-600" : "font-semibold"}>{e.texto}</span>
                   {e.detalhe && <span className="block whitespace-nowrap text-xs text-slate-500">{e.detalhe}</span>}
+                  <span className="block text-xs text-slate-500" title="Vendidos nos últimos 3 meses">{v ? `vendeu ${v.quantidade} em 3 meses` : "sem venda em 3 meses"}</span>
                 </span>
               );
             },

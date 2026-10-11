@@ -1,6 +1,7 @@
 // Painel gerencial: vendas do ERP e do sistema anterior (notas do Tiny) juntas, comparadas com o mês e o ano anteriores,
 // curva ABC de produtos e clientes, clientes parados, tendências e os pontos em que a operação está travando.
 import { compraDaNota, compraDoPedido, resumoCliente, type CompraCliente, type NotaFicha, type PedidoFicha } from "./fichaCliente";
+import { chavesDescricao } from "./qualidadeProdutos";
 
 export type Venda = CompraCliente & { cliente: string; clienteNome: string; clienteId: string | null; unidade_id?: string | null };
 type ClienteG = { id: string; nome: string; nome_fantasia?: string | null; cpf_cnpj?: string | null };
@@ -120,6 +121,39 @@ export function produtosVendidos(vendas: Venda[]) {
     m.set(i.chave, x);
   }
   return [...m.values()];
+}
+
+/** Quanto saiu de cada produto em vendas desde `desde` (AAAA-MM-DD), pelo id do produto: pedidos aprovados do ERP
+ *  + notas de venda do sistema anterior, casadas pelo código (SKU) ou, quando o código não é de produto nenhum
+ *  (o Tiny gravou "CFOP6101" em algumas), pela descrição. Mesmo código ou nome em ativo e inativo: fica com o ativo. */
+export function vendidosPorProduto(pedidos: PedidoFicha[], notas: NotaFicha[],
+  produtos: { id: string; sku?: string | null; descricao: string; ativo?: boolean | null }[], desde: string) {
+  const porSku = new Map<string, string>(), porNome = new Map<string, string>();
+  const nome = (d?: string | null) => { const k = chavesDescricao(String(d ?? ""))[0]; return k.length >= 4 ? k : null; };
+  for (const p of [...produtos].sort((a, b) => Number(a.ativo !== false) - Number(b.ativo !== false))) {
+    if (p.sku?.trim()) porSku.set(p.sku.trim().toUpperCase(), p.id);
+    const k = nome(p.descricao);
+    if (k) porNome.set(k, p.id);
+  }
+  const r = new Map<string, { quantidade: number; vendas: number }>();
+  const somar = (id: string | undefined, qtd: number) => {
+    if (!id || !(qtd > 0)) return;
+    const x = r.get(id) ?? { quantidade: 0, vendas: 0 };
+    x.quantidade = r2(x.quantidade + qtd); x.vendas++;
+    r.set(id, x);
+  };
+  for (const p of pedidos) {
+    const c = compraDoPedido(p);
+    if (c && dia(c.data) >= desde) for (const i of p.itens ?? []) somar(i.produto_id, Number(i.quantidade));
+  }
+  for (const n of notas) {
+    const c = compraDaNota(n);
+    if (c && dia(c.data) >= desde) for (const i of c.itens) {
+      const k = nome(i.descricao);
+      somar(porSku.get(i.chave.trim().toUpperCase()) ?? (k ? porNome.get(k) : undefined), i.quantidade);
+    }
+  }
+  return r;
 }
 
 export function clientesCompradores(vendas: Venda[]) {
