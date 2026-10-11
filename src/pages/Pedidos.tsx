@@ -27,6 +27,7 @@ import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { combinaBusca } from "@/lib/buscaCliente";
+import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -168,6 +169,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
   // formas de pagamento cadastradas que a venda aceita (a já escolhida aparece mesmo se for inativada depois)
   const { data: formas = [] } = useFormasPagamento();
   const formasVenda = formas.filter((f) => MEIOS_VENDA.includes(f.meio) && f.uso !== "pagar" && (f.ativo || f.id === (p as any).forma_pagamento_id));
@@ -206,6 +208,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   }
   const subtotal = totalItens(p.itens);
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
+  // comissão prevista: % por categoria de cada item (o % digitado no pedido vale acima de tudo)
+  const comissaoPrevista = percentualPedido(regrasComissao, vendedores.find((v) => v.id === p.vendedor_id), p.itens,
+    (id) => produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual);
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
   // desconto digitado em %; o pedido guarda o valor em R$. Pedido já salvo só muda se o % for digitado
   // (e aí acompanha a troca de itens).
@@ -449,8 +454,14 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           </Field>
           {p.vendedor_id && (
             <Field label="Comissão (%)">
-              <input className="input" inputMode="decimal" disabled={!livre} value={p.comissao_percentual ?? ""} placeholder={String(vendedores.find((v) => v.id === p.vendedor_id)?.percentual ?? "")}
+              <input className="input" inputMode="decimal" disabled={!livre} value={p.comissao_percentual ?? ""} placeholder={comissaoPrevista ? `automática ${pctTexto(comissaoPrevista.pct)}` : ""}
                 onChange={(e) => set({ comissao_percentual: e.target.value === "" ? null : Number(e.target.value.replace(",", ".")) })} />
+              {comissaoPrevista && subtotal > 0 && (
+                <span className="mt-1 block text-xs text-slate-600" title="Em branco: % por categoria de cada item (regras em Comissões)">
+                  ≈ {brl((subtotal - Number(p.desconto || 0)) * comissaoPrevista.pct / 100)}
+                  {comissaoPrevista.faixas.length > 1 && ` · ${comissaoPrevista.faixas.map((f) => `${f.categorias.slice(0, 2).join(", ") || "outros"} ${pctTexto(f.pct)}`).join(" · ")}`}
+                </span>
+              )}
             </Field>
           )}
         </div>

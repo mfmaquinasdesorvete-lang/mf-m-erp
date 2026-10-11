@@ -7,6 +7,7 @@
 
 import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
 import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
+import { percentualPedido } from "./comissao";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -936,6 +937,12 @@ function comercialDemo(db: Db) {
     { id: "v3", nome: "Paulo (representante RS)", tipo: "representante", user_id: null, percentual: 5, base: "faturamento", descontar_frete: true, cpf_cnpj: "33444555000181", pix: "paulo@rep.com.br", ativo: true, created_at: quando(-90) },
   ];
   for (const p of db.pedidos) p.vendedor_id = db.vendedores.find((v) => v.nome === p.vendedor)?.id ?? null;
+  // % por categoria: máquina paga menos, peças pagam mais; a Carla tem um % próprio em vedantes
+  db.comissao_regras = [
+    { id: "cr1", categoria: "As Máquinas My Frost", vendedor_id: null, percentual: 2, ativo: true, created_at: quando(-30) },
+    { id: "cr2", categoria: "Peças de Reposição", vendedor_id: null, percentual: 6, ativo: true, created_at: quando(-30) },
+    { id: "cr3", categoria: "Vedantes/ Orings My Frost", vendedor_id: "v1", percentual: 8, ativo: true, created_at: quando(-10) },
+  ];
   db.comissoes = [];
   for (const c of db.contas_receber.filter((x) => x.status === "pago" && x.pedido_id)) {
     const p = db.pedidos.find((x) => x.id === c.pedido_id);
@@ -1139,7 +1146,8 @@ function expedicaoDemo(p: Row, momento: "aprovacao" | "nfe") {
 function comissaoDemo(p: Row, valor: number, contaId: string | null, descricao: string) {
   const v = db.vendedores?.find((x) => x.id === p.vendedor_id);
   if (!v || (contaId && db.comissoes.some((c) => c.conta_receber_id === contaId))) return;
-  const pct = Number(p.comissao_percentual ?? v.percentual);
+  const itensP = (db.pedido_itens ?? []).filter((i) => i.pedido_id === p.id);
+  const pct = r2(percentualPedido((db.comissao_regras ?? []) as any, v as any, itensP as any, (id) => db.produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual)?.pct ?? Number(v.percentual));
   const base = r2(valor * (v.descontar_frete ? Math.max(p.valor_total - p.frete, 0) / (p.valor_total || 1) : 1));
   db.comissoes.push({ id: uid(), vendedor_id: v.id, pedido_id: p.id, conta_receber_id: contaId, descricao, base, percentual: pct, valor: r2(base * pct / 100), status: "a_pagar", conta_pagar_id: null, pago_em: null, created_at: quando(0) });
 }

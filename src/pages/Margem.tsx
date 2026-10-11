@@ -8,6 +8,7 @@ import { useConfig } from "@/lib/useConfig";
 import { brl, dataBR } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
+import type { RegraComissao } from "@/lib/comissao";
 import { CANAIS, margemPedido, pctMc, somar, zero, type Contexto, type PedidoMargem, type Valores } from "@/lib/margem";
 import type { KitComponente, Produto, Vendedor } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export default function Margem() {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
   const { data: comissoes = [] } = useRows<{ pedido_id: string; valor: number; status: string }>("comissoes", {});
   const { data: cotacoes = [] } = useRows<{ pedido_id: string; valor: number; escolhida: boolean }>("cotacoes_frete", {});
   const { data: formas = [] } = useRows<{ id: string; taxa_percentual: number; tarifa_fixa: number }>("formas_pagamento", { order: "ordem", ascending: true });
@@ -40,7 +42,7 @@ export default function Margem() {
 
   const dados = useMemo(() => {
     if (!cfg) return null;
-    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, cfg, formas, envios };
+    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, cfg, formas, envios, regrasComissao };
     const vendas = filtrar(pedidosTodos).filter((p) => {
       const d = (p.aprovado_em ?? p.created_at).slice(0, 7);
       return VALIDOS.includes(p.status) && d >= de && d <= ate && (!canal || p.origem === canal);
@@ -63,7 +65,7 @@ export default function Margem() {
     }
     const linhas = [...grupos.values()].sort((a, b) => ordem === "pct" ? pctMc(b) - pctMc(a) : ordem === "receita" ? b.receita - a.receita : b.mc - a.mc);
     return { total, linhas, n: vendas.length, estimadas: calc.filter((x) => x.r.impostosEstimados).length };
-  }, [cfg, produtos, comps, unidades, vendedores, comissoes, cotacoes, formas, envios, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
+  }, [cfg, produtos, comps, unidades, vendedores, regrasComissao, comissoes, cotacoes, formas, envios, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
 
   function exportar() {
     if (!dados) return;

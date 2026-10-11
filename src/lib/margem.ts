@@ -4,6 +4,7 @@ import { aliquotaInterestadual } from "../../supabase/functions/_shared/nfe-impo
 import { composicao } from "./kits";
 import type { Cliente, Config, Item, KitComponente, Pedido, Produto, Vendedor } from "./types";
 import type { Unidade } from "./unidade";
+import { percentualPedido, type RegraComissao } from "./comissao";
 
 export const CANAIS: Record<string, string> = {
   whatsapp: "WhatsApp", telefone: "Telefone", presencial: "Presencial", representante: "Representante", loja: "Loja virtual", proposta: "Proposta",
@@ -28,6 +29,8 @@ export type Contexto = {
   formas?: { id: string; taxa_percentual: number; tarifa_fixa: number }[];
   /** Envios (Fretes): o frete final (ou o aprovado) do envio pago pela MF é o custo de frete da venda. */
   envios?: { pedido_id: string | null; status: string; pagador: string; valor_aprovado: number | null; valor_final: number | null }[];
+  /** % de comissão por categoria (Comissões → % por categoria) */
+  regrasComissao?: RegraComissao[];
 };
 export type ItemMargem = Valores & { produto_id: string; descricao: string; quantidade: number };
 export type ResultadoPedido = { total: Valores; itens: ItemMargem[]; impostosEstimados: boolean };
@@ -75,7 +78,7 @@ export function margemPedido(p: PedidoMargem, ctx: Contexto): ResultadoPedido {
   // comissão: a lançada (se já houver) ou a prevista pelo % do vendedor
   const lancada = ctx.comissoes.filter((x) => x.pedido_id === p.id && x.status !== "cancelada").reduce((s, x) => s + Number(x.valor), 0);
   const vend = ctx.vendedores.find((v) => v.id === p.vendedor_id);
-  const pct = Number(p.comissao_percentual ?? vend?.percentual ?? 0);
+  const pct = vend ? percentualPedido(ctx.regrasComissao ?? [], vend, itens, (id) => ctx.produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual)?.pct ?? 0 : 0;
   const comissaoTotal = lancada || (vend ? (total - (vend.descontar_frete ? freteCobrado : 0)) * pct / 100 : 0);
 
   // frete pago pela MF (frete por conta do emitente): a cotação escolhida ou o valor cobrado

@@ -14,6 +14,7 @@ import { useConfig } from "@/lib/useConfig";
 import { comUnidade, pdfComissoes } from "@/lib/pdf";
 import { useUnidade } from "@/lib/unidade";
 import type { Vendedor } from "@/lib/types";
+import { pctTexto, percentualItem, type RegraComissao } from "@/lib/comissao";
 
 type Comissao = {
   id: string; vendedor_id: string; pedido_id: string; descricao: string; base: number; percentual: number; valor: number;
@@ -25,12 +26,12 @@ const ROTULO: Record<string, string> = { a_pagar: "a pagar", paga: "paga", cance
 export default function Comissoes() {
   const { pode, user_id } = usePerfil();
   const financeiro = pode("contas_pagar");
-  const [aba, setAba] = useState<"comissoes" | "vendedores">("comissoes");
+  const [aba, setAba] = useState<"comissoes" | "vendedores" | "regras">("comissoes");
   return (
     <div>
       <PageHeader title="Comissões" subtitle="Vendedores e representantes: comissão gerada pelas vendas e paga pelo contas a pagar." />
-      {financeiro && <Tabs value={aba} onChange={setAba} options={[{ value: "comissoes", label: "Comissões" }, { value: "vendedores", label: "Vendedores e representantes" }]} />}
-      {aba === "vendedores" && financeiro ? <Vendedores /> : <ListaComissoes financeiro={financeiro} userId={user_id} />}
+      {financeiro && <Tabs value={aba} onChange={setAba} options={[{ value: "comissoes", label: "Comissões" }, { value: "vendedores", label: "Vendedores e representantes" }, { value: "regras", label: "% por categoria" }]} />}
+      {aba === "vendedores" && financeiro ? <Vendedores /> : aba === "regras" && financeiro ? <RegrasCategoria /> : <ListaComissoes financeiro={financeiro} userId={user_id} />}
     </div>
   );
 }
@@ -253,5 +254,93 @@ function Vendedores() {
         </Modal>
       )}
     </>
+  );
+}
+
+/* ----------------------- % de comissão por categoria ----------------------- */
+
+/** % por categoria para todos os vendedores, ou exceções de um vendedor. Em branco = herda. */
+function RegrasCategoria() {
+  const { data: categorias = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("categorias_produto", { order: "nome", ascending: true });
+  const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const { data: regras = [] } = useRows<RegraComissao>("comissao_regras");
+  const invalidar = useInvalidate();
+  const [de, setDe] = useState(""); // "" = todos os vendedores
+  const [rascunho, setRascunho] = useState<Record<string, string>>({});
+  const vendedor = vendedores.find((v) => v.id === de) ?? null;
+  const ativos = vendedores.filter((v) => v.ativo);
+  const lista = categorias.filter((c) => c.ativo);
+  const regraDe = (cat: string) => regras.find((r) => (r.vendedor_id ?? "") === de && r.categoria.trim().toLowerCase() === cat.trim().toLowerCase());
+  // o que vale sem a regra desta linha (para mostrar no campo vazio)
+  const herdado = (cat: string) => {
+    const outras = regras.filter((r) => !((r.vendedor_id ?? "") === de && r.categoria.trim().toLowerCase() === cat.trim().toLowerCase()));
+    if (vendedor) return { ...percentualItem(outras, vendedor.id, cat, Number(vendedor.percentual)) };
+    const r = percentualItem(outras, null, cat, NaN);
+    return Number.isNaN(r.pct) ? null : r;
+  };
+
+  async function salvar(cat: string) {
+    const txt = rascunho[cat];
+    if (txt === undefined) return;
+    const atual = regraDe(cat);
+    const valor = txt.trim() === "" ? null : Number(txt.replace(",", "."));
+    if (valor != null && (!(valor >= 0) || valor > 100)) return notifyError(new Error("o % precisa ficar entre 0 e 100"));
+    const { error } = valor == null
+      ? atual ? await supabase.from("comissao_regras").delete().eq("id", atual.id) : { error: null }
+      : atual ? await supabase.from("comissao_regras").update({ percentual: valor, ativo: true, updated_at: new Date().toISOString() }).eq("id", atual.id)
+        : await supabase.from("comissao_regras").insert({ categoria: cat, vendedor_id: de || null, percentual: valor });
+    if (error) return notifyError(error);
+    setRascunho(({ [cat]: _x, ...resto }) => resto);
+    invalidar("comissao_regras");
+  }
+
+  const comRegra = lista.filter((c) => regraDe(c.nome)).length;
+  return (
+    <div className="space-y-3">
+      <Card className="p-4 text-sm text-slate-700">
+        <p className="mb-1 font-semibold">Como o % de cada produto é escolhido (o mais específico vence)</p>
+        <ol className="ml-5 list-decimal space-y-0.5">
+          <li><b>% do vendedor naquela categoria</b> (exceção de um vendedor)</li>
+          <li><b>% da categoria</b> para todos os vendedores</li>
+          <li><b>% geral do vendedor</b> (cadastro do vendedor)</li>
+        </ol>
+        <p className="mt-1 text-slate-600">Calculado item a item: num pedido com máquina e peças, cada item usa o seu %. Subcategoria sem % próprio usa o da categoria-mãe.
+          O % digitado no pedido vale acima de tudo. Comissões já lançadas não mudam.</p>
+      </Card>
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Regras de" className="w-full sm:w-72">
+          <select className="input" value={de} onChange={(e) => { setDe(e.target.value); setRascunho({}); }}>
+            <option value="">Todos os vendedores</option>
+            {ativos.map((v) => <option key={v.id} value={v.id}>{v.nome} (geral {pctTexto(Number(v.percentual))})</option>)}
+          </select>
+        </Field>
+        <p className="pb-2 text-sm text-slate-600">{comRegra ? `${comRegra} ${comRegra === 1 ? "categoria com %" : "categorias com %"} ${vendedor ? `próprio de ${vendedor.nome}` : "para todos"}` : "Nenhuma categoria com % ainda: vale o % geral de cada vendedor."}</p>
+      </div>
+      <Card>
+        <ul className="divide-y divide-slate-100">
+          {lista.map((c) => {
+            const sub = c.nome.includes(" > ");
+            const r = regraDe(c.nome);
+            const h = herdado(c.nome);
+            const valor = rascunho[c.nome] ?? (r ? String(Number(r.percentual)).replace(".", ",") : "");
+            return (
+              <li key={c.id} className="flex items-center gap-3 px-4 py-2">
+                <span className={`min-w-0 flex-1 text-sm ${sub ? "pl-5 text-slate-600" : "font-semibold"}`}>{sub ? c.nome.split(" > ").slice(1).join(" > ") : c.nome}</span>
+                <span className="hidden text-xs text-slate-500 sm:inline">{r ? "" : h ? `herda ${pctTexto(h.pct)}${h.origem === "categoria" ? " (categoria)" : h.origem === "vendedor_categoria" ? " (categoria-mãe)" : " (geral)"}` : "usa o % de cada vendedor"}</span>
+                <span className="relative">
+                  <input className="input w-24 py-1 pr-7 text-right" inputMode="decimal" aria-label={`% de comissão em ${c.nome}`} value={valor}
+                    placeholder={h ? String(Math.round(h.pct * 100) / 100).replace(".", ",") : "—"}
+                    onChange={(e) => setRascunho((x) => ({ ...x, [c.nome]: e.target.value.replace(/[^\d,.]/g, "").slice(0, 6) }))}
+                    onBlur={() => salvar(c.nome)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-500" aria-hidden>%</span>
+                </span>
+              </li>
+            );
+          })}
+          {!lista.length && <li className="p-6 text-center text-sm text-slate-500">Nenhuma categoria de produto cadastrada.</li>}
+        </ul>
+      </Card>
+      <p className="text-xs text-slate-500">Deixe em branco para herdar. Os valores salvam ao sair do campo.</p>
+    </div>
   );
 }
