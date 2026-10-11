@@ -990,3 +990,71 @@ export async function pdfFichaCadastral(a: FichaAssinadaPdf, cfg: Config, rotulo
   rodape(doc);
   return doc.output("blob");
 }
+
+/** Comprovante de venda de balcão (PDV) em bobina de 80 mm: não é documento fiscal. */
+export type CupomPdf = {
+  numero: number; data: string; vendedor?: string | null; unidade?: string | null;
+  cliente?: { nome: string; doc?: string | null } | null;
+  itens: { descricao: string; quantidade: number; valor_unitario: number }[];
+  desconto: number; total: number;
+  pagamentos: { rotulo: string; valor: number; pendente?: boolean }[];
+  recebido_dinheiro?: number | null; troco?: number | null; observacoes?: string | null;
+};
+
+export async function pdfCupom(c: CupomPdf, cfg: Config): Promise<Blob> {
+  const { jsPDF } = await import("jspdf");
+  const L = 80, M = 4, W = L - 2 * M;
+  const qtd = (n: number) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  // duas passadas: a primeira mede a altura, a segunda desenha numa bobina do tamanho certo
+  const desenhar = (doc: InstanceType<typeof jsPDF>) => {
+    let y = M + 2;
+    const t = (s: string, x: number, opts?: Record<string, unknown>) => doc.text(textoPdf(s), x, y, opts as any);
+    const linhas = (s: string, tam: number, estilo: "normal" | "bold" = "normal", alinhar: "left" | "center" = "left") => {
+      doc.setFont("helvetica", estilo); doc.setFontSize(tam);
+      for (const l of doc.splitTextToSize(textoPdf(s), W) as string[]) { t(l, alinhar === "center" ? L / 2 : M, { align: alinhar }); y += tam * 0.42; }
+    };
+    const par = (esq: string, dir: string, tam = 8, estilo: "normal" | "bold" = "normal") => {
+      doc.setFont("helvetica", estilo); doc.setFontSize(tam);
+      t(esq, M); t(dir, L - M, { align: "right" }); y += tam * 0.45;
+    };
+    const tracejado = () => { y += 1; doc.setLineDashPattern([1, 1], 0); doc.setLineWidth(0.2); doc.line(M, y, L - M, y); doc.setLineDashPattern([], 0); y += 3.5; };
+
+    linhas(cfg.nome_fantasia || cfg.razao_social || "MF Máquinas", 11, "bold", "center");
+    if (cfg.nome_fantasia && cfg.razao_social) linhas(cfg.razao_social, 7, "normal", "center");
+    if (cfg.cnpj) linhas(`CNPJ ${docFormat(cfg.cnpj)}`, 7, "normal", "center");
+    if (cfg.endereco) linhas([cfg.endereco, [cfg.municipio, cfg.uf].filter(Boolean).join("/")].filter(Boolean).join(" - "), 7, "normal", "center");
+    const contato = [cfg.telefone && formatarTelefone(cfg.telefone), cfg.whatsapp && `WhatsApp ${formatarTelefone(cfg.whatsapp)}`].filter(Boolean).join(" · ");
+    if (contato) linhas(contato, 7, "normal", "center");
+    tracejado();
+    linhas("COMPROVANTE DE VENDA", 10, "bold", "center");
+    linhas("Não é documento fiscal", 7, "normal", "center");
+    y += 1;
+    par(`Pedido nº ${c.numero}`, new Date(c.data).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
+    if (c.vendedor) linhas(`Vendedor: ${c.vendedor}`, 8);
+    if (c.unidade) linhas(`Loja: ${c.unidade}`, 8);
+    linhas(`Cliente: ${c.cliente?.nome ?? "Consumidor final"}${c.cliente?.doc ? ` · ${docFormat(c.cliente.doc)}` : ""}`, 8);
+    tracejado();
+    for (const i of c.itens) {
+      linhas(i.descricao, 8, "bold");
+      par(`${qtd(i.quantidade)} x ${brl(i.valor_unitario)}`, brl(r2Cupom(i.quantidade * i.valor_unitario)));
+      y += 0.8;
+    }
+    tracejado();
+    const subtotal = c.itens.reduce((s, i) => s + r2Cupom(i.quantidade * i.valor_unitario), 0);
+    if (c.desconto > 0) { par("Subtotal", brl(subtotal)); par("Desconto", `- ${brl(c.desconto)}`); }
+    par("TOTAL", brl(c.total), 11, "bold");
+    y += 1.5;
+    for (const p of c.pagamentos) par(p.pendente ? `${p.rotulo} (a pagar)` : p.rotulo, brl(p.valor));
+    if (c.recebido_dinheiro && c.troco) { par("Recebido em dinheiro", brl(c.recebido_dinheiro)); par("Troco", brl(c.troco), 9, "bold"); }
+    if (c.observacoes) { tracejado(); linhas(c.observacoes, 7); }
+    tracejado();
+    linhas("Obrigado pela preferência!", 8, "bold", "center");
+    linhas("Guarde este comprovante para troca e garantia.", 7, "normal", "center");
+    return y + M;
+  };
+  const altura = desenhar(new jsPDF({ unit: "mm", format: [L, 1000] }));
+  const doc = new jsPDF({ unit: "mm", format: [L, Math.max(altura, 60)] });
+  desenhar(doc);
+  return doc.output("blob");
+}
+const r2Cupom = (n: number) => Math.round(n * 100) / 100;

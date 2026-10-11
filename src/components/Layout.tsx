@@ -4,7 +4,7 @@ import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
-  Store, PackageSearch, CreditCard, Package,
+  Store, PackageSearch, CreditCard, Package, ScanBarcode,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -42,6 +42,7 @@ const grupos: Grupo[] = [
     acao: { label: "Pedido", dica: "Novo pedido ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos" },
     itens: [
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
+      { to: "/pdv", tela: "pedidos", label: "PDV (venda de balcão)", curto: "PDV", icon: ScanBarcode, busca: "pdv balcão caixa venda rápida cupom comprovante troco leitor código de barras" },
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
       { to: "/fretes", tela: "fretes", label: "Fretes e envios", curto: "Fretes", icon: PackageSearch, busca: "frete cotação transportadora coleta rastreio entrega comprovante ocorrência cte painel" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante" },
