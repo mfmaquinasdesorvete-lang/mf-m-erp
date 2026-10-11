@@ -75,6 +75,8 @@ type Props<T> = {
   editarAgora?: T | null;
   /** Formulário próprio no lugar do padrão (ex.: cadastro de clientes em abas). */
   formulario?: (registro: Record<string, any>, fechar: () => void) => ReactNode;
+  /** Celular: cartão próprio no lugar da tabela empilhada (os botões e a seleção o CrudPage põe). */
+  cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
@@ -290,6 +292,27 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         )}
       </div>
 
+      {props.cartaoCelular && (
+        <div className="md:hidden">
+          {!isLoading && filtrados.length === 0 && <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
+          <ul className="space-y-2">
+            {filtrados.slice(0, limite).map((row) => (
+              <li key={row.id} className={`relative rounded-2xl border bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200"}`}>
+                {selecionavel && (
+                  <input type="checkbox" className="absolute right-3 top-3 h-5 w-5" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" />
+                )}
+                {/* o cartão reserva o canto de cima à direita para a caixinha de seleção */}
+                {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1 border-t border-slate-100 pt-2">
+                  {rowActions?.(row)}
+                  {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className={props.cartaoCelular ? "hidden md:block" : ""}>
       <Table
         empty={!isLoading && filtrados.length === 0}
         head={<>
@@ -319,6 +342,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           </tr>
         ))}
       </Table>
+      </div>
       {filtrados.length > limite && (
         <div className="mt-3 flex justify-center">
           <Button variant="secondary" onClick={() => setLimite((l) => l + POR_VEZ)}>

@@ -20,6 +20,7 @@
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.462.0",
+    "pdfjs-dist": "^4.10.38",
     "qrcode-generator": "1.4.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

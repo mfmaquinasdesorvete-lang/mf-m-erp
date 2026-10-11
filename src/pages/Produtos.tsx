@@ -169,15 +169,87 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const unidadesUsadas = [...new Set(produtos.map((p) => String(p.unidade ?? "").toUpperCase()))].filter((u) => u && !UNIDADES.some(([c]) => c === u));
   const opcoesUnidade = [...UNIDADES.map(([v, l]) => ({ value: v, label: `${v} - ${l}` })), ...unidadesUsadas.map((u) => ({ value: u, label: `${u} (fora do padrão)` }))];
 
+
+  const NOME_CADASTRO: Record<string, string> = { maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção" };
+  /** Selos do produto (inativo, produção, catálogo…) — iguais na tabela e no cartão do celular. */
+  const selos = (r: Produto) => (<>
+    {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
+    {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[11px] font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
+    {(r.ativo === false || r.fora_de_linha) && <span className="mr-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
+    {r.no_catalogo && (pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })
+      ? <span className="text-xs font-semibold text-amber-700">catálogo: {pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })}</span>
+      : <span className="text-xs font-semibold text-emerald-700">no catálogo ✓</span>)}
+  </>);
+  /** Estoque do produto: quantidade (vermelho se negativo ou no mínimo) e o saldo de cada unidade. */
+  const estoque = (r: Produto) => {
+    if (r.kit) {
+      const montaveis = estoqueKit(r.id, comps, (id) => (atual ? saldo(id, atual) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0)));
+      return { texto: `${montaveis} kit(s)`, detalhe: "pelos componentes", alerta: false };
+    }
+    const qtd = atual ? saldo(r.id, atual) : Number(r.estoque_atual);
+    return {
+      texto: `${qtd} ${r.unidade ?? ""}`.trim(),
+      detalhe: !atual && unidades.length > 1 ? unidades.map((u) => `${u.codigo} ${saldo(r.id, u.id)}`).join(" · ") : "",
+      alerta: qtd < 0 || (Number(r.estoque_minimo) > 0 && qtd <= Number(r.estoque_minimo)),
+    };
+  };
+  /** Celular: nome e foto em cima (largura toda), e preço, estoque e NCM lado a lado embaixo. */
+  const cartaoProduto = (r: Produto, abrir: () => void) => {
+    const e = estoque(r);
+    return (
+      <div>
+        <button type="button" onClick={abrir} className="flex w-full items-start gap-3 pr-8 text-left">
+          {r.foto_caminho
+            ? <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
+            : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400"><Boxes size={22} /></span>}
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold leading-snug text-fg [overflow-wrap:anywhere]">{r.descricao}</span>
+            <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
+              {[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
+            </span>
+            <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}{r.vendavel === false && " · não vende"}</span>
+          </span>
+        </button>
+        {(r.ativo === false || r.fora_de_linha || r.no_catalogo || naProducao.has(r.id) || (cadastro === "componentes" && r.tipo !== "insumo")) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">{selos(r)}</div>
+        )}
+        <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl bg-slate-50 px-1 py-2">
+            <dt className="text-[11px] font-semibold uppercase text-slate-500">Venda</dt>
+            <dd className="text-sm font-bold tabular-nums">{brl(r.preco_venda)}</dd>
+          </div>
+          <div className="rounded-xl bg-slate-50 px-1 py-2">
+            <dt className="text-[11px] font-semibold uppercase text-slate-500">Estoque</dt>
+            <dd className={`text-sm font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
+            {e.detalhe && <dd className="text-[11px] text-slate-500">{e.detalhe}</dd>}
+          </div>
+          <div className="rounded-xl bg-slate-50 px-1 py-2">
+            <dt className="text-[11px] font-semibold uppercase text-slate-500">NCM</dt>
+            <dd className={`text-sm font-bold tabular-nums ${r.ncm ? "" : "text-red-600"}`}>{r.ncm ?? "falta"}</dd>
+          </div>
+        </dl>
+      </div>
+    );
+  };
+  const abasProdutos = [
+    { value: "produtos" as const, label: "Produtos e estoque" },
+    { value: "qualidade" as const, label: "Qualidade do cadastro" },
+    { value: "auditoria" as const, label: "Auditoria e marketplace" },
+    { value: "categorias" as const, label: "Categorias" },
+    ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
+  ];
   return (
     <>
-      <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={[
-        { value: "produtos", label: "Produtos e estoque" },
-        { value: "qualidade", label: "Qualidade do cadastro" },
-        { value: "auditoria", label: "Auditoria e marketplace" },
-        { value: "categorias", label: "Categorias" },
-        ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
-      ]} />
+      {/* celular: as abas viram uma lista de escolha (5 abas ocupavam meia tela) */}
+      <label className="mb-3 block md:hidden">
+        <span className="sr-only">Seção</span>
+        <select className="input font-semibold" value={aba} onChange={(e) => { setAba(e.target.value as typeof aba); setEditarAgora(null); }}>
+          {abasProdutos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </label>
+      <div className="hidden md:block">
+        <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={abasProdutos} />
+      </div>
       {aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
       ) : aba === "auditoria" ? (
@@ -191,9 +263,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <span>
-            <b>{baixos.length} item(ns) no estoque mínimo ou abaixo:</b>{" "}
-            {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
-            {baixos.length > 6 && "…"}
+            <b>{baixos.length} item(ns) no estoque mínimo ou abaixo</b>
+            <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
+              {baixos.length > 6 && "…"}</span>
           </span>
         </div>
       )}
@@ -201,13 +273,13 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Cadastro de produtos">
         {CADASTROS.map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
-            className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
-            <span className="num text-2xl font-bold">{contagem(c.id)}</span>
+            className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition sm:gap-3 sm:p-3 ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
+            <span className="num text-xl font-bold sm:text-2xl">{contagem(c.id)}</span>
             <span className="min-w-0 text-sm font-bold leading-tight">{c.titulo}</span>
           </button>
         ))}
       </div>
-      <p className="-mt-2 mb-3 text-sm text-slate-600">{atualCad.ajuda}</p>
+      <p className="-mt-2 mb-3 text-xs text-slate-600 sm:text-sm">{atualCad.ajuda}</p>
       {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
           <Boxes size={18} className="shrink-0" />
@@ -420,39 +492,29 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
                   <div className="text-xs text-slate-500">{[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}{r.vendavel === false && " · não vende"}</div>
-                  {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
-                  {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[11px] font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
-                  {(r.ativo === false || r.fora_de_linha) && <span className="text-xs font-semibold text-slate-500">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
-                  {r.no_catalogo && (pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })
-                    ? <span className="text-xs font-semibold text-amber-700">catálogo: {pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })}</span>
-                    : <span className="text-xs font-semibold text-emerald-700">no catálogo ✓</span>)}
+                  {selos(r)}
                 </div>
               </div>
             ),
           },
-          { label: "Cadastro", render: (r) => ({ maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção" } as Record<string, string>)[r.tipo] ?? r.tipo },
+          { label: "Cadastro", render: (r) => NOME_CADASTRO[r.tipo] ?? r.tipo },
           { label: "Venda", render: (r) => brl(r.preco_venda), className: "text-right" },
           {
             label: "Estoque",
             className: "text-right",
             render: (r) => {
-              if (r.kit) {
-                const montaveis = estoqueKit(r.id, comps, (id) => (atual ? saldo(id, atual) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0)));
-                return <span><span className="font-semibold">{montaveis} kit(s)</span><span className="block text-xs text-slate-500">pelos componentes</span></span>;
-              }
-              const qtd = atual ? saldo(r.id, atual) : Number(r.estoque_atual);
+              const e = estoque(r);
               return (
                 <span>
-                  <span className={(qtd < 0 || (Number(r.estoque_minimo) > 0 && qtd <= Number(r.estoque_minimo))) ? "font-semibold text-red-600" : "font-semibold"}>{qtd} {r.unidade}</span>
-                  {!atual && unidades.length > 1 && (
-                    <span className="block whitespace-nowrap text-xs text-slate-500">{unidades.map((u) => `${u.codigo} ${saldo(r.id, u.id)}`).join(" · ")}</span>
-                  )}
+                  <span className={e.alerta ? "font-semibold text-red-600" : "font-semibold"}>{e.texto}</span>
+                  {e.detalhe && <span className="block whitespace-nowrap text-xs text-slate-500">{e.detalhe}</span>}
                 </span>
               );
             },
           },
           { label: "NCM", render: (r) => r.ncm ?? <span className="text-red-500">sem NCM</span> },
         ]}
+        cartaoCelular={cartaoProduto}
         rowActions={(r) => (
           <>
             {pode("movimentar_estoque") && (
