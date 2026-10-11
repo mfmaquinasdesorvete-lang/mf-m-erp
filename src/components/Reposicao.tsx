@@ -86,7 +86,7 @@ export function Reposicao({ podeComprar, aoGerar }: { podeComprar: boolean; aoGe
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {g.itens.map((s) => (
-                  <tr key={s.produto.id} className={fora.has(s.produto.id) ? "opacity-50" : ""}>
+                  <tr key={s.produto.id} className={fora.has(s.produto.id) ? "opacity-90" : ""}>
                     <td className="px-3 py-2"><input type="checkbox" aria-label={`Incluir ${s.produto.descricao}`} checked={!fora.has(s.produto.id)}
                       onChange={() => setFora((f) => { const n = new Set(f); n.has(s.produto.id) ? n.delete(s.produto.id) : n.add(s.produto.id); return n; })} /></td>
                     <td className="px-3 py-2">

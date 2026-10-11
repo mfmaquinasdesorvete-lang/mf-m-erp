@@ -59,19 +59,19 @@ export function BotoesDecisao({ conta, compacto = false }: { conta: Conta; compa
     <span className="inline-flex flex-nowrap gap-1 whitespace-nowrap" role="group" aria-label="Decisão de pagamento">
       <button type="button" disabled={ocupado} aria-pressed={d === "pagar"}
         title={d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
-        className={estilo(d === "pagar", "border-emerald-600 bg-emerald-600 text-white")}
+        className={estilo(d === "pagar", "border-solido-verde bg-solido-verde text-white")}
         onClick={() => programar([conta.id], d === "pagar" ? "limpar" : "pagar")}>
         <Check size={14} aria-hidden /> Pagar
       </button>
       <button type="button" disabled={ocupado} aria-pressed={d === "agendado"}
         title={d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"}
-        className={estilo(d === "agendado", "border-sky-600 bg-sky-600 text-white")}
+        className={estilo(d === "agendado", "border-solido-azul bg-solido-azul text-white")}
         onClick={() => setJanela("agendar")}>
         <CalendarClock size={14} aria-hidden /> {d === "agendado" && conta.pagar_em ? dataBR(conta.pagar_em).slice(0, 5) : "Agendar"}
       </button>
       <button type="button" disabled={ocupado} aria-pressed={d === "nao_pagar"}
         title={d === "nao_pagar" ? `Não pagar: ${conta.decisao_motivo ?? ""}. Toque de novo para desfazer` : "Não quero pagar esta agora"}
-        className={estilo(d === "nao_pagar", "border-slate-600 bg-slate-600 text-white")}
+        className={estilo(d === "nao_pagar", "border-solido-cinza bg-solido-cinza text-white")}
         onClick={() => (d === "nao_pagar" ? programar([conta.id], "limpar") : setJanela("nao_pagar"))}>
         <Ban size={14} aria-hidden /> Não pagar
       </button>
@@ -104,8 +104,8 @@ export function ModalAgendar({ contas, onClose }: { contas: Conta[]; onClose: ()
         <div className="flex flex-wrap gap-1.5">
           {atalhos.map(([r, d]) => (
             <button key={r} type="button" onClick={() => setDia(d)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${dia === d ? "border-sky-600 bg-sky-600 text-white" : "border-slate-300 text-slate-700 hover:border-sky-500"}`}>
-              {r} <span className="font-normal opacity-80">{dataBR(d).slice(0, 5)}</span>
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${dia === d ? "border-solido-azul bg-solido-azul text-white" : "border-slate-300 text-slate-700 hover:border-sky-500"}`}>
+              {r} <span className="font-normal opacity-90">{dataBR(d).slice(0, 5)}</span>
             </button>
           ))}
         </div>

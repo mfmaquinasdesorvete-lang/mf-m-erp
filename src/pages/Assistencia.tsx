@@ -389,7 +389,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     {[true, false].map((v) => (
                       <button key={String(v)} type="button" disabled={somenteLeitura}
                         onClick={() => set({ checklist: o.checklist!.map((x, k) => (k === i ? { ...x, ok: v } : x)) })}
-                        className={`px-2.5 py-1.5 ${c.ok === v ? (v ? "bg-emerald-500 text-white" : "bg-amber-500 text-[#2a1a02]") : "bg-surface text-slate-500"}`}>
+                        className={`px-2.5 py-1.5 ${c.ok === v ? (v ? "bg-solido-verde text-white" : "bg-amber-500 text-[#2a1a02]") : "bg-surface text-slate-500"}`}>
                         {v ? "OK" : "Atenção"}
                       </button>
                     ))}

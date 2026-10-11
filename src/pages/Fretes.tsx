@@ -176,7 +176,7 @@ export default function Fretes() {
             <ClipboardList size={20} />
             <span className="text-2xl font-bold">{semEnvio.length}</span>
             <span className="font-semibold">Pedidos aprovados ainda sem envio</span>
-            <span className="text-xs opacity-80">Crie o envio para pedir a cotação com os dados padronizados</span>
+            <span className="text-xs opacity-90">Crie o envio para pedir a cotação com os dados padronizados</span>
             {semEnvio.length > 0 && <ArrowRight size={16} className="ml-auto" />}
           </button>
           {verSemEnvio && semEnvio.length > 0 && (
@@ -204,7 +204,7 @@ export default function Fretes() {
                       <span className="num w-10 text-center text-2xl font-bold">{n}</span>
                       <span className="min-w-0">
                         <span className="block font-semibold">{i.titulo}</span>
-                        <span className="block text-xs opacity-80">{i.ajuda}</span>
+                        <span className="block text-xs opacity-90">{i.ajuda}</span>
                       </span>
                     </button>
                   );

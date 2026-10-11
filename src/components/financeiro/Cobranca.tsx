@@ -97,7 +97,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
                     <Button variant="ghost" title="Pular esta etapa para esta conta" onClick={() => registrar(c, e, "pulado")}><SkipForward size={15} /></Button>
                     {zap ? (
                       <a href={whatsappLink(zap, texto)} target="_blank" rel="noreferrer" onClick={() => registrar(c, e, "enviado")}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-solido-verde px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
                         <MessageCircle size={15} /> Enviar
                       </a>
                     ) : <span className="text-xs text-red-700">cliente sem WhatsApp</span>}
@@ -117,7 +117,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
         <p className="mb-3 text-sm text-slate-600">Os e-mails saem sozinhos às 8h (com Pix copia e cola e o link da página do cliente). O WhatsApp entra na lista acima para você enviar com um toque.</p>
         <ol className="relative space-y-2 border-l-2 border-slate-200 pl-5">
           {etapas.map((e) => (
-            <li key={e.id} className={`relative ${e.ativo ? "" : "opacity-55"}`}>
+            <li key={e.id} className={`relative ${e.ativo ? "" : "opacity-90"}`}>
               <span className={`absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 ${e.ativo ? "border-emerald-600 bg-emerald-500" : "border-slate-400 bg-surface"}`} aria-hidden />
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold uppercase text-slate-500">{quando(e)}</span>

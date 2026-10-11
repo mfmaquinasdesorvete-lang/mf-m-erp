@@ -172,7 +172,7 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
         {!centros.length ? <p className="text-sm text-slate-500">Nenhum centro de custo ainda.</p> : (
           <ul className="mb-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
             {centros.map((c) => (
-              <li key={c.id} className={`flex items-center justify-between gap-2 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-60"}`}>
+              <li key={c.id} className={`flex items-center justify-between gap-2 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-90"}`}>
                 <span className="min-w-0"><b>{c.nome}</b>{c.descricao && <span className="block text-xs text-slate-500">{c.descricao}</span>}</span>
                 {podeEditar && <label className="flex shrink-0 items-center gap-1.5 text-xs text-slate-600"><input type="checkbox" className="h-4 w-4" checked={c.ativo} onChange={(e) => ativarCentro(c.id, e.target.checked)} /> Ativo</label>}
               </li>
@@ -199,7 +199,7 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo }: {
   const etiqueta = ambos && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600">{c.tipo}</span>;
   if (!editando) {
     return (
-      <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-60"}`}>
+      <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-90"}`}>
         <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}</span>
         <span className="shrink-0 text-right text-xs text-slate-500">
           {uso ? <><span className="num block font-semibold text-slate-700">{brl(uso.total)}</span>{uso.n} conta{uso.n > 1 ? "s" : ""}</> : "sem uso"}
@@ -208,7 +208,7 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo }: {
     );
   }
   return (
-    <li className={`space-y-2 px-3 py-2 text-sm sm:flex sm:items-center sm:gap-3 sm:space-y-0 ${c.ativo ? "" : "opacity-70"}`}>
+    <li className={`space-y-2 px-3 py-2 text-sm sm:flex sm:items-center sm:gap-3 sm:space-y-0 ${c.ativo ? "" : "opacity-90"}`}>
       <span className="block min-w-0 font-medium sm:flex-1">{nome}{etiqueta}</span>
       <div className="flex items-center gap-3">
         <select className="input min-w-0 flex-1 py-1.5 sm:w-60 sm:flex-none" value={c.grupo} aria-label={`Linha do DRE de ${nome}`} onChange={(e) => onGrupo(e.target.value as GrupoDre)}>

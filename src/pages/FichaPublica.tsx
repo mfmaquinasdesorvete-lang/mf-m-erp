@@ -152,7 +152,7 @@ export default function FichaPublica() {
               <li key={p.titulo} className="flex flex-col items-center gap-1.5 text-center" aria-current={i === passo ? "step" : undefined}>
                 <div className="flex w-full items-center">
                   <span className={`h-0.5 flex-1 rounded ${i === 0 ? "bg-transparent" : i <= passo ? "bg-sky-500" : "bg-slate-200"}`} />
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold transition ${i < passo ? "bg-emerald-500 text-white" : i === passo ? "bg-sky-500 text-white ring-4 ring-sky-100" : "bg-slate-100 text-slate-400"}`}>
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold transition ${i < passo ? "bg-solido-verde text-white" : i === passo ? "bg-solido-azul text-white ring-4 ring-sky-100" : "bg-slate-100 text-slate-400"}`}>
                     {i < passo ? <Check size={18} /> : <p.Icon size={18} />}
                   </span>
                   <span className={`h-0.5 flex-1 rounded ${i === PASSOS.length - 1 ? "bg-transparent" : i < passo ? "bg-sky-500" : "bg-slate-200"}`} />
@@ -250,12 +250,12 @@ export default function FichaPublica() {
             )}
             {passo < 2 ? (
               <button type="button" onClick={avancar}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-4 py-3 font-bold text-white shadow-sm hover:bg-sky-700">
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-solido-azul px-4 py-3 font-bold text-white shadow-sm hover:opacity-90">
                 Continuar <ArrowRight size={18} />
               </button>
             ) : (
               <button type="button" onClick={assinar} disabled={ocupado}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-solido-verde px-4 py-3 font-bold text-white shadow-sm hover:opacity-90 disabled:opacity-60">
                 {ocupado ? <Loader2 size={18} className="animate-spin" /> : <PenLine size={18} />} {ocupado ? "Registrando…" : "Assinar ficha"}
               </button>
             )}
@@ -287,7 +287,7 @@ async function baixarComprovante(f: Ficha, a: Feito) {
 function Concluido({ nome, quando, hash, comprovante, acao }: { nome: string; quando: string | null; hash: string | null; comprovante?: () => void; acao?: ReactNode }) {
   return (
     <div className="px-5 py-10 text-center sm:px-7">
-      <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-white shadow-lg ring-8 ring-emerald-100"><BadgeCheck size={34} /></span>
+      <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-solido-verde text-white shadow-lg ring-8 ring-emerald-100"><BadgeCheck size={34} /></span>
       <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Ficha assinada!</h1>
       <p className="mt-1 text-[15px] text-slate-600">
         Obrigado{nome ? `, ${nome.split(" ")[0]}` : ""}. Assinada em {quando ? new Date(quando).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}.
@@ -300,7 +300,7 @@ function Concluido({ nome, quando, hash, comprovante, acao }: { nome: string; qu
       )}
       <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
         {comprovante && (
-          <button type="button" onClick={comprovante} className="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700">
+          <button type="button" onClick={comprovante} className="inline-flex items-center gap-1.5 rounded-xl bg-solido-azul px-4 py-2.5 text-sm font-bold text-white hover:opacity-90">
             <FileDown size={16} /> Baixar comprovante (PDF)
           </button>
         )}

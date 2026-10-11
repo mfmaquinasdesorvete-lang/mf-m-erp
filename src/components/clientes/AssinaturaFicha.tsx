@@ -112,7 +112,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
       {/* situação atual */}
       {assinada ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white"><BadgeCheck size={26} /></span>
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-solido-verde text-white"><BadgeCheck size={26} /></span>
           <div className="min-w-0 flex-1">
             <div className="font-bold text-emerald-900">Ficha assinada por {assinada.nome}</div>
             <div className="text-sm text-emerald-800">

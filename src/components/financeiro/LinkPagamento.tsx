@@ -106,7 +106,7 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
             <div className="flex flex-wrap gap-2">
               {conta.cliente?.whatsapp && (
                 <a href={whatsappLink(conta.cliente.whatsapp, mensagemLink(conta, aberto.url!))} target="_blank" rel="noreferrer"
-                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 sm:min-h-0">
+                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 sm:min-h-0">
                   <MessageCircle size={15} /> Mandar no WhatsApp
                 </a>
               )}

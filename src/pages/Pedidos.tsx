@@ -107,7 +107,7 @@ export default function Pedidos() {
             return (
               <button key={st} type="button" onClick={() => setFiltro(st)}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${filtro === st ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
-                {ROTULO_STATUS[st]} <span className="num ml-1 opacity-70">{n}</span>
+                {ROTULO_STATUS[st]} <span className="num ml-1 opacity-90">{n}</span>
               </button>
             );
           })}

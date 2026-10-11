@@ -213,7 +213,7 @@ function Vendedores() {
       <Table empty={!isLoading && !vendedores.length}
         head={<><th className="th">Nome</th><th className="th">Tipo</th><th className="th text-right">Comissão</th><th className="th">Quando</th><th className="th">Login no ERP</th><th className="th" /></>}>
         {vendedores.map((v) => (
-          <tr key={v.id} className={v.ativo ? "" : "opacity-60"}>
+          <tr key={v.id} className={v.ativo ? "" : "opacity-90"}>
             <td className="td font-semibold">{v.nome}<div className="text-xs font-normal text-slate-500">{[v.whatsapp, v.email].filter(Boolean).join(" · ")}</div></td>
             <td className="td">{v.tipo === "representante" ? "Representante" : "Vendedor"}</td>
             <td className="td num text-right">{Number(v.percentual).toLocaleString("pt-BR")}%</td>

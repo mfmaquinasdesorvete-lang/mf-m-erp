@@ -190,7 +190,7 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
       <Table empty={!isLoading && !regras.length}
         head={<><th className="th w-16">Ordem</th><th className="th">Regra</th><th className="th">Quando</th><th className="th">Aplica</th><th className="th" /></>}>
         {regras.map((r) => (
-          <tr key={r.id} className={r.ativo === false ? "opacity-60" : ""}>
+          <tr key={r.id} className={r.ativo === false ? "opacity-90" : ""}>
             <td className="td num">{r.prioridade}</td>
             <td className="td"><div className="font-semibold">{r.nome}</div>{r.ativo === false && <Badge value="inativo" />}</td>
             <td className="td text-sm">{resumoCondicao(r, nome)}</td>

@@ -53,7 +53,7 @@ export default function AreaCliente() {
             <div className="flex gap-2 print:hidden">
               <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Printer size={16} /> Segunda via (PDF)</button>
               {zap && <a href={whatsappLink(zap, `Olá! Sou ${a.cliente} e quero falar sobre as minhas contas.`)} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"><MessageCircle size={16} /> Falar</a>}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-solido-verde px-3 py-2 text-sm font-semibold text-white hover:opacity-90"><MessageCircle size={16} /> Falar</a>}
             </div>
           </div>
 

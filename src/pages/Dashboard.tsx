@@ -267,7 +267,7 @@ function PainelGeral() {
                 style={{ background: `color-mix(in srgb, ${a.cor} 18%, transparent)`, color: a.cor, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${a.cor} 35%, transparent)` }}>
                 <a.icon size={24} />
                 {!!a.aviso && (
-                  <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>
+                  <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>
                 )}
               </span>
               <span className="text-xs font-semibold leading-tight text-slate-700 sm:text-[13px]">{a.label}</span>

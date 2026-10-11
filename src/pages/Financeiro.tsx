@@ -444,7 +444,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
           {chipsDec.map((x) => (
             <button key={x.v} type="button" aria-pressed={filtroDec === x.v} onClick={() => setFiltroDec(x.v)}
               className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroDec === x.v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
-              {x.rotulo} <span className="opacity-80">{x.l.length}{x.v !== "todas" && x.l.length > 0 ? ` · ${brl(somaDe(x.l))}` : ""}</span>
+              {x.rotulo} <span className="opacity-90">{x.l.length}{x.v !== "todas" && x.l.length > 0 ? ` · ${brl(somaDe(x.l))}` : ""}</span>
             </button>
           ))}
         </div>

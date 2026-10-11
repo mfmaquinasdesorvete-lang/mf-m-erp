@@ -87,7 +87,7 @@ function PorMarca() {
           return (
             <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
-              <I size={13} aria-hidden /> {rotulo} <span className="opacity-80">{n}</span>
+              <I size={13} aria-hidden /> {rotulo} <span className="opacity-90">{n}</span>
             </button>
           );
         })}

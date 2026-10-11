@@ -106,7 +106,7 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
           <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
             {todos.map((m) => (
               <li key={m.id} className="flex items-center gap-2 px-3 py-2">
-                <span className={m.ativo ? "" : "opacity-50"}><ChipMarcador m={m} /></span>
+                <span className={m.ativo ? "" : "opacity-90"}><ChipMarcador m={m} /></span>
                 {!m.ativo && <span className="text-xs text-slate-500">desativado</span>}
                 <Button type="button" variant="ghost" className="ml-auto" onClick={() => setEditando(m)}><Pencil size={15} /> Editar</Button>
               </li>

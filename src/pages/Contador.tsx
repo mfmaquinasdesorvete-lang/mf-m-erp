@@ -233,7 +233,7 @@ function Mensagens({ unidadeId, comp, meuNome }: { unidadeId: string; comp: stri
       {lista.length ? (
         <ul className="mb-3 max-h-80 space-y-2 overflow-y-auto">
           {lista.map((m) => (
-            <li key={m.id} className={`rounded-xl border p-2.5 text-sm ${m.resolvida ? "border-slate-100 opacity-60" : "border-slate-200"}`}>
+            <li key={m.id} className={`rounded-xl border p-2.5 text-sm ${m.resolvida ? "border-slate-100 opacity-90" : "border-slate-200"}`}>
               <div className="mb-0.5 flex items-center gap-2 text-xs text-slate-500">
                 <b className="text-slate-700">{m.autor_nome ?? "—"}</b> {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "agora"}
                 <button type="button" onClick={() => resolver(m)} className="ml-auto rounded px-1 font-semibold text-brand" aria-pressed={!!m.resolvida}>{m.resolvida ? "reabrir" : "resolvido ✓"}</button>

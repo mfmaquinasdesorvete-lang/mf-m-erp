@@ -138,7 +138,7 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
               <button key={t} type="button" onClick={() => trocarTipo(t)}
                 className={`flex-1 rounded-lg px-3 py-2 text-left font-semibold ${r.tipo === t ? "bg-brand text-brand-fg" : "text-slate-600 hover:bg-slate-100"}`}>
                 {t === "recebimento" ? "Recebimento" : "Pagamento"}
-                <span className="block text-xs font-normal opacity-80">{t === "recebimento" ? "a MF recebeu de um cliente (a MF assina)" : "a MF pagou alguém (quem recebeu assina)"}</span>
+                <span className="block text-xs font-normal opacity-90">{t === "recebimento" ? "a MF recebeu de um cliente (a MF assina)" : "a MF pagou alguém (quem recebeu assina)"}</span>
               </button>
             ))}
           </div>
@@ -218,7 +218,7 @@ export function Recibos() {
       <Table empty={!lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem pagou → quem recebeu</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((r) => (
-          <tr key={r.id} className={r.cancelado_em ? "opacity-60" : ""}>
+          <tr key={r.id} className={r.cancelado_em ? "opacity-90" : ""}>
             <td className="td font-mono text-xs">{String(r.numero).padStart(6, "0")}</td>
             <td className="td whitespace-nowrap">{dataBR(r.data_pagamento)}</td>
             <td className="td">

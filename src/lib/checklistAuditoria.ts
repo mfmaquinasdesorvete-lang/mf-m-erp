@@ -102,7 +102,7 @@ export const ITENS_CHECKLIST = CHECKLIST.flatMap((s) => s.itens.map((i) => ({ ..
 
 export type SituacaoItem = "pendente" | "ok" | "nao_conforme" | "na";
 export const SITUACOES: { valor: Exclude<SituacaoItem, "pendente">; rotulo: string; classe: string }[] = [
-  { valor: "ok", rotulo: "Conforme", classe: "bg-emerald-600 text-white" },
-  { valor: "nao_conforme", rotulo: "Não conforme", classe: "bg-red-600 text-white" },
+  { valor: "ok", rotulo: "Conforme", classe: "bg-solido-verde text-white" },
+  { valor: "nao_conforme", rotulo: "Não conforme", classe: "bg-solido-vermelho text-white" },
   { valor: "na", rotulo: "Não se aplica", classe: "bg-slate-500 text-white" },
 ];

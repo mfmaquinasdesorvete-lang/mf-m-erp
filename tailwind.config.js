@@ -27,6 +27,8 @@ export default {
         brand: { DEFAULT: v("brand"), dark: v("brand-dark"), light: v("brand-light"), fg: v("brand-fg"), ice: v("brand-nav") },
         ink: { DEFAULT: "#071528", soft: "#0f2a4d", line: "#173459" },
         nav: { texto: "#c9d5e6", fraco: "#86a0c2", titulo: "#5a7499" },
+        // fundos sólidos com letra branca: não mudam com o tema (no escuro a escala de cores se inverte)
+        solido: { vermelho: "#dc2626", verde: "#047857", ambar: "#b45309", azul: "#1d4ed8", cinza: "#475569" },
       },
       borderColor: { DEFAULT: v("slate-200") },
       fontFamily: {

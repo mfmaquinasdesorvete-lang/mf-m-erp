@@ -163,7 +163,7 @@ export function Sino({ claro }: { claro?: boolean }) {
     <button type="button" onClick={abrirPainel} aria-label={naoVistas ? `${naoVistas} notificações novas` : "Notificações"}
       className={`relative rounded-xl p-2 ${claro ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"}`}>
       <Bell size={21} />
-      {naoVistas > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{naoVistas > 9 ? "9+" : naoVistas}</span>}
+      {naoVistas > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-[11px] font-bold text-white">{naoVistas > 9 ? "9+" : naoVistas}</span>}
     </button>
   );
 }

@@ -112,7 +112,7 @@ export function ContasFixas() {
         {fixas.map((f) => {
           const prox = proximoVencimento(f, dia);
           return (
-            <tr key={f.id} className={f.ativo ? "" : "opacity-60"}>
+            <tr key={f.id} className={f.ativo ? "" : "opacity-90"}>
               <td className="td"><div className="font-medium">{f.descricao}<EtiquetaUnidade id={f.unidade_id} /></div><div className="text-xs text-slate-500">{[nomeDe(f), f.categoria, formas.find((x) => x.id === f.forma_pagamento_id)?.nome ?? rotuloForma(f.forma_pagamento)].filter(Boolean).join(" · ")}</div></td>
               <td className="td"><span className={`rounded border px-1.5 py-px text-xs font-semibold ${f.tipo === "pagar" ? "border-red-300 bg-red-50 text-red-800" : "border-emerald-300 bg-emerald-50 text-emerald-800"}`}>{f.tipo === "pagar" ? "A pagar" : "A receber"}</span></td>
               <td className="td whitespace-nowrap">{rotuloDia(f.dia_vencimento)}, {FREQ[f.frequencia]?.rotulo}{f.fim && <div className="text-xs text-slate-500">até {dataBR(f.fim)}</div>}</td>
