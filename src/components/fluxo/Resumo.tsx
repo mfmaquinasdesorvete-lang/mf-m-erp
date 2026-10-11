@@ -27,7 +27,7 @@ export function BlocosEtapas({ resumo, etapa, onEtapa }: {
             <span className="num mt-1 truncate text-[11px] text-slate-500">{brl(r.valor)}</span>
             {r.alertas > 0 && (
               <>
-                <span className={`num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--canvas))] sm:right-2 sm:top-2 sm:ring-0 ${r.nivel === 2 ? "bg-solido-vermelho" : "bg-amber-500"}`}
+                <span className={`num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--canvas))] sm:right-2 sm:top-2 sm:ring-0 ${r.nivel === 2 ? "bg-solido-vermelho" : "bg-solido-ambar"}`}
                   aria-label={`${r.alertas} pedem ação`}>{r.alertas}</span>
                 <span className={`mt-1.5 hidden text-[11px] font-bold lg:block ${r.nivel === 2 ? "text-red-600" : "text-amber-700"}`}>
                   {r.alertas === 1 ? "1 pede ação" : `${r.alertas} pedem ação`}
