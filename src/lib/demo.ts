@@ -249,6 +249,35 @@ function seed(): Db {
       { id: "pci3", pedido_compra_id: "pco2", produto_id: "p7", descricao: "Bico dosador inox", quantidade: 20, custo_unitario: 0, quantidade_recebida: 0 },
       { id: "pci4", pedido_compra_id: "pco3", produto_id: "p8", descricao: "Compressor 1 HP R404A", quantidade: 6, custo_unitario: 1350, quantidade_recebida: 6 },
     ],
+    fornecimentos: [
+      { id: "fm1", produto_id: "p4", fornecedor_id: "f1", codigo_fornecedor: "MT-050", preco: 410, preco_em: dias(-40), preco_origem: "nota", prazo_dias: 7, preferido: true, ativo: true, ultima_compra_em: dias(-40) },
+      { id: "fm2", produto_id: "p5", fornecedor_id: "f2", codigo_fornecedor: "VD-KIT-22", preco: 38.5, preco_em: dias(-25), preco_origem: "nota", prazo_dias: 10, preferido: true, ativo: true, ultima_compra_em: dias(-25) },
+      { id: "fm3", produto_id: "p5", fornecedor_id: "f1", codigo_fornecedor: null, preco: 44.9, preco_em: dias(-60), preco_origem: "cotacao", prazo_dias: 5, preferido: false, ativo: true, ultima_compra_em: null },
+      { id: "fm4", produto_id: "p6", fornecedor_id: "f3", codigo_fornecedor: "ECV3", preco: 610, preco_em: dias(-4), preco_origem: "pedido", prazo_dias: 12, preferido: true, ativo: true, ultima_compra_em: null },
+      { id: "fm5", produto_id: "p7", fornecedor_id: "f2", codigo_fornecedor: "BD-INOX", preco: 62, preco_em: dias(-25), preco_origem: "nota", prazo_dias: 10, preferido: true, ativo: true, ultima_compra_em: dias(-25) },
+      { id: "fm6", produto_id: "p8", fornecedor_id: "f1", codigo_fornecedor: "CP1HP", preco: 1350, preco_em: dias(-9), preco_origem: "pedido", prazo_dias: 9, preferido: true, ativo: true, ultima_compra_em: dias(-9) },
+    ],
+    cotacoes: [
+      { id: "cot1", numero: 1, titulo: "Vedação e bicos", status: "enviada", prazo_resposta: dias(2), entrega_desejada: dias(15), observacoes: "Entrega em São José/SC",
+        unidade_id: null, enviada_em: quando(-1), created_at: quando(-1) },
+    ],
+    cotacao_itens: [
+      { id: "cti1", cotacao_id: "cot1", produto_id: "p5", descricao: "Kit vedação do cilindro", quantidade: 30, unidade: "UN", ordem: 0 },
+      { id: "cti2", cotacao_id: "cot1", produto_id: "p7", descricao: "Bico dosador inox", quantidade: 20, unidade: "UN", ordem: 1 },
+    ],
+    cotacao_fornecedores: [
+      { id: "ctf1", cotacao_id: "cot1", fornecedor_id: "f2", token: "c0ca0000-0000-4000-8000-000000000001", email: "pedidos@inoxpaulista.com.br", status: "respondida", enviado_em: quando(-1),
+        visto_em: quando(-1), respondido_em: quando(0), respondido_por: "Marcos", condicao_pagamento: "28 dias boleto", prazo_entrega_dias: 10, frete: 60, frete_tipo: "FOB", validade: dias(10), created_at: quando(-1) },
+      { id: "ctf2", cotacao_id: "cot1", fornecedor_id: "f1", token: "c0ca0000-0000-4000-8000-000000000002", email: "vendas@refriandrade.com.br", status: "respondida", enviado_em: quando(-1),
+        visto_em: quando(-1), respondido_em: quando(0), respondido_por: "Patrícia", condicao_pagamento: "30/60 dias", prazo_entrega_dias: 5, frete: 0, frete_tipo: "CIF", validade: dias(7), created_at: quando(-1) },
+      { id: "ctf3", cotacao_id: "cot1", fornecedor_id: "f3", token: "c0ca0000-0000-4000-8000-000000000003", email: null, status: "enviada", enviado_em: quando(-1), created_at: quando(-1) },
+    ],
+    cotacao_respostas: [
+      { id: "ctr1", cotacao_fornecedor_id: "ctf1", cotacao_item_id: "cti1", preco_unitario: 39.9, prazo_dias: 10, disponivel: true, vencedor: false },
+      { id: "ctr2", cotacao_fornecedor_id: "ctf1", cotacao_item_id: "cti2", preco_unitario: 61, prazo_dias: 10, disponivel: true, vencedor: false },
+      { id: "ctr3", cotacao_fornecedor_id: "ctf2", cotacao_item_id: "cti1", preco_unitario: 36.5, prazo_dias: 5, disponivel: true, vencedor: false },
+      { id: "ctr4", cotacao_fornecedor_id: "ctf2", cotacao_item_id: "cti2", preco_unitario: null, prazo_dias: null, disponivel: false, observacao: "Sem estoque deste modelo", vencedor: false },
+    ],
     contatos_cliente: [
       { id: "cc1", cliente_id: "c3", equipamento_id: "e8", tipo: "preventiva", canal: "whatsapp", resultado: "mensagem enviada pelo WhatsApp", proximo_contato: null, created_at: quando(-20) },
     ],
@@ -1057,7 +1086,31 @@ const DEFAULTS: Record<string, () => Row> = {
   contatos_cliente: () => ({ created_at: quando(0) }),
   clientes_pessoas: () => ({ ativo: true, created_at: quando(0) }),
   equipamentos: () => ({ created_at: quando(0) }),
+  fornecimentos: () => ({ preferido: false, ativo: true, codigo_fornecedor: null, preco: null, preco_em: null, preco_origem: null, prazo_dias: null, ultima_compra_em: null, updated_at: new Date().toISOString() }),
+  cotacoes: () => ({ numero: Math.max(0, ...(db.cotacoes ?? []).map((c) => Number(c.numero) || 0)) + 1, status: "rascunho", criado_por: sessao?.user.id ?? null }),
+  cotacao_itens: () => ({ ordem: 0 }),
+  cotacao_fornecedores: () => ({ token: uid(), status: "pendente", created_at: new Date().toISOString() }),
 };
+
+// Fornecedor preferido do produto (no banco: gatilho trg_fornecimento_preferido)
+function preferidoDemo(f: Row) {
+  for (const x of db.fornecimentos ?? []) if (x.produto_id === f.produto_id && x.id !== f.id) x.preferido = false;
+  const p = db.produtos.find((x) => x.id === f.produto_id);
+  if (p) p.fornecedor_padrao_id = f.fornecedor_id;
+}
+
+// Mesmo que fornecimento_registrar: o preço só troca se a informação for mais nova
+function fornecimentoDemo(produto: string, fornecedor: string, preco: number | null, origem: string, prazo: number | null) {
+  db.fornecimentos ??= [];
+  const hoje = hojeISO();
+  const f = db.fornecimentos.find((x) => x.produto_id === produto && x.fornecedor_id === fornecedor);
+  if (!f) { db.fornecimentos.push({ id: uid(), produto_id: produto, fornecedor_id: fornecedor, ...DEFAULTS.fornecimentos(), preco, preco_em: preco != null ? hoje : null, preco_origem: preco != null ? origem : null, prazo_dias: prazo }); return; }
+  if (preco != null && (!f.preco_em || hoje >= f.preco_em)) Object.assign(f, { preco, preco_em: hoje, preco_origem: origem });
+  if (prazo != null) f.prazo_dias = prazo;
+  f.updated_at = new Date().toISOString();
+}
+
+const nomeFornDemo = (id: string) => { const f = db.fornecedores.find((x) => x.id === id); return f?.nome_fantasia?.trim() || f?.nome || "fornecedor"; };
 
 // Tempo real (no sistema real: Supabase Realtime)
 const canais = new Set<(n: Row) => void>();
@@ -1252,6 +1305,7 @@ class Query {
         if (this.tabela === "envios") { novo.numero ??= Math.max(0, ...t.map((r) => Number(r.numero) || 0)) + 1; calcularEnvioDemo(novo); }
         if (this.tabela === "envio_cotacoes") { novo.ativa ??= true; novo.escolhida ??= false; const ev = db.envios.find((x) => x.id === novo.envio_id); if (ev?.status === "cotacao") ev.status = "aprovacao"; }
         if (this.tabela === "envio_ocorrencias") { novo.status ??= "aberta"; novo.atualizado_em = novo.created_at; }
+        if (this.tabela === "fornecimentos" && novo.preferido) preferidoDemo(novo);
         if (this.tabela === "estoque_movimentos") {
           t.pop();
           movimentar(novo.produto_id, novo.tipo, Number(novo.quantidade), novo.motivo ?? "", { numero_serie: novo.numero_serie, unidade_id: novo.unidade_id });
@@ -1281,6 +1335,7 @@ class Query {
         if (this.tabela === "contas_recorrentes") aplicarRecorrenteDemo(r);
         if (this.tabela === "envios") calcularEnvioDemo(r);
         if (this.tabela === "envio_ocorrencias") { r.atualizado_em = new Date().toISOString(); if (r.status === "resolvida") r.resolvida_em ??= r.atualizado_em; }
+        if (this.tabela === "fornecimentos" && this.payload.preferido === true) preferidoDemo(r);
         if (this.tabela === "pedidos" && this.payload.forma_pagamento_id) {
           const f = db.formas_pagamento?.find((x) => x.id === this.payload.forma_pagamento_id);
           if (f && ["boleto", "pix", "cartao", "dinheiro", "transferencia"].includes(f.meio)) r.forma_pagamento = f.meio;
@@ -1929,6 +1984,105 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (!existente) db.clientes.push({ id, ...campos, observacoes: "Cadastro feito pela loja virtual" });
     db.loja_clientes.push({ user_id: sessao.user.id, cliente_id: id });
     return { data: id, error: null };
+  },
+  cotacao_marcar_enviada: ({ p_ids }) => {
+    let n = 0;
+    for (const cf of db.cotacao_fornecedores.filter((x) => (p_ids ?? []).includes(x.id))) {
+      const c = db.cotacoes.find((x) => x.id === cf.cotacao_id);
+      if (cf.status === "pendente" && ["rascunho", "enviada"].includes(c?.status)) { cf.status = "enviada"; n++; }
+      cf.enviado_em = new Date().toISOString();
+      if (c?.status === "rascunho") Object.assign(c, { status: "enviada", enviada_em: c.enviada_em ?? new Date().toISOString() });
+    }
+    return { data: n, error: null };
+  },
+  cotacao_publica: ({ p_token }) => {
+    const cf = (db.cotacao_fornecedores ?? []).find((x) => x.token === p_token);
+    const c = cf && db.cotacoes.find((x) => x.id === cf.cotacao_id);
+    if (!cf || !c || c.status === "rascunho") return { data: null, error: null };
+    if (["pendente", "enviada"].includes(cf.status) && c.status === "enviada") Object.assign(cf, { status: "vista", visto_em: new Date().toISOString() });
+    const cfg = db.configuracoes[0];
+    const itens = db.cotacao_itens.filter((i) => i.cotacao_id === c.id).sort((a, b) => a.ordem - b.ordem).map((i) => {
+      const p = db.produtos.find((x) => x.id === i.produto_id);
+      const r = db.cotacao_respostas.find((x) => x.cotacao_item_id === i.id && x.cotacao_fornecedor_id === cf.id);
+      return { id: i.id, descricao: i.descricao, quantidade: i.quantidade, unidade: i.unidade ?? p?.unidade, observacao: i.observacao ?? null,
+        codigo_fabricante: p?.codigo_fabricante ?? null, marca: p?.marca ?? null, modelo: p?.modelo ?? null,
+        seu_codigo: (db.fornecimentos ?? []).find((f) => f.produto_id === i.produto_id && f.fornecedor_id === cf.fornecedor_id)?.codigo_fornecedor ?? null,
+        preco_unitario: r?.preco_unitario ?? null, prazo_dias: r?.prazo_dias ?? null, disponivel: r?.disponivel ?? true, obs_resposta: r?.observacao ?? null };
+    });
+    return { data: { numero: c.numero, titulo: c.titulo, status: c.status, situacao: cf.status, prazo_resposta: c.prazo_resposta, entrega_desejada: c.entrega_desejada,
+      observacoes: c.observacoes, fornecedor: nomeFornDemo(cf.fornecedor_id), itens,
+      condicao_pagamento: cf.condicao_pagamento ?? null, prazo_entrega_dias: cf.prazo_entrega_dias ?? null, frete: cf.frete ?? null, frete_tipo: cf.frete_tipo ?? null,
+      validade: cf.validade ?? null, obs_fornecedor: cf.observacoes ?? null, respondido_por: cf.respondido_por ?? null, respondido_em: cf.respondido_em ?? null,
+      empresa: { nome: cfg.nome_fantasia || cfg.razao_social, razao_social: cfg.razao_social, cnpj: cfg.cnpj, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email, municipio: cfg.municipio, uf: cfg.uf },
+      cor: cfg.proposta_cor || "#0EA5E9" }, error: null };
+  },
+  cotacao_responder: ({ p_token, p_itens, p_dados }) => {
+    const cf = (db.cotacao_fornecedores ?? []).find((x) => x.token === p_token);
+    if (!cf) return erro("cotação não encontrada");
+    const c = db.cotacoes.find((x) => x.id === cf.cotacao_id)!;
+    if (c.status !== "enviada") return erro("esta cotação já foi encerrada: fale com o comprador");
+    const nome = String(p_dados?.respondido_por ?? "").trim().slice(0, 120);
+    if (!nome) return erro("informe o seu nome");
+    if (!Array.isArray(p_itens) || p_itens.length > 500) return erro("itens inválidos");
+    const txt = (v: any, re: RegExp) => (re.test(String(v ?? "")) ? Number(v) : null);
+    const validos = p_itens.map((e: Row) => ({ e, item: db.cotacao_itens.find((i) => i.id === e.item_id && i.cotacao_id === c.id) }))
+      .filter((x): x is { e: Row; item: Row } => !!x.item);
+    if (!validos.some((x: Row) => txt(x.e.preco_unitario, /^\d{1,9}(\.\d{1,4})?$/) != null)) return erro('informe o preço de ao menos um item (ou use "Não vamos cotar")');
+    for (const { e, item } of validos) {
+      const preco = txt(e.preco_unitario, /^\d{1,9}(\.\d{1,4})?$/);
+      const prazo = txt(e.prazo_dias, /^\d{1,3}$/);
+      const dados = { preco_unitario: preco, prazo_dias: prazo == null ? null : Math.min(prazo, 730), disponivel: (e.disponivel ?? true) !== false && preco != null,
+        observacao: String(e.observacao ?? "").trim().slice(0, 300) || null, updated_at: new Date().toISOString() };
+      const r = db.cotacao_respostas.find((x) => x.cotacao_fornecedor_id === cf.id && x.cotacao_item_id === item.id);
+      if (r) Object.assign(r, dados); else db.cotacao_respostas.push({ id: uid(), cotacao_fornecedor_id: cf.id, cotacao_item_id: item.id, vencedor: false, ...dados });
+      if (preco != null) fornecimentoDemo(item.produto_id, cf.fornecedor_id, preco, "cotacao", dados.prazo_dias);
+    }
+    const prazoEnt = txt(p_dados?.prazo_entrega_dias, /^\d{1,3}$/);
+    Object.assign(cf, { status: "respondida", respondido_em: new Date().toISOString(), respondido_por: nome,
+      condicao_pagamento: String(p_dados?.condicao_pagamento ?? "").trim().slice(0, 200) || null,
+      prazo_entrega_dias: prazoEnt == null ? null : Math.min(prazoEnt, 730), frete: txt(p_dados?.frete, /^\d{1,9}(\.\d{1,2})?$/),
+      frete_tipo: ["CIF", "FOB"].includes(p_dados?.frete_tipo) ? p_dados.frete_tipo : null,
+      validade: /^\d{4}-\d{2}-\d{2}$/.test(String(p_dados?.validade ?? "")) ? p_dados.validade : null,
+      observacoes: String(p_dados?.observacoes ?? "").trim().slice(0, 1000) || null });
+    notificarDemo("outro", `Cotação nº ${c.numero} respondida`, `${nomeFornDemo(cf.fornecedor_id)} mandou os preços. Confira o mapa comparativo.`, "/producao?aba=cotacoes", ["financeiro", "tecnico"]);
+    return { data: "respondida", error: null };
+  },
+  cotacao_recusar: ({ p_token, p_nome, p_motivo = null }) => {
+    const cf = (db.cotacao_fornecedores ?? []).find((x) => x.token === p_token);
+    if (!cf) return erro("cotação não encontrada");
+    const c = db.cotacoes.find((x) => x.id === cf.cotacao_id)!;
+    if (c.status !== "enviada") return erro("esta cotação já foi encerrada");
+    if (!String(p_nome ?? "").trim()) return erro("informe o seu nome");
+    Object.assign(cf, { status: "recusou", respondido_em: new Date().toISOString(), respondido_por: String(p_nome).trim().slice(0, 120), observacoes: String(p_motivo ?? "").trim().slice(0, 1000) || null });
+    notificarDemo("outro", `Cotação nº ${c.numero}: fornecedor não vai cotar`, nomeFornDemo(cf.fornecedor_id) + (p_motivo ? ` · ${String(p_motivo).slice(0, 80)}` : ""), "/producao?aba=cotacoes", ["financeiro", "tecnico"]);
+    return { data: "recusou", error: null };
+  },
+  cotacao_gerar_pedidos: ({ p_cotacao, p_escolhas }) => {
+    const c = db.cotacoes.find((x) => x.id === p_cotacao);
+    if (!c) return erro("cotação não encontrada");
+    if (["encerrada", "cancelada"].includes(c.status)) return erro("esta cotação já foi encerrada");
+    const esc: Row[] = Array.isArray(p_escolhas) ? p_escolhas : [];
+    if (!esc.length) return erro("escolha o fornecedor de ao menos um item");
+    const resp = (e: Row) => db.cotacao_respostas.find((r) => r.cotacao_item_id === e.item_id && r.cotacao_fornecedor_id === e.cotacao_fornecedor_id);
+    if (esc.some((e) => db.cotacao_itens.find((i) => i.id === e.item_id)?.cotacao_id !== c.id || resp(e)?.preco_unitario == null || !resp(e)?.disponivel)) return erro("há item escolhido sem preço desse fornecedor");
+    const saida: Row[] = [];
+    for (const cf of db.cotacao_fornecedores.filter((x) => x.cotacao_id === c.id && esc.some((e) => e.cotacao_fornecedor_id === x.id))) {
+      const meus = esc.filter((e) => e.cotacao_fornecedor_id === cf.id);
+      const prazo = Math.max(...meus.map((e) => Number(resp(e)?.prazo_dias ?? 0)));
+      const pc: Row = { id: uid(), ...DEFAULTS.pedidos_compra(), fornecedor_id: cf.fornecedor_id, previsao_entrega: dias(cf.prazo_entrega_dias ?? (prazo || 15)),
+        condicao_pagamento: cf.condicao_pagamento ?? null, frete: Number(cf.frete ?? 0), unidade_id: c.unidade_id ?? unidadeDoUsuario(),
+        observacoes: [`Vencedor da cotação nº ${c.numero}`, cf.frete_tipo && `frete ${cf.frete_tipo}`, cf.validade && `proposta válida até ${cf.validade.split("-").reverse().join("/")}`].filter(Boolean).join(" · ") };
+      db.pedidos_compra.push(pc);
+      for (const e of meus.sort((a, b) => (db.cotacao_itens.find((i) => i.id === a.item_id)?.ordem ?? 0) - (db.cotacao_itens.find((i) => i.id === b.item_id)?.ordem ?? 0))) {
+        const i = db.cotacao_itens.find((x) => x.id === e.item_id)!;
+        db.pedido_compra_itens.push({ id: uid(), pedido_compra_id: pc.id, produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade, custo_unitario: r2(Number(resp(e)!.preco_unitario)), quantidade_recebida: 0 });
+        resp(e)!.vencedor = true;
+      }
+      cf.pedido_compra_id = pc.id;
+      saida.push({ pedido_id: pc.id, numero: pc.numero, fornecedor: db.fornecedores.find((x) => x.id === cf.fornecedor_id)?.nome });
+    }
+    Object.assign(c, { status: "encerrada", encerrada_em: new Date().toISOString() });
+    return { data: saida, error: null };
   },
   pdv_consumidor_final: () => ({ data: pdvConsumidorDemo(), error: null }),
   pdv_finalizar: ({ p }) => {
@@ -2794,6 +2948,12 @@ function nfseDemo(b: Row) {
 
 const funcoes: Record<string, (b: any) => any> = {
   nfse: (b) => nfseDemo(b),
+  "cotacao-enviar": (b) => {
+    const forns = db.cotacao_fornecedores.filter((x) => x.cotacao_id === b.cotacao_id && (!b.fornecedores?.length || b.fornecedores.includes(x.id)) && !["respondida", "recusou"].includes(x.status));
+    const comEmail = forns.filter((x) => x.email || db.fornecedores.find((f) => f.id === x.fornecedor_id)?.email);
+    rpcs.cotacao_marcar_enviada({ p_ids: comEmail.map((x) => x.id) });
+    return { ok: true, enviados: comEmail.length, sem_email: forns.filter((x) => !comEmail.includes(x)).map((x) => nomeFornDemo(x.fornecedor_id)), falhas: [] };
+  },
   "nfe-emitir": (b) => {
     if (b.devolucao) return devolucaoDemo(b);
     if (b.avulsa) {
