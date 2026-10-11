@@ -29,4 +29,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
    6. `20261010234106_nfse.sql`
    7. `20261011034143_formacao_preco.sql`
    8. `20261011052905_fornecedores_cotacao.sql`
-   9. `20261101000034_apagar_testes.sql`
+   9. `20261011184944_pdv.sql`
+  10. `20261101000034_apagar_testes.sql` (ainda não aplicada)
