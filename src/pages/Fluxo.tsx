@@ -199,29 +199,20 @@ export default function Fluxo() {
   return (
     <div className="space-y-4">
       <PageHeader title="Fluxo de pedidos" subtitle="Do orçamento à entrega, de todos os canais. Cada cartão mostra o próximo passo e o botão para fazê-lo."
-        actions={cfg?.nfe_automatica && (
+        actions={cfg && (cfg.nfe_automatica ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700" title="Pedido aprovado tem a nota emitida sozinho">
-            <Zap size={13} /> NF-e automática ligada
+            <Zap size={13} aria-hidden /> NF-e automática ligada
           </span>
-        )} />
-
-      {cfg && !cfg.nfe_automatica && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <ZapOff size={20} className="shrink-0 text-amber-700" />
-          <p className="min-w-0 flex-1 text-sm text-amber-900">
-            <b>NF-e automática desligada.</b>{" "}
-            {podeVer("configuracoes")
-              ? "Cada pedido aprovado espera alguém emitir a nota à mão (botão Emitir NF-e no cartão). Ligue para a nota sair sozinha na aprovação."
-              : "Emita a nota de cada pedido aprovado pelo botão Emitir NF-e no cartão. Para a nota sair sozinha, peça ao administrador."}
-          </p>
-          {podeVer("configuracoes") && (
-            <Link to="/configuracoes" state={{ secao: "automacao-pedidos" }}
-              className="inline-flex min-h-[42px] shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:bg-brand-dark sm:min-h-0">
-              Ligar em Configurações <ArrowRight size={15} />
-            </Link>
-          )}
-        </div>
-      )}
+        ) : podeVer("configuracoes") ? (
+          <Link to="/configuracoes" state={{ secao: "automacao-pedidos" }} title="Hoje cada pedido aprovado espera alguém emitir a nota pelo botão Emitir NF-e do cartão"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 hover:border-amber-500">
+            <ZapOff size={13} aria-hidden /> NF-e automática desligada · Ligar <ArrowRight size={13} aria-hidden />
+          </Link>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800" title="Emita a nota de cada pedido aprovado pelo botão Emitir NF-e no cartão">
+            <ZapOff size={13} aria-hidden /> NF-e automática desligada
+          </span>
+        ))} />
 
       {/* Filtros */}
       <div className="space-y-2">
