@@ -22,7 +22,7 @@ type Usuario = {
 type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
 
 const COR_PAPEL: Record<Papel, string> = {
-  admin: "bg-slate-800 text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
+  admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
   tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800",
 };
 const SITE = typeof window !== "undefined" ? window.location.origin : "https://erp.myfrost.ai";
@@ -87,7 +87,7 @@ export default function Usuarios() {
             </div>
           )}
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="relative min-w-0 flex-1 sm:max-w-sm">
+            <div className="relative w-full sm:w-auto sm:min-w-0 sm:max-w-sm sm:flex-1">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
               <input className="input pl-9" placeholder="Buscar nome, e-mail, função…" aria-label="Buscar usuário" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
