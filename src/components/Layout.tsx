@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
@@ -223,6 +224,15 @@ export function Layout() {
     return () => window.removeEventListener("keydown", esc);
   }, [aberto]);
 
+  // área da tela atual: dá a cor (data-modulo no <html>, também nas janelas) e o ícone do título
+  const modulo = useMemo<Modulo>(() => {
+    const path = location.pathname;
+    const item = todosItens.filter((i) => i.to === path || (i.to !== "/" && path.startsWith(i.to + "/"))).sort((a, b) => b.to.length - a.to.length)[0];
+    const g = grupos.find((x) => x.id === (grupoDaRota(path) ?? "inicio"));
+    return { id: g?.id ?? "inicio", titulo: g?.titulo ?? "", icone: item?.icon ?? g?.icone };
+  }, [location.pathname]);
+  useEffect(() => { document.documentElement.dataset.modulo = modulo.id; }, [modulo.id]);
+
   const atalhos = (ATALHOS[perfil.papel] ?? ATALHOS.admin)
     .map((to) => todosItens.find((i) => i.to === to)!)
     .filter((i) => i && perfil.podeVer(i.tela));
@@ -276,8 +286,8 @@ export function Layout() {
               >
                 {({ isActive }) => (
                   <>
-                    {isActive && <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-brand-ice" aria-hidden />}
-                    <Icon size={18} className={isActive ? "text-brand-ice" : "text-nav-fraco group-hover:text-nav-texto"} />
+                    {isActive && <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-modulo" aria-hidden />}
+                    <Icon size={18} className={isActive ? "text-modulo" : "text-nav-fraco group-hover:text-nav-texto"} />
                     {g.titulo ? label : curto}
                   </>
                 )}
@@ -338,7 +348,8 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8">
+      <main className="fundo-modulo min-w-0 flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8">
+        <ModuloContext.Provider value={modulo}>
         <div className="mx-auto max-w-7xl">
           {DEMO && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-900 sm:mb-5 sm:px-4 sm:py-2.5 sm:text-sm">
@@ -348,6 +359,7 @@ export function Layout() {
           )}
           <ErroTela key={location.pathname}><Outlet /></ErroTela>
         </div>
+        </ModuloContext.Provider>
       </main>
       <AvisoVersao />
 
@@ -356,7 +368,7 @@ export function Layout() {
         style={{ gridTemplateColumns: `repeat(${atalhos.length + 1}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {atalhos.map(({ to, curto, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)}
-            className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? "text-brand-ice" : "text-nav-fraco"}`}>
+            className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? "text-modulo before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-b before:bg-modulo" : "text-nav-fraco"}`}>
             <Icon size={21} /> {curto}
           </NavLink>
         ))}

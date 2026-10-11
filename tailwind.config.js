@@ -23,6 +23,7 @@ export default {
         indigo: escala("indigo", TONS),
         purple: escala("purple", TONS),
         orange: escala("orange", TONS),
+        modulo: { DEFAULT: v("modulo"), escuro: v("modulo-2"), texto: v("modulo-texto") },
         brand: { DEFAULT: v("brand"), dark: v("brand-dark"), light: v("brand-light"), fg: v("brand-fg"), ice: v("brand-nav") },
         ink: { DEFAULT: "#071528", soft: "#0f2a4d", line: "#173459" },
         nav: { texto: "#c9d5e6", fraco: "#86a0c2", titulo: "#5a7499" },

@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useId, useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ChevronRight, X, type LucideIcon } from "lucide-react";
+import { useModulo } from "@/lib/modulo";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -37,11 +38,21 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+  const modulo = useModulo();
+  const Icone = modulo?.icone;
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-fg">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+      <div className="flex min-w-0 items-center gap-3">
+        {Icone && (
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden>
+            <Icone size={22} />
+          </span>
+        )}
+        <div className="min-w-0">
+          {modulo?.titulo && modulo.titulo !== title && <p className="text-[11px] font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
+          <h1 className="text-2xl font-bold tracking-tight text-fg">{title}</h1>
+          {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">{actions}</div>
     </div>
@@ -53,7 +64,7 @@ export function Section({ title, actions, children, className = "" }: { title: s
   return (
     <Card className={`p-4 sm:p-5 ${className}`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-fg">{title}</h2>
+        <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />{title}</h2>
         {actions}
       </div>
       {children}
@@ -63,8 +74,8 @@ export function Section({ title, actions, children, className = "" }: { title: s
 
 type Tom = "neutro" | "bom" | "atencao" | "critico" | "info";
 const tons: Record<Tom, { icone: string; valor: string }> = {
-  neutro: { icone: "bg-slate-100 text-slate-600", valor: "text-fg" },
-  info: { icone: "bg-brand-light text-brand", valor: "text-fg" },
+  neutro: { icone: "bg-modulo/15 text-modulo-texto", valor: "text-fg" },
+  info: { icone: "bg-sky-50 text-sky-700", valor: "text-fg" },
   bom: { icone: "bg-emerald-50 text-emerald-700", valor: "text-fg" },
   atencao: { icone: "bg-amber-50 text-amber-700", valor: "text-amber-700" },
   critico: { icone: "bg-red-50 text-red-600", valor: "text-red-600" },
@@ -273,9 +284,10 @@ export function Tabs<T extends string>({
         <button
           key={o.value}
           type="button"
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
-            value === o.value ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"
+            value === o.value ? "bg-modulo-escuro text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
           }`}
         >
           {o.label}
