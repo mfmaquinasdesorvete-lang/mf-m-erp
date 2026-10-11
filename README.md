@@ -91,7 +91,7 @@ As permissões valem em três camadas: o menu (a tela some), as Edge Functions (
      npm i -g supabase && supabase login
      supabase link --project-ref SEU_PROJECT_REF
      # as da segunda linha recebem chamadas externas (Focus, Telegram, agendamento), por isso --no-verify-jwt
-     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse; do supabase functions deploy $f; done
+     for f in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse cotacao-enviar; do supabase functions deploy $f; done
      for f in focus-webhook nfe-processar nfse-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay backup-baixar; do supabase functions deploy $f --no-verify-jwt; done
      ```
 3. **Primeiro administrador:** depois de publicar o site (passo 6), abra o endereço e clique em **Primeiro acesso? Criar conta de administrador**. A primeira conta criada vira administradora automaticamente, e depois disso a opção some. Os demais usuários você cria pelo próprio ERP, em **Usuários**.
