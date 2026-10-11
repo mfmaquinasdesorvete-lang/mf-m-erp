@@ -9,12 +9,17 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 RewriteRule ^ index.html [L]
 
+# leitor de PDF (pdf.js) usa um módulo .mjs: precisa ir como JavaScript para o navegador aceitar
+<IfModule mod_mime.c>
+  AddType text/javascript .mjs
+</IfModule>
+
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "SAMEORIGIN"
   # arquivos com hash no nome podem ficar em cache; o index.html não (para pegar a versão nova)
-  <FilesMatch "\.(js|css|woff2?|png|jpg|webp|svg)$">
+  <FilesMatch "\.(m?js|css|woff2?|png|jpg|webp|svg)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
   <FilesMatch "index\.html$">
