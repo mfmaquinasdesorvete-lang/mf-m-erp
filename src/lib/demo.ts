@@ -1411,6 +1411,17 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   && (db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) || db.transportadoras.some((t) => soDig(t.cnpj) === soDig(c.cpf_cnpj))))
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
+/** PDV: cliente genérico "Consumidor Final" (criado na primeira venda de balcão sem cliente). */
+function pdvConsumidorDemo() {
+  const cfg = db.configuracoes[0];
+  if (cfg.pdv_cliente_id && db.clientes.some((c) => c.id === cfg.pdv_cliente_id)) return cfg.pdv_cliente_id as string;
+  const c = { id: uid(), ...DEFAULTS.clientes(), nome: "Consumidor Final", tipo_pessoa: "PF", avisos_email: false, tags: [], contribuinte_icms: 9,
+    observacoes: "Cliente genérico das vendas de balcão (PDV) sem identificação do comprador." };
+  db.clientes.push(c);
+  cfg.pdv_cliente_id = c.id;
+  return c.id;
+}
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   // apagar dados de teste (no sistema real: public.testes_apagar): na prévia só lista o que foi marcado
   testes_apagar: ({ p_pedidos = [], p_os = [], p_ops = [], p_contas = [], p_executar }) => {
@@ -1918,6 +1929,50 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (!existente) db.clientes.push({ id, ...campos, observacoes: "Cadastro feito pela loja virtual" });
     db.loja_clientes.push({ user_id: sessao.user.id, cliente_id: id });
     return { data: id, error: null };
+  },
+  pdv_consumidor_final: () => ({ data: pdvConsumidorDemo(), error: null }),
+  pdv_finalizar: ({ p }) => {
+    const itens: Row[] = Array.isArray(p?.itens) ? p.itens : [];
+    const pags: Row[] = Array.isArray(p?.pagamentos) ? p.pagamentos : [];
+    if (!itens.length) return erro("carrinho vazio");
+    if (!pags.length) return erro("escolha a forma de pagamento");
+    if (pags.some((x) => !(Number(x.valor) > 0))) return erro("valor de pagamento inválido");
+    const cfg = db.configuracoes[0];
+    const cli = p.cliente_id || pdvConsumidorDemo();
+    if (pags.some((x) => x.meio === "prazo") && cli === cfg.pdv_cliente_id) return erro("venda a prazo precisa de cliente identificado");
+    const texto = (m: string) => ({ dinheiro: "dinheiro", cartao_credito: "cartao", cartao_debito: "cartao", transferencia: "transferencia", prazo: "boleto" } as Record<string, string>)[m] ?? "pix";
+    const principal = [...pags].sort((a, b) => Number(b.valor) - Number(a.valor))[0].meio;
+    const ped: Row = { id: uid(), ...DEFAULTS.pedidos(), cliente_id: cli, origem: "balcao", forma_pagamento: texto(principal), parcelas: 1, primeiro_vencimento: hojeISO(),
+      intervalo_dias: 30, modalidade_frete: 9, desconto: Number(p.desconto) || 0, frete: 0, observacoes: p.observacoes || null, unidade_id: p.unidade_id || U_SC,
+      vendedor_id: p.vendedor_id || null, vendedor: db.vendedores?.find((v) => v.id === p.vendedor_id)?.nome ?? null };
+    const desfazer = () => { db.pedido_itens = db.pedido_itens.filter((x) => x.pedido_id !== ped.id); db.pedidos = db.pedidos.filter((x) => x.id !== ped.id); };
+    db.pedidos.push(ped);
+    for (const i of itens) {
+      const pr = db.produtos.find((x) => x.id === i.produto_id);
+      if (!pr || !(Number(i.quantidade) > 0)) { desfazer(); return erro(pr ? "quantidade inválida" : "produto não encontrado"); }
+      db.pedido_itens.push({ id: uid(), pedido_id: ped.id, produto_id: pr.id, descricao: pr.descricao, quantidade: Number(i.quantidade), valor_unitario: r2(Number(i.valor_unitario)), numero_serie: i.numero_serie || null });
+    }
+    recalcular(db);
+    const soma = r2(pags.reduce((t, x) => t + Number(x.valor), 0));
+    if (Math.abs(soma - ped.valor_total) > 0.009) { desfazer(); return erro(`os pagamentos (${brlDemo(soma)}) não fecham com o total da venda (${brlDemo(ped.valor_total)})`); }
+    const ap = rpcs.aprovar_pedido({ p_pedido: ped.id });
+    if (ap.error) { desfazer(); return ap; }
+    const primeira = db.contas_receber.find((c) => c.pedido_id === ped.id && c.status === "aberto");
+    const contas = pags.map((x, k) => {
+      const pago = !["link", "prazo"].includes(x.meio);
+      const valor = r2(Number(x.valor));
+      const dados = {
+        descricao: `Pedido #${ped.numero} - balcão${pags.length > 1 ? ` (pagamento ${k + 1}/${pags.length})` : ""}${x.meio === "cartao_credito" ? " · crédito" : x.meio === "cartao_debito" ? " · débito" : x.meio === "link" ? " · link InfinitePay" : ""}`,
+        valor, vencimento: x.meio === "prazo" ? x.vencimento || dias(30) : hojeISO(), forma_pagamento: texto(x.meio), parcela: k + 1, total_parcelas: pags.length,
+        status: pago ? "pago" : "aberto", data_pagamento: pago ? hojeISO() : null, valor_pago: pago ? valor : null,
+      };
+      if (k === 0 && primeira) { Object.assign(primeira, dados); return { id: primeira.id, meio: x.meio, valor, pago, vencimento: dados.vencimento }; }
+      const nova = { id: uid(), ...DEFAULTS.contas_receber(), ...dados, cliente_id: cli, pedido_id: ped.id, unidade_id: ped.unidade_id, categoria: "vendas" };
+      db.contas_receber.push(nova);
+      return { id: nova.id, meio: x.meio, valor, pago, vencimento: dados.vencimento };
+    });
+    if (p.entregar !== false) ped.status = "entregue";
+    return { data: { pedido_id: ped.id, numero: ped.numero, total: ped.valor_total, cliente_id: cli, itens: itens.length, contas }, error: null };
   },
   loja_criar_pedido: ({ p_itens, p_observacoes }) => {
     const l = db.loja_clientes.find((x) => x.user_id === sessao?.user.id);
