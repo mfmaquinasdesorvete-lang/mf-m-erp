@@ -1,22 +1,51 @@
-// Financeiro → Plano de contas: as categorias de receita e despesa (e em que linha do DRE cada uma entra) e os
-// centros de custo (fábrica, loja, assistência…) usados para dividir os lançamentos.
-import { useState, type FormEvent } from "react";
-import { Plus } from "lucide-react";
+// Financeiro → Plano de contas: as categorias agrupadas pela linha do DRE em que entram (na ordem do resultado),
+// com quanto cada uma movimentou; avisa das categorias usadas nas contas que não estão no plano. Em "Editar":
+// mudar a linha do DRE, desativar/reativar e criar categoria. Ao lado, os centros de custo (fábrica, loja,
+// assistência…) usados para dividir os lançamentos.
+import { useMemo, useRef, useState, type FormEvent } from "react";
+import { AlertTriangle, Check, Pencil, Plus } from "lucide-react";
 import { Button, Card, Field } from "@/components/ui";
 import { useInvalidate } from "@/lib/data";
+import { brl, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
+import { mesesAte, norm, ORDEM_DRE, rotuloCategoria, type GrupoDre, type LancDre } from "@/lib/dre";
 import { GRUPOS, useCategorias, useCentros, type Categoria } from "./CategoriaRateio";
 
-export function PlanoContas() {
+const COR_SINAL = { "+": "bg-emerald-100 text-emerald-800", "−": "bg-red-100 text-red-800", "±": "bg-amber-100 text-amber-800", fora: "bg-slate-100 text-slate-600" };
+const tipoDe = (l: LancDre) => (l.tipo === "receber" ? "receita" : "despesa");
+type Uso = { n: number; total: number };
+
+export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
   const { data: cats = [] } = useCategorias();
   const { data: centros = [] } = useCentros();
   const invalidate = useInvalidate();
-  const [nova, setNova] = useState<{ nome: string; tipo: "receita" | "despesa"; grupo: string }>({ nome: "", tipo: "despesa", grupo: "despesa_operacional" });
+  const [editando, setEditando] = useState(false);
+  const [nova, setNova] = useState<{ nome: string; tipo: "receita" | "despesa"; grupo: GrupoDre }>({ nome: "", tipo: "despesa", grupo: "despesa_operacional" });
   const [centro, setCentro] = useState({ nome: "", descricao: "" });
+  const campoNova = useRef<HTMLInputElement>(null);
+  const desde = mesesAte(hoje(), 12)[0];
+
+  // movimento de cada categoria nos últimos 12 meses (com as contas já lançadas para a frente)
+  const { uso, semCadastro, semCategoria } = useMemo(() => {
+    const uso = new Map<string, Uso & { nome: string; tipo: "receita" | "despesa" }>();
+    const semCategoria = { receita: 0, despesa: 0 };
+    for (const l of lancamentos) {
+      if (l.status === "cancelado" || (l.competencia ?? l.vencimento ?? "").slice(0, 7) < desde) continue;
+      const tipo = tipoDe(l);
+      if (!norm(l.categoria)) { semCategoria[tipo]++; continue; }
+      const k = `${tipo}|${norm(l.categoria)}`;
+      const u = uso.get(k) ?? { n: 0, total: 0, nome: l.categoria!.trim(), tipo };
+      u.n++; u.total += Number(l.valor) || 0;
+      uso.set(k, u);
+    }
+    const cadastradas = new Set(cats.map((c) => `${c.tipo}|${norm(c.nome)}`));
+    const semCadastro = [...uso.entries()].filter(([k]) => !cadastradas.has(k)).map(([, u]) => u).sort((a, b) => b.total - a.total);
+    return { uso, semCadastro, semCategoria };
+  }, [lancamentos, cats, desde]);
 
   async function salvarCategoria(c: Partial<Categoria> & { id?: string }) {
     const { id, ...row } = c;
@@ -27,9 +56,14 @@ export function PlanoContas() {
   }
   async function criarCategoria(e: FormEvent) {
     e.preventDefault();
-    if (await salvarCategoria({ nome: nova.nome.trim(), tipo: nova.tipo, grupo: nova.grupo as Categoria["grupo"], ordem: 100 })) {
+    if (await salvarCategoria({ nome: nova.nome.trim(), tipo: nova.tipo, grupo: nova.grupo, ordem: 100 })) {
       notify("Categoria criada"); setNova({ ...nova, nome: "" });
     }
+  }
+  function cadastrar(u: { nome: string; tipo: "receita" | "despesa" }) {
+    setNova({ nome: u.nome, tipo: u.tipo, grupo: u.tipo === "receita" ? "receita" : "despesa_operacional" });
+    setEditando(true);
+    setTimeout(() => { campoNova.current?.scrollIntoView({ block: "center", behavior: "smooth" }); campoNova.current?.focus(); }, 50);
   }
   async function criarCentro(e: FormEvent) {
     e.preventDefault();
@@ -43,59 +77,104 @@ export function PlanoContas() {
     invalidate("centros_custo");
   }
 
+  const ordenar = (a: Categoria, b: Categoria) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR");
+  const desativadas = cats.filter((c) => !c.ativo).sort(ordenar);
+  const linhaCategoria = (c: Categoria, ambos: boolean) => (
+    <LinhaCategoria key={c.id} c={c} ambos={ambos} editando={editando} uso={uso.get(`${c.tipo}|${norm(c.nome)}`)}
+      onGrupo={(grupo) => salvarCategoria({ id: c.id, grupo }).then((ok) => ok && notify("Linha do DRE alterada"))}
+      onAtivo={(ativo) => salvarCategoria({ id: c.id, ativo }).then((ok) => ok && notify(ativo ? "Categoria reativada" : "Categoria desativada"))} />
+  );
+
   return (
     <div className="grid items-start gap-4 lg:grid-cols-3">
-      <Card className="p-4 lg:col-span-2">
-        <h2 className="mb-1 font-bold">Categorias (plano de contas)</h2>
-        <p className="mb-3 text-sm text-slate-600">A linha do DRE diz onde cada categoria entra no resultado. Para não perder o histórico, categoria não muda de nome: desative a antiga e crie outra.</p>
-        {(["receita", "despesa"] as const).map((tipo) => (
-          <div key={tipo} className="mb-4">
-            <div className="mb-1 text-xs font-semibold uppercase text-slate-500">{tipo === "receita" ? "Receitas" : "Despesas"}</div>
-            <ul className="divide-y divide-slate-100">
-              {cats.filter((c) => c.tipo === tipo).map((c) => (
-                <li key={c.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 text-sm ${c.ativo ? "" : "opacity-60"}`}>
-                  <span className="min-w-[8rem] flex-1 font-medium">{c.nome}</span>
-                  <select className="input w-full py-1 sm:w-[17rem]" value={c.grupo} disabled={!podeEditar} aria-label={`Linha do DRE de ${c.nome}`}
-                    onChange={(e) => salvarCategoria({ id: c.id, grupo: e.target.value as Categoria["grupo"] }).then((ok) => ok && notify("Linha do DRE alterada"))}>
-                    {GRUPOS.filter((g) => g.tipo === tipo || g.tipo === "ambos").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                  </select>
-                  {podeEditar && (
-                    <label className="flex items-center gap-1 text-xs text-slate-600">
-                      <input type="checkbox" checked={c.ativo} onChange={(e) => salvarCategoria({ id: c.id, ativo: e.target.checked })} /> ativa
-                    </label>
-                  )}
+      <div className="space-y-4 lg:col-span-2">
+        {(semCadastro.length > 0 || semCategoria.receita + semCategoria.despesa > 0) && (
+          <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" >
+            <h3 className="mb-1 flex items-center gap-2 font-semibold"><AlertTriangle size={16} aria-hidden /> Contas com categoria fora do plano</h3>
+            <p className="mb-2 text-amber-800">No DRE elas entram como receita bruta (a receber) ou despesa operacional (a pagar). Cadastre para escolher a linha certa.</p>
+            <ul className="space-y-1">
+              {semCadastro.map((u) => (
+                <li key={`${u.tipo}|${u.nome}`} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <b>{rotuloCategoria(u.nome)}</b>
+                  <span className="text-xs">({u.tipo}) · {u.n} conta{u.n > 1 ? "s" : ""} · {brl(u.total)}</span>
+                  {podeEditar && <button type="button" className="ml-auto text-xs font-semibold underline" onClick={() => cadastrar(u)}>Cadastrar</button>}
                 </li>
               ))}
+              {semCategoria.receita > 0 && <li>{semCategoria.receita} conta{semCategoria.receita > 1 ? "s" : ""} a receber sem categoria</li>}
+              {semCategoria.despesa > 0 && <li>{semCategoria.despesa} conta{semCategoria.despesa > 1 ? "s" : ""} a pagar sem categoria</li>}
             </ul>
-          </div>
-        ))}
-        {podeEditar && (
-          <form onSubmit={criarCategoria} className="grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(10rem,1fr)_8rem_15rem_auto] sm:items-end">
-            <Field label="Nova categoria"><input className="input" value={nova.nome} onChange={(e) => setNova({ ...nova, nome: e.target.value })} required minLength={2} maxLength={60} placeholder="Ex.: combustível" /></Field>
-            <Field label="Tipo">
-              <select className="input" value={nova.tipo} onChange={(e) => { const t = e.target.value as "receita" | "despesa"; setNova({ ...nova, tipo: t, grupo: t === "receita" ? "receita" : "despesa_operacional" }); }}>
-                <option value="despesa">Despesa</option><option value="receita">Receita</option>
-              </select>
-            </Field>
-            <Field label="Linha do DRE">
-              <select className="input" value={nova.grupo} onChange={(e) => setNova({ ...nova, grupo: e.target.value })}>
-                {GRUPOS.filter((g) => g.tipo === nova.tipo || g.tipo === "ambos").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-              </select>
-            </Field>
-            <Button><Plus size={16} /> Criar</Button>
-          </form>
+          </Card>
         )}
-      </Card>
+
+        <Card className="p-4">
+          <div className="mb-1 flex items-start justify-between gap-2">
+            <h2 className="font-bold">Categorias (plano de contas)</h2>
+            {podeEditar && (
+              <Button type="button" variant={editando ? "primary" : "secondary"} className="shrink-0" onClick={() => setEditando(!editando)} aria-pressed={editando}>
+                {editando ? <><Check size={16} aria-hidden /> Concluir</> : <><Pencil size={16} aria-hidden /> Editar</>}
+              </Button>
+            )}
+          </div>
+          <p className="mb-4 text-sm text-slate-600">
+            Na ordem do DRE: cada categoria entra na linha em que está. Ao lado, quanto ela movimentou nos últimos 12 meses (com as contas já lançadas para a frente).
+            {editando && " Categoria não muda de nome, para não perder o histórico: desative a antiga e crie outra."}
+          </p>
+
+          <div className="space-y-4">
+            {ORDEM_DRE.map((o) => {
+              const lista = cats.filter((c) => c.ativo && c.grupo === o.grupo).sort(ordenar);
+              const ambos = GRUPOS.find((g) => g.value === o.grupo)?.tipo === "ambos";
+              return (
+                <section key={o.grupo} aria-labelledby={`dre-${o.grupo}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`min-w-[1.75rem] rounded-md px-1.5 py-0.5 text-center text-xs font-bold ${COR_SINAL[o.sinal]}`} aria-hidden>{o.sinal}</span>
+                    <h3 id={`dre-${o.grupo}`} className="font-semibold">{o.rotulo}</h3>
+                    <span className="text-xs text-slate-500">{lista.length || ""}</span>
+                  </div>
+                  <p className="mb-1 pl-9 text-xs text-slate-500">{o.dica}</p>
+                  {lista.length > 0 ? (
+                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 sm:ml-9">{lista.map((c) => linhaCategoria(c, ambos))}</ul>
+                  ) : <p className="pl-9 text-xs italic text-slate-400">Nenhuma categoria nesta linha.</p>}
+                </section>
+              );
+            })}
+          </div>
+
+          {desativadas.length > 0 && (
+            <details className="mt-4 rounded-xl border border-slate-200 px-3 py-2 text-sm">
+              <summary className="cursor-pointer font-semibold text-slate-600">Desativadas ({desativadas.length})</summary>
+              <ul className="mt-1 divide-y divide-slate-100">{desativadas.map((c) => linhaCategoria(c, true))}</ul>
+            </details>
+          )}
+
+          {podeEditar && (
+            <form onSubmit={criarCategoria} className="mt-4 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(10rem,1fr)_8rem_15rem_auto] sm:items-end">
+              <Field label="Nova categoria"><input ref={campoNova} className="input" value={nova.nome} onChange={(e) => setNova({ ...nova, nome: e.target.value })} required minLength={2} maxLength={60} placeholder="Ex.: Combustível" /></Field>
+              <Field label="Tipo">
+                <select className="input" value={nova.tipo} onChange={(e) => { const t = e.target.value as "receita" | "despesa"; setNova({ ...nova, tipo: t, grupo: t === "receita" ? "receita" : "despesa_operacional" }); }}>
+                  <option value="despesa">Despesa</option><option value="receita">Receita</option>
+                </select>
+              </Field>
+              <Field label="Linha do DRE">
+                <select className="input" value={nova.grupo} onChange={(e) => setNova({ ...nova, grupo: e.target.value as GrupoDre })}>
+                  {GRUPOS.filter((g) => g.tipo === nova.tipo || g.tipo === "ambos").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </Field>
+              <Button><Plus size={16} aria-hidden /> Criar</Button>
+            </form>
+          )}
+        </Card>
+      </div>
 
       <Card className="p-4">
         <h2 className="mb-1 font-bold">Centros de custo</h2>
         <p className="mb-3 text-sm text-slate-600">Separe receitas e despesas por área (fábrica, loja, assistência, filial). Um lançamento pode ser dividido entre vários centros.</p>
         {!centros.length ? <p className="text-sm text-slate-500">Nenhum centro de custo ainda.</p> : (
-          <ul className="mb-3 divide-y divide-slate-100">
+          <ul className="mb-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
             {centros.map((c) => (
-              <li key={c.id} className={`flex items-center justify-between gap-2 py-1.5 text-sm ${c.ativo ? "" : "opacity-60"}`}>
-                <span><b>{c.nome}</b>{c.descricao && <span className="block text-xs text-slate-500">{c.descricao}</span>}</span>
-                {podeEditar && <label className="flex items-center gap-1 text-xs text-slate-600"><input type="checkbox" checked={c.ativo} onChange={(e) => ativarCentro(c.id, e.target.checked)} /> ativo</label>}
+              <li key={c.id} className={`flex items-center justify-between gap-2 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-60"}`}>
+                <span className="min-w-0"><b>{c.nome}</b>{c.descricao && <span className="block text-xs text-slate-500">{c.descricao}</span>}</span>
+                {podeEditar && <label className="flex shrink-0 items-center gap-1.5 text-xs text-slate-600"><input type="checkbox" className="h-4 w-4" checked={c.ativo} onChange={(e) => ativarCentro(c.id, e.target.checked)} /> Ativo</label>}
               </li>
             ))}
           </ul>
@@ -104,10 +183,41 @@ export function PlanoContas() {
           <form onSubmit={criarCentro} className="space-y-2 border-t border-slate-100 pt-3">
             <Field label="Novo centro de custo"><input className="input" value={centro.nome} onChange={(e) => setCentro({ ...centro, nome: e.target.value })} required minLength={2} maxLength={60} placeholder="Ex.: Fábrica" /></Field>
             <Field label="Descrição (opcional)"><input className="input" value={centro.descricao} onChange={(e) => setCentro({ ...centro, descricao: e.target.value })} /></Field>
-            <Button><Plus size={16} /> Criar centro</Button>
+            <Button><Plus size={16} aria-hidden /> Criar centro</Button>
           </form>
         )}
       </Card>
     </div>
+  );
+}
+
+/** Uma categoria: nome e movimento; em "Editar", a linha do DRE e ativa/desativada. */
+function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo }: {
+  c: Categoria; ambos: boolean; editando: boolean; uso?: Uso; onGrupo: (g: GrupoDre) => void; onAtivo: (ativo: boolean) => void;
+}) {
+  const nome = rotuloCategoria(c.nome);
+  const etiqueta = ambos && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600">{c.tipo}</span>;
+  if (!editando) {
+    return (
+      <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-60"}`}>
+        <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}</span>
+        <span className="shrink-0 text-right text-xs text-slate-500">
+          {uso ? <><span className="num block font-semibold text-slate-700">{brl(uso.total)}</span>{uso.n} conta{uso.n > 1 ? "s" : ""}</> : "sem uso"}
+        </span>
+      </li>
+    );
+  }
+  return (
+    <li className={`space-y-2 px-3 py-2 text-sm sm:flex sm:items-center sm:gap-3 sm:space-y-0 ${c.ativo ? "" : "opacity-70"}`}>
+      <span className="block min-w-0 font-medium sm:flex-1">{nome}{etiqueta}</span>
+      <div className="flex items-center gap-3">
+        <select className="input min-w-0 flex-1 py-1.5 sm:w-60 sm:flex-none" value={c.grupo} aria-label={`Linha do DRE de ${nome}`} onChange={(e) => onGrupo(e.target.value as GrupoDre)}>
+          {GRUPOS.filter((g) => g.tipo === c.tipo || g.tipo === "ambos").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+        </select>
+        <label className="flex shrink-0 items-center gap-1.5 text-xs text-slate-600">
+          <input type="checkbox" className="h-4 w-4" checked={c.ativo} onChange={(e) => onAtivo(e.target.checked)} /> Ativa
+        </label>
+      </div>
+    </li>
   );
 }

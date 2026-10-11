@@ -14,13 +14,33 @@ export type Regime = "competencia" | "caixa";
 export type LinhaDre = { chave: string; rotulo: string; valores: number[]; total: number; tipo: "grupo" | "resultado" | "info"; detalhes: { categoria: string; valores: number[]; total: number }[] };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
+export const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
 
 export const ROTULO_GRUPO: Record<GrupoDre, string> = {
   receita: "Receita de vendas e serviços", deducao: "Impostos sobre vendas e deduções", custo: "Custos (mercadoria, matéria-prima, frete)",
   despesa_operacional: "Despesas operacionais", receita_financeira: "Receitas financeiras", despesa_financeira: "Despesas financeiras (tarifas, juros)",
   outros: "Outras receitas e despesas", investimento: "Investimentos (fora do resultado)", retirada: "Distribuição de lucros (fora do resultado)",
   transferencia: "Transferências (não entram no DRE)",
+};
+
+/** Linhas do DRE na ordem em que aparecem no resultado (o plano de contas agrupa as categorias assim). */
+export const ORDEM_DRE: { grupo: GrupoDre; rotulo: string; sinal: "+" | "−" | "±" | "fora"; dica: string }[] = [
+  { grupo: "receita", rotulo: "Receita bruta", sinal: "+", dica: "vendas de máquinas, peças e serviços" },
+  { grupo: "deducao", rotulo: "Impostos e deduções", sinal: "−", dica: "impostos sobre a venda, devoluções" },
+  { grupo: "custo", rotulo: "Custos", sinal: "−", dica: "mercadoria, matéria-prima, frete de compra" },
+  { grupo: "despesa_operacional", rotulo: "Despesas operacionais", sinal: "−", dica: "folha, aluguel, energia, marketing, sistemas" },
+  { grupo: "receita_financeira", rotulo: "Receitas financeiras", sinal: "+", dica: "rendimentos, juros recebidos" },
+  { grupo: "despesa_financeira", rotulo: "Despesas financeiras", sinal: "−", dica: "tarifas bancárias, juros pagos" },
+  { grupo: "outros", rotulo: "Outras receitas e despesas", sinal: "±", dica: "o que não é do dia a dia (venda de bem usado, multa)" },
+  { grupo: "investimento", rotulo: "Investimentos", sinal: "fora", dica: "máquinas, obras, equipamentos: fora do resultado" },
+  { grupo: "retirada", rotulo: "Distribuição de lucros", sinal: "fora", dica: "retirada dos sócios: fora do resultado" },
+  { grupo: "transferencia", rotulo: "Transferências", sinal: "fora", dica: "entre contas da empresa: não entram no DRE" },
+];
+
+/** Nome da categoria para mostrar (as antigas foram gravadas em minúsculas; o nome gravado não muda). */
+export const rotuloCategoria = (nome?: string | null) => {
+  const s = (nome ?? "").trim();
+  return s ? s[0].toLocaleUpperCase("pt-BR") + s.slice(1) : s;
 };
 
 /** Meses AAAA-MM terminando no mês de `ate`, do mais antigo ao mais novo. */

@@ -3,7 +3,7 @@
 import { Plus, X } from "lucide-react";
 import { Button, Field } from "@/components/ui";
 import { useRows } from "@/lib/data";
-import type { CategoriaFin, GrupoDre, Rateio } from "@/lib/dre";
+import { rotuloCategoria, type CategoriaFin, type GrupoDre, type Rateio } from "@/lib/dre";
 
 export type Categoria = CategoriaFin & { id: string; ativo: boolean; ordem: number };
 export type CentroCusto = { id: string; nome: string; descricao: string | null; ativo: boolean };
@@ -34,8 +34,8 @@ export function CampoCategoria({ tipo, value, onChange, className = "" }: {
     <Field label="Categoria (plano de contas)" className={className}>
       <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value)} required>
         <option value="">Escolha…</option>
-        {lista.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-        {!conhecida && <option value={value!}>{value}</option>}
+        {lista.map((c) => <option key={c.id} value={c.nome}>{rotuloCategoria(c.nome)}</option>)}
+        {!conhecida && <option value={value!}>{rotuloCategoria(value)}</option>}
       </select>
     </Field>
   );

@@ -125,7 +125,7 @@ export default function Financeiro() {
         : aba === "recibos" ? <Recibos />
         : aba === "fixas" && veContasPagar ? <ContasFixas />
         : aba === "dre" && veContasPagar ? <Dre lancamentos={paraDre} />
-        : aba === "plano" && veContasPagar ? <PlanoContas />
+        : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
         <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}
           veSaldo={papel === "admin" || papel === "financeiro" || papel === "contador"} podeBaixar={pode("editar_financeiro")} />
