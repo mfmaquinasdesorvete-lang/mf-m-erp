@@ -275,8 +275,8 @@ function RegrasCategoria() {
   const herdado = (cat: string) => {
     const outras = regras.filter((r) => !((r.vendedor_id ?? "") === de && r.categoria.trim().toLowerCase() === cat.trim().toLowerCase()));
     if (vendedor) return { ...percentualItem(outras, vendedor.id, cat, Number(vendedor.percentual)) };
-    const r = percentualItem(outras, null, cat, NaN);
-    return Number.isNaN(r.pct) ? null : r;
+    const r = percentualItem(outras, null, cat, 0);
+    return r.origem === "vendedor" ? null : r;
   };
 
   async function salvar(cat: string) {
