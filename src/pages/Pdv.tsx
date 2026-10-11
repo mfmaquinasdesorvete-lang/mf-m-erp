@@ -86,6 +86,7 @@ export default function Pdv() {
     return e ? Number(e.quantidade) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0);
   };
   const cliente = clientes.find((c) => c.id === clienteId) ?? null;
+  const qtdItens = itens.reduce((t, i) => t + i.quantidade, 0);
   const subtotal = r2(itens.reduce((s, i) => s + r2(i.quantidade * i.valor_unitario), 0));
   const descontoValor = Math.min(subtotal, r2(descontoPct ? (subtotal * num(descontoTxt)) / 100 : num(descontoTxt)));
   const total = r2(subtotal - descontoValor);
@@ -222,31 +223,33 @@ export default function Pdv() {
               {itens.map((i, k) => {
                 const tem = saldo(i.produto_id);
                 return (
-                  <li key={k} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto_7.5rem_6.5rem_auto]">
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold">{i.descricao}</div>
-                      <div className="text-xs text-slate-500">
-                        {i.sku && <span className="mr-2">{i.sku}</span>}
-                        <span className={tem < i.quantidade ? "font-semibold text-amber-700" : ""}>estoque {tem.toLocaleString("pt-BR")}</span>
+                  <li key={k} className="px-3 py-2.5">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="line-clamp-2 font-semibold">{i.descricao}</div>
+                        <div className="text-xs text-slate-500">
+                          {i.sku && <span className="mr-2">{i.sku}</span>}
+                          <span className={tem < i.quantidade ? "font-semibold text-amber-700" : ""}>estoque {tem.toLocaleString("pt-BR")}</span>
+                        </div>
                       </div>
+                      <div className="num shrink-0 text-right text-base font-bold">{brl(r2(i.quantidade * i.valor_unitario))}</div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1" role="group" aria-label={`Quantidade de ${i.descricao}`}>
+                        <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1.5" aria-label="Menos um" onClick={() => (i.quantidade > 1 ? mudar(k, { quantidade: i.quantidade - 1 }) : tirar(k))}><Minus size={14} aria-hidden /></Button>
+                        <input className="input w-14 py-1.5 text-center" inputMode="decimal" value={String(i.quantidade).replace(".", ",")} aria-label="Quantidade"
+                          onChange={(e) => { const q = num(e.target.value); if (q > 0) mudar(k, { quantidade: q }); }} />
+                        <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1.5" aria-label="Mais um" onClick={() => mudar(k, { quantidade: i.quantidade + 1 })}><Plus size={14} aria-hidden /></Button>
+                      </div>
+                      <span className="text-sm text-slate-500" aria-hidden>×</span>
+                      <input className="input w-28 py-1.5 text-right" inputMode="decimal" disabled={!pode("editar_pedidos")} defaultValue={moeda(i.valor_unitario)} key={`${i.produto_id}-${i.valor_unitario}`}
+                        onBlur={(e) => mudar(k, { valor_unitario: Math.max(0, num(e.target.value)) })} aria-label={`Preço unitário de ${i.descricao}`} />
                       {i.tipo === "maquina" && (
-                        <input className="input mt-1 py-1 text-xs" placeholder="Nº de série (garantia)" value={i.numero_serie}
+                        <input className="input min-w-0 flex-1 py-1.5 text-sm sm:max-w-[14rem]" placeholder="Nº de série (garantia)" value={i.numero_serie}
                           onChange={(e) => mudar(k, { numero_serie: e.target.value })} aria-label={`Número de série de ${i.descricao}`} />
                       )}
+                      <Button type="button" variant="ghost" className="!min-h-0 ml-auto !px-2" aria-label={`Tirar ${i.descricao}`} onClick={() => tirar(k)}><Trash2 size={16} aria-hidden /></Button>
                     </div>
-                    <div className="flex items-center gap-1" role="group" aria-label={`Quantidade de ${i.descricao}`}>
-                      <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1.5" aria-label="Menos um" onClick={() => (i.quantidade > 1 ? mudar(k, { quantidade: i.quantidade - 1 }) : tirar(k))}><Minus size={14} aria-hidden /></Button>
-                      <input className="input w-14 py-1.5 text-center" inputMode="decimal" value={String(i.quantidade).replace(".", ",")} aria-label="Quantidade"
-                        onChange={(e) => { const q = num(e.target.value); if (q > 0) mudar(k, { quantidade: q }); }} />
-                      <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1.5" aria-label="Mais um" onClick={() => mudar(k, { quantidade: i.quantidade + 1 })}><Plus size={14} aria-hidden /></Button>
-                    </div>
-                    <label className="col-span-1 text-xs text-slate-500 sm:col-span-1">
-                      <span className="sr-only sm:not-sr-only">Unitário</span>
-                      <input className="input py-1.5 text-right" inputMode="decimal" disabled={!pode("editar_pedidos")} defaultValue={moeda(i.valor_unitario)} key={`${i.produto_id}-${i.valor_unitario}`}
-                        onBlur={(e) => mudar(k, { valor_unitario: Math.max(0, num(e.target.value)) })} aria-label={`Preço unitário de ${i.descricao}`} />
-                    </label>
-                    <div className="num text-right font-bold">{brl(r2(i.quantidade * i.valor_unitario))}</div>
-                    <Button type="button" variant="ghost" className="!min-h-0 !px-2" aria-label={`Tirar ${i.descricao}`} onClick={() => tirar(k)}><Trash2 size={16} aria-hidden /></Button>
                   </li>
                 );
               })}
@@ -273,7 +276,7 @@ export default function Pdv() {
 
           <Card className="p-4">
             <dl className="num space-y-1.5 text-sm">
-              <div className="flex justify-between"><dt>Subtotal ({itens.reduce((s, i) => s + i.quantidade, 0).toLocaleString("pt-BR")} itens)</dt><dd>{brl(subtotal)}</dd></div>
+              <div className="flex justify-between"><dt>Subtotal ({qtdItens.toLocaleString("pt-BR")} {qtdItens === 1 ? "item" : "itens"})</dt><dd>{brl(subtotal)}</dd></div>
               <div className="flex items-center justify-between gap-2">
                 <dt>Desconto</dt>
                 <dd className="flex items-center gap-1">
