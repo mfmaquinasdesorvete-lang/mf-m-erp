@@ -31,4 +31,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
    8. `20261011052905_fornecedores_cotacao.sql`
    9. `20261011184944_pdv.sql`
   10. `20261011232116_usuarios_permissoes.sql`
-  11. `20261101000034_apagar_testes.sql` (ainda não aplicada)
+  11. `20261011234145_comissao_por_categoria.sql`
+  12. `20261101000034_apagar_testes.sql` (ainda não aplicada)
