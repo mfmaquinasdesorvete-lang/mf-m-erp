@@ -321,6 +321,8 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
   }
 
   const pendentes = forns.filter((f) => f.status === "pendente");
+  const pendentesEmail = pendentes.filter((f) => f.email || fornecedor(f)?.email);
+  const semEmail = pendentes.length - pendentesEmail.length;
   const mensagemZap = (f: CotForn) => `Olá, ${nomeForn(fornecedor(f))}! Pode cotar ${itens.length === 1 ? "este item" : `estes ${itens.length} itens`} para a MF Máquinas (cotação nº ${c.numero})? É só abrir o link e informar os preços: ${linkCotacao(f.token)}`;
 
   return (
@@ -331,7 +333,12 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
           {c.prazo_resposta && <span className="text-slate-600">responder até <b>{dataBR(c.prazo_resposta)}</b></span>}
           {c.entrega_desejada && <span className="text-slate-600">· entrega desejada {dataBR(c.entrega_desejada)}</span>}
           {podeEditar && aberta && pendentes.length > 0 && (
-            <Button type="button" className="ml-auto" disabled={enviando} onClick={() => enviar()}><Send size={16} aria-hidden /> {enviando ? "Enviando…" : `Enviar por e-mail (${pendentes.length})`}</Button>
+            <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {semEmail > 0 && <span className="text-xs text-slate-600">{semEmail} sem e-mail: mande o link pelo WhatsApp</span>}
+              {pendentesEmail.length > 0 && (
+                <Button type="button" disabled={enviando} onClick={() => enviar(pendentesEmail.map((f) => f.id))}><Send size={16} aria-hidden /> {enviando ? "Enviando…" : `Enviar por e-mail (${pendentesEmail.length})`}</Button>
+              )}
+            </span>
           )}
         </div>
 

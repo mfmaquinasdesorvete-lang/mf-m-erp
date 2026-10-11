@@ -2949,7 +2949,7 @@ function nfseDemo(b: Row) {
 const funcoes: Record<string, (b: any) => any> = {
   nfse: (b) => nfseDemo(b),
   "cotacao-enviar": (b) => {
-    const forns = db.cotacao_fornecedores.filter((x) => x.cotacao_id === b.cotacao_id && (!b.fornecedores?.length || b.fornecedores.includes(x.id)) && !["respondida", "recusou"].includes(x.status));
+    const forns = db.cotacao_fornecedores.filter((x) => x.cotacao_id === b.cotacao_id && (b.fornecedores?.length ? b.fornecedores.includes(x.id) : x.status === "pendente"));
     const comEmail = forns.filter((x) => x.email || db.fornecedores.find((f) => f.id === x.fornecedor_id)?.email);
     rpcs.cotacao_marcar_enviada({ p_ids: comEmail.map((x) => x.id) });
     return { ok: true, enviados: comEmail.length, sem_email: forns.filter((x) => !comEmail.includes(x)).map((x) => nomeFornDemo(x.fornecedor_id)), falhas: [] };

@@ -9,6 +9,7 @@ import { notifyError } from "@/lib/notify";
 import { brl, dataBR, whatsappLink } from "@/lib/format";
 import { urlFotoProduto } from "@/lib/catalogo";
 import logo from "@/assets/logo.webp";
+import { corFundoLegivel } from "@/lib/tema";
 import { MOTIVOS } from "@/lib/propostas";
 
 type Proposta = {
@@ -38,7 +39,7 @@ export default function PropostaPublica() {
 
   if (isLoading) return <Tela><p className="py-24 text-center text-slate-500">Carregando a proposta…</p></Tela>;
   if (!p) return <Tela><p className="py-24 text-center text-slate-600">Proposta não encontrada. Confira o link ou fale com o vendedor.</p></Tela>;
-  const cor = p.layout.cor || "#0EA5E9";
+  const cor = corFundoLegivel(p.layout.cor);
   const aberta = (p.status === "enviada" || p.status === "visualizada") && p.pedido_status === "orcamento";
   const zap = p.empresa.whatsapp;
 

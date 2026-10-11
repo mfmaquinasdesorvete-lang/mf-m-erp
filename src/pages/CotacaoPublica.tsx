@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { brl, dataBR } from "@/lib/format";
 import logo from "@/assets/logo.webp";
+import { corFundoLegivel } from "@/lib/tema";
 
 type Item = { id: string; descricao: string; quantidade: number; unidade: string | null; observacao: string | null; codigo_fabricante: string | null; marca: string | null;
   modelo: string | null; seu_codigo: string | null; preco_unitario: number | null; prazo_dias: number | null; disponivel: boolean; obs_resposta: string | null };
@@ -61,7 +62,7 @@ export default function CotacaoPublica() {
   if (!c) return <Tela><p className="py-24 text-center text-slate-600">Cotação não encontrada. Confira o link ou fale com o comprador.</p></Tela>;
 
   const aberta = c.status === "enviada";
-  const cor = c.cor || "#0EA5E9";
+  const cor = corFundoLegivel(c.cor);
   const total = c.itens.reduce((s, i) => { const l = linhas[i.id]; const p = l?.disponivel ? paraNumero(l.preco) : null; return s + (p ?? 0) * Number(i.quantidade); }, 0);
   const muda = (id: string, patch: Partial<Linha>) => setLinhas((x) => ({ ...x, [id]: { ...x[id], ...patch } }));
 
@@ -208,7 +209,7 @@ export default function CotacaoPublica() {
   );
 }
 
-function Tela({ children, cor = "#0EA5E9", empresa }: { children: React.ReactNode; cor?: string; empresa?: string }) {
+function Tela({ children, cor = corFundoLegivel(null), empresa }: { children: React.ReactNode; cor?: string; empresa?: string }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="text-white" style={{ background: cor }}>

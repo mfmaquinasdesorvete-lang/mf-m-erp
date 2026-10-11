@@ -25,13 +25,15 @@ if (DEMO) {
   window.prompt = () => "Cancelamento solicitado pelo cliente (demonstração)";
 }
 
-// A prévia roda dentro de outra página, então a navegação fica em memória.
+// A prévia roda dentro de outra página, então a navegação fica em memória
+// (abre direto numa página pelo endereço depois do #, ex.: index.html#/cotacao/<código>).
 const Router = DEMO ? MemoryRouter : BrowserRouter;
+const inicioDemo = DEMO && window.location.hash.startsWith("#/") ? { initialEntries: [window.location.hash.slice(1)] } : {};
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router {...inicioDemo}>
         <App />
       </Router>
     </QueryClientProvider>
