@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { FotoProduto } from "@/components/FotoProduto";
+import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje } from "@/lib/format";
@@ -451,6 +452,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 ? <div className="text-sm text-slate-700">{lista.map((c) => `${c.fornecedor?.nome ?? "fornecedor"}: ${c.codigo_fornecedor}${Number(c.fator_conversao) !== 1 ? ` (1 = ${Number(c.fator_conversao)} ${row.unidade ?? ""})` : ""}`).join(" · ")}</div>
                 : <span className="text-xs text-slate-500">nenhum ainda: ao dar entrada de uma NF do fornecedor e vincular o item, o código fica guardado aqui</span>;
             },
+          },
+          {
+            name: "fornecedores_produto", label: "Fornecedores deste produto (preço, prazo e preferido)", type: "custom", span: 4,
+            render: (_v, _s, row) => <FornecedoresProduto produtoId={row.id} podeEditar={pode("editar_produtos") && ["admin", "financeiro", "tecnico"].includes(papel ?? "")} />,
           },
           { name: "estoque_minimo", label: "Estoque mínimo", type: "number" },
           { name: "estoque_maximo", label: "Estoque máximo", type: "number" },
