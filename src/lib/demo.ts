@@ -84,6 +84,7 @@ function seed(): Db {
       { id: "p8", sku: "PC-COMP-1HP", descricao: "Compressor 1 HP R404A", tipo: "peca", fornecedor_padrao_id: "f1", peso_kg: 14, unidade: "UN", ncm: "84143019", origem: 1, preco_custo: 1350, preco_venda: 2290, estoque_atual: 3, estoque_minimo: 2, localizacao: "Galpão B", ativo: true },
       { id: "p9", sku: "AC-CASQ-500", descricao: "Suporte para casquinhas inox (20 un.)", tipo: "acessorio", unidade: "UN", ncm: "73239900", origem: 0, preco_custo: 85, preco_venda: 189, estoque_atual: 14, estoque_minimo: 5, ativo: true },
       { id: "p10", sku: "IN-LUB-ALIM", descricao: "Lubrificante grau alimentício 250 g", tipo: "insumo", unidade: "UN", ncm: "34031900", origem: 0, preco_custo: 22, preco_venda: 49, estoque_atual: 30, estoque_minimo: 10, ativo: true },
+      { id: "p11", sku: "CP-CABO-001", descricao: "Uso Interno - Cabo PP 3x4,00 mm", tipo: "insumo", unidade: "MT", ncm: "85444900", origem: 0, preco_custo: 18.5, preco_venda: 0, estoque_atual: 120, estoque_minimo: 50, ativo: true, vendavel: false },
     ],
     estoque_movimentos: [],
     pedidos: [

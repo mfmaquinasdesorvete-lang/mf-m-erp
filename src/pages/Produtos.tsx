@@ -248,9 +248,18 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
               {[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
-            <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}{r.vendavel === false && " · não vende"}</span>
+            {r.vendavel !== false && <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}</span>}
           </span>
         </button>
+        {r.vendavel === false && (
+          <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span className="text-xs leading-snug">
+              <b className="font-semibold uppercase tracking-wide">{NOME_CADASTRO[r.tipo] ?? r.tipo} · não vende</b>
+              <span className="block">Não aparece no pedido.</span>
+            </span>
+          </div>
+        )}
         {(r.ativo === false || r.fora_de_linha || r.no_catalogo || naProducao.has(r.id) || (cadastro === "componentes" && r.tipo !== "insumo")) && (
           <div className="mt-2 flex flex-wrap items-center gap-1">{selos(r)}</div>
         )}
@@ -539,7 +548,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 {r.foto_caminho && <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
-                  <div className="text-xs text-slate-500">{[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}{r.vendavel === false && " · não vende"}</div>
+                  <div className="text-xs text-slate-500">{[r.sku, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
+                  {r.vendavel === false && (
+                    <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Não aparece no pedido">
+                      <AlertTriangle size={12} /> não vende
+                    </span>
+                  )}
                   {selos(r)}
                 </div>
               </div>
