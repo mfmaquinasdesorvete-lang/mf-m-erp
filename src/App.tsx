@@ -16,6 +16,7 @@ import Login, { NovaSenha } from "@/pages/Login";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Pedidos = lazy(() => import("@/pages/Pedidos"));
 const Pdv = lazy(() => import("@/pages/Pdv"));
+const CotacaoPublica = lazy(() => import("@/pages/CotacaoPublica"));
 const Assistencia = lazy(() => import("@/pages/Assistencia"));
 const Produtos = lazy(() => import("@/pages/Produtos"));
 const Financeiro = lazy(() => import("@/pages/Financeiro"));
@@ -126,6 +127,10 @@ export default function App() {
   // Página do cliente (contas em aberto, Pix e segunda via): link da régua de cobrança, sem login
   if (pathname.startsWith("/cliente/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><AreaCliente /></Suspense></>;
+  }
+  // Pedido de cotação: o fornecedor informa os preços pelo link, sem login
+  if (pathname.startsWith("/cotacao/")) {
+    return <><Toaster /><Suspense fallback={<Carregando />}><CotacaoPublica /></Suspense></>;
   }
   // Ficha cadastral: o cliente confere, corrige e assina pelo link, sem login
   if (pathname.startsWith("/ficha/")) {
