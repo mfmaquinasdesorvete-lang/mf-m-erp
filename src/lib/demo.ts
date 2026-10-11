@@ -1412,6 +1412,22 @@ const fornecedoresNosClientesDemo = () => db.clientes.filter((c) => !(c.tags ?? 
   .map((c) => ({ id: c.id, codigo: c.codigo, nome: c.nome, cpf_cnpj: c.cpf_cnpj, motivo: db.fornecedores.some((f) => soDig(f.cnpj) === soDig(c.cpf_cnpj)) ? "mesmo CPF/CNPJ de um fornecedor" : "mesmo CNPJ de uma transportadora", tem_movimento: temMovimentoDemo(c.id), ja_e_fornecedor: true }));
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // apagar dados de teste (no sistema real: public.testes_apagar): na prévia só lista o que foi marcado
+  testes_apagar: ({ p_pedidos = [], p_os = [], p_ops = [], p_contas = [], p_executar }) => {
+    const cli = (id: string) => db.clientes.find((c: Row) => c.id === id)?.nome ?? null;
+    const peds = db.pedidos.filter((p: Row) => p_pedidos.includes(Number(p.numero)));
+    const oss = (db.ordens_servico ?? []).filter((o: Row) => p_os.includes(Number(o.numero)));
+    const resumo = {
+      pedidos: peds.map((p: Row) => ({ numero: p.numero, cliente: cli(p.cliente_id), total: p.valor_total, status: p.status })),
+      os: oss.map((o: Row) => ({ numero: o.numero, cliente: cli(o.cliente_id), status: o.status })),
+      ops: (db.ordens_producao ?? []).filter((o: Row) => p_ops.includes(Number(o.numero))).map((o: Row) => ({ numero: o.numero, maquina: null, status: o.status })),
+      contas: (db.contas_receber ?? []).filter((c: Row) => p_contas.includes(c.id) || peds.some((p: Row) => p.id === c.pedido_id))
+        .map((c: Row) => ({ descricao: c.descricao, valor: c.valor, status: c.status })),
+      estoque_volta: [], notas_reais: [], notas_teste: 0,
+    };
+    if (p_executar) return erro("Na prévia com dados de exemplo nada é apagado.");
+    return { data: resumo, error: null };
+  },
   // formação de preço (no sistema real: public.gerar_sugestoes_preco e public.decidir_precos)
   gerar_sugestoes_preco: () => {
     if (!podeFinanceiro()) return erro("só o financeiro ou o administrador revisa os preços");

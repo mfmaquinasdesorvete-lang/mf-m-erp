@@ -12,6 +12,7 @@ import { UnidadesConfig } from "@/components/UnidadesConfig";
 import { EmailConfig } from "@/components/EmailConfig";
 import { ImportarTiny } from "@/components/ImportarTiny";
 import { BackupsConfig } from "@/components/BackupsConfig";
+import { ApagarTestes } from "@/components/ApagarTestes";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 
@@ -245,6 +246,7 @@ export default function Configuracoes() {
       <ImportarTiny />
       {(papel === "admin" || papel === "financeiro") && <BackupsConfig />}
       <BackupCard />
+      {papel === "admin" && <ApagarTestes />}
     </div>
   );
 }
