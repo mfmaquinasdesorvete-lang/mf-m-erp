@@ -13,7 +13,7 @@ import { combinaBusca } from "@/lib/buscaCliente";
 export type CampoForm = {
   name: string;
   label: string;
-  type?: "text" | "number" | "select" | "textarea" | "email" | "checkbox" | "custom" | "secao" | "readonly";
+  type?: "text" | "number" | "date" | "select" | "textarea" | "email" | "checkbox" | "custom" | "secao" | "readonly";
   /** Máscara e validação (CPF/CNPJ, telefone, CEP, e-mail…): mostra formatado, grava só os números. */
   mask?: Mascara;
   /** Botão de lupa que busca os dados (CNPJ, CEP): chama onFieldChange com forcar = true. */

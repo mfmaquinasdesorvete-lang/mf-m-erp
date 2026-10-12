@@ -962,6 +962,24 @@ function comercialDemo(db: Db) {
     { id: "v3", nome: "Paulo (representante RS)", tipo: "representante", user_id: null, percentual: 5, base: "faturamento", descontar_frete: true, cpf_cnpj: "33444555000181", pix: "paulo@rep.com.br", ativo: true, created_at: quando(-90) },
   ];
   for (const p of db.pedidos) p.vendedor_id = db.vendedores.find((v) => v.nome === p.vendedor)?.id ?? null;
+  // equipe (cadastro de funcionários): técnicos aparecem na OS; uma pessoa em experiência e uma aniversariante do mês
+  const mesAtual = hojeISO().slice(5, 7);
+  db.funcionarios = [
+    { id: "fu1", nome: "Carla Mendes", apelido: "Carla", cargo: "Vendedora", setor: "Vendas", unidade_id: U_SC, vinculo: "clt", situacao: "ativo",
+      data_admissao: "2022-03-14", salario: 2800, dia_pagamento: 5, whatsapp: "48999990001", email: "vendas@mfmaquinas.com.br", cpf: "52998224725",
+      data_nascimento: `1990-${mesAtual}-21`, faz_assistencia: false, user_id: "u-vendas", vendedor_id: "v1", ativo: true, created_at: quando(-900) },
+    { id: "fu2", nome: "Rafael Souza Lima", apelido: "Rafa", cargo: "Técnico de campo", setor: "Assistência técnica", unidade_id: U_SC, vinculo: "clt", situacao: "ativo",
+      data_admissao: "2020-08-03", salario: 3400, dia_pagamento: 5, whatsapp: "48999990004", cnh: "01234567890", cnh_categoria: "B", cnh_validade: "2028-05-10",
+      data_nascimento: "1988-02-11", faz_assistencia: true, user_id: "u-tec", ativo: true, created_at: quando(-1500) },
+    { id: "fu3", nome: "Diego Martins", cargo: "Montador", setor: "Produção", unidade_id: U_SC, vinculo: "experiencia", situacao: "ativo",
+      data_admissao: dias(-80), salario: 2300, dia_pagamento: 5, whatsapp: "48999990010", data_nascimento: "1999-07-30", faz_assistencia: false, ativo: true, created_at: quando(-80) },
+    { id: "fu4", nome: "Paula Ribeiro", cargo: "Técnica de bancada", setor: "Assistência técnica", unidade_id: U_SP, vinculo: "clt", situacao: "ferias",
+      data_admissao: "2023-01-09", salario: 3100, dia_pagamento: 5, whatsapp: "11999990020", data_nascimento: "1993-11-02", faz_assistencia: true, ativo: true, created_at: quando(-600) },
+    { id: "fu5", nome: "Fabiano Costa", cargo: "Financeiro", setor: "Financeiro e administrativo", unidade_id: U_SC, vinculo: "pj", situacao: "ativo",
+      data_admissao: "2021-06-01", salario: 4500, dia_pagamento: 10, pix: "fabiano@exemplo.com", user_id: "u-fin", faz_assistencia: false, ativo: true, created_at: quando(-1200) },
+    { id: "fu6", nome: "João Pedro Alves", cargo: "Auxiliar de expedição", setor: "Expedição e logística", unidade_id: U_SC, vinculo: "clt", situacao: "desligado",
+      data_admissao: "2024-02-05", data_desligamento: "2025-12-19", motivo_desligamento: "Pedido de demissão", salario: 1900, faz_assistencia: false, ativo: true, created_at: quando(-500) },
+  ];
   // % por categoria: máquina paga menos, peças pagam mais; a Carla tem um % próprio em vedantes
   db.comissao_regras = [
     { id: "cr1", categoria: "As Máquinas My Frost", vendedor_id: null, percentual: 2, ativo: true, created_at: quando(-30) },
@@ -1274,7 +1292,7 @@ const VIEWS: Record<string, () => Row[]> = {
 
 // Histórico de alterações (no sistema real: gatilho zz_auditoria do Postgres)
 const AUDITADAS = new Set(["contas_receber", "contas_pagar", "pedidos", "clientes", "fornecedores", "transportadoras", "produtos", "usuarios_erp",
-  "configuracoes", "unidades", "vendedores", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes"]);
+  "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes"]);
 const IGNORAR_AUD = new Set(["motivo_alteracao", "updated_at", "valor_produtos", "valor_pecas", "valor_total", "created_at"]);
 function registrarDemo(tabela: string, acao: string, antes: Row | null, depois: Row | null, motivo: string | null, origem: "usuario" | "sistema") {
   db.auditoria ??= [];
@@ -1526,6 +1544,11 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  nomes_tecnicos: () => ({
+    data: (db.funcionarios ?? []).filter((f: Row) => f.ativo && f.faz_assistencia && f.situacao !== "desligado")
+      .map((f: Row) => ({ nome: f.apelido || f.nome })).sort((a: Row, b: Row) => a.nome.localeCompare(b.nome)),
+    error: null,
+  }),
   // apagar dados de teste (no sistema real: public.testes_apagar): na prévia só lista o que foi marcado
   testes_apagar: ({ p_pedidos = [], p_os = [], p_ops = [], p_contas = [], p_executar }) => {
     const cli = (id: string) => db.clientes.find((c: Row) => c.id === id)?.nome ?? null;

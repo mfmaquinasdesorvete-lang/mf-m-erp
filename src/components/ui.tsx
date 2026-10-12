@@ -189,6 +189,9 @@ const badgeColors: Record<string, string> = {
   ignorada: "bg-slate-100 text-slate-500",
   ativo: "bg-emerald-50 text-emerald-700",
   inativo: "bg-slate-100 text-slate-500",
+  ferias: "bg-sky-50 text-sky-700",
+  afastado: "bg-amber-50 text-amber-800",
+  desligado: "bg-slate-100 text-slate-500",
   em_garantia: "bg-emerald-50 text-emerald-700",
   vence_logo: "bg-amber-50 text-amber-800",
   fora_garantia: "bg-slate-100 text-slate-600",
@@ -224,7 +227,7 @@ const badgeLabel: Record<string, string> = {
   em_garantia: "em garantia", vence_logo: "garantia vence em breve", fora_garantia: "fora da garantia",
   em_producao: "em produção", pc_cotacao: "em cotação", pc_enviado: "pedido enviado", pc_parcial: "recebido em parte",
   pc_recebido: "recebido", pc_cancelado: "cancelado", contingencia: "em contingência (fila)",
-  transferencia: "transferência", indicio: "indício",
+  transferencia: "transferência", indicio: "indício", ferias: "em férias",
 };
 
 export function Badge({ value }: { value: string | null | undefined }) {

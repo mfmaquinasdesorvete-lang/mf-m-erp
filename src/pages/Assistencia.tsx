@@ -20,6 +20,7 @@ import { comUnidade, pdfOS } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
 
@@ -147,6 +148,11 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const encerrada = ["concluida", "entregue", "cancelada"].includes(o.status ?? "");
   // OS encerrada, ou usuário que não é técnico: só consulta (a entrega ainda pode ser registrada)
   const somenteLeitura = !podeEditar || encerrada;
+  // nomes dos técnicos do cadastro de funcionários (só o nome; o resto do cadastro é do RH)
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ["funcionarios", "nomes_tecnicos"],
+    queryFn: async () => ((await supabase.rpc("nomes_tecnicos")).data ?? []).map((r: { nome: string }) => r.nome) as string[],
+  });
   const cliente = clientes.find((c) => c.id === o.cliente_id);
   const equipCliente = equipamentos.filter((e) => e.cliente_id === o.cliente_id);
   const equip = equipamentos.find((e) => e.id === o.equipamento_id);
@@ -330,7 +336,9 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               )}
             </Field>
             <Field label="Técnico">
-              <input className="input" value={o.tecnico ?? ""} disabled={somenteLeitura} onChange={(e) => set({ tecnico: e.target.value })} />
+              {/* sugere os técnicos do cadastro de funcionários; dá para digitar outro nome */}
+              <input className="input" list="tecnicos-os" value={o.tecnico ?? ""} disabled={somenteLeitura} onChange={(e) => set({ tecnico: e.target.value })} />
+              <datalist id="tecnicos-os">{tecnicos.map((t) => <option key={t} value={t} />)}</datalist>
             </Field>
 
             <Field label={equipCliente.length ? "Máquina do cliente (vendida pela MF)" : "Máquina do cliente"} className="sm:col-span-2">
