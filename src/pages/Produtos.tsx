@@ -73,6 +73,13 @@ const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [
     { label: "Sem fornecedor padrão", teste: (r) => !r.fornecedor_padrao_id },
     { label: "Preço abaixo do custo", teste: (r) => Number(r.preco_venda) > 0 && Number(r.preco_custo) > Number(r.preco_venda) },
   ] },
+  // envio: peso e medidas entram na cotação de frete; medidas podem vir da embalagem padrão
+  { label: "Frete", opcoes: [
+    { label: "Sem peso", teste: (r) => !Number(r.peso_kg) },
+    { label: "Sem medidas nem embalagem", teste: (r) => !r.embalagem_id && ![r.largura_cm, r.altura_cm, r.profundidade_cm].every((v) => Number(v) > 0) },
+    { label: "Peso de 1 kg (conferir se é real)", teste: (r) => Number(r.peso_kg) === 1 },
+    { label: "Unidade diferente de UN", teste: (r) => String(r.unidade ?? "").trim().toUpperCase() !== "UN" },
+  ] },
   { label: "Fiscal", opcoes: [
     { label: "Sem NCM válido", teste: (r) => String(r.ncm ?? "").replace(/\D/g, "").length !== 8 },
     { label: "Sem preço de venda", teste: (r) => !Number(r.preco_venda) },
