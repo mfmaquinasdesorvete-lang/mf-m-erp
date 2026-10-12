@@ -83,6 +83,9 @@
 .fundo-modulo { background-image: radial-gradient(1100px 320px at 15% -120px, rgb(var(--modulo) / 0.13), transparent 70%); }
 
 html { font-size: 17px; }
+/* item de grade nunca alarga a coluna além da tela (ex.: gráfico ou tabela que rola dentro de um cartão);
+   quem precisa de largura mínima define min-w-[…], que vale mais por vir depois (utilities) */
+.grid > * { min-width: 0; }
 body { @apply bg-canvas font-sans text-slate-800 antialiased; }
 h1, h2, h3 { text-wrap: balance; }
 

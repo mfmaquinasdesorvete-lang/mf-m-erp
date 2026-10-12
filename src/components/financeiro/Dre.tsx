@@ -73,18 +73,19 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
         <Button variant="secondary" className="mb-4 ml-auto" onClick={exportar}><FileDown size={16} aria-hidden /> Exportar</Button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-4">
+      {/* grid-cols-1 e min-w-0: o gráfico de 12 meses rola dentro do cartão, sem alargar a tela do celular */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="min-w-0 p-4">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 text-sm">
-            <b className="first-letter:uppercase">{rotuloMesLongo(mes)}</b>
+            <b className="text-base first-letter:uppercase">{rotuloMesLongo(mes)}</b>
             <span className="text-xs text-slate-500">{nomeCentro}</span>
           </div>
           <dl className="num space-y-1 text-sm">
-            <div className="flex justify-between"><dt>Receita bruta</dt><dd className="font-semibold">{brl(atual.receita)}</dd></div>
-            <div className="flex justify-between"><dt>(−) Custos e impostos</dt><dd className="font-semibold text-red-700">{brl(-atual.custos)}</dd></div>
-            <div className="flex justify-between"><dt>(−) Despesas</dt><dd className="font-semibold text-red-700">{brl(-atual.despesas)}</dd></div>
-            <div className="flex justify-between border-t border-slate-200 pt-1.5 text-base"><dt className="font-bold">(=) Lucro líquido</dt>
-              <dd className={`font-bold ${corLucro(atual.lucro)}`}>{brl(atual.lucro)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="min-w-0">Receita bruta</dt><dd className="whitespace-nowrap font-semibold">{brl(atual.receita)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Custos e impostos</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.custos)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Despesas</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.despesas)}</dd></div>
+            <div className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 text-base"><dt className="min-w-0 font-bold">(=) Lucro líquido</dt>
+              <dd className={`whitespace-nowrap font-bold ${corLucro(atual.lucro)}`}>{brl(atual.lucro)}</dd></div>
           </dl>
           {atual.margem !== null && (
             <div className="mt-2 flex items-center gap-2">
@@ -95,7 +96,7 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
           {anterior && <Comparacao agora={atual.lucro} antes={anterior.lucro} mes={meses[i - 1]} />}
         </Card>
 
-        <Card className="p-4 lg:col-span-2">
+        <Card className="min-w-0 p-4 lg:col-span-2">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
             <b>Mês a mês</b>
             <span className="flex items-center gap-3 text-xs text-slate-500" aria-hidden>
