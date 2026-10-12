@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { brl } from "@/lib/format";
-import { notify } from "@/lib/notify";
+import { notify, notifyError } from "@/lib/notify";
+import { enderecoCardapio, publicarCardapio, slugDe, slugValido } from "@/lib/sorveteriaOnline";
 import {
   apagarTudo, novoId, r2, type Estado, type GrupoComplemento, type ProdutoMenu,
 } from "@/lib/sorveteria";
@@ -189,6 +190,24 @@ function LojaAjustes({ estado, mudar }: { estado: Estado; mudar: Mudar }) {
             <button type="button" aria-label="Excluir bairro" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={() => set({ bairros: l.bairros.filter((_, k) => k !== i) })}><Trash2 size={16} aria-hidden /></button>
           </div>
         ))}
+      </Card>
+      <Card className="space-y-3 p-4 lg:col-span-2">
+        <h3 className="text-sm font-bold">Cardápio online (pedidos pelo link)</h3>
+        <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
+          <Field label="Endereço do cardápio">
+            <div className="flex items-center gap-1"><span className="text-xs text-slate-500">{window.location.host}/cardapio/</span>
+              <input className="input min-w-0 flex-1" value={l.slug} placeholder={slugDe(l.nome) || "minha-sorveteria"} onChange={(e) => set({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} /></div>
+          </Field>
+          <Field label="Pedido mínimo (R$)"><input className="input text-right" inputMode="decimal" value={l.pedidoMinimo ? String(l.pedidoMinimo).replace(".", ",") : ""} placeholder="0" onChange={(e) => set({ pedidoMinimo: r2(num(e.target.value)) })} /></Field>
+        </div>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={l.online} onChange={(e) => set({ online: e.target.checked })} /> Receber pedidos online agora (desmarque para fechar o cardápio)</label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="secondary" disabled={!slugValido(l.slug)} onClick={() => publicarCardapio(estado).then(() => notify("Cardápio publicado.")).catch(notifyError)}>Publicar agora</Button>
+          {slugValido(l.slug)
+            ? <a className="text-sm font-semibold text-modulo-texto underline" href={enderecoCardapio(l.slug)} target="_blank" rel="noreferrer">{enderecoCardapio(l.slug)}</a>
+            : <span className="text-xs text-slate-500">Use de 3 a 40 letras minúsculas, números e hífen. Depois de publicado, o cardápio se atualiza sozinho quando você muda preço, sabor ou "em falta".</span>}
+        </div>
+        <p className="text-xs text-slate-500">O cliente escolhe entrega ou retirada e paga na entrega. Os itens por peso (self-service) não aparecem online. O preço é sempre conferido no servidor.</p>
       </Card>
       <Card className="p-4 lg:col-span-2">
         <h3 className="mb-1 text-sm font-bold">Zerar dados</h3>

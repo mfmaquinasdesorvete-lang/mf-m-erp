@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, BarChart3, ChefHat, ClipboardList, IceCreamCone, Minus, Pencil, Plus, Printer, Receipt, Search, Send, Store, Trash2, Wallet,
+  ArrowLeft, BarChart3, ChefHat, ClipboardList, Globe, IceCreamCone, Minus, Pencil, Plus, Printer, Receipt, Search, Send, Store, Trash2, Wallet,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { MontarItem } from "@/components/sorveteria/MontarItem";
@@ -13,8 +13,10 @@ import { Producao } from "@/components/sorveteria/Producao";
 import { CaixaTela } from "@/components/sorveteria/CaixaTela";
 import { CardapioTela } from "@/components/sorveteria/CardapioTela";
 import { Relatorio } from "@/components/sorveteria/Relatorio";
+import { PedidosOnline, useOnline } from "@/components/sorveteria/PedidosOnline";
+import { pedidoDoOnline, publicarCardapio, slugValido, cardapioPublicavel, type PedidoOnline } from "@/lib/sorveteriaOnline";
 import { brl, digitos } from "@/lib/format";
-import { notify } from "@/lib/notify";
+import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { imprimirCupom } from "@/lib/sorveteriaCupom";
@@ -23,10 +25,10 @@ import {
   totalItem, totalPedido, usarLoja, useSorveteria, type Canal, type Cliente, type Estado, type ItemPedido, type Pagamento, type Pedido, type ProdutoMenu,
 } from "@/lib/sorveteria";
 
-type Aba = "vender" | "comandas" | "producao" | "caixa" | "cardapio" | "relatorio";
+type Aba = "vender" | "comandas" | "producao" | "online" | "caixa" | "cardapio" | "relatorio";
 const ABAS: { id: Aba; rotulo: string; icone: typeof Store }[] = [
   { id: "vender", rotulo: "Vender", icone: IceCreamCone }, { id: "comandas", rotulo: "Comandas", icone: ClipboardList },
-  { id: "producao", rotulo: "Produção", icone: ChefHat }, { id: "caixa", rotulo: "Caixa", icone: Wallet },
+  { id: "producao", rotulo: "Produção", icone: ChefHat }, { id: "online", rotulo: "Online", icone: Globe }, { id: "caixa", rotulo: "Caixa", icone: Wallet },
   { id: "cardapio", rotulo: "Cardápio", icone: Store }, { id: "relatorio", rotulo: "Relatório", icone: BarChart3 },
 ];
 const CLIENTE_VAZIO: Cliente = { nome: "", telefone: "", endereco: "", bairro: "", referencia: "" };
@@ -56,6 +58,7 @@ export default function Sorveteria() {
   const campoBusca = useRef<HTMLInputElement>(null);
 
   const caixa = caixaAberto(estado);
+  const online = useOnline(estado.loja.slug ?? "");
   const ativo = pedidoAtivo(estado);
   const pct = estado.loja.gorjetaPct;
 
@@ -189,6 +192,23 @@ export default function Sorveteria() {
     mudar((e) => ({ ...e, pedidos: e.pedidos.filter((p) => p.id !== ativo.id || !!p.numero), ativoId: null }));
   }
 
+  // cardápio online: republica sozinho quando algo muda (sabor em falta, preço, loja aberta/fechada)
+  const retrato = estado.loja.slug && slugValido(estado.loja.slug) ? JSON.stringify([cardapioPublicavel(estado), estado.loja.nome, estado.loja.telefone, estado.loja.online, estado.loja.pedidoMinimo]) : "";
+  useEffect(() => {
+    if (!retrato) return;
+    const t = setTimeout(() => publicarCardapio(estado).catch((e) => notifyError(e)), 1500);
+    return () => clearTimeout(t);
+  }, [retrato]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function aceitarOnline(o: PedidoOnline) {
+    mudar((e) => {
+      if (e.pedidos.some((x) => x.id === o.id)) return e;
+      const [e2, p] = irParaProducao(e, pedidoDoOnline(o, operador, caixaAberto(e)?.id));
+      return salvarPedido(e2, p);
+    });
+    notify(`Pedido online ${o.codigo} enviado para a produção.`);
+  }
+
   // atalhos: F2 cobra, / busca
   useEffect(() => {
     const tecla = (ev: KeyboardEvent) => {
@@ -215,6 +235,7 @@ export default function Sorveteria() {
                 className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${aba === id ? "bg-modulo text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 <I size={16} aria-hidden /> {rotulo}
                 {id === "producao" && naFila > 0 && <span className="rounded-full bg-red-600 px-1.5 text-[11px] text-white">{naFila}</span>}
+                {id === "online" && online.novos > 0 && <span className="rounded-full bg-red-600 px-1.5 text-[11px] text-white">{online.novos}</span>}
                 {id === "comandas" && comandasAbertas.length > 0 && <span className="rounded-full bg-amber-500 px-1.5 text-[11px] text-white">{comandasAbertas.length}</span>}
               </button>
             ))}
@@ -275,6 +296,7 @@ export default function Sorveteria() {
             aoNova={(n) => { mudar((e) => { const [e2, p] = comAtivo({ ...e, ativoId: null }, operador); return { ...salvarPedido(e2, { ...p, canal: "mesa", mesa: n }), ativoId: p.id }; }); setAba("vender"); }}
             aoCobrar={(p) => { mudar((e) => ({ ...e, ativoId: p.id })); setCobrando(p); }} />
         )}
+        {aba === "online" && <PedidosOnline estado={estado} online={online} onAceitar={aceitarOnline} />}
         {aba === "producao" && <Producao estado={estado} mudar={mudar} onReceber={(p) => setCobrando(p)} />}
         {aba === "caixa" && <CaixaTela estado={estado} mudar={mudar} operador={operador} />}
         {aba === "cardapio" && <CardapioTela estado={estado} mudar={mudar} />}

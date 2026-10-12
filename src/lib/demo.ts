@@ -9,6 +9,8 @@ import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
 import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
 import { percentualPedido } from "./comissao";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
+import { cardapioPublicavel, validarPedidoOnline, type LojaPublica, type PedidoOnline } from "./sorveteriaOnline";
+import { estadoInicial } from "./sorveteria";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -1513,7 +1515,40 @@ function pdvConsumidorDemo() {
   return c.id;
 }
 
+// Sorveteria online (na prévia: em memória; no sistema real: tabelas sorv_lojas e sorv_pedidos_online)
+const sorvLojas: Record<string, LojaPublica> = (() => { const e = estadoInicial(); return { "minha-sorveteria": { nome: e.loja.nome, whatsapp: "48999990000", aberta: true, pedido_minimo: 0, cardapio: cardapioPublicavel(e) } }; })();
+const sorvPedidos: (PedidoOnline & { slug: string })[] = [];
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  sorv_publicar: ({ p_slug, p_nome, p_whatsapp, p_aberta, p_minimo, p_cardapio }) => {
+    if (!/^[a-z0-9][a-z0-9-]{2,39}$/.test(p_slug ?? "")) return erro("Endereço inválido: use de 3 a 40 letras minúsculas, números e hífen");
+    sorvLojas[p_slug] = { nome: p_nome || "Sorveteria", whatsapp: p_whatsapp || null, aberta: p_aberta !== false, pedido_minimo: Math.max(0, Number(p_minimo) || 0), cardapio: p_cardapio };
+    return { data: null, error: null };
+  },
+  sorv_cardapio: ({ p_slug }) => ({ data: sorvLojas[String(p_slug ?? "").toLowerCase()] ?? null, error: null }),
+  sorv_pedir: ({ p_slug, p }) => {
+    const slug = String(p_slug ?? "").toLowerCase(), loja = sorvLojas[slug];
+    if (!loja) return erro("Loja não encontrada");
+    try {
+      const v = validarPedidoOnline(loja, p);
+      const codigo = Math.random().toString(36).slice(2, 7).toUpperCase();
+      sorvPedidos.push({ slug, id: uid(), codigo, canal: p.canal, status: "novo", motivo: null, created_at: new Date().toISOString(), cliente: { ...p.cliente, telefone: v.telefone },
+        itens: v.itens, subtotal: v.subtotal, taxa_entrega: v.taxa_entrega, total: v.total, pagamento: p.pagamento, troco_para: p.pagamento === "dinheiro" ? p.troco_para ?? null : null, observacoes: p.observacoes || null });
+      return { data: { codigo, total: v.total, status: "novo" }, error: null };
+    } catch (e) { return erro((e as Error).message); }
+  },
+  sorv_online_listar: ({ p_slug }) => ({ data: sorvPedidos.filter((o) => o.slug === p_slug).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)), error: null }),
+  sorv_online_status: ({ p_id, p_status, p_motivo }) => {
+    const o = sorvPedidos.find((x) => x.id === p_id);
+    if (!o || o.status !== "novo") return erro("Pedido não está mais aguardando resposta");
+    if (p_status === "recusado" && !String(p_motivo ?? "").trim()) return erro("Informe o motivo da recusa");
+    Object.assign(o, { status: p_status, motivo: p_motivo || null });
+    return { data: null, error: null };
+  },
+  sorv_acompanhar: ({ p_slug, p_codigo }) => {
+    const o = sorvPedidos.find((x) => x.slug === String(p_slug).toLowerCase() && x.codigo === String(p_codigo).toUpperCase());
+    return { data: o ? { status: o.status, motivo: o.motivo, total: o.total, canal: o.canal } : null, error: null };
+  },
   // apagar dados de teste (no sistema real: public.testes_apagar): na prévia só lista o que foi marcado
   testes_apagar: ({ p_pedidos = [], p_os = [], p_ops = [], p_contas = [], p_executar }) => {
     const cli = (id: string) => db.clientes.find((c: Row) => c.id === id)?.nome ?? null;

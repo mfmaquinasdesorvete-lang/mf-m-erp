@@ -26,6 +26,8 @@ export type Bairro = { nome: string; taxa: number };
 export type Loja = {
   nome: string; telefone: string; endereco: string;
   comandas: number; taraG: number; gorjetaPct: number; imprimirAuto: boolean; producaoBalcao: boolean; bairros: Bairro[];
+  /** cardápio online (/cardapio/<slug>) */
+  slug: string; online: boolean; pedidoMinimo: number;
 };
 
 export type ItemPedido = {
@@ -34,6 +36,8 @@ export type ItemPedido = {
   unit: number;
   sabores: string[]; complementos: { nome: string; preco: number }[];
   pesoG?: number; obs?: string;
+  /** ids escolhidos (usados no pedido online, onde o banco recalcula o preço) */
+  saborIds?: string[]; complementoIds?: string[];
 };
 export type Pagamento = { meio: Meio; valor: number; recebido?: number };
 export type Cliente = { nome: string; telefone: string; endereco: string; bairro: string; referencia: string };
@@ -112,7 +116,7 @@ export function estadoInicial(): Estado {
   return {
     versao: 1,
     loja: {
-      nome: "Minha Sorveteria", telefone: "", endereco: "", comandas: 20, taraG: 0, gorjetaPct: 10, imprimirAuto: false, producaoBalcao: false,
+      nome: "Minha Sorveteria", telefone: "", endereco: "", comandas: 20, taraG: 0, gorjetaPct: 10, imprimirAuto: false, producaoBalcao: false, slug: "", online: true, pedidoMinimo: 0,
       bairros: [{ nome: "Centro", taxa: 5 }, { nome: "Bairro vizinho", taxa: 8 }],
     },
     categorias: cats, sabores, grupos: [cobertura, adicionais, casca], produtos,
@@ -136,7 +140,7 @@ function ler(): Estado {
   bruto = txt;
   let estado: Estado | null = null;
   try { estado = txt ? (JSON.parse(txt) as Estado) : null; } catch { estado = null; }
-  cache = estado && estado.versao === 1 ? estado : (cache && !txt ? cache : estadoInicial());
+  cache = estado && estado.versao === 1 ? { ...estado, loja: { ...estadoInicial().loja, ...estado.loja } } : (cache && !txt ? cache : estadoInicial());
   return cache;
 }
 

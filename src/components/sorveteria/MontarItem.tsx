@@ -52,6 +52,7 @@ export function MontarItem({ produto, estado, inicial, onConfirmar, onClose }: {
       id: inicial?.id ?? novoId(), produto_id: produto.id, nome: produto.nome, qtd: produto.tipo === "peso" ? 1 : qtd, unit,
       sabores: escolhidos.map((s) => s.nome), complementos: compEscolhidos.map((c) => ({ nome: c.nome, preco: c.preco })),
       pesoG: produto.tipo === "peso" ? pesoG : undefined, obs: obs.trim() || undefined,
+      saborIds: escolhidos.map((s) => s.id), complementoIds: compEscolhidos.map((c) => c.id),
     });
   };
 

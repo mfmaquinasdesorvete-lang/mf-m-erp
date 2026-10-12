@@ -47,6 +47,7 @@ const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
+const CardapioPublico = lazy(() => import("@/pages/CardapioPublico"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -136,6 +137,10 @@ export default function App() {
   // Ficha cadastral: o cliente confere, corrige e assina pelo link, sem login
   if (pathname.startsWith("/ficha/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><FichaPublica /></Suspense></>;
+  }
+  // Cardápio online da sorveteria: o cliente pede pelo link, sem login
+  if (pathname.startsWith("/cardapio/")) {
+    return <><Toaster /><Suspense fallback={<Carregando />}><CardapioPublico /></Suspense></>;
   }
   if (pathname === "/loja" || pathname.startsWith("/loja/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><Loja /></Suspense></>;
