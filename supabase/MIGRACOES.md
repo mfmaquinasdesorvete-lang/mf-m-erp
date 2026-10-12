@@ -36,4 +36,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   13. `20261012025420_link_pagamento_pedido.sql`
   14. `20261012031116_open_finance.sql`
   15. `20261012102628_whatsapp_oficial.sql`
-  16. `20261101000034_apagar_testes.sql` (ainda não aplicada)
+  16. `20261012161835_estrutura_multinivel.sql`
+  17. `20261101000034_apagar_testes.sql` (ainda não aplicada)
