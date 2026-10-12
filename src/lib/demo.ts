@@ -875,6 +875,7 @@ function bancosDemo(db: Db) {
     { id: "cp8", descricao: "Adiantamento a fornecedor", categoria: "outros", valor: 10000, vencimento: dias(-20), status: "pago", data_pagamento: dias(-20), valor_pago: 10000, unidade_id: U_SC, created_at: quando(-21) },
   );
   db.extrato_lancamentos = [];
+  db.openfinance_conexoes = [];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({
     id: uid(), conta_bancaria_id: conta, importacao_id: null, data, valor: r2(valor), descricao, documento: null, identificador: uid(), status: "pendente",
@@ -3211,6 +3212,67 @@ const funcoes: Record<string, (b: any) => any> = {
       metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
     db.cobrancas_link.push(l);
     return { id: l.id, url: l.url, reaproveitado: false };
+  },
+  openfinance: (b) => {
+    // prévia: a "Pluggy" responde na hora; o banco de teste manda alguns lançamentos (um deles paga uma conta em aberto)
+    const cfg = db.configuracoes[0];
+    if (!db.openfinance_conexoes) db.openfinance_conexoes = [];
+    if (b.acao === "status") return { configurado: !!cfg.pluggy_demo, origem: cfg.pluggy_demo ? "cofre" : null };
+    if (b.acao === "configurar") {
+      if (!String(b.client_id ?? "").trim() || !String(b.client_secret ?? "").trim()) throw new Error("Informe o Client ID e o Client Secret da Pluggy.");
+      cfg.pluggy_demo = true;
+      return { ok: true, origem: "cofre" };
+    }
+    if (!cfg.pluggy_demo) throw new Error("Ligue o Open Finance primeiro: informe as chaves da Pluggy em Bancos e conciliação.");
+    if (b.acao === "token") return { token: "demo" };
+    if (b.acao === "contas") return { instituicao: "Nubank", contas: [
+      { id: "acc-cc", nome: "Conta corrente 998877-1", tipo: "BANK", saldo: 18452.37 }, { id: "acc-cartao", nome: "Cartão Nubank", tipo: "CREDIT", saldo: -2310.5 }] };
+    const novos = (c: Row, linhas: { data: string; valor: number; descricao: string }[]) => {
+      let n = 0;
+      for (const l of linhas) {
+        const identificador = `pluggy:demo-${c.id}-${l.data}-${l.valor}`;
+        if (db.extrato_lancamentos.some((x) => x.conta_bancaria_id === c.conta_bancaria_id && x.identificador === identificador)) continue;
+        db.extrato_lancamentos.push({ id: uid(), conta_bancaria_id: c.conta_bancaria_id, importacao_id: null, data: l.data, valor: r2(l.valor), descricao: l.descricao, documento: null,
+          identificador, status: "pendente", conta_receber_id: null, conta_pagar_id: null, baixou_conta: false, par_transferencia_id: null, observacao: null,
+          origem: "openfinance", conexao_id: c.id, created_at: new Date().toISOString() });
+        n++;
+      }
+      const conciliadas = n ? conciliarAutoDemo(c.conta_bancaria_id) : 0;
+      // saldo que o "banco" informa: o mesmo do extrato (bate com o cartão da conta)
+      const cb = db.contas_bancarias.find((x) => x.id === c.conta_bancaria_id);
+      const saldo = cb ? r2(Number(cb.saldo_inicial) + db.extrato_lancamentos.filter((x) => x.conta_bancaria_id === cb.id && x.data >= cb.saldo_inicial_data).reduce((t, x) => t + Number(x.valor), 0)) : c.saldo;
+      Object.assign(c, { status: "ativa", erro: null, sincronizado_em: new Date().toISOString(), ultimas_novas: n, saldo, saldo_em: new Date().toISOString() });
+      return { novas: n, conciliadas };
+    };
+    if (b.acao === "ligar") {
+      for (const x of db.openfinance_conexoes) if (x.conta_bancaria_id === b.conta_bancaria_id && x.status !== "desligada") x.status = "desligada";
+      const c: Row = { id: uid(), item_id: b.item_id, conta_externa_id: b.conta_externa_id, conta_bancaria_id: b.conta_bancaria_id, instituicao: "Nubank",
+        conta_externa_nome: "Conta corrente 998877-1", status: "ativa", status_provedor: "UPDATED", erro: null, desde: b.desde, sincronizado_em: null, ultimas_novas: 0,
+        saldo: 18452.37, saldo_em: new Date().toISOString(), consentimento_ate: quando(365), created_at: new Date().toISOString() };
+      db.openfinance_conexoes.push(c);
+      const unid = db.contas_bancarias.find((x) => x.id === c.conta_bancaria_id)?.unidade_id;
+      const aberta = db.contas_receber.find((r) => r.status === "aberto" && r.unidade_id === unid && Math.abs(Date.parse(r.vencimento) - Date.now()) < 8 * 864e5);
+      const r = novos(c, [
+        { data: dias(-3), valor: -189.9, descricao: "Pagamento de boleto · CELESC DISTRIBUICAO" },
+        { data: dias(-2), valor: 1250, descricao: "Transferência recebida pelo Pix · MARCOS PAULO ME" },
+        { data: dias(-1), valor: -45.8, descricao: "Tarifa pacote de serviços" },
+        ...(aberta ? [{ data: dias(0), valor: Number(aberta.valor), descricao: `Transferência recebida pelo Pix · ${(db.clientes.find((x) => x.id === aberta.cliente_id)?.nome ?? "CLIENTE").toUpperCase()}` }] : []),
+      ]);
+      return { ok: true, conexao_id: c.id, ...r };
+    }
+    if (b.acao === "sincronizar") {
+      const resultado: Row = {};
+      for (const c of db.openfinance_conexoes.filter((x) => x.status !== "desligada" && (!b.conexao_id || x.id === b.conexao_id))) {
+        resultado[c.id] = novos(c, [{ data: dias(0), valor: -r2(30 + Math.random() * 300), descricao: `Compra no débito · POSTO ${Math.floor(Math.random() * 90 + 10)}` }]);
+      }
+      return { ok: true, resultado };
+    }
+    if (b.acao === "desligar") {
+      const c = db.openfinance_conexoes.find((x) => x.id === b.conexao_id);
+      if (c) c.status = "desligada";
+      return { ok: true };
+    }
+    return { ok: true };
   },
   "clientes-receita": (b) => {
     const comCnpj = db.clientes.filter((c) => soDig(c.cpf_cnpj).length === 14);

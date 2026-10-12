@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
+import { OpenFinancePainel, type ConexaoOF } from "@/components/financeiro/OpenFinance";
 
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
@@ -36,6 +37,7 @@ export default function Conciliacao() {
   const bancos = filtrar(contasTodas);
   const { data: lancamentos = [] } = useRows<Lancamento>("extrato_lancamentos", { order: "data", ascending: false });
   const { data: importacoes = [] } = useRows<Importacao>("extrato_importacoes");
+  const { data: conexoes = [] } = useRows<ConexaoOF>("openfinance_conexoes");
   const { data: receber = [] } = useRows<Conta>("contas_receber", { select: "*, cliente:clientes(nome)" });
   const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)" });
 
@@ -84,16 +86,22 @@ export default function Conciliacao() {
     const pago = pagar.filter((c) => c.conta_bancaria_id === b.id && c.status === "pago" && (c.data_pagamento ?? "") >= desde).reduce((s, c) => s + Number(c.valor_pago ?? c.valor), 0);
     const outros = doBanco.filter((l) => l.status === "transferencia" || l.status === "ignorado").reduce((s, l) => s + Number(l.valor), 0);
     const erp = Number(b.saldo_inicial) + recebido - pago + outros;
-    const ult = importacoes.filter((i) => i.conta_bancaria_id === b.id && i.saldo_final != null)
+    const ultArq = importacoes.filter((i) => i.conta_bancaria_id === b.id && i.saldo_final != null)
       .sort((a, c) => (c.saldo_final_data ?? c.created_at).localeCompare(a.saldo_final_data ?? a.created_at))[0];
+    // saldo que o banco mandou pelo Open Finance vale se for mais novo que o do último arquivo
+    const of = conexoes.find((c) => c.conta_bancaria_id === b.id && c.status !== "desligada" && c.saldo != null && c.saldo_em);
+    const dataOf = of?.saldo_em ? new Date(new Date(of.saldo_em).getTime() - 3 * 3600_000).toISOString().slice(0, 10) : null;
+    const ult = of && dataOf && (!ultArq?.saldo_final_data || dataOf >= ultArq.saldo_final_data)
+      ? { saldo_final: of.saldo, saldo_final_data: dataOf } : ultArq;
     // saldo do extrato na data do saldo informado pelo banco, para comparar
     const extratoNaData = ult?.saldo_final_data ? Number(b.saldo_inicial) + doBanco.filter((l) => l.data <= ult.saldo_final_data!).reduce((s, l) => s + Number(l.valor), 0) : null;
     return [b.id, {
       extrato, erp, pendentes: doBanco.filter((l) => l.status === "pendente").length,
       informado: ult ? Number(ult.saldo_final) : null, informadoData: ult?.saldo_final_data ?? null, extratoNaData,
       ultima: importacoes.filter((i) => i.conta_bancaria_id === b.id).sort((a, c) => c.created_at.localeCompare(a.created_at))[0]?.created_at ?? null,
+      openFinance: conexoes.some((c) => c.conta_bancaria_id === b.id && c.status !== "desligada"),
     }];
-  })), [bancos, lancamentos, importacoes, receber, pagar]);
+  })), [bancos, lancamentos, importacoes, receber, pagar, conexoes]);
 
   const nomeConta = (id: string) => contasTodas.find((b) => b.id === id)?.nome ?? "—";
   const vinculo = (l: Lancamento) => {
@@ -105,7 +113,7 @@ export default function Conciliacao() {
 
   return (
     <div>
-      <PageHeader title="Bancos e conciliação" subtitle="Importe o extrato (OFX ou CSV) e o ERP liga cada entrada e saída à conta certa"
+      <PageHeader title="Bancos e conciliação" subtitle="Conecte o banco pelo Open Finance (ou importe o extrato OFX/CSV) e o ERP liga cada entrada e saída à conta certa"
         actions={podeEditar && <>
           <Button variant="secondary" onClick={() => setEditConta({ banco: "unicred", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: hoje(), ativo: true })}><Plus size={16} /> Nova conta</Button>
           <Button onClick={() => setImportar(true)} disabled={!bancos.some((b) => b.ativo)}><FileUp size={16} /> Importar extrato</Button>
@@ -117,6 +125,8 @@ export default function Conciliacao() {
           Depois importe o extrato de cada uma: OFX na Unicred e no Nubank; na InfinitePay, a planilha (CSV) do extrato.
         </Card>
       )}
+
+      {podeEditar && bancos.length > 0 && <OpenFinancePainel contas={bancos} />}
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {bancos.map((b) => {
@@ -135,7 +145,7 @@ export default function Conciliacao() {
                   className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-fg"><Pencil size={14} /></span>}
               </div>
               <div className="mt-3 text-xl font-bold text-fg">{brl(s.extrato)}</div>
-              <div className="text-xs text-slate-500">saldo pelo extrato importado</div>
+              <div className="text-xs text-slate-500">saldo pelo extrato {s.openFinance ? <span className="font-semibold text-emerald-700">· Open Finance</span> : "importado"}</div>
               <dl className="mt-2 space-y-0.5 text-xs">
                 <div className="flex justify-between gap-2"><dt className="text-slate-500">Pelo ERP (baixas)</dt><dd>{brl(s.erp)}</dd></div>
                 <div className={`flex justify-between gap-2 ${dif ? "font-semibold text-amber-700" : "text-emerald-700"}`}><dt>Diferença</dt><dd>{dif ? brl(dif) : "nenhuma ✓"}</dd></div>
