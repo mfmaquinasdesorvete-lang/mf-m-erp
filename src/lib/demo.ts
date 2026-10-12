@@ -8,6 +8,7 @@
 import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
 import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
 import { percentualPedido } from "./comissao";
+import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
@@ -90,6 +91,8 @@ function seed(): Db {
       { id: "p9", sku: "AC-CASQ-500", descricao: "Suporte para casquinhas inox (20 un.)", tipo: "acessorio", unidade: "UN", ncm: "73239900", origem: 0, preco_custo: 85, preco_venda: 189, estoque_atual: 14, estoque_minimo: 5, ativo: true },
       { id: "p10", sku: "IN-LUB-ALIM", descricao: "Lubrificante grau alimentício 250 g", tipo: "insumo", unidade: "UN", ncm: "34031900", origem: 0, preco_custo: 22, preco_venda: 49, estoque_atual: 30, estoque_minimo: 10, ativo: true },
       { id: "p11", sku: "CP-CABO-001", descricao: "Uso Interno - Cabo PP 3x4,00 mm", tipo: "insumo", unidade: "MT", ncm: "85444900", origem: 0, preco_custo: 18.5, preco_venda: 0, estoque_atual: 120, estoque_minimo: 50, ativo: true, vendavel: false },
+      // subconjunto: tem a própria ficha e entra na ficha da MF-300
+      { id: "psc1", sku: "SC-PAINEL-300", descricao: "Painel elétrico montado MF-300", tipo: "insumo", unidade: "UN", ncm: "85371020", origem: 0, preco_custo: 0, preco_venda: 0, estoque_atual: 0, estoque_minimo: 0, ativo: true, vendavel: false, subconjunto_estocado: false },
     ],
     estoque_movimentos: [],
     pedidos: [
@@ -228,7 +231,9 @@ function seed(): Db {
     produto_componentes: [
       { id: "pc1", produto_id: "p1", componente_id: "p4", quantidade: 1 },
       { id: "pc2", produto_id: "p1", componente_id: "p8", quantidade: 1 },
-      { id: "pc3", produto_id: "p1", componente_id: "p6", quantidade: 1 },
+      { id: "pc3", produto_id: "p1", componente_id: "psc1", quantidade: 1 },
+      { id: "pc11", produto_id: "psc1", componente_id: "p6", quantidade: 1 },
+      { id: "pc12", produto_id: "psc1", componente_id: "p11", quantidade: 2.5 },
       { id: "pc4", produto_id: "p1", componente_id: "p7", quantidade: 3 },
       { id: "pc5", produto_id: "p1", componente_id: "p5", quantidade: 2 },
       { id: "pc6", produto_id: "p2", componente_id: "p4", quantidade: 1 },
@@ -1236,16 +1241,21 @@ function projetar(tabela: string, row: Row, sel: string): Row {
 const VIEWS: Record<string, () => Row[]> = {
   necessidade_producao: () => {
     const abertas = db.ordens_producao.filter((o) => ["planejada", "em_producao"].includes(o.status));
-    return db.ordens_producao.flatMap((op) => db.produto_componentes.filter((c) => c.produto_id === op.produto_id).map((c) => {
-      const p: Row = { ...db.produtos.find((x) => x.id === c.componente_id)!, estoque_atual: saldoUn(c.componente_id, op.unidade_id) };
+    // mesma regra do banco: explode a estrutura em todos os níveis (subconjunto com estoque próprio é consumido pronto)
+    const fichas = db.produto_componentes as LinhaFicha[];
+    const consumo = (o: Row) => consumoEstrutura(fichas, db.produtos as any, o.produto_id, Number(o.quantidade));
+    return db.ordens_producao.flatMap((op) => [...consumo(op)].map(([componente_id, necessario]) => {
+      const p: Row = { ...db.produtos.find((x) => x.id === componente_id)!, estoque_atual: saldoUn(componente_id, op.unidade_id) };
       const reservado = abertas.filter((o) => o.id !== op.id && o.created_at < op.created_at && o.unidade_id === op.unidade_id)
-        .reduce((s, o) => s + (db.produto_componentes.find((k) => k.produto_id === o.produto_id && k.componente_id === c.componente_id)?.quantidade ?? 0) * o.quantidade, 0);
-      const caminho = db.pedido_compra_itens.filter((i) => i.produto_id === c.componente_id
+        .reduce((s, o) => s + (consumo(o).get(componente_id) ?? 0), 0);
+      const caminho = db.pedido_compra_itens.filter((i) => i.produto_id === componente_id
         && ["cotacao", "enviado", "parcial"].includes(db.pedidos_compra.find((pc) => pc.id === i.pedido_compra_id)?.status))
-        .reduce((s, i) => s + i.quantidade - i.quantidade_recebida, 0);
+        .reduce((s, i) => s + i.quantidade - i.quantidade_recebida, 0)
+        + abertas.filter((o) => o.produto_id === componente_id && o.unidade_id === op.unidade_id).reduce((s, o) => s + Number(o.quantidade), 0);
       return {
-        ordem_id: op.id, componente_id: c.componente_id, descricao: p.descricao, unidade: p.unidade, fornecedor_padrao_id: p.fornecedor_padrao_id ?? null,
-        preco_custo: p.preco_custo, necessario: c.quantidade * op.quantidade, estoque_atual: p.estoque_atual, reservado_outras_op: reservado, a_caminho: caminho,
+        ordem_id: op.id, componente_id, descricao: p.descricao, unidade: p.unidade, fornecedor_padrao_id: p.fornecedor_padrao_id ?? null,
+        preco_custo: p.preco_custo, necessario, estoque_atual: p.estoque_atual, reservado_outras_op: reservado, a_caminho: caminho,
+        subconjunto: !!p.subconjunto_estocado && temFicha(fichas, componente_id),
       };
     }));
   },
@@ -2649,15 +2659,16 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   concluir_producao: ({ p_ordem }) => {
     const op = db.ordens_producao.find((x) => x.id === p_ordem);
     if (!op || ["concluida", "cancelada"].includes(op.status)) return erro("ordem já finalizada");
-    const comps = db.produto_componentes.filter((c) => c.produto_id === op.produto_id);
-    if (!comps.length) return erro("cadastre a ficha técnica da máquina antes de concluir a produção");
-    const faltas = comps.map((c) => ({ c, p: db.produtos.find((x) => x.id === c.componente_id)! }))
-      .filter(({ c, p }) => saldoUn(p.id, op.unidade_id) < c.quantidade * op.quantidade)
-      .map(({ c, p }) => `${p.descricao} (falta ${c.quantidade * op.quantidade - saldoUn(p.id, op.unidade_id)})`);
+    const fichas = db.produto_componentes as LinhaFicha[];
+    if (!temFicha(fichas, op.produto_id)) return erro("cadastre a ficha técnica antes de concluir a produção");
+    const comps = [...consumoEstrutura(fichas, db.produtos as any, op.produto_id, Number(op.quantidade))];
+    const faltas = comps.map(([id, q]) => ({ q, p: db.produtos.find((x) => x.id === id)! }))
+      .filter(({ q, p }) => saldoUn(p.id, op.unidade_id) < q)
+      .map(({ q, p }) => `${p.descricao} (falta ${q - saldoUn(p.id, op.unidade_id)})`);
     if (faltas.length) return erro(`peças insuficientes no estoque desta unidade: ${faltas.join(", ")}`);
-    for (const c of comps) movimentar(c.componente_id, "saida", c.quantidade * op.quantidade, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
+    for (const [id, q] of comps) movimentar(id, "saida", q, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
     movimentar(op.produto_id, "entrada", op.quantidade, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
-    db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(comps.reduce((s, c) => s + c.quantidade * db.produtos.find((p) => p.id === c.componente_id)!.preco_custo, 0));
+    db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(custoEstrutura(fichas, db.produtos as any, op.produto_id));
     Object.assign(op, { status: "concluida", concluida_em: quando(0) });
     return { data: null, error: null };
   },

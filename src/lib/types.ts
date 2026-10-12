@@ -27,6 +27,8 @@ export type Produto = {
   id: string; sku: string | null; descricao: string; tipo: string; unidade: string; ncm: string | null;
   cest: string | null; cfop: string | null; origem: number; icms_situacao: string | null;
   preco_custo: number; preco_venda: number; estoque_atual: number; estoque_minimo: number;
+  /** subconjunto com estoque próprio (OP separada); falso = montado junto com a máquina */
+  subconjunto_estocado?: boolean;
   localizacao: string | null; ativo: boolean; fornecedor_padrao_id?: string | null; garantia_meses?: number | null;
   peso_kg?: number | null; altura_cm?: number | null; largura_cm?: number | null; profundidade_cm?: number | null; embalagem_id?: string | null;
   no_catalogo?: boolean; descricao_catalogo?: string | null; foto_caminho?: string | null;
@@ -126,6 +128,8 @@ export type OrdemProducao = {
 export type Necessidade = {
   ordem_id: string; componente_id: string; descricao: string; unidade: string; fornecedor_padrao_id: string | null; preco_custo: number;
   necessario: number; estoque_atual: number; reservado_outras_op: number; a_caminho: number;
+  /** subconjunto com estoque próprio: falta vira OP do subconjunto, não compra */
+  subconjunto?: boolean;
 };
 export type ItemCompra = { id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number };
 export type PedidoCompra = {

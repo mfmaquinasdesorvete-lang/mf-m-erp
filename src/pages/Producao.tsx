@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CheckCircle2, ClipboardList, Factory, FileDown, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, XCircle,
+  CheckCircle2, ChevronRight, ClipboardList, Factory, FileDown, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, XCircle,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -18,6 +18,7 @@ import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, 
 import { Reposicao } from "@/components/Reposicao";
 import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
+import { contemNaEstrutura, custoEstrutura, niveis, temFicha, type LinhaFicha } from "@/lib/estrutura";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
@@ -113,7 +114,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
       </div>
 
       <Table empty={!isLoading && !lista.length}
-        head={<><th className="th">OP</th><th className="th">Máquina</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th" /></>}>
+        head={<><th className="th">OP</th><th className="th">Produto</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th" /></>}>
         {lista.map((o) => {
           const f = faltasPorOP.get(o.id) ?? 0;
           const aberta = ["planejada", "em_producao"].includes(o.status);
@@ -144,10 +145,15 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const { data: necessidade = [] } = useNecessidade();
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor_id: string; ativo: boolean }>("fornecimentos", { select: "produto_id, fornecedor_id, ativo", order: "produto_id" });
+  const { data: fichas = [] } = useRows<LinhaFicha>("produto_componentes", { select: "produto_id, componente_id, quantidade", order: "produto_id" });
   const invalidate = useInvalidate();
   const podeEditar = pode("editar_producao") && !["concluida", "cancelada"].includes(o.status ?? "");
   const nec = necessidade.filter((n) => n.ordem_id === o.id);
-  const faltantes = nec.filter((n) => falta(n) > 0);
+  // o que falta: peça comprada vira pedido de compra; subconjunto com estoque próprio vira OP dele
+  const faltantes = nec.filter((n) => falta(n) > 0 && !n.subconjunto);
+  const subFaltando = nec.filter((n) => falta(n) > 0 && n.subconjunto);
+  const produziveis = produtos.filter((p) => p.tipo === "maquina" || temFicha(fichas, p.id));
+  const nNiveis = o.produto_id ? niveis(fichas, o.produto_id) : 0;
   const set = (p: Partial<OrdemProducao>) => setO((x) => ({ ...x, ...p }));
 
   async function executar(acao: () => Promise<unknown>, ok: string, fechar = true) {
@@ -209,7 +215,18 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     irParaCompras();
   }, "Pedidos de compra criados em cotação. Confira e envie aos fornecedores.");
 
+  /** Uma OP (planejada) para cada subconjunto com estoque próprio que falta, para ficar pronto antes da máquina. */
+  const gerarOpsSub = () => executar(async () => {
+    const prev = o.previsao ? new Date(Date.parse(o.previsao + "T12:00:00") - 3 * 864e5).toISOString().slice(0, 10) : null;
+    const { error } = await supabase.from("ordens_producao").insert(subFaltando.map((n) => limpar({
+      produto_id: n.componente_id, quantidade: falta(n), status: "planejada", previsao: prev && prev > hoje() ? prev : hoje(),
+      unidade_id: (o as any).unidade_id, responsavel: o.responsavel ?? null, observacoes: `Subconjunto para a OP #${o.numero}`,
+    })));
+    if (error) throw error;
+  }, `OP criada para ${subFaltando.length} subconjunto(s)`, false);
+
   const nomeForn = (n: Necessidade) => {
+    if (n.subconjunto) return "subconjunto · produzido em OP própria";
     if (n.fornecedor_padrao_id) return fornecedores.find((f) => f.id === n.fornecedor_padrao_id)?.nome ?? "fornecedor padrão";
     const outros = fornecimentos.filter((f) => f.produto_id === n.componente_id && f.ativo !== false).length;
     return outros ? `sem preferido · ${outros} fornecedor(es) conhecido(s)` : "sem fornecedor cadastrado";
@@ -219,11 +236,15 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     <Modal open onClose={onClose} title={o.id ? `Ordem de produção #${o.numero}` : "Nova ordem de produção"} wide>
       <form onSubmit={salvar} className="space-y-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          <Field label="Máquina a produzir" className="sm:col-span-2">
+          <Field label="Máquina ou subconjunto a produzir" className="sm:col-span-2">
             <select className="input" value={o.produto_id ?? ""} disabled={!podeEditar || !!o.id} onChange={(e) => set({ produto_id: e.target.value })} required>
               <option value="">Selecione…</option>
-              {produtos.filter((p) => p.tipo === "maquina").map((p) => <option key={p.id} value={p.id}>{p.descricao}</option>)}
+              <optgroup label="Máquinas">{produziveis.filter((p) => p.tipo === "maquina").map((p) => <option key={p.id} value={p.id}>{p.descricao}</option>)}</optgroup>
+              {produziveis.some((p) => p.tipo !== "maquina") && (
+                <optgroup label="Subconjuntos">{produziveis.filter((p) => p.tipo !== "maquina").map((p) => <option key={p.id} value={p.id}>{p.descricao}</option>)}</optgroup>
+              )}
             </select>
+            {nNiveis > 1 && <span className="mt-1 block text-xs text-slate-500">Estrutura com {nNiveis} níveis: as peças abaixo já somam os subconjuntos.</span>}
           </Field>
           <Field label="Quantidade"><input className="input" type="number" inputMode="numeric" min={1} value={o.quantidade ?? 1} disabled={!podeEditar} onChange={(e) => set({ quantidade: Number(e.target.value) })} /></Field>
           <Field label="Previsão"><input className="input" type="date" value={o.previsao ?? ""} disabled={!podeEditar} onChange={(e) => set({ previsao: e.target.value })} /></Field>
@@ -238,15 +259,20 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 id="op-pecas" className="text-sm font-bold text-fg">
-                Peças necessárias{nec.length > 0 && <span className="ml-1 font-normal text-slate-500">· {faltantes.length ? `faltam ${faltantes.length} de ${nec.length}` : `todas as ${nec.length} em estoque`}</span>}
+                Peças necessárias{nec.length > 0 && <span className="ml-1 font-normal text-slate-500">· {faltantes.length + subFaltando.length ? `faltam ${faltantes.length + subFaltando.length} de ${nec.length}` : `todas as ${nec.length} em estoque`}</span>}
               </h3>
-              {faltantes.length > 0 && podeEditar && (
-                <Button type="button" className="w-full sm:w-auto" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} aria-hidden /> Pedir as {faltantes.length} peça(s) que faltam</Button>
-              )}
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                {subFaltando.length > 0 && podeEditar && (
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={gerarOpsSub} disabled={ocupado}><Layers size={16} aria-hidden /> Criar OP de {subFaltando.length} subconjunto(s)</Button>
+                )}
+                {faltantes.length > 0 && podeEditar && (
+                  <Button type="button" className="w-full sm:w-auto" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} aria-hidden /> Pedir as {faltantes.length} peça(s) que faltam</Button>
+                )}
+              </div>
             </div>
             {!nec.length ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                Esta máquina ainda não tem ficha técnica. Cadastre as peças na aba <b>Ficha técnica</b> para o sistema calcular o que comprar.
+                Este item ainda não tem ficha técnica. Cadastre as peças na aba <b>Ficha técnica</b> para o sistema calcular o que comprar.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -552,107 +578,210 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
 
 type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number };
 
+/** Ficha técnica em vários níveis: máquinas e subconjuntos (item com a própria ficha), com a árvore aberta e o custo somado. */
 function FichaTecnica() {
   const { pode } = usePerfil();
+  const editavel = pode("editar_producao");
+  const invalidate = useInvalidate();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: todas = [] } = useRows<LinhaFicha>("produto_componentes", { select: "produto_id, componente_id, quantidade", order: "produto_id" });
   const maquinas = produtos.filter((p) => p.tipo === "maquina");
-  const [maquinaId, setMaquinaId] = useState<string>("");
-  const maquina = produtos.find((p) => p.id === (maquinaId || maquinas[0]?.id));
-  const { data: comps = [], refetch } = useQuery({
-    queryKey: ["produto_componentes", maquina?.id],
-    enabled: !!maquina,
-    queryFn: async () => (await supabase.from("produto_componentes").select("*").eq("produto_id", maquina!.id)).data as Componente[],
+  const [novos, setNovos] = useState<string[]>([]);
+  const subconjuntos = produtos.filter((p) => p.tipo !== "maquina" && (temFicha(todas, p.id) || novos.includes(p.id)));
+  const [selId, setSelId] = useState<string>("");
+  const item = produtos.find((p) => p.id === (selId || maquinas[0]?.id || subconjuntos[0]?.id));
+  const { data: comps = [] } = useQuery({
+    queryKey: ["produto_componentes", item?.id],
+    enabled: !!item,
+    queryFn: async () => (await supabase.from("produto_componentes").select("*").eq("produto_id", item!.id)).data as Componente[],
   });
   const [lista, setLista] = useState<Componente[]>([]);
   useEffect(() => { setLista(comps ?? []); }, [comps]);
-  const editavel = pode("editar_producao");
-  const custo = lista.reduce((s, c) => s + c.quantidade * Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo ?? 0), 0);
-  const margem = maquina && Number(maquina.preco_venda) ? (Number(maquina.preco_venda) - custo) / Number(maquina.preco_venda) : 0;
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const [escolhendo, setEscolhendo] = useState(false);
+  // a árvore e o custo já consideram o que está sendo editado
+  const fichas = useMemo(() => item ? [...todas.filter((f) => f.produto_id !== item.id), ...lista.map((c) => ({ ...c, produto_id: item.id }))] : todas, [todas, lista, item]);
+  const custo = item ? custoEstrutura(fichas, produtos, item.id) : 0;
+  const margem = item && Number(item.preco_venda) ? (Number(item.preco_venda) - custo) / Number(item.preco_venda) : 0;
+  const usadoEm = item ? [...new Set(todas.filter((f) => f.componente_id === item.id).map((f) => f.produto_id))].map((id) => produtos.find((p) => p.id === id)?.descricao).filter(Boolean) : [];
+  const nNiveis = item ? niveis(fichas, item.id) : 0;
 
   async function salvar() {
     try {
-      await supabase.from("produto_componentes").delete().eq("produto_id", maquina!.id);
+      await supabase.from("produto_componentes").delete().eq("produto_id", item!.id);
       if (lista.length) {
-        const { error } = await supabase.from("produto_componentes").insert(lista.map((c) => ({ produto_id: maquina!.id, componente_id: c.componente_id, quantidade: c.quantidade })));
+        const { error } = await supabase.from("produto_componentes").insert(lista.map((c) => ({ produto_id: item!.id, componente_id: c.componente_id, quantidade: c.quantidade })));
         if (error) throw error;
       }
       notify("Ficha técnica salva");
-      refetch();
-    } catch (e) { notifyError(e); }
+      invalidate("produto_componentes", "necessidade_producao");
+    } catch (e) { notifyError(e); invalidate("produto_componentes"); }
   }
+  async function mudarModo(id: string, estocado: boolean) {
+    const { error } = await supabase.from("produtos").update({ subconjunto_estocado: estocado }).eq("id", id);
+    if (error) return notifyError(error);
+    notify(estocado ? "Subconjunto com estoque próprio: a máquina usa o subconjunto pronto (com OP própria)" : "Subconjunto montado junto: a OP da máquina usa as peças dele");
+    invalidate("produtos", "necessidade_producao");
+  }
+  const alternar = (id: string) => setAbertos((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
-  if (!maquinas.length) return <p className="py-8 text-center text-slate-500">Cadastre as máquinas em Estoque (tipo “Máquina”) para montar a ficha técnica.</p>;
-  const semCusto = lista.filter((c) => !(Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo) > 0)).length;
+  if (!maquinas.length && !subconjuntos.length) return <p className="py-8 text-center text-slate-500">Cadastre as máquinas em Estoque (tipo “Máquina”) para montar a ficha técnica.</p>;
+  const semCusto = lista.filter((c) => !temFicha(fichas, c.componente_id) && !(Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo) > 0)).length;
+  const novoSub = escolhendo ? (
+    <ProdutoBusca placeholder="Qual item vira subconjunto? (nome ou SKU)"
+      produtos={produtos.filter((p) => p.tipo !== "maquina" && !temFicha(todas, p.id) && !novos.includes(p.id))}
+      onEscolher={(p) => { setNovos([...novos, p.id]); setSelId(p.id); setEscolhendo(false); }}
+      detalhe={(p) => [p.sku, `estoque ${Number(p.estoque_atual)}`].filter(Boolean).join(" · ")} />
+  ) : (
+    <Button type="button" variant="ghost" className="w-full justify-start" onClick={() => setEscolhendo(true)}><Layers size={16} aria-hidden /> Montar ficha de um subconjunto</Button>
+  );
+  const botaoNav = (m: Produto) => (
+    <button key={m.id} type="button" onClick={() => setSelId(m.id)} aria-current={m.id === item?.id ? "true" : undefined}
+      className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${m.id === item?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
+      <span className="min-w-0">{m.descricao}</span>
+      {niveis(todas, m.id) > 1 && <span className="shrink-0 rounded bg-slate-100 px-1.5 text-[11px] text-slate-600" title="Níveis da estrutura">{niveis(todas, m.id)} níveis</span>}
+    </button>
+  );
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {/* celular: escolhe a máquina numa lista; computador: coluna com todas */}
-      <Field label="Máquina" className="lg:hidden">
-        <select className="input" value={maquina?.id ?? ""} onChange={(e) => setMaquinaId(e.target.value)}>
-          {maquinas.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}
+      {/* celular: escolhe numa lista; computador: coluna com máquinas e subconjuntos */}
+      <Field label="Máquina ou subconjunto" className="lg:hidden">
+        <select className="input" value={item?.id ?? ""} onChange={(e) => setSelId(e.target.value)}>
+          <optgroup label="Máquinas">{maquinas.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}</optgroup>
+          {subconjuntos.length > 0 && <optgroup label="Subconjuntos">{subconjuntos.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}</optgroup>}
         </select>
       </Field>
       <Card className="hidden p-2 lg:col-span-1 lg:block">
-        <nav aria-label="Máquinas">
-          {maquinas.map((m) => (
-            <button key={m.id} type="button" onClick={() => setMaquinaId(m.id)} aria-current={m.id === maquina?.id ? "true" : undefined}
-              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${m.id === maquina?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
-              {m.descricao}
-            </button>
-          ))}
+        <nav aria-label="Máquinas e subconjuntos">
+          <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase text-slate-500">Máquinas</div>
+          {maquinas.map(botaoNav)}
+          <div className="px-3 pb-1 pt-3 text-xs font-semibold uppercase text-slate-500">Subconjuntos</div>
+          {subconjuntos.map(botaoNav)}
+          {!subconjuntos.length && <p className="px-3 pb-2 text-xs text-slate-500">Painel elétrico, cilindro montado… item com a própria ficha, usado dentro da máquina.</p>}
         </nav>
+        {editavel && <div className="mt-2 border-t border-slate-100 p-1 pt-2">{novoSub}</div>}
       </Card>
-      {maquina && (
+      {editavel && <div className="lg:hidden">{novoSub}</div>}
+      {item && (
         <Card className="p-4 lg:col-span-2">
-          <h3 id="ficha-titulo" className="mb-1 text-base font-bold text-fg">{maquina.descricao}</h3>
-          <p className="mb-3 text-sm text-slate-500">Peças e insumos usados para montar <b>uma</b> unidade · {lista.length} item(ns).</p>
+          <h3 id="ficha-titulo" className="mb-1 text-base font-bold text-fg">{item.descricao}</h3>
+          <p className="mb-1 text-sm text-slate-500">
+            Peças, insumos e subconjuntos para montar <b>uma</b> unidade · {lista.length} item(ns){nNiveis > 1 ? ` · ${nNiveis} níveis` : ""}.
+          </p>
+          {item.tipo !== "maquina" && (
+            <div className="mb-3 space-y-2 rounded-lg border border-l-4 border-slate-200 border-l-modulo bg-slate-50 p-3 text-sm">
+              <div>{usadoEm.length ? <>Usado em: <b>{usadoEm.join(", ")}</b></> : "Ainda não está na ficha de nenhuma máquina: adicione-o como item na ficha da máquina."}</div>
+              <ModoSubconjunto produto={item} editavel={editavel} onMudar={mudarModo} />
+            </div>
+          )}
           {semCusto > 0 && (
             <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900" role="status">
-              {semCusto} peça(s) sem custo no cadastro: o custo da máquina abaixo está incompleto.
+              {semCusto} peça(s) sem custo no cadastro: o custo abaixo está incompleto.
             </p>
           )}
           <ul className="divide-y divide-slate-100" aria-labelledby="ficha-titulo">
             {lista.map((c, k) => {
               const peca = produtos.find((p) => p.id === c.componente_id);
-              const custoUn = Number(peca?.preco_custo ?? 0);
+              const sub = temFicha(fichas, c.componente_id);
+              const custoUn = sub ? custoEstrutura(fichas, produtos, c.componente_id) : Number(peca?.preco_custo ?? 0);
               const nome = peca?.descricao ?? "Peça";
               return (
-                <li key={c.componente_id} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1 py-2.5">
-                  <span className="min-w-0 text-sm text-fg">
-                    <span className="line-clamp-2">{nome}</span>
-                    <span className="block text-xs text-slate-500">
-                      {custoUn > 0 ? <>{brl(custoUn)}/{peca?.unidade ?? "un"} · linha <b className="num">{brl(custoUn * c.quantidade)}</b></> : <span className="font-semibold text-amber-700">sem custo</span>}
-                      {` · estoque ${qtd(peca?.estoque_atual)}`}
+                <li key={c.componente_id} className="py-2.5">
+                  <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1">
+                    <span className="min-w-0 text-sm text-fg">
+                      <span className="flex items-start gap-1">
+                        {sub && (
+                          <button type="button" onClick={() => alternar(c.componente_id)} aria-expanded={abertos.has(c.componente_id)}
+                            aria-label={`${abertos.has(c.componente_id) ? "Fechar" : "Abrir"} as peças de ${nome}`} className="mt-0.5 rounded p-0.5 text-slate-500 hover:bg-slate-100">
+                            <ChevronRight size={15} className={`transition ${abertos.has(c.componente_id) ? "rotate-90" : ""}`} aria-hidden />
+                          </button>
+                        )}
+                        <span className="line-clamp-2">{nome}</span>
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {sub && <><span className="font-semibold text-modulo-texto">subconjunto</span> · {peca?.subconjunto_estocado ? "estoque próprio" : "montado junto"} · </>}
+                        {custoUn > 0 ? <>{brl(custoUn)}/{peca?.unidade ?? "un"} · linha <b className="num">{brl(custoUn * c.quantidade)}</b></> : <span className="font-semibold text-amber-700">sem custo</span>}
+                        {` · estoque ${qtd(peca?.estoque_atual)}`}
+                        {sub && <> · <button type="button" className="text-brand hover:underline" onClick={() => setSelId(c.componente_id)}>abrir ficha</button></>}
+                      </span>
                     </span>
-                  </span>
-                  <label className="flex items-center gap-1">
-                    <span className="sr-only">Quantidade de {nome} por máquina</span>
-                    <CampoQtd valor={c.quantidade} disabled={!editavel}
-                      onChange={(v) => setLista(lista.map((x, j) => (j === k ? { ...x, quantidade: v } : x)))} />
-                    <span className="w-7 text-xs text-slate-500" aria-hidden>{peca?.unidade ?? ""}</span>
-                  </label>
-                  {editavel
-                    ? <Button type="button" variant="ghost" className="!px-2" aria-label={`Remover ${nome}`} onClick={() => setLista(lista.filter((_, j) => j !== k))}><Trash2 size={16} aria-hidden /></Button>
-                    : <span />}
+                    <label className="flex items-center gap-1">
+                      <span className="sr-only">Quantidade de {nome} por unidade</span>
+                      <CampoQtd valor={c.quantidade} disabled={!editavel}
+                        onChange={(v) => setLista(lista.map((x, j) => (j === k ? { ...x, quantidade: v } : x)))} />
+                      <span className="w-7 text-xs text-slate-500" aria-hidden>{peca?.unidade ?? ""}</span>
+                    </label>
+                    {editavel
+                      ? <Button type="button" variant="ghost" className="!px-2" aria-label={`Remover ${nome}`} onClick={() => setLista(lista.filter((_, j) => j !== k))}><Trash2 size={16} aria-hidden /></Button>
+                      : <span />}
+                  </div>
+                  {sub && abertos.has(c.componente_id) && (
+                    <SubArvore fichas={fichas} produtos={produtos} id={c.componente_id} mult={c.quantidade} nivel={1} caminho={[item.id, c.componente_id]} />
+                  )}
                 </li>
               );
             })}
           </ul>
           {editavel && (
-            <ProdutoBusca className="mt-3" placeholder="Adicionar peça: nome, SKU ou código"
-              produtos={produtos.filter((p) => p.tipo !== "maquina" && !lista.some((c) => c.componente_id === p.id))}
-              onEscolher={(p) => setLista([...lista, { produto_id: maquina.id, componente_id: p.id, quantidade: 1 }])}
-              detalhe={(p) => [p.sku, `custo ${brl(p.preco_custo)}`, `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
+            <ProdutoBusca className="mt-3" placeholder="Adicionar peça ou subconjunto: nome, SKU ou código"
+              produtos={produtos.filter((p) => p.tipo !== "maquina" && p.id !== item.id && !lista.some((c) => c.componente_id === p.id)
+                && !contemNaEstrutura(fichas, p.id, item.id))}
+              onEscolher={(p) => setLista([...lista, { produto_id: item.id, componente_id: p.id, quantidade: 1 }])}
+              detalhe={(p) => [temFicha(todas, p.id) ? "subconjunto" : null, p.sku, `custo ${brl(temFicha(todas, p.id) ? custoEstrutura(todas, produtos, p.id) : p.preco_custo)}`,
+                `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
           )}
           <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-3">
-            <div><dt className="text-slate-500">Custo das peças</dt><dd className="num text-lg font-bold text-fg">{brl(custo)}</dd></div>
-            <div><dt className="text-slate-500">Preço de venda</dt><dd className="num text-lg font-bold text-fg">{brl(maquina.preco_venda)}</dd></div>
-            <div><dt className="text-slate-500">Margem sobre peças</dt><dd className={`num text-lg font-bold ${margem < 0.25 ? "text-amber-700" : "text-emerald-700"}`}>{(margem * 100).toFixed(0)}%</dd></div>
+            <div><dt className="text-slate-500">Custo{nNiveis > 1 ? " (todos os níveis)" : " das peças"}</dt><dd className="num text-lg font-bold text-fg">{brl(custo)}</dd></div>
+            {Number(item.preco_venda) > 0 && <>
+              <div><dt className="text-slate-500">Preço de venda</dt><dd className="num text-lg font-bold text-fg">{brl(item.preco_venda)}</dd></div>
+              <div><dt className="text-slate-500">Margem sobre peças</dt><dd className={`num text-lg font-bold ${margem < 0.25 ? "text-amber-700" : "text-emerald-700"}`}>{(margem * 100).toFixed(0)}%</dd></div>
+            </>}
           </dl>
           {editavel && <div className="mt-4 flex justify-end"><Button type="button" className="w-full sm:w-auto" onClick={salvar}>Salvar ficha técnica</Button></div>}
         </Card>
       )}
     </div>
+  );
+}
+
+/** Como o subconjunto entra na produção da máquina. */
+function ModoSubconjunto({ produto, editavel, onMudar }: { produto: Produto; editavel: boolean; onMudar: (id: string, estocado: boolean) => void }) {
+  return (
+    <fieldset className="flex flex-wrap gap-x-4 gap-y-1">
+      <legend className="sr-only">Na produção da máquina</legend>
+      <label className="flex items-start gap-1.5">
+        <input type="radio" className="mt-1" name={`modo-${produto.id}`} checked={!produto.subconjunto_estocado} disabled={!editavel} onChange={() => onMudar(produto.id, false)} />
+        <span><b>Montado junto</b> com a máquina <span className="block text-xs text-slate-500">a OP da máquina usa e baixa as peças dele</span></span>
+      </label>
+      <label className="flex items-start gap-1.5">
+        <input type="radio" className="mt-1" name={`modo-${produto.id}`} checked={!!produto.subconjunto_estocado} disabled={!editavel} onChange={() => onMudar(produto.id, true)} />
+        <span><b>Estoque próprio</b> <span className="block text-xs text-slate-500">tem OP própria; a máquina usa o subconjunto pronto</span></span>
+      </label>
+    </fieldset>
+  );
+}
+
+/** Peças de um subconjunto (e dos subconjuntos dentro dele), com a quantidade por máquina. */
+function SubArvore({ fichas, produtos, id, mult, nivel, caminho }: { fichas: LinhaFicha[]; produtos: Produto[]; id: string; mult: number; nivel: number; caminho: string[] }) {
+  if (nivel > 12) return null;
+  return (
+    <ul className="ml-3 mt-1 space-y-1 border-l-2 border-slate-200 pl-3" aria-label="Peças do subconjunto">
+      {fichas.filter((f) => f.produto_id === id && !caminho.slice(0, -1).includes(f.componente_id)).map((f) => {
+        const p = produtos.find((x) => x.id === f.componente_id);
+        const sub = temFicha(fichas, f.componente_id);
+        const q = mult * Number(f.quantidade);
+        return (
+          <li key={f.componente_id} className="text-xs">
+            <div className="flex flex-wrap justify-between gap-x-3">
+              <span className="text-fg">{p?.descricao ?? "Peça"}{sub && <span className="ml-1 font-semibold text-modulo-texto">· subconjunto{p?.subconjunto_estocado ? " (estoque próprio)" : ""}</span>}</span>
+              <span className="num text-slate-600">{qtd(Number(f.quantidade))} × {qtd(mult)} = <b>{qtd(q)}</b> {p?.unidade ?? ""}</span>
+            </div>
+            {sub && <SubArvore fichas={fichas} produtos={produtos} id={f.componente_id} mult={q} nivel={nivel + 1} caminho={[...caminho, f.componente_id]} />}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
