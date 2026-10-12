@@ -219,7 +219,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       <span className="min-w-0 leading-tight">{partesRotulo(f.label)[0]}{partesRotulo(f.label)[1] && <span className="block text-xs text-slate-500">{partesRotulo(f.label)[1]}</span>}</span>
     </label>
   ) : f.type === "custom" ? (
-    <div key={f.name} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]}`}>
+    <div key={f.name} className={`min-w-0 ${larguraCelular(f)} ${spanClass[f.span ?? 2]}`}>
       <span className="mb-1.5 block text-xs font-semibold text-slate-600">{f.label}</span>
       {f.render!(editando![f.name], (v) => set(f.name, v), editando!)}
     </div>
@@ -352,7 +352,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           {!isLoading && filtrados.length === 0 && <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
           <ul className="space-y-2">
             {filtrados.slice(0, limite).map((row) => (
-              <li key={row.id} className={`relative rounded-2xl border bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200"}`}>
+              <li key={row.id} className={`relative rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>
                 {selecionavel && (
                   <input type="checkbox" className="absolute right-3 top-3 h-5 w-5" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" />
                 )}

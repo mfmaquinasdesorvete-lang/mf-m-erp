@@ -89,7 +89,7 @@ h1, h2, h3 { text-wrap: balance; }
 @layer components {
   /* 16px no celular evita o zoom automático do iPhone ao tocar no campo */
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
+    @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
            placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20
            disabled:bg-slate-50 disabled:text-slate-500;
   }
@@ -109,9 +109,22 @@ select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
 
 /* Tabelas no celular: cada linha vira um cartão "rótulo → valor" (ver Table em ui.tsx) */
 @media (max-width: 767px) {
+  /* a página nunca desliza para os lados no celular (clip não cria rolagem nem atrapalha o cabeçalho fixo) */
+  html, body { overflow-x: clip; }
   .tabela thead { display: none; }
   .tabela, .tabela > tbody, .tabela > tbody > tr, .tabela > tbody > tr > td { display: block; width: 100%; }
   .tabela > tbody > tr { padding: 14px 16px; }
+  /* cada registro é um cartão separado, com a faixa da cor da área à esquerda (mais fácil de achar e ler) */
+  .tabela-caixa.tabela-caixa { background: transparent; border-width: 0; box-shadow: none; overflow: visible; }
+  .tabela > tbody { display: flex; flex-direction: column; gap: 10px; }
+  /* !important: passa por cima das linhas divisórias da tabela (divide-y), que têm mais peso */
+  .tabela.tabela > tbody > tr {
+    border-style: solid !important; border-width: 1px 1px 1px 4px !important;
+    border-color: rgb(var(--slate-200)) !important; border-left-color: rgb(var(--modulo)) !important;
+    border-radius: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / var(--sombra));
+  }
+  /* :where = sem peso, para a cor de "selecionado" da linha continuar valendo */
+  :where(.tabela > tbody > tr) { background-color: rgb(var(--surface)); }
   .tabela > tbody > tr > td {
     position: relative; padding: 4px 0 4px 42%; min-height: 28px; text-align: right;
     white-space: normal; overflow-wrap: anywhere; font-size: 15px;

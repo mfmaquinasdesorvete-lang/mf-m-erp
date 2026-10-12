@@ -3,8 +3,8 @@
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Info, Lightbulb, Link2, MessageSquarePlus, Save, XCircle } from "lucide-react";
-import { Badge, Button, Field, Modal, Tabs } from "@/components/ui";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageSquarePlus, Receipt, Repeat, Save, TrendingUp, Wallet, XCircle } from "lucide-react";
+import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import { DEMO, supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
@@ -142,16 +142,9 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
   );
 }
 
-function Indicador({ rotulo, valor, sub, tom }: { rotulo: string; valor: string; sub?: string; tom?: "bom" | "ruim" | "atencao" }) {
-  const cor = tom === "ruim" ? "text-red-700" : tom === "atencao" ? "text-amber-700" : tom === "bom" ? "text-emerald-700" : "text-fg";
-  return (
-    <div className="min-w-0 rounded-xl border border-slate-200 p-3">
-      <div className="text-xs font-semibold uppercase text-slate-500">{rotulo}</div>
-      <div className={`mt-0.5 text-base font-bold tabular-nums [overflow-wrap:anywhere] sm:text-lg ${cor}`}>{valor}</div>
-      {sub && <div className="text-xs text-slate-500">{sub}</div>}
-    </div>
-  );
-}
+/** Situação vira cor do cartão: ruim = vermelho, atenção = âmbar, bom = verde; sem situação fica a cor do assunto. */
+const corSituacao = (tom: "bom" | "ruim" | "atencao" | undefined, assunto: CorCartao): CorCartao =>
+  tom === "ruim" ? "vermelho" : tom === "atencao" ? "ambar" : tom === "bom" ? "verde" : assunto;
 
 function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente> }) {
   const { pode } = usePerfil();
@@ -177,17 +170,18 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Indicador rotulo="Total comprado" valor={brl(r.total)} sub={r.primeira ? `cliente desde ${dataBR(r.primeira)}` : "sem compras"} />
-        <Indicador rotulo="Últimos 12 meses" valor={brl(r.ultimos12m)} sub={`${r.compras} compra(s) no total`} />
-        <Indicador rotulo="Ticket médio" valor={brl(r.ticket)} />
-        <Indicador rotulo="Última compra" valor={r.ultima ? dataBR(r.ultima) : "—"} sub={r.semComprar !== null ? `há ${r.semComprar} dias` : undefined}
-          tom={r.situacao === "inativo" ? "ruim" : r.situacao === "em_risco" ? "atencao" : undefined} />
-        <Indicador rotulo="Compra a cada" valor={r.intervaloMedio ? `${r.intervaloMedio} dias` : "—"}
+        <Indicador rotulo="Total comprado" icon={Wallet} cor="azul" valor={brl(r.total)} sub={r.primeira ? `cliente desde ${dataBR(r.primeira)}` : "sem compras"} />
+        <Indicador rotulo="Últimos 12 meses" icon={TrendingUp} cor="indigo" valor={brl(r.ultimos12m)} sub={`${r.compras} compra(s) no total`} />
+        <Indicador rotulo="Ticket médio" icon={Receipt} cor="roxo" valor={brl(r.ticket)} />
+        <Indicador rotulo="Última compra" icon={CalendarDays} valor={r.ultima ? dataBR(r.ultima) : "—"} sub={r.semComprar !== null ? `há ${r.semComprar} dias` : undefined}
+          cor={corSituacao(r.situacao === "inativo" ? "ruim" : r.situacao === "em_risco" ? "atencao" : r.ultima ? "bom" : undefined, "neutro")} />
+        <Indicador rotulo="Compra a cada" icon={Repeat} cor="neutro" valor={r.intervaloMedio ? `${r.intervaloMedio} dias` : "—"}
           sub={r.proximaPrevista ? `próxima prevista: ${dataBR(r.proximaPrevista)}` : "precisa de 2 compras ou mais"} />
-        <Indicador rotulo="Em aberto" valor={brl(r.emAberto)} />
-        <Indicador rotulo="Vencido" valor={brl(r.vencido)} sub={r.vencidas ? `${r.vencidas} parcela(s)` : "nada vencido"} tom={r.vencido > 0 ? "ruim" : "bom"} />
-        <Indicador rotulo="Pontualidade" valor={r.pagas ? `${r.pagas - r.pagasComAtraso} de ${r.pagas} em dia` : "—"}
-          sub={r.pagasComAtraso ? `atraso médio de ${r.atrasoMedio} dias` : undefined} tom={r.pagasComAtraso > 1 ? "atencao" : r.pagas ? "bom" : undefined} />
+        <Indicador rotulo="Em aberto" icon={Clock} cor={r.emAberto > 0 ? "laranja" : "neutro"} valor={brl(r.emAberto)} />
+        <Indicador rotulo="Vencido" icon={r.vencido > 0 ? AlertTriangle : BadgeCheck} valor={brl(r.vencido)} sub={r.vencidas ? `${r.vencidas} parcela(s)` : "nada vencido"}
+          cor={corSituacao(r.vencido > 0 ? "ruim" : "bom", "neutro")} />
+        <Indicador rotulo="Pontualidade" icon={BadgeCheck} valor={r.pagas ? `${r.pagas - r.pagasComAtraso} de ${r.pagas} em dia` : "—"}
+          sub={r.pagasComAtraso ? `atraso médio de ${r.atrasoMedio} dias` : undefined} cor={corSituacao(r.pagasComAtraso > 1 ? "atencao" : r.pagas ? "bom" : undefined, "neutro")} />
       </div>
 
       <ReceitaCliente c={c} />
@@ -306,10 +300,10 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Indicador rotulo="Em aberto" valor={brl(r.emAberto)} />
-        <Indicador rotulo="Vencido" valor={brl(r.vencido)} tom={r.vencido > 0 ? "ruim" : "bom"} />
-        <Indicador rotulo="Pagas com atraso" valor={`${r.pagasComAtraso} de ${r.pagas}`} tom={r.pagasComAtraso > 1 ? "atencao" : undefined} />
-        <Indicador rotulo="Atraso médio" valor={r.atrasoMedio ? `${r.atrasoMedio} dias` : "—"} />
+        <Indicador rotulo="Em aberto" icon={Clock} cor={r.emAberto > 0 ? "laranja" : "neutro"} valor={brl(r.emAberto)} />
+        <Indicador rotulo="Vencido" icon={r.vencido > 0 ? AlertTriangle : BadgeCheck} valor={brl(r.vencido)} cor={corSituacao(r.vencido > 0 ? "ruim" : "bom", "neutro")} />
+        <Indicador rotulo="Pagas com atraso" icon={Receipt} valor={`${r.pagasComAtraso} de ${r.pagas}`} cor={corSituacao(r.pagasComAtraso > 1 ? "atencao" : undefined, "azul")} />
+        <Indicador rotulo="Atraso médio" icon={CalendarDays} cor="neutro" valor={r.atrasoMedio ? `${r.atrasoMedio} dias` : "—"} />
       </div>
       {!contas.length ? <p className="text-sm text-slate-500">Nenhuma conta a receber deste cliente.</p> : (<>
         <ul className="divide-y divide-slate-100 text-sm sm:hidden">

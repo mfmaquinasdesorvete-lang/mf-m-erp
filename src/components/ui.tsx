@@ -26,7 +26,7 @@ export function Button({
 
 export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className={`block ${className}`}>
+    <label className={`block min-w-0 ${className}`}>
       <span className="mb-1.5 block text-xs font-semibold text-slate-600">{label}</span>
       {children}
     </label>
@@ -72,29 +72,58 @@ export function Section({ title, actions, children, className = "" }: { title: s
   );
 }
 
-type Tom = "neutro" | "bom" | "atencao" | "critico" | "info";
-const tons: Record<Tom, { icone: string; valor: string }> = {
-  neutro: { icone: "bg-modulo/15 text-modulo-texto", valor: "text-fg" },
-  info: { icone: "bg-sky-50 text-sky-700", valor: "text-fg" },
-  bom: { icone: "bg-emerald-50 text-emerald-700", valor: "text-fg" },
-  atencao: { icone: "bg-amber-50 text-amber-700", valor: "text-amber-700" },
-  critico: { icone: "bg-red-50 text-red-600", valor: "text-red-600" },
+/**
+ * Cores dos cartões de indicador: fundo levemente tingido, faixa colorida à esquerda e ícone na mesma cor.
+ * A cor diz o assunto (dinheiro, prazo, alerta…), para achar o número sem ler tudo.
+ */
+export type CorCartao = "neutro" | "azul" | "verde" | "ambar" | "vermelho" | "roxo" | "indigo" | "laranja";
+const coresCartao: Record<CorCartao, { caixa: string; icone: string; valor: string }> = {
+  neutro: { caixa: "border-slate-200 bg-surface before:bg-modulo", icone: "bg-modulo/15 text-modulo-texto", valor: "text-fg" },
+  azul: { caixa: "border-sky-200 bg-sky-50 before:bg-sky-500", icone: "bg-sky-100 text-sky-700", valor: "text-fg" },
+  verde: { caixa: "border-emerald-200 bg-emerald-50 before:bg-emerald-500", icone: "bg-emerald-100 text-emerald-700", valor: "text-emerald-700" },
+  ambar: { caixa: "border-amber-200 bg-amber-50 before:bg-amber-500", icone: "bg-amber-100 text-amber-700", valor: "text-amber-700" },
+  vermelho: { caixa: "border-red-200 bg-red-50 before:bg-red-500", icone: "bg-red-100 text-red-700", valor: "text-red-700" },
+  roxo: { caixa: "border-purple-200 bg-purple-50 before:bg-purple-500", icone: "bg-purple-100 text-purple-700", valor: "text-fg" },
+  indigo: { caixa: "border-indigo-200 bg-indigo-50 before:bg-indigo-500", icone: "bg-indigo-100 text-indigo-700", valor: "text-fg" },
+  laranja: { caixa: "border-orange-200 bg-orange-50 before:bg-orange-500", icone: "bg-orange-100 text-orange-700", valor: "text-fg" },
 };
+const caixaCartao = "relative min-w-0 overflow-hidden rounded-xl border shadow-card before:absolute before:inset-y-0 before:left-0 before:w-1";
+
+/** Cartão de indicador compacto (fichas e janelas): rótulo, número em destaque e linha de apoio. */
+export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
+  rotulo: string; valor: ReactNode; sub?: ReactNode; icon?: LucideIcon; cor?: CorCartao;
+}) {
+  const c = coresCartao[cor];
+  return (
+    <div className={`${caixaCartao} p-3 pl-4 ${c.caixa}`}>
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-[13px] font-semibold leading-tight text-slate-700">{rotulo}</span>
+        {Icon && <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
+      </div>
+      <div className={`num mt-0.5 text-base font-bold [overflow-wrap:anywhere] sm:text-lg ${c.valor}`}>{valor}</div>
+      {sub && <div className="text-xs text-slate-600">{sub}</div>}
+    </div>
+  );
+}
+
+type Tom = "neutro" | "bom" | "atencao" | "critico" | "info";
+const corDoTom: Record<Tom, CorCartao> = { neutro: "neutro", info: "azul", bom: "verde", atencao: "ambar", critico: "vermelho" };
 
 /** Indicador (número de destaque) com ícone e linha de apoio. */
 export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }: {
   label: string; valor: ReactNode; sub?: ReactNode; icon?: LucideIcon; tom?: Tom; onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
+  const c = coresCartao[corDoTom[tom]];
   return (
     <Tag onClick={onClick}
-      className={`flex w-full items-start gap-3 rounded-xl border border-slate-200/80 bg-surface p-4 text-left shadow-card
-        ${onClick ? "transition hover:border-brand/40 hover:shadow-pop" : ""}`}>
-      {Icon && <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${tons[tom].icone}`}><Icon size={18} /></span>}
+      className={`${caixaCartao} flex w-full items-start gap-3 p-4 pl-5 text-left ${c.caixa}
+        ${onClick ? "transition hover:shadow-pop hover:brightness-[1.03]" : ""}`}>
+      {Icon && <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${c.icone}`}><Icon size={18} /></span>}
       <span className="min-w-0">
-        <span className="block text-xs font-medium text-slate-500">{label}</span>
-        <span className={`num mt-0.5 block text-xl font-bold tracking-tight ${tons[tom].valor}`}>{valor}</span>
-        {sub && <span className="mt-0.5 block text-xs text-slate-500">{sub}</span>}
+        <span className="block text-xs font-semibold text-slate-600">{label}</span>
+        <span className={`num mt-0.5 block text-xl font-bold tracking-tight ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`}>{valor}</span>
+        {sub && <span className="mt-0.5 block text-xs text-slate-600">{sub}</span>}
       </span>
     </Tag>
   );
@@ -214,18 +243,20 @@ export function Modal({
   if (!open) return null;
   // Portal: a janela fica fora do formulário que a abriu (formulário dentro de formulário recarregava a página),
   // e o "enviar" de dentro dela não chega ao formulário de trás.
+  // Centralizada com mx-auto (não com flex): se algo ficar mais largo, nunca some para a esquerda; e o fundo
+  // não desliza para os lados (overflow-x-hidden), só rola para baixo.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-contain bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
       onSubmit={(e) => e.stopPropagation()}>
       <div ref={caixa} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
-        className={`w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop focus:outline-none`}>
+        className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop focus:outline-none`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
           <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>
           <button type="button" onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
             <X size={18} aria-hidden />
           </button>
         </div>
-        <div className="p-4 sm:p-5">{children}</div>
+        <div className="min-w-0 break-words p-4 sm:p-5">{children}</div>
       </div>
     </div>,
     document.body,
@@ -256,7 +287,7 @@ export function Table({ head, children, empty }: { head: ReactNode; children: Re
     return () => obs.disconnect();
   }, []);
   return (
-    <Card className="overflow-x-auto">
+    <Card className="tabela-caixa overflow-x-auto">
       <table ref={ref} className="tabela w-full divide-y divide-slate-100 md:min-w-[720px]">
         <thead className="bg-slate-50/80"><tr>{head}</tr></thead>
         <tbody className="divide-y divide-slate-100">{children}</tbody>
