@@ -29,6 +29,7 @@ import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } 
 import { vendidosPorProduto } from "@/lib/gerencial";
 import { custoUnitario } from "@/lib/margem";
 import { FormacaoPreco, usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
+import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 
 const tipos = [
@@ -119,7 +120,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { pode, papel, tem } = usePerfil();
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
-  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos">(busca.get("aba") === "precos" ? "precos" : "produtos");
+  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas">(busca.get("aba") === "precos" ? "precos" : "produtos");
   const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
@@ -300,6 +301,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     { value: "auditoria" as const, label: "Auditoria e marketplace" },
     { value: "categorias" as const, label: "Categorias" },
     { value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" },
+    { value: "tabelas" as const, label: "Tabelas de preço" },
     ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
   ];
   return (
@@ -314,7 +316,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <div className="hidden md:block">
         <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={abasProdutos} />
       </div>
-      {aba === "precos" ? (
+      {aba === "tabelas" ? (
+        <TabelasPreco produtos={produtos} podeEditar={podeMover} />
+      ) : aba === "precos" ? (
         <FormacaoPreco categorias={categorias} podeAprovar={podeMover} />
       ) : aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
