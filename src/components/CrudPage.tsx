@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { ChevronDown, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -94,6 +94,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   useEffect(() => { if (props.editarAgora) setEditando({ ...props.editarAgora }); }, [props.editarAgora]);
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
+  const [fechadas, setFechadas] = useState<Set<string>>(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? new Set(fields.filter((f) => f.type === "secao").map((f) => f.name)) : new Set());
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
   const [ordem, setOrdem] = useState(0);
   const [limite, setLimite] = useState(POR_VEZ);
@@ -205,6 +207,59 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       : [Object.fromEntries(campos.filter((f) => f.type !== "readonly").map((f) => [f.label, ""]))];
     baixarPlanilha(table, [{ nome: title, linhas }]).catch(notifyError);
   }
+
+  // campo do formulário: no celular, número, caixa de marcar e campo curto ficam lado a lado (2 por linha)
+  const larguraCelular = (f: CampoForm) =>
+    f.type === "number" || f.type === "checkbox" || (f.span === 1 && f.type !== "custom" && f.type !== "textarea") ? "col-span-1" : "col-span-2";
+  // "Fora de linha (não compra mais; vende até acabar)" → nome + explicação em letra menor
+  const partesRotulo = (l: string) => { const i = l.indexOf(" ("); return i > 0 && l.endsWith(")") ? [l.slice(0, i), l.slice(i + 2, -1)] : [l, ""]; };
+  const campoForm = (f: CampoForm) => f.type === "checkbox" ? (
+    <label key={f.name} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm`}>
+      <input type="checkbox" className="h-5 w-5 shrink-0" checked={!!editando?.[f.name]} onChange={(e) => set(f.name, e.target.checked)} />
+      <span className="min-w-0 leading-tight">{partesRotulo(f.label)[0]}{partesRotulo(f.label)[1] && <span className="block text-xs text-slate-500">{partesRotulo(f.label)[1]}</span>}</span>
+    </label>
+  ) : f.type === "custom" ? (
+    <div key={f.name} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]}`}>
+      <span className="mb-1.5 block text-xs font-semibold text-slate-600">{f.label}</span>
+      {f.render!(editando![f.name], (v) => set(f.name, v), editando!)}
+    </div>
+  ) : (
+    <Field key={f.name} label={f.label} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex flex-col justify-end`}>
+      {f.type === "select" ? (
+        <select className="input" value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} required={f.required}>
+          {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      ) : f.type === "textarea" ? (
+        <textarea className="input" rows={3} value={editando![f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} />
+      ) : f.type === "readonly" ? (
+        <div className="input flex items-center bg-slate-50 font-mono text-slate-600">{editando![f.name] ?? <span className="font-sans text-slate-400">automático</span>}</div>
+      ) : f.mask ? (
+        <CampoMascara f={f} valor={editando![f.name]} row={editando!} buscando={buscando === f.name}
+          mostrarErro={tocados.has(f.name)} onBlur={() => setTocados((t) => new Set(t).add(f.name))}
+          onChange={(v) => set(f.name, v)} onBuscar={() => set(f.name, editando![f.name], true)} />
+      ) : (
+        <input
+          className="input"
+          type={f.type ?? "text"}
+          step={f.type === "number" ? "any" : undefined}
+          value={editando![f.name] ?? ""}
+          placeholder={f.placeholder}
+          onChange={(e) => set(f.name, e.target.value)}
+          required={f.required}
+        />
+      )}
+    </Field>
+  );
+
+  // seções do formulário (cada "secao" abre um bloco); no celular só a primeira parte vem aberta
+  const grupos = useMemo(() => {
+    const g: { secao: CampoForm | null; campos: CampoForm[] }[] = [{ secao: null, campos: [] }];
+    for (const f of fields) {
+      if (f.type === "secao") g.push({ secao: f, campos: [] });
+      else g[g.length - 1].campos.push(f);
+    }
+    return g.filter((x) => x.secao || x.campos.length);
+  }, [fields]);
 
   return (
     <div>
@@ -355,46 +410,26 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (
           <form onSubmit={salvar}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-              {fields.map((f) => f.type === "secao" ? (
-                <div key={f.name} className="mt-2 border-t border-slate-100 pt-4 sm:col-span-4">
-                  <div className="text-sm font-bold text-fg">{f.label}</div>
-                  {f.ajuda && <div className="text-xs text-slate-500">{f.ajuda}</div>}
-                </div>
-              ) : f.type === "custom" ? (
-                <div key={f.name} className={spanClass[f.span ?? 2]}>
-                  <span className="mb-1.5 block text-xs font-semibold text-slate-600">{f.label}</span>
-                  {f.render!(editando[f.name], (v) => set(f.name, v), editando)}
-                </div>
-              ) : (
-                <Field key={f.name} label={f.label} className={spanClass[f.span ?? 2]}>
-                  {f.type === "select" ? (
-                    <select className="input" value={editando[f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} required={f.required}>
-                      {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  ) : f.type === "textarea" ? (
-                    <textarea className="input" rows={3} value={editando[f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} />
-                  ) : f.type === "checkbox" ? (
-                    <input type="checkbox" className="h-5 w-5" checked={!!editando[f.name]} onChange={(e) => set(f.name, e.target.checked)} />
-                  ) : f.type === "readonly" ? (
-                    <div className="input flex items-center bg-slate-50 font-mono text-slate-600">{editando[f.name] ?? <span className="font-sans text-slate-400">automático</span>}</div>
-                  ) : f.mask ? (
-                    <CampoMascara f={f} valor={editando[f.name]} row={editando} buscando={buscando === f.name}
-                      mostrarErro={tocados.has(f.name)} onBlur={() => setTocados((t) => new Set(t).add(f.name))}
-                      onChange={(v) => set(f.name, v)} onBuscar={() => set(f.name, editando[f.name], true)} />
-                  ) : (
-                    <input
-                      className="input"
-                      type={f.type ?? "text"}
-                      step={f.type === "number" ? "any" : undefined}
-                      value={editando[f.name] ?? ""}
-                      placeholder={f.placeholder}
-                      onChange={(e) => set(f.name, e.target.value)}
-                      required={f.required}
-                    />
-                  )}
-                </Field>
-              ))}
+            <div className="space-y-3">
+              {grupos.map((g, k) => {
+                const campos = <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{g.campos.map(campoForm)}</div>;
+                if (!g.secao) return <div key={`g${k}`}>{campos}</div>;
+                const aberta = !fechadas.has(g.secao.name);
+                return (
+                  <section key={g.secao.name} className="rounded-xl border border-slate-200 border-l-4 border-l-modulo bg-slate-50 p-3">
+                    <button type="button" className="flex w-full items-center gap-2 text-left" aria-expanded={aberta}
+                      onClick={() => setFechadas((x) => { const n = new Set(x); if (n.has(g.secao!.name)) n.delete(g.secao!.name); else n.add(g.secao!.name); return n; })}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-modulo-texto">{g.secao.label}</span>
+                        {aberta && g.secao.ajuda && <span className="block text-xs font-normal text-slate-600">{g.secao.ajuda}</span>}
+                        {!aberta && <span className="block text-xs text-slate-500">{g.campos.length} {g.campos.length === 1 ? "campo" : "campos"} · abrir</span>}
+                      </span>
+                      <ChevronDown size={18} className={`shrink-0 text-slate-500 transition-transform ${aberta ? "rotate-180" : ""}`} aria-hidden />
+                    </button>
+                    {aberta && <div className="mt-3">{campos}</div>}
+                  </section>
+                );
+              })}
             </div>
             {anexos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
             <div className="mt-5 flex justify-end gap-2">

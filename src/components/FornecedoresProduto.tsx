@@ -65,7 +65,7 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
       )}
       {podeEditar && (
         <div className="flex flex-wrap gap-2">
-          <select className="input min-w-0 flex-1" value={novo.fornecedor_id} onChange={(e) => setNovo({ ...novo, fornecedor_id: e.target.value })} aria-label="Fornecedor a incluir">
+          <select className="input w-full sm:w-auto sm:min-w-0 sm:flex-1" value={novo.fornecedor_id} onChange={(e) => setNovo({ ...novo, fornecedor_id: e.target.value })} aria-label="Fornecedor a incluir">
             <option value="">Incluir fornecedor…</option>
             {fornecedores.filter((f) => !lista.some((x) => x.fornecedor_id === f.id)).map((f) => <option key={f.id} value={f.id}>{f.nome_fantasia?.trim() || f.nome}</option>)}
           </select>
