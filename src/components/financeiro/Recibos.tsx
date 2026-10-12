@@ -2,7 +2,7 @@
 // Saem das contas pagas (botão Recibo) ou avulsos. Numeração própria; emitido não muda, só é cancelado com motivo.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Ban, FileText, Plus, ReceiptText } from "lucide-react";
-import { Button, Field, Modal, Table } from "@/components/ui";
+import { BotaoAtalho, Button, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, docFormat, hoje } from "@/lib/format";
@@ -240,16 +240,19 @@ export function Recibos() {
 }
 
 /** Botão "Recibo" nas contas pagas: abre o recibo já emitido ou prepara um novo. */
-export function BotaoRecibo({ contaId, tipo, montar }: { contaId: string; tipo: "receber" | "pagar"; montar: () => RascunhoRecibo }) {
+export function BotaoRecibo({ contaId, tipo, montar, atalho = false }: { contaId: string; tipo: "receber" | "pagar"; montar: () => RascunhoRecibo; atalho?: boolean }) {
   const { data: recibos = [] } = useRows<Recibo>("recibos", { order: "numero", ascending: false });
   const [aberto, setAberto] = useState<RascunhoRecibo | null>(null);
   const existente = recibos.find((r) => !r.cancelado_em && (tipo === "receber" ? r.conta_receber_id : r.conta_pagar_id) === contaId);
   return (
     <>
       {aberto && <ReciboModal rascunho={aberto} onClose={() => setAberto(null)} />}
-      <Button variant="ghost" title={existente ? `Recibo nº ${existente.numero} (abrir de novo)` : "Emitir recibo"} onClick={() => setAberto(existente ?? montar())}>
+      {atalho ? (
+        <BotaoAtalho icon={ReceiptText} label={existente ? `Recibo ${existente.numero}` : "Recibo"} cor={COR_ATALHO.ciano}
+          title={existente ? `Recibo nº ${existente.numero} (abrir de novo)` : "Emitir recibo"} onClick={() => setAberto(existente ?? montar())} />
+      ) : <Button variant="ghost" title={existente ? `Recibo nº ${existente.numero} (abrir de novo)` : "Emitir recibo"} onClick={() => setAberto(existente ?? montar())}>
         <ReceiptText size={15} className={existente ? "text-emerald-600" : ""} />{existente ? <span className="text-xs">{existente.numero}</span> : null}
-      </Button>
+      </Button>}
     </>
   );
 }

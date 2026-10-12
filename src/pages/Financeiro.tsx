@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Ban, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, Undo2, Wallet } from "lucide-react";
-import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, Undo2, Wallet } from "lucide-react";
+import { Badge, BotaoAtalho, Button, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
@@ -48,6 +49,12 @@ type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: bool
 /** Mudou valor ou vencimento de uma conta já lançada: pede o motivo (fica no histórico). */
 const precisaMotivo = (orig: { valor: number; vencimento: string } | undefined, nova: { valor?: number; vencimento?: string }) =>
   !!orig && (Number(orig.valor) !== Number(nova.valor) || orig.vencimento !== nova.vencimento);
+
+/** Nome e descrição iguais (sem contar maiúsculas e espaços): o cartão mostra uma vez só. */
+const mesmoTexto = (a: string | null | undefined, b: string | null | undefined) => {
+  const n = (t: string | null | undefined) => (t ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return n(a) === n(b);
+};
 
 const FILTROS = [
   { value: "pendentes", label: "Em aberto" },
@@ -132,11 +139,11 @@ export default function Financeiro() {
       ) : (
         <>
           <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Resumo label="A receber (aberto)" valor={resumo.aReceber} />
-            <Resumo label="Recebimentos vencidos" valor={resumo.vencidoReceber} alerta />
-            {veContasPagar && <Resumo label="A pagar (aberto)" valor={resumo.aPagar} />}
-            {veContasPagar && <Resumo label="A pagar nos próximos 7 dias" valor={resumo.pagar7dias} alerta={resumo.vencidoPagar > 0}
-              sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
+            <Indicador rotulo="A receber (aberto)" icon={ArrowDownCircle} cor="azul" valor={brl(resumo.aReceber)} />
+            <Indicador rotulo="Recebimentos vencidos" icon={AlertTriangle} cor={resumo.vencidoReceber > 0 ? "vermelho" : "verde"} valor={brl(resumo.vencidoReceber)} />
+            {veContasPagar && <Indicador rotulo="A pagar (aberto)" icon={ArrowUpCircle} cor="laranja" valor={brl(resumo.aPagar)} />}
+            {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
+              valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>
           {aba === "pagar" && veContasPagar ? <ContasPagar contas={pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)} /> : <ContasReceber contas={receber} />}
         </>
@@ -145,30 +152,29 @@ export default function Financeiro() {
   );
 }
 
-function Resumo({ label, valor, alerta, sub }: { label: string; valor: number; alerta?: boolean; sub?: string }) {
-  return (
-    <Card className="p-4">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className={`mt-1 text-lg font-semibold ${alerta && valor > 0 ? "text-red-600" : ""}`}>{brl(valor)}</div>
-      {sub && <div className="text-xs text-red-600">{sub}</div>}
-    </Card>
-  );
-}
-
 function Filtros({ filtro, setFiltro, mes, setMes, onNovo, onImprimir, onExportar }: {
   filtro: string; setFiltro: (v: string) => void; mes: string; setMes: (v: string) => void; onNovo?: () => void;
   onImprimir: () => void; onExportar: () => void;
 }) {
   return (
-    <div className="mb-3 flex flex-wrap items-end gap-2">
-      <select className="input w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-        {FILTROS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-      </select>
-      <label className="flex items-center gap-2 text-sm text-slate-600">Vencimento em <input className="input w-auto" type="month" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês de vencimento" /></label>
-      <div className="flex-1" />
-      <Button variant="secondary" onClick={onImprimir}><Printer size={16} /> Imprimir</Button>
-      <Button variant="secondary" onClick={onExportar}><FileDown size={16} /> Exportar</Button>
-      {onNovo && <Button onClick={onNovo}><Plus size={16} /> Nova conta</Button>}
+    // celular: filtro e mês lado a lado, e os três botões numa linha só
+    <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+      <label className="min-w-0">
+        <span className="mb-1 block text-xs font-semibold text-slate-500 sm:sr-only">Mostrar</span>
+        <select className="input sm:w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          {FILTROS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+        </select>
+      </label>
+      <label className="min-w-0 sm:flex sm:items-center sm:gap-2">
+        <span className="mb-1 block text-xs font-semibold text-slate-500 sm:mb-0 sm:text-sm sm:font-normal sm:text-slate-600">Vencimento em</span>
+        <input className="input sm:w-auto" type="month" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês de vencimento" />
+      </label>
+      <div className="hidden flex-1 sm:block" />
+      <div className={`col-span-2 grid gap-2 sm:flex ${onNovo ? "grid-cols-3" : "grid-cols-2"}`}>
+        <Button variant="secondary" onClick={onImprimir}><Printer size={16} /> Imprimir</Button>
+        <Button variant="secondary" onClick={onExportar}><FileDown size={16} /> Exportar</Button>
+        {onNovo && <Button onClick={onNovo}><Plus size={16} /> Nova<span className="hidden sm:inline"> conta</span></Button>}
+      </div>
     </div>
   );
 }
@@ -282,6 +288,36 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Forma: c.forma_pagamento }))}
         onNovo={podeEditar ? () => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao, categoria: "vendas", rateio: [] } as any) : undefined} />
+      <ListaContas vazia={lista.length === 0}>
+        {lista.map((c) => {
+          const s = situacaoConta(c.status, c.vencimento);
+          const links = [...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])];
+          const nomeCliente = c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null;
+          return (
+            <CartaoConta key={c.id} titulo={nomeCliente || c.descricao} descricao={mesmoTexto(nomeCliente || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
+              detalhe={<>{[c.forma_pagamento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}<SituacaoLink links={links} /></>}
+              valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento}
+              situacao={s !== "aberto" ? <Badge value={s} /> : null}
+              acoes={<>
+                {c.status === "aberto" && c.cliente?.whatsapp && (
+                  <BotaoAtalho icon={MessageCircle} label="Cobrar" cor={COR_ATALHO.verde} href={whatsappLink(c.cliente.whatsapp, mensagemCobranca(c))} title="Enviar cobrança no WhatsApp" />
+                )}
+                {c.status === "aberto" && (
+                  <BotaoAtalho icon={Link2} label={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "Link enviado" : "Link"} cor={COR_ATALHO.azul}
+                    title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)} />
+                )}
+                {c.status === "aberto" && pagamentoDe(c) && <BotaoAtalho icon={Copy} label="Copiar" cor={COR_ATALHO.cinza} title="Copiar dados para pagamento" onClick={() => copiar(pagamentoDe(c), "Dados para pagamento")} />}
+                {podeEditar && c.status === "aberto" && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o recebimento" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })} />}
+                {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
+                {podeEditar && c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar a baixa (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
+                {podeEditar && c.status === "aberto"
+                  ? <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c })} />
+                  : <BotaoAtalho icon={Eye} label="Ver" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c })} />}
+              </>} />
+          );
+        })}
+      </ListaContas>
+      <div className="hidden md:block">
       <Table
         empty={lista.length === 0}
         head={<><th className="th">Vencimento</th><th className="th">Descrição</th><th className="th">Cliente</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
@@ -316,6 +352,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
           );
         })}
       </Table>
+      </div>
 
       <Modal open={!!nova} onClose={() => setNova(null)}
         title={!nova?.id ? "Nova conta a receber" : somenteVer ? "Conta a receber" : "Editar conta a receber"}>
@@ -455,6 +492,36 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
           ))}
         </div>
       )}
+      {podeDecidir && abertasVisiveis.length > 0 && (
+        <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">
+          <input type="checkbox" className="h-5 w-5" checked={todasMarcadas} onChange={marcarTodas} /> Marcar todas em aberto ({abertasVisiveis.length})
+        </label>
+      )}
+      <ListaContas vazia={lista.length === 0}>
+        {lista.map((c) => {
+          const s = situacaoConta(c.status, c.vencimento);
+          return (
+            <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
+              detalhe={[c.categoria, c.documento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}
+              valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} marcado={sel.has(c.id)}
+              marcar={podeDecidir && c.status === "aberto"
+                ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
+                : null}
+              situacao={<>
+                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} />
+                {c.decisao === "nao_pagar" && c.decisao_motivo && <span className="w-full text-xs text-slate-500">{c.decisao_motivo}</span>}
+              </>}
+              acoes={<>
+                {podeDecidir && c.status === "aberto" && <BotoesDecisao conta={c} atalho />}
+                {c.status === "aberto" && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
+                {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
+                {c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
+                <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setEditando(c)} />
+              </>} />
+          );
+        })}
+      </ListaContas>
+      <div className="hidden md:block">
       <Table
         empty={lista.length === 0}
         head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Descrição e fornecedor</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
@@ -480,6 +547,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
           </tr>
         ))}
       </Table>
+      </div>
 
       <Modal open={!!editando} onClose={() => setEditando(null)} title={editando?.id ? "Editar conta a pagar" : "Nova conta a pagar"}>
         {editando && (

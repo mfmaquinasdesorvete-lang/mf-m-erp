@@ -2,7 +2,7 @@
 // ações das contas marcadas e o pagamento em lote (uma conta bancária por unidade).
 import { useState, type FormEvent } from "react";
 import { Ban, CalendarClock, Check, CheckCheck, Wallet, X } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { BotaoAtalho, Button, COR_ATALHO, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje as hojeISO } from "@/lib/format";
 import { somarDias } from "@/lib/financeiro";
@@ -47,12 +47,31 @@ export function ChipDecisao({ conta, hoje = hojeISO() }: { conta: ContaDecisao; 
   return <span title={r.dica} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${COR_TOM[r.tom]}`}>{r.texto}</span>;
 }
 
-/** Três botões por conta: Pagar · Agendar · Não pagar. Tocar no que já está escolhido desfaz. */
-export function BotoesDecisao({ conta, compacto = false }: { conta: Conta; compacto?: boolean }) {
+/**
+ * Três botões por conta: Pagar · Agendar · Não pagar. Tocar no que já está escolhido desfaz.
+ * `atalho`: ícones coloridos com o nome embaixo (cartão do celular), soltos na grade de ações de quem chama.
+ */
+export function BotoesDecisao({ conta, compacto = false, atalho = false }: { conta: Conta; compacto?: boolean; atalho?: boolean }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | null>(null);
   if (conta.status !== "aberto") return null;
   const d = conta.decisao;
+  const janelas = (<>
+    {janela === "agendar" && <ModalAgendar contas={[conta]} onClose={() => setJanela(null)} />}
+    {janela === "nao_pagar" && <ModalNaoPagar contas={[conta]} onClose={() => setJanela(null)} />}
+  </>);
+  if (atalho) return (<>
+    <BotaoAtalho icon={Check} label={d === "pagar" ? "Aprovada" : "Pagar"} cor={COR_ATALHO.verde} corAtiva="#047857" ativo={d === "pagar"} disabled={ocupado}
+      title={d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
+      onClick={() => programar([conta.id], d === "pagar" ? "limpar" : "pagar")} />
+    <BotaoAtalho icon={CalendarClock} label={d === "agendado" && conta.pagar_em ? `Dia ${dataBR(conta.pagar_em).slice(0, 5)}` : "Agendar"}
+      cor={COR_ATALHO.azul} corAtiva="#1d4ed8" ativo={d === "agendado"} disabled={ocupado}
+      title={d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"} onClick={() => setJanela("agendar")} />
+    <BotaoAtalho icon={Ban} label="Não pagar" cor={COR_ATALHO.cinza} corAtiva="#475569" ativo={d === "nao_pagar"} disabled={ocupado}
+      title={d === "nao_pagar" ? `Não pagar: ${conta.decisao_motivo ?? ""}. Toque de novo para desfazer` : "Não quero pagar esta agora"}
+      onClick={() => (d === "nao_pagar" ? programar([conta.id], "limpar") : setJanela("nao_pagar"))} />
+    {janelas}
+  </>);
   const base = `inline-flex items-center gap-1 rounded-lg border font-semibold transition disabled:opacity-50 ${compacto ? "gap-0.5 px-1.5 py-1 text-xs" : "px-2.5 py-1.5 text-xs"}`;
   const estilo = (ativo: boolean, cor: string) => ativo ? `${base} ${cor}` : `${base} border-slate-200 bg-surface text-slate-600 hover:border-slate-400`;
   return (
@@ -75,8 +94,7 @@ export function BotoesDecisao({ conta, compacto = false }: { conta: Conta; compa
         onClick={() => (d === "nao_pagar" ? programar([conta.id], "limpar") : setJanela("nao_pagar"))}>
         <Ban size={14} aria-hidden /> Não pagar
       </button>
-      {janela === "agendar" && <ModalAgendar contas={[conta]} onClose={() => setJanela(null)} />}
-      {janela === "nao_pagar" && <ModalNaoPagar contas={[conta]} onClose={() => setJanela(null)} />}
+      {janelas}
     </span>
   );
 }

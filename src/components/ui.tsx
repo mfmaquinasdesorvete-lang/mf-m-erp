@@ -106,6 +106,34 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
   );
 }
 
+/** Cores dos botões em ícone (as mesmas dos atalhos da tela inicial; mudam com o tema). */
+export const COR_ATALHO = {
+  verde: "var(--kpi-verde)", azul: "var(--kpi-azul)", ciano: "var(--kpi-ciano)", laranja: "var(--kpi-laranja)",
+  roxo: "var(--kpi-roxo)", rosa: "var(--kpi-rosa)", cinza: "rgb(var(--slate-500))",
+};
+
+/**
+ * Botão de ação em ícone colorido com o nome embaixo, como os atalhos da tela inicial.
+ * `ativo` (escolha feita) pinta o ícone com a cor sólida e letra branca.
+ */
+export function BotaoAtalho({ icon: Icon, label, cor, corAtiva, ativo, onClick, href, title, disabled }: {
+  icon: LucideIcon; label: string; cor: string; corAtiva?: string; ativo?: boolean; onClick?: () => void;
+  href?: string; title?: string; disabled?: boolean;
+}) {
+  const estilo = ativo
+    ? { background: corAtiva ?? cor, color: "#fff" }
+    : { background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${cor} 40%, transparent)` };
+  const corpo = (<>
+    <span className="grid h-11 w-11 place-items-center rounded-2xl transition group-hover:scale-105 group-active:scale-95" style={estilo}>
+      <Icon size={20} aria-hidden />
+    </span>
+    <span className="max-w-full text-[11px] font-semibold leading-tight text-slate-700">{label}</span>
+  </>);
+  const cls = "group flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-1 text-center transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50";
+  if (href) return <a href={href} target="_blank" rel="noreferrer" title={title} className={cls}>{corpo}</a>;
+  return <button type="button" title={title} aria-pressed={ativo} disabled={disabled} onClick={onClick} className={cls}>{corpo}</button>;
+}
+
 type Tom = "neutro" | "bom" | "atencao" | "critico" | "info";
 const corDoTom: Record<Tom, CorCartao> = { neutro: "neutro", info: "azul", bom: "verde", atencao: "ambar", critico: "vermelho" };
 
