@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FreteVenda } from "@/components/FreteVenda";
+import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, RotateCcw, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -530,16 +531,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             </span>
             {Number(p.desconto) > 0 && <span className="mt-1 block text-xs text-slate-600">= {brl(p.desconto)} de desconto</span>}
           </Field>
-          <Field label="Frete (R$)">
-            <input className="input" type="number" step="0.01" min={0} value={p.frete} disabled={!editavel} onChange={(e) => set({ frete: Number(e.target.value) })} />
-          </Field>
-          <Field label="Frete por conta" className="col-span-2">
-            <select className="input" value={p.modalidade_frete} disabled={!editavel} onChange={(e) => set({ modalidade_frete: Number(e.target.value) })}>
-              <option value={9}>Sem frete</option>
-              <option value={0}>Emitente (MF Máquinas)</option>
-              <option value={1}>Destinatário (cliente)</option>
-            </select>
-          </Field>
+          <FreteRapido pedido={p as any} cliente={cliente} produtos={produtos} disabled={!editavel} podeCotar={pode("cotar_frete")}
+            onChange={(patch) => set(patch as Partial<Pedido>)} />
           <Field label="Observações" className="col-span-2 sm:col-span-4">
             <input className="input" value={p.observacoes ?? ""} disabled={!livre} onChange={(e) => set({ observacoes: e.target.value })} />
           </Field>

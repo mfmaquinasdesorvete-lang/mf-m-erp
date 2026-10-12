@@ -49,6 +49,15 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
     await recarregarEnvios();
     setEnvioAberto(data as string);
   }
+  // ao fechar o envio, o frete aprovado lá pode ter ido para o pedido: traz para a tela
+  // (senão "Salvar orçamento" gravaria o valor antigo por cima)
+  async function fecharEnvio() {
+    setEnvioAberto(null);
+    recarregarEnvios();
+    invalidate("pedidos");
+    const { data } = await supabase.from("pedidos").select("frete, modalidade_frete, transportadora_id").eq("id", pedido.id).maybeSingle();
+    if (data) onAlterado({ frete: Number(data.frete ?? 0), modalidade_frete: data.modalidade_frete, transportadora_id: data.transportadora_id });
+  }
   const [envio, setEnvio] = useState({ codigo_rastreio: pedido.codigo_rastreio ?? "", enviado_em: pedido.enviado_em ?? hoje(), volumes: pedido.volumes ?? undefined });
 
   // Resumo da carga para a transportadora calcular
@@ -121,7 +130,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
 
   const blocoEnvio = (
     <div className="rounded-xl border-2 border-brand/30 bg-brand-light/40 p-3 text-sm">
-      {envioAberto && <EnvioForm envioId={envioAberto} onClose={() => { setEnvioAberto(null); recarregarEnvios(); invalidate("pedidos"); }} />}
+      {envioAberto && <EnvioForm envioId={envioAberto} onClose={fecharEnvio} />}
       {envioAtivo ? (
         <div className="flex flex-wrap items-center gap-3">
           <PackageOpen size={18} className="text-brand" />
