@@ -69,8 +69,9 @@ export default function AnalistaFiscal() {
     const s = impostosDasNotas(notas.filter((n) => saidaDeVenda(n) && n.created_at.startsWith(mes)));
     const c = creditosEntradas(entradas.filter((n) => (n.data_emissao ?? "").startsWith(mes)), xmls);
     const d = despesasComCredito(pagar, [mes]);
-    return { s, c, d, ap: apuracao(s, c, d, lucroMeses[lucroMeses.length - 1] ?? null) };
-  }, [notas, entradas, pagar, xmls, mes, lucroMeses]);
+    // IRPJ/CSLL só com o financeiro completo (o lucro do mês vem das contas lançadas)
+    return { s, c, d, ap: apuracao(s, c, d, a.dadosFinanceiros ? lucroMeses[lucroMeses.length - 1] ?? null : null), semIr: !a.dadosFinanceiros };
+  }, [notas, entradas, pagar, xmls, mes, lucroMeses, a.dadosFinanceiros]);
 
   const carregando = l1 || l2;
   const nomeUnid = atual ? unidades.find((u) => u.id === atual)?.nome : "SC e SP";
@@ -241,7 +242,7 @@ function Economia({ estrategias }: { estrategias: Estrategia[] }) {
   );
 }
 
-function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosDasNotas>; c: ReturnType<typeof creditosEntradas>; d: ReturnType<typeof despesasComCredito>; ap: ReturnType<typeof apuracao> } }) {
+function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosDasNotas>; c: ReturnType<typeof creditosEntradas>; d: ReturnType<typeof despesasComCredito>; ap: ReturnType<typeof apuracao>; semIr: boolean } }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
@@ -266,7 +267,9 @@ function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosD
       </ul>
       <Card className="p-4">
         <p className="mb-1 flex items-baseline justify-between gap-2 font-bold text-fg"><span>Total estimado do mês</span><span className="num">{brl(m.ap.total)}</span></p>
-        <p className="text-xs text-slate-500">Saldo credor fica para o mês seguinte. IRPJ/CSLL pelo lucro do DRE (estimativa por balancete).</p>
+        <p className="text-xs text-slate-500">Saldo credor fica para o mês seguinte. {m.semIr
+          ? "IRPJ/CSLL fora da conta: o financeiro do ERP ainda não tem 10 dos últimos 12 meses lançados (o lucro sairia errado)."
+          : "IRPJ/CSLL pelo lucro do DRE (estimativa por balancete)."}</p>
         {(m.s.ibs || m.s.cbs) ? <p className="mt-2 text-xs text-slate-600">IBS/CBS de teste destacados: {brl(m.s.ibs + m.s.cbs)}. Em 2026 eles são compensados com o PIS/COFINS (não aumentam o custo).</p> : null}
       </Card>
       {m.d.linhas.length > 0 && (
@@ -294,6 +297,15 @@ function Regime({ a }: { a: ReturnType<typeof analisar> }) {
         <div className="flex justify-between gap-2 border-t border-slate-200 pt-1 text-base font-bold"><dt>Total no ano</dt><dd>{brl(v.total)}</dd></div>
       </dl>
     </div>
+  );
+  if (!a.dadosFinanceiros) return (
+    <Card className="space-y-2 border-l-4 border-l-amber-500 p-4 text-sm text-slate-600">
+      <p className="font-bold text-fg">Ainda não dá para comparar com segurança</p>
+      <p>O lucro do ano vem do financeiro do ERP (contas a pagar e a receber), que tem contas lançadas em só <b>{a.mesesComContas} dos últimos 12 meses</b>.
+        Com isso o lucro sairia errado e a comparação poderia indicar o regime errado.</p>
+      <p>Quando o financeiro tiver 10 meses ou mais, a conta aparece aqui sozinha. Até lá, peça ao contador a comparação pelo balancete (a opção é feita em janeiro).</p>
+      <p className="text-xs text-slate-500">Receita de venda dos últimos 12 meses pelas NF-e: {brl(a.s12.receita)} (sem transferências e remessas).</p>
+    </Card>
   );
   return (
     <div className="space-y-3">

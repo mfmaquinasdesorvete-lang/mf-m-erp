@@ -50,17 +50,38 @@ export function mesesAte(ate: string, n: number) {
 
 /* ------------------------------------------------------------------ saídas ------------------------------------------------------------------ */
 
-/** Vendas que contam para o imposto: autorizadas, de produção, de saída, sem transferência entre SC e SP e sem devolução de compra. */
-export const saidaDeVenda = (n: NotaSaida) =>
-  n.status === "autorizada" && n.ambiente !== "homologacao" && !n.excluida_em && !n.transferencia_id
-  && (n.tipo_operacao ?? "saida") !== "entrada" && (n.finalidade ?? "normal") !== "devolucao";
+/**
+ * CFOP de venda (é receita): x1xx de produção ou revenda (menos x15x, transferência) e x40x com substituição tributária.
+ * Remessas e retornos (x9xx: conserto, comodato, demonstração, industrialização), devoluções (x2xx), transferências
+ * (x15x) e venda de ativo (x55x) não são faturamento.
+ */
+export function cfopDeVenda(cfop?: string | null) {
+  const c = dig(cfop);
+  if (c.length !== 4 || !"567".includes(c[0])) return false;
+  const r = c.slice(1);
+  return (r[0] === "1" && !r.startsWith("15")) || r.startsWith("40");
+}
+const transferencia = (cfop?: string | null) => /^[567]15\d$/.test(dig(cfop));
 
-/** Receita e impostos destacados nas notas (somando os itens). */
+/** Saídas que entram na apuração: autorizadas, de produção, de saída e que não são transferência entre SC e SP. */
+export const saidaDeVenda = (n: NotaSaida) => {
+  if (n.status !== "autorizada" || n.ambiente === "homologacao" || n.excluida_em || n.transferencia_id) return false;
+  if ((n.tipo_operacao ?? "saida") === "entrada") return false;
+  const itens = n.payload?.items ?? [];
+  // nota importada de outro sistema não tem o vínculo da transferência: reconhece pelo CFOP
+  return !(itens.length && itens.every((i) => transferencia(i.cfop)));
+};
+
+/** Receita (só itens com CFOP de venda) e impostos destacados em todas as saídas apuráveis. */
 export function impostosDasNotas(notas: NotaSaida[]) {
-  const t = { ...ZERO, receita: 0, notas: notas.length };
+  const t = { ...ZERO, receita: 0, notas: 0, producao: 0, ipiProducao: 0 };
   for (const n of notas) {
-    t.receita += Number(n.valor_total ?? 0);
-    for (const i of n.payload?.items ?? []) {
+    const itens = n.payload?.items ?? [];
+    const vendas = itens.filter((i) => cfopDeVenda(i.cfop));
+    if (vendas.length || !itens.length) t.notas++;
+    t.receita += itens.length ? vendas.reduce((s, i) => s + Number(i.valor_bruto ?? i.valor_total ?? 0) - Number(i.valor_desconto ?? 0), 0) : Number(n.valor_total ?? 0);
+    for (const i of vendas) if (dig(i.cfop).slice(1) === "101") { t.producao += Number(i.valor_bruto ?? 0); t.ipiProducao += Number(i.ipi_valor ?? 0); }
+    for (const i of itens) {
       t.icms += Number(i.icms_valor ?? 0); t.ipi += Number(i.ipi_valor ?? 0);
       t.pis += Number(i.pis_valor ?? 0); t.cofins += Number(i.cofins_valor ?? 0);
       t.difal += Number(i.icms_valor_uf_destino ?? 0); t.fcp += Number(i.fcp_valor_uf_destino ?? 0);
@@ -246,9 +267,13 @@ export function analisar(ctx: ContextoFiscal) {
   const c12 = creditosEntradas(entradas12, new Map());
   const d12 = despesasComCredito(ctx.contas, meses);
   const lucro12 = r2(ctx.lucroMeses.reduce((s, v) => s + v, 0));
+  // o lucro vem do DRE gerencial (contas a pagar e a receber): com poucos meses lançados ele não serve para decidir regime
+  const mesesComContas = meses.filter((m) => ctx.contas.some((c) => c.status !== "cancelado" && mesDaConta(c) === m)).length;
+  const dadosFinanceiros = mesesComContas >= 10;
   const ir12 = irpjCsll(lucro12, 12);
   const regimes = comparaRegimes({ receita: s12.receita, icms: s12.icms, lucro: lucro12, creditosPisCofins: c12.pis + c12.cofins + d12.credito });
   const lucroReal = ctx.unidades.every((u) => (u.regime_tributario ?? 3) === 3);
+  const fabricaVendeu = (c: ContextoFiscal) => c.unidades.some((u) => u.fabrica);
 
   /* ---------- auditoria ---------- */
   const achados: Achado[] = [];
@@ -350,6 +375,12 @@ export function analisar(ctx: ContextoFiscal) {
     acao: "Conferir na TIPI com o contador e preencher a alíquota no cadastro.", quem: "Você e o contador", link: "/produtos",
   });
 
+  if (fabricaVendeu(ctx) && s12.producao > 0 && s12.ipiProducao === 0) add({
+    id: "ipi_producao", nivel: "alerta", titulo: `${brl(s12.producao)} em vendas de produção própria sem IPI`,
+    detalhe: "Nenhuma venda com CFOP 5101/6101 dos últimos 12 meses tem IPI destacado. Se a TIPI dá alíquota para o NCM das máquinas, falta IPI (risco de autuação). Se a alíquota é zero, o IPI pago nas compras vira saldo credor que pode ser recuperado.",
+    acao: "Confirmar com o contador a alíquota da TIPI de cada máquina e preencher no cadastro do produto.", quem: "Você e o contador", link: "/produtos",
+  });
+
   if (s12.difal + s12.fcp > 0) add({
     id: "difal", nivel: "alerta", titulo: `${brl(s12.difal + s12.fcp)} de DIFAL nos últimos 12 meses`,
     detalhe: "DIFAL só é devido na venda a consumidor final não contribuinte de outro estado. Cliente com inscrição estadual (contribuinte) não paga DIFAL na revenda.",
@@ -385,6 +416,14 @@ export function analisar(ctx: ContextoFiscal) {
     como: ["Separar (laudo técnico simples ou medidor) quanto da energia é da produção.", "O contador lança o crédito na apuração do ICMS."],
     quem: "Você e o contador", base: "LC 87/1996 (Lei Kandir), art. 33, II, b",
   });
+  if (fabricaVendeu(ctx) && s12.producao > 0 && s12.ipiProducao === 0) est.push({
+    id: "ipi_saldo", situacao: "avaliar",
+    titulo: "Saldo credor de IPI: compensar com outros tributos ou pedir de volta",
+    porque: "Se as máquinas saem com IPI zero e as compras de insumos vêm com IPI, esse IPI pago vira saldo credor. Ele pode ser compensado com outros tributos federais (como o PIS/COFINS ou o IRPJ) ou ressarcido em dinheiro.",
+    economiaTexto: "o IPI destacado nas notas de compra de insumos (veja a Apuração do mês)",
+    como: ["Confirmar com o contador que a alíquota das máquinas na TIPI é zero.", "Conferir o saldo credor no livro de IPI (EFD ICMS/IPI).", "Pedir o ressarcimento/compensação trimestral pelo PER/DCOMP."],
+    quem: "Contador", base: "Lei 9.779/1999, art. 11; IN RFB 2.055/2021",
+  });
   est.push({
     id: "ativo", situacao: "avaliar",
     titulo: "Crédito sobre máquinas e equipamentos comprados para a fábrica",
@@ -406,13 +445,16 @@ export function analisar(ctx: ContextoFiscal) {
     id: "jcp", situacao: "avaliar",
     titulo: "Juros sobre capital próprio (JCP) em vez de só distribuir lucro",
     porque: "O JCP pago aos sócios é dedutível (economiza 34% de IRPJ/CSLL) e o sócio paga 15% na fonte: sobra ~19% de economia sobre o valor pago.",
-    economiaTexto: lucro12 > 0 ? `até ~19% do JCP pago (limite pela TJLP sobre o patrimônio líquido)` : "precisa de lucro no ano",
+    economiaTexto: "até ~19% do JCP pago (limite pela TJLP sobre o patrimônio líquido; precisa de lucro no ano)",
     como: ["O contador calcula o limite (TJLP × patrimônio líquido ajustado).", "Deliberar e pagar/creditar o JCP aos sócios no período."],
     quem: "Contador", base: "Lei 9.249/1995, art. 9º (com as mudanças da Lei 14.789/2023)",
   });
-  const mesesPrejuizo = ctx.lucroMeses.filter((v) => v <= 0).length;
+  // só os meses com contas lançadas: mês vazio no financeiro não é prejuízo
+  const temContas = meses.map((m) => ctx.contas.some((c) => c.status !== "cancelado" && mesDaConta(c) === m));
+  const mesesPrejuizo = ctx.lucroMeses.filter((v, k) => temContas[k] && v <= 0).length;
   const receitaMeses = meses.map((m) => impostosDasNotas(vendas.filter((n) => n.created_at.startsWith(m))).receita);
-  const antecipacaoEvitavel = r2(ctx.lucroMeses.reduce((s, v, k) => s + (v <= 0 ? receitaMeses[k] * (0.08 * 0.15 + 0.12 * 0.09) : 0), 0));
+  const antecipacaoEvitavel = dadosFinanceiros
+    ? r2(ctx.lucroMeses.reduce((s, v, k) => s + (temContas[k] && v <= 0 ? receitaMeses[k] * (0.08 * 0.15 + 0.12 * 0.09) : 0), 0)) : 0;
   est.push({
     id: "suspensao", situacao: mesesPrejuizo ? "aplicar" : "avaliar",
     titulo: "Pagar IRPJ/CSLL mensal pelo lucro real do mês (suspensão/redução)",
@@ -434,7 +476,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "doacoes", situacao: "avaliar",
     titulo: "Doações incentivadas: destinar parte do IRPJ sem custo",
     porque: "Parte do IRPJ pode ir para projetos (criança e adolescente, idoso, cultura, esporte) e ser abatida do imposto: o valor sai do imposto, não do caixa.",
-    economiaTexto: ir12.irpj ? `IRPJ estimado: ${brl(ir12.irpj)} no ano` : undefined,
+    economiaTexto: dadosFinanceiros && ir12.irpj ? `IRPJ estimado: ${brl(ir12.irpj)} no ano` : undefined,
     como: ["Escolher os fundos/projetos com o contador até dezembro.", "Guardar os recibos para a dedução."],
     quem: "Contador", base: "Lei 8.069/1990 (FIA), Lei 12.213/2010 (Idoso), Lei 8.313/1991 (Rouanet), Lei 11.438/2006 (Esporte)",
     atencao: "Cada lei tem um limite sobre o IRPJ; só no Lucro Real.",
@@ -455,7 +497,14 @@ export function analisar(ctx: ContextoFiscal) {
     como: ["Revisar com o contador o NCM de cada máquina na TIPI.", "Pedir Solução de Consulta à Receita se houver dúvida entre dois NCM."],
     quem: "Você e o contador", base: "TIPI (Decreto 11.158/2022) e Regras Gerais de Interpretação do SH",
   });
-  est.push({
+  if (!dadosFinanceiros) est.push({
+    id: "regime", situacao: "avaliar",
+    titulo: "Lucro Real x Presumido: comparar quando o financeiro tiver o ano todo",
+    porque: `O lucro do ano vem do financeiro do ERP, que tem contas em só ${mesesComContas} dos 12 meses. Com isso a comparação daria um resultado enganoso.`,
+    como: ["Lançar no ERP as contas a pagar e a receber dos meses que faltam (ou importar do sistema anterior).", "Enquanto isso, o contador compara com o balancete contábil, até dezembro."],
+    quem: "Você e o contador", base: "Lei 9.718/1998; Lei 9.430/1996; LC 224/2025; LC 214/2025",
+  });
+  else est.push({
     id: "regime", situacao: lucroReal && regimes.melhor === "presumido" && regimes.diferenca > 5000 ? "avaliar" : "ja_aplica",
     titulo: regimes.melhor === "real" ? "Lucro Real é o regime mais barato hoje" : "Comparar Lucro Real x Presumido para o próximo ano",
     porque: regimes.melhor === "real"
@@ -482,5 +531,5 @@ export function analisar(ctx: ContextoFiscal) {
     economia: r2(est.filter((e) => e.situacao !== "ja_aplica").reduce((s, e) => s + (e.economia ?? 0), 0)),
     oportunidades: est.filter((e) => e.situacao !== "ja_aplica").length,
   };
-  return { achados, estrategias: est, resumo, s12, c12, d12, lucro12, ir12, regimes, vendas };
+  return { achados, estrategias: est, resumo, s12, c12, d12, lucro12, ir12, regimes, vendas, mesesComContas, dadosFinanceiros };
 }
