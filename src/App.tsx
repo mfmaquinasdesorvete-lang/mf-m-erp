@@ -16,6 +16,7 @@ import Login, { NovaSenha } from "@/pages/Login";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Pedidos = lazy(() => import("@/pages/Pedidos"));
 const Pdv = lazy(() => import("@/pages/Pdv"));
+const Sorveteria = lazy(() => import("@/pages/Sorveteria"));
 const CotacaoPublica = lazy(() => import("@/pages/CotacaoPublica"));
 const Assistencia = lazy(() => import("@/pages/Assistencia"));
 const Produtos = lazy(() => import("@/pages/Produtos"));
@@ -160,6 +161,7 @@ export default function App() {
             <Routes>
               {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
               {podeVer(perfil.papel, "pedidos", perfil.papeis_extras) && <Route path="pdv" element={<Pdv />} />}
+              {podeVer(perfil.papel, "pedidos", perfil.papeis_extras) && <Route path="sorveteria" element={<Sorveteria />} />}
               <Route element={<Layout />}>
                 <Route index element={perfil.papel === "contador" ? <Navigate to="/contador" replace /> : <Dashboard />} />
                 {ROTAS.filter((r) => podeVer(perfil.papel, r.tela, perfil.papeis_extras)).map((r) => (
