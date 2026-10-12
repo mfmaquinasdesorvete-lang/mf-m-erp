@@ -943,6 +943,14 @@ function comercialDemo(db: Db) {
     { id: "cr2", categoria: "Peças de Reposição", vendedor_id: null, percentual: 6, ativo: true, created_at: quando(-30) },
     { id: "cr3", categoria: "Vedantes/ Orings My Frost", vendedor_id: "v1", percentual: 8, ativo: true, created_at: quando(-10) },
   ];
+  // tabelas de preço: marketplace mais caro (taxas), revenda com desconto; o cliente Açaí & Cia é revendedor
+  db.tabelas_preco = [
+    { id: "tp1", nome: "Marketplace", canal: "marketplace", ajuste_percentual: 20, arredondamento: "final90", observacoes: "Cobre a taxa do marketplace e o frete grátis", ativo: true, created_at: quando(-40) },
+    { id: "tp2", nome: "Revenda", canal: "revenda", ajuste_percentual: -15, arredondamento: "centavos", observacoes: "Pedido mínimo R$ 1.000", ativo: true, created_at: quando(-40) },
+  ];
+  db.tabela_preco_itens = [{ id: "tpi1", tabela_id: "tp2", produto_id: "p5", preco: 72, created_at: quando(-20) }];
+  const revendedor = db.clientes.find((c) => c.id === "c2");
+  if (revendedor) revendedor.tabela_preco_id = "tp2";
   db.comissoes = [];
   for (const c of db.contas_receber.filter((x) => x.status === "pago" && x.pedido_id)) {
     const p = db.pedidos.find((x) => x.id === c.pedido_id);

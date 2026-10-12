@@ -13,6 +13,7 @@ import { ModuloContext } from "@/lib/modulo";
 import logo from "@/assets/logo.webp";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 import { VendedorSelect } from "@/components/VendedorSelect";
 import { LinkPagamentoModal, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -59,11 +60,27 @@ export default function Pdv() {
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; user_id: string | null; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: formas = [] } = useFormasPagamento();
   const { data: links = [] } = useRows<CobrancaLink>("cobrancas_link");
+  const { data: tabelas = [] } = useRows<TabelaPreco>("tabelas_preco", { order: "nome", ascending: true });
+  const { data: precosFixos = [] } = useRows<PrecoFixo>("tabela_preco_itens");
   const invalidate = useInvalidate();
 
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
   const [itens, setItens] = useState<Linha[]>([]);
   const [clienteId, setClienteId] = useState<string | null>(null);
+  const [tabelaId, setTabelaId] = useState<string | null>(null);
+  const tabela = tabelas.find((t) => t.id === tabelaId) ?? null;
+  const precoPdv = (p: Produto, t = tabela) => precoNaTabela(t, p, precosFixos).preco;
+  // trocar a tabela (Revenda, Marketplace…) reprecifica o carrinho
+  function usarTabela(id: string | null) {
+    const t = tabelas.find((x) => x.id === id) ?? null;
+    setTabelaId(id);
+    setItens((l) => l.map((i) => { const p = produtos.find((x) => x.id === i.produto_id); return p ? { ...i, valor_unitario: precoPdv(p, t) } : i; }));
+  }
+  function escolherCliente(id: string | null) {
+    setClienteId(id);
+    const t = (clientes.find((c) => c.id === id) as any)?.tabela_preco_id as string | null | undefined;
+    if (t && t !== tabelaId && tabelas.some((x) => x.id === t && x.ativo)) usarTabela(t);
+  }
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [descontoTxt, setDescontoTxt] = useState("");
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
@@ -121,7 +138,7 @@ export default function Pdv() {
     setItens((lista) => {
       const i = lista.findIndex((x) => x.produto_id === p.id && !x.numero_serie);
       if (i >= 0 && p.tipo !== "maquina") return lista.map((x, k) => (k === i ? { ...x, quantidade: x.quantidade + 1 } : x));
-      return [...lista, { produto_id: p.id, descricao: p.descricao, sku: p.sku, quantidade: 1, valor_unitario: Number(p.preco_venda) || 0, tipo: p.tipo, numero_serie: "" }];
+      return [...lista, { produto_id: p.id, descricao: p.descricao, sku: p.sku, quantidade: 1, valor_unitario: precoPdv(p) || 0, tipo: p.tipo, numero_serie: "" }];
     });
   }
   const mudar = (k: number, patch: Partial<Linha>) => setItens((l) => l.map((x, i) => (i === k ? { ...x, ...patch } : x)));
@@ -140,7 +157,7 @@ export default function Pdv() {
   };
 
   function novaVenda() {
-    setItens([]); setClienteId(null); setDescontoTxt(""); setPagamentos([]); setDividir(false);
+    setItens([]); setClienteId(null); setTabelaId(null); setDescontoTxt(""); setPagamentos([]); setDividir(false);
     setRecebidoTxt(""); setObs(""); setFeito(null); setNfe("");
     setTimeout(() => busca.current?.querySelector("input")?.focus(), 50);
   }
@@ -236,7 +253,7 @@ export default function Pdv() {
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <div ref={busca} className="min-w-0 flex-1">
               <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Peça: nome, código ou código de barras (leitor)"
-                detalhe={(p) => <span className="num">{brl(p.preco_venda)} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
+                detalhe={(p) => <span className="num">{brl(precoPdv(p))} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
             </div>
             {unidades.length > 1 && (
               <select className="input w-auto sm:hidden" value={unidadeId ?? ""} onChange={(e) => setUnidadeId(e.target.value)} aria-label="Loja (estoque e CNPJ)">
@@ -298,12 +315,20 @@ export default function Pdv() {
             <Field label="Cliente">
               <div className="flex gap-2">
                 <div className="min-w-0 flex-1">
-                  <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => setClienteId(id || null)} placeholder="Consumidor final (sem identificar)" />
+                  <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => escolherCliente(id || null)} placeholder="Consumidor final (sem identificar)" />
                 </div>
                 {clienteId && <Button type="button" variant="ghost" aria-label="Voltar para consumidor final" onClick={() => setClienteId(null)}><UserRound size={16} aria-hidden /></Button>}
               </div>
             </Field>
             <Field label="Vendedor"><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></Field>
+            {tabelas.some((t) => t.ativo) && (
+              <Field label="Tabela de preço">
+                <select className="input" value={tabelaId ?? ""} onChange={(e) => usarTabela(e.target.value || null)}>
+                  <option value="">Preço de venda</option>
+                  {tabelas.filter((t) => t.ativo).map((t) => <option key={t.id} value={t.id}>{t.nome} ({ajusteTexto(t.ajuste_percentual)})</option>)}
+                </select>
+              </Field>
+            )}
           </Card>
 
           <Card className="p-4">
