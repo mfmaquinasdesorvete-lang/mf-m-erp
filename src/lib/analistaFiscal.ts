@@ -185,14 +185,17 @@ export function apuracao(saidas: ReturnType<typeof impostosDasNotas>, entradas: 
 
 /**
  * Comparação anual, só dos tributos que mudam com o regime (IRPJ, CSLL, PIS, COFINS). ICMS e IPI são iguais
- * nos dois. Presumido de indústria/comércio: base de 8% (IRPJ) e 12% (CSLL), PIS/COFINS cumulativo de 3,65% sem crédito.
+ * nos dois. Presumido de indústria/comércio: base de 8% (IRPJ) e 12% (CSLL), +10% na receita acima de R$ 5 mi/ano
+ * (LC 224/2025), PIS/COFINS cumulativo de 3,65% sem crédito.
  */
 export function comparaRegimes(a: { receita: number; icms: number; lucro: number; creditosPisCofins: number }) {
   const baseReceita = Math.max(0, a.receita - a.icms); // Tema 69: o ICMS sai da base nos dois regimes
   const pisCofinsReal = Math.max(0, baseReceita * PIS_COFINS / 100 - a.creditosPisCofins);
   const irReal = a.lucro > 0 ? a.lucro * 0.15 + Math.max(0, a.lucro - 240000) * 0.10 : 0;
   const csllReal = a.lucro > 0 ? a.lucro * 0.09 : 0;
-  const baseIr = a.receita * 0.08, baseCsll = a.receita * 0.12;
+  // LC 224/2025: a partir de 2026 a presunção sobe 10% (8% → 8,8%; 12% → 13,2%) na parte da receita acima de R$ 5 milhões no ano
+  const ate5mi = Math.min(a.receita, 5_000_000), acima = Math.max(0, a.receita - 5_000_000);
+  const baseIr = ate5mi * 0.08 + acima * 0.088, baseCsll = ate5mi * 0.12 + acima * 0.132;
   const pisCofinsPres = baseReceita * 3.65 / 100;
   const irPres = baseIr * 0.15 + Math.max(0, baseIr - 240000) * 0.10;
   const csllPres = baseCsll * 0.09;
@@ -460,7 +463,7 @@ export function analisar(ctx: ContextoFiscal) {
       : `Pela estimativa, o Presumido custaria ${brl(regimes.diferenca)} a menos. A troca só pode ser feita em janeiro.`,
     economia: regimes.melhor === "presumido" ? regimes.diferenca : undefined,
     como: ["Ver a aba \"Real x Presumido\" com a conta detalhada.", "Decidir com o contador até dezembro (vale o ano todo).", "A partir de 2027 o PIS/COFINS vira CBS para todos: a diferença entre os regimes passa a ser só o IRPJ/CSLL."],
-    quem: "Contador", base: "Lei 9.718/1998; Lei 9.430/1996; LC 214/2025 (CBS a partir de 2027)",
+    quem: "Contador", base: "Lei 9.718/1998; Lei 9.430/1996; LC 224/2025 (presunção maior acima de R$ 5 mi); LC 214/2025 (CBS a partir de 2027)",
     atencao: "Estimativa com o lucro do DRE do ERP; o contador refaz com o lucro contábil.",
   });
   est.push({

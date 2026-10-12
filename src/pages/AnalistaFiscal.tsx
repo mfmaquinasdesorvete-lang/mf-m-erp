@@ -307,7 +307,7 @@ function Regime({ a }: { a: ReturnType<typeof analisar> }) {
       </div>
       <Card className="space-y-1.5 p-4 text-sm text-slate-600">
         <p><b className="text-fg">{r.melhor === "real" ? `O Lucro Real sai ${brl(r.diferenca)} mais barato.` : `O Presumido sairia ${brl(r.diferenca)} mais barato.`}</b> A escolha vale o ano todo e é feita no primeiro pagamento de janeiro.</p>
-        <p>No Real o imposto de renda segue o lucro (prejuízo não paga) e o PIS/COFINS tem créditos; no Presumido o IR é sobre 8% (IRPJ) e 12% (CSLL) do faturamento, e o PIS/COFINS é de 3,65% sem crédito.</p>
+        <p>No Real o imposto de renda segue o lucro (prejuízo não paga) e o PIS/COFINS tem créditos; no Presumido o IR é sobre 8% (IRPJ) e 12% (CSLL) do faturamento (10% a mais na parte acima de R$ 5 milhões no ano, pela LC 224/2025), e o PIS/COFINS é de 3,65% sem crédito.</p>
         <p>A partir de 2027 o PIS/COFINS vira CBS com crédito para todos: aí a diferença entre os regimes passa a ser só o IRPJ/CSLL.</p>
         <p className="text-xs text-slate-500">Estimativa com o lucro do DRE gerencial; o contador refaz com o lucro contábil e as adições e exclusões do LALUR. Assistência técnica (serviço) tem presunção de 32% no Presumido e não está separada aqui.</p>
       </Card>
