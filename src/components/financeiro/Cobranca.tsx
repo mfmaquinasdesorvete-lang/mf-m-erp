@@ -13,6 +13,7 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { filaCobranca, pixDaConta, preencherMensagem, situacaoClientes, VARIAVEIS_COBRANCA, type ContaCobranca, type Envio, type Etapa } from "@/lib/cobranca";
 import type { Cliente } from "@/lib/types";
+import { situacaoModelo, useStatusWhatsapp, WhatsappOficial, type EtapaWa } from "@/components/financeiro/WhatsappOficial";
 
 type ContaR = ContaCobranca & { cliente?: Cliente | null; forma_pagamento?: string };
 const EVENTO: Record<Etapa["evento"], string> = { criacao: "Na criação", vencimento: "Vencimento", pagamento: "No pagamento" };
@@ -25,7 +26,10 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
   const { unidades } = useUnidade();
   const invalidate = useInvalidate();
   const dia = hoje();
-  const { data: etapas = [] } = useRows<Etapa>("regua_cobranca", { order: "ordem", ascending: true });
+  const { data: etapas = [] } = useRows<EtapaWa>("regua_cobranca", { order: "ordem", ascending: true });
+  const { data: wa } = useStatusWhatsapp();
+  // com o WhatsApp oficial ligado, a etapa com modelo aprovado sai sozinha (não entra na lista manual)
+  const automatica = (e: EtapaWa) => !!wa?.ativo && e.wa_status === "APPROVED" && e.wa_mensagem_base === e.mensagem;
   const { data: envios = [] } = useQuery({
     queryKey: ["cobranca_envios"],
     queryFn: async () => {
@@ -36,7 +40,9 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
   });
   const { data: cfg } = useQuery({ queryKey: ["configuracoes", "site_url"], queryFn: async () => (await supabase.from("configuracoes").select("site_url, nome_fantasia, razao_social").eq("id", 1).maybeSingle()).data });
   const [editando, setEditando] = useState<Partial<Etapa> | null>(null);
-  const fila = useMemo(() => filaCobranca(contas, etapas, envios, dia), [contas, etapas, envios, dia]);
+  const fila = useMemo(() => filaCobranca(contas, etapas, envios, dia)
+    .filter(({ conta: c, etapa: e }) => !(automatica(e as EtapaWa) && (c.cliente?.whatsapp || c.cliente?.telefone))),
+  [contas, etapas, envios, dia, wa]); // eslint-disable-line react-hooks/exhaustive-deps
   const sit = useMemo(() => situacaoClientes(contas, dia), [contas, dia]);
   const base = (cfg?.site_url || window.location.origin).replace(/\/$/, "");
   const semPix = unidades.filter((u) => u.ativo && !u.pix_chave?.trim());
@@ -76,9 +82,13 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
         ))}
       </div>
 
+      <WhatsappOficial etapas={etapas} />
+
       <Card className="p-4">
         <h2 className="mb-1 flex items-center gap-2 font-bold"><MessageCircle size={18} className="text-emerald-600" /> Mandar hoje pelo WhatsApp ({fila.length})</h2>
-        <p className="mb-3 text-sm text-slate-600">Etapas da régua com WhatsApp ligado. Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta (com Pix) e a cobrança fica registrada na ficha do cliente.</p>
+        <p className="mb-3 text-sm text-slate-600">{wa?.ativo
+          ? <>As etapas com modelo aprovado saem sozinhas pelo WhatsApp oficial. Aqui ficam só as que precisam de você (modelo ainda não aprovado). Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta.</>
+          : <>Etapas da régua com WhatsApp ligado. Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta (com Pix) e a cobrança fica registrada na ficha do cliente.</>}</p>
         {semPix.length > 0 && <p className="mb-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Sem chave Pix em {semPix.map((u) => u.nome).join(", ")}: cadastre em Configurações → Unidades para a mensagem levar o Pix copia e cola.</p>}
         {!fila.length ? <p className="text-sm text-slate-500">Nada para mandar hoje. 🎉</p> : (
           <ul className="divide-y divide-slate-100">
@@ -114,7 +124,9 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
           <h2 className="font-bold">Régua de cobrança</h2>
           {podeEditar && <Button variant="secondary" onClick={() => setEditando({ evento: "vencimento", dias: 10, nome: "10 dias depois", canal_email: true, canal_whatsapp: true, ativo: true, assunto: "Pagamento em aberto desde {vencimento}", mensagem: "Olá, {cliente}! O pagamento de *{descricao}* ({valor}) venceu em {vencimento}.\n\n{pagamento}\n\n{link}" })}><Plus size={16} /> Nova etapa</Button>}
         </div>
-        <p className="mb-3 text-sm text-slate-600">Os e-mails saem sozinhos às 8h (com Pix copia e cola e o link da página do cliente). O WhatsApp entra na lista acima para você enviar com um toque.</p>
+        <p className="mb-3 text-sm text-slate-600">Os e-mails saem sozinhos às 8h (com Pix copia e cola e o link da página do cliente). {wa?.ativo
+          ? "O WhatsApp sai sozinho pelo número oficial nas etapas com modelo aprovado."
+          : "O WhatsApp entra na lista acima para você enviar com um toque."}</p>
         <ol className="relative space-y-2 border-l-2 border-slate-200 pl-5">
           {etapas.map((e) => (
             <li key={e.id} className={`relative ${e.ativo ? "" : "opacity-90"}`}>
@@ -124,6 +136,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
                 <b className="text-sm">{e.nome}</b>
                 {e.canal_email && <span className="inline-flex items-center gap-1 rounded border border-slate-300 px-1.5 text-xs"><Mail size={12} /> E-mail</span>}
                 {e.canal_whatsapp && <span className="inline-flex items-center gap-1 rounded border border-emerald-300 px-1.5 text-xs text-emerald-800"><MessageCircle size={12} /> WhatsApp</span>}
+                {e.canal_whatsapp && wa?.configurado && <span className={`rounded border px-1.5 text-xs ${situacaoModelo(e).cor}`}>{situacaoModelo(e).texto}</span>}
                 {!e.ativo && <span className="text-xs text-slate-500">(desligada)</span>}
                 {podeEditar && <Button variant="ghost" className="ml-auto" onClick={() => setEditando({ ...e })}><Pencil size={14} /> Editar</Button>}
               </div>
@@ -149,7 +162,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
             <Field label="Nome da etapa" className="sm:col-span-2"><input className="input" value={editando.nome ?? ""} onChange={(ev) => setEditando({ ...editando, nome: ev.target.value })} required /></Field>
             <div className="flex flex-wrap gap-4 text-sm sm:col-span-2">
               <label className="flex items-center gap-1.5"><input type="checkbox" checked={!!editando.canal_email} onChange={(ev) => setEditando({ ...editando, canal_email: ev.target.checked })} /> E-mail (automático)</label>
-              <label className="flex items-center gap-1.5"><input type="checkbox" checked={!!editando.canal_whatsapp} onChange={(ev) => setEditando({ ...editando, canal_whatsapp: ev.target.checked })} /> WhatsApp (lista do dia)</label>
+              <label className="flex items-center gap-1.5"><input type="checkbox" checked={!!editando.canal_whatsapp} onChange={(ev) => setEditando({ ...editando, canal_whatsapp: ev.target.checked })} /> WhatsApp {wa?.ativo ? "(automático, com modelo aprovado)" : "(lista do dia)"}</label>
               <label className="flex items-center gap-1.5"><input type="checkbox" checked={editando.ativo ?? true} onChange={(ev) => setEditando({ ...editando, ativo: ev.target.checked })} /> Ligada</label>
             </div>
             <Field label="Assunto do e-mail" className="sm:col-span-2"><input className="input" value={editando.assunto ?? ""} onChange={(ev) => setEditando({ ...editando, assunto: ev.target.value })} required /></Field>

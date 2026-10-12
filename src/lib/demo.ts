@@ -8,6 +8,7 @@
 import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
 import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
 import { percentualPedido } from "./comissao";
+import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -776,6 +777,22 @@ function planoDemo(db: Db) {
     etapa("rg5", "pagamento", 0, "No pagamento", true, false, true, 5, "Pagamento recebido · obrigado!", "Olá, {cliente}! Recebemos o pagamento de *{descricao}* ({valor}). Muito obrigado pela confiança!"),
   ];
   db.cobranca_envios = [];
+  // WhatsApp oficial: número ligado (envio automático desligado), um modelo aprovado e um em análise, mensagens de exemplo
+  Object.assign(db.configuracoes[0], { whatsapp_numero_id: "109876543210987", whatsapp_waba_id: "123456789012345", whatsapp_numero: "+55 48 3030-4040", whatsapp_nome: "MF Máquinas", whatsapp_api_ativo: false });
+  for (const [id, st] of [["rg3", "APPROVED"], ["rg4", "PENDING"]] as const) {
+    const e = db.regua_cobranca.find((x) => x.id === id)!;
+    const m = modeloDaMensagem(e.mensagem);
+    Object.assign(e, { wa_modelo: nomeModelo(e as any, m.texto), wa_texto: m.texto, wa_variaveis: m.variaveis, wa_mensagem_base: e.mensagem, wa_status: st, wa_erro: null });
+  }
+  db.whatsapp_mensagens = [
+    { id: "wm1", direcao: "saida", telefone: "5548999112233", cliente_id: "c1", conta_receber_id: "r2", etapa_id: "rg3", modelo: "mf_regua_vencimento_0", status: "lido", erro: null,
+      texto: "Olá, Gelato! Hoje vence *Pedido #101 - parcela 2/3*, no valor de *R$ 7.909,33*.\n\nPix copia e cola: 000201…", created_at: quando(-1.2) },
+    { id: "wm2", direcao: "entrada", telefone: "5548999112233", cliente_id: "c1", texto: "Oi! Vou pagar amanhã cedo, pode ser? O Pix já está separado.", status: "recebido", erro: null, created_at: quando(-0.2) },
+    { id: "wm3", direcao: "saida", telefone: "5547988776655", cliente_id: "c4", conta_receber_id: "r7", etapa_id: "rg4", modelo: "mf_regua_vencimento_5", status: "entregue", erro: null,
+      texto: "Olá, Sorveteria! Não identificamos o pagamento de *Assistência técnica OS #50* (R$ 275,00)…", created_at: quando(-2) },
+    { id: "wm4", direcao: "saida", telefone: "5511912345678", cliente_id: "c5", conta_receber_id: null, etapa_id: "rg3", modelo: "mf_regua_vencimento_0", status: "erro",
+      erro: "Este número não tem WhatsApp.", texto: "Olá! Hoje vence *Pedido #105*…", created_at: quando(-3) },
+  ];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
@@ -3212,6 +3229,32 @@ const funcoes: Record<string, (b: any) => any> = {
       metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
     db.cobrancas_link.push(l);
     return { id: l.id, url: l.url, reaproveitado: false };
+  },
+  whatsapp: (b) => {
+    const cfg = db.configuracoes[0];
+    if (!db.whatsapp_mensagens) db.whatsapp_mensagens = [];
+    const st = () => ({ configurado: !!cfg.whatsapp_numero_id, ativo: !!cfg.whatsapp_api_ativo, numero: cfg.whatsapp_numero, nome: cfg.whatsapp_nome,
+      numero_id: cfg.whatsapp_numero_id, waba_id: cfg.whatsapp_waba_id, assinatura: true, webhook: "https://seu-projeto.supabase.co/functions/v1/whatsapp", verify_token: "demo3f9a1c" });
+    if (b.acao === "status") return st();
+    if (b.acao === "configurar") { Object.assign(cfg, { whatsapp_numero_id: b.numero_id, whatsapp_waba_id: b.waba_id, whatsapp_numero: "+55 48 3030-4040", whatsapp_nome: "MF Máquinas" }); return { ok: true, numero: cfg.whatsapp_numero, webhook: st().webhook, verify_token: st().verify_token, inscrito: true }; }
+    if (b.acao === "automatico") { cfg.whatsapp_api_ativo = b.ligado === true; return { ok: true, ativo: cfg.whatsapp_api_ativo }; }
+    if (b.acao === "modelos") {
+      let enviados = 0;
+      for (const e of db.regua_cobranca.filter((x) => x.canal_whatsapp)) {
+        if (e.wa_modelo && e.wa_mensagem_base === e.mensagem && e.wa_status !== "REJECTED") { if (e.wa_status === "PENDING") e.wa_status = "APPROVED"; continue; }
+        const m = modeloDaMensagem(e.mensagem);
+        Object.assign(e, { wa_modelo: nomeModelo(e as any, m.texto), wa_texto: m.texto, wa_variaveis: m.variaveis, wa_mensagem_base: e.mensagem, wa_status: "PENDING", wa_erro: null });
+        enviados++;
+      }
+      return { ok: true, enviados, erros: [] };
+    }
+    if (b.acao === "responder") {
+      db.whatsapp_mensagens.unshift({ id: uid(), direcao: "saida", telefone: b.telefone, cliente_id: db.whatsapp_mensagens.find((m) => m.telefone === b.telefone)?.cliente_id ?? null,
+        texto: b.texto, status: "enviado", erro: null, created_at: new Date().toISOString() });
+      return { ok: true };
+    }
+    if (b.acao === "teste") return { ok: true };
+    return { ok: true, enviadas: 0, erros: 0 };
   },
   openfinance: (b) => {
     // prévia: a "Pluggy" responde na hora; o banco de teste manda alguns lançamentos (um deles paga uma conta em aberto)
