@@ -459,7 +459,7 @@ export function analisar(ctx: ContextoFiscal) {
       ? `Pela estimativa dos últimos 12 meses, o Lucro Real custa ${brl(regimes.diferenca)} a menos que o Presumido.`
       : `Pela estimativa, o Presumido custaria ${brl(regimes.diferenca)} a menos. A troca só pode ser feita em janeiro.`,
     economia: regimes.melhor === "presumido" ? regimes.diferenca : undefined,
-    como: ["Ver a aba \"Regime\" com a conta detalhada.", "Decidir com o contador até dezembro (vale o ano todo).", "A partir de 2027 o PIS/COFINS vira CBS para todos: a diferença entre os regimes passa a ser só o IRPJ/CSLL."],
+    como: ["Ver a aba \"Real x Presumido\" com a conta detalhada.", "Decidir com o contador até dezembro (vale o ano todo).", "A partir de 2027 o PIS/COFINS vira CBS para todos: a diferença entre os regimes passa a ser só o IRPJ/CSLL."],
     quem: "Contador", base: "Lei 9.718/1998; Lei 9.430/1996; LC 214/2025 (CBS a partir de 2027)",
     atencao: "Estimativa com o lucro do DRE do ERP; o contador refaz com o lucro contábil.",
   });

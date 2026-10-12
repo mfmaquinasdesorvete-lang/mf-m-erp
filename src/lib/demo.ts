@@ -172,6 +172,8 @@ function seed(): Db {
         id: "nr1", chave: "35261011222333000181550010000482111000482110", emitente_nome: "Refrigeração Andrade Ltda", emitente_cnpj: "11222333000181",
         valor_total: 8100, data_emissao: quando(-3), situacao: "autorizada", manifestacao: "ciencia", fornecedor_id: "f1", conta_pagar_id: "cp1",
         estoque_lancado: true, processamento: "concluido", processamento_msg: null, created_at: quando(-3),
+        // XML completo (só os totais, para o Analista fiscal ler o ICMS destacado)
+        xml: "<nfeProc><NFe><infNFe><total><ICMSTot><vBC>8100.00</vBC><vICMS>972.00</vICMS><vST>0.00</vST><vProd>8100.00</vProd><vFrete>0.00</vFrete><vIPI>0.00</vIPI><vPIS>133.65</vPIS><vCOFINS>615.60</vCOFINS><vNF>8100.00</vNF></ICMSTot></total></infNFe></NFe></nfeProc>",
         itens: [{ numero: 1, codigo: "CMP-1HP-404", ean: null, descricao: "COMPRESSOR HERMETICO 1HP R404A", ncm: "84143019", cfop: "6102", unidade: "UN", quantidade: 6, valor_unitario: 1350, valor_total: 8100 }],
       },
       {
