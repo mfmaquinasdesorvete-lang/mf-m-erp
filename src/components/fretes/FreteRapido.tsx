@@ -101,7 +101,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
   }
 
   return (
-    <div className="col-span-2 sm:col-span-4 rounded-xl border border-slate-200 p-3">
+    <div className="col-span-2 rounded-xl border border-slate-200 p-3 sm:col-span-6">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-1.5 text-sm font-semibold"><Truck size={16} aria-hidden /> Frete</span>
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Como fica o frete">
@@ -117,11 +117,11 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
 
       {modo === "cobrar" && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
-          <label className="text-xs font-semibold text-slate-600">Valor do frete (R$)
+          <label className="flex flex-col text-xs font-semibold text-slate-600">Valor do frete (R$)
             <input className="input mt-1 w-36 text-right" inputMode="decimal" disabled={disabled} value={freteTxt} placeholder="0,00"
               onChange={(e) => { const t = e.target.value.replace(/[^\d,.]/g, ""); setFreteTxt(t); onChange({ frete: paraNum(t), modalidade_frete: 0 }); }} />
           </label>
-          <label className="min-w-0 flex-1 text-xs font-semibold text-slate-600 sm:max-w-xs">Transportadora
+          <label className="flex w-full flex-col text-xs font-semibold text-slate-600 sm:w-auto sm:min-w-[12rem] sm:max-w-xs sm:flex-1">Transportadora
             <select className="input mt-1" disabled={disabled} value={pedido.transportadora_id ?? ""} onChange={(e) => onChange({ transportadora_id: e.target.value || null })}>
               <option value="">—</option>{ativas.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia?.trim() || t.nome}</option>)}
             </select>
