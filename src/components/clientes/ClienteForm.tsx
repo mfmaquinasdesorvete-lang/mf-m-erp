@@ -16,7 +16,7 @@ import { EtiquetasCliente } from "./QualidadeClientes";
 import { PessoasContato, type PessoaEditada } from "./PessoasContato";
 import { AssinaturaFicha, useAssinaturasFicha } from "./AssinaturaFicha";
 import { CategoriasContato, corTipo, useTiposContato } from "./TiposContato";
-import { limpar, useInvalidate, useSave } from "@/lib/data";
+import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, digitos, whatsappLink } from "@/lib/format";
@@ -104,6 +104,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const [deixaCliente, setDeixaCliente] = useState(false);
   const tagsAntes = useRef<string[]>(registro.tags ?? []);
   const { data: formas = [] } = useFormasPagamento();
+  const { data: tabelasPreco = [] } = useRows<{ id: string; nome: string; ajuste_percentual: number; ativo: boolean }>("tabelas_preco", { order: "nome", ascending: true });
   const { data: assinaturas = [] } = useAssinaturasFicha();
   const assinado = !!c.id && assinaturas.some((a) => a.cliente_id === c.id && a.status === "assinado");
 
@@ -558,7 +559,13 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     </div>
                   )}
                 </div>
-                {campo("desconto_padrao", "Lista de preço: desconto padrão (%)", { span: 3, tipo: "decimal", placeholder: "0" })}
+                <Field label="Tabela de preço" className="col-span-1 sm:col-span-6">
+                  <select className="input" value={c.tabela_preco_id ?? ""} disabled={!podeEditar} onChange={(e) => set("tabela_preco_id", e.target.value || null)}>
+                    <option value="">Preço de venda (padrão)</option>
+                    {tabelasPreco.filter((t) => t.ativo || t.id === c.tabela_preco_id).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                  </select>
+                </Field>
+                {campo("desconto_padrao", "Desconto padrão (%)", { span: 3, tipo: "decimal", placeholder: "0" })}
                 <Field label="Cliente desde" className="col-span-1 sm:col-span-3">
                   <div className="input flex items-center bg-slate-50 text-slate-600">{c.created_at ? dataBR(c.created_at) : "hoje"}</div>
                 </Field>

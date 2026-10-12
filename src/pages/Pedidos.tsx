@@ -28,6 +28,7 @@ import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { combinaBusca } from "@/lib/buscaCliente";
 import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
+import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -170,6 +171,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: cfg } = useConfig();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
+  const { data: tabelas = [] } = useRows<TabelaPreco>("tabelas_preco", { order: "nome", ascending: true });
+  const { data: precosFixos = [] } = useRows<PrecoFixo>("tabela_preco_itens");
   // formas de pagamento cadastradas que a venda aceita (a já escolhida aparece mesmo se for inativada depois)
   const { data: formas = [] } = useFormasPagamento();
   const formasVenda = formas.filter((f) => MEIOS_VENDA.includes(f.meio) && f.uso !== "pagar" && (f.ativo || f.id === (p as any).forma_pagamento_id));
@@ -204,6 +207,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       const f = c.forma_pagamento_id && formasVenda.find((x) => x.id === c.forma_pagamento_id && x.ativo);
       if (f) Object.assign(patch, { forma_pagamento_id: f.id, forma_pagamento: f.meio, parcelas: f.parcelas, intervalo_dias: f.intervalo_dias, primeiro_vencimento: somarDias(f.primeiro_em_dias) });
     }
+    // tabela de preço do cliente (revendedor → Revenda), em orçamento ainda aberto
+    const tabCliente = (c as any)?.tabela_preco_id as string | null | undefined;
+    if (c && editavel && tabCliente && tabelaDe(tabCliente)?.ativo && tabCliente !== (p as any).tabela_preco_id) return usarTabela(tabCliente, true, patch as Partial<Pedido>);
     set(patch as Partial<Pedido>);
   }
   const subtotal = totalItens(p.itens);
@@ -212,6 +218,21 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const comissaoPrevista = percentualPedido(regrasComissao, vendedores.find((v) => v.id === p.vendedor_id), p.itens,
     (id) => produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual);
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
+  // tabela de preço: novos itens entram com o preço dela; trocar a tabela reprecifica os itens do orçamento
+  const tabelaDe = (id: string | null | undefined) => tabelas.find((t) => t.id === id) ?? null;
+  const tabelaAtual = tabelaDe((p as any).tabela_preco_id);
+  const precoDe = (prod: Produto, tabela = tabelaAtual) => precoNaTabela(tabela, prod, precosFixos).preco;
+  function usarTabela(id: string | null, avisar = true, base: Partial<Pedido> = {}) {
+    const t = tabelaDe(id);
+    setP((x) => {
+      const itens = (x.itens ?? []).map((i: Item) => {
+        const prod = produtos.find((y) => y.id === i.produto_id);
+        return prod ? { ...i, valor_unitario: precoNaTabela(t, prod, precosFixos).preco } : i;
+      });
+      if (avisar && itens.length) notify(`Preços dos itens: ${t ? t.nome : "preço de venda"}`);
+      return { ...x, ...base, tabela_preco_id: id, itens } as typeof x;
+    });
+  }
   // desconto digitado em %; o pedido guarda o valor em R$. Pedido já salvo só muda se o % for digitado
   // (e aí acompanha a troca de itens).
   const [descPct, setDescPct] = useState(() => {
@@ -440,14 +461,28 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           </Field>
           <div className="sm:col-span-2"><CampoUnidade value={(p as any).unidade_id} disabled={!editavel} onChange={(v) => set({ unidade_id: v } as Partial<Pedido>)} /></div>
           <Field label="Origem">
-            <select className="input" value={p.origem} disabled={!livre} onChange={(e) => set({ origem: e.target.value })}>
+            <select className="input" value={p.origem} disabled={!livre} onChange={(e) => {
+              const origem = e.target.value;
+              // venda de marketplace usa a tabela do marketplace (se houver e ainda não tiver tabela)
+              const tm = origem === "marketplace" && editavel && !(p as any).tabela_preco_id ? tabelas.find((t) => t.ativo && t.canal === "marketplace") : null;
+              if (tm) usarTabela(tm.id, true, { origem }); else set({ origem });
+            }}>
               <option value="whatsapp">WhatsApp</option>
               <option value="telefone">Telefone</option>
               <option value="presencial">Presencial</option>
               <option value="representante">Representante</option>
               <option value="loja">Loja virtual</option>
+              <option value="marketplace">Marketplace</option>
             </select>
           </Field>
+          {(tabelas.some((t) => t.ativo) || tabelaAtual) && (
+            <Field label="Tabela de preço">
+              <select className="input" value={(p as any).tabela_preco_id ?? ""} disabled={!editavel} onChange={(e) => usarTabela(e.target.value || null)}>
+                <option value="">Preço de venda</option>
+                {tabelas.filter((t) => t.ativo || t.id === (p as any).tabela_preco_id).map((t) => <option key={t.id} value={t.id}>{t.nome} ({ajusteTexto(t.ajuste_percentual)})</option>)}
+              </select>
+            </Field>
+          )}
           <Field label="Vendedor / representante">
             <VendedorSelect value={p.vendedor_id} textoAntigo={p.vendedor} disabled={!livre}
               onChange={(id, nome) => set({ vendedor_id: id, vendedor: nome, comissao_percentual: null })} />
@@ -466,7 +501,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           )}
         </div>
 
-        <ItensEditor itens={p.itens} onChange={(itens) => set({ itens } as any)} disabled={!editavel} comSerie filtro={(x) => x.vendavel !== false} />
+        <ItensEditor itens={p.itens} onChange={(itens) => set({ itens } as any)} disabled={!editavel} comSerie filtro={(x) => x.vendavel !== false} precoDe={(x) => precoDe(x)} />
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
           <Field label="Pagamento" className="col-span-2">

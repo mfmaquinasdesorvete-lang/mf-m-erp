@@ -14,9 +14,11 @@ type Props = {
   /** Filtra os produtos exibidos (ex.: só peças na OS). */
   filtro?: (p: Produto) => boolean;
   comSerie?: boolean;
+  /** Preço de um produto ao entrar no pedido (tabela de preço); sem isso, o preço de venda. */
+  precoDe?: (p: Produto) => number;
 };
 
-export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Props) {
+export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, precoDe }: Props) {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const disponiveis = produtos.filter((p) => p.ativo && (!filtro || filtro(p)));
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
@@ -32,7 +34,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie }: Pro
   function adicionar(produtoId: string) {
     const p = produtos.find((x) => x.id === produtoId);
     if (!p) return;
-    onChange([...itens, { produto_id: p.id, descricao: p.descricao, quantidade: 1, valor_unitario: Number(p.preco_venda) }]);
+    onChange([...itens, { produto_id: p.id, descricao: p.descricao, quantidade: 1, valor_unitario: precoDe ? precoDe(p) : Number(p.preco_venda) }]);
   }
 
   return (
