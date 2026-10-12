@@ -30,6 +30,7 @@ import { ClienteBusca } from "@/components/ClienteBusca";
 import { combinaBusca } from "@/lib/buscaCliente";
 import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
+import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/financeiro/LinkPedido";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -181,8 +182,12 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const [aba, setAba] = useState<"pedido" | "frete" | "auditoria">("pedido");
   const [acaoMotivo, setAcaoMotivo] = useState<"editar" | "reabrir" | null>(null);
   const invalidate = useInvalidate();
-  const { pode, user_id } = usePerfil();
+  const { pode, tem, user_id } = usePerfil();
   const podeEditar = pode("editar_pedidos");
+  // link de pagamento (InfinitePay): vendas e financeiro veem; ao aprovar por Pix ou cartão, já sai pronto
+  const verPagamento = tem("vendas", "financeiro");
+  const temInfinitePay = useTemInfinitePay((p as any).unidade_id);
+  const [linkAgora, setLinkAgora] = useState(false);
   const editavel = podeEditar && (!p.id || p.status === "orcamento");
   // pedido aprovado: vendedor, comissão, origem e observações mudam com motivo; itens e valores só reabrindo
   const ajustavel = podeEditar && !!p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "");
@@ -317,19 +322,28 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
 
   const salvar = (e: FormEvent) => { e.preventDefault(); executar(gravar, "Pedido salvo"); };
 
-  const aprovar = () => executar(async () => {
-    const id = await gravar();
-    const { error } = await supabase.rpc("aprovar_pedido", { p_pedido: id });
-    if (error) throw error;
-    // NF-e automática: emite já, se o cadastro estiver ok (senão o aviso aparece e dá para emitir depois)
-    if (cfg?.nfe_automatica) {
-      const lista = conferirPedido({ cliente, unidade: unidades.find((u) => u.id === (p as any).unidade_id), produtos, itens: p.itens, aliquotasUf: ufsIcms.map((u) => u.uf) });
-      if (lista.some((x) => x.nivel === "erro")) notify(`NF-e automática não enviada: ${lista.find((x) => x.nivel === "erro")!.texto}`, "erro");
-      // em homologação a nota automática sairia só como teste: não emite sozinha
-      else if ((await ambienteNfe().catch(() => "producao")) !== "producao") notify("NF-e automática não enviada: o ERP está em homologação (teste). Ajuste o FOCUS_NFE_ENV para producao.", "erro");
-      else await callFunction("nfe-emitir", { pedido_id: id }).catch((e) => notify(`NF-e automática: ${(e as Error).message}`, "erro"));
-    }
-  }, cfg?.nfe_automatica ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro");
+  const aprovar = () => {
+    const comLink = verPagamento && temInfinitePay && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
+    return executar(async () => {
+      const id = await gravar();
+      const { error } = await supabase.rpc("aprovar_pedido", { p_pedido: id });
+      if (error) throw error;
+      // NF-e automática: emite já, se o cadastro estiver ok (senão o aviso aparece e dá para emitir depois)
+      if (cfg?.nfe_automatica) {
+        const lista = conferirPedido({ cliente, unidade: unidades.find((u) => u.id === (p as any).unidade_id), produtos, itens: p.itens, aliquotasUf: ufsIcms.map((u) => u.uf) });
+        if (lista.some((x) => x.nivel === "erro")) notify(`NF-e automática não enviada: ${lista.find((x) => x.nivel === "erro")!.texto}`, "erro");
+        // em homologação a nota automática sairia só como teste: não emite sozinha
+        else if ((await ambienteNfe().catch(() => "producao")) !== "producao") notify("NF-e automática não enviada: o ERP está em homologação (teste). Ajuste o FOCUS_NFE_ENV para producao.", "erro");
+        else await callFunction("nfe-emitir", { pedido_id: id }).catch((e) => notify(`NF-e automática: ${(e as Error).message}`, "erro"));
+      }
+      // venda por Pix ou cartão: fica na tela com o link de pagamento pronto para mandar ao cliente
+      if (comLink) {
+        const { data } = await supabase.from("pedidos").select(SELECT).eq("id", id).single();
+        if (data) setP({ ...(data as any), itens: (data as any).itens ?? [] });
+        setLinkAgora(true);
+      }
+    }, cfg?.nfe_automatica ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro", !comLink);
+  };
 
   const cancelar = () => {
     if (!confirm("Cancelar este pedido? O estoque será devolvido e as parcelas em aberto canceladas.")) return;
@@ -542,6 +556,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           Subtotal {brl(subtotal)} · <span className="num text-xl font-bold text-fg">Total {brl(total)}</span>
         </div>
 
+        {p.id && verPagamento && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
+          <PagamentoPedido pedido={p as any} cliente={cliente} gerarAgora={linkAgora} />
+        )}
         {p.itens.length > 0 && (p.status === "orcamento" || !p.id || p.proposta_status) && (
           <PropostaPainel pedido={p} cliente={cliente} podeEditar={podeEditar} gravar={gravar} pdfBase64={pdfBase64} onAlterado={recarregar} />
         )}

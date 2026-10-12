@@ -230,6 +230,12 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
     for (const l of links) if (l.conta_receber_id) m.set(l.conta_receber_id, [...(m.get(l.conta_receber_id) ?? []), l]);
     return m;
   }, [links]);
+  // link do pedido (várias parcelas num link só): aparece na situação de cada parcela do pedido
+  const linksPedido = useMemo(() => {
+    const m = new Map<string, CobrancaLink[]>();
+    for (const l of links) if (l.pedido_id && !l.conta_receber_id) m.set(l.pedido_id, [...(m.get(l.pedido_id) ?? []), l]);
+    return m;
+  }, [links]);
   const contaBanco = useNomeContaBancaria();
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const save = useSave("contas_receber");
@@ -285,7 +291,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
           return (
             <tr key={c.id}>
               <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
-              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={linksDa.get(c.id) ?? []} /></div></td>
+              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={[...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])]} /></div></td>
               <td className="td">{c.cliente?.nome ?? "—"}</td>
               <td className="td"><Badge value={s} /></td>
               <td className="td text-right font-medium">{brl(c.valor)}</td>

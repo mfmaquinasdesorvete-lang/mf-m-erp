@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import qrcode from "qrcode-generator";
-import { Check, Copy, MessageCircle, Printer } from "lucide-react";
-import { DEMO, supabase } from "@/lib/supabase";
+import { Check, Copy, CreditCard, Loader2, MessageCircle, Printer } from "lucide-react";
+import { DEMO, callFunction, supabase } from "@/lib/supabase";
+import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
 import { pixCopiaECola } from "@/lib/cobranca";
 import logo from "@/assets/logo.webp";
 
-type Aberta = { id: string; descricao: string; valor: number; vencimento: string; forma: string | null; pagamento: string | null; pix_chave: string | null; pix_nome: string | null; pix_cidade: string | null };
+type Aberta = { id: string; descricao: string; valor: number; vencimento: string; forma: string | null; pagamento: string | null; pix_chave: string | null; pix_nome: string | null; pix_cidade: string | null; link?: boolean };
 type Area = {
   cliente: string; empresa: { nome: string; whatsapp: string | null; telefone: string | null; email: string | null };
   abertas: Aberta[]; pagas: { descricao: string; valor: number; data_pagamento: string | null }[];
@@ -57,7 +58,7 @@ export default function AreaCliente() {
             </div>
           </div>
 
-          {a.abertas.map((c) => <Conta key={c.id} c={c} dia={dia} />)}
+          {a.abertas.map((c) => <Conta key={c.id} c={c} dia={dia} token={token} />)}
 
           {a.pagas.length > 0 && (
             <div>
@@ -76,8 +77,21 @@ export default function AreaCliente() {
   );
 }
 
-function Conta({ c, dia }: { c: Aberta; dia: string }) {
+function Conta({ c, dia, token }: { c: Aberta; dia: string; token: string }) {
   const [copiado, setCopiado] = useState(false);
+  const [abrindo, setAbrindo] = useState(false);
+  // cartão (ou Pix) pela InfinitePay: o ERP cria o link na hora e a conta é baixada quando o pagamento cai
+  async function pagarLink() {
+    setAbrindo(true);
+    try {
+      const { url } = await callFunction<{ url: string }>("infinitepay", { acao: "pagar_conta", token, conta_id: c.id });
+      if (DEMO) { notify(`Prévia: aqui abriria a página de pagamento da InfinitePay (${url})`); setAbrindo(false); return; }
+      window.location.assign(url);
+    } catch (e) {
+      notifyError(e);
+      setAbrindo(false);
+    }
+  }
   const pix = useMemo(() => (c.pix_chave ? pixCopiaECola({ chave: c.pix_chave, nome: c.pix_nome ?? "", cidade: c.pix_cidade ?? "", valor: Number(c.valor), txid: `MF${c.id.replace(/-/g, "").slice(0, 20)}` }) : null), [c]);
   const qr = useMemo(() => {
     if (!pix) return null;
@@ -109,6 +123,12 @@ function Conta({ c, dia }: { c: Aberta; dia: string }) {
           </div>
         </div>
       ) : null}
+      {c.link && (
+        <button type="button" onClick={pagarLink} disabled={abrindo}
+          className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 font-semibold text-white disabled:opacity-70 sm:w-auto print:hidden">
+          {abrindo ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />} Pagar com cartão (até 12x) ou Pix
+        </button>
+      )}
       {c.pagamento && <p className="mt-3 whitespace-pre-line rounded-lg bg-slate-50 p-2.5 text-sm text-slate-700"><b>Como pagar:</b> {c.pagamento}</p>}
     </div>
   );

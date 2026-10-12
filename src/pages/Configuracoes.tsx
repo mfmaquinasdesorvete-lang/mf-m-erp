@@ -145,6 +145,10 @@ export default function Configuracoes() {
           <span><b>Emitir a NF-e automaticamente</b> quando o pedido for aprovado (na hora pelo ERP; pedidos da loja e propostas em até 15 minutos). Se o cadastro tiver erro, a nota não sai e aparece em Compliance fiscal.</span>
         </label>
         <label className="mb-2 flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-0.5 h-5 w-5" checked={cfg.link_pagamento_ao_aprovar !== false} onChange={(e) => setCfg({ ...cfg, link_pagamento_ao_aprovar: e.target.checked })} />
+          <span><b>Criar o link de pagamento ao aprovar</b> a venda por Pix ou cartão (InfinitePay da unidade): o pedido mostra o link pronto para mandar no WhatsApp, e a proposta aprovada pelo cliente mostra o botão <i>Pagar agora</i>. Quando o cliente paga, as parcelas são baixadas sozinhas.</span>
+        </label>
+        <label className="mb-2 flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-0.5 h-5 w-5" checked={!!cfg.vender_sem_estoque} onChange={(e) => setCfg({ ...cfg, vender_sem_estoque: e.target.checked })} />
           <span><b>Aprovar venda sem estoque</b> (o estoque da unidade pode ficar negativo). Desligado, a aprovação é bloqueada e mostra o que falta; produtos marcados como <i>sob encomenda</i> passam sempre.</span>
         </label>

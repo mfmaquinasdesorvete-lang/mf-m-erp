@@ -3,9 +3,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, ImageOff, MessageCircle, Printer, XCircle } from "lucide-react";
-import { DEMO, supabase } from "@/lib/supabase";
-import { notifyError } from "@/lib/notify";
+import { CheckCircle2, CreditCard, ImageOff, Loader2, MessageCircle, Printer, XCircle } from "lucide-react";
+import { DEMO, callFunction, supabase } from "@/lib/supabase";
+import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, whatsappLink } from "@/lib/format";
 import { urlFotoProduto } from "@/lib/catalogo";
 import logo from "@/assets/logo.webp";
@@ -17,6 +17,8 @@ type Proposta = {
   itens: { descricao: string; quantidade: number; valor_unitario: number; total: number; foto: string | null; texto: string | null; garantia_meses: number | null }[];
   subtotal: number; desconto: number; frete: number; total: number; forma_pagamento: string; parcelas: number; observacoes: string | null;
   motivo_rejeicao: string | null;
+  /** venda aprovada: o que falta pagar e se dá para pagar pelo link (Pix ou cartão) */
+  pagamento?: { em_aberto: number; pago: number; link: boolean } | null;
   empresa: { nome: string; razao_social: string; cnpj: string | null; whatsapp: string | null; telefone: string | null; email: string | null; endereco: string | null; municipio: string | null; uf: string | null; termo_garantia: string | null };
   layout: { titulo: string; apresentacao: string | null; condicoes: string | null; rodape: string | null; cor: string };
 };
@@ -68,7 +70,8 @@ export default function PropostaPublica() {
             </div>
           </div>
 
-          <Situacao status={p.status} cor={cor} motivo={p.motivo_rejeicao} />
+          <Situacao status={p.status} cor={cor} motivo={p.motivo_rejeicao} pagar={!!p.pagamento?.link && p.pagamento.em_aberto > 0} />
+          {p.pagamento && <PagarAgora token={token} cor={cor} pagamento={p.pagamento} />}
 
           {p.layout.apresentacao && <p className="whitespace-pre-line text-slate-700">{p.layout.apresentacao}</p>}
 
@@ -125,7 +128,7 @@ export default function PropostaPublica() {
           {[p.empresa.endereco, p.empresa.municipio && `${p.empresa.municipio}/${p.empresa.uf ?? ""}`, p.empresa.telefone, p.empresa.email].filter(Boolean).join(" · ")}
         </footer>
       </div>
-      {resposta && <Responder token={token} aprovar={resposta === "aprovar"} cor={cor} total={p.total} onClose={() => setResposta(null)} onFeito={() => { setResposta(null); refetch(); }} />}
+      {resposta && <Responder token={token} aprovar={resposta === "aprovar"} cor={cor} total={p.total} pagarDepois={["pix", "cartao"].includes(p.forma_pagamento)} onClose={() => setResposta(null)} onFeito={() => { setResposta(null); refetch(); }} />}
     </Tela>
   );
 }
@@ -150,14 +153,52 @@ const Bloco = ({ titulo, children }: { titulo: string; children: React.ReactNode
   <div><h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-500">{titulo}</h3><p className="whitespace-pre-line text-sm text-slate-700">{children}</p></div>
 );
 
-function Situacao({ status, cor, motivo }: { status: string; cor: string; motivo: string | null }) {
-  if (status === "aprovada") return <div className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-800"><CheckCircle2 size={18} className="mr-1.5 inline" />Proposta aprovada. Obrigado! Nossa equipe já recebeu o pedido e vai entrar em contato.</div>;
+function Situacao({ status, cor, motivo, pagar }: { status: string; cor: string; motivo: string | null; pagar?: boolean }) {
+  if (status === "aprovada") return (
+    <div className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-800"><CheckCircle2 size={18} className="mr-1.5 inline" />
+      {pagar ? "Proposta aprovada. Obrigado! Para confirmar o pedido, faça o pagamento logo abaixo." : "Proposta aprovada. Obrigado! Nossa equipe já recebeu o pedido e vai entrar em contato."}
+    </div>
+  );
   if (status === "rejeitada") return <div className="rounded-xl bg-slate-100 p-4 text-slate-700">Proposta recusada{motivo ? ` (${MOTIVOS[motivo] ?? motivo})` : ""}. Se mudar de ideia, é só chamar a gente.</div>;
   if (status === "expirada") return <div className="rounded-xl bg-amber-50 p-4 text-amber-900">Esta proposta venceu. Fale com o vendedor para receber uma atualizada.</div>;
   return <div className="h-1 rounded-full" style={{ background: cor, opacity: 0.25 }} />;
 }
 
-function Responder({ token, aprovar, cor, total, onClose, onFeito }: { token: string; aprovar: boolean; cor: string; total: number; onClose: () => void; onFeito: () => void }) {
+/** Venda aprovada por Pix ou cartão: botão para pagar na InfinitePay (o ERP cria o link na hora). */
+function PagarAgora({ token, cor, pagamento }: { token: string; cor: string; pagamento: NonNullable<Proposta["pagamento"]> }) {
+  const [abrindo, setAbrindo] = useState(false);
+  if (pagamento.em_aberto <= 0) {
+    return pagamento.pago > 0
+      ? <div className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-800"><CheckCircle2 size={18} className="mr-1.5 inline" />Pagamento recebido. Obrigado!</div>
+      : null;
+  }
+  if (!pagamento.link) return null;
+  async function pagar() {
+    setAbrindo(true);
+    try {
+      const { url } = await callFunction<{ url: string }>("infinitepay", { acao: "pagar_proposta", token });
+      if (DEMO) { notify(`Prévia: aqui abriria a página de pagamento da InfinitePay (${url})`); setAbrindo(false); return; }
+      window.location.assign(url);
+    } catch (e) {
+      notifyError(e);
+      setAbrindo(false);
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 p-4 print:hidden" style={{ borderColor: cor }}>
+      <div>
+        <div className="text-sm text-slate-600">{pagamento.pago > 0 ? "Falta pagar" : "Valor a pagar"}</div>
+        <div className="text-2xl font-extrabold text-slate-900">{brl(pagamento.em_aberto)}</div>
+        <div className="text-sm text-slate-600">Pix ou cartão em até 12x, na página segura da InfinitePay.</div>
+      </div>
+      <button type="button" onClick={pagar} disabled={abrindo} className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl px-6 text-lg font-bold text-white disabled:opacity-70 sm:w-auto" style={{ background: cor }}>
+        {abrindo ? <Loader2 size={22} className="animate-spin" /> : <CreditCard size={22} />} Pagar agora
+      </button>
+    </div>
+  );
+}
+
+function Responder({ token, aprovar, cor, total, pagarDepois, onClose, onFeito }: { token: string; aprovar: boolean; cor: string; total: number; pagarDepois?: boolean; onClose: () => void; onFeito: () => void }) {
   const [nome, setNome] = useState("");
   const [motivo, setMotivo] = useState("preco");
   const [texto, setTexto] = useState("");
@@ -174,7 +215,7 @@ function Responder({ token, aprovar, cor, total, onClose, onFeito }: { token: st
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-3 print:hidden" onClick={onClose}>
       <form onSubmit={enviar} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 text-slate-800 shadow-2xl">
         <h2 className="text-xl font-bold text-slate-900">{aprovar ? "Aprovar a proposta" : "Que pena! Pode contar o motivo?"}</h2>
-        {aprovar && <p className="text-sm text-slate-600">Ao aprovar, o pedido de {brl(total)} é confirmado com as condições acima. A equipe entra em contato para combinar a entrega.</p>}
+        {aprovar && <p className="text-sm text-slate-600">Ao aprovar, o pedido de {brl(total)} é confirmado com as condições acima. {pagarDepois ? "Em seguida você já pode pagar por Pix ou cartão aqui mesmo." : "A equipe entra em contato para combinar a entrega."}</p>}
         {!aprovar && (
           <>
             <label className="block text-sm font-semibold">Motivo

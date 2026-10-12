@@ -9,7 +9,7 @@ import { resumoTaxas, type TaxasInfinitePay } from "@/lib/infinitepay";
 
 /** Link de pagamento da InfinitePay (Pix ou cartão) ligado a uma conta a receber. */
 export type CobrancaLink = {
-  id: string; conta_receber_id: string | null; status: "aberto" | "pago" | "descartado" | "erro"; url: string | null; valor: number;
+  id: string; conta_receber_id: string | null; pedido_id?: string | null; status: "aberto" | "pago" | "descartado" | "erro"; url: string | null; valor: number;
   handle: string; metodo: string | null; parcelas: number | null; recibo_url: string | null; pago_em: string | null; erro: string | null; created_at: string;
   taxa_percentual?: number | null; taxa_valor?: number | null;
 };

@@ -82,7 +82,7 @@ export type Config = {
   comissao_percentual: number; termo_garantia: string;
   proposta_titulo?: string; proposta_apresentacao?: string | null; proposta_condicoes?: string | null;
   proposta_rodape?: string | null; proposta_cor?: string; proposta_fotos?: boolean;
-  nfe_automatica?: boolean; vender_sem_estoque?: boolean; expedicao_apos?: "aprovacao" | "nfe";
+  nfe_automatica?: boolean; link_pagamento_ao_aprovar?: boolean; vender_sem_estoque?: boolean; expedicao_apos?: "aprovacao" | "nfe";
   etiqueta_formato?: "10x15" | "a4";
   contador_nome?: string | null; contador_email?: string | null; contador_envio_auto?: boolean; contador_envio_dia?: number;
   custos_pagamento?: { cartao_pct?: number; boleto_fixo?: number; pix_pct?: number; transferencia_pct?: number; dinheiro_pct?: number };

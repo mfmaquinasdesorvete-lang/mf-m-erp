@@ -1791,7 +1791,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       abertas: db.contas_receber.filter((r) => r.cliente_id === c.id && r.status === "aberto").sort((a, b) => a.vencimento.localeCompare(b.vencimento)).map((r) => {
         const un: Row = u(r.unidade_id);
         return { id: r.id, descricao: r.descricao, valor: r.valor, vencimento: r.vencimento, forma: r.forma_pagamento, pagamento: un.instrucoes_pagamento ?? null,
-          pix_chave: un.pix_chave ?? null, pix_nome: un.pix_nome || un.razao_social || un.nome, pix_cidade: un.pix_cidade || un.municipio };
+          pix_chave: un.pix_chave ?? null, pix_nome: un.pix_nome || un.razao_social || un.nome, pix_cidade: un.pix_cidade || un.municipio,
+          link: (["pix", "cartao"].includes(r.forma_pagamento) || r.vencimento < dias(0)) && !!(r.unidade_id ? un.infinitepay_tag : db.unidades.find((x) => x.matriz)?.infinitepay_tag) };
       }),
       pagas: db.contas_receber.filter((r) => r.cliente_id === c.id && r.status === "pago").sort((a, b) => String(b.data_pagamento).localeCompare(a.data_pagamento)).slice(0, 10)
         .map((r) => ({ descricao: r.descricao, valor: r.valor_pago ?? r.valor, data_pagamento: r.data_pagamento })),
@@ -2274,6 +2275,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         texto: pr?.descricao_catalogo ?? null, garantia_meses: pr?.tipo === "maquina" ? pr.garantia_meses ?? cfg.garantia_meses_padrao : null }; }),
       subtotal: p.valor_produtos, desconto: p.desconto, frete: p.frete, total: p.valor_total, forma_pagamento: p.forma_pagamento, parcelas: p.parcelas, observacoes: p.observacoes ?? null,
       motivo_rejeicao: p.motivo_rejeicao ?? null,
+      pagamento: ["aprovado", "faturado", "entregue"].includes(p.status) ? {
+        em_aberto: r2(db.contas_receber.filter((r) => r.pedido_id === p.id && r.status === "aberto").reduce((s, r) => s + Number(r.valor), 0)),
+        pago: r2(db.contas_receber.filter((r) => r.pedido_id === p.id && r.status === "pago").reduce((s, r) => s + Number(r.valor_pago ?? r.valor), 0)),
+        link: cfg.link_pagamento_ao_aprovar !== false && ["pix", "cartao"].includes(p.forma_pagamento)
+          && !!(db.unidades.find((u) => u.id === p.unidade_id) ?? db.unidades.find((u) => u.matriz))?.infinitepay_tag,
+      } : null,
       empresa: { nome: cfg.nome_fantasia, razao_social: cfg.razao_social, cnpj: cfg.cnpj, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email, endereco: cfg.endereco, municipio: cfg.municipio, uf: cfg.uf, termo_garantia: cfg.termo_garantia },
       layout: { titulo: cfg.proposta_titulo, apresentacao: cfg.proposta_apresentacao, condicoes: cfg.proposta_condicoes, rodape: cfg.proposta_rodape, cor: cfg.proposta_cor },
     } };
@@ -3162,17 +3169,44 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "focus-config": () => ({ ok: true, ambiente: "homologacao", eventos: ["nfe", "nfe_recebida"] }),
   infinitepay: (b) => {
-    if (b.acao !== "criar") return { ok: true };
-    const c = db.contas_receber.find((x) => x.id === b.conta_id);
-    if (!c) throw new Error("conta não encontrada");
-    if (c.status !== "aberto") throw new Error("esta conta não está em aberto");
-    const u = db.unidades.find((x) => x.id === c.unidade_id) ?? db.unidades.find((x) => x.matriz);
+    // mesmo caminho da função: conta, pedido (todas as parcelas em aberto), proposta aprovada e área do cliente
+    const alvoConta = (id: string) => {
+      const c = db.contas_receber.find((x) => x.id === id);
+      if (!c) throw new Error("conta não encontrada");
+      if (c.status !== "aberto") throw new Error("esta conta não está em aberto");
+      return { contaId: c.id, pedidoId: null as string | null, unidadeId: c.unidade_id, descricao: c.descricao, valor: Number(c.valor) };
+    };
+    const alvoPedido = (id: string) => {
+      const p = db.pedidos.find((x) => x.id === id);
+      if (!p) throw new Error("pedido não encontrado");
+      if (!["aprovado", "faturado", "entregue"].includes(p.status)) throw new Error("Aprove a venda antes de gerar o link de pagamento.");
+      const abertas = db.contas_receber.filter((x) => x.pedido_id === p.id && x.status === "aberto");
+      if (!abertas.length) throw new Error("Este pedido não tem parcela em aberto: já está pago.");
+      return { contaId: abertas.length === 1 ? abertas[0].id : null, pedidoId: p.id, unidadeId: p.unidade_id,
+        descricao: `Pedido #${p.numero}${abertas.length > 1 ? ` (${abertas.length} parcelas)` : ""}`, valor: r2(abertas.reduce((s, x) => s + Number(x.valor), 0)) };
+    };
+    let a: ReturnType<typeof alvoConta>;
+    if (b.acao === "criar") a = alvoConta(b.conta_id);
+    else if (b.acao === "criar_pedido") a = alvoPedido(b.pedido_id);
+    else if (b.acao === "pagar_proposta") {
+      const p = db.pedidos.find((x) => x.proposta_token === b.token && x.proposta_status);
+      if (!p) throw new Error("proposta não encontrada");
+      if (!["pix", "cartao"].includes(p.forma_pagamento)) throw new Error("Esta venda não é paga por link: fale com o vendedor.");
+      a = alvoPedido(p.id);
+    } else if (b.acao === "pagar_conta") {
+      const cli = db.clientes.find((x) => x.portal_token === b.token);
+      const c = cli && db.contas_receber.find((x) => x.id === b.conta_id && x.cliente_id === cli.id);
+      if (!c) throw new Error("conta não encontrada");
+      a = alvoConta(c.id);
+    } else return { ok: true };
+    const u = db.unidades.find((x) => x.id === a.unidadeId) ?? db.unidades.find((x) => x.matriz);
     if (!u?.infinitepay_tag) throw new Error(`Cadastre a InfiniteTag da ${u?.nome ?? "unidade"} em Configurações → Unidades.`);
     if (!db.cobrancas_link) db.cobrancas_link = [];
-    const igual = db.cobrancas_link.find((l) => l.conta_receber_id === c.id && l.status === "aberto" && Number(l.valor) === Number(c.valor));
+    const doAlvo = (l: Row) => l.status === "aberto" && (a.pedidoId ? l.pedido_id === a.pedidoId || (a.contaId && l.conta_receber_id === a.contaId) : l.conta_receber_id === a.contaId);
+    const igual = db.cobrancas_link.find((l) => doAlvo(l) && Number(l.valor) === a.valor && (l.conta_receber_id ?? null) === a.contaId);
     if (igual) return { id: igual.id, url: igual.url, reaproveitado: true };
-    for (const l of db.cobrancas_link) if (l.conta_receber_id === c.id && l.status === "aberto") l.status = "descartado";
-    const l: Row = { id: uid(), conta_receber_id: c.id, unidade_id: u.id, handle: u.infinitepay_tag, descricao: c.descricao, valor: c.valor, status: "aberto",
+    for (const l of db.cobrancas_link) if (doAlvo(l)) l.status = "descartado";
+    const l: Row = { id: uid(), conta_receber_id: a.contaId, pedido_id: a.pedidoId, unidade_id: u.id, handle: u.infinitepay_tag, descricao: a.descricao, valor: a.valor, status: "aberto",
       url: `https://checkout.infinitepay.io/${u.infinitepay_tag}?demo=${uid().slice(0, 8)}`, created_at: new Date().toISOString(),
       metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
     db.cobrancas_link.push(l);
