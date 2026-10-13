@@ -43,3 +43,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   20. `20261013135628_fornecedor_golpe.sql`
   21. `20261013162027_fluxo_aprovacao.sql`
   22. `20261013164713_boleto_conta_pagar.sql`
+  23. `20261013175659_pagamento_so_aprovado.sql`

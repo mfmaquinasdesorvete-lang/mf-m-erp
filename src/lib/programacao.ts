@@ -7,6 +7,8 @@ export type ContaDecisao = {
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
   /** fornecedor marcado como golpe: o banco segura a conta como "não pagar" */
   fornecedor?: { bloqueado?: boolean | null; bloqueio_motivo?: string | null } | null;
+  /** fluxo de aprovação: só paga (ou agenda) depois de "aprovado" ("historico" = anterior ao fluxo) */
+  revisao?: string | null;
 };
 export type FiltroDecisao = "todas" | "decidir" | "hoje" | "agendadas" | "nao_pagar";
 export type Tom = "ok" | "agenda" | "parada" | "decidir" | "atrasada" | "golpe";
@@ -16,9 +18,13 @@ const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 /** Em que dia a conta deve sair do caixa: o dia escolhido; sem decisão, o vencimento. */
 export const diaDoPagamento = (c: ContaDecisao) => (c.status === "aberto" && c.decisao !== "nao_pagar" && c.pagar_em) || c.vencimento;
 
-/** Aprovadas/agendadas para hoje ou antes, ainda em aberto: o que o financeiro paga hoje. */
+/** Em aberto e ainda sem a aprovação (em revisão, devolvida): o banco não deixa pagar, agendar nem dar baixa. */
+export const aguardaAprovacao = (c: ContaDecisao) => c.status === "aberto" && !!c.revisao && c.revisao !== "aprovado" && c.revisao !== "historico";
+export const TEXTO_FALTA_APROVAR = "Falta a aprovação: só dá para pagar ou agendar depois que a conta for aprovada (Financeiro → Aprovações)";
+
+/** Aprovadas/agendadas para hoje ou antes, ainda em aberto e já aprovadas no fluxo: o que o financeiro paga hoje. */
 export const paraPagarHoje = <T extends ContaDecisao>(l: T[], hoje: string) =>
-  l.filter((c) => c.status === "aberto" && (c.decisao === "pagar" || c.decisao === "agendado") && (c.pagar_em ?? "") <= hoje);
+  l.filter((c) => c.status === "aberto" && (c.decisao === "pagar" || c.decisao === "agendado") && (c.pagar_em ?? "") <= hoje && !aguardaAprovacao(c));
 
 export const aDecidir = <T extends ContaDecisao>(l: T[]) => l.filter((c) => c.status === "aberto" && !c.decisao);
 
@@ -46,6 +52,7 @@ export function rotuloDecisao(c: ContaDecisao, hoje: string): { texto: string; t
   }
   if (c.decisao === "nao_pagar") return { texto: "Não pagar", tom: "parada", dica: `${c.decisao_motivo ?? ""}${por}` };
   const d = c.pagar_em ?? c.vencimento;
+  if (aguardaAprovacao(c)) return { texto: `${c.decisao === "agendado" ? `Agendada ${dm(d)}` : "Decidida"} · falta aprovar`, tom: "decidir", dica: TEXTO_FALTA_APROVAR };
   if (d <= hoje) return { texto: "Pagar hoje", tom: "ok", dica: `${c.decisao === "agendado" ? "Agendada" : "Aprovada"} para ${dm(d)}${por}` };
   return { texto: c.decisao === "agendado" ? `Agendada ${dm(d)}` : `Aprovada · ${dm(d)}`, tom: "agenda", dica: `Pagar em ${dm(d)}${por}` };
 }
