@@ -29,6 +29,7 @@ export const USUARIOS_DEMO = [
   { user_id: "u-fin", nome: "Rafael Financeiro", papel: "financeiro", email: "financeiro@mfmaquinas.com.br" },
   { user_id: "u-tec", nome: "Diego Técnico", papel: "tecnico", email: "assistencia@mfmaquinas.com.br" },
   { user_id: "u-cont", nome: "Escritório Contábil Exemplo", papel: "contador", email: "contador@escritorio.com.br" },
+  { user_id: "u-exp", nome: "Lucas Expedição", papel: "expedicao", email: "expedicao@mfmaquinas.com.br" },
 ];
 
 /** Leitura simples do XML de NF-e para a demonstração. */
@@ -49,7 +50,7 @@ function seed(): Db {
   const db: Db = {
     usuarios_erp: USUARIOS_DEMO.map((u, i) => ({
       ...u, ativo: true, created_at: quando(-200 + i), ultimo_acesso: quando(-i), avisos: {}, trocar_senha: false,
-      papeis_extras: u.user_id === "u-vendas" ? ["tecnico"] : [], cargo: ({ "u-admin": "Diretora", "u-vendas": "Vendedora", "u-fin": "Financeiro", "u-tec": "Técnico de campo", "u-cont": "Contabilidade" } as Record<string, string>)[u.user_id] ?? null,
+      papeis_extras: u.user_id === "u-vendas" ? ["tecnico"] : [], cargo: ({ "u-admin": "Diretora", "u-vendas": "Vendedora", "u-fin": "Financeiro", "u-tec": "Técnico de campo", "u-cont": "Contabilidade", "u-exp": "Estoquista" } as Record<string, string>)[u.user_id] ?? null,
       telefone: u.user_id === "u-cont" ? null : "4899999" + String(1000 + i),
       telegram_chat_id: ["u-fin", "u-tec"].includes(u.user_id) ? 5000 + i : null,
     })),
@@ -1042,6 +1043,22 @@ function comercialDemo(db: Db) {
     volumes: 2, peso_kg: 160, transportadora_id: null, codigo_rastreio: null, separando_em: quando(-1), conferido_em: quando(-1), embalado_em: quando(-0.5), created_at: quando(-1) }];
   const pd1 = db.pedidos.find((p) => p.id === "pd1")!;
   db.expedicoes.push({ id: "ex1", pedido_id: "pd1", unidade_id: pd1.unidade_id, status: "entregue", itens_conferidos: [], volumes: 1, created_at: quando(-30), entregue_em: quando(-3), despachado_em: quando(-6) });
+  // Separação e embalagem: dois pedidos faturados esperando separação e um em conferência
+  const novosExp: [string, number, string, [string, number, number][], "separar" | "separando", number][] = [
+    ["pd6", 106, "c2", [["p4", 2, 790], ["p7", 4, 140], ["p9", 1, 189]], "separar", -1.2],
+    ["pd7", 107, "c5", [["p6", 1, 1180], ["p10", 6, 49], ["p7", 2, 140]], "separar", -0.15],
+    ["pd8", 108, "c3", [["p3", 1, 3690], ["p10", 2, 49]], "separando", -0.1],
+  ];
+  novosExp.forEach(([id, numero, cliente_id, itens, status, d], k) => {
+    const unidade_id = pd1.unidade_id;
+    db.pedidos.push({ id, numero, cliente_id, origem: k === 1 ? "loja" : "whatsapp", status: "faturado", vendedor: "Carla", forma_pagamento: "pix", parcelas: 1, intervalo_dias: 30,
+      modalidade_frete: 0, desconto: 0, frete: 0, created_at: quando(d - 0.4), aprovado_em: quando(d - 0.3), estoque_baixado: true, unidade_id });
+    itens.forEach(([produto_id, quantidade, valor_unitario], j) => db.pedido_itens.push({ id: `${id}-i${j}`, pedido_id: id, produto_id, descricao: db.produtos.find((x) => x.id === produto_id)!.descricao, quantidade, valor_unitario }));
+    db.notas_fiscais.push({ id: `nf-${id}`, pedido_id: id, referencia: `pedido-${numero}-1`, status: "autorizada", numero: String(1290 + k), serie: "1", chave: `4226${String(numero).padStart(40, "0")}`,
+      valor_total: itens.reduce((s, [, q, v]) => s + q * v, 0), mensagem: "Autorizado o uso da NF-e", ambiente: "producao", created_at: quando(d - 0.25), marcadores: [], unidade_id });
+    db.expedicoes.push({ id: `ex-${id}`, pedido_id: id, unidade_id, status, itens_conferidos: [], volumes: null, peso_kg: null, transportadora_id: null, codigo_rastreio: null,
+      responsavel: status === "separando" ? "Lucas Expedição" : null, separando_em: status === "separando" ? quando(d) : null, created_at: quando(d - 0.2) });
+  });
   // Contador: impostos destacados nas notas (como viriam da emissão), um fechamento já enviado e uma mensagem
   for (const n of db.notas_fiscais.filter((x) => x.status === "autorizada" && x.pedido_id)) {
     const p = db.pedidos.find((x) => x.id === n.pedido_id);
@@ -1125,7 +1142,7 @@ function recalcular(db: Db) {
 }
 
 const db = seed();
-let numeroPedido = 105;
+let numeroPedido = 108;
 let numeroOS = 53;
 let numeroNfe = 1301;
 let numeroOP = 13;
@@ -3426,7 +3443,7 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
-    const ADIC = ["vendas", "financeiro", "tecnico"];
+    const ADIC = ["vendas", "financeiro", "tecnico", "expedicao"];
     const extras = (v: any, papel: string) => (Array.isArray(v) && !["admin", "contador"].includes(papel) ? [...new Set(v as string[])].filter((p) => ADIC.includes(p) && p !== papel) : []);
     const ultimoAdmin = (u: Row, papel: string, ativo: boolean) => u.papel === "admin" && u.ativo && (papel !== "admin" || !ativo)
       && !db.usuarios_erp.some((x) => x.user_id !== u.user_id && x.papel === "admin" && x.ativo);

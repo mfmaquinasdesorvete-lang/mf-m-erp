@@ -13,8 +13,9 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
 import {
-  ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type Papel, type Tela,
+  ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
+import { grupos, type Item } from "@/lib/menu";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -44,7 +45,7 @@ function useDuasEtapas() {
 
 const COR_PAPEL: Record<Papel, string> = {
   admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
-  tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800",
+  tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800", expedicao: "bg-orange-100 text-orange-800",
 };
 const SITE = typeof window !== "undefined" ? window.location.origin : "https://erp.myfrost.ai";
 
@@ -107,7 +108,7 @@ export default function Usuarios() {
   return (
     <div>
       <PageHeader title="Usuários e permissões" actions={<Button onClick={() => setEditando("novo")}><Plus size={16} aria-hidden /> Novo usuário</Button>} />
-      <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "O que cada papel pode" }, { value: "seguranca", label: "Segurança do acesso" }]} />
+      <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "Perfis: o que cada um vê" }, { value: "seguranca", label: "Segurança do acesso" }]} />
 
       {aba === "permissoes" ? <MatrizPermissoes /> : aba === "seguranca" ? <SegurancaAcesso usuarios={ativos} /> : (
         <>
@@ -487,41 +488,128 @@ function SegurancaAcesso({ usuarios }: { usuarios: Usuario[] }) {
   );
 }
 
-/** Tabela: telas que cada papel vê e o que pode alterar. */
+/**
+ * Perfis: o que aparece no menu de cada papel (o administrador marca e desmarca) e o que cada papel pode alterar.
+ * Só dá para esconder o que o papel acessa; para liberar dados de outra área, dê um papel adicional à pessoa.
+ */
 function MatrizPermissoes() {
-  const telas = Object.keys(TELAS_ROTULO) as Tela[];
+  const { papel: meuPapel } = usePerfil();
+  const editavel = meuPapel === "admin";
+  const { data: cfg } = useConfig();
+  const invalidate = useInvalidate();
+  const perfis = PAPEIS.filter((p) => p.value !== "admin") as { value: Exclude<Papel, "admin">; label: string }[];
+  const salvo = (cfg?.menu_oculto ?? {}) as MenuOculto;
+  const [oculto, setOculto] = useState<MenuOculto | null>(null);
+  const atual = oculto ?? salvo;
+  const mudou = oculto !== null && JSON.stringify(oculto) !== JSON.stringify(salvo);
+  const [salvando, setSalvando] = useState(false);
   const acoes = Object.keys(ACOES_ROTULO) as (keyof typeof ACOES_ROTULO)[];
-  const vis = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(telasDoPapel(p.value))])), []);
   const faz = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
+  const areas = grupos.map((g) => ({ ...g, titulo: g.titulo || "Início" }));
+
+  function alternar(p: Exclude<Papel, "admin">, to: string, ver: boolean) {
+    const lista = new Set(atual[p] ?? []);
+    if (ver) lista.delete(to); else lista.add(to);
+    setOculto({ ...atual, [p]: [...lista].sort() });
+  }
+  function area(p: Exclude<Papel, "admin">, itens: Item[], ver: boolean) {
+    const lista = new Set(atual[p] ?? []);
+    for (const i of itens) if (telasDoPapel(p).includes(i.tela)) { if (ver) lista.delete(i.to); else lista.add(i.to); }
+    setOculto({ ...atual, [p]: [...lista].sort() });
+  }
+  async function salvar() {
+    setSalvando(true);
+    const limpo = Object.fromEntries(Object.entries(atual).filter(([, l]) => l && l.length));
+    const { error } = await supabase.from("configuracoes").update({ menu_oculto: limpo }).eq("id", 1);
+    setSalvando(false);
+    if (error) return notifyError(error);
+    notify("Perfis salvos: cada pessoa vê a mudança ao abrir ou atualizar o ERP");
+    setOculto(null);
+    invalidate("configuracoes");
+  }
+
   const Marca = ({ ok }: { ok: boolean }) => ok
     ? <Check size={16} className="mx-auto text-emerald-700" aria-label="sim" />
     : <Minus size={14} className="mx-auto text-slate-300" aria-label="não" />;
-  const Tabela = ({ titulo, linhas, rotulo, tem }: { titulo: string; linhas: string[]; rotulo: (k: string) => string; tem: (p: Papel, k: string) => boolean }) => (
-    <Card className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
-        <caption className="px-4 pt-3 text-left font-semibold">{titulo}</caption>
-        <thead><tr className="border-b border-slate-200">
-          <th className="th" />{PAPEIS.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
-        </tr></thead>
-        <tbody>
-          {linhas.map((k) => (
-            <tr key={k} className="border-b border-slate-100 last:border-0">
-              <th scope="row" className="td text-left font-normal">{rotulo(k)}</th>
-              {PAPEIS.map((p) => <td key={p.value} className="td text-center"><Marca ok={tem(p.value, k)} /></td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
-  );
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-600">
-        Cada pessoa tem um <b>papel principal</b> e pode ter <b>papéis adicionais</b> (vendas, financeiro, técnico): as permissões se somam.
-        O banco de dados aplica as mesmas regras, então ninguém faz pelo sistema o que o papel não permite.
+        Escolha o que aparece no menu de cada perfil. Desmarcar só esconde a tela; o que cada perfil pode ver e alterar nos dados continua valendo no banco de dados.
+        <b> —</b> quer dizer que o perfil não acessa aqueles dados: para liberar, dê um <b>papel adicional</b> à pessoa (aba Usuários).
       </p>
-      <Tabela titulo="Telas que vê" linhas={telas} rotulo={(k) => TELAS_ROTULO[k as Tela]} tem={(p, k) => vis[p].has(k)} />
-      <Tabela titulo="O que pode criar ou alterar" linhas={acoes} rotulo={(k) => ACOES_ROTULO[k as keyof typeof ACOES_ROTULO]} tem={(p, k) => faz[p].has(k)} />
+      <Card className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <caption className="px-4 pt-3 text-left font-semibold">O que aparece no menu</caption>
+          <thead className="sticky top-0 bg-surface"><tr className="border-b border-slate-200">
+            <th className="th" />
+            <th scope="col" className="th text-center">Administrador</th>
+            {perfis.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
+          </tr></thead>
+          {areas.map((g) => (
+            <tbody key={g.id}>
+              <tr className="bg-slate-50/80">
+                <th scope="rowgroup" className="td text-left text-xs font-bold uppercase tracking-wide text-slate-500">{g.titulo}</th>
+                <td className="td" />
+                {perfis.map((p) => {
+                  const seus = g.itens.filter((i) => telasDoPapel(p.value).includes(i.tela));
+                  const todosVisiveis = seus.length > 0 && seus.every((i) => !(atual[p.value] ?? []).includes(i.to));
+                  return (
+                    <td key={p.value} className="td text-center">
+                      {editavel && seus.length > 1 && (
+                        <button type="button" onClick={() => area(p.value, g.itens, !todosVisiveis)} className="text-[11px] font-semibold text-brand hover:underline">
+                          {todosVisiveis ? "esconder área" : "mostrar área"}
+                        </button>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              {g.itens.map((i) => (
+                <tr key={i.to} className="border-b border-slate-100 last:border-0">
+                  <th scope="row" className="td text-left font-normal"><span className="inline-flex items-center gap-2"><i.icon size={15} className="text-slate-400" aria-hidden />{i.label}</span></th>
+                  <td className="td text-center"><Marca ok /></td>
+                  {perfis.map((p) => {
+                    const acessa = telasDoPapel(p.value).includes(i.tela);
+                    const ve = acessa && !(atual[p.value] ?? []).includes(i.to);
+                    return (
+                      <td key={p.value} className="td text-center">
+                        {!acessa ? <span className="text-slate-300" title="Este perfil não acessa estes dados">—</span>
+                          : editavel ? <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--brand))]" checked={ve} aria-label={`${i.label} para ${p.label}`}
+                              onChange={(e) => alternar(p.value, i.to, e.target.checked)} />
+                          : <Marca ok={ve} />}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </Card>
+      {editavel && (
+        <div className="sticky bottom-20 z-10 flex flex-wrap items-center justify-end gap-2 md:bottom-4">
+          {mudou && <span className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Alterações não salvas</span>}
+          {mudou && <Button type="button" variant="secondary" onClick={() => setOculto(null)}>Desfazer</Button>}
+          <Button type="button" disabled={!mudou || salvando} onClick={salvar}><Check size={16} /> {salvando ? "Salvando…" : "Salvar perfis"}</Button>
+        </div>
+      )}
+      <Card className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <caption className="px-4 pt-3 text-left font-semibold">O que pode criar ou alterar</caption>
+          <thead><tr className="border-b border-slate-200">
+            <th className="th" />{PAPEIS.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
+          </tr></thead>
+          <tbody>
+            {acoes.map((k) => (
+              <tr key={k} className="border-b border-slate-100 last:border-0">
+                <th scope="row" className="td text-left font-normal">{ACOES_ROTULO[k]}</th>
+                {PAPEIS.map((p) => <td key={p.value} className="td text-center"><Marca ok={faz[p.value].has(k)} /></td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
       <p className="text-xs text-slate-500">Usuários, unidades, configurações e exclusões ficam só com o administrador. O contador só consulta (e fecha o mês).</p>
     </div>
   );

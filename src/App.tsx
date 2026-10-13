@@ -3,7 +3,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { PerfilProvider, type Perfil } from "@/lib/auth";
+import { PerfilProvider, usePerfil, type Perfil } from "@/lib/auth";
+import { todosItens, useVisivel } from "@/lib/menu";
 import { UnidadeProvider } from "@/lib/unidade";
 import { aplicarPreferencias } from "@/lib/tema";
 import { podeVer, type Tela } from "@/lib/permissoes";
@@ -45,6 +46,7 @@ const Transferencias = lazy(() => import("@/pages/Transferencias"));
 const Email = lazy(() => import("@/pages/Email"));
 const Comissoes = lazy(() => import("@/pages/Comissoes"));
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
+const PainelExpedicao = lazy(() => import("@/pages/paineis/PainelExpedicao"));
 const Margem = lazy(() => import("@/pages/Margem"));
 const Contador = lazy(() => import("@/pages/Contador"));
 const AnalistaFiscal = lazy(() => import("@/pages/AnalistaFiscal"));
@@ -87,6 +89,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "email", tela: "email", element: <Email /> },
   { path: "comissoes", tela: "comissoes", element: <Comissoes /> },
   { path: "fluxo", tela: "fluxo", element: <Fluxo /> },
+  { path: "expedicao", tela: "expedicao", element: <PainelExpedicao /> },
   { path: "margem", tela: "margem", element: <Margem /> },
   { path: "contador", tela: "contador", element: <Contador /> },
   { path: "analista-fiscal", tela: "contador", element: <AnalistaFiscal /> },
@@ -194,17 +197,7 @@ export default function App() {
           <SaidaPorInatividade entrouEm={session.user.last_sign_in_at} />
           <UnidadeProvider inicial={perfil.unidade_id ?? null}>
           <Suspense fallback={<Carregando />}>
-            <Routes>
-              {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
-              {podeVer(perfil.papel, "pedidos", perfil.papeis_extras) && <Route path="pdv" element={<Pdv />} />}
-              <Route element={<Layout />}>
-                <Route index element={perfil.papel === "contador" ? <Navigate to="/contador" replace /> : <Dashboard />} />
-                {ROTAS.filter((r) => podeVer(perfil.papel, r.tela, perfil.papeis_extras)).map((r) => (
-                  <Route key={r.path} path={r.path} element={r.element} />
-                ))}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
+            <RotasERP />
           </Suspense>
           </UnidadeProvider>
         </PerfilProvider>
@@ -214,6 +207,32 @@ export default function App() {
 }
 
 /** Sai depois do tempo sem uso definido em Usuários (padrão 30 minutos). */
+/**
+ * Rotas do ERP para quem entrou: só as telas que o papel acessa e que não foram escondidas para ele em Usuários → Perfis.
+ * O início é o painel; contador vai para o fechamento e a expedição para a separação (ou a primeira tela que a pessoa vê).
+ */
+function RotasERP() {
+  const { papel } = usePerfil();
+  const vis = useVisivel();
+  const inicio = papel === "contador" && vis.ve("contador", "/contador") ? "/contador"
+    : papel === "expedicao" && vis.ve("expedicao", "/expedicao") ? "/expedicao"
+    : vis.ve("painel", "/") ? null
+    : todosItens.find((i) => i.to !== "/" && vis.item(i))?.to ?? null;
+  return (
+    <Routes>
+      {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
+      {vis.ve("pedidos", "/pdv") && <Route path="pdv" element={<Pdv />} />}
+      <Route element={<Layout />}>
+        <Route index element={inicio ? <Navigate to={inicio} replace /> : <Dashboard />} />
+        {ROTAS.filter((r) => vis.ve(r.tela, `/${r.path}`)).map((r) => (
+          <Route key={r.path} path={r.path} element={r.element} />
+        ))}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
 function SaidaPorInatividade({ entrouEm }: { entrouEm?: string | null }) {
   const { data: cfg } = useConfig();
   const minutos = cfg?.sessao_minutos ?? 30;

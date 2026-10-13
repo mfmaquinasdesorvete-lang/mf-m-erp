@@ -20,7 +20,7 @@ do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'configuracoes_mfa_papeis_validos') then
     alter table public.configuracoes add constraint configuracoes_mfa_papeis_validos
-      check (mfa_papeis <@ array['admin', 'vendas', 'financeiro', 'tecnico', 'contador']::text[]);
+      check (mfa_papeis <@ array['admin', 'vendas', 'financeiro', 'tecnico', 'contador', 'expedicao']::text[]);
   end if;
   if not exists (select 1 from pg_constraint where conname = 'configuracoes_sessao_minutos_faixa') then
     alter table public.configuracoes add constraint configuracoes_sessao_minutos_faixa
