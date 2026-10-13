@@ -169,6 +169,7 @@ function LojaAjustes({ estado, mudar }: { estado: Estado; mudar: Mudar }) {
         <Field label="Telefone"><input className="input" value={l.telefone} onChange={(e) => set({ telefone: e.target.value })} /></Field>
         <Field label="Endereço"><input className="input" value={l.endereco} onChange={(e) => set({ endereco: e.target.value })} /></Field>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={l.imprimirAuto} onChange={(e) => set({ imprimirAuto: e.target.checked })} /> Imprimir o comprovante sozinho ao cobrar</label>
+        <Field label="Comissão iFood/app (%)"><input className="input w-28" type="number" min={0} max={50} value={l.comMkt} onChange={(e) => set({ comMkt: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} /></Field>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={l.producaoBalcao} onChange={(e) => set({ producaoBalcao: e.target.checked })} /> Pedidos do balcão passam pela fila de produção (açaí, milkshake)</label>
       </Card>
       <Card className="space-y-3 p-4">

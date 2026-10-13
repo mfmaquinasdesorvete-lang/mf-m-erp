@@ -1518,11 +1518,13 @@ function pdvConsumidorDemo() {
 // Sorveteria online (na prévia: em memória; no sistema real: tabelas sorv_lojas e sorv_pedidos_online)
 const sorvLojas: Record<string, LojaPublica> = (() => { const e = estadoInicial(); return { "minha-sorveteria": { nome: e.loja.nome, whatsapp: "48999990000", aberta: true, pedido_minimo: 0, cardapio: cardapioPublicavel(e) } }; })();
 const sorvPedidos: (PedidoOnline & { slug: string })[] = [];
+const sorvCupons: Record<string, any[]> = {};
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
-  sorv_publicar: ({ p_slug, p_nome, p_whatsapp, p_aberta, p_minimo, p_cardapio }) => {
+  sorv_publicar: ({ p_slug, p_nome, p_whatsapp, p_aberta, p_minimo, p_cardapio, p_cupons }) => {
     if (!/^[a-z0-9][a-z0-9-]{2,39}$/.test(p_slug ?? "")) return erro("Endereço inválido: use de 3 a 40 letras minúsculas, números e hífen");
     sorvLojas[p_slug] = { nome: p_nome || "Sorveteria", whatsapp: p_whatsapp || null, aberta: p_aberta !== false, pedido_minimo: Math.max(0, Number(p_minimo) || 0), cardapio: p_cardapio };
+    sorvCupons[p_slug] = Array.isArray(p_cupons) ? p_cupons : [];
     return { data: null, error: null };
   },
   sorv_cardapio: ({ p_slug }) => ({ data: sorvLojas[String(p_slug ?? "").toLowerCase()] ?? null, error: null }),
@@ -1530,11 +1532,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const slug = String(p_slug ?? "").toLowerCase(), loja = sorvLojas[slug];
     if (!loja) return erro("Loja não encontrada");
     try {
-      const v = validarPedidoOnline(loja, p);
+      const cod = String(p.cupom ?? "").trim().toUpperCase();
+      const v = validarPedidoOnline(loja, p, sorvCupons[slug] ?? [], cod ? sorvPedidos.filter((o) => o.slug === slug && o.cupom === cod && o.status !== "recusado").length : 0);
       const codigo = Math.random().toString(36).slice(2, 7).toUpperCase();
       sorvPedidos.push({ slug, id: uid(), codigo, canal: p.canal, status: "novo", motivo: null, created_at: new Date().toISOString(), cliente: { ...p.cliente, telefone: v.telefone },
-        itens: v.itens, subtotal: v.subtotal, taxa_entrega: v.taxa_entrega, total: v.total, pagamento: p.pagamento, troco_para: p.pagamento === "dinheiro" ? p.troco_para ?? null : null, observacoes: p.observacoes || null });
-      return { data: { codigo, total: v.total, status: "novo" }, error: null };
+        itens: v.itens, subtotal: v.subtotal, taxa_entrega: v.taxa_entrega, cupom: v.cupom, desconto: v.desconto, total: v.total, pagamento: p.pagamento, troco_para: p.pagamento === "dinheiro" ? p.troco_para ?? null : null, observacoes: p.observacoes || null });
+      return { data: { codigo, total: v.total, desconto: v.desconto, status: "novo" }, error: null };
     } catch (e) { return erro((e as Error).message); }
   },
   sorv_online_listar: ({ p_slug }) => ({ data: sorvPedidos.filter((o) => o.slug === p_slug).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)), error: null }),

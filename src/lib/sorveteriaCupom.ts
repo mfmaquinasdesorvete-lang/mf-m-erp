@@ -39,14 +39,25 @@ export function cupomHtml(p: Pedido, loja: Loja) {
 }
 
 /** Imprime o comprovante num quadro invisível (um clique, sem pop-up). */
-export function imprimirCupom(p: Pedido, loja: Loja) {
+export const imprimirCupom = (p: Pedido, loja: Loja) => imprimirHtml(cupomHtml(p, loja));
+
+function imprimirHtml(html: string) {
   const quadro = document.createElement("iframe");
   quadro.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";
   document.body.appendChild(quadro);
   const doc = quadro.contentDocument;
   if (!doc) { quadro.remove(); return; }
-  doc.open(); doc.write(cupomHtml(p, loja)); doc.close();
+  doc.open(); doc.write(html); doc.close();
   setTimeout(() => {
     try { quadro.contentWindow?.focus(); quadro.contentWindow?.print(); } finally { setTimeout(() => quadro.remove(), 60_000); }
   }, 150);
+}
+
+/** Comanda da cozinha: só o que preparar (sem preços), com as observações em destaque. */
+export function imprimirCozinha(p: Pedido) {
+  const itens = p.itens.map((i) => `<li><b>${i.pesoG != null ? `${esc(i.nome)} ${i.pesoG}g` : `${i.qtd}x ${esc(i.nome)}`}</b>${i.sabores.length ? `<br>${esc(i.sabores.join(", "))}` : ""}${i.complementos.length ? `<br>+ ${esc(i.complementos.map((c) => c.nome).join(", "))}` : ""}${i.obs ? `<br><b>OBS: ${esc(i.obs)}</b>` : ""}</li>`).join("");
+  const html = `<!doctype html><meta charset="utf-8"><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:14px/1.4 "Courier New",monospace}.c{text-align:center}hr{border:0;border-top:1px dashed #000}li{margin-bottom:6px}</style>
+  <div class="c"><b style="font-size:22px">#${p.numero}</b><br><b>${rotuloCanal(p.canal)}${p.mesa ? ` ${esc(p.mesa)}` : ""}${p.origem ? ` · ${esc(p.origem)}` : ""}</b><br>${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><hr>
+  <ul style="padding:0;list-style:none">${itens}</ul>${p.obs ? `<hr><b>${esc(p.obs)}</b>` : ""}`;
+  imprimirHtml(html);
 }

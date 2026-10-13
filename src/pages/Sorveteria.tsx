@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, BarChart3, ChefHat, ClipboardList, Globe, IceCreamCone, Minus, Pencil, Plus, Printer, Receipt, Search, Send, Store, Trash2, Wallet,
+  ArrowLeft, BarChart3, Bike, ChefHat, ClipboardList, DollarSign, Globe, IceCreamCone, Minus, Package, Pencil, Plus, Printer, Receipt, Search, Send, Star, Store, Trash2, Wallet,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { MontarItem } from "@/components/sorveteria/MontarItem";
@@ -14,6 +14,10 @@ import { CaixaTela } from "@/components/sorveteria/CaixaTela";
 import { CardapioTela } from "@/components/sorveteria/CardapioTela";
 import { Relatorio } from "@/components/sorveteria/Relatorio";
 import { PedidosOnline, useOnline } from "@/components/sorveteria/PedidosOnline";
+import { Entregas } from "@/components/sorveteria/Entregas";
+import { Clientes } from "@/components/sorveteria/Clientes";
+import { Estoque } from "@/components/sorveteria/Estoque";
+import { Financeiro } from "@/components/sorveteria/Financeiro";
 import { pedidoDoOnline, publicarCardapio, slugValido, cardapioPublicavel, type PedidoOnline } from "@/lib/sorveteriaOnline";
 import { brl, digitos } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -21,27 +25,21 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { imprimirCupom } from "@/lib/sorveteriaCupom";
 import {
-  CANAIS, caixaAberto, descontoPedido, gorjetaPedido, novoId, novoPedido, numerar, pedidoAtivo, qtdItens, r2, salvarPedido, subtotalPedido,
+  CANAIS, caixaAberto, clientePorTel, cupomValida, descontoPedido, definirAtivo, gorjetaPedido, insumosBaixos, novoId, pedidoAtivo, qtdItens, r2, salvarPedido, subtotalPedido,
   totalItem, totalPedido, usarLoja, useSorveteria, type Canal, type Cliente, type Estado, type ItemPedido, type Pagamento, type Pedido, type ProdutoMenu,
 } from "@/lib/sorveteria";
+import { comAtivo, irParaProducao, pagarPedido, registrarCliente, validarPedido } from "@/lib/sorveteriaAcoes";
 
-type Aba = "vender" | "comandas" | "producao" | "online" | "caixa" | "cardapio" | "relatorio";
+type Aba = "vender" | "comandas" | "producao" | "online" | "entregas" | "clientes" | "estoque" | "financeiro" | "caixa" | "cardapio" | "relatorio";
 const ABAS: { id: Aba; rotulo: string; icone: typeof Store }[] = [
   { id: "vender", rotulo: "Vender", icone: IceCreamCone }, { id: "comandas", rotulo: "Comandas", icone: ClipboardList },
-  { id: "producao", rotulo: "Produção", icone: ChefHat }, { id: "online", rotulo: "Online", icone: Globe }, { id: "caixa", rotulo: "Caixa", icone: Wallet },
+  { id: "producao", rotulo: "Produção", icone: ChefHat }, { id: "online", rotulo: "Online", icone: Globe }, { id: "entregas", rotulo: "Entregas", icone: Bike },
+  { id: "clientes", rotulo: "Clientes", icone: Star }, { id: "estoque", rotulo: "Estoque", icone: Package }, { id: "financeiro", rotulo: "Financeiro", icone: DollarSign }, { id: "caixa", rotulo: "Caixa", icone: Wallet },
   { id: "cardapio", rotulo: "Cardápio", icone: Store }, { id: "relatorio", rotulo: "Relatório", icone: BarChart3 },
 ];
 const CLIENTE_VAZIO: Cliente = { nome: "", telefone: "", endereco: "", bairro: "", referencia: "" };
 const precisaMontar = (p: ProdutoMenu) => p.sabores > 0 || p.grupos.length > 0 || p.tipo === "peso";
 const num = (s: string) => { const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : 0; };
-
-/** Pedido em andamento (cria um novo rascunho se ainda não há). Devolve o estado já com ele salvo. */
-function comAtivo(e: Estado, operador: string): [Estado, Pedido] {
-  const atual = pedidoAtivo(e);
-  if (atual) return [e, atual];
-  const p = novoPedido(e, operador);
-  return [{ ...salvarPedido(e, p), ativoId: p.id }, p];
-}
 
 export default function Sorveteria() {
   const { nome: operador } = usePerfil();
@@ -88,7 +86,7 @@ export default function Sorveteria() {
     if (!caixa) return notify("Abra o caixa para vender.", "erro");
     if (prod.esgotado) return notify(`${prod.nome} está em falta.`, "erro");
     if (precisaMontar(prod)) return setMontando({ produto: prod });
-    adicionar({ id: novoId(), produto_id: prod.id, nome: prod.nome, qtd: 1, unit: prod.preco, sabores: [], complementos: [] });
+    adicionar({ id: novoId(), produto_id: prod.id, nome: prod.nome, qtd: 1, unit: prod.preco, sabores: [], complementos: [], saborIds: [], complementoIds: [] });
   }
   function salvarMontado(item: ItemPedido) {
     if (montando?.item) mexer((p) => ({ ...p, itens: p.itens.map((i) => i.id === item.id ? item : i) }));
@@ -104,18 +102,24 @@ export default function Sorveteria() {
   }
   const alterarCliente = (c: Partial<Cliente>) => mexer((p) => ({ ...p, cliente: { ...(p.cliente ?? CLIENTE_VAZIO), ...c } }));
 
-  /** Ao digitar o telefone de quem já pediu, traz o cadastro da última compra. */
+  /** Ao digitar o telefone de quem já pediu, traz o cadastro do cliente (CRM). */
   function telefoneDigitado(tel: string) {
-    const d = digitos(tel);
-    const antigo = d.length >= 10 ? [...estado.pedidos].reverse().find((x) => x.cliente && digitos(x.cliente.telefone) === d && x.cliente.nome) : undefined;
+    const antigo = clientePorTel(estado, tel);
     mexer((p) => {
       const c = p.cliente ?? CLIENTE_VAZIO;
       if (antigo && !c.nome && !c.endereco) {
-        const taxa = estado.loja.bairros.find((b) => b.nome === antigo.cliente!.bairro)?.taxa;
-        return { ...p, cliente: { ...antigo.cliente!, telefone: tel }, taxaEntrega: p.canal === "delivery" ? (taxa ?? p.taxaEntrega) : p.taxaEntrega };
+        const taxa = estado.loja.bairros.find((b) => b.nome === antigo.bairro)?.taxa;
+        return { ...p, resgate: false, cliente: { nome: antigo.nome, telefone: tel, endereco: antigo.end, bairro: antigo.bairro, referencia: antigo.ref }, taxaEntrega: p.canal === "delivery" ? (taxa ?? p.taxaEntrega) : p.taxaEntrega };
       }
-      return { ...p, cliente: { ...c, telefone: tel } };
+      return { ...p, resgate: false, cliente: { ...c, telefone: tel, ...(antigo && p.canal !== "delivery" && p.canal !== "retirada" ? { nome: antigo.nome } : {}) } };
     });
+  }
+  function aplicarCupom(cod: string) {
+    if (!cod.trim()) return mexer((p) => ({ ...p, cupom: null }));
+    const p = comAtivo(estado, operador)[1];
+    const r = cupomValida(estado, cod, subtotalPedido(p));
+    if ("erro" in r) return notify(r.erro, "erro");
+    mexer((x) => ({ ...x, cupom: r.c.cod })); notify("Cupom aplicado.");
   }
   function escolherBairro(nome: string) {
     const b = estado.loja.bairros.find((x) => x.nome === nome);
@@ -130,58 +134,39 @@ export default function Sorveteria() {
       if (!existente) return salvarPedido(e2, { ...p, canal: "mesa", mesa: numero });
       // comanda já aberta: o que estava no carrinho vai para ela
       const unida = { ...existente, itens: [...existente.itens, ...p.itens] };
-      return { ...salvarPedido({ ...e2, pedidos: e2.pedidos.filter((x) => x.id !== p.id) }, unida), ativoId: unida.id };
+      definirAtivo(unida.id);
+      return salvarPedido({ ...e2, pedidos: e2.pedidos.filter((x) => x.id !== p.id) }, unida);
     });
   }
 
   // ---------------------------------------------------------------- produção e cobrança
-  function validar(p: Pedido): string | null {
-    if (!p.itens.length) return "Adicione itens ao pedido.";
-    if (!caixaAberto(estado)) return "Abra o caixa para continuar.";
-    if (p.canal === "mesa" && !p.mesa) return "Escolha a comanda.";
-    if (p.canal === "delivery" && (!p.cliente?.nome.trim() || !p.cliente.endereco.trim() || !digitos(p.cliente.telefone))) return "Delivery: informe nome, telefone e endereço.";
-    if (p.canal === "retirada" && !p.cliente?.nome.trim()) return "Retirada: informe o nome do cliente.";
-    return null;
-  }
-  const irParaProducao = (e: Estado, p: Pedido): [Estado, Pedido] => {
-    const [e2, n] = numerar(e, p);
-    const novos = n.itens.filter((i) => !n.enviados?.includes(i.id));
-    const agora = new Date().toISOString();
-    return [e2, { ...n, enviados: n.itens.map((i) => i.id), producao: novos.length || !n.producao ? "novo" : n.producao, enviadoEm: novos.length ? agora : n.enviadoEm ?? agora }];
-  };
-
   function lancarComanda() {
     if (!ativo) return;
-    const erro = validar(ativo); if (erro) return notify(erro, "erro");
+    const erro = validarPedido(estado, ativo); if (erro) return notify(erro, "erro");
     if (!ativo.itens.some((i) => !ativo.enviados?.includes(i.id))) return notify("Não há itens novos para enviar.", "erro");
-    mudar((e) => { const [e2, p] = irParaProducao(e, ativo); return { ...salvarPedido(e2, p), ativoId: null }; });
+    mudar((e) => { const [e2, p] = irParaProducao(registrarCliente(e, ativo), ativo); return salvarPedido(e2, p); });
+    definirAtivo(null);
     notify(`Comanda ${ativo.mesa} enviada para a produção.`);
   }
   function cobrar() {
     if (!ativo) return;
-    const erro = validar(ativo); if (erro) return notify(erro, "erro");
+    const erro = validarPedido(estado, ativo); if (erro) return notify(erro, "erro");
     setCobrando(ativo);
   }
   function naEntrega() {
     if (!cobrando) return;
     const base = cobrando;
-    mudar((e) => { const [e2, p] = irParaProducao(e, { ...base, pagarNaEntrega: true }); return { ...salvarPedido(e2, p), ativoId: e2.ativoId === base.id ? null : e2.ativoId }; });
+    mudar((e) => { const [e2, p] = irParaProducao(registrarCliente(e, base), { ...base, pagarNaEntrega: true }); return salvarPedido(e2, p); });
+    if (pedidoAtivo(estado)?.id === base.id) definirAtivo(null);
     notify("Pedido enviado. Cobrar quando entregar.");
     setCobrando(null);
   }
   function confirmarPagamento(pagamentos: Pagamento[], troco: number) {
     if (!cobrando) return;
     const base = cobrando;
-    const agora = new Date().toISOString();
     let final!: Pedido;
-    mudar((e) => {
-      const [e2, n] = numerar(e, base);
-      let p: Pedido = { ...n, pagamentos, troco, situacao: "fechado", pagoEm: agora, caixaId: caixaAberto(e2)?.id ?? n.caixaId };
-      if (p.pagarNaEntrega) p = { ...p, producao: "entregue", entregueEm: agora };
-      else if (!p.producao && (p.canal !== "balcao" || e2.loja.producaoBalcao)) { p = { ...p, producao: "novo", enviadoEm: agora, enviados: p.itens.map((i) => i.id) }; }
-      final = p;
-      return { ...salvarPedido(e2, p), ativoId: e2.ativoId === p.id ? null : e2.ativoId };
-    });
+    mudar((e) => { const [e2, p] = pagarPedido(e, base, pagamentos, troco); final = p; return e2; });
+    if (pedidoAtivo(estado)?.id === base.id) definirAtivo(null);
     setCobrando(null);
     if (estado.loja.imprimirAuto) imprimirCupom(final, estado.loja);
     setConcluido({ pedido: final, troco });
@@ -189,7 +174,8 @@ export default function Sorveteria() {
   function descartar() {
     if (!ativo) return;
     if (ativo.itens.length && !window.confirm("Descartar este pedido?")) return;
-    mudar((e) => ({ ...e, pedidos: e.pedidos.filter((p) => p.id !== ativo.id || !!p.numero), ativoId: null }));
+    mudar((e) => ({ ...e, pedidos: e.pedidos.filter((p) => p.id !== ativo.id || !!p.numero) }));
+    definirAtivo(null);
   }
 
   // cardápio online: republica sozinho quando algo muda (sabor em falta, preço, loja aberta/fechada)
@@ -203,7 +189,8 @@ export default function Sorveteria() {
   function aceitarOnline(o: PedidoOnline) {
     mudar((e) => {
       if (e.pedidos.some((x) => x.id === o.id)) return e;
-      const [e2, p] = irParaProducao(e, pedidoDoOnline(o, operador, caixaAberto(e)?.id));
+      const base = pedidoDoOnline(o, operador, caixaAberto(e)?.id);
+      const [e2, p] = irParaProducao(registrarCliente(e, base), base);
       return salvarPedido(e2, p);
     });
     notify(`Pedido online ${o.codigo} enviado para a produção.`);
@@ -236,11 +223,15 @@ export default function Sorveteria() {
                 <I size={16} aria-hidden /> {rotulo}
                 {id === "producao" && naFila > 0 && <span className="rounded-full bg-red-600 px-1.5 text-[11px] text-white">{naFila}</span>}
                 {id === "online" && online.novos > 0 && <span className="rounded-full bg-red-600 px-1.5 text-[11px] text-white">{online.novos}</span>}
+                {id === "estoque" && insumosBaixos(estado).length > 0 && <span className="rounded-full bg-amber-500 px-1.5 text-[11px] text-white">!</span>}
                 {id === "comandas" && comandasAbertas.length > 0 && <span className="rounded-full bg-amber-500 px-1.5 text-[11px] text-white">{comandasAbertas.length}</span>}
               </button>
             ))}
           </nav>
-          <button type="button" onClick={() => setAba("caixa")} className={`ml-auto rounded-full px-3 py-1 text-xs font-bold ${caixa ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+          <div className="ml-auto flex items-center gap-1 text-xs font-semibold text-slate-600">
+            {[["garcom", "Garçom"], ["totem", "Totem"], ["painel", "Painel TV"]].map(([r, t]) => <a key={r} href={`/sorveteria/${r}`} target="_blank" rel="noreferrer" className="rounded-lg px-2 py-1.5 hover:bg-slate-100">{t} ↗</a>)}
+          </div>
+          <button type="button" onClick={() => setAba("caixa")} className={`rounded-full px-3 py-1 text-xs font-bold ${caixa ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
             {caixa ? "Caixa aberto" : "Caixa fechado"}
           </button>
         </div>
@@ -286,16 +277,21 @@ export default function Sorveteria() {
               estado={estado} pedido={ativo} onCanal={trocarCanal} onMesa={() => setEscolhendoMesa(true)}
               onQtd={alterarQtd} onRemover={removerItem} onEditar={(i) => { const prod = estado.produtos.find((x) => x.id === i.produto_id); if (prod) setMontando({ produto: prod, item: i }); }}
               onCampo={(p) => mexer((x) => ({ ...x, ...p }))} onCliente={alterarCliente} onTelefone={telefoneDigitado} onBairro={escolherBairro}
-              onLancar={lancarComanda} onCobrar={cobrar} onDescartar={descartar} pct={pct}
+              onLancar={lancarComanda} onCobrar={cobrar} onDescartar={descartar} pct={pct} onCupom={aplicarCupom}
             />
           </div>
         )}
 
         {aba === "comandas" && (
-          <Comandas estado={estado} aoAbrir={(p) => { mudar((e) => ({ ...e, ativoId: p.id })); setAba("vender"); }}
-            aoNova={(n) => { mudar((e) => { const [e2, p] = comAtivo({ ...e, ativoId: null }, operador); return { ...salvarPedido(e2, { ...p, canal: "mesa", mesa: n }), ativoId: p.id }; }); setAba("vender"); }}
-            aoCobrar={(p) => { mudar((e) => ({ ...e, ativoId: p.id })); setCobrando(p); }} />
+          <Comandas estado={estado} aoAbrir={(p) => { definirAtivo(p.id); setAba("vender"); }}
+            aoNova={(n) => { definirAtivo(null); mudar((e) => { const [e2, p] = comAtivo(e, operador); return salvarPedido(e2, { ...p, canal: "mesa", mesa: n }); }); setAba("vender"); }}
+            aoCobrar={(p) => { definirAtivo(p.id); setCobrando(p); }}
+            aoDescartar={(p) => { if (window.confirm("Descartar este pedido do totem?")) mudar((e) => ({ ...e, pedidos: e.pedidos.filter((x) => x.id !== p.id) })); }} />
         )}
+        {aba === "entregas" && <Entregas estado={estado} mudar={mudar} />}
+        {aba === "clientes" && <Clientes estado={estado} mudar={mudar} />}
+        {aba === "estoque" && <Estoque estado={estado} mudar={mudar} />}
+        {aba === "financeiro" && <Financeiro estado={estado} mudar={mudar} />}
         {aba === "online" && <PedidosOnline estado={estado} online={online} onAceitar={aceitarOnline} />}
         {aba === "producao" && <Producao estado={estado} mudar={mudar} onReceber={(p) => setCobrando(p)} />}
         {aba === "caixa" && <CaixaTela estado={estado} mudar={mudar} operador={operador} />}
@@ -323,7 +319,7 @@ export default function Sorveteria() {
       <Modal open={!!concluido} onClose={() => setConcluido(null)} title="Venda concluída">
         {concluido && (
           <div className="space-y-4 text-center">
-            <p className="text-sm text-slate-600">Pedido <b>#{concluido.pedido.numero}</b> · {brl(totalPedido(concluido.pedido, pct))}</p>
+            <p className="text-sm text-slate-600">Pedido <b>#{concluido.pedido.numero}</b> · {brl(totalPedido(concluido.pedido, pct))}{!!concluido.pedido.pontosGanhos && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">+{concluido.pedido.pontosGanhos} pts</span>}</p>
             {concluido.troco > 0 && <p className="rounded-2xl bg-emerald-50 p-4 text-emerald-800"><span className="block text-sm font-semibold">Troco</span><b className="num text-4xl">{brl(concluido.troco)}</b></p>}
             <div className="flex justify-center gap-2">
               <Button type="button" variant="secondary" onClick={() => imprimirCupom(concluido.pedido, estado.loja)}><Printer size={16} aria-hidden /> Imprimir</Button>
@@ -337,11 +333,11 @@ export default function Sorveteria() {
 }
 
 // ------------------------------------------------------------------- carrinho
-function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEditar, onCampo, onCliente, onTelefone, onBairro, onLancar, onCobrar, onDescartar }: {
+function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEditar, onCampo, onCliente, onTelefone, onBairro, onLancar, onCobrar, onDescartar, onCupom }: {
   estado: Estado; pedido: Pedido | null; pct: number;
   onCanal: (c: Canal) => void; onMesa: () => void; onQtd: (id: string, d: number) => void; onRemover: (id: string) => void; onEditar: (i: ItemPedido) => void;
   onCampo: (p: Partial<Pedido>) => void; onCliente: (c: Partial<Cliente>) => void; onTelefone: (t: string) => void; onBairro: (b: string) => void;
-  onLancar: () => void; onCobrar: () => void; onDescartar: () => void;
+  onLancar: () => void; onCobrar: () => void; onDescartar: () => void; onCupom: (cod: string) => void;
 }) {
   const canal = pedido?.canal ?? "balcao";
   const itens = pedido?.itens ?? [];
@@ -351,10 +347,10 @@ function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEd
 
   return (
     <Card className="flex flex-col p-0 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-5.5rem)]">
-      <div className="grid grid-cols-4 gap-1 border-b border-slate-100 p-2" role="group" aria-label="Tipo de pedido">
+      <div className="grid grid-cols-5 gap-1 border-b border-slate-100 p-1.5" role="group" aria-label="Tipo de pedido">
         {CANAIS.map((c) => (
           <button key={c.id} type="button" aria-pressed={canal === c.id} onClick={() => onCanal(c.id)}
-            className={`rounded-lg py-2 text-xs font-bold ${canal === c.id ? "bg-modulo text-white" : "text-slate-600 hover:bg-slate-100"}`}>{c.rotulo}</button>
+            className={`rounded-lg py-2 text-[11px] font-bold ${canal === c.id ? "bg-modulo text-white" : "text-slate-600 hover:bg-slate-100"}`}>{c.rotulo}</button>
         ))}
       </div>
 
@@ -385,6 +381,18 @@ function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEd
           </div>
         )}
 
+        {canal === "mkt" && <Field label="Origem do pedido"><input className="input" placeholder="iFood, Rappi, 99Food…" value={pedido?.origem ?? ""} onChange={(e) => onCampo({ origem: e.target.value })} /></Field>}
+        {(canal === "balcao" || canal === "mesa") && <Field label="Cliente (telefone) · fidelidade"><input className="input" inputMode="tel" placeholder="Opcional" value={cli.telefone} onChange={(e) => onTelefone(e.target.value)} /></Field>}
+        {(() => {
+          const c = pedido?.cliente?.telefone ? clientePorTel(estado, pedido.cliente.telefone) : undefined;
+          if (!c || !estado.loja.fid.ativo || !pedido) return null;
+          return (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
+              <span className="flex-1">⭐ <b>{c.nome}</b> · {c.pontos} pts</span>
+              {c.pontos >= estado.loja.fid.resgatePts && <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1 text-xs" onClick={() => onCampo({ resgate: !pedido.resgate })}>{pedido.resgate ? "Cancelar resgate" : `Resgatar (− ${brl(estado.loja.fid.resgateR)})`}</Button>}
+            </div>
+          );
+        })()}
         {itens.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Toque nos produtos para montar o pedido.</p>
         ) : (
@@ -426,6 +434,7 @@ function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEd
       <div className="space-y-2 border-t border-slate-100 p-3">
         <dl className="num space-y-1 text-sm">
           <div className="flex justify-between"><dt>Subtotal ({pedido ? qtdItens(pedido) : 0})</dt><dd>{brl(pedido ? subtotalPedido(pedido) : 0)}</dd></div>
+          <CupomCampo valor={pedido?.cupom ?? ""} onAplicar={onCupom} />
           <div className="flex items-center justify-between gap-2">
             <dt>Desconto</dt>
             <dd className="relative">
@@ -434,7 +443,7 @@ function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEd
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500" aria-hidden>%</span>
             </dd>
           </div>
-          {pedido && descontoPedido(pedido) > 0 && <div className="flex justify-between text-xs text-slate-500"><dt>desconto aplicado</dt><dd>− {brl(descontoPedido(pedido))}</dd></div>}
+          {pedido && descontoPedido(pedido) > 0 && <div className="flex justify-between text-xs text-slate-500"><dt>desconto aplicado{pedido.cupom ? ` (cupom ${pedido.cupom})` : ""}{pedido.resgate ? " (pontos)" : ""}</dt><dd>− {brl(descontoPedido(pedido))}</dd></div>}
           {canal === "delivery" && pedido && pedido.taxaEntrega > 0 && <div className="flex justify-between"><dt>Taxa de entrega</dt><dd>{brl(pedido.taxaEntrega)}</dd></div>}
           {canal === "mesa" && (
             <div className="flex items-center justify-between">
@@ -454,12 +463,44 @@ function Carrinho({ estado, pedido, pct, onCanal, onMesa, onQtd, onRemover, onEd
   );
 }
 
+function CupomCampo({ valor, onAplicar }: { valor: string; onAplicar: (cod: string) => void }) {
+  const [txt, setTxt] = useState(valor);
+  useEffect(() => setTxt(valor), [valor]);
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <dt>Cupom</dt>
+      <dd className="flex gap-1">
+        <input className="input w-28 py-1 uppercase" placeholder="CÓDIGO" aria-label="Cupom" value={txt} onChange={(e) => setTxt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onAplicar(txt); }} />
+        <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1 text-xs" onClick={() => onAplicar(txt)}>Aplicar</Button>
+      </dd>
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------- comandas
-function Comandas({ estado, aoAbrir, aoNova, aoCobrar }: { estado: Estado; aoAbrir: (p: Pedido) => void; aoNova: (n: string) => void; aoCobrar: (p: Pedido) => void }) {
+function Comandas({ estado, aoAbrir, aoNova, aoCobrar, aoDescartar }: { estado: Estado; aoAbrir: (p: Pedido) => void; aoNova: (n: string) => void; aoCobrar: (p: Pedido) => void; aoDescartar: (p: Pedido) => void }) {
   const abertas = estado.pedidos.filter((p) => p.situacao === "aberto" && p.canal === "mesa" && p.itens.length > 0);
   const [, tic] = useState(0);
   useEffect(() => { const t = setInterval(() => tic((n) => n + 1), 30_000); return () => clearInterval(t); }, []);
+  const totem = estado.pedidos.filter((p) => p.situacao === "aberto" && p.totem);
   return (
+    <div className="space-y-5">
+    {totem.length > 0 && (
+      <section aria-label="Totem">
+        <h2 className="mb-2 text-sm font-bold">🖥 Totem: aguardando pagamento</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          {totem.map((p) => (
+            <div key={p.id} className="flex min-h-[6.5rem] flex-col justify-between rounded-2xl border-2 border-amber-400 bg-amber-50 p-3 text-amber-950">
+              <div><span className="text-xs">Senha</span><b className="block text-3xl">{p.numero}</b><span className="num text-sm font-bold">{brl(totalPedido(p, estado.loja.gorjetaPct))}</span></div>
+              <div className="mt-2 flex gap-1">
+                <button type="button" onClick={() => aoCobrar(p)} className="flex-1 rounded-lg bg-amber-500 py-1.5 text-xs font-bold text-white hover:bg-amber-600">Cobrar</button>
+                <button type="button" aria-label={`Descartar senha ${p.numero}`} onClick={() => aoDescartar(p)} className="rounded-lg px-2 text-xs font-bold hover:bg-amber-100">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
       {Array.from({ length: estado.loja.comandas }, (_, k) => String(k + 1)).map((n) => {
         const p = abertas.find((x) => x.mesa === n);
@@ -473,11 +514,13 @@ function Comandas({ estado, aoAbrir, aoNova, aoCobrar }: { estado: Estado; aoAbr
               <b className="text-3xl">{n}</b>
               <span className="num block text-sm font-bold">{brl(totalPedido(p, estado.loja.gorjetaPct))}</span>
               <span className="block text-xs">{qtdItens(p)} itens · {min} min</span>
+              {p.pediuConta && <span className="mt-1 inline-block rounded-full bg-red-600 px-2 text-[10px] font-bold text-white">pediu a conta</span>}
             </button>
             <button type="button" onClick={() => aoCobrar(p)} className="mt-2 rounded-lg bg-amber-500 py-1.5 text-xs font-bold text-white hover:bg-amber-600">Fechar conta</button>
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

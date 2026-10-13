@@ -3,9 +3,9 @@ import { useState } from "react";
 import { Banknote, CreditCard, QrCode, Ticket, Trash2, Truck } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { brl } from "@/lib/format";
-import { MEIOS, r2, rotuloMeio, totalPedido, type Estado, type Meio, type Pagamento, type Pedido } from "@/lib/sorveteria";
+import { MEIOS_PAG, MEIOS, r2, rotuloMeio, totalPedido, type Estado, type Meio, type Pagamento, type Pedido } from "@/lib/sorveteria";
 
-const ICONE: Record<Meio, typeof Banknote> = { dinheiro: Banknote, pix: QrCode, credito: CreditCard, debito: CreditCard, vale: Ticket };
+const ICONE: Record<Meio, typeof Banknote> = { dinheiro: Banknote, pix: QrCode, credito: CreditCard, debito: CreditCard, vale: Ticket, app: QrCode };
 const num = (s: string) => { const v = Number(s.replace(/\./g, "").replace(",", ".")); return Number.isFinite(v) && v > 0 ? v : 0; };
 
 type Linha = { meio: Meio; valorTxt: string; recebidoTxt: string };
@@ -17,7 +17,7 @@ export function Cobranca({ pedido, estado, onConfirmar, onNaEntrega, onClose }: 
   onNaEntrega?: () => void;
 }) {
   const total = totalPedido(pedido, estado.loja.gorjetaPct);
-  const [linhas, setLinhas] = useState<Linha[]>([]);
+  const [linhas, setLinhas] = useState<Linha[]>(() => (pedido.canal === "mkt" ? [{ meio: "app", valorTxt: totalPedido(pedido, estado.loja.gorjetaPct).toFixed(2).replace(".", ","), recebidoTxt: "" }] : []));
 
   // dinheiro: o cliente entrega "recebido"; só entra na conta o que falta (o resto vira troco)
   const aplicado = (ls: Linha[]) => {
@@ -56,7 +56,7 @@ export function Cobranca({ pedido, estado, onConfirmar, onNaEntrega, onClose }: 
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" role="group" aria-label="Forma de pagamento">
-          {MEIOS.map(({ id, rotulo }) => {
+          {(pedido.canal === "mkt" ? MEIOS.filter((m) => m.id === "app") : MEIOS_PAG).map(({ id, rotulo }) => {
             const I = ICONE[id];
             return (
               <button key={id} type="button" onClick={() => adicionar(id)}

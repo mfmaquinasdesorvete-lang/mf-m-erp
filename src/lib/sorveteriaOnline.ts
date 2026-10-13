@@ -9,10 +9,10 @@ export type ItemOnline = { id: string; produto_id: string; nome: string; qtd: nu
 export type PedidoOnline = {
   id: string; codigo: string; canal: "delivery" | "retirada"; status: "novo" | "aceito" | "recusado"; motivo: string | null; created_at: string;
   cliente: { nome: string; telefone: string; endereco: string; bairro: string; referencia: string };
-  itens: ItemOnline[]; subtotal: number; taxa_entrega: number; total: number; pagamento: string; troco_para: number | null; observacoes: string | null;
+  itens: ItemOnline[]; subtotal: number; taxa_entrega: number; cupom: string | null; desconto: number; total: number; pagamento: string; troco_para: number | null; observacoes: string | null;
 };
 export type EnvioOnline = {
-  canal: "delivery" | "retirada"; pagamento: string; troco_para?: number | null; observacoes?: string;
+  canal: "delivery" | "retirada"; pagamento: string; troco_para?: number | null; observacoes?: string; cupom?: string;
   cliente: { nome: string; telefone: string; endereco: string; bairro: string; referencia: string };
   itens: { produto_id: string; qtd: number; sabores: string[]; complementos: string[]; obs?: string }[];
 };
@@ -29,7 +29,11 @@ export const slugValido = (s: string) => /^[a-z0-9][a-z0-9-]{2,39}$/.test(s);
 export const slugDe = (nome: string) => nome.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
 /** Mesmas regras de sorv_pedir (SQL). Devolve itens já com preço calculado; lança Error com a mensagem para o cliente. */
-export function validarPedidoOnline(loja: LojaPublica, p: EnvioOnline) {
+/** Cupons ativos que vão ao servidor (e só a ele: o cardápio público não os mostra). */
+export const cuponsPublicaveis = (e: Estado) => e.cupons.filter((c) => c.ativo).map((c) => ({ cod: c.cod, tipo: c.tipo, valor: c.valor, min: c.min, validade: c.validade, limite: c.limite, ativo: true }));
+type CupomServidor = ReturnType<typeof cuponsPublicaveis>[number];
+
+export function validarPedidoOnline(loja: LojaPublica, p: EnvioOnline, cupons: CupomServidor[] = [], usosCupom = 0) {
   const c = loja.cardapio;
   if (!loja.aberta) throw new Error("A loja está fechada no momento");
   if (!["delivery", "retirada"].includes(p.canal)) throw new Error("Escolha entrega ou retirada");
@@ -79,7 +83,16 @@ export function validarPedidoOnline(loja: LojaPublica, p: EnvioOnline) {
     taxa = b.taxa;
   }
   if (sub < loja.pedido_minimo) throw new Error(`Pedido mínimo: R$ ${loja.pedido_minimo.toFixed(2).replace(".", ",")}`);
-  return { itens, subtotal: sub, taxa_entrega: taxa, total: r2(sub + taxa), telefone: tel };
+  let cupom: string | null = null, desconto = 0;
+  if (p.cupom?.trim()) {
+    const cod = p.cupom.trim().toUpperCase(), c = cupons.find((x) => x.cod.toUpperCase() === cod && x.ativo);
+    if (!c) throw new Error("Cupom inválido");
+    if (c.validade && c.validade < new Date().toISOString().slice(0, 10)) throw new Error("Cupom vencido");
+    if (c.min > sub) throw new Error(`Cupom vale para pedidos a partir de R$ ${c.min.toFixed(2).replace(".", ",")}`);
+    if (c.limite > 0 && usosCupom >= c.limite) throw new Error("Cupom esgotado");
+    cupom = cod; desconto = r2(Math.min(sub, c.tipo === "%" ? (sub * c.valor) / 100 : c.valor));
+  }
+  return { itens, subtotal: sub, taxa_entrega: taxa, cupom, desconto, total: r2(sub - desconto + taxa), telefone: tel };
 }
 
 /** Pedido online aceito vira um pedido do PDV (delivery/retirada), cobrado na entrega e já na fila de produção. */
@@ -87,7 +100,7 @@ export function pedidoDoOnline(o: PedidoOnline, operador: string, caixaId: strin
   const agora = new Date().toISOString();
   const pag = { dinheiro: "dinheiro", pix: "Pix", credito: "cartão de crédito", debito: "cartão de débito", vale: "vale-refeição" }[o.pagamento] ?? o.pagamento;
   return {
-    id: o.id, numero: 0, canal: o.canal, cliente: o.cliente, taxaEntrega: o.taxa_entrega, descontoPct: 0, gorjeta: false,
+    id: o.id, numero: 0, canal: o.canal, cliente: o.cliente, taxaEntrega: o.taxa_entrega, descontoPct: 0, gorjeta: false, cupom: o.cupom,
     itens: o.itens.map((i) => ({ id: i.id, produto_id: i.produto_id, nome: i.nome, qtd: i.qtd, unit: i.unit, sabores: i.sabores, complementos: i.complementos, obs: i.obs ?? undefined })),
     situacao: "aberto", producao: null, pagarNaEntrega: true, pagamentos: [], troco: 0, criadoEm: agora, operador, caixaId,
     obs: `ONLINE ${o.codigo} · pagar ${o.canal === "delivery" ? "na entrega" : "na retirada"} em ${pag}${o.troco_para ? ` (troco para R$ ${o.troco_para.toFixed(2).replace(".", ",")})` : ""}${o.observacoes ? ` · ${o.observacoes}` : ""}`,
@@ -98,7 +111,7 @@ export function pedidoDoOnline(o: PedidoOnline, operador: string, caixaId: strin
 export async function publicarCardapio(e: Estado) {
   const { supabase } = await import("./supabase");
   const { error } = await supabase.rpc("sorv_publicar", {
-    p_slug: e.loja.slug, p_nome: e.loja.nome, p_whatsapp: e.loja.telefone, p_aberta: e.loja.online, p_minimo: e.loja.pedidoMinimo, p_cardapio: cardapioPublicavel(e),
+    p_slug: e.loja.slug, p_nome: e.loja.nome, p_whatsapp: e.loja.telefone, p_aberta: e.loja.online, p_minimo: e.loja.pedidoMinimo, p_cardapio: cardapioPublicavel(e), p_cupons: cuponsPublicaveis(e),
   });
   if (error) throw error;
 }

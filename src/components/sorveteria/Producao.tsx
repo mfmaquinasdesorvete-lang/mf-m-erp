@@ -1,8 +1,9 @@
 // Fila de produção (a tela da cozinha/balcão de preparo): novo → preparando → pronto → entregue.
 // Pode ficar aberta em outra aba ou monitor: acompanha os pedidos do caixa ao vivo.
 import { useEffect, useState } from "react";
-import { Check, ChefHat, MessageCircle, Truck } from "lucide-react";
-import { Button, Card } from "@/components/ui";
+import { Bike, Check, ChefHat, MessageCircle, Printer, Truck } from "lucide-react";
+import { Button, Card, Modal } from "@/components/ui";
+import { imprimirCozinha } from "@/lib/sorveteriaCupom";
 import { brl, whatsappLink } from "@/lib/format";
 import {
   qtdItens, rotuloCanal, totalPedido, type Estado, type Pedido, type Producao as Fase,
@@ -23,6 +24,7 @@ export function Producao({ estado, mudar, onReceber }: {
   estado: Estado; mudar: (f: (e: Estado) => Estado) => void; onReceber: (p: Pedido) => void;
 }) {
   const [, tic] = useState(0);
+  const [escolhendo, setEscolhendo] = useState<Pedido | null>(null);
   useEffect(() => { const t = setInterval(() => tic((n) => n + 1), 20_000); return () => clearInterval(t); }, []);
 
   const fila = estado.pedidos.filter((p) => p.situacao !== "cancelado" && p.producao && p.producao !== "entregue");
@@ -32,11 +34,18 @@ export function Producao({ estado, mudar, onReceber }: {
   const avancar = (p: Pedido) => {
     const agora = new Date().toISOString();
     const prox: Fase = p.producao === "novo" ? "preparando" : p.producao === "preparando" ? "pronto" : "entregue";
+    // delivery pronto: escolhe quem leva antes de sair
+    if (p.producao === "pronto" && p.canal === "delivery" && !p.entregador && !p.semEntregador && estado.entregadores.some((x) => x.ativo)) return setEscolhendo(p);
     if (prox === "entregue" && p.situacao === "aberto" && p.pagarNaEntrega) return onReceber(p); // cobra na porta; a confirmação entrega
     mudar((e) => ({
       ...e, pedidos: e.pedidos.map((x) => x.id === p.id
         ? { ...x, producao: prox, prontoEm: prox === "pronto" ? agora : x.prontoEm, entregueEm: prox === "entregue" ? agora : x.entregueEm } : x),
     }));
+  };
+  const levar = (p: Pedido, entregador: string | null) => {
+    setEscolhendo(null);
+    mudar((e) => ({ ...e, pedidos: e.pedidos.map((x) => (x.id === p.id ? { ...x, entregador, semEntregador: !entregador } : x)) }));
+    avancar({ ...p, entregador, semEntregador: !entregador });
   };
   const voltar = (p: Pedido) => mudar((e) => ({ ...e, pedidos: e.pedidos.map((x) => x.id === p.id ? { ...x, producao: "novo" as Fase, prontoEm: undefined, entregueEm: undefined } : x) }));
 
@@ -88,6 +97,7 @@ export function Producao({ estado, mudar, onReceber }: {
                             <MessageCircle size={16} aria-hidden /> Avisar
                           </a>
                         )}
+                        <Button type="button" variant="ghost" className="!px-2" aria-label={`Imprimir comanda da cozinha do pedido ${p.numero}`} title="Imprimir comanda da cozinha" onClick={() => imprimirCozinha(p)}><Printer size={15} aria-hidden /></Button>
                         {c.fase !== "novo" && <Button type="button" variant="ghost" className="!px-2 text-xs" onClick={() => voltar(p)}>Reabrir</Button>}
                       </div>
                       <p className="mt-1 text-[11px] text-slate-400">{qtdItens(p)} {qtdItens(p) === 1 ? "item" : "itens"}</p>
@@ -99,6 +109,13 @@ export function Producao({ estado, mudar, onReceber }: {
           );
         })}
       </div>
+
+      <Modal open={!!escolhendo} onClose={() => setEscolhendo(null)} title="Quem leva a entrega?">
+        <div className="space-y-2">
+          {estado.entregadores.filter((x) => x.ativo).map((x) => <Button key={x.id} type="button" className="w-full !py-3 text-base" onClick={() => escolhendo && levar(escolhendo, x.id)}><Bike size={18} aria-hidden /> {x.nome}</Button>)}
+          <Button type="button" variant="secondary" className="w-full" onClick={() => escolhendo && levar(escolhendo, null)}>Sem entregador</Button>
+        </div>
+      </Modal>
 
       {concluidos.length > 0 && (
         <section aria-label="Concluídos recentes">

@@ -5,8 +5,9 @@ import { Button, Card, Field, Modal } from "@/components/ui";
 import { brl } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { imprimirCupom } from "@/lib/sorveteriaCupom";
+import { cancelarPedido } from "@/lib/sorveteriaAcoes";
 import {
-  inicioDoDia, relatorio, rotuloCanal, rotuloMeio, somaDias, totalPedido, type Estado, type Meio, type Pedido,
+  curvaAbc, inicioDoDia, relatorio, rotuloCanal, rotuloMeio, somaDias, totalPedido, type Estado, type Meio, type Pedido,
 } from "@/lib/sorveteria";
 
 const PERIODOS = [
@@ -31,7 +32,7 @@ export function Relatorio({ estado, mudar }: { estado: Estado; mudar: (f: (e: Es
   const confirmarCancelamento = () => {
     if (!cancelar) return;
     if (!motivo.trim()) return notify("Informe o motivo do cancelamento.", "erro");
-    mudar((e) => ({ ...e, pedidos: e.pedidos.map((x) => x.id === cancelar.id ? { ...x, situacao: "cancelado" as const, producao: null, motivoCancelamento: motivo.trim() } : x) }));
+    mudar((e) => cancelarPedido(e, e.pedidos.find((x) => x.id === cancelar.id)!, motivo.trim()));
     setCancelar(null); setMotivo("");
   };
 
@@ -83,6 +84,20 @@ export function Relatorio({ estado, mudar }: { estado: Estado; mudar: (f: (e: Es
           <ol className="num grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
             {r.top.slice(0, 10).map((t, i) => <li key={t.nome} className="flex justify-between gap-3"><span>{i + 1}. {t.nome} <span className="text-slate-400">× {t.qtd}</span></span><b>{brl(t.valor)}</b></li>)}
           </ol>
+        )}
+      </Card>
+
+      <Card className="p-4">
+        <h3 className="mb-3 text-sm font-bold">Curva ABC <span className="font-normal text-slate-500">(A = 80% do faturamento)</span></h3>
+        {r.top.length === 0 ? <p className="text-sm text-slate-500">Sem vendas no período.</p> : (
+          <ul className="num space-y-1 text-sm">
+            {curvaAbc(r.top).map((t) => (
+              <li key={t.nome} className="flex items-center gap-3">
+                <span className={`w-6 rounded-full text-center text-xs font-bold ${t.classe === "A" ? "bg-emerald-100 text-emerald-800" : t.classe === "B" ? "bg-amber-100 text-amber-900" : "bg-slate-100"}`}>{t.classe}</span>
+                <span className="flex-1">{t.nome}</span><span className="text-slate-500">{t.acumulado.toFixed(0)}%</span><b>{brl(t.valor)}</b>
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
 

@@ -90,7 +90,7 @@ export function PedidosOnline({ estado, online, onAceitar }: {
               <li key={i.id}><b>{i.qtd}× {i.nome}</b> <span className="text-slate-500">{[i.sabores.join(", "), i.complementos.map((c) => `+ ${c.nome}`).join(", "), i.obs && `Obs: ${i.obs}`].filter(Boolean).join(" · ")}</span></li>
             ))}
           </ul>
-          <p className="num mt-2 text-sm text-slate-600">Pagamento: {rotuloMeio(o.pagamento as Meio)}{o.troco_para ? ` (troco para ${brl(o.troco_para)})` : ""} · entrega {brl(o.taxa_entrega)} · <b className="text-fg">total {brl(o.total)}</b></p>
+          <p className="num mt-2 text-sm text-slate-600">Pagamento: {rotuloMeio(o.pagamento as Meio)}{o.troco_para ? ` (troco para ${brl(o.troco_para)})` : ""} · entrega {brl(o.taxa_entrega)}{o.desconto > 0 && ` · cupom ${o.cupom} − ${brl(o.desconto)}`} · <b className="text-fg">total {brl(o.total)}</b></p>
           {o.observacoes && <p className="mt-1 rounded bg-amber-50 p-2 text-xs font-semibold text-amber-900">{o.observacoes}</p>}
           {o.motivo && <p className="mt-1 text-xs text-red-700">Motivo: {o.motivo}</p>}
           {o.status === "novo" && (

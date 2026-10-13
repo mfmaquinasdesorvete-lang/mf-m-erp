@@ -64,7 +64,7 @@ export function CaixaTela({ estado, mudar, operador }: { estado: Estado; mudar: 
 
   const t = totaisCaixa(estado, caixa);
   const abertos = estado.pedidos.filter((p) => p.situacao === "aberto" && p.itens.length > 0);
-  const esperado: Record<Meio, number> = { dinheiro: t.dinheiroEsperado, pix: t.por.pix, credito: t.por.credito, debito: t.por.debito, vale: t.por.vale };
+  const esperado: Record<Meio, number> = { dinheiro: t.dinheiroEsperado, pix: t.por.pix, credito: t.por.credito, debito: t.por.debito, vale: t.por.vale, app: t.por.app };
   const contadoNum = (m: Meio) => (contado[m] === undefined || contado[m] === "" ? null : num(contado[m]!));
   const diferenca = (m: Meio) => { const c = contadoNum(m); return c == null ? null : r2(c - esperado[m]); };
 

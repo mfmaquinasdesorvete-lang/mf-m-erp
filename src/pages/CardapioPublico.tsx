@@ -117,6 +117,7 @@ function Fechar({ slug, loja, itens, subtotal, onItens, onClose, onEnviado }: {
   const [pag, setPag] = useState("pix");
   const [troco, setTroco] = useState("");
   const [obs, setObs] = useState("");
+  const [cupom, setCupom] = useState("");
   const [enviando, setEnviando] = useState(false);
   const taxa = canal === "delivery" ? bairros.find((b) => b.nome === cli.bairro)?.taxa ?? 0 : 0;
   const falta = loja.pedido_minimo - subtotal;
@@ -126,7 +127,7 @@ function Fechar({ slug, loja, itens, subtotal, onItens, onClose, onEnviado }: {
     setEnviando(true);
     try {
       const corpo: EnvioOnline = {
-        canal, pagamento: pag, observacoes: obs, cliente: cli,
+        canal, pagamento: pag, observacoes: obs, cliente: cli, cupom: cupom.trim() || undefined,
         troco_para: pag === "dinheiro" && troco ? Number(troco.replace(",", ".")) || null : null,
         itens: itens.map((i) => ({ produto_id: i.produto_id, qtd: i.qtd, sabores: i.saborIds ?? [], complementos: i.complementoIds ?? [], obs: i.obs })),
       };
@@ -189,6 +190,7 @@ function Fechar({ slug, loja, itens, subtotal, onItens, onClose, onEnviado }: {
         {pag === "dinheiro" && <Field label="Troco para quanto? (opcional)"><input className="input" inputMode="decimal" placeholder="Ex.: 50" value={troco} onChange={(e) => setTroco(e.target.value.replace(/[^\d,.]/g, ""))} /></Field>}
         {pag === "pix" && <p className="text-xs text-slate-500">A loja envia a chave Pix pelo WhatsApp ou mostra o QR na entrega.</p>}
         <Field label="Alguma observação?"><input className="input" maxLength={200} value={obs} onChange={(e) => setObs(e.target.value)} /></Field>
+        <Field label="Cupom de desconto (opcional)"><input className="input uppercase" value={cupom} onChange={(e) => setCupom(e.target.value)} /></Field>
 
         <dl className="num space-y-1 border-t border-slate-100 pt-3 text-sm">
           <div className="flex justify-between"><dt>Itens</dt><dd>{brl(subtotal)}</dd></div>

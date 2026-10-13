@@ -17,6 +17,8 @@ create table if not exists public.sorv_lojas (
   aberta boolean not null default true,
   pedido_minimo numeric(12,2) not null default 0,
   cardapio jsonb not null default '{}'::jsonb,
+  /** cupons ativos: ficam só no servidor (sorv_cardapio não devolve), para o código não vazar */
+  cupons jsonb not null default '[]'::jsonb,
   publicado_em timestamptz not null default now()
 );
 
@@ -29,6 +31,8 @@ create table if not exists public.sorv_pedidos_online (
   itens jsonb not null,
   subtotal numeric(12,2) not null,
   taxa_entrega numeric(12,2) not null default 0,
+  cupom text,
+  desconto numeric(12,2) not null default 0,
   total numeric(12,2) not null,
   pagamento text not null check (pagamento in ('dinheiro','pix','credito','debito','vale')),
   troco_para numeric(12,2),
@@ -46,7 +50,7 @@ alter table public.sorv_pedidos_online enable row level security;
 -- ---------------------------------------------------------------------
 -- Equipe: publicar o cardápio, ver e responder pedidos
 -- ---------------------------------------------------------------------
-create or replace function public.sorv_publicar(p_slug text, p_nome text, p_whatsapp text, p_aberta boolean, p_minimo numeric, p_cardapio jsonb)
+create or replace function public.sorv_publicar(p_slug text, p_nome text, p_whatsapp text, p_aberta boolean, p_minimo numeric, p_cardapio jsonb, p_cupons jsonb default '[]'::jsonb)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   perform public.exigir_papel('vendas');
@@ -54,10 +58,11 @@ begin
     raise exception 'Endereço inválido: use de 3 a 40 letras minúsculas, números e hífen';
   end if;
   if jsonb_typeof(p_cardapio->'produtos') is distinct from 'array' then raise exception 'Cardápio inválido'; end if;
-  insert into sorv_lojas (slug, nome, whatsapp, aberta, pedido_minimo, cardapio, publicado_em)
-  values (p_slug, coalesce(nullif(trim(p_nome), ''), 'Sorveteria'), nullif(trim(p_whatsapp), ''), coalesce(p_aberta, true), greatest(coalesce(p_minimo, 0), 0), p_cardapio, now())
+  insert into sorv_lojas (slug, nome, whatsapp, aberta, pedido_minimo, cardapio, cupons, publicado_em)
+  values (p_slug, coalesce(nullif(trim(p_nome), ''), 'Sorveteria'), nullif(trim(p_whatsapp), ''), coalesce(p_aberta, true), greatest(coalesce(p_minimo, 0), 0), p_cardapio,
+          case when jsonb_typeof(p_cupons) = 'array' then p_cupons else '[]'::jsonb end, now())
   on conflict (slug) do update set nome = excluded.nome, whatsapp = excluded.whatsapp, aberta = excluded.aberta,
-    pedido_minimo = excluded.pedido_minimo, cardapio = excluded.cardapio, publicado_em = now();
+    pedido_minimo = excluded.pedido_minimo, cardapio = excluded.cardapio, cupons = excluded.cupons, publicado_em = now();
 end $$;
 
 create or replace function public.sorv_online_listar(p_slug text)
@@ -104,6 +109,7 @@ declare
   it jsonb; prod jsonb; g jsonb; gi jsonb; s jsonb; sid text;
   v_qtd int; v_unit numeric; v_nsab int; v_n int; v_itens jsonb := '[]'::jsonb; v_sub numeric := 0; v_taxa numeric := 0;
   v_sabs jsonb; v_comps jsonb; v_sel text[]; v_achados int; v_total_itens int := 0; v_codigo text; v_id uuid; v_bairros jsonb;
+  v_cupom text := upper(nullif(trim(coalesce(p->>'cupom', '')), '')); cp jsonb; v_desc numeric := 0;
 begin
   select * into l from sorv_lojas where slug = lower(coalesce(p_slug, ''));
   if not found then raise exception 'Loja não encontrada'; end if;
@@ -179,18 +185,30 @@ begin
   end if;
   if v_sub < l.pedido_minimo then raise exception 'Pedido mínimo: R$ %', to_char(l.pedido_minimo, 'FM999G990D00'); end if;
 
+  -- cupom: conferido aqui (o código não está no cardápio público)
+  if v_cupom is not null then
+    select x into cp from jsonb_array_elements(l.cupons) x where upper(x->>'cod') = v_cupom and coalesce((x->>'ativo')::boolean, true) limit 1;
+    if cp is null then raise exception 'Cupom inválido'; end if;
+    if nullif(cp->>'validade', '') is not null and (cp->>'validade')::date < current_date then raise exception 'Cupom vencido'; end if;
+    if coalesce((cp->>'min')::numeric, 0) > v_sub then raise exception 'Cupom vale para pedidos a partir de R$ %', to_char((cp->>'min')::numeric, 'FM999G990D00'); end if;
+    if coalesce((cp->>'limite')::int, 0) > 0 and (select count(*) from sorv_pedidos_online where loja_id = l.id and cupom = v_cupom and status <> 'recusado') >= (cp->>'limite')::int then
+      raise exception 'Cupom esgotado';
+    end if;
+    v_desc := round(least(v_sub, case when cp->>'tipo' = '%' then v_sub * (cp->>'valor')::numeric / 100 else (cp->>'valor')::numeric end), 2);
+  end if;
+
   loop
     v_codigo := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 5));
     exit when not exists (select 1 from sorv_pedidos_online where loja_id = l.id and codigo = v_codigo);
   end loop;
-  insert into sorv_pedidos_online (loja_id, codigo, canal, cliente, itens, subtotal, taxa_entrega, total, pagamento, troco_para, observacoes)
+  insert into sorv_pedidos_online (loja_id, codigo, canal, cliente, itens, subtotal, taxa_entrega, cupom, desconto, total, pagamento, troco_para, observacoes)
   values (l.id, v_codigo, v_canal,
     jsonb_build_object('nome', left(trim(v_cli->>'nome'), 80), 'telefone', v_tel, 'endereco', left(trim(coalesce(v_cli->>'endereco', '')), 160),
       'bairro', left(coalesce(v_cli->>'bairro', ''), 60), 'referencia', left(coalesce(v_cli->>'referencia', ''), 80)),
-    v_itens, v_sub, v_taxa, v_sub + v_taxa, v_pag,
+    v_itens, v_sub, v_taxa, v_cupom, v_desc, v_sub - v_desc + v_taxa, v_pag,
     case when v_pag = 'dinheiro' then nullif(p->>'troco_para', '')::numeric end, nullif(left(trim(coalesce(p->>'observacoes', '')), 200), ''))
   returning id into v_id;
-  return jsonb_build_object('codigo', v_codigo, 'total', v_sub + v_taxa, 'status', 'novo');
+  return jsonb_build_object('codigo', v_codigo, 'total', v_sub - v_desc + v_taxa, 'desconto', v_desc, 'status', 'novo');
 end $$;
 
 create or replace function public.sorv_acompanhar(p_slug text, p_codigo text)
@@ -200,13 +218,13 @@ returns jsonb language sql stable security definer set search_path = public as $
    where l.slug = lower(coalesce(p_slug, '')) and o.codigo = upper(coalesce(p_codigo, ''));
 $$;
 
-revoke execute on function public.sorv_publicar(text, text, text, boolean, numeric, jsonb) from public;
+revoke execute on function public.sorv_publicar(text, text, text, boolean, numeric, jsonb, jsonb) from public;
 revoke execute on function public.sorv_online_listar(text) from public;
 revoke execute on function public.sorv_online_status(uuid, text, text) from public;
 revoke execute on function public.sorv_cardapio(text) from public;
 revoke execute on function public.sorv_pedir(text, jsonb) from public;
 revoke execute on function public.sorv_acompanhar(text, text) from public;
-grant execute on function public.sorv_publicar(text, text, text, boolean, numeric, jsonb) to authenticated;
+grant execute on function public.sorv_publicar(text, text, text, boolean, numeric, jsonb, jsonb) to authenticated;
 grant execute on function public.sorv_online_listar(text) to authenticated;
 grant execute on function public.sorv_online_status(uuid, text, text) to authenticated;
 grant execute on function public.sorv_cardapio(text) to anon, authenticated;
