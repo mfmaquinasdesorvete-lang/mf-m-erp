@@ -27,7 +27,7 @@ import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/componen
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
-import { aDecidir, filtrarDecisao, motivoNaoPagar, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
+import { aDecidir, aguardaAprovacao, filtrarDecisao, motivoNaoPagar, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
 import { AvisoGolpe } from "@/components/fornecedores/Golpe";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { CampoBoleto, ConferirBoletoModal } from "@/components/financeiro/Boleto";
@@ -47,6 +47,7 @@ type Pagar = {
   rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
   linha_digitavel?: string | null; boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null;
+  revisao?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 
@@ -519,7 +520,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
               </>}
               acoes={<>
                 {podeDecidir && c.status === "aberto" && <BotoesDecisao conta={c} atalho />}
-                {c.status === "aberto" && !c.fornecedor?.bloqueado && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
+                {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
                 {(c.status === "aberto" || c.linha_digitavel) && <BotaoAtalho icon={ScanBarcode} label="Boleto" cor={COR_ATALHO.azul} title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)} />}
                 {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
                 {c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
@@ -545,7 +546,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
             <td className="td text-right">
               {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}
               <div className="flex flex-wrap justify-end gap-1">
-              {c.status === "aberto" && !c.fornecedor?.bloqueado && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
+              {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
               {(c.status === "aberto" || c.linha_digitavel) && <Button variant="ghost" title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)}><ScanBarcode size={15} /> Boleto</Button>}
               {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
               {c.status === "pago" && <Button variant="ghost" title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
@@ -606,7 +607,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
       {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())} />}
       {lotePagarHoje && <PagarLoteModal contas={pagarHoje} onClose={() => setLotePagarHoje(false)} />}
       {baixa && <BaixaModal conta={baixa} tabela="contas_pagar" valorInicial={baixaCom?.valor} dataInicial={baixaCom?.data} onClose={() => { setBaixa(null); setBaixaCom(null); }} />}
-      {boleto && <ConferirBoletoModal conta={contas.find((x) => x.id === boleto.id) ?? boleto} podeEditar={podeDecidir} onClose={() => setBoleto(null)}
+      {boleto && <ConferirBoletoModal conta={contas.find((x) => x.id === boleto.id) ?? boleto} podeEditar={podeDecidir} aprovada={!aguardaAprovacao(contas.find((x) => x.id === boleto.id) ?? boleto)} onClose={() => setBoleto(null)}
         onPagar={(valor, data) => { setBaixaCom({ valor, data }); setBaixa(contas.find((x) => x.id === boleto.id) ?? boleto); setBoleto(null); }} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
     </>

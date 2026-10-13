@@ -2,7 +2,9 @@
 // nova conta em aberto, ligada a esta). Tudo fica no histórico com o motivo. Paga depois do vencimento: mostra a multa e os
 // juros (os do boleto, ou 2% + 1% ao mês) e põe o valor corrigido com um toque.
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { calcularEncargos } from "@/lib/boleto";
+import { aguardaAprovacao } from "@/lib/programacao";
 import { Button, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, hoje, somarDias } from "@/lib/format";
@@ -13,7 +15,7 @@ type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: bool
 
 export function BaixaModal({ conta, tabela, onClose, valorInicial, dataInicial }: {
   conta: { id: string; descricao: string; valor: number; vencimento?: string; unidade_id?: string | null;
-    boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null };
+    boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null; revisao?: string | null };
   tabela: "contas_receber" | "contas_pagar"; onClose: () => void; valorInicial?: number; dataInicial?: string;
 }) {
   const receber = tabela === "contas_receber";
@@ -48,6 +50,19 @@ export function BaixaModal({ conta, tabela, onClose, valorInicial, dataInicial }
     } finally {
       setOcupado(false);
     }
+  }
+
+  // conta a pagar sem a aprovação do fluxo: o banco recusa a baixa; avisa antes de preencher
+  if (!receber && aguardaAprovacao({ ...conta, vencimento: conta.vencimento ?? "", status: "aberto" })) {
+    return (
+      <Modal open onClose={onClose} title={`Registrar pagamento — ${conta.descricao}`}>
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Esta conta ainda não foi aprovada. O pagamento só pode ser registrado depois da aprovação.</p>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
+          <Link to="/aprovacoes" onClick={onClose} className="inline-flex min-h-[42px] items-center rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg sm:min-h-0 sm:py-2">Abrir Aprovações</Link>
+        </div>
+      </Modal>
+    );
   }
 
   return (

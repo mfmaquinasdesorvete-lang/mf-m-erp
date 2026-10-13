@@ -806,11 +806,19 @@ function aprovacaoDemo(db: Db) {
     revisao2_por: "u-fin", revisao2_nome: "Rafael Financeiro", revisao2_em: quando(-14), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00", documento: "Guia DAS 09/2026" });
   db.contas_pagar.push({ id: "cp30", descricao: "Material de escritório", categoria: "outros", documento: "NFC-e 552", valor: 184.5, vencimento: dias(4), status: "aberto",
     created_at: quando(-1), revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
+  // boleto vencido de conta já aprovada: dá para conferir os juros e pagar (Conferir boleto)
+  db.contas_pagar.push({ id: "cp31", descricao: "Caixas de papelão - Embalagens Sul", categoria: "fornecedores", documento: "NF 7781", valor: 1840, vencimento: dias(-3), status: "aberto",
+    created_at: quando(-6), revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-5),
+    revisao2_por: "u-fin", revisao2_nome: "Rafael Financeiro", revisao2_em: quando(-5), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00",
+    linha_digitavel: gerarLinhaBancaria("136", dias(-3), 1840, "0070120004433221100009871"), boleto_multa_pct: 2, boleto_juros_mes_pct: 1 });
   db.revisoes_contas = [
     { id: "rv1", tabela: "contas_pagar", conta_id: "cp4", acao: "aprovou", etapa: "1ª revisão", comentario: null, usuario_nome: "Elem Olmedo", created_at: quando(-1) },
     { id: "rv2", tabela: "contas_pagar", conta_id: "cp20", acao: "devolveu", etapa: "1ª revisão", comentario: "Falta anexar a nota da manutenção", usuario_nome: "Elem Olmedo", created_at: quando(-1) },
   ];
 }
+
+/** Conta a pagar em aberto ainda sem aprovação (no sistema real: gatilho trg_zs_pagamento_aprovado). */
+const semAprovacaoDemo = (c: Row) => c.status === "aberto" && !!c.revisao && !["aprovado", "historico"].includes(c.revisao);
 
 /** Revisão das contas (no sistema real: revisar_contas e contador_conferir). */
 function revisarDemo(tabela: string, ids: string[], acao: string, comentario: string | null) {
@@ -2001,6 +2009,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const c = db[p_tabela]?.find((x: Row) => x.id === p_id);
     if (!c) return erro("conta não encontrada");
     if (c.status !== "aberto") return erro("esta conta não está em aberto");
+    if (p_tabela === "contas_pagar" && semAprovacaoDemo(c)) return erro(`"${c.descricao}" ainda não foi aprovada: o pagamento só pode ser registrado depois da aprovação (Financeiro → Aprovações).`);
     const v = r2(Number(p_valor));
     if (!(v > 0)) return erro("informe o valor pago");
     if (p_restante_vencimento && v < Number(c.valor)) {
@@ -2058,6 +2067,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (p_acao === "nao_pagar" && motivo.length < 3) return erro("diga por que não vai pagar (fica no histórico)");
     const nome = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id)?.nome ?? null;
     const golpe = (p_acao === "pagar" || p_acao === "agendar") && db.contas_pagar.find((x) => (p_ids ?? []).includes(x.id) && x.status === "aberto" && bloqueioDemo(x.fornecedor_id));
+    const semAprov = (p_acao === "pagar" || p_acao === "agendar") && db.contas_pagar.find((x) => (p_ids ?? []).includes(x.id) && semAprovacaoDemo(x));
+    if (semAprov) return erro(`"${semAprov.descricao}" ainda não foi aprovada: só dá para pagar ou agendar depois da aprovação (Financeiro → Aprovações).`);
     if (golpe) return erro(`"${golpe.descricao}" é de um fornecedor marcado como golpe (${bloqueioDemo(golpe.fornecedor_id)}): não pode ser aprovada nem agendada. Se for engano, o administrador tira o bloqueio no cadastro do fornecedor.`);
     let n = 0;
     for (const c of db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id) && x.status === "aberto")) {
@@ -2078,6 +2089,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (p_conta_bancaria && !banco) return erro("conta bancária não encontrada");
     const contas = db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id));
     const ok = contas.filter((c) => c.status === "aberto" && (p_incluir_nao_pagar || c.decisao !== "nao_pagar") && !bloqueioDemo(c.fornecedor_id));
+    const semAprov = ok.find(semAprovacaoDemo);
+    if (semAprov) return erro(`"${semAprov.descricao}" ainda não foi aprovada: o pagamento só pode ser registrado depois da aprovação (Financeiro → Aprovações).`);
     const fora = ok.find((c) => banco && c.unidade_id && c.unidade_id !== banco.unidade_id);
     if (fora) return erro(`"${fora.descricao}" é de outra unidade que a conta bancária ${banco?.nome}: pague essa num lote separado`);
     for (const c of ok) atualizarDemo("contas_pagar", c, { status: "pago", data_pagamento: p_data, valor_pago: Number(c.valor), conta_bancaria_id: p_conta_bancaria ?? null });

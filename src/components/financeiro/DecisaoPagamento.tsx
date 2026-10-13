@@ -9,7 +9,7 @@ import { somarDias } from "@/lib/financeiro";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
-import { COR_TOM, gruposPorUnidade, rotuloDecisao, type ContaDecisao } from "@/lib/programacao";
+import { aguardaAprovacao, COR_TOM, gruposPorUnidade, rotuloDecisao, TEXTO_FALTA_APROVAR, type ContaDecisao } from "@/lib/programacao";
 
 type Conta = ContaDecisao & { descricao: string; terceiro?: string | null; fornecedor?: { nome: string } | null };
 type Acao = "pagar" | "agendar" | "nao_pagar" | "limpar";
@@ -57,17 +57,19 @@ export function BotoesDecisao({ conta, compacto = false, atalho = false }: { con
   // fornecedor marcado como golpe: o banco segura como "não pagar"; a etiqueta vermelha já diz isso
   if (conta.status !== "aberto" || conta.fornecedor?.bloqueado) return null;
   const d = conta.decisao;
+  // sem a aprovação (fluxo de aprovação) o banco não deixa pagar nem agendar; "não pagar" e desfazer continuam
+  const falta = aguardaAprovacao(conta);
   const janelas = (<>
     {janela === "agendar" && <ModalAgendar contas={[conta]} onClose={() => setJanela(null)} />}
     {janela === "nao_pagar" && <ModalNaoPagar contas={[conta]} onClose={() => setJanela(null)} />}
   </>);
   if (atalho) return (<>
-    <BotaoAtalho icon={Check} label={d === "pagar" ? "Aprovada" : "Pagar"} cor={COR_ATALHO.verde} corAtiva="#047857" ativo={d === "pagar"} disabled={ocupado}
-      title={d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
+    <BotaoAtalho icon={Check} label={d === "pagar" ? "Aprovada" : "Pagar"} cor={COR_ATALHO.verde} corAtiva="#047857" ativo={d === "pagar"} disabled={ocupado || (falta && d !== "pagar")}
+      title={falta && d !== "pagar" ? TEXTO_FALTA_APROVAR : d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
       onClick={() => programar([conta.id], d === "pagar" ? "limpar" : "pagar")} />
     <BotaoAtalho icon={CalendarClock} label={d === "agendado" && conta.pagar_em ? `Dia ${dataBR(conta.pagar_em).slice(0, 5)}` : "Agendar"}
-      cor={COR_ATALHO.azul} corAtiva="#1d4ed8" ativo={d === "agendado"} disabled={ocupado}
-      title={d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"} onClick={() => setJanela("agendar")} />
+      cor={COR_ATALHO.azul} corAtiva="#1d4ed8" ativo={d === "agendado"} disabled={ocupado || falta}
+      title={falta ? TEXTO_FALTA_APROVAR : d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"} onClick={() => setJanela("agendar")} />
     <BotaoAtalho icon={Ban} label="Não pagar" cor={COR_ATALHO.cinza} corAtiva="#475569" ativo={d === "nao_pagar"} disabled={ocupado}
       title={d === "nao_pagar" ? `Não pagar: ${conta.decisao_motivo ?? ""}. Toque de novo para desfazer` : "Não quero pagar esta agora"}
       onClick={() => (d === "nao_pagar" ? programar([conta.id], "limpar") : setJanela("nao_pagar"))} />
@@ -77,14 +79,14 @@ export function BotoesDecisao({ conta, compacto = false, atalho = false }: { con
   const estilo = (ativo: boolean, cor: string) => ativo ? `${base} ${cor}` : `${base} border-slate-200 bg-surface text-slate-600 hover:border-slate-400`;
   return (
     <span className="inline-flex flex-nowrap gap-1 whitespace-nowrap" role="group" aria-label="Decisão de pagamento">
-      <button type="button" disabled={ocupado} aria-pressed={d === "pagar"}
-        title={d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
+      <button type="button" disabled={ocupado || (falta && d !== "pagar")} aria-pressed={d === "pagar"}
+        title={falta && d !== "pagar" ? TEXTO_FALTA_APROVAR : d === "pagar" ? "Aprovada. Toque de novo para desfazer" : "Quero pagar esta (no vencimento, ou hoje se já venceu)"}
         className={estilo(d === "pagar", "border-solido-verde bg-solido-verde text-white")}
         onClick={() => programar([conta.id], d === "pagar" ? "limpar" : "pagar")}>
         <Check size={14} aria-hidden /> Pagar
       </button>
-      <button type="button" disabled={ocupado} aria-pressed={d === "agendado"}
-        title={d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"}
+      <button type="button" disabled={ocupado || falta} aria-pressed={d === "agendado"}
+        title={falta ? TEXTO_FALTA_APROVAR : d === "agendado" ? `Agendada para ${dataBR(conta.pagar_em ?? "")}. Toque para mudar o dia` : "Pagar em tal dia"}
         className={estilo(d === "agendado", "border-solido-azul bg-solido-azul text-white")}
         onClick={() => setJanela("agendar")}>
         <CalendarClock size={14} aria-hidden /> {d === "agendado" && conta.pagar_em ? dataBR(conta.pagar_em).slice(0, 5) : "Agendar"}
@@ -180,7 +182,7 @@ export function PagarLoteModal({ contas, onClose, onPago }: { contas: Conta[]; o
   const [data, setData] = useState(hojeISO());
   const naoPagar = contas.filter((c) => c.decisao === "nao_pagar");
   const [incluirNaoPagar, setIncluirNaoPagar] = useState(false);
-  const validas = contas.filter((c) => c.status === "aberto" && (incluirNaoPagar || c.decisao !== "nao_pagar"));
+  const validas = contas.filter((c) => c.status === "aberto" && !aguardaAprovacao(c) && (incluirNaoPagar || c.decisao !== "nao_pagar"));
   const grupos = gruposPorUnidade(validas);
   const [banco, setBanco] = useState<Record<string, string>>({});
   const [ocupado, setOcupado] = useState(false);
@@ -263,17 +265,22 @@ export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () 
   const abertas = contas.filter((c) => c.status === "aberto" && !c.fornecedor?.bloqueado);
   const total = abertas.reduce((s, c) => s + Number(c.valor), 0);
   const ids = abertas.map((c) => c.id);
+  // pagar, agendar e pagar em lote: só as já aprovadas no fluxo de aprovação
+  const aprovadas = abertas.filter((c) => !aguardaAprovacao(c));
+  const idsPagar = aprovadas.map((c) => c.id);
+  const semAprovacao = abertas.length - aprovadas.length;
   return (
     <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
-      <span className="mr-auto text-sm"><b>{contas.length}</b> marcada(s){abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}</span>
-      <Button type="button" variant="secondary" disabled={ocupado || !ids.length} onClick={async () => { if (await programar(ids, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>
-      <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>
+      <span className="mr-auto text-sm"><b>{contas.length}</b> marcada(s){abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}
+        {semAprovacao > 0 && <span className="text-amber-800" title={TEXTO_FALTA_APROVAR}> · {semAprovacao} sem aprovação: só “Não pagar”</span>}</span>
+      <Button type="button" variant="secondary" disabled={ocupado || !idsPagar.length} onClick={async () => { if (await programar(idsPagar, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>
+      <Button type="button" variant="secondary" disabled={!idsPagar.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>
       <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("nao_pagar")}><Ban size={15} /> Não pagar</Button>
       <Button type="button" variant="ghost" disabled={ocupado || !ids.length} onClick={async () => { if (await programar(ids, "limpar")) onLimpar(); }} title="Tirar a decisão (volta para a decidir)"><X size={15} /> Desfazer</Button>
-      <Button type="button" disabled={!ids.length} onClick={() => setJanela("lote")}><CheckCheck size={15} /> Pagamento em lote</Button>
-      {janela === "agendar" && <ModalAgendar contas={abertas} onClose={() => { setJanela(null); onLimpar(); }} />}
+      <Button type="button" disabled={!idsPagar.length} onClick={() => setJanela("lote")}><CheckCheck size={15} /> Pagamento em lote</Button>
+      {janela === "agendar" && <ModalAgendar contas={aprovadas} onClose={() => { setJanela(null); onLimpar(); }} />}
       {janela === "nao_pagar" && <ModalNaoPagar contas={abertas} onClose={() => { setJanela(null); onLimpar(); }} />}
-      {janela === "lote" && <PagarLoteModal contas={abertas} onClose={() => setJanela(null)} onPago={onLimpar} />}
+      {janela === "lote" && <PagarLoteModal contas={aprovadas} onClose={() => setJanela(null)} onPago={onLimpar} />}
     </div>
   );
 }

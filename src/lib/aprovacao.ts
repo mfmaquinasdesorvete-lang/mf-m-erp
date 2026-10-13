@@ -77,6 +77,8 @@ export function etapaConta(c: ContaRevisao, pend: Pendencia[] = []): { texto: st
   if (r === "rejeitado") return { texto: "Rejeitada", tom: "vermelho", dica: c.revisao_comentario ?? "" };
   if (r === "devolvido") return { texto: "Devolvida para correção", tom: "laranja", dica: c.revisao_comentario ?? "" };
   if (r === "em_revisao") {
+    // o dinheiro saiu antes da aprovação (conciliação do extrato) ou a conta paga foi alterada
+    if (c.status === "pago") return { texto: "Paga, falta aprovar", tom: "vermelho", dica: "O pagamento já saiu do banco: revise e aprove (ou devolva com o motivo)" };
     if (c.contador_status === "ajustado") return { texto: "Ajustada (volta ao contador)", tom: "roxo", dica: c.contador_comentario ?? "" };
     if (c.revisao1_em) return { texto: "Na 2ª revisão", tom: "azul", dica: `1ª revisão: ${c.revisao1_nome ?? "—"} · ${c.motivo_2a ?? ""}` };
     if (pend.includes("sem_documento")) return { texto: "Aguardando documento", tom: "ambar", dica: "Anexe o boleto, a nota ou o recibo" };

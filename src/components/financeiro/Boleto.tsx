@@ -146,8 +146,8 @@ type ContaBoleto = EncargosBoleto & {
  * "Conferir boleto" na lista de contas a pagar: já foi pago? quanto fica com multa e juros na data do pagamento?
  * Sem linha digitável, dá para colar e guardar na conta. Pagar abre a baixa já com o valor corrigido.
  */
-export function ConferirBoletoModal({ conta, podeEditar, onClose, onPagar }: {
-  conta: ContaBoleto; podeEditar: boolean; onClose: () => void; onPagar: (valor: number, data: string) => void;
+export function ConferirBoletoModal({ conta, podeEditar, aprovada = true, onClose, onPagar }: {
+  conta: ContaBoleto; podeEditar: boolean; aprovada?: boolean; onClose: () => void; onPagar: (valor: number, data: string) => void;
 }) {
   const [linha, setLinha] = useState(conta.linha_digitavel ?? null);
   const b = linha ? lerBoleto(linha) : null;
@@ -246,9 +246,12 @@ export function ConferirBoletoModal({ conta, podeEditar, onClose, onPagar }: {
           </section>
         )}
 
+        {aberta && !aprovada && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Esta conta ainda não foi aprovada: o pagamento só pode ser registrado depois da aprovação (Financeiro → Aprovações).</p>
+        )}
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
-          {aberta && podeEditar && !conta.fornecedor?.bloqueado && (
+          {aberta && aprovada && podeEditar && !conta.fornecedor?.bloqueado && (
             <Button type="button" onClick={() => onPagar(enc.total, data)}><Wallet size={15} /> Registrar pagamento de {brl(enc.total)}</Button>
           )}
         </div>
