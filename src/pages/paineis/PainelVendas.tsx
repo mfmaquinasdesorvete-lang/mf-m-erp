@@ -240,12 +240,12 @@ export default function PainelVendas() {
         <div className="space-y-3 xl:col-span-2">
           <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
           <AtalhosArea colunas="grid-cols-3" itens={[
-            { rotulo: "Vendas e orçamentos", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length },
-            { rotulo: "PDV", icone: ScanBarcode, to: "/pdv" },
-            { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length },
-            { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes" },
-            { rotulo: "Comissões", icone: HandCoins, to: "/comissoes" },
-            { rotulo: "Clientes", icone: Users, to: "/clientes" },
+            { rotulo: "Vendas e orçamentos", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
+            { rotulo: "PDV", icone: ScanBarcode, to: "/pdv", tela: "pedidos" },
+            { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length, tela: "fluxo" },
+            { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes", tela: "fretes" },
+            { rotulo: "Comissões", icone: HandCoins, to: "/comissoes", tela: "comissoes" },
+            { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
           ]} />
           <div className="grid grid-cols-2 gap-3">
             <MiniNumero icone={BadgePercent} rotulo="Perdidas no período" valor={k.perdidos} sub={k.motivo ?? "sem motivo registrado"} />

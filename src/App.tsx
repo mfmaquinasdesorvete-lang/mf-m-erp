@@ -16,6 +16,11 @@ import Login, { NovaSenha } from "@/pages/Login";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Pedidos = lazy(() => import("@/pages/Pedidos"));
 const PainelVendas = lazy(() => import("@/pages/paineis/PainelVendas"));
+const PainelFinanceiroArea = lazy(() => import("@/pages/paineis/PainelFinanceiroArea"));
+const PainelNotas = lazy(() => import("@/pages/paineis/PainelNotas"));
+const PainelPosVenda = lazy(() => import("@/pages/paineis/PainelPosVenda"));
+const PainelProducao = lazy(() => import("@/pages/paineis/PainelProducao"));
+const PainelCadastros = lazy(() => import("@/pages/paineis/PainelCadastros"));
 const Pdv = lazy(() => import("@/pages/Pdv"));
 const CotacaoPublica = lazy(() => import("@/pages/CotacaoPublica"));
 const Assistencia = lazy(() => import("@/pages/Assistencia"));
@@ -53,6 +58,11 @@ const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
   { path: "painel/vendas", tela: "pedidos", element: <PainelVendas /> },
+  { path: "painel/financeiro", tela: "financeiro", element: <PainelFinanceiroArea /> },
+  { path: "painel/notas", tela: "notas", element: <PainelNotas /> },
+  { path: "painel/posvenda", tela: "assistencia", element: <PainelPosVenda /> },
+  { path: "painel/producao", tela: "producao", element: <PainelProducao /> },
+  { path: "painel/cadastros", tela: "clientes", element: <PainelCadastros /> },
   { path: "assistencia", tela: "assistencia", element: <Assistencia /> },
   { path: "estoque", tela: "estoque", element: <Produtos /> },
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },
