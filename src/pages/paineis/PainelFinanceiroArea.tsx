@@ -39,7 +39,7 @@ export default function PainelFinanceiroArea() {
   const { filtrar } = useUnidade();
   // mesmos selects do painel financeiro da tela inicial: a lista carregada serve aos dois
   const { data: recTodos = [], isLoading } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia, whatsapp, cpf_cnpj)", key: ["painel"] });
-  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj)", key: ["painel"] });
+  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)", key: ["painel"] });
   const { data: extrato = [] } = useRows<{ status: string }>("extrato_lancamentos", { select: "status", order: "status", key: ["painel"] });
   const { data: notasTodas = [] } = useRows<{ processamento: string; unidade_id: string | null }>("nfe_recebidas", { select: "processamento, unidade_id", key: ["painel"] });
   const { data: saldosTodos = [] } = useQuery({

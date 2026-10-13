@@ -11,6 +11,7 @@ import { digitos, docParcial } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
+import { CampoBloqueio, SeloGolpe } from "@/components/fornecedores/Golpe";
 import { notify } from "@/lib/notify";
 
 const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -64,6 +65,7 @@ const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [
     ],
   },
   { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
+  { label: "Golpe", opcoes: [{ label: "Bloqueados (golpe: não pagar)", teste: (r) => !!r.bloqueado }, { label: "Sem bloqueio", teste: (r) => !r.bloqueado }] },
   filtroCadastradoEm<Fornecedor>(),
 ];
 const ORDENS_FORN = ordensCadastro<Fornecedor>();
@@ -130,7 +132,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           order="nome"
           defaults={{ nome: "" }}
           searchKeys={["codigo", "nome", "nome_fantasia", "cnpj", "whatsapp", "telefone", "email", "municipio"]}
-          beforeSave={(r) => ({ ...r, uf: r.uf?.toUpperCase() })}
+          beforeSave={(r) => ({ ...r, uf: r.uf?.toUpperCase(), bloqueio_motivo: r.bloqueado ? r.bloqueio_motivo : null })}
           onFieldChange={busca}
           fields={[
             ...identificacao("Nome (fantasia / como chamamos)"),
@@ -141,10 +143,13 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             { name: "chave_pix", label: "Chave Pix (para pagar)", placeholder: "CPF/CNPJ, e-mail, celular ou chave aleatória", span: 2 },
             ...endereco,
             { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
+            { name: "g", label: "Golpe / fraude", type: "secao" },
+            { name: "bloqueado", label: "Bloqueio de pagamentos", type: "custom", span: 4,
+              render: (_v, _s, row, setCampo) => <CampoBloqueio row={row} setCampo={setCampo} admin={papel === "admin"} /> },
           ]}
           columns={[
             ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").map((c) => c.label === "Nome"
-              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} /><EtiquetasCliente c={r} /></> } : c),
+              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} /></> } : c),
             { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
           ]}
         />

@@ -38,7 +38,7 @@ export function PainelFinanceiro() {
   const { filtrar, unidades, atual } = useUnidade();
   const dia = hojeISO();
   const { data: recTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia, whatsapp, cpf_cnpj)", key: ["painel"] });
-  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj)", key: ["painel"] });
+  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)", key: ["painel"] });
   const { data: recebidasTodas = [] } = useRows<{ processamento: string; unidade_id: string | null }>("nfe_recebidas", { select: "processamento, unidade_id", key: ["painel"] });
   const { data: extrato = [] } = useRows<{ status: string }>("extrato_lancamentos", { select: "status", order: "status", key: ["painel"] });
   const { data: saldosTodos = [] } = useQuery({
@@ -391,7 +391,7 @@ function ListaContas({ lista, dia, podeBaixar, onClose, onBaixa }: {
                   {c.status === "pago" && (receber
                     ? <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber({ ...c, valor_pago: c.valor_pago ?? null, data_pagamento: c.data_pagamento ?? null, forma_pagamento: c.forma_pagamento ?? null }, unidades.find((u) => u.id === c.unidade_id), cfg)} />
                     : <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar({ ...c, valor_pago: c.valor_pago ?? null, data_pagamento: c.data_pagamento ?? null }, (c as Pagar).fornecedor ?? undefined, unidades.find((u) => u.id === c.unidade_id), cfg, /pagar por ([^·]+)/.exec((c as Pagar).observacoes ?? "")?.[1]?.trim() ?? null)} />)}
-                  {podeBaixar && c.status === "aberto" && (
+                  {podeBaixar && c.status === "aberto" && (receber || !(c as Pagar).fornecedor?.bloqueado) && (
                     <Button type="button" onClick={() => onBaixa(c)} className="!min-h-0 !px-3 !py-1.5 text-xs" variant={receber ? "primary" : "secondary"}>{receber ? "Receber" : "Baixa"}</Button>
                   )}
                 </span>
