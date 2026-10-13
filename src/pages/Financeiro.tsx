@@ -29,6 +29,7 @@ import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
 import { aDecidir, filtrarDecisao, motivoNaoPagar, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
 import { AvisoGolpe } from "@/components/fornecedores/Golpe";
+import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 
@@ -298,7 +299,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
             <CartaoConta key={c.id} titulo={nomeCliente || c.descricao} descricao={mesmoTexto(nomeCliente || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
               detalhe={<>{[c.forma_pagamento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}<SituacaoLink links={links} /></>}
               valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento}
-              situacao={s !== "aberto" ? <Badge value={s} /> : null}
+              situacao={<>{s !== "aberto" && <Badge value={s} />}<ChipRevisao conta={c as any} /></>}
               acoes={<>
                 {c.status === "aberto" && c.cliente?.whatsapp && (
                   <BotaoAtalho icon={MessageCircle} label="Cobrar" cor={COR_ATALHO.verde} href={whatsappLink(c.cliente.whatsapp, mensagemCobranca(c))} title="Enviar cobrança no WhatsApp" />
@@ -330,7 +331,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
               <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
               <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={[...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])]} /></div></td>
               <td className="td">{c.cliente?.nome ?? "—"}</td>
-              <td className="td"><Badge value={s} /></td>
+              <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={s} /><ChipRevisao conta={c as any} /></span></td>
               <td className="td text-right font-medium">{brl(c.valor)}</td>
               <td className="td">
                 <div className="flex flex-wrap justify-end gap-1">
@@ -509,7 +510,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
                 ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
                 : null}
               situacao={<>
-                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} />
+                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} />
                 {c.decisao === "nao_pagar" && motivoNaoPagar(c) && <span className={`w-full text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</span>}
               </>}
               acoes={<>
@@ -534,7 +535,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
             <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />
               <div className="text-xs text-slate-500">{[c.fornecedor?.nome, c.categoria].filter(Boolean).join(" · ")}</div>
               {(c.documento || c.data_pagamento) && <div className="text-xs text-slate-500">{[c.documento, c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
-            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
+            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
             <td className="td whitespace-nowrap text-right font-medium">{brl(c.valor)}</td>
             <td className="td text-right">
               {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}

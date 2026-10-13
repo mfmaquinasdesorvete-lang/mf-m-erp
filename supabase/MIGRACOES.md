@@ -41,3 +41,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   18. `20261012213505_funcionarios.sql`
   19. `20261013130811_perfis_expedicao.sql`
   20. `20261013135628_fornecedor_golpe.sql`
+  21. `20261013162027_fluxo_aprovacao.sql`
