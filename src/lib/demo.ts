@@ -3493,8 +3493,11 @@ const funcoes: Record<string, (b: any) => any> = {
     }
     if (!cfg.pluggy_demo) throw new Error("Ligue o Open Finance primeiro: informe as chaves da Pluggy em Bancos e conciliação.");
     if (b.acao === "token") return { token: "demo" };
-    if (b.acao === "contas") return { instituicao: "Nubank", contas: [
-      { id: "acc-cc", nome: "Conta corrente 998877-1", tipo: "BANK", saldo: 18452.37 }, { id: "acc-cartao", nome: "Cartão Nubank", tipo: "CREDIT", saldo: -2310.5 }] };
+    // como o MeuPluggy (grátis): uma conexão só traz todas as contas que a empresa ligou em meu.pluggy.ai
+    const CONTAS_OF = [
+      { id: "acc-inf1", nome: "InfinitePay Empresas 1730", tipo: "BANK", saldo: 1531.44 }, { id: "acc-inf2", nome: "InfinitePay Empresas 4538", tipo: "BANK", saldo: 645.68 },
+      { id: "acc-nu", nome: "Nubank Empresas 998877-1", tipo: "BANK", saldo: 18452.37 }, { id: "acc-cartao", nome: "InfinitePay Crédito", tipo: "CREDIT", saldo: 0 }];
+    if (b.acao === "contas") return { instituicao: "MeuPluggy", contas: CONTAS_OF };
     const novos = (c: Row, linhas: { data: string; valor: number; descricao: string }[]) => {
       let n = 0;
       for (const l of linhas) {
@@ -3514,9 +3517,11 @@ const funcoes: Record<string, (b: any) => any> = {
     };
     if (b.acao === "ligar") {
       for (const x of db.openfinance_conexoes) if (x.conta_bancaria_id === b.conta_bancaria_id && x.status !== "desligada") x.status = "desligada";
-      const c: Row = { id: uid(), item_id: b.item_id, conta_externa_id: b.conta_externa_id, conta_bancaria_id: b.conta_bancaria_id, instituicao: "Nubank",
-        conta_externa_nome: "Conta corrente 998877-1", status: "ativa", status_provedor: "UPDATED", erro: null, desde: b.desde, sincronizado_em: null, ultimas_novas: 0,
-        saldo: 18452.37, saldo_em: new Date().toISOString(), consentimento_ate: quando(365), created_at: new Date().toISOString() };
+      const ext = CONTAS_OF.find((x) => x.id === b.conta_externa_id);
+      if (!ext) throw new Error("essa conta não está nesta conexão do banco");
+      const c: Row = { id: uid(), item_id: b.item_id, conta_externa_id: b.conta_externa_id, conta_bancaria_id: b.conta_bancaria_id, instituicao: "MeuPluggy",
+        conta_externa_nome: ext.nome, status: "ativa", status_provedor: "UPDATED", erro: null, desde: b.desde, sincronizado_em: null, ultimas_novas: 0,
+        saldo: ext.saldo, saldo_em: new Date().toISOString(), consentimento_ate: quando(365), created_at: new Date().toISOString() };
       db.openfinance_conexoes.push(c);
       const unid = db.contas_bancarias.find((x) => x.id === c.conta_bancaria_id)?.unidade_id;
       const aberta = db.contas_receber.find((r) => r.status === "aberto" && r.unidade_id === unid && Math.abs(Date.parse(r.vencimento) - Date.now()) < 8 * 864e5);
