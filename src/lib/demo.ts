@@ -79,6 +79,8 @@ function seed(): Db {
       { id: "f1", nome: "Refrigeração Andrade Ltda", cnpj: "11222333000181", whatsapp: "11991112200", telefone: "1132221100", email: "vendas@refriandrade.com.br", municipio: "São Paulo", uf: "SP" },
       { id: "f2", nome: "Inox Paulista Componentes", cnpj: "22333444000181", whatsapp: "19992223300", telefone: "1934445566", email: "pedidos@inoxpaulista.com.br", municipio: "Campinas", uf: "SP" },
       { id: "f3", nome: "EletroControl Automação", cnpj: "33444555000181", whatsapp: "41993334400", telefone: "4133221144", municipio: "Curitiba", uf: "PR" },
+      { id: "f4", nome: "Cadastro Nacional de Empresas", cnpj: "44555666000181", municipio: "São Paulo", uf: "SP", bloqueado: true,
+        bloqueio_motivo: "Golpe: boleto falso que chega todo mês. Não pagar.", bloqueado_em: quando(-3), bloqueado_por_nome: "Administrador" },
     ],
     produtos: [
       { id: "p1", sku: "MF-SOFT-300", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", tipo: "maquina", unidade: "UN", ncm: "84186990", origem: 0, peso_kg: 145, altura_cm: 150, largura_cm: 55, profundidade_cm: 80, preco_custo: 14800, preco_venda: 23900, garantia_meses: 12, estoque_atual: 4, estoque_minimo: 2, localizacao: "Galpão A", ativo: true, codigo_barras: null },
@@ -137,6 +139,8 @@ function seed(): Db {
       { id: "cp2", descricao: "NF 48211 - Refrigeração Andrade Ltda (2/2)", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48211 dup 002", valor: 4050, vencimento: dias(35), status: "aberto", nfe_recebida_id: "nr1" },
       { id: "cp3", descricao: "Aluguel do galpão", categoria: "aluguel", valor: 6500, vencimento: dias(-2), status: "aberto", decisao: "pagar", pagar_em: dias(0), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
       { id: "cp4", descricao: "Energia elétrica", categoria: "energia/água/internet", valor: 1380, vencimento: dias(8), status: "aberto", decisao: "agendado", pagar_em: dias(6), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
+      { id: "cp21", descricao: "Taxa de cadastro nacional", fornecedor_id: "f4", categoria: "fornecedores", valor: 389.9, vencimento: dias(6), status: "aberto", decisao: "nao_pagar",
+        decisao_motivo: "Fornecedor bloqueado (golpe): Golpe: boleto falso que chega todo mês. Não pagar.", decisao_por_nome: "ERP (fornecedor bloqueado)", decisao_em: quando(-1) },
       { id: "cp20", descricao: "Manutenção da empilhadeira", categoria: "manutenção", valor: 2240, vencimento: dias(3), status: "aberto", decisao: "nao_pagar", decisao_motivo: "Esperando boleto ou NF correta", decisao_por_nome: "Fabiano", decisao_em: quando(-2) },
       { id: "cp21", descricao: "Frete Braspress - NF 1290", categoria: "fretes", valor: 386.4, vencimento: dias(0), status: "aberto" },
       { id: "cp5", descricao: "DAS Simples Nacional", categoria: "impostos", valor: 3920, vencimento: dias(-12), status: "pago", data_pagamento: dias(-13), valor_pago: 3920 },
@@ -652,6 +656,36 @@ function calcularEnvioDemo(e: Row): Row {
 }
 
 // ---------------------------------------------------------------------
+// Fornecedor marcado como golpe (no sistema real: gatilhos da migração fornecedor_golpe). Valida e completa antes de gravar.
+const GOLPE_ERP = "ERP (fornecedor bloqueado)";
+const bloqueioDemo = (id?: string | null) => { const f = db.fornecedores.find((x) => x.id === id); return f?.bloqueado ? String(f.bloqueio_motivo ?? "golpe") : null; };
+const segurarDemo = (c: Row, motivo: string) => Object.assign(c, { decisao: "nao_pagar", pagar_em: null, decisao_motivo: `Fornecedor bloqueado (golpe): ${motivo}`, decisao_por_nome: GOLPE_ERP, decisao_em: new Date().toISOString() });
+function golpeDemo(tabela: string, antes: Row | null, r: Row): string | null {
+  if (tabela === "fornecedores") {
+    if (r.bloqueado && !antes?.bloqueado) {
+      if (String(r.bloqueio_motivo ?? "").trim().length < 3) return "diga o motivo do bloqueio (ex.: boleto falso que chega todo mês)";
+      Object.assign(r, { bloqueado_em: new Date().toISOString(), bloqueado_por_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "ERP" });
+      if (r.id) db.contas_pagar.filter((c) => c.fornecedor_id === r.id && c.status === "aberto").forEach((c) => segurarDemo(c, r.bloqueio_motivo));
+    } else if (!r.bloqueado && antes?.bloqueado) {
+      if (db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.papel !== "admin") return "só o administrador tira o bloqueio de um fornecedor marcado como golpe";
+      Object.assign(r, { bloqueio_motivo: null, bloqueado_em: null, bloqueado_por_nome: null });
+      db.contas_pagar.filter((c) => c.fornecedor_id === r.id && c.status === "aberto" && c.decisao_por_nome === GOLPE_ERP)
+        .forEach((c) => Object.assign(c, { decisao: null, pagar_em: null, decisao_motivo: null, decisao_por_nome: null, decisao_em: null }));
+    } else if (r.bloqueado && String(r.bloqueio_motivo ?? "").trim().length < 3) return "diga o motivo do bloqueio (ex.: boleto falso que chega todo mês)";
+    return null;
+  }
+  if (tabela !== "contas_pagar") return null;
+  const motivo = bloqueioDemo(r.fornecedor_id);
+  if (!motivo) return null;
+  if (r.status === "pago" && (antes ? antes.status !== "pago" : !r.id_externo)) return `"${r.descricao}" é de um fornecedor marcado como golpe (${motivo}): não pode ser paga. Se for engano, o administrador tira o bloqueio no cadastro do fornecedor.`;
+  if (r.status === "aberto") {
+    if (antes && ["pagar", "agendado"].includes(r.decisao) && r.decisao !== antes.decisao) return `"${r.descricao}" é de um fornecedor marcado como golpe (${motivo}): não pode ser aprovada nem agendada. Se for engano, o administrador tira o bloqueio no cadastro do fornecedor.`;
+    if (r.decisao !== "nao_pagar") segurarDemo(r, motivo);
+  }
+  return null;
+}
+const REGRAS_GOLPE = new Set(["fornecedores", "contas_pagar"]);
+
 // Regras dos fretes (no sistema real: gatilhos da migração 0020). Validam e completam a linha antes de gravar.
 // ---------------------------------------------------------------------
 const REGRAS_FRETE = new Set(["envios", "envio_cotacoes", "envio_ocorrencias"]);
@@ -1376,11 +1410,15 @@ class Query {
       if (REGRAS_FRETE.has(this.tabela)) {
         for (const p of this.payload) { const falha = regraFreteDemo(this.tabela, null, p); if (falha) return erro(falha); }
       }
+      if (REGRAS_GOLPE.has(this.tabela)) {
+        for (const p of this.payload) { const falha = golpeDemo(this.tabela, null, { ...p }); if (falha) return erro(falha); }
+      }
       linhas = this.payload.map((p: Row) => {
         const chaves = this.conflito.length ? this.conflito : p.chave ? ["chave"] : [];
         const existente = this.op === "upsert" && chaves.length ? t.find((r) => chaves.every((k) => r[k] === p[k])) : null;
         if (existente) return this.ignorarDuplicados ? existente : Object.assign(existente, p, { updated_at: new Date().toISOString() });
         const novo: Row = { id: uid(), created_at: new Date().toISOString(), ...(DEFAULTS[this.tabela]?.() ?? {}), ...p };
+        if (REGRAS_GOLPE.has(this.tabela)) golpeDemo(this.tabela, null, novo);
         if (TABELAS_COM_UNIDADE.includes(this.tabela) && !novo.unidade_id) novo.unidade_id = unidadeDoUsuario();
         t.push(novo);
         if (AUDITADAS.has(this.tabela)) registrarDemo(this.tabela, "insert", null, { ...novo }, null, "usuario");
@@ -1406,6 +1444,14 @@ class Query {
         for (const r of linhas) {
           const cand = { ...r, ...this.payload };
           const falha = regraFreteDemo(this.tabela, r, cand);
+          if (falha) return erro(falha);
+          candidatos.set(r, cand);
+        }
+      }
+      if (this.op === "update" && REGRAS_GOLPE.has(this.tabela)) {
+        for (const r of linhas) {
+          const cand = { ...r, ...this.payload };
+          const falha = golpeDemo(this.tabela, r, cand);
           if (falha) return erro(falha);
           candidatos.set(r, cand);
         }
@@ -1900,6 +1946,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const motivo = String(p_motivo ?? "").trim();
     if (p_acao === "nao_pagar" && motivo.length < 3) return erro("diga por que não vai pagar (fica no histórico)");
     const nome = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id)?.nome ?? null;
+    const golpe = (p_acao === "pagar" || p_acao === "agendar") && db.contas_pagar.find((x) => (p_ids ?? []).includes(x.id) && x.status === "aberto" && bloqueioDemo(x.fornecedor_id));
+    if (golpe) return erro(`"${golpe.descricao}" é de um fornecedor marcado como golpe (${bloqueioDemo(golpe.fornecedor_id)}): não pode ser aprovada nem agendada. Se for engano, o administrador tira o bloqueio no cadastro do fornecedor.`);
     let n = 0;
     for (const c of db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id) && x.status === "aberto")) {
       const quando = p_acao === "pagar" ? (c.vencimento > dia ? c.vencimento : dia) : p_acao === "agendar" ? p_data : null;
@@ -1918,7 +1966,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const banco = p_conta_bancaria ? db.contas_bancarias.find((b) => b.id === p_conta_bancaria && b.ativo) : null;
     if (p_conta_bancaria && !banco) return erro("conta bancária não encontrada");
     const contas = db.contas_pagar.filter((x) => (p_ids ?? []).includes(x.id));
-    const ok = contas.filter((c) => c.status === "aberto" && (p_incluir_nao_pagar || c.decisao !== "nao_pagar"));
+    const ok = contas.filter((c) => c.status === "aberto" && (p_incluir_nao_pagar || c.decisao !== "nao_pagar") && !bloqueioDemo(c.fornecedor_id));
     const fora = ok.find((c) => banco && c.unidade_id && c.unidade_id !== banco.unidade_id);
     if (fora) return erro(`"${fora.descricao}" é de outra unidade que a conta bancária ${banco?.nome}: pague essa num lote separado`);
     for (const c of ok) atualizarDemo("contas_pagar", c, { status: "pago", data_pagamento: p_data, valor_pago: Number(c.valor), conta_bancaria_id: p_conta_bancaria ?? null });

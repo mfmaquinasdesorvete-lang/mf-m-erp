@@ -5,9 +5,11 @@ export type Decisao = "pagar" | "agendado" | "nao_pagar";
 export type ContaDecisao = {
   id: string; valor: number; vencimento: string; status: string; unidade_id?: string | null;
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
+  /** fornecedor marcado como golpe: o banco segura a conta como "não pagar" */
+  fornecedor?: { bloqueado?: boolean | null; bloqueio_motivo?: string | null } | null;
 };
 export type FiltroDecisao = "todas" | "decidir" | "hoje" | "agendadas" | "nao_pagar";
-export type Tom = "ok" | "agenda" | "parada" | "decidir" | "atrasada";
+export type Tom = "ok" | "agenda" | "parada" | "decidir" | "atrasada" | "golpe";
 
 const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
@@ -28,9 +30,13 @@ export function filtrarDecisao<T extends ContaDecisao>(l: T[], f: FiltroDecisao,
   return l.filter((c) => c.status === "aberto" && c.decisao === "nao_pagar");
 }
 
+/** Por que não pagar: o motivo do bloqueio do fornecedor (golpe) ou o que quem decidiu escreveu. */
+export const motivoNaoPagar = (c: ContaDecisao) => (c.fornecedor?.bloqueado ? c.fornecedor.bloqueio_motivo : c.decisao_motivo) ?? null;
+
 /** Rótulo curto da decisão para mostrar na lista. */
 export function rotuloDecisao(c: ContaDecisao, hoje: string): { texto: string; tom: Tom; dica: string } | null {
   if (c.status !== "aberto") return null;
+  if (c.fornecedor?.bloqueado) return { texto: "Golpe · não pagar", tom: "golpe", dica: c.fornecedor.bloqueio_motivo ?? "Fornecedor bloqueado: não pagar" };
   const quem = [c.decisao_por_nome, c.decisao_em && `${dm(c.decisao_em.slice(0, 10))}`].filter(Boolean).join(" em ");
   const por = quem ? ` (decidido por ${quem})` : "";
   if (!c.decisao) {
@@ -50,6 +56,7 @@ export const COR_TOM: Record<Tom, string> = {
   parada: "bg-slate-200 text-slate-700",
   decidir: "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200",
   atrasada: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
+  golpe: "bg-solido-vermelho text-white",
 };
 
 /** Conta a pagar como entra no fluxo de caixa previsto: na data escolhida; as "não pagar" ficam fora. */

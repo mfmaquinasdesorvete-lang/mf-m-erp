@@ -27,7 +27,8 @@ import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/componen
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
-import { aDecidir, filtrarDecisao, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
+import { aDecidir, filtrarDecisao, motivoNaoPagar, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
+import { AvisoGolpe } from "@/components/fornecedores/Golpe";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 
@@ -40,7 +41,7 @@ type Receber = {
 type Pagar = {
   id: string; descricao: string; fornecedor_id: string | null; categoria: string; documento: string | null;
   valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
-  observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null; fornecedor?: { nome: string } | null;
+  observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null; fornecedor?: { nome: string; bloqueado?: boolean | null; bloqueio_motivo?: string | null } | null;
   rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
 };
@@ -95,7 +96,7 @@ export default function Financeiro() {
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)" });
+  const { data: pagarTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, bloqueado, bloqueio_motivo)" });
   const pagar = filtrar(pagarTodos);
 
   const resumo = useMemo(() => {
@@ -426,7 +427,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
   const [baixa, setBaixa] = useState<Pagar | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Pagar; acao: "cancelar" | "estornar" } | null>(null);
   const contaBanco = useNomeContaBancaria();
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; cnpj?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; cnpj?: string | null; bloqueado?: boolean; bloqueio_motivo?: string | null }>("fornecedores", { order: "nome", ascending: true });
   const save = useSave("contas_pagar");
   // "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
   const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;
@@ -509,11 +510,11 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
                 : null}
               situacao={<>
                 {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} />
-                {c.decisao === "nao_pagar" && c.decisao_motivo && <span className="w-full text-xs text-slate-500">{c.decisao_motivo}</span>}
+                {c.decisao === "nao_pagar" && motivoNaoPagar(c) && <span className={`w-full text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</span>}
               </>}
               acoes={<>
                 {podeDecidir && c.status === "aberto" && <BotoesDecisao conta={c} atalho />}
-                {c.status === "aberto" && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
+                {c.status === "aberto" && !c.fornecedor?.bloqueado && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
                 {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
                 {c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
                 <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setEditando(c)} />
@@ -533,12 +534,12 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
             <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />
               <div className="text-xs text-slate-500">{[c.fornecedor?.nome, c.categoria].filter(Boolean).join(" · ")}</div>
               {(c.documento || c.data_pagamento) && <div className="text-xs text-slate-500">{[c.documento, c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
-            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /></span>{c.decisao === "nao_pagar" && c.decisao_motivo && <div className="mt-0.5 text-xs text-slate-500">{c.decisao_motivo}</div>}</td>
+            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
             <td className="td whitespace-nowrap text-right font-medium">{brl(c.valor)}</td>
             <td className="td text-right">
               {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}
               <div className="flex flex-wrap justify-end gap-1">
-              {c.status === "aberto" && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
+              {c.status === "aberto" && !c.fornecedor?.bloqueado && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
               {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
               {c.status === "pago" && <Button variant="ghost" title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
               <Button variant="secondary" title="Editar" aria-label="Editar" onClick={() => setEditando(c)}><Pencil size={15} /></Button>
@@ -557,9 +558,12 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
             <Field label="Fornecedor">
               <select className="input" value={editando.fornecedor_id ?? ""} onChange={(e) => setEditando({ ...editando, fornecedor_id: e.target.value })}>
                 <option value="">—</option>
-                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.bloqueado ? `⛔ ${f.nome} (golpe: não pagar)` : f.nome}</option>)}
               </select>
             </Field>
+            {fornecedores.find((f) => f.id === editando.fornecedor_id)?.bloqueado && (
+              <div className="sm:col-span-2"><AvisoGolpe f={fornecedores.find((f) => f.id === editando.fornecedor_id)} /></div>
+            )}
             <CampoCategoria tipo="despesa" value={editando.categoria} onChange={(v) => setEditando({ ...editando, categoria: v })} />
             <Field label="Valor"><input className="input" type="number" step="0.01" min={0.01} value={editando.valor ?? ""} onChange={(e) => setEditando({ ...editando, valor: Number(e.target.value) })} required /></Field>
             <Field label="Vencimento"><input className="input" type="date" value={editando.vencimento} onChange={(e) => setEditando({ ...editando, vencimento: e.target.value })} required /></Field>

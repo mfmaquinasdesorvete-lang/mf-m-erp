@@ -20,8 +20,8 @@ export type CampoForm = {
   buscar?: boolean;
   placeholder?: string;
   options?: { value: string | number; label: string }[];
-  /** type "custom": desenha o campo (ex.: foto) */
-  render?: (valor: any, set: (v: any) => void, row: Record<string, any>) => ReactNode;
+  /** type "custom": desenha o campo (ex.: foto); setCampo muda outro campo do mesmo registro */
+  render?: (valor: any, set: (v: any) => void, row: Record<string, any>, setCampo: (nome: string, v: any) => void) => ReactNode;
   ajuda?: string;
   span?: 1 | 2 | 3 | 4;
   required?: boolean;
@@ -221,7 +221,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   ) : f.type === "custom" ? (
     <div key={f.name} className={`min-w-0 ${larguraCelular(f)} ${spanClass[f.span ?? 2]}`}>
       <span className="mb-1.5 block text-xs font-semibold text-slate-600">{f.label}</span>
-      {f.render!(editando![f.name], (v) => set(f.name, v), editando!)}
+      {f.render!(editando![f.name], (v) => set(f.name, v), editando!, (nome, v) => set(nome, v))}
     </div>
   ) : (
     <Field key={f.name} label={f.label} className={`${larguraCelular(f)} ${spanClass[f.span ?? 2]} flex flex-col justify-end`}>

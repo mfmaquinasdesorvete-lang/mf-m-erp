@@ -54,7 +54,8 @@ export function ChipDecisao({ conta, hoje = hojeISO() }: { conta: ContaDecisao; 
 export function BotoesDecisao({ conta, compacto = false, atalho = false }: { conta: Conta; compacto?: boolean; atalho?: boolean }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | null>(null);
-  if (conta.status !== "aberto") return null;
+  // fornecedor marcado como golpe: o banco segura como "não pagar"; a etiqueta vermelha já diz isso
+  if (conta.status !== "aberto" || conta.fornecedor?.bloqueado) return null;
   const d = conta.decisao;
   const janelas = (<>
     {janela === "agendar" && <ModalAgendar contas={[conta]} onClose={() => setJanela(null)} />}
@@ -257,12 +258,14 @@ export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () 
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "lote" | null>(null);
   if (!contas.length) return null;
-  const abertas = contas.filter((c) => c.status === "aberto");
+  // conta de fornecedor marcado como golpe fica de fora (o banco não deixa aprovar nem pagar)
+  const golpe = contas.filter((c) => c.status === "aberto" && c.fornecedor?.bloqueado).length;
+  const abertas = contas.filter((c) => c.status === "aberto" && !c.fornecedor?.bloqueado);
   const total = abertas.reduce((s, c) => s + Number(c.valor), 0);
   const ids = abertas.map((c) => c.id);
   return (
     <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
-      <span className="mr-auto text-sm"><b>{contas.length}</b> marcada(s){abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b></span>
+      <span className="mr-auto text-sm"><b>{contas.length}</b> marcada(s){abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}</span>
       <Button type="button" variant="secondary" disabled={ocupado || !ids.length} onClick={async () => { if (await programar(ids, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>
       <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>
       <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("nao_pagar")}><Ban size={15} /> Não pagar</Button>

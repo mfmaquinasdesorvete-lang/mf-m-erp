@@ -39,3 +39,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   16. `20261012161835_estrutura_multinivel.sql`
   17. `20261101000034_apagar_testes.sql` (ainda não aplicada)
   18. `20261012213505_funcionarios.sql`
+  19. `20261013130811_perfis_expedicao.sql`
+  20. `20261013135628_fornecedor_golpe.sql`
