@@ -10,6 +10,7 @@ import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } fro
 import { percentualPedido } from "./comissao";
 import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
+import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -55,7 +56,7 @@ function seed(): Db {
       telegram_chat_id: ["u-fin", "u-tec"].includes(u.user_id) ? 5000 + i : null,
     })),
     configuracoes: [{
-      id: 1, razao_social: "MF MÁQUINAS LTDA", nome_fantasia: "MF Máquinas", cnpj: "46942855000132",
+      id: 1, aprovacao_revisor1: ["u-admin"], aprovacao_revisor2: ["u-fin"], aprovacao_alcada: 300, razao_social: "MF MÁQUINAS LTDA", nome_fantasia: "MF Máquinas", cnpj: "46942855000132",
       inscricao_estadual: "261770233", uf: "SC", municipio: "São José", whatsapp: "4833755280",
       regime_tributario: 1, natureza_operacao: "Venda de mercadoria", cfop_padrao: "5102", icms_situacao_padrao: "102",
       pis_situacao_padrao: "49", cofins_situacao_padrao: "49", presenca_comprador: 9, dias_vencimento_boleto: 3,
@@ -139,7 +140,7 @@ function seed(): Db {
       { id: "cp2", descricao: "NF 48211 - Refrigeração Andrade Ltda (2/2)", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48211 dup 002", valor: 4050, vencimento: dias(35), status: "aberto", nfe_recebida_id: "nr1" },
       { id: "cp3", descricao: "Aluguel do galpão", categoria: "aluguel", valor: 6500, vencimento: dias(-2), status: "aberto", decisao: "pagar", pagar_em: dias(0), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
       { id: "cp4", descricao: "Energia elétrica", categoria: "energia/água/internet", valor: 1380, vencimento: dias(8), status: "aberto", decisao: "agendado", pagar_em: dias(6), decisao_por_nome: "Fabiano", decisao_em: quando(-1) },
-      { id: "cp21", descricao: "Taxa de cadastro nacional", fornecedor_id: "f4", categoria: "fornecedores", valor: 389.9, vencimento: dias(6), status: "aberto", decisao: "nao_pagar",
+      { id: "cpg1", descricao: "Taxa de cadastro nacional", fornecedor_id: "f4", categoria: "fornecedores", valor: 389.9, vencimento: dias(6), status: "aberto", decisao: "nao_pagar",
         decisao_motivo: "Fornecedor bloqueado (golpe): Golpe: boleto falso que chega todo mês. Não pagar.", decisao_por_nome: "ERP (fornecedor bloqueado)", decisao_em: quando(-1) },
       { id: "cp20", descricao: "Manutenção da empilhadeira", categoria: "manutenção", valor: 2240, vencimento: dias(3), status: "aberto", decisao: "nao_pagar", decisao_motivo: "Esperando boleto ou NF correta", decisao_por_nome: "Fabiano", decisao_em: quando(-2) },
       { id: "cp21", descricao: "Frete Braspress - NF 1290", categoria: "fretes", valor: 386.4, vencimento: dias(0), status: "aberto" },
@@ -414,6 +415,7 @@ function seed(): Db {
   comercialDemo(db);
   bancosDemo(db);
   planoDemo(db);
+  aprovacaoDemo(db);
   fretesDemo(db);
   fichaDemo(db);
   return db;
@@ -780,6 +782,77 @@ function regraFreteDemo(tabela: string, antes: Row | null, n: Row): string | nul
   } else { n.conferido_por = antes!.conferido_por; n.conferido_em = antes!.conferido_em; }
   n.motivo_excecao = null;
   return null;
+}
+
+/** Fluxo de aprovação (migração fluxo_aprovacao): contas de exemplo em cada etapa. */
+function aprovacaoDemo(db: Db) {
+  const auto = { lancamento: "automatico", revisao1_nome: "Automático (passou nas validações)", revisao1_em: quando(-5) };
+  for (const c of db.contas_receber) Object.assign(c, c.status === "aberto" ? { revisao: "aprovado", ...auto } : { revisao: "historico" });
+  for (const c of db.contas_pagar) c.revisao ??= "historico";
+  const conta = (id: string, patch: Row) => Object.assign(db.contas_pagar.find((c) => c.id === id) ?? {}, patch);
+  conta("cp1", { revisao: "aprovado", ...auto });
+  conta("cp2", { revisao: "aprovado", ...auto });
+  conta("cp3", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
+  conta("cp4", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", documento: "Fatura 10/2026", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo",
+    revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" });
+  conta("cp20", { revisao: "devolvido", lancamento: "manual", criado_por: "u-fin", revisao_comentario: "Falta anexar a nota da manutenção" });
+  conta("cp21", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", categoria: "frete", documento: "CT-e 1290" });
+  conta("cpg1", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
+  conta("cp5", { revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-14),
+    revisao2_por: "u-fin", revisao2_nome: "Rafael Financeiro", revisao2_em: quando(-14), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00", documento: "Guia DAS 09/2026" });
+  db.contas_pagar.push({ id: "cp30", descricao: "Material de escritório", categoria: "outros", documento: "NFC-e 552", valor: 184.5, vencimento: dias(4), status: "aberto",
+    created_at: quando(-1), revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
+  db.revisoes_contas = [
+    { id: "rv1", tabela: "contas_pagar", conta_id: "cp4", acao: "aprovou", etapa: "1ª revisão", comentario: null, usuario_nome: "Elem Olmedo", created_at: quando(-1) },
+    { id: "rv2", tabela: "contas_pagar", conta_id: "cp20", acao: "devolveu", etapa: "1ª revisão", comentario: "Falta anexar a nota da manutenção", usuario_nome: "Elem Olmedo", created_at: quando(-1) },
+  ];
+}
+
+/** Revisão das contas (no sistema real: revisar_contas e contador_conferir). */
+function revisarDemo(tabela: string, ids: string[], acao: string, comentario: string | null) {
+  const eu = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id);
+  if (!eu || !["admin", "financeiro"].includes(eu.papel) && !(eu.papeis_extras ?? []).includes("financeiro")) return erro("sem permissão para esta ação");
+  const com = (comentario ?? "").trim();
+  if ((acao === "devolver" || acao === "rejeitar") && com.length < 5) return erro("escreva o motivo (fica no histórico e quem lançou vê)");
+  const regras = regrasDe(db.configuracoes[0]);
+  const tipo: TipoConta = tabela === "contas_pagar" ? "pagar" : "receber";
+  const log = (id: string, a: string, etapa: string | null) =>
+    db.revisoes_contas.push({ id: uid(), tabela, conta_id: id, acao: a, etapa, comentario: com || null, usuario_nome: eu.nome, created_at: new Date().toISOString() });
+  let n = 0;
+  for (const id of ids) {
+    const c = db[tabela].find((x) => x.id === id);
+    if (!c) return erro("conta não encontrada");
+    if (acao === "reenviar") {
+      if (c.revisao !== "devolvido") return erro(`"${c.descricao}" não está devolvida`);
+      atualizarDemo(tabela, c, { revisao: "em_revisao" }); log(id, "reenviou", null); n++; continue;
+    }
+    const q = quemPode(c as ContaRevisao, { id: eu.user_id, admin: eu.papel === "admin" }, regras);
+    if (!q.pode) return erro(`"${c.descricao}": ${q.motivo}`);
+    const etapa = `${q.etapa}ª revisão`;
+    if (acao === "devolver") {
+      atualizarDemo(tabela, c, { revisao: "devolvido", revisao_comentario: com, revisao1_por: null, revisao1_nome: null, revisao1_em: null, revisao2_por: null, revisao2_nome: null, revisao2_em: null });
+    } else if (acao === "rejeitar") {
+      atualizarDemo(tabela, c, { revisao: "rejeitado", revisao_comentario: com, ...(c.status === "aberto" ? { status: "cancelado" } : {}) }, `Rejeitada na revisão: ${com}`);
+    } else {
+      const pend = pendenciasConta(c as ContaRevisao, tipo, {
+        anexos: new Set((db.documentos ?? []).filter((d) => d.entidade === (tipo === "pagar" ? "conta_pagar" : "conta_receber")).map((d) => d.entidade_id)),
+        categorias: db.categorias_financeiras as { nome: string; tipo: string; ativo?: boolean }[], todas: db[tabela] as ContaRevisao[],
+      });
+      let exige = !!c.exige_2a, motivo: string | null = c.motivo_2a ?? null;
+      if (pend.length) {
+        if (com.length < 10) return erro(`"${c.descricao}" tem pendência (${pend.join(", ")}): para aprovar mesmo assim, escreva por quê (vai para a 2ª revisão)`);
+        exige = true; motivo = `${motivo ? `${motivo} · ` : ""}aprovada com pendência (${pend.join(", ")})`;
+      }
+      if (Number(c.valor) >= regras.alcada) { exige = true; motivo ??= `valor a partir de R$ ${regras.alcada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`; }
+      const agora = new Date().toISOString();
+      atualizarDemo(tabela, c, q.etapa === 1
+        ? { revisao1_por: eu.user_id, revisao1_nome: eu.nome, revisao1_em: agora, exige_2a: exige, motivo_2a: motivo, revisao: exige ? "em_revisao" : "aprovado", ...(com ? { revisao_comentario: com } : {}) }
+        : { revisao2_por: eu.user_id, revisao2_nome: eu.nome, revisao2_em: agora, revisao: "aprovado", ...(com ? { revisao_comentario: com } : {}) });
+    }
+    log(id, acao === "aprovar" ? "aprovou" : acao === "devolver" ? "devolveu" : "rejeitou", etapa);
+    n++;
+  }
+  return { data: n, error: null };
 }
 
 /** Plano de contas, centros de custo e contas fixas de exemplo. */
@@ -1183,8 +1256,8 @@ const DEFAULTS: Record<string, () => Row> = {
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
   pedidos: () => ({ numero: ++numeroPedido, status: "orcamento", estoque_baixado: false, created_at: quando(0) }),
   ordens_servico: () => ({ numero: ++numeroOS, status: "aberta", data_entrada: hojeISO(), estoque_baixado: false, created_at: quando(0) }),
-  contas_receber: () => ({ status: "aberto", parcela: 1, total_parcelas: 1, created_at: quando(0) }),
-  contas_pagar: () => ({ status: "aberto", categoria: "fornecedores", created_at: quando(0) }),
+  contas_receber: () => ({ status: "aberto", parcela: 1, total_parcelas: 1, created_at: quando(0), revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null }),
+  contas_pagar: () => ({ status: "aberto", categoria: "fornecedores", created_at: quando(0), revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null }),
   produtos: () => ({ estoque_atual: 0, ativo: true, origem: 0, unidade: "UN", created_at: quando(0) }),
   ordens_producao: () => ({ numero: ++numeroOP, status: "planejada", created_at: quando(0) }),
   pedidos_compra: () => ({ numero: ++numeroPC, status: "cotacao", frete: 0, created_at: quando(0) }),
@@ -1936,6 +2009,25 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     atualizarDemo(p_tabela, c, { status: "pago", data_pagamento: p_data, valor_pago: v, conta_bancaria_id: p_conta_bancaria ?? null },
       v === Number(c.valor) ? null : v < Number(c.valor) ? `Pago com desconto de ${reaisDemo(Number(c.valor) - v)}` : `Pago com juros/multa de ${reaisDemo(v - Number(c.valor))}`);
     return { data: null, error: null };
+  },
+  revisar_contas: ({ p_tabela, p_ids, p_acao, p_comentario }) => revisarDemo(p_tabela, p_ids ?? [], p_acao, p_comentario ?? null),
+  contador_conferir: ({ p_tabela, p_ids, p_acao, p_comentario }) => {
+    const eu = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id);
+    if (eu?.papel !== "contador") return erro("só o contador valida os lançamentos");
+    const com = String(p_comentario ?? "").trim();
+    if (p_acao === "duvida" && com.length < 5) return erro("escreva a dúvida");
+    for (const id of p_ids ?? []) {
+      const c = db[p_tabela].find((x) => x.id === id);
+      if (!c) return erro("lançamento não encontrado");
+      if (p_acao === "validar" && !["aprovado", "historico"].includes(c.revisao)) return erro(`"${c.descricao}" ainda não foi aprovada internamente`);
+      atualizarDemo(p_tabela, c, { contador_status: p_acao === "validar" ? "validado" : p_acao === "duvida" ? "duvida" : null, contador_em: new Date().toISOString(),
+        contador_nome: eu.nome, ...(p_acao === "duvida" ? { contador_comentario: com } : {}) });
+      db.revisoes_contas.push({ id: uid(), tabela: p_tabela, conta_id: id, acao: p_acao === "validar" ? "validou" : p_acao === "duvida" ? "perguntou" : "desfez a validação",
+        etapa: "contador", comentario: com || null, usuario_nome: eu.nome, created_at: new Date().toISOString() });
+      if (p_acao === "duvida") db.contador_mensagens.push({ id: uid(), unidade_id: c.unidade_id ?? U_SC, competencia: String(c.data_pagamento ?? c.vencimento).slice(0, 7), autor: eu.user_id,
+        autor_nome: eu.nome, texto: `Dúvida sobre "${c.descricao}": ${com}`, resolvida: false, conta_tabela: p_tabela, conta_id: id, created_at: new Date().toISOString() });
+    }
+    return { data: (p_ids ?? []).length, error: null };
   },
   programar_pagamento: ({ p_ids, p_acao, p_data, p_motivo }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

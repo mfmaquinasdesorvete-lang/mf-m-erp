@@ -1,8 +1,10 @@
 // Painel do contador: fechamento mensal por unidade, com o pacote de XML e planilhas,
 // envio automático, mês travado depois de fechado e conversa com o financeiro.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckCircle2, Download, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
-import { Badge, Button, Card, PageHeader, Section } from "@/components/ui";
+import { CheckCircle2, CircleHelp, Download, FilePlus2, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
+import { Badge, Button, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
+import { ChipRevisao } from "@/components/financeiro/Revisao";
+import { TABELA, type ContaRevisao, type TipoConta } from "@/lib/aprovacao";
 import { Anexos } from "@/components/Anexos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
@@ -168,6 +170,8 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
         </Section>
       </div>
 
+      <LancamentosMes unidadeId={unidadeId} comp={comp} contador={contador} fechado={status === "fechado"} />
+
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Section title="Conversa com o financeiro"><Mensagens unidadeId={unidadeId} comp={comp} meuNome={meuNome} /></Section>
         <Section title="Documentos do fechamento (guias, balancete, apurações)"><DocsFechamento unidadeId={unidadeId} comp={comp} id={f?.id} /></Section>
@@ -263,5 +267,147 @@ function DocsFechamento({ unidadeId, comp, id }: { unidadeId: string; comp: stri
       if (error) return notifyError(error);
       setFid(data as string); invalidar("fechamentos");
     }}>Anexar arquivos neste mês</Button>
+  );
+}
+
+type LancMes = ContaRevisao & { tipo: TipoConta; terceiro: string | null; valor_pago?: number | null; fornecedor?: { nome: string } | null; cliente?: { nome: string; nome_fantasia?: string | null } | null };
+
+/**
+ * Lançamentos pagos e recebidos no mês (o que vai no pacote): aprovado internamente x validado pelo contador, contados separados.
+ * O contador valida ou pergunta; com o mês fechado, o financeiro corrige por lançamento corretivo (o original fica como está).
+ */
+function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: string; comp: string; contador: boolean; fechado: boolean }) {
+  const { tem } = usePerfil();
+  const invalidar = useInvalidate();
+  const { data: pagar = [] } = useRows<LancMes>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)", key: ["contador"] });
+  const { data: receber = [] } = useRows<LancMes>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia)", key: ["contador"] });
+  const [filtro, setFiltro] = useState<"todos" | "validar" | "nao_aprovados" | "duvidas">("todos");
+  const [ocupado, setOcupado] = useState(false);
+  const [corrigir, setCorrigir] = useState<LancMes | null>(null);
+  const linhas = useMemo(() => [
+    ...pagar.map((c) => ({ ...c, tipo: "pagar" as const, terceiro: c.fornecedor?.nome ?? null })),
+    ...receber.map((c) => ({ ...c, tipo: "receber" as const, terceiro: c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null })),
+  ].filter((c) => c.unidade_id === unidadeId && c.status === "pago" && noMes(c.data_pagamento, comp))
+    .sort((a, b) => (a.data_pagamento ?? "").localeCompare(b.data_pagamento ?? "")), [pagar, receber, unidadeId, comp]);
+  const aprovado = (c: LancMes) => c.revisao === "aprovado" || c.revisao === "historico";
+  const validado = (c: LancMes) => c.revisao === "historico" || (c.revisao === "aprovado" && c.contador_status === "validado");
+  const aValidar = linhas.filter((c) => c.revisao === "aprovado" && c.contador_status !== "validado" && c.contador_status !== "duvida");
+  const lista = filtro === "validar" ? aValidar : filtro === "nao_aprovados" ? linhas.filter((c) => !aprovado(c))
+    : filtro === "duvidas" ? linhas.filter((c) => c.contador_status === "duvida" || c.contador_status === "ajustado") : linhas;
+
+  async function conferir(acao: "validar" | "duvida" | "desfazer", ls: LancMes[]) {
+    let comentario: string | null = null;
+    if (acao === "duvida") {
+      comentario = prompt("Qual a dúvida? (vai para a conversa do mês, presa a este lançamento)", "");
+      if (!comentario?.trim()) return;
+    }
+    setOcupado(true);
+    try {
+      for (const tipo of ["pagar", "receber"] as const) {
+        const ids = ls.filter((c) => c.tipo === tipo).map((c) => c.id);
+        if (!ids.length) continue;
+        const { error } = await supabase.rpc("contador_conferir", { p_tabela: TABELA[tipo], p_ids: ids, p_acao: acao, p_comentario: comentario });
+        if (error) throw error;
+      }
+      notify(acao === "validar" ? `${ls.length} lançamento(s) validado(s)` : acao === "duvida" ? "Dúvida enviada ao financeiro" : "Validação desfeita");
+      invalidar("contas_pagar", "contas_receber", "contador_mensagens", "revisoes_contas");
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+
+  const n = linhas.length;
+  return (
+    <Section title="Lançamentos do mês: aprovação e validação"
+      actions={contador && aValidar.length > 0 ? <Button type="button" disabled={ocupado} onClick={() => conferir("validar", aValidar)}><CheckCircle2 size={16} /> Validar as {aValidar.length} aprovadas</Button> : undefined}>
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[["Lançamentos pagos/recebidos", String(n)], ["Aprovados internamente", `${linhas.filter(aprovado).length} de ${n}`],
+          ["Validados pelo contador", `${linhas.filter(validado).length} de ${n}`], ["Dúvidas abertas", String(linhas.filter((c) => c.contador_status === "duvida").length)]].map(([l, v]) => (
+          <div key={l} className="rounded-xl border border-slate-200 p-2.5"><div className="text-xs text-slate-500">{l}</div><div className="num font-bold text-fg">{v}</div></div>
+        ))}
+      </div>
+      <div role="tablist" aria-label="Filtrar lançamentos" className="mb-3 flex flex-wrap gap-1.5">
+        {([["todos", "Todos"], ["validar", `A validar (${aValidar.length})`], ["nao_aprovados", "Ainda não aprovados"], ["duvidas", "Dúvidas e ajustados"]] as const).map(([v, t]) => (
+          <button key={v} type="button" role="tab" aria-selected={filtro === v} onClick={() => setFiltro(v)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>{t}</button>
+        ))}
+      </div>
+      {lista.length ? (
+        <ul className="divide-y divide-slate-100">
+          {lista.map((c) => (
+            <li key={`${c.tipo}-${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${c.tipo === "pagar" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{c.tipo === "pagar" ? "Pagamento" : "Recebimento"}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-fg">{c.terceiro || c.descricao}</span>
+                <span className="block truncate text-xs text-slate-500">{c.terceiro ? `${c.descricao} · ` : ""}{c.categoria ?? "sem categoria"} · em {dataBR(c.data_pagamento)}</span>
+                {c.contador_comentario && (c.contador_status === "duvida" || c.contador_status === "ajustado") && <span className="mt-0.5 block text-xs text-violet-700">Dúvida: “{c.contador_comentario}”</span>}
+              </span>
+              <span className="num text-sm font-bold text-fg">{brl(Number(c.valor_pago ?? c.valor))}</span>
+              <span className="flex flex-wrap items-center gap-1.5">
+                <ChipRevisao conta={c} link={!contador} />
+                {contador && c.revisao === "aprovado" && c.contador_status !== "validado" && (
+                  <Button type="button" variant="secondary" disabled={ocupado} onClick={() => conferir("validar", [c])} className="!min-h-[34px] !px-2.5 !py-1 text-sm"><CheckCircle2 size={14} /> Validar</Button>
+                )}
+                {contador && c.revisao !== "historico" && c.contador_status !== "duvida" && (
+                  <Button type="button" variant="ghost" disabled={ocupado} onClick={() => conferir("duvida", [c])} className="!min-h-[34px] !px-2.5 !py-1 text-sm"><CircleHelp size={14} /> Dúvida</Button>
+                )}
+                {contador && c.contador_status === "validado" && (
+                  <Button type="button" variant="ghost" disabled={ocupado} onClick={() => conferir("desfazer", [c])} className="!min-h-[34px] !px-2.5 !py-1 text-sm">Desfazer</Button>
+                )}
+                {!contador && fechado && tem("financeiro") && (
+                  <Button type="button" variant="ghost" onClick={() => setCorrigir(c)} className="!min-h-[34px] !px-2.5 !py-1 text-sm"><FilePlus2 size={14} /> Lançamento corretivo</Button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-sm text-slate-500">{n ? "Nada neste filtro." : "Nenhum pagamento ou recebimento neste mês."}</p>}
+      <p className="mt-3 text-xs text-slate-500">
+        Aprovado internamente e validado pelo contador são contados separados: baixar ou enviar o pacote não valida. O mês só fecha com tudo
+        validado, ou com a justificativa na observação do fechamento.{fechado ? " Mês fechado: correção só por lançamento corretivo, ligado ao original." : ""}
+      </p>
+      {corrigir && <LancamentoCorretivo original={corrigir} onClose={() => setCorrigir(null)} />}
+    </Section>
+  );
+}
+
+/** Lançamento corretivo: nova conta ligada à original (que fica como está), com motivo; entra na revisão e pede a 2ª. */
+function LancamentoCorretivo({ original, onClose }: { original: LancMes; onClose: () => void }) {
+  const invalidar = useInvalidate();
+  const [desc, setDesc] = useState(`Correção: ${original.descricao}`);
+  const [valor, setValor] = useState("");
+  const [venc, setVenc] = useState(new Date().toISOString().slice(0, 10));
+  const [motivo, setMotivo] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setSalvando(true);
+    const base = {
+      descricao: desc.trim(), valor: Number(valor), vencimento: venc, categoria: original.categoria, unidade_id: original.unidade_id, corrige_id: original.id,
+      observacoes: `Lançamento corretivo de "${original.descricao}" (${original.tipo === "pagar" ? "pago" : "recebido"} em ${dataBR(original.data_pagamento)}): ${motivo.trim()}`,
+    };
+    const { error } = await supabase.from(TABELA[original.tipo]).insert(original.tipo === "pagar"
+      ? { ...base, fornecedor_id: original.fornecedor_id ?? null } : { ...base, cliente_id: original.cliente_id ?? null });
+    setSalvando(false);
+    if (error) return notifyError(error);
+    notify("Lançamento corretivo criado: entra na revisão (1ª e 2ª)");
+    invalidar("contas_pagar", "contas_receber"); onClose();
+  }
+  return (
+    <Modal open onClose={onClose} title="Lançamento corretivo">
+      <form onSubmit={salvar} className="space-y-3">
+        <p className="text-sm text-slate-600">O lançamento original ({brl(Number(original.valor_pago ?? original.valor))}, {dataBR(original.data_pagamento)}) fica como está, no mês fechado. A correção entra no mês aberto, ligada a ele, e passa pela 1ª e 2ª revisão.</p>
+        <Field label="Descrição"><input className="input" value={desc} onChange={(e) => setDesc(e.target.value)} required /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Valor da correção (R$)"><input className="input" type="number" min={0.01} step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} required /></Field>
+          <Field label="Vencimento"><input className="input" type="date" value={venc} onChange={(e) => setVenc(e.target.value)} required /></Field>
+        </div>
+        <Field label="Motivo (obrigatório: o que está sendo corrigido e por quê)">
+          <textarea className="input" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} minLength={10} required placeholder="Ex.: juros cobrados a mais no boleto; o banco devolveu a diferença" />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button disabled={salvando || motivo.trim().length < 10 || !(Number(valor) > 0)}>{salvando ? "Salvando…" : "Criar lançamento corretivo"}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

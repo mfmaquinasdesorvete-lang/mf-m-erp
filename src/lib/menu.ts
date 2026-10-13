@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BarChart3, Boxes, Calculator, CreditCard, Factory, FileText, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, CreditCard, Factory, FileText, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingCart, Store, Truck,
   UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -56,6 +56,7 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/financeiro", tela: "financeiro", label: "Painel do financeiro", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos saldo caixa inadimplência despesas categoria" },
       { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo contas fixas" },
+      { to: "/aprovacoes", tela: "financeiro", label: "Aprovações", curto: "Aprovar", icon: BadgeCheck, busca: "aprovação revisão alçada segunda revisão devolver rejeitar pendência documento contador validar lançamento" },
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
       { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
