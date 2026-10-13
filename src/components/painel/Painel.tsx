@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, X, type LucideIcon } from "lucide-react";
 import { hoje, somarDias } from "@/lib/format";
-import { usePerfil } from "@/lib/auth";
+import { todosItens, useVisivel } from "@/lib/menu";
 import type { Tela } from "@/lib/permissoes";
 
 export type Periodo = "hoje" | "7d" | "30d" | "mes" | "ano";
@@ -253,8 +253,9 @@ export type Atalho = { rotulo: string; icone: LucideIcon; to: string; state?: un
 /** Atalhos para as telas da área (estilo app), com contador do que está pendente. */
 export function AtalhosArea({ itens: todos, colunas = "grid-cols-3 sm:grid-cols-6" }: { itens: Atalho[]; colunas?: string }) {
   const navigate = useNavigate();
-  const { podeVer } = usePerfil();
-  const itens = todos.filter((a) => !a.tela || podeVer(a.tela));
+  const vis = useVisivel();
+  // some o atalho da tela que a pessoa não vê (papel ou escondida em Usuários → Perfis)
+  const itens = todos.filter((a) => { const m = todosItens.find((i) => i.to === a.to); return m ? vis.item(m) : !a.tela || vis.ve(a.tela); });
   if (!itens.length) return null;
   return (
     <div className={`grid gap-2 rounded-2xl border border-slate-200/80 bg-surface p-3 shadow-card sm:gap-3 ${colunas}`}>

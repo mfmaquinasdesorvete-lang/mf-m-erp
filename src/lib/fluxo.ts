@@ -9,7 +9,7 @@ export type Exp = {
   transportadora_id: string | null; codigo_rastreio: string | null; responsavel: string | null; observacoes: string | null;
   separando_em: string | null; conferido_em: string | null; embalado_em: string | null; despachado_em: string | null; entregue_em: string | null; created_at: string;
 };
-export type NotaFluxo = { id: string; status: string; numero: string | null; serie?: string | null; chave?: string | null; mensagem: string | null; ambiente?: string; created_at?: string };
+export type NotaFluxo = { id: string; status: string; numero: string | null; serie?: string | null; chave?: string | null; mensagem: string | null; ambiente?: string; created_at?: string; danfe_url?: string | null };
 export type PedidoFluxo = Omit<Pedido, "itens" | "notas" | "cliente"> & { itens: (Item & { id: string })[]; cliente: Cliente; notas: NotaFluxo[] };
 /** Envio do painel de fretes ligado ao pedido (só o que o fluxo usa). */
 export type EnvioFluxo = { id: string; pedido_id: string | null; status: string; entrega_prevista: string | null; codigo_rastreio: string | null };
