@@ -1,7 +1,7 @@
-// Produtos → Auditoria e marketplace: cadastros repetidos (unificar), nomes no padrão (SEO) e o que falta para
-// anunciar em marketplace (nota de 0 a 100, pendências e preenchimento automático do anúncio).
+// Produtos → Auditoria e marketplace: cadastros repetidos (unificar), nomes no padrão (SEO), códigos EAN (inventados,
+// repetidos, sem código) e o que falta para anunciar em marketplace (nota de 0 a 100, pendências e preenchimento automático).
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Copy, Sparkles, Store, Type, Wand2 } from "lucide-react";
+import { AlertTriangle, Barcode, CheckCircle2, Copy, Sparkles, Store, Type, Wand2 } from "lucide-react";
 import { Button, Card, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -12,9 +12,11 @@ import { useConfig } from "@/lib/useConfig";
 import {
   avaliarAnuncio, correcaoAutomatica, gruposRepetidos, nomePadrao, type GrupoRepetido, type ProdutoAnuncio,
 } from "@/lib/marketplace";
+import { contextoEan, situacaoEan, type ProdutoEan } from "@/lib/gtin";
 import type { Produto } from "@/lib/types";
+import { CodigosEan } from "./CodigosEan";
 
-type Aba = "repetidos" | "nomes" | "marketplace";
+type Aba = "repetidos" | "nomes" | "ean" | "marketplace";
 const vendavel = (p: ProdutoAnuncio & { vendavel?: boolean | null }) => p.ativo !== false && !p.unificado_em && p.tipo !== "insumo" && p.vendavel !== false;
 const corNota = (n: number) => (n >= 90 ? "bg-emerald-100 text-emerald-800" : n >= 70 ? "bg-sky-100 text-sky-800" : n >= 40 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800");
 
@@ -47,16 +49,22 @@ export function AuditoriaProdutos({ produtos, podeEditar, onAbrir }: { produtos:
   const vendaveis = useMemo(() => lista.filter(vendavel).map((p) => ({ p, a: avaliarAnuncio(p) })), [lista]);
   const prontos = vendaveis.filter((x) => x.a.nota >= 90).length;
   const media = vendaveis.length ? Math.round(vendaveis.reduce((s, x) => s + x.a.nota, 0) / vendaveis.length) : 0;
+  const { data: cfg } = useConfig();
+  const eanCorrigir = useMemo(() => {
+    const ctx = contextoEan(lista as ProdutoEan[], (cfg as { gs1_prefixo?: string | null } | undefined)?.gs1_prefixo);
+    return lista.filter((p) => p.ativo !== false && !p.unificado_em && situacaoEan(p as ProdutoEan, ctx) === "corrigir").length;
+  }, [lista, cfg]);
 
   const blocos: { id: Aba; Icone: typeof Copy; titulo: string; valor: string; detalhe: string; tom: string }[] = [
     { id: "repetidos", Icone: Copy, titulo: "Cadastros repetidos", valor: String(grupos.reduce((s, g) => s + g.produtos.length - 1, 0)), detalhe: `${grupos.length} grupo(s) para unificar`, tom: grupos.length ? "border-amber-300" : "border-emerald-300" },
     { id: "nomes", Icone: Type, titulo: "Nomes fora do padrão", valor: String(foraDoPadrao.length), detalhe: "unidade no fim, maiúsculas, acentos", tom: foraDoPadrao.length ? "border-amber-300" : "border-emerald-300" },
+    { id: "ean", Icone: Barcode, titulo: "Códigos EAN", valor: String(eanCorrigir), detalhe: "inventados, repetidos ou inválidos", tom: eanCorrigir ? "border-red-300" : "border-emerald-300" },
     { id: "marketplace", Icone: Store, titulo: "Prontos para marketplace", valor: `${prontos}/${vendaveis.length}`, detalhe: `nota média ${media}`, tom: prontos === vendaveis.length ? "border-emerald-300" : "border-sky-300" },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {blocos.map((b) => (
           <button key={b.id} type="button" onClick={() => setAba(b.id)} aria-pressed={aba === b.id}
             className={`flex items-center gap-3 rounded-xl border-2 bg-surface p-3 text-left transition ${aba === b.id ? "border-brand shadow-pop" : b.tom}`}>
@@ -71,6 +79,7 @@ export function AuditoriaProdutos({ produtos, podeEditar, onAbrir }: { produtos:
       </div>
       {aba === "repetidos" && <Repetidos grupos={grupos} uso={uso} podeEditar={podeEditar} onAbrir={onAbrir} />}
       {aba === "nomes" && <Nomes produtos={foraDoPadrao} podeEditar={podeEditar} />}
+      {aba === "ean" && <CodigosEan produtos={produtos} podeEditar={podeEditar} onAbrir={onAbrir} />}
       {aba === "marketplace" && <Marketplace itens={vendaveis} todos={lista} podeEditar={podeEditar} onAbrir={onAbrir} />}
     </div>
   );

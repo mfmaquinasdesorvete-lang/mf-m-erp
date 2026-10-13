@@ -961,6 +961,11 @@ function planoDemo(db: Db) {
     { id: "c8", codigo: 8, tipo_pessoa: "PF", nome: "Marileia Prestes", cpf_cnpj: "98765432100", contribuinte_icms: 9, telefone: "5599864949", municipio: "Campina das Missões", uf: "RS", avisos_email: true, portal_token: "demo-portal-8", tags: [] } as any,
   );
   db.configuracoes[0].site_url ??= null;
+  // códigos EAN de exemplo: duas máquinas com o mesmo código inventado (777 é da GS1 Bolívia) e o kit com código de fora
+  for (const id of ["p1", "p2", "p3"]) Object.assign(db.produtos.find((p) => p.id === id) ?? {}, { marca: "MF" });
+  Object.assign(db.produtos.find((p) => p.id === "p2") ?? {}, { codigo_barras: "7778877353538" });
+  Object.assign(db.produtos.find((p) => p.id === "p3") ?? {}, { codigo_barras: "7778877353538" });
+  Object.assign(db.produtos.find((p) => p.id === "p5") ?? {}, { codigo_barras: "7779182251083", marca: "MF" });
   // uma conta que vence hoje, para a fila do WhatsApp
   db.contas_receber.push({ id: "r9", descricao: "Pedido #104 - parcela 1/1", cliente_id: "c2", parcela: 1, total_parcelas: 1, valor: 1890, vencimento: dias(0), status: "aberto",
     forma_pagamento: "pix", unidade_id: U_SC, categoria: "vendas", rateio: [], created_at: quando(-20) });
@@ -2100,6 +2105,11 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       .map((e) => ({ id: e.id, data: e.data, valor: -Number(e.valor), descricao: e.descricao, banco: db.contas_bancarias.find((b) => b.id === e.conta_bancaria_id)?.nome ?? null, conta_pagar_id: e.conta_pagar_id ?? null })) : [];
     return { data: { contas, extrato }, error: null };
   },
+  // EANs que os fornecedores mandam nas notas, ligados ao produto pelo código do fornecedor (no sistema real: eans_das_notas)
+  eans_das_notas: () => ({ data: [
+    { produto_id: "p5", ean: "7898730745918", fornecedor: "Vedações Sul Ltda", codigo_fornecedor: "VED-CIL-01", descricao_nota: "KIT VEDACAO CILINDRO SOFT", ultima_nota: quando(-12), notas: 4 },
+    { produto_id: "p8", ean: "7896504123450", fornecedor: "Refrigeração Distribuidora", codigo_fornecedor: "CMP-1HP-404", descricao_nota: "COMPRESSOR HERMETICO 1HP R404A", ultima_nota: quando(-30), notas: 2 },
+  ], error: null }),
   contador_conferir: ({ p_tabela, p_ids, p_acao, p_comentario }) => {
     const eu = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id);
     if (eu?.papel !== "contador") return erro("só o contador valida os lançamentos");

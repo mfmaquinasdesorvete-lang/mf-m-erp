@@ -1,5 +1,6 @@
 // Auditoria dos produtos: cadastros repetidos, nome no padrão (SEO) e o que falta para anunciar em marketplace
 // (Mercado Livre, Shopee, Amazon, loja virtual). Funções puras: a tela e os testes usam as mesmas regras.
+import { analisarGtin, gtinValido } from "./gtin";
 
 export type ProdutoAnuncio = {
   id: string; descricao: string; sku?: string | null; tipo?: string | null; unidade?: string | null; ativo?: boolean | null;
@@ -211,16 +212,9 @@ export function descricaoAnuncio(p: ProdutoAnuncio, garantiaPadrao = 3): string 
 }
 
 // ---------------------------------------------------------------------
-// GTIN (EAN)
+// GTIN (EAN): validação em ./gtin
 // ---------------------------------------------------------------------
-export function gtinValido(codigo?: string | null): boolean {
-  const d = String(codigo ?? "").replace(/\D/g, "");
-  if (![8, 12, 13, 14].includes(d.length) || /^0+$/.test(d)) return false;
-  const digitos = d.split("").map(Number);
-  const verificador = digitos.pop()!;
-  const soma = digitos.reverse().reduce((s, x, i) => s + x * (i % 2 === 0 ? 3 : 1), 0);
-  return (10 - (soma % 10)) % 10 === verificador;
-}
+export { gtinValido };
 
 // ---------------------------------------------------------------------
 // Prontidão para marketplace
@@ -245,6 +239,8 @@ export function avaliarAnuncio(p: ProdutoAnuncio): { nota: number; pendencias: P
   if (!p.sku) pend.push({ id: "sku", texto: "sem SKU (código do vendedor)", peso: 5, automatica: false });
   if (!p.gtin_isento && !gtinValido(p.codigo_barras)) {
     pend.push({ id: "gtin", texto: p.codigo_barras ? "EAN inválido (dígito verificador não confere)" : "sem EAN: informe ou marque \"sem GTIN\" (produto próprio)", peso: 10, automatica: false });
+  } else if (!p.gtin_isento && analisarGtin(p.codigo_barras).interno) {
+    pend.push({ id: "gtin", texto: "EAN de uso interno (faixa 2xx/04x): marketplace não aceita, use o da GS1 ou marque \"sem GTIN\"", peso: 10, automatica: false });
   }
   if (!p.marca) pend.push({ id: "marca", texto: "sem marca", peso: 5, automatica: false });
   if (!p.modelo) pend.push({ id: "modelo", texto: "sem modelo / compatibilidade", peso: 5, automatica: false });
