@@ -4,13 +4,14 @@ import { type Empresa, htmlEmail, mensagemCliente, textoEmail, textoTelegram } f
 import { chatPerdido, enviarTelegram } from "./telegram.ts";
 import { enviarEmail } from "./email.ts";
 import { prepararCobranca } from "./cobranca.ts";
+import { enderecoSite } from "./site.ts";
 
 export async function empresaDoErp(db: SupabaseClient): Promise<Empresa & { responder: string | null }> {
   const { data: c } = await db.from("configuracoes").select("*").eq("id", 1).single();
   return {
     nome: c?.nome_fantasia || c?.razao_social || "MF Máquinas",
     telefone: c?.telefone, whatsapp: c?.whatsapp, email: c?.email, endereco: c?.endereco,
-    municipio: c?.municipio, uf: c?.uf, site: Deno.env.get("ERP_SITE_URL") ?? null,
+    municipio: c?.municipio, uf: c?.uf, site: enderecoSite(c?.site_url) || null,
     responder: c?.email_responder_para || c?.email || null,
   };
 }

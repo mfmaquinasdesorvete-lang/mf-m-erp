@@ -3,13 +3,15 @@
 // Só sai o que está marcado "Mostrar no catálogo" (com foto e preço). Deploy com --no-verify-jwt.
 import { adminClient } from "../_shared/supabase.ts";
 import { feedCsv, type ProdutoLoja } from "../_shared/catalogo.ts";
+import { enderecoSite } from "../_shared/site.ts";
 
 Deno.serve(async () => {
   const db = adminClient();
   const { data, error } = await db.rpc("loja_dados");
   if (error) return new Response(`erro: ${error.message}`, { status: 500 });
   const base = Deno.env.get("SUPABASE_URL");
-  const site = (Deno.env.get("ERP_SITE_URL") ?? "").replace(/\/$/, "");
+  const { data: cfg } = await db.from("configuracoes").select("site_url").eq("id", 1).maybeSingle();
+  const site = enderecoSite(cfg?.site_url);
   const empresa = data?.empresa ?? {};
   const csv = feedCsv((data?.produtos ?? []) as ProdutoLoja[], {
     marca: empresa.nome || "MF Máquinas",

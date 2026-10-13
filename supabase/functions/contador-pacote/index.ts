@@ -11,6 +11,7 @@ import { focusBaseUrl, focusToken, focusUrl } from "../_shared/focusnfe.ts";
 import { baixarXml } from "../_shared/nfe-recebidas.ts";
 import { lerNfe } from "../_shared/nfe-xml.ts";
 import { enviarEmail } from "../_shared/email.ts";
+import { enderecoSite } from "../_shared/site.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 
 type Db = ReturnType<typeof adminClient>;
@@ -164,10 +165,10 @@ async function registrar(db: Db, unidadeId: string, competencia: string, r: { ca
 }
 
 async function enviarAoContador(db: Db, competencia: string, r: Awaited<ReturnType<typeof gerar>>) {
-  const { data: cfg } = await db.from("configuracoes").select("contador_email, contador_nome, nome_fantasia, razao_social, email").eq("id", 1).single();
+  const { data: cfg } = await db.from("configuracoes").select("contador_email, contador_nome, nome_fantasia, razao_social, email, site_url").eq("id", 1).single();
   if (!cfg?.contador_email) throw new HttpError(400, "cadastre o e-mail do contador em Configurações");
   const [ano, mes] = competencia.split("-");
-  const site = (Deno.env.get("ERP_SITE_URL") ?? "").replace(/\/$/, "");
+  const site = enderecoSite(cfg.site_url);
   const empresa = cfg.nome_fantasia || cfg.razao_social;
   const texto = [
     `Olá${cfg.contador_nome ? ` ${cfg.contador_nome.split(" ")[0]}` : ""}!`, "",
