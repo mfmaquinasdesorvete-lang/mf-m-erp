@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
@@ -66,16 +66,18 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
   );
 }
 
-function Marca({ compacta }: { compacta?: boolean }) {
+/** Logo do topo: tocar volta ao início (a tela inicial do perfil). */
+function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
   return (
-    <div className={`flex shrink-0 items-center ${compacta ? "gap-2" : "gap-3"}`}>
+    <Link to="/" onClick={() => { onIr?.(); window.scrollTo({ top: 0 }); }} aria-label="ERP Line: voltar ao início" title="Voltar ao início"
+      className={`flex shrink-0 items-center rounded-xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-ice ${compacta ? "gap-2" : "gap-3"}`}>
       <img src={logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl ring-1 ring-white/10`} />
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
       <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
         <span className="block text-lg font-extrabold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
         <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-[11px] font-semibold uppercase tracking-[0.16em] text-nav-fraco`}>MF Máquinas</span>
       </span>
-    </div>
+    </Link>
   );
 }
 
@@ -152,7 +154,7 @@ export function Layout() {
     <NotificacoesProvider>
     <div className="min-h-screen md:flex">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-ink-line bg-ink px-4 py-2.5 md:hidden">
-        <Marca compacta />
+        <Marca compacta onIr={() => setAberto(false)} />
         <div className="ml-auto flex items-center gap-1"><SeletorUnidade compacto /><Sino /></div>
         <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} className="rounded-lg p-2 text-white hover:bg-white/10">
           {aberto ? <X /> : <Menu />}
