@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, X, type LucideIcon } from "lucide-react";
 import { hoje, somarDias } from "@/lib/format";
+import { usePerfil } from "@/lib/auth";
+import type { Tela } from "@/lib/permissoes";
 
 export type Periodo = "hoje" | "7d" | "30d" | "mes" | "ano";
 /** `anterior`: para "vs …" nos cartões · `comparado`: para frases ("32% a mais que no mês passado") */
@@ -46,8 +48,8 @@ export function intervalos(p: Periodo): { atual: Faixa; anterior: Faixa } {
 /** Data (ou data e hora) dentro da faixa. */
 export const dentro = (data: string | null | undefined, [a, b]: Faixa) => !!data && data.slice(0, 10) >= a && data.slice(0, 10) <= b;
 
-/** Variação em % (null = antes era zero e agora não é). */
-export const variacao = (agora: number, antes: number) => (antes > 0 ? ((agora - antes) / antes) * 100 : agora > 0 ? null : 0);
+/** Variação em % (null = antes era zero e agora não é · undefined = zero nos dois: nada a comparar). */
+export const variacao = (agora: number, antes: number): number | null | undefined => (antes > 0 ? ((agora - antes) / antes) * 100 : agora > 0 ? null : undefined);
 
 export type Balde = { rotulo: string; atual: Faixa; anterior: Faixa };
 /**
@@ -93,8 +95,8 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-modulo to-modulo-escuro p-4 text-white shadow-card sm:p-6">
       <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" aria-hidden />
       <span className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-black/10 blur-2xl" aria-hidden />
-      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur" aria-hidden><Icone size={24} /></span>
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">Painel · {area}</p>
@@ -102,7 +104,7 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
             {resumo && <p className="mt-1 max-w-2xl text-[15px] leading-snug text-white/90">{resumo}</p>}
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
           {acoes}
           {periodo && onPeriodo && (
             <div role="tablist" aria-label="Período" className="grid grid-cols-5 gap-0.5 rounded-xl bg-black/15 p-1 ring-1 ring-white/15 backdrop-blur sm:inline-grid">
@@ -246,10 +248,13 @@ export function ListaAtencao({ itens, vazio = "Tudo em dia por aqui." }: { itens
   );
 }
 
-export type Atalho = { rotulo: string; icone: LucideIcon; to: string; state?: unknown; aviso?: number };
+/** `tela`: o atalho só aparece para quem pode abrir a tela */
+export type Atalho = { rotulo: string; icone: LucideIcon; to: string; state?: unknown; aviso?: number; tela?: Tela };
 /** Atalhos para as telas da área (estilo app), com contador do que está pendente. */
-export function AtalhosArea({ itens, colunas = "grid-cols-3 sm:grid-cols-6" }: { itens: Atalho[]; colunas?: string }) {
+export function AtalhosArea({ itens: todos, colunas = "grid-cols-3 sm:grid-cols-6" }: { itens: Atalho[]; colunas?: string }) {
   const navigate = useNavigate();
+  const { podeVer } = usePerfil();
+  const itens = todos.filter((a) => !a.tela || podeVer(a.tela));
   if (!itens.length) return null;
   return (
     <div className={`grid gap-2 rounded-2xl border border-slate-200/80 bg-surface p-3 shadow-card sm:gap-3 ${colunas}`}>

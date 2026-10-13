@@ -68,8 +68,16 @@ export default function Assistencia() {
     if (pre) {
       setAberta(nova(pre));
       navigate(location.pathname, { replace: true, state: null });
+      return;
     }
-  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+    // vindo do painel de pós-venda: abre a OS clicada
+    const abrirId = (location.state as any)?.abrir;
+    const o = abrirId && ordensTodos.find((x) => x.id === abrirId);
+    if (o) {
+      setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] });
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, ordensTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lista = useMemo(() => ordens.filter((o) =>
     (mostrarFinalizadas || !["entregue", "cancelada"].includes(o.status)) &&

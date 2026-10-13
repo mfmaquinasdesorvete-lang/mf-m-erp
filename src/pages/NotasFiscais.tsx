@@ -126,9 +126,15 @@ export default function NotasFiscais() {
   const location = useLocation();
   const navigate = useNavigate();
   const [emitirAgora, setEmitirAgora] = useState(false);
+  // vindo do painel de notas: abre a aba e o filtro clicados (ex.: recebidas "a resolver")
+  const [filtroInicial, setFiltroInicial] = useState<string | undefined>(undefined);
   useEffect(() => {
-    if ((location.state as { emitir?: boolean } | null)?.emitir) {
+    const st = location.state as { emitir?: boolean; aba?: typeof aba; filtro?: string } | null;
+    if (st?.emitir) {
       setAba("emitidas"); setEmitirAgora(true);
+      navigate(location.pathname, { replace: true, state: null });
+    } else if (st?.aba) {
+      setAba(st.aba); setFiltroInicial(st.filtro);
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -143,19 +149,19 @@ export default function NotasFiscais() {
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas leitura={contador} /> : <Emitidas leitura={contador} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
+      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={filtroInicial} leitura={contador} filtroInicial={filtroInicial} /> : <Emitidas key={filtroInicial} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
     </div>
   );
 }
 
-function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void }) {
+function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtroInicial }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
   const { pode } = usePerfil();
   const podeFin = !leitura && pode("nfe_recebidas");
-  const [aba, setAba] = useState("todas");
+  const [aba, setAba] = useState(() => (filtroInicial && ABAS_EMITIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
   const [marcador, setMarcador] = useState("");
   const [etapa, setEtapa] = useState("");
   const { data: excluidas = [] } = useExcluidas("notas_fiscais", podeFin);
@@ -260,12 +266,12 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto }: { le
   );
 }
 
-function Recebidas({ leitura = false }: { leitura?: boolean }) {
+function Recebidas({ leitura = false, filtroInicial }: { leitura?: boolean; filtroInicial?: string }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<Recebida & { excluida_em?: string | null }>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
-  const [aba, setAba] = useState("todas");
+  const [aba, setAba] = useState(() => (filtroInicial && ABAS_RECEBIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
   const [marcador, setMarcador] = useState("");
   const [etapa, setEtapa] = useState("");
   const { data: excluidas = [] } = useExcluidas("nfe_recebidas", !leitura);

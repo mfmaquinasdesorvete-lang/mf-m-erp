@@ -13,12 +13,13 @@ const compacto = (v: number) =>
     : Math.abs(v) >= 1e3 ? `${(v / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`
       : v.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 
-/** Arredonda o topo do eixo para um número "limpo" e gera 4 divisões. */
-function escala(max: number) {
+/** Arredonda o topo do eixo para um número "limpo" e gera 4 divisões. `inteiro`: contagens (1, 2, 3…), sem meio. */
+function escala(max: number, inteiro = false) {
   if (max <= 0) return { topo: 1, ticks: [0] };
+  if (inteiro && max <= 4) { const topo = Math.max(1, Math.ceil(max)); return { topo, ticks: Array.from({ length: topo + 1 }, (_, i) => i) }; }
   const bruto = max / 4;
   const mag = 10 ** Math.floor(Math.log10(bruto));
-  const passo = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((p) => p >= bruto)!;
+  const passo = Math.max(inteiro ? 1 : 0, [1, 2, 2.5, 5, 10].map((m) => m * mag).find((p) => p >= bruto)!);
   const topo = passo * 4;
   return { topo, ticks: [0, 1, 2, 3, 4].map((i) => i * passo) };
 }
@@ -45,23 +46,30 @@ export function Legenda({ series }: { series: Serie[] }) {
   );
 }
 
-/** Colunas (1 ou 2 séries lado a lado) com eixo em R$. */
-export function Colunas({ dados, series, altura = 220, formatar = brl }: {
-  dados: Ponto[]; series: Serie[]; altura?: number; formatar?: (v: number) => string;
+/**
+ * Colunas (1 ou 2 séries lado a lado) com eixo em R$. Desenhada na largura real do cartão (texto legível em cartão estreito).
+ * `inteiro`: contagens · `vazio`: mensagem quando tudo é zero.
+ */
+export function Colunas({ dados, series, altura = 220, formatar = brl, inteiro = false, vazio }: {
+  dados: Ponto[]; series: Serie[]; altura?: number; formatar?: (v: number) => string; inteiro?: boolean; vazio?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const [tabela, setTabela] = useState(false);
-  const largura = 640;
-  const m = { t: 10, r: 8, b: 28, l: 58 };
+  const [ref, largura] = useLargura();
+  const m = { t: 10, r: 8, b: 28, l: 52 };
   const ih = altura - m.t - m.b;
   const iw = largura - m.l - m.r;
-  const { topo, ticks } = useMemo(() => escala(Math.max(0, ...dados.flatMap((d) => d.valores))), [dados]);
+  const max = Math.max(0, ...dados.flatMap((d) => d.valores));
+  const { topo, ticks } = useMemo(() => escala(max, inteiro), [max, inteiro]);
   const banda = iw / Math.max(dados.length, 1);
-  const barra = Math.min(24, (banda * 0.7) / series.length);
-  const gap = 2;
+  const barra = Math.max(2, Math.min(24, (banda * 0.7) / series.length));
+  const gap = series.length > 1 ? 2 : 0;
   const grupo = barra * series.length + gap * (series.length - 1);
   const y = (v: number) => m.t + ih - (v / topo) * ih;
+  // tela estreita: 1 rótulo a cada `cada` colunas (sempre o mais recente)
+  const cada = Math.max(1, Math.ceil((dados.length * 44) / Math.max(iw, 1)));
 
+  if (vazio && max <= 0) return <p className="grid place-items-center text-center text-sm text-slate-500" style={{ minHeight: altura / 1.6 }}>{vazio}</p>;
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -73,8 +81,8 @@ export function Colunas({ dados, series, altura = 220, formatar = brl }: {
       {tabela ? (
         <TabelaDados dados={dados} series={series} formatar={formatar} />
       ) : (
-        <div className="relative">
-          <svg viewBox={`0 0 ${largura} ${altura}`} className="h-auto w-full" role="img"
+        <div className="relative" ref={ref}>
+          <svg viewBox={`0 0 ${largura} ${altura}`} width={largura} height={altura} className="block w-full touch-pan-y" role="img"
             aria-label={`Gráfico: ${series.map((s) => s.nome).join(" e ")}`} onMouseLeave={() => setHover(null)}>
             {ticks.map((t) => (
               <g key={t}>
@@ -85,12 +93,14 @@ export function Colunas({ dados, series, altura = 220, formatar = brl }: {
             {dados.map((d, i) => {
               const x0 = m.l + i * banda + (banda - grupo) / 2;
               return (
-                <g key={d.rotulo} onMouseEnter={() => setHover(i)}>
+                <g key={d.rotulo} onMouseEnter={() => setHover(i)} onPointerDown={() => setHover(i)}>
                   <rect x={m.l + i * banda} y={m.t} width={banda} height={ih} fill={hover === i ? "var(--hover)" : "transparent"} />
                   {d.valores.map((v, s) => (
                     <path key={s} d={coluna(x0 + s * (barra + gap), y(v), barra, y(0) - y(v))} fill={series[s].cor} />
                   ))}
-                  <text x={m.l + i * banda + banda / 2} y={altura - 8} textAnchor="middle" fontSize={12} fill="var(--eixo-texto)">{d.rotulo}</text>
+                  {(dados.length - 1 - i) % cada === 0 && (
+                    <text x={m.l + i * banda + banda / 2} y={altura - 8} textAnchor="middle" fontSize={12} fill="var(--eixo-texto)">{d.rotulo}</text>
+                  )}
                 </g>
               );
             })}
@@ -149,7 +159,7 @@ export function Ranking({ itens, cor = "var(--serie-1)", formatar = brl, onClica
         return (
           <li key={i.rotulo} title={`${i.rotulo}: ${formatar(i.valor)}`} className={`transition-opacity ${apagado ? "opacity-45" : ""}`}>
             {onClicar
-              ? <button type="button" onClick={() => onClicar(k)} aria-pressed={ativo === i.rotulo}
+              ? <button type="button" onClick={() => onClicar(k)} aria-pressed={ativo === undefined ? undefined : ativo === i.rotulo}
                   className={`block w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 ${ativo === i.rotulo ? "bg-slate-50 ring-1 ring-slate-200" : ""}`}>{corpo}</button>
               : corpo}
           </li>
@@ -343,7 +353,7 @@ export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl, on
           const classe = `flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition ${hover === i || ativo === f.rotulo ? "bg-slate-50" : ""} ${ativo && ativo !== f.rotulo ? "opacity-50" : ""}`;
           return (
             <li key={f.rotulo} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-              {onClicar ? <button type="button" onClick={() => onClicar(i)} aria-pressed={ativo === f.rotulo} className={classe}>{linha}</button> : <div className={classe}>{linha}</div>}
+              {onClicar ? <button type="button" onClick={() => onClicar(i)} aria-pressed={ativo === undefined ? undefined : ativo === f.rotulo} className={classe}>{linha}</button> : <div className={classe}>{linha}</div>}
             </li>
           );
         })}

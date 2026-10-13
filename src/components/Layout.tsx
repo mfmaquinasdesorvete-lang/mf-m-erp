@@ -54,6 +54,7 @@ const grupos: Grupo[] = [
     id: "notas", titulo: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]", icone: FileText,
     acao: { label: "NF-e", dica: "Emitir nota fiscal", to: "/notas", state: { emitir: true }, tela: "notas" },
     itens: [
+      { to: "/painel/notas", tela: "notas", label: "Painel de notas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos impostos cfop faturamento rejeitada" },
       { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus emitir emitida recebida fornecedor" },
       { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
       { to: "/analista-fiscal", tela: "contador", label: "Analista fiscal", curto: "Fiscal", icon: Scale, busca: "imposto economia auditoria fiscal lucro real presumido crédito pis cofins icms ipi irpj csll planejamento tributário reforma" },
@@ -63,6 +64,7 @@ const grupos: Grupo[] = [
     id: "financeiro", titulo: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]", icone: Wallet,
     acao: { label: "Conta", dica: "Lançar conta a pagar", to: "/financeiro", state: { aba: "pagar", nova: true }, tela: "financeiro" },
     itens: [
+      { to: "/painel/financeiro", tela: "financeiro", label: "Painel do financeiro", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos saldo caixa inadimplência despesas categoria" },
       { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo contas fixas" },
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo" },
       { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
@@ -72,6 +74,7 @@ const grupos: Grupo[] = [
   {
     id: "cadastros", titulo: "Cadastros", cor: "from-[#a855f7] to-[#6d28d9]", icone: Users,
     itens: [
+      { to: "/painel/cadastros", tela: "clientes", label: "Painel dos cadastros", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos clientes novos sumidos qualidade cadastro" },
       { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado" },
       { to: "/produtos/pecas", tela: "estoque", label: "Peças de reposição", curto: "Peças", icon: Wrench, busca: "peça reposição catálogo cliente compra" },
@@ -87,6 +90,7 @@ const grupos: Grupo[] = [
     id: "posvenda", titulo: "Pós-venda", cor: "from-[#14b8a6] to-[#0e7490]", icone: Wrench,
     acao: { label: "OS", dica: "Abrir ordem de serviço", to: "/assistencia", state: { novaOS: {} }, tela: "assistencia" },
     itens: [
+      { to: "/painel/posvenda", tela: "assistencia", label: "Painel do pós-venda", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos técnico conserto tempo garantia preventiva" },
       { to: "/assistencia", tela: "assistencia", label: "Assistência técnica", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico" },
       { to: "/garantias", tela: "garantias", label: "Garantias e manutenção", curto: "Garantias", icon: ShieldCheck, busca: "preventiva equipamento" },
     ],
@@ -94,6 +98,7 @@ const grupos: Grupo[] = [
   {
     id: "producao", titulo: "Produção e estoque", cor: "from-[#f97316] to-[#dc2626]", icone: Factory,
     itens: [
+      { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica ficha técnica" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
@@ -121,11 +126,11 @@ const grupoDaRota = (path: string) => grupos.find((g) => g.id !== "inicio" && g.
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 const RAPIDOS: { to: string; label: string; cor: string }[] = [
   { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
-  { to: "/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
-  { to: "/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
+  { to: "/painel/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
+  { to: "/painel/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
   { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
   { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
-  { to: "/assistencia", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
+  { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
 ];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -146,7 +151,9 @@ const todosItens = grupos.flatMap((g) => g.itens);
 
 /** Botões coloridos do acesso rápido (3 por linha). */
 function AcessoRapido({ podeVer, onIr }: { podeVer: (t: Tela) => boolean; onIr: () => void }) {
-  const itens = RAPIDOS.map((r) => ({ ...r, item: todosItens.find((i) => i.to === r.to)! })).filter((r) => r.item && podeVer(r.item.tela));
+  // painel da área: o botão mostra o ícone da área (o do item "Painel" é o mesmo em todas)
+  const itens = RAPIDOS.map((r) => ({ ...r, item: todosItens.find((i) => i.to === r.to)! })).filter((r) => r.item && podeVer(r.item.tela))
+    .map((r) => ({ ...r, item: { ...r.item, icon: r.to.startsWith("/painel/") ? grupos.find((g) => g.itens.includes(r.item))?.icone ?? r.item.icon : r.item.icon } }));
   if (!itens.length) return null;
   return (
     <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
@@ -309,7 +316,7 @@ export function Layout() {
                   <button type="button" aria-expanded={aberta}
                     onClick={() => {
                       // computador: o nome da área abre o painel dela (no celular só abre a lista, onde o painel é o primeiro item)
-                      const painel = itens.find((i) => i.to.startsWith("/painel/"));
+                      const painel = itens.find((i) => i.to.startsWith("/painel/")) ?? (g.id === "analises" ? itens.find((i) => i.to === "/gerencial") : undefined);
                       if (painel && !buscando && location.pathname !== painel.to && window.matchMedia("(min-width: 768px)").matches) {
                         setAreaAberta(g.id);
                         navigate(painel.to);
