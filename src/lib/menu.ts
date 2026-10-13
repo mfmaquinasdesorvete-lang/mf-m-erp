@@ -65,6 +65,8 @@ export const grupos: Grupo[] = [
     id: "cadastros", titulo: "Cadastros", cor: "from-[#a855f7] to-[#6d28d9]", icone: Users,
     itens: [
       { to: "/painel/cadastros", tela: "clientes", label: "Painel dos cadastros", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos clientes novos sumidos qualidade cadastro" },
+      { to: "/painel/maquinas", tela: "estoque", label: "Painel das máquinas", curto: "Pn. máq.", icon: LayoutDashboard, busca: "dashboard indicadores gráficos máquina modelo vendidas estoque montagem garantia preventiva número de série assistência" },
+      { to: "/painel/produtos", tela: "estoque", label: "Painel dos produtos", curto: "Pn. prod.", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produto peça mais vendidos curva abc parado giro margem reposição vai faltar" },
       { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj" },
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado" },
       { to: "/produtos/pecas", tela: "estoque", label: "Peças de reposição", curto: "Peças", icon: Wrench, busca: "peça reposição catálogo cliente compra" },
