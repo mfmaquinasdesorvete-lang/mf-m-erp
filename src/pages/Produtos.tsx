@@ -207,7 +207,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   async function catalogo(ids: string[], no: boolean) {
     const { error } = await supabase.from("produtos").update({ no_catalogo: no }).in("id", ids);
     if (error) throw error;
-    return `${ids.length} produto(s) ${no ? "no catálogo" : "fora do catálogo"}`;
+    // só aparece na loja e no WhatsApp com foto e preço de venda: avisa quem ainda não vai aparecer
+    const faltando = no ? produtosTodos.filter((p) => ids.includes(p.id) && pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })) : [];
+    const aviso = faltando.length ? `. ${faltando.length} ainda não aparece(m) na loja: ${faltando.slice(0, 3).map((p) => `${p.descricao} (${pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })})`).join("; ")}` : "";
+    return `${ids.length} produto(s) ${no ? "no catálogo" : "fora do catálogo"}${aviso}`;
   }
   const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo));
   const consumo = resumoMovimentos(movimentos, hoje());
@@ -542,6 +545,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "secao_catalogo", label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
           { name: "no_catalogo", label: "Mostrar no catálogo", type: "checkbox", span: 1 },
           { name: "foto_caminho", label: "Foto", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
+          {
+            name: "aviso_catalogo", label: "Na loja e no WhatsApp", type: "custom", span: 4,
+            render: (_v, _s, row) => {
+              if (!row.no_catalogo) return <span className="text-xs text-slate-500">Não aparece (marque "Mostrar no catálogo").</span>;
+              const falta = pendenciaCatalogo({ foto: row.foto_caminho, preco: Number(String(row.preco_venda ?? "").replace(",", ".")) });
+              return falta
+                ? <span className="block rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Ainda não aparece: {falta}. {falta.includes("preço") ? "Preencha o preço de venda (acima)." : "Envie uma foto."}</span>
+                : <span className="text-xs font-semibold text-emerald-700">Aparece na loja e no catálogo do WhatsApp ✓</span>;
+            },
+          },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
           { name: "secao_anuncio", label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
           {

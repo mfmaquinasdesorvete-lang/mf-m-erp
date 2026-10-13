@@ -1,6 +1,6 @@
 // Tipos de operação da NF-e direta (sem pedido): natureza da operação e CFOP de cada uma.
 // O CFOP vira 6xxx sozinho quando o destino é outro estado. Os impostos de cada CFOP seguem as
-// Regras de tributação (ex.: remessa para conserto 5915 → ICMS suspenso); sem regra, valem os da unidade.
+// Regras de tributação (ex.: remessa para conserto 5915 → ICMS suspenso); sem regra, ICMS e IPI como na venda e PIS/COFINS sem valor (CST 49); regras de "Venda" não entram.
 // Arquivo puro: usado pela função nfe-emitir e pela tela.
 
 export type OperacaoNota = {

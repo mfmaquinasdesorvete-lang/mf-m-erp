@@ -64,15 +64,20 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
   const fretes = ratear(Number(n.frete ?? 0), brutos);
   const ufs: AliquotasUf = Object.fromEntries((ufsLista ?? []).map((x: any) => [x.uf, x]));
   const usadas = new Set<RegraTributaria>();
-  const items = itensVenda(u, { uf: c.uf.toUpperCase(), contribuinte }, n.itens.map((i, idx) => {
+  // Remessa (conserto, garantia, bonificação, demonstração…) não é receita: sem regra própria, PIS/COFINS saem
+  // sem valor (CST 49, outras operações de saída) e as regras feitas só para "Venda" não entram.
+  const uOp = op.financeiro ? u : { ...u, pis_cst: "49", cofins_cst: "49" };
+  const items = itensVenda(uOp, { uf: c.uf.toUpperCase(), contribuinte }, n.itens.map((i, idx) => {
     const p = produto(i.produto_id);
     return itemBase(p, (i.descricao || p.descricao).trim(), Number(i.quantidade), Number(i.valor_unitario),
       { desconto: descontos[idx], frete: fretes[idx], ...(op.cfop ? { cfop: op.cfop } : {}) });
-  }), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg) });
+  }), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg), operacao: op.financeiro ? "venda" : "remessa" });
 
   const totalProdutos = r2(brutos.reduce((a, b) => a + b, 0));
   const ipi = r2((items as any[]).reduce((s, i) => s + Number(i.ipi_valor ?? 0), 0));
-  const valorTotal = r2(totalProdutos - Number(n.desconto ?? 0) + Number(n.frete ?? 0) + ipi);
+  // ICMS desonerado abatido do total (indDeduzDeson = 1): a SEFAZ tira do valor da nota
+  const abatido = r2((items as any[]).reduce((s, i) => s + (Number(i.icms_deducao_desoneracao) === 1 ? Number(i.icms_valor_desonerado ?? 0) : 0), 0));
+  const valorTotal = r2(totalProdutos - Number(n.desconto ?? 0) + Number(n.frete ?? 0) + ipi - abatido);
 
   const payload = {
     natureza_operacao: (n.natureza ?? "").trim() || op.natureza || u.natureza_operacao,

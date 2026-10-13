@@ -133,7 +133,7 @@ export function InutilizarModal({ onClose }: { onClose: () => void }) {
 
 type Regra = RegraTributaria & { id?: string };
 const OPCOES = {
-  operacao: [["", "Qualquer"], ["venda", "Venda"], ["transferencia", "Transferência SC ↔ SP"]],
+  operacao: [["", "Qualquer (também remessas)"], ["venda", "Venda"], ["transferencia", "Transferência SC ↔ SP"]],
   destino: [["", "Qualquer"], ["interna", "Dentro do estado"], ["interestadual", "Outro estado"]],
   tipo_cliente: [["", "Qualquer"], ["contribuinte", "Contribuinte de ICMS (com IE)"], ["nao_contribuinte", "Consumidor final / sem IE"]],
   tipo_produto: [["", "Qualquer"], ["maquina", "Máquina"], ["peca", "Peça"], ["acessorio", "Acessório"], ["insumo", "Insumo"]],
@@ -159,6 +159,10 @@ function resumoResultado(r: Regra) {
     (r.pis_cst || r.pis_aliquota != null) && `PIS ${[r.pis_cst, r.pis_aliquota != null && `${r.pis_aliquota}%`].filter(Boolean).join(" ")}`,
     (r.cofins_cst || r.cofins_aliquota != null) && `COFINS ${[r.cofins_cst, r.cofins_aliquota != null && `${r.cofins_aliquota}%`].filter(Boolean).join(" ")}`,
     (r.ibs_cbs_cst || r.ibs_cbs_class_trib) && `IBS/CBS ${[r.ibs_cbs_cst && `CST ${r.ibs_cbs_cst}`, r.ibs_cbs_class_trib].filter(Boolean).join(" ")}`,
+    r.icms_reducao_por_aliquota && Object.keys(r.icms_reducao_por_aliquota).length > 0 && `redução ${textoReducoes(r.icms_reducao_por_aliquota)}`,
+    r.codigo_beneficio && `cBenef ${r.codigo_beneficio}`,
+    r.icms_desonerar && `ICMS desonerado (motivo ${r.icms_motivo_desoneracao || "9"}${r.icms_abater_desonerado ? ", abatido do total" : ""})`,
+    r.ipi_destacar === false && "sem destacar IPI",
     r.observacao_nfe && "observação na nota",
   ].filter(Boolean);
   return p.length ? p.join(" · ") : "—";
@@ -211,8 +215,56 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
 
 const NUM = ["icms_aliquota", "icms_reducao_base", "ipi_aliquota", "pis_aliquota", "cofins_aliquota"] as const;
 
+/** Redução por alíquota em texto: { "17": 48.23, "12": 26.66 } ⇄ "17%=48,23 · 12%=26,66". */
+const textoReducoes = (m: Record<string, number | string> | null | undefined) =>
+  Object.entries(m ?? {}).sort((a, b) => Number(b[0]) - Number(a[0])).map(([a, r]) => `${a}%=${String(r).replace(".", ",")}`).join(" · ");
+function lerReducoes(t: string): Record<string, number> | null {
+  const m: Record<string, number> = {};
+  for (const parte of String(t ?? "").split(/[;·\n]+/)) {
+    const [a, r] = parte.split("=").map((x) => Number(String(x ?? "").replace("%", "").replace(",", ".").trim()));
+    if (a > 0 && r >= 0 && r < 100) m[String(a)] = r;
+  }
+  return Object.keys(m).length ? m : null;
+}
+
+/** motDesICMS mais usados (motivo da desoneração do ICMS). */
+const MOTIVOS_DESONERACAO: [string, string][] = [
+  ["9", "9 - Outros"], ["3", "3 - Produtor agropecuário"], ["7", "7 - SUFRAMA"], ["8", "8 - Venda a órgão público"],
+  ["12", "12 - Órgão de fomento agropecuário"], ["90", "90 - Solicitado pelo fisco"],
+];
+const CST_COM_BENEFICIO = ["20", "30", "40", "41", "50", "51", "70", "90"];
+
+/** Modelo pronto: máquinas industriais da matriz SC (RICMS/SC, Anexo 2, art. 9, I, Convênio ICMS 52/91), como o Tiny emitia. */
+const modeloMaquinasSc = (unidadeSc: string | null): Record<string, any> => ({
+  nome: "Máquinas industriais SC - redução art. 9, I, Anexo 2 RICMS-SC", prioridade: 10, ativo: true, unidade_id: unidadeSc,
+  operacao: "venda", tipo_produto: "maquina", ncm_prefixo: "84186910", icms_cst: "20",
+  reducoes: "17%=48,23 · 12%=26,66 · 7%=26,57", codigo_beneficio: "SC820028",
+  icms_desonerar: true, icms_motivo_desoneracao: "9", icms_abater_desonerado: false,
+  observacao_nfe: "Base de cálculo do ICMS reduzida conforme art. 9, I, do Anexo 2 do RICMS-SC/01 (Convênio ICMS 52/91).",
+});
+
+/** O que está incoerente ou faltando na regra (aparece na hora, antes de salvar). */
+function avisosRegra(r: Record<string, any>, ufDaRegra: (id: string | null) => string[]) {
+  const avisos: string[] = [];
+  const cst = String(r.icms_cst ?? "");
+  const temReducao = Number(String(r.icms_reducao_base ?? "").replace(",", ".")) > 0 || !!lerReducoes(r.reducoes);
+  if (cst === "20" && !temReducao) avisos.push("CST 20 é \"com redução de base\": informe a redução (fixa ou por alíquota), senão a nota sai como CST 00.");
+  if (cst === "00" && temReducao) avisos.push("CST 00 não tem redução: com redução, a nota sai como CST 20.");
+  if (ufDaRegra(r.unidade_id).includes("SC") && CST_COM_BENEFICIO.includes(cst) && !r.codigo_beneficio) {
+    avisos.push("Santa Catarina exige o código de benefício fiscal (cBenef) nesse CST. Ex.: SC820028 para a redução do art. 9, I (máquinas).");
+  }
+  if (r.codigo_beneficio && cst === "00") avisos.push("O cBenef não vai em nota com CST 00 (só nos CST com benefício).");
+  if (r.icms_desonerar && cst && !["20", "30", "40", "41", "50", "70", "90"].includes(cst)) avisos.push("ICMS desonerado só existe nos CST 20, 30, 40, 41, 50, 70 e 90.");
+  if (r.icms_abater_desonerado) avisos.push("Abater do total: a nota sai menor que o pedido no valor do ICMS desonerado. Combine com o contador e ajuste o preço/parcelas do pedido.");
+  return avisos;
+}
+
 function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
-  const [r, setR] = useState<Record<string, any>>({ ...regra, difal: regra.difal == null ? "" : regra.difal ? "sim" : "nao", ufs_destino: (regra.ufs_destino ?? []).join(", ") });
+  const { unidades } = useUnidade();
+  const [r, setR] = useState<Record<string, any>>({ ...regra, difal: regra.difal == null ? "" : regra.difal ? "sim" : "nao", ufs_destino: (regra.ufs_destino ?? []).join(", "),
+    reducoes: textoReducoes(regra.icms_reducao_por_aliquota), ipi_destacar: regra.ipi_destacar == null ? "" : regra.ipi_destacar ? "sim" : "nao" });
+  const ufDaRegra = (id: string | null) => (id ? unidades.filter((u) => u.id === id) : unidades).map((u) => String((u as { uf?: string }).uf ?? "").toUpperCase());
+  const avisos = avisosRegra(r, ufDaRegra);
   const invalidar = useInvalidate();
   const set = (k: string) => (e: { target: { value: string } }) => setR({ ...r, [k]: e.target.value });
   const sel = (k: keyof typeof OPCOES, label: string) => (
@@ -225,8 +277,15 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
-    const row: Record<string, any> = Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v === "" ? null : v]));
+    const { reducoes, ...resto } = r;
+    const row: Record<string, any> = Object.fromEntries(Object.entries(resto).map(([k, v]) => [k, v === "" ? null : v]));
     for (const k of NUM) row[k] = row[k] == null ? null : Number(String(row[k]).replace(",", "."));
+    row.icms_reducao_por_aliquota = lerReducoes(reducoes);
+    row.codigo_beneficio = String(r.codigo_beneficio ?? "").trim().toUpperCase() || null;
+    row.icms_desonerar = !!r.icms_desonerar;
+    row.icms_abater_desonerado = !!r.icms_abater_desonerado;
+    row.icms_motivo_desoneracao = r.icms_desonerar ? (r.icms_motivo_desoneracao || "9") : null;
+    row.ipi_destacar = r.ipi_destacar === "" || r.ipi_destacar == null ? null : r.ipi_destacar === "sim";
     row.prioridade = Number(row.prioridade || 100);
     row.difal = r.difal === "" ? null : r.difal === "sim";
     row.ativo = !!r.ativo;
@@ -244,6 +303,12 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title={regra.id ? "Editar regra de tributação" : "Nova regra de tributação"} wide>
       <form onSubmit={salvar} className="space-y-4">
+        {!regra.id && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
+            <span className="min-w-0 flex-1">Modelo pronto: redução de base das máquinas industriais da matriz SC (RICMS-SC, Anexo 2, art. 9, I), como o Tiny emitia.</span>
+            <Button type="button" variant="secondary" onClick={() => setR({ ...r, ...modeloMaquinasSc(unidades.find((u) => String((u as { uf?: string }).uf).toUpperCase() === "SC")?.id ?? null) })}>Usar modelo</Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Field label="Nome da regra" className="sm:col-span-2"><input className="input" value={r.nome} onChange={set("nome")} required placeholder="Ex.: Máquinas para outro estado" /></Field>
           <Field label="Ordem (menor vale primeiro)"><input className="input" type="number" value={r.prioridade} onChange={set("prioridade")} /></Field>
@@ -271,13 +336,35 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
             {txt("cfop_saida", "Trocar CFOP para", "6108")}
             {cod("icms_cst", "ICMS CST", CST_ICMS)}
             {txt("icms_aliquota", "ICMS alíquota %", "auto")}
-            {txt("icms_reducao_base", "ICMS redução da base %")}
+            {txt("icms_reducao_base", "ICMS redução da base % (fixa)")}
+            <Field label="Redução por alíquota (ex.: 17%=48,23 · 12%=26,66 · 7%=26,57)" className="col-span-2">
+              <input className="input" value={r.reducoes ?? ""} onChange={set("reducoes")} placeholder="Alíquota fora da lista = sem redução" />
+            </Field>
+            {txt("codigo_beneficio", "Código de benefício (cBenef)", "SC820028")}
+            <label className="col-span-2 flex items-center gap-2 self-end pb-2 text-sm sm:col-span-1">
+              <input type="checkbox" className="h-5 w-5" checked={!!r.icms_desonerar} onChange={(e) => setR({ ...r, icms_desonerar: e.target.checked })} /> Informar ICMS desonerado
+            </label>
+            {r.icms_desonerar && (<>
+              <Field label="Motivo da desoneração">
+                <select className="input" value={r.icms_motivo_desoneracao ?? "9"} onChange={set("icms_motivo_desoneracao")}>
+                  {MOTIVOS_DESONERACAO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </Field>
+              <label className="col-span-2 flex items-center gap-2 self-end pb-2 text-sm">
+                <input type="checkbox" className="h-5 w-5" checked={!!r.icms_abater_desonerado} onChange={(e) => setR({ ...r, icms_abater_desonerado: e.target.checked })} /> Abater o ICMS desonerado do total da nota
+              </label>
+            </>)}
             <Field label="DIFAL">
               <select className="input" value={r.difal} onChange={set("difal")}><option value="">Padrão</option><option value="sim">Calcular</option><option value="nao">Não calcular</option></select>
             </Field>
             {cod("ipi_cst", "IPI CST", CST_IPI)}
             {txt("ipi_aliquota", "IPI alíquota %", "TIPI do produto")}
             {txt("ipi_enquadramento", "IPI enquadramento", "999")}
+            <Field label="Destacar IPI">
+              <select className="input" value={r.ipi_destacar ?? ""} onChange={set("ipi_destacar")}>
+                <option value="">Padrão</option><option value="sim">Destacar</option><option value="nao">Não destacar IPI</option>
+              </select>
+            </Field>
             {cod("pis_cst", "PIS CST", CST_PIS_COFINS)}
             {txt("pis_aliquota", "PIS %", "1,65")}
             {cod("cofins_cst", "COFINS CST", CST_PIS_COFINS)}
@@ -289,6 +376,11 @@ function RegraModal({ regra, onClose }: { regra: Regra; onClose: () => void }) {
             </Field>
           </div>
         </fieldset>
+        {avisos.length > 0 && (
+          <ul className="space-y-1 rounded-xl bg-amber-50 p-3 text-sm text-amber-900" role="status">
+            {avisos.map((a) => <li key={a}>• {a}</li>)}
+          </ul>
+        )}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button>Salvar regra</Button>
