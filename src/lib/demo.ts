@@ -11,6 +11,7 @@ import { percentualPedido } from "./comissao";
 import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
 import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
+import { gerarLinhaBancaria } from "./boleto";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 
 type Row = Record<string, any>;
@@ -793,6 +794,9 @@ function aprovacaoDemo(db: Db) {
   conta("cp1", { revisao: "aprovado", ...auto });
   conta("cp2", { revisao: "aprovado", ...auto });
   conta("cp3", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
+  // boletos com a linha digitável (Conferir boleto): aluguel vencido (multa e juros) e o boleto do golpe
+  conta("cp3", { linha_digitavel: gerarLinhaBancaria("756", dias(-2), 6500, "1434200001234567800001018"), boleto_multa_pct: 2, boleto_juros_mes_pct: 1 });
+  conta("cpg1", { linha_digitavel: gerarLinhaBancaria("237", dias(6), 389.9, "3381090000045678901234000") });
   conta("cp4", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", documento: "Fatura 10/2026", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo",
     revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" });
   conta("cp20", { revisao: "devolvido", lancamento: "manual", criado_por: "u-fin", revisao_comentario: "Falta anexar a nota da manutenção" });
@@ -1003,7 +1007,8 @@ function bancosDemo(db: Db) {
   // exceções de exemplo: boleto lançado duas vezes e um pagamento redondo sem documento
   db.contas_pagar.push(
     { id: "cp6", descricao: "NF 48733 - Refrigeração Andrade (compressores)", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48733", valor: 2700, vencimento: dias(10), status: "aberto", unidade_id: U_SC, created_at: quando(-4) },
-    { id: "cp7", descricao: "Boleto Refrigeração Andrade - compressores", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48733", valor: 2700, vencimento: dias(12), status: "aberto", unidade_id: U_SC, created_at: quando(-2) },
+    { id: "cp7", descricao: "Boleto Refrigeração Andrade - compressores", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48733", valor: 2700, vencimento: dias(12), status: "aberto", unidade_id: U_SC, created_at: quando(-2),
+      linha_digitavel: gerarLinhaBancaria("341", dias(12), 2700, "1090048733000123456789000") },
     { id: "cp8", descricao: "Adiantamento a fornecedor", categoria: "outros", valor: 10000, vencimento: dias(-20), status: "pago", data_pagamento: dias(-20), valor_pago: 10000, unidade_id: U_SC, created_at: quando(-21) },
   );
   db.extrato_lancamentos = [];
@@ -1027,6 +1032,7 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-3), -5000, "TED MESMA TITULARIDADE - NU PAGAMENTOS");
   add("cb2", dias(-3), 5000, "Transferência recebida - MF MAQUINAS LTDA");
   add("cb2", dias(-6), -189, "Pagamento de boleto - Google Ads");
+  add("cb1", dias(-1), -2700, "PAGAMENTO DE BOLETO - REFRIGERACAO ANDRADE");
   add("cb3", dias(-4), 3690, "Venda no crédito · Cliente balcão (Lanchonete)");
   add("cb3", dias(-4), -110.7, "Taxa · Taxa da venda no crédito");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
@@ -2072,6 +2078,19 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: null, error: null };
   },
   revisar_contas: ({ p_tabela, p_ids, p_acao, p_comentario }) => revisarDemo(p_tabela, p_ids ?? [], p_acao, p_comentario ?? null),
+  // "este boleto já foi pago?" (no sistema real: boleto_conferir)
+  boleto_conferir: ({ p_linha, p_valor, p_vencimento, p_conta }) => {
+    const ref = Date.parse(p_vencimento ?? dias(0));
+    const dist = (d: string) => Math.round((Date.parse(d) - ref) / 864e5);
+    const contas = p_linha ? db.contas_pagar.filter((c) => c.linha_digitavel === p_linha && c.id !== p_conta && c.status !== "cancelado" && (!p_conta || c.conta_origem_id !== p_conta))
+      .map((c) => ({ id: c.id, descricao: c.descricao, status: c.status, valor: c.valor, valor_pago: c.valor_pago ?? null, data_pagamento: c.data_pagamento ?? null, vencimento: c.vencimento })) : [];
+    const v = Number(p_valor) || 0;
+    const extrato = v > 0 ? db.extrato_lancamentos
+      .filter((e) => Number(e.valor) < 0 && ((-e.valor >= v && -e.valor <= Math.round(v * 115) / 100) || (p_conta && e.conta_pagar_id === p_conta)) && dist(e.data) >= -15 && dist(e.data) <= 60)
+      .sort((a, b) => Math.abs(dist(a.data)) - Math.abs(dist(b.data))).slice(0, 10)
+      .map((e) => ({ id: e.id, data: e.data, valor: -Number(e.valor), descricao: e.descricao, banco: db.contas_bancarias.find((b) => b.id === e.conta_bancaria_id)?.nome ?? null, conta_pagar_id: e.conta_pagar_id ?? null })) : [];
+    return { data: { contas, extrato }, error: null };
+  },
   contador_conferir: ({ p_tabela, p_ids, p_acao, p_comentario }) => {
     const eu = db.usuarios_erp.find((u) => u.user_id === sessao?.user.id);
     if (eu?.papel !== "contador") return erro("só o contador valida os lançamentos");
