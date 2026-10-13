@@ -43,7 +43,7 @@ export function ConfigEmpresa() {
           </div>
         </Bloco>
 
-        <Bloco titulo="Logo, ícone e cores" descricao="A logo sai nos PDFs (orçamento, pedido, OS, recibo, etiquetas), na vitrine e nos e-mails. O ícone é o da aba do navegador e do atalho no celular.">
+        <Bloco titulo="Logo, ícone e cores" descricao="A logo sai nos PDFs (orçamento, pedido, OS, recibo, etiquetas) e na vitrine. O ícone é o da aba do navegador e do atalho no celular.">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="space-y-4">
               <EnviarImagem rotulo="Logo" dica="PNG com fundo transparente fica melhor. Até 2 MB." url={cfg.logo_url} nome="logo" onUrl={(u) => mudar({ logo_url: u })} />
