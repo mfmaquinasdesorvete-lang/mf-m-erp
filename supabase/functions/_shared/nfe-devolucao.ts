@@ -21,7 +21,9 @@ export type Participante = {
 export type ItemOriginal = {
   numero: number; codigo: string; ean: string | null; descricao: string; ncm: string; cest: string | null; cfop: string; unidade: string;
   quantidade: number; valor_unitario: number; valor_bruto: number; desconto: number; frete: number; seguro: number; outras: number; origem: number;
-  icms: { cst: string; csosn: boolean; vBC: number; pICMS: number; vICMS: number; pRedBC: number; modBCST: number | null; pMVAST: number; vBCST: number; pICMSST: number; vICMSST: number; pCredSN: number; vCredICMSSN: number };
+  icms: { cst: string; csosn: boolean; vBC: number; pICMS: number; vICMS: number; pRedBC: number; modBCST: number | null; pMVAST: number; vBCST: number; pICMSST: number; vICMSST: number; pCredSN: number; vCredICMSSN: number;
+    /** código de benefício fiscal da UF (cBenef) da nota original: SC exige também na devolução */
+    cBenef: string | null };
   ipi: { cst: string | null; vBC: number; pIPI: number; vIPI: number; cEnq: string | null };
   pis: { cst: string; vBC: number; p: number; v: number };
   cofins: { cst: string; vBC: number; p: number; v: number };
@@ -77,6 +79,7 @@ export function lerNotaCompleta(xml: string): NotaOriginal {
         cst: s(icms.CST ?? icms.CSOSN), csosn: icms.CSOSN !== undefined, vBC: n(icms.vBC), pICMS: n(icms.pICMS), vICMS: n(icms.vICMS),
         pRedBC: n(icms.pRedBC), modBCST: icms.modBCST !== undefined ? n(icms.modBCST) : null, pMVAST: n(icms.pMVAST), vBCST: n(icms.vBCST),
         pICMSST: n(icms.pICMSST), vICMSST: n(icms.vICMSST), pCredSN: n(icms.pCredSN), vCredICMSSN: n(icms.vCredICMSSN),
+        cBenef: s(p.cBenef) || null,
       },
       ipi: { cst: s(ipiTrib?.CST ?? ipiNT?.CST) || null, vBC: n(ipiTrib?.vBC), pIPI: n(ipiTrib?.pIPI), vIPI: n(ipiTrib?.vIPI), cEnq: s(imp.IPI?.cEnq) || null },
       pis: { cst: s(pis.CST), vBC: n(pis.vBC), p: n(pis.pPIS), v: n(pis.vPIS) },
@@ -103,7 +106,7 @@ export function itensDoPayload(payload: any): ItemOriginal[] {
       cst: s(x.icms_situacao_tributaria), csosn: false, vBC: n(x.icms_base_calculo), pICMS: n(x.icms_aliquota), vICMS: n(x.icms_valor),
       pRedBC: n(x.icms_reducao_base_calculo), modBCST: x.icms_modalidade_base_calculo_st != null ? n(x.icms_modalidade_base_calculo_st) : null,
       pMVAST: n(x.icms_margem_valor_adicionado_st), vBCST: n(x.icms_base_calculo_st), pICMSST: n(x.icms_aliquota_st), vICMSST: n(x.icms_valor_st),
-      pCredSN: 0, vCredICMSSN: 0,
+      pCredSN: 0, vCredICMSSN: 0, cBenef: s(x.codigo_beneficio_fiscal) || null,
     },
     ipi: { cst: s(x.ipi_situacao_tributaria) || null, vBC: n(x.ipi_base_calculo), pIPI: n(x.ipi_aliquota), vIPI: n(x.ipi_valor), cEnq: s(x.ipi_codigo_enquadramento_legal) || null },
     pis: { cst: s(x.pis_situacao_tributaria), vBC: n(x.pis_base_calculo), p: n(x.pis_aliquota_porcentual), v: n(x.pis_valor) },
@@ -170,6 +173,12 @@ const ICMS_COM_VALOR = ["00", "10", "20", "51", "70", "90"];
 const ICMS_SEM_VALOR = ["40", "41", "50", "60"];
 
 function icmsDevolvido(o: ItemOriginal, r: number, valorItem: number) {
+  const g = icmsDevolvidoSemBeneficio(o, r, valorItem);
+  // o cBenef da nota original acompanha a devolução nos CST com benefício (não no 00)
+  return o.icms.cBenef && !o.icms.csosn && g.icms_situacao_tributaria !== "00" ? { ...g, codigo_beneficio_fiscal: o.icms.cBenef } : g;
+}
+
+function icmsDevolvidoSemBeneficio(o: ItemOriginal, r: number, valorItem: number): Record<string, unknown> {
   const ic = o.icms;
   if (ic.vICMS > 0 || ic.vICMSST > 0) {
     const cst = !ic.csosn && ICMS_COM_VALOR.includes(ic.cst) ? ic.cst : "90";
