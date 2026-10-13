@@ -1,10 +1,12 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "./supabase";
+import { usarLogoEmpresa } from "./marca";
 import type { Config } from "./types";
 
 /** Configurações da empresa (dados para PDFs, garantia, comissão). */
 export function useConfig() {
-  return useQuery({
+  const q = useQuery({
     queryKey: ["configuracoes"],
     queryFn: async () => {
       const { data, error } = await supabase.from("configuracoes").select("*").eq("id", 1).single();
@@ -12,4 +14,7 @@ export function useConfig() {
       return data as Config & Record<string, any>;
     },
   });
+  // logo dos PDFs e ícone da aba: os que a empresa enviou em Configurações → Empresa
+  useEffect(() => { if (q.data) usarLogoEmpresa(q.data.logo_url ?? null, q.data.icone_url ?? null); }, [q.data?.logo_url, q.data?.icone_url]); // eslint-disable-line react-hooks/exhaustive-deps
+  return q;
 }

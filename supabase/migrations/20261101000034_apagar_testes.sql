@@ -6,6 +6,8 @@
 --     e apaga os avisos ligados a eles.
 --   * NF-e autorizada em produção nunca é apagada: fica no ERP, solta do pedido e com uma observação
 --     (precisa de devolução / contador). NF-e de homologação (teste da Sefaz) sai da lista.
+--   * NFS-e e recibos ficam (soltos da OS/conta; o recibo é cancelado com o motivo); linha do extrato ligada a uma
+--     conta de teste volta a "pendente"; o restante de uma baixa parcial sai junto com a conta de origem.
 --   * A exclusão fica registrada na auditoria (gatilho zz_auditoria).
 -- Somente acréscimos: função nova.
 -- =====================================================================
@@ -23,6 +25,11 @@ begin
   select coalesce(array_agg(id), '{}') into v_op from ordens_producao where numero = any(coalesce(p_ops, '{}')) and status <> 'concluida';
   select coalesce(array_agg(id), '{}') into v_contas from contas_receber
    where pedido_id = any(v_ped) or os_id = any(v_os) or id = any(coalesce(p_contas, '{}'));
+  -- o restante de baixa parcial (conta nova ligada à de origem) sai junto
+  with recursive r as (
+    select id from contas_receber where id = any(v_contas)
+    union select c.id from contas_receber c join r on c.conta_origem_id = r.id)
+  select coalesce(array_agg(id), '{}') into v_contas from r;
 
   v_resumo := jsonb_build_object(
     'pedidos', (select coalesce(jsonb_agg(jsonb_build_object('numero', p.numero, 'cliente', c.nome, 'total', p.valor_total, 'status', p.status) order by p.numero), '[]')
@@ -59,6 +66,19 @@ begin
          'O pedido desta nota era teste e foi apagado em ' || to_char(now(), 'DD/MM/YYYY') || '. NF-e autorizada: tratar com devolução e o contador.')
    where pedido_id = any(v_ped) and ambiente = 'producao';
   update notas_fiscais set pedido_id = null where pedido_id = any(v_ped);
+  -- NFS-e fica no ERP, solta da OS
+  update nfse set os_id = null where os_id = any(v_os);
+  -- recibo fica (numeração), cancelado e solto da conta; linha do extrato volta para decidir
+  update recibos set conta_receber_id = null, cancelado_em = coalesce(cancelado_em, now()),
+         cancelado_motivo = coalesce(cancelado_motivo, 'Conta de teste apagada')
+   where conta_receber_id = any(v_contas);
+  update extrato_lancamentos set conta_receber_id = null, status = 'pendente', baixou_conta = false,
+         observacao = concat_ws(' · ', nullif(observacao, ''), 'Estava ligada a uma conta de teste apagada')
+   where conta_receber_id = any(v_contas);
+  -- lançamento corretivo de outra conta apontando para um teste: solta (a função de revisão deixa mexer)
+  perform set_config('erp.revisao', 'on', true);
+  update contas_receber set corrige_id = null where corrige_id = any(v_contas) and not (id = any(v_contas));
+  perform set_config('erp.revisao', '', true);
 
   delete from comissoes where pedido_id = any(v_ped) or conta_receber_id = any(v_contas);
   delete from cobrancas_link where conta_receber_id = any(v_contas);

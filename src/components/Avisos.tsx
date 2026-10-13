@@ -235,9 +235,31 @@ export function AvisosConfig() {
     qc.invalidateQueries({ queryKey: ["avisos_tipos"] });
   }
 
-  const lista = (publico: "equipe" | "cliente") => (
-    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
-      {tipos.filter((t) => t.publico === publico).map((t) => (
+  // agrupado por setor (equipe) e cada grupo começa fechado: abre só o que for mexer
+  const lista = (publico: "equipe" | "cliente") => {
+    const doPublico = tipos.filter((t) => t.publico === publico);
+    const grupos = new Map<string, AvisoTipo[]>();
+    for (const t of doPublico) {
+      const g = publico === "cliente" ? "Avisos para os clientes" : (PAPEL_ROTULO[t.papeis[0]] ?? "Geral");
+      grupos.set(g, [...(grupos.get(g) ?? []), t]);
+    }
+    return (
+      <div className="space-y-2">
+        {[...grupos.entries()].map(([g, ts]) => (
+          <details key={g} className="group rounded-xl border border-slate-200">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-3 [&::-webkit-details-marker]:hidden">
+              <span className="font-semibold text-fg">{g}</span>
+              <span className="flex items-center gap-2 text-xs text-slate-500">{ts.filter((t) => t.ativo).length} de {ts.length} ligado(s)<span className="transition group-open:rotate-180" aria-hidden>▾</span></span>
+            </summary>
+            {listaTipos(ts, publico)}
+          </details>
+        ))}
+      </div>
+    );
+  };
+  const listaTipos = (ts: AvisoTipo[], publico: "equipe" | "cliente") => (
+    <ul className="divide-y divide-slate-100 border-t border-slate-100">
+      {ts.map((t) => (
         <li key={t.tipo} className="flex items-center gap-3 p-3">
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold text-fg">{t.titulo}</div>

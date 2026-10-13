@@ -8,7 +8,6 @@ import { docFormat } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
 import { buscarCnpj, inscricaoDoEstado, preencherVazios } from "@/lib/cnpj";
 import { notify, notifyError } from "@/lib/notify";
-import { normalizarTaxas } from "@/lib/infinitepay";
 import { useUnidade, type Unidade } from "@/lib/unidade";
 
 const NUMEROS = ["serie_nfe"] as const;
@@ -63,29 +62,10 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
     <Field label={label} className={cls}><input className="input" type={type} step={type === "number" ? "any" : undefined} value={u[k] ?? ""} onChange={set(k)} /></Field>
   );
 
-  // taxa da InfinitePay: ["pix"], ["debito"] ou ["credito", 0..11]
-  const taxaCampo = (label: string, caminho: [string] | [string, number]) => {
-    const t = (u.infinitepay_taxas ?? {}) as Record<string, any>;
-    const valor = caminho.length === 1 ? t[caminho[0]] : t.credito?.[caminho[1]];
-    const mudar = (v: string) => {
-      const novo = { ...t };
-      if (caminho.length === 1) novo[caminho[0]] = v;
-      else { const c = [...(t.credito ?? Array(12).fill(null))]; c[caminho[1]] = v; novo.credito = c; }
-      setU({ ...u, infinitepay_taxas: novo });
-    };
-    return (
-      <label key={label} className="block">
-        <span className="mb-1 block text-[11px] font-semibold text-slate-500">{label}</span>
-        <input className="input text-right" inputMode="decimal" placeholder="—" value={valor ?? ""} onChange={(e) => mudar(e.target.value)} aria-label={`Taxa ${label}`} />
-      </label>
-    );
-  };
-
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
       const { created_at: _c, ...row } = u;
-      row.infinitepay_taxas = normalizarTaxas(row.infinitepay_taxas);
       for (const k of NUMEROS) row[k] = Number(row[k] || 0);
       row.uf = row.uf?.toUpperCase();
       await save.mutateAsync(row);
@@ -117,37 +97,9 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
             {campo("telefone", "Telefone")}
             {campo("whatsapp", "WhatsApp")}
             {campo("email", "E-mail", "sm:col-span-2")}
-            <Field label="Dados para pagamento (Pix, banco, agência e conta) — vão nos lembretes e na cobrança pelo WhatsApp" className="sm:col-span-4">
-              <textarea className="input" rows={2} placeholder={"Pix (CNPJ): 12.345.678/0001-90\nBanco do Brasil · Ag. 1234-5 · C/C 98765-4"} value={u.instrucoes_pagamento ?? ""} onChange={set("instrucoes_pagamento")} />
-            </Field>
-            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-4 sm:grid-cols-3">
-              <p className="text-xs text-slate-600 sm:col-span-3">Pix para cobrança: com a chave, cada conta a receber ganha o <b>Pix copia e cola</b> (e QR Code) com o valor certo, no e-mail, no WhatsApp e na página do cliente.</p>
-              {campo("pix_chave", "Chave Pix (CNPJ, e-mail, telefone ou aleatória)")}
-              {campo("pix_nome", "Nome do recebedor (como no banco)")}
-              {campo("pix_cidade", "Cidade do recebedor")}
-            </div>
-            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-4 sm:grid-cols-3">
-              <p className="text-xs text-slate-600 sm:col-span-3">
-                Link de pagamento (InfinitePay): com a InfiniteTag da conta desta unidade, cada conta a receber ganha o botão de <b>link</b> para o cliente pagar por Pix ou cartão,
-                e a conta é baixada sozinha quando o pagamento entra. A tag é o nome que aparece com <b>$</b> no app (sem o $).
-              </p>
-              <Field label="InfiniteTag (sem o $)">
-                <input className="input" value={u.infinitepay_tag ?? ""} placeholder="ex.: minhaloja" autoCapitalize="none"
-                  onChange={(e) => setU({ ...u, infinitepay_tag: e.target.value.replace(/^\$/, "").trim().toLowerCase() || null })} />
-              </Field>
-              <div className="sm:col-span-3">
-                <div className="text-xs font-semibold text-slate-600">Taxas do plano, em % (pagas pela MF)</div>
-                <p className="mb-2 text-xs text-slate-500">
-                  Copie do app da InfinitePay (taxas do link de pagamento). Quando o cliente paga, o ERP lança a taxa como despesa já paga
-                  (tarifas bancárias) na conta InfinitePay da unidade, para o saldo bater com o que cai na conta. Em branco = não lança.
-                </p>
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                  {taxaCampo("Pix", ["pix"])}
-                  {taxaCampo("Débito", ["debito"])}
-                  {Array.from({ length: 12 }, (_, i) => taxaCampo(i ? `Crédito ${i + 1}x` : "Crédito 1x", ["credito", i]))}
-                </div>
-              </div>
-            </div>
+            <p className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 sm:col-span-4">
+              Pix, banco e InfinitePay (link de pagamento e taxas) desta unidade ficam em <b>Configurações → Recebimentos e taxas</b>.
+            </p>
             <div className="flex flex-wrap gap-5 sm:col-span-4">{chk("fabrica", "Fabrica máquinas aqui")}{chk("assistencia", "Faz assistência técnica")}{chk("ativo", "Ativa")}</div>
             <p className="text-xs text-slate-500 sm:col-span-4">CFOP, CST, alíquotas e IBS/CBS desta unidade: Notas fiscais → Configurações da NF-e.</p>
           </div>

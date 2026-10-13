@@ -88,6 +88,15 @@ export type Config = {
   etiqueta_formato?: "10x15" | "a4";
   contador_nome?: string | null; contador_email?: string | null; contador_envio_auto?: boolean; contador_envio_dia?: number;
   custos_pagamento?: { cartao_pct?: number; boleto_fixo?: number; pix_pct?: number; transferencia_pct?: number; dinheiro_pct?: number };
+  logo_url?: string | null; icone_url?: string | null; cor_primaria?: string | null; cor_secundaria?: string | null;
+  slogan?: string | null; site?: string | null; instagram?: string | null; pdf_cabecalho?: "escuro" | "claro" | "cor";
+  orcamento_prazo_entrega?: string | null; orcamento_observacoes?: string | null; garantia_servico_dias?: number; os_armazenagem_dias?: number;
+  impressora_etiqueta?: ImpressoraEtiqueta;
+};
+
+/** Impressora de etiquetas (Configurações → Pedidos e expedição). */
+export type ImpressoraEtiqueta = {
+  modelo?: string; dpi?: 203 | 300; largura_mm?: number; altura_mm?: number; metodo?: "pdf" | "zebra"; escurecimento?: number;
 };
 
 export type Vendedor = {

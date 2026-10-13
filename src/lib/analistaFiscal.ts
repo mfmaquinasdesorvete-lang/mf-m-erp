@@ -292,7 +292,7 @@ export function analisar(ctx: ContextoFiscal) {
   if (foraReal.length) add({
     id: "regime", nivel: "alerta", titulo: "Unidade fora do Lucro Real no cadastro",
     detalhe: `${foraReal.map((u) => u.nome).join(", ")} não está marcada como Lucro Real. As notas podem sair com o regime errado.`,
-    acao: "Conferir o regime com o contador e corrigir em Configurações → Unidades.", quem: "Você e o contador", link: "/configuracoes",
+    acao: "Conferir o regime com o contador e corrigir em Configurações → Unidades.", quem: "Você e o contador", link: "/configuracoes/unidades",
   });
 
   const transfComIcms = ctx.unidades.filter((u) => u.transf_icms_cst && u.transf_icms_cst !== "41");

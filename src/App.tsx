@@ -86,6 +86,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "fornecedores", tela: "fornecedores", element: <Fornecedores tipo="fornecedores" /> },
   { path: "transportadoras", tela: "fornecedores", element: <Transportadoras /> },
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },
+  { path: "configuracoes/:secao", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "garantias", tela: "garantias", element: <Garantias /> },
   { path: "relatorios", tela: "relatorios", element: <Relatorios /> },

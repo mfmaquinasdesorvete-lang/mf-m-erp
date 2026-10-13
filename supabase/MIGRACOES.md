@@ -44,3 +44,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   21. `20261013162027_fluxo_aprovacao.sql`
   22. `20261013164713_boleto_conta_pagar.sql`
   23. `20261013175659_pagamento_so_aprovado.sql`
+  24. `20261013194845_configuracoes_paginas.sql`
