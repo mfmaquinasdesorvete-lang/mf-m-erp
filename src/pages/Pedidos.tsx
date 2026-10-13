@@ -76,6 +76,13 @@ export default function Pedidos() {
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
+    // vindo do painel de vendas: já abre na situação clicada
+    const status = (location.state as any)?.status;
+    if (status && (STATUS as readonly string[]).includes(status)) {
+      setFiltro(status);
+      navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
     const abrirId = (location.state as any)?.abrir;
     if (abrirId) {
       const p = pedidosTodos.find((x) => x.id === abrirId);

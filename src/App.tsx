@@ -19,6 +19,7 @@ import Login, { NovaSenha } from "@/pages/Login";
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Pedidos = lazy(() => import("@/pages/Pedidos"));
+const PainelVendas = lazy(() => import("@/pages/paineis/PainelVendas"));
 const Pdv = lazy(() => import("@/pages/Pdv"));
 const CotacaoPublica = lazy(() => import("@/pages/CotacaoPublica"));
 const Assistencia = lazy(() => import("@/pages/Assistencia"));
@@ -55,6 +56,7 @@ const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
+  { path: "painel/vendas", tela: "pedidos", element: <PainelVendas /> },
   { path: "assistencia", tela: "assistencia", element: <Assistencia /> },
   { path: "estoque", tela: "estoque", element: <Produtos /> },
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },

@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { brl } from "@/lib/format";
 
-export type Serie = { nome: string; cor: string };
+/** `tracejada`: linha pontilhada sem preenchimento (ex.: o período anterior, para comparar). */
+export type Serie = { nome: string; cor: string; tracejada?: boolean };
 type Ponto = { rotulo: string; valores: number[] };
 
 const compacto = (v: number) =>
@@ -35,7 +36,9 @@ export function Legenda({ series }: { series: Serie[] }) {
     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
       {series.map((s) => (
         <span key={s.nome} className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.cor }} aria-hidden /> {s.nome}
+          {s.tracejada
+            ? <svg width="16" height="4" aria-hidden><line x1="0" x2="16" y1="2" y2="2" stroke={s.cor} strokeWidth="2" strokeDasharray="4 3" /></svg>
+            : <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.cor }} aria-hidden />} {s.nome}
         </span>
       ))}
     </div>
@@ -120,26 +123,38 @@ function Dica({ esquerda, children }: { esquerda: number; children: ReactNode })
   );
 }
 
-/** Ranking em barras horizontais (ex.: produtos mais vendidos). Série única: sem legenda. */
-export function Ranking({ itens, cor = "var(--serie-1)", formatar = brl }: {
+/** Ranking em barras horizontais (ex.: produtos mais vendidos). Série única: sem legenda. Com `onClicar`, cada linha vira botão (filtro ou detalhe). */
+export function Ranking({ itens, cor = "var(--serie-1)", formatar = brl, onClicar, ativo, vazio = "Sem vendas no período." }: {
   itens: { rotulo: string; valor: number; detalhe?: string }[]; cor?: string; formatar?: (v: number) => string;
+  onClicar?: (i: number) => void; ativo?: string | null; vazio?: string;
 }) {
   const max = Math.max(1, ...itens.map((i) => i.valor));
-  if (!itens.length) return <p className="py-6 text-center text-sm text-slate-500">Sem vendas no período.</p>;
+  if (!itens.length) return <p className="py-6 text-center text-sm text-slate-500">{vazio}</p>;
   return (
-    <ul className="space-y-3">
-      {itens.map((i) => (
-        <li key={i.rotulo} title={`${i.rotulo}: ${formatar(i.valor)}`}>
-          <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-            <span className="min-w-0 truncate text-slate-700">{i.rotulo}</span>
-            <span className="num shrink-0 font-semibold text-fg">{formatar(i.valor)}</span>
-          </div>
-          <div className="h-2 rounded-r bg-slate-100">
-            <div className="h-2 rounded-r" style={{ width: `${(i.valor / max) * 100}%`, background: cor }} />
-          </div>
-          {i.detalhe && <div className="mt-0.5 text-xs text-slate-500">{i.detalhe}</div>}
-        </li>
-      ))}
+    <ul className={onClicar ? "space-y-1" : "space-y-3"}>
+      {itens.map((i, k) => {
+        const apagado = !!ativo && ativo !== i.rotulo;
+        const corpo = (
+          <>
+            <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+              <span className={`min-w-0 truncate ${ativo === i.rotulo ? "font-semibold text-fg" : "text-slate-700"}`}>{i.rotulo}</span>
+              <span className="num shrink-0 font-semibold text-fg">{formatar(i.valor)}</span>
+            </div>
+            <div className="h-2 rounded-r bg-slate-100">
+              <div className="h-2 rounded-r transition-[width] duration-500" style={{ width: `${(i.valor / max) * 100}%`, background: cor }} />
+            </div>
+            {i.detalhe && <div className="mt-0.5 text-xs text-slate-500">{i.detalhe}</div>}
+          </>
+        );
+        return (
+          <li key={i.rotulo} title={`${i.rotulo}: ${formatar(i.valor)}`} className={`transition-opacity ${apagado ? "opacity-45" : ""}`}>
+            {onClicar
+              ? <button type="button" onClick={() => onClicar(k)} aria-pressed={ativo === i.rotulo}
+                  className={`block w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 ${ativo === i.rotulo ? "bg-slate-50 ring-1 ring-slate-200" : ""}`}>{corpo}</button>
+              : corpo}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -243,8 +258,8 @@ export function Area({ dados, series, altura = 240, formatar = brl }: {
               const linha = curva(pts);
               return (
                 <g key={s.nome}>
-                  <path d={`${linha} L${x(dados.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill={`url(#g${id}${k})`} />
-                  <path d={linha} fill="none" stroke={s.cor} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+                  {!s.tracejada && <path d={`${linha} L${x(dados.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill={`url(#g${id}${k})`} />}
+                  <path d={linha} fill="none" stroke={s.cor} strokeWidth={s.tracejada ? 2 : 2.5} strokeDasharray={s.tracejada ? "5 4" : undefined} strokeLinecap="round" strokeLinejoin="round" />
                 </g>
               );
             })}
@@ -280,8 +295,10 @@ export function Area({ dados, series, altura = 240, formatar = brl }: {
 }
 
 /** Rosca com total no centro e legenda com valor e % ao lado. */
-export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl }: {
+export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl, onClicar, ativo }: {
   fatias: { rotulo: string; valor: number; cor: string }[]; total?: string; formatar?: (v: number) => string;
+  /** clicar numa fatia (ou na legenda): filtro ou detalhe */
+  onClicar?: (i: number) => void; ativo?: string | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const soma = fatias.reduce((s, f) => s + f.valor, 0);
@@ -296,9 +313,11 @@ export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl }: 
           {soma > 0 && fatias.map((f, i) => {
             const len = (f.valor / soma) * C;
             const el = f.valor > 0 && (
-              <circle key={f.rotulo} cx={64} cy={64} r={R} fill="none" stroke={f.cor} strokeWidth={hover === i ? 17 : 14}
+              <circle key={f.rotulo} cx={64} cy={64} r={R} fill="none" stroke={f.cor} strokeWidth={hover === i || ativo === f.rotulo ? 17 : 14}
+                strokeOpacity={ativo && ativo !== f.rotulo ? 0.3 : 1}
                 strokeDasharray={`${Math.max(len - folga, 0.5)} ${C}`} strokeDashoffset={-acum}
-                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} className="cursor-pointer transition-[stroke-width]" />
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={onClicar ? () => onClicar(i) : undefined}
+                className="cursor-pointer transition-[stroke-width,stroke-opacity]" />
             );
             acum += len;
             return el;
@@ -312,15 +331,22 @@ export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl }: 
         </div>
       </div>
       <ul className="w-full min-w-0 space-y-2">
-        {fatias.map((f, i) => (
-          <li key={f.rotulo} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
-            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${hover === i ? "bg-slate-50" : ""}`}>
-            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: f.cor }} aria-hidden />
-            <span className="min-w-0 flex-1 truncate text-slate-700">{f.rotulo}</span>
-            <span className="num font-semibold text-fg">{formatar(f.valor)}</span>
-            <span className="num w-10 text-right text-xs text-slate-500">{soma ? Math.round((f.valor / soma) * 100) : 0}%</span>
-          </li>
-        ))}
+        {fatias.map((f, i) => {
+          const linha = (
+            <>
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: f.cor }} aria-hidden />
+              <span className={`min-w-0 flex-1 truncate ${ativo === f.rotulo ? "font-semibold text-fg" : "text-slate-700"}`}>{f.rotulo}</span>
+              <span className="num font-semibold text-fg">{formatar(f.valor)}</span>
+              <span className="num w-10 text-right text-xs text-slate-500">{soma ? Math.round((f.valor / soma) * 100) : 0}%</span>
+            </>
+          );
+          const classe = `flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition ${hover === i || ativo === f.rotulo ? "bg-slate-50" : ""} ${ativo && ativo !== f.rotulo ? "opacity-50" : ""}`;
+          return (
+            <li key={f.rotulo} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+              {onClicar ? <button type="button" onClick={() => onClicar(i)} aria-pressed={ativo === f.rotulo} className={classe}>{linha}</button> : <div className={classe}>{linha}</div>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

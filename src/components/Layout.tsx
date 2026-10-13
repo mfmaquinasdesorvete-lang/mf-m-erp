@@ -42,6 +42,7 @@ const grupos: Grupo[] = [
     id: "vendas", titulo: "Vendas", cor: "from-[#10b981] to-[#059669]", icone: ShoppingCart,
     acao: { label: "Pedido", dica: "Novo pedido ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos" },
     itens: [
+      { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
       { to: "/pdv", tela: "pedidos", label: "PDV (venda de balcão)", curto: "PDV", icon: ScanBarcode, busca: "pdv balcão caixa venda rápida cupom comprovante troco leitor código de barras" },
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega" },
@@ -119,7 +120,7 @@ const grupoDaRota = (path: string) => grupos.find((g) => g.id !== "inicio" && g.
 
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 const RAPIDOS: { to: string; label: string; cor: string }[] = [
-  { to: "/pedidos", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
+  { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
   { to: "/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
   { to: "/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
   { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
@@ -305,7 +306,17 @@ export function Layout() {
             return (
               <section key={g.id} className={`mb-2 overflow-hidden rounded-xl border transition ${aberta ? "border-white/15 bg-white/[0.04]" : "border-transparent"}`}>
                 <div className="flex items-center gap-1 pr-1.5">
-                  <button type="button" onClick={() => setAreaAberta(aberta && !buscando ? null : g.id)} aria-expanded={aberta}
+                  <button type="button" aria-expanded={aberta}
+                    onClick={() => {
+                      // computador: o nome da área abre o painel dela (no celular só abre a lista, onde o painel é o primeiro item)
+                      const painel = itens.find((i) => i.to.startsWith("/painel/"));
+                      if (painel && !buscando && location.pathname !== painel.to && window.matchMedia("(min-width: 768px)").matches) {
+                        setAreaAberta(g.id);
+                        navigate(painel.to);
+                        return;
+                      }
+                      setAreaAberta(aberta && !buscando ? null : g.id);
+                    }}
                     className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-white/5">
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${g.cor} text-white shadow-sm`}><Icone size={16} /></span>
                     <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-white">{g.titulo}</span>
