@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sorveteria · PDV e Cardápio Online</title>
+<meta name="theme-color" content="#e11d74">
+<style>
+:root{--bg:#fff7fa;--card:#fff;--fg:#2a1a24;--mut:#7b6573;--line:#f0dbe5;--pri:#e11d74;--pri2:#b80f5a;--ok:#0f9d6b;--warn:#c2410c;--bad:#dc2626;--mint:#d9f7ea;--cream:#fff1c9;--sh:0 1px 2px rgba(80,20,50,.08),0 6px 18px -8px rgba(80,20,50,.18)}
+@media(prefers-color-scheme:dark){:root{--bg:#1b1017;--card:#27161f;--fg:#fbeaf2;--mut:#b99aab;--line:#43283a;--mint:#12372b;--cream:#3a3015;--sh:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}.btn{text-decoration:none}
+button{cursor:pointer}
+h1,h2,h3{margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700;transition:.15s}
+.btn:hover{border-color:var(--pri)}.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.btn.pri:hover{background:var(--pri2)}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px;border-radius:9px}
+.btn.lg{min-height:52px;font-size:17px;width:100%}
+input,select,textarea{width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
+label.f{display:block;font-size:12px;font-weight:700;color:var(--mut)}label.f>*{margin-top:4px;font-weight:400;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh)}
+.row{display:flex;align-items:center;gap:10px}.sp{flex:1}.wrap{flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mut{color:var(--mut)}.sm{font-size:13px}.xs{font-size:12px}.b{font-weight:700}.num{font-variant-numeric:tabular-nums}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--line)}
+.chip.ok{background:var(--mint);color:var(--ok)}.chip.bad{background:#fde2e2;color:var(--bad)}.chip.warn{background:var(--cream);color:var(--warn)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:2px}.tab{flex:none;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-weight:700;font-size:14px}
+.tab[aria-pressed=true],.tab[aria-current=page]{background:var(--pri);color:#fff;border-color:var(--pri)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;text-align:center}
+/* topo */
+.top{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);padding:8px 14px}
+.top h1{font-size:17px}
+.wrapper{max-width:1280px;margin:0 auto;padding:14px}
+/* home */
+.hero{min-height:100vh;display:grid;place-items:center;padding:20px;text-align:center}
+.hero .opt{display:block;padding:22px;text-align:left;text-decoration:none;color:inherit}
+.hero .opt:hover{border-color:var(--pri)}
+/* cardápio cliente */
+.cl{max-width:640px;margin:0 auto;padding-bottom:96px}
+.cl header{background:linear-gradient(135deg,var(--pri),#ff7ab0);color:#fff;padding:22px 16px}
+.cl nav{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);padding:10px 12px}
+.prod{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--card);box-shadow:var(--sh)}
+.prod:disabled{opacity:.45}.prod .em{font-size:32px}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line)}
+/* pdv */
+.pdv{display:grid;grid-template-columns:1fr 390px;gap:14px;align-items:start}
+@media(max-width:900px){.pdv{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{min-height:110px;padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--card);text-align:left;display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--sh)}
+.tile:hover{border-color:var(--pri)}.tile:disabled{opacity:.45}.tile .em{font-size:26px}
+.cart{position:sticky;top:64px;max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+.cart .body{overflow:auto;padding:12px;flex:1}.cart .foot{padding:12px;border-top:1px solid var(--line)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;border-bottom:1px solid var(--line)}
+.seg button{padding:8px 0;border-radius:9px;border:0;background:transparent;font-weight:700;font-size:12px}.seg button[aria-pressed=true]{background:var(--pri);color:#fff}
+.item{padding:10px 0;border-bottom:1px solid var(--line)}
+.qty{display:inline-flex;align-items:center;gap:6px}.qty button{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-weight:700}
+.total{font-size:30px;font-weight:800}
+.kan{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:900px){.kan{grid-template-columns:1fr}}
+.ord{padding:12px;border-top:4px solid var(--line)}.ord.n{border-top-color:#f59e0b}.ord.p{border-top-color:#0ea5e9}.ord.r{border-top-color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{padding:14px}.stat b{font-size:24px;display:block}
+.bars{display:flex;align-items:flex-end;gap:3px;height:120px}.bars div{flex:1;background:var(--pri);border-radius:4px 4px 0 0;min-height:2px}
+table{width:100%;border-collapse:collapse}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+/* modal */
+#modal:not(:empty){position:fixed;inset:0;z-index:50;background:rgba(30,5,20,.5);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
+.mdl{width:100%;max-width:720px;background:var(--card);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.4);margin:auto}.mdl.sm{max-width:480px}
+.mdl>header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}.mdl>.bd{padding:16px 18px}
+.pill{padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-weight:600}.pill[aria-pressed=true]{background:var(--pri);border-color:var(--pri);color:#fff}.pill:disabled{opacity:.4;text-decoration:line-through}
+.sab{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:12px;padding:4px}.sab.on{border-color:var(--pri);background:rgba(225,29,116,.08)}
+.sab>button.n{flex:1;text-align:left;border:0;background:transparent;padding:6px;font-weight:600}
+#toast{position:fixed;right:14px;bottom:14px;z-index:99;display:flex;flex-direction:column;gap:8px}
+#toast div{padding:10px 16px;border-radius:12px;background:var(--ok);color:#fff;font-weight:600;box-shadow:var(--sh)}#toast div.e{background:var(--bad)}
+.steps{display:flex;justify-content:center;gap:10px}
+</style>
+</head>
+<body>
+<div id="app"></div><div id="modal"></div><div id="toast" aria-live="polite"></div>
+<script>
+"use strict";
+/* =====================================================================
+   Sorveteria · protótipo em HTML único (sem servidor, sem internet)
+   - #/            escolha de tela
+   - #/cardapio    site do cliente (cardápio online + acompanhar pedido)
+   - #/pdv         PDV do caixa (vender, online, produção, caixa, relatório, cardápio)
+   Os dois lados conversam pelos dados do navegador (localStorage): abra o cardápio numa
+   aba e o PDV em outra do mesmo navegador e faça um pedido de ponta a ponta.
+   ===================================================================== */
+const KEY = "sorveteria-html-v1";
+const $ = (s, r = document) => r.querySelector(s);
+const brl = n => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+const num = s => { const v = Number(String(s ?? "").replace(/\./g, "").replace(",", ".")); return Number.isFinite(v) && v > 0 ? v : 0; };
+const dig = s => String(s ?? "").replace(/\D/g, "");
+const hora = iso => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const MEIOS = { dinheiro: "Dinheiro", pix: "Pix", credito: "Crédito", debito: "Débito", vale: "Vale-refeição" };
+const CANAIS = { balcao: "Balcão", mesa: "Comanda", delivery: "Delivery", retirada: "Retirada" };
+
+/* ---------- dados ---------- */
+function seed() {
+  const s = (nome, ac = 0) => ({ id: uid(), nome, ac, out: false });
+  const c = (nome, preco) => ({ id: uid(), nome, preco, out: false });
+  const cob = { id: uid(), nome: "Cobertura", min: 0, max: 1, itens: [c("Chocolate", 0), c("Morango", 0), c("Caramelo", 0), c("Leite condensado", 0), c("Goiabada", 1)] };
+  const adi = { id: uid(), nome: "Adicionais", min: 0, max: 6, itens: [c("Granola", 2), c("Leite em pó", 2.5), c("Paçoca", 2), c("Banana", 2), c("Morango", 3.5), c("Confete", 2), c("Chantilly", 2), c("Calda extra", 1.5)] };
+  const cas = { id: uid(), nome: "Casquinha", min: 1, max: 1, itens: [c("Simples", 0), c("Crocante", 2), c("Cascão", 3)] };
+  const cats = [["Sorvetes", "🍨"], ["Casquinhas", "🍦"], ["Açaí", "🫐"], ["Milkshakes", "🥤"], ["Picolés", "🍡"], ["Bebidas", "🧃"]].map(([nome, em]) => ({ id: uid(), nome, em }));
+  const [A, B, C, D, E, F] = cats.map(x => x.id);
+  const p = (cat, nome, preco, o = {}) => ({ id: uid(), cat, nome, preco, tipo: "un", sab: 0, grupos: [], ativo: true, out: false, ...o });
+  return {
+    loja: { nome: "Doce Gelo Sorveteria", whats: "48999990000", comandas: 12, tara: 0, gorjeta: 10, minimo: 0, aberta: true,
+      bairros: [{ nome: "Centro", taxa: 5 }, { nome: "Bairro vizinho", taxa: 8 }], prodBalcao: false },
+    cats, grupos: [cob, adi, cas],
+    sabores: [s("Chocolate"), s("Morango"), s("Creme"), s("Flocos"), s("Napolitano"), s("Doce de leite"), s("Maracujá"), s("Limão"), s("Coco"), s("Abacaxi com hortelã"), s("Brigadeiro"), s("Pistache", 2), s("Ninho com Nutella", 3), s("Cookies", 2)],
+    produtos: [
+      p(A, "Copo 1 bola", 8, { sab: 1, grupos: [cob.id, adi.id] }), p(A, "Copo 2 bolas", 14, { sab: 2, grupos: [cob.id, adi.id] }),
+      p(A, "Copo 3 bolas", 19, { sab: 3, grupos: [cob.id, adi.id] }), p(A, "Sundae", 18, { sab: 2, grupos: [cob.id, adi.id] }),
+      p(A, "Self-service (por kg)", 69.9, { tipo: "peso", grupos: [cob.id] }),
+      p(B, "Casquinha 1 sabor", 7, { sab: 1, grupos: [cas.id] }), p(B, "Casquinha 2 sabores", 10, { sab: 2, grupos: [cas.id] }),
+      p(C, "Açaí 300 ml", 16, { grupos: [adi.id, cob.id] }), p(C, "Açaí 500 ml", 22, { grupos: [adi.id, cob.id] }), p(C, "Açaí 700 ml", 28, { grupos: [adi.id, cob.id] }),
+      p(D, "Milkshake 400 ml", 16, { sab: 1, grupos: [cob.id] }), p(D, "Milkshake 500 ml", 19, { sab: 1, grupos: [cob.id] }),
+      p(E, "Picolé de fruta", 5), p(E, "Picolé cremoso", 7), p(E, "Picolé de água", 3.5),
+      p(F, "Água mineral", 4), p(F, "Refrigerante lata", 6), p(F, "Suco natural", 9)],
+    pedidos: [], online: [], caixas: [], seq: 1, ativo: null,
+  };
+}
+let S = load();
+function load() { try { const t = localStorage.getItem(KEY); if (t) return JSON.parse(t); } catch {} return seed(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+const commit = () => { save(); render(); };
+
+/* ---------- regras de preço (as mesmas valem no pedido online) ---------- */
+const prodDe = id => S.produtos.find(p => p.id === id);
+const saborDe = id => S.sabores.find(x => x.id === id);
+const compDe = id => S.grupos.flatMap(g => g.itens).find(i => i.id === id);
+const gruposDe = p => p.grupos.map(id => S.grupos.find(g => g.id === id)).filter(Boolean);
+function precoItem(prod, saborIds, compIds, pesoG) {
+  const ex = saborIds.reduce((s, id) => s + (saborDe(id)?.ac || 0), 0) + compIds.reduce((s, id) => s + (compDe(id)?.preco || 0), 0);
+  return r2((prod.tipo === "peso" ? (pesoG / 1000) * prod.preco : prod.preco) + ex);
+}
+/** mesma conferência que o banco faria: devolve {erro} ou o item pronto */
+function montarItem(prod, saborIds, compIds, qtd, obs) {
+  if (prod.out || !prod.ativo) return { erro: `${prod.nome} está em falta` };
+  if (saborIds.length !== prod.sab) return { erro: `Escolha ${prod.sab} sabor(es) em ${prod.nome}` };
+  for (const id of saborIds) { const s = saborDe(id); if (!s) return { erro: "Sabor inválido" }; if (s.out) return { erro: `O sabor ${s.nome} está em falta` }; }
+  const sel = [...new Set(compIds)]; let achados = 0;
+  for (const g of gruposDe(prod)) {
+    const n = g.itens.filter(i => sel.includes(i.id)); achados += n.length;
+    if (n.some(i => i.out)) return { erro: `${n.find(i => i.out).nome} está em falta` };
+    if (n.length < g.min) return { erro: `Escolha pelo menos ${g.min} em "${g.nome}"` };
+    if (n.length > g.max) return { erro: `No máximo ${g.max} em "${g.nome}"` };
+  }
+  if (achados !== sel.length) return { erro: "Complemento inválido" };
+  return { item: { id: uid(), pid: prod.id, nome: prod.nome, qtd, unit: precoItem(prod, saborIds, sel, 0),
+    sabores: saborIds.map(id => saborDe(id).nome), comps: sel.map(id => ({ nome: compDe(id).nome, preco: compDe(id).preco })),
+    sIds: saborIds, cIds: sel, obs: (obs || "").trim().slice(0, 80) || undefined } };
+}
+const itemTotal = i => r2(i.pesoG != null ? i.unit : i.qtd * i.unit);
+const subtotal = p => r2(p.itens.reduce((s, i) => s + itemTotal(i), 0));
+const descPedido = p => r2(subtotal(p) * Math.min(100, Math.max(0, p.desc || 0)) / 100);
+const gorjPedido = p => p.gorjeta ? r2((subtotal(p) - descPedido(p)) * S.loja.gorjeta / 100) : 0;
+const totalPedido = p => r2(subtotal(p) - descPedido(p) + (p.canal === "delivery" ? p.taxa || 0 : 0) + gorjPedido(p));
+const qtdItens = p => p.itens.reduce((s, i) => s + (i.pesoG != null ? 1 : i.qtd), 0);
+const caixaAberto = () => S.caixas.find(c => !c.fechado) || null;
+
+/* ---------- utilidades de interface ---------- */
+const A = {}, C = {};              // ações (click) e mudanças (change/input)
+document.addEventListener("click", e => { const el = e.target.closest("[data-a]"); if (el && !el.disabled) { const [n, ...a] = el.dataset.a.split(":"); A[n]?.(el, ...a); } });
+document.addEventListener("change", e => { const el = e.target.closest("[data-c]"); if (el) C[el.dataset.c]?.(el); });
+document.addEventListener("input", e => { const el = e.target.closest("[data-i]"); if (el) C[el.dataset.i]?.(el); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#modal").children.length) closeModal();
+  if (e.key === "F2" && rota() === "pdv" && ui.tab === "vender" && !$("#modal").children.length) { e.preventDefault(); A.cobrar(); }
+  if (e.key === "Enter" && e.target.dataset.enter) { A[e.target.dataset.enter]?.(e.target); }
+});
+function toast(msg, erro) { const d = document.createElement("div"); d.textContent = msg; if (erro) d.className = "e"; $("#toast").appendChild(d); setTimeout(() => d.remove(), 3800); }
+let modalDraw = null;
+function openModal(title, draw, small) { modalDraw = { title, draw, small }; drawModal(); }
+function drawModal() { if (!modalDraw) return; const m = modalDraw; $("#modal").innerHTML = `<div class="mdl ${m.small ? "sm" : ""}" role="dialog" aria-modal="true" aria-label="${esc(m.title)}"><header><h2 style="font-size:17px">${esc(m.title)}</h2><button class="btn ghost sm" data-a="closeModal" aria-label="Fechar">✕</button></header><div class="bd">${m.draw()}</div></div>`; const f = $("#modal [autofocus]"); if (f) f.focus(); }
+function closeModal() { modalDraw = null; $("#modal").innerHTML = ""; }
+A.closeModal = closeModal;
+function beep() { try { const x = new (window.AudioContext || window.webkitAudioContext)(), o = x.createOscillator(), g = x.createGain(); o.frequency.value = 880; g.gain.value = .12; o.connect(g); g.connect(x.destination); o.start(); o.stop(x.currentTime + .3); o.onended = () => x.close(); } catch {} }
+const field = (label, html, cls = "") => `<label class="f ${cls}">${label}${html}</label>`;
+const catEm = id => S.cats.find(c => c.id === id)?.em || "🍨";
+
+/* ---------- rotas ---------- */
+const rota = () => (location.hash.replace(/^#\/?/, "").split("/")[0] || "");
+const ui = { tab: "vender", cat: "", busca: "", sub: "produtos", per: "hoje", mesa: null };   // estado só de tela
+const cli = { cat: "", cart: [], canal: "delivery", dados: { nome: "", tel: "", end: "", bairro: "", ref: "", pag: "pix", troco: "", obs: "" }, cod: sessionStorage.getItem("sorv-cod") };
+window.addEventListener("hashchange", () => { closeModal(); render(); });
+window.addEventListener("storage", e => {
+  if (e.key !== KEY) return;
+  const antes = S.online.filter(o => o.status === "novo").length;
+  S = load();
+  if (rota() === "pdv" && S.online.filter(o => o.status === "novo").length > antes) { beep(); toast("Novo pedido online!"); }
+  render();
+});
+function render() {
+  const r = rota(); document.title = r === "cardapio" ? `${S.loja.nome} · Cardápio` : r === "pdv" ? `PDV · ${S.loja.nome}` : "Sorveteria · protótipo";
+  const y = scrollY; const f = document.activeElement; const foco = f?.dataset?.keep;
+  $("#app").innerHTML = r === "cardapio" ? vCardapio() : r === "pdv" ? vPdv() : vHome();
+  if (foco) { const n = $(`[data-keep="${foco}"]`); if (n) { n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch {} } }
+  scrollTo(0, y); if (modalDraw) drawModal();
+}
+
+/* =====================================================================
+   HOME
+   ===================================================================== */
+function vHome() {
+  return `<div class="hero"><div style="max-width:520px;width:100%" class="col">
+    <div style="font-size:56px">🍨</div><h1 style="font-size:28px">${esc(S.loja.nome)}</h1>
+    <p class="mut">Protótipo em HTML: os dois lados conversam entre si. Abra o <b>cardápio</b> numa aba e o <b>PDV</b> em outra, faça um pedido e aceite no caixa.</p>
+    <a class="card opt" href="#/cardapio"><b style="font-size:18px">🛍️ Cardápio online</b><br><span class="mut sm">O que o cliente vê no celular: escolhe sabores, entrega ou retirada, acompanha o pedido.</span></a>
+    <a class="card opt" href="#/pdv"><b style="font-size:18px">🧾 PDV do caixa</b><br><span class="mut sm">Balcão, comandas, delivery, pedidos online, produção, caixa e relatório.</span></a>
+    <button class="btn ghost sm" data-a="zerar">Restaurar dados de exemplo</button></div></div>`;
+}
+A.zerar = () => { if (confirm("Apagar pedidos, caixas e cardápio e voltar ao exemplo?")) { S = seed(); sessionStorage.removeItem("sorv-cod"); cli.cod = null; cli.cart = []; commit(); } };
+
+/* =====================================================================
+   MONTAR ITEM (sabores, complementos, peso) — serve ao PDV e ao cliente
+   ===================================================================== */
+let M = null; // {prod, sab:{id:n}, comp:{id:1}, qtd, bruto, obs, editId, destino:'pdv'|'cli'}
+function abrirMontar(prod, destino, item) {
+  M = { prod, destino, sab: {}, comp: {}, qtd: item?.qtd || 1, bruto: item?.pesoG != null ? String(item.pesoG + S.loja.tara) : "", obs: item?.obs || "", editId: item?.id };
+  if (item) { (item.sIds || []).forEach(id => M.sab[id] = (M.sab[id] || 0) + 1); (item.cIds || []).forEach(id => M.comp[id] = 1); }
+  openModal(prod.nome, drawMontar);
+}
+const mSabIds = () => Object.entries(M.sab).flatMap(([id, n]) => Array(n).fill(id));
+const mCompIds = () => Object.keys(M.comp).filter(k => M.comp[k]);
+const mPeso = () => Math.max(0, Math.round(num(M.bruto) - S.loja.tara));
+function mErros() {
+  const e = [], n = mSabIds().length;
+  if (M.prod.sab > 0 && n !== M.prod.sab) e.push(`Escolha ${M.prod.sab} ${M.prod.sab === 1 ? "sabor" : "sabores"} (${n}/${M.prod.sab})`);
+  for (const g of gruposDe(M.prod)) { const k = g.itens.filter(i => M.comp[i.id]).length; if (k < g.min) e.push(`${g.nome}: escolha pelo menos ${g.min}`); }
+  if (M.prod.tipo === "peso" && mPeso() <= 0) e.push("Informe o peso da balança");
+  return e;
+}
+function drawMontar() {
+  const p = M.prod, n = mSabIds().length, unit = precoItem(p, mSabIds(), mCompIds(), mPeso()), erros = mErros();
+  const tot = r2(unit * (p.tipo === "peso" ? 1 : M.qtd));
+  return `<div class="col" style="gap:18px">
+  ${p.tipo === "peso" ? `<section><h3 style="font-size:15px">Peso na balança</h3><div class="row wrap" style="margin-top:8px"><input style="width:150px;text-align:right;font-size:20px;font-weight:700" inputmode="decimal" autofocus data-i="mBruto" data-keep="bruto" value="${esc(M.bruto)}" placeholder="0" aria-label="Peso em gramas"> <span class="mut">gramas</span>${S.loja.tara ? `<span class="mut sm">− pote ${S.loja.tara} g = <b>${mPeso()} g</b></span>` : ""}</div><div class="mut xs" style="margin-top:4px">${brl(p.preco)} por kg${mPeso() ? ` · ${brl(r2(mPeso() / 1000 * p.preco))} de sorvete` : ""}</div></section>` : ""}
+  ${p.sab > 0 ? `<section><h3 style="font-size:15px">Sabores <span class="mut" style="font-weight:400">(${n}/${p.sab})</span></h3><div class="g3" style="margin-top:8px">${S.sabores.map(s => { const q = M.sab[s.id] || 0; return `<div class="sab ${q ? "on" : ""}" style="${s.out ? "opacity:.4" : ""}"><button class="n" ${s.out ? "disabled" : ""} data-a="mSab:${s.id}:1">${esc(s.nome)}${s.ac ? `<div class="mut xs" style="font-weight:400">+ ${brl(s.ac)}</div>` : ""}${s.out ? `<div class="xs" style="color:var(--bad);font-weight:400">em falta</div>` : ""}</button>${q ? `<button class="btn ghost sm" aria-label="Menos ${esc(s.nome)}" data-a="mSab:${s.id}:-1">−</button><b>${q}</b>` : ""}</div>`; }).join("")}</div></section>` : ""}
+  ${gruposDe(p).map(g => `<section><h3 style="font-size:15px">${esc(g.nome)} <span class="mut" style="font-weight:400">${g.min ? "obrigatório · " : ""}${g.max === 1 ? "escolha 1" : `até ${g.max}`}</span></h3><div class="row wrap" style="margin-top:8px">${g.itens.map(i => `<button class="pill" aria-pressed="${!!M.comp[i.id]}" ${i.out ? "disabled" : ""} data-a="mComp:${g.id}:${i.id}">${esc(i.nome)}${i.preco ? ` <span style="opacity:.75;font-weight:400">+ ${brl(i.preco)}</span>` : ""}</button>`).join("")}</div></section>`).join("")}
+  ${field("Observação (ex.: sem canudo)", `<input maxlength="80" data-i="mObs" data-keep="mobs" value="${esc(M.obs)}">`)}
+  <div class="row wrap" style="border-top:1px solid var(--line);padding-top:14px">
+    ${p.tipo !== "peso" ? `<div class="qty"><button aria-label="Diminuir" data-a="mQtd:-1">−</button><b style="min-width:26px;text-align:center;font-size:18px">${M.qtd}</b><button aria-label="Aumentar" data-a="mQtd:1">+</button></div>` : ""}
+    <div class="sp"><span class="mut sm">Total</span> <b class="num" style="font-size:22px">${brl(tot)}</b>${erros.length ? `<div class="xs" style="color:var(--warn)">${erros.join(" · ")}</div>` : ""}</div>
+    <button class="btn pri" ${erros.length ? "disabled" : ""} data-a="mOk">${M.editId ? "Salvar item" : "Adicionar"}</button></div></div>`;
+}
+C.mBruto = el => { M.bruto = el.value.replace(/[^\d,.]/g, ""); drawModal(); };
+C.mObs = el => { M.obs = el.value; };
+A.mSab = (el, id, d) => { d = Number(d); const n = mSabIds().length; if (d > 0 && n >= M.prod.sab) return; M.sab[id] = Math.max(0, (M.sab[id] || 0) + d); if (!M.sab[id]) delete M.sab[id]; drawModal(); };
+A.mComp = (el, gid, id) => { const g = S.grupos.find(x => x.id === gid); if (M.comp[id]) delete M.comp[id]; else { const usados = g.itens.filter(i => M.comp[i.id]).length; if (usados >= g.max) { if (g.max === 1) g.itens.forEach(i => delete M.comp[i.id]); else return; } M.comp[id] = 1; } drawModal(); };
+A.mQtd = (el, d) => { M.qtd = Math.max(1, M.qtd + Number(d)); drawModal(); };
+A.mOk = () => {
+  if (mErros().length) return;
+  const p = M.prod, r = montarItem(p.tipo === "peso" ? { ...p, sab: 0 } : p, p.tipo === "peso" ? [] : mSabIds(), mCompIds(), M.qtd, M.obs);
+  if (r.erro) return toast(r.erro, true);
+  const it = r.item; if (M.editId) it.id = M.editId;
+  if (p.tipo === "peso") { it.pesoG = mPeso(); it.qtd = 1; it.unit = precoItem(p, [], mCompIds(), it.pesoG); }
+  const destino = M.destino; closeModal(); M = null;
+  if (destino === "cli") { cli.cart = cli.cart.some(x => x.id === it.id) ? cli.cart.map(x => x.id === it.id ? it : x) : [...cli.cart, it]; render(); }
+  else addItemPdv(it);
+};
+
+/* =====================================================================
+   SITE DO CLIENTE
+   ===================================================================== */
+function vCardapio() {
+  if (cli.cod) return vAcompanhar();
+  const L = S.loja, prods = S.produtos.filter(p => p.ativo && p.tipo === "un" && (!cli.cat || p.cat === cli.cat));
+  const cart = cli.cart, sub = r2(cart.reduce((s, i) => s + itemTotal(i), 0)), q = cart.reduce((s, i) => s + i.qtd, 0);
+  return `<div class="cl"><header><h1 style="font-size:24px">🍨 ${esc(L.nome)}</h1><div class="row wrap" style="margin-top:6px"><span class="chip" style="background:rgba(255,255,255,.25);color:#fff">${L.aberta ? "● Aberto agora" : "Fechado no momento"}</span>${L.minimo ? `<span class="sm">Pedido mínimo ${brl(L.minimo)}</span>` : ""}</div></header>
+  <nav><div class="tabs">${[{ id: "", nome: "Tudo", em: "✨" }, ...S.cats.filter(c => S.produtos.some(p => p.cat === c.id && p.ativo && p.tipo === "un"))].map(c => `<button class="tab" aria-pressed="${cli.cat === c.id}" data-a="cCat:${c.id}">${c.em} ${esc(c.nome)}</button>`).join("")}</div></nav>
+  <div class="col" style="padding:14px">${prods.map(p => `<button class="prod" ${p.out ? "disabled" : ""} data-a="cProd:${p.id}"><span class="em">${catEm(p.cat)}</span><span class="sp"><b>${esc(p.nome)}</b><br><span class="mut sm">${p.out ? '<b style="color:var(--bad)">Em falta</b>' : p.sab ? `${p.sab} ${p.sab === 1 ? "sabor" : "sabores"} à sua escolha` : "&nbsp;"}</span></span><b class="num">${brl(p.preco)}</b><span style="color:var(--pri);font-size:22px">＋</span></button>`).join("")}</div>
+  ${q ? `<div class="bar"><button class="btn pri lg" data-a="cCarrinho">🛍️ Ver pedido · ${q} ${q === 1 ? "item" : "itens"} · ${brl(sub)}</button></div>` : ""}</div>`;
+}
+A.cCat = (el, id) => { cli.cat = id; render(); };
+A.cProd = (el, id) => {
+  const p = prodDe(id); if (!S.loja.aberta) return toast("A loja está fechada no momento.", true);
+  if (p.sab || p.grupos.length) return abrirMontar(p, "cli");
+  cli.cart.push({ id: uid(), pid: p.id, nome: p.nome, qtd: 1, unit: p.preco, sabores: [], comps: [], sIds: [], cIds: [] }); render();
+};
+function cTaxa() { return cli.canal === "delivery" ? (S.loja.bairros.find(b => b.nome === cli.dados.bairro)?.taxa ?? 0) : 0; }
+A.cCarrinho = () => openModal("Seu pedido", drawCheckout);
+function drawCheckout() {
+  const d = cli.dados, L = S.loja, sub = r2(cli.cart.reduce((s, i) => s + itemTotal(i), 0)), taxa = cTaxa(), falta = L.minimo - sub;
+  if (!cli.cart.length) return `<p class="mut">Seu pedido está vazio.</p>`;
+  return `<div class="col">
+  ${cli.cart.map(i => `<div class="item"><div class="row"><b class="sp">${esc(i.nome)}</b><b class="num">${brl(itemTotal(i))}</b></div>${i.sabores.length ? `<div class="mut xs">${esc(i.sabores.join(", "))}</div>` : ""}${i.comps.length ? `<div class="mut xs">+ ${esc(i.comps.map(c => c.nome).join(", "))}</div>` : ""}<div class="row" style="margin-top:4px"><div class="qty"><button aria-label="Menos" data-a="cQtd:${i.id}:-1">−</button><b>${i.qtd}</b><button aria-label="Mais" data-a="cQtd:${i.id}:1">+</button></div><span class="sp"></span><button class="btn ghost sm" aria-label="Remover ${esc(i.nome)}" data-a="cDel:${i.id}">🗑</button></div></div>`).join("")}
+  <div class="g2" role="group" aria-label="Como receber">${[["delivery", "Entrega"], ["retirada", "Retirar na loja"]].map(([k, r]) => `<button class="tab" style="text-align:center" aria-pressed="${cli.canal === k}" data-a="cCanal:${k}">${r}</button>`).join("")}</div>
+  <div class="g2">${field("Seu nome", `<input data-c="cDado" data-k="nome" autocomplete="name" value="${esc(d.nome)}">`)}${field("WhatsApp com DDD", `<input data-c="cDado" data-k="tel" inputmode="tel" autocomplete="tel" value="${esc(d.tel)}">`)}</div>
+  ${cli.canal === "delivery" ? `${L.bairros.length ? field("Bairro", `<select data-c="cDado" data-k="bairro"><option value="">Escolha o bairro</option>${L.bairros.map(b => `<option value="${esc(b.nome)}" ${d.bairro === b.nome ? "selected" : ""}>${esc(b.nome)} · entrega ${brl(b.taxa)}</option>`).join("")}</select>`) : ""}${field("Endereço (rua e número)", `<input data-c="cDado" data-k="end" autocomplete="street-address" value="${esc(d.end)}">`)}${field("Complemento / referência", `<input data-c="cDado" data-k="ref" value="${esc(d.ref)}">`)}` : ""}
+  ${field(cli.canal === "delivery" ? "Pagar na entrega com" : "Pagar na retirada com", `<select data-c="cDado" data-k="pag">${Object.entries(MEIOS).map(([k, r]) => `<option value="${k}" ${d.pag === k ? "selected" : ""}>${r}</option>`).join("")}</select>`)}
+  ${d.pag === "dinheiro" ? field("Troco para quanto? (opcional)", `<input data-c="cDado" data-k="troco" inputmode="decimal" placeholder="Ex.: 50" value="${esc(d.troco)}">`) : ""}
+  ${field("Alguma observação?", `<input maxlength="200" data-c="cDado" data-k="obs" value="${esc(d.obs)}">`)}
+  <div style="border-top:1px solid var(--line);padding-top:10px" class="num"><div class="row"><span class="sp">Itens</span>${brl(sub)}</div>${cli.canal === "delivery" ? `<div class="row"><span class="sp">Entrega</span>${d.bairro || !L.bairros.length ? brl(taxa) : "escolha o bairro"}</div>` : ""}<div class="row" style="font-size:22px;font-weight:800"><span class="sp">Total</span>${brl(sub + taxa)}</div></div>
+  ${falta > 0 ? `<div class="chip warn" style="padding:8px">Faltam ${brl(falta)} para o pedido mínimo</div>` : ""}
+  <button class="btn pri lg" ${falta > 0 || !L.aberta ? "disabled" : ""} data-a="cEnviar">Enviar pedido</button></div>`;
+}
+C.cDado = el => { cli.dados[el.dataset.k] = el.value; if (["bairro", "pag"].includes(el.dataset.k)) drawModal(); };
+A.cCanal = (el, k) => { cli.canal = k; drawModal(); };
+A.cQtd = (el, id, d) => { const i = cli.cart.find(x => x.id === id); i.qtd = Math.max(1, i.qtd + Number(d)); drawModal(); render(); };
+A.cDel = (el, id) => { cli.cart = cli.cart.filter(x => x.id !== id); if (!cli.cart.length) closeModal(); else drawModal(); render(); };
+A.cEnviar = () => {
+  const d = cli.dados, tel = dig(d.tel);
+  if (!S.loja.aberta) return toast("A loja está fechada no momento.", true);
+  if (d.nome.trim().length < 2) return toast("Informe seu nome", true);
+  if (tel.length < 10 || tel.length > 13) return toast("Informe um telefone com DDD", true);
+  if (cli.canal === "delivery") { if (d.end.trim().length < 5) return toast("Informe o endereço de entrega", true); if (S.loja.bairros.length && !S.loja.bairros.some(b => b.nome === d.bairro)) return toast("Escolha o bairro da entrega", true); }
+  if (S.online.filter(o => dig(o.cliente.tel) === tel && Date.now() - new Date(o.criado) < 6e5).length >= 3) return toast("Muitos pedidos seguidos. Fale com a loja pelo WhatsApp.", true);
+  // o preço é refeito a partir do cardápio (o carrinho só guarda as escolhas)
+  const itens = []; for (const c of cli.cart) { const r = montarItem(prodDe(c.pid) || { out: true, nome: c.nome }, c.sIds, c.cIds, c.qtd, c.obs); if (r.erro) return toast(r.erro, true); itens.push(r.item); }
+  const sub = r2(itens.reduce((s, i) => s + itemTotal(i), 0)), taxa = cTaxa();
+  if (sub < S.loja.minimo) return toast(`Pedido mínimo: ${brl(S.loja.minimo)}`, true);
+  const cod = uid().slice(0, 5).toUpperCase();
+  S.online.push({ id: uid(), cod, canal: cli.canal, status: "novo", motivo: null, criado: new Date().toISOString(), cliente: { nome: d.nome.trim(), tel, end: d.end.trim(), bairro: d.bairro, ref: d.ref }, itens, sub, taxa, total: r2(sub + taxa), pag: d.pag, troco: d.pag === "dinheiro" ? num(d.troco) || null : null, obs: d.obs.trim() || null });
+  save(); cli.cod = cod; sessionStorage.setItem("sorv-cod", cod); cli.cart = []; closeModal(); render();
+};
+function vAcompanhar() {
+  const o = S.online.find(x => x.cod === cli.cod), st = o?.status || "novo", L = S.loja;
+  const icon = st === "aceito" ? "✅" : st === "recusado" ? "❌" : "⏳";
+  const pedido = o && S.pedidos.find(p => p.id === o.id);
+  const fase = pedido?.prod, txt = st === "recusado" ? "A sorveteria não pôde aceitar o pedido." : st === "novo" ? "Aguardando a sorveteria confirmar…" : fase === "pronto" ? (o.canal === "delivery" ? "Pronto! Já vai sair para entrega." : "Pronto para retirar! 🎉") : fase === "entregue" ? "Pedido entregue. Bom apetite! 😋" : fase === "preparando" ? "Estamos preparando o seu pedido." : "Pedido confirmado!";
+  return `<div class="cl" style="text-align:center;padding:28px 20px"><h1 style="font-size:20px">🍨 ${esc(L.nome)}</h1><div style="font-size:64px;margin:18px 0 6px">${icon}</div><div class="mut sm">Seu pedido</div><div style="font-size:40px;font-weight:800;letter-spacing:.12em">${esc(cli.cod)}</div>
+  <p style="font-size:18px;font-weight:700" aria-live="polite">${txt}</p>${o?.motivo ? `<p class="chip bad" style="padding:8px">${esc(o.motivo)}</p>` : ""}${o ? `<p class="mut num">Total ${brl(o.total)}</p>` : `<p class="mut">Pedido não encontrado neste aparelho.</p>`}
+  <div class="col" style="margin-top:18px"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/55${dig(L.whats)}?text=${encodeURIComponent("Olá! Fiz o pedido " + cli.cod + " pelo cardápio online.")}">💬 Falar com a sorveteria</a><button class="btn" data-a="cNovo">Fazer outro pedido</button></div></div>`;
+}
+A.cNovo = () => { cli.cod = null; sessionStorage.removeItem("sorv-cod"); render(); };
+
+/* =====================================================================
+   PDV
+   ===================================================================== */
+const TABS = [["vender", "🍦 Vender"], ["comandas", "📋 Comandas"], ["online", "🌐 Online"], ["producao", "👨‍🍳 Produção"], ["caixa", "💰 Caixa"], ["cardapio", "🏷️ Cardápio"], ["relatorio", "📊 Relatório"]];
+const ativo = () => S.pedidos.find(p => p.id === S.ativo && p.sit === "aberto") || null;
+const novoPedido = (canal = "balcao") => ({ id: uid(), numero: 0, canal, itens: [], desc: 0, taxa: 0, gorjeta: false, sit: "aberto", prod: null, naEntrega: false, pags: [], troco: 0, criado: new Date().toISOString(), enviados: [] });
+function garantir() { let p = ativo(); if (!p) { p = novoPedido(); S.pedidos.push(p); S.ativo = p.id; } return p; }
+function numerar(p) { if (!p.numero) p.numero = S.seq++; }
+function vPdv() {
+  const nOn = S.online.filter(o => o.status === "novo").length, nFila = S.pedidos.filter(p => p.sit !== "cancelado" && ["novo", "preparando"].includes(p.prod)).length, cx = caixaAberto();
+  const nCom = S.pedidos.filter(p => p.sit === "aberto" && p.canal === "mesa" && p.itens.length).length;
+  return `<div class="top"><div class="row wrap"><a class="btn ghost sm" href="#/">← Início</a><h1>🍨 ${esc(S.loja.nome)}</h1>
+  <nav class="tabs sp" aria-label="Telas do PDV">${TABS.map(([k, r]) => `<button class="tab" ${ui.tab === k ? 'aria-current="page"' : ""} data-a="tab:${k}">${r}${k === "online" && nOn ? `<span class="badge">${nOn}</span>` : ""}${k === "producao" && nFila ? `<span class="badge">${nFila}</span>` : ""}${k === "comandas" && nCom ? `<span class="badge" style="background:#d97706">${nCom}</span>` : ""}</button>`).join("")}</nav>
+  <button class="chip ${cx ? "ok" : "bad"}" style="border:0;cursor:pointer" data-a="tab:caixa">${cx ? "Caixa aberto" : "Caixa fechado"}</button></div></div>
+  <div class="wrapper">${({ vender: tVender, comandas: tComandas, online: tOnline, producao: tProducao, caixa: tCaixa, cardapio: tCardapio, relatorio: tRelatorio })[ui.tab]()}</div>`;
+}
+A.tab = (el, k) => { ui.tab = k; render(); };
+
+/* ----- Vender ----- */
+function tVender() {
+  const p = ativo(), cx = caixaAberto(), q = ui.busca.trim().toLowerCase();
+  const prods = S.produtos.filter(x => x.ativo && (!ui.cat || x.cat === ui.cat) && (!q || x.nome.toLowerCase().includes(q)));
+  return `<div class="pdv"><section class="col">
+  ${!cx ? `<div class="chip warn row" style="padding:10px;border-radius:12px">O caixa está fechado. <button class="btn pri sm" data-a="tab:caixa">Abrir caixa</button></div>` : ""}
+  <input type="search" placeholder="Buscar produto" aria-label="Buscar produto" data-i="busca" data-keep="busca" data-enter="primeiro" value="${esc(ui.busca)}">
+  <div class="tabs">${[{ id: "", nome: "Todos", em: "✨" }, ...S.cats].map(c => `<button class="tab" aria-pressed="${ui.cat === c.id}" data-a="pCat:${c.id}">${c.em} ${esc(c.nome)}</button>`).join("")}</div>
+  <div class="grid">${prods.map(x => `<button class="tile" ${x.out ? "disabled" : ""} data-a="pProd:${x.id}"><span class="em">${catEm(x.cat)}</span><span><b>${esc(x.nome)}</b><br><span class="mut sm num">${x.out ? '<b style="color:var(--bad)">Em falta</b>' : x.tipo === "peso" ? brl(x.preco) + " / kg" : brl(x.preco)}</span></span></button>`).join("") || `<p class="mut">Nenhum produto.</p>`}</div></section>
+  ${vCarrinho(p)}</div>`;
+}
+C.busca = el => { ui.busca = el.value; render(); };
+A.primeiro = () => { const q = ui.busca.trim().toLowerCase(); const x = S.produtos.find(p => p.ativo && p.nome.toLowerCase().includes(q)); if (x) { ui.busca = ""; A.pProd(null, x.id); } };
+A.pCat = (el, id) => { ui.cat = id; render(); };
+A.pProd = (el, id) => {
+  const x = prodDe(id); if (!caixaAberto()) return toast("Abra o caixa para vender.", true); if (x.out) return toast(`${x.nome} está em falta.`, true);
+  if (x.sab || x.grupos.length || x.tipo === "peso") return abrirMontar(x, "pdv");
+  addItemPdv({ id: uid(), pid: x.id, nome: x.nome, qtd: 1, unit: x.preco, sabores: [], comps: [], sIds: [], cIds: [] });
+};
+function addItemPdv(it) {
+  const p = garantir(), simples = !it.sabores.length && !it.comps.length && !it.obs && it.pesoG == null;
+  const igual = simples && p.itens.find(i => i.pid === it.pid && !i.sabores.length && !i.comps.length && !i.obs && i.pesoG == null && !p.enviados.includes(i.id));
+  const edit = p.itens.findIndex(i => i.id === it.id);
+  if (edit >= 0) p.itens[edit] = it; else if (igual) igual.qtd += it.qtd; else p.itens.push(it);
+  commit();
+}
+function vCarrinho(p) {
+  const L = S.loja, canal = p?.canal || "balcao", itens = p?.itens || [], d = p?.cliente || { nome: "", tel: "", end: "", bairro: "", ref: "" };
+  const novos = p ? p.itens.some(i => !p.enviados.includes(i.id)) : false;
+  return `<aside class="card cart"><div class="seg" role="group" aria-label="Tipo de pedido">${Object.entries(CANAIS).map(([k, r]) => `<button aria-pressed="${canal === k}" data-a="vCanal:${k}">${r}</button>`).join("")}</div>
+  <div class="body col" style="gap:8px">
+  ${canal === "mesa" ? `<button class="btn" data-a="vMesa"><span class="mut sp" style="text-align:left">Comanda</span> <b style="font-size:18px">${esc(p?.mesa || "Escolher")}</b></button>` : ""}
+  ${canal === "delivery" || canal === "retirada" ? `<div class="g2">${field("Telefone", `<input inputmode="tel" data-c="vCli" data-k="tel" value="${esc(d.tel)}">`)}${field("Nome", `<input data-c="vCli" data-k="nome" value="${esc(d.nome)}">`)}</div>${canal === "delivery" ? `${field("Bairro", `<select data-c="vBairro"><option value="">Outro / sem taxa cadastrada</option>${L.bairros.map(b => `<option ${d.bairro === b.nome ? "selected" : ""} value="${esc(b.nome)}">${esc(b.nome)} · ${brl(b.taxa)}</option>`).join("")}</select>`)}${field("Endereço", `<input data-c="vCli" data-k="end" value="${esc(d.end)}">`)}<div class="g2">${field("Referência", `<input data-c="vCli" data-k="ref" value="${esc(d.ref || "")}">`)}${field("Taxa de entrega (R$)", `<input inputmode="decimal" style="text-align:right" data-c="vTaxa" value="${p?.taxa ? String(p.taxa).replace(".", ",") : ""}" placeholder="0">`)}</div>` : ""}` : ""}
+  ${itens.length ? itens.map(i => `<div class="item"><div class="row"><b class="sp sm">${esc(i.pesoG != null ? `${i.nome} · ${i.pesoG} g` : i.nome)}${p.enviados.includes(i.id) ? ' <span class="chip xs">ENVIADO</span>' : ""}</b><b class="num sm">${brl(itemTotal(i))}</b></div>${i.sabores.length ? `<div class="mut xs">${esc(i.sabores.join(", "))}</div>` : ""}${i.comps.length ? `<div class="mut xs">+ ${esc(i.comps.map(c => c.nome).join(", "))}</div>` : ""}${i.obs ? `<div class="xs" style="color:var(--warn)">Obs: ${esc(i.obs)}</div>` : ""}
+  <div class="row" style="margin-top:4px">${i.pesoG == null ? `<div class="qty"><button aria-label="Menos ${esc(i.nome)}" data-a="vQtd:${i.id}:-1">−</button><b>${i.qtd}</b><button aria-label="Mais ${esc(i.nome)}" data-a="vQtd:${i.id}:1">+</button></div>` : ""}<span class="sp"></span>${i.sIds?.length || i.cIds?.length || i.pesoG != null ? `<button class="btn ghost sm" aria-label="Editar ${esc(i.nome)}" data-a="vEdit:${i.id}">✏️</button>` : ""}<button class="btn ghost sm" aria-label="Remover ${esc(i.nome)}" data-a="vDel:${i.id}">🗑</button></div></div>`).join("") : `<p class="mut" style="text-align:center;padding:28px 8px;border:2px dashed var(--line);border-radius:12px">Toque nos produtos para montar o pedido.</p>`}</div>
+  <div class="foot col" style="gap:6px"><div class="num sm"><div class="row"><span class="sp">Subtotal (${p ? qtdItens(p) : 0})</span>${brl(p ? subtotal(p) : 0)}</div>
+  <div class="row"><span class="sp">Desconto %</span><input style="width:80px;text-align:right;min-height:34px" inputmode="decimal" placeholder="0" aria-label="Desconto em %" data-c="vDesc" value="${p?.desc ? String(p.desc).replace(".", ",") : ""}"></div>
+  ${p && descPedido(p) ? `<div class="row mut xs"><span class="sp">desconto aplicado</span>− ${brl(descPedido(p))}</div>` : ""}${canal === "delivery" && p?.taxa ? `<div class="row"><span class="sp">Taxa de entrega</span>${brl(p.taxa)}</div>` : ""}
+  ${canal === "mesa" ? `<div class="row"><label class="sp"><input type="checkbox" style="width:auto;min-height:0" data-c="vGorj" ${p?.gorjeta ? "checked" : ""}> Serviço ${L.gorjeta}%</label>${p?.gorjeta ? brl(gorjPedido(p)) : "—"}</div>` : ""}</div>
+  <div class="row"><b class="sp">Total</b><span class="total num">${brl(p ? totalPedido(p) : 0)}</span></div>
+  <div class="row">${canal === "mesa" ? `<button class="btn sp" ${novos ? "" : "disabled"} data-a="lancar">Lançar</button>` : ""}<button class="btn pri sp" style="flex:2" ${itens.length ? "" : "disabled"} data-a="cobrar">Cobrar <kbd class="xs" style="opacity:.7">F2</kbd></button></div>
+  ${p && !p.numero && itens.length ? `<button class="btn ghost sm" data-a="descartar">Descartar pedido</button>` : ""}</div></aside>`;
+}
+A.vCanal = (el, k) => { const p = garantir(); p.canal = k; if (k !== "mesa") { p.gorjeta = false; p.mesa = undefined; } if (k !== "delivery") p.taxa = 0; if ((k === "delivery" || k === "retirada") && !p.cliente) p.cliente = { nome: "", tel: "", end: "", bairro: "", ref: "" }; commit(); if (k === "mesa" && !p.mesa) A.vMesa(); };
+C.vCli = el => { const p = garantir(); p.cliente = p.cliente || { nome: "", tel: "", end: "", bairro: "", ref: "" }; p.cliente[el.dataset.k] = el.value;
+  if (el.dataset.k === "tel" && dig(el.value).length >= 10 && !p.cliente.nome && !p.cliente.end) { const ant = [...S.pedidos, ...S.online.map(o => ({ cliente: { ...o.cliente, tel: o.cliente.tel } }))].reverse().find(x => x.cliente && dig(x.cliente.tel) === dig(el.value) && x.cliente.nome); if (ant) { p.cliente = { ...ant.cliente, tel: el.value }; const b = S.loja.bairros.find(b => b.nome === p.cliente.bairro); if (b && p.canal === "delivery") p.taxa = b.taxa; } }
+  commit(); };
+C.vBairro = el => { const p = garantir(); p.cliente = p.cliente || {}; p.cliente.bairro = el.value; const b = S.loja.bairros.find(b => b.nome === el.value); if (b) p.taxa = b.taxa; commit(); };
+C.vTaxa = el => { garantir().taxa = r2(num(el.value)); commit(); };
+C.vDesc = el => { garantir().desc = Math.min(100, num(el.value)); commit(); };
+C.vGorj = el => { garantir().gorjeta = el.checked; commit(); };
+A.vQtd = (el, id, d) => { const i = ativo().itens.find(x => x.id === id); i.qtd = Math.max(1, i.qtd + Number(d)); commit(); };
+A.vDel = (el, id) => { const p = ativo(); p.itens = p.itens.filter(x => x.id !== id); commit(); };
+A.vEdit = (el, id) => { const i = ativo().itens.find(x => x.id === id); abrirMontar(prodDe(i.pid), "pdv", i); };
+A.descartar = () => { const p = ativo(); if (p.itens.length && !confirm("Descartar este pedido?")) return; S.pedidos = S.pedidos.filter(x => x.id !== p.id); S.ativo = null; commit(); };
+A.vMesa = () => openModal("Qual comanda?", () => `<div class="g3" style="grid-template-columns:repeat(auto-fill,minmax(64px,1fr))">${Array.from({ length: S.loja.comandas }, (_, k) => String(k + 1)).map(n => { const oc = S.pedidos.some(p => p.sit === "aberto" && p.canal === "mesa" && p.mesa === n && p.itens.length); return `<button class="btn" style="${oc ? "background:var(--cream);border-color:#d97706" : ""};min-height:56px;font-size:18px" data-a="escMesa:${n}">${n}</button>`; }).join("")}</div><p class="mut xs">Em amarelo: comanda aberta. Escolhê-la soma o carrinho a ela.</p>`, true);
+A.escMesa = (el, n) => {
+  closeModal(); const p = garantir(), ex = S.pedidos.find(x => x.id !== p.id && x.sit === "aberto" && x.canal === "mesa" && x.mesa === n);
+  if (!ex) { p.canal = "mesa"; p.mesa = n; } else { ex.itens.push(...p.itens); S.pedidos = S.pedidos.filter(x => x.id !== p.id); S.ativo = ex.id; }
+  commit();
+};
+function validar(p) {
+  if (!p.itens.length) return "Adicione itens ao pedido."; if (!caixaAberto()) return "Abra o caixa para continuar.";
+  if (p.canal === "mesa" && !p.mesa) return "Escolha a comanda.";
+  if (p.canal === "delivery" && (!p.cliente?.nome?.trim() || !p.cliente?.end?.trim() || !dig(p.cliente?.tel))) return "Delivery: informe nome, telefone e endereço.";
+  if (p.canal === "retirada" && !p.cliente?.nome?.trim()) return "Retirada: informe o nome do cliente."; return null;
+}
+function paraProducao(p) { numerar(p); const novos = p.itens.filter(i => !p.enviados.includes(i.id)); p.enviados = p.itens.map(i => i.id); if (!p.prod || novos.length) { p.prod = "novo"; p.enviadoEm = new Date().toISOString(); } }
+A.lancar = () => { const p = ativo(), e = validar(p); if (e) return toast(e, true); paraProducao(p); S.ativo = null; toast(`Comanda ${p.mesa} enviada para a produção.`); commit(); };
+A.cobrar = () => { const p = ativo(); if (!p) return; const e = validar(p); if (e) return toast(e, true); abrirCobranca(p.id); };
+
+/* ----- Cobrança ----- */
+let P = null; // {id, linhas:[{meio, valor, rec}]}
+function abrirCobranca(id) { P = { id, linhas: [] }; openModal("Cobrar pedido", drawCobranca, true); }
+function calcPag() {
+  const p = S.pedidos.find(x => x.id === P.id), tot = totalPedido(p); let rest = tot; const out = [];
+  P.linhas.filter(l => l.meio !== "dinheiro").forEach(l => { const v = Math.min(rest, num(l.valor)); rest = r2(rest - v); out.push({ l, v, rec: v }); });
+  P.linhas.filter(l => l.meio === "dinheiro").forEach(l => { const rec = num(l.rec) || num(l.valor), v = Math.min(rest, rec); rest = r2(rest - v); out.push({ l, v, rec }); });
+  return { p, tot, rest, out, troco: r2(out.reduce((s, o) => s + (o.l.meio === "dinheiro" ? Math.max(0, o.rec - o.v) : 0), 0)) };
+}
+function drawCobranca() {
+  const { p, tot, rest, out, troco } = calcPag();
+  return `<div class="col"><div class="row card" style="padding:12px"><span class="sp mut b">Total a pagar</span><b class="num" style="font-size:30px">${brl(tot)}</b></div>
+  <div class="row wrap">${Object.entries(MEIOS).map(([k, r]) => `<button class="btn sp" data-a="pagAdd:${k}">${r}</button>`).join("")}</div>
+  ${P.linhas.map((l, i) => `<div class="card" style="padding:10px"><div class="row"><b class="sp">${MEIOS[l.meio]}</b>${l.meio === "dinheiro" ? `<label class="xs mut">Recebido <input style="width:110px;text-align:right;min-height:34px" inputmode="decimal" data-c="pagRec" data-i2="${i}" placeholder="${esc(l.valor)}" value="${esc(l.rec)}" autofocus></label>` : `<input style="width:110px;text-align:right;min-height:34px" inputmode="decimal" aria-label="Valor em ${MEIOS[l.meio]}" data-c="pagVal" data-i2="${i}" value="${esc(l.valor)}">`}<button class="btn ghost sm" aria-label="Remover" data-a="pagDel:${i}">🗑</button></div>
+  ${l.meio === "dinheiro" ? `<div class="row wrap" style="margin-top:6px">${[10, 20, 50, 100, 200].map(n => `<button class="pill xs" data-a="pagRapido:${i}:${n}">${brl(n)}</button>`).join("")}<button class="pill xs" data-a="pagRapido:${i}:0">Valor exato</button></div>` : ""}</div>`).join("")}
+  ${rest > 0 ? `<div class="row" style="color:var(--warn)"><span class="sp">Falta</span><b class="num">${brl(rest)}</b></div>` : ""}${troco > 0 ? `<div class="row" style="color:var(--ok);font-size:26px;font-weight:800"><span class="sp">Troco</span>${brl(troco)}</div>` : ""}
+  <div class="row wrap" style="justify-content:flex-end">${p.canal === "delivery" && !p.naEntrega ? `<button class="btn" data-a="pagEntrega">🛵 Receber na entrega</button>` : ""}<button class="btn pri" style="padding:10px 26px" ${rest > 0 || (!P.linhas.length && tot > 0) ? "disabled" : ""} data-a="pagOk">Confirmar pagamento</button></div></div>`;
+}
+const linhaDe = el => P.linhas[Number(el.dataset.i2)];
+A.pagAdd = (el, meio) => { const { rest } = calcPag(); if (rest <= 0 && meio !== "dinheiro") return; P.linhas.push({ meio, valor: rest > 0 ? rest.toFixed(2).replace(".", ",") : "", rec: "" }); drawModal(); };
+C.pagRec = el => { linhaDe(el).rec = el.value.replace(/[^\d,.]/g, ""); drawModal(); }; C.pagVal = el => { linhaDe(el).valor = el.value.replace(/[^\d,.]/g, ""); drawModal(); };
+A.pagDel = (el, i) => { P.linhas.splice(Number(i), 1); drawModal(); };
+A.pagRapido = (el, i, n) => { P.linhas[Number(i)].rec = Number(n) ? String(n) : ""; drawModal(); };
+A.pagEntrega = () => { const p = S.pedidos.find(x => x.id === P.id); if (validar(p)) return toast(validar(p), true); p.naEntrega = true; paraProducao(p); if (S.ativo === p.id) S.ativo = null; closeModal(); toast("Pedido enviado. Cobrar quando entregar."); commit(); };
+A.pagOk = () => {
+  const { p, rest, out, troco } = calcPag(); if (rest > 0) return;
+  numerar(p); p.pags = out.filter(o => o.v > 0).map(o => ({ meio: o.l.meio, valor: o.v })); p.troco = troco; p.sit = "fechado"; p.pagoEm = new Date().toISOString(); p.caixa = caixaAberto()?.id;
+  if (p.naEntrega) { p.prod = "entregue"; p.entregueEm = p.pagoEm; } else if (!p.prod && (p.canal !== "balcao" || S.loja.prodBalcao)) paraProducao(p);
+  if (S.ativo === p.id) S.ativo = null; closeModal(); commit();
+  openModal("Venda concluída", () => `<div class="col" style="text-align:center"><p>Pedido <b>#${p.numero}</b> · ${brl(totalPedido(p))}</p>${troco ? `<div class="card" style="padding:14px;background:var(--mint);color:var(--ok)"><div class="sm b">Troco</div><b class="num" style="font-size:38px">${brl(troco)}</b></div>` : ""}<div class="row" style="justify-content:center"><button class="btn" data-a="imprimir:${p.id}">🖨 Imprimir</button><button class="btn pri" autofocus data-a="closeModal">Novo pedido</button></div></div>`, true);
+};
+
+/* ----- Comandas ----- */
+function tComandas() {
+  const ab = S.pedidos.filter(p => p.sit === "aberto" && p.canal === "mesa" && p.itens.length);
+  return `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${Array.from({ length: S.loja.comandas }, (_, k) => String(k + 1)).map(n => { const p = ab.find(x => x.mesa === n);
+    if (!p) return `<button class="tile" style="border:2px dashed var(--line);align-items:center;justify-content:center;color:var(--mut);box-shadow:none" data-a="novaMesa:${n}"><b style="font-size:28px">${n}</b><span class="xs">livre</span></button>`;
+    const min = Math.floor((Date.now() - new Date(p.criado)) / 6e4);
+    return `<div class="tile" style="background:var(--cream);border:2px solid #f59e0b"><button class="btn ghost" style="text-align:left;padding:0;display:block" data-a="abrirMesa:${p.id}"><b style="font-size:28px">${n}</b><br><b class="num sm">${brl(totalPedido(p))}</b><br><span class="xs">${qtdItens(p)} itens · ${min} min</span></button><button class="btn sm" style="background:#f59e0b;border-color:#f59e0b;color:#fff" data-a="fecharMesa:${p.id}">Fechar conta</button></div>`; }).join("")}</div>`;
+}
+A.novaMesa = (el, n) => { S.ativo = null; const p = garantir(); p.canal = "mesa"; p.mesa = n; ui.tab = "vender"; commit(); };
+A.abrirMesa = (el, id) => { S.ativo = id; ui.tab = "vender"; commit(); };
+A.fecharMesa = (el, id) => { S.ativo = id; abrirCobranca(id); };
+
+/* ----- Online ----- */
+function tOnline() {
+  const lista = [...S.online].sort((a, b) => (a.criado < b.criado ? 1 : -1));
+  return `<div class="col" style="max-width:760px;margin:0 auto"><p class="mut sm">Cardápio do cliente: <a href="#/cardapio" target="_blank" rel="noopener"><b>abrir em outra aba</b></a> ${S.loja.aberta ? "" : '<span class="chip bad">recebimento pausado</span>'}</p>
+  ${lista.length ? lista.map(o => `<div class="card" style="padding:14px;${o.status === "novo" ? "border-color:#f59e0b" : ""}"><div class="row wrap"><b style="font-size:18px;letter-spacing:.1em">${o.cod}</b><span class="chip">${o.canal === "delivery" ? "Entrega" : "Retirada"}</span><span class="chip ${o.status === "novo" ? "warn" : o.status === "aceito" ? "ok" : "bad"}">${o.status === "novo" ? "AGUARDANDO" : o.status.toUpperCase()}</span><span class="sp"></span><span class="mut xs">${hora(o.criado)}</span></div>
+  <div class="sm" style="margin-top:6px"><b>${esc(o.cliente.nome)}</b> · ${esc(o.cliente.tel)}</div>${o.canal === "delivery" ? `<div class="mut sm">${esc(o.cliente.end)}${o.cliente.bairro ? " · " + esc(o.cliente.bairro) : ""}${o.cliente.ref ? " · " + esc(o.cliente.ref) : ""}</div>` : ""}
+  <ul class="sm" style="margin:8px 0;padding-left:18px">${o.itens.map(i => `<li><b>${i.qtd}× ${esc(i.nome)}</b> <span class="mut">${esc([i.sabores.join(", "), i.comps.map(c => "+ " + c.nome).join(", "), i.obs && "Obs: " + i.obs].filter(Boolean).join(" · "))}</span></li>`).join("")}</ul>
+  <div class="num sm mut">Pagamento: ${MEIOS[o.pag]}${o.troco ? ` (troco para ${brl(o.troco)})` : ""} · entrega ${brl(o.taxa)} · <b style="color:var(--fg)">total ${brl(o.total)}</b></div>${o.obs ? `<div class="chip warn" style="margin-top:6px">${esc(o.obs)}</div>` : ""}${o.motivo ? `<div class="xs" style="color:var(--bad)">Motivo: ${esc(o.motivo)}</div>` : ""}
+  ${o.status === "novo" ? `<div class="row wrap" style="margin-top:10px"><button class="btn pri" data-a="aceitar:${o.id}">✓ Aceitar e enviar para produção</button><button class="btn" data-a="recusar:${o.id}">✕ Recusar</button><a class="btn" target="_blank" rel="noopener" href="https://wa.me/55${dig(o.cliente.tel)}?text=${encodeURIComponent("Olá, " + o.cliente.nome + "! Sobre o seu pedido " + o.cod + ":")}">💬 WhatsApp</a></div>` : ""}</div>`).join("") : `<p class="mut" style="text-align:center;padding:40px;border:2px dashed var(--line);border-radius:16px">Nenhum pedido online ainda. Faça um pelo cardápio.</p>`}</div>`;
+}
+A.aceitar = (el, id) => {
+  const o = S.online.find(x => x.id === id); if (!o || o.status !== "novo") return;
+  o.status = "aceito"; const pag = MEIOS[o.pag].toLowerCase();
+  const p = { ...novoPedido(o.canal), id: o.id, cliente: { nome: o.cliente.nome, tel: o.cliente.tel, end: o.cliente.end, bairro: o.cliente.bairro, ref: o.cliente.ref }, taxa: o.taxa, itens: o.itens.map(i => ({ ...i })), naEntrega: true,
+    obs: `ONLINE ${o.cod} · pagar ${o.canal === "delivery" ? "na entrega" : "na retirada"} em ${pag}${o.troco ? ` (troco para ${brl(o.troco)})` : ""}${o.obs ? " · " + o.obs : ""}` };
+  S.pedidos.push(p); paraProducao(p); toast(`Pedido online ${o.cod} enviado para a produção.`); commit();
+};
+A.recusar = (el, id) => openModal("Recusar pedido", () => `<div class="col">${field("Motivo (o cliente vê)", `<input id="motivo" autofocus placeholder="Ex.: sabor acabou, fora da área de entrega">`)}<div class="row" style="justify-content:flex-end"><button class="btn" data-a="closeModal">Voltar</button><button class="btn bad" data-a="recusarOk:${id}">Recusar pedido</button></div></div>`, true);
+A.recusarOk = (el, id) => { const m = $("#motivo").value.trim(); if (!m) return toast("Informe o motivo para o cliente.", true); const o = S.online.find(x => x.id === id); o.status = "recusado"; o.motivo = m; closeModal(); commit(); };
+
+/* ----- Produção ----- */
+function tProducao() {
+  const fila = S.pedidos.filter(p => p.sit !== "cancelado" && p.prod && p.prod !== "entregue");
+  const col = (fase, titulo, cls) => { const l = fila.filter(p => p.prod === fase).sort((a, b) => ((a.enviadoEm || a.criado) > (b.enviadoEm || b.criado) ? 1 : -1));
+    return `<section><h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.06em" class="mut">${titulo} <span class="chip">${l.length}</span></h2><div class="col" style="margin-top:8px">${l.length ? l.map(p => { const min = Math.floor((Date.now() - new Date(fase === "pronto" ? p.prontoEm : p.enviadoEm || p.criado)) / 6e4);
+      return `<div class="card ord ${cls}"><div class="row"><b style="font-size:20px">#${p.numero}</b><span class="chip">${CANAIS[p.canal]}${p.mesa ? " " + esc(p.mesa) : ""}</span><span class="sp"></span><b class="sm" style="color:${min >= 15 && fase !== "pronto" ? "var(--bad)" : "var(--mut)"}">${min} min</b></div>${p.cliente?.nome ? `<div class="mut sm">${esc(p.cliente.nome)}${p.canal === "delivery" && p.cliente.bairro ? " · " + esc(p.cliente.bairro) : ""}</div>` : ""}
+      <ul class="sm" style="margin:8px 0;padding:0;list-style:none">${p.itens.map(i => `<li style="margin-bottom:4px"><b>${i.pesoG != null ? `${esc(i.nome)} ${i.pesoG} g` : `${i.qtd}× ${esc(i.nome)}`}</b>${i.sabores.length ? `<div class="mut">${esc(i.sabores.join(", "))}</div>` : ""}${i.comps.length ? `<div class="mut">+ ${esc(i.comps.map(c => c.nome).join(", "))}</div>` : ""}${i.obs ? `<div style="color:var(--warn);font-weight:700">Obs: ${esc(i.obs)}</div>` : ""}</li>`).join("")}</ul>
+      ${p.obs ? `<div class="chip warn" style="margin-bottom:6px">${esc(p.obs)}</div>` : ""}${p.sit === "aberto" && p.naEntrega ? `<div class="xs b" style="color:var(--bad)">Receber ${brl(totalPedido(p))} na ${p.canal === "delivery" ? "entrega" : "retirada"}</div>` : ""}
+      <div class="row wrap" style="margin-top:8px"><button class="btn pri sp" data-a="avancar:${p.id}">${fase === "novo" ? "Começar" : fase === "preparando" ? "✓ Pronto" : p.canal === "delivery" ? "🛵 Saiu para entrega" : p.canal === "mesa" ? "Servido" : "Entregue"}</button>${fase === "pronto" && p.cliente?.tel ? `<a class="btn" target="_blank" rel="noopener" href="https://wa.me/55${dig(p.cliente.tel)}?text=${encodeURIComponent(`Olá, ${p.cliente.nome}! Seu pedido #${p.numero} ${p.canal === "delivery" ? "saiu para entrega" : "está pronto para retirada"}.`)}">💬</a>` : ""}${fase !== "novo" ? `<button class="btn ghost sm" data-a="reabrir:${p.id}">Reabrir</button>` : ""}</div></div>`; }).join("") : `<p class="mut sm" style="text-align:center;border:2px dashed var(--line);border-radius:14px;padding:22px">Nenhum pedido</p>`}</div></section>`; };
+  return `<div class="kan">${col("novo", "Novos", "n")}${col("preparando", "Preparando", "p")}${col("pronto", "Prontos", "r")}</div>`;
+}
+A.avancar = (el, id) => {
+  const p = S.pedidos.find(x => x.id === id), prox = { novo: "preparando", preparando: "pronto", pronto: "entregue" }[p.prod];
+  if (prox === "entregue" && p.sit === "aberto" && p.naEntrega) return abrirCobranca(id);
+  p.prod = prox; if (prox === "pronto") p.prontoEm = new Date().toISOString(); if (prox === "entregue") p.entregueEm = new Date().toISOString(); commit();
+};
+A.reabrir = (el, id) => { const p = S.pedidos.find(x => x.id === id); p.prod = "novo"; commit(); };
+
+/* ----- Caixa ----- */
+function totaisCaixa(c) {
+  const por = { dinheiro: 0, pix: 0, credito: 0, debito: 0, vale: 0 }; let v = 0, n = 0;
+  S.pedidos.filter(p => p.caixa === c.id && p.sit === "fechado").forEach(p => { n++; v += totalPedido(p); p.pags.forEach(x => por[x.meio] += x.valor); });
+  const sup = c.mov.filter(m => m.tipo === "suprimento").reduce((s, m) => s + m.valor, 0), san = c.mov.filter(m => m.tipo === "sangria").reduce((s, m) => s + m.valor, 0);
+  return { por, vendas: r2(v), n, esperado: r2(c.fundo + por.dinheiro + sup - san) };
+}
+function tCaixa() {
+  const c = caixaAberto();
+  if (!c) return `<div class="col" style="max-width:460px;margin:0 auto"><div class="card col" style="padding:18px"><h2 style="font-size:18px">🔒 Caixa fechado</h2><p class="mut sm">Abra o caixa com o dinheiro que está na gaveta para começar a vender.</p>${field("Fundo de troco (R$)", `<input id="fundo" inputmode="decimal" placeholder="0,00" autofocus data-enter="abrirCaixa">`)}<button class="btn pri lg" data-a="abrirCaixa">Abrir caixa</button></div>
+  ${S.caixas.slice(-5).reverse().map(x => { const t = totaisCaixa(x), dif = x.contado ? r2(x.contado.dinheiro - t.esperado) : 0; return `<div class="card row wrap sm" style="padding:10px"><span class="sp">${new Date(x.aberto).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span><span class="num">${t.n} vendas · <b>${brl(t.vendas)}</b>${dif ? ` · <span style="color:${dif < 0 ? "var(--bad)" : "var(--warn)"}">${dif > 0 ? "sobra" : "falta"} ${brl(Math.abs(dif))}</span>` : ""}</span></div>`; }).join("")}</div>`;
+  const t = totaisCaixa(c);
+  return `<div class="col" style="max-width:780px;margin:0 auto"><div class="card" style="padding:16px"><div class="row wrap"><div class="sp"><h2 style="font-size:18px">🔓 Caixa aberto</h2><div class="mut sm">${new Date(c.aberto).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · fundo ${brl(c.fundo)}</div></div><button class="btn" data-a="mov:suprimento">⬇ Suprimento</button><button class="btn" data-a="mov:sangria">⬆ Sangria</button><button class="btn bad" data-a="fechar">Fechar caixa</button></div>
+  <div class="stats num" style="margin-top:12px"><div class="card stat"><span class="mut xs">Vendas</span><b>${brl(t.vendas)}</b><span class="mut xs">${t.n} pedidos</span></div>${Object.entries(MEIOS).filter(([k]) => t.por[k] > 0 || k === "dinheiro").map(([k, r]) => `<div class="card stat"><span class="mut xs">${r}</span><b>${brl(t.por[k])}</b></div>`).join("")}</div>
+  <p class="num sm mut">Dinheiro que deve estar na gaveta: <b style="color:var(--fg)">${brl(t.esperado)}</b> (fundo + dinheiro + suprimentos − sangrias)</p></div>
+  ${c.mov.length ? `<div class="card" style="padding:14px"><h3 style="font-size:14px;margin-bottom:6px">Sangrias e suprimentos</h3>${c.mov.map(m => `<div class="row sm" style="padding:5px 0;border-top:1px solid var(--line)"><span class="sp">${hora(m.em)} · ${m.tipo === "sangria" ? "Sangria" : "Suprimento"} · ${esc(m.motivo)}</span><b style="color:${m.tipo === "sangria" ? "var(--bad)" : "var(--ok)"}">${m.tipo === "sangria" ? "−" : "+"} ${brl(m.valor)}</b></div>`).join("")}</div>` : ""}</div>`;
+}
+A.abrirCaixa = () => { S.caixas.push({ id: uid(), aberto: new Date().toISOString(), fundo: r2(num($("#fundo").value)), mov: [] }); commit(); };
+A.mov = (el, tipo) => openModal(tipo === "sangria" ? "Sangria (retirar dinheiro)" : "Suprimento (colocar dinheiro)", () => `<div class="col">${field("Valor (R$)", `<input id="mv" inputmode="decimal" autofocus>`)}${field("Motivo", `<input id="mm" placeholder="${tipo === "sangria" ? "Ex.: levou ao banco" : "Ex.: troco extra"}">`)}<button class="btn pri" data-a="movOk:${tipo}">Registrar</button></div>`, true);
+A.movOk = (el, tipo) => { const v = num($("#mv").value), m = $("#mm").value.trim(); if (!v) return toast("Informe o valor.", true); if (!m) return toast("Informe o motivo.", true); caixaAberto().mov.push({ tipo, valor: r2(v), motivo: m, em: new Date().toISOString() }); closeModal(); commit(); };
+A.fechar = () => {
+  const c = caixaAberto(), t = totaisCaixa(c), ab = S.pedidos.filter(p => p.sit === "aberto" && p.itens.length).length;
+  const esp = { dinheiro: t.esperado, ...Object.fromEntries(["pix", "credito", "debito", "vale"].map(k => [k, t.por[k]])) };
+  openModal("Fechar caixa", () => `<div class="col">${ab ? `<div class="chip warn" style="padding:8px">Há ${ab} comanda(s)/pedido(s) em aberto. Eles não entram neste caixa.</div>` : ""}<p class="mut sm">Conte a gaveta e confira as maquininhas. Só o dinheiro é obrigatório.</p>
+  ${Object.entries(MEIOS).filter(([k]) => k === "dinheiro" || esp[k] > 0).map(([k, r]) => `<div class="card" style="padding:10px"><div class="row"><b class="sp">${r}</b><input style="width:130px;text-align:right;min-height:34px" inputmode="decimal" placeholder="contado" aria-label="${r} contado" data-i="cont" data-k="${k}" data-esp="${esp[k]}"></div><div class="row xs mut"><span class="sp">esperado ${brl(esp[k])}</span><span id="d-${k}">—</span></div></div>`).join("")}
+  <div class="row" style="justify-content:flex-end"><button class="btn" data-a="closeModal">Voltar</button><button class="btn bad" data-a="fecharOk">Fechar caixa</button></div></div>`);
+};
+C.cont = el => { const d = $(`#d-${el.dataset.k}`); if (!el.value.trim()) { d.textContent = "—"; d.style.color = ""; return; } const x = r2(num(el.value) - Number(el.dataset.esp)); d.textContent = x === 0 ? "confere" : x < 0 ? `falta ${brl(-x)}` : `sobra ${brl(x)}`; d.style.color = x === 0 ? "var(--ok)" : x < 0 ? "var(--bad)" : "var(--warn)"; };
+A.fecharOk = () => { const inp = [...document.querySelectorAll("[data-i=cont]")], din = inp.find(i => i.dataset.k === "dinheiro"); if (!din.value.trim()) return toast("Informe o dinheiro contado na gaveta.", true);
+  const c = caixaAberto(); c.fechado = new Date().toISOString(); c.contado = Object.fromEntries(inp.map(i => [i.dataset.k, i.value.trim() ? num(i.value) : Number(i.dataset.esp)])); closeModal(); toast("Caixa fechado."); commit(); };
+
+/* ----- Relatório ----- */
+function tRelatorio() {
+  const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0); const dias = { hoje: 1, "7": 7, "30": 30 }[ui.per], de = new Date(hoje0.getTime() - (dias - 1) * 864e5), ate = new Date(hoje0.getTime() + 864e5);
+  const L = S.pedidos.filter(p => p.sit === "fechado" && p.pagoEm && new Date(p.pagoEm) >= de && new Date(p.pagoEm) < ate), tot = r2(L.reduce((s, p) => s + totalPedido(p), 0));
+  const canais = {}, meios = {}, prods = {}, horas = Array(24).fill(0);
+  L.forEach(p => { const t = totalPedido(p); (canais[p.canal] ||= { n: 0, v: 0 }).n++; canais[p.canal].v = r2(canais[p.canal].v + t); p.pags.forEach(x => meios[x.meio] = r2((meios[x.meio] || 0) + x.valor)); horas[new Date(p.pagoEm).getHours()] += t; p.itens.forEach(i => { const q = (prods[i.nome] ||= { n: 0, v: 0 }); q.n += i.pesoG != null ? 1 : i.qtd; q.v = r2(q.v + itemTotal(i)); }); });
+  const top = Object.entries(prods).sort((a, b) => b[1].v - a[1].v).slice(0, 10), mx = Math.max(1, ...horas);
+  const hist = S.pedidos.filter(p => p.numero && p.sit !== "aberto" && new Date(p.pagoEm || p.criado) >= de && new Date(p.pagoEm || p.criado) < ate).sort((a, b) => b.numero - a.numero);
+  return `<div class="col"><div class="tabs">${[["hoje", "Hoje"], ["7", "7 dias"], ["30", "30 dias"]].map(([k, r]) => `<button class="tab" aria-pressed="${ui.per === k}" data-a="per:${k}">${r}</button>`).join("")}</div>
+  <div class="stats num"><div class="card stat"><span class="mut xs">Faturamento</span><b>${brl(tot)}</b></div><div class="card stat"><span class="mut xs">Pedidos</span><b>${L.length}</b></div><div class="card stat"><span class="mut xs">Ticket médio</span><b>${brl(L.length ? tot / L.length : 0)}</b></div><div class="card stat"><span class="mut xs">Cancelados</span><b>${S.pedidos.filter(p => p.sit === "cancelado" && p.numero).length}</b></div></div>
+  <div class="g2" style="align-items:start"><div class="card" style="padding:14px"><h3 style="font-size:14px;margin-bottom:10px">Vendas por hora</h3>${L.length ? `<div class="bars" role="img" aria-label="Vendas por hora">${horas.map((v, h) => (h < 8 || h > 22) && !v ? "" : `<div title="${h}h: ${brl(v)}" style="height:${v / mx * 100}%"></div>`).join("")}</div>` : '<p class="mut sm">Sem vendas no período.</p>'}</div>
+  <div class="card num sm" style="padding:14px"><h3 style="font-size:14px;margin-bottom:8px">Canais e pagamentos</h3>${Object.entries(canais).map(([k, v]) => `<div class="row"><span class="sp">${CANAIS[k]} <span class="mut">(${v.n})</span></span><b>${brl(v.v)}</b></div>`).join("") || "—"}<hr style="border:0;border-top:1px solid var(--line)">${Object.entries(meios).map(([k, v]) => `<div class="row"><span class="sp">${MEIOS[k]}</span><b>${brl(v)}</b></div>`).join("")}</div></div>
+  <div class="card num sm" style="padding:14px"><h3 style="font-size:14px;margin-bottom:8px">Mais vendidos</h3>${top.map(([n, v], i) => `<div class="row"><span class="sp">${i + 1}. ${esc(n)} <span class="mut">× ${v.n}</span></span><b>${brl(v.v)}</b></div>`).join("") || '<span class="mut">Sem vendas.</span>'}</div>
+  <div class="card" style="padding:14px"><h3 style="font-size:14px;margin-bottom:8px">Pedidos do período</h3>${hist.length ? `<table>${hist.map(p => `<tr><td><b>#${p.numero}</b></td><td class="mut sm">${hora(p.pagoEm || p.criado)} · ${CANAIS[p.canal]}</td><td class="sm">${esc(p.itens.map(i => i.nome).join(", "))}</td><td class="num">${p.sit === "cancelado" ? `<span class="chip bad" title="${esc(p.motivoCanc || "")}">CANCELADO</span>` : `<b>${brl(totalPedido(p))}</b>`}</td><td><button class="btn ghost sm" aria-label="Reimprimir ${p.numero}" data-a="imprimir:${p.id}">🖨</button>${p.sit === "fechado" ? `<button class="btn ghost sm" aria-label="Cancelar pedido ${p.numero}" data-a="cancelar:${p.id}">🚫</button>` : ""}</td></tr>`).join("")}</table>` : '<p class="mut sm">Nenhum pedido.</p>'}</div></div>`;
+}
+A.per = (el, k) => { ui.per = k; render(); };
+A.cancelar = (el, id) => openModal("Cancelar pedido", () => `<div class="col"><p class="mut sm">O valor sai do faturamento e do caixa. Se pagou em dinheiro, devolva e registre uma sangria.</p>${field("Motivo", `<input id="mc" autofocus>`)}<div class="row" style="justify-content:flex-end"><button class="btn" data-a="closeModal">Voltar</button><button class="btn bad" data-a="cancelarOk:${id}">Cancelar pedido</button></div></div>`, true);
+A.cancelarOk = (el, id) => { const m = $("#mc").value.trim(); if (!m) return toast("Informe o motivo.", true); const p = S.pedidos.find(x => x.id === id); p.sit = "cancelado"; p.prod = null; p.motivoCanc = m; closeModal(); commit(); };
+
+/* ----- Cardápio (gestão) ----- */
+function tCardapio() {
+  const L = S.loja, subs = [["produtos", "Produtos"], ["sabores", "Sabores"], ["compl", "Complementos"], ["loja", "Loja e entrega"]];
+  const corpo = {
+    produtos: () => `<div class="row wrap"><span class="mut sm sp">Marque <b>em falta</b> e o item some do PDV e do site na hora.</span><button class="btn pri sm" data-a="novoProd">＋ Produto</button></div><div class="card">${S.produtos.map(p => `<div class="row wrap" style="padding:8px 12px;border-top:1px solid var(--line);${p.ativo ? "" : "opacity:.5"}"><input style="flex:2;min-width:150px" aria-label="Nome" data-c="pEdit" data-id="${p.id}" data-k="nome" value="${esc(p.nome)}"><span class="mut xs">${esc(S.cats.find(c => c.id === p.cat)?.nome || "")}${p.tipo === "peso" ? " · por kg" : ""}${p.sab ? ` · ${p.sab} sab.` : ""}</span><input style="width:96px;text-align:right" inputmode="decimal" aria-label="Preço" data-c="pEdit" data-id="${p.id}" data-k="preco" value="${String(p.preco).replace(".", ",")}"><label class="xs b" style="color:var(--bad)"><input type="checkbox" style="width:auto;min-height:0" data-c="pFlag" data-id="${p.id}" data-k="out" ${p.out ? "checked" : ""}> Em falta</label><label class="xs b"><input type="checkbox" style="width:auto;min-height:0" data-c="pFlag" data-id="${p.id}" data-k="ativo" ${p.ativo ? "checked" : ""}> No cardápio</label></div>`).join("")}</div>`,
+    sabores: () => `<div class="row wrap"><span class="mut sm sp">O acréscimo vale para cada bola do sabor premium.</span><button class="btn pri sm" data-a="novoSabor">＋ Sabor</button></div><div class="card">${S.sabores.map(s => `<div class="row wrap" style="padding:8px 12px;border-top:1px solid var(--line)"><input style="flex:1;min-width:150px" aria-label="Sabor" data-c="sEdit" data-id="${s.id}" data-k="nome" value="${esc(s.nome)}"><label class="xs mut">Acréscimo R$ <input style="width:80px;text-align:right" inputmode="decimal" data-c="sEdit" data-id="${s.id}" data-k="ac" value="${String(s.ac).replace(".", ",")}"></label><label class="xs b" style="color:var(--bad)"><input type="checkbox" style="width:auto;min-height:0" data-c="sOut" data-id="${s.id}" ${s.out ? "checked" : ""}> Em falta</label><button class="btn ghost sm" aria-label="Excluir ${esc(s.nome)}" data-a="delSabor:${s.id}">🗑</button></div>`).join("")}</div>`,
+    compl: () => S.grupos.map(g => `<div class="card col" style="padding:14px"><div class="row wrap"><b class="sp">${esc(g.nome)}</b><span class="mut xs">mín ${g.min} · máx ${g.max}</span></div>${g.itens.map(i => `<div class="row wrap"><span class="sp">${esc(i.nome)}</span><label class="xs mut">R$ <input style="width:80px;text-align:right;min-height:34px" inputmode="decimal" data-c="cEdit" data-id="${i.id}" value="${String(i.preco).replace(".", ",")}"></label><label class="xs b" style="color:var(--bad)"><input type="checkbox" style="width:auto;min-height:0" data-c="cOut" data-id="${i.id}" ${i.out ? "checked" : ""}> Em falta</label></div>`).join("")}</div>`).join(""),
+    loja: () => `<div class="g2" style="align-items:start"><div class="card col" style="padding:14px"><h3 style="font-size:14px">Dados da loja</h3>${field("Nome", `<input data-c="lojaF" data-k="nome" value="${esc(L.nome)}">`)}${field("WhatsApp", `<input data-c="lojaF" data-k="whats" value="${esc(L.whats)}">`)}<div class="g3">${field("Comandas", `<input type="number" min="0" max="99" data-c="lojaF" data-k="comandas" value="${L.comandas}">`)}${field("Pote (g)", `<input type="number" min="0" data-c="lojaF" data-k="tara" value="${L.tara}">`)}${field("Serviço %", `<input type="number" min="0" max="30" data-c="lojaF" data-k="gorjeta" value="${L.gorjeta}">`)}</div><label class="sm"><input type="checkbox" style="width:auto;min-height:0" data-c="lojaF" data-k="prodBalcao" ${L.prodBalcao ? "checked" : ""}> Pedidos do balcão passam pela fila de produção</label></div>
+    <div class="card col" style="padding:14px"><h3 style="font-size:14px">Cardápio online</h3><label class="sm"><input type="checkbox" style="width:auto;min-height:0" data-c="lojaF" data-k="aberta" ${L.aberta ? "checked" : ""}> Receber pedidos online agora</label>${field("Pedido mínimo (R$)", `<input inputmode="decimal" data-c="lojaF" data-k="minimo" value="${L.minimo ? String(L.minimo).replace(".", ",") : ""}" placeholder="0">`)}<h3 style="font-size:14px;margin-top:6px">Taxa de entrega por bairro</h3>${L.bairros.map((b, i) => `<div class="row"><input class="sp" aria-label="Bairro" data-c="bairroF" data-i2="${i}" data-k="nome" value="${esc(b.nome)}"><input style="width:90px;text-align:right" inputmode="decimal" aria-label="Taxa" data-c="bairroF" data-i2="${i}" data-k="taxa" value="${String(b.taxa).replace(".", ",")}"><button class="btn ghost sm" aria-label="Excluir bairro" data-a="delBairro:${i}">🗑</button></div>`).join("")}<button class="btn sm" data-a="novoBairro">＋ Bairro</button></div></div>
+    <div class="card" style="padding:14px;margin-top:12px"><button class="btn bad sm" data-a="zerar">Restaurar dados de exemplo</button></div>`,
+  };
+  return `<div class="col"><div class="tabs">${subs.map(([k, r]) => `<button class="tab" aria-pressed="${ui.sub === k}" data-a="sub:${k}">${r}</button>`).join("")}</div>${corpo[ui.sub]()}</div>`;
+}
+A.sub = (el, k) => { ui.sub = k; render(); };
+C.pEdit = el => { const p = prodDe(el.dataset.id); p[el.dataset.k] = el.dataset.k === "preco" ? r2(num(el.value)) : el.value; save(); };
+C.pFlag = el => { prodDe(el.dataset.id)[el.dataset.k] = el.checked; commit(); };
+C.sEdit = el => { const s = saborDe(el.dataset.id); s[el.dataset.k] = el.dataset.k === "ac" ? r2(num(el.value)) : el.value; save(); };
+C.sOut = el => { saborDe(el.dataset.id).out = el.checked; commit(); };
+C.cEdit = el => { compDe(el.dataset.id).preco = r2(num(el.value)); save(); };
+C.cOut = el => { compDe(el.dataset.id).out = el.checked; commit(); };
+C.lojaF = el => { const k = el.dataset.k; S.loja[k] = el.type === "checkbox" ? el.checked : ["comandas", "tara", "gorjeta"].includes(k) ? Math.max(0, Number(el.value) || 0) : k === "minimo" ? r2(num(el.value)) : el.value; commit(); };
+C.bairroF = el => { const b = S.loja.bairros[Number(el.dataset.i2)]; b[el.dataset.k] = el.dataset.k === "taxa" ? r2(num(el.value)) : el.value; save(); };
+A.novoBairro = () => { S.loja.bairros.push({ nome: "", taxa: 0 }); commit(); };
+A.delBairro = (el, i) => { S.loja.bairros.splice(Number(i), 1); commit(); };
+A.novoProd = () => { S.produtos.unshift({ id: uid(), cat: S.cats[0].id, nome: "Novo produto", preco: 0, tipo: "un", sab: 0, grupos: [], ativo: true, out: false }); commit(); };
+A.novoSabor = () => { S.sabores.push({ id: uid(), nome: "Novo sabor", ac: 0, out: false }); commit(); };
+A.delSabor = (el, id) => { S.sabores = S.sabores.filter(s => s.id !== id); commit(); };
+
+/* ----- Comprovante (80 mm, não fiscal) ----- */
+A.imprimir = (el, id) => {
+  const p = S.pedidos.find(x => x.id === id), l = (a, b, f) => `<div class="l${f ? " f" : ""}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+  const html = `<!doctype html><meta charset="utf-8"><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:12px/1.35 "Courier New",monospace}.c{text-align:center}.l{display:flex;justify-content:space-between;gap:6px}.f{font-weight:700}.d{padding-left:8px;font-size:11px}hr{border:0;border-top:1px dashed #000;margin:6px 0}</style>
+  <div class="c f" style="font-size:15px">${esc(S.loja.nome)}</div><hr><div class="c f">COMPROVANTE · NÃO É DOCUMENTO FISCAL</div><div class="c f" style="font-size:20px">Pedido ${p.numero}</div><div class="c">${CANAIS[p.canal]}${p.mesa ? " " + esc(p.mesa) : ""} · ${new Date(p.criado).toLocaleString("pt-BR")}</div>
+  ${p.cliente?.nome ? `<hr><div>Cliente: ${esc(p.cliente.nome)} ${esc(p.cliente.tel || "")}</div>${p.canal === "delivery" ? `<div>${esc(p.cliente.end || "")} ${esc(p.cliente.bairro || "")}</div>` : ""}` : ""}<hr>
+  ${p.itens.map(i => l(i.pesoG != null ? `${i.nome} ${i.pesoG}g` : `${i.qtd}x ${i.nome}`, brl(itemTotal(i)), 1) + [i.sabores.join(", "), ...i.comps.map(c => "+ " + c.nome), i.obs && "Obs: " + i.obs].filter(Boolean).map(d => `<div class="d">${esc(d)}</div>`).join("")).join("")}<hr>
+  ${descPedido(p) ? l("Desconto", "- " + brl(descPedido(p))) : ""}${p.canal === "delivery" && p.taxa ? l("Taxa de entrega", brl(p.taxa)) : ""}${gorjPedido(p) ? l("Serviço", brl(gorjPedido(p))) : ""}<div class="l f" style="font-size:18px"><span>TOTAL</span><span>${brl(totalPedido(p))}</span></div><hr>
+  ${(p.pags || []).map(x => l(MEIOS[x.meio], brl(x.valor))).join("")}${p.troco ? l("Troco", brl(p.troco), 1) : ""}<hr><div class="c">Obrigado e volte sempre!</div>`;
+  const q = document.createElement("iframe"); q.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0"; document.body.appendChild(q);
+  q.contentDocument.open(); q.contentDocument.write(html); q.contentDocument.close(); setTimeout(() => { try { q.contentWindow.print(); } finally { setTimeout(() => q.remove(), 6e4); } }, 150);
+};
+
+setInterval(() => { if (!$("#modal").children.length && !document.activeElement?.matches("input,select,textarea") && (rota() === "pdv" && ["producao", "comandas"].includes(ui.tab) || rota() === "cardapio" && cli.cod)) render(); }, 15000);
+render();
+</script>
+</body>
+</html>
