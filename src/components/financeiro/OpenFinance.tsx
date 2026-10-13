@@ -138,14 +138,19 @@ export function OpenFinancePainel({ contas }: { contas: ContaErp[] }) {
       )}
 
       {conectar && <ConectarBanco contas={contas.filter((b) => b.ativo)} ocupadas={new Set(conexoes.map((c) => c.conta_bancaria_id))}
+        existentes={[...new Map(conexoes.filter((c) => c.status !== "erro").map((c) => [c.item_id, { item_id: c.item_id, instituicao: c.instituicao }])).values()]}
         onClose={() => setConectar(false)} onPronto={() => { setConectar(false); invalidar("openfinance_conexoes", "extrato_lancamentos", "contas_receber", "contas_pagar"); }} />}
       {chaves && <ChavesPluggy origem={st.origem} onClose={() => setChaves(false)} onPronto={() => { setChaves(false); refetch(); }} />}
     </Card>
   );
 }
 
-function ConectarBanco({ contas, ocupadas, onClose, onPronto }: { contas: ContaErp[]; ocupadas: Set<string>; onClose: () => void; onPronto: () => void }) {
+function ConectarBanco({ contas, ocupadas, existentes, onClose, onPronto }: {
+  contas: ContaErp[]; ocupadas: Set<string>; existentes: { item_id: string; instituicao: string | null }[]; onClose: () => void; onPronto: () => void;
+}) {
   const livres = contas.filter((b) => !ocupadas.has(b.id));
+  // conexão que já existe (ex.: Meu Pluggy traz todas as contas numa conexão só): liga outra conta do ERP sem abrir a janela
+  const [usar, setUsar] = useState<string>(existentes[0]?.item_id ?? "");
   const [conta, setConta] = useState(livres[0]?.id ?? contas[0]?.id ?? "");
   const inicioErp = contas.find((b) => b.id === conta)?.saldo_inicial_data;
   const [desde, setDesde] = useState("");
@@ -168,14 +173,17 @@ function ConectarBanco({ contas, ocupadas, onClose, onPronto }: { contas: ContaE
     e.preventDefault();
     setOcupado(true);
     try {
-      const { token } = await callFunction<{ token: string }>("openfinance", { acao: "token" });
-      setEtapa("janela");
-      const id = await abrirJanela(token);
-      if (!id) { setEtapa("escolher"); return; }
+      let id = usar || null;
+      if (!id) {
+        const { token } = await callFunction<{ token: string }>("openfinance", { acao: "token" });
+        setEtapa("janela");
+        id = await abrirJanela(token);
+        if (!id) { setEtapa("escolher"); return; }
+      }
       setItem(id);
       const r = await callFunction<{ instituicao: string | null; contas: ContaExterna[] }>("openfinance", { acao: "contas", item_id: id });
       const doBanco = r.contas.filter((a) => a.tipo === "BANK");
-      if (doBanco.length === 1) return await ligar(id, doBanco[0].id);
+      if (!usar && doBanco.length === 1) return await ligar(id, doBanco[0].id);
       setExternas(r);
       setEtapa("conta");
     } catch (er) {
@@ -195,26 +203,41 @@ function ConectarBanco({ contas, ocupadas, onClose, onPronto }: { contas: ContaE
               {contas.map((b) => <option key={b.id} value={b.id}>{b.nome}{ocupadas.has(b.id) ? " (já conectada: troca a conexão)" : ""}</option>)}
             </select>
           </Field>
+          {existentes.length > 0 && (
+            <fieldset className="space-y-1.5 rounded-lg border border-slate-200 p-3">
+              <legend className="px-1 text-xs font-semibold text-slate-600">De onde vêm os lançamentos</legend>
+              {existentes.map((x) => (
+                <label key={x.item_id} className="flex items-start gap-2">
+                  <input type="radio" className="mt-1" checked={usar === x.item_id} onChange={() => setUsar(x.item_id)} />
+                  <span>Da conexão que já está ligada{x.instituicao ? ` (${x.instituicao})` : ""}: escolho a conta em seguida, sem abrir o banco de novo</span>
+                </label>
+              ))}
+              <label className="flex items-start gap-2">
+                <input type="radio" className="mt-1" checked={!usar} onChange={() => setUsar("")} />
+                <span>Nova conexão (abre a janela da Pluggy)</span>
+              </label>
+            </fieldset>
+          )}
           <Field label="Trazer lançamentos desde">
             <input type="date" className="input" value={dataDesde} max={hoje()} min={somar(hoje(), -365)} onChange={(e) => setDesde(e.target.value)} />
             <span className="mt-1 block text-xs text-slate-500">Sugestão: a data do saldo inicial da conta no ERP. O banco manda até 12 meses.</span>
           </Field>
-          <ol className="list-decimal space-y-1 rounded-lg bg-slate-50 p-3 pl-7 text-slate-600">
+          {!usar && <ol className="list-decimal space-y-1 rounded-lg bg-slate-50 p-3 pl-7 text-slate-600">
             <li>Abre a janela da Pluggy (parceira autorizada do Open Finance).</li>
-            <li>Escolha o banco e confirme o CNPJ da empresa.</li>
+            <li>Escolha o banco e confirme o CNPJ da empresa. Sem plano pago: escolha <b>MeuPluggy</b> e entre com a conta do meu.pluggy.ai (vêm todas as contas que já estão lá).</li>
             <li>O app ou site do banco abre para você autorizar (só leitura do extrato e do saldo; ninguém consegue mexer no dinheiro).</li>
             <li>Pronto: o ERP traz os lançamentos e concilia o que tiver par certo.</li>
-          </ol>
+          </ol>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button disabled={ocupado || !conta}>{ocupado ? <Loader2 size={16} className="animate-spin" /> : <PlugZap size={16} />} Abrir Open Finance</Button>
+            <Button disabled={ocupado || !conta}>{ocupado ? <Loader2 size={16} className="animate-spin" /> : <PlugZap size={16} />} {usar ? "Escolher a conta" : "Abrir Open Finance"}</Button>
           </div>
         </form>
       )}
       {etapa === "janela" && <p className="flex items-center gap-2 py-6 text-sm text-slate-600"><Loader2 size={18} className="animate-spin" /> Conclua a autorização na janela do banco…</p>}
       {etapa === "conta" && externas && item && (
         <div className="space-y-3 text-sm">
-          <p>{externas.instituicao ?? "O banco"} mandou mais de uma conta. Qual é a <b>{contas.find((b) => b.id === conta)?.nome}</b>?</p>
+          <p>{externas.instituicao ?? "O banco"} mandou {externas.contas.length > 1 ? "mais de uma conta" : "esta conta"}. Qual é a <b>{contas.find((b) => b.id === conta)?.nome}</b>? (o saldo ajuda a reconhecer)</p>
           <ul className="space-y-2">
             {externas.contas.map((a) => (
               <li key={a.id}>
@@ -253,10 +276,14 @@ function ChavesPluggy({ origem, onClose, onPronto }: { origem: string | null; on
     <Modal open onClose={onClose} title="Ligar o Open Finance (Pluggy)">
       <form onSubmit={salvar} className="space-y-3 text-sm">
         <ol className="list-decimal space-y-1 pl-5 text-slate-600">
-          <li>Crie a conta da empresa em <a href="https://dashboard.pluggy.ai" target="_blank" rel="noreferrer" className="text-brand underline">dashboard.pluggy.ai</a> (parceira autorizada do Open Finance).</li>
-          <li>Em <b>Aplicações</b>, crie uma aplicação de produção e copie o <b>Client ID</b> e o <b>Client Secret</b>.</li>
+          <li>Crie a conta em <a href="https://dashboard.pluggy.ai" target="_blank" rel="noreferrer" className="text-brand underline">dashboard.pluggy.ai</a> (parceira autorizada do Open Finance).</li>
+          <li>Em <b>Aplicações</b>, abra a aplicação e copie o <b>Client ID</b> e o <b>Client Secret</b>.</li>
           <li>Cole aqui. O ERP confere na Pluggy e guarda no cofre do servidor: ninguém consegue ler depois, nem pela tela.</li>
         </ol>
+        <p className="rounded-lg bg-sky-50 p-2.5 text-sky-900">
+          <b>Sem plano pago:</b> conecte os bancos em <a href="https://meu.pluggy.ai" target="_blank" rel="noreferrer" className="underline">meu.pluggy.ai</a> (grátis) e,
+          em Conectar banco, escolha <b>MeuPluggy</b>. A aplicação que já vem pronta no dashboard serve.
+        </p>
         {origem === "secret" && <p className="rounded-lg bg-amber-50 p-2.5 text-amber-900">As chaves estão nos secrets do Supabase (PLUGGY_CLIENT_ID/SECRET) e valem acima destas.</p>}
         {origem === "cofre" && <p className="rounded-lg bg-emerald-50 p-2.5 text-emerald-900">Já há chaves guardadas. Preencha só para trocar.</p>}
         <Field label="Client ID"><input className="input font-mono" value={id} onChange={(e) => setId(e.target.value)} required autoComplete="off" spellCheck={false} /></Field>
