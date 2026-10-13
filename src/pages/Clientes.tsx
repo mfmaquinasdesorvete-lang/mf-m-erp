@@ -8,7 +8,7 @@ import { FichaCliente } from "@/components/FichaCliente";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { Contato, NomeCadastro } from "@/components/Contato";
-import { digitos, docFormat } from "@/lib/format";
+import { digitos, docParcial } from "@/lib/format";
 import type { Cliente } from "@/lib/types";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -220,7 +220,7 @@ export default function Clientes() {
             </>);
           },
         },
-        { label: "CPF/CNPJ", render: (r) => <span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span> },
+        { label: "CPF/CNPJ", render: (r) => <span className="whitespace-nowrap" title={digitos(r.cpf_cnpj).length === 11 ? "CPF parcial: abra o cadastro para ver inteiro" : undefined}>{docParcial(r.cpf_cnpj) || "—"}</span> },
         { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
         { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
       ]}

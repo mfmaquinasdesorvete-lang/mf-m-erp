@@ -17,6 +17,7 @@ import { MeusAvisos } from "./Avisos";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
+import { PainelDuasEtapas } from "./DuasEtapas";
 
 type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes; busca?: string };
 type Grupo = {
@@ -339,7 +340,7 @@ export function Layout() {
             {([
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
-              ["Trocar senha", KeyRound, () => setTrocarSenha(true)],
+              ["Senha e login em duas etapas", KeyRound, () => setTrocarSenha(true)],
               ["Sair", LogOut, () => supabase.auth.signOut()],
             ] as const).map(([rotulo, Icone, acao]) => (
               <button key={rotulo} onClick={acao} title={rotulo} aria-label={rotulo}
@@ -406,15 +407,24 @@ function AlterarSenha({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal open onClose={onClose} title="Alterar minha senha">
-      <form onSubmit={salvar} className="space-y-3">
-        <Field label="Nova senha"><input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus /></Field>
-        <Field label="Repita a nova senha"><input className="input" type="password" value={confirma} onChange={(e) => setConfirma(e.target.value)} /></Field>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button disabled={salvando}>Salvar</Button>
-        </div>
-      </form>
+    <Modal open onClose={onClose} title="Senha e login em duas etapas">
+      <div className="space-y-5">
+        <section>
+          <h3 className="mb-2 text-sm font-bold text-fg">Login em duas etapas</h3>
+          <PainelDuasEtapas />
+        </section>
+        <section className="border-t border-slate-200 pt-4">
+          <h3 className="mb-2 text-sm font-bold text-fg">Trocar a senha</h3>
+          <form onSubmit={salvar} className="space-y-3">
+            <Field label="Nova senha"><input className="input" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} /></Field>
+            <Field label="Repita a nova senha"><input className="input" type="password" autoComplete="new-password" value={confirma} onChange={(e) => setConfirma(e.target.value)} /></Field>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
+              <Button disabled={salvando || !senha}>Salvar senha</Button>
+            </div>
+          </form>
+        </section>
+      </div>
     </Modal>
   );
 }

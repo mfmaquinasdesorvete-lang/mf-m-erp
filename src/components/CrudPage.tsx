@@ -52,6 +52,8 @@ type Props<T> = {
   extraActions?: ReactNode;
   /** Ajusta os dados antes de gravar (ex.: converter números). */
   beforeSave?: (row: Record<string, any>) => Record<string, any>;
+  /** Depois de gravar (ex.: dados sigilosos, que vão por outra função): recebe o registro salvo e o que estava no formulário. */
+  afterSave?: (salvo: Record<string, any>, editado: Record<string, any>) => Promise<void> | void;
   /** Reage à mudança de um campo (ex.: CEP preenche endereço). */
   onFieldChange?: (name: string, value: any, row: Record<string, any>, forcar?: boolean) => Promise<Record<string, any> | null | void>;
   /** Mostra os documentos anexados no formulário (ex.: "cliente"). */
@@ -172,7 +174,12 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }
     try {
       const row = limpar(beforeSave ? beforeSave(editando) : editando);
-      await save.mutateAsync(row);
+      const salvo = await save.mutateAsync(row);
+      if (props.afterSave) {
+        // registro novo já tem id: se a etapa seguinte falhar, salvar de novo atualiza (não duplica)
+        setEditando((r) => (r ? { ...r, id: salvo.id } : r));
+        await props.afterSave(salvo, { ...editando, id: salvo.id });
+      }
       notify("Salvo com sucesso");
       setEditando(null);
     } catch (err) {

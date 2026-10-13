@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { Button, Modal } from "@/components/ui";
 import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
-import { digitos, docFormat } from "@/lib/format";
+import { digitos, docParcial } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
@@ -46,7 +46,7 @@ const endereco: CampoForm[] = [
 const colunas = <T extends { codigo?: number | null; nome: string; nome_fantasia?: string | null; cnpj?: string | null; municipio?: string | null; uf?: string | null }>(msg: string) => [
   { label: "Cód.", render: (r: T) => <span className="font-mono text-xs text-slate-500">{r.codigo ?? "—"}</span>, className: "w-14" },
   { label: "Nome", render: (r: T) => <NomeCadastro r={r} /> },
-  { label: "CNPJ", render: (r: T) => <span className="whitespace-nowrap">{docFormat(r.cnpj) || "—"}</span> },
+  { label: "CNPJ", render: (r: T) => <span className="whitespace-nowrap">{docParcial(r.cnpj) || "—"}</span> },
   { label: "Contato", render: (r: T) => <Contato r={r as any} mensagem={msg} /> },
 ];
 

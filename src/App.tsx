@@ -10,6 +10,10 @@ import { podeVer, type Tela } from "@/lib/permissoes";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
+import { TelaDuasEtapas } from "@/components/DuasEtapas";
+import { SaidaAutomatica } from "@/components/SaidaAutomatica";
+import { estadoDuasEtapas, type EstadoDuasEtapas } from "@/lib/duasEtapas";
+import { useConfig } from "@/lib/useConfig";
 import Login, { NovaSenha } from "@/pages/Login";
 
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
@@ -93,6 +97,8 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined);
   const [novaSenha, setNovaSenha] = useState(LINK_RECUPERACAO && !LINK_EXPIRADO);
+  // login em duas etapas: falta digitar o código, cadastrar o código ou nada
+  const [duasEtapas, setDuasEtapas] = useState<EstadoDuasEtapas | undefined>(undefined);
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
 
@@ -106,6 +112,15 @@ export default function App() {
   }, []);
 
   const userId = session?.user.id;
+  // muda a cada renovação do token (e ao confirmar o código, que troca a sessão)
+  const chaveSessao = session ? `${session.user.id}:${session.access_token ?? ""}` : null;
+  useEffect(() => {
+    if (!chaveSessao) return setDuasEtapas(undefined);
+    let vivo = true;
+    estadoDuasEtapas().then((e) => vivo && setDuasEtapas(e)).catch(() => vivo && setDuasEtapas("ok"));
+    return () => { vivo = false; };
+  }, [chaveSessao, perfil?.user_id]);
+
   useEffect(() => {
     queryClient.clear(); // dados de outro usuário não podem aparecer
     if (!userId) return setPerfil(session === null ? null : undefined);
@@ -145,10 +160,15 @@ export default function App() {
   }
 
   if (session === undefined) return <Carregando />;
+  if (session && duasEtapas === undefined) return <Carregando />;
+  // quem tem o código cadastrado digita antes de tudo (até para trocar a senha)
+  if (session && duasEtapas === "verificar") return <><Toaster /><TelaDuasEtapas modo="verificar" onPronto={() => setDuasEtapas("ok")} /></>;
   if (novaSenha && session) return <><Toaster /><NovaSenha onPronto={() => setNovaSenha(false)} /></>;
   if (session && perfil === undefined) return <Carregando />;
   // senha provisória (usuário novo ou senha redefinida pelo administrador): troca antes de entrar
   if (session && perfil?.trocar_senha) return <><Toaster /><NovaSenha obrigatoria onPronto={() => setPerfil({ ...perfil, trocar_senha: false })} /></>;
+  // papel que exige o código (Usuários → Segurança do acesso) e ainda não cadastrou
+  if (session && perfil && duasEtapas === "cadastrar") return <><Toaster /><TelaDuasEtapas modo="cadastrar" onPronto={() => setDuasEtapas("ok")} /></>;
 
   return (
     <>
@@ -159,6 +179,7 @@ export default function App() {
         <SemAcesso email={session.user.email ?? ""} />
       ) : (
         <PerfilProvider perfil={perfil}>
+          <SaidaPorInatividade entrouEm={session.user.last_sign_in_at} />
           <UnidadeProvider inicial={perfil.unidade_id ?? null}>
           <Suspense fallback={<Carregando />}>
             <Routes>
@@ -178,6 +199,13 @@ export default function App() {
       )}
     </>
   );
+}
+
+/** Sai depois do tempo sem uso definido em Usuários (padrão 30 minutos). */
+function SaidaPorInatividade({ entrouEm }: { entrouEm?: string | null }) {
+  const { data: cfg } = useConfig();
+  const minutos = cfg?.sessao_minutos ?? 30;
+  return <SaidaAutomatica minutos={Number(minutos)} entrouEm={entrouEm} />;
 }
 
 function SemAcesso({ email }: { email: string }) {

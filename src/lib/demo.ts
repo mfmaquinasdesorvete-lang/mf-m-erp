@@ -980,6 +980,16 @@ function comercialDemo(db: Db) {
     { id: "fu6", nome: "João Pedro Alves", cargo: "Auxiliar de expedição", setor: "Expedição e logística", unidade_id: U_SC, vinculo: "clt", situacao: "desligado",
       data_admissao: "2024-02-05", data_desligamento: "2025-12-19", motivo_desligamento: "Pedido de demissão", salario: 1900, faz_assistencia: false, ativo: true, created_at: quando(-500) },
   ];
+  // dados sigilosos ficam à parte (no sistema real: funcionarios_sigilo, só por função que registra quem viu)
+  const SIGILO = ["cpf", "rg", "pis", "ctps", "cnh", "banco", "agencia", "conta", "pix"];
+  db.funcionarios_sigilo = db.funcionarios.filter((f: Row) => SIGILO.some((k) => f[k])).map((f: Row) => ({
+    funcionario_id: f.id, ...Object.fromEntries(SIGILO.map((k) => [k, f[k] ?? null])), updated_at: quando(-30),
+  }));
+  db.funcionarios_sigilo.find((x: Row) => x.funcionario_id === "fu1")!.conta = "12345-6";
+  db.funcionarios_sigilo.find((x: Row) => x.funcionario_id === "fu1")!.banco = "Banco do Brasil";
+  db.funcionarios.forEach((f: Row) => SIGILO.forEach((k) => { f[k] = null; }));
+  db.eventos_seguranca = [];
+  Object.assign(db.configuracoes[0], { mfa_papeis: [], sessao_minutos: 30 });
   // % por categoria: máquina paga menos, peças pagam mais; a Carla tem um % próprio em vedantes
   db.comissao_regras = [
     { id: "cr1", categoria: "As Máquinas My Frost", vendedor_id: null, percentual: 2, ativo: true, created_at: quando(-30) },
@@ -1543,7 +1553,58 @@ function pdvConsumidorDemo() {
   return c.id;
 }
 
+/** Mesma máscara do banco (public.mascarar). */
+function mascararDemo(v: string | null | undefined, tipo: "cpf" | "pix" | "doc") {
+  const t = (v ?? "").trim();
+  if (!t) return null;
+  const d = t.replace(/\D/g, "");
+  if (tipo === "cpf" && d.length === 11) return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+  if (tipo === "pix" && t.includes("@")) return `${t[0]}***@${t.split("@")[1]}`;
+  if (tipo === "pix" && t.length >= 32) return `${t.slice(0, 4)}…${t.slice(-4)}`;
+  if (tipo === "pix") return `•••••${t.slice(-4)}`;
+  return "•".repeat(Math.max(t.length - 3, 3)) + t.slice(t.length > 4 ? -3 : -1);
+}
+function eventoSeguranca(acao: string, entidade: string, registro_id: string, registro_nome: string | null, campos: string[] | null) {
+  (db.eventos_seguranca ??= []).unshift({ id: Date.now() + Math.random(), created_at: new Date().toISOString(), user_id: sessao?.user.id ?? null,
+    usuario_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? null, acao, entidade, registro_id, registro_nome, campos });
+}
+const CAMPOS_SIGILO_DEMO = ["cpf", "rg", "pis", "ctps", "cnh", "banco", "agencia", "conta", "pix"];
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // login em duas etapas: na prévia ninguém é obrigado (o cadastro do código é simulado; código 123456)
+  mfa_exigido: () => ({ data: false, error: null }),
+  usuarios_mfa: () => ({ data: db.usuarios_erp.map((u) => ({ user_id: u.user_id, fatores: u.papel === "admin" ? 1 : 0, desde: u.papel === "admin" ? quando(-20) : null })), error: null }),
+  zerar_mfa: ({ p_user }) => {
+    eventoSeguranca("zerar_duas_etapas", "usuario", p_user, db.usuarios_erp.find((u) => u.user_id === p_user)?.nome ?? null, null);
+    return { data: 1, error: null };
+  },
+  funcionarios_sigilo_resumo: () => ({
+    data: (db.funcionarios_sigilo ?? []).map((x: Row) => ({
+      funcionario_id: x.funcionario_id, cpf: mascararDemo(x.cpf, "cpf"), rg: mascararDemo(x.rg, "doc"), pis: mascararDemo(x.pis, "doc"),
+      ctps: mascararDemo(x.ctps, "doc"), cnh: mascararDemo(x.cnh, "doc"), banco: x.banco, agencia: x.agencia, conta: mascararDemo(x.conta, "doc"),
+      pix: mascararDemo(x.pix, "pix"), preenchidos: CAMPOS_SIGILO_DEMO.filter((k) => x[k]).length,
+    })),
+    error: null,
+  }),
+  funcionario_sigilo_ver: ({ p_funcionario }) => {
+    const f = (db.funcionarios ?? []).find((x: Row) => x.id === p_funcionario);
+    if (!f) return { data: null, error: { message: "funcionário não encontrado" } };
+    const x = (db.funcionarios_sigilo ?? []).find((r: Row) => r.funcionario_id === p_funcionario) ?? {};
+    eventoSeguranca("ver_sigilo", "funcionario", p_funcionario, f.nome, null);
+    return { data: Object.fromEntries(CAMPOS_SIGILO_DEMO.map((k) => [k, x[k] ?? null])), error: null };
+  },
+  funcionario_sigilo_salvar: ({ p_funcionario, p_dados }) => {
+    const f = (db.funcionarios ?? []).find((x: Row) => x.id === p_funcionario);
+    if (!f) return { data: null, error: { message: "funcionário não encontrado" } };
+    const cpf = String(p_dados?.cpf ?? "").replace(/\D/g, "");
+    if (cpf && cpf.length !== 11) return { data: null, error: { message: "o CPF tem 11 números" } };
+    let x = (db.funcionarios_sigilo ??= []).find((r: Row) => r.funcionario_id === p_funcionario);
+    if (!x) { x = { funcionario_id: p_funcionario }; db.funcionarios_sigilo.push(x); }
+    const mudou = CAMPOS_SIGILO_DEMO.filter((k) => k in (p_dados ?? {}) && (String(p_dados[k] ?? "").trim() || null) !== (x[k] ?? null));
+    mudou.forEach((k) => { x[k] = k === "cpf" ? cpf || null : String(p_dados[k] ?? "").trim() || null; });
+    if (mudou.length) eventoSeguranca("alterar_sigilo", "funcionario", p_funcionario, f.nome, mudou);
+    return { data: null, error: null };
+  },
   nomes_tecnicos: () => ({
     data: (db.funcionarios ?? []).filter((f: Row) => f.ativo && f.faz_assistencia && f.situacao !== "desligado")
       .map((f: Row) => ({ nome: f.apelido || f.nome })).sort((a: Row, b: Row) => a.nome.localeCompare(b.nome)),

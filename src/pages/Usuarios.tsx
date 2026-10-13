@@ -2,7 +2,7 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck, Smartphone } from "lucide-react";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -11,6 +11,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
+import { useConfig } from "@/lib/useConfig";
 import {
   ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type Papel, type Tela,
 } from "@/lib/permissoes";
@@ -20,6 +21,26 @@ type Usuario = {
   unidade_id: string | null; ativo: boolean; trocar_senha: boolean | null; created_at?: string; email: string; ultimo_acesso: string | null;
 };
 type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
+type CodigoUsuario = { user_id: string; fatores: number; desde: string | null };
+type Evento = { id: number; created_at: string; usuario_nome: string | null; acao: string; entidade: string; registro_nome: string | null; campos: string[] | null };
+
+/** Quem tem o login em duas etapas e quais papéis são obrigados (Segurança do acesso). */
+function useDuasEtapas() {
+  const { data: codigos = [] } = useQuery({
+    queryKey: ["usuarios_mfa"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("usuarios_mfa");
+      return error ? [] : (data ?? []) as CodigoUsuario[];
+    },
+  });
+  const { data: cfg } = useConfig();
+  const papeis: Papel[] = cfg?.mfa_papeis ?? [];
+  return {
+    papeis,
+    fatoresDe: (id: string) => codigos.find((c) => c.user_id === id)?.fatores ?? 0,
+    exige: (u: { papel: Papel; papeis_extras?: Papel[] | null }) => papeis.includes(u.papel) || (u.papeis_extras ?? []).some((p) => papeis.includes(p)),
+  };
+}
 
 const COR_PAPEL: Record<Papel, string> = {
   admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
@@ -58,7 +79,9 @@ export default function Usuarios() {
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
-  const [aba, setAba] = useState<"usuarios" | "permissoes">("usuarios");
+  const [aba, setAba] = useState<"usuarios" | "permissoes" | "seguranca">("usuarios");
+  const duas = useDuasEtapas();
+  const invalidate = useInvalidate();
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"ativos" | "inativos" | "todos">("ativos");
   const [editando, setEditando] = useState<Usuario | "novo" | null>(null);
@@ -71,19 +94,29 @@ export default function Usuarios() {
   const provisoria = ativos.filter((u) => u.trocar_senha).length;
   const nuncaEntrou = ativos.filter((u) => !u.ultimo_acesso).length;
   const admins = ativos.filter((u) => u.papel === "admin").length;
+  const faltaCodigo = ativos.filter((u) => duas.exige(u) && !duas.fatoresDe(u.user_id)).length;
+
+  async function zerarCodigo(u: Usuario) {
+    if (!confirm(`Zerar o login em duas etapas de ${u.nome}? No próximo acesso ${u.nome.split(" ")[0]} cadastra o código de novo (use quando a pessoa perdeu ou trocou de celular).`)) return;
+    const { error } = await supabase.rpc("zerar_mfa", { p_user: u.user_id });
+    if (error) return notifyError(error);
+    notify("Login em duas etapas zerado");
+    invalidate("usuarios_mfa", "eventos_seguranca");
+  }
 
   return (
     <div>
       <PageHeader title="Usuários e permissões" actions={<Button onClick={() => setEditando("novo")}><Plus size={16} aria-hidden /> Novo usuário</Button>} />
-      <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "O que cada papel pode" }]} />
+      <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "O que cada papel pode" }, { value: "seguranca", label: "Segurança do acesso" }]} />
 
-      {aba === "permissoes" ? <MatrizPermissoes /> : (
+      {aba === "permissoes" ? <MatrizPermissoes /> : aba === "seguranca" ? <SegurancaAcesso usuarios={ativos} /> : (
         <>
-          {(provisoria > 0 || nuncaEntrou > 0 || admins === 1) && (
+          {(provisoria > 0 || nuncaEntrou > 0 || admins === 1 || faltaCodigo > 0) && (
             <div className="mb-3 flex flex-wrap gap-2 text-sm">
               {provisoria > 0 && <span className="rounded-lg bg-amber-50 px-3 py-1.5 text-amber-900">{provisoria} com senha provisória (trocam no próximo acesso)</span>}
               {nuncaEntrou > 0 && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-slate-700">{nuncaEntrou} ainda não entrou</span>}
               {admins === 1 && <span className="rounded-lg bg-sky-50 px-3 py-1.5 text-sky-900">Só 1 administrador ativo: vale ter um segundo, para não ficar sem acesso</span>}
+              {faltaCodigo > 0 && <span className="rounded-lg bg-amber-50 px-3 py-1.5 text-amber-900">{faltaCodigo} ainda sem o login em duas etapas (cadastram no próximo acesso)</span>}
             </div>
           )}
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -120,11 +153,17 @@ export default function Usuarios() {
                       <div className="text-right text-xs text-slate-600">
                         {!u.ativo ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-semibold text-slate-700">inativo</span>
                           : u.trocar_senha ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">senha provisória</span> : null}
+                        {u.ativo && (duas.fatoresDe(u.user_id) > 0
+                          ? <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-800"><ShieldCheck size={12} aria-hidden /> duas etapas</span>
+                          : duas.exige(u) ? <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">falta o código</span> : null)}
                         <div className="mt-0.5">último acesso: {quando(u.ultimo_acesso)}</div>
                       </div>
                       <div className="flex gap-1">
                         {u.telefone && <a className="inline-flex items-center rounded-lg px-2 py-2 text-emerald-700 hover:bg-slate-100" href={whatsappLink(u.telefone, `Olá, ${u.nome.split(" ")[0]}!`)} target="_blank" rel="noreferrer" aria-label={`WhatsApp de ${u.nome}`} title="WhatsApp"><MessageCircle size={16} aria-hidden /></a>}
                         <Button variant="ghost" className="!px-2" title="Definir senha provisória" aria-label={`Nova senha para ${u.nome}`} onClick={() => setSenhaDe(u)}><KeyRound size={16} aria-hidden /></Button>
+                        {duas.fatoresDe(u.user_id) > 0 && (
+                          <Button variant="ghost" className="!px-2" title="Zerar o login em duas etapas (perdeu ou trocou de celular)" aria-label={`Zerar o login em duas etapas de ${u.nome}`} onClick={() => zerarCodigo(u)}><Smartphone size={16} aria-hidden /></Button>
+                        )}
                         <Button variant="secondary" onClick={() => setEditando(u)} aria-label={`Editar ${u.nome}`}><Pencil size={15} aria-hidden /> Editar</Button>
                       </div>
                     </li>
@@ -339,6 +378,111 @@ function Credenciais({ nome, email, senha, telefone, onClose }: { nome: string; 
         )}
         <Button type="button" onClick={onClose}>Concluir</Button>
       </div>
+    </div>
+  );
+}
+
+const TEMPOS = [15, 30, 60, 120, 240, 480, 0];
+const ACOES_SEGURANCA: Record<string, string> = {
+  ver_sigilo: "viu os dados sigilosos de", alterar_sigilo: "alterou dados sigilosos de", zerar_duas_etapas: "zerou o login em duas etapas de",
+};
+const CAMPOS_SIGILO: Record<string, string> = {
+  cpf: "CPF", rg: "RG", pis: "PIS", ctps: "CTPS", cnh: "CNH", banco: "banco", agencia: "agência", conta: "conta", pix: "Pix",
+};
+
+/** Quem precisa do login em duas etapas, a saída por falta de uso e o registro de quem viu dado sigiloso. */
+function SegurancaAcesso({ usuarios }: { usuarios: Usuario[] }) {
+  const eu = usePerfil();
+  const { data: cfg } = useConfig();
+  const duas = useDuasEtapas();
+  const invalidate = useInvalidate();
+  const [papeis, setPapeis] = useState<Papel[] | null>(null);
+  const [minutos, setMinutos] = useState<number | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const escolhidos = papeis ?? duas.papeis;
+  const tempo = minutos ?? Number(cfg?.sessao_minutos ?? 30);
+  const banco = cfg ? "mfa_papeis" in cfg : true;
+  const { data: eventos = [] } = useQuery({
+    queryKey: ["eventos_seguranca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("eventos_seguranca").select("id, created_at, usuario_nome, acao, entidade, registro_nome, campos")
+        .order("created_at", { ascending: false }).limit(100);
+      return error ? [] : (data ?? []) as Evento[];
+    },
+  });
+  const obrigados = usuarios.filter((u) => escolhidos.includes(u.papel) || (u.papeis_extras ?? []).some((p) => escolhidos.includes(p)));
+
+  async function salvar() {
+    const euObrigado = escolhidos.includes(eu.papel) || (eu.papeis_extras ?? []).some((p) => escolhidos.includes(p));
+    const euSemCodigo = !duas.fatoresDe(eu.user_id);
+    if (euObrigado && euSemCodigo && !confirm("O seu papel passa a exigir o código. Ao salvar, o ERP pede para você cadastrar o código no celular agora. Continuar?")) return;
+    setSalvando(true);
+    const { error } = await supabase.from("configuracoes").update({ mfa_papeis: escolhidos, sessao_minutos: tempo }).eq("id", 1);
+    setSalvando(false);
+    if (error) return notifyError(error);
+    notify("Segurança do acesso salva");
+    invalidate("configuracoes");
+    setPapeis(null);
+    setMinutos(null);
+    if (euObrigado && euSemCodigo) window.location.reload();
+  }
+
+  return (
+    <div className="space-y-4">
+      {!banco && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Falta atualizar o banco de dados para salvar estas opções.</p>}
+      <Card className="space-y-4 p-4">
+        <div>
+          <h3 className="flex items-center gap-1.5 font-semibold text-fg"><Smartphone size={16} aria-hidden /> Login em duas etapas obrigatório para</h3>
+          <p className="mb-2 text-sm text-slate-600">Além da senha, a pessoa digita o código de 6 números do app autenticador do celular. Quem não tem o código cadastrado é levado a cadastrar no próximo acesso.</p>
+          <div className="flex flex-wrap gap-3 text-sm">
+            {PAPEIS.map((p) => (
+              <label key={p.value} className="flex items-center gap-2">
+                <input type="checkbox" className="h-4 w-4" checked={escolhidos.includes(p.value)}
+                  onChange={(e) => setPapeis(e.target.checked ? [...escolhidos, p.value] : escolhidos.filter((x) => x !== p.value))} /> {p.label}
+              </label>
+            ))}
+          </div>
+          {obrigados.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-1.5 text-xs">
+              {obrigados.map((u) => (
+                <li key={u.user_id} className={`rounded-full px-2 py-0.5 font-semibold ${duas.fatoresDe(u.user_id) ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+                  {u.nome.split(" ")[0]}: {duas.fatoresDe(u.user_id) ? "ativado" : "cadastra no próximo acesso"}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-slate-500">Qualquer pessoa pode ativar por conta própria no menu do usuário (Senha e login em duas etapas). Perdeu o celular: use o botão do celular na lista de usuários para zerar.</p>
+        </div>
+        <div className="border-t border-slate-200 pt-4">
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold text-fg">Sair do ERP depois de</span>
+            <select className="input w-auto" value={tempo} onChange={(e) => setMinutos(Number(e.target.value))}>
+              {TEMPOS.map((m) => <option key={m} value={m}>{m === 0 ? "nunca" : m < 60 ? `${m} minutos` : `${m / 60} hora${m > 60 ? "s" : ""}`}</option>)}
+            </select>
+            <span className="text-slate-600">sem uso</span>
+          </label>
+          <p className="mt-1 text-xs text-slate-500">Avisa 1 minuto antes. Vale para o computador e o celular (um ERP esquecido aberto fecha sozinho).</p>
+        </div>
+        <div className="flex justify-end">
+          <Button disabled={salvando || !banco || (papeis === null && minutos === null)} onClick={salvar}>{salvando ? "Salvando…" : "Salvar"}</Button>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <h3 className="mb-1 font-semibold text-fg">Registro de segurança</h3>
+        <p className="mb-3 text-sm text-slate-600">Quem viu ou alterou os dados sigilosos dos funcionários (CPF, documentos, conta e Pix) e quem zerou o login em duas etapas. Ninguém altera nem apaga este registro.</p>
+        {!eventos.length ? <p className="text-sm text-slate-500">Nada registrado ainda.</p> : (
+          <ul className="divide-y divide-slate-100 text-sm">
+            {eventos.map((ev) => (
+              <li key={ev.id} className="flex flex-wrap gap-x-2 py-2">
+                <span className="num whitespace-nowrap text-slate-500">{new Date(ev.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="min-w-0"><b>{ev.usuario_nome ?? "—"}</b> {ACOES_SEGURANCA[ev.acao] ?? ev.acao} <b>{ev.registro_nome ?? "—"}</b>
+                  {ev.campos?.length ? <span className="text-slate-500"> ({ev.campos.map((c) => CAMPOS_SIGILO[c] ?? c).join(", ")})</span> : null}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

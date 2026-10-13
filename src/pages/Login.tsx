@@ -41,9 +41,9 @@ function LoginDemo() {
 /** Link do e-mail de recuperação: volta para cá com ?nova-senha (o Supabase entra com uma sessão temporária). */
 export const URL_NOVA_SENHA = () => `${window.location.origin}/?nova-senha=1`;
 
-const MOLDURA = "flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4";
+export const MOLDURA = "flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4";
 
-function Marca({ sub }: { sub: string }) {
+export function Marca({ sub }: { sub: string }) {
   return (
     <>
       <div className="mb-5 flex flex-col items-center text-center">

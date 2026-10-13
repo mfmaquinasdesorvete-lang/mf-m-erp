@@ -21,6 +21,13 @@ export function docFormat(v: string | null | undefined) {
   return v ?? "";
 }
 
+/** Para listas: CPF só em parte (***.456.789-**, padrão LGPD); CNPJ inteiro (é dado público da empresa). */
+export function docParcial(v: string | null | undefined) {
+  const d = digitos(v);
+  if (d.length === 11) return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+  return docFormat(v);
+}
+
 /** Link wa.me com mensagem pronta. Números sem DDI recebem +55. */
 export function whatsappLink(numero: string | null | undefined, mensagem: string) {
   let n = digitos(numero);

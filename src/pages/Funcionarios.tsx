@@ -1,11 +1,14 @@
 // Funcionários (RH): cadastro da equipe com dados pessoais, contrato, salário e pagamento, documentos anexados
 // e a ligação com o usuário do ERP, o vendedor (comissões) e a assistência técnica (técnicos da OS).
 // Só admin e financeiro veem (salário, CPF e conta são dados sensíveis; o banco garante isso).
+// CPF, RG, PIS, CTPS, CNH, banco, agência, conta e Pix ficam em funcionarios_sigilo: a lista mostra só parte,
+// e ver por inteiro ou alterar passa por funções do banco que registram quem fez (Usuários → Segurança do acesso).
 // "Lançar salários" cria as contas a pagar do mês (uma por pessoa), sem repetir as que já foram lançadas.
 import { useMemo, useState } from "react";
-import { CalendarClock, Cake, HandCoins, Users, Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarClock, Cake, Eye, HandCoins, Lock, Users, Wallet } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
-import { Badge, Button, Indicador, Modal } from "@/components/ui";
+import { Badge, Button, Field, Indicador, Modal } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +17,7 @@ import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { completarPorCep } from "@/lib/cadastro";
+import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
 
 export type Funcionario = {
   id: string; nome: string; apelido: string | null; cpf: string | null; rg: string | null; data_nascimento: string | null;
@@ -67,6 +71,87 @@ export function fimExperiencia(f: Pick<Funcionario, "vinculo" | "situacao" | "da
 
 const ativos = (l: Funcionario[]) => l.filter((f) => f.ativo && f.situacao !== "desligado");
 
+// ---------- dados sigilosos ----------
+type CampoSigilo = "cpf" | "rg" | "pis" | "ctps" | "cnh" | "pix" | "banco" | "agencia" | "conta";
+const CAMPOS_SIGILO: { k: CampoSigilo; rotulo: string; mask?: Mascara }[] = [
+  { k: "cpf", rotulo: "CPF", mask: "doc" }, { k: "rg", rotulo: "RG" }, { k: "pis", rotulo: "PIS/NIS" }, { k: "ctps", rotulo: "Carteira de trabalho (CTPS)" },
+  { k: "cnh", rotulo: "CNH" }, { k: "pix", rotulo: "Chave Pix" }, { k: "banco", rotulo: "Banco" }, { k: "agencia", rotulo: "Agência" }, { k: "conta", rotulo: "Conta" },
+];
+/** CPF de funcionário: 11 números e dígitos verificadores certos. */
+const erroSigilo = (c: { mask?: Mascara }, v: string | undefined) => {
+  if (!c.mask || !v) return null;
+  const d = v.replace(/\D/g, "");
+  if (d.length !== 11) return "o CPF tem 11 números";
+  return erroCampo(c.mask, d);
+};
+/** O que a lista mostra: só uma parte de cada dado (vem mascarado do banco). */
+type ResumoSigilo = Partial<Record<CampoSigilo, string | null>> & { funcionario_id: string; preenchidos: number };
+/** No formulário: os valores inteiros, depois de "Mostrar" (ou de um cadastro novo). */
+type EstadoSigilo = { valores: Partial<Record<CampoSigilo, string>>; alterado: boolean };
+
+function useResumoSigilo() {
+  const { data = [] } = useQuery({
+    queryKey: ["funcionarios_sigilo_resumo"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("funcionarios_sigilo_resumo");
+      return error ? [] : (data ?? []) as ResumoSigilo[];
+    },
+  });
+  return useMemo(() => new Map(data.map((r) => [r.funcionario_id, r])), [data]);
+}
+
+/** Bloco do formulário: parcial e trancado; "Mostrar e editar" abre (e o banco registra quem viu). */
+function DadosSigilosos({ id, resumo, estado, onChange }: {
+  id?: string; resumo?: ResumoSigilo; estado?: EstadoSigilo; onChange: (e: EstadoSigilo) => void;
+}) {
+  const [abrindo, setAbrindo] = useState(false);
+  const aberto = !id || !!estado;
+  async function mostrarTudo() {
+    setAbrindo(true);
+    try {
+      const { data, error } = await supabase.rpc("funcionario_sigilo_ver", { p_funcionario: id });
+      if (error) throw error;
+      onChange({ valores: Object.fromEntries(CAMPOS_SIGILO.map((c) => [c.k, (data as Record<string, string | null> | null)?.[c.k] ?? ""])), alterado: false });
+    } catch (e) { notifyError(e); } finally { setAbrindo(false); }
+  }
+
+  if (!aberto) {
+    return (
+      <div className="rounded-xl border border-slate-200 p-3">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+          {CAMPOS_SIGILO.map((c) => (
+            <div key={c.k} className="min-w-0">
+              <dt className="text-xs text-slate-500">{c.rotulo}</dt>
+              <dd className="truncate font-mono text-fg">{resumo?.[c.k] || <span className="font-sans text-slate-400">—</span>}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" disabled={abrindo} onClick={mostrarTudo}><Eye size={15} /> {abrindo ? "Abrindo…" : "Mostrar e editar"}</Button>
+          <span className="text-xs text-slate-500">Fica registrado que você viu (o administrador confere em Usuários → Segurança do acesso).</span>
+        </div>
+      </div>
+    );
+  }
+  const valores = estado?.valores ?? {};
+  const set = (k: CampoSigilo, v: string) => onChange({ valores: { ...valores, [k]: v }, alterado: true });
+  return (
+    <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-3">
+      {CAMPOS_SIGILO.map((c) => {
+        const erro = erroSigilo(c, valores[c.k]);
+        return (
+          <Field key={c.k} label={c.rotulo} className="min-w-0">
+            <input className={`input ${erro ? "!border-red-400" : ""}`} autoComplete="off" inputMode={c.mask ? "numeric" : undefined}
+              value={c.mask ? mostrar(c.mask, valores[c.k] ?? "") : valores[c.k] ?? ""}
+              onChange={(e) => set(c.k, c.mask ? gravar(c.mask, e.target.value) : e.target.value)} />
+            {erro && <span className="mt-1 block text-xs text-red-700">{erro}</span>}
+          </Field>
+        );
+      })}
+    </div>
+  );
+}
+
 const FILTROS: FiltroCrud<Funcionario>[] = [
   { label: "Situação", opcoes: [
     { label: "Na equipe (sem desligados)", teste: (f) => f.situacao !== "desligado" },
@@ -84,6 +169,8 @@ export default function Funcionarios() {
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: usuarios = [] } = useRows<{ user_id: string; nome: string; ativo: boolean }>("usuarios_erp", { select: "user_id, nome, ativo", order: "nome", ascending: true });
   const [lancar, setLancar] = useState(false);
+  const resumo = useResumoSigilo();
+  const invalidar = useInvalidate();
 
   const equipe = ativos(lista);
   const mes = hoje().slice(5, 7);
@@ -105,15 +192,16 @@ export default function Funcionarios() {
     { name: "jornada", label: "Jornada", placeholder: "Seg a sex, 8h às 18h", span: 1 },
 
     { name: "s_pessoal", label: "Dados pessoais", type: "secao", ajuda: "Documentos para a admissão e o eSocial." },
-    { name: "cpf", label: "CPF", mask: "doc", span: 1 },
-    { name: "rg", label: "RG", span: 1 },
     { name: "data_nascimento", label: "Nascimento", type: "date", span: 1 },
     { name: "estado_civil", label: "Estado civil", type: "select", span: 1,
       options: ["", "Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"].map((v) => ({ value: v, label: v || "—" })) },
-    { name: "pis", label: "PIS/NIS", span: 1 },
-    { name: "ctps", label: "Carteira de trabalho (CTPS)", span: 1 },
     { name: "escolaridade", label: "Escolaridade", type: "select", span: 2,
       options: ["", "Fundamental", "Médio", "Técnico", "Superior", "Pós-graduação"].map((v) => ({ value: v, label: v || "—" })) },
+
+    { name: "s_sigilo", label: "Documentos e conta (sigilosos)", type: "secao",
+      ajuda: "CPF, RG, PIS, CTPS, CNH, banco e Pix ficam protegidos: aparecem só em parte e, para ver por inteiro, o ERP registra quem viu." },
+    { name: "__sigilo", label: "Documentos, CNH e dados para pagamento", type: "custom", span: 4,
+      render: (valor, set, row) => <DadosSigilosos id={row.id} resumo={row.id ? resumo.get(row.id) : undefined} estado={valor} onChange={set} /> },
 
     { name: "s_contato", label: "Contato", type: "secao" },
     { name: "whatsapp", label: "WhatsApp", mask: "whatsapp", span: 1 },
@@ -133,16 +221,11 @@ export default function Funcionarios() {
     { name: "s_pagamento", label: "Salário e pagamento", type: "secao", ajuda: "Salário bruto do contrato. O líquido de cada mês vem da folha do contador." },
     { name: "salario", label: "Salário (R$)", type: "number", span: 1 },
     { name: "dia_pagamento", label: "Dia do pagamento", type: "number", placeholder: "5", span: 1 },
-    { name: "pix", label: "Chave Pix", span: 2 },
-    { name: "banco", label: "Banco", span: 2 },
-    { name: "agencia", label: "Agência", span: 1 },
-    { name: "conta", label: "Conta", span: 1 },
     { name: "beneficios", label: "Benefícios (vale-transporte, alimentação, plano de saúde…)", type: "textarea", span: 4 },
 
     { name: "s_sistema", label: "Assistência técnica e acesso ao ERP", type: "secao", ajuda: "Liga a pessoa ao login, às comissões e à lista de técnicos da OS." },
     { name: "faz_assistencia", label: "Faz assistência técnica (aparece como técnico na OS)", type: "checkbox", span: 4 },
-    { name: "cnh", label: "CNH", span: 1 },
-    { name: "cnh_categoria", label: "Categoria", span: 1 },
+    { name: "cnh_categoria", label: "Categoria da CNH", span: 2 },
     { name: "cnh_validade", label: "Validade da CNH", type: "date", span: 2 },
     { name: "user_id", label: "Usuário do ERP", type: "select", span: 2,
       options: [{ value: "", label: "Sem acesso ao ERP" }, ...usuarios.map((u) => ({ value: u.user_id, label: u.nome + (u.ativo ? "" : " (inativo)") }))] },
@@ -175,7 +258,7 @@ export default function Funcionarios() {
         anexos="funcionario"
         podeExcluir={papel === "admin"}
         defaults={{ nome: "", vinculo: "clt", situacao: "ativo", unidade_id: padrao, faz_assistencia: false, ativo: true, dia_pagamento: 5 }}
-        searchKeys={["nome", "apelido", "cargo", "setor", "cpf", "whatsapp", "email", "municipio"]}
+        searchKeys={["nome", "apelido", "cargo", "setor", "whatsapp", "email", "municipio"]}
         filtros={FILTROS}
         ordens={[
           { label: "Nome", comparar: (a, b) => a.nome.localeCompare(b.nome) },
@@ -183,11 +266,25 @@ export default function Funcionarios() {
           { label: "Maior salário", comparar: (a, b) => Number(b.salario ?? 0) - Number(a.salario ?? 0) },
         ]}
         extraActions={pode("contas_pagar") && <Button variant="secondary" onClick={() => setLancar(true)}><HandCoins size={16} /> Lançar salários</Button>}
-        beforeSave={(r) => ({
-          ...r, uf: r.uf?.toUpperCase() || null,
-          salario: r.salario === "" || r.salario == null ? null : Number(r.salario),
-          dia_pagamento: r.dia_pagamento === "" || r.dia_pagamento == null ? null : Number(r.dia_pagamento),
-        })}
+        beforeSave={(r) => {
+          // os sigilosos não vão para a tabela funcionarios: seguem depois, pela função que registra quem alterou
+          const { __sigilo, cpf, rg, pis, ctps, cnh, banco, agencia, conta, pix, ...resto } = r;
+          const s = __sigilo as EstadoSigilo | undefined;
+          const errado = CAMPOS_SIGILO.find((c) => erroSigilo(c, s?.valores[c.k]));
+          if (errado) throw new Error(`Confira o ${errado.rotulo}: ${erroSigilo(errado, s!.valores[errado.k])}`);
+          return {
+            ...resto, uf: r.uf?.toUpperCase() || null,
+            salario: r.salario === "" || r.salario == null ? null : Number(r.salario),
+            dia_pagamento: r.dia_pagamento === "" || r.dia_pagamento == null ? null : Number(r.dia_pagamento),
+          };
+        }}
+        afterSave={async (salvo, editado) => {
+          const s = editado.__sigilo as EstadoSigilo | undefined;
+          if (!s?.alterado) return;
+          const { error } = await supabase.rpc("funcionario_sigilo_salvar", { p_funcionario: salvo.id, p_dados: s.valores });
+          if (error) throw error;
+          invalidar("funcionarios_sigilo_resumo");
+        }}
         onFieldChange={async (name, value, _row, forcar) => (name === "cep" && (forcar || String(value ?? "").replace(/\D/g, "").length === 8) ? completarPorCep(value, forcar) : null)}
         exportExtra={(f) => ({ "Tempo de casa": tempoDeCasa(f.data_admissao) ?? "" })}
         fields={fields}
@@ -210,6 +307,9 @@ export default function Funcionarios() {
           { label: "Vínculo", render: (f) => rotuloVinculo(f.vinculo) },
           { label: "Admissão", render: (f) => f.data_admissao ? <>{dataBR(f.data_admissao)}<span className="block text-xs text-slate-500">{tempoDeCasa(f.data_admissao)}</span></> : "—" },
           { label: "Situação", render: (f) => <Badge value={f.situacao} /> },
+          { label: "CPF", render: (f) => resumo.get(f.id)?.cpf
+            ? <span className="inline-flex items-center gap-1 font-mono text-sm" title="Parcial: abra o cadastro para ver inteiro"><Lock size={12} className="text-slate-400" aria-hidden />{resumo.get(f.id)!.cpf}</span>
+            : <span className="text-slate-400">—</span> },
           { label: "Contato", render: (f) => <Contato r={f} mensagem={`Olá, ${nomeCurto(f).split(" ")[0]}!`} /> },
         ]}
       />
