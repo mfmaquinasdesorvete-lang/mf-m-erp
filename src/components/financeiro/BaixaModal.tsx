@@ -1,6 +1,8 @@
 // Registrar pagamento/recebimento: valor total, com juros/multa, com desconto ou parcial (o restante vira uma
-// nova conta em aberto, ligada a esta). Tudo fica no histórico com o motivo.
+// nova conta em aberto, ligada a esta). Tudo fica no histórico com o motivo. Paga depois do vencimento: mostra a multa e os
+// juros (os do boleto, ou 2% + 1% ao mês) e põe o valor corrigido com um toque.
 import { useState, type FormEvent } from "react";
+import { calcularEncargos } from "@/lib/boleto";
 import { Button, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, hoje, somarDias } from "@/lib/format";
@@ -9,12 +11,14 @@ import { supabase } from "@/lib/supabase";
 
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 
-export function BaixaModal({ conta, tabela, onClose }: {
-  conta: { id: string; descricao: string; valor: number; vencimento?: string; unidade_id?: string | null }; tabela: "contas_receber" | "contas_pagar"; onClose: () => void;
+export function BaixaModal({ conta, tabela, onClose, valorInicial, dataInicial }: {
+  conta: { id: string; descricao: string; valor: number; vencimento?: string; unidade_id?: string | null;
+    boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null };
+  tabela: "contas_receber" | "contas_pagar"; onClose: () => void; valorInicial?: number; dataInicial?: string;
 }) {
   const receber = tabela === "contas_receber";
-  const [data, setData] = useState(hoje());
-  const [valor, setValor] = useState(String(conta.valor));
+  const [data, setData] = useState(dataInicial ?? hoje());
+  const [valor, setValor] = useState(String(valorInicial ?? conta.valor));
   const [modo, setModo] = useState<"parcial" | "desconto">("parcial");
   const [restanteEm, setRestanteEm] = useState(conta.vencimento && conta.vencimento > hoje() ? conta.vencimento : somarDias(7));
   const { data: bancos = [] } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
@@ -24,6 +28,8 @@ export function BaixaModal({ conta, tabela, onClose }: {
   const invalidate = useInvalidate();
   const v = Number(valor) || 0;
   const diferenca = Math.round((Number(conta.valor) - v) * 100) / 100;
+  const enc = conta.vencimento && data ? calcularEncargos(Number(conta.valor), conta.vencimento, data,
+    { multaPct: conta.boleto_multa_pct ?? 2, jurosMesPct: conta.boleto_juros_mes_pct ?? 1, jurosDia: conta.boleto_juros_dia }) : null;
 
   async function confirmar(e: FormEvent) {
     e.preventDefault();
@@ -51,6 +57,15 @@ export function BaixaModal({ conta, tabela, onClose }: {
         <Field label={`Valor ${receber ? "recebido" : "pago"} (a conta é de ${brl(conta.valor)})`}>
           <input className="input" type="number" step="0.01" min={0.01} value={valor} onChange={(e) => setValor(e.target.value)} required />
         </Field>
+        {enc && enc.dias > 0 && (
+          <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="mr-auto">
+              {enc.dias} {enc.dias === 1 ? "dia" : "dias"} de atraso: multa {brl(enc.multa)} + juros {brl(enc.juros)} = <b className="num">{brl(enc.total)}</b>
+              <span className="block text-xs opacity-80">{conta.boleto_multa_pct != null || conta.boleto_juros_mes_pct != null || conta.boleto_juros_dia != null ? "multa e juros do boleto" : "multa de 2% e juros de 1% ao mês (padrão)"}</span>
+            </span>
+            {Math.abs(v - enc.total) > 0.005 && <Button type="button" variant="secondary" onClick={() => setValor(enc.total.toFixed(2))}>Usar {brl(enc.total)}</Button>}
+          </div>
+        )}
         {diferenca > 0 && (
           <fieldset className="col-span-2 space-y-2 rounded-lg border border-slate-200 p-3 text-sm">
             <legend className="px-1 text-xs font-semibold text-slate-600">Faltam {brl(diferenca)}. O que fazer com a diferença?</legend>

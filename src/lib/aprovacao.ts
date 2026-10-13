@@ -9,7 +9,7 @@ export type ContadorStatus = "validado" | "duvida" | "ajustado";
 export type ContaRevisao = {
   id: string; descricao: string; valor: number; vencimento: string; status: string; categoria?: string | null;
   competencia?: string | null; unidade_id?: string | null; data_pagamento?: string | null; conta_origem_id?: string | null;
-  documento?: string | null; nfe_recebida_id?: string | null; fornecedor_id?: string | null;
+  documento?: string | null; linha_digitavel?: string | null; nfe_recebida_id?: string | null; fornecedor_id?: string | null;
   pedido_id?: string | null; os_id?: string | null; nota_fiscal_id?: string | null; nfse_id?: string | null; cliente_id?: string | null;
   revisao?: Revisao | null; lancamento?: "manual" | "automatico" | "importado" | null; criado_por?: string | null;
   revisao1_por?: string | null; revisao1_nome?: string | null; revisao1_em?: string | null;
@@ -32,8 +32,9 @@ const dias = (a: string, b: string) => Math.abs(Date.parse(a.slice(0, 10)) - Dat
 const norm = (t?: string | null) => (t ?? "").trim().toLowerCase();
 
 /**
- * O que falta para aprovar sem exceção (igual a pendencias_conta no banco): documento (número, NF de fornecedor, pedido/OS/nota
- * ou anexo), categoria do plano de contas e possível duplicidade (mesmo fornecedor/cliente, valor e vencimento em até 5 dias).
+ * O que falta para aprovar sem exceção (igual a pendencias_conta no banco): documento (número, linha digitável do boleto, NF de
+ * fornecedor, pedido/OS/nota ou anexo), categoria do plano de contas e possível duplicidade (mesmo fornecedor/cliente, valor e
+ * vencimento em até 5 dias, ou o mesmo boleto em outra conta).
  */
 export function pendencias(c: ContaRevisao, tipo: TipoConta, ctx: {
   anexos: Set<string>; categorias: { nome: string; tipo: string; ativo?: boolean | null }[]; todas: ContaRevisao[];
@@ -42,7 +43,7 @@ export function pendencias(c: ContaRevisao, tipo: TipoConta, ctx: {
   const cat = norm(c.categoria);
   const anexo = ctx.anexos.has(c.id) || (!!c.conta_origem_id && ctx.anexos.has(c.conta_origem_id));
   if (tipo === "pagar") {
-    if (!c.documento?.trim() && !c.nfe_recebida_id && !anexo && !SEM_DOC_PAGAR.includes(cat)) out.push("sem_documento");
+    if (!c.documento?.trim() && !c.linha_digitavel?.trim() && !c.nfe_recebida_id && !anexo && !SEM_DOC_PAGAR.includes(cat)) out.push("sem_documento");
   } else if (!c.pedido_id && !c.os_id && !c.nota_fiscal_id && !c.nfse_id && !anexo && !SEM_DOC_RECEBER.includes(cat)) out.push("sem_documento");
   const tipoCat = tipo === "pagar" ? "despesa" : "receita";
   if (!ctx.categorias.some((k) => k.ativo !== false && k.tipo === tipoCat && norm(k.nome) === cat)) out.push("categoria");
@@ -52,7 +53,9 @@ export function pendencias(c: ContaRevisao, tipo: TipoConta, ctx: {
     if (tipo === "pagar") return c.fornecedor_id ? o.fornecedor_id === c.fornecedor_id : !o.fornecedor_id && norm(o.descricao) === norm(c.descricao);
     return !!c.cliente_id && o.cliente_id === c.cliente_id && (!c.pedido_id || o.pedido_id !== c.pedido_id);
   });
-  if (dup) out.push("duplicidade");
+  const linha = tipo === "pagar" && !c.conta_origem_id ? c.linha_digitavel?.trim() : "";
+  const mesmoBoleto = !!linha && ctx.todas.some((o) => o.id !== c.id && o.status !== "cancelado" && !o.conta_origem_id && o.linha_digitavel === linha);
+  if (dup || mesmoBoleto) out.push("duplicidade");
   return out;
 }
 
