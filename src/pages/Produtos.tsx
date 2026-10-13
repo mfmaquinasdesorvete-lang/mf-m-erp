@@ -20,6 +20,8 @@ import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
 import { QualidadeProdutos } from "@/components/QualidadeProdutos";
 import { AuditoriaProdutos } from "@/components/produtos/AuditoriaProdutos";
+import { ConferenciaEan } from "@/components/produtos/CodigosEan";
+import { contextoEan, erroCodigoNovo, soDigitos, type ProdutoEan } from "@/lib/gtin";
 import { useConfig } from "@/lib/useConfig";
 import { avaliarAnuncio, correcaoAutomatica, slugDe, LIMITE_META, LIMITE_TITULO } from "@/lib/marketplace";
 import { ContagemEstoque } from "@/components/ContagemEstoque";
@@ -406,8 +408,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         beforeSave={(r) => {
           // estoque_atual só muda por movimentação, nunca pela edição do cadastro
           const { estoque_atual: _ignorado, fornecedores_produto: _preferido, ...resto } = r;
+          // código de barras: só dígitos; código novo tem que ser válido e de um produto só
+          const ean = soDigitos(r.codigo_barras);
+          if (ean && r.gtin_isento) throw new Error("Código de barras: informe o código ou marque \"Sem GTIN\", não os dois");
+          if (ean && ean !== soDigitos(produtosTodos.find((p) => p.id === r.id)?.codigo_barras)) {
+            const erro = erroCodigoNovo({ id: r.id ?? "" }, ean, contextoEan(produtosTodos as ProdutoEan[]));
+            if (erro) throw new Error(`Código de barras ${ean}: ${erro}`);
+          }
           return {
             ...resto,
+            codigo_barras: ean || null,
             origem: Number(r.origem),
             preco_custo: Number(r.preco_custo || 0),
             preco_venda: Number(r.preco_venda || 0),
@@ -448,6 +458,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "modelo", label: "Modelo", span: 1 },
           { name: "codigo_fabricante", label: "Código do fabricante (peça original)", span: 1, placeholder: "Ex.: TYA2446ZES, CFW300A06P0S2NB20" },
           { name: "codigo_barras", label: "Código de barras (EAN)" },
+          { name: "conferencia_ean", label: "Conferência do código de barras", type: "custom", span: 3, render: (_v, _s, row) => <ConferenciaEan row={row} produtos={produtosTodos} /> },
           { name: "codigos_alternativos", label: "Códigos alternativos (separados por vírgula)", span: 3, placeholder: "Código antigo, código do Tiny, EAN da caixa…" },
           { name: "garantia_meses", label: "Garantia (meses, vazio = padrão)", type: "number" },
           { name: "secao_compra", label: "Compra e reposição", type: "secao", ajuda: "O estoque mínimo deve cobrir o consumo durante o prazo do fornecedor, com folga para as peças críticas." },
