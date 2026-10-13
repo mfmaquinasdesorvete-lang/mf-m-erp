@@ -4,6 +4,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { enviarEmail } from "../_shared/email.ts";
+import { enderecoSite } from "../_shared/site.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -34,11 +35,11 @@ Deno.serve(async (req) => {
     if (!alvos.length) throw new HttpError(400, "nenhum fornecedor para enviar");
     const { count: nItens } = await db.from("cotacao_itens").select("id", { count: "exact", head: true }).eq("cotacao_id", cotacao_id);
 
-    const { data: cfg } = await db.from("configuracoes").select("nome_fantasia, razao_social, whatsapp, email, proposta_cor").eq("id", 1).single();
+    const { data: cfg } = await db.from("configuracoes").select("nome_fantasia, razao_social, whatsapp, email, proposta_cor, site_url").eq("id", 1).single();
     const empresa = cfg?.nome_fantasia || cfg?.razao_social || "MF Máquinas";
     const cor = corLegivel(cfg?.proposta_cor);
-    const site = (Deno.env.get("ERP_SITE_URL") ?? "").replace(/\/$/, "");
-    if (!site) throw new HttpError(500, "defina o secret ERP_SITE_URL (ex.: https://erp.myfrost.ai)");
+    const site = enderecoSite(cfg?.site_url);
+    if (!site) throw new HttpError(500, "informe o Endereço do site em Configurações (ex.: https://erp.myfrost.ai)");
     const prazo = c.prazo_resposta ? new Date(c.prazo_resposta + "T12:00:00").toLocaleDateString("pt-BR") : "";
 
     const enviados: string[] = [], semEmail: string[] = [], falhas: string[] = [];

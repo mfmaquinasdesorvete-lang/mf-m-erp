@@ -3,6 +3,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { enviarEmail } from "../_shared/email.ts";
+import { enderecoSite } from "../_shared/site.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -26,11 +27,11 @@ Deno.serve(async (req) => {
     const { data: token, error } = await comoUsuario.rpc("marcar_proposta_enviada", { p_pedido: pedido_id });
     if (error) throw new HttpError(400, error.message);
 
-    const { data: cfg } = await db.from("configuracoes").select("nome_fantasia, razao_social, whatsapp, email, proposta_titulo, proposta_cor, validade_orcamento_dias").eq("id", 1).single();
+    const { data: cfg } = await db.from("configuracoes").select("nome_fantasia, razao_social, whatsapp, email, proposta_titulo, proposta_cor, validade_orcamento_dias, site_url").eq("id", 1).single();
     const { data: atual } = await db.from("pedidos").select("proposta_validade").eq("id", pedido_id).single();
     const empresa = cfg?.nome_fantasia || cfg?.razao_social || "MF Máquinas";
-    const site = (Deno.env.get("ERP_SITE_URL") ?? "").replace(/\/$/, "");
-    if (!site) throw new HttpError(500, "defina o secret ERP_SITE_URL (ex.: https://erp.myfrost.ai)");
+    const site = enderecoSite(cfg?.site_url);
+    if (!site) throw new HttpError(500, "informe o Endereço do site em Configurações (ex.: https://erp.myfrost.ai)");
     const link = `${site}/proposta/${token}`;
     const cor = cfg?.proposta_cor ?? "#0EA5E9";
     const validade = atual?.proposta_validade ? new Date(atual.proposta_validade + "T12:00:00").toLocaleDateString("pt-BR") : "";
