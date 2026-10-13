@@ -6,13 +6,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Banknote, CalendarClock, CheckCircle2, CreditCard, FileText, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShoppingCart, Split, Trash2, UserRound,
+  ArrowLeft, Banknote, CalendarClock, CheckCircle2, CreditCard, FileText, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShoppingCart, Split, Trash2, UserPlus, UserRound,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { ModuloContext } from "@/lib/modulo";
 import logo from "@/assets/logo.webp";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { ClienteRapido } from "@/components/clientes/ClienteRapido";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 import { VendedorSelect } from "@/components/VendedorSelect";
 import { LinkPagamentoModal, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
@@ -55,7 +56,11 @@ export default function Pdv() {
   const { data: cfg } = useConfig();
   const { padrao, unidades, nome: nomeUnidade } = useUnidade();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: cadastrados = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  // cliente cadastrado na hora (balcão): entra na lista já, sem esperar a lista recarregar
+  const [novos, setNovos] = useState<Cliente[]>([]);
+  const clientes = useMemo(() => [...novos.filter((n) => !cadastrados.some((c) => c.id === n.id)), ...cadastrados], [novos, cadastrados]);
+  const [cadastrar, setCadastrar] = useState<string | null>(null);
   const { data: estoques = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade");
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; user_id: string | null; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: formas = [] } = useFormasPagamento();
@@ -76,9 +81,9 @@ export default function Pdv() {
     setTabelaId(id);
     setItens((l) => l.map((i) => { const p = produtos.find((x) => x.id === i.produto_id); return p ? { ...i, valor_unitario: precoPdv(p, t) } : i; }));
   }
-  function escolherCliente(id: string | null) {
+  function escolherCliente(id: string | null, c?: Cliente) {
     setClienteId(id);
-    const t = (clientes.find((c) => c.id === id) as any)?.tabela_preco_id as string | null | undefined;
+    const t = ((c ?? clientes.find((x) => x.id === id)) as any)?.tabela_preco_id as string | null | undefined;
     if (t && t !== tabelaId && tabelas.some((x) => x.id === t && x.ativo)) usarTabela(t);
   }
   const [vendedorId, setVendedorId] = useState<string | null>(null);
@@ -315,9 +320,12 @@ export default function Pdv() {
             <Field label="Cliente">
               <div className="flex gap-2">
                 <div className="min-w-0 flex-1">
-                  <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => escolherCliente(id || null)} placeholder="Consumidor final (sem identificar)" />
+                  <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => escolherCliente(id || null)} placeholder="Consumidor final (sem identificar)"
+                    onNovo={(t) => setCadastrar(t)} />
                 </div>
-                {clienteId && <Button type="button" variant="ghost" aria-label="Voltar para consumidor final" onClick={() => setClienteId(null)}><UserRound size={16} aria-hidden /></Button>}
+                {clienteId
+                  ? <Button type="button" variant="ghost" title="Voltar para consumidor final" aria-label="Voltar para consumidor final" onClick={(e) => { e.preventDefault(); setClienteId(null); }}><UserRound size={16} aria-hidden /></Button>
+                  : <Button type="button" variant="secondary" title="Cadastrar cliente na hora" aria-label="Cadastrar cliente na hora" onClick={(e) => { e.preventDefault(); setCadastrar(""); }}><UserPlus size={16} aria-hidden /><span className="hidden sm:inline">Novo</span></Button>}
               </div>
             </Field>
             <Field label="Vendedor"><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></Field>
@@ -431,6 +439,11 @@ export default function Pdv() {
             {pronto ? "Finalizar" : "Cobrar"}
           </Button>
         </div>
+      )}
+
+      {cadastrar !== null && (
+        <ClienteRapido inicial={cadastrar} clientes={clientes} onClose={() => setCadastrar(null)}
+          onCriado={(c) => { setNovos((l) => [c, ...l.filter((x) => x.id !== c.id)]); escolherCliente(c.id, c); setCadastrar(null); invalidate("clientes"); }} />
       )}
 
       {feito && (

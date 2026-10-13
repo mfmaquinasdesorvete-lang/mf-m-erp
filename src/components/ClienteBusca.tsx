@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, UserPlus, X } from "lucide-react";
 import { docFormat, rotuloCliente } from "@/lib/format";
 import { buscarClientes, notaCliente, type ClienteBuscavel } from "@/lib/buscaCliente";
 
@@ -9,7 +9,7 @@ const LIMITE = 30;
  * Campo de escolher cliente digitando: nome, nome fantasia, CPF/CNPJ (com ou sem pontos), código, cidade ou
  * telefone. Substitui a lista corrida com todos os clientes.
  */
-export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onChange, disabled, required, placeholder, autoFocus }: {
+export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onChange, disabled, required, placeholder, autoFocus, onNovo }: {
   clientes: T[];
   value: string | null | undefined;
   onChange: (id: string, cliente: T | null) => void;
@@ -17,6 +17,8 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
   required?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
+  /** "Cadastrar cliente" no fim da lista (com o que foi digitado), para o cadastro rápido de quem chama */
+  onNovo?: (texto: string) => void;
 }) {
   const escolhido = useMemo(() => clientes.find((c) => c.id === value) ?? null, [clientes, value]);
   const [consulta, setConsulta] = useState<string | null>(null); // null = mostrando o escolhido
@@ -64,7 +66,10 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
         </button>
       )}
       {aberto && (
-        <div className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-pop">
+        // o campo costuma estar dentro de um <label> (Field): sem o preventDefault, o clique na lista volta o foco
+        // para o campo, que reabre a busca vazia e parece que o cliente não foi escolhido
+        <div className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-pop"
+          onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
           {achados.length === 0 ? (
             <p className="px-3 py-3 text-sm text-slate-500">
               Nenhum cliente com “{consulta}”. Confira o número ou busque por parte do nome, da cidade ou do nome fantasia.
@@ -76,7 +81,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
                 const comFantasia = f && f.toLowerCase() !== c.nome.toLowerCase();
                 return (
                   <li key={c.id} data-i={i} role="option" aria-selected={i === ativo}
-                    onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setAtivo(i)} onClick={() => escolher(c)}
+                    onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setAtivo(i)} onClick={(e) => { e.preventDefault(); escolher(c); }}
                     className={`cursor-pointer px-3 py-2 ${i === ativo ? "bg-brand-light" : ""} ${c.id === value ? "font-semibold" : ""}`}>
                     <div className="text-sm text-fg">{comFantasia ? f : c.nome}</div>
                     <div className="text-xs text-slate-500">
@@ -90,6 +95,12 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
           )}
           {total > achados.length && (
             <p className="border-t border-slate-100 px-3 py-1.5 text-xs text-slate-500">Mostrando {achados.length} de {total}. Digite mais para achar mais rápido.</p>
+          )}
+          {onNovo && (
+            <button type="button" onClick={(e) => { e.preventDefault(); const t = consulta ?? ""; setConsulta(null); campo.current?.blur(); onNovo(t.trim()); }}
+              className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2.5 text-left text-sm font-semibold text-brand hover:bg-brand-light">
+              <UserPlus size={16} aria-hidden /> Cadastrar cliente{consulta?.trim() ? ` “${consulta.trim()}”` : " novo"}
+            </button>
           )}
         </div>
       )}
