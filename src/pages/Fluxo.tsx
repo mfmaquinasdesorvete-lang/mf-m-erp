@@ -176,7 +176,7 @@ export default function Fluxo() {
             <Zap size={13} aria-hidden /> NF-e automática ligada
           </span>
         ) : podeVer("configuracoes") ? (
-          <Link to="/configuracoes" state={{ secao: "automacao-pedidos" }} title="Hoje cada pedido aprovado espera alguém emitir a nota pelo botão Emitir NF-e do cartão"
+          <Link to="/configuracoes/pedidos" title="Hoje cada pedido aprovado espera alguém emitir a nota pelo botão Emitir NF-e do cartão"
             className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 hover:border-amber-500">
             <ZapOff size={13} aria-hidden /> NF-e automática desligada · Ligar <ArrowRight size={13} aria-hidden />
           </Link>

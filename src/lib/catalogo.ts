@@ -17,7 +17,10 @@ export async function enviarFotoProduto(arquivo: File) {
 }
 
 export type DadosLoja = {
-  empresa: { nome: string; whatsapp?: string | null; telefone?: string | null; email?: string | null; endereco?: string | null; municipio?: string | null; uf?: string | null; texto?: string | null };
+  empresa: {
+    nome: string; whatsapp?: string | null; telefone?: string | null; email?: string | null; endereco?: string | null; municipio?: string | null; uf?: string | null; texto?: string | null;
+    logo?: string | null; cor?: string | null; slogan?: string | null; site?: string | null; instagram?: string | null;
+  };
   produtos: ProdutoLoja[];
 };
 

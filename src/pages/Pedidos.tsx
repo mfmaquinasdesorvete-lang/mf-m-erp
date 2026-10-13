@@ -60,9 +60,10 @@ function exportarPedidos(lista: Pedido[]) {
   baixarPlanilha("vendas", [{ nome: "Pedidos", linhas: ped }, { nome: "Itens", linhas: itens }]).catch(notifyError);
 }
 
-const novoPedido = (): Partial<Pedido> & { itens: Item[] } => ({
+// observações padrão do orçamento: Configurações → Orçamentos e garantia
+const novoPedido = (observacoes?: string | null): Partial<Pedido> & { itens: Item[] } => ({
   origem: "whatsapp", status: "orcamento", forma_pagamento: "boleto", parcelas: 1, intervalo_dias: 30,
-  modalidade_frete: 9, desconto: 0, frete: 0, itens: [],
+  modalidade_frete: 9, desconto: 0, frete: 0, itens: [], observacoes: observacoes?.trim() || null,
 });
 
 export default function Pedidos() {
@@ -70,6 +71,7 @@ export default function Pedidos() {
   const { filtrar } = useUnidade();
   const { data: pedidosTodos = [], isLoading } = useRows<Pedido>("pedidos", { select: SELECT });
   const pedidos = filtrar(pedidosTodos);
+  const { data: cfgPedidos } = useConfig();
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
@@ -92,7 +94,7 @@ export default function Pedidos() {
       return;
     }
     if ((location.state as any)?.novo) {
-      setAberto({ ...novoPedido(), ...((location.state as any).cliente_id ? { cliente_id: (location.state as any).cliente_id } : {}) });
+      setAberto({ ...novoPedido(cfgPedidos?.orcamento_observacoes), ...((location.state as any).cliente_id ? { cliente_id: (location.state as any).cliente_id } : {}) });
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, pedidosTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -107,7 +109,7 @@ export default function Pedidos() {
       <PageHeader title="Vendas e orçamentos" subtitle="Do orçamento no WhatsApp à entrega, com frete e nota fiscal."
         actions={<>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista)}><FileDown size={16} /> Exportar</Button>
-          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido())}><Plus size={16} /> Novo orçamento</Button>}
+          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> Novo orçamento</Button>}
         </>} />
 
       <div className="mb-4 space-y-3">

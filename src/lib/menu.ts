@@ -109,7 +109,7 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
       { to: "/usuarios", tela: "usuarios", label: "Usuários", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel" },
-      { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa unidades focus tiny importar integração" },
+      { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa marca logo cores unidades recebimentos pix taxas orçamento garantia comissão catálogo vitrine pedidos expedição zebra impressora etiqueta notas focus avisos e-mail contador backup exportar" },
     ],
   },
 ];

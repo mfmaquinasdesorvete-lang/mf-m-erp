@@ -90,8 +90,11 @@ export default function Loja() {
       <header className="sticky top-0 z-20 border-b border-ink-line bg-ink/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
           <Link to="/loja" className="flex min-w-0 items-center gap-3">
-            <img src={logo} alt="" className="h-10 w-10 rounded-xl" />
-            <span className="truncate text-lg font-bold text-white">{empresa?.nome ?? "Loja"}</span>
+            <img src={empresa?.logo || logo} alt="" className="h-10 w-10 rounded-xl object-contain" />
+            <span className="min-w-0">
+              <span className="block truncate text-lg font-bold text-white">{empresa?.nome ?? "Loja"}</span>
+              {empresa?.slogan && <span className="block truncate text-xs text-white/70">{empresa.slogan}</span>}
+            </span>
           </Link>
           <div className="ml-auto flex items-center gap-1">
             <Link to="/loja/conta" className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-semibold text-white hover:bg-white/10" aria-label="Minha conta">

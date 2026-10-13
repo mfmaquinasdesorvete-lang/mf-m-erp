@@ -9,16 +9,28 @@ import {
   type AvisoId, type EtiquetaDados, type ModeloEtiqueta,
 } from "./etiquetaDados";
 import logoPdf from "@/assets/logo-pdf.jpg";
+import { logoDaEmpresa } from "./marca";
 
-let logoCache: Promise<string | null> | null = null;
-/** Logo em data URL para o jsPDF (carregada uma vez). */
-function logoDataUrl() {
-  logoCache ??= fetch(logoPdf).then((r) => r.blob()).then((b) => new Promise<string>((ok) => {
-    const fr = new FileReader();
-    fr.onload = () => ok(fr.result as string);
-    fr.readAsDataURL(b);
-  })).catch(() => null);
-  return logoCache;
+const logoCache = new Map<string, Promise<string | null>>();
+/**
+ * Logo em PNG quadrado (a proporção é mantida, centralizada) para o jsPDF, carregada uma vez: a que a empresa enviou em
+ * Configurações → Empresa ou, sem ela (ou se não abrir), a padrão.
+ */
+function logoDataUrl(): Promise<string | null> {
+  const src = logoDaEmpresa() || logoPdf;
+  if (!logoCache.has(src)) logoCache.set(src, quadradoPng(src).catch(() => (src === logoPdf ? null : quadradoPng(logoPdf).catch(() => null))));
+  return logoCache.get(src)!;
+}
+async function quadradoPng(src: string): Promise<string> {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  await new Promise((ok, erro) => { img.onload = ok; img.onerror = erro; img.src = src; });
+  const lado = 256, c = document.createElement("canvas");
+  c.width = c.height = lado;
+  const k = Math.min(lado / (img.naturalWidth || lado), lado / (img.naturalHeight || lado));
+  const w = (img.naturalWidth || lado) * k, h = (img.naturalHeight || lado) * k;
+  c.getContext("2d")!.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
+  return c.toDataURL("image/png");
 }
 
 const NAVY: [number, number, number] = [7, 13, 24];
@@ -85,15 +97,26 @@ type Doc = Awaited<ReturnType<typeof novoDoc>>["doc"];
 
 function cabecalho(doc: Doc, cfg: Config, titulo: string, numero: string, logo?: string | null) {
   const w = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, w, 30, "F");
+  // estilo do cabeçalho (Configurações → Empresa): escuro (padrão), claro ou na cor principal da empresa
+  const claro = cfg.pdf_cabecalho === "claro";
+  const corEmpresa = hexRgb(cfg.cor_primaria);
+  const fundo = cfg.pdf_cabecalho === "cor" && corEmpresa ? corEmpresa : NAVY;
+  if (claro) {
+    doc.setDrawColor(...(corEmpresa ?? NAVY));
+    doc.setLineWidth(0.8);
+    doc.line(0, 30, w, 30);
+    doc.setLineWidth(0.2);
+  } else {
+    doc.setFillColor(...fundo);
+    doc.rect(0, 0, w, 30, "F");
+  }
   if (logo) {
-    doc.addImage(logo, "JPEG", 13, 6, 18, 18);
+    doc.addImage(logo, "PNG", 13, 6, 18, 18);
   } else {
     doc.setFillColor(...AZUL);
     doc.roundedRect(14, 8, 14, 14, 2, 2, "F");
   }
-  doc.setTextColor(255, 255, 255);
+  if (claro) doc.setTextColor(15, 23, 42); else doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text(cfg.nome_fantasia || cfg.razao_social, 34, 14);
@@ -256,6 +279,7 @@ export async function pdfOrcamento(p: {
   if (ehOrcamento) y = paragrafo(doc, "Validade", p.validade
     ? `Proposta válida até ${dataBR(p.validade)}. Preços sujeitos a disponibilidade de estoque.`
     : `Esta proposta é válida por ${cfg.validade_orcamento_dias} dias a partir da data de emissão. Preços sujeitos a disponibilidade de estoque.`, y);
+  if (ehOrcamento && cfg.orcamento_prazo_entrega) y = paragrafo(doc, "Prazo de entrega", cfg.orcamento_prazo_entrega, y);
   if (ehOrcamento && cfg.proposta_condicoes) y = paragrafo(doc, "Condições", cfg.proposta_condicoes, y);
   if (Object.keys(p.garantias).length) y = paragrafo(doc, "Garantia", cfg.termo_garantia, y);
   if (p.observacoes) y = paragrafo(doc, "Observações", p.observacoes, y);
@@ -331,8 +355,8 @@ export async function pdfOS(o: {
   }
 
   y = paragrafo(doc, "Condições", o.tipo === "entrada"
-    ? "O orçamento do conserto será enviado pelo WhatsApp antes de qualquer serviço. Equipamentos não retirados em até 90 dias após o aviso de conclusão poderão ser cobrados por armazenagem."
-    : `Garantia do serviço executado: 90 dias para as peças trocadas e a mão de obra. ${cfg.termo_garantia}`, y);
+    ? `O orçamento do conserto será enviado pelo WhatsApp antes de qualquer serviço. Equipamentos não retirados em até ${cfg.os_armazenagem_dias ?? 90} dias após o aviso de conclusão poderão ser cobrados por armazenagem.`
+    : `Garantia do serviço executado: ${cfg.garantia_servico_dias ?? 90} dias para as peças trocadas e a mão de obra. ${cfg.termo_garantia}`, y);
 
   if (y > 250) { doc.addPage(); y = 20; }
   y += 4;
@@ -546,7 +570,7 @@ async function etiquetaTransporte(doc: Doc, d: EtiquetaDados, i: number, x0: num
   // Remetente
   const r = d.remetente;
   let xr = 4;
-  if (logo) { doc.addImage(logo, "JPEG", X(3.5), Y(3.5), 13, 13); xr = 19.5; }
+  if (logo) { doc.addImage(logo, "PNG", X(3.5), Y(3.5), 13, 13); xr = 19.5; }
   doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.text("REMETENTE", X(xr), Y(5.2));
   doc.setFontSize(8); doc.text(corta(doc, r.nome, W - xr - 4), X(xr), Y(9));
   doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
@@ -760,7 +784,7 @@ export async function pdfRecibo(r: ReciboPdf, vias: 1 | 2 = 2) {
     // faixa do emitente
     doc.setFillColor(...NAVY);
     doc.rect(0, y0, w, 24, "F");
-    if (logo) doc.addImage(logo, "JPEG", 12, y0 + 4, 16, 16);
+    if (logo) doc.addImage(logo, "PNG", 12, y0 + 4, 16, 16);
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
     doc.text(r.emitente.nome, 32, y0 + 9.5);
