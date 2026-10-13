@@ -15,6 +15,7 @@ import {
   type Comparacao, type LinhaABC,
 } from "@/lib/gerencial";
 import type { Cliente } from "@/lib/types";
+import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
@@ -40,10 +41,9 @@ export default function Gerencial() {
   const [verTodos, setVerTodos] = useState(false);
   const dia = hoje();
 
-  const { data: pedidos = [], isLoading: l1 } = useRows<any>("pedidos", { select: "id, numero, status, valor_total, created_at, aprovado_em, cliente_id, unidade_id, proposta_status, " +
-    "itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(sku)), notas:notas_fiscais(status, ambiente)", key: ["gerencial"] });
-  const { data: notas = [], isLoading: l2 } = useRows<any>("notas_fiscais", { select: "id, numero, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, payload, cliente_id, destinatario_nome, destinatario_doc, unidade_id", key: ["gerencial"] });
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { select: "id, codigo, tipo_pessoa, nome, nome_fantasia, cpf_cnpj, whatsapp, telefone, email, municipio, uf, observacoes, preferencias, contribuinte_icms, inscricao_estadual", key: ["gerencial"] });
+  const { data: pedidos = [], isLoading: l1 } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
+  const { data: notas = [], isLoading: l2 } = useRows<any>("notas_fiscais", { select: SELECT_NOTAS_VENDAS, key: ["gerencial"] });
+  const { data: clientes = [] } = useRows<Cliente>("clientes", { select: SELECT_CLIENTES_VENDAS, key: ["gerencial"] });
   const { data: expedicoes = [] } = useRows<any>("expedicoes", { select: "status, created_at, unidade_id", key: ["gerencial"] });
   const { data: oss = [] } = useRows<any>("ordens_servico", { select: "status, data_entrada, unidade_id", key: ["gerencial"] });
   const { data: compras = [] } = useRows<any>("pedidos_compra", { select: "status, created_at, previsao_entrega, valor_total, unidade_id", key: ["gerencial"] });
