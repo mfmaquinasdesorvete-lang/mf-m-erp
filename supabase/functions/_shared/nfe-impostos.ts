@@ -48,10 +48,22 @@ export type RegraTributaria = {
   /** Só para estas UFs de destino (vazio = qualquer). */
   ufs_destino?: string[] | null;
   ibs_cbs_cst?: string | null; ibs_cbs_class_trib?: string | null;
+  /** Redução da base por alíquota, ex.: { "17": 48.23, "12": 26.66, "7": 26.57 } (RICMS/SC, Anexo 2, art. 9, I).
+   * Alíquota fora da lista = sem redução (e o CST 20 vira 00). */
+  icms_reducao_por_aliquota?: Record<string, number | string> | null;
+  /** Código de benefício fiscal da UF (cBenef), ex.: SC820028. Vai só nos CST com benefício (não no 00). */
+  codigo_beneficio?: string | null;
+  /** Informar o ICMS desonerado (vICMSDeson) com o motivo (motDesICMS, padrão 9 = outros). */
+  icms_desonerar?: boolean | null; icms_motivo_desoneracao?: string | null;
+  /** O ICMS desonerado é abatido do total da nota (indDeduzDeson = 1). */
+  icms_abater_desonerado?: boolean | null;
+  /** false = não destacar IPI (sem o grupo do IPI na nota). */
+  ipi_destacar?: boolean | null;
 };
 
 export type ContextoRegra = {
-  operacao: "venda" | "transferencia"; interestadual: boolean; contribuinte: boolean;
+  /** "remessa" = nota direta que não é venda (conserto, garantia, bonificação…): só valem regras de operação "Qualquer". */
+  operacao: "venda" | "transferencia" | "remessa"; interestadual: boolean; contribuinte: boolean;
   tipo: string; ncm: string; origem: number; cfop: string; unidade_id?: string | null; uf_destino?: string;
 };
 
@@ -93,7 +105,7 @@ function comRegra(u: UnidadeFiscal, r: RegraTributaria | null): UnidadeFiscal {
   return x;
 }
 
-export type OpcoesRegras = { regras?: RegraTributaria[]; unidade_id?: string | null; usadas?: Set<RegraTributaria>; ibsCbs?: ConfigIbsCbs | null };
+export type OpcoesRegras = { regras?: RegraTributaria[]; unidade_id?: string | null; usadas?: Set<RegraTributaria>; ibsCbs?: ConfigIbsCbs | null; operacao?: "venda" | "remessa" };
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const SUL_SUDESTE = ["SP", "RJ", "MG", "PR", "SC", "RS"]; // ES fica de fora (recebe 7%)
@@ -165,6 +177,18 @@ export function grupoIbsCbs(cst: string | undefined, classTrib: string | undefin
   };
 }
 
+/** Redução da base para a alíquota da operação: a da tabela por alíquota (se a regra tiver) ou a fixa. */
+export function reducaoDaBase(aliquota: number, fixa: number, porAliquota?: Record<string, number | string> | null) {
+  if (porAliquota && Object.keys(porAliquota).length) {
+    const achada = Object.entries(porAliquota).find(([k]) => Math.abs(Number(String(k).replace(",", ".")) - aliquota) < 0.001);
+    return achada ? Number(String(achada[1]).replace(",", ".")) || 0 : 0;
+  }
+  return Number(fixa) || 0;
+}
+
+/** CST do ICMS que admitem ICMS desonerado (vICMSDeson / motDesICMS / indDeduzDeson). */
+const CST_DESONERACAO = ["20", "30", "40", "41", "50", "70", "90"];
+
 /** CST do IPI que não leva base/alíquota (grupo IPINT): 01–05 e 51–55. */
 const IPI_NAO_TRIBUTADO = ["01", "02", "03", "04", "05", "51", "52", "53", "54", "55"];
 
@@ -176,7 +200,7 @@ export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribui
     const { liquido } = base(i);
     const produzido = i.tipo === "maquina" && unidade.fabrica;
     const cfopPadrao = trocarParaInterestadual(cfopDoItem(i.cfop, unidade, produzido), inter);
-    const regra = regraAplicavel(opc.regras, { operacao: "venda", interestadual: inter, contribuinte: dest.contribuinte, tipo: i.tipo, ncm: i.ncm, origem: i.origem, cfop: cfopPadrao, unidade_id: opc.unidade_id, uf_destino: dest.uf.toUpperCase() });
+    const regra = regraAplicavel(opc.regras, { operacao: opc.operacao ?? "venda", interestadual: inter, contribuinte: dest.contribuinte, tipo: i.tipo, ncm: i.ncm, origem: i.origem, cfop: cfopPadrao, unidade_id: opc.unidade_id, uf_destino: dest.uf.toUpperCase() });
     if (regra) opc.usadas?.add(regra);
     const u = comRegra(unidade, regra);
     const cfop = regra?.cfop_saida ? String(regra.cfop_saida).replace(/\D/g, "") : cfopPadrao;
@@ -186,7 +210,7 @@ export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribui
     const ipiValor = ipiAliq > 0 ? r2(liquido * ipiAliq / 100) : 0;
     // TIPI 0% no que a unidade fabrica (ou a regra definiu o CST): manda o CST de alíquota zero, sem base
     const cstIpiZero = !vazio(regra?.ipi_cst) ? regra!.ipi_cst! : produzido ? u.ipi_cst_aliquota_zero : undefined;
-    const ipi = ipiAliq > 0
+    const ipi = regra?.ipi_destacar === false ? {} : ipiAliq > 0
       ? { ipi_situacao_tributaria: u.ipi_cst, ipi_codigo_enquadramento_legal: u.ipi_enquadramento, ipi_base_calculo: liquido, ipi_aliquota: ipiAliq, ipi_valor: ipiValor }
       : cstIpiZero
         ? (IPI_NAO_TRIBUTADO.includes(cstIpiZero)
@@ -196,13 +220,26 @@ export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribui
 
     // ICMS: IPI entra na base quando o comprador é consumidor final
     const aliq = !vazio(regra?.icms_aliquota) ? Number(regra!.icms_aliquota) : inter ? aliquotaInterestadual(u.uf, dest.uf, i.origem) : Number(u.icms_aliquota_interna);
-    const tributado = ["00", "10", "20", "70", "90"].includes(u.icms_cst);
-    const icmsBase = tributado ? r2((liquido + (consumidorFinal ? ipiValor : 0)) * (1 - Number(u.icms_reducao_base) / 100)) : 0;
+    const reducao = reducaoDaBase(aliq, u.icms_reducao_base, regra?.icms_reducao_por_aliquota);
+    // CST coerente com a redução: 20 sem redução vira 00, e 00 com redução vira 20 (a SEFAZ recusa o contrário)
+    const cst = u.icms_cst === "20" && !(reducao > 0) ? "00" : u.icms_cst === "00" && reducao > 0 ? "20" : u.icms_cst;
+    const tributado = ["00", "10", "20", "70", "90"].includes(cst);
+    const baseCheia = r2(liquido + (consumidorFinal ? ipiValor : 0));
+    const icmsBase = tributado ? r2(baseCheia * (1 - (["20", "70", "90"].includes(cst) ? reducao : 0) / 100)) : 0;
     const icmsValor = r2(icmsBase * aliq / 100);
-    const icms = tributado
-      ? { icms_situacao_tributaria: u.icms_cst, icms_modalidade_base_calculo: 3, icms_base_calculo: icmsBase, icms_aliquota: aliq, icms_valor: icmsValor,
-          ...(Number(u.icms_reducao_base) > 0 ? { icms_reducao_base_calculo: Number(u.icms_reducao_base) } : {}) }
-      : { icms_situacao_tributaria: u.icms_cst };
+    // ICMS desonerado: o que deixou de ser cobrado pela redução (20/70) ou pela isenção/suspensão (30, 40, 41, 50, 90)
+    const desonerado = regra?.icms_desonerar && CST_DESONERACAO.includes(cst)
+      ? r2(baseCheia * aliq / 100 - (tributado ? icmsValor : 0)) : 0;
+    const icms = {
+      ...(tributado
+        ? { icms_situacao_tributaria: cst, icms_modalidade_base_calculo: 3, icms_base_calculo: icmsBase, icms_aliquota: aliq, icms_valor: icmsValor,
+            ...(["20", "70", "90"].includes(cst) && reducao > 0 ? { icms_reducao_base_calculo: reducao } : {}) }
+        : { icms_situacao_tributaria: cst }),
+      ...(regra?.codigo_beneficio && cst !== "00" ? { codigo_beneficio_fiscal: String(regra.codigo_beneficio).trim().toUpperCase() } : {}),
+      ...(desonerado > 0
+        ? { icms_valor_desonerado: desonerado, icms_motivo_desoneracao: Number(regra?.icms_motivo_desoneracao || 9), icms_deducao_desoneracao: regra?.icms_abater_desonerado ? 1 : 0 }
+        : {}),
+    };
 
     // DIFAL: venda para consumidor final não contribuinte de outro estado
     let difal: Record<string, number> = {};
@@ -278,6 +315,8 @@ export function itensTransferencia(unidade: UnidadeFiscal, ufDestino: string, it
 /** Soma dos tributos (para conferência na tela). */
 export function resumoImpostos(items: Record<string, any>[]) {
   const s = (k: string) => r2(items.reduce((t, i) => t + Number(i[k] ?? 0), 0));
+  // ICMS desonerado abatido do total (indDeduzDeson = 1): a nota sai menor que o pedido nesse valor
+  const abatido = r2(items.reduce((t, i) => t + (Number(i.icms_deducao_desoneracao) === 1 ? Number(i.icms_valor_desonerado ?? 0) : 0), 0));
   return { icms: s("icms_valor"), ipi: s("ipi_valor"), pis: s("pis_valor"), cofins: s("cofins_valor"), difal: s("icms_valor_uf_destino"), fcp: s("fcp_valor_uf_destino"),
-    ibs: s("ibs_valor"), cbs: s("cbs_valor") };
+    ibs: s("ibs_valor"), cbs: s("cbs_valor"), desonerado: s("icms_valor_desonerado"), abatido };
 }

@@ -100,7 +100,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
     if (!itens.length) return notify("Adicione ao menos um item", "erro");
     if (!conferido) {
       const lista = conferirPedido({ cliente, unidade, produtos, itens, aliquotasUf: ufsIcms.map((u) => u.uf) });
-      if (!temRegra) lista.push({ nivel: "alerta", texto: `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): os impostos saem como na venda. Cadastre a regra em Notas fiscais → Regras de tributação, conforme o contador.` } as Pendencia);
+      if (!temRegra) lista.push({ nivel: "alerta", texto: `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): o ICMS e o IPI saem como na venda (PIS/COFINS sem valor, CST 49). Cadastre a regra (Operação "Qualquer" e o CFOP) em Notas fiscais → Regras de tributação, conforme o contador.` } as Pendencia);
       if (lista.length) return setConferindo(lista);
     }
     setConferindo(null);
