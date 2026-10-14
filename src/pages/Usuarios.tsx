@@ -16,6 +16,7 @@ import {
   ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
 import { grupos, type Item } from "@/lib/menu";
+import { confirmar } from "@/components/Dialogos";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -98,7 +99,7 @@ export default function Usuarios() {
   const faltaCodigo = ativos.filter((u) => duas.exige(u) && !duas.fatoresDe(u.user_id)).length;
 
   async function zerarCodigo(u: Usuario) {
-    if (!confirm(`Zerar o login em duas etapas de ${u.nome}? No próximo acesso ${u.nome.split(" ")[0]} cadastra o código de novo (use quando a pessoa perdeu ou trocou de celular).`)) return;
+    if (!(await confirmar(`Zerar o login em duas etapas de ${u.nome}? No próximo acesso ${u.nome.split(" ")[0]} cadastra o código de novo (use quando a pessoa perdeu ou trocou de celular).`, { ok: "Zerar", perigo: true }))) return;
     const { error } = await supabase.rpc("zerar_mfa", { p_user: u.user_id });
     if (error) return notifyError(error);
     notify("Login em duas etapas zerado");
@@ -416,7 +417,7 @@ function SegurancaAcesso({ usuarios }: { usuarios: Usuario[] }) {
   async function salvar() {
     const euObrigado = escolhidos.includes(eu.papel) || (eu.papeis_extras ?? []).some((p) => escolhidos.includes(p));
     const euSemCodigo = !duas.fatoresDe(eu.user_id);
-    if (euObrigado && euSemCodigo && !confirm("O seu papel passa a exigir o código. Ao salvar, o ERP pede para você cadastrar o código no celular agora. Continuar?")) return;
+    if (euObrigado && euSemCodigo && !(await confirmar("O seu papel passa a exigir o código. Ao salvar, o ERP pede para você cadastrar o código no celular agora. Continuar?"))) return;
     setSalvando(true);
     const { error } = await supabase.from("configuracoes").update({ mfa_papeis: escolhidos, sessao_minutos: tempo }).eq("id", 1);
     setSalvando(false);

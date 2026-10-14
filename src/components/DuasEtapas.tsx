@@ -8,6 +8,7 @@ import { dataBR } from "@/lib/format";
 import { chaveEmBlocos, confirmarCodigo, fatoresCadastrados, iniciarCadastro, removerCodigos, type Fator, type NovoCodigo } from "@/lib/duasEtapas";
 import { Button, Card } from "./ui";
 import { Marca, MOLDURA } from "@/pages/Login";
+import { confirmar } from "@/components/Dialogos";
 
 /** Campo de 6 números (o celular abre o teclado numérico e sugere o código recebido). */
 function CampoCodigo({ valor, onChange, autoFocus }: { valor: string; onChange: (v: string) => void; autoFocus?: boolean }) {
@@ -167,7 +168,7 @@ export function PainelDuasEtapas() {
   }
 
   async function desligar() {
-    if (!fatores?.length || !confirm("Desligar o login em duas etapas? A entrada volta a pedir só a senha.")) return;
+    if (!fatores?.length || !(await confirmar("Desligar o login em duas etapas? A entrada volta a pedir só a senha."))) return;
     setOcupado(true);
     try { await removerCodigos(fatores.map((f) => f.id)); notify("Login em duas etapas desligado"); carregar(); } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
