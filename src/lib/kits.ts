@@ -36,7 +36,8 @@ export function pecasDoKit(kitId: string, comps: KitComponente[], escolha?: Esco
 export function estoqueKit(kitId: string, comps: KitComponente[], saldo: (produtoId: string) => number, escolha?: EscolhaKit | null) {
   const lista = pecasDoKit(kitId, comps, escolha);
   if (!lista.length) return 0;
-  return Math.max(0, Math.min(...lista.map((c) => Math.floor(saldo(c.componente_id) / c.quantidade))));
+  // folga pequena: 0,3 ÷ 0,1 dá 2,9999999… na conta do computador e precisa virar 3 kits
+  return Math.max(0, Math.min(...lista.map((c) => Math.floor(saldo(c.componente_id) / c.quantidade + 1e-9))));
 }
 
 /** Custo de 1 kit pela soma das peças (kit dentro de kit entra pelas peças dele). */

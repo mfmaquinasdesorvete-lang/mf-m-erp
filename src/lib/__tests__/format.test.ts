@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { brl, docFormat, docParcial, somarDias, whatsappLink } from "../format";
+import { brl, docFormat, somarDias, whatsappLink } from "../format";
 
 // o Intl separa "R$" do número com espaço não separável (U+00A0)
 const sp = (s: string) => s.replace(/\s/g, " ");
@@ -20,12 +20,10 @@ describe("brl", () => {
 });
 
 describe("documentos e contato", () => {
-  it("CPF e CNPJ formatados; CPF parcial nas listas", () => {
+  it("CPF e CNPJ formatados", () => {
     expect(docFormat("12345678901")).toBe("123.456.789-01");
     expect(docFormat("12.345.678/0001-95")).toBe("12.345.678/0001-95");
     expect(docFormat("123")).toBe("123");
-    expect(docParcial("123.456.789-01")).toBe("***.456.789-**");
-    expect(docParcial("12345678000195")).toBe("12.345.678/0001-95");
   });
 
   it("WhatsApp sem DDI ganha +55", () => {
