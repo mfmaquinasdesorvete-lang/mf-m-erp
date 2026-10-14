@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -204,13 +204,29 @@ export default function App() {
  * Rotas do ERP para quem entrou: só as telas que o papel acessa e que não foram escondidas para ele em Usuários → Perfis.
  * O início é o painel; contador vai para o fechamento e a expedição para a separação (ou a primeira tela que a pessoa vê).
  */
+// Tela que abre ao entrar, pela função principal (só na entrada: depois "Início" leva ao painel geral)
+const INICIO_DO_PAPEL: Partial<Record<string, { to: string; tela: Tela }>> = {
+  vendas: { to: "/painel/vendas", tela: "pedidos" },
+  financeiro: { to: "/painel/financeiro", tela: "financeiro" },
+  tecnico: { to: "/painel/posvenda", tela: "assistencia" },
+};
+let inicioFeitoPara: string | null = null; // quem já foi levado à tela inicial nesta aba
+
 function RotasERP() {
-  const { papel } = usePerfil();
+  const { papel, user_id } = usePerfil();
   const vis = useVisivel();
+  const location = useLocation();
+  const navigate = useNavigate();
   const inicio = papel === "contador" && vis.ve("contador", "/contador") ? "/contador"
     : papel === "expedicao" && vis.ve("expedicao", "/expedicao") ? "/expedicao"
     : vis.ve("painel", "/") ? null
     : todosItens.find((i) => i.to !== "/" && vis.item(i))?.to ?? null;
+  useEffect(() => {
+    if (inicioFeitoPara === user_id) return;
+    inicioFeitoPara = user_id;
+    const casa = INICIO_DO_PAPEL[papel];
+    if (casa && location.pathname === "/" && vis.ve(casa.tela, casa.to)) navigate(casa.to, { replace: true });
+  }, [user_id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Routes>
       {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}

@@ -191,6 +191,13 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
+  // uma nota só em destaque (ex.: vinda da busca do menu): já abre
+  const [destaqueAberto, setDestaqueAberto] = useState<string | null>(null);
+  useEffect(() => {
+    const id = destaque?.ids.length === 1 ? destaque.ids[0] : null;
+    const n = id && id !== destaqueAberto ? data.find((x) => x.id === id) : null;
+    if (n) { setDestaqueAberto(n.id); setAberta(n); }
+  }, [destaque, data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [janela, setJanela] = useState<"inutilizar" | "emitir" | "marcadores" | "gerenciar" | null>(null);
   const invalidate = useInvalidate();
   useEffect(() => {

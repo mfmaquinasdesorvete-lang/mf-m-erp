@@ -1767,6 +1767,31 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.busca_geral (mesmas regras, com as permissões de quem busca)
+  busca_geral: ({ p_termo, p_limite }) => {
+    const t = String(p_termo ?? "").trim();
+    if (t.length < 2) return { data: [], error: null };
+    const lim = Math.min(Math.max(Number(p_limite) || 5, 1), 20);
+    const sem = (x: unknown) => String(x ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const tem = (x: unknown) => sem(x).includes(sem(t));
+    const d = t.replace(/\D/g, "");
+    const num = /^#?\s*\d{1,9}$/.test(t) ? d : null;
+    const cli = (id: unknown) => (db.clientes ?? []).find((c: Row) => c.id === id);
+    const r: Row[] = [];
+    r.push(...(db.clientes ?? []).filter((c: Row) => tem(c.nome) || tem(c.nome_fantasia) || (d.length >= 5 && String(c.cpf_cnpj ?? "").replace(/\D/g, "").startsWith(d)) || (num && String(c.codigo) === num))
+      .slice(0, lim).map((c: Row) => ({ tipo: "cliente", id: c.id, titulo: c.nome_fantasia || c.nome, sub: [c.nome_fantasia ? c.nome : null, [c.municipio, c.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") })));
+    r.push(...(db.pedidos ?? []).filter((p: Row) => (num && String(p.numero) === num) || (!num && (tem(cli(p.cliente_id)?.nome) || tem(cli(p.cliente_id)?.nome_fantasia))))
+      .slice(0, lim).map((p: Row) => ({ tipo: "venda", id: p.id, titulo: `Venda #${p.numero}`, sub: [cli(p.cliente_id)?.nome, p.status].filter(Boolean).join(" · "), valor: p.valor_total })));
+    r.push(...(db.notas_fiscais ?? []).filter((n: Row) => !n.excluida_em && ((num && String(n.numero) === num) || (!num && (tem(n.destinatario_nome) || tem(cli(n.cliente_id)?.nome)))))
+      .slice(0, lim).map((n: Row) => ({ tipo: "nota", id: n.id, titulo: `NF-e ${n.numero ?? "(sem número)"}`, sub: [cli(n.cliente_id)?.nome ?? n.destinatario_nome, n.status].filter(Boolean).join(" · "), valor: n.valor_total })));
+    r.push(...(db.produtos ?? []).filter((p: Row) => tem(p.descricao) || sem(p.sku).startsWith(sem(t)) || (d.length >= 8 && p.codigo_barras === d))
+      .slice(0, lim).map((p: Row) => ({ tipo: "produto", id: p.id, titulo: p.descricao, sub: [p.sku, p.tipo, p.ativo ? null : "inativo"].filter(Boolean).join(" · ") })));
+    r.push(...(db.ordens_servico ?? []).filter((o: Row) => (num && String(o.numero) === num) || (!num && (tem(cli(o.cliente_id)?.nome) || tem(o.numero_serie) || tem(o.equipamento))))
+      .slice(0, lim).map((o: Row) => ({ tipo: "os", id: o.id, titulo: `OS #${o.numero}`, sub: [cli(o.cliente_id)?.nome, o.equipamento, o.status].filter(Boolean).join(" · ") })));
+    r.push(...(db.fornecedores ?? []).filter((f: Row) => tem(f.nome) || tem(f.nome_fantasia))
+      .slice(0, lim).map((f: Row) => ({ tipo: "fornecedor", id: f.id, titulo: f.nome_fantasia || f.nome, sub: [f.municipio, f.uf].filter(Boolean).join("/") })));
+    return { data: r, error: null };
+  },
   // no sistema real: public.implantacao_indicadores (contagens feitas no banco)
   implantacao_indicadores: () => {
     const desde = (dias: number) => new Date(Date.now() - dias * 864e5).toISOString();
