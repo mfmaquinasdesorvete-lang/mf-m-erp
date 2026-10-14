@@ -63,7 +63,7 @@ export const ZPL_CALIBRAR = "~JC";
 export async function pdfTeste(cfg: ImpressoraEtiqueta, empresa: string): Promise<Blob> {
   const c = comPadrao(cfg);
   const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ unit: "mm", format: [c.largura_mm, c.altura_mm], orientation: c.largura_mm > c.altura_mm ? "landscape" : "portrait" });
+  const doc = new jsPDF({ compress: true, unit: "mm", format: [c.largura_mm, c.altura_mm], orientation: c.largura_mm > c.altura_mm ? "landscape" : "portrait" });
   doc.setLineWidth(0.6);
   doc.rect(3, 3, c.largura_mm - 6, c.altura_mm - 6);
   for (let x = 10; x < c.largura_mm; x += 10) doc.line(x, 3, x, 7);

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MessageCircle, PackageOpen, Plus, Send, Trash2, Truck } from "lucide-react";
 import { Badge, Button, Field } from "./ui";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, ler } from "@/lib/data";
 import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -32,14 +32,14 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: cotacoes = [], refetch } = useQuery({
     queryKey: ["cotacoes_frete", pedido.id],
-    queryFn: async () => ((await supabase.from("cotacoes_frete").select("*").eq("pedido_id", pedido.id).order("valor", { ascending: true })).data ?? []) as Cotacao[],
+    queryFn: async () => ((await ler(supabase.from("cotacoes_frete").select("*").eq("pedido_id", pedido.id).order("valor", { ascending: true }))) ?? []) as Cotacao[],
   });
   const [nova, setNova] = useState<{ transportadora_id: string; transportadora_nome: string; valor: string; prazo_dias: string; observacoes: string } | null>(null);
   const [cobrar, setCobrar] = useState(true);
   // envio padronizado (Fretes e envios): quando existe, as cotações e o rastreio ficam nele
   const { data: envios = [], refetch: recarregarEnvios } = useQuery({
     queryKey: ["envios", "pedido", pedido.id],
-    queryFn: async () => ((await supabase.from("envios").select("*").eq("pedido_id", pedido.id).order("created_at", { ascending: true })).data ?? []) as Envio[],
+    queryFn: async () => ((await ler(supabase.from("envios").select("*").eq("pedido_id", pedido.id).order("created_at", { ascending: true }))) ?? []) as Envio[],
   });
   const [envioAberto, setEnvioAberto] = useState<string | null>(null);
   const envioAtivo = envios.find((e) => e.status !== "cancelado");

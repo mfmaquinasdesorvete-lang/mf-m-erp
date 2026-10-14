@@ -5,6 +5,7 @@ import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { ler } from "@/lib/data";
 import { brl } from "@/lib/format";
 import { conferirVenda, type NivelConferencia, type PedidoAuditado } from "@/lib/auditoriaPedido";
 import { DescricaoMudanca, type LinhaAuditoria } from "./Historico";
@@ -28,9 +29,11 @@ function useDadosPedido(id: string) {
         supabase.from("comissoes").select("id, status, valor, percentual, base, descricao, created_at, vendedor:vendedores(nome)").eq("pedido_id", id).order("created_at"),
         supabase.from("auditoria").select("*").eq("tabela", "pedidos").eq("registro_id", id).order("created_at"),
       ]);
+      const erro = [parcelas, notas, movimentos, comissoes, hist].find((r) => r.error)?.error;
+      if (erro) throw erro;
       const contas = (parcelas.data ?? []).map((c) => c.id);
       const histContas = contas.length
-        ? (await supabase.from("auditoria").select("*").eq("tabela", "contas_receber").in("registro_id", contas).order("created_at")).data ?? []
+        ? ((await ler(supabase.from("auditoria").select("*").eq("tabela", "contas_receber").in("registro_id", contas).order("created_at"))) ?? [])
         : [];
       return {
         parcelas: parcelas.data ?? [], notas: notas.data ?? [], movimentos: movimentos.data ?? [], comissoes: comissoes.data ?? [],

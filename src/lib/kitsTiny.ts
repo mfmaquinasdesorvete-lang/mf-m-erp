@@ -2,7 +2,6 @@
 // a composição de cada kit do ERP. O componente é achado pelo código do Tiny (id_externo ou "Tiny 123" nos códigos
 // alternativos de um cadastro unificado), depois pelo SKU e por último pela descrição (só se der um único produto).
 // Fabricado (máquina) não entra: a ficha técnica dele fica em Produção.
-import * as XLSX from "xlsx";
 import type { KitComponente } from "./types";
 
 export type LinhaComposicao = { pai: string; paiSku: string; paiDesc: string; comp: string; compSku: string; compDesc: string; qtd: number };
@@ -43,6 +42,7 @@ export function montarComposicao(linhas: Record<string, unknown>[]): LinhaCompos
 export async function lerComposicaoTiny(arquivos: File[]): Promise<LinhaComposicao[]> {
   const todas: LinhaComposicao[] = [];
   for (const f of arquivos) {
+    const XLSX = await import("xlsx"); // só baixa a biblioteca de planilhas quando alguém importa uma
     const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
     const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { raw: false, defval: "" });
     try { todas.push(...montarComposicao(linhas)); } catch (e) { throw new Error(`${f.name}: ${(e as Error).message}`); }

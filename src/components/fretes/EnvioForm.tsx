@@ -11,7 +11,7 @@ import {
 import { Badge, Button, Field, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, ler } from "@/lib/data";
 import { brl, dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -518,11 +518,11 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
   const dia = hoje();
   const { data: cotacoes = [], refetch } = useQuery({
     queryKey: ["envio_cotacoes", envio.id],
-    queryFn: async () => ((await supabase.from("envio_cotacoes").select("*").eq("envio_id", envio.id).order("valor", { ascending: true })).data ?? []) as CotacaoEnvio[],
+    queryFn: async () => ((await ler(supabase.from("envio_cotacoes").select("*").eq("envio_id", envio.id).order("valor", { ascending: true }))) ?? []) as CotacaoEnvio[],
   });
   const { data: excecoes = [], refetch: recarregarExcecoes } = useQuery({
     queryKey: ["envio_excecoes", envio.id],
-    queryFn: async () => ((await supabase.from("envio_excecoes").select("*").eq("envio_id", envio.id).order("created_at", { ascending: false })).data ?? []) as ExcecaoEnvio[],
+    queryFn: async () => ((await ler(supabase.from("envio_excecoes").select("*").eq("envio_id", envio.id).order("created_at", { ascending: false }))) ?? []) as ExcecaoEnvio[],
   });
   const [nova, setNova] = useState<NovaCotacao | null>(null);
   const [cobrar, setCobrar] = useState(false);
@@ -773,7 +773,7 @@ function Ocorrencias({ envioId, podeEditar, abrirNova, nomeUsuario }: { envioId:
   const ref = useRef<HTMLElement>(null);
   const { data: lista = [], refetch } = useQuery({
     queryKey: ["envio_ocorrencias", envioId],
-    queryFn: async () => ((await supabase.from("envio_ocorrencias").select("*").eq("envio_id", envioId).order("created_at", { ascending: false })).data ?? []) as OcorrenciaEnvio[],
+    queryFn: async () => ((await ler(supabase.from("envio_ocorrencias").select("*").eq("envio_id", envioId).order("created_at", { ascending: false }))) ?? []) as OcorrenciaEnvio[],
   });
   const [nova, setNova] = useState<{ tipo: string; descricao: string; responsavel: string } | null>(abrirNova && podeEditar ? { tipo: "atraso", descricao: "", responsavel: "" } : null);
   const [editando, setEditando] = useState<Record<string, { responsavel: string; andamento: string }>>({});

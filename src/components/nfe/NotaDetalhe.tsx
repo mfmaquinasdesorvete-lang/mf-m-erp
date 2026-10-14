@@ -7,7 +7,7 @@ import { Button, Field, Modal } from "@/components/ui";
 import { supabase, callFunction } from "@/lib/supabase";
 import { brl, dataBR, docFormat } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { useInvalidate } from "@/lib/data";
+import { useInvalidate, ler } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { podeDevolverEmitida, podeExcluirEmitida, situacaoEmitida } from "@/lib/notas";
 import { CartaCorrecaoModal } from "@/components/FiscalAvancado";
@@ -345,7 +345,7 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
   const etiquetas = useEtiquetas();
   const { data: contas = [], refetch } = useQuery({
     queryKey: ["contas_receber", "nota", n.id],
-    queryFn: async () => ((await supabase.from("contas_receber").select("id, valor, status, vencimento").eq("nota_fiscal_id", n.id)).data ?? []) as { id: string; valor: number; status: string; vencimento: string }[],
+    queryFn: async () => ((await ler(supabase.from("contas_receber").select("id, valor, status, vencimento").eq("nota_fiscal_id", n.id))) ?? []) as { id: string; valor: number; status: string; vencimento: string }[],
   });
   const validas = contas.filter((c) => c.status !== "cancelado");
   const autorizada = n.status === "autorizada";

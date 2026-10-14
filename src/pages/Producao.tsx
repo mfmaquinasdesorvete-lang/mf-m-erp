@@ -7,6 +7,7 @@ import {
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
+import { criarComItens, desfazerCompra, sincronizarItens } from "@/lib/itens";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -216,15 +217,13 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
       grupos.set(k, [...(grupos.get(k) ?? []), n]);
     }
     for (const [fornecedor, itens] of grupos) {
-      const { data: pc, error } = await supabase.from("pedidos_compra").insert({
+      // cabeçalho e itens juntos: se os itens não gravarem, o pedido vazio é desfeito
+      await criarComItens("pedidos_compra", {
         fornecedor_id: fornecedor || null, ordem_producao_id: o.id, status: "cotacao", previsao_entrega: o.previsao,
         observacoes: `Peças para a OP #${o.numero} (${Number(o.quantidade)}x ${produtos.find((p) => p.id === o.produto_id)?.descricao ?? ""})`,
-      }).select("id").single();
-      if (error) throw error;
-      const { error: e2 } = await supabase.from("pedido_compra_itens").insert(itens.map((n) => ({
-        pedido_compra_id: pc.id, produto_id: n.componente_id, descricao: n.descricao, quantidade: falta(n), custo_unitario: Number(n.preco_custo),
-      })));
-      if (e2) throw e2;
+      }, "pedido_compra_itens", "pedido_compra_id", itens.map((n) => ({
+        produto_id: n.componente_id, descricao: n.descricao, quantidade: falta(n), custo_unitario: Number(n.preco_custo),
+      })), desfazerCompra);
     }
     irParaCompras();
   }, "Pedidos de compra criados em cotação. Confira e envie aos fornecedores.");
@@ -415,17 +414,16 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
       ? await supabase.from("pedidos_compra").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("pedidos_compra").insert(dados).select("id, numero").single();
     if (error) throw error;
+    let comId = itens as ItemCompra[];
     if (editavel) {
-      await supabase.from("pedido_compra_itens").delete().eq("pedido_compra_id", data.id);
-      if (itens.length) {
-        const { error: e2 } = await supabase.from("pedido_compra_itens").insert(itens.map((i: ItemCompra) => ({
-          pedido_compra_id: data.id, produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade,
-          custo_unitario: i.custo_unitario, quantidade_recebida: i.quantidade_recebida ?? 0,
-        })));
-        if (e2) throw e2;
-      }
+      // a quantidade já recebida nunca é sobrescrita; nada some se a internet cair no meio
+      const ids = await sincronizarItens("pedido_compra_itens", "pedido_compra_id", data.id, itens as ItemCompra[], (i) => ({
+        produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade,
+        custo_unitario: i.custo_unitario, quantidade_recebida: i.quantidade_recebida ?? 0,
+      }), { preservar: ["quantidade_recebida"] });
+      comId = (itens as ItemCompra[]).map((i, k) => ({ ...i, id: ids[k] || i.id }));
     }
-    set({ id: data.id, numero: data.numero, ...(status ? { status } : {}) });
+    set({ id: data.id, numero: data.numero, itens: comId, ...(status ? { status } : {}) });
     return data;
   }
 
@@ -636,11 +634,10 @@ function FichaTecnica() {
 
   async function salvar() {
     try {
-      await supabase.from("produto_componentes").delete().eq("produto_id", item!.id);
-      if (lista.length) {
-        const { error } = await supabase.from("produto_componentes").insert(lista.map((c) => ({ produto_id: item!.id, componente_id: c.componente_id, quantidade: c.quantidade })));
-        if (error) throw error;
-      }
+      // atualiza o que continua, grava o que entrou e só no fim tira o que saiu (a ficha nunca fica vazia por erro de rede)
+      const ids = await sincronizarItens("produto_componentes", "produto_id", item!.id, lista, (c) => ({ componente_id: c.componente_id, quantidade: c.quantidade }),
+        { chaveNatural: "componente_id" });
+      setLista(lista.map((c, k) => ({ ...c, id: ids[k] || c.id })));
       notify("Ficha técnica salva");
       invalidate("produto_componentes", "necessidade_producao");
     } catch (e) { notifyError(e); invalidate("produto_componentes"); }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, PackageX, ShoppingCart, Truck, Scale } from "lucide-react";
 import { Button, Card, Stat } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
+import { criarComItens, desfazerCompra } from "@/lib/itens";
 import { supabase } from "@/lib/supabase";
 import { brl, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -37,15 +38,13 @@ export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: bool
     setOcupado(fornecedorId ?? "");
     try {
       const prazo = Math.max(...escolhidos.map((s) => s.prazo));
-      const { data: pc, error } = await supabase.from("pedidos_compra").insert({
+      // cabeçalho e itens juntos: se os itens não gravarem, o pedido vazio é desfeito
+      const pc = await criarComItens("pedidos_compra", {
         fornecedor_id: fornecedorId, status: "cotacao", previsao_entrega: new Date(Date.now() + prazo * 864e5).toISOString().slice(0, 10),
         observacoes: `Reposição de estoque sugerida pelo ERP (${escolhidos.length} item(ns), consumo dos últimos 90 dias)`,
-      }).select("id, numero").single();
-      if (error) throw error;
-      const { error: e2 } = await supabase.from("pedido_compra_itens").insert(escolhidos.map((s) => ({
-        pedido_compra_id: pc.id, produto_id: s.produto.id, descricao: s.produto.descricao, quantidade: quant(s.produto.id, s.sugerido), custo_unitario: s.custo,
-      })));
-      if (e2) throw e2;
+      }, "pedido_compra_itens", "pedido_compra_id", escolhidos.map((s) => ({
+        produto_id: s.produto.id, descricao: s.produto.descricao, quantidade: quant(s.produto.id, s.sugerido), custo_unitario: s.custo,
+      })), desfazerCompra);
       notify(`Pedido de compra #${pc.numero} criado em cotação`);
       invalidate("pedidos_compra", "pedido_compra_itens");
       aoGerar();

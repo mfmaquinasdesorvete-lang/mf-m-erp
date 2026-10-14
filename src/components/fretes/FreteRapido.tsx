@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, MessageCircle, Truck } from "lucide-react";
 import { Button } from "@/components/ui";
-import { useRows } from "@/lib/data";
+import { useRows, ler } from "@/lib/data";
 import { brl, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -51,7 +51,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
   const { data: salvas = [], refetch } = useQuery({
     queryKey: ["cotacoes_frete", pedido.id],
     enabled: !!pedido.id && cotando,
-    queryFn: async () => ((await supabase.from("cotacoes_frete").select("id, transportadora_id, transportadora_nome, valor, prazo_dias, escolhida").eq("pedido_id", pedido.id!).order("valor")).data ?? []) as
+    queryFn: async () => ((await ler(supabase.from("cotacoes_frete").select("id, transportadora_id, transportadora_nome, valor, prazo_dias, escolhida").eq("pedido_id", pedido.id!).order("valor"))) ?? []) as
       { id: string; transportadora_id: string | null; transportadora_nome: string | null; valor: number; prazo_dias: number | null; escolhida: boolean }[],
   });
 

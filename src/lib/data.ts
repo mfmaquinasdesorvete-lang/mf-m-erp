@@ -21,6 +21,13 @@ export function useRows<T = any>(
 
 const PAGINA = 1000;
 
+/** Resultado de uma consulta do Supabase; se deu erro, lança (a tela mostra o aviso em vez de "lista vazia"). */
+export async function ler<T>(consulta: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
+  const { data, error } = await consulta;
+  if (error) throw error;
+  return data;
+}
+
 /** Lê a tabela inteira de 1000 em 1000 (desempate pelo id para nenhuma linha repetir ou faltar entre as páginas). */
 async function todasAsPaginas(table: string, select: string, order: string, ascending: boolean) {
   const todas: unknown[] = [];

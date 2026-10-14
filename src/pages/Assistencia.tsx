@@ -10,7 +10,8 @@ import { Assinatura } from "@/components/Assinatura";
 import { Anexos } from "@/components/Anexos";
 import { PdfViewer } from "@/components/PdfViewer";
 import { HistoricoModal } from "@/pages/Garantias";
-import { limpar, useInvalidate, useRows } from "@/lib/data";
+import { limpar, useInvalidate, useRows, ler } from "@/lib/data";
+import { sincronizarItens } from "@/lib/itens";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
@@ -165,7 +166,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   // nomes dos técnicos do cadastro de funcionários (só o nome; o resto do cadastro é do RH)
   const { data: tecnicos = [] } = useQuery({
     queryKey: ["funcionarios", "nomes_tecnicos"],
-    queryFn: async () => ((await supabase.rpc("nomes_tecnicos")).data ?? []).map((r: { nome: string }) => r.nome) as string[],
+    queryFn: async () => ((await ler(supabase.rpc("nomes_tecnicos"))) ?? []).map((r: { nome: string }) => r.nome) as string[],
   });
   const cliente = clientes.find((c) => c.id === o.cliente_id);
   const equipCliente = equipamentos.filter((e) => e.cliente_id === o.cliente_id);
@@ -195,17 +196,15 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
       ? await supabase.from("ordens_servico").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("ordens_servico").insert(dados).select("id, numero").single();
     if (error) throw error;
+    let comId = itens as Item[];
     if (!somenteLeitura) {
-      const { error: e1 } = await supabase.from("os_itens").delete().eq("os_id", data.id);
-      if (e1) throw e1;
-      if (itens.length) {
-        const { error: e2 } = await supabase.from("os_itens").insert(itens.map((i: Item) => ({
-          os_id: data.id, produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valor_unitario,
-        })));
-        if (e2) throw e2;
-      }
+      // atualiza o que continua, grava o que entrou e só no fim tira o que saiu (nada some se a internet cair)
+      const ids = await sincronizarItens("os_itens", "os_id", data.id, itens as Item[], (i) => ({
+        produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valor_unitario,
+      }));
+      comId = (itens as Item[]).map((i, k) => ({ ...i, id: ids[k] || i.id }));
     }
-    set({ id: data.id, numero: data.numero });
+    set({ id: data.id, numero: data.numero, itens: comId });
     return data.id;
   }
 

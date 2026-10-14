@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
-import { useInvalidate } from "@/lib/data";
+import { useInvalidate, ler } from "@/lib/data";
 import { dataBR } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -19,13 +19,13 @@ export function OcorrenciasPedido({ pedidoId, statusPedido }: { pedidoId: string
   const [aberto, setAberto] = useState<{ id: string; nova: boolean } | null>(null);
   const { data: envios = [], refetch } = useQuery({
     queryKey: ["envios", "pedido", pedidoId],
-    queryFn: async () => ((await supabase.from("envios").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: true })).data ?? []) as Envio[],
+    queryFn: async () => ((await ler(supabase.from("envios").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: true }))) ?? []) as Envio[],
   });
   const ids = envios.map((e) => e.id);
   const { data: ocorrencias = [], refetch: recarregar } = useQuery({
     queryKey: ["envio_ocorrencias", "pedido", pedidoId, ids.join(",")],
     enabled: ids.length > 0,
-    queryFn: async () => ((await supabase.from("envio_ocorrencias").select("*").in("envio_id", ids).order("created_at", { ascending: false })).data ?? []) as OcorrenciaEnvio[],
+    queryFn: async () => ((await ler(supabase.from("envio_ocorrencias").select("*").in("envio_id", ids).order("created_at", { ascending: false }))) ?? []) as OcorrenciaEnvio[],
   });
   const ativo = envios.find((e) => e.status !== "cancelado") ?? envios[envios.length - 1];
   const abertas = ocorrencias.filter((o) => o.status === "aberta").length;
