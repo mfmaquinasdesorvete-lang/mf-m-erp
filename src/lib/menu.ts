@@ -2,7 +2,7 @@
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingCart, Store, Truck,
-  UserCog, Users, Wallet, Workflow, Wrench,
+  Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
 import { usePerfil } from "./auth";
 import { useConfig } from "./useConfig";
@@ -107,6 +107,7 @@ export const grupos: Grupo[] = [
  */
 export const itensForaDoMenu: Item[] = [
   { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa marca logo cores unidades recebimentos pix taxas orçamento garantia comissão catálogo avisos telegram backup" },
+  { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
   { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
   { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },
@@ -122,7 +123,7 @@ export const itensForaDoMenu: Item[] = [
 // área (cor e menu aberto) das telas que não estão na lista do menu
 const AREA_FORA: [string, string][] = [
   ["/produtos/", "producao"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"], ["/painel/cadastros", "vendas"],
-  ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"],
+  ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"], ["/importar", "admin"],
 ];
 export const grupoDaRota = (path: string) =>
   grupos.find((g) => g.id !== "inicio" && g.itens.some((i) => i.to !== "/" && (path === i.to || path.startsWith(i.to + "/"))))?.id

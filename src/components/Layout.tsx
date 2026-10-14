@@ -149,6 +149,9 @@ export function Layout() {
   }, [location.pathname]);
   useEffect(() => { document.documentElement.dataset.modulo = modulo.id; }, [modulo.id]);
 
+  // engrenagem do rodapé: Configurações (ou, para quem não as vê, Usuários ou Importar dados)
+  const engrenagem = [["configuracoes", "/configuracoes"], ["usuarios", "/usuarios"], ["importar", "/importar"]]
+    .find(([t, to]) => vis.ve(t as Tela, to))?.[1] ?? null;
   const atalhos = (ATALHOS[perfil.papel] ?? ATALHOS.admin)
     .map((to) => todosItens.find((i) => i.to === to)!)
     .filter((i) => i && vis.item(i));
@@ -278,8 +281,7 @@ export function Layout() {
           <div className="mt-1.5 flex items-center justify-between gap-1">
             {([
               // engrenagem: Configurações (e, dentro dela, usuários e formas de pagamento)
-              ...(vis.ve("configuracoes", "/configuracoes") || vis.ve("usuarios", "/usuarios")
-                ? [["Configurações", Settings, () => { setAberto(false); navigate(vis.ve("configuracoes", "/configuracoes") ? "/configuracoes" : "/usuarios"); }] as const] : []),
+              ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Senha e login em duas etapas", KeyRound, () => setTrocarSenha(true)],
