@@ -14,6 +14,7 @@ import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
 import { textoVenda } from "@/lib/garantia";
+import { MaquinasCliente } from "@/components/clientes/MaquinasCliente";
 import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 
@@ -60,7 +61,7 @@ function useFicha(c: Cliente) {
           .eq("cliente_id", c.id).order("vencimento", { ascending: false }),
         supabase.from("ordens_servico").select("id, numero, equipamento, numero_serie, defeito_relatado, status, em_garantia, valor_total, data_entrada")
           .eq("cliente_id", c.id).order("data_entrada", { ascending: false }),
-        supabase.from("equipamentos").select("id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem")
+        supabase.from("equipamentos").select("id, cliente_id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem, usada")
           .eq("cliente_id", c.id).order("data_venda", { ascending: false, nullsFirst: false }),
         supabase.from("contatos_cliente").select("id, tipo, canal, resultado, proximo_contato, created_at, created_by")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
@@ -105,6 +106,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
         <div className="min-w-0 text-sm text-slate-600">
           <div className="font-semibold text-fg">{c.nome}{c.codigo ? <span className="ml-2 whitespace-nowrap font-mono text-xs text-slate-500">cód. {c.codigo}</span> : null}</div>
           <div>{[docFormat(c.cpf_cnpj), [c.municipio, c.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") || "—"}</div>
+          {data && <MaquinasCliente maquinas={data.equipamentos} max={8} />}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           {calc && <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}
@@ -356,6 +358,7 @@ function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: 
               <li key={e.id} className="flex flex-wrap gap-x-3 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
                 <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
+                {e.usada && <span className="font-semibold text-emerald-700">usada</span>}
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}
                 {e.proxima_preventiva && <span className={e.proxima_preventiva < dia ? "text-red-700" : ""}>preventiva {dataBR(e.proxima_preventiva)}{e.preventiva_agendada ? ` (agendada ${dataBR(e.preventiva_agendada)})` : ""}</span>}
               </li>
