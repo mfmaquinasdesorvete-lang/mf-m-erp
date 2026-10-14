@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { Banknote, Percent, Receipt, TrendingUp } from "lucide-react";
-import { PageHeader, Section, Stat, Tabs } from "@/components/ui";
+import { Banknote, FileDown, Percent, Receipt, TrendingUp } from "lucide-react";
+import { Button, PageHeader, Section, Stat, Tabs } from "@/components/ui";
+import { baixarPlanilha } from "@/lib/exportar";
+import { notifyError } from "@/lib/notify";
 import { Colunas, Ranking } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
@@ -160,9 +162,32 @@ export default function Relatorios() {
     };
   }, [periodo, pedidos, receber, pagar, ordens, vendedoresCad, comissoes]);
 
+
+  // Planilha com uma aba por quadro da tela (mesmo período)
+  function exportar() {
+    const dre = [
+      { Linha: "Receita de vendas", Valor: r.receitaVendas }, { Linha: "Receita de assistência técnica", Valor: r.receitaServicos },
+      { Linha: "(-) Custo dos produtos vendidos", Valor: -r.cmv }, { Linha: "= Lucro bruto", Valor: r.lucroBruto },
+      ...[...r.despesas.entries()].map(([cat, v]) => ({ Linha: `(-) ${cat}`, Valor: -v })),
+      { Linha: "= Resultado do período", Valor: r.lucroBruto - r.totalDespesas },
+    ];
+    baixarPlanilha(`relatorios-${periodo}-meses`, [
+      { nome: "Resumo", linhas: [{ Período: `últimos ${periodo} meses`, Vendas: r.receitaVendas, Pedidos: r.qtdVendas, "Ticket médio": r.ticket,
+        "Margem bruta %": Math.round(r.margem * 1000) / 10, "Saldo previsto 8 semanas": r.saldo8 }] },
+      { nome: "Vendas por mês", linhas: r.porMes.map((m) => ({ Mês: m.rotulo, Vendas: m.valores[0] })) },
+      { nome: "Produtos", linhas: r.top.map((t) => ({ Produto: t.rotulo, Faturado: t.valor, Quantidade: t.detalhe })) },
+      { nome: "Fluxo 8 semanas", linhas: r.fluxo.map((f) => ({ Semana: f.rotulo, "A receber": f.valores[0], "A pagar": f.valores[1] })) },
+      { nome: "DRE simplificado", linhas: dre },
+      { nome: "Vendedores", linhas: r.vendedores.map((v) => ({ Vendedor: v.nome, Pedidos: v.pedidos, Vendido: v.vendido, Recebido: v.recebido })) },
+      { nome: "Propostas", linhas: [{ Enviadas: r.propostas.enviadas, Ganhas: r.propostas.ganhas, Perdidas: r.propostas.perdidas, "Em aberto": r.propostas.emAberto,
+        "Conversão %": Math.round(r.propostas.conversao * 1000) / 10, "Valor ganho": r.propostas.valorGanho, "Valor perdido": r.propostas.valorPerdido }] },
+    ]).catch(notifyError);
+  }
+
   return (
     <div>
-      <PageHeader title="Relatórios" subtitle="Números do período escolhido, atualizados a cada venda, pagamento e OS concluída." />
+      <PageHeader title="Relatórios" subtitle="Números do período escolhido, atualizados a cada venda, pagamento e OS concluída."
+        actions={<Button variant="secondary" onClick={exportar}><FileDown size={16} /> Exportar</Button>} />
       <Tabs value={periodo} onChange={setPeriodo} options={[
         { value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }, { value: "12", label: "Últimos 12 meses" },
       ]} />

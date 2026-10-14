@@ -50,8 +50,10 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
         )}
         <div className="min-w-0">
           {modulo?.titulo && modulo.titulo !== title && <p className="text-[11px] font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
-          <h1 className="text-2xl font-bold tracking-tight text-fg">{title}</h1>
-          {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+          <h1 className="text-xl font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
+          {/* no celular a explicação fica em 2 linhas (tocar mostra tudo): antes empurrava a tela 4 ou 5 linhas para baixo */}
+          {subtitle && <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
+            onClick={(e) => e.currentTarget.classList.toggle("line-clamp-2")}>{subtitle}</p>}
         </div>
       </div>
       <div className="flex flex-wrap gap-2">{actions}</div>

@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
+import { Ban, CalendarClock, FileDown, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
+import { baixarPlanilha } from "@/lib/exportar";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { InutilizarModal, RegrasTributacao } from "@/components/FiscalAvancado";
@@ -30,6 +31,11 @@ const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, d
 const POR_VEZ = 200;
 const sem = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/** Planilha do que está na lista (aba, filtros e busca aplicados). */
+function exportarNotas(arquivo: string, linhas: Record<string, unknown>[]) {
+  baixarPlanilha(arquivo, [{ nome: "Notas", linhas }]).catch(notifyError);
+}
+
 /** Busca + "mostrar mais" para listas grandes (as notas importadas do sistema anterior). */
 function useBusca<T>(lista: T[], texto: (x: T) => string) {
   const [busca, setBusca] = useState("");
@@ -48,7 +54,7 @@ function useBusca<T>(lista: T[], texto: (x: T) => string) {
       <Button variant="secondary" onClick={() => setLimite(limite + POR_VEZ)}>Mostrar mais</Button>
     </div>
   );
-  return { visiveis: filtrada.slice(0, limite), total: filtrada.length, campo, mais };
+  return { visiveis: filtrada.slice(0, limite), filtrada, total: filtrada.length, campo, mais };
 }
 
 function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string }) {
@@ -182,7 +188,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   const filtroEtapa = FILTROS_EMITIDAS.find((f) => f.valor === etapa);
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
-  const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
   const [janela, setJanela] = useState<"inutilizar" | "emitir" | "marcadores" | "gerenciar" | null>(null);
@@ -215,11 +221,18 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
         <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></div></>}</div>
         <div className="flex flex-wrap gap-2">
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
-          {!leitura && <MaisAcoes>
-            <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
+          <MaisAcoes>
+            <Button variant="secondary" onClick={() => exportarNotas(`notas-emitidas-${aba}`, filtrada.map((n) => ({
+              Número: n.numero ?? "", Emissão: dataBR(n.created_at), Pedido: n.pedido?.numero ?? "",
+              "Cliente / destinatário": (n as any).transferencia?.numero != null ? `Transferência #${(n as any).transferencia.numero}` : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? n.payload?.nome_destinatario ?? "",
+              "CPF/CNPJ": docFormat(n.destinatario_doc), UF: n.payload?.uf_destinatario ?? "", Valor: Number(n.valor_total ?? 0),
+              Situação: situacaoEmitida(n).rotulo, Natureza: n.payload?.natureza_operacao ?? "", Ambiente: n.ambiente === "homologacao" ? "teste" : "produção",
+              Chave: n.chave ?? "", Marcadores: (n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
+            })))}><FileDown size={16} /> Exportar</Button>
+            {!leitura && <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>}
             {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
             {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
-          </MaisAcoes>}
+          </MaisAcoes>
         </div>
       </div>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
@@ -291,7 +304,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const filtroEtapa = FILTROS_RECEBIDAS.find((f) => f.valor === etapa);
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
-  const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
@@ -323,6 +336,11 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
         <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
         <MaisAcoes>
+        <Button variant="secondary" onClick={() => exportarNotas(`notas-recebidas-${aba}`, filtrada.map((n) => ({
+          Número: numeroDaChave(n.chave), Emissão: dataBR(n.data_emissao), Fornecedor: n.emitente_nome ?? "", CNPJ: docFormat(n.emitente_cnpj),
+          Valor: Number(n.valor_total ?? 0), Situação: situacaoRecebida(n).rotulo, Chave: n.chave ?? "",
+          Marcadores: (n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
+        })))}><FileDown size={16} /> Exportar</Button>
         <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
         <Button variant="secondary" title="Das notas importadas que ficaram só como histórico: as duplicatas que ainda vão vencer viram contas a pagar (sem repetir)"
           onClick={async () => {
