@@ -1,7 +1,7 @@
 // Margem de contribuição: o que sobra de cada venda depois dos custos variáveis
 // (impostos sobre a venda, custo do produto, comissão, frete pago e taxa do meio de pagamento).
 import { aliquotaInterestadual } from "../../supabase/functions/_shared/nfe-impostos";
-import { composicao } from "./kits";
+import { pecasDoKit } from "./kits";
 import type { Cliente, Config, Item, KitComponente, Pedido, Produto, Vendedor } from "./types";
 import type { Unidade } from "./unidade";
 import { percentualPedido, type RegraComissao } from "./comissao";
@@ -37,11 +37,11 @@ export type ResultadoPedido = { total: Valores; itens: ItemMargem[]; impostosEst
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Custo atual de 1 unidade do produto (kit = soma dos componentes da composição vendida). */
+/** Custo atual de 1 unidade do produto (kit = soma das peças da composição vendida, abrindo kit dentro de kit). */
 export function custoUnitario(p: Produto | undefined, ctx: Pick<Contexto, "produtos" | "comps">, escolha?: Item["kit_escolha"]): number {
   if (!p) return 0;
   if (!p.kit) return Number(p.preco_custo ?? 0);
-  return composicao(p.id, ctx.comps, escolha).reduce((s, c) => s + c.quantidade * Number(ctx.produtos.find((x) => x.id === c.componente_id)?.preco_custo ?? 0), 0);
+  return pecasDoKit(p.id, ctx.comps, escolha).reduce((s, c) => s + c.quantidade * Number(ctx.produtos.find((x) => x.id === c.componente_id)?.preco_custo ?? 0), 0);
 }
 
 export function margemPedido(p: PedidoMargem, ctx: Contexto): ResultadoPedido {

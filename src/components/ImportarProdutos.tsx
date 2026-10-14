@@ -109,7 +109,7 @@ export function ImportarProdutos({ onClose }: { onClose: () => void }) {
             {contar((i) => i.estoque < 0) > 0 && <li className="text-amber-700">{contar((i) => i.estoque < 0)} com estoque negativo no Tiny: entram com zero.</li>}
             {contar((i) => i.ncm.length !== 8) > 0 && <li className="text-amber-700">{contar((i) => i.ncm.length !== 8)} sem NCM válido: preencha antes de emitir NF-e.</li>}
             {contar((i) => !i.vendavel) > 0 && <li>{contar((i) => !i.vendavel)} marcados no Tiny como "não vende" (matéria-prima): não aparecem no pedido.</li>}
-            {contar((i) => i.kit) > 0 && <li>{contar((i) => i.kit)} kits: entram marcados como kit; cadastre os componentes em Estoque → botão Componentes.</li>}
+            {contar((i) => i.kit) > 0 && <li>{contar((i) => i.kit)} kits: entram marcados como kit; os componentes vêm do botão "Kits do Tiny" (planilha de composição) ou do botão Componentes de cada kit.</li>}
             <li>{contar((i) => !!i.foto)} com foto · {contar((i) => !!i.fornecedor)} com fornecedor · {contar((i) => !!i.descricao_catalogo)} com texto de venda</li>
             {leitura.ignorados.length > 0 && <li className="text-slate-500">Não entram: {leitura.ignorados.map((x) => x.descricao).join(", ")} ({leitura.ignorados[0].motivo}).</li>}
           </ul>
