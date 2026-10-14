@@ -121,7 +121,7 @@ export default function Garantias() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-fg">{e.descricao}</div>
-                  <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}</div>
+                  <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}{e.usada ? " · usada" : ""}</div>
                 </div>
                 <Badge value={g} />
               </div>
@@ -163,7 +163,7 @@ export default function Garantias() {
             <tr key={e.id} className="hover:bg-slate-50/70">
               <td className="td">
                 <div className="font-semibold text-fg">{e.descricao}</div>
-                <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}</div>
+                <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}{e.usada ? " · usada" : ""}</div>
               </td>
               <td className="td">{e.cliente?.nome}<div className="text-xs text-slate-500">{[e.cliente?.municipio, e.cliente?.uf].filter(Boolean).join("/")}</div></td>
               <td className="td">
@@ -255,10 +255,14 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
         <Field label="Descrição"><input className="input" value={e.descricao ?? ""} onChange={(x) => set({ descricao: x.target.value })} required /></Field>
         <Field label="Nº de série"><input className="input" value={e.numero_serie ?? ""} onChange={(x) => set({ numero_serie: x.target.value })} /></Field>
         <Field label="Data da venda">
-          <input className="input" type="date" value={e.data_venda ?? ""} onChange={(x) => set({ data_venda: x.target.value, ...sugerir(e.produto_id ?? null, x.target.value) })} required />
+          <input className="input" type="date" value={e.data_venda ?? ""} onChange={(x) => set({ data_venda: x.target.value || null, ...sugerir(e.produto_id ?? null, x.target.value) })} required={!e.origem} />
         </Field>
         <Field label="Garantia até"><input className="input" type="date" value={e.garantia_ate ?? ""} onChange={(x) => set({ garantia_ate: x.target.value })} /></Field>
         <Field label="Próxima preventiva"><input className="input" type="date" value={e.proxima_preventiva ?? ""} onChange={(x) => set({ proxima_preventiva: x.target.value })} /></Field>
+        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input type="checkbox" checked={!!e.usada} onChange={(x) => set({ usada: x.target.checked })} />
+          Máquina usada (o cliente entra no cadastro de quem compra máquina usada)
+        </label>
         <Field label="Observações" className="sm:col-span-2"><textarea className="input" rows={2} value={e.observacoes ?? ""} onChange={(x) => set({ observacoes: x.target.value })} /></Field>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>

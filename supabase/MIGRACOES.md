@@ -51,3 +51,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   28. `20261014035644_inter_extrato.sql`
   29. `20261014041703_contas_bancarias_inter.sql`
   30. `20261014045631_legado_myfrost.sql`
+  31. `20261014051949_maquina_usada.sql`

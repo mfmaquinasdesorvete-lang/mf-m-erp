@@ -13,6 +13,7 @@ import { formatarTelefone } from "@/lib/mascaras";
 import type { Cliente, Fornecedor } from "@/lib/types";
 import { corTipo, type TipoContato } from "./TiposContato";
 import { possiveisDuplicados, type DadosReceita } from "../../../supabase/functions/_shared/receita";
+import { gruposCertos, principalDoGrupo } from "@/lib/unificarClientes";
 
 type ComEtiquetas = { tags?: string[] | null; receita_situacao?: string | null };
 const tem = (c: ComEtiquetas, t: string) => (c.tags ?? []).includes(t);
@@ -58,7 +59,25 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
     return (data ?? []) as { id: string; codigo: number | null; nome: string; cpf_cnpj: string; motivo: string; tem_movimento: boolean; ja_e_fornecedor: boolean }[];
   } });
   const repetidos = useMemo(() => possiveisDuplicados(clientes), [clientes]);
+  // os certos (mesmo CPF/CNPJ, ou mesmo nome com o mesmo telefone/e-mail, ou mesmo nome e cidade sem documento)
+  const certos = useMemo(() => gruposCertos(clientes), [clientes]); // arquivados já não chegam (RLS)
+  const [verCertos, setVerCertos] = useState(false);
   const semWhats = clientes.filter((c) => !c.whatsapp).length;
+
+  async function unificarCertos() {
+    if (!confirm(`Unificar ${certos.length} grupo(s)? Em cada grupo fica o cadastro com CPF/CNPJ (ou o mais completo); pedidos, contas, notas, OS, máquinas e anexos dos outros passam para ele, e os outros saem da lista (guardados como estavam).`)) return;
+    await executar("certos", async () => {
+      let feitos = 0;
+      for (const g of certos) {
+        const p = principalDoGrupo(g);
+        const { error } = await supabase.rpc("unificar_clientes", { p_manter: p.id, p_outros: g.filter((c) => c.id !== p.id).map((c) => c.id) });
+        if (error) throw new Error(`${feitos} grupo(s) unificados; parou em "${p.nome}": ${error.message}`);
+        feitos++;
+      }
+      invalidar("clientes", "equipamentos", "documentos");
+      return `${feitos} grupo(s) unificados`;
+    });
+  }
 
   async function executar(chave: string, f: () => Promise<string>) {
     setOcupado(chave);
@@ -98,8 +117,39 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
         </section>
 
         <section className="rounded-xl border border-slate-200 p-4">
-          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Copy size={16} className="text-amber-600" /> Possíveis cadastros repetidos</h3>
-          <p className="mb-2 text-slate-600">Mesmo nome (MEI com o CNPJ no nome conta), mesmo CPF/CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} grupo(s).</p>
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Merge size={16} className="text-emerald-600" /> Unificar por lógica (repetidos certos)</h3>
+          <p className="mb-2 text-slate-600">
+            Mesmo CPF/CNPJ; ou mesmo nome com o mesmo telefone/WhatsApp ou e-mail; ou mesmo nome e cidade quando um deles não tem CPF/CNPJ.
+            Nunca junta CPF/CNPJ diferentes. {certos.length ? `${certos.length} grupo(s) para unificar.` : "Nenhum repetido certo."}
+          </p>
+          {certos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={!!ocupado} onClick={unificarCertos}><Merge size={15} /> {ocupado === "certos" ? "Unificando…" : `Unificar os ${certos.length} grupo(s)`}</Button>
+              <Button type="button" variant="secondary" onClick={() => setVerCertos(!verCertos)}>{verCertos ? "Esconder" : "Ver os grupos"}</Button>
+            </div>
+          )}
+          {verCertos && (
+            <ul className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+              {certos.map((g) => {
+                const p = principalDoGrupo(g);
+                return (
+                  <li key={g[0].id} className="space-y-0.5 p-2.5">
+                    {g.map((c) => (
+                      <div key={c.id} className="truncate">
+                        <b>{c.nome}</b> {c.id === p.id && <span className="text-xs font-semibold text-emerald-700">fica</span>}{" "}
+                        <span className="text-xs text-slate-500">{[c.codigo && `cód. ${c.codigo}`, docFormat(c.cpf_cnpj), c.whatsapp && formatarTelefone(c.whatsapp), c.email, c.municipio].filter(Boolean).join(" · ")}</span>
+                      </div>
+                    ))}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 p-4">
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Copy size={16} className="text-amber-600" /> Possíveis cadastros repetidos (conferir)</h3>
+          <p className="mb-2 text-slate-600">Mesmo nome (MEI com o CNPJ no nome conta), mesmo CPF/CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} grupo(s). Confira e unifique um a um.</p>
           {repetidos.length > 0 && <Button type="button" variant="secondary" onClick={() => setVerRepetidos(!verRepetidos)}>{verRepetidos ? "Esconder" : "Ver os grupos"}</Button>}
           {verRepetidos && (
             <ul className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">

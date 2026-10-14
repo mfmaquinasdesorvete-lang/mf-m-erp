@@ -307,7 +307,7 @@ function seed(): Db {
       { id: "e5", cliente_id: "c5", produto_id: "p2", descricao: "Máquina de Sorvete Expressa MF-150 Balcão", numero_serie: "MF150-2025-0230", data_venda: dias(-200), garantia_ate: dias(165), proxima_preventiva: dias(-18) },
       { id: "e6", cliente_id: "c4", produto_id: "p1", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", numero_serie: "MF300-2024-0007", data_venda: dias(-610), garantia_ate: dias(-245), proxima_preventiva: dias(181), ultimo_contato: dias(-1) },
       { id: "e7", cliente_id: "c2", produto_id: "p3", descricao: "Máquina de Milk Shake MF-MS2 (2 hastes)", numero_serie: "MS2-2025-0410", data_venda: dias(-160), garantia_ate: dias(22), proxima_preventiva: dias(18) },
-      { id: "e8", cliente_id: "c3", produto_id: "p2", descricao: "Máquina de Sorvete Expressa MF-150 Balcão", numero_serie: "MF150-2024-0099", data_venda: dias(-480), garantia_ate: dias(-115), proxima_preventiva: dias(-40) },
+      { id: "e8", cliente_id: "c3", produto_id: "p2", descricao: "Máquina de Sorvete Expressa MF-150 Balcão", numero_serie: "MF150-2024-0099", data_venda: dias(-480), garantia_ate: dias(-115), proxima_preventiva: dias(-40), usada: true },
     ],
   };
   db.clientes.forEach((c, i) => { c.avisos_email = true; c.codigo = i + 1; });
@@ -947,7 +947,10 @@ function planoDemo(db: Db) {
     { id: "fornecedor", chave: "fornecedor", nome: "Fornecedor", cor: "purple", ordem: 1, ativo: true, sistema: true },
     { id: "revenda", chave: "revenda", nome: "Revenda", cor: "indigo", ordem: 2, ativo: true, sistema: false },
     { id: "parceiro", chave: "parceiro", nome: "Técnico parceiro", cor: "orange", ordem: 3, ativo: true, sistema: true },
+    { id: "compra_usada", chave: "compra_usada", nome: "Compra máquina usada", cor: "emerald", ordem: 4, ativo: true, sistema: true },
   ];
+  // a cliente da máquina usada (e8) está no cadastro de quem compra usada
+  { const c3 = db.clientes.find((c: Row) => c.id === "c3"); if (c3) c3.tags = [...(c3.tags ?? []), "compra_usada"]; }
   // NFS-e: matriz configurada no padrão nacional (a OS #50 está concluída e pode ser faturada)
   db.nfse_config = [{ unidade_id: U_SC, ativo: true, padrao: "nacional", codigo_municipio: "4216602", item_lista_servico: "14.01", codigo_tributacao_nacional: "140101",
     codigo_tributario_municipio: null, codigo_nbs: null, codigo_cnae: null, aliquota_iss: 2, iss_retido: false, optante_simples_nacional: false,
@@ -2489,7 +2492,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   importar_legado_myfrost: ({ p_clientes }) => {
     const r = { novos: 0, existentes: 0, arquivados: 0, maquinas: 0, compras: 0, erros: [] as Row[] };
     for (const c of p_clientes as Row[]) {
-      let cli = db.clientes.find((x: Row) => x.id_externo === `myfrost:${c.ref}` || (c.cpf_cnpj && x.cpf_cnpj === c.cpf_cnpj));
+      let cli = (c.cliente_id && db.clientes.find((x: Row) => x.id === c.cliente_id))
+        || db.clientes.find((x: Row) => x.id_externo === `myfrost:${c.ref}` || (c.cpf_cnpj && x.cpf_cnpj === c.cpf_cnpj));
       if (!cli) {
         cli = { id: uid(), ...DEFAULTS.clientes(), codigo: db.clientes.reduce((m: number, x: Row) => Math.max(m, Number(x.codigo ?? 0)), 0) + 1,
           nome: c.nome, nome_fantasia: c.fantasia || null, tipo_pessoa: c.tipo_pessoa, cpf_cnpj: c.cpf_cnpj || null, email: c.email || null,
@@ -2505,7 +2509,9 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         if (db.equipamentos.some((e: Row) => e.origem_ref === m.ref)) continue;
         const prod = db.produtos.find((p: Row) => p.tipo === "maquina" && p.descricao.toLowerCase().includes(String(m.modelo).toLowerCase()));
         db.equipamentos.push({ id: uid(), cliente_id: cli.id, produto_id: prod?.id ?? null, descricao: m.descricao, numero_serie: null, pedido_id: null,
-          data_venda: m.data, garantia_ate: null, proxima_preventiva: null, ultimo_contato: null, observacoes: m.obs, origem: "My Frost", origem_ref: m.ref, created_at: quando(0) });
+          data_venda: m.data, garantia_ate: null, proxima_preventiva: null, ultimo_contato: null, observacoes: m.obs, origem: "My Frost", origem_ref: m.ref,
+          usada: !!m.usada, created_at: quando(0) });
+        if (m.usada && !(cli.tags ?? []).includes("compra_usada")) cli.tags = [...(cli.tags ?? []), "compra_usada"].sort();
         r.maquinas++;
       }
       for (const x of c.compras ?? []) {

@@ -6,11 +6,14 @@
 // e, à parte, as peças da My Frost que o catálogo da MF ainda não tem, com "compatível com máquinas My Frost" no nome.
 // Valores de venda, notas fiscais, contas e caixa da My Frost ficam de fora: são de outro CNPJ.
 
+import { gruposCertos } from "./unificarClientes";
+
 export const ORIGEM = "My Frost";
 // etiquetas do cadastro (chaves de tipos_contato); "parceiro" é a de técnico parceiro que o ERP já tem
 export const TAG_HISTORICO = "my_frost";
 export const TAG_DONO = "dono_my_frost";
 export const TAG_TECNICO = "parceiro";
+export const TAG_USADA = "compra_usada"; // cadastro de quem compra máquina usada (o ERP já tem a categoria)
 export const TIPOS_MYFROST = [
   { chave: TAG_HISTORICO, nome: "My Frost (histórico)", cor: "amber", ordem: 20 },
   { chave: TAG_DONO, nome: "Dono de máquina My Frost", cor: "sky", ordem: 21 },
@@ -18,9 +21,10 @@ export const TIPOS_MYFROST = [
 export const SUFIXO_COMPATIVEL = "compatível com máquinas My Frost";
 const JANELA_MESMA_MAQUINA = 120; // dias entre a proposta e o pedido da mesma máquina
 
-export type MaquinaLegado = { ref: string; modelo: string; descricao: string; data: string | null; obs: string };
+export type MaquinaLegado = { ref: string; modelo: string; descricao: string; data: string | null; obs: string; usada: boolean };
 export type CompraLegado = { ref: string; data: string | null; documento: string; descricao: string; quantidade: number };
 export type ClienteLegado = {
+  cliente_id?: string; // cliente do ERP que é a mesma pessoa/empresa (achado na tela, pela mesma lógica de unificar)
   ref: string; nome: string; fantasia: string; tipo_pessoa: "PF" | "PJ"; cpf_cnpj: string; ie: string; contribuinte: 1 | 2 | 9;
   email: string; telefone: string; celular: string; cep: string; logradouro: string; numero: string; complemento: string;
   bairro: string; municipio: string; uf: string; obs: string; tags: string[];
@@ -35,6 +39,8 @@ export type LeituraLegado = {
   clientes: ClienteLegado[];
   pecas: PecaLegado[];
   maquinasPorModelo: [string, number][];
+  unificados: number; // contatos repetidos do Tiny que viraram um cadastro só
+  usadas: number;
   foraDaImportacao: { rotulo: string; quantidade: number }[];
 };
 type Linha = Record<string, unknown>;
@@ -116,7 +122,8 @@ const PEDIDO_VALIDO = /^(entregue|enviado|faturado|preparando envio|pronto para 
 const PROPOSTA_VALIDA = /^conclu/;
 const NAO_E_PRODUTO = /\b(taxa|frete|icms|moveis|balcao com gabinete)\b/;
 
-type Evento = { data: string | null; qtd: number; doc: string };
+type Evento = { data: string | null; qtd: number; doc: string; usada: boolean };
+const USADA = /\b(usad[ao]s?|semi\s*-?\s*nov[ao]s?|seminov[ao]s?|revisad[ao]|recondicionad[ao])\b/;
 type Base = { contato?: Linha; venda?: Linha; ids: Set<string>; doc: string; eventos: Map<string, { pedidos: Evento[]; propostas: Evento[] }>; compras: CompraLegado[]; tags: string[] };
 
 /** Contato do Tiny (ou os dados do próprio pedido/proposta, quando o contato foi apagado) -> cadastro do ERP. */
@@ -154,28 +161,42 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
     throw new Error("A planilha precisa das abas Contatos e Pedidos_venda_itens (ou Propostas) do backup do Tiny da My Frost.");
   }
 
-  // um cliente por CPF/CNPJ (o Tiny tinha o mesmo cliente em mais de um contato); sem documento, pelo ID do contato
+  // um cadastro por pessoa/empresa: o Tiny tinha o mesmo cliente em mais de um contato. Junta pela mesma lógica de
+  // "unificar": mesmo CPF/CNPJ, ou mesmo nome com o mesmo telefone/e-mail, ou mesmo nome e cidade sem documento
+  const valido = (d: string) => d.length === 11 || d.length === 14;
+  const comId = contatos.filter((c) => txt(c["ID"]));
+  const grupoDe = new Map<string, string>();
+  for (const g of gruposCertos(comId.map((c) => ({
+    id: txt(c["ID"]), nome: txt(c["Nome"]), cpf_cnpj: so(c["CNPJ / CPF"]), telefone: txt(c["Fone"]), celular: txt(c["Celular"]),
+    email: txt(c["E-mail"]).split(/[;, ]+/)[0], municipio: txt(c["Cidade"]),
+  })))) {
+    const raiz = g.map((x) => x.id).sort()[0];
+    for (const x of g) grupoDe.set(x.id, raiz);
+  }
   const bases = new Map<string, Base>();
   const chaveDoContato = new Map<string, string>();
-  const nova = (doc: string): Base => ({ ids: new Set(), doc, eventos: new Map(), compras: [], tags: [] });
-  for (const c of contatos) {
+  const chaveDoDoc = new Map<string, string>();
+  const nova = (): Base => ({ ids: new Set(), doc: "", eventos: new Map(), compras: [], tags: [] });
+  for (const c of comId) {
     const id = txt(c["ID"]);
-    if (!id) continue;
     const doc = so(c["CNPJ / CPF"]);
-    const chave = doc.length === 11 || doc.length === 14 ? `doc:${doc}` : `id:${id}`;
-    const b = bases.get(chave) ?? nova(chave.startsWith("doc:") ? doc : "");
+    const chave = `g:${grupoDe.get(id) ?? id}`;
+    const b = bases.get(chave) ?? nova();
+    if (!b.doc && valido(doc)) { b.doc = doc; chaveDoDoc.set(doc, chave); }
     b.ids.add(id);
     if (!b.contato || preenchidos(c) > preenchidos(b.contato)) b.contato = c;
     b.tags.push(...txt(c["Tipos de Contatos"]).split("|").map(txt).filter(Boolean));
     bases.set(chave, b);
     chaveDoContato.set(id, chave);
   }
+  const contatosAgrupados = bases.size;
+  // pedido ou proposta de contato que foi apagado no Tiny: vale o CPF/CNPJ da própria venda
   const baseDaVenda = (l: Linha) => {
     const id = txt(l["ID contato"]);
     const doc = so(l["CPF/CNPJ"]);
-    let chave = chaveDoContato.get(id) ?? (doc.length === 11 || doc.length === 14 ? `doc:${doc}` : `id:${id}`);
-    if (!bases.has(chave) && doc.length >= 11 && bases.has(`doc:${doc}`)) chave = `doc:${doc}`;
-    const b = bases.get(chave) ?? nova(chave.startsWith("doc:") ? doc : "");
+    const chave = chaveDoContato.get(id) ?? (valido(doc) ? chaveDoDoc.get(doc) : undefined) ?? `id:${id}`;
+    const b = bases.get(chave) ?? nova();
+    if (!b.doc && valido(doc)) { b.doc = doc; chaveDoDoc.set(doc, chave); }
     b.ids.add(id);
     if (!b.venda) b.venda = l;
     bases.set(chave, b);
@@ -210,7 +231,7 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
     const b = baseDaVenda(l);
     const qtd = Math.max(1, Math.round(num(l["Quantidade"])));
     const modelo = modeloMaquina(desc);
-    if (modelo) { evento(b, modelo).pedidos.push({ data: d, qtd, doc: `pedido ${numero}` }); continue; }
+    if (modelo) { evento(b, modelo).pedidos.push({ data: d, qtd, doc: `pedido ${numero}`, usada: USADA.test(sem(desc)) }); continue; }
     if (!desc || NAO_E_PRODUTO.test(sem(desc))) continue;
     const k = `p:${numero}`;
     const i = (porPedido.get(k) ?? 0) + 1;
@@ -228,7 +249,7 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
     const b = baseDaVenda(l);
     const qtd = Math.max(1, Math.round(num(l["Quantidade"])));
     const modelo = modeloMaquina(desc);
-    if (modelo) { evento(b, modelo).propostas.push({ data: d, qtd, doc: `proposta ${numero}` }); continue; }
+    if (modelo) { evento(b, modelo).propostas.push({ data: d, qtd, doc: `proposta ${numero}`, usada: USADA.test(sem(desc)) }); continue; }
     if (!desc || NAO_E_PRODUTO.test(sem(desc))) continue;
     const jaNoPedido = b.compras.some((x) => sem(x.descricao) === sem(desc) && (!x.data || !d || dias(x.data, d) <= JANELA_MESMA_MAQUINA));
     if (jaNoPedido) continue;
@@ -244,6 +265,7 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
   for (const b of bases.values()) {
     const ref = [...b.ids].sort()[0];
     const tagsTiny = [...new Set(b.tags)];
+    const compraUsada = tagsTiny.some((t) => /usad/.test(sem(t)));
     const maquinas: MaquinaLegado[] = [];
     // a etiqueta do cadastro só acrescenta modelo que não veio de venda ("MF - A 200" num cliente que comprou a A 200 Plus é a mesma)
     const familia = (m: string) => m.replace(/ Plus$/, "");
@@ -252,22 +274,26 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
     for (const modelo of modelos) {
       const ev = b.eventos.get(modelo) ?? { pedidos: [], propostas: [] };
       // cada unidade do pedido é uma máquina; a proposta do mesmo modelo perto da data é a mesma venda
-      const unidades: { data: string | null; docs: string[] }[] = [];
-      for (const p of ev.pedidos) for (let i = 0; i < p.qtd; i++) unidades.push({ data: p.data, docs: [p.doc] });
+      const unidades: { data: string | null; docs: string[]; usada: boolean }[] = [];
+      for (const p of ev.pedidos) for (let i = 0; i < p.qtd; i++) unidades.push({ data: p.data, docs: [p.doc], usada: p.usada });
       for (const p of ev.propostas) {
         for (let i = 0; i < p.qtd; i++) {
           const par = unidades.find((u) => !u.docs.some((x) => x.startsWith("proposta")) && (!u.data || !p.data || dias(u.data, p.data) <= JANELA_MESMA_MAQUINA));
-          if (par) { par.docs.push(p.doc); if (p.data && (!par.data || p.data < par.data)) par.data = p.data; }
-          else unidades.push({ data: p.data, docs: [p.doc] });
+          if (par) { par.docs.push(p.doc); par.usada ||= p.usada; if (p.data && (!par.data || p.data < par.data)) par.data = p.data; }
+          else unidades.push({ data: p.data, docs: [p.doc], usada: p.usada });
         }
       }
-      if (!unidades.length) unidades.push({ data: null, docs: [] }); // só pela etiqueta do cadastro
+      // só pela etiqueta do cadastro; com a etiqueta "Usada" no Tiny, a máquina é a usada
+      if (!unidades.length) unidades.push({ data: null, docs: [], usada: compraUsada });
       unidades.sort((a, c) => (a.data ?? "9").localeCompare(c.data ?? "9"));
       unidades.forEach((u, i) => {
         const origem = u.docs.length
           ? `Vendida pela My Frost Máquinas${u.data ? ` em ${dataBR(u.data)}` : ""} (${[...new Set(u.docs)].join(", ")}). Garantia da My Frost: 1 ano, já encerrada.`
           : "O cadastro da My Frost marcava este modelo; data da venda não informada.";
-        maquinas.push({ ref: `${ref}:${sem(modelo).replace(/\s+/g, "")}:${i + 1}`, modelo, descricao: `My Frost ${modelo}`, data: u.data, obs: origem });
+        maquinas.push({
+          ref: `${ref}:${sem(modelo).replace(/\s+/g, "")}:${i + 1}`, modelo, descricao: `My Frost ${modelo}`, data: u.data, usada: u.usada,
+          obs: (u.usada ? "Máquina usada (seminova). " : "") + origem,
+        });
         porModelo.set(modelo, (porModelo.get(modelo) ?? 0) + 1);
       });
     }
@@ -280,7 +306,8 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
     const etiquetas = tagsTiny.filter((t) => !/^(cliente|outro)$/i.test(t));
     clientes.push({
       ...dados, ref, grupo, maquinas, compras: b.compras,
-      tags: [TAG_HISTORICO, ...(maquinas.length ? [TAG_DONO] : []), ...(tecnico ? [TAG_TECNICO] : [])],
+      tags: [TAG_HISTORICO, ...(maquinas.length ? [TAG_DONO] : []), ...(tecnico ? [TAG_TECNICO] : []),
+        ...(compraUsada || maquinas.some((m) => m.usada) ? [TAG_USADA] : [])],
       obs: [
         "Cliente da My Frost Máquinas (empresa anterior), trazido do backup do Tiny.",
         etiquetas.length ? `Etiquetas no Tiny da My Frost: ${etiquetas.join(", ")}.` : "",
@@ -334,6 +361,8 @@ export function montarLegado(abas: Record<string, Linha[]>, catalogo: { sku: str
   return {
     clientes, pecas,
     maquinasPorModelo: [...porModelo.entries()].sort((a, c) => c[1] - a[1]),
+    unificados: comId.length - contatosAgrupados,
+    usadas: clientes.reduce((s, c) => s + c.maquinas.filter((m) => m.usada).length, 0),
     foraDaImportacao: [
       { rotulo: "notas fiscais da My Frost", quantidade: (abas["NFes"] ?? []).length },
       { rotulo: "contas a pagar da My Frost", quantidade: (abas["Contas_pagar_2026"] ?? []).length },

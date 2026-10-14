@@ -17,6 +17,7 @@ import { ArrumarCadastro, EtiquetasCliente, UnificarClientes } from "@/component
 import { ClienteForm } from "@/components/clientes/ClienteForm";
 import { useAssinaturasFicha } from "@/components/clientes/AssinaturaFicha";
 import { useTiposContato } from "@/components/clientes/TiposContato";
+import { MaquinasCliente, rotuloMaquina, useMaquinasPorCliente } from "@/components/clientes/MaquinasCliente";
 import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral";
 import type { Vendedor } from "@/lib/types";
 
@@ -106,6 +107,7 @@ export default function Clientes() {
   const [arrumar, setArrumar] = useState(false);
   const [unificar, setUnificar] = useState<string[] | null>(null);
   const tipos = useTiposContato();
+  const maquinas = useMaquinasPorCliente();
   const invalidar = useInvalidate();
   // mesma consulta da lista (fica em cache): para os repetidos e para unificar
   const { data: todos = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
@@ -150,7 +152,16 @@ export default function Clientes() {
       ],
     },
     { label: "Vendedor", valor: (r) => vendedores.find((v) => v.id === r.vendedor_id)?.nome ?? null },
-  ], [situacaoFicha, vendedores, tipos]);
+    {
+      // modelo da máquina (vendida pela MF ou pela My Frost), usada e quem ainda não tem máquina
+      label: "Máquina", opcoes: [
+        ...[...new Set([...maquinas.values()].flat().map((m) => rotuloMaquina(m.descricao)))].sort((a, b) => a.localeCompare(b, "pt-BR"))
+          .map((modelo) => ({ label: modelo, teste: (r: Cliente) => (maquinas.get(r.id) ?? []).some((m) => rotuloMaquina(m.descricao) === modelo) })),
+        { label: "Comprou máquina usada", teste: (r: Cliente) => tag(r, "compra_usada") || (maquinas.get(r.id) ?? []).some((m) => m.usada) },
+        { label: "Sem máquina", teste: (r: Cliente) => !maquinas.has(r.id) },
+      ],
+    },
+  ], [situacaoFicha, vendedores, tipos, maquinas]);
   return (
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
@@ -221,6 +232,7 @@ export default function Clientes() {
                 {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
               </div>
               <EtiquetasCliente c={r} tipos={tipos} />
+              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} />
             </>);
           },
         },

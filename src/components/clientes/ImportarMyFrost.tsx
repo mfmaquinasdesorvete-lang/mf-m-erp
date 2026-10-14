@@ -9,14 +9,17 @@ import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notifyError } from "@/lib/notify";
 import { brl, digitos } from "@/lib/format";
-import { lerBackupMyFrost, TIPOS_MYFROST, type LeituraLegado } from "@/lib/legadoMyFrost";
+import { lerBackupMyFrost, TAG_USADA, TIPOS_MYFROST, type LeituraLegado } from "@/lib/legadoMyFrost";
+import { gruposCertos, principalDoGrupo, type Contatavel } from "@/lib/unificarClientes";
 
 const LOTE = 100;
 type Resultado = { novos: number; existentes: number; arquivados: number; maquinas: number; compras: number; pecas: number; erros: string[] };
 
 export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
   const { data: produtos = [] } = useRows<{ id: string; sku: string | null; descricao: string }>("produtos", { select: "id, sku, descricao", key: ["myfrost"] });
-  const { data: clientes = [] } = useRows<{ id: string; cpf_cnpj: string | null; id_externo: string | null }>("clientes", { select: "id, cpf_cnpj, id_externo", key: ["myfrost"] });
+  const { data: clientes = [] } = useRows<Contatavel & { id_externo: string | null; arquivado_em: string | null }>("clientes", {
+    select: "id, codigo, nome, cpf_cnpj, telefone, whatsapp, email, municipio, id_externo, arquivado_em", key: ["myfrost"],
+  });
   const [leitura, setLeitura] = useState<LeituraLegado | null>(null);
   const [escolhidas, setEscolhidas] = useState<Set<string>>(new Set());
   const [combinado, setCombinado] = useState(false);
@@ -36,11 +39,30 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
     } catch (e) { notifyError(e); } finally { setOcupado(""); }
   }
 
+  // quem já é cliente da MF pela mesma lógica de unificar: mesmo CPF/CNPJ, ou mesmo nome com o mesmo telefone/e-mail,
+  // ou mesmo nome e cidade (sem documento). Esse cliente só ganha as etiquetas, as máquinas e as compras.
+  const vinculo = useMemo(() => {
+    const m = new Map<string, string>();
+    if (!leitura) return m;
+    const erp = clientes.filter((c) => !c.arquivado_em);
+    const lista: Contatavel[] = [
+      ...erp.map((c) => ({ ...c, id: `e:${c.id}` })),
+      ...leitura.clientes.map((c) => ({ id: `m:${c.ref}`, nome: c.nome, cpf_cnpj: c.cpf_cnpj, telefone: c.telefone, celular: c.celular, email: c.email, municipio: c.municipio })),
+    ];
+    for (const g of gruposCertos(lista)) {
+      const doErp = g.filter((x) => x.id.startsWith("e:"));
+      if (!doErp.length) continue;
+      const alvo = principalDoGrupo(doErp).id.slice(2);
+      for (const x of g) if (x.id.startsWith("m:")) m.set(x.id.slice(2), alvo);
+    }
+    return m;
+  }, [leitura, clientes]);
+
   const resumo = useMemo(() => {
     if (!leitura) return null;
     const docs = new Set(clientes.map((c) => digitos(c.cpf_cnpj)).filter(Boolean));
     const externos = new Set(clientes.map((c) => c.id_externo).filter(Boolean));
-    const ja = leitura.clientes.filter((c) => (c.cpf_cnpj && docs.has(c.cpf_cnpj)) || externos.has(`myfrost:${c.ref}`)).length;
+    const ja = leitura.clientes.filter((c) => vinculo.has(c.ref) || (c.cpf_cnpj && docs.has(c.cpf_cnpj)) || externos.has(`myfrost:${c.ref}`)).length;
     const conta = (g: string) => leitura.clientes.filter((c) => c.grupo === g).length;
     return {
       ja, novos: leitura.clientes.length - ja, donos: conta("maquina"), pecas: conta("pecas"), tecnicos: conta("tecnico"),
@@ -48,8 +70,9 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
       semData: leitura.clientes.reduce((s, c) => s + c.maquinas.filter((m) => !m.data).length, 0),
       compras: leitura.clientes.reduce((s, c) => s + c.compras.length, 0),
       semDoc: leitura.clientes.filter((c) => !c.cpf_cnpj).length,
+      compraUsada: leitura.clientes.filter((c) => c.tags.includes(TAG_USADA)).length,
     };
-  }, [leitura, clientes]);
+  }, [leitura, clientes, vinculo]);
 
   async function importar() {
     if (!leitura) return;
@@ -58,7 +81,7 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
     try {
       // as etiquetas aparecem com nome e cor na lista de clientes (quem já existir fica como está)
       await supabase.from("tipos_contato").upsert(TIPOS_MYFROST, { onConflict: "chave", ignoreDuplicates: true });
-      const lista = leitura.clientes.map(({ grupo: _g, ...c }) => c);
+      const lista = leitura.clientes.map(({ grupo: _g, ...c }) => ({ ...c, cliente_id: vinculo.get(c.ref) }));
       for (let i = 0; i < lista.length; i += LOTE) {
         setProgresso(`Clientes ${Math.min(i + LOTE, lista.length)} de ${lista.length}…`);
         const { data, error } = await supabase.rpc("importar_legado_myfrost", { p_clientes: lista.slice(i, i + LOTE) });
@@ -139,7 +162,9 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
             <li>Máquinas por modelo: {leitura.maquinasPorModelo.map(([m, n]) => `${m} (${n})`).join(", ")}.</li>
             <li>As máquinas vêm dos pedidos entregues ou faturados, das propostas concluídas e das etiquetas de modelo do cadastro.
               {resumo.semData > 0 && ` ${resumo.semData} só tinham a etiqueta: entram sem data da venda.`}</li>
-            <li>Quem já é cliente da MF (mesmo CPF/CNPJ) não tem o cadastro alterado: só ganha a etiqueta, as máquinas e as compras.</li>
+            {leitura.unificados > 0 && <li>{leitura.unificados} contatos repetidos no Tiny viraram um cadastro só (mesmo CPF/CNPJ, ou mesmo nome com o mesmo telefone ou e-mail, ou mesmo nome e cidade sem documento).</li>}
+            <li>Quem já é cliente da MF (pela mesma lógica) não tem o cadastro alterado: só ganha a etiqueta, as máquinas e as compras.</li>
+            {leitura.usadas > 0 && <li>{leitura.usadas} máquinas usadas (seminovas). {resumo.compraUsada} clientes entram no cadastro <b>Compra máquina usada</b>.</li>}
             {resumo.semDoc > 0 && <li className="text-amber-700">{resumo.semDoc} sem CPF/CNPJ: entram pelo nome. Complete antes de emitir nota.</li>}
             <li className="text-slate-500">Fica de fora: {leitura.foraDaImportacao.map((x) => `${x.quantidade} ${x.rotulo}`).join(", ")}. Valores de venda também não entram.</li>
           </ul>

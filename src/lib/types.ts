@@ -73,6 +73,7 @@ export type Equipamento = {
   pedido_id: string | null; data_venda: string | null; garantia_ate: string | null; proxima_preventiva: string | null;
   ultimo_contato: string | null; observacoes: string | null; cliente?: Cliente;
   origem?: string | null; origem_ref?: string | null; // origem "My Frost" = vendida pela empresa anterior (sem garantia da MF)
+  usada?: boolean; // máquina usada/seminova: o cliente entra no cadastro de quem compra usada
 };
 
 export type ItemChecklist = { item: string; ok: boolean; obs?: string };
