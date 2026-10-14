@@ -201,6 +201,7 @@ export default function Clientes() {
       anexos="cliente"
       title="Clientes"
       table="clientes"
+      marcadores={["cliente", "clientes"]}
       order="nome"
       defaults={{ tipo_pessoa: "PF", contribuinte_icms: 9, nome: "", avisos_email: true }}
       searchKeys={["codigo", "nome", "nome_fantasia", "cpf_cnpj", "whatsapp", "telefone", "telefone_adicional", "email", "email_nfe", "municipio", "condicao_pagamento"]}

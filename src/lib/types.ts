@@ -1,4 +1,6 @@
 export type Cliente = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; codigo?: number | null; nome_fantasia?: string | null; tipo_pessoa: "PF" | "PJ"; nome: string; cpf_cnpj: string | null;
   inscricao_estadual: string | null; contribuinte_icms: number; email: string | null;
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
@@ -24,6 +26,8 @@ export type AssinaturaFicha = {
 };
 
 export type Produto = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; sku: string | null; descricao: string; tipo: string; unidade: string; ncm: string | null;
   cest: string | null; cfop: string | null; origem: number; icms_situacao: string | null;
   preco_custo: number; preco_venda: number; estoque_atual: number; estoque_minimo: number;
@@ -46,6 +50,8 @@ export type Item = {
 };
 
 export type Pedido = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; numero: number; cliente_id: string; origem: string; status: string; vendedor: string | null;
   forma_pagamento: string; parcelas: number; primeiro_vencimento: string | null; intervalo_dias: number;
   modalidade_frete: number; valor_produtos: number; desconto: number; frete: number; valor_total: number;
@@ -62,6 +68,8 @@ export type Pedido = {
 };
 
 export type OrdemServico = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; numero: number; cliente_id: string; produto_id: string | null; equipamento: string;
   numero_serie: string | null; defeito_relatado: string; diagnostico: string | null; solucao: string | null;
   status: string; em_garantia: boolean; tecnico: string | null; valor_mao_obra: number; valor_pecas: number;
@@ -117,7 +125,7 @@ export type KitComponente = { id: string; kit_id: string; componente_id: string;
 export type EscolhaKit = { componente_id: string; quantidade: number }[];
 
 type Endereco = { cep?: string | null; logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null; municipio: string | null; uf: string | null };
-export type Fornecedor = Endereco & { id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null; observacoes?: string | null; chave_pix?: string | null;
+export type Fornecedor = Endereco & { marcadores?: string[] | null; id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null; observacoes?: string | null; chave_pix?: string | null;
   // conferência com a Receita (como nos clientes)
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
   // golpe (boleto falso): as contas dele não podem ser pagas; quem/quando gravados pelo banco
@@ -126,7 +134,7 @@ export type TipoTransportadora = "transportadora" | "correios" | "agencia" | "ae
 export type ApiTransportadora = "sim" | "parcial" | "plataforma" | "nao" | "desconhecido";
 export type ContatoTransportadora = { nome?: string; cargo?: string; email?: string; telefone?: string; whatsapp?: string; filial?: string };
 export type UnidadeRede = { nome?: string; cnpj?: string; municipio?: string; uf?: string; endereco?: string; telefone?: string; email?: string; origem?: string };
-export type Transportadora = Endereco & {
+export type Transportadora = Endereco & { marcadores?: string[] | null;
   id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj?: string | null; inscricao_estadual?: string | null;
   contato?: string | null; whatsapp: string | null; telefone: string | null; email: string | null; regioes: string | null; ativo: boolean; observacoes?: string | null;
   /** marca a que esta filial pertence (nulo = é a marca, o cartão da lista) */
@@ -141,6 +149,8 @@ export type Transportadora = Endereco & {
 };
 
 export type OrdemProducao = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; numero: number; produto_id: string; quantidade: number; status: string; previsao: string | null;
   responsavel: string | null; numeros_serie: string | null; observacoes: string | null; concluida_em: string | null; created_at: string;
   produto?: Produto;
@@ -153,6 +163,8 @@ export type Necessidade = {
 };
 export type ItemCompra = { id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number };
 export type PedidoCompra = {
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   id: string; numero: number; fornecedor_id: string | null; ordem_producao_id: string | null; status: string; previsao_entrega: string | null;
   condicao_pagamento: string | null; frete: number; valor_total: number; observacoes: string | null; created_at: string;
   fornecedor?: Fornecedor | null; itens?: ItemCompra[];

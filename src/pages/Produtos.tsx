@@ -26,7 +26,7 @@ import { contextoEan, erroCodigoNovo, soDigitos, type ProdutoEan } from "@/lib/g
 import { useConfig } from "@/lib/useConfig";
 import { avaliarAnuncio, correcaoAutomatica, slugDe, LIMITE_META, LIMITE_TITULO } from "@/lib/marketplace";
 import { ContagemEstoque } from "@/components/ContagemEstoque";
-import { CategoriasProdutos, opcoesCategoria, useCategoriasProduto } from "@/components/CategoriasProdutos";
+import { CampoCategoriaProduto, CategoriasProdutos, opcoesCategoria, useCategoriasProduto } from "@/components/CategoriasProdutos";
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
 import { vendidosPorProduto } from "@/lib/gerencial";
@@ -390,6 +390,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         filtroBase={doCadastro[cadastro]}
         readOnly={!pode("editar_produtos")}
         table="produtos"
+        marcadores={["produto", "produtos"]}
         order="descricao"
         defaults={{ tipo: "peca", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, fora_de_linha: false, descricao: "", no_catalogo: false, ...atualCad.padrao }}
         searchKeys={["descricao", "sku", "ncm", "marca", "modelo", "categoria", "codigo_barras", "codigo_fabricante", "codigos_alternativos"]}
@@ -460,7 +461,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "tipo", label: "Tipo", type: "select", options: tipos },
           { name: "unidade", label: "Unidade de medida", type: "select", options: opcoesUnidade },
-          { name: "categoria", label: "Categoria", type: "select", span: 1, options: opcoesCategoria(categorias, produtos) },
+          { name: "categoria", label: "Categoria", type: "custom", span: 1,
+            render: (v, set) => <CampoCategoriaProduto valor={v} onChange={set} opcoes={opcoesCategoria(categorias, produtos)} produtos={produtos} podeEditar={pode("editar_produtos")} /> },
           { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
           { name: "marca", label: "Marca", span: 1 },
           { name: "modelo", label: "Modelo", span: 1 },

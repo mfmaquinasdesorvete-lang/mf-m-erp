@@ -129,6 +129,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           plural="fornecedores"
           title="Fornecedores"
           table="fornecedores"
+          marcadores={["fornecedor", "fornecedores"]}
           order="nome"
           defaults={{ nome: "" }}
           searchKeys={["codigo", "nome", "nome_fantasia", "cnpj", "whatsapp", "telefone", "email", "municipio"]}
@@ -168,6 +169,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           ] : []}
           title="Lista completa"
           table="transportadoras"
+          marcadores={["transportadora", "transportadoras"]}
           order="nome"
           defaults={{ nome: "", ativo: true }}
           searchKeys={["codigo", "nome", "nome_fantasia", "cnpj", "regioes", "whatsapp"]}

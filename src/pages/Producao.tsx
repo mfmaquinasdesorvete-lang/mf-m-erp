@@ -20,6 +20,8 @@ import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { contemNaEstrutura, custoEstrutura, niveis, temFicha, type LinhaFicha } from "@/lib/estrutura";
 import { ehKitAberto } from "@/lib/kits";
+import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
+import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
@@ -87,6 +89,8 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
   const { data: necessidade = [] } = useNecessidade();
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [verExcluidas, setVerExcluidas] = useState(false);
+  const { data: marcadores = [] } = useMarcadores();
 
   const lista = ordens.filter((o) => mostrarTodas || ["planejada", "em_producao"].includes(o.status));
   const faltasPorOP = useMemo(() => {
@@ -111,22 +115,30 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={mostrarTodas} onChange={(e) => setMostrarTodas(e.target.checked)} /> Mostrar concluídas e canceladas
         </label>
-        {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10) })}><Plus size={16} /> Nova ordem de produção</Button>}
+        <div className="flex flex-wrap gap-2">
+          {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
+          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10) })}><Plus size={16} /> Nova ordem de produção</Button>}
+        </div>
       </div>
 
       <Table empty={!isLoading && !lista.length}
-        head={<><th className="th">OP</th><th className="th">Produto</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th" /></>}>
+        head={<><th className="th">OP</th><th className="th">Produto</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((o) => {
           const f = faltasPorOP.get(o.id) ?? 0;
           const aberta = ["planejada", "em_producao"].includes(o.status);
           return (
             <tr key={o.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(o)}>
               <td className="td font-bold text-fg">#{o.numero}</td>
-              <td className="td">{o.produto?.descricao}{o.responsavel && <div className="text-xs text-slate-500">{o.responsavel}</div>}</td>
+              <td className="td">{o.produto?.descricao}{o.responsavel && <div className="text-xs text-slate-500">{o.responsavel}</div>}
+                <div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
               <td className="td num text-right">{Number(o.quantidade)}</td>
               <td className="td"><Badge value={o.status} /></td>
               <td className="td">{aberta ? (f ? <span className="font-semibold text-red-600">faltam {f} peça(s)</span> : <span className="font-semibold text-emerald-700">tudo disponível</span>) : "—"}</td>
               <td className={`td num ${aberta && o.previsao && o.previsao < hoje() ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
+              <td className="td whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <BotaoMarcadores tabela="ordens_producao" registro={o} nome={["ordem de produção", "ordens de produção"]} />
+                {pode("editar_producao") && o.status !== "concluida" && <ExcluirDocumento tabela="ordens_producao" id={o.id} numero={o.numero} />}
+              </td>
               <CelulaAbrir texto="Ver / editar" />
             </tr>
           );
@@ -134,6 +146,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
       </Table>
 
       {aberta && <OPModal inicial={aberta} onClose={() => setAberta(null)} irParaCompras={irParaCompras} />}
+      {verExcluidas && <DocumentosExcluidos tabela="ordens_producao" onClose={() => setVerExcluidas(false)} />}
     </>
   );
 }
@@ -325,6 +338,9 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
   const pcs = filtrar(pcsTodos);
   const [aberto, setAberto] = useState<(Partial<PedidoCompra> & { itens: ItemCompra[] }) | null>(null);
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [verExcluidas, setVerExcluidas] = useState(false);
+  const { data: marcadores = [] } = useMarcadores();
+  const recebeu = (p: PedidoCompra) => ["parcial", "recebido"].includes(p.status) || (p.itens ?? []).some((i) => Number(i.quantidade_recebida) > 0);
 
   useEffect(() => {
     if (abrirNovo) { setAberto({ status: "cotacao", frete: 0, itens: [] }); onAberto(); }
@@ -345,23 +361,32 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={mostrarTodos} onChange={(e) => setMostrarTodos(e.target.checked)} /> Mostrar recebidos e cancelados
         </label>
-        {pode("editar_producao") && <Button onClick={() => setAberto({ status: "cotacao", frete: 0, itens: [] })}><Plus size={16} /> Novo pedido de compra</Button>}
+        <div className="flex flex-wrap gap-2">
+          {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
+          {pode("editar_producao") && <Button onClick={() => setAberto({ status: "cotacao", frete: 0, itens: [] })}><Plus size={16} /> Novo pedido de compra</Button>}
+        </div>
       </div>
       <Table empty={!isLoading && !lista.length}
-        head={<><th className="th">Nº</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th" /></>}>
+        head={<><th className="th">Nº</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
             <td className="td font-bold text-fg">#{p.numero}</td>
-            <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}</td>
+            <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}
+              <div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td text-slate-600">{(p.itens ?? []).slice(0, 2).map((i) => i.descricao).join(", ")}{(p.itens?.length ?? 0) > 2 ? ` +${p.itens!.length - 2}` : ""}</td>
             <td className="td"><Badge value={p.status === "cotacao" ? "pc_cotacao" : `pc_${p.status}`} /></td>
             <td className={`td num ${["enviado", "parcial"].includes(p.status) && p.previsao_entrega && p.previsao_entrega < hoje() ? "font-semibold text-red-600" : ""}`}>{dataBR(p.previsao_entrega)}</td>
             <td className="td num text-right font-semibold">{brl(p.valor_total)}</td>
+            <td className="td whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+              <BotaoMarcadores tabela="pedidos_compra" registro={p} nome={["ordem de compra", "ordens de compra"]} />
+              {pode("editar_producao") && !recebeu(p) && <ExcluirDocumento tabela="pedidos_compra" id={p.id} numero={p.numero} />}
+            </td>
             <CelulaAbrir texto="Ver / editar" />
           </tr>
         ))}
       </Table>
       {aberto && <PCModal inicial={aberto} onClose={() => setAberto(null)} />}
+      {verExcluidas && <DocumentosExcluidos tabela="pedidos_compra" onClose={() => setVerExcluidas(false)} />}
     </>
   );
 }

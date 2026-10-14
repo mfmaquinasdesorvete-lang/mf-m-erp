@@ -2,7 +2,7 @@
 // Mostra quantos produtos há em cada uma; renomear troca nos produtos; tirar da lista só quando não tem produto.
 import { useMemo, useState } from "react";
 import { FolderTree, Pencil, Plus, Search, X } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -51,7 +51,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
           <p className="text-sm text-slate-600">{lista.length} categoria(s) · {semCategoria} produto(s) sem categoria. Subcategoria: escreva "Categoria &gt; Subcategoria".</p>
         </div>
         {podeEditar && (
-          <form className="flex gap-2" onSubmit={(e) => {
+          <form className="flex w-full gap-2 sm:w-auto" onSubmit={(e) => {
             e.preventDefault();
             const nome = nova.trim();
             if (!nome) return;
@@ -62,7 +62,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
               return `Categoria "${nome}" criada`;
             });
           }}>
-            <input className="input w-64" placeholder="Nova categoria" value={nova} onChange={(e) => setNova(e.target.value)} />
+            <input className="input min-w-0 flex-1 sm:w-64 sm:flex-none" placeholder="Nova categoria" value={nova} onChange={(e) => setNova(e.target.value)} />
             <Button disabled={ocupado || !nova.trim()}><Plus size={16} /> Criar</Button>
           </form>
         )}
@@ -114,6 +114,29 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
         })}
         {!lista.length && <li className="px-3 py-6 text-center text-sm text-slate-500">Nenhuma categoria{termo ? ` com "${busca}"` : ""}.</li>}
       </ul>
+    </div>
+  );
+}
+
+/** Campo Categoria do cadastro do produto: a lista e o botão para criar ou renomear categorias sem sair do cadastro. */
+export function CampoCategoriaProduto({ valor, onChange, opcoes, produtos, podeEditar }: {
+  valor: string | null | undefined; onChange: (v: string) => void; opcoes: { value: string; label: string }[]; produtos: Produto[]; podeEditar: boolean;
+}) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <div>
+      <select className="input" aria-label="Categoria" value={valor ?? ""} onChange={(e) => onChange(e.target.value)}>
+        {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <button type="button" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => setAberto(true)}>
+        <FolderTree size={13} aria-hidden /> {podeEditar ? "Criar ou editar categorias" : "Ver categorias"}
+      </button>
+      {aberto && (
+        <Modal open onClose={() => setAberto(false)} title="Categorias dos produtos" wide>
+          <CategoriasProdutos produtos={produtos} podeEditar={podeEditar} />
+          <div className="mt-4 flex justify-end"><Button type="button" onClick={() => setAberto(false)}>Pronto</Button></div>
+        </Modal>
+      )}
     </div>
   );
 }

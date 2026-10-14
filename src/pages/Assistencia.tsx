@@ -4,6 +4,7 @@ import {
   Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, Search, ShieldCheck, ShieldOff, Trash2, Wrench,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
+import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { Assinatura } from "@/components/Assinatura";
 import { Anexos } from "@/components/Anexos";
@@ -60,6 +61,8 @@ export default function Assistencia() {
   const ordens = filtrar(ordensTodos);
   const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [busca, setBusca] = useState("");
+  const [marcador, setMarcador] = useState("");
+  const { data: marcadores = [] } = useMarcadores();
   const [aberta, setAberta] = useState<OS | null>(null);
 
   // "Abrir OS" vindo da tela de garantias já traz cliente e máquina preenchidos
@@ -81,8 +84,9 @@ export default function Assistencia() {
 
   const lista = useMemo(() => ordens.filter((o) =>
     (mostrarFinalizadas || !["entregue", "cancelada"].includes(o.status)) &&
+    (!marcador || !!o.marcadores?.includes(marcador)) &&
     (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
-  ), [ordens, mostrarFinalizadas, busca]);
+  ), [ordens, mostrarFinalizadas, busca, marcador]);
 
   const abertas = ordens.filter((o) => !["concluida", "entregue", "cancelada"].includes(o.status));
   const atrasadas = abertas.filter((o) => o.previsao && o.previsao < hoje()).length;
@@ -107,6 +111,7 @@ export default function Assistencia() {
           <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
           <input className="input pl-9" placeholder="Buscar nº, cliente, equipamento, série…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
+        <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={mostrarFinalizadas} onChange={(e) => setMostrarFinalizadas(e.target.checked)} /> Mostrar entregues e canceladas
         </label>
@@ -114,18 +119,19 @@ export default function Assistencia() {
 
       <Table
         empty={!isLoading && lista.length === 0}
-        head={<><th className="th">OS</th><th className="th">Entrada</th><th className="th">Cliente</th><th className="th">Equipamento</th><th className="th">Situação</th><th className="th">Previsão</th><th className="th text-right">Valor</th><th className="th" /></>}
+        head={<><th className="th">OS</th><th className="th">Entrada</th><th className="th">Cliente</th><th className="th">Equipamento</th><th className="th">Situação</th><th className="th">Previsão</th><th className="th text-right">Valor</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((o) => (
           <tr key={o.id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] })}>
             <td className="td font-bold text-fg">#{o.numero}<EtiquetaUnidade id={(o as any).unidade_id} /></td>
             <td className="td num">{dataBR(o.data_entrada)}</td>
-            <td className="td">{o.cliente?.nome}</td>
+            <td className="td">{o.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td">{o.equipamento}{o.numero_serie && <div className="text-xs text-slate-500">Série {o.numero_serie}</div>}</td>
             <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}
               {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">faturada ✓</span>}</div></td>
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
+            <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="ordens_servico" registro={o} nome={["OS", "OS"]} /></td>
             <CelulaAbrir texto="Ver / editar" />
           </tr>
         ))}

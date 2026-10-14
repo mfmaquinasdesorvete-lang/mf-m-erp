@@ -12,6 +12,7 @@ import { combinaBusca } from "@/lib/buscaCliente";
 import { useLocation, useNavigate } from "react-router-dom";
 import { lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "./FaixaDestaque";
+import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, filtroMarcadores, useMarcadores, type TabelaMarcavel } from "./nfe/Marcadores";
 
 export type CampoForm = {
   name: string;
@@ -80,14 +81,22 @@ type Props<T> = {
   formulario?: (registro: Record<string, any>, fechar: () => void) => ReactNode;
   /** Celular: cartão próprio no lugar da tabela empilhada (os botões e a seleção o CrudPage põe). */
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
+  /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
+  marcadores?: [string, string];
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
 
 export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const { title, table, fields, columns, searchKeys, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos,
-    filtros = [], ordens = [], podeExcluir = false, plural = "registros", acoesLote = [] } = props;
-  const selecionavel = podeExcluir || acoesLote.length > 0;
+    filtros: filtrosPagina = [], ordens = [], podeExcluir = false, plural = "registros", acoesLote = [], marcadores } = props;
+  const { data: todosMarcadores = [] } = useMarcadores();
+  const filtros = useMemo(() => (marcadores && todosMarcadores.some((m) => m.ativo)
+    ? [...filtrosPagina, filtroMarcadores<T & { marcadores?: string[] | null }>(todosMarcadores) as FiltroCrud<T>] : filtrosPagina),
+    [filtrosPagina, marcadores, todosMarcadores]);
+  const [marcandoLote, setMarcandoLote] = useState(false);
+  const tags = (row: T) => marcadores ? <ChipsMarcadores ids={(row as { marcadores?: string[] | null }).marcadores} todos={todosMarcadores} pequeno /> : null;
+  const selecionavel = podeExcluir || acoesLote.length > 0 || !!marcadores;
   const { data: todos = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
   const filtroBase = props.filtroBase;
   // aberto por outra tela só com alguns registros (ex.: Analista fiscal → produtos sem NCM): mostra só eles,
@@ -350,6 +359,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-1 text-fg">
             <b>{sel.size} selecionado(s)</b>
+            {marcadores && <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>}
             {acoesLote.map((a) => (
               <Button key={a.label} variant="ghost" disabled={!!excluindo} onClick={async () => {
                 setExcluindo(`${a.label.toLowerCase()}…`);
@@ -377,7 +387,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 )}
                 {/* o cartão reserva o canto de cima à direita para a caixinha de seleção */}
                 {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
+                {marcadores && <div className="mt-1.5">{tags(row)}</div>}
                 <div className="mt-3 flex flex-wrap items-center justify-end gap-1 border-t border-slate-100 pt-2">
+                  {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                   {rowActions?.(row)}
                   {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
                 </div>
@@ -405,10 +417,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             {selecionavel && (
               <td className="td sel w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
             )}
-            {columns.map((c) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}</td>)}
+            {columns.map((c, i) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}{i === 0 && marcadores && <div className="mt-1">{tags(row)}</div>}</td>)}
             <td className="td whitespace-nowrap text-right">
               {/* em tela estreita os botões ficam um embaixo do outro, para a tabela não passar da largura */}
               <div className="flex flex-col items-end gap-1 2xl:flex-row 2xl:items-center 2xl:justify-end">
+                {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                 {rowActions?.(row)}
                 {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
               </div>
@@ -425,6 +438,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         </div>
       )}
 
+      {marcandoLote && marcadores && (
+        <AplicarMarcadores tabela={table as TabelaMarcavel} nome={marcadores}
+          notas={data.filter((r) => sel.has(r.id)) as (T & { marcadores?: string[] | null })[]} onClose={() => setMarcandoLote(false)} />
+      )}
       {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
       <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (

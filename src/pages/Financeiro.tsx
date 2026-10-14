@@ -35,6 +35,7 @@ import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { CampoBoleto, ConferirBoletoModal } from "@/components/financeiro/Boleto";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
+import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -242,6 +243,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
   const [baixa, setBaixa] = useState<{ conta: Receber; tabela: "contas_receber" } | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Receber; acao: "cancelar" | "estornar" } | null>(null);
   const [linkDe, setLinkDe] = useState<Receber | null>(null);
+  const { data: marcadores = [] } = useMarcadores();
   const { data: links = [] } = useRows<CobrancaLink>("cobrancas_link");
   const linksDa = useMemo(() => {
     const m = new Map<string, CobrancaLink[]>();
@@ -309,8 +311,9 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
             <CartaoConta key={c.id} titulo={nomeCliente || c.descricao} descricao={mesmoTexto(nomeCliente || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
               detalhe={<>{[c.forma_pagamento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}<SituacaoLink links={links} /></>}
               valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento}
-              situacao={<>{s !== "aberto" && <Badge value={s} />}<ChipRevisao conta={c as any} /></>}
+              situacao={<>{s !== "aberto" && <Badge value={s} />}<ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></>}
               acoes={<>
+                <BotaoMarcadores tabela="contas_receber" registro={c as any} nome={["conta a receber", "contas a receber"]} />
                 {c.status === "aberto" && c.cliente?.whatsapp && (
                   <BotaoAtalho icon={MessageCircle} label="Cobrar" cor={COR_ATALHO.verde} href={whatsappLink(c.cliente.whatsapp, mensagemCobranca(c))} title="Enviar cobrança no WhatsApp" />
                 )}
@@ -341,10 +344,11 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
               <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
               <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={[...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])]} /></div></td>
               <td className="td">{c.cliente?.nome ?? "—"}</td>
-              <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={s} /><ChipRevisao conta={c as any} /></span></td>
+              <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={s} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></span></td>
               <td className="td text-right font-medium">{brl(c.valor)}</td>
               <td className="td">
                 <div className="flex flex-wrap justify-end gap-1">
+                  <BotaoMarcadores tabela="contas_receber" registro={c as any} nome={["conta a receber", "contas a receber"]} />
                   {c.status === "aberto" && pagamentoDe(c) && <Button variant="ghost" title="Copiar dados para pagamento" onClick={() => copiar(pagamentoDe(c), "Dados para pagamento")}><Copy size={15} /></Button>}
                   {c.status === "aberto" && c.cliente?.whatsapp && (
                     <a href={whatsappLink(c.cliente.whatsapp, mensagemCobranca(c))} target="_blank" rel="noreferrer" title="Enviar cobrança no WhatsApp"
@@ -433,6 +437,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const [filtro, setFiltro] = useState(destaque ? "todos" : "pendentes");
   const [filtroDec, setFiltroDec] = useState<FiltroDecisao>("todas");
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const { data: marcadores = [] } = useMarcadores();
   const [lotePagarHoje, setLotePagarHoje] = useState(false);
   const dia = hoje();
   const [mes, setMes] = useState("");
@@ -525,10 +530,11 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
                 ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
                 : null}
               situacao={<>
-                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} />
+                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno />
                 {c.decisao === "nao_pagar" && motivoNaoPagar(c) && <span className={`w-full text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</span>}
               </>}
               acoes={<>
+                <BotaoMarcadores tabela="contas_pagar" registro={c as any} nome={["conta a pagar", "contas a pagar"]} />
                 {podeDecidir && c.status === "aberto" && <BotoesDecisao conta={c} atalho />}
                 {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
                 {(c.status === "aberto" || c.linha_digitavel) && <BotaoAtalho icon={ScanBarcode} label="Boleto" cor={COR_ATALHO.azul} title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)} />}
@@ -551,11 +557,12 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
             <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />
               <div className="text-xs text-slate-500">{[c.fornecedor?.nome, c.categoria].filter(Boolean).join(" · ")}</div>
               {(c.documento || c.data_pagamento || c.linha_digitavel) && <div className="text-xs text-slate-500">{[c.documento, c.linha_digitavel && "boleto", c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
-            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
+            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
             <td className="td whitespace-nowrap text-right font-medium">{brl(c.valor)}</td>
             <td className="td text-right">
               {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}
               <div className="flex flex-wrap justify-end gap-1">
+              <BotaoMarcadores tabela="contas_pagar" registro={c as any} nome={["conta a pagar", "contas a pagar"]} />
               {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
               {(c.status === "aberto" || c.linha_digitavel) && <Button variant="ghost" title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)}><ScanBarcode size={15} /> Boleto</Button>}
               {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}

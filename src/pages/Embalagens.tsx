@@ -26,6 +26,7 @@ export default function Embalagens() {
     <CrudPage<Embalagem>
       title="Embalagens"
       table="embalagens"
+      marcadores={["embalagem", "embalagens"]}
       plural="embalagens"
       order="descricao"
       readOnly={!podeEditar}
