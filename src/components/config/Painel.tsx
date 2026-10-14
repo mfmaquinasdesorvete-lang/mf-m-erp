@@ -1,11 +1,12 @@
 // Configurações → painel: cada assunto num cartão com a situação dele e, no topo, o que precisa de atenção.
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronRight, CircleAlert } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleAlert, CreditCard, UserCog } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
+import { useVisivel } from "@/lib/menu";
 import { pendenciaCatalogo } from "@/lib/catalogo";
 import { IconeSecao, SECOES, type SecaoId } from "./comum";
 import { pl } from "@/lib/format";
@@ -16,6 +17,7 @@ export function PainelConfig() {
   const { data: cfg } = useConfig();
   const { unidades } = useUnidade();
   const { tem } = usePerfil();
+  const vis = useVisivel();
   const { data: produtos = [] } = useRows<{ id: string; ativo: boolean; no_catalogo?: boolean; foto_caminho?: string | null; preco_venda: number }>("produtos",
     { select: "id, ativo, no_catalogo, foto_caminho, preco_venda", key: ["config"] });
   const { data: avisos = [] } = useRows<{ tipo: string; ativo: boolean }>("avisos_tipos", { select: "tipo, ativo", order: "tipo", key: ["config"] });
@@ -61,6 +63,10 @@ export function PainelConfig() {
   ].filter(Boolean) as { id: SecaoId; texto: string }[];
 
   const grupos = [...new Set(SECOES.map((s) => s.grupo))];
+  const outras = [
+    { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-[#64748b] to-[#334155]" },
+    { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-[#f59e0b] to-[#b45309]" },
+  ].filter((o) => vis.ve(o.tela, o.to));
   return (
     <div className="max-w-6xl">
       <PageHeader title="Configurações" subtitle="Toque num cartão para abrir. Cada assunto tem sua página." />
@@ -75,6 +81,23 @@ export function PainelConfig() {
         </Card>
       )}
       <div className="space-y-6">
+        {/* telas que saíram do menu e ficam aqui, na engrenagem */}
+        {outras.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Acessos e listas</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {outras.map((o) => (
+                <Link key={o.to} to={o.to} className="group flex gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand">
+                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${o.cor} text-white shadow-card`} aria-hidden><o.icone size={22} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2 font-semibold text-fg">{o.titulo}<ChevronRight size={16} className="shrink-0 text-slate-400 group-hover:text-brand" aria-hidden /></span>
+                    <span className="block text-sm text-slate-500">{o.resumo}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
         {grupos.map((g) => (
           <section key={g}>
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{g}</h2>

@@ -131,7 +131,7 @@ export default function Financeiro() {
 
   return (
     <div>
-      <PageHeader title="Financeiro" />
+      <PageHeader title="Contas a pagar e receber" />
       <Tabs value={aba} onChange={setAba} options={[
         { value: "visao", label: "Visão geral" }, { value: "receber", label: "Contas a receber" },
         ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),

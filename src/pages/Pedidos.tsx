@@ -499,7 +499,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       <form onSubmit={salvar} className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {p.status && <Badge value={p.status} />}
-          {p.id && <Tabs value={aba} onChange={setAba} options={[{ value: "pedido", label: "Pedido" }, { value: "frete", label: "Frete e envio" }, { value: "auditoria", label: "Auditoria" }]} />}
+          {p.id && <Tabs value={aba} onChange={setAba} options={[{ value: "pedido", label: "Pedido" }, { value: "frete", label: "Frete e envio" }, { value: "auditoria", label: "Conferências" }]} />}
         </div>
 
         {aba === "frete" && p.id && (

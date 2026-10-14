@@ -65,7 +65,7 @@
 :root[data-modulo="vendas"] { --modulo: 16 185 129; --modulo-2: 4 120 87; --modulo-texto: 4 120 87; }
 :root[data-modulo="notas"] { --modulo: 59 130 246; --modulo-2: 29 78 216; --modulo-texto: 29 78 216; }
 :root[data-modulo="financeiro"] { --modulo: 245 158 11; --modulo-2: 180 83 9; --modulo-texto: 158 70 8; }
-:root[data-modulo="cadastros"] { --modulo: 168 85 247; --modulo-2: 109 40 217; --modulo-texto: 126 34 206; }
+:root[data-modulo="cadastros"], :root[data-modulo="logistica"] { --modulo: 168 85 247; --modulo-2: 109 40 217; --modulo-texto: 126 34 206; }
 :root[data-modulo="posvenda"] { --modulo: 20 184 166; --modulo-2: 15 118 110; --modulo-texto: 15 118 110; }
 :root[data-modulo="producao"] { --modulo: 249 115 22; --modulo-2: 185 28 28; --modulo-texto: 172 56 10; }
 :root[data-modulo="analises"] { --modulo: 99 102 241; --modulo-2: 67 56 202; --modulo-texto: 79 70 229; }
@@ -74,7 +74,7 @@
 :root[data-theme="dark"][data-modulo="vendas"] { --modulo-texto: 52 211 153; }
 :root[data-theme="dark"][data-modulo="notas"] { --modulo-texto: 96 165 250; }
 :root[data-theme="dark"][data-modulo="financeiro"] { --modulo-texto: 251 191 36; }
-:root[data-theme="dark"][data-modulo="cadastros"] { --modulo-texto: 192 132 252; }
+:root[data-theme="dark"][data-modulo="cadastros"], :root[data-theme="dark"][data-modulo="logistica"] { --modulo-texto: 192 132 252; }
 :root[data-theme="dark"][data-modulo="posvenda"] { --modulo-texto: 45 212 191; }
 :root[data-theme="dark"][data-modulo="producao"] { --modulo-texto: 251 146 60; }
 :root[data-theme="dark"][data-modulo="analises"] { --modulo-texto: 165 180 252; }

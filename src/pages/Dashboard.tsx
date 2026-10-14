@@ -193,7 +193,7 @@ function PainelGeral() {
   const kpis = ([
     podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "pedido", "pedidos")}`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
     podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
-    { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} entrou(aram) · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
+    { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
     podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro" },
     podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos" },
     podeVer("producao") && { id: "prod", label: "Em produção", valor: `${k.maquinasEmProducao} máq.`, sub: k.opsComFalta ? `${k.opsComFalta} OP com peça faltando` : "peças ok", icon: Factory, cor: "var(--kpi-azul)", to: "/producao" },

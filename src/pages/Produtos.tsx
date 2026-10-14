@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, LayoutDashboard } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
@@ -313,7 +313,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const abasProdutos = [
     { value: "produtos" as const, label: "Produtos e estoque" },
     { value: "qualidade" as const, label: "Qualidade do cadastro" },
-    { value: "auditoria" as const, label: "Auditoria e marketplace" },
+    { value: "auditoria" as const, label: "Marketplace e anúncios" },
     { value: "categorias" as const, label: "Categorias" },
     { value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" },
     { value: "tabelas" as const, label: "Tabelas de preço" },
@@ -409,9 +409,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           ...(cadastro === "pecas" ? [{ label: "Pôr no catálogo", executar: (ids: string[]) => catalogo(ids, true) }, { label: "Tirar do catálogo", executar: (ids: string[]) => catalogo(ids, false) }] : []),
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
-        extraActions={pode("editar_produtos") && <>
-          <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
-          <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>
+        extraActions={<>
+          {/* os painéis saíram da lista do menu: ficam a um clique daqui */}
+          <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
+          <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>
+          {pode("editar_produtos") && <>
+            <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
+            <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>
+          </>}
         </>}
         // estrela no bloco "Fornecedores deste produto" → o select "Fornecedor preferencial" acompanha
         onFieldChange={(nome, valor) => (nome === "fornecedores_produto" && valor ? Promise.resolve({ fornecedor_padrao_id: valor }) : Promise.resolve(null))}

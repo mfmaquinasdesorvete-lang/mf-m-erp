@@ -96,7 +96,7 @@ export default function Assistencia() {
   return (
     <div>
       <PageHeader
-        title="Assistência técnica"
+        title="Ordens de serviço"
         subtitle="Recepção com checklist e fotos, laudo, peças, assinatura do cliente e histórico por nº de série."
         actions={<>
           <Button variant="secondary" onClick={() => baixarPlanilha("ordens-de-servico", [{ nome: "OS", linhas: lista.map((o) => ({
