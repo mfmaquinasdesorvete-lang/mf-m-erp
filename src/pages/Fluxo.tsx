@@ -16,6 +16,7 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { CANAIS } from "@/lib/margem";
 import { usePerfil } from "@/lib/auth";
 import { COLUNAS, situacao, type Acao, type ColunaId, type EnvioFluxo, type Exp, type Nivel, type PedidoFluxo as P, type Situacao, type TipoAlerta } from "@/lib/fluxo";
+import { confirmar } from "@/components/Dialogos";
 
 type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
 type Linha = { p: P; e?: Exp; s: Situacao };
@@ -139,7 +140,8 @@ export default function Fluxo() {
       case "conferir": case "embalar": case "despachar":
         return e && setAberta({ p, e });
       case "marcar_entregue":
-        if (e && confirm(`Confirmar que o pedido #${p.numero} (${p.cliente?.nome ?? ""}) chegou ao cliente?`)) void acoes.avancar(e, "entregue", {}, `Pedido #${p.numero} entregue`);
+        if (e) void confirmar(`Confirmar que o pedido #${p.numero} (${p.cliente?.nome ?? ""}) chegou ao cliente?`, { ok: "Chegou" })
+          .then((ok) => ok && acoes.avancar(e, "entregue", {}, `Pedido #${p.numero} entregue`));
         return;
     }
   }

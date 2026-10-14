@@ -1,5 +1,6 @@
 // Ficha do cliente: histórico de compras (pedidos do ERP e notas do sistema anterior), frequência,
 // produtos que costuma comprar, comportamento de pagamento e situação (ativo, em risco, inativo).
+import { pl } from "./format";
 
 export type CompraCliente = { data: string; valor: number; origem: "pedido" | "nota"; ref: string; itens: { chave: string; descricao: string; quantidade: number; valor: number }[] };
 export type ContaCliente = { valor: number; valor_pago?: number | null; vencimento: string; status: string; data_pagamento?: string | null };
@@ -96,7 +97,7 @@ const OS_FECHADA = ["concluida", "entregue", "cancelada"];
 /** O que fazer com o cliente agora: cobrar, chamar de volta, oferecer reposição, agendar preventiva. */
 export function sugestoesCliente(r: Resumo, produtos: ReturnType<typeof produtosDoCliente>, equipamentos: EquipFicha[], oss: OsFicha[], hoje: string): Sugestao[] {
   const out: Sugestao[] = [];
-  if (r.vencido > 0) out.push({ nivel: "erro", texto: `Tem ${moeda(r.vencido)} vencido em ${r.vencidas} parcela(s): cobre antes de vender a prazo.` });
+  if (r.vencido > 0) out.push({ nivel: "erro", texto: `Tem ${moeda(r.vencido)} vencido em ${r.vencidas} ${pl(r.vencidas, "parcela", "parcelas")}: cobre antes de vender a prazo.` });
   if (r.pagasComAtraso >= 2 && r.atrasoMedio > 5) {
     out.push({ nivel: "alerta", texto: `Pagou ${r.pagasComAtraso} de ${r.pagas} parcelas com atraso (em média ${r.atrasoMedio} dias): prefira à vista, entrada ou prazo menor.` });
   }

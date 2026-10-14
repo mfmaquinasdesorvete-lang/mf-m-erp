@@ -5,6 +5,7 @@ import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { TIPOS_EMBALAGEM, FATOR_CUBAGEM } from "@/lib/fretes";
 import type { Embalagem } from "@/components/fretes/EnvioForm";
+import { pl } from "@/lib/format";
 
 const m3 = (r: Embalagem) => (Number(r.largura_cm) || 0) * (Number(r.altura_cm) || 0) * (Number(r.comprimento_cm) || 0) / 1_000_000;
 
@@ -16,7 +17,7 @@ const FILTROS: FiltroCrud<Embalagem>[] = [
 async function situacao(ids: string[], ativo: boolean) {
   const { error } = await supabase.from("embalagens").update({ ativo }).in("id", ids);
   if (error) throw error;
-  return `${ids.length} embalagem(ns) ${ativo ? "ativada(s)" : "inativada(s)"}`;
+  return `${ids.length} ${pl(ids.length, "embalagem", "embalagens")} ${ativo ? pl(ids.length, "ativada", "ativadas") : pl(ids.length, "inativada", "inativadas")}`;
 }
 
 export default function Embalagens() {

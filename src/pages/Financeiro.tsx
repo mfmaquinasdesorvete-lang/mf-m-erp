@@ -7,7 +7,7 @@ import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Mod
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import type { Cliente } from "@/lib/types";
@@ -499,7 +499,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
       {podeDecidir && pagarHoje.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <Wallet size={18} className="shrink-0" aria-hidden />
-          <span className="mr-auto"><b>{pagarHoje.length} conta(s) para pagar hoje</b> (aprovadas ou agendadas) · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
+          <span className="mr-auto"><b>{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje</b> (aprovadas ou agendadas) · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
           <Button type="button" variant="secondary" onClick={() => setFiltroDec("hoje")}>Ver</Button>
           <Button type="button" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Pagar todas</Button>
         </div>

@@ -8,7 +8,7 @@ import { Button, Modal } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notifyError } from "@/lib/notify";
-import { brl, digitos } from "@/lib/format";
+import { brl, digitos, pl } from "@/lib/format";
 import { lerBackupMyFrost, TAG_USADA, TIPOS_MYFROST, type LeituraLegado } from "@/lib/legadoMyFrost";
 import { gruposCertos, principalDoGrupo, type Contatavel } from "@/lib/unificarClientes";
 
@@ -195,7 +195,7 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
                       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                         <span className="font-medium">{p.descricao}</span>
                         <span className="block text-xs text-slate-500">
-                          {[p.sku && `código ${p.sku}`, p.vendas ? `${p.vendas} venda(s)` : "", p.preco_venda ? brl(p.preco_venda) : "", !p.ncm && "sem NCM"].filter(Boolean).join(" · ")}
+                          {[p.sku && `código ${p.sku}`, p.vendas ? `${p.vendas} ${pl(p.vendas, "venda", "vendas")}` : "", p.preco_venda ? brl(p.preco_venda) : "", !p.ncm && "sem NCM"].filter(Boolean).join(" · ")}
                         </span>
                         {p.parecida && <span className="block text-xs text-amber-700">Parecida com: {p.parecida}</span>}
                       </span>

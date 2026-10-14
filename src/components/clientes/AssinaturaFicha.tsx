@@ -13,11 +13,12 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { DEMO, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
-import { whatsappLink } from "@/lib/format";
+import { whatsappLink, pl } from "@/lib/format";
 import { cpfValido } from "@/lib/compliance";
 import { formatarDoc } from "@/lib/mascaras";
 import { erroAssinante, hashLegivel, linkFicha, mensagemFicha, ROTULOS_FICHA } from "@/lib/fichaCadastral";
 import type { AssinaturaFicha as Registro } from "@/lib/types";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 
 const CAMPOS = "id,cliente_id,token,canal,status,nome,cpf,ip,hash,alteracoes,visualizado_em,assinado_em,expira_em,created_at";
 const quando = (d: string | null | undefined) => (d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "");
@@ -74,7 +75,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
     if (!link) { janela?.close(); return; }
     const texto = mensagemFicha(nomeCliente, empresa, link);
     if (como === "copiar") {
-      try { await navigator.clipboard.writeText(link); notify("Link copiado: cole na conversa com o cliente"); } catch { prompt("Copie o link:", link); }
+      try { await navigator.clipboard.writeText(link); notify("Link copiado: cole na conversa com o cliente"); } catch { (await pedirTexto("Copie o link:", link)); }
     } else if (como === "whatsapp") {
       if (janela) janela.location.href = whatsappLink(cliente.whatsapp ?? "", texto);
     } else if (janela) {
@@ -83,7 +84,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
   }
 
   async function cancelar(id: string) {
-    if (!confirm("Cancelar este link? O cliente não vai conseguir assinar por ele.")) return;
+    if (!(await confirmar("Cancelar este link? O cliente não vai conseguir assinar por ele."))) return;
     const { error } = await supabase.rpc("ficha_cadastral_cancelar", { p_id: id });
     if (error) return notifyError(error);
     invalidar("clientes_assinaturas");
@@ -195,7 +196,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tom}`}>{rotulo}</span>
                   <span className="text-slate-600">{a.canal === "presencial" ? "Presencial" : "Link"} · {quando(a.assinado_em ?? a.created_at)}</span>
                   {a.nome && <span className="font-medium text-fg">{a.nome}</span>}
-                  {a.alteracoes && <span className="text-xs text-amber-700" title={Object.keys(a.alteracoes).map((k) => ROTULOS_FICHA[k] ?? k).join(", ")}>atualizou {Object.keys(a.alteracoes).length} dado(s)</span>}
+                  {a.alteracoes && <span className="text-xs text-amber-700" title={Object.keys(a.alteracoes).map((k) => ROTULOS_FICHA[k] ?? k).join(", ")}>atualizou {Object.keys(a.alteracoes).length} {pl(Object.keys(a.alteracoes).length, "dado", "dados")}</span>}
                   {a.status === "assinado" && (
                     <button type="button" className="ml-auto text-xs font-semibold text-brand hover:underline" onClick={() => comprovante(a.id)}>Comprovante</button>
                   )}

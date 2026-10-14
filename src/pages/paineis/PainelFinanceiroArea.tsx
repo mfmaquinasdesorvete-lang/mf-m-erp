@@ -18,7 +18,7 @@ import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { rotuloCategoria } from "@/lib/dre";
 import { aDecidir, type ContaDecisao } from "@/lib/programacao";
 import type { ContaFin } from "@/lib/financeiro";
@@ -107,21 +107,21 @@ export default function PainelFinanceiroArea() {
 
   const cartoes: Cartao[] = [
     { id: "saldo", rotulo: "Saldo nos bancos", valor: saldos.length ? brl(saldoBancos) : "—", icone: Landmark, cor: "var(--kpi-azul)",
-      sub: saldos.length ? `${saldos.length} conta(s) bancária(s)` : "cadastre as contas em Bancos e conciliação", onClick: () => navigate("/conciliacao") },
+      sub: saldos.length ? `${saldos.length} ${pl(saldos.length, "conta", "contas")} ${pl(saldos.length, "bancária", "bancárias")}` : "cadastre as contas em Bancos e conciliação", onClick: () => navigate("/conciliacao") },
     { id: "rec", rotulo: "Recebido", valor: brl(k.recebido), icone: ArrowDownCircle, cor: "var(--kpi-verde)", delta: k.dRecebido, tendencia: k.tendRec,
       sub: `${brl(k.aReceber)} ainda a receber`, onClick: () => navigate("/financeiro", { state: { aba: "receber" } }) },
     ...(vePagar ? [{ id: "pag", rotulo: "Pago", valor: brl(k.pago), icone: ArrowUpCircle, cor: "var(--kpi-laranja)", delta: k.dPago, bomCair: true, tendencia: k.tendPag,
       sub: `resultado ${k.resultado >= 0 ? "+" : "−"} ${brl(Math.abs(k.resultado))}`, onClick: () => navigate("/financeiro", { state: { aba: "pagar" } }) } as Cartao] : []),
     { id: "venc", rotulo: "Vencido a receber", valor: brl(k.vencido), icone: AlertTriangle, cor: "var(--kpi-rosa)",
-      sub: k.qtdVencidas ? `${k.qtdVencidas} parcela(s) · ${Math.round(k.pctVencido)}% do que há para receber` : "ninguém atrasado", onClick: () => navigate("/financeiro", { state: { aba: "cobranca" } }) },
+      sub: k.qtdVencidas ? `${k.qtdVencidas} ${pl(k.qtdVencidas, "parcela", "parcelas")} · ${Math.round(k.pctVencido)}% do que há para receber` : "ninguém atrasado", onClick: () => navigate("/financeiro", { state: { aba: "cobranca" } }) },
   ];
 
   const atencao: ItemAtencao[] = [
-    vePagar && k.pagVencidas.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.pagVencidas.length} conta(s) a pagar vencida(s): ${brl(k.pagVencidas.reduce((s, c) => s + Number(c.valor), 0))}`, to: "/financeiro", state: { aba: "pagar" } },
-    vePagar && k.decidir.length > 0 && { icone: CalendarClock, cor: "var(--kpi-laranja)", texto: `${k.decidir.length} conta(s) a pagar esperando decisão`, sub: "pagar, agendar ou não pagar", to: "/financeiro", state: { aba: "pagar" } },
-    k.qtdVencidas > 0 && { icone: MessageCircle, cor: "var(--kpi-rosa)", texto: `${k.qtdVencidas} parcela(s) vencida(s) para cobrar: ${brl(k.vencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
-    extratoPendente > 0 && { icone: Scale, cor: "var(--kpi-roxo)", texto: `${extratoPendente} lançamento(s) do extrato para conciliar`, to: "/conciliacao" },
-    vePagar && notasLancar > 0 && { icone: FileWarning, cor: "var(--kpi-ciano)", texto: `${notasLancar} nota(s) de fornecedor para conferir e lançar`, to: "/notas" },
+    vePagar && k.pagVencidas.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.pagVencidas.length} ${pl(k.pagVencidas.length, "conta", "contas")} a pagar ${pl(k.pagVencidas.length, "vencida", "vencidas")}: ${brl(k.pagVencidas.reduce((s, c) => s + Number(c.valor), 0))}`, to: "/financeiro", state: { aba: "pagar" } },
+    vePagar && k.decidir.length > 0 && { icone: CalendarClock, cor: "var(--kpi-laranja)", texto: `${k.decidir.length} ${pl(k.decidir.length, "conta", "contas")} a pagar esperando decisão`, sub: "pagar, agendar ou não pagar", to: "/financeiro", state: { aba: "pagar" } },
+    k.qtdVencidas > 0 && { icone: MessageCircle, cor: "var(--kpi-rosa)", texto: `${k.qtdVencidas} ${pl(k.qtdVencidas, "parcela", "parcelas")} ${pl(k.qtdVencidas, "vencida", "vencidas")} para cobrar: ${brl(k.vencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
+    extratoPendente > 0 && { icone: Scale, cor: "var(--kpi-roxo)", texto: `${extratoPendente} ${pl(extratoPendente, "lançamento", "lançamentos")} do extrato para conciliar`, to: "/conciliacao" },
+    vePagar && notasLancar > 0 && { icone: FileWarning, cor: "var(--kpi-ciano)", texto: `${notasLancar} ${pl(notasLancar, "nota", "notas")} de fornecedor para conferir e lançar`, to: "/notas" },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…" : vePagar
@@ -182,7 +182,7 @@ export default function PainelFinanceiroArea() {
         <Section title="Quem está devendo" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Cobrar</button>}>
           <Ranking cor="var(--kpi-rosa)" vazio="Nenhum cliente com parcela vencida."
             onClicar={() => navigate("/financeiro", { state: { aba: "cobranca" } })}
-            itens={k.devedores.map((d) => ({ rotulo: d.nome, valor: d.valor, detalhe: `${d.qtd} parcela(s) · a mais antiga venceu há ${diasEntre(d.maisAntiga, dia)} dia(s)` }))} />
+            itens={k.devedores.map((d) => ({ rotulo: d.nome, valor: d.valor, detalhe: `${d.qtd} ${pl(d.qtd, "parcela", "parcelas")} · a mais antiga venceu há ${diasEntre(d.maisAntiga, dia)} ${pl(diasEntre(d.maisAntiga, dia), "dia", "dias")}` }))} />
         </Section>
         <Section title="Há quanto tempo está atrasado">
           {k.qtdVencidas

@@ -10,7 +10,7 @@ import { useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { ImportarModal, type ContaBancaria } from "./Conciliacao";
 import type { ExtratoEmail } from "../../supabase/functions/_shared/extrato-ofx";
 
@@ -71,7 +71,7 @@ export default function Email() {
       const r = await callFunction("email-caixa", { acao: "sincronizar", conta_id: conta });
       const n = Object.values(r.resultado ?? {}).find((v) => typeof v === "number") as number | undefined;
       const erro = Object.values(r.resultado ?? {}).find((v) => typeof v === "string") as string | undefined;
-      if (erro) notify(erro, "erro"); else notify(n ? `${n} e-mail(s) novo(s)` : "Nenhum e-mail novo");
+      if (erro) notify(erro, "erro"); else notify(n ? `${n} ${pl(n, "e-mail novo", "e-mails novos")}` : "Nenhum e-mail novo");
       qc.invalidateQueries({ queryKey: ["emails"] });
       qc.invalidateQueries({ queryKey: ["email_contas"] });
     } catch (e) { notifyError(e); } finally { setAtualizando(false); }
@@ -146,7 +146,7 @@ export default function Email() {
                     {e.fornecedor && <Etiqueta icon={Truck} texto={e.fornecedor.nome} />}
                     {e.anexos.some((a) => a.nfe) && <Etiqueta icon={FileText} texto="NF-e (XML)" destaque />}
                     {e.anexos.some((a) => a.extrato) && <Etiqueta icon={Landmark} texto={rotuloExtrato(e)} destaque />}
-                    {!e.anexos.some((a) => a.nfe || a.extrato) && e.anexos.length > 0 && <Etiqueta icon={Paperclip} texto={`${e.anexos.length} anexo(s)`} />}
+                    {!e.anexos.some((a) => a.nfe || a.extrato) && e.anexos.length > 0 && <Etiqueta icon={Paperclip} texto={`${e.anexos.length} ${pl(e.anexos.length, "anexo", "anexos")}`} />}
                     {e.respondido_em && <Etiqueta icon={Reply} texto="respondido" />}
                   </span>
                 </span>
@@ -277,7 +277,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
               <b>{x.nome}</b>{x.conta ? ` · ${x.conta}` : ""}{x.periodo ? ` · ${dataBR(x.periodo[0])} a ${dataBR(x.periodo[1])}` : ""}
               <span className="block">
                 {x.status === "importado"
-                  ? `Importado: ${x.novas ?? 0} lançamento(s) novo(s)${x.repetidas ? `, ${x.repetidas} já estavam no ERP` : ""}, ${x.conciliadas ?? 0} conciliado(s) sozinho(s).`
+                  ? `Importado: ${x.novas ?? 0} ${pl(x.novas ?? 0, "lançamento", "lançamentos")} ${pl(x.novas ?? 0, "novo", "novos")}${x.repetidas ? `, ${x.repetidas} já estavam no ERP` : ""}, ${x.conciliadas ?? 0} ${pl(x.conciliadas ?? 0, "conciliado", "conciliados")} ${pl(x.conciliadas ?? 0, "sozinho", "sozinhos")}.`
                   : x.status === "aguardando" ? `Não entrou sozinho: ${x.motivo}. Confira e use “Importar extrato”.` : `Não deu para ler: ${x.motivo}.`}
               </span>
             </li>

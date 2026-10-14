@@ -14,7 +14,7 @@ import {
 } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { curvaABC, resumoABC, vendasDaEmpresa } from "@/lib/gerencial";
 import {
   diasDeEstoque, linhasVendidas, margemPct, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS, somarPorProduto, ultimaVenda,
@@ -139,22 +139,22 @@ export default function PainelProdutos() {
   const coberturaDias = k.giro ? Math.round(365 / k.giro) : null;
   const cartoes: Cartao[] = [
     { id: "fat", rotulo: "Vendido em produtos", valor: brl(k.faturamento), icone: ShoppingBag, cor: "var(--kpi-verde)", delta: k.dFaturamento, tendencia: k.tendFat,
-      sub: `${qtdTxt(k.unidades)} unidade(s) de ${k.diferentes} produto(s)`, onClick: () => navigate("/pedidos") },
+      sub: `${qtdTxt(k.unidades)} ${pl(qtdTxt(k.unidades), "unidade", "unidades")} de ${k.diferentes} ${pl(k.diferentes, "produto", "produtos")}`, onClick: () => navigate("/pedidos") },
     { id: "lucro", rotulo: "Lucro bruto", valor: brl(k.lucro), icone: Percent, cor: "var(--kpi-azul)", delta: k.dLucro, tendencia: k.tendLucro,
       sub: k.margem == null ? "sem venda no período" : `margem de ${Math.round(k.margem)}% sobre o vendido`, titulo: "Preço vendido menos o custo atual do cadastro (sem impostos, frete e comissão; a margem completa fica em Análises → Margem)", onClick: () => navigate("/margem") },
     { id: "estoque", rotulo: "Dinheiro no estoque", valor: brl(k.valorEstoque), icone: Warehouse, cor: "var(--kpi-roxo)",
-      sub: k.giro ? `gira ${k.giro.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}× por ano · dá para ~${coberturaDias} dias` : `${k.ativos} produto(s) ativos · a preço de custo`, onClick: () => navigate("/estoque") },
+      sub: k.giro ? `gira ${k.giro.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}× por ano · dá para ~${coberturaDias} dias` : `${k.ativos} ${pl(k.ativos, "produto", "produtos")} ativos · a preço de custo`, onClick: () => navigate("/estoque") },
     { id: "parado", rotulo: "Parado há 6 meses", valor: brl(k.valorParado), icone: Hourglass, cor: "var(--kpi-laranja)",
-      sub: `${k.parados.length} produto(s) com estoque e sem venda`, titulo: "Produtos com estoque que não venderam nos últimos 180 dias (a custo)" },
+      sub: `${k.parados.length} ${pl(k.parados.length, "produto", "produtos")} com estoque e sem venda`, titulo: "Produtos com estoque que não venderam nos últimos 180 dias (a custo)" },
   ];
 
   const atencao: ItemAtencao[] = [
-    k.vaiFaltar.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${k.vaiFaltar.length} produto(s) acabam antes de chegar reposição`, sub: k.vaiFaltar.slice(0, 3).map((x) => x.p.descricao).join(" · "), to: "/producao", state: { aba: "reposicao" } },
-    k.abaixoCusto.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${k.abaixoCusto.length} produto(s) com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
-    k.negativo.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.negativo.length} produto(s) com estoque negativo`, sub: "falta lançar entrada ou houve baixa errada", to: "/estoque" },
-    k.semPreco.length > 0 && { icone: CircleDollarSign, cor: "var(--kpi-laranja)", texto: `${k.semPreco.length} produto(s) à venda sem preço`, to: "/estoque" },
-    k.semNcm.length > 0 && { icone: FileWarning, cor: "var(--kpi-laranja)", texto: `${k.semNcm.length} produto(s) sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque" },
-    k.semCusto.length > 0 && { icone: Gauge, cor: "var(--kpi-roxo)", texto: `${k.semCusto.length} produto(s) sem custo`, sub: "sem custo não dá para saber a margem", to: "/estoque" },
+    k.vaiFaltar.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${k.vaiFaltar.length} ${pl(k.vaiFaltar.length, "produto", "produtos")} acabam antes de chegar reposição`, sub: k.vaiFaltar.slice(0, 3).map((x) => x.p.descricao).join(" · "), to: "/producao", state: { aba: "reposicao" } },
+    k.abaixoCusto.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${k.abaixoCusto.length} ${pl(k.abaixoCusto.length, "produto", "produtos")} com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
+    k.negativo.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.negativo.length} ${pl(k.negativo.length, "produto", "produtos")} com estoque negativo`, sub: "falta lançar entrada ou houve baixa errada", to: "/estoque" },
+    k.semPreco.length > 0 && { icone: CircleDollarSign, cor: "var(--kpi-laranja)", texto: `${k.semPreco.length} ${pl(k.semPreco.length, "produto", "produtos")} à venda sem preço`, to: "/estoque" },
+    k.semNcm.length > 0 && { icone: FileWarning, cor: "var(--kpi-laranja)", texto: `${k.semNcm.length} ${pl(k.semNcm.length, "produto", "produtos")} sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque" },
+    k.semCusto.length > 0 && { icone: Gauge, cor: "var(--kpi-roxo)", texto: `${k.semCusto.length} ${pl(k.semCusto.length, "produto", "produtos")} sem custo`, sub: "sem custo não dá para saber a margem", to: "/estoque" },
   ].filter(Boolean) as ItemAtencao[];
 
   const filtros = fCategoria ? [{ rotulo: "Categoria", valor: fCategoria, limpar: () => setFCategoria(null) }] : [];
@@ -216,7 +216,7 @@ export default function PainelProdutos() {
                     className={`rounded-xl border p-2.5 text-left transition ${classe === r.classe ? "border-modulo bg-modulo/10" : "border-slate-200 hover:border-slate-300"}`}>
                     <span className="flex items-center gap-1.5 text-sm font-extrabold text-fg"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COR_ABC[r.classe] }} />Classe {r.classe}</span>
                     <span className="num mt-0.5 block text-lg font-bold text-fg">{r.pctValor}%</span>
-                    <span className="block text-[11px] leading-tight text-slate-500">do faturamento com {r.itens} produto(s) ({r.pctItens}%)</span>
+                    <span className="block text-[11px] leading-tight text-slate-500">do faturamento com {r.itens} {pl(r.itens, "produto", "produtos")} ({r.pctItens}%)</span>
                   </button>
                 ))}
               </div>
@@ -243,7 +243,7 @@ export default function PainelProdutos() {
                     <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
                       <span className="min-w-0 truncate text-slate-700">{x.p.descricao}</span>
                       <span className={`num shrink-0 font-semibold ${x.dias === 0 ? "text-red-600" : "text-fg"}`}>
-                        {x.dias === 0 ? "sem estoque" : `acaba em ~${x.dias} dia(s)`} <span className="font-normal text-slate-500">· repor leva {x.prazo}</span>
+                        {x.dias === 0 ? "sem estoque" : `acaba em ~${x.dias} ${pl(x.dias, "dia", "dias")}`} <span className="font-normal text-slate-500">· repor leva {x.prazo}</span>
                       </span>
                     </div>
                     <div className="h-2 rounded-r bg-slate-100"><div className="h-2 rounded-r" style={{ width: `${Math.max(pct, 2)}%`, background: x.dias === 0 ? "rgb(var(--red-500))" : "var(--kpi-laranja)" }} /></div>

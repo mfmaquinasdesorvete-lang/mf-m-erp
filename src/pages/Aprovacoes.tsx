@@ -14,7 +14,7 @@ import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import {
   COR_TOM, etapaConta, pendencias, precisa2a, quemPode, regrasDe, ROTULO_PENDENCIA, TABELA,
   type ContaRevisao, type Pendencia, type TipoConta,
@@ -97,7 +97,7 @@ export default function Aprovacoes() {
         n += Number(data ?? 0);
       }
       const txt = { aprovar: "aprovada(s)", devolver: "devolvida(s) para correção", rejeitar: "rejeitada(s) e cancelada(s)", reenviar: "de volta para a revisão" }[acao];
-      notify(`${n} conta(s) ${txt}`);
+      notify(`${n} ${pl(n, "conta", "contas")} ${txt.replace(/\(s\)/g, n === 1 ? "" : "s")}`);
       setSel(new Set()); setDecidir(null);
       invalidar("contas_pagar", "contas_receber", "revisoes_contas");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -116,7 +116,7 @@ export default function Aprovacoes() {
         <Indicador rotulo="Aguardando documento" icon={FileWarning} cor={k.pendentes.length ? "ambar" : "neutro"} valor={k.pendentes.length} sub="ficam fora do pacote do contador" />
         <Indicador rotulo="Devolvidas" icon={Undo2} cor={k.devolvidas.length ? "laranja" : "neutro"} valor={k.devolvidas.length} sub="esperando correção de quem lançou" />
         <Indicador rotulo="Aprovadas no mês" icon={Check} cor="verde" valor={k.aprovadasMes.length}
-          sub={`${k.validadasMes.length} validada(s) pelo contador`} />
+          sub={`${k.validadasMes.length} ${pl(k.validadasMes.length, "validada", "validadas")} pelo contador`} />
       </div>
 
       <Tabs value={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} options={[
@@ -161,7 +161,7 @@ export default function Aprovacoes() {
           )}
           {marcadas.length > 0 && (
             <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
-              <span className="mr-auto text-sm"><b>{marcadas.length}</b> marcada(s) · <b className="num">{brl(marcadas.reduce((s, l) => s + Number(l.c.valor), 0))}</b></span>
+              <span className="mr-auto text-sm"><b>{marcadas.length}</b> {pl(marcadas.length, "marcada", "marcadas")} · <b className="num">{brl(marcadas.reduce((s, l) => s + Number(l.c.valor), 0))}</b></span>
               <Button type="button" variant="ghost" onClick={() => setSel(new Set())}><X size={15} /> Desmarcar</Button>
               <Button type="button" disabled={ocupado} onClick={() => pedir("aprovar", marcadas)}><Check size={15} /> Aprovar {marcadas.length}</Button>
             </div>
@@ -358,7 +358,7 @@ function Regras({ admin, regras }: { admin: boolean; regras: ReturnType<typeof r
           </>
         ) : (
           <p className="text-sm text-slate-600">
-            1ª revisão: {regras.revisor1.length} pessoa(s) · 2ª revisão: {regras.revisor2.length} pessoa(s) · alçada {brl(regras.alcada)}. Só o administrador muda.
+            1ª revisão: {regras.revisor1.length} {pl(regras.revisor1.length, "pessoa", "pessoas")} · 2ª revisão: {regras.revisor2.length} {pl(regras.revisor2.length, "pessoa", "pessoas")} · alçada {brl(regras.alcada)}. Só o administrador muda.
           </p>
         )}
         {admin && <p className="mt-3 text-xs text-slate-500">Hoje: 1ª revisão {regras.revisor1.map(nome).join(", ") || "—"} · 2ª revisão {regras.revisor2.map(nome).join(", ") || "—"}.</p>}

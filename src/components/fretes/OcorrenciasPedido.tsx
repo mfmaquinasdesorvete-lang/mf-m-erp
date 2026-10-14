@@ -6,7 +6,7 @@ import { AlertTriangle, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { useInvalidate, ler } from "@/lib/data";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -50,7 +50,7 @@ export function OcorrenciasPedido({ pedidoId, statusPedido }: { pedidoId: string
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <AlertTriangle size={16} className="text-amber-700" />
         <h3 className="font-bold text-fg">Ocorrências do transporte</h3>
-        {abertas > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">{abertas} aberta(s)</span>}
+        {abertas > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">{abertas} {pl(abertas, "aberta", "abertas")}</span>}
         {podeEditar && <Button type="button" variant="secondary" className="ml-auto" onClick={registrar}><Plus size={15} /> Registrar ocorrência</Button>}
       </div>
       {ocorrencias.length ? (

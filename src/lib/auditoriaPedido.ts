@@ -1,5 +1,6 @@
 // Conferências de um pedido (aba Auditoria do pedido): total, desconto, preço praticado, vendedor,
 // parcelas, estoque, NF-e e comissão. Cada linha diz o que foi conferido e o que achou.
+import { pl } from "./format";
 
 export type NivelConferencia = "ok" | "info" | "alerta" | "erro";
 export type Conferencia = { id: string; titulo: string; nivel: NivelConferencia; detalhe: string };
@@ -68,7 +69,7 @@ export function conferirVenda(p: PedidoAuditado, d: DadosPedido): Conferencia[] 
   const soma = r2(validas.reduce((s, c) => s + Number(c.valor), 0));
   const recebido = r2(validas.filter((c) => c.status === "pago").reduce((s, c) => s + Number(c.valor_pago ?? c.valor), 0));
   add("parcelas", "Parcelas no contas a receber", !validas.length ? "erro" : Math.abs(soma - total) <= 0.05 ? "ok" : "erro",
-    !validas.length ? "Nenhuma parcela gerada." : `${validas.length} parcela(s) somando ${brl(soma)}${Math.abs(soma - total) <= 0.05 ? "" : ` (pedido de ${brl(total)})`}; recebido ${brl(recebido)}.`);
+    !validas.length ? "Nenhuma parcela gerada." : `${validas.length} ${pl(validas.length, "parcela", "parcelas")} somando ${brl(soma)}${Math.abs(soma - total) <= 0.05 ? "" : ` (pedido de ${brl(total)})`}; recebido ${brl(recebido)}.`);
 
   // estoque (itens que não são kit; kit baixa os componentes)
   const esperado = new Map<string, { q: number; nome: string }>();
@@ -107,7 +108,7 @@ export function conferirVenda(p: PedidoAuditado, d: DadosPedido): Conferencia[] 
     const valor = r2(ativas.reduce((s, c) => s + Number(c.valor), 0));
     const devia = d.baseComissao === "faturamento" || validas.some((c) => c.status === "pago");
     add("comissao", "Comissão", !ativas.length && devia ? "alerta" : "ok",
-      ativas.length ? `${ativas.length} lançamento(s), ${brl(valor)} (${ativas.filter((c) => c.status === "paga").length} pago(s)).`
+      ativas.length ? `${ativas.length} ${pl(ativas.length, "lançamento", "lançamentos")}, ${brl(valor)} (${ativas.filter((c) => c.status === "paga").length} ${pl(ativas.filter((c) => c.status === "paga").length, "pago", "pagos")}).`
         : devia ? "Vendedor informado, mas nenhuma comissão lançada." : "Lançada quando as parcelas forem recebidas.");
   }
   return out;

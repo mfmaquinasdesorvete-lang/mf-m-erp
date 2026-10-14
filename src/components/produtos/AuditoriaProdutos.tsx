@@ -6,7 +6,7 @@ import { Button, Card, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { useConfig } from "@/lib/useConfig";
 import {
@@ -15,6 +15,7 @@ import {
 import { contextoEan, situacaoEan, type ProdutoEan } from "@/lib/gtin";
 import type { Produto } from "@/lib/types";
 import { CodigosEan } from "./CodigosEan";
+import { confirmar } from "@/components/Dialogos";
 
 type Aba = "repetidos" | "nomes" | "ean" | "marketplace";
 const vendavel = (p: ProdutoAnuncio & { vendavel?: boolean | null }) => p.ativo !== false && !p.unificado_em && p.tipo !== "insumo" && p.vendavel !== false;
@@ -56,7 +57,7 @@ export function AuditoriaProdutos({ produtos, podeEditar, onAbrir }: { produtos:
   }, [lista, cfg]);
 
   const blocos: { id: Aba; Icone: typeof Copy; titulo: string; valor: string; detalhe: string; tom: string }[] = [
-    { id: "repetidos", Icone: Copy, titulo: "Cadastros repetidos", valor: String(grupos.reduce((s, g) => s + g.produtos.length - 1, 0)), detalhe: `${grupos.length} grupo(s) para unificar`, tom: grupos.length ? "border-amber-300" : "border-emerald-300" },
+    { id: "repetidos", Icone: Copy, titulo: "Cadastros repetidos", valor: String(grupos.reduce((s, g) => s + g.produtos.length - 1, 0)), detalhe: `${grupos.length} ${pl(grupos.length, "grupo", "grupos")} para unificar`, tom: grupos.length ? "border-amber-300" : "border-emerald-300" },
     { id: "nomes", Icone: Type, titulo: "Nomes fora do padrão", valor: String(foraDoPadrao.length), detalhe: "unidade no fim, maiúsculas, acentos", tom: foraDoPadrao.length ? "border-amber-300" : "border-emerald-300" },
     { id: "ean", Icone: Barcode, titulo: "Códigos EAN", valor: String(eanCorrigir), detalhe: "inventados, repetidos ou inválidos", tom: eanCorrigir ? "border-red-300" : "border-emerald-300" },
     { id: "marketplace", Icone: Store, titulo: "Prontos para marketplace", valor: `${prontos}/${vendaveis.length}`, detalhe: `nota média ${media}`, tom: prontos === vendaveis.length ? "border-emerald-300" : "border-sky-300" },
@@ -110,7 +111,7 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
         if (error) throw error;
         n += Number(data) || 0;
       }
-      notify(`${n} cadastro(s) unificado(s): pedidos, estoque, kits e fornecedores foram para o principal`);
+      notify(`${n} ${pl(n, "cadastro", "cadastros")} ${pl(n, "unificado", "unificados")}: pedidos, estoque, kits e fornecedores foram para o principal`);
       invalidar("produtos", "estoque_unidade", "estoque_movimentos", "kit_componentes", "produto_fornecedor", "pedido_itens");
       setConfirmar(null);
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -124,7 +125,7 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
           Unificar passa <b>pedidos, NF, OS, compras, kits, ficha técnica, fornecedores, anexos e o saldo de estoque</b> para o cadastro que fica.
           Os outros ficam <b>arquivados</b> (inativos, com o aviso "unificado em"), nunca apagados. Códigos antigos (SKU, EAN, Tiny) viram códigos alternativos.
         </span>
-        {podeEditar && identicos.length > 0 && <Button disabled={ocupado} onClick={() => setConfirmar(identicos)}><Sparkles size={15} /> Unificar os {identicos.length} grupo(s) idênticos</Button>}
+        {podeEditar && identicos.length > 0 && <Button disabled={ocupado} onClick={() => setConfirmar(identicos)}><Sparkles size={15} /> Unificar os {identicos.length} {pl(identicos.length, "grupo", "grupos")} idênticos</Button>}
       </Card>
       {grupos.map((g) => (
         <Card key={g.chave} className="p-3">
@@ -174,7 +175,7 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
           <div className="space-y-2 text-sm">
             {confirmar.map((g) => {
               const f = g.produtos.find((p) => p.id === escolhido(g))!;
-              return <p key={g.chave}><b>{f.descricao}</b>{f.sku ? ` (${f.sku})` : ""} fica e recebe {incluidos(g).length} cadastro(s).</p>;
+              return <p key={g.chave}><b>{f.descricao}</b>{f.sku ? ` (${f.sku})` : ""} fica e recebe {incluidos(g).length} {pl(incluidos(g).length, "cadastro", "cadastros")}.</p>;
             })}
             <p className="text-slate-600">Os repetidos ficam arquivados com o aviso "unificado em". Isso não se desfaz pela tela.</p>
             <div className="flex justify-end gap-2 pt-2">
@@ -201,7 +202,7 @@ function Nomes({ produtos, podeEditar }: { produtos: (ProdutoAnuncio & Produto)[
     setOcupado("0");
     try {
       const n = await gravarVarios(marcados.map((p) => ({ id: p.id, dados: { descricao: novo(p).trim(), motivo_alteracao: "Padronização dos nomes (auditoria de produtos)" } })), (k) => setOcupado(String(k)));
-      notify(`${n} nome(s) padronizado(s)`);
+      notify(`${n} ${pl(n, "nome", "nomes")} ${pl(n, "padronizado", "padronizados")}`);
       invalidar("produtos");
       setEditado({}); setFora(new Set());
     } catch (e) { notifyError(e); } finally { setOcupado(null); }
@@ -259,7 +260,7 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
 
   async function completar() {
     if (!automaticos.length) return;
-    if (!confirm(`Completar ${automaticos.length} anúncio(s)? Preenche o que está vazio (título, endereço da página, descrição para o Google, palavras-chave e texto do anúncio) e padroniza o nome. Nada que alguém escreveu é apagado.`)) return;
+    if (!(await confirmar(`Completar ${automaticos.length} ${pl(automaticos.length, "anúncio", "anúncios")}? Preenche o que está vazio (título, endereço da página, descrição para o Google, palavras-chave e texto do anúncio) e padroniza o nome. Nada que alguém escreveu é apagado.`))) return;
     setOcupado("0");
     try {
       const usados = new Set(todos.map((p) => p.slug).filter(Boolean) as string[]);
@@ -268,7 +269,7 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
         .filter((m) => Object.keys(m.dados).length)
         .map((m) => ({ ...m, dados: { ...m.dados, ...(m.dados.descricao ? { motivo_alteracao: "Padronização dos nomes (auditoria de produtos)" } : {}) } }));
       const n = await gravarVarios(mudancas, (k) => setOcupado(String(k)));
-      notify(`${n} anúncio(s) completado(s). Falta o que só vocês sabem: fotos, EAN, marca/modelo, peso e medidas.`);
+      notify(`${n} ${pl(n, "anúncio", "anúncios")} ${pl(n, "completado", "completados")}. Falta o que só vocês sabem: fotos, EAN, marca/modelo, peso e medidas.`);
       invalidar("produtos");
     } catch (e) { notifyError(e); } finally { setOcupado(null); }
   }

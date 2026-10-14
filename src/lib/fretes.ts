@@ -1,5 +1,6 @@
 // Fretes: tipos do envio, rótulos, totais da carga (peso real × peso cubado) e os indicadores do painel operacional.
 // Funções puras: o painel e o formulário usam as mesmas regras.
+import { pl } from "./format";
 
 export type Volume = {
   embalagem_id?: string | null; descricao?: string | null; quantidade: number;
@@ -299,7 +300,7 @@ export function mensagemCotacao(e: Partial<Envio>, nomes: { cliente?: string; em
     `Olá! Aqui é da *${nomes.empresa || "MF Máquinas"}*. Pode cotar este frete${e.numero ? ` (envio #${e.numero})` : ""}?`,
     `*Origem:* CEP ${cep(e.cep_origem)}${e.cidade_origem ? ` · ${e.cidade_origem}/${e.uf_origem ?? ""}` : ""}`,
     `*Destino:* CEP ${cep(e.cep_destino)}${e.cidade_destino ? ` · ${e.cidade_destino}/${e.uf_destino ?? ""}` : ""}`,
-    `*Carga:* ${t.qtd} volume(s), ${kg(t.peso)} (peso real), ${t.cubagem.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m³`,
+    `*Carga:* ${t.qtd} ${pl(t.qtd, "volume", "volumes")}, ${kg(t.peso)} (peso real), ${t.cubagem.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m³`,
     ...linhasVol,
     `*Equipamento:* ${e.tipo_equipamento || "—"}`,
     `*Valor da mercadoria:* ${brl(e.valor_mercadoria)}${e.seguro ? " · com seguro" : " · sem seguro"}`,

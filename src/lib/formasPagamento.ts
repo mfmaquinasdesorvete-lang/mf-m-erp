@@ -1,5 +1,6 @@
 // Formas de pagamento cadastradas (Cadastros → Formas de pagamento): usadas nas vendas e nas contas fixas.
 import { useRows } from "@/lib/data";
+import { pl } from "@/lib/format";
 
 export type FormaPagamento = {
   id: string; nome: string; meio: string; uso: "receber" | "pagar" | "ambos"; parcelas: number; intervalo_dias: number; primeiro_em_dias: number;
@@ -19,6 +20,6 @@ export function useFormasPagamento() {
 
 /** "3x de 30 em 30 dias, 1ª em 30 dias" */
 export function condicao(f: Pick<FormaPagamento, "parcelas" | "intervalo_dias" | "primeiro_em_dias">) {
-  const primeira = f.primeiro_em_dias ? `1ª em ${f.primeiro_em_dias} dia(s)` : "à vista";
+  const primeira = f.primeiro_em_dias ? `1ª em ${f.primeiro_em_dias} ${pl(f.primeiro_em_dias, "dia", "dias")}` : "à vista";
   return f.parcelas > 1 ? `${f.parcelas}x de ${f.intervalo_dias} em ${f.intervalo_dias} dias, ${primeira}` : primeira;
 }

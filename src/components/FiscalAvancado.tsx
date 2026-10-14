@@ -10,6 +10,7 @@ import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/lib/codigosFiscais";
 import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
+import { confirmar } from "@/components/Dialogos";
 
 type Carta = { id: string; nota_id: string; sequencia: number | null; correcao: string; status: string; mensagem: string | null; pdf_url: string | null; created_at: string };
 
@@ -82,7 +83,7 @@ export function InutilizarModal({ onClose }: { onClose: () => void }) {
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
-    if (!confirm(`Inutilizar os números ${f.numero_inicial} a ${f.numero_final || f.numero_inicial} da série ${f.serie} (${nome(f.unidade_id)})? Não dá para desfazer.`)) return;
+    if (!(await confirmar(`Inutilizar os números ${f.numero_inicial} a ${f.numero_final || f.numero_inicial} da série ${f.serie} (${nome(f.unidade_id)})? Não dá para desfazer.`))) return;
     setOcupado(true);
     try {
       await callFunction("nfe-consultar", { acao: "inutilizar", ...f, numero_final: f.numero_final || f.numero_inicial });
@@ -175,7 +176,7 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
   const invalidar = useInvalidate();
 
   async function remover(r: Regra) {
-    if (!confirm(`Apagar a regra "${r.nome}"?`)) return;
+    if (!(await confirmar(`Apagar a regra "${r.nome}"?`))) return;
     const { error } = await supabase.from("regras_tributacao").delete().eq("id", r.id!);
     if (error) return notifyError(error);
     invalidar("regras_tributacao");

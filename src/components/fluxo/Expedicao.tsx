@@ -7,7 +7,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { pecasDoKit } from "@/lib/kits";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { usePerfil } from "@/lib/auth";
@@ -152,7 +152,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
 
       {exp.status === "despachado" && (
         <div className="space-y-3 text-sm">
-          <p>Despachado em <b>{dataBR(exp.despachado_em)}</b>{exp.codigo_rastreio ? <> · rastreio <b>{exp.codigo_rastreio}</b></> : null}{exp.volumes ? ` · ${exp.volumes} volume(s)` : ""}.</p>
+          <p>Despachado em <b>{dataBR(exp.despachado_em)}</b>{exp.codigo_rastreio ? <> · rastreio <b>{exp.codigo_rastreio}</b></> : null}{exp.volumes ? ` · ${exp.volumes} ${pl(exp.volumes, "volume", "volumes")}` : ""}.</p>
           <div className="flex justify-end"><Button type="button" disabled={ocupado} onClick={() => avancar("entregue")}><CheckCircle2 size={16} /> Marcar entregue</Button></div>
         </div>
       )}

@@ -6,6 +6,7 @@ import { Button, Field, Modal } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { pctTexto, rotuloRegra } from "@/lib/descontos";
+import { pl } from "@/lib/format";
 
 export type DescontoAprovado = { percentual: number; aprovado_por: string };
 
@@ -42,7 +43,7 @@ export function AprovarDesconto({ percentual, maximo, contexto, pedidoId, canal,
       const r = data as { ok: boolean; erro?: string; restantes?: number; percentual?: number; aprovado_por?: string };
       if (!r?.ok) {
         setSenha("");
-        setErro(`${r?.erro ?? "Não aprovado"}${r?.restantes !== undefined && r.restantes < 4 ? ` (mais ${r.restantes} tentativa(s) antes de bloquear por 15 minutos)` : ""}`);
+        setErro(`${r?.erro ?? "Não aprovado"}${r?.restantes !== undefined && r.restantes < 4 ? ` (mais ${r.restantes} ${pl(r.restantes, "tentativa", "tentativas")} antes de bloquear por 15 minutos)` : ""}`);
         return;
       }
       onAprovado({ percentual: Number(r.percentual ?? percentual), aprovado_por: r.aprovado_por ?? "" });

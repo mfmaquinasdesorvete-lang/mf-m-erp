@@ -8,6 +8,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { notifyError } from "@/lib/notify";
 import { lerComposicaoTiny, paraGravar, planejarKits, SITUACAO_KIT, type KitPlano, type LinhaComposicao, type ProdutoKitTiny } from "@/lib/kitsTiny";
 import type { KitComponente } from "@/lib/types";
+import { pl } from "@/lib/format";
 
 type Resultado = { kits: number; componentes: number; ja_tinham: string[]; ignorados: number };
 const COMO = { codigo: "", sku: "pelo SKU", descricao: "pela descrição" } as const;
@@ -53,7 +54,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
     return (
       <Modal open onClose={onClose} title="Kits do Tiny">
         <div className="space-y-3 text-[15px]">
-          <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={20} aria-hidden /> {resultado.kits} kit(s) com {resultado.componentes} componente(s) gravados.</p>
+          <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={20} aria-hidden /> {resultado.kits} {pl(resultado.kits, "kit", "kits")} com {resultado.componentes} {pl(resultado.componentes, "componente", "componentes")} gravados.</p>
           {resultado.ja_tinham.length > 0 && <p className="text-sm text-slate-600">Já tinham componentes (ficaram como estavam): {resultado.ja_tinham.join(", ")}.</p>}
           <p className="text-sm text-slate-600">Ao vender um kit, o estoque sai das peças dele. Kit dentro de kit (ex.: Mecânica Dupla) sai pelas peças do kit de dentro.
             Para mudar, use o botão <Boxes size={14} className="inline" aria-hidden /> Componentes na linha do kit.</p>
@@ -79,11 +80,11 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
 
         {linhas && (<>
           <p className="text-sm text-slate-700">
-            {linhas.length} linha(s), {planos.length} composição(ões): <b>{contar("pronto")} pronto(s)</b>
+            {linhas.length} {pl(linhas.length, "linha", "linhas")}, {planos.length} {pl(planos.length, "composição", "composições")}: <b>{contar("pronto")} {pl(contar("pronto"), "pronto", "prontos")}</b>
             {contar("faltam_itens") > 0 && <>, {contar("faltam_itens")} com item que falta no cadastro</>}
             {contar("proprio_item") > 0 && <>, {contar("proprio_item")} para conferir</>}
             {contar("ja_tem") > 0 && <>, {contar("ja_tem")} já com componentes</>}
-            {contar("fabricado") > 0 && <>, {contar("fabricado")} máquina(s) (ficha técnica em Produção)</>}
+            {contar("fabricado") > 0 && <>, {contar("fabricado")} {pl(contar("fabricado"), "máquina", "máquinas")} (ficha técnica em Produção)</>}
             {contar("fora_do_erp") > 0 && <>, {contar("fora_do_erp")} fora do ERP (versões antigas no Tiny)</>}.
           </p>
           <ul className="max-h-[55vh] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
@@ -102,7 +103,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
                         <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.cor}`} title={s.ajuda}>{s.rotulo}</span>
                       </div>
                       <p className="text-xs text-slate-500">
-                        {k.produto?.sku ? `${k.produto.sku} · ` : ""}{k.itens.length} componente(s){k.faltando.length ? ` · ${k.faltando.length} fora do cadastro` : ""}
+                        {k.produto?.sku ? `${k.produto.sku} · ` : ""}{k.itens.length} {pl(k.itens.length, "componente", "componentes")}{k.faltando.length ? ` · ${k.faltando.length} fora do cadastro` : ""}
                         {k.proprio ? ` · o próprio kit aparece ${k.proprio}× na composição (fica de fora)` : ""}
                         {(k.itens.length > 0 || k.faltando.length > 0) && <> · <button type="button" className="font-semibold text-brand hover:underline" aria-expanded={aberto === k.tinyId}
                           onClick={() => setAberto(aberto === k.tinyId ? null : k.tinyId)}>{aberto === k.tinyId ? "fechar" : "ver"}</button></>}
@@ -122,7 +123,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="button" disabled={!aGravar.length || !!ocupado} onClick={gravar}>
-              <Boxes size={16} aria-hidden /> {ocupado === "gravar" ? "Gravando…" : `Gravar ${aGravar.length} kit(s)`}
+              <Boxes size={16} aria-hidden /> {ocupado === "gravar" ? "Gravando…" : `Gravar ${aGravar.length} ${pl(aGravar.length, "kit", "kits")}`}
             </Button>
           </div>
         </>)}

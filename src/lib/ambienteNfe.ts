@@ -1,6 +1,7 @@
 // Ambiente da emissão (produção ou homologação), lido do servidor: a tela avisa e pede confirmação antes de
 // emitir uma nota de teste, que é autorizada mas não tem valor fiscal.
 import { callFunction } from "./supabase";
+import { confirmar } from "@/components/Dialogos";
 
 let cache: { valor: string; em: number } | null = null;
 
@@ -17,5 +18,5 @@ export const AVISO_TESTE = "O ERP está emitindo em HOMOLOGAÇÃO (teste): a not
 /** true = pode emitir (produção, ou a pessoa confirmou que quer uma nota de teste). */
 export async function confirmarSeTeste(): Promise<boolean> {
   const amb = await ambienteNfe().catch(() => "producao");
-  return amb === "producao" || confirm(`${AVISO_TESTE}\n\nEmitir como TESTE mesmo assim?`);
+  return amb === "producao" || (await confirmar(`${AVISO_TESTE}\n\nEmitir como TESTE mesmo assim?`, { titulo: "Nota de teste", ok: "Emitir como teste" }));
 }

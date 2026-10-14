@@ -5,11 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Check, CheckCheck, Copy, Loader2, MessageCircle, Send, Settings2, ShieldCheck } from "lucide-react";
 import { Button, Card, Field, Modal, Tabs } from "@/components/ui";
 import { useInvalidate } from "@/lib/data";
-import { whatsappLink } from "@/lib/format";
+import { whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import type { Etapa } from "@/lib/cobranca";
+import { pedirTexto } from "@/components/Dialogos";
 
 export type StatusWhatsapp = {
   configurado: boolean; ativo: boolean; numero: string | null; nome: string | null; numero_id: string | null; waba_id: string | null;
@@ -73,10 +74,10 @@ export function WhatsappOficial({ etapas }: { etapas: EtapaWa[] }) {
     const r = await callFunction<{ enviados: number; erros: string[] }>("whatsapp", { acao: "modelos" });
     invalidar("regua_cobranca");
     if (r.erros?.length) notify(`A Meta recusou: ${r.erros.join("; ")}`, "erro");
-    else notify(r.enviados ? `${r.enviados} modelo(s) enviado(s) para aprovação. A Meta costuma responder em minutos.` : "Situação dos modelos atualizada");
+    else notify(r.enviados ? `${r.enviados} ${pl(r.enviados, "modelo", "modelos")} ${pl(r.enviados, "enviado", "enviados")} para aprovação. A Meta costuma responder em minutos.` : "Situação dos modelos atualizada");
   });
-  const testar = () => {
-    const tel = prompt("Mandar a mensagem de teste da Meta (hello_world) para qual WhatsApp? (DDD + número)");
+  const testar = async () => {
+    const tel = (await pedirTexto("Mandar a mensagem de teste da Meta (hello_world) para qual WhatsApp? (DDD + número)"));
     if (tel) acao("teste", async () => { await callFunction("whatsapp", { acao: "teste", telefone: tel }); notify("Mensagem de teste enviada"); invalidar("whatsapp_mensagens"); });
   };
 
@@ -164,7 +165,7 @@ function Mensagens() {
     <div className="mt-3">
       <Tabs value={aba} onChange={setAba} options={[
         { value: "conversas", label: `Respostas dos clientes (${conversas.length})` },
-        { value: "enviadas", label: `Enviadas (${enviadas.length})${falhas ? ` · ${falhas} falha(s)` : ""}` },
+        { value: "enviadas", label: `Enviadas (${enviadas.length})${falhas ? ` · ${falhas} ${pl(falhas, "falha", "falhas")}` : ""}` },
       ]} />
       {aba === "conversas" && (
         !conversas.length ? <p className="mt-2 text-sm text-slate-500">Ninguém respondeu nos últimos 30 dias.</p> : (

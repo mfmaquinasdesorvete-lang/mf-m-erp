@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Info, Stethoscope, XCircle } from "lucide-
 import { Button, Card } from "@/components/ui";
 import { callFunction } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
+import { pl } from "@/lib/format";
 
 type Item = { grupo: string; titulo: string; nivel: "ok" | "info" | "alerta" | "erro"; detalhe: string; acao?: string };
 const ICONE = {
@@ -42,7 +43,7 @@ export function DiagnosticoNfe() {
         <div className="mt-4 space-y-4">
           <div className={`rounded-lg p-3 text-sm font-semibold ${res.ambiente === "producao" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>
             {res.ambiente === "producao" ? "Emitindo em PRODUÇÃO: as notas saem com valor fiscal." : "Emitindo em HOMOLOGAÇÃO: as notas são autorizadas só como teste, sem valor fiscal."}
-            {erros > 0 && ` ${erros} ponto(s) para corrigir abaixo.`}
+            {erros > 0 && ` ${erros} ${pl(erros, "ponto", "pontos")} para corrigir abaixo.`}
           </div>
           {grupos.map((g) => (
             <div key={g}>

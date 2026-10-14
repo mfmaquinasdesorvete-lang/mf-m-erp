@@ -7,7 +7,7 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { useConfig } from "@/lib/useConfig";
@@ -169,7 +169,7 @@ function PagarModal({ comissoes, nome, onClose }: { comissoes: Comissao[]; nome:
   return (
     <Modal open onClose={() => onClose(false)} title={`Pagar comissões · ${nome}`}>
       <form onSubmit={gerar} className="space-y-3">
-        <p className="text-[15px]">{comissoes.length} comissão(ões), total <b className="num">{brl(total)}</b>. Vai virar uma conta no <b>contas a pagar</b> (categoria comissões).</p>
+        <p className="text-[15px]">{comissoes.length} {pl(comissoes.length, "comissão", "comissões")}, total <b className="num">{brl(total)}</b>. Vai virar uma conta no <b>contas a pagar</b> (categoria comissões).</p>
         <Field label="Vencimento"><input type="date" className="input" value={venc} onChange={(e) => setVenc(e.target.value)} required /></Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={() => onClose(false)}>Cancelar</Button>

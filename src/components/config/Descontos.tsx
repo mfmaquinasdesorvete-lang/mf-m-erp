@@ -10,6 +10,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { CANAIS_DESCONTO, FORMAS_DESCONTO, pctTexto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
 import { Bloco, CabecalhoSecao, secaoPorId } from "./comum";
+import { confirmar } from "@/components/Dialogos";
 
 type Aprovacao = {
   id: string; contexto: string; percentual: number; maximo_percentual: number | null; canal: string | null; forma_pagamento: string | null;
@@ -77,7 +78,7 @@ export function ConfigDescontos() {
                   </label>
                   {admin && (
                     <Button type="button" variant="ghost" className="!min-h-0 !px-2" aria-label={`Apagar a regra ${rotuloRegra(r.canal, r.forma_pagamento)}`} disabled={ocupado}
-                      onClick={() => confirm("Apagar esta regra?") && rodar(() => supabase.from("regras_desconto").delete().eq("id", r.id), "Regra apagada")}><Trash2 size={16} /></Button>
+                      onClick={async () => (await confirmar("Apagar esta regra?")) && rodar(() => supabase.from("regras_desconto").delete().eq("id", r.id), "Regra apagada")}><Trash2 size={16} /></Button>
                   )}
                 </li>
               ))}

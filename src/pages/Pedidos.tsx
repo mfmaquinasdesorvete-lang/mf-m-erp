@@ -37,6 +37,7 @@ import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/fin
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
 import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
+import { confirmar } from "@/components/Dialogos";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -402,8 +403,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     }, cfg?.nfe_automatica ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro", !comLink);
   };
 
-  const cancelar = () => {
-    if (!confirm("Cancelar este pedido? O estoque será devolvido e as parcelas em aberto canceladas.")) return;
+  const cancelar = async () => {
+    if (!(await confirmar("Cancelar este pedido? O estoque será devolvido e as parcelas em aberto canceladas."))) return;
     executar(async () => {
       const { error } = await supabase.rpc("cancelar_pedido", { p_pedido: p.id });
       if (error) throw error;

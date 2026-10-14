@@ -9,7 +9,7 @@ import { Button, Modal } from "./ui";
 import { callFunction } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 
 export type TipoImportacao = "emitidas" | "recebidas";
@@ -101,7 +101,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
       <Modal open onClose={onClose} title="Importação concluída">
         <div className="space-y-3 text-[15px]">
           <p className="flex items-center gap-2 font-semibold text-emerald-700">
-            <CheckCircle2 size={22} /> {conta((r) => r.situacao === "importada")} nota(s) nova(s) na lista.
+            <CheckCircle2 size={22} /> {conta((r) => r.situacao === "importada")} {pl(conta((r) => r.situacao === "importada"), "nota nova", "notas novas")} na lista.
           </p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             {conta((r) => r.situacao === "atualizada") > 0 && <li>{conta((r) => r.situacao === "atualizada")} já estavam no ERP e foram atualizadas</li>}
@@ -110,7 +110,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
               <li>{historico} emitidas antes do início do ERP{desde ? ` (${dataBR(desde)})` : ""} entraram como <b>histórico</b>: não geram contas a pagar nem entrada no estoque (já foram lançadas no Tiny)</li>
             )}
             {tipo === "recebidas" && processadas > 0 && <li>{processadas} recentes seguiram o fluxo normal (contas a pagar e estoque): confira a coluna Processamento</li>}
-            {problemas.length > 0 && <li className="text-amber-700">{problemas.length} arquivo(s) não entraram:</li>}
+            {problemas.length > 0 && <li className="text-amber-700">{problemas.length} {pl(problemas.length, "arquivo", "arquivos")} não entraram:</li>}
           </ul>
           {problemas.length > 0 && (
             <ul className="max-h-48 space-y-0.5 overflow-auto rounded-lg border border-slate-200 p-2 text-xs text-slate-600">
@@ -157,7 +157,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
           )}
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="secondary" onClick={() => setArquivos(null)} disabled={!!ocupado}>Outros arquivos</Button>
-            <Button onClick={importar} disabled={!!ocupado || !arquivos.length}>{ocupado ? "Importando…" : `Importar ${arquivos.length} arquivo(s)`}</Button>
+            <Button onClick={importar} disabled={!!ocupado || !arquivos.length}>{ocupado ? "Importando…" : `Importar ${arquivos.length} ${pl(arquivos.length, "arquivo", "arquivos")}`}</Button>
           </div>
         </div>
       )}

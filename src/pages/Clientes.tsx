@@ -9,7 +9,7 @@ import { FichaCliente } from "@/components/FichaCliente";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { Contato, NomeCadastro } from "@/components/Contato";
-import { digitos, docFormat } from "@/lib/format";
+import { digitos, docFormat, pl } from "@/lib/format";
 import type { Cliente } from "@/lib/types";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,7 @@ import { useTiposContato } from "@/components/clientes/TiposContato";
 import { MaquinasCliente, rotuloMaquina, useMaquinasPorCliente } from "@/components/clientes/MaquinasCliente";
 import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral";
 import type { Vendedor } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
 const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
@@ -189,13 +190,13 @@ export default function Clientes() {
       }, {
         label: "Mover para fornecedores",
         executar: async (ids) => {
-          if (!confirm(`${ids.length} cadastro(s) vão para Fornecedores e saem da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`)) {
+          if (!(await confirmar(`${ids.length} ${pl(ids.length, "cadastro", "cadastros")} vão para Fornecedores e saem da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`))) {
             throw new Error("Nada foi movido");
           }
           const { data, error } = await supabase.rpc("clientes_virar_fornecedor", { p_ids: ids, p_manter_cliente: false });
           if (error) throw error;
           invalidar("fornecedores", "documentos");
-          return `${data?.movidos ?? 0} movido(s) para Fornecedores (${data?.fornecedores_criados ?? 0} fornecedor(es) novo(s), os outros juntaram com o do mesmo CNPJ)`;
+          return `${data?.movidos ?? 0} ${pl(data?.movidos ?? 0, "movido", "movidos")} para Fornecedores (${data?.fornecedores_criados ?? 0} ${pl(data?.fornecedores_criados ?? 0, "fornecedor", "fornecedores")} ${pl(data?.fornecedores_criados ?? 0, "novo", "novos")}, os outros juntaram com o do mesmo CNPJ)`;
         },
       }] : []}
       anexos="cliente"

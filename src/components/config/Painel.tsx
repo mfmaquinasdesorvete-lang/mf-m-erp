@@ -8,6 +8,7 @@ import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { pendenciaCatalogo } from "@/lib/catalogo";
 import { IconeSecao, SECOES, type SecaoId } from "./comum";
+import { pl } from "@/lib/format";
 
 type Situacao = { texto: string; ok?: boolean };
 
@@ -33,10 +34,10 @@ export function PainelConfig() {
 
   const situacao: Record<SecaoId, Situacao> = {
     empresa: cfg.logo_url ? { texto: "Logo e marca definidas", ok: true } : { texto: "Sem logo: os PDFs usam a padrão", ok: false },
-    unidades: incompletas.length ? { texto: `${incompletas.map((x) => x.nome).join(", ")}: falta CNPJ, IE ou endereço`, ok: false } : { texto: `${u.length} unidade(s) prontas para NF-e`, ok: true },
+    unidades: incompletas.length ? { texto: `${incompletas.map((x) => x.nome).join(", ")}: falta CNPJ, IE ou endereço`, ok: false } : { texto: `${u.length} ${pl(u.length, "unidade", "unidades")} prontas para NF-e`, ok: true },
     recebimentos: { texto: `Pix em ${comPix} de ${u.length} · link InfinitePay em ${comLink} de ${u.length}`, ok: comPix === u.length && u.length > 0 },
     orcamentos: { texto: `Validade ${cfg.validade_orcamento_dias ?? "—"} dias · garantia ${cfg.garantia_meses_padrao ?? "—"} meses · conserto ${cfg.garantia_servico_dias ?? 90} dias` },
-    descontos: { texto: regrasDesc.length ? `${regrasDesc.filter((r) => r.ativo).length} regra(s) de desconto máximo` : "Sem limite de desconto" },
+    descontos: { texto: regrasDesc.length ? `${regrasDesc.filter((r) => r.ativo).length} ${pl(regrasDesc.filter((r) => r.ativo).length, "regra", "regras")} de desconto máximo` : "Sem limite de desconto" },
     comissoes: { texto: `${Number(cfg.comissao_percentual ?? 0).toLocaleString("pt-BR")}% padrão · regras em Comissões` },
     catalogo: { texto: `${prontos} na vitrine${marcados.length - prontos ? ` · ${marcados.length - prontos} faltando foto ou preço` : ""}`, ok: marcados.length - prontos === 0 },
     pedidos: { texto: `NF-e automática ${cfg.nfe_automatica ? "ligada" : "desligada"} · etiqueta ${cfg.etiqueta_formato === "a4" ? "A4" : "10 x 15"}${imp.modelo ? ` · ${imp.modelo}` : ""}` },
@@ -54,7 +55,7 @@ export function PainelConfig() {
     !cfg.logo_url && { id: "empresa", texto: "Envie a logo da empresa (sai nos PDFs e na vitrine)" },
     incompletas.length > 0 && { id: "unidades", texto: `Complete o cadastro de ${incompletas.map((x) => x.nome).join(" e ")} para emitir NF-e` },
     u.some((x) => !x.pix_chave) && { id: "recebimentos", texto: `Cadastre a chave Pix de ${u.filter((x) => !x.pix_chave).map((x) => x.nome).join(" e ")} (Pix copia e cola nas cobranças)` },
-    marcados.length - prontos > 0 && { id: "catalogo", texto: `${marcados.length - prontos} produto(s) do catálogo sem foto ou preço` },
+    marcados.length - prontos > 0 && { id: "catalogo", texto: `${marcados.length - prontos} ${pl(marcados.length - prontos, "produto", "produtos")} do catálogo sem foto ou preço` },
     backupAtrasado && { id: "dados", texto: "O backup diário não roda há mais de um dia" },
     cfg.contador_envio_auto && !cfg.contador_email && { id: "contador", texto: "Envio ao contador ligado, mas sem e-mail do contador" },
   ].filter(Boolean) as { id: SecaoId; texto: string }[];

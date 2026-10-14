@@ -5,6 +5,7 @@
 // Tudo é estimativa gerencial para conversar com o contador: a apuração oficial (SPED, LALUR) é dele.
 
 import { comDestaque } from "./destaque";
+import { pl } from "@/lib/format";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const dig = (v?: string | null) => (v ?? "").replace(/\D/g, "");
@@ -319,7 +320,7 @@ export function analisar(ctx: ContextoFiscal) {
   const comNota = new Set(ctx.saidas.filter((n) => n.status === "autorizada" && n.pedido_id).map((n) => n.pedido_id));
   const semNota = ctx.pedidos.filter((p) => ["faturado", "entregue"].includes(p.status) && diasEntre(p.created_at, ctx.hoje) <= 90 && !comNota.has(p.id));
   if (semNota.length) add({
-    id: "venda_sem_nota", nivel: "alerta", titulo: `${semNota.length} venda(s) entregue(s) ou faturada(s) sem NF-e no ERP`,
+    id: "venda_sem_nota", nivel: "alerta", titulo: `${semNota.length} ${pl(semNota.length, "venda", "vendas")} ${pl(semNota.length, "entregue", "entregues")} ou ${pl(semNota.length, "faturada", "faturadas")} sem NF-e no ERP`,
     detalhe: `Pedidos ${semNota.slice(0, 6).map((p) => `#${p.numero ?? "?"}`).join(", ")}${semNota.length > 6 ? "…" : ""}. Se a nota foi emitida fora do ERP, importe o XML; se não foi, é risco fiscal.`,
     acao: "Emitir a NF-e pelo pedido ou importar o XML da nota emitida em outro sistema.", quem: "Você", link: "/pedidos",
     estado: comDestaque(semNota.map((p) => p.id), "vendas entregues ou faturadas sem NF-e"),
@@ -331,7 +332,7 @@ export function analisar(ctx: ContextoFiscal) {
     && !["confirmacao", "desconhecimento", "nao_realizada"].includes(n.manifestacao ?? "") && diasEntre(n.data_emissao, ctx.hoje) > 30);
   if (semManif.length) add({
     id: "manifestacao", nivel: semManif.some((n) => diasEntre(n.data_emissao!, ctx.hoje) > 150) ? "problema" : "alerta",
-    titulo: `${semManif.length} nota(s) de fornecedor sem manifestação conclusiva`,
+    titulo: `${semManif.length} ${pl(semManif.length, "nota", "notas")} de fornecedor sem manifestação conclusiva`,
     detalhe: "Sem \"Confirmação da operação\" a nota fica sem o XML completo e o crédito de ICMS/IPI não aparece. O prazo legal é de 180 dias.",
     acao: "Em Notas fiscais → Recebidas, confirmar as compras (ou marcar \"desconhecida\" se não for sua).", quem: "Você", link: "/notas",
     estado: comDestaque(semManif.map((n) => n.id), "notas de fornecedor sem manifestação conclusiva", { aba: "recebidas" }),
@@ -340,7 +341,7 @@ export function analisar(ctx: ContextoFiscal) {
   const entradasMes = ctx.entradas.filter((n) => (n.data_emissao ?? "").startsWith(ctx.mesFoco) && !n.excluida_em && (n.itens ?? []).some((i) => cfopDeCompra(i.cfop)));
   const semXml = entradasMes.filter((n) => ctx.xmlsMes.has(n.id) && !ctx.xmlsMes.get(n.id));
   if (semXml.length) add({
-    id: "sem_xml", nivel: "alerta", titulo: `${semXml.length} compra(s) do mês sem o XML completo`,
+    id: "sem_xml", nivel: "alerta", titulo: `${semXml.length} ${pl(semXml.length, "compra", "compras")} do mês sem o XML completo`,
     detalhe: `${brl(semXml.reduce((s, n) => s + Number(n.valor_total), 0))} em notas só com o resumo da SEFAZ: o ICMS e o IPI delas não entram nos créditos.`,
     acao: "Confirmar a operação (manifestação) para a SEFAZ liberar o XML, ou importar o XML que o fornecedor mandou por e-mail.", quem: "Você", link: "/notas",
     estado: comDestaque(semXml.map((n) => n.id), "compras do mês sem o XML completo", { aba: "recebidas" }),
@@ -349,7 +350,7 @@ export function analisar(ctx: ContextoFiscal) {
   const das = ctx.contas.filter((c) => noPeriodo(mesDaConta(c) + "-01", meses) && /\b(das|simples nacional)\b/.test(norm(c.descricao)));
   if (das.length && lucroReal) add({
     id: "das", nivel: "problema", titulo: "Guia do Simples Nacional numa empresa do Lucro Real",
-    detalhe: `${das.length} conta(s) a pagar com "DAS/Simples" na descrição (${brl(das.reduce((s, c) => s + Number(c.valor), 0))}). No Lucro Real não existe DAS: pode ser lançamento errado ou pagamento indevido.`,
+    detalhe: `${das.length} ${pl(das.length, "conta", "contas")} a pagar com "DAS/Simples" na descrição (${brl(das.reduce((s, c) => s + Number(c.valor), 0))}). No Lucro Real não existe DAS: pode ser lançamento errado ou pagamento indevido.`,
     acao: "Conferir com o contador; se foi pago, pedir restituição. Corrigir a descrição/categoria da conta.", quem: "Você e o contador", link: "/financeiro",
     estado: comDestaque(das.map((c) => c.id), "contas com DAS/Simples na descrição", { aba: "pagar" }),
   });
@@ -358,7 +359,7 @@ export function analisar(ctx: ContextoFiscal) {
   const contas12 = ctx.contas.filter((c) => c.status !== "cancelado" && meses.includes(mesDaConta(c)));
   const semCat = contas12.filter((c) => !norm(c.categoria) || ["outros", "outras", "diversos"].includes(norm(c.categoria)));
   if (semCat.length) add({
-    id: "sem_categoria", nivel: "alerta", titulo: `${semCat.length} conta(s) a pagar sem categoria (ou "outros")`,
+    id: "sem_categoria", nivel: "alerta", titulo: `${semCat.length} ${pl(semCat.length, "conta", "contas")} a pagar sem categoria (ou "outros")`,
     detalhe: `${brl(semCat.reduce((s, c) => s + Number(c.valor), 0))} em 12 meses. Sem a categoria certa o DRE fica errado e o contador pode deixar de aproveitar crédito (energia, frete, aluguel, manutenção).`,
     acao: "Dar a categoria certa às contas (Financeiro → Contas a pagar → Editar).", quem: "Você", link: "/financeiro",
     estado: comDestaque(semCat.map((c) => c.id), "contas a pagar sem categoria (ou \"outros\")", { aba: "pagar" }),
@@ -374,7 +375,7 @@ export function analisar(ctx: ContextoFiscal) {
   const ativos = ctx.produtos.filter((p) => p.ativo !== false && p.vendavel !== false && !p.kit);
   const semNcm = ativos.filter((p) => dig(p.ncm).length !== 8);
   if (semNcm.length) add({
-    id: "ncm", nivel: "problema", titulo: `${semNcm.length} produto(s) sem NCM válido`,
+    id: "ncm", nivel: "problema", titulo: `${semNcm.length} ${pl(semNcm.length, "produto", "produtos")} sem NCM válido`,
     detalhe: `${semNcm.slice(0, 5).map((p) => p.descricao).join("; ")}${semNcm.length > 5 ? "…" : ""}. O NCM define IPI, ICMS-ST e a alíquota na Reforma; errado, a nota é rejeitada ou o imposto sai errado.`,
     acao: "Corrigir o NCM no cadastro do produto.", quem: "Você", link: "/estoque",
     estado: comDestaque(semNcm.map((p) => p.id), "produtos sem NCM válido"),
@@ -382,7 +383,7 @@ export function analisar(ctx: ContextoFiscal) {
   const fabrica = ctx.unidades.some((u) => u.fabrica);
   const maqSemIpi = fabrica ? ativos.filter((p) => p.tipo === "maquina" && p.ipi_aliquota == null) : [];
   if (maqSemIpi.length) add({
-    id: "ipi", nivel: "alerta", titulo: `${maqSemIpi.length} máquina(s) fabricada(s) sem alíquota de IPI`,
+    id: "ipi", nivel: "alerta", titulo: `${maqSemIpi.length} ${pl(maqSemIpi.length, "máquina", "máquinas")} ${pl(maqSemIpi.length, "fabricada", "fabricadas")} sem alíquota de IPI`,
     detalhe: "A alíquota vem da TIPI pelo NCM. Sem ela a nota pode sair sem IPI (risco de autuação) ou com IPI a mais.",
     acao: "Conferir na TIPI com o contador e preencher a alíquota no cadastro.", quem: "Você e o contador", link: "/estoque",
     estado: comDestaque(maqSemIpi.map((p) => p.id), "máquinas fabricadas sem alíquota de IPI"),
@@ -474,7 +475,7 @@ export function analisar(ctx: ContextoFiscal) {
     titulo: "Pagar IRPJ/CSLL mensal pelo lucro real do mês (suspensão/redução)",
     porque: "Na estimativa mensal sobre o faturamento você antecipa imposto mesmo em mês fraco. Com o balancete, paga só sobre o lucro de verdade.",
     economia: antecipacaoEvitavel || undefined,
-    economiaTexto: mesesPrejuizo ? `${mesesPrejuizo} mês(es) com prejuízo nos últimos 12 (deixaria de antecipar)` : "ganho de caixa nos meses mais fracos",
+    economiaTexto: mesesPrejuizo ? `${mesesPrejuizo} ${pl(mesesPrejuizo, "mês", "meses")} com prejuízo nos últimos 12 (deixaria de antecipar)` : "ganho de caixa nos meses mais fracos",
     como: ["Pedir ao contador o balancete mensal de suspensão/redução.", "Manter o financeiro do ERP em dia (é a base do balancete)."],
     quem: "Contador", base: "Lei 8.981/1995, art. 35; Lei 9.430/1996, art. 2º",
   });

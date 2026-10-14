@@ -7,7 +7,7 @@ import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
-import { brl, hoje } from "@/lib/format";
+import { brl, hoje, pl } from "@/lib/format";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -34,6 +34,7 @@ import { custoUnitario } from "@/lib/margem";
 import { FormacaoPreco, usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
 import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
+import { pedirTexto } from "@/components/Dialogos";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -104,7 +105,7 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
     const { error } = await supabase.from("produtos").update({ ativo }).in("id", ids.slice(i, i + 200));
     if (error) throw error;
   }
-  return `${ids.length} produto(s) ${ativo ? "ativado(s)" : "inativado(s)"}`;
+  return `${ids.length} ${pl(ids.length, "produto", "produtos")} ${ativo ? pl(ids.length, "ativado", "ativados") : pl(ids.length, "inativado", "inativados")}`;
 }
 
 /** Rota de cada cadastro no menu (Cadastros → Máquinas, Peças de reposição, Componentes de produção). */
@@ -197,14 +198,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
 
   /** Move os selecionados para outro cadastro (o banco pede o motivo quando o produto já foi movimentado). */
   async function moverPara(ids: string[], tipo: string, nome: string) {
-    const motivo = prompt(`Mover ${ids.length} produto(s) para "${nome}". Motivo (fica no histórico):`, "Separação dos cadastros: máquinas, peças de reposição e componentes")?.trim();
+    const motivo = (await pedirTexto(`Mover ${ids.length} ${pl(ids.length, "produto", "produtos")} para "${nome}". Motivo (fica no histórico):`, "Separação dos cadastros: máquinas, peças de reposição e componentes"))?.trim();
     if (!motivo) return "Nada mudou";
     const extra = tipo === "insumo" ? { vendavel: false, no_catalogo: false } : {};
     for (let i = 0; i < ids.length; i += 200) {
       const { error } = await supabase.from("produtos").update({ tipo, motivo_alteracao: motivo, ...extra }).in("id", ids.slice(i, i + 200));
       if (error) throw error;
     }
-    return `${ids.length} produto(s) agora em ${nome}`;
+    return `${ids.length} ${pl(ids.length, "produto", "produtos")} agora em ${nome}`;
   }
   async function catalogo(ids: string[], no: boolean) {
     const { error } = await supabase.from("produtos").update({ no_catalogo: no }).in("id", ids);
@@ -212,7 +213,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     // só aparece na loja e no WhatsApp com foto e preço de venda: avisa quem ainda não vai aparecer
     const faltando = no ? produtosTodos.filter((p) => ids.includes(p.id) && pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })) : [];
     const aviso = faltando.length ? `. ${faltando.length} ainda não aparece(m) na loja: ${faltando.slice(0, 3).map((p) => `${p.descricao} (${pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })})`).join("; ")}` : "";
-    return `${ids.length} produto(s) ${no ? "no catálogo" : "fora do catálogo"}${aviso}`;
+    return `${ids.length} ${pl(ids.length, "produto", "produtos")} ${no ? "no catálogo" : "fora do catálogo"}${aviso}`;
   }
   const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo));
   const consumo = resumoMovimentos(movimentos, hoje());
@@ -234,7 +235,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const estoque = (r: Produto) => {
     if (r.kit) {
       const montaveis = estoqueKit(r.id, comps, (id) => (atual ? saldo(id, atual) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0)));
-      return { texto: `${montaveis} kit(s)`, detalhe: "pelos componentes", alerta: false };
+      return { texto: `${montaveis} ${pl(montaveis, "kit", "kits")}`, detalhe: "pelos componentes", alerta: false };
     }
     const qtd = atual ? saldo(r.id, atual) : Number(r.estoque_atual);
     return {
@@ -347,7 +348,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         <button type="button" onClick={() => setAba("precos")}
           className="mb-3 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
           <AlertTriangle size={18} className="shrink-0" />
-          <span className="min-w-0 flex-1"><b>{precosPendentes} preço(s) para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
+          <span className="min-w-0 flex-1"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
           <span className="shrink-0 font-semibold underline">Revisar</span>
         </button>
       )}
@@ -355,7 +356,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <span>
-            <b>{baixos.length} item(ns) no estoque mínimo ou abaixo</b>
+            <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
             <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
               {baixos.length > 6 && "…"}</span>
           </span>
@@ -375,7 +376,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
           <Boxes size={18} className="shrink-0" />
-          <span className="min-w-0 flex-1"><b>Sugestão de separação:</b> {sugeridos.length} produto(s) estão como peça de reposição mas marcados <b>"não vende"</b> (o cliente não compra). Pelo jeito são componentes de produção.</span>
+          <span className="min-w-0 flex-1"><b>Sugestão de separação:</b> {sugeridos.length} {pl(sugeridos.length, "produto", "produtos")} estão como peça de reposição mas marcados <b>"não vende"</b> (o cliente não compra). Pelo jeito são componentes de produção.</span>
           <Button variant="secondary" onClick={() => setVerSugestao(true)}>Conferir e mover</Button>
         </div>
       )}
@@ -836,7 +837,7 @@ function SugestaoComponentes({ produtos, onClose, onMover }: { produtos: Produto
         ))}
       </ul>
       <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-        <span className="mr-auto text-sm text-slate-600">{marcados.size} de {produtos.length} marcado(s)</span>
+        <span className="mr-auto text-sm text-slate-600">{marcados.size} de {produtos.length} {pl(produtos.length, "marcado", "marcados")}</span>
         <Button variant="secondary" onClick={onClose}>Cancelar</Button>
         <Button disabled={ocupado || !marcados.size} onClick={async () => { setOcupado(true); await onMover([...marcados]); setOcupado(false); }}>
           {ocupado ? "Movendo…" : `Mover ${marcados.size} para Componentes`}

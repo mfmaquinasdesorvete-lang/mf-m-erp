@@ -28,6 +28,7 @@ import {
   CONDICOES, completude, iniciais, numeroBR, pendenciasCadastro, REGIMES, rotuloCrm, STATUS_CRM, type Aba,
 } from "@/lib/fichaCadastral";
 import type { PessoaContato } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
 export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -143,7 +144,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const crm = rotuloCrm(c.status_crm);
   const nomeTopo = String(c.nome_fantasia || c.nome || "").trim();
 
-  const fechar = () => { if (!sujo || confirm("Sair sem salvar as alterações?")) onClose(); };
+  const fechar = async () => { if (!sujo || (await confirmar("Sair sem salvar as alterações?"))) onClose(); };
   const fecharRef = useRef(fechar);
   fecharRef.current = fechar;
   const fecharEstavel = useCallback(() => fecharRef.current(), []);
@@ -265,7 +266,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   async function salvar() {
     const eraNovo = !c.id;
     const quem = nomeTopo || "Este cadastro";
-    if (deixaCliente && !confirm(`${quem} vai para Fornecedores e sai da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`)) return;
+    if (deixaCliente && !(await confirmar(`${quem} vai para Fornecedores e sai da lista de clientes. Os anexos vão junto; pedidos, notas e contas antigos continuam no histórico. Continuar?`))) return;
     const salvo = await gravar();
     if (!salvo) return;
     if (deixaCliente) {

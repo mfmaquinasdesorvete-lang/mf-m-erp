@@ -4,7 +4,7 @@ import { PageHeader, Section, Stat, Tabs } from "@/components/ui";
 import { Colunas, Ranking } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
-import { brl, hoje, somarDias } from "@/lib/format";
+import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { MOTIVOS } from "@/lib/propostas";
 import type { Vendedor } from "@/lib/types";
 
@@ -64,7 +64,7 @@ export default function Relatorios() {
       prod.set(i.produto_id, atual);
     }
     const top = [...prod.values()].sort((a, b) => b.valor - a.valor).slice(0, 6)
-      .map((p) => ({ rotulo: p.rotulo, valor: p.valor, detalhe: `${p.qtd} unidade(s)` }));
+      .map((p) => ({ rotulo: p.rotulo, valor: p.valor, detalhe: `${p.qtd} ${pl(p.qtd, "unidade", "unidades")}` }));
 
     // DRE simplificado (competência)
     const receitaVendas = vendas.reduce((s, p) => s + Number(p.valor_total), 0);
@@ -168,7 +168,7 @@ export default function Relatorios() {
       ]} />
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={TrendingUp} tom="info" label="Vendas no período" valor={brl(r.receitaVendas)} sub={`${r.qtdVendas} pedido(s)`} />
+        <Stat icon={TrendingUp} tom="info" label="Vendas no período" valor={brl(r.receitaVendas)} sub={`${r.qtdVendas} ${pl(r.qtdVendas, "pedido", "pedidos")}`} />
         <Stat icon={Receipt} label="Ticket médio" valor={brl(r.ticket)} />
         <Stat icon={Percent} tom={r.margem < 0.2 ? "atencao" : "bom"} label="Margem bruta dos produtos"
           valor={`${(r.margem * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} sub="venda menos custo do produto" />
@@ -208,10 +208,10 @@ export default function Relatorios() {
             <Mini rotulo="Enviadas" valor={String(r.propostas.enviadas)} sub={`${r.propostas.abertas} abertas pelo cliente`} />
             <Mini rotulo="Conversão" valor={`${Math.round(r.propostas.conversao * 100)}%`} sub={`${r.propostas.ganhas} ganhas · ${r.propostas.perdidas} perdidas`} />
             <Mini rotulo="Ganho" valor={brl(r.propostas.valorGanho)} sub={`${brl(r.propostas.valorAberto)} em aberto`} />
-            <Mini rotulo="Perdido" valor={brl(r.propostas.valorPerdido)} sub={r.propostas.diasResposta != null ? `resposta em ${r.propostas.diasResposta.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dia(s)` : ""} />
+            <Mini rotulo="Perdido" valor={brl(r.propostas.valorPerdido)} sub={r.propostas.diasResposta != null ? `resposta em ${r.propostas.diasResposta.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${pl(Math.round(r.propostas.diasResposta * 10) / 10, "dia", "dias")}` : ""} />
           </div>
           <h3 className="mb-2 text-sm font-semibold text-slate-600">Por que perdemos</h3>
-          {r.propostas.motivos.length ? <Ranking itens={r.propostas.motivos} cor="var(--serie-2)" formatar={(v) => `${v} proposta(s)`} /> : <p className="text-sm text-slate-500">Nenhuma proposta perdida no período.</p>}
+          {r.propostas.motivos.length ? <Ranking itens={r.propostas.motivos} cor="var(--serie-2)" formatar={(v) => `${v} ${pl(v, "proposta", "propostas")}`} /> : <p className="text-sm text-slate-500">Nenhuma proposta perdida no período.</p>}
           {r.propostas.concorrentes.length > 0 && (
             <p className="mt-3 text-sm text-slate-600">Concorrentes citados: {r.propostas.concorrentes.map(([c, n]) => `${c} (${n})`).join(", ")}</p>
           )}

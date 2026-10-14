@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Ban, CalendarClock, Check, CheckCheck, Wallet, X } from "lucide-react";
 import { BotaoAtalho, Button, COR_ATALHO, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje as hojeISO } from "@/lib/format";
+import { brl, dataBR, hoje as hojeISO, pl } from "@/lib/format";
 import { somarDias } from "@/lib/financeiro";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -203,11 +203,11 @@ export function PagarLoteModal({ contas, onClose, onPago }: { contas: Conta[]; o
         pagas += Number((r as { pagas: number }).pagas ?? 0);
         soma += Number((r as { total: number }).total ?? 0);
       }
-      notify(`${pagas} conta(s) paga(s) · ${brl(soma)}`);
+      notify(`${pagas} ${pl(pagas, "conta", "contas")} ${pl(pagas, "paga", "pagas")} · ${brl(soma)}`);
       onPago?.();
       onClose();
     } catch (err) {
-      if (pagas) notify(`${pagas} conta(s) já foram pagas (${brl(soma)}); o resto parou no erro abaixo`, "erro");
+      if (pagas) notify(`${pagas} ${pl(pagas, "conta", "contas")} já foram pagas (${brl(soma)}); o resto parou no erro abaixo`, "erro");
       notifyError(err);
     } finally {
       invalidate("contas_pagar", "saldos_bancarios", "movimentos_realizados", "auditoria");
@@ -216,14 +216,14 @@ export function PagarLoteModal({ contas, onClose, onPago }: { contas: Conta[]; o
   }
 
   return (
-    <Modal open onClose={onClose} title={`Pagar em lote — ${validas.length} conta(s) · ${brl(total)}`}>
+    <Modal open onClose={onClose} title={`Pagar em lote — ${validas.length} ${pl(validas.length, "conta", "contas")} · ${brl(total)}`}>
       <form onSubmit={pagar} className="space-y-3">
         <Field label="Data do pagamento"><input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} required /></Field>
         {grupos.map((g) => {
           const opcoes = bancosDe(g.unidade_id);
           return (
             <fieldset key={g.unidade_id ?? "-"} className="rounded-lg border border-slate-200 p-3">
-              <legend className="px-1 text-xs font-semibold text-slate-600">{nomeUnidade(g.unidade_id)} · {g.contas.length} conta(s) · {brl(g.total)}</legend>
+              <legend className="px-1 text-xs font-semibold text-slate-600">{nomeUnidade(g.unidade_id)} · {g.contas.length} {pl(g.contas.length, "conta", "contas")} · {brl(g.total)}</legend>
               <Field label="Sai de qual conta bancária?">
                 <select className="input" value={banco[g.unidade_id ?? ""] ?? ""} required={opcoes.length > 0}
                   onChange={(e) => setBanco({ ...banco, [g.unidade_id ?? ""]: e.target.value })}>
@@ -242,7 +242,7 @@ export function PagarLoteModal({ contas, onClose, onPago }: { contas: Conta[]; o
         {naoPagar.length > 0 && (
           <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-2.5 text-sm">
             <input type="checkbox" className="mt-1" checked={incluirNaoPagar} onChange={(e) => setIncluirNaoPagar(e.target.checked)} />
-            <span>{naoPagar.length} marcada(s) como <b>não pagar</b> ({brl(naoPagar.reduce((s, c) => s + Number(c.valor), 0))}) ficam fora. Marque para pagar também.</span>
+            <span>{naoPagar.length} {pl(naoPagar.length, "marcada", "marcadas")} como <b>não pagar</b> ({brl(naoPagar.reduce((s, c) => s + Number(c.valor), 0))}) ficam fora. Marque para pagar também.</span>
           </label>
         )}
         <p className="text-xs text-slate-500">Cada conta é paga pelo valor cheio. Para pagar com desconto, juros ou só uma parte, use o botão <b>Baixa</b> da própria conta.</p>
@@ -271,7 +271,7 @@ export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () 
   const semAprovacao = abertas.length - aprovadas.length;
   return (
     <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
-      <span className="mr-auto text-sm"><b>{contas.length}</b> marcada(s){abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}
+      <span className="mr-auto text-sm"><b>{contas.length}</b> {pl(contas.length, "marcada", "marcadas")}{abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}
         {semAprovacao > 0 && <span className="text-amber-800" title={TEXTO_FALTA_APROVAR}> · {semAprovacao} sem aprovação: só “Não pagar”</span>}</span>
       <Button type="button" variant="secondary" disabled={ocupado || !idsPagar.length} onClick={async () => { if (await programar(idsPagar, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>
       <Button type="button" variant="secondary" disabled={!idsPagar.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>

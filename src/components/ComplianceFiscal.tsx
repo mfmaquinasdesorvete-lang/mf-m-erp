@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown, Landmark, ShieldAlert } from 
 import { Card, Section } from "./ui";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, pl } from "@/lib/format";
 import { buracosNumeracao, conferirCliente, conferirProduto, conferirUnidade, REFORMA, TESTE_2026, type Pendencia } from "@/lib/compliance";
 import type { Cliente, Produto } from "@/lib/types";
 
@@ -92,7 +92,7 @@ function GrupoPendencias({ g }: { g: Grupo }) {
       <button type="button" onClick={() => setAberto(!aberto)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         {g.itens.length ? <AlertTriangle size={18} className={e ? "text-red-600" : "text-amber-600"} /> : <CheckCircle2 size={18} className="text-emerald-600" />}
         <span className="flex-1 font-semibold text-fg">{g.titulo}</span>
-        <span className="text-sm text-slate-500">{g.itens.length ? [e && `${e} erro(s)`, a && `${a} alerta(s)`].filter(Boolean).join(" · ") : g.ok}</span>
+        <span className="text-sm text-slate-500">{g.itens.length ? [e && `${e} ${pl(e, "erro", "erros")}`, a && `${a} ${pl(a, "alerta", "alertas")}`].filter(Boolean).join(" · ") : g.ok}</span>
         {g.itens.length > 0 && <ChevronDown size={18} className={`text-slate-400 transition ${aberto ? "rotate-180" : ""}`} />}
       </button>
       {aberto && g.itens.length > 0 && (

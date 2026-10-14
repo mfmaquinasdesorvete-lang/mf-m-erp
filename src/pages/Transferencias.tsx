@@ -12,6 +12,7 @@ import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import type { Produto } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 type Item = { id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; numero_serie?: string | null };
 type Transf = {
@@ -188,7 +189,7 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
           {t.id && podeEditar && ["rascunho", "enviada"].includes(t.status ?? "") && (
             <Button type="button" variant="ghost" className="!text-red-600 mr-auto" disabled={ocupado}
-              onClick={() => confirm("Cancelar a transferência? Se já saiu, volta para o estoque da origem.") && rpc("cancelar_transferencia", t.id!, "Transferência cancelada", "cancelada")}>
+              onClick={async () => (await confirmar("Cancelar a transferência? Se já saiu, volta para o estoque da origem.")) && rpc("cancelar_transferencia", t.id!, "Transferência cancelada", "cancelada")}>
               <X size={16} /> Cancelar
             </Button>
           )}

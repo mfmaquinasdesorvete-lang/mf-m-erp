@@ -8,7 +8,7 @@ import { Area } from "@/components/Charts";
 import { FichaCliente } from "@/components/FichaCliente";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { ROTULO_SITUACAO } from "@/lib/fichaCliente";
 import {
   carteira, clientesCompradores, curvaABC, estoqueParado, gargalos, indicadores, produtosVendidos, resumoABC, serieMensal, tendencias, vendasDaEmpresa,
@@ -82,7 +82,7 @@ export default function Gerencial() {
         <Stat icon={Receipt} label="Últimos 12 meses" valor={brl(r.k.doze.atual)}
           sub={<><Variacao c={r.k.doze} base="vs 12 meses anteriores" /><br />{r.k.vendas.atual} vendas · ticket médio {brl(r.k.ticket.atual)}</>} />
         <Stat icon={Users} label="Clientes que compraram (12 meses)" valor={r.k.clientes.atual}
-          sub={<><Variacao c={r.k.clientes} base="vs 12 meses anteriores" /><br />{r.k.novos.atual} novo(s) · {contagem("em_risco")} em risco · {contagem("inativo")} inativo(s)</>} />
+          sub={<><Variacao c={r.k.clientes} base="vs 12 meses anteriores" /><br />{r.k.novos.atual} {pl(r.k.novos.atual, "novo", "novos")} · {contagem("em_risco")} em risco · {contagem("inativo")} {pl(contagem("inativo"), "inativo", "inativos")}</>} />
       </div>
 
       <Section title="Onde a operação está travando" className="mb-5">
@@ -211,7 +211,7 @@ function TabelaABC({ linhas, tipo, verTodos, setVerTodos, abrir }: {
         {resumo.map((x) => (
           <div key={x.classe} className={`rounded-xl p-3 text-sm ${COR[x.classe]}`}>
             <div className="text-lg font-bold">Classe {x.classe}</div>
-            <div>{x.itens} {tipo === "produto" ? "produto(s)" : "cliente(s)"} ({x.pctItens}%) fazem {x.pctValor}% das vendas · {brl(x.valor)}</div>
+            <div>{x.itens} {tipo === "produto" ? pl(x.itens, "produto", "produtos") : pl(x.itens, "cliente", "clientes")} ({x.pctItens}%) fazem {x.pctValor}% das vendas · {brl(x.valor)}</div>
           </div>
         ))}
       </div>

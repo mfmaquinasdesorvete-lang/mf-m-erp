@@ -5,7 +5,7 @@ import { AlertTriangle, Undo2 } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { callFunction } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
-import { brl, docFormat } from "@/lib/format";
+import { brl, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 
@@ -132,7 +132,7 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
             Ao autorizar, o estoque {previa.tipo === "venda" ? "entra" : "sai"} sozinho; se a devolução for cancelada, volta. A devolução do dinheiro ou o crédito é lançado no financeiro.
           </p>
           <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-3">
-            <span className="text-sm text-slate-600">{escolhidos.length} item(ns) · produtos {brl(total)}</span>
+            <span className="text-sm text-slate-600">{escolhidos.length} {pl(escolhidos.length, "item", "itens")} · produtos {brl(total)}</span>
             <Button type="button" variant="secondary" onClick={onClose}>Voltar</Button>
             <Button type="button" onClick={emitir} disabled={ocupado || !escolhidos.length || invalido || motivo.trim().length < 15 || previa.faltas.length > 0}>
               <Undo2 size={16} /> {ocupado ? "Enviando…" : "Emitir NF de devolução"}

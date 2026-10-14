@@ -6,7 +6,7 @@ import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, T
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
-import { brl, dataBR, docFormat, hoje } from "@/lib/format";
+import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -94,7 +94,7 @@ function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: 
   if (!n) return null;
   return (
     <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-brand/40 bg-surface p-2 text-sm shadow-card">
-      <b className="px-1">{n} selecionada(s)</b>
+      <b className="px-1">{n} {pl(n, "selecionada", "selecionadas")}</b>
       <Button type="button" variant="secondary" onClick={onMarcadores}><Tags size={15} /> Marcadores</Button>
       <Button type="button" variant="ghost" onClick={onLimpar}>Limpar seleção</Button>
     </div>
@@ -227,7 +227,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <b>Contingência:</b> a SEFAZ ou a Focus não respondeu e há nota(s) na fila. O ERP reenvia sozinho a cada 15 minutos
+          <b>Contingência:</b> a SEFAZ ou a Focus não respondeu e há notas na fila. O ERP reenvia sozinho a cada 15 minutos
           (e a Focus usa o ambiente de contingência SVC quando a SEFAZ do estado está fora). Abra a nota para tentar agora.
         </div>
       )}
@@ -302,7 +302,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
     setBuscando(true);
     try {
       const r = await callFunction("nfe-recebidas-sync", { acao: "sincronizar" });
-      notify(`${r.processadas} nota(s) sincronizada(s), ${r.automaticas} processada(s) automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`);
+      notify(`${r.processadas} ${pl(r.processadas, "nota", "notas")} ${pl(r.processadas, "sincronizada", "sincronizadas")}, ${r.automaticas} ${pl(r.automaticas, "processada", "processadas")} automaticamente${r.avisos?.length ? `. Não buscou: ${r.avisos.join("; ")}` : ""}`);
       invalidate("nfe_recebidas", "fornecedores", "contas_pagar");
     } catch (e) {
       notifyError(e);
@@ -329,7 +329,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
             try {
               const { data: n, error } = await supabase.rpc("lancar_duplicatas_a_vencer");
               if (error) throw error;
-              notify(n ? `${n} parcela(s) a vencer lançada(s) no contas a pagar` : "Nenhuma parcela a vencer sem conta lançada");
+              notify(n ? `${n} ${pl(n, "parcela", "parcelas")} a vencer ${pl(n, "lançada", "lançadas")} no contas a pagar` : "Nenhuma parcela a vencer sem conta lançada");
               invalidate("contas_pagar");
             } catch (e) { notifyError(e); }
           }}><CalendarClock size={16} /> Lançar contas a vencer</Button>

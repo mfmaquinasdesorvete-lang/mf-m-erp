@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Copy, Download, PackagePlus, RefreshCw, Tags, Trash2, Undo2 } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
-import { brl, dataBR, docFormat } from "@/lib/format";
+import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 import { numeroDaChave, situacaoRecebida } from "@/lib/notas";
@@ -16,6 +16,7 @@ import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores"
 import { DevolucaoModal } from "./DevolucaoModal";
 import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
 import { evolucaoRecebida } from "@/lib/evolucaoNota";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 
 export type Recebida = {
   id: string; chave: string; emitente_nome: string; emitente_cnpj: string; valor_total: number; data_emissao: string;
@@ -62,13 +63,13 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
     URL.revokeObjectURL(url);
   }
 
-  function manifestar(tipo: string) {
+  async function manifestar(tipo: string) {
     let justificativa: string | undefined;
     if (tipo === "nao_realizada") {
-      justificativa = prompt("Justificativa (mínimo 15 caracteres):") ?? undefined;
+      justificativa = (await pedirTexto("Justificativa (mínimo 15 caracteres):")) ?? undefined;
       if (!justificativa) return;
     }
-    if (tipo !== "ciencia" && !confirm("Esta manifestação é definitiva junto à SEFAZ. Confirmar?")) return;
+    if (tipo !== "ciencia" && !(await confirmar("Esta manifestação é definitiva junto à SEFAZ. Confirmar?"))) return;
     executar({ acao: "manifestar", chave: n.chave, tipo, justificativa }, () => "Manifestação registrada", true);
   }
 
@@ -147,7 +148,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             )}
             {ativa && !n.estoque_lancado && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => setJanela("entrada")}><PackagePlus size={15} /> Entrada no estoque</Button>}
             {ativa && !n.conta_pagar_id && n.finalidade !== "devolucao" && (
-              <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "lancar_conta", nfe_id: n.id }, (r) => `${r.contas} parcela(s) lançada(s) em contas a pagar`, true)}>Lançar a pagar</Button>
+              <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "lancar_conta", nfe_id: n.id }, (r) => `${r.contas} ${pl(r.contas, "parcela", "parcelas")} ${pl(r.contas, "lançada", "lançadas")} em contas a pagar`, true)}>Lançar a pagar</Button>
             )}
             {ativa && n.finalidade !== "devolucao" && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
             {!n.estoque_lancado && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}

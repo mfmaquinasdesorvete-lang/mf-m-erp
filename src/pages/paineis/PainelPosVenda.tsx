@@ -14,7 +14,7 @@ import {
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import type { Equipamento, OrdemServico } from "@/lib/types";
 
@@ -103,7 +103,7 @@ export default function PainelPosVenda() {
     { id: "entraram", rotulo: "Entraram", valor: k.entraram, icone: Clock, cor: "var(--kpi-azul)", delta: k.dEntraram, bomCair: true, tendencia: k.tendEntraram,
       sub: "máquinas recebidas para conserto" },
     { id: "prontas", rotulo: "Consertadas", valor: k.prontas, icone: PackageCheck, cor: "var(--kpi-verde)", delta: k.dProntas, tendencia: k.tendProntas,
-      sub: k.prontas ? `em média ${k.tempo.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dia(s) na bancada` : "nenhuma concluída no período",
+      sub: k.prontas ? `em média ${k.tempo.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${pl(Math.round(k.tempo * 10) / 10, "dia", "dias")} na bancada` : "nenhuma concluída no período",
       ...(k.dTempo != null ? { titulo: `tempo médio ${k.dTempo <= 0 ? "menor" : "maior"} que ${per.anterior}` } : {}) },
     { id: "receita", rotulo: "Faturado em serviços", valor: brl(k.receita), icone: CircleDollarSign, cor: "var(--kpi-roxo)", delta: k.dReceita, tendencia: k.tendReceita,
       sub: k.garantiaNoPeriodo ? `+ ${k.garantiaNoPeriodo} OS em garantia (sem cobrança)` : "OS fora da garantia" },
@@ -111,11 +111,11 @@ export default function PainelPosVenda() {
 
   const atencao: ItemAtencao[] = [
     k.atrasadas.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadas.length} OS com a entrega atrasada`, sub: k.atrasadas.slice(0, 3).map((o) => `#${o.numero} ${o.cliente?.nome ?? ""}`).join(" · "), to: "/assistencia" },
-    k.etapas[2].lista.length > 0 && { icone: Hourglass, cor: "var(--kpi-roxo)", texto: `${k.etapas[2].lista.length} orçamento(s) de conserto esperando o cliente aprovar`, sub: "vale ligar ou mandar WhatsApp", to: "/assistencia" },
+    k.etapas[2].lista.length > 0 && { icone: Hourglass, cor: "var(--kpi-roxo)", texto: `${k.etapas[2].lista.length} ${pl(k.etapas[2].lista.length, "orçamento", "orçamentos")} de conserto esperando o cliente aprovar`, sub: "vale ligar ou mandar WhatsApp", to: "/assistencia" },
     k.etapas[1].lista.length > 0 && { icone: Clock, cor: "var(--kpi-laranja)", texto: `${k.etapas[1].lista.length} OS esperando peça`, sub: "confira os pedidos de compra", to: "/producao", state: { aba: "compras" } },
-    k.paradasRetirada.length > 0 && { icone: PackageCheck, cor: "var(--kpi-ciano)", texto: `${k.paradasRetirada.length} máquina(s) prontas há mais de 7 dias sem retirada`, to: "/assistencia" },
-    g.prevAtrasada > 0 && { icone: BellRing, cor: "var(--kpi-rosa)", texto: `${g.prevAtrasada} preventiva(s) atrasada(s)`, sub: lembretes.length ? `${lembretes.length} cliente(s) para lembrar` : undefined, to: "/garantias", state: { lembretes: true } },
-    g.vence > 0 && { icone: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${g.vence} garantia(s) vencendo em 30 dias`, sub: "oportunidade de contrato de manutenção", to: "/garantias" },
+    k.paradasRetirada.length > 0 && { icone: PackageCheck, cor: "var(--kpi-ciano)", texto: `${k.paradasRetirada.length} ${pl(k.paradasRetirada.length, "máquina", "máquinas")} prontas há mais de 7 dias sem retirada`, to: "/assistencia" },
+    g.prevAtrasada > 0 && { icone: BellRing, cor: "var(--kpi-rosa)", texto: `${g.prevAtrasada} ${pl(g.prevAtrasada, "preventiva", "preventivas")} ${pl(g.prevAtrasada, "atrasada", "atrasadas")}`, sub: lembretes.length ? `${lembretes.length} ${pl(lembretes.length, "cliente", "clientes")} para lembrar` : undefined, to: "/garantias", state: { lembretes: true } },
+    g.vence > 0 && { icone: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${g.vence} ${pl(g.vence, "garantia", "garantias")} vencendo em 30 dias`, sub: "oportunidade de contrato de manutenção", to: "/garantias" },
   ].filter(Boolean) as ItemAtencao[];
 
   const etapaAtiva = k.etapas.find((e) => e.rotulo === fEtapa);
@@ -123,7 +123,7 @@ export default function PainelPosVenda() {
     .sort((a, b) => (a.previsao ?? "9999").localeCompare(b.previsao ?? "9999")).slice(0, 8);
 
   const resumo = isLoading ? "Carregando…"
-    : <>{k.abertas.length} OS em andamento{k.atrasadas.length ? `, ${k.atrasadas.length} atrasada(s)` : ""} · {k.prontas} consertada(s) {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dProntas, periodo) ? ` (${frasePeriodo(k.dProntas, periodo)})` : ""}.</>;
+    : <>{k.abertas.length} OS em andamento{k.atrasadas.length ? `, ${k.atrasadas.length} ${pl(k.atrasadas.length, "atrasada", "atrasadas")}` : ""} · {k.prontas} {pl(k.prontas, "consertada", "consertadas")} {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dProntas, periodo) ? ` (${frasePeriodo(k.dProntas, periodo)})` : ""}.</>;
 
   const filtros = [
     fTecnico && { rotulo: "Técnico", valor: fTecnico, limpar: () => setFTecnico(null) },
@@ -194,7 +194,7 @@ export default function PainelPosVenda() {
         <Section title="Técnicos" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
           <Ranking ativo={fTecnico} cor="var(--serie-3)" formatar={(v) => `${v} OS`} vazio="Nenhuma OS no período."
             onClicar={(i) => { const t = k.tecnicos[i][0]; setFTecnico(fTecnico === t ? null : t); }}
-            itens={k.tecnicos.map(([nome, v]) => ({ rotulo: nome, valor: v.qtd, detalhe: `${v.abertas} em andamento${v.qtd ? ` · ${(v.dias / v.qtd).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dia(s) por conserto` : ""}` }))} />
+            itens={k.tecnicos.map(([nome, v]) => ({ rotulo: nome, valor: v.qtd, detalhe: `${v.abertas} em andamento${v.qtd ? ` · ${(v.dias / v.qtd).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${pl(Math.round((v.dias / v.qtd) * 10) / 10, "dia", "dias")} por conserto` : ""}` }))} />
         </Section>
         <Section title="Máquinas que mais voltam">
           <Ranking cor="var(--serie-2)" formatar={(v) => `${v} OS`} vazio="Nenhuma máquina entrou no período."
@@ -217,7 +217,7 @@ export default function PainelPosVenda() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-500">{g.prevProxima} preventiva(s) nos próximos 30 dias.</p>
+          <p className="mt-2 text-xs text-slate-500">{g.prevProxima} {pl(g.prevProxima, "preventiva", "preventivas")} nos próximos 30 dias.</p>
         </Section>
       </div>
 

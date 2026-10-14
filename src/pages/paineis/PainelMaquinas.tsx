@@ -15,7 +15,7 @@ import {
 } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { vendasDaEmpresa } from "@/lib/gerencial";
 import { diasDeEstoque, linhasVendidas, margemPct, SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
@@ -157,13 +157,13 @@ export default function PainelMaquinas() {
 
   const cartoes: Cartao[] = [
     { id: "vendidas", rotulo: "Máquinas vendidas", valor: un(k.vendidas), icone: ShoppingCart, cor: "var(--kpi-verde)", delta: k.dVendidas, tendencia: k.tendVendidas,
-      sub: `${k.ranking.length} modelo(s) diferente(s)`, onClick: () => navigate("/pedidos") },
+      sub: `${k.ranking.length} ${pl(k.ranking.length, "modelo", "modelos")} ${pl(k.ranking.length, "diferente", "diferentes")}`, onClick: () => navigate("/pedidos") },
     { id: "fat", rotulo: "Faturamento com máquinas", valor: brl(k.faturamento), icone: BadgeDollarSign, cor: "var(--kpi-azul)", delta: k.dFaturamento, tendencia: k.tendFat,
       sub: k.vendidas ? `preço médio de ${brl(k.ticket)} por máquina` : "nenhuma máquina vendida no período", onClick: () => navigate("/margem") },
     { id: "estoque", rotulo: "Prontas no estoque", valor: un(k.estoque), icone: Warehouse, cor: "var(--kpi-roxo)",
       sub: `${k.montagem ? `+ ${un(k.montagem)} em montagem · ` : ""}${brl(k.valorEstoque)} a custo`, onClick: () => navigate("/produtos/maquinas") },
     { id: "parque", rotulo: "Máquinas com clientes", valor: un(Math.max(k.totalVendidas, k.parque)), icone: MapPin, cor: "var(--kpi-ciano)",
-      sub: `${k.primeiraVenda ? `vendidas desde ${dataBR(k.primeiraVenda)} · ` : ""}${k.parque} registrada(s) em Garantias, ${k.garantia} em garantia`,
+      sub: `${k.primeiraVenda ? `vendidas desde ${dataBR(k.primeiraVenda)} · ` : ""}${k.parque} ${pl(k.parque, "registrada", "registradas")} em Garantias, ${k.garantia} em garantia`,
       titulo: "Todas as máquinas vendidas (pedidos do ERP e notas do sistema anterior). Garantia e preventiva só das registradas em Garantias.", onClick: () => navigate("/garantias") },
   ];
 
@@ -172,19 +172,19 @@ export default function PainelMaquinas() {
   const parados = k.modelos.filter((m) => m.sit === "parado");
   const prejuizo = k.modelos.filter((m) => m.margem != null && m.margem < 0);
   const atencao: ItemAtencao[] = [
-    semMaquina.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${semMaquina.length} modelo(s) vendendo e sem máquina pronta nem em montagem`, sub: semMaquina.slice(0, 3).map((m) => m.nome).join(" · "), to: "/producao" },
-    produzir.length > 0 && { icone: Factory, cor: "var(--kpi-laranja)", texto: `${produzir.length} modelo(s) dão para menos de 30 dias de venda`, sub: produzir.slice(0, 3).map((m) => `${m.nome} (${m.diasDa ?? 0} dias)`).join(" · "), to: "/producao" },
-    k.atrasadasOP.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadasOP.length} OP(s) de máquina passaram da data prevista`, to: "/producao" },
-    k.venceLogo.length > 0 && { icone: ShieldAlert, cor: "var(--kpi-laranja)", texto: `${k.venceLogo.length} garantia(s) vencem nos próximos 30 dias`, sub: "boa hora para oferecer preventiva ou contrato", to: "/garantias" },
-    k.prevAtrasada.length > 0 && { icone: CalendarClock, cor: "var(--kpi-rosa)", texto: `${k.prevAtrasada.length} preventiva(s) atrasada(s)`, sub: k.prevAtrasada.slice(0, 3).map((e) => e.cliente?.nome_fantasia || e.cliente?.nome || e.descricao).join(" · "), to: "/garantias" },
-    k.semRegistro > 0 && { icone: ShieldAlert, cor: "var(--kpi-roxo)", texto: `${k.semRegistro} máquina(s) vendida(s) sem registro em Garantias`, sub: "a maioria veio do sistema anterior: registre cliente e nº de série para controlar garantia e preventiva", to: "/garantias" },
-    k.semSerie > 0 && { icone: Hash, cor: "var(--kpi-roxo)", texto: `${k.semSerie} máquina(s) vendida(s) sem número de série`, sub: "sem o número fica difícil comprovar a garantia", to: "/garantias" },
-    prejuizo.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${prejuizo.length} modelo(s) vendidos abaixo do custo`, sub: prejuizo.slice(0, 3).map((m) => m.nome).join(" · "), to: "/margem" },
-    parados.length > 0 && { icone: Warehouse, cor: "var(--eixo-texto)", texto: `${parados.length} modelo(s) com estoque e sem venda há 90 dias`, sub: parados.slice(0, 3).map((m) => `${m.nome} (${m.estoque})`).join(" · "), to: "/produtos/maquinas" },
+    semMaquina.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${semMaquina.length} ${pl(semMaquina.length, "modelo", "modelos")} vendendo e sem máquina pronta nem em montagem`, sub: semMaquina.slice(0, 3).map((m) => m.nome).join(" · "), to: "/producao" },
+    produzir.length > 0 && { icone: Factory, cor: "var(--kpi-laranja)", texto: `${produzir.length} ${pl(produzir.length, "modelo", "modelos")} dão para menos de 30 dias de venda`, sub: produzir.slice(0, 3).map((m) => `${m.nome} (${m.diasDa ?? 0} dias)`).join(" · "), to: "/producao" },
+    k.atrasadasOP.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadasOP.length} ${pl(k.atrasadasOP.length, "OP", "OPs")} de máquina passaram da data prevista`, to: "/producao" },
+    k.venceLogo.length > 0 && { icone: ShieldAlert, cor: "var(--kpi-laranja)", texto: `${k.venceLogo.length} ${pl(k.venceLogo.length, "garantia", "garantias")} vencem nos próximos 30 dias`, sub: "boa hora para oferecer preventiva ou contrato", to: "/garantias" },
+    k.prevAtrasada.length > 0 && { icone: CalendarClock, cor: "var(--kpi-rosa)", texto: `${k.prevAtrasada.length} ${pl(k.prevAtrasada.length, "preventiva", "preventivas")} ${pl(k.prevAtrasada.length, "atrasada", "atrasadas")}`, sub: k.prevAtrasada.slice(0, 3).map((e) => e.cliente?.nome_fantasia || e.cliente?.nome || e.descricao).join(" · "), to: "/garantias" },
+    k.semRegistro > 0 && { icone: ShieldAlert, cor: "var(--kpi-roxo)", texto: `${k.semRegistro} ${pl(k.semRegistro, "máquina", "máquinas")} ${pl(k.semRegistro, "vendida", "vendidas")} sem registro em Garantias`, sub: "a maioria veio do sistema anterior: registre cliente e nº de série para controlar garantia e preventiva", to: "/garantias" },
+    k.semSerie > 0 && { icone: Hash, cor: "var(--kpi-roxo)", texto: `${k.semSerie} ${pl(k.semSerie, "máquina", "máquinas")} ${pl(k.semSerie, "vendida", "vendidas")} sem número de série`, sub: "sem o número fica difícil comprovar a garantia", to: "/garantias" },
+    prejuizo.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${prejuizo.length} ${pl(prejuizo.length, "modelo", "modelos")} vendidos abaixo do custo`, sub: prejuizo.slice(0, 3).map((m) => m.nome).join(" · "), to: "/margem" },
+    parados.length > 0 && { icone: Warehouse, cor: "var(--eixo-texto)", texto: `${parados.length} ${pl(parados.length, "modelo", "modelos")} com estoque e sem venda há 90 dias`, sub: parados.slice(0, 3).map((m) => `${m.nome} (${m.estoque})`).join(" · "), to: "/produtos/maquinas" },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…"
-    : <>{un(k.vendidas)} vendida(s) {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dVendidas, periodo) ? ` (${frasePeriodo(k.dVendidas, periodo)})` : ""} · {un(k.estoque)} pronta(s){k.montagem ? ` e ${un(k.montagem)} em montagem` : ""} · {un(Math.max(k.totalVendidas, k.parque))} com clientes.</>;
+    : <>{un(k.vendidas)} {pl(un(k.vendidas), "vendida", "vendidas")} {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dVendidas, periodo) ? ` (${frasePeriodo(k.dVendidas, periodo)})` : ""} · {un(k.estoque)} {pl(un(k.estoque), "pronta", "prontas")}{k.montagem ? ` e ${un(k.montagem)} em montagem` : ""} · {un(Math.max(k.totalVendidas, k.parque))} com clientes.</>;
 
   return (
     <div className="space-y-4 sm:space-y-5">

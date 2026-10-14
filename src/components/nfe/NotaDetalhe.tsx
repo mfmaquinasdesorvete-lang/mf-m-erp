@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Copy, Download, ExternalLink, FilePen, FlaskConical, Printer, RefreshCw, Send, Tags, Trash2, Undo2, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { supabase, callFunction } from "@/lib/supabase";
-import { brl, dataBR, docFormat } from "@/lib/format";
+import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate, ler } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
@@ -19,6 +19,7 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { LinhaDoTempo, useEvolucaoEmitidas } from "./Evolucao";
 import { evolucaoEmitida } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
+import { confirmar } from "@/components/Dialogos";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -361,7 +362,7 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1">
           <b>Conta a receber:</b>{" "}
-          {validas.length ? <span className="text-emerald-700">{validas.length} parcela(s) lançada(s), {brl(validas.reduce((s, c) => s + Number(c.valor), 0))}</span>
+          {validas.length ? <span className="text-emerald-700">{validas.length} {pl(validas.length, "parcela", "parcelas")} {pl(validas.length, "lançada", "lançadas")}, {brl(validas.reduce((s, c) => s + Number(c.valor), 0))}</span>
             : <span className="text-slate-500">{op?.financeiro ? "ainda não lançada" : "não precisa (não é venda), mas pode lançar"}</span>}
         </span>
         {!leitura && autorizada && !validas.length && !form && (
@@ -383,7 +384,7 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
               const { data, error } = await supabase.rpc("lancar_contas_nota", { p_nota: n.id, p_parcelas: Number(form.parcelas) || 1, p_primeiro: form.primeiro, p_intervalo: Number(form.intervalo) || 30, p_forma: form.forma });
               if (error) throw error;
               setForm(null); refetch();
-              return `${data} conta(s) a receber lançada(s)`;
+              return `${data} ${pl(data, "conta", "contas")} a receber ${pl(data, "lançada", "lançadas")}`;
             })}>Lançar</Button>
             <Button type="button" variant="ghost" onClick={() => setForm(null)}>×</Button>
           </div>
@@ -402,17 +403,17 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
             const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: false });
             if (error) throw error;
             setEstoque(true);
-            return `Estoque baixado (${data} movimento(s))`;
+            return `Estoque baixado (${data} ${pl(data, "movimento", "movimentos")})`;
           })}>Baixar estoque</Button>
         )}
         {!leitura && !teste && estoque && (
-          <Button type="button" variant="ghost" disabled={ocupado} title="Devolve ao estoque o que esta nota baixou (ex.: nota cancelada)" onClick={() => {
-            if (!confirm("Devolver ao estoque os itens desta nota?")) return;
+          <Button type="button" variant="ghost" disabled={ocupado} title="Devolve ao estoque o que esta nota baixou (ex.: nota cancelada)" onClick={async () => {
+            if (!(await confirmar("Devolver ao estoque os itens desta nota?"))) return;
             rodar(async () => {
               const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: true });
               if (error) throw error;
               setEstoque(false);
-              return `Estoque devolvido (${data} movimento(s))`;
+              return `Estoque devolvido (${data} ${pl(data, "movimento", "movimentos")})`;
             });
           }}>Estornar estoque</Button>
         )}

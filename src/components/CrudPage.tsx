@@ -7,12 +7,18 @@ import { Button, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
-import { whatsappLink } from "@/lib/format";
+import { whatsappLink, pl } from "@/lib/format";
 import { combinaBusca } from "@/lib/buscaCliente";
 import { useLocation, useNavigate } from "react-router-dom";
 import { lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "./FaixaDestaque";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, filtroMarcadores, useMarcadores, type TabelaMarcavel } from "./nfe/Marcadores";
+import { confirmar } from "@/components/Dialogos";
+
+/** "clientes" → "cliente", "embalagens" → "embalagem", "formas de pagamento" → "forma de pagamento" (para "1 cliente"). */
+function singularDe(plural: string) {
+  return plural.replace(/^(\S+)/, (p) => p.endsWith("ns") ? p.slice(0, -2) + "m" : /[rz]es$/.test(p) ? p.slice(0, -2) : p.replace(/s$/, ""));
+}
 
 export type CampoForm = {
   name: string;
@@ -161,7 +167,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   /** Exclui os selecionados. O que tem vínculo (pedido, nota, conta…) o banco não deixa apagar: fica e é avisado. */
   async function excluirSelecionados() {
     const ids = [...sel];
-    if (!ids.length || !confirm(`Excluir ${ids.length} ${plural}? Isso não pode ser desfeito.`)) return;
+    if (!ids.length || !(await confirmar(`Excluir ${ids.length} ${pl(ids.length, singularDe(plural), plural)}? Isso não pode ser desfeito.`))) return;
     let feitos = 0;
     const presos: string[] = [];
     const apagar = async (lote: string[]) => {
@@ -183,8 +189,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }
     setSel(new Set(presos));
     if (presos.length) {
-      notify(`${feitos} excluído(s). ${presos.length} não puderam ser excluídos porque têm pedidos, notas, contas ou outros registros ligados (continuam selecionados).`, "erro");
-    } else notify(`${feitos} ${plural} excluído(s)`);
+      notify(`${feitos} ${pl(feitos, "excluído", "excluídos")}. ${presos.length} não puderam ser excluídos porque têm pedidos, notas, contas ou outros registros ligados (continuam selecionados).`, "erro");
+    } else notify(`${feitos} ${pl(feitos, singularDe(plural), plural)} ${pl(feitos, "excluído", "excluídos")}`);
   }
 
   async function salvar(e: FormEvent) {
@@ -360,10 +366,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       </div>
 
       <div className="mb-2 flex min-h-[2.25rem] flex-wrap items-center gap-2 text-sm text-slate-500">
-        <span>{filtrados.length === data.length ? `${data.length} ${plural}` : `${filtrados.length} de ${data.length} ${plural}`}</span>
+        <span>{filtrados.length === data.length ? `${data.length} ${pl(data.length, singularDe(plural), plural)}` : `${filtrados.length} de ${data.length} ${plural}`}</span>
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-1 text-fg">
-            <b>{sel.size} selecionado(s)</b>
+            <b>{sel.size} {pl(sel.size, "selecionado", "selecionados")}</b>
             {marcadores && <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>}
             {acoesLote.map((a) => (
               <Button key={a.label} variant="ghost" disabled={!!excluindo} onClick={async () => {

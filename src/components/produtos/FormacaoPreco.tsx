@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Calculator, Check, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
@@ -72,7 +72,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
         p_ids: lista.map((s) => s.id), p_aprovar: aprovar, p_precos: aprovar ? lista.map(precoDe) : null,
       });
       if (error) throw error;
-      notify(aprovar ? `${data} preço(s) aprovado(s) e já valendo` : `${data} sugestão(ões) recusada(s): o preço não mudou`);
+      notify(aprovar ? `${data} ${pl(data, "preço", "preços")} ${pl(data, "aprovado", "aprovados")} e já valendo` : `${data} ${pl(data, "sugestão recusada", "sugestões recusadas")}: o preço não mudou`);
       setMarcados(new Set());
       invalidar("preco_sugestoes", "produtos");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -83,7 +83,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
     try {
       const { data, error } = await supabase.rpc("gerar_sugestoes_preco");
       if (error) throw error;
-      notify(data ? `${data} produto(s) com o preço abaixo da margem desejada` : "Todos os preços estão dentro da margem desejada");
+      notify(data ? `${data} ${pl(data, "produto", "produtos")} com o preço abaixo da margem desejada` : "Todos os preços estão dentro da margem desejada");
       invalidar("preco_sugestoes");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
@@ -298,7 +298,7 @@ function MargemCategorias({ categorias, cfg, podeEditar }: { categorias: Categor
       <button type="button" className="flex w-full items-center justify-between text-left" onClick={() => setAberto((a) => !a)}>
         <span>
           <span className="block text-base font-bold">Margem por categoria</span>
-          <span className="text-xs text-slate-500 sm:text-sm">{comMargem ? `${comMargem} categoria(s) com margem própria` : "Todas usam a margem do tipo"} · toque para {aberto ? "fechar" : "abrir"}</span>
+          <span className="text-xs text-slate-500 sm:text-sm">{comMargem ? `${comMargem} ${pl(comMargem, "categoria", "categorias")} com margem própria` : "Todas usam a margem do tipo"} · toque para {aberto ? "fechar" : "abrir"}</span>
         </span>
       </button>
       {aberto && (

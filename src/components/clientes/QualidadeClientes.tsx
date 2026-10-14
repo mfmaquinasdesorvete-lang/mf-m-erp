@@ -8,12 +8,13 @@ import { Button, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR, docFormat } from "@/lib/format";
+import { dataBR, docFormat, pl } from "@/lib/format";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Cliente, Fornecedor } from "@/lib/types";
 import { corTipo, type TipoContato } from "./TiposContato";
 import { possiveisDuplicados, type DadosReceita } from "../../../supabase/functions/_shared/receita";
 import { gruposCertos, principalDoGrupo } from "@/lib/unificarClientes";
+import { confirmar } from "@/components/Dialogos";
 
 type ComEtiquetas = { tags?: string[] | null; receita_situacao?: string | null };
 const tem = (c: ComEtiquetas, t: string) => (c.tags ?? []).includes(t);
@@ -65,17 +66,17 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
   const semWhats = clientes.filter((c) => !c.whatsapp).length;
 
   async function unificarCertos() {
-    if (!confirm(`Unificar ${certos.length} grupo(s)? Em cada grupo fica o cadastro com CPF/CNPJ (ou o mais completo); pedidos, contas, notas, OS, máquinas e anexos dos outros passam para ele, e os outros saem da lista (guardados como estavam).`)) return;
+    if (!(await confirmar(`Unificar ${certos.length} ${pl(certos.length, "grupo", "grupos")}? Em cada grupo fica o cadastro com CPF/CNPJ (ou o mais completo); pedidos, contas, notas, OS, máquinas e anexos dos outros passam para ele, e os outros saem da lista (guardados como estavam).`))) return;
     await executar("certos", async () => {
       let feitos = 0;
       for (const g of certos) {
         const p = principalDoGrupo(g);
         const { error } = await supabase.rpc("unificar_clientes", { p_manter: p.id, p_outros: g.filter((c) => c.id !== p.id).map((c) => c.id) });
-        if (error) throw new Error(`${feitos} grupo(s) unificados; parou em "${p.nome}": ${error.message}`);
+        if (error) throw new Error(`${feitos} ${pl(feitos, "grupo", "grupos")} unificados; parou em "${p.nome}": ${error.message}`);
         feitos++;
       }
       invalidar("clientes", "equipamentos", "documentos");
-      return `${feitos} grupo(s) unificados`;
+      return `${feitos} ${pl(feitos, "grupo", "grupos")} unificados`;
     });
   }
 
@@ -90,12 +91,12 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
       <div className="space-y-5 text-sm">
         <section className="rounded-xl border border-slate-200 p-4">
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><MessageCircle size={16} className="text-emerald-600" /> WhatsApp</h3>
-          <p className="mb-2 text-slate-600">{semWhats} cliente(s) sem WhatsApp. O ERP copia o celular do campo telefone (e corrige celular antigo sem o 9). Daqui pra frente isso já é automático ao salvar.</p>
+          <p className="mb-2 text-slate-600">{semWhats} {pl(semWhats, "cliente", "clientes")} sem WhatsApp. O ERP copia o celular do campo telefone (e corrige celular antigo sem o 9). Daqui pra frente isso já é automático ao salvar.</p>
           <Button type="button" disabled={!!ocupado} onClick={() => executar("whats", async () => {
             const { data, error } = await supabase.rpc("preencher_whatsapp_cadastros");
             if (error) throw error;
             invalidar("clientes", "fornecedores", "transportadoras");
-            return `WhatsApp preenchido: ${data.clientes} cliente(s), ${data.fornecedores} fornecedor(es), ${data.transportadoras} transportadora(s)`;
+            return `WhatsApp preenchido: ${data.clientes} ${pl(data.clientes, "cliente", "clientes")}, ${data.fornecedores} ${pl(data.fornecedores, "fornecedor", "fornecedores")}, ${data.transportadoras} ${pl(data.transportadoras, "transportadora", "transportadoras")}`;
           })}>{ocupado === "whats" ? "Preenchendo…" : "Preencher WhatsApp pelo celular"}</Button>
         </section>
 
@@ -120,11 +121,11 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Merge size={16} className="text-emerald-600" /> Unificar por lógica (repetidos certos)</h3>
           <p className="mb-2 text-slate-600">
             Mesmo CPF/CNPJ; ou mesmo nome com o mesmo telefone/WhatsApp ou e-mail; ou mesmo nome e cidade quando um deles não tem CPF/CNPJ.
-            Nunca junta CPF/CNPJ diferentes. {certos.length ? `${certos.length} grupo(s) para unificar.` : "Nenhum repetido certo."}
+            Nunca junta CPF/CNPJ diferentes. {certos.length ? `${certos.length} ${pl(certos.length, "grupo", "grupos")} para unificar.` : "Nenhum repetido certo."}
           </p>
           {certos.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={!!ocupado} onClick={unificarCertos}><Merge size={15} /> {ocupado === "certos" ? "Unificando…" : `Unificar os ${certos.length} grupo(s)`}</Button>
+              <Button type="button" disabled={!!ocupado} onClick={unificarCertos}><Merge size={15} /> {ocupado === "certos" ? "Unificando…" : `Unificar os ${certos.length} ${pl(certos.length, "grupo", "grupos")}`}</Button>
               <Button type="button" variant="secondary" onClick={() => setVerCertos(!verCertos)}>{verCertos ? "Esconder" : "Ver os grupos"}</Button>
             </div>
           )}
@@ -149,7 +150,7 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
 
         <section className="rounded-xl border border-slate-200 p-4">
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Copy size={16} className="text-amber-600" /> Possíveis cadastros repetidos (conferir)</h3>
-          <p className="mb-2 text-slate-600">Mesmo nome (MEI com o CNPJ no nome conta), mesmo CPF/CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} grupo(s). Confira e unifique um a um.</p>
+          <p className="mb-2 text-slate-600">Mesmo nome (MEI com o CNPJ no nome conta), mesmo CPF/CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} {pl(repetidos.length, "grupo", "grupos")}. Confira e unifique um a um.</p>
           {repetidos.length > 0 && <Button type="button" variant="secondary" onClick={() => setVerRepetidos(!verRepetidos)}>{verRepetidos ? "Esconder" : "Ver os grupos"}</Button>}
           {verRepetidos && (
             <ul className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
@@ -181,13 +182,13 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
                   </li>
                 ))}
               </ul>
-              <Button type="button" disabled={!!ocupado} onClick={() => {
-                if (!confirm(`Tirar ${forn.data!.length} fornecedor(es) da lista de clientes?`)) return;
+              <Button type="button" disabled={!!ocupado} onClick={async () => {
+                if (!(await confirmar(`Tirar ${forn.data!.length} ${pl(forn.data!.length, "fornecedor", "fornecedores")} da lista de clientes?`))) return;
                 executar("forn", async () => {
                   const { data, error } = await supabase.rpc("retirar_fornecedores_clientes", { p_ids: forn.data!.map((f) => f.id) });
                   if (error) throw error;
                   invalidar("clientes", "fornecedores", "clientes_fornecedores");
-                  return `${data.retirados} saíram da lista de clientes, ${data.mantidos_com_etiqueta} ficaram com a etiqueta e ${data.fornecedores_criados} fornecedor(es) foram criados`;
+                  return `${data.retirados} saíram da lista de clientes, ${data.mantidos_com_etiqueta} ficaram com a etiqueta e ${data.fornecedores_criados} ${pl(data.fornecedores_criados, "fornecedor", "fornecedores")} foram criados`;
                 });
               }}>{ocupado === "forn" ? "Tirando…" : `Tirar ${forn.data.length} da lista de clientes`}</Button>
             </>
@@ -251,13 +252,13 @@ export function ArrumarFornecedores({ onClose }: { onClose: () => void }) {
             const { data, error } = await supabase.rpc("preencher_whatsapp_cadastros");
             if (error) throw error;
             invalidar("clientes", "fornecedores", "transportadoras");
-            return `WhatsApp preenchido: ${data.fornecedores} fornecedor(es), ${data.transportadoras} transportadora(s), ${data.clientes} cliente(s)`;
+            return `WhatsApp preenchido: ${data.fornecedores} ${pl(data.fornecedores, "fornecedor", "fornecedores")}, ${data.transportadoras} ${pl(data.transportadoras, "transportadora", "transportadoras")}, ${data.clientes} ${pl(data.clientes, "cliente", "clientes")}`;
           })}><MessageCircle size={15} /> {ocupado === "whats" ? "Preenchendo…" : "Preencher WhatsApp pelo celular"}</Button>
         </section>
 
         <section className="rounded-xl border border-slate-200 p-4">
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Copy size={16} className="text-amber-600" /> Possíveis cadastros repetidos</h3>
-          <p className="mb-2 text-slate-600">Mesmo nome, mesmo CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} grupo(s). Confira e deixe um só (as notas de compra continuam ligadas pelo CNPJ).</p>
+          <p className="mb-2 text-slate-600">Mesmo nome, mesmo CNPJ, mesmo WhatsApp/telefone ou mesmo e-mail: {repetidos.length} {pl(repetidos.length, "grupo", "grupos")}. Confira e deixe um só (as notas de compra continuam ligadas pelo CNPJ).</p>
           {repetidos.length > 0 && <Button type="button" variant="secondary" onClick={() => setVerRepetidos(!verRepetidos)}>{verRepetidos ? "Esconder" : "Ver os grupos"}</Button>}
           {verRepetidos && (
             <ul className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
@@ -276,7 +277,7 @@ export function ArrumarFornecedores({ onClose }: { onClose: () => void }) {
 
 const digitosDoc = (v?: string | null) => String(v ?? "").replace(/\D/g, "");
 
-const tempo = (min: number) => (min < 60 ? `${min} minuto(s)` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
+const tempo = (min: number) => (min < 60 ? `${min} ${pl(min, "minuto", "minutos")}` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
 
 function Numero({ rotulo, valor, tom }: { rotulo: string; valor: string | number; tom?: "ruim" | "atencao" }) {
   const cor = tom === "ruim" ? "text-red-700" : tom === "atencao" ? "text-amber-700" : "text-fg";
@@ -296,7 +297,7 @@ export function UnificarClientes({ clientes, onClose }: { clientes: Cliente[]; o
     try {
       const { data, error } = await supabase.rpc("unificar_clientes", { p_manter: principal, p_outros: clientes.filter((c) => c.id !== principal).map((c) => c.id) });
       if (error) throw error;
-      notify(`${data} cadastro(s) unificado(s): pedidos, contas, notas e atendimentos estão agora no principal`);
+      notify(`${data} ${pl(data, "cadastro", "cadastros")} ${pl(data, "unificado", "unificados")}: pedidos, contas, notas e atendimentos estão agora no principal`);
       invalidar("clientes", "ficha_cliente");
       onClose();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }

@@ -11,6 +11,7 @@ import {
 } from "./etiquetaDados";
 import logoPdf from "@/assets/logo-pdf.jpg";
 import { logoDaEmpresa } from "./marca";
+import { pl } from "@/lib/format";
 
 const logoCache = new Map<string, Promise<string | null>>();
 /**
@@ -449,7 +450,7 @@ export async function pdfFinanceiro(r: {
   linhas: { vencimento: string; descricao: string; terceiro: string; situacao: string; pagamento: string | null; valor: number; pago: number | null }[];
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
-  cabecalho(doc, cfg, r.titulo.toUpperCase(), `${r.linhas.length} conta(s)`, logo);
+  cabecalho(doc, cfg, r.titulo.toUpperCase(), `${r.linhas.length} ${pl(r.linhas.length, "conta", "contas")}`, logo);
   doc.setFontSize(8.5);
   doc.setTextColor(...CINZA);
   doc.text(r.filtros, 14, 37);
@@ -495,7 +496,7 @@ export async function pdfComissoes(r: {
   linhas: { data: string; vendedor: string; pedido: number | null; cliente: string; descricao: string; base: number; percentual: number; valor: number; status: string }[];
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
-  cabecalho(doc, cfg, "COMISSÕES", `${r.linhas.length} lançamento(s)`, logo);
+  cabecalho(doc, cfg, "COMISSÕES", `${r.linhas.length} ${pl(r.linhas.length, "lançamento", "lançamentos")}`, logo);
   doc.setFontSize(8.5); doc.setTextColor(...CINZA); doc.text(r.filtros, 14, 37);
   autoTable(doc, {
     startY: 41,

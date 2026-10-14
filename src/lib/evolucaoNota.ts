@@ -1,5 +1,6 @@
 // Evolução das notas fiscais: em que etapa cada NF está depois da SEFAZ, para os ícones ao lado da nota
 // e a linha do tempo dentro dela. Funções puras (os dados vêm de evolucao_notas / evolucao_recebidas).
+import { pl } from "./format";
 
 export type EstadoEtapa = "ok" | "andamento" | "pendente" | "problema";
 export type EtapaId =
@@ -39,9 +40,9 @@ function etapaContas(qtd: number, pagas: number, vencidas: number, aberto: numbe
   const id: EtapaId = receber ? "contas" : "pagar";
   const rotulo = receber ? "Contas a receber" : "Contas a pagar";
   if (!qtd) return { id, rotulo, estado: "pendente", detalhe: receber ? "não lançadas" : "conta a pagar não lançada" };
-  if (vencidas) return { id, rotulo, estado: "problema", detalhe: `${vencidas} parcela(s) vencida(s), ${reais(aberto)} em aberto` };
+  if (vencidas) return { id, rotulo, estado: "problema", detalhe: `${vencidas} ${pl(vencidas, "parcela", "parcelas")} ${pl(vencidas, "vencida", "vencidas")}, ${reais(aberto)} em aberto` };
   if (pagas >= qtd) return { id, rotulo, estado: "ok", detalhe: receber ? `recebido${pagoEm ? ` (último em ${dia(pagoEm)})` : ""}` : `paga${pagoEm ? ` em ${dia(pagoEm)}` : ""}`, data: pagoEm };
-  return { id, rotulo, estado: "andamento", detalhe: `${pagas} de ${qtd} parcela(s) ${receber ? "recebida(s)" : "paga(s)"}, ${reais(aberto)} em aberto` };
+  return { id, rotulo, estado: "andamento", detalhe: `${pagas} de ${qtd} ${pl(qtd, "parcela", "parcelas")} ${receber ? pl(qtd, "recebida", "recebidas") : pl(qtd, "paga", "pagas")}, ${reais(aberto)} em aberto` };
 }
 
 const EXP_ROTULO: Record<string, string> = { separar: "a separar", separando: "separando", conferido: "conferido", embalado: "embalado, falta despachar" };
@@ -105,7 +106,7 @@ export function evolucaoEmitida(n: NotaParaEvolucao, ev: EvolucaoEmitida | undef
   }
 
   const extras: Extra[] = [];
-  if (ev.cce) extras.push({ id: "cce", rotulo: `${ev.cce} carta(s) de correção` });
+  if (ev.cce) extras.push({ id: "cce", rotulo: `${ev.cce} ${pl(ev.cce, "carta", "cartas")} de correção` });
   if (ev.devolucao) extras.push({ id: "devolucao", rotulo: "tem nota de devolução" });
   return { etapas, extras, historico: false };
 }
