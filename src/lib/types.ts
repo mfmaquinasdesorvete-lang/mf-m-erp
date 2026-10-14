@@ -65,6 +65,10 @@ export type OrdemServico = {
   status: string; em_garantia: boolean; tecnico: string | null; valor_mao_obra: number; valor_pecas: number;
   valor_total: number; data_entrada: string; previsao: string | null; observacoes: string | null;
   faturada_em?: string | null; nfse_id?: string | null;   // NFS-e autorizada (só o servidor grava)
+  // máquina vendida por outra empresa (ex.: My Frost): a MF responde só pelo serviço e pelas peças desta OS
+  maquina_origem?: string | null; condicao_entrada?: string | null;
+  orcamento_aprovado_em?: string | null; orcamento_aprovado_por?: string | null;
+  garantia_reparo_dias?: number | null; garantia_reparo_condicoes?: string | null;
   cliente?: Cliente; itens?: Item[];
 };
 
@@ -84,6 +88,7 @@ export type Config = {
   municipio: string | null; uf: string | null; whatsapp: string | null; endereco: string | null; telefone: string | null;
   email: string | null; validade_orcamento_dias: number; garantia_meses_padrao: number; preventiva_meses: number;
   comissao_percentual: number; termo_garantia: string;
+  aviso_outra_empresa?: string | null; // OS de máquina vendida por outra empresa ({empresa}, {mf})
   proposta_titulo?: string; proposta_apresentacao?: string | null; proposta_condicoes?: string | null;
   proposta_rodape?: string | null; proposta_cor?: string; proposta_fotos?: boolean;
   nfe_automatica?: boolean; link_pagamento_ao_aprovar?: boolean; vender_sem_estoque?: boolean; expedicao_apos?: "aprovacao" | "nfe";

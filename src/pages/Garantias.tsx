@@ -73,7 +73,7 @@ export default function Garantias() {
       state: {
         novaOS: {
           cliente_id: e.cliente_id, produto_id: e.produto_id, equipamento_id: e.id, equipamento: e.descricao,
-          numero_serie: e.numero_serie, em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia",
+          numero_serie: e.numero_serie, em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
         },
       },
     });
@@ -127,7 +127,7 @@ export default function Garantias() {
               </div>
               <div className="mt-2 text-sm text-slate-700">{e.cliente?.nome}</div>
               <dl className="num mt-2 grid grid-cols-2 gap-2 text-xs">
-                <div><dt className="text-slate-500">Garantia até</dt><dd className="font-semibold text-fg">{dataBR(e.garantia_ate)}</dd></div>
+                <div><dt className="text-slate-500">Garantia até</dt><dd className="font-semibold text-fg">{e.garantia_ate || !e.origem ? dataBR(e.garantia_ate) : "sem garantia da MF"}</dd></div>
                 <div>
                   <dt className="text-slate-500">Preventiva</dt>
                   <dd className={`font-semibold ${p === "atrasada" ? "text-red-600" : p === "proxima" ? "text-amber-700" : "text-fg"}`}>
@@ -169,7 +169,7 @@ export default function Garantias() {
               <td className="td">
                 <Badge value={g} />
                 <div className="num mt-1 text-xs text-slate-500">
-                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} dia(s)` : `venceu em ${dataBR(e.garantia_ate)}`) : "sem garantia registrada"}
+                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} dia(s)` : `venceu em ${dataBR(e.garantia_ate)}`) : e.origem ? "outra empresa: sem garantia da MF" : "sem garantia registrada"}
                 </div>
               </td>
               <td className="td">

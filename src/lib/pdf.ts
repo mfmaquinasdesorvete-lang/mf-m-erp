@@ -3,6 +3,7 @@
 import type { Cliente, Config, Item, ItemChecklist } from "./types";
 import type { Unidade } from "./unidade";
 import { brl, dataBR, docFormat } from "./format";
+import { CONDICOES_REPARO_PADRAO } from "./garantia";
 import { formatarTelefone } from "./mascaras";
 import {
   AVISOS, cepFmt, codigoTransporte, codigoVolume, medidasTxt, pesoDoVolume, pesoTxt, volumeVazio,
@@ -298,23 +299,37 @@ export async function pdfOS(o: {
   defeito_relatado: string; diagnostico?: string | null; solucao?: string | null; checklist: ItemChecklist[];
   itens: Item[]; valor_mao_obra: number; em_garantia: boolean; garantia_ate?: string | null; data_entrada?: string;
   previsao?: string | null; tecnico?: string | null; assinatura?: string | null; recebido_por?: string | null;
+  // máquina vendida por outra empresa (ex.: My Frost): a MF responde só pelo serviço e pelas peças desta OS
+  condicao_entrada?: string | null; maquina_origem?: string | null; aviso_outra_empresa?: string | null;
+  orcamento_aprovado_em?: string | null; orcamento_aprovado_por?: string | null;
+  garantia_reparo_dias?: number | null; garantia_reparo_condicoes?: string | null;
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
   const w = doc.internal.pageSize.getWidth();
   cabecalho(doc, cfg, o.tipo === "entrada" ? "COMPROVANTE DE ENTRADA" : "LAUDO TÉCNICO / ENTREGA", o.numero ? `OS Nº ${o.numero}` : "OS", logo);
   let y = blocoCliente(doc, o.cliente, 36);
+  const diasReparo = o.garantia_reparo_dias ?? cfg.garantia_servico_dias ?? 90;
+  const aprovado = o.orcamento_aprovado_em
+    ? `${new Date(o.orcamento_aprovado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${o.orcamento_aprovado_por ? ` - ${o.orcamento_aprovado_por}` : ""}`
+    : null;
 
   autoTable(doc, {
     startY: y,
     body: [
       ["Equipamento", o.equipamento],
       ["Nº de série", o.numero_serie || "-"],
-      ["Garantia", o.em_garantia ? `Em garantia${o.garantia_ate ? ` até ${dataBR(o.garantia_ate)}` : ""} - serviço sem custo` : "Fora da garantia"],
+      ...(o.maquina_origem ? [["Vendida por", `${o.maquina_origem} (outra empresa)`]] : []),
+      ["Garantia", o.maquina_origem
+        ? (o.em_garantia ? "Retorno na garantia do reparo feito pela MF - sem custo" : "Sem garantia de fábrica pela MF - atendimento com orçamento")
+        : o.em_garantia ? `Em garantia${o.garantia_ate ? ` até ${dataBR(o.garantia_ate)}` : ""} - serviço sem custo` : "Fora da garantia"],
       ["Entrada", dataBR(o.data_entrada) + (o.previsao ? `   ·   Previsão de entrega: ${dataBR(o.previsao)}` : "")],
+      ...(o.condicao_entrada ? [["Condição de entrada", o.condicao_entrada]] : []),
       ...(o.tecnico ? [["Técnico", o.tecnico]] : []),
       ["Defeito relatado", o.defeito_relatado],
       ...(o.tipo === "laudo" && o.diagnostico ? [["Diagnóstico", o.diagnostico]] : []),
       ...(o.tipo === "laudo" && o.solucao ? [["Serviço executado", o.solucao]] : []),
+      ...(o.tipo === "laudo" && aprovado ? [["Orçamento aprovado", aprovado]] : []),
+      ...(o.tipo === "laudo" ? [["Garantia do reparo", `${diasReparo} dias para as peças trocadas e a mão de obra desta OS`]] : []),
     ],
     styles: { fontSize: 9, cellPadding: 1.7, textColor: [30, 41, 59] },
     columnStyles: { 0: { fontStyle: "bold", cellWidth: 38, textColor: [71, 85, 105] } },
@@ -322,6 +337,7 @@ export async function pdfOS(o: {
     margin: { left: 14, right: 14 },
   });
   y = (doc as any).lastAutoTable.finalY + 5;
+  if (o.aviso_outra_empresa) y = paragrafo(doc, "Máquina vendida por outra empresa", o.aviso_outra_empresa, y);
 
   if (o.checklist.length) {
     autoTable(doc, {
@@ -356,7 +372,7 @@ export async function pdfOS(o: {
 
   y = paragrafo(doc, "Condições", o.tipo === "entrada"
     ? `O orçamento do conserto será enviado pelo WhatsApp antes de qualquer serviço. Equipamentos não retirados em até ${cfg.os_armazenagem_dias ?? 90} dias após o aviso de conclusão poderão ser cobrados por armazenagem.`
-    : `Garantia do serviço executado: ${cfg.garantia_servico_dias ?? 90} dias para as peças trocadas e a mão de obra. ${cfg.termo_garantia}`, y);
+    : `Garantia do serviço executado: ${diasReparo} dias para as peças trocadas e a mão de obra. ${o.garantia_reparo_condicoes || (o.maquina_origem ? CONDICOES_REPARO_PADRAO : cfg.termo_garantia)}`, y);
 
   if (y > 250) { doc.addPage(); y = 20; }
   y += 4;
