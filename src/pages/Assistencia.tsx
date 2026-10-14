@@ -26,6 +26,7 @@ import { usePerfil } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
+import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 
 const STATUS_EDITAVEIS = [
   { value: "aberta", label: "Aberta" },
@@ -66,6 +67,7 @@ export default function Assistencia() {
   const [marcador, setMarcador] = useState("");
   const { data: marcadores = [] } = useMarcadores();
   const [aberta, setAberta] = useState<OS | null>(null);
+  const [verExcluidas, setVerExcluidas] = useState(false);
 
   // "Abrir OS" vindo da tela de garantias já traz cliente e máquina preenchidos
   useEffect(() => {
@@ -105,6 +107,7 @@ export default function Assistencia() {
             Faturada: o.faturada_em ? dataBR(o.faturada_em) : "",
             Marcadores: (o.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
           })) }]).catch(notifyError)}><FileDown size={16} /> Exportar</Button>
+          {pode("editar_os") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
           {pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
         </>}
       />
@@ -141,13 +144,19 @@ export default function Assistencia() {
               {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">faturada ✓</span>}</div></td>
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
-            <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="ordens_servico" registro={o} nome={["OS", "OS"]} /></td>
+            <td className="td" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1">
+                <BotaoMarcadores tabela="ordens_servico" registro={o} nome={["OS", "OS"]} />
+                {pode("editar_os") && !o.faturada_em && <ExcluirDocumento tabela="ordens_servico" id={o.id} numero={o.numero} />}
+              </div>
+            </td>
             <CelulaAbrir />
           </tr>
         ))}
       </Table>
 
       {aberta && <OSModal os={aberta} onClose={() => setAberta(null)} />}
+      {verExcluidas && <DocumentosExcluidos tabela="ordens_servico" onClose={() => setVerExcluidas(false)} />}
     </div>
   );
 }

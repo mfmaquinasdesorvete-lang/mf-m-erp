@@ -1,6 +1,6 @@
-// Excluir ordem de compra ou de produção feita errada: pede o motivo, tira da lista e guarda (dá para restaurar).
-// OC com mercadoria recebida e OP concluída o banco não deixa (o estoque já mexeu).
-import { useEffect, useState } from "react";
+// Excluir ordem de compra, de produção ou de serviço feita errada (ou de teste): pede o motivo, tira da lista e guarda
+// (dá para restaurar). OC com mercadoria recebida, OP concluída e OS com NFS-e emitida ou valor recebido o banco não deixa.
+import { useEffect, useState, type ReactNode } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { Button, Modal } from "./ui";
 import { MotivoAcao } from "./MotivoAcao";
@@ -8,9 +8,20 @@ import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 
-export type TabelaExcluivel = "pedidos_compra" | "ordens_producao";
-const NOME: Record<TabelaExcluivel, string> = { pedidos_compra: "ordem de compra", ordens_producao: "ordem de produção" };
-const SIGLA: Record<TabelaExcluivel, string> = { pedidos_compra: "OC", ordens_producao: "OP" };
+export type TabelaExcluivel = "pedidos_compra" | "ordens_producao" | "ordens_servico";
+const NOME: Record<TabelaExcluivel, string> = { pedidos_compra: "ordem de compra", ordens_producao: "ordem de produção", ordens_servico: "ordem de serviço" };
+const SIGLA: Record<TabelaExcluivel, string> = { pedidos_compra: "OC", ordens_producao: "OP", ordens_servico: "OS" };
+// o que mais acontece ao excluir (além de sair da lista)
+const EFEITO: Record<TabelaExcluivel, ReactNode> = {
+  pedidos_compra: null,
+  ordens_producao: <p className="mt-2">As ordens de compra desta OP que ainda estão em cotação saem junto (e voltam junto se a OP for restaurada).</p>,
+  ordens_servico: <p className="mt-2">As peças que a OS tirou do estoque voltam e a conta a receber em aberto é cancelada. Se for restaurada, a OS volta em aberto.</p>,
+};
+const RECARREGAR: Record<TabelaExcluivel, string[]> = {
+  pedidos_compra: ["pedidos_compra", "pedido_compra_itens"],
+  ordens_producao: ["ordens_producao", "necessidade_producao", "pedidos_compra"],
+  ordens_servico: ["ordens_servico", "contas_receber", "produtos", "estoque_movimentos"],
+};
 
 export function ExcluirDocumento({ tabela, id, numero, onFeito }: { tabela: TabelaExcluivel; id: string; numero?: number | string | null; onFeito?: () => void }) {
   const [aberto, setAberto] = useState(false);
@@ -27,10 +38,11 @@ export function ExcluirDocumento({ tabela, id, numero, onFeito }: { tabela: Tabe
             const { error } = await supabase.rpc("excluir_documento", { p_tabela: tabela, p_id: id, p_motivo: motivo });
             if (error) throw error;
             notify(`${SIGLA[tabela]} #${numero ?? ""} excluída (fica guardada em "Excluídas")`);
-            invalidar(tabela, tabela === "pedidos_compra" ? "pedido_compra_itens" : "necessidade_producao");
+            invalidar(...RECARREGAR[tabela]);
             onFeito?.();
           }}>
           <p>A {NOME[tabela]} sai da lista e de todas as contas do ERP. Fica guardada com quem excluiu, quando e o motivo, e pode ser restaurada.</p>
+          {EFEITO[tabela]}
         </MotivoAcao>
       )}
     </>
@@ -56,7 +68,7 @@ export function DocumentosExcluidos({ tabela, onClose }: { tabela: TabelaExcluiv
     setOcupado(null);
     if (error) return notifyError(error);
     notify(`${SIGLA[tabela]} #${d.numero} restaurada`);
-    invalidar(tabela);
+    invalidar(...RECARREGAR[tabela]);
     carregar();
   }
 
