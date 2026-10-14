@@ -10,6 +10,7 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { Badge, CelulaAbrir, Button, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
@@ -79,6 +80,8 @@ export default function Pedidos() {
   const { data: cfgPedidos } = useConfig();
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
+  const [marcador, setMarcador] = useState("");
+  const { data: marcadores = [] } = useMarcadores();
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
   // Vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
   const [vista, setVista] = useState<"erp" | "tiny">("erp");
@@ -111,8 +114,9 @@ export default function Pedidos() {
   const lista = useMemo(() => pedidos.filter((p) =>
     (!destaque || destaque.ids.includes(p.id)) &&
     (filtro === "todos" || p.status === filtro) &&
+    (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, filtro, busca, destaque]);
+  ), [pedidos, filtro, busca, destaque, marcador]);
 
   return (
     <div>
@@ -133,7 +137,10 @@ export default function Pedidos() {
       {destaque && <FaixaDestaque destaque={destaque} mostrando={lista.length}
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <div className="mb-4 space-y-3">
-        <input className="input max-w-md" placeholder="Buscar nº, cliente, CPF ou CNPJ…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="flex flex-wrap gap-2">
+          <input className="input min-w-0 max-w-md flex-1" placeholder="Buscar nº, cliente, CPF ou CNPJ…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+        </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS.map((st) => {
             const n = st === "todos" ? pedidos.length : pedidos.filter((x) => x.status === st).length;
@@ -150,8 +157,9 @@ export default function Pedidos() {
       {/* Celular: cartões */}
       <div className="space-y-2 md:hidden">
         {lista.map((p) => (
-          <button key={p.id} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
-            className="w-full rounded-xl border border-slate-200 bg-surface p-4 text-left shadow-card active:bg-slate-50">
+          <div key={p.id} className="rounded-xl border border-slate-200 bg-surface shadow-card">
+          <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
+            className="w-full rounded-xl p-4 pb-2 text-left active:bg-slate-50">
             <div className="flex items-center justify-between gap-2">
               <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>} · {p.cliente?.nome}</span>
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
@@ -160,8 +168,13 @@ export default function Pedidos() {
               <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} item(ns)</span>
               <span className="num text-base font-bold text-fg">{brl(p.valor_total)}</span>
             </div>
-            <div className="mt-2 flex items-center justify-end gap-0.5 text-sm font-semibold text-brand">Ver / editar <ChevronRight size={16} /></div>
+            <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
           </button>
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
+            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Ver / editar <ChevronRight size={16} /></button>
+          </div>
+          </div>
         ))}
         {!isLoading && !lista.length && <p className="py-8 text-center text-sm text-slate-500">Nenhum pedido encontrado.</p>}
       </div>
@@ -169,16 +182,17 @@ export default function Pedidos() {
       <div className="hidden md:block">
       <Table
         empty={!isLoading && lista.length === 0}
-        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th><th className="th">NF-e</th><th className="th text-right">Total</th><th className="th" /></>}
+        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th><th className="th">NF-e</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
             <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}</td>
             <td className="td">{dataBR(p.created_at)}</td>
-            <td className="td">{p.cliente?.nome}</td>
+            <td className="td">{p.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>
             <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} /></td>
             <td className="td text-right font-medium">{brl(p.valor_total)}</td>
+            <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></td>
             <CelulaAbrir texto="Ver / editar" />
           </tr>
         ))}

@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, CreditCard, Factory, FileText, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingCart, Store, Truck,
   UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -77,6 +77,7 @@ export const grupos: Grupo[] = [
       { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
       { to: "/embalagens", tela: "fretes", label: "Embalagens", curto: "Embal.", icon: Package, busca: "caixa engradado palete medidas peso cubagem" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor" },
+      { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },
     ],
   },
   {

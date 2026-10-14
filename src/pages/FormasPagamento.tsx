@@ -27,6 +27,7 @@ export default function FormasPagamento() {
     <CrudPage<FormaPagamento>
       title="Formas de pagamento"
       table="formas_pagamento"
+      marcadores={["forma de pagamento", "formas de pagamento"]}
       plural="formas de pagamento"
       order="ordem"
       readOnly={!podeEditar}

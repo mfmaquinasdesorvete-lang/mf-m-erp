@@ -4,14 +4,14 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BadgePercent, Bell, Percent, Building2, Calculator, Database, FileText, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
+  ArrowLeft, BadgePercent, Bell, Percent, Building2, Calculator, Database, FileText, FolderTree, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
 } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 
-export type SecaoId = "empresa" | "unidades" | "recebimentos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados";
+export type SecaoId = "empresa" | "unidades" | "recebimentos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados" | "cadastros";
 export type Secao = { id: SecaoId; titulo: string; resumo: string; icone: LucideIcon; cor: string; grupo: string };
 
 export const SECOES: Secao[] = [
@@ -27,6 +27,7 @@ export const SECOES: Secao[] = [
   { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram da equipe e e-mails para os clientes", icone: Bell, cor: "from-[#eab308] to-[#a16207]" },
   { id: "email", grupo: "Comunicação", titulo: "Caixa de e-mail", resumo: "E-mail da empresa (IMAP/SMTP) para enviar e receber pelo ERP", icone: Mail, cor: "from-[#3b82f6] to-[#1d4ed8]" },
   { id: "contador", grupo: "Comunicação", titulo: "Contador", resumo: "Envio automático do fechamento do mês", icone: Calculator, cor: "from-[#8b5cf6] to-[#5b21b6]" },
+  { id: "cadastros", grupo: "Cadastros", titulo: "Categorias e marcadores", resumo: "Categorias dos produtos e os marcadores coloridos de todos os cadastros", icone: FolderTree, cor: "from-[#a855f7] to-[#6d28d9]" },
   { id: "dados", grupo: "Dados", titulo: "Dados e backup", resumo: "Backup diário, exportar tudo e apagar dados de teste", icone: Database, cor: "from-[#475569] to-[#0f172a]" },
 ];
 export const secaoPorId = (id?: string | null) => SECOES.find((s) => s.id === id) ?? null;

@@ -1580,6 +1580,8 @@ class Query {
       });
     } else {
       linhas = t.filter((r) => this.filtros.every((f) => f(r)));
+      // OC e OP excluídas somem das listas (no sistema real: política "nao_excluida")
+      if (this.op === "select" && (this.tabela === "pedidos_compra" || this.tabela === "ordens_producao")) linhas = linhas.filter((r) => !r.excluida_em);
       const conta = this.tabela === "contas_receber" || this.tabela === "contas_pagar";
       if (conta && this.op === "delete" && linhas.length) return erro("contas não podem ser excluídas: cancele a conta informando o motivo");
       if (conta && this.op === "update" && linhas.some((r) => faltaMotivo(r, this.payload))) return erro("informe o motivo da alteração (valor, vencimento, cancelamento ou estorno)");
@@ -2983,6 +2985,38 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: linhas.length, error: null };
   },
+  // marcadores em todos os cadastros (no sistema real: public.marcar_registros)
+  marcar_registros: ({ p_tabela, p_ids, p_adicionar, p_remover }) => {
+    const linhas = (db[p_tabela] ?? []).filter((n: Row) => p_ids.includes(n.id));
+    for (const n of linhas) n.marcadores = [...new Set([...(n.marcadores ?? []), ...(p_adicionar ?? [])])].filter((x) => !(p_remover ?? []).includes(x));
+    return { data: linhas.length, error: null };
+  },
+  // OC e OP feitas erradas (no sistema real: public.excluir_documento / restaurar_documento / documentos_excluidos)
+  excluir_documento: ({ p_tabela, p_id, p_motivo }) => {
+    if (String(p_motivo ?? "").trim().length < 5) return erro("escreva o motivo da exclusão (pelo menos 5 letras)");
+    const d = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id && !x.excluida_em);
+    if (!d) return erro("documento não encontrado");
+    if (p_tabela === "pedidos_compra" && (["parcial", "recebido"].includes(d.status) || (db.pedido_compra_itens ?? []).some((i: Row) => i.pedido_compra_id === p_id && Number(i.quantidade_recebida) > 0)))
+      return erro(`a OC #${d.numero} já teve mercadoria recebida: o estoque mexeu, não dá para excluir (cancele o saldo)`);
+    if (p_tabela === "ordens_producao" && d.status === "concluida") return erro(`a OP #${d.numero} já foi concluída: o estoque mexeu, não dá para excluir`);
+    Object.assign(d, { excluida_em: quando(0), excluida_por: sessao?.user.id, excluida_motivo: String(p_motivo).trim(), excluida_status: d.status,
+      status: p_tabela === "pedidos_compra" ? "cancelado" : "cancelada" });
+    return { data: null, error: null };
+  },
+  restaurar_documento: ({ p_tabela, p_id }) => {
+    const d = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id && x.excluida_em);
+    if (!d) return erro("documento excluído não encontrado");
+    Object.assign(d, { status: d.excluida_status ?? d.status, excluida_em: null, excluida_por: null, excluida_motivo: null, excluida_status: null });
+    return { data: null, error: null };
+  },
+  documentos_excluidos: () => ({
+    data: [
+      ...(db.pedidos_compra ?? []).filter((c: Row) => c.excluida_em).map((c: Row) => ({ tabela: "pedidos_compra", id: c.id, numero: String(c.numero),
+        descricao: db.fornecedores.find((f: Row) => f.id === c.fornecedor_id)?.nome ?? "sem fornecedor", excluida_em: c.excluida_em, excluida_motivo: c.excluida_motivo, excluida_por: "demo" })),
+      ...(db.ordens_producao ?? []).filter((o: Row) => o.excluida_em).map((o: Row) => ({ tabela: "ordens_producao", id: o.id, numero: String(o.numero),
+        descricao: db.produtos.find((p: Row) => p.id === o.produto_id)?.descricao ?? "", excluida_em: o.excluida_em, excluida_motivo: o.excluida_motivo, excluida_por: "demo" })),
+    ], error: null,
+  }),
   anotar_nota: ({ p_tabela, p_id, p_texto }) => {
     const n = (db[p_tabela] ?? []).find((x: Row) => x.id === p_id);
     if (n) { const antes = { ...n }; n.observacao_interna = String(p_texto ?? "").trim() || null; registrarDemo(p_tabela, "update", antes, n, null, "usuario"); }

@@ -1,4 +1,5 @@
-// Marcadores coloridos com ícone nas notas fiscais: mostrar, aplicar (em uma ou várias notas) e cadastrar.
+// Marcadores coloridos com ícone (como no Tiny): nas notas fiscais e em todos os cadastros e documentos.
+// Mostrar, aplicar (em um ou vários registros) e cadastrar.
 import { useState, type FormEvent } from "react";
 import { Check, Minus, Pencil, Plus, Settings2, Tags } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
@@ -8,6 +9,9 @@ import { notify, notifyError } from "@/lib/notify";
 import { CORES, corDe, ICONES, iconeDe, type Marcador } from "@/lib/marcadores";
 
 export type TabelaNota = "notas_fiscais" | "nfe_recebidas";
+/** Tabelas com marcadores (public.marcar_registros) além das notas. */
+export type TabelaMarcavel = TabelaNota | "clientes" | "fornecedores" | "produtos" | "transportadoras" | "funcionarios" | "embalagens"
+  | "formas_pagamento" | "pedidos" | "ordens_servico" | "pedidos_compra" | "ordens_producao" | "contas_pagar" | "contas_receber";
 
 export function useMarcadores() {
   return useRows<Marcador>("marcadores", { order: "ordem", ascending: true });
@@ -28,9 +32,11 @@ export function ChipsMarcadores({ ids, todos, pequeno }: { ids?: string[] | null
   return <span className="inline-flex flex-wrap gap-1">{lista.map((m) => <ChipMarcador key={m.id} m={m} pequeno={pequeno} />)}</span>;
 }
 
-/** Aplica/tira marcadores de uma ou várias notas. Em várias, mostra quem já tem (todas, algumas, nenhuma). */
-export function AplicarMarcadores({ tabela, notas, onClose }: {
-  tabela: TabelaNota; notas: { id: string; marcadores?: string[] | null }[]; onClose: () => void;
+/** Aplica/tira marcadores de um ou vários registros. Em vários, mostra quem já tem (todos, alguns, nenhum). */
+export function AplicarMarcadores({ tabela, notas, onClose, nome = ["nota", "notas"] }: {
+  tabela: TabelaMarcavel; notas: { id: string; marcadores?: string[] | null }[]; onClose: () => void;
+  /** Como chamar o registro no título: ["cliente", "clientes"] */
+  nome?: [string, string];
 }) {
   const { data: todos = [] } = useMarcadores();
   const [gerenciar, setGerenciar] = useState(false);
@@ -42,18 +48,20 @@ export function AplicarMarcadores({ tabela, notas, onClose }: {
   async function alternar(m: Marcador) {
     const tem = quantos(m.id) === atual.length;
     setOcupado(m.id);
-    const { error } = await supabase.rpc("marcar_notas", {
+    const nota = tabela === "notas_fiscais" || tabela === "nfe_recebidas";
+    const { data, error } = await supabase.rpc(nota ? "marcar_notas" : "marcar_registros", {
       p_tabela: tabela, p_ids: atual.map((n) => n.id), p_adicionar: tem ? [] : [m.id], p_remover: tem ? [m.id] : [],
     });
     setOcupado(null);
     if (error) return notifyError(error);
+    if (data === 0) return notifyError(new Error("Você não tem permissão para mudar este cadastro"));
     setAtual((a) => a.map((n) => ({ ...n, marcadores: tem ? n.marcadores.filter((x) => x !== m.id) : [...new Set([...n.marcadores, m.id])] })));
     invalidate(tabela);
   }
 
   return (
-    <Modal open onClose={onClose} title={notas.length > 1 ? `Marcadores de ${notas.length} notas` : "Marcadores da nota"}>
-      <p className="mb-3 text-sm text-slate-600">Toque para colocar ou tirar. {notas.length > 1 && "O traço indica que só algumas das notas têm o marcador."}</p>
+    <Modal open onClose={onClose} title={notas.length > 1 ? `Marcadores de ${notas.length} ${nome[1]}` : `Marcadores: ${nome[0]}`}>
+      <p className="mb-3 text-sm text-slate-600">Toque para colocar ou tirar. {notas.length > 1 && `O traço indica que só alguns dos ${nome[1]} têm o marcador.`}</p>
       <ul className="grid gap-1.5 sm:grid-cols-2">
         {todos.filter((m) => m.ativo).map((m) => {
           const q = quantos(m.id);
@@ -142,7 +150,7 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
           </Field>
           <div className="flex items-center gap-2 text-sm"><span className="text-slate-600">Prévia:</span> <ChipMarcador m={{ id: "", nome: editando.nome || "Marcador", cor: editando.cor ?? "slate", icone: editando.icone ?? "tag", ativo: true, ordem: 0 }} /></div>
           {editando.id && (
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editando.ativo !== false} onChange={(e) => setEditando({ ...editando, ativo: e.target.checked })} /> Ativo (desativado some das notas e da lista)</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editando.ativo !== false} onChange={(e) => setEditando({ ...editando, ativo: e.target.checked })} /> Ativo (desativado some dos cadastros e da lista)</label>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setEditando(null)}>Voltar</Button>
@@ -151,5 +159,37 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
         </form>
       )}
     </Modal>
+  );
+}
+
+/** Botão de marcadores de um registro (abre a lista para pôr ou tirar). */
+export function BotaoMarcadores({ tabela, registro, nome }: {
+  tabela: TabelaMarcavel; registro: { id: string; marcadores?: string[] | null }; nome?: [string, string];
+}) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <Button type="button" variant="ghost" className="!px-2" title="Marcadores" aria-label="Marcadores" onClick={(e) => { e.stopPropagation(); setAberto(true); }}>
+        <Tags size={16} aria-hidden />
+      </Button>
+      {aberto && <AplicarMarcadores tabela={tabela} notas={[registro]} nome={nome} onClose={() => setAberto(false)} />}
+    </>
+  );
+}
+
+/** Filtro "Marcador" para as listas: um item por marcador ativo. */
+export function filtroMarcadores<T extends { marcadores?: string[] | null }>(todos: Marcador[]) {
+  return { label: "Marcador", opcoes: todos.filter((m) => m.ativo).map((m) => ({ label: m.nome, teste: (r: T) => !!r.marcadores?.includes(m.id) })) };
+}
+
+/** Escolha de um marcador para filtrar uma lista ("" = todos). */
+export function SelectMarcador({ valor, onChange, todos, className = "" }: { valor: string; onChange: (id: string) => void; todos: Marcador[]; className?: string }) {
+  const ativos = todos.filter((m) => m.ativo);
+  if (!ativos.length) return null;
+  return (
+    <select className={`input w-auto max-w-[14rem] ${valor ? "!border-brand" : ""} ${className}`} aria-label="Filtrar por marcador" value={valor} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Marcador: todos</option>
+      {ativos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+    </select>
   );
 }

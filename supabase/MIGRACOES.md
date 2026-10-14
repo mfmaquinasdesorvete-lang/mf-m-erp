@@ -59,3 +59,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   36. `20261014070823_descontos_conferencia.sql`
   37. `20261014070837_descontos_conferencia_proposta.sql`
   38. `20261014081934_kits_aninhados.sql`
+  39. `20261014083601_marcadores_cadastros.sql`

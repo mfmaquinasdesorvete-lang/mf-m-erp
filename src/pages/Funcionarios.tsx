@@ -253,6 +253,7 @@ export default function Funcionarios() {
       <CrudPage<Funcionario>
         title="Funcionários"
         table="funcionarios"
+        marcadores={["funcionário", "funcionários"]}
         order="nome"
         plural="funcionários"
         anexos="funcionario"
