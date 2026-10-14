@@ -10,6 +10,7 @@ export async function telegram<T = any>(metodo: string, corpo: Record<string, un
   if (!token) throw new TelegramError(0, "defina o secret TELEGRAM_BOT_TOKEN no Supabase");
   const r = await fetch(`https://api.telegram.org/bot${token}/${metodo}`, {
     method: "POST",
+    signal: AbortSignal.timeout(20_000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(corpo),
   });

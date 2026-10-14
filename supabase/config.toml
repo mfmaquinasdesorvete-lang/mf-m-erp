@@ -48,3 +48,11 @@ verify_jwt = false
 
 [functions.inter]
 verify_jwt = false
+
+# Extrato pelo Open Finance (Pluggy): o agendamento chama com Bearer ERP_CRON_TOKEN; o ERP é conferido dentro da função.
+[functions.openfinance]
+verify_jwt = false
+
+# WhatsApp oficial (Meta): o webhook chega sem login (assinatura conferida dentro da função).
+[functions.whatsapp]
+verify_jwt = false

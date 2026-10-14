@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     async start(ctl) {
       try {
         for (const url of partes) {
-          const r = await fetch(url, { headers: { apikey: chave, Authorization: `Bearer ${chave}` } });
+          const r = await fetch(url, { headers: { apikey: chave, Authorization: `Bearer ${chave}` }, signal: AbortSignal.timeout(120_000) });
           if (!r.ok || !r.body) throw new Error(`parte ${url.slice(-3)}: HTTP ${r.status}`);
           const leitor = r.body.getReader();
           for (;;) {

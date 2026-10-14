@@ -58,6 +58,7 @@ async function enviarResend(m: Email) {
   }
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${chave}`,
       "Content-Type": "application/json",
