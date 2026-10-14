@@ -13,7 +13,7 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { composicao } from "@/lib/kits";
+import { pecasDoKit } from "@/lib/kits";
 import { notify } from "@/lib/notify";
 import { hoje } from "@/lib/format";
 import type { Exp, PedidoFluxo as P } from "@/lib/fluxo";
@@ -101,7 +101,7 @@ export default function PainelExpedicao() {
     };
     for (const { p } of aSeparar) for (const i of p.itens ?? []) {
       const pr = prod.get(i.produto_id);
-      const partes = pr?.kit ? composicao(i.produto_id, comps, i.kit_escolha) : [];
+      const partes = pr?.kit ? pecasDoKit(i.produto_id, comps, i.kit_escolha) : [];
       if (partes.length) for (const c of partes) somar(c.componente_id, prod.get(c.componente_id)?.descricao ?? "componente", c.quantidade * Number(i.quantidade), p.numero);
       else somar(i.produto_id, i.descricao, Number(i.quantidade), p.numero);
     }

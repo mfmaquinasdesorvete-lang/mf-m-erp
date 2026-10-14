@@ -15,6 +15,7 @@ import type { Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { ImportarProdutos } from "@/components/ImportarProdutos";
+import { ImportarKitsTiny } from "@/components/produtos/ImportarKitsTiny";
 import { KitComponentesModal } from "@/components/KitComponentes";
 import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
@@ -141,6 +142,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const [movimentar, setMovimentar] = useState<Produto | null>(null);
   const [historico, setHistorico] = useState<Produto | null>(null);
   const [importar, setImportar] = useState(false);
+  const [importarKits, setImportarKits] = useState(false);
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
@@ -405,7 +407,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           ...(cadastro === "pecas" ? [{ label: "Pôr no catálogo", executar: (ids: string[]) => catalogo(ids, true) }, { label: "Tirar do catálogo", executar: (ids: string[]) => catalogo(ids, false) }] : []),
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
-        extraActions={pode("editar_produtos") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
+        extraActions={pode("editar_produtos") && <>
+          <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
+          <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>
+        </>}
         // estrela no bloco "Fornecedores deste produto" → o select "Fornecedor preferencial" acompanha
         onFieldChange={(nome, valor) => (nome === "fornecedores_produto" && valor ? Promise.resolve({ fornecedor_padrao_id: valor }) : Promise.resolve(null))}
         beforeSave={(r) => {
@@ -681,6 +686,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <MovimentoModal produto={movimentar} onClose={() => setMovimentar(null)} />
       <HistoricoModal produto={historico} onClose={() => setHistorico(null)} />
       {importar && <ImportarProdutos onClose={() => setImportar(false)} />}
+      {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}
       {kitAberto && <KitComponentesModal kit={kitAberto} podeEditar={pode("editar_produtos")} onClose={() => setKitAberto(null)} />}
     </>
   );

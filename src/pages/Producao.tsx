@@ -14,11 +14,12 @@ import { supabase } from "@/lib/supabase";
 import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
-import type { Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
+import type { Fornecedor, ItemCompra, KitComponente, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
 import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { contemNaEstrutura, custoEstrutura, niveis, temFicha, type LinhaFicha } from "@/lib/estrutura";
+import { ehKitAberto } from "@/lib/kits";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
@@ -585,6 +586,8 @@ function FichaTecnica() {
   const invalidate = useInvalidate();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: todas = [] } = useRows<LinhaFicha>("produto_componentes", { select: "produto_id, componente_id, quantidade", order: "produto_id" });
+  // kit na ficha (Chave Extratora, Mecânica…) sai pelas peças dele e entra no custo por elas
+  const { data: kits = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const maquinas = produtos.filter((p) => p.tipo === "maquina");
   const [novos, setNovos] = useState<string[]>([]);
   const subconjuntos = produtos.filter((p) => p.tipo !== "maquina" && (temFicha(todas, p.id) || novos.includes(p.id)));
@@ -601,7 +604,7 @@ function FichaTecnica() {
   const [escolhendo, setEscolhendo] = useState(false);
   // a árvore e o custo já consideram o que está sendo editado
   const fichas = useMemo(() => item ? [...todas.filter((f) => f.produto_id !== item.id), ...lista.map((c) => ({ ...c, produto_id: item.id }))] : todas, [todas, lista, item]);
-  const custo = item ? custoEstrutura(fichas, produtos, item.id) : 0;
+  const custo = item ? custoEstrutura(fichas, produtos, item.id, kits) : 0;
   const margem = item && Number(item.preco_venda) ? (Number(item.preco_venda) - custo) / Number(item.preco_venda) : 0;
   const usadoEm = item ? [...new Set(todas.filter((f) => f.componente_id === item.id).map((f) => f.produto_id))].map((id) => produtos.find((p) => p.id === id)?.descricao).filter(Boolean) : [];
   const nNiveis = item ? niveis(fichas, item.id) : 0;
@@ -626,7 +629,7 @@ function FichaTecnica() {
   const alternar = (id: string) => setAbertos((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   if (!maquinas.length && !subconjuntos.length) return <p className="py-8 text-center text-slate-500">Cadastre as máquinas em Estoque (tipo “Máquina”) para montar a ficha técnica.</p>;
-  const semCusto = lista.filter((c) => !temFicha(fichas, c.componente_id) && !(Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo) > 0)).length;
+  const semCusto = lista.filter((c) => !temFicha(fichas, c.componente_id) && !ehKitAberto(c.componente_id, kits) && !(Number(produtos.find((p) => p.id === c.componente_id)?.preco_custo) > 0)).length;
   const novoSub = escolhendo ? (
     <ProdutoBusca placeholder="Qual item vira subconjunto? (nome ou SKU)"
       produtos={produtos.filter((p) => p.tipo !== "maquina" && !temFicha(todas, p.id) && !novos.includes(p.id))}
@@ -684,7 +687,8 @@ function FichaTecnica() {
             {lista.map((c, k) => {
               const peca = produtos.find((p) => p.id === c.componente_id);
               const sub = temFicha(fichas, c.componente_id);
-              const custoUn = sub ? custoEstrutura(fichas, produtos, c.componente_id) : Number(peca?.preco_custo ?? 0);
+              const kitNaFicha = !sub && ehKitAberto(c.componente_id, kits);
+              const custoUn = sub || kitNaFicha ? custoEstrutura(fichas, produtos, c.componente_id, kits) : Number(peca?.preco_custo ?? 0);
               const nome = peca?.descricao ?? "Peça";
               return (
                 <li key={c.componente_id} className="py-2.5">
@@ -701,8 +705,9 @@ function FichaTecnica() {
                       </span>
                       <span className="block text-xs text-slate-500">
                         {sub && <><span className="font-semibold text-modulo-texto">subconjunto</span> · {peca?.subconjunto_estocado ? "estoque próprio" : "montado junto"} · </>}
+                        {kitNaFicha && <><span className="font-semibold text-violet-700">kit</span> · sai pelas peças dele · </>}
                         {custoUn > 0 ? <>{brl(custoUn)}/{peca?.unidade ?? "un"} · linha <b className="num">{brl(custoUn * c.quantidade)}</b></> : <span className="font-semibold text-amber-700">sem custo</span>}
-                        {` · estoque ${qtd(peca?.estoque_atual)}`}
+                        {kitNaFicha ? "" : ` · estoque ${qtd(peca?.estoque_atual)}`}
                         {sub && <> · <button type="button" className="text-brand hover:underline" onClick={() => setSelId(c.componente_id)}>abrir ficha</button></>}
                       </span>
                     </span>
@@ -728,7 +733,7 @@ function FichaTecnica() {
               produtos={produtos.filter((p) => p.tipo !== "maquina" && p.id !== item.id && !lista.some((c) => c.componente_id === p.id)
                 && !contemNaEstrutura(fichas, p.id, item.id))}
               onEscolher={(p) => setLista([...lista, { produto_id: item.id, componente_id: p.id, quantidade: 1 }])}
-              detalhe={(p) => [temFicha(todas, p.id) ? "subconjunto" : null, p.sku, `custo ${brl(temFicha(todas, p.id) ? custoEstrutura(todas, produtos, p.id) : p.preco_custo)}`,
+              detalhe={(p) => [temFicha(todas, p.id) ? "subconjunto" : null, p.sku, `custo ${brl(temFicha(todas, p.id) || ehKitAberto(p.id, kits) ? custoEstrutura(todas, produtos, p.id, kits) : p.preco_custo)}`,
                 `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
           )}
           <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-3">

@@ -1,4 +1,5 @@
 // Estoque → produto do tipo kit → Componentes: o que sai do estoque quando o kit é vendido.
+// Um componente pode ser outro kit (ex.: Mecânica Dupla leva 2 Mecânicas Q 050): sai pelas peças dele.
 import { Trash2 } from "lucide-react";
 import { Button, Modal } from "./ui";
 import { ProdutoBusca } from "./ProdutoBusca";
@@ -6,7 +7,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
 import { brl } from "@/lib/format";
-import { estoqueKit } from "@/lib/kits";
+import { custoKit, ehKitAberto, estoqueKit } from "@/lib/kits";
 import type { KitComponente, Produto } from "@/lib/types";
 
 export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto; podeEditar: boolean; onClose: () => void }) {
@@ -16,7 +17,7 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
   const invalidar = useInvalidate();
   const prod = (id: string) => produtos.find((p) => p.id === id);
   const saldo = (id: string) => Number(prod(id)?.estoque_atual ?? 0);
-  const custo = comps.filter((c) => c.padrao).reduce((s, c) => s + Number(c.quantidade) * Number(prod(c.componente_id)?.preco_custo ?? 0), 0);
+  const custo = custoKit(kit.id, todos, (id) => Number(prod(id)?.preco_custo ?? 0));
 
   async function gravar(acao: PromiseLike<{ error: unknown }>) {
     const { error } = await acao;
@@ -38,12 +39,15 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
         <span>Custo dos componentes: <b className="num">{brl(custo)}</b> · preço do kit <b className="num">{brl(kit.preco_venda)}</b></span>
       </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="min-w-full divide-y">
+        <table className="w-full min-w-[640px] divide-y">
           <thead className="bg-slate-50"><tr><th className="th">Componente</th><th className="th w-24">Qtd</th><th className="th w-24">Opcional</th><th className="th w-40">Grupo (alternativas)</th><th className="th w-20">Padrão</th><th className="th w-10" /></tr></thead>
           <tbody className="divide-y">
             {comps.map((c) => (
               <tr key={c.id}>
-                <td className="td">{prod(c.componente_id)?.descricao}<div className="text-xs text-slate-500">estoque {saldo(c.componente_id)}</div></td>
+                <td className="td">{prod(c.componente_id)?.descricao}
+                  <div className="text-xs text-slate-500">{ehKitAberto(c.componente_id, todos)
+                    ? <><span className="mr-1 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">KIT</span>sai pelas peças dele · dá para montar {estoqueKit(c.componente_id, todos, saldo)}</>
+                    : `estoque ${saldo(c.componente_id)}`}</div></td>
                 <td className="td"><input className="input text-right" type="number" min={0.001} step="any" defaultValue={c.quantidade} disabled={!podeEditar}
                   onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== Number(c.quantidade) && atualizar(c, { quantidade: Number(e.target.value) })} /></td>
                 <td className="td text-center"><input type="checkbox" className="h-5 w-5" checked={c.opcional} disabled={!podeEditar} onChange={(e) => atualizar(c, { opcional: e.target.checked })} /></td>
@@ -59,9 +63,9 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
       </div>
       {podeEditar && (
         <ProdutoBusca className="mt-3" placeholder="Adicionar componente: nome ou SKU"
-          produtos={produtos.filter((p) => p.id !== kit.id && !p.kit && !comps.some((c) => c.componente_id === p.id))}
+          produtos={produtos.filter((p) => p.id !== kit.id && !comps.some((c) => c.componente_id === p.id))}
           onEscolher={(p) => adicionar(p.id)}
-          detalhe={(p) => [p.sku, `custo ${brl(p.preco_custo)}`, `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
+          detalhe={(p) => [p.sku, p.kit ? "kit: sai pelas peças dele" : `custo ${brl(p.preco_custo)}`, p.kit ? null : `estoque ${Number(p.estoque_atual)}`, p.ativo ? null : "inativo"].filter(Boolean).join(" · ")} />
       )}
     </Modal>
   );

@@ -9,6 +9,7 @@ import { EXEMPLOS, TIPOS_PADRAO } from "./avisos";
 import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } from "./precificacao";
 import { percentualPedido } from "./comissao";
 import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
+import { pecasDoKit } from "./kits";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
 import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
 import { gerarLinhaBancaria } from "./boleto";
@@ -1171,10 +1172,15 @@ function comercialDemo(db: Db) {
   // Kit vendido como um produto só, com estoque baixado das peças
   db.produtos.push({ id: "pk1", sku: "KIT-BICO-3", descricao: "Kit reposição 3 sabores (bicos + vedação)", tipo: "peca", kit: true, unidade: "UN", ncm: "84189900", origem: 0,
     preco_custo: 0, preco_venda: 690, estoque_atual: 0, estoque_minimo: 0, ativo: true, vendavel: true, created_at: quando(-60) });
+  db.produtos.push({ id: "pk2", sku: "KIT-REV-6", descricao: "Kit revisão completa 6 sabores (2 kits de 3 + vedação extra)", tipo: "peca", kit: true, unidade: "UN", ncm: "84189900", origem: 0,
+    preco_custo: 0, preco_venda: 1490, estoque_atual: 0, estoque_minimo: 0, ativo: true, vendavel: true, created_at: quando(-30) });
   db.kit_componentes = [
     { id: "kc1", kit_id: "pk1", componente_id: "p7", quantidade: 3, opcional: false, grupo: null, padrao: true },
     { id: "kc2", kit_id: "pk1", componente_id: "p5", quantidade: 1, opcional: false, grupo: null, padrao: true },
     { id: "kc3", kit_id: "pk1", componente_id: "p10", quantidade: 1, opcional: true, grupo: null, padrao: true },
+    // kit dentro de kit: sai pelas peças do kit de dentro
+    { id: "kc4", kit_id: "pk2", componente_id: "pk1", quantidade: 2, opcional: false, grupo: null, padrao: true },
+    { id: "kc5", kit_id: "pk2", componente_id: "p5", quantidade: 1, opcional: false, grupo: null, padrao: true },
   ];
   // Propostas: histórico para a análise e duas em andamento
   const motivos = ["preco", "concorrente", "prazo", "preco", "frete"];
@@ -1443,7 +1449,7 @@ const VIEWS: Record<string, () => Row[]> = {
     const abertas = db.ordens_producao.filter((o) => ["planejada", "em_producao"].includes(o.status));
     // mesma regra do banco: explode a estrutura em todos os níveis (subconjunto com estoque próprio é consumido pronto)
     const fichas = db.produto_componentes as LinhaFicha[];
-    const consumo = (o: Row) => consumoEstrutura(fichas, db.produtos as any, o.produto_id, Number(o.quantidade));
+    const consumo = (o: Row) => consumoEstrutura(fichas, db.produtos as any, o.produto_id, Number(o.quantidade), (db.kit_componentes ?? []) as any);
     return db.ordens_producao.flatMap((op) => [...consumo(op)].map(([componente_id, necessario]) => {
       const p: Row = { ...db.produtos.find((x) => x.id === componente_id)!, estoque_atual: saldoUn(componente_id, op.unidade_id) };
       const reservado = abertas.filter((o) => o.id !== op.id && o.created_at < op.created_at && o.unidade_id === op.unidade_id)
@@ -2580,6 +2586,27 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: r, error: null };
   },
+  // composição dos kits do Tiny (no sistema real: public.importar_kits_tiny) — só preenche kit sem componentes
+  importar_kits_tiny: ({ p_kits }) => {
+    const r = { kits: 0, componentes: 0, ja_tinham: [] as string[], ignorados: 0 };
+    db.kit_componentes ??= [];
+    for (const k of p_kits as Row[]) {
+      const kit = db.produtos.find((p: Row) => p.id === k.kit_id);
+      if (!kit?.kit) { r.ignorados++; continue; }
+      if (db.kit_componentes.some((c: Row) => c.kit_id === kit.id)) { r.ja_tinham.push(kit.descricao); continue; }
+      let ok = false;
+      for (const i of (k.itens ?? []) as Row[]) {
+        const q = Math.round(Number(i.quantidade) * 1000) / 1000;
+        if (!i.componente_id || i.componente_id === kit.id || !(q > 0) || !db.produtos.some((p: Row) => p.id === i.componente_id)) { r.ignorados++; continue; }
+        const ja = db.kit_componentes.find((c: Row) => c.kit_id === kit.id && c.componente_id === i.componente_id);
+        if (ja) ja.quantidade += q;
+        else db.kit_componentes.push({ id: uid(), kit_id: kit.id, componente_id: i.componente_id, quantidade: q, opcional: false, grupo: null, padrao: true });
+        r.componentes++; ok = true;
+      }
+      if (ok) r.kits++;
+    }
+    return { data: r, error: null };
+  },
   importar_pecas_myfrost: ({ p_pecas }) => {
     const r = { novas: 0, ja_existiam: 0, erros: [] as Row[] };
     for (const x of p_pecas as Row[]) {
@@ -2821,8 +2848,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       const precisa = new Map<string, number>();
       for (const i of itensPed) {
         if (db.produtos.find((x) => x.id === i.produto_id)?.kit) {
-          const doKit = (db.kit_componentes ?? []).filter((c) => c.kit_id === i.produto_id);
-          const comp = i.kit_escolha?.length ? i.kit_escolha : doKit.filter((c) => c.padrao).map((c) => ({ componente_id: c.componente_id, quantidade: c.quantidade }));
+          const comp = pecasDoKit(i.produto_id, (db.kit_componentes ?? []) as any, i.kit_escolha);
           for (const c of comp) precisa.set(c.componente_id, (precisa.get(c.componente_id) ?? 0) + c.quantidade * i.quantidade);
         } else precisa.set(i.produto_id, (precisa.get(i.produto_id) ?? 0) + Number(i.quantidade));
       }
@@ -2836,8 +2862,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     for (const i of itensPed) {
       const ref = { unidade_id: p.unidade_id, referencia_tipo: "pedido", referencia_id: p.id };
       if (db.produtos.find((x) => x.id === i.produto_id)?.kit) {
-        const doKit = (db.kit_componentes ?? []).filter((c) => c.kit_id === i.produto_id);
-        const comp = i.kit_escolha?.length ? i.kit_escolha : doKit.filter((c) => c.padrao).map((c) => ({ componente_id: c.componente_id, quantidade: c.quantidade }));
+        const comp = pecasDoKit(i.produto_id, (db.kit_componentes ?? []) as any, i.kit_escolha);
         for (const c of comp) movimentar(c.componente_id, "saida", c.quantidade * i.quantidade, `Pedido #${p.numero} (kit ${i.descricao})`, ref);
       } else movimentar(i.produto_id, "saida", i.quantidade, `Pedido #${p.numero}`, ref);
     }
@@ -3023,14 +3048,14 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (!op || ["concluida", "cancelada"].includes(op.status)) return erro("ordem já finalizada");
     const fichas = db.produto_componentes as LinhaFicha[];
     if (!temFicha(fichas, op.produto_id)) return erro("cadastre a ficha técnica antes de concluir a produção");
-    const comps = [...consumoEstrutura(fichas, db.produtos as any, op.produto_id, Number(op.quantidade))];
+    const comps = [...consumoEstrutura(fichas, db.produtos as any, op.produto_id, Number(op.quantidade), (db.kit_componentes ?? []) as any)];
     const faltas = comps.map(([id, q]) => ({ q, p: db.produtos.find((x) => x.id === id)! }))
       .filter(({ q, p }) => saldoUn(p.id, op.unidade_id) < q)
       .map(({ q, p }) => `${p.descricao} (falta ${q - saldoUn(p.id, op.unidade_id)})`);
     if (faltas.length) return erro(`peças insuficientes no estoque desta unidade: ${faltas.join(", ")}`);
     for (const [id, q] of comps) movimentar(id, "saida", q, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
     movimentar(op.produto_id, "entrada", op.quantidade, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
-    db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(custoEstrutura(fichas, db.produtos as any, op.produto_id));
+    db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(custoEstrutura(fichas, db.produtos as any, op.produto_id, (db.kit_componentes ?? []) as any));
     Object.assign(op, { status: "concluida", concluida_em: quando(0) });
     return { data: null, error: null };
   },

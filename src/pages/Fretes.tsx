@@ -12,7 +12,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
-import { composicao } from "@/lib/kits";
+import { pecasDoKit } from "@/lib/kits";
 import type { EscolhaKit, KitComponente, Transportadora } from "@/lib/types";
 import {
   INDICADORES, REGIOES, STATUS_ENVIO, enviosDoMes, filtrarEnvios, freteDivergente, regiaoDaUf, rotuloServico,
@@ -38,7 +38,7 @@ function custoItens(itens: PedidoResumo["itens"], produtos: Map<string, ProdutoC
     if (!p) return null;
     let unit = Number(p.preco_custo) || 0;
     if (p.kit) {
-      const lista = composicao(p.id, comps, i.kit_escolha);
+      const lista = pecasDoKit(p.id, comps, i.kit_escolha);
       unit = lista.reduce((s, c) => s + c.quantidade * (Number(produtos.get(c.componente_id)?.preco_custo) || 0), 0);
       if (!lista.length || lista.some((c) => !(Number(produtos.get(c.componente_id)?.preco_custo) > 0))) return null;
     }

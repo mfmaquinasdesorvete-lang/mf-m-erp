@@ -8,7 +8,7 @@ import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { notify, notifyError } from "@/lib/notify";
 import { dataBR } from "@/lib/format";
-import { composicao } from "@/lib/kits";
+import { pecasDoKit } from "@/lib/kits";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { usePerfil } from "@/lib/auth";
 import type { Exp, PedidoFluxo as P } from "@/lib/fluxo";
@@ -96,7 +96,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
           <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             {p.itens.map((i) => {
               const pr = prod(i.produto_id);
-              const partes = pr?.kit ? composicao(i.produto_id, comps, i.kit_escolha) : [];
+              const partes = pr?.kit ? pecasDoKit(i.produto_id, comps, i.kit_escolha) : [];
               return (
                 <li key={i.id} className="flex items-start gap-3 p-3">
                   {exp.status === "separando" && <input type="checkbox" className="mt-1 h-5 w-5" checked={conf.has(i.id)} onChange={(e) => { const n = new Set(conf); if (e.target.checked) n.add(i.id); else n.delete(i.id); setConf(n); }} />}
