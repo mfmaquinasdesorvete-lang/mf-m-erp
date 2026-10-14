@@ -133,7 +133,7 @@ export default function Assistencia() {
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
             <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="ordens_servico" registro={o} nome={["OS", "OS"]} /></td>
-            <CelulaAbrir texto="Ver / editar" />
+            <CelulaAbrir />
           </tr>
         ))}
       </Table>

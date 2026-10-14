@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
-import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -252,7 +252,7 @@ function HistoricoGeral() {
           <option value="">Todos os usuários</option>
           {usuarios.map((u) => <option key={u}>{u}</option>)}
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-600">Mês <input type="month" className="input w-auto" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês" /></label>
+        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={soAlteracoes} onChange={(e) => setSoAlteracoes(e.target.checked)} /> Só alterações e exclusões</label>
         <Button variant="secondary" className="ml-auto" onClick={exportar} disabled={!lista.length}>Exportar</Button>
       </div>

@@ -62,12 +62,14 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   function mostrar(n: Notificacao) {
     if (vistos.current.has(n.id)) return;
     vistos.current.add(n.id);
-    setPopups((p) => [n, ...p].slice(0, 3));
+    // no celular o pop-up cobre o topo da tela: um de cada vez e por menos tempo (o histórico fica no sino)
+    const celular = window.matchMedia("(max-width: 767px)").matches;
+    setPopups((p) => [n, ...p].slice(0, celular ? 1 : 3));
     tocar();
     if (document.hidden && "Notification" in window && Notification.permission === "granted") {
       try { new Notification(n.titulo, { body: n.texto ?? "", icon: "/logo-192.png", tag: `erp-${n.id}` }); } catch { /* sem suporte */ }
     }
-    setTimeout(() => setPopups((p) => p.filter((x) => x.id !== n.id)), 15_000);
+    setTimeout(() => setPopups((p) => p.filter((x) => x.id !== n.id)), celular ? 6_000 : 12_000);
   }
 
   // Tempo real: cada notificação nova (que a pessoa pode ver) aparece na hora
@@ -102,13 +104,16 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
           const e = ESTILO[n.tipo] ?? ESTILO.outro;
           return (
             <div key={n.id} role="alert"
-              className="pointer-events-auto flex w-full max-w-sm animate-[entrar_.35s_ease-out] items-start gap-3 rounded-2xl border bg-surface p-4 shadow-pop"
+              className="pointer-events-auto flex w-full max-w-sm animate-[entrar_.35s_ease-out] items-center gap-2.5 rounded-2xl border bg-surface p-2.5 shadow-pop md:items-start md:gap-3 md:p-4"
               style={{ borderColor: `color-mix(in srgb, ${e.cor} 45%, transparent)`, boxShadow: `0 18px 40px -18px ${e.cor}` }}>
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${e.cor} 20%, transparent)`, color: e.cor }}><e.icon size={22} /></span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl md:h-11 md:w-11" style={{ background: `color-mix(in srgb, ${e.cor} 20%, transparent)`, color: e.cor }}><e.icon size={20} /></span>
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-bold leading-tight text-fg">{n.titulo}</div>
-                {n.texto && <div className="mt-0.5 line-clamp-2 text-sm text-slate-600">{n.texto}</div>}
-                {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 text-sm font-bold text-brand hover:underline">Abrir →</button>}
+                {/* no celular a linha toda é o botão de abrir; no computador fica o "Abrir →" */}
+                <button type="button" disabled={!n.link} onClick={() => abrir(n)} className="block w-full min-w-0 text-left disabled:cursor-default md:pointer-events-none">
+                  <span className="block truncate text-sm font-bold leading-tight text-fg md:whitespace-normal md:text-[15px]">{n.titulo}</span>
+                  {n.texto && <span className="mt-0.5 block truncate text-[13px] text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
+                </button>
+                {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 hidden text-sm font-bold text-brand hover:underline md:inline">Abrir →</button>}
               </div>
               <button type="button" aria-label="Fechar" onClick={() => setPopups((p) => p.filter((x) => x.id !== n.id))} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
             </div>

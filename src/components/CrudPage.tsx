@@ -3,7 +3,7 @@ import { ChevronDown, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plu
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { Button, Field, Modal, PageHeader, Table } from "./ui";
+import { Button, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
@@ -291,13 +291,18 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     <div>
       <PageHeader
         title={title}
-        actions={<>
-          <Button variant="secondary" onClick={exportar} title={filtrados.length ? "Baixar planilha do Excel (o que está filtrado, ou só os selecionados)" : "Baixar o modelo da planilha (lista vazia)"}>
-            <FileDown size={16} /> {sel.size ? `Exportar ${sel.size} selecionado(s)` : filtrados.length ? "Exportar" : "Baixar modelo"}
-          </Button>
-          {extraActions}
-          {!readOnly && <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
-        </>}
+        actions={(() => {
+          const botaoExportar = (
+            <Button variant="secondary" onClick={exportar} title={filtrados.length ? "Baixar planilha do Excel (o que está filtrado, ou só os selecionados)" : "Baixar o modelo da planilha (lista vazia)"}>
+              <FileDown size={16} /> {sel.size ? `Exportar ${sel.size} ${sel.size === 1 ? "selecionado" : "selecionados"}` : filtrados.length ? "Exportar" : "Baixar modelo"}
+            </Button>
+          );
+          // no celular: "Novo" à vista e o resto no botão "Mais" (eram até 5 botões antes da lista)
+          return <>
+            {!readOnly && <Button className="md:order-last" onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
+            {extraActions ? <MaisAcoes>{botaoExportar}{extraActions}</MaisAcoes> : botaoExportar}
+          </>;
+        })()}
       />
 
       {destaque && <FaixaDestaque destaque={destaque} mostrando={data.length} onLimpar={limparDestaque} />}

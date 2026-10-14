@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
-import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
+import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat, hoje } from "@/lib/format";
@@ -17,7 +17,7 @@ import { ConfigNfe } from "@/components/ConfigNfe";
 import { NfsePainel } from "@/components/nfse/NfsePainel";
 import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlNotas";
 import { ABAS_EMITIDAS, ABAS_RECEBIDAS, numeroDaChave, situacaoEmitida, situacaoRecebida, type Situacao } from "@/lib/notas";
-import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
+import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, TituloMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
 import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
 import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
@@ -103,8 +103,8 @@ function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: 
 
 function FiltroEtapa({ valor, onChange, opcoes }: { valor: string; onChange: (v: string) => void; opcoes: { valor: string; rotulo: string }[] }) {
   return (
-    <select className="input w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar pela evolução">
-      <option value="">Todas as etapas</option>
+    <select className="input min-w-0 sm:w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar pela evolução">
+      <option value="">Etapa: todas</option>
       {opcoes.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
     </select>
   );
@@ -113,8 +113,8 @@ function FiltroEtapa({ valor, onChange, opcoes }: { valor: string; onChange: (v:
 function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
   const { data: marcadores = [] } = useMarcadores();
   return (
-    <select className="input w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar por marcador">
-      <option value="">Todos os marcadores</option>
+    <select className="input min-w-0 sm:w-auto" value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Filtrar por marcador">
+      <option value="">Marcador: todos</option>
       {marcadores.filter((m) => m.ativo).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
     </select>
   );
@@ -212,12 +212,14 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></>}</div>
+        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></div></>}</div>
         <div className="flex flex-wrap gap-2">
-          {!leitura && <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>}
-          {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
-          {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
-          {!leitura && pode("emitir_nfe") && <Button onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
+          {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
+          {!leitura && <MaisAcoes>
+            <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
+            {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
+            {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
+          </MaisAcoes>}
         </div>
       </div>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
@@ -234,7 +236,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th">UF</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th">Marcadores</th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
             {visiveis.map((n) => {
               const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
@@ -245,8 +247,10 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                   {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${n.numero ?? ""}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
                   <td className="td font-semibold">{n.numero ?? "—"}<div className="text-xs font-normal text-slate-500">{n.pedido?.numero != null ? `pedido #${n.pedido.numero}` : n.origem === "importada" ? "importada" : ""}</div></td>
                   <td className="td">{dataBR(n.created_at)}</td>
-                  <td className="td">{nome}{fantasia && fantasia !== nome && <div className="text-xs text-slate-500">{fantasia}</div>}{!fantasia && n.destinatario_doc && <div className="text-xs text-slate-500">{docFormat(n.destinatario_doc)}</div>}<EtiquetaUnidade id={n.unidade_id ?? undefined} /></td>
-                  <td className="td">{n.payload?.uf_destinatario ?? "—"}</td>
+                  <td className="td">{nome}
+                    {/* a UF do destinatário fica embaixo do nome (sem coluna própria, para a lista caber no notebook) */}
+                    <div className="text-xs text-slate-500">{[fantasia && fantasia !== nome ? fantasia : !fantasia && n.destinatario_doc ? docFormat(n.destinatario_doc) : null, n.payload?.uf_destinatario].filter(Boolean).join(" · ")}</div>
+                    <EtiquetaUnidade id={n.unidade_id ?? undefined} /></td>
                   <td className="td text-right">{brl(n.valor_total)}</td>
                   <td className="td">
                     <IconeSituacao s={situacaoEmitida(n)} />
@@ -318,6 +322,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
     <>
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
         <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
+        <MaisAcoes>
         <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
         <Button variant="secondary" title="Das notas importadas que ficaram só como histórico: as duplicatas que ainda vão vencer viram contas a pagar (sem repetir)"
           onClick={async () => {
@@ -329,12 +334,13 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
             } catch (e) { notifyError(e); }
           }}><CalendarClock size={16} /> Lançar contas a vencer</Button>
         <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
-        <p className="text-sm text-slate-500">
+        </MaisAcoes>
+        <p className="hidden text-sm text-slate-500 md:block">
           Notas emitidas contra os CNPJs da MF (ou o XML que o fornecedor mandou). O ERP dá ciência, lê o XML, lança o contas a pagar e dá entrada no estoque
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></>}</div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></div></>}</div>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
@@ -343,7 +349,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th">Marcadores</th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
             {visiveis.map((n) => (
               <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>

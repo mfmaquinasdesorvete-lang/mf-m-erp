@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, ScanBarcode, Undo2, Wallet } from "lucide-react";
-import { Badge, BotaoAtalho, Button, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
@@ -180,7 +180,7 @@ function Filtros({ filtro, setFiltro, mes, setMes, onNovo, onImprimir, onExporta
       </label>
       <label className="min-w-0 sm:flex sm:items-center sm:gap-2">
         <span className="mb-1 block text-xs font-semibold text-slate-500 sm:mb-0 sm:text-sm sm:font-normal sm:text-slate-600">Vencimento em</span>
-        <input className="input sm:w-auto" type="month" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês de vencimento" />
+        <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês de vencimento" />
       </label>
       <div className="hidden flex-1 sm:block" />
       <div className={`col-span-2 grid gap-2 sm:flex ${onNovo ? "grid-cols-3" : "grid-cols-2"}`}>

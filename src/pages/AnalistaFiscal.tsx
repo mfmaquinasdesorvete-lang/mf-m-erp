@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, ClipboardCopy, FileDown, Lightbulb, Receipt, Scale, ShieldAlert, XCircle,
 } from "lucide-react";
-import { Button, Card, Indicador, PageHeader, Tabs } from "@/components/ui";
+import { Button, CampoMes, Card, Indicador, PageHeader, Tabs } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
@@ -120,9 +120,9 @@ export default function AnalistaFiscal() {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm text-slate-600">Até
-            <input type="month" className="input w-auto" value={mes} max={new Date().toISOString().slice(0, 7)} onChange={(e) => e.target.value && setMes(e.target.value)} aria-label="Mês final da análise" />
-          </label>
+          <div className="flex items-center gap-2 text-sm text-slate-600">Até
+            <CampoMes value={mes} max={new Date().toISOString().slice(0, 7)} onChange={(v) => v && setMes(v)} rotulo="Mês final da análise" />
+          </div>
           <Button variant="secondary" onClick={() => navigator.clipboard.writeText(textoResumo()).then(() => notify("Resumo copiado: cole no WhatsApp ou no e-mail do contador"))}>
             <ClipboardCopy size={16} aria-hidden /> Copiar para o contador
           </Button>

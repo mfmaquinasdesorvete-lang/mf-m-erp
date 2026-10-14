@@ -26,6 +26,11 @@ export function ChipMarcador({ m, pequeno }: { m: Marcador; pequeno?: boolean })
   );
 }
 
+/** Título curto da coluna de marcadores (ícone): a palavra inteira alargava a tabela; o leitor de tela e o cartão do celular leem "Marcadores". */
+export function TituloMarcadores() {
+  return <span className="inline-flex items-center" title="Marcadores"><Tags size={14} aria-hidden /><span className="sr-only">Marcadores</span></span>;
+}
+
 export function ChipsMarcadores({ ids, todos, pequeno }: { ids?: string[] | null; todos: Marcador[]; pequeno?: boolean }) {
   const lista = (ids ?? []).map((id) => todos.find((m) => m.id === id)).filter((m): m is Marcador => !!m && m.ativo);
   if (!lista.length) return null;

@@ -2,7 +2,7 @@
 // Saem das contas pagas (botão Recibo) ou avulsos. Numeração própria; emitido não muda, só é cancelado com motivo.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Ban, FileText, Plus, ReceiptText } from "lucide-react";
-import { BotaoAtalho, Button, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
+import { BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, docFormat, hoje } from "@/lib/format";
@@ -211,7 +211,7 @@ export function Recibos() {
             <option value="">Todos</option><option value="recebimento">Recebimento</option><option value="pagamento">Pagamento</option>
           </select>
         </Field>
-        <Field label="Mês"><input className="input" type="month" value={mes} onChange={(e) => setMes(e.target.value)} /></Field>
+        <Field label="Mês"><CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></Field>
         <p className="mb-2 ml-auto text-sm text-slate-600">{lista.length} recibo(s) · <b>{brl(total)}</b></p>
         {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
       </div>

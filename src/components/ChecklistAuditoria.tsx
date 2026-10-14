@@ -2,8 +2,8 @@
 // Ao lado de cada pergunta, os alertas automáticos ligados a ela ajudam a escolher a amostra; o item só fica
 // "conforme" depois de conferir documento e extrato. "Não conforme" vira exceção (responsável, prazo, evidência).
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Download } from "lucide-react";
-import { Button, Card } from "./ui";
+import { AlertTriangle, CheckCircle2, ChevronDown, Download } from "lucide-react";
+import { Button, CampoMes, Card } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
@@ -30,6 +30,15 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
   const resp = (id: string) => doMes.find((r) => r.item === id);
   const conferidos = ITENS_CHECKLIST.filter((i) => (resp(i.id)?.situacao ?? "pendente") !== "pendente").length;
   const naoConformes = ITENS_CHECKLIST.filter((i) => resp(i.id)?.situacao === "nao_conforme").length;
+  // áreas recolhidas (eram 47 perguntas numa parede só): abre a primeira que ainda tem item a conferir
+  const [abertas, setAbertas] = useState<Set<string> | null>(null);
+  const primeiraPendente = CHECKLIST.find((s) => s.itens.some((i) => (resp(i.id)?.situacao ?? "pendente") === "pendente"))?.id;
+  const estaAberta = (id: string) => (abertas ? abertas.has(id) : id === primeiraPendente);
+  const alternarArea = (id: string) => setAbertas((a) => {
+    const n = new Set(a ?? (primeiraPendente ? [primeiraPendente] : []));
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
 
   async function salvar(item: ItemChecklist, mudanca: { situacao?: SituacaoItem; observacao?: string }) {
     const atual = resp(item.id);
@@ -61,13 +70,13 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-600">Competência
-          <input type="month" className="input w-auto" value={comp} onChange={(e) => e.target.value && setComp(e.target.value)} aria-label="Competência" />
-        </label>
+        <div className="flex items-center gap-2 text-sm text-slate-600">Competência
+          <CampoMes value={comp} onChange={(v) => v && setComp(v)} rotulo="Competência" />
+        </div>
         <div className="min-w-[12rem] flex-1">
           <div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${(conferidos / ITENS_CHECKLIST.length) * 100}%` }} /></div>
           <p className="mt-1 text-xs text-slate-500">
-            {conferidos} de {ITENS_CHECKLIST.length} conferidos{naoConformes ? <> · <b className="text-red-600">{naoConformes} não conforme(s)</b> (estão em Exceções)</> : null}
+            {conferidos} de {ITENS_CHECKLIST.length} conferidos{naoConformes ? <> · <b className="text-red-600">{naoConformes} {naoConformes === 1 ? "não conforme" : "não conformes"}</b> (estão em Exceções)</> : null}
           </p>
         </div>
         <Button variant="secondary" onClick={exportar}><Download size={16} /> Exportar</Button>
@@ -78,18 +87,22 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
         const feitos = s.itens.filter((i) => (resp(i.id)?.situacao ?? "pendente") !== "pendente").length;
         return (
           <Card key={s.id} className="p-4">
-            <div className="mb-1 flex items-center justify-between gap-2">
+            <button type="button" aria-expanded={estaAberta(s.id)} onClick={() => alternarArea(s.id)} className="flex w-full items-center justify-between gap-2 text-left">
               <h2 className="font-semibold">{s.titulo}</h2>
-              <span className={`text-xs font-semibold ${feitos === s.itens.length ? "text-emerald-600" : "text-slate-500"}`}>{feitos}/{s.itens.length}</span>
-            </div>
-            <ul>
+              <span className="flex items-center gap-2">
+                <span className={`text-xs font-semibold ${feitos === s.itens.length ? "text-emerald-600" : "text-slate-500"}`}>{feitos === s.itens.length ? "✓ " : ""}{feitos}/{s.itens.length}</span>
+                <ChevronDown size={16} className={`text-slate-400 transition ${estaAberta(s.id) ? "rotate-180" : ""}`} aria-hidden />
+              </span>
+            </button>
+            {estaAberta(s.id) && <>
+            <ul className="mt-1">
               {s.itens.map((i) => {
                 const r = resp(i.id);
                 const alertas = (i.alertas ?? []).map((t) => ({ t, n: dados.abertasPorTipo(t) }));
                 return (
                   <li key={i.id} className="border-t border-slate-100 py-3 first:border-t-0">
                     <div className="flex flex-wrap items-start gap-2">
-                      <p className="min-w-[16rem] flex-1 text-[15px] text-fg">{i.texto}</p>
+                      <p className="min-w-0 flex-1 basis-64 text-[15px] text-fg">{i.texto}</p>
                       <div className="flex flex-wrap gap-1" role="group" aria-label="Situação">
                         {SITUACOES.map((o) => (
                           <button key={o.valor} type="button" disabled={!podeEditar} aria-pressed={r?.situacao === o.valor}
@@ -112,9 +125,10 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
                         )}
                       </div>
                     )}
-                    <textarea key={`${comp}-${i.id}-${r?.updated_at ?? ""}`} className="input mt-2 text-sm" rows={1} disabled={!podeEditar}
+                    {/* evidência só depois de responder (ou se já tem texto): menos campos vazios na tela */}
+                    {((r?.situacao ?? "pendente") !== "pendente" || r?.observacao) && <textarea key={`${comp}-${i.id}-${r?.updated_at ?? ""}`} className="input mt-2 text-sm" rows={1} disabled={!podeEditar}
                       defaultValue={r?.observacao ?? ""} placeholder="Evidência: o que foi conferido (amostra, documento, extrato)"
-                      onBlur={(e) => e.target.value.trim() !== (r?.observacao ?? "") && salvar(i, { observacao: e.target.value })} />
+                      onBlur={(e) => e.target.value.trim() !== (r?.observacao ?? "") && salvar(i, { observacao: e.target.value })} />}
                     {r?.revisado_nome && r.situacao !== "pendente" && (
                       <p className="mt-1 text-xs text-slate-500">{ROTULO[r.situacao]} · {r.revisado_nome}{r.updated_at ? ` em ${dataBR(r.updated_at)}` : ""}</p>
                     )}
@@ -123,6 +137,7 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
               })}
             </ul>
             <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"><b>Teste útil:</b> {s.teste}</p>
+            </>}
           </Card>
         );
       })}
