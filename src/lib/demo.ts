@@ -1039,6 +1039,23 @@ function bancosDemo(db: Db) {
   db.openfinance_conexoes = [];
   db.inter_conexoes = [];
   db.compras_legado = [];
+  // propostas do Tiny (histórico): MF com valores; My Frost (empresa anterior) sem valores
+  const propTiny = (empresa: string, numero: number, d: number, situacao: string, cliente_id: string, itens: Row[], extra: Row = {}) => ({
+    id: uid(), empresa, tiny_id: `demo-${empresa}-${numero}`, numero, data: dias(d), proximo_contato: null, situacao, vendedor: "Vendedor exemplo",
+    cliente_id, contato_nome: null, aos_cuidados: null, unidade_id: empresa === "mf" ? U_SC : null, validade_dias: 7,
+    prazo_entrega: empresa === "mf" ? "20 dias de produção + frete" : null, observacoes: null,
+    desconto: empresa === "mf" ? 0 : null, frete: empresa === "mf" ? 0 : null,
+    total: empresa === "mf" ? itens.reduce((t: number, i: Row) => t + i.quantidade * i.valor_unitario, 0) : null,
+    itens, created_at: quando(d), ...extra,
+  });
+  db.propostas_tiny = [
+    propTiny("mf", 139, -40, "Concluído", "c1", [{ descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", quantidade: 1, valor_unitario: 23900, produto_id: "p1" }],
+      { observacoes: "Pagamento: 50% no pedido e 50% antes do envio. Garantia de 12 meses a partir da nota fiscal." }),
+    propTiny("mf", 161, -12, "Aguardando", "c4", [{ descricao: "Máquina de Sorvete Expressa MF-150 Balcão", quantidade: 2, valor_unitario: 14500, produto_id: "p2" },
+      { descricao: "Kit vedação do cilindro", quantidade: 4, valor_unitario: 95, produto_id: "p5" }], { proximo_contato: dias(3) }),
+    propTiny("mf", 158, -25, "Não aprovado", "c5", [{ descricao: "Máquina de Milk Shake MF-MS2 (2 hastes)", quantidade: 1, valor_unitario: 3690, produto_id: "p3" }]),
+    propTiny("my_frost", 1071, -420, "Concluído", "c2", [{ descricao: "My Frost Top 300 - Máquina de Sorvete Expresso", quantidade: 1 }]),
+  ];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({
     id: uid(), conta_bancaria_id: conta, importacao_id: null, data, valor: r2(valor), descricao, documento: null, identificador: uid(), status: "pendente",
@@ -2582,6 +2599,38 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         db.compras_legado.push({ id: uid(), cliente_id: cli.id, origem: "My Frost", ...x, created_at: quando(0) });
         r.compras++;
       }
+    }
+    return { data: r, error: null };
+  },
+  // propostas do Tiny (no sistema real: public.importar_propostas_tiny)
+  importar_propostas_tiny: ({ p_empresa, p_propostas, p_unidade }) => {
+    const mf = p_empresa === "mf";
+    const r = { novas: 0, atualizadas: 0, clientes_novos: 0, sem_cliente: 0, erros: [] as Row[] };
+    for (const p of p_propostas as Row[]) {
+      if (!p.tiny_id) { r.erros.push({ proposta: p.numero ?? "?", erro: "proposta sem ID do Tiny" }); continue; }
+      const ext = p.contato_id ? (mf ? p.contato_id : `myfrost:${p.contato_id}`) : null;
+      let cli = db.clientes.find((x: Row) => (ext && x.id_externo === ext) || (p.cpf_cnpj && x.cpf_cnpj === p.cpf_cnpj));
+      if (!cli && !mf) { r.sem_cliente++; continue; }
+      if (!cli) {
+        cli = { id: uid(), ...DEFAULTS.clientes(), codigo: db.clientes.reduce((m: number, x: Row) => Math.max(m, Number(x.codigo ?? 0)), 0) + 1,
+          nome: p.nome, tipo_pessoa: String(p.cpf_cnpj ?? "").length === 11 ? "PF" : "PJ", cpf_cnpj: p.cpf_cnpj || null, email: p.email || null,
+          telefone: p.fone || null, whatsapp: p.celular || null, municipio: p.municipio || null, uf: p.uf || null, id_externo: ext, created_at: quando(0) };
+        db.clientes.push(cli);
+        r.clientes_novos++;
+      }
+      const itens = (p.itens ?? []).map((i: Row) => mf
+        ? { descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valor_unitario, produto_id: db.produtos.find((x: Row) => x.id_externo && x.id_externo === i.tiny_produto_id)?.id ?? null }
+        : { descricao: i.descricao, quantidade: i.quantidade });
+      const sub = itens.reduce((t: number, i: Row) => t + i.quantidade * (i.valor_unitario ?? 0), 0);
+      const linha = {
+        empresa: p_empresa, tiny_id: p.tiny_id, numero: Number(p.numero) || null, data: p.data, proximo_contato: p.proximo_contato, situacao: p.situacao || null,
+        vendedor: p.vendedor || null, cliente_id: cli.id, contato_nome: p.nome || null, aos_cuidados: p.aos_cuidados || null,
+        unidade_id: mf ? p_unidade ?? null : null, validade_dias: Number(p.validade) || null,
+        prazo_entrega: mf ? p.prazo_entrega || null : null, observacoes: mf ? p.observacoes || null : null,
+        desconto: mf ? p.desconto ?? 0 : null, frete: mf ? p.frete ?? 0 : null, total: mf ? Math.max(sub - (p.desconto ?? 0) + (p.frete ?? 0), 0) : null, itens,
+      };
+      const ja = db.propostas_tiny.find((x: Row) => x.empresa === p_empresa && x.tiny_id === p.tiny_id);
+      if (ja) { Object.assign(ja, linha); r.atualizadas++; } else { db.propostas_tiny.push({ id: uid(), ...linha, created_at: quando(0) }); r.novas++; }
     }
     return { data: r, error: null };
   },

@@ -33,6 +33,7 @@ import { combinaBusca } from "@/lib/buscaCliente";
 import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/financeiro/LinkPedido";
+import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -77,6 +78,8 @@ export default function Pedidos() {
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
+  // Vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
+  const [vista, setVista] = useState<"erp" | "tiny">("erp");
   const location = useLocation();
   const navigate = useNavigate();
   // vindo do Analista fiscal: só os pedidos apontados (ex.: vendas sem NF-e)
@@ -112,10 +115,18 @@ export default function Pedidos() {
   return (
     <div>
       <PageHeader title="Vendas e orçamentos" subtitle="Do orçamento no WhatsApp à entrega, com frete e nota fiscal."
-        actions={<>
+        actions={vista === "erp" ? <>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista)}><FileDown size={16} /> Exportar</Button>
           {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> Novo orçamento</Button>}
-        </>} />
+        </> : undefined} />
+
+      <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Vendas do ERP" }, { value: "tiny", label: "Propostas do Tiny" }]} />
+      {vista === "tiny" ? (
+        <PropostasTiny onNovoOrcamento={pode("editar_pedidos") ? (cliente_id, itens) => {
+          setVista("erp");
+          setAberto({ ...novoPedido(cfgPedidos?.orcamento_observacoes), cliente_id, itens });
+        } : undefined} />
+      ) : <>
 
       {destaque && <FaixaDestaque destaque={destaque} mostrando={lista.length}
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
@@ -171,6 +182,7 @@ export default function Pedidos() {
         ))}
       </Table>
       </div>
+      </>}
 
       {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
     </div>
