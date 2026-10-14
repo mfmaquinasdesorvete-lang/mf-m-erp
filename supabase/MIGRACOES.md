@@ -48,3 +48,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   25. `20261013210651_codigos_ean.sql`
   26. `20261013223050_regras_beneficio_desoneracao.sql`
   27. `20261014024330_extrato_por_email.sql`
+  28. `20261014035644_inter_extrato.sql`

@@ -45,3 +45,6 @@ verify_jwt = false
 # Backup: a Hostinger baixa a cópia do dia com o header x-backup-token (hash em backups_config).
 [functions.backup-baixar]
 verify_jwt = false
+
+[functions.inter]
+verify_jwt = false

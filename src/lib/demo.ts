@@ -1032,6 +1032,7 @@ function bancosDemo(db: Db) {
   );
   db.extrato_lancamentos = [];
   db.openfinance_conexoes = [];
+  db.inter_conexoes = [];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({
     id: uid(), conta_bancaria_id: conta, importacao_id: null, data, valor: r2(valor), descricao, documento: null, identificador: uid(), status: "pendente",
@@ -3567,6 +3568,45 @@ const funcoes: Record<string, (b: any) => any> = {
     }
     if (b.acao === "teste") return { ok: true };
     return { ok: true, enviadas: 0, erros: 0 };
+  },
+  inter: (b) => {
+    // prévia: o "Inter" aceita qualquer credencial com certificado e chave e manda alguns lançamentos
+    if (!db.inter_conexoes) db.inter_conexoes = [];
+    const novos = (c: Row) => {
+      let n = 0;
+      for (const l of [
+        { data: dias(-2), valor: 3200, descricao: "Pix recebido · PIX RECEBIDO · Doce Gelo Sorvetes", id: "1" },
+        { data: dias(-1), valor: -12.5, descricao: "Tarifa · Tarifa Pix", id: "2" },
+      ]) {
+        const identificador = `inter-demo-${c.id}-${l.id}`;
+        if (db.extrato_lancamentos.some((x) => x.conta_bancaria_id === c.conta_bancaria_id && x.identificador === identificador)) continue;
+        db.extrato_lancamentos.push({ id: uid(), conta_bancaria_id: c.conta_bancaria_id, importacao_id: null, data: l.data, valor: l.valor, descricao: l.descricao, documento: null,
+          identificador, status: "pendente", conta_receber_id: null, conta_pagar_id: null, baixou_conta: false, par_transferencia_id: null, observacao: null,
+          origem: "inter", inter_conexao_id: c.id, created_at: new Date().toISOString() });
+        n++;
+      }
+      const conciliadas = n ? conciliarAutoDemo(c.conta_bancaria_id) : 0;
+      Object.assign(c, { status: "ativa", erro: null, sincronizado_em: new Date().toISOString(), ultimas_novas: n, saldo: 15230.4, saldo_em: new Date().toISOString() });
+      return { novas: n, conciliadas, saldo: c.saldo };
+    };
+    if (b.acao === "ligar") {
+      let c = db.inter_conexoes.find((x) => x.id === b.conexao_id && x.status !== "desligada");
+      if (!c) {
+        if (!String(b.client_id ?? "").trim() || !String(b.client_secret ?? "").trim()) throw new Error("Informe o Client ID e o Client Secret do app do Inter.");
+        if (!/BEGIN CERTIFICATE/.test(String(b.cert ?? "")) || !/PRIVATE KEY/.test(String(b.key ?? ""))) throw new Error("Envie o certificado (.crt) e a chave (.key) do app do Inter.");
+        c = { id: uid(), conta_bancaria_id: b.conta_bancaria_id, conta_corrente: b.conta_corrente || null, status: "ativa", erro: null, desde: b.desde,
+          sincronizado_em: null, ultimas_novas: 0, saldo: null, saldo_em: null, certificado_validade: quando(365), created_at: new Date().toISOString() };
+        db.inter_conexoes.push(c);
+      } else Object.assign(c, { conta_corrente: b.conta_corrente || null, desde: b.desde || c.desde });
+      return { ok: true, conexao_id: c.id, ...novos(c) };
+    }
+    if (b.acao === "sincronizar") {
+      const resultado: Record<string, unknown> = {};
+      for (const c of db.inter_conexoes.filter((x) => x.status !== "desligada" && (!b.conexao_id || x.id === b.conexao_id))) resultado[c.id] = novos(c);
+      return { ok: true, resultado };
+    }
+    if (b.acao === "desligar") { const c = db.inter_conexoes.find((x) => x.id === b.conexao_id); if (c) c.status = "desligada"; return { ok: true }; }
+    return { ok: true };
   },
   openfinance: (b) => {
     // prévia: a "Pluggy" responde na hora; o banco de teste manda alguns lançamentos (um deles paga uma conta em aberto)
