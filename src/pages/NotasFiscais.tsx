@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { type Destaque, lerDestaque } from "@/lib/destaque";
+import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { Ban, CalendarClock, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -128,8 +130,12 @@ export default function NotasFiscais() {
   const [emitirAgora, setEmitirAgora] = useState(false);
   // vindo do painel de notas: abre a aba e o filtro clicados (ex.: recebidas "a resolver")
   const [filtroInicial, setFiltroInicial] = useState<string | undefined>(undefined);
+  // vindo do Analista fiscal: a lista abre só com as notas apontadas
+  const [destaque, setDestaque] = useState<Destaque | null>(null);
   useEffect(() => {
     const st = location.state as { emitir?: boolean; aba?: typeof aba; filtro?: string } | null;
+    const d = lerDestaque(location.state);
+    if (d) setDestaque(d);
     if (st?.emitir) {
       setAba("emitidas"); setEmitirAgora(true);
       navigate(location.pathname, { replace: true, state: null });
@@ -149,12 +155,12 @@ export default function NotasFiscais() {
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
-      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={filtroInicial} leitura={contador} filtroInicial={filtroInicial} /> : <Emitidas key={filtroInicial} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} />}
+      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
     </div>
   );
 }
 
-function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtroInicial }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string }) {
+function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
@@ -174,7 +180,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
     return m;
   }, [data, evolucoes]);
   const filtroEtapa = FILTROS_EMITIDAS.find((f) => f.valor === etapa);
-  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
   const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
@@ -214,6 +220,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
           {!leitura && pode("emitir_nfe") && <Button onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
         </div>
       </div>
+      {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
@@ -266,7 +273,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   );
 }
 
-function Recebidas({ leitura = false, filtroInicial }: { leitura?: boolean; filtroInicial?: string }) {
+function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<Recebida & { excluida_em?: string | null }>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
@@ -278,7 +285,7 @@ function Recebidas({ leitura = false, filtroInicial }: { leitura?: boolean; filt
   const { data: evolucoes } = useEvolucaoRecebidas();
   const evolucao = useMemo(() => new Map(data.map((n) => [n.id, evolucaoRecebida(n as any, evolucoes?.get(n.id))])), [data, evolucoes]);
   const filtroEtapa = FILTROS_RECEBIDAS.find((f) => f.valor === etapa);
-  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
+  const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
   const { visiveis, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
@@ -328,6 +335,7 @@ function Recebidas({ leitura = false, filtroInicial }: { leitura?: boolean; filt
         </p>
       </div>}
       <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></>}</div>
+      {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (

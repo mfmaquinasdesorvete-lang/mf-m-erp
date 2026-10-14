@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { lerDestaque } from "@/lib/destaque";
+import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
@@ -77,6 +79,8 @@ export default function Pedidos() {
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  // vindo do Analista fiscal: só os pedidos apontados (ex.: vendas sem NF-e)
+  const [destaque, setDestaque] = useState(() => lerDestaque(location.state));
   useEffect(() => {
     // vindo do painel de vendas: já abre na situação clicada
     const status = (location.state as any)?.status;
@@ -100,9 +104,10 @@ export default function Pedidos() {
   }, [location.state, pedidosTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lista = useMemo(() => pedidos.filter((p) =>
+    (!destaque || destaque.ids.includes(p.id)) &&
     (filtro === "todos" || p.status === filtro) &&
     (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, filtro, busca]);
+  ), [pedidos, filtro, busca, destaque]);
 
   return (
     <div>
@@ -112,6 +117,8 @@ export default function Pedidos() {
           {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> Novo orçamento</Button>}
         </>} />
 
+      {destaque && <FaixaDestaque destaque={destaque} mostrando={lista.length}
+        onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <div className="mb-4 space-y-3">
         <input className="input max-w-md" placeholder="Buscar nº, cliente, CPF ou CNPJ…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         <div className="flex gap-2 overflow-x-auto pb-1">

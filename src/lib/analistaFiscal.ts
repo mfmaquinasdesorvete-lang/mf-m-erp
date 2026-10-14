@@ -4,6 +4,8 @@
 // 3) as estratégias legais para pagar menos imposto, com a economia estimada quando dá para calcular.
 // Tudo é estimativa gerencial para conversar com o contador: a apuração oficial (SPED, LALUR) é dele.
 
+import { comDestaque } from "./destaque";
+
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const dig = (v?: string | null) => (v ?? "").replace(/\D/g, "");
 const norm = (s?: string | null) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
@@ -230,6 +232,8 @@ export function comparaRegimes(a: { receita: number; icms: number; lucro: number
 export type Achado = {
   id: string; nivel: "problema" | "alerta" | "ok"; titulo: string; detalhe: string; acao?: string;
   quem?: "Você" | "Contador" | "Você e o contador"; link?: string; valor?: number;
+  /** state da navegação do botão "Abrir": a aba da tela e só os registros apontados (destaque) */
+  estado?: Record<string, unknown>;
 };
 
 export type Estrategia = {
@@ -284,7 +288,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "tema69", nivel: "problema", titulo: "PIS/COFINS sendo calculado com o ICMS dentro",
     detalhe: `${semExclusao.map((u) => u.nome).join(", ")}: o STF decidiu (Tema 69) que o ICMS não entra na base do PIS/COFINS.`,
     acao: "Ligar \"Excluir o ICMS da base do PIS/COFINS\" em Notas fiscais → Configurações e pedir ao contador a recuperação dos últimos 5 anos.",
-    quem: "Você e o contador", link: "/notas", valor: r2(s12.icms * PIS_COFINS / 100),
+    quem: "Você e o contador", link: "/notas", estado: { aba: "config" }, valor: r2(s12.icms * PIS_COFINS / 100),
   });
   else add({ id: "tema69", nivel: "ok", titulo: "ICMS fora da base do PIS/COFINS", detalhe: "As notas já saem sem o ICMS na base (Tema 69 do STF)." });
 
@@ -299,7 +303,7 @@ export function analisar(ctx: ContextoFiscal) {
   if (transfComIcms.length) add({
     id: "transf", nivel: "alerta", titulo: "Transferência entre SC e SP com ICMS",
     detalhe: "Desde 2024 a transferência entre estabelecimentos da mesma empresa não tem ICMS (STF ADC 49, LC 204/2023). Destacar só faz sentido se o contador quiser levar o crédito para a outra unidade.",
-    acao: "Confirmar com o contador e ajustar o CST da transferência em Configurações da NF-e.", quem: "Você e o contador", link: "/notas",
+    acao: "Confirmar com o contador e ajustar o CST da transferência em Configurações da NF-e.", quem: "Você e o contador", link: "/notas", estado: { aba: "config" },
   });
   else if (ctx.unidades.length > 1) add({ id: "transf", nivel: "ok", titulo: "Transferências SC ↔ SP sem ICMS", detalhe: "Configuradas como não tributadas (CST 41), conforme a ADC 49 do STF." });
 
@@ -308,6 +312,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "nfe_pendente", nivel: "problema", titulo: `${pendentes.length} NF-e com erro, denegada ou em contingência`,
     detalhe: "Nota sem autorização não vale: a venda fica sem documento fiscal e o imposto não é apurado.",
     acao: "Abrir em Notas fiscais, corrigir e reenviar (ou cancelar o pedido).", quem: "Você", link: "/notas",
+    estado: comDestaque(pendentes.map((n) => n.id), "NF-e com erro, denegada ou em contingência", { aba: "emitidas" }),
   });
 
   // venda entregue ou faturada sem NF-e autorizada nos últimos 90 dias
@@ -317,6 +322,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "venda_sem_nota", nivel: "alerta", titulo: `${semNota.length} venda(s) entregue(s) ou faturada(s) sem NF-e no ERP`,
     detalhe: `Pedidos ${semNota.slice(0, 6).map((p) => `#${p.numero ?? "?"}`).join(", ")}${semNota.length > 6 ? "…" : ""}. Se a nota foi emitida fora do ERP, importe o XML; se não foi, é risco fiscal.`,
     acao: "Emitir a NF-e pelo pedido ou importar o XML da nota emitida em outro sistema.", quem: "Você", link: "/pedidos",
+    estado: comDestaque(semNota.map((p) => p.id), "vendas entregues ou faturadas sem NF-e"),
     valor: r2(semNota.reduce((s, p) => s + Number(p.valor_total ?? 0), 0)),
   });
 
@@ -328,6 +334,7 @@ export function analisar(ctx: ContextoFiscal) {
     titulo: `${semManif.length} nota(s) de fornecedor sem manifestação conclusiva`,
     detalhe: "Sem \"Confirmação da operação\" a nota fica sem o XML completo e o crédito de ICMS/IPI não aparece. O prazo legal é de 180 dias.",
     acao: "Em Notas fiscais → Recebidas, confirmar as compras (ou marcar \"desconhecida\" se não for sua).", quem: "Você", link: "/notas",
+    estado: comDestaque(semManif.map((n) => n.id), "notas de fornecedor sem manifestação conclusiva", { aba: "recebidas" }),
   });
 
   const entradasMes = ctx.entradas.filter((n) => (n.data_emissao ?? "").startsWith(ctx.mesFoco) && !n.excluida_em && (n.itens ?? []).some((i) => cfopDeCompra(i.cfop)));
@@ -336,6 +343,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "sem_xml", nivel: "alerta", titulo: `${semXml.length} compra(s) do mês sem o XML completo`,
     detalhe: `${brl(semXml.reduce((s, n) => s + Number(n.valor_total), 0))} em notas só com o resumo da SEFAZ: o ICMS e o IPI delas não entram nos créditos.`,
     acao: "Confirmar a operação (manifestação) para a SEFAZ liberar o XML, ou importar o XML que o fornecedor mandou por e-mail.", quem: "Você", link: "/notas",
+    estado: comDestaque(semXml.map((n) => n.id), "compras do mês sem o XML completo", { aba: "recebidas" }),
   });
 
   const das = ctx.contas.filter((c) => noPeriodo(mesDaConta(c) + "-01", meses) && /\b(das|simples nacional)\b/.test(norm(c.descricao)));
@@ -343,6 +351,7 @@ export function analisar(ctx: ContextoFiscal) {
     id: "das", nivel: "problema", titulo: "Guia do Simples Nacional numa empresa do Lucro Real",
     detalhe: `${das.length} conta(s) a pagar com "DAS/Simples" na descrição (${brl(das.reduce((s, c) => s + Number(c.valor), 0))}). No Lucro Real não existe DAS: pode ser lançamento errado ou pagamento indevido.`,
     acao: "Conferir com o contador; se foi pago, pedir restituição. Corrigir a descrição/categoria da conta.", quem: "Você e o contador", link: "/financeiro",
+    estado: comDestaque(das.map((c) => c.id), "contas com DAS/Simples na descrição", { aba: "pagar" }),
   });
 
   const nomesPlano = new Set(ctx.categorias.map((c) => norm(c.nome)));
@@ -352,12 +361,14 @@ export function analisar(ctx: ContextoFiscal) {
     id: "sem_categoria", nivel: "alerta", titulo: `${semCat.length} conta(s) a pagar sem categoria (ou "outros")`,
     detalhe: `${brl(semCat.reduce((s, c) => s + Number(c.valor), 0))} em 12 meses. Sem a categoria certa o DRE fica errado e o contador pode deixar de aproveitar crédito (energia, frete, aluguel, manutenção).`,
     acao: "Dar a categoria certa às contas (Financeiro → Contas a pagar → Editar).", quem: "Você", link: "/financeiro",
+    estado: comDestaque(semCat.map((c) => c.id), "contas a pagar sem categoria (ou \"outros\")", { aba: "pagar" }),
   });
   const foraPlano = [...new Set(contas12.map((c) => (c.categoria ?? "").trim()).filter((c) => c && !nomesPlano.has(norm(c))))];
   if (foraPlano.length && nomesPlano.size) add({
     id: "fora_plano", nivel: "alerta", titulo: `Categoria${foraPlano.length > 1 ? "s" : ""} fora do plano de contas`,
     detalhe: `${foraPlano.slice(0, 8).map((c) => `"${c}"`).join(", ")}: contas com nome diferente do plano entram no DRE como despesa genérica.`,
     acao: "Unificar o nome (ex.: \"fretes\" → \"frete\") ou criar a categoria no Plano de contas.", quem: "Você", link: "/financeiro",
+    estado: comDestaque(contas12.filter((c) => foraPlano.includes((c.categoria ?? "").trim())).map((c) => c.id), "contas com categoria fora do plano de contas", { aba: "pagar" }),
   });
 
   const ativos = ctx.produtos.filter((p) => p.ativo !== false && p.vendavel !== false && !p.kit);
@@ -365,20 +376,23 @@ export function analisar(ctx: ContextoFiscal) {
   if (semNcm.length) add({
     id: "ncm", nivel: "problema", titulo: `${semNcm.length} produto(s) sem NCM válido`,
     detalhe: `${semNcm.slice(0, 5).map((p) => p.descricao).join("; ")}${semNcm.length > 5 ? "…" : ""}. O NCM define IPI, ICMS-ST e a alíquota na Reforma; errado, a nota é rejeitada ou o imposto sai errado.`,
-    acao: "Corrigir o NCM no cadastro do produto.", quem: "Você", link: "/produtos",
+    acao: "Corrigir o NCM no cadastro do produto.", quem: "Você", link: "/estoque",
+    estado: comDestaque(semNcm.map((p) => p.id), "produtos sem NCM válido"),
   });
   const fabrica = ctx.unidades.some((u) => u.fabrica);
   const maqSemIpi = fabrica ? ativos.filter((p) => p.tipo === "maquina" && p.ipi_aliquota == null) : [];
   if (maqSemIpi.length) add({
     id: "ipi", nivel: "alerta", titulo: `${maqSemIpi.length} máquina(s) fabricada(s) sem alíquota de IPI`,
     detalhe: "A alíquota vem da TIPI pelo NCM. Sem ela a nota pode sair sem IPI (risco de autuação) ou com IPI a mais.",
-    acao: "Conferir na TIPI com o contador e preencher a alíquota no cadastro.", quem: "Você e o contador", link: "/produtos",
+    acao: "Conferir na TIPI com o contador e preencher a alíquota no cadastro.", quem: "Você e o contador", link: "/estoque",
+    estado: comDestaque(maqSemIpi.map((p) => p.id), "máquinas fabricadas sem alíquota de IPI"),
   });
 
   if (fabricaVendeu(ctx) && s12.producao > 0 && s12.ipiProducao === 0) add({
     id: "ipi_producao", nivel: "alerta", titulo: `${brl(s12.producao)} em vendas de produção própria sem IPI`,
     detalhe: "Nenhuma venda com CFOP 5101/6101 dos últimos 12 meses tem IPI destacado. Se a TIPI dá alíquota para o NCM das máquinas, falta IPI (risco de autuação). Se a alíquota é zero, o IPI pago nas compras vira saldo credor que pode ser recuperado.",
-    acao: "Confirmar com o contador a alíquota da TIPI de cada máquina e preencher no cadastro do produto.", quem: "Você e o contador", link: "/produtos",
+    acao: "Confirmar com o contador a alíquota da TIPI de cada máquina e preencher no cadastro do produto.", quem: "Você e o contador", link: "/estoque",
+    estado: comDestaque(ativos.filter((p) => p.tipo === "maquina").map((p) => p.id), "máquinas: conferir a alíquota do IPI"),
   });
 
   if (s12.difal + s12.fcp > 0) add({

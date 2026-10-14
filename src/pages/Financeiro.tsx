@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { type Destaque, lerDestaque } from "@/lib/destaque";
+import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, ScanBarcode, Undo2, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
@@ -89,8 +91,12 @@ export default function Financeiro() {
   const location = useLocation();
   const navigate = useNavigate();
   const [novaAoAbrir, setNovaAoAbrir] = useState(false);
+  // vindo do Analista fiscal: contas a pagar só com as contas apontadas
+  const [destaque, setDestaque] = useState<Destaque | null>(null);
   useEffect(() => {
     const st = location.state as { aba?: typeof aba; nova?: boolean } | null;
+    const d = lerDestaque(location.state);
+    if (d) setDestaque(d);
     if (st?.aba) {
       setAba(st.aba === "pagar" && !veContasPagar ? "receber" : st.aba);
       setNovaAoAbrir(!!st.nova);
@@ -150,7 +156,8 @@ export default function Financeiro() {
             {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
               valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>
-          {aba === "pagar" && veContasPagar ? <ContasPagar contas={pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)} /> : <ContasReceber contas={receber} />}
+          {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)}
+            destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <ContasReceber contas={receber} />}
         </>
       )}
     </div>
@@ -416,12 +423,14 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void }) {
+function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLimparDestaque }: {
+  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; destaque?: Destaque | null; onLimparDestaque?: () => void;
+}) {
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
   const podeDecidir = pode("editar_financeiro");
   const { data: cfgRecibo } = useConfig();
-  const [filtro, setFiltro] = useState("pendentes");
+  const [filtro, setFiltro] = useState(destaque ? "todos" : "pendentes");
   const [filtroDec, setFiltroDec] = useState<FiltroDecisao>("todas");
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [lotePagarHoje, setLotePagarHoje] = useState(false);
@@ -477,6 +486,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta }: { contas: Pa
 
   return (
     <>
+      {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={contas.length} onLimpar={onLimparDestaque} />}
       {rel.visor}
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))}

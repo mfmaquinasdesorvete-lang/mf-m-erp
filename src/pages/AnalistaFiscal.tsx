@@ -165,7 +165,7 @@ const ICONE_NIVEL = {
   ok: { Icon: CheckCircle2, cor: "text-emerald-600", caixa: "border-l-emerald-500", rotulo: "Certo" },
 };
 
-function Auditoria({ achados, abrir }: { achados: Achado[]; abrir: (to: string) => void }) {
+function Auditoria({ achados, abrir }: { achados: Achado[]; abrir: (to: string, opcoes?: { state?: unknown }) => void }) {
   const ordem = { problema: 0, alerta: 1, ok: 2 };
   const lista = [...achados].sort((x, y) => ordem[x.nivel] - ordem[y.nivel]);
   const pend = lista.filter((x) => x.nivel !== "ok"), oks = lista.filter((x) => x.nivel === "ok");
@@ -190,7 +190,7 @@ function Auditoria({ achados, abrir }: { achados: Achado[]; abrir: (to: string) 
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {x.valor ? <span className="num rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">{brl(x.valor)}</span> : null}
-                    {x.link && <Button variant="secondary" onClick={() => abrir(x.link!)}>Abrir <ArrowRight size={15} aria-hidden /></Button>}
+                    {x.link && <Button variant="secondary" onClick={() => abrir(x.link!, x.estado ? { state: x.estado } : undefined)}>Abrir <ArrowRight size={15} aria-hidden /></Button>}
                   </div>
                 </div>
               </div>
