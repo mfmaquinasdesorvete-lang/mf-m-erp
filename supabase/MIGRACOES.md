@@ -62,3 +62,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   39. `20261014083601_marcadores_cadastros.sql`
   40. `20261014162044_seguranca_funcoes.sql` (funções internas fora do alcance de quem não está logado; caminho de busca fixo)
   41. `20261014171031_implantacao.sql` (plano de troca do Tiny: etapas com prazo e responsável + indicadores de uso)
+  42. `20261014185800_busca_geral.sql` (busca geral do menu: clientes, vendas, notas, produtos, OS e fornecedores, com as permissões de quem busca)

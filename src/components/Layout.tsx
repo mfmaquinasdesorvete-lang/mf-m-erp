@@ -15,6 +15,7 @@ import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Des
 import logo from "@/assets/logo.webp";
 import { Button, Field, Modal } from "./ui";
 import { MeusAvisos } from "./Avisos";
+import { ResultadosBusca } from "./BuscaGeral";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
@@ -175,13 +176,13 @@ export function Layout() {
           <label className="relative block">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nav-fraco" />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setBusca("")}
-              placeholder="Buscar no menu" aria-label="Buscar no menu"
+              placeholder="Buscar tela, cliente, venda, nota…" aria-label="Buscar no menu"
               className="w-full rounded-lg border border-ink-line bg-ink-soft py-1.5 pl-9 pr-3 text-sm text-white placeholder:text-nav-fraco focus:border-brand-ice focus:outline-none" />
           </label>
         </form>
         <nav ref={navRef} onScroll={medirNav} className="flex-1 overflow-y-auto px-3 pb-4">
           {busca.trim() && !todosItens.some((m) => vis.item(m) && combina(m, busca)) && (
-            <p className="px-3 py-2 text-sm text-nav-fraco">Nada com "{busca.trim()}".</p>
+            <p className="px-3 py-2 text-sm text-nav-fraco">Nenhuma tela com "{busca.trim()}".</p>
           )}
           {grupos.map((g) => {
             const buscando = !!busca.trim();
@@ -255,6 +256,7 @@ export function Layout() {
               ))}
             </section>
           )}
+          {busca.trim().length >= 2 && <ResultadosBusca termo={busca} onIr={() => { setAberto(false); setBusca(""); }} />}
         </nav>
           {maisAbaixo && (
             <button type="button" onClick={() => navRef.current?.scrollBy({ top: 240, behavior: "smooth" })} aria-label="Ver mais itens do menu"
