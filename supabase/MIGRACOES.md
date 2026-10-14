@@ -63,3 +63,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   40. `20261014162044_seguranca_funcoes.sql` (funções internas fora do alcance de quem não está logado; caminho de busca fixo)
   41. `20261014171031_implantacao.sql` (plano de troca do Tiny: etapas com prazo e responsável + indicadores de uso)
   42. `20261014185800_busca_geral.sql` (busca geral do menu: clientes, vendas, notas, produtos, OS e fornecedores, com as permissões de quem busca)
+  43. `20261014200212_excluir_os.sql` (excluir OS como a OC e a OP: some das listas, peças voltam ao estoque, conta em aberto cancelada, dá para restaurar; a OP leva junto as OC em cotação)
