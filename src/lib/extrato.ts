@@ -1,7 +1,11 @@
-// Leitura do extrato bancário: OFX (Unicred, Nubank e a maioria dos bancos) e CSV (InfinitePay e outros).
+// Leitura do extrato bancário: OFX (Unicred, Nubank e a maioria dos bancos; a leitura fica em _shared/extrato-ofx,
+// que o servidor também usa no extrato que chega por e-mail) e CSV (InfinitePay e outros).
 // Cada linha ganha um identificador estável, para o mesmo lançamento não entrar duas vezes ao importar de novo.
 
-export type LinhaExtrato = { data: string; valor: number; descricao: string; documento?: string; identificador: string };
+import { decodificarExtrato, ehTextoOfx, lerOfx, numero, type LinhaExtrato } from "../../supabase/functions/_shared/extrato-ofx";
+
+export { lerOfx, numero };
+export type { LinhaExtrato };
 export type ResultadoExtrato = {
   formato: "ofx" | "csv";
   linhas: LinhaExtrato[];
@@ -16,65 +20,13 @@ export type MapaCsv = { data: number; valor: number; entrada: number; saida: num
 
 /** Texto do arquivo respeitando a codificação (bancos brasileiros ainda usam Windows-1252). */
 export async function lerTexto(arquivo: File): Promise<string> {
-  const buf = await arquivo.arrayBuffer();
-  const inicio = new TextDecoder("latin1").decode(buf.slice(0, 400));
-  const declarado = /CHARSET:\s*1252|encoding="(windows-1252|iso-8859-1)"/i.test(inicio);
-  if (declarado) return new TextDecoder("windows-1252").decode(buf);
-  const utf8 = new TextDecoder("utf-8").decode(buf);
-  return utf8.includes("�") ? new TextDecoder("windows-1252").decode(buf) : utf8.replace(/^﻿/, "");
+  return decodificarExtrato(await arquivo.arrayBuffer());
 }
 
 export async function lerExtrato(arquivo: File): Promise<ResultadoExtrato> {
   const texto = await lerTexto(arquivo);
-  if (/<OFX>|OFXHEADER/i.test(texto)) return lerOfx(texto);
+  if (ehTextoOfx(texto)) return lerOfx(texto);
   return lerCsv(texto);
-}
-
-/* ------------------------------------ OFX ------------------------------------ */
-
-const tag = (bloco: string, nome: string) => {
-  const m = bloco.match(new RegExp(`<${nome}>\\s*([^<\\r\\n]*)`, "i"));
-  return m ? m[1].trim() : "";
-};
-const dataOfx = (v: string) => (/^\d{8}/.test(v) ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}` : "");
-
-export function numero(v: string | number | null | undefined): number {
-  if (typeof v === "number") return v;
-  let s = String(v ?? "").replace(/R\$|\s/g, "");
-  if (!s) return NaN;
-  const negativo = /^\(.*\)$/.test(s) || /-$/.test(s);
-  s = s.replace(/[()]/g, "").replace(/-$/, "");
-  if (s.includes(",") && s.includes(".")) s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
-  else if (s.includes(",")) s = s.replace(",", ".");
-  const n = Number(s);
-  return negativo ? -Math.abs(n) : n;
-}
-
-export function lerOfx(texto: string): ResultadoExtrato {
-  const blocos = texto.match(/<STMTTRN>[\s\S]*?(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>)/gi) ?? [];
-  const vistos = new Map<string, number>();
-  const linhas: LinhaExtrato[] = [];
-  for (const b of blocos) {
-    const data = dataOfx(tag(b, "DTPOSTED"));
-    const valor = Math.round(numero(tag(b, "TRNAMT")) * 100) / 100;
-    if (!data || !Number.isFinite(valor) || valor === 0) continue;
-    const nome = tag(b, "NAME"), memo = tag(b, "MEMO");
-    const descricao = [nome, memo && memo !== nome ? memo : ""].filter(Boolean).join(" · ") || tag(b, "TRNTYPE");
-    // alguns bancos repetem o FITID em lançamentos diferentes: numera as repetições
-    const base = tag(b, "FITID") || `${data}|${valor}|${descricao}`;
-    const n = (vistos.get(base) ?? 0) + 1;
-    vistos.set(base, n);
-    linhas.push({ data, valor, descricao, documento: tag(b, "CHECKNUM") || tag(b, "REFNUM") || undefined, identificador: n > 1 ? `${base}#${n}` : base });
-  }
-  const saldo = texto.match(/<LEDGERBAL>[\s\S]*?(?=<\/LEDGERBAL>|<AVAILBAL>|<\/STMTRS>)/i)?.[0] ?? "";
-  const saldoFinal = saldo ? numero(tag(saldo, "BALAMT")) : NaN;
-  return {
-    formato: "ofx", linhas,
-    saldoFinal: Number.isFinite(saldoFinal) ? Math.round(saldoFinal * 100) / 100 : null,
-    saldoData: saldo ? dataOfx(tag(saldo, "DTASOF")) || null : null,
-    banco: tag(texto, "BANKID") || tag(texto, "ORG") || null,
-    conta: tag(texto, "ACCTID") || null,
-  };
 }
 
 /* ------------------------------------ CSV ------------------------------------ */

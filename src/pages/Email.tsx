@@ -1,19 +1,24 @@
 // Caixa de entrada de e-mail (IMAP) dentro do ERP: ler, responder, ligar ao cliente/fornecedor
-// e importar o XML de NF-e que o fornecedor manda em anexo.
+// e importar o XML de NF-e que o fornecedor manda em anexo e o extrato do banco (OFX), que entra sozinho
+// quando dá para confiar no remetente (ver supabase/functions/_shared/extrato-email.ts).
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, FileText, Inbox, Mail, Paperclip, PenSquare, RefreshCw, Reply, Search, ShoppingCart, Truck, User } from "lucide-react";
+import { ArrowLeft, Download, FileText, Inbox, Landmark, Mail, Paperclip, PenSquare, RefreshCw, Reply, Search, ShoppingCart, Truck, User } from "lucide-react";
 import { Button, Field, Modal, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
+import { dataBR } from "@/lib/format";
+import { ImportarModal, type ContaBancaria } from "./Conciliacao";
+import type { ExtratoEmail } from "../../supabase/functions/_shared/extrato-ofx";
 
-type Anexo = { indice: number; nome: string; tipo: string; tamanho: number; nfe: boolean };
+type Anexo = { indice: number; nome: string; tipo: string; tamanho: number; nfe: boolean; extrato?: boolean };
 type EmailMsg = {
   id: string; conta_id: string; uid: number; de_nome: string | null; de_email: string | null; para: string | null; cc: string | null;
   assunto: string | null; data: string; previa: string | null; texto: string | null; html: string | null; anexos: Anexo[];
+  extratos?: ExtratoEmail[];
   lido: boolean; arquivado: boolean; cliente_id: string | null; fornecedor_id: string | null; respondido_em: string | null;
   cliente?: { nome: string } | null; fornecedor?: { nome: string } | null;
 };
@@ -31,7 +36,7 @@ export default function Email() {
   const qc = useQueryClient();
   const { data: contas = [] } = useRows<ContaEmail>("email_contas", { order: "nome", ascending: true, select: "id, nome, email, sincronizado_em, erro" });
   const [conta, setConta] = useState<string>("");
-  const [filtro, setFiltro] = useState<"todos" | "nao_lidos" | "clientes" | "nfe">("todos");
+  const [filtro, setFiltro] = useState<"todos" | "nao_lidos" | "clientes" | "nfe" | "extratos">("todos");
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<EmailMsg | null>(null);
   const [novo, setNovo] = useState(false);
@@ -52,10 +57,12 @@ export default function Email() {
   const lista = useMemo(() => {
     const b = busca.trim().toLowerCase();
     return emails.filter((e) =>
-      (filtro !== "nao_lidos" || !e.lido) && (filtro !== "clientes" || e.cliente_id) && (filtro !== "nfe" || e.anexos.some((a) => a.nfe)) &&
+      (filtro !== "nao_lidos" || !e.lido) && (filtro !== "clientes" || e.cliente_id) && (filtro !== "nfe" || e.anexos.some((a) => a.nfe)) && (filtro !== "extratos" || e.anexos.some((a) => a.extrato)) &&
       (!b || [e.assunto, e.de_nome, e.de_email, e.previa].some((v) => v?.toLowerCase().includes(b))));
   }, [emails, filtro, busca]);
   const naoLidos = emails.filter((e) => !e.lido).length;
+  // o e-mail aberto acompanha a lista (ex.: depois de importar o extrato anexo)
+  const abertoAtual = aberto ? emails.find((x) => x.id === aberto.id) ?? aberto : null;
   const contaAtual = contas.find((c) => c.id === conta);
 
   async function atualizar() {
@@ -107,7 +114,7 @@ export default function Email() {
           </select>
         )}
         <div className="flex gap-1 overflow-x-auto">
-          {([["todos", "Todos"], ["nao_lidos", `Não lidos${naoLidos ? ` (${naoLidos})` : ""}`], ["clientes", "De clientes"], ["nfe", "Com NF-e"]] as const).map(([v, r]) => (
+          {([["todos", "Todos"], ["nao_lidos", `Não lidos${naoLidos ? ` (${naoLidos})` : ""}`], ["clientes", "De clientes"], ["nfe", "Com NF-e"], ["extratos", "Extratos"]] as const).map(([v, r]) => (
             <button key={v} type="button" onClick={() => setFiltro(v)}
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 bg-surface text-slate-600"}`}>{r}</button>
           ))}
@@ -138,7 +145,8 @@ export default function Email() {
                     {e.cliente && <Etiqueta icon={User} texto={e.cliente.nome} />}
                     {e.fornecedor && <Etiqueta icon={Truck} texto={e.fornecedor.nome} />}
                     {e.anexos.some((a) => a.nfe) && <Etiqueta icon={FileText} texto="NF-e (XML)" destaque />}
-                    {!e.anexos.some((a) => a.nfe) && e.anexos.length > 0 && <Etiqueta icon={Paperclip} texto={`${e.anexos.length} anexo(s)`} />}
+                    {e.anexos.some((a) => a.extrato) && <Etiqueta icon={Landmark} texto={rotuloExtrato(e)} destaque />}
+                    {!e.anexos.some((a) => a.nfe || a.extrato) && e.anexos.length > 0 && <Etiqueta icon={Paperclip} texto={`${e.anexos.length} anexo(s)`} />}
                     {e.respondido_em && <Etiqueta icon={Reply} texto="respondido" />}
                   </span>
                 </span>
@@ -147,7 +155,7 @@ export default function Email() {
           ))}
         </ul>
 
-        {aberto ? <Leitura e={aberto} onVoltar={() => setAberto(null)} /> : (
+        {abertoAtual ? <Leitura e={abertoAtual} onVoltar={() => setAberto(null)} /> : (
           <div className="hidden place-items-center rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500 lg:grid">
             <div><Mail size={36} className="mx-auto text-slate-300" /><p className="mt-2">Escolha um e-mail para ler</p></div>
           </div>
@@ -157,6 +165,11 @@ export default function Email() {
     </div>
   );
 }
+
+const rotuloExtrato = (e: EmailMsg) => {
+  const st = e.extratos ?? [];
+  return st.length && st.every((x) => x.status === "importado") ? "Extrato importado" : st.some((x) => x.status === "aguardando") ? "Extrato: conferir" : "Extrato (OFX)";
+};
 
 function Etiqueta({ icon: Icon, texto, destaque }: { icon: typeof User; texto: string; destaque?: boolean }) {
   return (
@@ -173,6 +186,8 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
   const [resposta, setResposta] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [html, setHtml] = useState(true);
+  const [extrato, setExtrato] = useState<{ arquivo: File; anexo: Anexo; contaId: string } | null>(null);
+  const situacao = (a: Anexo) => e.extratos?.find((x) => x.indice === a.indice);
 
   async function baixar(a: Anexo) {
     setOcupado(`a${a.indice}`);
@@ -184,6 +199,24 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
       link.href = url; link.download = r.nome; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) { notifyError(err); } finally { setOcupado(null); }
+  }
+  async function abrirExtrato(a: Anexo) {
+    setOcupado(`x${a.indice}`);
+    try {
+      const r = await callFunction("email-caixa", { acao: "anexo", email_id: e.id, indice: a.indice });
+      const bytes = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0));
+      setExtrato({ arquivo: new File([bytes], r.nome, { type: r.tipo }), anexo: a, contaId: situacao(a)?.conta_id ?? "" });
+    } catch (err) { notifyError(err); } finally { setOcupado(null); }
+  }
+  async function extratoImportado(a: Anexo, r: { novas: number; repetidas: number; conciliadas: number; conta: string }) {
+    const outros = (e.extratos ?? []).filter((x) => x.indice !== a.indice);
+    const antes = situacao(a);
+    const extratos: ExtratoEmail[] = [...outros, {
+      ...antes, indice: a.indice, nome: a.nome, status: "importado", motivo: "importado por você", conta_id: r.conta,
+      conta: antes?.conta_id === r.conta ? antes.conta : null, novas: r.novas, repetidas: r.repetidas, conciliadas: r.conciliadas,
+    }];
+    await supabase.from("emails").update({ extratos }).eq("id", e.id);
+    qc.invalidateQueries({ queryKey: ["emails"] });
   }
   async function importar(a: Anexo) {
     setOcupado(`n${a.indice}`);
@@ -230,10 +263,29 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
               {a.nfe && pode("nfe_recebidas") && (
                 <Button variant="secondary" disabled={!!ocupado} onClick={() => importar(a)}>{ocupado === `n${a.indice}` ? "Importando…" : "Dar entrada na NF-e"}</Button>
               )}
+              {(a.extrato || /\.csv$/i.test(a.nome)) && pode("editar_financeiro") && situacao(a)?.status !== "importado" && (
+                <Button variant="secondary" disabled={!!ocupado} onClick={() => abrirExtrato(a)}>{ocupado === `x${a.indice}` ? "Abrindo…" : "Importar extrato"}</Button>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {(e.extratos ?? []).length > 0 && (
+        <ul className="space-y-1.5 border-b border-slate-100 p-4 text-sm">
+          {e.extratos!.map((x) => (
+            <li key={x.indice} role="status" className={`rounded-lg px-3 py-2 ${x.status === "importado" ? "bg-emerald-50 text-emerald-900" : x.status === "aguardando" ? "bg-amber-50 text-amber-900" : "bg-red-50 text-red-800"}`}>
+              <b>{x.nome}</b>{x.conta ? ` · ${x.conta}` : ""}{x.periodo ? ` · ${dataBR(x.periodo[0])} a ${dataBR(x.periodo[1])}` : ""}
+              <span className="block">
+                {x.status === "importado"
+                  ? `Importado: ${x.novas ?? 0} lançamento(s) novo(s)${x.repetidas ? `, ${x.repetidas} já estavam no ERP` : ""}, ${x.conciliadas ?? 0} conciliado(s) sozinho(s).`
+                  : x.status === "aguardando" ? `Não entrou sozinho: ${x.motivo}. Confira e use “Importar extrato”.` : `Não deu para ler: ${x.motivo}.`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {extrato && <ImportarExtrato arquivo={extrato.arquivo} contaId={extrato.contaId}
+        onImportado={(r) => extratoImportado(extrato.anexo, r)} onClose={() => setExtrato(null)} />}
 
       {resposta !== null && (
         <div className="border-b border-slate-100 p-4">
@@ -263,6 +315,22 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
       </div>
     </article>
   );
+}
+
+/** Abre a importação de extrato da tela Bancos e conciliação com o anexo já escolhido. */
+function ImportarExtrato({ arquivo, contaId, onImportado, onClose }: {
+  arquivo: File; contaId: string; onImportado: (r: { novas: number; repetidas: number; conciliadas: number; conta: string }) => void; onClose: () => void;
+}) {
+  const { data: bancos = [], isLoading } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
+  if (isLoading) return null;
+  if (!bancos.some((b) => b.ativo)) {
+    return (
+      <Modal open onClose={onClose} title="Importar extrato bancário">
+        <p className="text-sm text-slate-600">Cadastre primeiro a conta em <b>Financeiro → Bancos e conciliação → Nova conta</b>.</p>
+      </Modal>
+    );
+  }
+  return <ImportarModal bancos={bancos.filter((b) => b.ativo)} contaInicial={contaId} arquivoInicial={arquivo} onImportado={onImportado} onClose={onClose} />;
 }
 
 function Escrever({ contaId, onClose }: { contaId: string; onClose: () => void }) {
