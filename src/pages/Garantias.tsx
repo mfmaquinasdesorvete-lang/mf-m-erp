@@ -5,7 +5,7 @@ import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, Mes
 import { Badge, Button, Field, Modal, PageHeader, Stat, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
-import { diasAte, situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
+import { diasAte, situacaoGarantia, situacaoPreventiva, textoVenda } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -121,7 +121,7 @@ export default function Garantias() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-fg">{e.descricao}</div>
-                  <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"}</div>
+                  <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}</div>
                 </div>
                 <Badge value={g} />
               </div>
@@ -163,7 +163,7 @@ export default function Garantias() {
             <tr key={e.id} className="hover:bg-slate-50/70">
               <td className="td">
                 <div className="font-semibold text-fg">{e.descricao}</div>
-                <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · vendida em {dataBR(e.data_venda)}</div>
+                <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}</div>
               </td>
               <td className="td">{e.cliente?.nome}<div className="text-xs text-slate-500">{[e.cliente?.municipio, e.cliente?.uf].filter(Boolean).join("/")}</div></td>
               <td className="td">
@@ -213,7 +213,7 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
   const set = (p: Partial<Equipamento>) => setE((x) => ({ ...x, ...p }));
 
   // Ao escolher o modelo e a data da venda, sugere garantia e preventiva pelos prazos cadastrados.
-  function sugerir(produtoId: string | null, dataVenda: string | undefined) {
+  function sugerir(produtoId: string | null, dataVenda: string | null | undefined) {
     const prod = produtos.find((p) => p.id === produtoId);
     if (!dataVenda || !cfg) return {};
     const base = new Date(dataVenda + "T12:00:00");

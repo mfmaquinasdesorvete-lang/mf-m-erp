@@ -70,8 +70,9 @@ export type OrdemServico = {
 
 export type Equipamento = {
   id: string; cliente_id: string; produto_id: string | null; descricao: string; numero_serie: string | null;
-  pedido_id: string | null; data_venda: string; garantia_ate: string | null; proxima_preventiva: string | null;
+  pedido_id: string | null; data_venda: string | null; garantia_ate: string | null; proxima_preventiva: string | null;
   ultimo_contato: string | null; observacoes: string | null; cliente?: Cliente;
+  origem?: string | null; origem_ref?: string | null; // origem "My Frost" = vendida pela empresa anterior (sem garantia da MF)
 };
 
 export type ItemChecklist = { item: string; ok: boolean; obs?: string };

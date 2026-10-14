@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, Clock, FileSpreadsheet, IdCard, Wrench } from "lucide-react";
+import { Archive, BadgeCheck, Clock, FileSpreadsheet, IdCard, Wrench } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
+import { ImportarMyFrost } from "@/components/clientes/ImportarMyFrost";
 import { FichaCliente } from "@/components/FichaCliente";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
@@ -100,6 +101,7 @@ const ORDENS = ordensCadastro<Cliente>();
 export default function Clientes() {
   const { papel, tem } = usePerfil();
   const [importar, setImportar] = useState(false);
+  const [myFrost, setMyFrost] = useState(false);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [arrumar, setArrumar] = useState(false);
   const [unificar, setUnificar] = useState<string[] | null>(null);
@@ -152,6 +154,7 @@ export default function Clientes() {
   return (
     <>
     {importar && <ImportarContatos tipo="cliente" onClose={() => setImportar(false)} />}
+    {myFrost && <ImportarMyFrost onClose={() => setMyFrost(false)} />}
     {ficha && <FichaCliente cliente={ficha} onClose={() => setFicha(null)} />}
     {arrumar && <ArrumarCadastro clientes={todos} onClose={() => setArrumar(false)} onUnificar={(ids) => setUnificar(ids)} />}
     {unificar && selecionados.length > 1 && <UnificarClientes key={unificar.join()} clientes={selecionados} onClose={() => setUnificar(null)} />}
@@ -163,6 +166,7 @@ export default function Clientes() {
       extraActions={<>
         {podeArrumar && <Button variant="secondary" onClick={() => setArrumar(true)} title="WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores na lista"><Wrench size={16} /> Arrumar cadastro</Button>}
         {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
+        {papel === "admin" && <Button variant="secondary" onClick={() => setMyFrost(true)} title="Clientes, máquinas e peças da My Frost Máquinas (empresa anterior), do backup do Tiny"><Archive size={16} /> Base da My Frost</Button>}
       </>}
       acoesLote={podeArrumar ? [{
         label: "Unificar",
