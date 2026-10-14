@@ -1039,6 +1039,13 @@ function bancosDemo(db: Db) {
   db.openfinance_conexoes = [];
   db.inter_conexoes = [];
   db.compras_legado = [];
+  // descontos: máximo por tipo de venda; na prévia o administrador aprova com a senha 123456
+  db.regras_desconto = [
+    { id: uid(), canal: "todos", forma_pagamento: "qualquer", maximo_percentual: 10, ativo: true, observacao: null, created_at: quando(-5) },
+    { id: uid(), canal: "balcao", forma_pagamento: "pix", maximo_percentual: 15, ativo: true, observacao: "Pix no balcão", created_at: quando(-5) },
+  ];
+  db.aprovacoes_desconto = [];
+  db.senhas_aprovacao = [{ user_id: "u-admin", senha: "123456" }];
   // propostas do Tiny (histórico): MF com valores; My Frost (empresa anterior) sem valores
   const propTiny = (empresa: string, numero: number, d: number, situacao: string, cliente_id: string, itens: Row[], extra: Row = {}) => ({
     id: uid(), empresa, tiny_id: `demo-${empresa}-${numero}`, numero, data: dias(d), proximo_contato: null, situacao, vendedor: "Vendedor exemplo",
@@ -2607,6 +2614,30 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       if (novo && p_lancar_estoque && estoque > 0) { movimentar(p.id, "entrada", estoque, "Saldo inicial (importação)", { unidade_id: p_unidade, referencia_tipo: "manual" }); r.com_estoque++; }
     }
     return { data: r, error: null };
+  },
+  // descontos (no sistema real: public.aprovar_desconto e a senha de aprovação de cada administrador)
+  aprovadores_desconto: () => ({
+    data: db.usuarios_erp.filter((u: Row) => u.papel === "admin" && db.senhas_aprovacao.some((s: Row) => s.user_id === u.user_id)).map((u: Row) => ({ user_id: u.user_id, nome: u.nome })),
+    error: null,
+  }),
+  tem_senha_aprovacao: () => ({ data: db.senhas_aprovacao.some((s: Row) => s.user_id === sessao?.user.id), error: null }),
+  definir_senha_aprovacao: ({ p_senha }) => {
+    if (String(p_senha ?? "").length < 6) return erro("a senha de aprovação precisa de pelo menos 6 caracteres");
+    db.senhas_aprovacao = [...db.senhas_aprovacao.filter((s: Row) => s.user_id !== sessao?.user.id), { user_id: sessao?.user.id, senha: p_senha }];
+    return { data: null, error: null };
+  },
+  aprovar_desconto: ({ p_aprovador, p_senha, p_percentual, p_contexto, p_pedido, p_canal, p_forma, p_motivo }) => {
+    const s = db.senhas_aprovacao.find((x: Row) => x.user_id === p_aprovador);
+    if (!s) return { data: { ok: false, erro: "este administrador ainda não criou a senha de aprovação" }, error: null };
+    if (s.senha !== p_senha) return { data: { ok: false, erro: "senha de aprovação incorreta (na prévia: 123456)", restantes: 4 }, error: null };
+    const ped = p_pedido ? db.pedidos.find((x: Row) => x.id === p_pedido) : null;
+    if (ped) ped.desconto_aprovado_pct = Math.round(p_percentual * 100) / 100;
+    const nome = db.usuarios_erp.find((u: Row) => u.user_id === p_aprovador)?.nome ?? "";
+    db.aprovacoes_desconto.unshift({ id: uid(), contexto: p_contexto, pedido_id: p_pedido ?? null, percentual: p_percentual, maximo_percentual: null,
+      canal: ped?.origem ?? p_canal, forma_pagamento: ped?.forma_pagamento ?? p_forma, aprovado_por: p_aprovador, aprovado_por_nome: nome,
+      solicitado_por: sessao?.user.id ?? null, solicitado_por_nome: db.usuarios_erp.find((u: Row) => u.user_id === sessao?.user.id)?.nome ?? null,
+      motivo: p_motivo ?? null, criado_em: quando(0), usado_em: ped ? quando(0) : null });
+    return { data: { ok: true, percentual: p_percentual, aprovado_por: nome }, error: null };
   },
   marcar_proposta_enviada: ({ p_pedido }) => {
     const p = db.pedidos.find((x) => x.id === p_pedido);

@@ -18,6 +18,7 @@ export function PainelConfig() {
   const { data: produtos = [] } = useRows<{ id: string; ativo: boolean; no_catalogo?: boolean; foto_caminho?: string | null; preco_venda: number }>("produtos",
     { select: "id, ativo, no_catalogo, foto_caminho, preco_venda", key: ["config"] });
   const { data: avisos = [] } = useRows<{ tipo: string; ativo: boolean }>("avisos_tipos", { select: "tipo, ativo", order: "tipo", key: ["config"] });
+  const { data: regrasDesc = [] } = useRows<{ ativo: boolean }>("regras_desconto", { select: "ativo", order: "canal", key: ["config"] });
   const { data: backups = [] } = useRows<{ status: string; created_at: string }>("backups_registro", { select: "status, created_at", order: "created_at", ascending: false, key: ["config"] });
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
 
@@ -35,6 +36,7 @@ export function PainelConfig() {
     unidades: incompletas.length ? { texto: `${incompletas.map((x) => x.nome).join(", ")}: falta CNPJ, IE ou endereço`, ok: false } : { texto: `${u.length} unidade(s) prontas para NF-e`, ok: true },
     recebimentos: { texto: `Pix em ${comPix} de ${u.length} · link InfinitePay em ${comLink} de ${u.length}`, ok: comPix === u.length && u.length > 0 },
     orcamentos: { texto: `Validade ${cfg.validade_orcamento_dias ?? "—"} dias · garantia ${cfg.garantia_meses_padrao ?? "—"} meses · conserto ${cfg.garantia_servico_dias ?? 90} dias` },
+    descontos: { texto: regrasDesc.length ? `${regrasDesc.filter((r) => r.ativo).length} regra(s) de desconto máximo` : "Sem limite de desconto" },
     comissoes: { texto: `${Number(cfg.comissao_percentual ?? 0).toLocaleString("pt-BR")}% padrão · regras em Comissões` },
     catalogo: { texto: `${prontos} na vitrine${marcados.length - prontos ? ` · ${marcados.length - prontos} faltando foto ou preço` : ""}`, ok: marcados.length - prontos === 0 },
     pedidos: { texto: `NF-e automática ${cfg.nfe_automatica ? "ligada" : "desligada"} · etiqueta ${cfg.etiqueta_formato === "a4" ? "A4" : "10 x 15"}${imp.modelo ? ` · ${imp.modelo}` : ""}` },

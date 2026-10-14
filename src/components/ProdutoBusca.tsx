@@ -8,12 +8,14 @@ const LIMITE = 30;
  * Campo de adicionar produto digitando: descrição, SKU, código de barras (serve o leitor), modelo, marca ou
  * código do fabricante. Escolheu, adiciona e o campo fica pronto para o próximo. Substitui a lista corrida.
  */
-export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null }>({ produtos, onEscolher, placeholder, detalhe, className }: {
+export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null }>({ produtos, onEscolher, placeholder, detalhe, foto, className }: {
   produtos: T[];
   onEscolher: (p: T) => void;
   placeholder?: string;
   /** Segunda linha de cada produto (ex.: preço e estoque). Padrão: SKU · modelo · marca. */
   detalhe?: (p: T) => ReactNode;
+  /** Foto pequena ao lado de cada produto (endereço da imagem; vazio = sem foto). */
+  foto?: (p: T) => string | null | undefined;
   className?: string;
 }) {
   const [consulta, setConsulta] = useState("");
@@ -70,12 +72,17 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
                 return (
                   <li key={p.id} data-i={i} role="option" aria-selected={i === ativo}
                     onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setAtivo(i)} onClick={() => escolher(p)}
-                    className={`cursor-pointer px-3 py-2 ${i === ativo ? "bg-brand-light" : ""}`}>
-                    <div className="text-sm text-fg">
-                      {p.kit && <span className="mr-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">KIT</span>}
-                      {p.descricao}
+                    className={`flex cursor-pointer items-center gap-2.5 px-3 py-2 ${i === ativo ? "bg-brand-light" : ""}`}>
+                    {foto && (foto(p)
+                      ? <img src={foto(p)!} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-md border border-slate-200 bg-white object-contain" />
+                      : <span className="h-10 w-10 shrink-0 rounded-md border border-dashed border-slate-200" aria-hidden />)}
+                    <div className="min-w-0">
+                      <div className="text-sm text-fg">
+                        {p.kit && <span className="mr-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">KIT</span>}
+                        {p.descricao}
+                      </div>
+                      {extra && <div className="text-xs text-slate-500">{extra}</div>}
                     </div>
-                    {extra && <div className="text-xs text-slate-500">{extra}</div>}
                   </li>
                 );
               })}
