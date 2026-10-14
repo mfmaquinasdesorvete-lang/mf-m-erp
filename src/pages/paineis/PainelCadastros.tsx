@@ -14,7 +14,7 @@ import {
 } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
-import { dataBR, digitos, somarDias } from "@/lib/format";
+import { dataBR, digitos, somarDias, pl } from "@/lib/format";
 import type { Cliente, Produto } from "@/lib/types";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
@@ -106,15 +106,15 @@ export default function PainelCadastros() {
   ];
 
   const atencao: ItemAtencao[] = [
-    k.irregulares.length > 0 && { icone: ShieldAlert, cor: "var(--kpi-rosa)", texto: `${k.irregulares.length} cliente(s) com CNPJ irregular na Receita`, sub: k.irregulares.slice(0, 3).map(nomeDe).join(" · "), to: "/clientes" },
-    k.ieBaixada.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-laranja)", texto: `${k.ieBaixada.length} cliente(s) com inscrição estadual baixada`, sub: "confira antes de emitir nota como contribuinte", to: "/clientes" },
-    k.semDoc > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.semDoc} cliente(s) sem CPF ou CNPJ`, sub: "não dá para emitir NF-e para eles", to: "/clientes" },
-    semNcm > 0 && { icone: FileWarning, cor: "var(--kpi-rosa)", texto: `${semNcm} produto(s) sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque" },
-    abaixoCusto > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${abaixoCusto} produto(s) com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
+    k.irregulares.length > 0 && { icone: ShieldAlert, cor: "var(--kpi-rosa)", texto: `${k.irregulares.length} ${pl(k.irregulares.length, "cliente", "clientes")} com CNPJ irregular na Receita`, sub: k.irregulares.slice(0, 3).map(nomeDe).join(" · "), to: "/clientes" },
+    k.ieBaixada.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-laranja)", texto: `${k.ieBaixada.length} ${pl(k.ieBaixada.length, "cliente", "clientes")} com inscrição estadual baixada`, sub: "confira antes de emitir nota como contribuinte", to: "/clientes" },
+    k.semDoc > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.semDoc} ${pl(k.semDoc, "cliente", "clientes")} sem CPF ou CNPJ`, sub: "não dá para emitir NF-e para eles", to: "/clientes" },
+    semNcm > 0 && { icone: FileWarning, cor: "var(--kpi-rosa)", texto: `${semNcm} ${pl(semNcm, "produto", "produtos")} sem NCM válido`, sub: "a NF-e é rejeitada", to: "/estoque" },
+    abaixoCusto > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${abaixoCusto} ${pl(abaixoCusto, "produto", "produtos")} com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…"
-    : <>{k.total.toLocaleString("pt-BR")} clientes ({k.novos} novo(s){frasePeriodo(k.dNovos, periodo) ? `, ${frasePeriodo(k.dNovos, periodo)}` : ""}) · {k.produtosAtivos.toLocaleString("pt-BR")} produtos ativos · {fornecedoresAtivos} fornecedores.</>;
+    : <>{k.total.toLocaleString("pt-BR")} clientes ({k.novos} {pl(k.novos, "novo", "novos")}{frasePeriodo(k.dNovos, periodo) ? `, ${frasePeriodo(k.dNovos, periodo)}` : ""}) · {k.produtosAtivos.toLocaleString("pt-BR")} produtos ativos · {fornecedoresAtivos} fornecedores.</>;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -166,7 +166,7 @@ export default function PainelCadastros() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title="Cadastro dos produtos: o que falta" className="xl:col-span-3"
           actions={<button type="button" onClick={() => navigate("/estoque")} className="text-sm font-semibold text-modulo-texto hover:underline">Corrigir</button>}>
-          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} item(ns)`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={() => navigate("/estoque")}
+          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={() => navigate("/estoque")}
             itens={k.problemas.map((p) => ({ rotulo: p.rotulo, valor: p.lista.length, detalhe: p.lista.slice(0, 3).map((x) => x.descricao).join(" · ") + (p.lista.length > 3 ? "…" : "") }))} />
           <p className="mt-2 text-xs text-slate-500">A lista completa, com o que corrigir em cada item, fica em Todos os produtos e estoque → Qualidade do cadastro.</p>
         </Section>

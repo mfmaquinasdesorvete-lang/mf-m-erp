@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ler } from "@/lib/data";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { conferirVenda, type NivelConferencia, type PedidoAuditado } from "@/lib/auditoriaPedido";
 import { DescricaoMudanca, type LinhaAuditoria } from "./Historico";
 
@@ -82,7 +82,7 @@ export function AuditoriaPedido({ pedido, produtos, baseComissao }: {
     <div className="space-y-4">
       <div className="rounded-xl border border-slate-200 p-4">
         <div className="mb-2 text-sm font-semibold text-fg">
-          Conferência do pedido {problemas ? <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{problemas} ponto(s) de atenção</span> : <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">tudo confere</span>}
+          Conferência do pedido {problemas ? <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{problemas} {pl(problemas, "ponto", "pontos")} de atenção</span> : <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">tudo confere</span>}
         </div>
         <ul className="space-y-2">
           {conferencias.map((c) => {

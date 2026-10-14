@@ -7,7 +7,7 @@ import qrcode from "qrcode-generator";
 import { Check, Copy, CreditCard, Loader2, MessageCircle, Printer } from "lucide-react";
 import { DEMO, callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { pixCopiaECola } from "@/lib/cobranca";
 import logo from "@/assets/logo.webp";
 
@@ -49,7 +49,7 @@ export default function AreaCliente() {
             <div>
               <div className="text-sm text-slate-500">Em aberto</div>
               <div className="text-3xl font-extrabold text-slate-900">{brl(total)}</div>
-              <div className="text-sm text-slate-500">{a.abertas.length ? `${a.abertas.length} conta(s)` : "Nada em aberto. Obrigado!"}</div>
+              <div className="text-sm text-slate-500">{a.abertas.length ? `${a.abertas.length} ${pl(a.abertas.length, "conta", "contas")}` : "Nada em aberto. Obrigado!"}</div>
             </div>
             <div className="flex gap-2 print:hidden">
               <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Printer size={16} /> Segunda via (PDF)</button>

@@ -3,7 +3,7 @@ import { ArrowLeftRight, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
-import { brl, dataBR, digitos, hoje } from "@/lib/format";
+import { brl, dataBR, digitos, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { supabase } from "@/lib/supabase";
@@ -78,7 +78,7 @@ export default function Conciliacao() {
     }
     setAprovando(false);
     invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "saldos_bancarios", "movimentos_realizados");
-    if (ok) notify(`${ok} lançamento(s) conciliado(s)`);
+    if (ok) notify(`${ok} ${pl(ok, "lançamento", "lançamentos")} ${pl(ok, "conciliado", "conciliados")}`);
     if (erros.length) notify(`${erros.length} não foram: ${[...new Set(erros)].join("; ")}`, "erro");
   }
 
@@ -182,7 +182,7 @@ export default function Conciliacao() {
         {podeEditar && sugeridasNaLista.length > 0 && (
           <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
         )}
-        <span className="ml-auto text-sm text-slate-500">{lista.length} lançamento(s) · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>
+        <span className="ml-auto text-sm text-slate-500">{lista.length} {pl(lista.length, "lançamento", "lançamentos")} · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>
       </div>
 
       <Table empty={!lista.length}
@@ -345,7 +345,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
         p_saldo_final: res.saldoFinal ?? null, p_saldo_data: res.saldoData ?? null,
       });
       if (error) throw error;
-      notify(`${data.novas} lançamento(s) novos${data.repetidas ? `, ${data.repetidas} já importados antes` : ""}; ${data.conciliadas} conciliado(s) automaticamente`);
+      notify(`${data.novas} ${pl(data.novas, "lançamento", "lançamentos")} novos${data.repetidas ? `, ${data.repetidas} já importados antes` : ""}; ${data.conciliadas} ${pl(data.conciliadas, "conciliado", "conciliados")} automaticamente`);
       invalidate("extrato_lancamentos", "extrato_importacoes", "contas_receber", "contas_pagar", "auditoria");
       onImportado?.({ novas: data.novas, repetidas: data.repetidas, conciliadas: data.conciliadas, conta });
       onClose();
@@ -428,7 +428,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={enviar} disabled={!linhas.length || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : `Importar ${linhas.length || ""} lançamento(s)`}</Button>
+          <Button onClick={enviar} disabled={!linhas.length || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : `Importar ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
         </div>
       </div>
     </Modal>

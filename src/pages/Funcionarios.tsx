@@ -14,7 +14,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { completarPorCep } from "@/lib/cadastro";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
@@ -242,7 +242,7 @@ export default function Funcionarios() {
     <div>
       <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Indicador rotulo="Na equipe" icon={Users} cor="azul" valor={String(equipe.length)}
-          sub={`${equipe.filter((f) => f.faz_assistencia).length} técnico(s) · ${equipe.filter((f) => f.situacao === "ferias").length} em férias`} />
+          sub={`${equipe.filter((f) => f.faz_assistencia).length} ${pl(equipe.filter((f) => f.faz_assistencia).length, "técnico", "técnicos")} · ${equipe.filter((f) => f.situacao === "ferias").length} em férias`} />
         <Indicador rotulo="Salários (bruto/mês)" icon={Wallet} cor="laranja" valor={brl(folha)} sub="soma dos salários da equipe" />
         <Indicador rotulo="Aniversariantes do mês" icon={Cake} cor="roxo" valor={String(aniversariantes.length)}
           sub={aniversariantes.length ? aniversariantes.map((f) => `${nomeCurto(f)} (${f.data_nascimento!.slice(8)})`).join(", ") : "ninguém este mês"} />
@@ -350,7 +350,7 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
       }));
       const { error } = await supabase.from("contas_pagar").insert(linhas);
       if (error) throw error;
-      notify(`${linhas.length} conta(s) lançada(s) em Contas a pagar`);
+      notify(`${linhas.length} ${pl(linhas.length, "conta", "contas")} ${pl(linhas.length, "lançada", "lançadas")} em Contas a pagar`);
       invalidar("contas_pagar");
       onClose();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -378,7 +378,7 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
         <Button type="button" disabled={ocupado || !novas.length} onClick={lancarContas}>
-          {ocupado ? "Lançando…" : novas.length ? `Lançar ${novas.length} conta(s) · ${brl(novas.reduce((s, f) => s + Number(f.salario), 0))}` : "Tudo já lançado"}
+          {ocupado ? "Lançando…" : novas.length ? `Lançar ${novas.length} ${pl(novas.length, "conta", "contas")} · ${brl(novas.reduce((s, f) => s + Number(f.salario), 0))}` : "Tudo já lançado"}
         </Button>
       </div>
     </Modal>

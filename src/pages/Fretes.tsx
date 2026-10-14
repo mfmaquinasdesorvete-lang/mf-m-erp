@@ -7,7 +7,7 @@ import { Button, PageHeader, Table, Tabs } from "@/components/ui";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -223,7 +223,7 @@ export default function Fretes() {
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="text-base font-bold">{ind ? ind.titulo : "Todos os envios"}</h2>
-            <span className="text-sm text-slate-500">{lista.length} envio(s)</span>
+            <span className="text-sm text-slate-500">{lista.length} {pl(lista.length, "envio", "envios")}</span>
             {ind && <Button variant="ghost" onClick={() => setIndicador(null)}><X size={15} /> Fechar lista</Button>}
           </div>
           <Table empty={!lista.length}

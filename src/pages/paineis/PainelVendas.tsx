@@ -16,7 +16,7 @@ import {
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { brl, dataBR, hoje, somarDias } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { MOTIVOS } from "@/lib/propostas";
 import type { Cliente, Pedido } from "@/lib/types";
 
@@ -122,21 +122,21 @@ export default function PainelVendas() {
   }, [periodo, pedidos, doUnidade, fCanal, fVendedor]);
 
   const cartoes: Cartao[] = [
-    { id: "valor", rotulo: "Vendido", valor: brl(k.valor), sub: `${k.qtd} venda(s) aprovada(s)`, icone: TrendingUp, cor: "var(--kpi-verde)", delta: k.dValor, tendencia: k.tendValor, onClick: () => navigate("/pedidos", { state: { status: "aprovado" } }) },
+    { id: "valor", rotulo: "Vendido", valor: brl(k.valor), sub: `${k.qtd} ${pl(k.qtd, "venda", "vendas")} ${pl(k.qtd, "aprovada", "aprovadas")}`, icone: TrendingUp, cor: "var(--kpi-verde)", delta: k.dValor, tendencia: k.tendValor, onClick: () => navigate("/pedidos", { state: { status: "aprovado" } }) },
     { id: "ticket", rotulo: "Ticket médio", valor: brl(k.ticket), sub: "valor médio por venda", icone: Receipt, cor: "var(--kpi-azul)", delta: k.dTicket, tendencia: k.tendTicket },
     { id: "conv", rotulo: "Conversão", valor: `${Math.round(k.conv)}%`, icone: Target, cor: "var(--kpi-roxo)",
-      sub: k.criados ? `dos ${k.criados} orçamento(s) do período viraram venda` : "nenhum orçamento no período",
+      sub: k.criados ? `dos ${k.criados} ${pl(k.criados, "orçamento", "orçamentos")} do período viraram venda` : "nenhum orçamento no período",
       ...(k.dConv !== undefined ? { titulo: `${k.dConv >= 0 ? "+" : ""}${Math.round(k.dConv)} pontos contra ${per.anterior}` } : {}),
       onClick: () => navigate("/pedidos", { state: { status: "orcamento" } }) },
-    { id: "abertos", rotulo: "Em negociação", valor: brl(k.valorAbertos), sub: `${k.abertos.length} orçamento(s) esperando resposta`, icone: Hourglass, cor: "var(--kpi-laranja)", onClick: () => navigate("/pedidos", { state: { status: "orcamento" } }) },
+    { id: "abertos", rotulo: "Em negociação", valor: brl(k.valorAbertos), sub: `${k.abertos.length} ${pl(k.abertos.length, "orçamento", "orçamentos")} esperando resposta`, icone: Hourglass, cor: "var(--kpi-laranja)", onClick: () => navigate("/pedidos", { state: { status: "orcamento" } }) },
   ];
 
   const atencao: ItemAtencao[] = [
-    k.vencendo.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.vencendo.length} proposta(s) vencem em até 3 dias`, sub: k.vencendo.slice(0, 3).map((p) => `#${p.numero} ${p.cliente?.nome ?? ""}`).join(" · "), to: "/pedidos", state: { status: "orcamento" } },
-    k.parados.length > 0 && { icone: Hourglass, cor: "var(--kpi-laranja)", texto: `${k.parados.length} orçamento(s) há mais de 7 dias sem o cliente abrir`, sub: "vale um contato pelo WhatsApp", to: "/pedidos", state: { status: "orcamento" } },
-    k.semNota.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.semNota.length} venda(s) aprovada(s) sem NF-e`, sub: k.semNota.slice(0, 3).map((p) => `#${p.numero}`).join(" · "), to: "/fluxo" },
-    k.aEntregar.length > 0 && { icone: Truck, cor: "var(--kpi-ciano)", texto: `${k.aEntregar.length} pedido(s) faturado(s) esperando entrega`, to: "/fluxo" },
-    k.perdidos > 0 && { icone: ThumbsDown, cor: "var(--kpi-rosa)", texto: `${k.perdidos} venda(s) perdida(s) no período`, sub: k.motivo ? `motivo mais comum: ${k.motivo}` : undefined, to: "/relatorios" },
+    k.vencendo.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.vencendo.length} ${pl(k.vencendo.length, "proposta", "propostas")} vencem em até 3 dias`, sub: k.vencendo.slice(0, 3).map((p) => `#${p.numero} ${p.cliente?.nome ?? ""}`).join(" · "), to: "/pedidos", state: { status: "orcamento" } },
+    k.parados.length > 0 && { icone: Hourglass, cor: "var(--kpi-laranja)", texto: `${k.parados.length} ${pl(k.parados.length, "orçamento", "orçamentos")} há mais de 7 dias sem o cliente abrir`, sub: "vale um contato pelo WhatsApp", to: "/pedidos", state: { status: "orcamento" } },
+    k.semNota.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.semNota.length} ${pl(k.semNota.length, "venda", "vendas")} ${pl(k.semNota.length, "aprovada", "aprovadas")} sem NF-e`, sub: k.semNota.slice(0, 3).map((p) => `#${p.numero}`).join(" · "), to: "/fluxo" },
+    k.aEntregar.length > 0 && { icone: Truck, cor: "var(--kpi-ciano)", texto: `${k.aEntregar.length} ${pl(k.aEntregar.length, "pedido", "pedidos")} ${pl(k.aEntregar.length, "faturado", "faturados")} esperando entrega`, to: "/fluxo" },
+    k.perdidos > 0 && { icone: ThumbsDown, cor: "var(--kpi-rosa)", texto: `${k.perdidos} ${pl(k.perdidos, "venda", "vendas")} ${pl(k.perdidos, "perdida", "perdidas")} no período`, sub: k.motivo ? `motivo mais comum: ${k.motivo}` : undefined, to: "/relatorios" },
   ].filter(Boolean) as ItemAtencao[];
 
   const filtros = [
@@ -145,7 +145,7 @@ export default function PainelVendas() {
   ].filter(Boolean) as { rotulo: string; valor: string; limpar: () => void }[];
 
   const resumo = isLoading ? "Carregando…" : k.qtd
-    ? <>{brl(k.valor)} em {k.qtd} venda(s){frasePeriodo(k.dValor, periodo) ? ` · ${frasePeriodo(k.dValor, periodo)}` : ""}.</>
+    ? <>{brl(k.valor)} em {k.qtd} {pl(k.qtd, "venda", "vendas")}{frasePeriodo(k.dValor, periodo) ? ` · ${frasePeriodo(k.dValor, periodo)}` : ""}.</>
     : <>Nenhuma venda aprovada {periodo === "hoje" ? "hoje" : "no período"} ainda.</>;
 
   return (
@@ -174,7 +174,7 @@ export default function PainelVendas() {
         <Section title="Do orçamento à entrega" className="xl:col-span-2">
           <Funil etapas={[
             { rotulo: "Orçamentos feitos", valor: k.funil.criados, onClick: () => navigate("/pedidos", { state: { status: "todos" } }),
-              sub: k.funil.enviados ? `${k.funil.enviados} com proposta enviada pelo ERP, ${k.funil.vistos} aberta(s) pelo cliente` : undefined },
+              sub: k.funil.enviados ? `${k.funil.enviados} com proposta enviada pelo ERP, ${k.funil.vistos} ${pl(k.funil.vistos, "aberta", "abertas")} pelo cliente` : undefined },
             { rotulo: "Aprovados", valor: k.funil.aprovados, onClick: () => navigate("/pedidos", { state: { status: "aprovado" } }) },
             { rotulo: "Faturados", valor: k.funil.faturados, onClick: () => navigate("/pedidos", { state: { status: "faturado" } }) },
             { rotulo: "Entregues", valor: k.funil.entregues, onClick: () => navigate("/pedidos", { state: { status: "entregue" } }) },
@@ -192,7 +192,7 @@ export default function PainelVendas() {
         </Section>
         <Section title="Por vendedor" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
           <Ranking ativo={fVendedor} cor="var(--serie-3)" onClicar={(i) => { const v = k.vendedores[i][0]; setFVendedor(fVendedor === v ? null : v); }}
-            itens={k.vendedores.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd} venda(s) · ticket ${brl(v.valor / v.qtd)}` }))} />
+            itens={k.vendedores.map(([rotulo, v]) => ({ rotulo, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")} · ticket ${brl(v.valor / v.qtd)}` }))} />
         </Section>
         <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
           <ListaAtencao itens={atencao} vazio="Nenhuma venda parada" />
@@ -205,11 +205,11 @@ export default function PainelVendas() {
         </Section>
         <Section title="Melhores clientes" actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
           <Ranking cor="var(--kpi-roxo)" onClicar={(i) => setFicha(k.clientes[i].cliente)} vazio="Sem vendas no período."
-            itens={k.clientes.map((c) => ({ rotulo: c.cliente.nome_fantasia || c.cliente.nome, valor: c.valor, detalhe: `${c.qtd} compra(s)${c.cliente.municipio ? ` · ${c.cliente.municipio}/${c.cliente.uf ?? ""}` : ""}` }))} />
+            itens={k.clientes.map((c) => ({ rotulo: c.cliente.nome_fantasia || c.cliente.nome, valor: c.valor, detalhe: `${c.qtd} ${pl(c.qtd, "compra", "compras")}${c.cliente.municipio ? ` · ${c.cliente.municipio}/${c.cliente.uf ?? ""}` : ""}` }))} />
         </Section>
         <Section title="Onde vendemos" className="md:col-span-2 xl:col-span-1">
           <Ranking cor="var(--serie-2)" vazio="Sem vendas no período."
-            itens={k.estados.slice(0, 6).map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem estado no cadastro" : uf, valor: v.valor, detalhe: `${v.qtd} venda(s)` }))} />
+            itens={k.estados.slice(0, 6).map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem estado no cadastro" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "venda", "vendas")}` }))} />
         </Section>
       </div>
 

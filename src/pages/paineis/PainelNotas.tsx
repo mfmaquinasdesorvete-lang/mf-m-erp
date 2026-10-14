@@ -17,7 +17,7 @@ import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import type { NotaEmitida } from "@/components/nfe/NotaDetalhe";
 
 // mesmos selects das listas de notas: o que já foi carregado serve aos dois
@@ -110,25 +110,25 @@ export default function PainelNotas() {
   }, [periodo, emitidas, recebidas, nfse, fCfop, veRecebidas]);
 
   const cartoes: Cartao[] = [
-    { id: "fat", rotulo: "Faturado em NF-e", valor: brl(k.faturado), sub: `${k.qtd} nota(s) de venda autorizada(s)`, icone: Receipt, cor: "var(--kpi-azul)", delta: k.dFaturado, tendencia: k.tendFat,
+    { id: "fat", rotulo: "Faturado em NF-e", valor: brl(k.faturado), sub: `${k.qtd} ${pl(k.qtd, "nota", "notas")} de venda ${pl(k.qtd, "autorizada", "autorizadas")}`, icone: Receipt, cor: "var(--kpi-azul)", delta: k.dFaturado, tendencia: k.tendFat,
       onClick: () => navigate("/notas", { state: { aba: "emitidas", filtro: "autorizadas" } }) },
     { id: "imp", rotulo: "Impostos destacados", valor: brl(k.totalImpostos), icone: Percent, cor: "var(--kpi-roxo)",
-      sub: k.totalImpostos ? `${k.cargaPct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% sobre os produtos${k.semDetalhe ? ` · ${k.semDetalhe} nota(s) importada(s) sem o detalhe` : ""}` : "nenhum imposto destacado no período" },
-    ...(veRecebidas ? [{ id: "comp", rotulo: "Compras (NF-e de fornecedores)", valor: brl(k.compras), sub: `${k.qtdCompras} nota(s) recebida(s)`, icone: FileInput, cor: "var(--kpi-laranja)", tendencia: k.tendCompras,
+      sub: k.totalImpostos ? `${k.cargaPct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% sobre os produtos${k.semDetalhe ? ` · ${k.semDetalhe} ${pl(k.semDetalhe, "nota", "notas")} ${pl(k.semDetalhe, "importada", "importadas")} sem o detalhe` : ""}` : "nenhum imposto destacado no período" },
+    ...(veRecebidas ? [{ id: "comp", rotulo: "Compras (NF-e de fornecedores)", valor: brl(k.compras), sub: `${k.qtdCompras} ${pl(k.qtdCompras, "nota", "notas")} ${pl(k.qtdCompras, "recebida", "recebidas")}`, icone: FileInput, cor: "var(--kpi-laranja)", tendencia: k.tendCompras,
       onClick: () => navigate("/notas", { state: { aba: "recebidas" } }) } as Cartao] : []),
-    { id: "nfse", rotulo: "NFS-e (serviços)", valor: k.nfseNoPeriodo, sub: k.nfseRejeitadas ? `${k.nfseRejeitadas} rejeitada(s) para corrigir` : "notas de serviço autorizadas", icone: FileText, cor: "var(--kpi-ciano)",
+    { id: "nfse", rotulo: "NFS-e (serviços)", valor: k.nfseNoPeriodo, sub: k.nfseRejeitadas ? `${k.nfseRejeitadas} ${pl(k.nfseRejeitadas, "rejeitada", "rejeitadas")} para corrigir` : "notas de serviço autorizadas", icone: FileText, cor: "var(--kpi-ciano)",
       onClick: () => navigate("/notas", { state: { aba: "nfse" } }) },
   ];
 
   const atencao: ItemAtencao[] = [
-    k.situacao.rejeitadas > 0 && { icone: TriangleAlert, cor: "var(--kpi-rosa)", texto: `${k.situacao.rejeitadas} NF-e rejeitada(s) pela Sefaz`, sub: "abra, leia o motivo e use Corrigir e reenviar", to: "/notas", state: { aba: "emitidas", filtro: "pendentes" } },
+    k.situacao.rejeitadas > 0 && { icone: TriangleAlert, cor: "var(--kpi-rosa)", texto: `${k.situacao.rejeitadas} NF-e ${pl(k.situacao.rejeitadas, "rejeitada", "rejeitadas")} pela Sefaz`, sub: "abra, leia o motivo e use Corrigir e reenviar", to: "/notas", state: { aba: "emitidas", filtro: "pendentes" } },
     k.situacao.fila > 0 && { icone: Hourglass, cor: "var(--kpi-laranja)", texto: `${k.situacao.fila} NF-e processando ou na fila de contingência`, to: "/notas", state: { aba: "emitidas", filtro: "pendentes" } },
-    k.aResolver.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.aResolver.length} nota(s) de fornecedor a resolver`, sub: "vincular produtos, conferir e lançar", to: "/notas", state: { aba: "recebidas", filtro: "pendentes" } },
-    k.nfseRejeitadas > 0 && { icone: TriangleAlert, cor: "var(--kpi-rosa)", texto: `${k.nfseRejeitadas} NFS-e rejeitada(s) pela prefeitura`, to: "/notas", state: { aba: "nfse" } },
+    k.aResolver.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.aResolver.length} ${pl(k.aResolver.length, "nota", "notas")} de fornecedor a resolver`, sub: "vincular produtos, conferir e lançar", to: "/notas", state: { aba: "recebidas", filtro: "pendentes" } },
+    k.nfseRejeitadas > 0 && { icone: TriangleAlert, cor: "var(--kpi-rosa)", texto: `${k.nfseRejeitadas} NFS-e ${pl(k.nfseRejeitadas, "rejeitada", "rejeitadas")} pela prefeitura`, to: "/notas", state: { aba: "nfse" } },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…" : k.qtd
-    ? <>{k.qtd} nota(s) de venda somando {brl(k.faturado)}{frasePeriodo(k.dFaturado, periodo) ? ` · ${frasePeriodo(k.dFaturado, periodo)}` : ""}. Impostos destacados: {brl(k.totalImpostos)}.</>
+    ? <>{k.qtd} {pl(k.qtd, "nota", "notas")} de venda somando {brl(k.faturado)}{frasePeriodo(k.dFaturado, periodo) ? ` · ${frasePeriodo(k.dFaturado, periodo)}` : ""}. Impostos destacados: {brl(k.totalImpostos)}.</>
     : <>Nenhuma NF-e de venda autorizada {periodo === "hoje" ? "hoje" : "no período"}.</>;
 
   const situacoes: { rotulo: string; n: number; icone: typeof Receipt; cor: string; filtro: string }[] = [
@@ -183,11 +183,11 @@ export default function PainelNotas() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Section title="Por CFOP" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
           <Ranking ativo={fCfop} onClicar={(i) => { const c = k.cfops[i][0]; setFCfop(fCfop === c ? null : c); }} vazio="Nenhuma nota com itens no período."
-            itens={k.cfops.map(([cfop, v]) => ({ rotulo: cfop, valor: v.valor, detalhe: `${v.qtd} item(ns)` }))} />
+            itens={k.cfops.map(([cfop, v]) => ({ rotulo: cfop, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "item", "itens")}` }))} />
         </Section>
         <Section title="Para onde vendemos (UF)">
           <Ranking cor="var(--serie-2)" vazio="Nenhuma nota no período."
-            itens={k.ufs.map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem UF na nota" : uf, valor: v.valor, detalhe: `${v.qtd} nota(s)` }))} />
+            itens={k.ufs.map(([uf, v]) => ({ rotulo: uf === "—" ? "Sem UF na nota" : uf, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "nota", "notas")}` }))} />
         </Section>
         <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
           <ListaAtencao itens={atencao} vazio="Nenhuma nota travada" />
@@ -198,7 +198,7 @@ export default function PainelNotas() {
         {veRecebidas && (
           <Section title="Maiores fornecedores (notas recebidas)" className="xl:col-span-3">
             <Ranking cor="var(--serie-2)" vazio="Nenhuma nota de fornecedor no período."
-              itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} nota(s)` }))} />
+              itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "nota", "notas")}` }))} />
           </Section>
         )}
         <div className={`space-y-3 ${veRecebidas ? "xl:col-span-2" : "xl:col-span-5"}`}>

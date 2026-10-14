@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, MessageCircle, Truck } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useRows, ler } from "@/lib/data";
-import { brl, whatsappLink } from "@/lib/format";
+import { brl, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useConfig } from "@/lib/useConfig";
@@ -133,7 +133,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
       {cotando && modo === "cobrar" && !disabled && (
         <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm">
           <p className="mb-2 text-xs text-slate-600">
-            {destino || "Destino a definir"}{cliente?.cep ? ` · CEP ${cliente.cep}` : ""} · {peso ? `${peso.toLocaleString("pt-BR")} kg` : "sem peso cadastrado"} · {volumes} volume(s) · nota {brl(valorNota)}.
+            {destino || "Destino a definir"}{cliente?.cep ? ` · CEP ${cliente.cep}` : ""} · {peso ? `${peso.toLocaleString("pt-BR")} kg` : "sem peso cadastrado"} · {volumes} {pl(volumes, "volume", "volumes")} · nota {brl(valorNota)}.
             {" "}Peça pelo WhatsApp (a mensagem vai pronta), digite o valor que responderem e clique em <b>Usar</b>.
           </p>
           {!!salvas.length && (

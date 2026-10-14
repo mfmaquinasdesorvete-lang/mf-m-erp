@@ -10,11 +10,12 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl, dataBR, docFormat } from "@/lib/format";
+import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import { buracosNumeracao } from "@/lib/compliance";
 import { nomeCfop } from "@/lib/cfop";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 
 type Fechamento = { id: string; unidade_id: string; competencia: string; status: string; enviado_em: string | null; fechado_em: string | null; arquivo_caminho: string | null; observacoes: string | null };
 type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; payload?: { items?: Record<string, any>[] } | null };
@@ -88,9 +89,9 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
     for (const n of rec) for (const i of n.itens ?? []) entradas.set(i.cfop ?? "—", (entradas.get(i.cfop ?? "—") ?? 0) + Number(i.valor_total ?? 0));
     const pend: string[] = [];
     const problema = doMes.filter((n) => ["erro", "contingencia", "processando"].includes(n.status));
-    if (problema.length) pend.push(`${problema.length} NF-e emitida(s) com erro, em processamento ou na contingência`);
+    if (problema.length) pend.push(`${problema.length} NF-e ${pl(problema.length, "emitida", "emitidas")} com erro, em processamento ou na contingência`);
     const semManif = rec.filter((n) => n.situacao !== "cancelada" && !["confirmacao", "desconhecimento", "nao_realizada"].includes(n.manifestacao ?? ""));
-    if (semManif.length) pend.push(`${semManif.length} nota(s) de fornecedor sem manifestação conclusiva`);
+    if (semManif.length) pend.push(`${semManif.length} ${pl(semManif.length, "nota", "notas")} de fornecedor sem manifestação conclusiva`);
     const buracos = buracosNumeracao(notas.filter((n) => n.unidade_id === unidadeId && n.status !== "erro" && n.created_at.slice(0, 7) <= comp));
     if (buracos.length) pend.push(`Números de NF-e pulados: ${buracos.flatMap((b) => b.faltando).slice(0, 10).join(", ")} (inutilizar)`);
     return {
@@ -107,19 +108,19 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
     try {
       const res = await callFunction<{ url: string | null; arquivos: number; faltando: string[]; enviado: boolean }>("contador-pacote", { acao: "gerar", competencia: comp, unidade_id: unidadeId, enviar_email: enviar });
       if (res.url) window.open(res.url, "_blank", "noopener");
-      notify(`${enviar ? "Enviado ao contador. " : ""}Pacote com ${res.arquivos} arquivo(s)${res.faltando.length ? `; ${res.faltando.length} XML não encontrado(s) (lista no LEIA-ME)` : ""}`);
+      notify(`${enviar ? "Enviado ao contador. " : ""}Pacote com ${res.arquivos} ${pl(res.arquivos, "arquivo", "arquivos")}${res.faltando.length ? `; ${res.faltando.length} XML não ${pl(res.faltando.length, "encontrado", "encontrados")} (lista no LEIA-ME)` : ""}`);
       invalidar("fechamentos");
     } catch (e) { notifyError(e); } finally { setOcupado(""); }
   }
   async function fechar() {
-    const obs = prompt("Observação do fechamento (opcional):", "");
+    const obs = (await pedirTexto("Observação do fechamento (opcional):", ""));
     if (obs === null) return;
     const { error } = await supabase.rpc("fechar_competencia", { p_unidade: unidadeId, p_competencia: comp, p_observacoes: obs || null });
     if (error) return notifyError(error);
     notify("Mês fechado: pagamentos e recebimentos deste mês ficam travados"); invalidar("fechamentos");
   }
   async function reabrir() {
-    if (!confirm("Reabrir o mês? O contador é avisado.")) return;
+    if (!(await confirmar("Reabrir o mês? O contador é avisado."))) return;
     const { error } = await supabase.rpc("reabrir_competencia", { p_unidade: unidadeId, p_competencia: comp });
     if (error) return notifyError(error);
     notify("Mês reaberto"); invalidar("fechamentos");
@@ -299,7 +300,7 @@ function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: str
   async function conferir(acao: "validar" | "duvida" | "desfazer", ls: LancMes[]) {
     let comentario: string | null = null;
     if (acao === "duvida") {
-      comentario = prompt("Qual a dúvida? (vai para a conversa do mês, presa a este lançamento)", "");
+      comentario = (await pedirTexto("Qual a dúvida? (vai para a conversa do mês, presa a este lançamento)", ""));
       if (!comentario?.trim()) return;
     }
     setOcupado(true);
@@ -310,7 +311,7 @@ function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: str
         const { error } = await supabase.rpc("contador_conferir", { p_tabela: TABELA[tipo], p_ids: ids, p_acao: acao, p_comentario: comentario });
         if (error) throw error;
       }
-      notify(acao === "validar" ? `${ls.length} lançamento(s) validado(s)` : acao === "duvida" ? "Dúvida enviada ao financeiro" : "Validação desfeita");
+      notify(acao === "validar" ? `${ls.length} ${pl(ls.length, "lançamento", "lançamentos")} ${pl(ls.length, "validado", "validados")}` : acao === "duvida" ? "Dúvida enviada ao financeiro" : "Validação desfeita");
       invalidar("contas_pagar", "contas_receber", "contador_mensagens", "revisoes_contas");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }

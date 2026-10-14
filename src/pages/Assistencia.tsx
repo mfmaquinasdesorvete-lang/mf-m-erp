@@ -13,7 +13,7 @@ import { HistoricoModal } from "@/pages/Garantias";
 import { limpar, useInvalidate, useRows, ler } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -259,7 +259,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
       const { error } = await supabase.from("ordens_servico").update({ fotos }).eq("id", id);
       if (error) throw error;
       set({ fotos });
-    }, `${arquivos.length} foto(s) anexada(s)`, false);
+    }, `${arquivos.length} ${pl(arquivos.length, "foto", "fotos")} ${pl(arquivos.length, "anexada", "anexadas")}`, false);
   }
 
   async function removerFoto(caminho: string) {

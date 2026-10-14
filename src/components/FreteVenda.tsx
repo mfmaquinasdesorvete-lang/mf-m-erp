@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MessageCircle, PackageOpen, Plus, Send, Trash2, Truck } from "lucide-react";
 import { Badge, Button, Field } from "./ui";
 import { useInvalidate, useRows, ler } from "@/lib/data";
-import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -124,7 +124,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
     `Olá ${pedido.cliente?.nome.split(" ")[0] ?? ""}! Seu pedido #${pedido.numero ?? ""} da *MF Máquinas* foi despachado.`,
     `Transportadora: ${transpEscolhida?.nome ?? (escolhida ? nome(escolhida) : "—")}`,
     envio.codigo_rastreio ? `Código de rastreio: ${envio.codigo_rastreio}` : "",
-    escolhida?.prazo_dias ? `Prazo estimado: ${escolhida.prazo_dias} dia(s) úteis` : "",
+    escolhida?.prazo_dias ? `Prazo estimado: ${escolhida.prazo_dias} ${pl(escolhida.prazo_dias, "dia", "dias")} úteis` : "",
     `Qualquer dúvida, é só chamar!`,
   ].filter(Boolean).join("\n");
 
@@ -136,7 +136,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
           <PackageOpen size={18} className="text-brand" />
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-fg">Envio #{envioAtivo.numero} <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_ENVIO[envioAtivo.status].cor}`}>{STATUS_ENVIO[envioAtivo.status].rotulo}</span></div>
-            <div className="text-xs text-slate-600">{envioAtivo.qtd_volumes} volume(s) · {Number(envioAtivo.peso_total_kg).toLocaleString("pt-BR")} kg{envioAtivo.valor_aprovado != null ? ` · frete aprovado ${brl(envioAtivo.valor_aprovado)}` : ""}{envioAtivo.codigo_rastreio ? ` · rastreio ${envioAtivo.codigo_rastreio}` : ""}</div>
+            <div className="text-xs text-slate-600">{envioAtivo.qtd_volumes} {pl(envioAtivo.qtd_volumes, "volume", "volumes")} · {Number(envioAtivo.peso_total_kg).toLocaleString("pt-BR")} kg{envioAtivo.valor_aprovado != null ? ` · frete aprovado ${brl(envioAtivo.valor_aprovado)}` : ""}{envioAtivo.codigo_rastreio ? ` · rastreio ${envioAtivo.codigo_rastreio}` : ""}</div>
           </div>
           <Button type="button" onClick={() => setEnvioAberto(envioAtivo.id)}><Truck size={15} /> Abrir envio</Button>
         </div>
@@ -161,7 +161,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
           <div className="mb-2 text-xs font-semibold text-slate-500">Cotações registradas antes do envio</div>
           {cotacoes.map((c) => (
             <div key={c.id} className="flex flex-wrap items-center gap-3 border-b border-slate-100 py-1.5 text-sm">
-              <span className="flex-1">{nome(c)}{c.prazo_dias ? ` · ${c.prazo_dias} dia(s)` : ""}</span>
+              <span className="flex-1">{nome(c)}{c.prazo_dias ? ` · ${c.prazo_dias} ${pl(c.prazo_dias, "dia", "dias")}` : ""}</span>
               <span className="font-semibold">{brl(c.valor)}</span>{c.escolhida && <Badge value="escolhida" />}
             </div>
           ))}
@@ -176,7 +176,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
       <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-4">
         <div><div className="text-xs text-slate-500">Destino</div><div className="font-semibold text-fg">{destino}</div></div>
         <div><div className="text-xs text-slate-500">Peso</div><div className="num font-semibold text-fg">{peso ? `${peso.toLocaleString("pt-BR")} kg` : "—"}</div>
-          {semPeso > 0 && <div className="text-xs text-amber-700">{semPeso} item(ns) sem peso no cadastro</div>}</div>
+          {semPeso > 0 && <div className="text-xs text-amber-700">{semPeso} {pl(semPeso, "item", "itens")} sem peso no cadastro</div>}</div>
         <div><div className="text-xs text-slate-500">Volumes</div><div className="num font-semibold text-fg">{volumes}</div></div>
         <div><div className="text-xs text-slate-500">Valor da mercadoria</div><div className="num font-semibold text-fg">{brl(pedido.valor_total)}</div></div>
       </div>
@@ -213,7 +213,7 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
               <Truck size={18} className="text-slate-400" />
               <div className="min-w-0 flex-1">
                 <div className="font-semibold text-fg">{nome(c)} {k === 0 && cotacoes.length > 1 && <span className="ml-1 text-xs font-semibold text-emerald-700">menor preço</span>}</div>
-                <div className="text-xs text-slate-500">{c.prazo_dias ? `${c.prazo_dias} dia(s)` : "prazo não informado"}{c.observacoes ? ` · ${c.observacoes}` : ""}</div>
+                <div className="text-xs text-slate-500">{c.prazo_dias ? `${c.prazo_dias} ${pl(c.prazo_dias, "dia", "dias")}` : "prazo não informado"}{c.observacoes ? ` · ${c.observacoes}` : ""}</div>
               </div>
               <span className="num text-lg font-bold text-fg">{brl(c.valor)}</span>
               {c.escolhida ? <Badge value="escolhida" /> : podeCotar && <Button type="button" variant="secondary" onClick={() => escolher(c)}><CheckCircle2 size={15} /> Escolher</Button>}

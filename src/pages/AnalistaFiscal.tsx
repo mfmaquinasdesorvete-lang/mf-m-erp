@@ -11,7 +11,7 @@ import { Button, CampoMes, Card, Indicador, PageHeader, Tabs } from "@/component
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
-import { brl, hoje } from "@/lib/format";
+import { brl, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import { dre, type LancDre } from "@/lib/dre";
@@ -75,11 +75,12 @@ export default function AnalistaFiscal() {
 
   const carregando = l1 || l2;
   const nomeUnid = atual ? unidades.find((u) => u.id === atual)?.nome : "SC e SP";
+  const contasPagar12 = pagar.filter((c) => meses.includes((c.competencia ?? c.vencimento).slice(0, 7))).length;
 
   function textoResumo() {
     const linhas = [
       `*Analista fiscal · MF Máquinas (${nomeUnid}) · 12 meses até ${nomeMes(mes)}*`,
-      `${a.resumo.problemas} problema(s), ${a.resumo.alertas} alerta(s), ${a.resumo.oportunidades} oportunidade(s).`,
+      `${a.resumo.problemas} ${pl(a.resumo.problemas, "problema", "problemas")}, ${a.resumo.alertas} ${pl(a.resumo.alertas, "alerta", "alertas")}, ${a.resumo.oportunidades} ${pl(a.resumo.oportunidades, "oportunidade", "oportunidades")}.`,
       "", "*Para corrigir:*",
       ...a.achados.filter((x) => x.nivel !== "ok").map((x) => `• ${x.titulo}${x.acao ? ` → ${x.acao}` : ""}`),
       "", "*Para conversar com o contador (economia):*",
@@ -113,8 +114,8 @@ export default function AnalistaFiscal() {
             <p className="text-base font-bold text-fg">Olá! Sou o analista fiscal da MF.</p>
             <p className="mt-0.5 text-sm text-slate-600">
               {carregando ? "Conferindo as notas e as contas…" : <>
-                Conferi <b>{a.vendas.length}</b> nota(s) de venda, <b>{a.c12.notas}</b> compra(s) com nota e <b>{pagar.filter((c) => meses.includes((c.competencia ?? c.vencimento).slice(0, 7))).length}</b> conta(s) a pagar
-                dos últimos 12 meses ({nomeUnid}). Achei <b>{a.resumo.problemas}</b> problema(s), <b>{a.resumo.alertas}</b> alerta(s) e <b>{a.resumo.oportunidades}</b> oportunidade(s) de economia.
+                Conferi <b>{a.vendas.length}</b> {pl(a.vendas.length, "nota", "notas")} de venda, <b>{a.c12.notas}</b> {pl(a.c12.notas, "compra", "compras")} com nota e <b>{contasPagar12}</b> {pl(contasPagar12, "conta", "contas")} a pagar
+                dos últimos 12 meses ({nomeUnid}). Achei <b>{a.resumo.problemas}</b> {pl(a.resumo.problemas, "problema", "problemas")}, <b>{a.resumo.alertas}</b> {pl(a.resumo.alertas, "alerta", "alertas")} e <b>{a.resumo.oportunidades}</b> {pl(a.resumo.oportunidades, "oportunidade", "oportunidades")} de economia.
               </>}
             </p>
           </div>
@@ -246,7 +247,7 @@ function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosD
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
-        <b className="first-letter:uppercase">{nomeMes(mes)}</b>{mes === hoje().slice(0, 7) && " (mês em andamento: os números ainda vão mudar)"}: {m.s.notas} nota(s) de venda ({brl(m.s.receita)}), {m.c.notas} compra(s) com nota
+        <b className="first-letter:uppercase">{nomeMes(mes)}</b>{mes === hoje().slice(0, 7) && " (mês em andamento: os números ainda vão mudar)"}: {m.s.notas} {pl(m.s.notas, "nota", "notas")} de venda ({brl(m.s.receita)}), {m.c.notas} {pl(m.c.notas, "compra", "compras")} com nota
         {m.c.semXml ? <>, <b className="text-amber-700">{m.c.semXml} sem o XML completo</b> (ICMS/IPI delas fora dos créditos)</> : null}.
       </p>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">

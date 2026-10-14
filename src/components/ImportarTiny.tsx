@@ -4,6 +4,7 @@ import { Button, Card, Field } from "@/components/ui";
 import { notify } from "@/lib/notify";
 import { callFunction } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
+import { pl } from "@/lib/format";
 
 type Estado = {
   etapa: string; pagina: number; indice: number; unidade_id: string | null;
@@ -123,10 +124,10 @@ export function ImportarTiny() {
               (cada variação entra como produto), contatos excluídos e contatos que são só vendedor ou funcionário.
             </p>
           )}
-          {!!t.produtos?.negativos && <p className="text-xs text-amber-700">{n(t.produtos.negativos)} produto(s) estavam com estoque negativo no Tiny e entraram com estoque zero.</p>}
+          {!!t.produtos?.negativos && <p className="text-xs text-amber-700">{n(t.produtos.negativos)} {pl(n(t.produtos.negativos), "produto", "produtos")} estavam com estoque negativo no Tiny e entraram com estoque zero.</p>}
           {!!e.erros?.length && (
             <details className="text-xs text-red-700">
-              <summary className="cursor-pointer">{e.erros.length} registro(s) com erro (os demais seguiram)</summary>
+              <summary className="cursor-pointer">{e.erros.length} {pl(e.erros.length, "registro", "registros")} com erro (os demais seguiram)</summary>
               <ul className="mt-1 list-disc pl-5">{e.erros.slice(-15).map((x, i) => <li key={i}>{x.mensagem}</li>)}</ul>
             </details>
           )}

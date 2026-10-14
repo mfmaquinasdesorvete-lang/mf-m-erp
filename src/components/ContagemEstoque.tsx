@@ -7,9 +7,10 @@ import { Badge, Button, Card, Field, Modal, Table } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import type { Produto } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 type Contagem = {
   id: string; numero: number; unidade_id: string; escopo: string | null; status: "aberta" | "concluida" | "cancelada";
@@ -42,7 +43,7 @@ export function ContagemEstoque({ produtos, podeEditar }: { produtos: Produto[];
             <td className="td font-semibold">#{c.numero}</td>
             <td className="td">{nome(c.unidade_id)}</td>
             <td className="td text-sm">{c.escopo ?? "—"}</td>
-            <td className="td"><Badge value={c.status} />{c.status === "concluida" && <div className="text-xs text-slate-500">{c.ajustes ?? 0} ajuste(s)</div>}</td>
+            <td className="td"><Badge value={c.status} />{c.status === "concluida" && <div className="text-xs text-slate-500">{c.ajustes ?? 0} {pl(c.ajustes ?? 0, "ajuste", "ajustes")}</div>}</td>
             <td className="td text-sm">{dataBR(c.created_at)}<div className="text-xs text-slate-500">{c.criada_nome}</div></td>
             <td className="td text-sm">{c.concluida_em ? dataBR(c.concluida_em) : "—"}<div className="text-xs text-slate-500">{c.concluida_nome}</div></td>
             <td className="td text-right"><Button variant="secondary" onClick={() => setAbertaId(c.id)}>{c.status === "aberta" ? "Contar" : "Ver"}</Button></td>
@@ -75,7 +76,7 @@ function NovaContagem({ produtos, onClose, onAberta }: { produtos: Produto[]; on
     setOcupado(false);
     if (error) return notifyError(error);
     invalidar("contagens_estoque", "contagem_itens");
-    notify(`Contagem aberta com ${escolhidos.length} produto(s)`);
+    notify(`Contagem aberta com ${escolhidos.length} ${pl(escolhidos.length, "produto", "produtos")}`);
     onAberta(data as string);
   }
 
@@ -94,7 +95,7 @@ function NovaContagem({ produtos, onClose, onAberta }: { produtos: Produto[]; on
         {sel("categoria", "Categoria", categorias.map((c) => [c, c]))}
         {sel("local", "Localização", locais.map((l) => [l, l]))}
         <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={f.comEstoque} onChange={(e) => setF({ ...f, comEstoque: e.target.checked })} /> Só itens com saldo</label>
-        <p className="text-sm text-slate-600 sm:col-span-2"><b>{escolhidos.length}</b> produto(s) para contar: {escopo}.</p>
+        <p className="text-sm text-slate-600 sm:col-span-2"><b>{escolhidos.length}</b> {pl(escolhidos.length, "produto", "produtos")} para contar: {escopo}.</p>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={abrir} disabled={ocupado || !escolhidos.length || !unidadeId}>{ocupado ? "Abrindo…" : "Abrir contagem"}</Button>
@@ -130,17 +131,17 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     invalidar("contagem_itens");
   }
   async function concluir() {
-    if (semJustificativa.length) { setRevelar(true); return notify(`Justifique ${semJustificativa.length} divergência(s) antes de concluir`, "erro"); }
-    if (!confirm(`Concluir a contagem nº ${c.numero}? ${divergentes.length} saldo(s) serão ajustados para o que foi contado.`)) return;
+    if (semJustificativa.length) { setRevelar(true); return notify(`Justifique ${semJustificativa.length} ${pl(semJustificativa.length, "divergência", "divergências")} antes de concluir`, "erro"); }
+    if (!(await confirmar(`Concluir a contagem nº ${c.numero}? ${divergentes.length} ${pl(divergentes.length, "saldo", "saldos")} serão ajustados para o que foi contado.`))) return;
     setOcupado(true);
     const { data, error } = await supabase.rpc("concluir_contagem", { p_contagem: c.id });
     setOcupado(false);
     if (error) return notifyError(error);
-    notify(`Contagem concluída: ${(data as any)?.ajustes ?? 0} ajuste(s) de saldo`);
+    notify(`Contagem concluída: ${(data as any)?.ajustes ?? 0} ${pl((data as any)?.ajustes ?? 0, "ajuste", "ajustes")} de saldo`);
     invalidar("contagens_estoque", "contagem_itens", "produtos", "estoque_unidade", "estoque_movimentos");
   }
   async function cancelar() {
-    if (!confirm("Cancelar esta contagem? Nenhum saldo é alterado.")) return;
+    if (!(await confirmar("Cancelar esta contagem? Nenhum saldo é alterado."))) return;
     const { error } = await supabase.rpc("cancelar_contagem", { p_contagem: c.id });
     if (error) return notifyError(error);
     invalidar("contagens_estoque");
@@ -152,7 +153,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
         <Button variant="secondary" onClick={onVoltar}>← Contagens</Button>
         <div className="min-w-[12rem] flex-1">
           <div className="font-semibold">Contagem nº {c.numero} · {nome(c.unidade_id)} <Badge value={c.status} /></div>
-          <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{revelar ? ` · ${divergentes.length} divergência(s)` : ""}</div>
+          <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{revelar ? ` · ${divergentes.length} ${pl(divergentes.length, "divergência", "divergências")}` : ""}</div>
         </div>
         <Button variant="secondary" onClick={() => window.print()}><Printer size={16} /> Imprimir folha</Button>
         {c.status === "aberta" && <Button variant="secondary" onClick={() => setRevelar(!revelar)}>{revelar ? <><EyeOff size={16} /> Esconder saldo</> : <><Eye size={16} /> Ver divergências</>}</Button>}

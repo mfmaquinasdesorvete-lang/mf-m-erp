@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, Search, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { Badge, Button, Field, Modal, PageHeader, Stat, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
-import { dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
+import { dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { diasAte, situacaoGarantia, situacaoPreventiva, textoVenda } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -169,7 +169,7 @@ export default function Garantias() {
               <td className="td">
                 <Badge value={g} />
                 <div className="num mt-1 text-xs text-slate-500">
-                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} dia(s)` : `venceu em ${dataBR(e.garantia_ate)}`) : e.origem ? "outra empresa: sem garantia da MF" : "sem garantia registrada"}
+                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} ${pl(d, "dia", "dias")}` : `venceu em ${dataBR(e.garantia_ate)}`) : e.origem ? "outra empresa: sem garantia da MF" : "sem garantia registrada"}
                 </div>
               </td>
               <td className="td">

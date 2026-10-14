@@ -6,8 +6,9 @@ import { Button } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
+import { confirmar } from "@/components/Dialogos";
 
 export type Documento = { id: string; entidade: string; entidade_id: string | null; nome: string; caminho: string; tamanho: number | null; tipo: string | null; descricao: string | null; created_by: string | null; created_at: string };
 export const ENTIDADES: Record<string, string> = {
@@ -40,7 +41,7 @@ export async function enviarDocumentos(entidade: string, entidadeId: string | nu
 }
 
 export async function apagarDocumento(d: Documento) {
-  if (!confirm(`Apagar "${d.nome}"?`)) return false;
+  if (!(await confirmar(`Apagar "${d.nome}"?`))) return false;
   const { error } = await supabase.from("documentos").delete().eq("id", d.id);
   if (error) { notifyError(error); return false; }
   await supabase.storage.from("documentos").remove([d.caminho]);
@@ -66,7 +67,7 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
     setOcupado(true);
     const n = await enviarDocumentos(entidade, id, [...lista]);
     setOcupado(false);
-    if (n) notify(`${n} arquivo(s) anexado(s)`);
+    if (n) notify(`${n} ${pl(n, "arquivo", "arquivos")} ${pl(n, "anexado", "anexados")}`);
     invalidar("documentos");
   }
 

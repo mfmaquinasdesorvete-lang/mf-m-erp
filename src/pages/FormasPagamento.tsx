@@ -3,7 +3,7 @@
 import { CrudPage, type FiltroCrud } from "@/components/CrudPage";
 import { useRows } from "@/lib/data";
 import { MEIOS, condicao, type FormaPagamento } from "@/lib/formasPagamento";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -16,7 +16,7 @@ const FILTROS: FiltroCrud<FormaPagamento>[] = [
 async function situacao(ids: string[], ativo: boolean) {
   const { error } = await supabase.from("formas_pagamento").update({ ativo }).in("id", ids);
   if (error) throw error;
-  return `${ids.length} forma(s) ${ativo ? "ativada(s)" : "inativada(s)"}`;
+  return `${ids.length} ${pl(ids.length, "forma", "formas")} ${ativo ? pl(ids.length, "ativada", "ativadas") : pl(ids.length, "inativada", "inativadas")}`;
 }
 
 export default function FormasPagamento() {

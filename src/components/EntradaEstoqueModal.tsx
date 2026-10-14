@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Modal } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import type { Produto } from "@/lib/types";
@@ -59,7 +59,7 @@ export function EntradaEstoqueModal({ nota, onClose }: { nota: { id: string; emi
       }));
       const { data, error } = await supabase.rpc("lancar_estoque_nfe", { p_nfe: nota.id, p_itens: itens });
       if (error) throw error;
-      notify(`${data} item(ns) lançados no estoque`);
+      notify(`${data} ${pl(data, "item", "itens")} lançados no estoque`);
       invalidate("nfe_recebidas", "produtos", "estoque_movimentos");
       onClose();
     } catch (e) {
@@ -137,7 +137,7 @@ export function EntradaEstoqueModal({ nota, onClose }: { nota: { id: string; emi
             </table>
           </div>
           <div className="mt-4 flex items-center justify-between gap-2">
-            <span className="text-sm text-slate-600">{vinculados} de {linhas.length} item(ns) vinculados · Nota {brl(nota.valor_total)}</span>
+            <span className="text-sm text-slate-600">{vinculados} de {linhas.length} {pl(linhas.length, "item", "itens")} vinculados · Nota {brl(nota.valor_total)}</span>
             <div className="flex gap-2">
               <Button variant="secondary" onClick={onClose}>Cancelar</Button>
               <Button onClick={confirmar} disabled={salvando || vinculados === 0}>

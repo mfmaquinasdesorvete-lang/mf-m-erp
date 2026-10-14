@@ -8,7 +8,7 @@ import { Button, Card, Modal } from "@/components/ui";
 import { useInvalidate } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { useConfig } from "@/lib/useConfig";
 import {
@@ -120,7 +120,7 @@ export function CodigosEan({ produtos, podeEditar, onAbrir }: { produtos: Produt
         id: p.id,
         dados: { codigo_barras: novo, gtin_isento: !novo, codigos_alternativos: comAlternativo(p, p.codigo_barras) },
       })));
-      notify(acao.tipo === "gerar" ? `${acao.itens.length} código(s) da faixa GS1 gravado(s). Falta cadastrar cada um no site da GS1 (CNP): baixe a planilha.` : `${acao.itens.length} produto(s) marcado(s) "Sem GTIN"`);
+      notify(acao.tipo === "gerar" ? `${acao.itens.length} ${pl(acao.itens.length, "código", "códigos")} da faixa GS1 ${pl(acao.itens.length, "gravado", "gravados")}. Falta cadastrar cada um no site da GS1 (CNP): baixe a planilha.` : `${acao.itens.length} ${pl(acao.itens.length, "produto", "produtos")} ${pl(acao.itens.length, "marcado", "marcados")} "Sem GTIN"`);
       setAcao(null); setSel(new Set());
       invalidar("produtos");
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -186,7 +186,7 @@ export function CodigosEan({ produtos, podeEditar, onAbrir }: { produtos: Produt
         <div className="sticky top-14 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface/95 p-2 text-sm shadow-card backdrop-blur md:top-2">
           <label className="flex items-center gap-2 px-1 font-semibold text-slate-600">
             <input type="checkbox" className="h-5 w-5" checked={todosMarcados} onChange={(e) => setSel(e.target.checked ? new Set([...sel, ...idsVisiveis]) : new Set([...sel].filter((id) => !idsVisiveis.includes(id))))} />
-            {sel.size ? `${sel.size} selecionado(s)` : "Selecionar todos da lista"}
+            {sel.size ? `${sel.size} ${pl(sel.size, "selecionado", "selecionados")}` : "Selecionar todos da lista"}
           </label>
           {sel.size > 0 && (
             <span className="ml-auto flex flex-wrap gap-2">
@@ -300,7 +300,7 @@ function FaixaGs1({ prefixo, usados, podeEditar, onSalvar, onPlanilha }: { prefi
         <div className="min-w-0 flex-1 text-sm">
           <div className="font-semibold text-fg">Faixa da empresa na GS1 Brasil</div>
           {prefixo && !editar
-            ? <p className="text-slate-600">Prefixo <b className="num font-mono">{prefixo}</b> · cabem <b className="num">{capacidadeFaixa(prefixo).toLocaleString("pt-BR")}</b> códigos · <b className="num">{usados}</b> já usado(s). Os produtos próprios selecionados ganham o próximo código livre.</p>
+            ? <p className="text-slate-600">Prefixo <b className="num font-mono">{prefixo}</b> · cabem <b className="num">{capacidadeFaixa(prefixo).toLocaleString("pt-BR")}</b> códigos · <b className="num">{usados}</b> já {pl(usados, "usado", "usados")}. Os produtos próprios selecionados ganham o próximo código livre.</p>
             : <p className="text-slate-600">O código de barras de produto que a empresa fabrica só vale se vier da GS1 Brasil (associação paga, por faixa de faturamento). Com a filiação, a GS1 dá um prefixo (789… ou 790…): cadastre aqui e o ERP gera os códigos em sequência, sem repetir.</p>}
         </div>
         {podeEditar && !editar && <Button variant="secondary" onClick={() => { setValor(prefixo ?? ""); setEditar(true); }}>{prefixo ? "Alterar" : "Cadastrar prefixo"}</Button>}

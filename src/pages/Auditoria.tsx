@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
@@ -113,7 +113,7 @@ function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "
             <div className="grid grid-cols-4 gap-2 text-center">
               {f.map((x) => (
                 <div key={x.rotulo} className={`rounded-lg px-2 py-2 ${x.qtd ? (x.max > 60 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800") : "bg-slate-50 text-slate-500"}`}>
-                  <div className="text-[11px]">{x.rotulo}</div><div className="text-sm font-bold">{brl(x.valor)}</div><div className="text-[11px]">{x.qtd} conta(s)</div>
+                  <div className="text-[11px]">{x.rotulo}</div><div className="text-sm font-bold">{brl(x.valor)}</div><div className="text-[11px]">{x.qtd} {pl(x.qtd, "conta", "contas")}</div>
                 </div>
               ))}
             </div>

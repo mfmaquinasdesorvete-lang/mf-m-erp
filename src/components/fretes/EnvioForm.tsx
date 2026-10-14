@@ -12,7 +12,7 @@ import { Badge, Button, Field, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { useInvalidate, useRows, ler } from "@/lib/data";
-import { brl, dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -25,6 +25,7 @@ import {
   totaisCarga, totalCotacao, volumesIncompletos,
   type CotacaoEnvio, type Envio, type ExcecaoEnvio, type OcorrenciaEnvio, type Volume,
 } from "@/lib/fretes";
+import { confirmar } from "@/components/Dialogos";
 
 export type Embalagem = { id: string; descricao: string; tipo: string; largura_cm: number | null; altura_cm: number | null; comprimento_cm: number | null; peso_kg: number | null; ativo: boolean };
 
@@ -166,7 +167,7 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
   }
 
   async function cancelarEnvio() {
-    if (!id || !confirm("Cancelar este envio? Ele sai do painel (o histórico fica).")) return;
+    if (!id || !(await confirmar("Cancelar este envio? Ele sai do painel (o histórico fica)."))) return;
     const { error } = await supabase.from("envios").update({ status: "cancelado" }).eq("id", id);
     if (error) return notifyError(error);
     notify("Envio cancelado");
@@ -278,7 +279,7 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Button type="button" variant="secondary" onClick={() => set({ volumes: [...volumes, { quantidade: 1 }] })}><Plus size={15} /> Volume</Button>
               <div className="ml-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-                <span><b className="text-fg">{t.qtd}</b> volume(s)</span>
+                <span><b className="text-fg">{t.qtd}</b> {pl(t.qtd, "volume", "volumes")}</span>
                 <span>peso real <b className="text-fg">{t.peso.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg</b></span>
                 <span>cubagem <b className="text-fg">{t.cubagem.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m³</b></span>
                 <span title="Rodoviário: 300 kg por m³. A transportadora cobra pelo maior.">peso cubado <b className="text-fg">{t.pesoCubado.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg</b></span>
@@ -632,7 +633,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
                     {vencida && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">vencida</span>}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {c.prazo_dias != null ? `${c.prazo_dias} dia(s) úteis` : "prazo não informado"}{c.validade ? ` · válida até ${dataBR(c.validade)}` : " · sem validade"}
+                    {c.prazo_dias != null ? `${c.prazo_dias} ${pl(c.prazo_dias, "dia", "dias")} úteis` : "prazo não informado"}{c.validade ? ` · válida até ${dataBR(c.validade)}` : " · sem validade"}
                     {c.tabela_versao ? ` · tabela ${c.tabela_versao}` : ""}{c.observacoes ? ` · ${c.observacoes}` : ""}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1 text-[11px]">

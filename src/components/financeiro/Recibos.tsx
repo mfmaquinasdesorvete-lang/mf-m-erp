@@ -5,7 +5,7 @@ import { Ban, FileText, Plus, ReceiptText } from "lucide-react";
 import { BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, docFormat, hoje } from "@/lib/format";
+import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -16,6 +16,7 @@ import { valorPorExtenso } from "@/lib/extenso";
 import { pdfRecibo } from "@/lib/pdf";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
+import { pedirTexto } from "@/components/Dialogos";
 
 export type Recibo = {
   id: string; numero: number; tipo: "recebimento" | "pagamento"; unidade_id: string | null;
@@ -192,7 +193,7 @@ export function Recibos() {
   }
 
   async function cancelar(r: Recibo) {
-    const motivo = prompt(`Cancelar o recibo nº ${r.numero}? Informe o motivo:`)?.trim();
+    const motivo = (await pedirTexto(`Cancelar o recibo nº ${r.numero}? Informe o motivo:`))?.trim();
     if (!motivo) return;
     if (motivo.length < 3) return notify("Escreva o motivo (pelo menos 3 letras)", "erro");
     const { error } = await supabase.from("recibos").update({ cancelado_em: new Date().toISOString(), cancelado_motivo: motivo }).eq("id", r.id);
@@ -212,7 +213,7 @@ export function Recibos() {
           </select>
         </Field>
         <Field label="Mês"><CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></Field>
-        <p className="mb-2 ml-auto text-sm text-slate-600">{lista.length} recibo(s) · <b>{brl(total)}</b></p>
+        <p className="mb-2 ml-auto text-sm text-slate-600">{lista.length} {pl(lista.length, "recibo", "recibos")} · <b>{brl(total)}</b></p>
         {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
       </div>
       <Table empty={!lista.length}

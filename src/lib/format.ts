@@ -44,3 +44,6 @@ export function rotuloCliente(c: { codigo?: number | null; nome: string; nome_fa
   const f = c.nome_fantasia?.trim();
   return `${c.codigo ? c.codigo + " · " : ""}${f && f.toLowerCase() !== c.nome.toLowerCase() ? `${f} (${c.nome})` : c.nome}`;
 }
+
+/** Singular ou plural pela quantidade: `${n} ${pl(n, "pedido", "pedidos")}` (no lugar de "pedido(s)"). Zero vai no plural. */
+export const pl = (n: unknown, singular: string, plural: string) => (Math.abs(Number(n)) === 1 ? singular : plural);

@@ -6,7 +6,7 @@ import { Button, Card, Stat } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { criarComItens, desfazerCompra } from "@/lib/itens";
 import { supabase } from "@/lib/supabase";
-import { brl, hoje } from "@/lib/format";
+import { brl, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { porFornecedor, sugerirReposicao, type AbertoCompra, type MovimentoRep, type VinculoFornecedor } from "@/lib/reposicao";
 import type { Fornecedor, Produto } from "@/lib/types";
@@ -41,7 +41,7 @@ export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: bool
       // cabeçalho e itens juntos: se os itens não gravarem, o pedido vazio é desfeito
       const pc = await criarComItens("pedidos_compra", {
         fornecedor_id: fornecedorId, status: "cotacao", previsao_entrega: new Date(Date.now() + prazo * 864e5).toISOString().slice(0, 10),
-        observacoes: `Reposição de estoque sugerida pelo ERP (${escolhidos.length} item(ns), consumo dos últimos 90 dias)`,
+        observacoes: `Reposição de estoque sugerida pelo ERP (${escolhidos.length} ${pl(escolhidos.length, "item", "itens")}, consumo dos últimos 90 dias)`,
       }, "pedido_compra_itens", "pedido_compra_id", escolhidos.map((s) => ({
         produto_id: s.produto.id, descricao: s.produto.descricao, quantidade: quant(s.produto.id, s.sugerido), custo_unitario: s.custo,
       })), desfazerCompra);
@@ -74,7 +74,7 @@ export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: bool
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-3">
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-fg">{nomeForn(g.fornecedor_id)}</div>
-              <div className="text-xs text-slate-500">{g.itens.length} item(ns) · {brl(g.valor)}{!g.fornecedor_id && " · defina o fornecedor no pedido ou no cadastro do produto"}</div>
+              <div className="text-xs text-slate-500">{g.itens.length} {pl(g.itens.length, "item", "itens")} · {brl(g.valor)}{!g.fornecedor_id && " · defina o fornecedor no pedido ou no cadastro do produto"}</div>
             </div>
             {podeComprar && aoCotar && (
               <Button variant="secondary" disabled={ocupado !== null} title="Pedir preço a vários fornecedores antes de comprar"

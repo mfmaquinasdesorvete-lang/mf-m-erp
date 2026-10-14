@@ -8,6 +8,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { PAPEL_ROTULO } from "@/lib/avisos";
 import { useUnidade } from "@/lib/unidade";
 import { PROVEDORES, provedorPorDominio, type Provedor } from "../../supabase/functions/_shared/email-diagnostico";
+import { confirmar } from "@/components/Dialogos";
 
 type Conta = {
   id?: string; nome: string; email: string; imap_host: string; imap_porta: number; smtp_host: string | null; smtp_porta: number;
@@ -21,7 +22,7 @@ export function EmailConfig() {
   const invalidar = useInvalidate();
 
   async function remover(c: Conta) {
-    if (!confirm(`Desligar a caixa ${c.email} do ERP? Os e-mails já baixados somem do ERP (continuam no servidor).`)) return;
+    if (!(await confirmar(`Desligar a caixa ${c.email} do ERP? Os e-mails já baixados somem do ERP (continuam no servidor).`))) return;
     try { await callFunction("email-caixa", { acao: "remover_conta", conta_id: c.id }); invalidar("email_contas", "emails"); notify("Caixa removida"); }
     catch (e) { notifyError(e); }
   }

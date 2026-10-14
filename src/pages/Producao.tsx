@@ -9,7 +9,7 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { criarComItens, desfazerCompra, sincronizarItens } from "@/lib/itens";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, hoje, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
@@ -23,6 +23,7 @@ import { contemNaEstrutura, custoEstrutura, niveis, temFicha, type LinhaFicha } 
 import { ehKitAberto } from "@/lib/kits";
 import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
+import { confirmar } from "@/components/Dialogos";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
@@ -134,7 +135,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
                 <div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
               <td className="td num text-right">{Number(o.quantidade)}</td>
               <td className="td"><Badge value={o.status} /></td>
-              <td className="td">{aberta ? (f ? <span className="font-semibold text-red-600">faltam {f} peça(s)</span> : <span className="font-semibold text-emerald-700">tudo disponível</span>) : "—"}</td>
+              <td className="td">{aberta ? (f ? <span className="font-semibold text-red-600">faltam {f} {pl(f, "peça", "peças")}</span> : <span className="font-semibold text-emerald-700">tudo disponível</span>) : "—"}</td>
               <td className={`td num ${aberta && o.previsao && o.previsao < hoje() ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
               <td className="td whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <BotaoMarcadores tabela="ordens_producao" registro={o} nome={["ordem de produção", "ordens de produção"]} />
@@ -236,13 +237,13 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
       unidade_id: (o as any).unidade_id, responsavel: o.responsavel ?? null, observacoes: `Subconjunto para a OP #${o.numero}`,
     })));
     if (error) throw error;
-  }, `OP criada para ${subFaltando.length} subconjunto(s)`, false);
+  }, `OP criada para ${subFaltando.length} ${pl(subFaltando.length, "subconjunto", "subconjuntos")}`, false);
 
   const nomeForn = (n: Necessidade) => {
     if (n.subconjunto) return "subconjunto · produzido em OP própria";
     if (n.fornecedor_padrao_id) return fornecedores.find((f) => f.id === n.fornecedor_padrao_id)?.nome ?? "fornecedor padrão";
     const outros = fornecimentos.filter((f) => f.produto_id === n.componente_id && f.ativo !== false).length;
-    return outros ? `sem preferido · ${outros} fornecedor(es) conhecido(s)` : "sem fornecedor cadastrado";
+    return outros ? `sem preferido · ${outros} ${pl(outros, "fornecedor", "fornecedores")} ${pl(outros, "conhecido", "conhecidos")}` : "sem fornecedor cadastrado";
   };
 
   return (
@@ -276,10 +277,10 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
               </h3>
               <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 {subFaltando.length > 0 && podeEditar && (
-                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={gerarOpsSub} disabled={ocupado}><Layers size={16} aria-hidden /> Criar OP de {subFaltando.length} subconjunto(s)</Button>
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={gerarOpsSub} disabled={ocupado}><Layers size={16} aria-hidden /> Criar OP de {subFaltando.length} {pl(subFaltando.length, "subconjunto", "subconjuntos")}</Button>
                 )}
                 {faltantes.length > 0 && podeEditar && (
-                  <Button type="button" className="w-full sm:w-auto" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} aria-hidden /> Pedir as {faltantes.length} peça(s) que faltam</Button>
+                  <Button type="button" className="w-full sm:w-auto" onClick={gerarCompras} disabled={ocupado}><ShoppingBag size={16} aria-hidden /> Pedir as {faltantes.length} {pl(faltantes.length, "peça", "peças")} que faltam</Button>
                 )}
               </div>
             </div>
@@ -644,7 +645,7 @@ function FichaTecnica() {
   }
   // máquina usada, ficha montada errada…: esvazia de uma vez (dá para montar de novo depois)
   async function tirarTodos() {
-    if (!item || !confirm(`Tirar todos os ${comps?.length ?? 0} itens da ficha de "${item.descricao}"? A ficha fica vazia (dá para montar de novo depois).`)) return;
+    if (!item || !(await confirmar(`Tirar todos os ${comps?.length ?? 0} itens da ficha de "${item.descricao}"? A ficha fica vazia (dá para montar de novo depois).`))) return;
     const { error } = await supabase.from("produto_componentes").delete().eq("produto_id", item.id);
     if (error) return notifyError(error);
     setLista([]);
@@ -701,7 +702,7 @@ function FichaTecnica() {
         <Card className="p-4 lg:col-span-2">
           <h3 id="ficha-titulo" className="mb-1 text-base font-bold text-fg">{item.descricao}</h3>
           <p className="mb-1 text-sm text-slate-500">
-            Peças, insumos e subconjuntos para montar <b>uma</b> unidade · {lista.length} item(ns){nNiveis > 1 ? ` · ${nNiveis} níveis` : ""}.
+            Peças, insumos e subconjuntos para montar <b>uma</b> unidade · {lista.length} {pl(lista.length, "item", "itens")}{nNiveis > 1 ? ` · ${nNiveis} níveis` : ""}.
           </p>
           {item.tipo !== "maquina" && (
             <div className="mb-3 space-y-2 rounded-lg border border-l-4 border-slate-200 border-l-modulo bg-slate-50 p-3 text-sm">
@@ -711,7 +712,7 @@ function FichaTecnica() {
           )}
           {semCusto > 0 && (
             <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900" role="status">
-              {semCusto} peça(s) sem custo no cadastro: o custo abaixo está incompleto.
+              {semCusto} {pl(semCusto, "peça", "peças")} sem custo no cadastro: o custo abaixo está incompleto.
             </p>
           )}
           <ul className="divide-y divide-slate-100" aria-labelledby="ficha-titulo">

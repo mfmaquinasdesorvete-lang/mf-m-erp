@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { Button, Modal } from "@/components/ui";
 import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
-import { digitos, docParcial } from "@/lib/format";
+import { digitos, docFormat, docParcial, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
@@ -83,7 +83,7 @@ async function situacaoTransportadoras(ids: string[], ativo: boolean) {
     const { error } = await supabase.from("transportadoras").update({ ativo }).in("id", ids.slice(i, i + 200));
     if (error) throw error;
   }
-  return `${ids.length} transportadora(s) ${ativo ? "ativada(s)" : "inativada(s)"}`;
+  return `${ids.length} ${pl(ids.length, "transportadora", "transportadoras")} ${ativo ? pl(ids.length, "ativada", "ativadas") : pl(ids.length, "inativada", "inativadas")}`;
 }
 
 /** Fornecedores e transportadoras: cada um no seu item do menu (mesma permissão de tela). */

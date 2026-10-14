@@ -6,10 +6,11 @@ import { unzipSync, strFromU8 } from "fflate";
 import { AlertTriangle, CheckCircle2, KeyRound, Landmark, Loader2, RefreshCw, Unplug } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
+import { confirmar } from "@/components/Dialogos";
 
 export type ConexaoInter = {
   id: string; conta_bancaria_id: string; conta_corrente: string | null; status: "ativa" | "erro" | "desligada"; erro: string | null;
@@ -44,14 +45,14 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
       const r = await callFunction<{ resultado: Record<string, Resultado> }>("inter", { acao: "sincronizar", conexao_id: c.id });
       const x = r.resultado?.[c.id];
       if (x?.erro) throw new Error(x.erro);
-      notify(x?.novas ? `${x.novas} lançamento(s) novo(s)${x.conciliadas ? `, ${x.conciliadas} conciliado(s) sozinho(s)` : ""}` : "Extrato em dia: nada novo no Inter");
+      notify(x?.novas ? `${x.novas} ${pl(x.novas, "lançamento", "lançamentos")} ${pl(x.novas, "novo", "novos")}${x.conciliadas ? `, ${x.conciliadas} ${pl(x.conciliadas, "conciliado", "conciliados")} ${pl(x.conciliadas, "sozinho", "sozinhos")}` : ""}` : "Extrato em dia: nada novo no Inter");
     } catch (e) { notifyError(e); } finally {
       setOcupado(null);
       invalidar("inter_conexoes", "extrato_lancamentos", "contas_receber", "contas_pagar");
     }
   }
   async function desligar(c: ConexaoInter) {
-    if (!confirm(`Parar de buscar o extrato de ${nomeErp(c.conta_bancaria_id)} pela API do Inter? Os lançamentos que já vieram continuam no ERP e as credenciais guardadas são apagadas.`)) return;
+    if (!(await confirmar(`Parar de buscar o extrato de ${nomeErp(c.conta_bancaria_id)} pela API do Inter? Os lançamentos que já vieram continuam no ERP e as credenciais guardadas são apagadas.`))) return;
     setOcupado(c.id);
     try {
       await callFunction("inter", { acao: "desligar", conexao_id: c.id });
@@ -88,14 +89,14 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
                   {c.erro && <div className={`mt-1 flex items-start gap-1 text-xs ${c.status === "erro" ? "font-semibold text-red-700" : "text-amber-700"}`}><AlertTriangle size={13} className="mt-0.5 shrink-0" /> {c.erro}</div>}
                   {vence != null && vence <= 30 && (
                     <div className="mt-1 flex items-start gap-1 text-xs font-semibold text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                      Certificado {vence < 0 ? "vencido" : `vence em ${vence} dia(s)`}: gere outro no app do Inter e use "Trocar credenciais".
+                      Certificado {vence < 0 ? "vencido" : `vence em ${vence} ${pl(vence, "dia", "dias")}`}: gere outro no app do Inter e use "Trocar credenciais".
                     </div>
                   )}
                 </div>
                 <div className="text-xs text-slate-600">
                   <div className="flex items-center gap-1">
                     {c.status === "ativa" ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-red-600" />}
-                    atualizado {ha(c.sincronizado_em)}{c.ultimas_novas ? ` · ${c.ultimas_novas} novo(s)` : ""}
+                    atualizado {ha(c.sincronizado_em)}{c.ultimas_novas ? ` · ${c.ultimas_novas} ${pl(c.ultimas_novas, "novo", "novos")}` : ""}
                   </div>
                   {c.saldo != null && <div>Saldo disponível: <b className="num">{brl(c.saldo)}</b>{c.saldo_em ? ` (${ha(c.saldo_em)})` : ""}</div>}
                   {c.certificado_validade && <div>Certificado até {dataBR(c.certificado_validade)}</div>}
@@ -165,7 +166,7 @@ function LigarInter({ contas, conexao, onClose, onPronto }: { contas: ContaErp[]
         cert: arquivos?.cert ?? "", key: arquivos?.key ?? "", conta_corrente: contaCorrente, desde,
       });
       if (r.erro) notify(`Conta ligada, mas a primeira busca falhou: ${r.erro}`, "erro");
-      else notify(`Inter ligado${r.saldo != null ? ` · saldo ${brl(r.saldo)}` : ""}${r.novas ? ` · ${r.novas} lançamento(s) trazido(s)` : ""}`);
+      else notify(`Inter ligado${r.saldo != null ? ` · saldo ${brl(r.saldo)}` : ""}${r.novas ? ` · ${r.novas} ${pl(r.novas, "lançamento", "lançamentos")} ${pl(r.novas, "trazido", "trazidos")}` : ""}`);
       onPronto();
     } catch (err) { notifyError(err); } finally { setOcupado(false); }
   }

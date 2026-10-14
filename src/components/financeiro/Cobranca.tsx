@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Mail, MessageCircle, Pencil, Plus, SkipForward } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -18,7 +18,7 @@ import { situacaoModelo, useStatusWhatsapp, WhatsappOficial, type EtapaWa } from
 type ContaR = ContaCobranca & { cliente?: Cliente | null; forma_pagamento?: string };
 const EVENTO: Record<Etapa["evento"], string> = { criacao: "Na criação", vencimento: "Vencimento", pagamento: "No pagamento" };
 const quando = (e: Pick<Etapa, "evento" | "dias">) =>
-  e.evento !== "vencimento" ? EVENTO[e.evento] : e.dias === 0 ? "No dia do vencimento" : e.dias < 0 ? `${-e.dias} dia(s) antes do vencimento` : `${e.dias} dia(s) depois do vencimento`;
+  e.evento !== "vencimento" ? EVENTO[e.evento] : e.dias === 0 ? "No dia do vencimento" : e.dias < 0 ? `${-e.dias} ${pl(-e.dias, "dia", "dias")} antes do vencimento` : `${e.dias} ${pl(e.dias, "dia", "dias")} depois do vencimento`;
 
 export function Cobranca({ contas }: { contas: ContaR[] }) {
   const { pode } = usePerfil();
@@ -78,7 +78,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
       <div className="grid grid-cols-3 gap-2 sm:max-w-xl">
         {([["Em dia", sit.em_dia, "border-emerald-300 bg-emerald-50 text-emerald-800"], ["A vencer (7 dias)", sit.a_vencer, "border-amber-300 bg-amber-50 text-amber-900"],
           ["Atrasados", sit.atrasado, "border-red-300 bg-red-50 text-red-800"]] as const).map(([r, n, cor]) => (
-          <div key={r} className={`rounded-lg border px-3 py-2 ${cor}`}><div className="text-xs font-semibold">{r}</div><div className="text-xl font-bold">{n}</div><div className="text-[11px] opacity-80">cliente(s)</div></div>
+          <div key={r} className={`rounded-lg border px-3 py-2 ${cor}`}><div className="text-xs font-semibold">{r}</div><div className="text-xl font-bold">{n}</div><div className="text-[11px] opacity-80">{pl(n, "cliente", "clientes")}</div></div>
         ))}
       </div>
 

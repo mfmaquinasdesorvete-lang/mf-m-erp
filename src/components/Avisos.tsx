@@ -10,6 +10,7 @@ import { notify, notifyError } from "@/lib/notify";
 import {
   EXEMPLOS, htmlEmail, mensagemCliente, PAPEL_ROTULO, textoTelegram, type Aviso, type AvisoTipo, type Empresa,
 } from "@/lib/avisos";
+import { pl } from "@/lib/format";
 
 function useTipos() {
   return useQuery({
@@ -250,7 +251,7 @@ export function AvisosConfig() {
           <details key={g} className="group rounded-xl border border-slate-200">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-3 [&::-webkit-details-marker]:hidden">
               <span className="font-semibold text-fg">{g}</span>
-              <span className="flex items-center gap-2 text-xs text-slate-500">{ts.filter((t) => t.ativo).length} de {ts.length} ligado(s)<span className="transition group-open:rotate-180" aria-hidden>▾</span></span>
+              <span className="flex items-center gap-2 text-xs text-slate-500">{ts.filter((t) => t.ativo).length} de {ts.length} {pl(ts.length, "ligado", "ligados")}<span className="transition group-open:rotate-180" aria-hidden>▾</span></span>
             </summary>
             {listaTipos(ts, publico)}
           </details>
@@ -288,7 +289,7 @@ export function AvisosConfig() {
         <div className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
             {status?.robo && status.webhook ? (
-              <p className="text-emerald-700"><b>Robô @{status.robo} ligado ✓</b> · {status.conectados} pessoa(s) conectada(s). Cada pessoa conecta o próprio Telegram em <b>Meus avisos</b> (menu, embaixo).</p>
+              <p className="text-emerald-700"><b>Robô @{status.robo} ligado ✓</b> · {status.conectados} {pl(status.conectados, "pessoa", "pessoas")} {pl(status.conectados, "conectada", "conectadas")}. Cada pessoa conecta o próprio Telegram em <b>Meus avisos</b> (menu, embaixo).</p>
             ) : (
               <>
                 <p className="mb-2 font-semibold text-fg">Para ligar o robô (uma vez só):</p>
@@ -338,7 +339,7 @@ export function AvisosConfig() {
 
       {aba === "historico" && <Historico tipos={tipos} ocupado={ocupado} enviarAgora={async () => {
         const r = await chamar("enviar_agora");
-        if (r) { notify(`${r.enviados} enviado(s)${r.erros ? `, ${r.erros} com erro` : ""}`); qc.invalidateQueries({ queryKey: ["avisos"] }); }
+        if (r) { notify(`${r.enviados} ${pl(r.enviados, "enviado", "enviados")}${r.erros ? `, ${r.erros} com erro` : ""}`); qc.invalidateQueries({ queryKey: ["avisos"] }); }
       }} />}
 
       {previa && (

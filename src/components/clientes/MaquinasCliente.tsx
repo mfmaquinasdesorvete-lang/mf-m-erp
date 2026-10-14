@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Snowflake } from "lucide-react";
 import { useRows } from "@/lib/data";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { modeloMaquina } from "@/lib/legadoMyFrost";
 
 export type MaquinaResumo = {
@@ -63,7 +63,7 @@ export function MaquinasCliente({ maquinas, max = 4 }: { maquinas: MaquinaResumo
           </span>
         );
       })}
-      {resto > 0 && <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title={`mais ${resto} máquina(s)`}>+{resto}</span>}
+      {resto > 0 && <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
     </div>
   );
 }

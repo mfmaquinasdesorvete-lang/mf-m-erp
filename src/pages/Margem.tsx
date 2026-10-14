@@ -5,7 +5,7 @@ import { Button, CampoMes, PageHeader, Section, Stat, Table, Tabs } from "@/comp
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
 import type { RegraComissao } from "@/lib/comissao";
@@ -92,7 +92,7 @@ export default function Margem() {
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={TrendingUp} tom="info" label="Receita" valor={brl(t.receita)} sub={`${dados?.n ?? 0} venda(s)`} />
+        <Stat icon={TrendingUp} tom="info" label="Receita" valor={brl(t.receita)} sub={`${dados?.n ?? 0} ${pl(dados?.n ?? 0, "venda", "vendas")}`} />
         <Stat icon={Wallet} label="Custos variáveis" valor={brl(custos)} sub="impostos, produto, comissão, frete, taxas" />
         <Stat icon={ArrowDownWideNarrow} tom={t.mc < 0 ? "critico" : "bom"} label="Margem de contribuição" valor={brl(t.mc)} />
         <Stat icon={Percent} tom={pctMc(t) < 0.15 ? "atencao" : "bom"} label="Margem %" valor={pctTxt(pctMc(t))} sub="da receita" />
@@ -101,7 +101,7 @@ export default function Margem() {
       <Section title="Da receita à margem" className="mb-5">
         <Cascata t={t} />
         {dados && dados.estimadas > 0 && <p className="mt-3 text-xs text-slate-500">
-          {dados.estimadas} venda(s) sem NF-e autorizada: impostos estimados pelo cadastro da unidade (ICMS, DIFAL, PIS e COFINS). IPI não entra (é cobrado à parte do cliente).
+          {dados.estimadas} {pl(dados.estimadas, "venda", "vendas")} sem NF-e autorizada: impostos estimados pelo cadastro da unidade (ICMS, DIFAL, PIS e COFINS). IPI não entra (é cobrado à parte do cliente).
           O custo do produto é o custo atual do cadastro.</p>}
       </Section>
 

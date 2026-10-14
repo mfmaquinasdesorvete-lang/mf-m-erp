@@ -1,6 +1,7 @@
 // Painel de exceções: regras que apontam o que merece conferência.
 import { avaliarCadastro } from "./qualidadeProdutos";
 import type { Produto } from "./types";
+import { pl } from "@/lib/format";
 // Cada item é um INDÍCIO até alguém confirmar com documento ou extrato; nunca é prova sozinho.
 
 export type Excecao = {
@@ -177,7 +178,7 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
     const abertas = d.receber.filter((c) => c.pedido_id === p.id && c.status === "aberto");
     if (abertas.length) out.push({
       chave: `pedido_cancelado:${p.id}`, tipo: "pedido_cancelado", gravidade: "alta", valor: abertas.reduce((s, c) => s + Number(c.valor), 0), link: "/financeiro",
-      titulo: `Pedido #${p.numero} cancelado`, detalhe: `${abertas.length} parcela(s) ainda em aberto: cancele-as no financeiro ou reveja o pedido`,
+      titulo: `Pedido #${p.numero} cancelado`, detalhe: `${abertas.length} ${pl(abertas.length, "parcela", "parcelas")} ainda em aberto: cancele-as no financeiro ou reveja o pedido`,
     });
   }
 
@@ -305,12 +306,12 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
     const dup = itens("sku_duplicado", "descricao_parecida");
     if (dup.length) out.push({
       chave: "produto_duplicado", tipo: "produto_duplicado", gravidade: "media", link: "/estoque",
-      titulo: `${dup.length} produto(s) com código repetido ou descrição quase igual`, detalhe: dup.slice(0, 4).map((i) => i.produto.descricao).join("; ") + (dup.length > 4 ? "…" : ""),
+      titulo: `${dup.length} ${pl(dup.length, "produto", "produtos")} com código repetido ou descrição quase igual`, detalhe: dup.slice(0, 4).map((i) => i.produto.descricao).join("; ") + (dup.length > 4 ? "…" : ""),
     });
     const custo = itens("custo_zerado", "preco_zerado", "abaixo_custo");
     if (custo.length) out.push({
       chave: "produto_sem_custo", tipo: "produto_sem_custo", gravidade: "baixa", link: "/estoque",
-      titulo: `${custo.length} produto(s) sem custo, sem preço ou abaixo do custo`, detalhe: "Margem e valor do estoque ficam errados enquanto não forem preenchidos.",
+      titulo: `${custo.length} ${pl(custo.length, "produto", "produtos")} sem custo, sem preço ou abaixo do custo`, detalhe: "Margem e valor do estoque ficam errados enquanto não forem preenchidos.",
     });
     for (const i of itens("estoque_negativo")) out.push({
       chave: `estoque_negativo:${i.produto.id}`, tipo: "estoque_negativo", gravidade: "media", link: "/estoque",

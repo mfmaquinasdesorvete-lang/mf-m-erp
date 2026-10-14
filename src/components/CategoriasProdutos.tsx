@@ -7,6 +7,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import type { Produto } from "@/lib/types";
+import { pl } from "@/lib/format";
 
 export type Categoria = { id: string; nome: string; ativo: boolean; margem_desejada?: number | null };
 
@@ -48,7 +49,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold"><FolderTree size={18} className="text-brand" /> Categorias dos produtos</h2>
-          <p className="text-sm text-slate-600">{lista.length} categoria(s) · {semCategoria} produto(s) sem categoria. Subcategoria: escreva "Categoria &gt; Subcategoria".</p>
+          <p className="text-sm text-slate-600">{lista.length} {pl(lista.length, "categoria", "categorias")} · {semCategoria} {pl(semCategoria, "produto", "produtos")} sem categoria. Subcategoria: escreva "Categoria &gt; Subcategoria".</p>
         </div>
         {podeEditar && (
           <form className="flex w-full gap-2 sm:w-auto" onSubmit={(e) => {
@@ -87,7 +88,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
                     const { data, error } = await supabase.rpc("renomear_categoria_produto", { p_de: c.nome, p_para: para });
                     if (error) throw error;
                     setEditando(null);
-                    return `Categoria renomeada (${data} produto(s) atualizados)`;
+                    return `Categoria renomeada (${data} ${pl(data, "produto", "produtos")} atualizados)`;
                   });
                 }}>
                   <input className="input min-w-0 flex-1" autoFocus value={editando!.para} onChange={(e) => setEditando({ de: c.nome, para: e.target.value })} />
@@ -97,7 +98,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
               ) : (
                 <>
                   <span className="min-w-0 flex-1 font-medium text-fg">{nivel ? c.nome.split(" > ").pop() : c.nome}</span>
-                  <span className={`whitespace-nowrap text-xs ${n ? "text-slate-600" : "text-slate-400"}`}>{n} produto(s)</span>
+                  <span className={`whitespace-nowrap text-xs ${n ? "text-slate-600" : "text-slate-400"}`}>{n} {pl(n, "produto", "produtos")}</span>
                   {podeEditar && <Button type="button" variant="ghost" title="Renomear (troca também nos produtos)" onClick={() => setEditando({ de: c.nome, para: c.nome })}><Pencil size={14} /></Button>}
                   {podeEditar && !n && (
                     <Button type="button" variant="ghost" className="!text-red-600" title="Tirar da lista (só sem produtos)" disabled={ocupado}

@@ -14,7 +14,7 @@ import {
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import type { Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 
 const TIPO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção" };
@@ -95,26 +95,26 @@ export default function PainelProducao() {
 
   const cartoes: Cartao[] = [
     { id: "prod", rotulo: "Em produção", valor: un(k.emProducao), icone: Factory, cor: "var(--kpi-azul)",
-      sub: `${k.opsAbertas} OP(s)${k.opsComFalta ? ` · ${k.opsComFalta} com peça faltando` : " · peças ok"}`, onClick: () => navigate("/producao") },
+      sub: `${k.opsAbertas} ${pl(k.opsAbertas, "OP", "OPs")}${k.opsComFalta ? ` · ${k.opsComFalta} com peça faltando` : " · peças ok"}`, onClick: () => navigate("/producao") },
     { id: "feitas", rotulo: "Máquinas prontas", valor: un(k.feitas), icone: ClipboardCheck, cor: "var(--kpi-verde)", delta: k.dFeitas, tendencia: k.tendFeitas,
       sub: "OPs concluídas no período" },
     ...(verCompras ? [{ id: "compras", rotulo: "Compras a caminho", valor: brl(k.valorCaminho), icone: Truck, cor: "var(--kpi-laranja)",
-      sub: `${k.caminho.length} pedido(s)${k.comprasAtrasadas.length ? ` · ${k.comprasAtrasadas.length} atrasado(s)` : " · no prazo"}`, onClick: () => navigate("/producao", { state: { aba: "compras" } }) } as Cartao] : []),
+      sub: `${k.caminho.length} ${pl(k.caminho.length, "pedido", "pedidos")}${k.comprasAtrasadas.length ? ` · ${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "atrasado", "atrasados")}` : " · no prazo"}`, onClick: () => navigate("/producao", { state: { aba: "compras" } }) } as Cartao] : []),
     { id: "estoque", rotulo: "Dinheiro no estoque", valor: brl(k.estoque), icone: Warehouse, cor: "var(--kpi-roxo)",
-      sub: `${k.abaixo.length} de ${k.itensAtivos} item(ns) no mínimo · a preço de custo`, onClick: () => navigate("/estoque") },
+      sub: `${k.abaixo.length} de ${k.itensAtivos} ${pl(k.itensAtivos, "item", "itens")} no mínimo · a preço de custo`, onClick: () => navigate("/estoque") },
   ];
 
   const atencao: ItemAtencao[] = [
-    k.opsComFalta > 0 && { icone: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} OP(s) com peça faltando`, sub: k.pecas.slice(0, 3).map(([d]) => d).join(" · "), to: "/producao" },
-    k.atrasadas.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadas.length} OP(s) passaram da data prevista`, to: "/producao" },
-    verCompras && k.comprasAtrasadas.length > 0 && { icone: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas.length} pedido(s) de compra com entrega atrasada`, sub: k.comprasAtrasadas.slice(0, 3).map((c) => c.fornecedor?.nome ?? `#${c.numero}`).join(" · "), to: "/producao", state: { aba: "compras" } },
-    verCompras && k.cotacao > 0 && { icone: ClipboardList, cor: "var(--kpi-roxo)", texto: `${k.cotacao} pedido(s) de compra em cotação`, to: "/producao", state: { aba: "cotacoes" } },
-    k.abaixo.length > 0 && { icone: Boxes, cor: "var(--kpi-laranja)", texto: `${k.abaixo.length} item(ns) no estoque mínimo`, sub: verCompras ? "a reposição sugere o que comprar" : undefined, to: verCompras ? "/producao" : "/estoque", state: verCompras ? { aba: "reposicao" } : undefined },
-    transito > 0 && { icone: ArrowLeftRight, cor: "var(--kpi-ciano)", texto: `${transito} transferência(s) SC ↔ SP em trânsito`, sub: "confirme o recebimento quando chegar", to: "/transferencias" },
+    k.opsComFalta > 0 && { icone: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ${pl(k.opsComFalta, "OP", "OPs")} com peça faltando`, sub: k.pecas.slice(0, 3).map(([d]) => d).join(" · "), to: "/producao" },
+    k.atrasadas.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadas.length} ${pl(k.atrasadas.length, "OP", "OPs")} passaram da data prevista`, to: "/producao" },
+    verCompras && k.comprasAtrasadas.length > 0 && { icone: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "pedido", "pedidos")} de compra com entrega atrasada`, sub: k.comprasAtrasadas.slice(0, 3).map((c) => c.fornecedor?.nome ?? `#${c.numero}`).join(" · "), to: "/producao", state: { aba: "compras" } },
+    verCompras && k.cotacao > 0 && { icone: ClipboardList, cor: "var(--kpi-roxo)", texto: `${k.cotacao} ${pl(k.cotacao, "pedido", "pedidos")} de compra em cotação`, to: "/producao", state: { aba: "cotacoes" } },
+    k.abaixo.length > 0 && { icone: Boxes, cor: "var(--kpi-laranja)", texto: `${k.abaixo.length} ${pl(k.abaixo.length, "item", "itens")} no estoque mínimo`, sub: verCompras ? "a reposição sugere o que comprar" : undefined, to: verCompras ? "/producao" : "/estoque", state: verCompras ? { aba: "reposicao" } : undefined },
+    transito > 0 && { icone: ArrowLeftRight, cor: "var(--kpi-ciano)", texto: `${transito} ${pl(transito, "transferência", "transferências")} SC ↔ SP em trânsito`, sub: "confirme o recebimento quando chegar", to: "/transferencias" },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…"
-    : <>{un(k.emProducao)} em montagem{k.opsComFalta ? `, ${k.opsComFalta} OP(s) esperando peça` : ""} · {un(k.feitas)} pronta(s) {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dFeitas, periodo) ? ` (${frasePeriodo(k.dFeitas, periodo)})` : ""}.</>;
+    : <>{un(k.emProducao)} em montagem{k.opsComFalta ? `, ${k.opsComFalta} ${pl(k.opsComFalta, "OP", "OPs")} esperando peça` : ""} · {un(k.feitas)} {pl(un(k.feitas), "pronta", "prontas")} {periodo === "hoje" ? "hoje" : "no período"}{frasePeriodo(k.dFeitas, periodo) ? ` (${frasePeriodo(k.dFeitas, periodo)})` : ""}.</>;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -174,7 +174,7 @@ export default function PainelProducao() {
           <Section title="Compras a caminho por fornecedor" className="md:col-span-2 xl:col-span-1">
             <Ranking cor="var(--serie-2)" vazio="Nenhuma compra a caminho."
               onClicar={() => navigate("/producao", { state: { aba: "compras" } })}
-              itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} pedido(s)` }))} />
+              itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "pedido", "pedidos")}` }))} />
           </Section>
         ) : null}
       </div>

@@ -5,10 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, KeyRound, Landmark, Loader2, PlugZap, RefreshCw, Unplug } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { DEMO, callFunction } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
+import { confirmar } from "@/components/Dialogos";
 
 export type ConexaoOF = {
   id: string; item_id: string; conta_externa_id: string; conta_bancaria_id: string; instituicao: string | null; conta_externa_nome: string | null;
@@ -75,15 +76,15 @@ export function OpenFinancePainel({ contas }: { contas: ContaErp[] }) {
     const r = await callFunction<{ resultado: Record<string, { novas?: number; conciliadas?: number; erro?: string; aviso?: string }> }>("openfinance", { acao: "sincronizar", conexao_id: c.id, atualizar: true });
     const x = r.resultado?.[c.id];
     if (x?.erro) throw new Error(x.erro);
-    notify(x?.novas ? `${x.novas} lançamento(s) novo(s)${x.conciliadas ? `, ${x.conciliadas} conciliado(s) sozinho(s)` : ""}` : "Extrato em dia: nada novo no banco");
+    notify(x?.novas ? `${x.novas} ${pl(x.novas, "lançamento", "lançamentos")} ${pl(x.novas, "novo", "novos")}${x.conciliadas ? `, ${x.conciliadas} ${pl(x.conciliadas, "conciliado", "conciliados")} ${pl(x.conciliadas, "sozinho", "sozinhos")}` : ""}` : "Extrato em dia: nada novo no banco");
   });
   const reconectar = (c: ConexaoOF) => acao(c.id, async () => {
     const { token } = await callFunction<{ token: string }>("openfinance", { acao: "token", item_id: c.item_id });
     if (!(await abrirJanela(token, c.item_id))) return;
     await callFunction("openfinance", { acao: "sincronizar", conexao_id: c.id, atualizar: true });
   }, "Conexão renovada");
-  const desligar = (c: ConexaoOF) => {
-    if (!confirm(`Parar de buscar o extrato de ${nomeErp(c.conta_bancaria_id)} pelo Open Finance? Os lançamentos que já vieram continuam no ERP.`)) return;
+  const desligar = async (c: ConexaoOF) => {
+    if (!(await confirmar(`Parar de buscar o extrato de ${nomeErp(c.conta_bancaria_id)} pelo Open Finance? Os lançamentos que já vieram continuam no ERP.`))) return;
     acao(c.id, () => callFunction("openfinance", { acao: "desligar", conexao_id: c.id }), "Open Finance desligado nesta conta");
   };
 
@@ -119,7 +120,7 @@ export function OpenFinancePainel({ contas }: { contas: ContaErp[] }) {
               <div className="text-xs text-slate-600">
                 <div className="flex items-center gap-1">
                   {c.status === "ativa" ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-red-600" />}
-                  atualizado {ha(c.sincronizado_em)}{c.ultimas_novas ? ` · ${c.ultimas_novas} novo(s)` : ""}
+                  atualizado {ha(c.sincronizado_em)}{c.ultimas_novas ? ` · ${c.ultimas_novas} ${pl(c.ultimas_novas, "novo", "novos")}` : ""}
                 </div>
                 {c.saldo != null && <div>Saldo no banco: <b className="num">{brl(c.saldo)}</b>{c.saldo_em ? ` (${ha(c.saldo_em)})` : ""}</div>}
                 {c.consentimento_ate && <div>Consentimento até {dataBR(c.consentimento_ate)}</div>}
@@ -165,7 +166,7 @@ function ConectarBanco({ contas, ocupadas, existentes, onClose, onPronto }: {
       acao: "ligar", item_id: itemId, conta_externa_id: contaExterna, conta_bancaria_id: conta, desde: dataDesde,
     });
     if (r.erro) notify(`Conta ligada, mas a primeira busca falhou: ${r.erro}`, "erro");
-    else notify(`Conta ligada: ${r.novas ?? 0} lançamento(s) trazido(s)${r.conciliadas ? `, ${r.conciliadas} já conciliado(s)` : ""}`);
+    else notify(`Conta ligada: ${r.novas ?? 0} ${pl(r.novas ?? 0, "lançamento", "lançamentos")} ${pl(r.novas ?? 0, "trazido", "trazidos")}${r.conciliadas ? `, ${r.conciliadas} já ${pl(r.conciliadas, "conciliado", "conciliados")}` : ""}`);
     onPronto();
   }
 

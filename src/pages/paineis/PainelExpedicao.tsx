@@ -15,9 +15,10 @@ import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { pecasDoKit } from "@/lib/kits";
 import { notify } from "@/lib/notify";
-import { hoje } from "@/lib/format";
+import { hoje, pl } from "@/lib/format";
 import type { Exp, PedidoFluxo as P } from "@/lib/fluxo";
 import type { KitComponente, Produto, Transportadora } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at, danfe_url)";
 type Etapa = "separar" | "conferir" | "embalar" | "despachar";
@@ -38,7 +39,7 @@ function desdeDe(e: Exp, p: P) {
   if (e.status === "embalado") return e.embalado_em ?? e.created_at;
   return p.aprovado_em ?? e.created_at;
 }
-const tempo = (horas: number) => (horas < 1 ? "agora há pouco" : horas < 24 ? `há ${Math.floor(horas)} h` : `há ${Math.floor(horas / 24)} dia(s)`);
+const tempo = (horas: number) => (horas < 1 ? "agora há pouco" : horas < 24 ? `há ${Math.floor(horas)} h` : `há ${Math.floor(horas / 24)} ${pl(Math.floor(horas / 24), "dia", "dias")}`);
 const corTempo = (horas: number) => (horas >= 24 ? "text-red-600" : horas >= 8 ? "text-amber-600" : "text-slate-500");
 
 export default function PainelExpedicao() {
@@ -110,7 +111,7 @@ export default function PainelExpedicao() {
   }, [aSeparar, prod, comps]);
 
   async function comecarTodos() {
-    if (!aSeparar.length || !confirm(`Começar a separar ${aSeparar.length} pedido(s)? Eles vão para Conferir com você como responsável.`)) return;
+    if (!aSeparar.length || !(await confirmar(`Começar a separar ${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}? Eles vão para Conferir com você como responsável.`))) return;
     setLote(true);
     let ok = 0;
     for (const l of aSeparar) if (await acoes.avancar(l.e, "separando", { responsavel: nome }, `Pedido #${l.p.numero}: separação começou`)) ok++;
@@ -129,7 +130,7 @@ export default function PainelExpedicao() {
       body{font:13px system-ui,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0 0 4px}p{margin:0 0 12px;color:#444}
       table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
       th{background:#f2f2f2}.n{text-align:right;font-size:15px;font-weight:700}.c{width:22px;font-size:16px}small{color:#555}
-    </style></head><body><h1>Lista de separação · ${new Date().toLocaleString("pt-BR")}</h1><p>${aSeparar.length} pedido(s): ${pedidosTxt}</p>
+    </style></head><body><h1>Lista de separação · ${new Date().toLocaleString("pt-BR")}</h1><p>${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}: ${pedidosTxt}</p>
     <table><thead><tr><th></th><th>Local</th><th>Produto</th><th class="n">Qtd.</th><th>Pedidos</th></tr></thead><tbody>${linhas}</tbody></table>
     <p style="margin-top:16px">Separado por: ____________________ &nbsp; Conferido por: ____________________</p></body></html>`);
     w.document.close(); w.focus(); w.print();
@@ -172,7 +173,7 @@ export default function PainelExpedicao() {
     { id: "separar", rotulo: "Para separar", valor: porEtapa.separar.length, icone: ListChecks, cor: "var(--kpi-azul)", onClick: () => setEtapa("separar"),
       sub: atrasadosSeparar.length ? `${atrasadosSeparar.length} esperando há mais de 1 dia` : "nenhum atrasado" },
     { id: "conferir", rotulo: "Em conferência", valor: porEtapa.conferir.length, icone: ClipboardCheck, cor: "var(--kpi-roxo)", onClick: () => setEtapa("conferir"),
-      sub: conferenciaParada.length ? `${conferenciaParada.length} parado(s) há mais de 4 h` : "andando" },
+      sub: conferenciaParada.length ? `${conferenciaParada.length} ${pl(conferenciaParada.length, "parado", "parados")} há mais de 4 h` : "andando" },
     { id: "embalar", rotulo: "Para embalar", valor: porEtapa.embalar.length, icone: PackageCheck, cor: "var(--kpi-laranja)", onClick: () => setEtapa("embalar"), sub: "conferidos, esperando caixa" },
     { id: "despachar", rotulo: "Prontos para sair", valor: porEtapa.despachar.length, icone: Truck, cor: "var(--kpi-ciano)", onClick: () => setEtapa("despachar"),
       sub: semNota.length ? `${semNota.length} sem NF-e autorizada` : "todos com NF-e" },
@@ -181,14 +182,14 @@ export default function PainelExpedicao() {
   ];
 
   const atencao: ItemAtencao[] = [
-    atrasadosSeparar.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${atrasadosSeparar.length} pedido(s) esperando separação há mais de 1 dia`, sub: atrasadosSeparar.slice(0, 3).map((l) => `#${l.p.numero}`).join(" · "), to: "/expedicao" },
-    semNota.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${semNota.length} embalado(s) sem NF-e autorizada`, sub: "não podem sair: peça a nota a vendas ou ao financeiro", to: "/expedicao" },
-    conferenciaParada.length > 0 && { icone: Hourglass, cor: "var(--kpi-laranja)", texto: `${conferenciaParada.length} conferência(s) parada(s) há mais de 4 h`, sub: conferenciaParada.slice(0, 3).map((l) => `#${l.p.numero} · ${l.e.responsavel ?? "sem responsável"}`).join(" · "), to: "/expedicao" },
+    atrasadosSeparar.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${atrasadosSeparar.length} ${pl(atrasadosSeparar.length, "pedido", "pedidos")} esperando separação há mais de 1 dia`, sub: atrasadosSeparar.slice(0, 3).map((l) => `#${l.p.numero}`).join(" · "), to: "/expedicao" },
+    semNota.length > 0 && { icone: FileWarning, cor: "var(--kpi-roxo)", texto: `${semNota.length} ${pl(semNota.length, "embalado", "embalados")} sem NF-e autorizada`, sub: "não podem sair: peça a nota a vendas ou ao financeiro", to: "/expedicao" },
+    conferenciaParada.length > 0 && { icone: Hourglass, cor: "var(--kpi-laranja)", texto: `${conferenciaParada.length} ${pl(conferenciaParada.length, "conferência", "conferências")} ${pl(conferenciaParada.length, "parada", "paradas")} há mais de 4 h`, sub: conferenciaParada.slice(0, 3).map((l) => `#${l.p.numero} · ${l.e.responsavel ?? "sem responsável"}`).join(" · "), to: "/expedicao" },
   ].filter(Boolean) as ItemAtencao[];
 
   const atual = ETAPAS.find((x) => x.id === etapa)!;
   const resumo = isLoading ? "Carregando…"
-    : <>{porEtapa.separar.length} para separar · {porEtapa.conferir.length} em conferência · {porEtapa.embalar.length} para embalar · {porEtapa.despachar.length} pronto(s) para sair.</>;
+    : <>{porEtapa.separar.length} para separar · {porEtapa.conferir.length} em conferência · {porEtapa.embalar.length} para embalar · {porEtapa.despachar.length} {pl(porEtapa.despachar.length, "pronto", "prontos")} para sair.</>;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -249,13 +250,13 @@ export default function PainelExpedicao() {
                       <button type="button" onClick={() => podeExpedir && setAberta({ p: l.p, e: l.e })} className="min-w-0 flex-1 text-left">
                         <span className="block text-lg font-extrabold leading-tight text-fg">#{l.p.numero} · {l.p.cliente?.nome_fantasia || l.p.cliente?.nome}</span>
                         <span className="mt-0.5 block text-sm text-slate-600">
-                          {l.p.cliente?.municipio ? `${l.p.cliente.municipio}/${l.p.cliente.uf ?? ""} · ` : ""}{itens.length} item(ns), {unidades.toLocaleString("pt-BR")} un. · {nomeTransp(l.e.transportadora_id ?? l.p.transportadora_id)}
+                          {l.p.cliente?.municipio ? `${l.p.cliente.municipio}/${l.p.cliente.uf ?? ""} · ` : ""}{itens.length} {pl(itens.length, "item", "itens")}, {unidades.toLocaleString("pt-BR")} un. · {nomeTransp(l.e.transportadora_id ?? l.p.transportadora_id)}
                         </span>
                         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold">
                           <span className={`inline-flex items-center gap-1 ${corTempo(l.horas)}`}><Timer size={13} aria-hidden /> {tempo(l.horas)} nesta etapa</span>
                           {l.e.responsavel && <span className="inline-flex items-center gap-1 text-slate-500"><Users size={13} aria-hidden /> {l.e.responsavel}</span>}
                           {l.nota ? <span className="text-emerald-700">NF-e {l.nota.numero}</span> : l.processando ? <span className="text-sky-700">NF-e processando</span> : <span className="text-amber-700">sem NF-e</span>}
-                          {l.e.volumes && l.e.status !== "separar" && l.e.status !== "separando" ? <span className="text-slate-500">{l.e.volumes} volume(s)</span> : null}
+                          {l.e.volumes && l.e.status !== "separar" && l.e.status !== "separando" ? <span className="text-slate-500">{l.e.volumes} {pl(l.e.volumes, "volume", "volumes")}</span> : null}
                         </span>
                         {etapa === "separar" && (
                           <span className="mt-2 block text-sm text-slate-700">
@@ -297,7 +298,7 @@ export default function PainelExpedicao() {
 
         <div className="space-y-4 xl:col-span-2">
           {etapa === "separar" && (
-            <Section title={`Lista de separação · ${aSeparar.length} pedido(s)`}
+            <Section title={`Lista de separação · ${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}`}
               actions={separacao.length > 0 && <button type="button" onClick={imprimirSeparacao} className="inline-flex items-center gap-1 text-sm font-semibold text-modulo-texto hover:underline"><Printer size={15} /> Imprimir</button>}>
               {separacao.length ? (
                 <>
@@ -341,7 +342,7 @@ export default function PainelExpedicao() {
             {porPessoa.length ? (
               <ul className="space-y-1.5">
                 {porPessoa.map(([n, q]) => (
-                  <li key={n} className="flex items-center justify-between gap-2 text-sm"><span className="truncate text-slate-700">{n}</span><span className="num font-bold text-fg">{q} pedido(s)</span></li>
+                  <li key={n} className="flex items-center justify-between gap-2 text-sm"><span className="truncate text-slate-700">{n}</span><span className="num font-bold text-fg">{q} {pl(q, "pedido", "pedidos")}</span></li>
                 ))}
               </ul>
             ) : <p className="text-sm text-slate-500">Nenhuma separação começou hoje.</p>}

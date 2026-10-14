@@ -10,7 +10,7 @@ import { Button, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import Fornecedores from "@/pages/Fornecedores";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
-import { dataBR, digitos, docFormat, whatsappLink } from "@/lib/format";
+import { dataBR, digitos, docFormat, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -113,7 +113,7 @@ function PorMarca() {
                 <span className="min-w-0 flex-1">{s.soltas.map(nomeCurto).join(", ")}{s.marca && <> → em <b>{nomeCurto(s.marca)}</b></>}</span>
                 <Button type="button" variant="secondary" className="!min-h-0 !py-1 text-xs"
                   onClick={() => rpc("agrupar_transportadoras", { p_marca: s.marca?.id ?? null, p_filiais: s.soltas.map((t) => t.id), p_nova_marca: s.marca ? null : nomeCurto(s.soltas[0]).split(/ [-·] /)[0] },
-                    `${s.soltas.length} cadastro(s) agrupado(s)`)}>
+                    `${s.soltas.length} ${pl(s.soltas.length, "cadastro", "cadastros")} ${pl(s.soltas.length, "agrupado", "agrupados")}`)}>
                   Agrupar
                 </Button>
               </li>
@@ -138,9 +138,9 @@ function PorMarca() {
 
       {editar && <CadastroModal registro={editar.registro} marca={editar.marca} onClose={() => setEditar(null)} />}
       {agrupar && <AgruparModal marca={agrupar} todas={porMarca(rows)} onClose={() => setAgrupar(null)}
-        onAgrupar={async (ids) => { if (await rpc("agrupar_transportadoras", { p_marca: agrupar.id, p_filiais: ids }, `${ids.length} cadastro(s) agora são filiais de ${nomeCurto(agrupar)}`)) setAgrupar(null); }} />}
+        onAgrupar={async (ids) => { if (await rpc("agrupar_transportadoras", { p_marca: agrupar.id, p_filiais: ids }, `${ids.length} ${pl(ids.length, "cadastro", "cadastros")} agora são filiais de ${nomeCurto(agrupar)}`)) setAgrupar(null); }} />}
       {unificar && <UnificarModal opcoes={unificar} onClose={() => setUnificar(null)}
-        onUnificar={async (principal, outros, motivo) => { if (await rpc("unificar_transportadoras", { p_principal: principal, p_outros: outros, p_motivo: motivo }, `${outros.length} repetido(s) unificado(s)`)) setUnificar(null); }} />}
+        onUnificar={async (principal, outros, motivo) => { if (await rpc("unificar_transportadoras", { p_principal: principal, p_outros: outros, p_motivo: motivo }, `${outros.length} ${pl(outros.length, "repetido", "repetidos")} ${pl(outros.length, "unificado", "unificados")}`)) setUnificar(null); }} />}
     </>
   );
 

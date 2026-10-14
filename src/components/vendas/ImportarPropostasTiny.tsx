@@ -124,7 +124,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
           </p>
           <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center hover:border-brand ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
             <FileSpreadsheet size={36} className="text-brand" />
-            <span className="font-semibold">{ocupado ? "Lendo…" : "Escolher a(s) planilha(s) de propostas"}</span>
+            <span className="font-semibold">{ocupado ? "Lendo…" : "Escolher as planilhas de propostas"}</span>
             <input type="file" multiple accept=".xls,.xlsx,.csv" className="hidden" onChange={(e) => abrir(e.target.files)} />
           </label>
         </div>

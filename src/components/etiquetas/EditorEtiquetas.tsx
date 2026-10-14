@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { imprimirPdf } from "@/lib/imprimir";
 import { pdfEtiquetas } from "@/lib/pdf";
-import { dataBR } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { carregarEtiqueta, salvarEtiqueta, type EtiquetaCarregada, type OrigemEtiqueta } from "@/lib/etiquetas";
 import {
   AVISOS, ajustarQtd, alertasEtiqueta, faltandoNaEtiqueta, gravarCampo, lerCampo, modeloDe, num, volumeVazio,
@@ -52,7 +52,7 @@ export function useEtiquetas() {
       if (prontas.length) {
         const { blob, paginas } = await pdfEtiquetas(prontas.map((c) => c.dados), modelo);
         imprimirPdf(blob);
-        notify(`${paginas} etiqueta(s) enviada(s) para a impressora`);
+        notify(`${paginas} ${pl(paginas, "etiqueta", "etiquetas")} ${pl(paginas, "enviada", "enviadas")} para a impressora`);
         if (podeSalvar) await Promise.allSettled(prontas.map((c) => salvarEtiqueta(c, c.dados, c.editados, true)));
       }
       if (pulados.length) notify(`Sem imprimir, falta dado: ${pulados.join("; ")}. Abra para editar.`, "erro");
@@ -206,7 +206,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
     try {
       const { blob, paginas } = await pdfEtiquetas([d], m);
       imprimirPdf(blob);
-      notify(`${paginas} etiqueta(s) enviada(s) para a impressora`);
+      notify(`${paginas} ${pl(paginas, "etiqueta", "etiquetas")} ${pl(paginas, "enviada", "enviadas")} para a impressora`);
       if (podeSalvar) await salvar(true).catch(() => undefined);
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
@@ -446,7 +446,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
               : <div className="flex h-[480px] items-center justify-center rounded-xl border border-slate-200 text-xs text-slate-400">gerando…</div>}
           <p className="mt-1.5 text-[11px] text-slate-500">
             {m.imprimir === "ambas" ? "Transporte e volume" : m.imprimir === "volume" ? `Volume (${m.formato_volume === "a4" ? "A4" : m.formato_volume.replace("x", " × ")} cm)` : `Transporte (${m.formato_transporte === "a4" ? "A4" : "10 × 15 cm"})`}.
-            {editados.size > 0 ? ` ${editados.size} campo(s) editado(s) à mão.` : " Tudo como está no ERP."}
+            {editados.size > 0 ? ` ${editados.size} ${pl(editados.size, "campo", "campos")} ${pl(editados.size, "editado", "editados")} à mão.` : " Tudo como está no ERP."}
           </p>
         </div>
       </div>

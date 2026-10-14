@@ -10,6 +10,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { brl, dataBR, docFormat, whatsappLink } from "@/lib/format";
 import { NFSE_EM_ANDAMENTO, ROTULO_EVENTO, SITUACAO_NFSE, type EventoNfse, type Nfse } from "@/lib/nfse";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 
 type Previa = {
   pendencias: string[]; avisos: string[]; ambiente: "producao" | "homologacao"; padrao: "nacional" | "municipal";
@@ -82,7 +83,7 @@ export function NfseOS({ os, telefone }: { os: OSResumo; telefone?: string | nul
 
   const enviar = () => executar("emitir", async () => {
     if (!previa) return;
-    if (previa.ambiente === "homologacao" && !confirm("Ambiente de TESTE: a nota não tem valor fiscal e a OS não será faturada. Enviar mesmo assim?")) return;
+    if (previa.ambiente === "homologacao" && !(await confirmar("Ambiente de TESTE: a nota não tem valor fiscal e a OS não será faturada. Enviar mesmo assim?"))) return;
     const r = await callFunction<{ nfse: Nfse; mensagem?: string }>("nfse", {
       acao: "emitir", os_id: os.id, discriminacao: discriminacao.trim(), substitui_id: previa.substitui_id ?? null,
     });
@@ -95,11 +96,11 @@ export function NfseOS({ os, telefone }: { os: OSResumo; telefone?: string | nul
     return `Situação: ${SITUACAO_NFSE[r.nfse.status].label}`;
   });
 
-  const cancelar = (n: Nfse) => {
-    const motivo = prompt("Motivo do cancelamento (mínimo 15 caracteres). Fica registrado com o seu nome:");
+  const cancelar = async (n: Nfse) => {
+    const motivo = (await pedirTexto("Motivo do cancelamento (mínimo 15 caracteres). Fica registrado com o seu nome:"));
     if (motivo === null) return;
     if (motivo.trim().length < 15) return notify("Escreva o motivo com pelo menos 15 caracteres", "erro");
-    if (!confirm(`Cancelar a NFS-e ${n.numero ? `nº ${n.numero}` : ""} na prefeitura? O cancelamento é definitivo.`)) return;
+    if (!(await confirmar(`Cancelar a NFS-e ${n.numero ? `nº ${n.numero}` : ""} na prefeitura? O cancelamento é definitivo.`))) return;
     executar("cancelar", async () => {
       const r = await callFunction<{ nfse: Nfse }>("nfse", { acao: "cancelar", id: n.id, motivo: motivo.trim() });
       return r.nfse.status === "cancelada" ? "NFS-e cancelada. A OS voltou a ficar sem nota" : "Cancelamento enviado; aguardando a prefeitura";

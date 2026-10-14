@@ -6,7 +6,7 @@ import { Eraser, Eye, Trash2 } from "lucide-react";
 import { Button, Card } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 
 type Linha = { id: string; numero?: number; status?: string; created_at?: string; valor_total?: number; descricao?: string; valor?: number; pedido_id?: string | null; os_id?: string | null; cliente?: { nome: string } | null };
@@ -104,7 +104,7 @@ export function ApagarTestes() {
           {previa.notas_reais.length > 0 && (
             <p className="mt-2 font-semibold">NF-e real nº {previa.notas_reais.join(", ")} fica guardada (não dá para apagar nota autorizada): faça a devolução com o contador.</p>
           )}
-          {previa.notas_teste > 0 && <p className="mt-1">{previa.notas_teste} nota(s) de homologação (teste da Sefaz) saem da lista.</p>}
+          {previa.notas_teste > 0 && <p className="mt-1">{previa.notas_teste} {pl(previa.notas_teste, "nota", "notas")} de homologação (teste da Sefaz) saem da lista.</p>}
           <label className="mt-3 block text-sm font-semibold">
             Para confirmar, digite APAGAR
             <input className="input mt-1 max-w-xs uppercase" value={confirma} onChange={(e) => setConfirma(e.target.value)} autoComplete="off" />

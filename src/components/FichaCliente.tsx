@@ -8,7 +8,7 @@ import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/
 import { Contato } from "@/components/Contato";
 import { DEMO, supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { brl, dataBR, digitos, docFormat, hoje, situacaoConta } from "@/lib/format";
+import { brl, dataBR, digitos, docFormat, hoje, situacaoConta, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
@@ -34,7 +34,7 @@ const descricaoConta = (x: any) => {
 };
 const pagamentoConta = (x: any) => {
   const atraso = x.status === "pago" && x.data_pagamento ? diasEntre(x.vencimento, x.data_pagamento) : 0;
-  return `${dataBR(x.data_pagamento)}${atraso > 0 ? ` · ${atraso} dia(s) de atraso` : ""}`;
+  return `${dataBR(x.data_pagamento)}${atraso > 0 ? ` · ${atraso} ${pl(atraso, "dia", "dias")} de atraso` : ""}`;
 };
 
 /** Linha dos cartões do celular: texto à esquerda (quebra linha) e valor à direita (nunca quebra). */
@@ -183,14 +183,14 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Indicador rotulo="Total comprado" icon={Wallet} cor="azul" valor={brl(r.total)} sub={r.primeira ? `cliente desde ${dataBR(r.primeira)}` : "sem compras"} />
-        <Indicador rotulo="Últimos 12 meses" icon={TrendingUp} cor="indigo" valor={brl(r.ultimos12m)} sub={`${r.compras} compra(s) no total`} />
+        <Indicador rotulo="Últimos 12 meses" icon={TrendingUp} cor="indigo" valor={brl(r.ultimos12m)} sub={`${r.compras} ${pl(r.compras, "compra", "compras")} no total`} />
         <Indicador rotulo="Ticket médio" icon={Receipt} cor="roxo" valor={brl(r.ticket)} />
         <Indicador rotulo="Última compra" icon={CalendarDays} valor={r.ultima ? dataBR(r.ultima) : "—"} sub={r.semComprar !== null ? `há ${r.semComprar} dias` : undefined}
           cor={corSituacao(r.situacao === "inativo" ? "ruim" : r.situacao === "em_risco" ? "atencao" : r.ultima ? "bom" : undefined, "neutro")} />
         <Indicador rotulo="Compra a cada" icon={Repeat} cor="neutro" valor={r.intervaloMedio ? `${r.intervaloMedio} dias` : "—"}
           sub={r.proximaPrevista ? `próxima prevista: ${dataBR(r.proximaPrevista)}` : "precisa de 2 compras ou mais"} />
         <Indicador rotulo="Em aberto" icon={Clock} cor={r.emAberto > 0 ? "laranja" : "neutro"} valor={brl(r.emAberto)} />
-        <Indicador rotulo="Vencido" icon={r.vencido > 0 ? AlertTriangle : BadgeCheck} valor={brl(r.vencido)} sub={r.vencidas ? `${r.vencidas} parcela(s)` : "nada vencido"}
+        <Indicador rotulo="Vencido" icon={r.vencido > 0 ? AlertTriangle : BadgeCheck} valor={brl(r.vencido)} sub={r.vencidas ? `${r.vencidas} ${pl(r.vencidas, "parcela", "parcelas")}` : "nada vencido"}
           cor={corSituacao(r.vencido > 0 ? "ruim" : "bom", "neutro")} />
         <Indicador rotulo="Pontualidade" icon={BadgeCheck} valor={r.pagas ? `${r.pagas - r.pagasComAtraso} de ${r.pagas} em dia` : "—"}
           sub={r.pagasComAtraso ? `atraso médio de ${r.atrasoMedio} dias` : undefined} cor={corSituacao(r.pagasComAtraso > 1 ? "atencao" : r.pagas ? "bom" : undefined, "neutro")} />

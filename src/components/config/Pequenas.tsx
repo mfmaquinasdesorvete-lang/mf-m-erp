@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { BotaoSalvar, Bloco, CabecalhoSecao, campo, Opcao, secaoPorId, useCfgPagina } from "./comum";
+import { pl } from "@/lib/format";
 
 export function ConfigComissoes() {
   const s = secaoPorId("comissoes")!;
@@ -32,8 +33,8 @@ export function ConfigComissoes() {
       <Card className="mt-5 p-4 sm:p-5">
         <h2 className="mb-3 font-semibold text-fg">Vendedores e regras</h2>
         <div className="mb-4 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-slate-200 p-3"><div className="num text-2xl font-bold text-fg">{ativos.length}</div><div className="text-xs text-slate-500">vendedor(es) ativo(s)</div></div>
-          <div className="rounded-xl border border-slate-200 p-3"><div className="num text-2xl font-bold text-fg">{regras.length}</div><div className="text-xs text-slate-500">regra(s) por categoria</div></div>
+          <div className="rounded-xl border border-slate-200 p-3"><div className="num text-2xl font-bold text-fg">{ativos.length}</div><div className="text-xs text-slate-500">{pl(ativos.length, "vendedor ativo", "vendedores ativos")}</div></div>
+          <div className="rounded-xl border border-slate-200 p-3"><div className="num text-2xl font-bold text-fg">{regras.length}</div><div className="text-xs text-slate-500">{pl(regras.length, "regra", "regras")} por categoria</div></div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/comissoes" className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-fg"><HandCoins size={16} /> Abrir Comissões</Link>

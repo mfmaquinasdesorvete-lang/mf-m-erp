@@ -5,7 +5,7 @@ import { CalendarClock, Pencil, Plus, RefreshCw } from "lucide-react";
 import { Badge, Button, Field, Modal, Table } from "@/components/ui";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -93,7 +93,7 @@ export function ContasFixas() {
   async function lancarAgora() {
     const { data, error } = await supabase.rpc("gerar_recorrentes");
     if (error) return notifyError(error);
-    notify(data ? `${data} conta(s) lançada(s)` : "Nada novo para lançar: as contas fixas já estão em dia");
+    notify(data ? `${data} ${pl(data, "conta", "contas")} ${pl(data, "lançada", "lançadas")}` : "Nada novo para lançar: as contas fixas já estão em dia");
     invalidate("contas_pagar", "contas_receber");
   }
 

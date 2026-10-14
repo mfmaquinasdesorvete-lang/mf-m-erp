@@ -13,7 +13,7 @@ import { BaixaModal } from "./BaixaModal";
 import { Fluxo } from "./VisaoGeral";
 import { BotaoRecibo, reciboDePagar, reciboDeReceber } from "./Recibos";
 import { useRows } from "@/lib/data";
-import { brl, dataBR, hoje as hojeISO, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje as hojeISO, whatsappLink, pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
@@ -122,10 +122,10 @@ export function PainelFinanceiro() {
 
   const atencao: { texto: string; acao: string; onClick: () => void; tom: "ruim" | "atencao" }[] = [];
   if (temBancos && previsto7 < 0) atencao.push({ tom: "ruim", texto: `O saldo previsto para os próximos 7 dias fica negativo (${brl(previsto7)}).`, acao: "Ver fluxo", onClick: () => document.getElementById("fluxo-caixa")?.scrollIntoView({ behavior: "smooth" }) });
-  if (k.pagVencidas.length) atencao.push({ tom: "ruim", texto: `${k.pagVencidas.length} conta(s) a pagar vencida(s): ${brl(soma(k.pagVencidas))}.`, acao: "Pagar", onClick: () => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas }) });
-  if (k.recVencidas.length) atencao.push({ tom: "atencao", texto: `${new Set(k.recVencidas.map((c) => c.cliente_id)).size} cliente(s) com ${brl(soma(k.recVencidas))} vencido.`, acao: "Cobrar", onClick: () => setLista({ titulo: "A receber vencidas", tipo: "receber", contas: k.recVencidas }) });
-  if (nfeConferir) atencao.push({ tom: "atencao", texto: `${nfeConferir} nota(s) de fornecedor para conferir e lançar.`, acao: "Abrir", onClick: () => navigate("/notas") });
-  if (extratoPendente) atencao.push({ tom: "atencao", texto: `${extratoPendente} lançamento(s) do extrato para conciliar.`, acao: "Conciliar", onClick: () => navigate("/conciliacao") });
+  if (k.pagVencidas.length) atencao.push({ tom: "ruim", texto: `${k.pagVencidas.length} ${pl(k.pagVencidas.length, "conta", "contas")} a pagar ${pl(k.pagVencidas.length, "vencida", "vencidas")}: ${brl(soma(k.pagVencidas))}.`, acao: "Pagar", onClick: () => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas }) });
+  if (k.recVencidas.length) atencao.push({ tom: "atencao", texto: `${new Set(k.recVencidas.map((c) => c.cliente_id)).size} ${pl(new Set(k.recVencidas.map((c) => c.cliente_id)).size, "cliente", "clientes")} com ${brl(soma(k.recVencidas))} vencido.`, acao: "Cobrar", onClick: () => setLista({ titulo: "A receber vencidas", tipo: "receber", contas: k.recVencidas }) });
+  if (nfeConferir) atencao.push({ tom: "atencao", texto: `${nfeConferir} ${pl(nfeConferir, "nota", "notas")} de fornecedor para conferir e lançar.`, acao: "Abrir", onClick: () => navigate("/notas") });
+  if (extratoPendente) atencao.push({ tom: "atencao", texto: `${extratoPendente} ${pl(extratoPendente, "lançamento", "lançamentos")} do extrato para conciliar.`, acao: "Conciliar", onClick: () => navigate("/conciliacao") });
 
   return (
     <div className="space-y-4">
@@ -165,10 +165,10 @@ export function PainelFinanceiro() {
               sub={e.bancos.length ? e.bancos.map((b) => `${b.nome} ${brl(b.saldo)}`).join(" · ") : "cadastre as contas bancárias com o saldo inicial"}
               onClick={() => navigate("/conciliacao")} />
             <Linha icone={ArrowDownCircle} cor="text-emerald-600" titulo="Vai entrar" valor={brl(e.vaiEntrar)}
-              sub={`7 dias ${brl(e.entra7)} · 30 dias ${brl(e.entra30)} · ${e.emDia.length} conta(s)`}
+              sub={`7 dias ${brl(e.entra7)} · 30 dias ${brl(e.entra30)} · ${e.emDia.length} ${pl(e.emDia.length, "conta", "contas")}`}
               onClick={() => setLista({ titulo: `Vai entrar · ${e.u.codigo}`, tipo: "receber", contas: e.emDia })} />
             <Linha icone={AlertTriangle} cor="text-red-600" titulo="Inadimplentes" valor={brl(e.inadimplente)} alerta={e.inadimplente > 0}
-              sub={e.vencidas.length ? `${e.clientes} cliente(s) · ${e.vencidas.length} conta(s) · maior atraso ${e.maiorAtraso} dia(s)` : "ninguém em atraso"}
+              sub={e.vencidas.length ? `${e.clientes} ${pl(e.clientes, "cliente", "clientes")} · ${e.vencidas.length} ${pl(e.vencidas.length, "conta", "contas")} · maior atraso ${e.maiorAtraso} ${pl(e.maiorAtraso, "dia", "dias")}` : "ninguém em atraso"}
               onClick={() => setLista({ titulo: `Inadimplentes · ${e.u.codigo}`, tipo: "receber", contas: e.vencidas })} />
           </section>
         ))}
@@ -190,7 +190,7 @@ export function PainelFinanceiro() {
                   <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setLista({ titulo: g.nome, tipo: "receber", contas: g.contas })}>
                     <span className="block truncate font-semibold text-fg">{g.nome}</span>
                     <span className="block text-xs text-slate-500">
-                      <span className={`font-semibold ${g.atraso > 30 ? "text-red-700" : "text-amber-700"}`}>{g.atraso} dia(s) de atraso</span> · {g.contas.length} conta(s){empresas.length > 1 ? ` · ${[...g.unidades].join(" e ")}` : ""}
+                      <span className={`font-semibold ${g.atraso > 30 ? "text-red-700" : "text-amber-700"}`}>{g.atraso} {pl(g.atraso, "dia", "dias")} de atraso</span> · {g.contas.length} {pl(g.contas.length, "conta", "contas")}{empresas.length > 1 ? ` · ${[...g.unidades].join(" e ")}` : ""}
                     </span>
                   </button>
                   <span className="num shrink-0 font-bold text-fg">{brl(g.valor)}</span>
@@ -212,13 +212,13 @@ export function PainelFinanceiro() {
 
       {/* contas a pagar (secundário) */}
       <div className="grid grid-cols-2 gap-2.5">
-        <Tile icone={CheckCheck} cor="text-emerald-600" titulo="Pagar hoje" valor={soma(k.pagarHoje)} sub={`${k.pagarHoje.length} aprovada(s) ou agendada(s)`}
+        <Tile icone={CheckCheck} cor="text-emerald-600" titulo="Pagar hoje" valor={soma(k.pagarHoje)} sub={`${k.pagarHoje.length} ${pl(k.pagarHoje.length, "aprovada", "aprovadas")} ou ${pl(k.pagarHoje.length, "agendada", "agendadas")}`}
           onClick={() => setLista({ titulo: "Pagar hoje", tipo: "pagar", contas: k.pagarHoje })} />
-        <Tile icone={HelpCircle} cor="text-amber-600" titulo="A decidir" valor={soma(k.decidir)} sub={`${k.decidir.length} conta(s): pagar, agendar ou não`}
+        <Tile icone={HelpCircle} cor="text-amber-600" titulo="A decidir" valor={soma(k.decidir)} sub={`${k.decidir.length} ${pl(k.decidir.length, "conta", "contas")}: pagar, agendar ou não`}
           onClick={() => setLista({ titulo: "A decidir", tipo: "pagar", contas: k.decidir })} />
         <Tile icone={CalendarClock} cor="text-sky-600" titulo="Agendadas" valor={soma(k.agendadas)} sub={`${k.agendadas.length} para os próximos dias`}
           onClick={() => setLista({ titulo: "Agendadas", tipo: "pagar", contas: k.agendadas })} />
-        <Tile icone={FileWarning} cor="text-red-600" titulo="Contas atrasadas" valor={soma(k.pagVencidas)} sub={`${k.pagVencidas.length} a pagar vencida(s)`} alerta={k.pagVencidas.length > 0}
+        <Tile icone={FileWarning} cor="text-red-600" titulo="Contas atrasadas" valor={soma(k.pagVencidas)} sub={`${k.pagVencidas.length} a pagar ${pl(k.pagVencidas.length, "vencida", "vencidas")}`} alerta={k.pagVencidas.length > 0}
           onClick={() => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas })} />
       </div>
 
@@ -357,7 +357,7 @@ function ListaContas({ lista, dia, podeBaixar, onClose, onBaixa }: {
       {lote && <PagarLoteModal contas={abertasPagar} onClose={() => setLote(false)} />}
       {podeBaixar && abertasPagar.length > 1 && (
         <div className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-emerald-50 p-2.5 text-sm text-emerald-900">
-          <span>{abertasPagar.length} conta(s) · <b className="num">{brl(soma(abertasPagar))}</b></span>
+          <span>{abertasPagar.length} {pl(abertasPagar.length, "conta", "contas")} · <b className="num">{brl(soma(abertasPagar))}</b></span>
           <Button type="button" onClick={() => setLote(true)} className="!min-h-0 !px-3 !py-1.5 text-xs"><CheckCheck size={14} /> Pagar todas</Button>
         </div>
       )}

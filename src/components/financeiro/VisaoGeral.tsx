@@ -7,7 +7,7 @@ import { Card, Tabs } from "@/components/ui";
 import { SaldoPrevisto } from "@/components/Charts";
 import { BaixaModal } from "./BaixaModal";
 import { supabase } from "@/lib/supabase";
-import { brl, dataBR, hoje } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { useUnidade } from "@/lib/unidade";
 import { contasDoPeriodo, fluxoDoPeriodo, intervalo, situacao, somarDias, type ContaFin, type Periodo } from "@/lib/financeiro";
 import { paraFluxo, type ContaDecisao } from "@/lib/programacao";
@@ -109,7 +109,7 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
       )}
       {r.itens.length > 6 && <button type="button" onClick={() => setTodas(!todas)} className="mt-1 text-sm font-semibold text-brand hover:underline">{todas ? "Mostrar menos" : `Ver todas (${r.itens.length})`}</button>}
       {r.vencidasAntes.qtd > 0 && (
-        <p className="mt-2 text-xs font-semibold text-red-700">+ {r.vencidasAntes.qtd} conta(s) vencida(s) antes deste período: {brl(r.vencidasAntes.valor)}</p>
+        <p className="mt-2 text-xs font-semibold text-red-700">+ {r.vencidasAntes.qtd} {pl(r.vencidasAntes.qtd, "conta", "contas")} {pl(r.vencidasAntes.qtd, "vencida", "vencidas")} antes deste período: {brl(r.vencidasAntes.valor)}</p>
       )}
     </div>
   );
@@ -174,7 +174,7 @@ export function Fluxo({ receber, pagar, dia }: { receber: ContaFin[]; pagar: Con
         )}
         {segurado.length > 0 && (
           <li className="flex gap-2 text-slate-700"><Info size={16} className="mt-0.5 shrink-0 text-slate-500" aria-hidden />
-            <span>{segurado.length} conta(s) marcada(s) para não pagar ({brl(segurado.reduce((s, c) => s + Number(c.valor), 0))}) ficam fora da previsão.</span></li>
+            <span>{segurado.length} {pl(segurado.length, "conta", "contas")} {pl(segurado.length, "marcada", "marcadas")} para não pagar ({brl(segurado.reduce((s, c) => s + Number(c.valor), 0))}) ficam fora da previsão.</span></li>
         )}
       </ul>
       {saldos.length > 0 && (

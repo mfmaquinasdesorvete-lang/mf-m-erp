@@ -3,7 +3,7 @@
 // As contas ficam em src/lib/fretes.ts (funções puras, testadas).
 import { useState, type ReactNode } from "react";
 import { Table } from "@/components/ui";
-import { brl } from "@/lib/format";
+import { brl, pl } from "@/lib/format";
 import {
   doServico, indicadoresPorServico, porDestino, porRota, porTransportadora, rotuloServico,
   type DadosIndicadores, type Envio, type Metricas, type Segmento,
@@ -19,7 +19,7 @@ function Variacao({ m }: { m: Metricas }) {
   return (
     <span className={ruim ? "font-semibold text-red-700" : m.variacaoReais < -0.005 ? "text-emerald-700" : ""}>
       {m.variacaoReais > 0 ? "+" : ""}{brl(m.variacaoReais)} <span className="text-xs">({m.variacaoPct != null && m.variacaoPct > 0 ? "+" : ""}{pct(m.variacaoPct)})</span>
-      {m.divergentes > 0 && <span className="block text-[11px] text-red-700">{m.divergentes} divergente(s)</span>}
+      {m.divergentes > 0 && <span className="block text-[11px] text-red-700">{m.divergentes} {pl(m.divergentes, "divergente", "divergentes")}</span>}
     </span>
   );
 }
@@ -33,7 +33,7 @@ const ocorrenciasSub = (m: Metricas) => `avaria ${pct(m.avariaPct)} · reentrega
 function LinhaServico({ rotulo, m, total }: { rotulo: string; m: Metricas; total?: boolean }) {
   return (
     <tr className={total ? "bg-slate-50 font-semibold" : ""}>
-      <td className="td" data-label="Serviço">{rotulo}<span className={sub}>{total ? "todos os serviços · " : ""}{m.envios} envio(s)</span></td>
+      <td className="td" data-label="Serviço">{rotulo}<span className={sub}>{total ? "todos os serviços · " : ""}{m.envios} {pl(m.envios, "envio", "envios")}</span></td>
       <td className="td num" data-label="Custo médio">{reais(m.custoMedio)}<span className={sub}>{m.comCusto} com valor</span></td>
       <td className="td num" data-label="Faturado − aprovado"><Variacao m={m} /></td>
       <td className="td num" data-label="No prazo">{pct(m.noPrazoPct)}<span className={sub}>{m.noPrazo} de {m.comPrazo}</span></td>

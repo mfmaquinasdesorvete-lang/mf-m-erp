@@ -9,7 +9,7 @@ import { Section } from "@/components/ui";
 import { Area, Rosca } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
-import { brl, hoje, somarDias } from "@/lib/format";
+import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
@@ -191,14 +191,14 @@ function PainelGeral() {
 
   // Cartões coloridos: os 4 primeiros que o papel pode ver
   const kpis = ([
-    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} pedido(s)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
+    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "pedido", "pedidos")}`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
     podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
-    { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} entrou(aram) · ${k.osProntas} pronta(s)`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
-    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} cliente(s) para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro" },
-    podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} pedido(s) a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos" },
+    { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} entrou(aram) · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
+    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro" },
+    podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos" },
     podeVer("producao") && { id: "prod", label: "Em produção", valor: `${k.maquinasEmProducao} máq.`, sub: k.opsComFalta ? `${k.opsComFalta} OP com peça faltando` : "peças ok", icon: Factory, cor: "var(--kpi-azul)", to: "/producao" },
     { id: "garantia", label: "Em garantia", valor: k.emGarantia, sub: `${k.garantiaVence} vencem em 30 dias`, icon: ShieldCheck, cor: "var(--kpi-verde)", to: "/garantias" },
-    podeVer("garantias") && { id: "prev", label: "Preventivas a lembrar", valor: lembretes.length, sub: `${k.prevAtrasada} atrasada(s)`, icon: BellRing, cor: "var(--kpi-rosa)", to: "/garantias", state: { lembretes: true } },
+    podeVer("garantias") && { id: "prev", label: "Preventivas a lembrar", valor: lembretes.length, sub: `${k.prevAtrasada} ${pl(k.prevAtrasada, "atrasada", "atrasadas")}`, icon: BellRing, cor: "var(--kpi-rosa)", to: "/garantias", state: { lembretes: true } },
   ].filter(Boolean) as Kpi[]).slice(0, 4);
 
   // Atalhos estilo "app": o que cada papel mais faz
@@ -214,16 +214,16 @@ function PainelGeral() {
   ].filter(Boolean) as Acao[]).slice(0, 8);
 
   const atencao = [
-    podeVer("financeiro") && k.qtdReceberVencido > 0 && { icon: Wallet, cor: "var(--kpi-rosa)", texto: `${k.qtdReceberVencido} cobrança(s) vencida(s): ${brl(k.receberVencido)}`, to: "/financeiro" },
+    podeVer("financeiro") && k.qtdReceberVencido > 0 && { icon: Wallet, cor: "var(--kpi-rosa)", texto: `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cobrança", "cobranças")} ${pl(k.qtdReceberVencido, "vencida", "vencidas")}: ${brl(k.receberVencido)}`, to: "/financeiro" },
     pode("contas_pagar") && k.pagarVencido > 0 && { icon: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${brl(k.pagarVencido)} em contas a pagar vencidas`, to: "/financeiro" },
     k.osAtrasadas > 0 && { icon: Wrench, cor: "var(--kpi-laranja)", texto: `${k.osAtrasadas} OS com a entrega atrasada`, to: "/assistencia" },
-    lembretes.length > 0 && { icon: BellRing, cor: "var(--kpi-laranja)", texto: `${lembretes.length} cliente(s) para lembrar da preventiva`, to: "/garantias", state: { lembretes: true } },
-    podeVer("producao") && k.opsComFalta > 0 && { icon: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ordem(ns) de produção com peça faltando`, to: "/producao" },
-    pode("editar_producao") && k.comprasAtrasadas > 0 && { icon: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas} pedido(s) de compra com entrega atrasada`, to: "/producao", state: { aba: "compras" } },
-    k.garantiaVence > 0 && { icon: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${k.garantiaVence} garantia(s) vencendo em 30 dias`, to: "/garantias" },
-    pode("nfe_recebidas") && k.nfeConferir > 0 && { icon: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.nfeConferir} nota(s) de fornecedor para conferir`, to: "/notas" },
-    k.estoqueBaixo.length > 0 && { icon: Boxes, cor: "var(--kpi-laranja)", texto: `${k.estoqueBaixo.length} item(ns) no estoque mínimo`, to: "/estoque" },
-    podeVer("pedidos") && k.orcamentos > 0 && { icon: ClipboardList, cor: "var(--kpi-ciano)", texto: `${k.orcamentos} orçamento(s) esperando resposta`, to: "/pedidos" },
+    lembretes.length > 0 && { icon: BellRing, cor: "var(--kpi-laranja)", texto: `${lembretes.length} ${pl(lembretes.length, "cliente", "clientes")} para lembrar da preventiva`, to: "/garantias", state: { lembretes: true } },
+    podeVer("producao") && k.opsComFalta > 0 && { icon: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ${pl(k.opsComFalta, "ordem", "ordens")} de produção com peça faltando`, to: "/producao" },
+    pode("editar_producao") && k.comprasAtrasadas > 0 && { icon: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "pedido", "pedidos")} de compra com entrega atrasada`, to: "/producao", state: { aba: "compras" } },
+    k.garantiaVence > 0 && { icon: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${k.garantiaVence} ${pl(k.garantiaVence, "garantia", "garantias")} vencendo em 30 dias`, to: "/garantias" },
+    pode("nfe_recebidas") && k.nfeConferir > 0 && { icon: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.nfeConferir} ${pl(k.nfeConferir, "nota", "notas")} de fornecedor para conferir`, to: "/notas" },
+    k.estoqueBaixo.length > 0 && { icon: Boxes, cor: "var(--kpi-laranja)", texto: `${k.estoqueBaixo.length} ${pl(k.estoqueBaixo.length, "item", "itens")} no estoque mínimo`, to: "/estoque" },
+    podeVer("pedidos") && k.orcamentos > 0 && { icon: ClipboardList, cor: "var(--kpi-ciano)", texto: `${k.orcamentos} ${pl(k.orcamentos, "orçamento", "orçamentos")} esperando resposta`, to: "/pedidos" },
   ].filter(Boolean) as { icon: LucideIcon; cor: string; texto: string; to: string; state?: unknown }[];
 
   const h = new Date().getHours();
@@ -237,7 +237,7 @@ function PainelGeral() {
           <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">{saudacao}, {nome.split(" ")[0]} 👋</h1>
           <p className="mt-0.5 text-[15px] text-slate-500">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-            {" · "}{atencao.length ? <span className="font-semibold text-red-600">{atencao.length} assunto(s) pedem atenção</span> : "tudo em dia"}
+            {" · "}{atencao.length ? <span className="font-semibold text-red-600">{atencao.length} {pl(atencao.length, "assunto", "assuntos")} pedem atenção</span> : "tudo em dia"}
           </p>
         </div>
         <div role="tablist" aria-label="Período" className="grid grid-cols-4 gap-1 rounded-2xl border border-slate-200 bg-surface p-1 shadow-card sm:inline-grid">
@@ -324,10 +324,10 @@ function PainelGeral() {
           {podeVer("producao") && (
             <Section title="Fábrica" actions={<Link to="/producao" className="text-sm font-semibold text-brand hover:underline">Abrir produção</Link>}>
               <div className="grid grid-cols-2 gap-2">
-                <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} máquina(s)`} onClick={() => navigate("/producao")} />
+                <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
                 <Mini icon={PackageSearch} cor={k.opsComFalta ? "var(--kpi-rosa)" : "var(--kpi-verde)"} label="Peça faltando" valor={k.opsComFalta} onClick={() => navigate("/producao")} />
                 <Mini icon={ClipboardList} cor="var(--kpi-roxo)" label="Em cotação" valor={k.comprasCotacao} onClick={() => navigate("/producao", { state: { aba: "compras" } })} />
-                <Mini icon={Truck} cor="var(--kpi-laranja)" label="A caminho" valor={k.comprasCaminho} sub={k.comprasAtrasadas ? `${k.comprasAtrasadas} atrasada(s)` : "no prazo"} onClick={() => navigate("/producao", { state: { aba: "compras" } })} />
+                <Mini icon={Truck} cor="var(--kpi-laranja)" label="A caminho" valor={k.comprasCaminho} sub={k.comprasAtrasadas ? `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "atrasada", "atrasadas")}` : "no prazo"} onClick={() => navigate("/producao", { state: { aba: "compras" } })} />
               </div>
             </Section>
           )}

@@ -7,10 +7,11 @@ import { Button, Card, Field, Modal } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { useInvalidate, useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
-import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade } from "@/lib/unidade";
 import type { Fornecedor, Produto } from "@/lib/types";
+import { confirmar } from "@/components/Dialogos";
 
 export type Cotacao = { id: string; numero: number; titulo: string | null; status: "rascunho" | "enviada" | "encerrada" | "cancelada"; prazo_resposta: string | null;
   entrega_desejada: string | null; observacoes: string | null; unidade_id: string | null; enviada_em: string | null; encerrada_em: string | null; created_at: string };
@@ -299,7 +300,7 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
     setExtra(""); invalidate("cotacao_fornecedores");
   }
   async function cancelar() {
-    if (!confirm("Cancelar esta cotação? Os fornecedores não conseguem mais responder.")) return;
+    if (!(await confirmar("Cancelar esta cotação? Os fornecedores não conseguem mais responder."))) return;
     const { error } = await supabase.from("cotacoes").update({ status: "cancelada", encerrada_em: new Date().toISOString() }).eq("id", id);
     if (error) return notifyError(error);
     invalidate("cotacoes"); onClose();
@@ -308,13 +309,13 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
     const escolhas = itens.map((i) => ({ item_id: i.id, cotacao_fornecedor_id: escolhido(i.id) })).filter((x) => x.cotacao_fornecedor_id);
     if (!escolhas.length) return notifyError(new Error("escolha o fornecedor de ao menos um item"));
     const sem = itens.length - escolhas.length;
-    if (!confirm(`Gerar ${new Set(escolhas.map((e) => e.cotacao_fornecedor_id)).size} pedido(s) de compra com ${escolhas.length} ${escolhas.length === 1 ? "item" : "itens"}?${sem ? ` ${sem} item(ns) ficam de fora (sem preço escolhido).` : ""} A cotação será encerrada.`)) return;
+    if (!(await confirmar(`Gerar ${new Set(escolhas.map((e) => e.cotacao_fornecedor_id)).size} ${pl(new Set(escolhas.map((e) => e.cotacao_fornecedor_id)).size, "pedido", "pedidos")} de compra com ${escolhas.length} ${escolhas.length === 1 ? "item" : "itens"}?${sem ? ` ${sem} ${pl(sem, "item", "itens")} ficam de fora (sem preço escolhido).` : ""} A cotação será encerrada.`))) return;
     setGerando(true);
     try {
       const { data, error } = await supabase.rpc("cotacao_gerar_pedidos", { p_cotacao: id, p_escolhas: escolhas });
       if (error) throw error;
       const ps = (data ?? []) as { numero: number; fornecedor: string }[];
-      notify(`Pedido(s) de compra gerado(s): ${ps.map((p) => `#${p.numero} ${p.fornecedor}`).join(", ")}`);
+      notify(`${pl(ps.length, "Pedido de compra gerado", "Pedidos de compra gerados")}: ${ps.map((p) => `#${p.numero} ${p.fornecedor}`).join(", ")}`);
       invalidate("cotacoes", "cotacao_fornecedores", "cotacao_respostas", "pedidos_compra", "pedido_compra_itens");
       aoGerarPedidos();
     } catch (e) { notifyError(e); } finally { setGerando(false); }
