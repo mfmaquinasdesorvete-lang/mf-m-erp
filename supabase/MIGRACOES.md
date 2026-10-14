@@ -53,3 +53,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   30. `20261014045631_legado_myfrost.sql`
   31. `20261014051949_maquina_usada.sql`
   32. `20261014053611_os_maquina_outra_empresa.sql`
+  33. `20261014061524_propostas_tiny.sql`
