@@ -15,6 +15,7 @@ import { comUnidade, pdfComissoes } from "@/lib/pdf";
 import { useUnidade } from "@/lib/unidade";
 import type { Vendedor } from "@/lib/types";
 import { pctTexto, percentualItem, type RegraComissao } from "@/lib/comissao";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type Comissao = {
   id: string; vendedor_id: string; pedido_id: string; descricao: string; base: number; percentual: number; valor: number;
@@ -26,7 +27,7 @@ const ROTULO: Record<string, string> = { a_pagar: "a pagar", paga: "paga", cance
 export default function Comissoes() {
   const { pode, user_id } = usePerfil();
   const financeiro = pode("contas_pagar");
-  const [aba, setAba] = useState<"comissoes" | "vendedores" | "regras">("comissoes");
+  const [aba, setAba] = useAbaUrl<"comissoes" | "vendedores" | "regras">("comissoes", ["comissoes", "vendedores", "regras"] as const);
   return (
     <div>
       <PageHeader title="Comissões" subtitle="Vendedores e representantes: comissão gerada pelas vendas e paga pelo contas a pagar." />

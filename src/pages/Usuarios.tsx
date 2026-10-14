@@ -16,6 +16,7 @@ import {
   ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
 import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -60,7 +61,7 @@ export default function Usuarios() {
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
-  const [aba, setAba] = useState<"usuarios" | "permissoes">("usuarios");
+  const [aba, setAba] = useAbaUrl<"usuarios" | "permissoes">("usuarios", ["usuarios", "permissoes"] as const);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"ativos" | "inativos" | "todos">("ativos");
   const [editando, setEditando] = useState<Usuario | "novo" | null>(null);

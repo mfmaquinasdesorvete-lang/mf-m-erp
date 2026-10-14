@@ -19,6 +19,7 @@ import {
   COR_TOM, etapaConta, pendencias, precisa2a, quemPode, regrasDe, ROTULO_PENDENCIA, TABELA,
   type ContaRevisao, type Pendencia, type TipoConta,
 } from "@/lib/aprovacao";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type Linha = { tipo: TipoConta; c: ContaRevisao; terceiro: string | null; pend: Pendencia[] };
 type Hist = { id: string; tabela: string; conta_id: string; acao: string; etapa: string | null; comentario: string | null; usuario_nome: string | null; created_at: string };
@@ -43,7 +44,7 @@ export default function Aprovacoes() {
   const { data: docs = [] } = useRows<{ entidade: string; entidade_id: string }>("documentos", { select: "entidade, entidade_id" });
   const { data: categorias = [] } = useRows<{ nome: string; tipo: string; ativo: boolean }>("categorias_financeiras", { order: "ordem", ascending: true });
   const { data: historico = [] } = useRows<Hist>("revisoes_contas", { order: "created_at", ascending: false });
-  const [aba, setAba] = useState<Aba>("revisar");
+  const [aba, setAba] = useAbaUrl<Aba>("revisar", ["revisar", "pendencias", "aprovadas", "regras"] as const);
   const [soMinha, setSoMinha] = useState(true);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [decidir, setDecidir] = useState<{ acao: Acao; linhas: Linha[] } | null>(null);

@@ -36,6 +36,7 @@ import { CampoBoleto, ConferirBoletoModal } from "@/components/financeiro/Boleto
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
+import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -86,7 +87,7 @@ function filtrar<T extends { status: string; vencimento: string }>(lista: T[], f
 export default function Financeiro() {
   const { pode, papel, tem } = usePerfil();
   const veContasPagar = pode("contas_pagar") || papel === "contador";
-  const [aba, setAba] = useState<"visao" | "receber" | "pagar" | "cobranca" | "recibos" | "fixas" | "dre" | "plano">("visao");
+  const [aba, setAba] = useAbaUrl<"visao" | "receber" | "pagar" | "cobranca" | "recibos" | "fixas" | "dre" | "plano">("visao", ["visao", "receber", "pagar", "cobranca", "recibos", "fixas", "dre", "plano"] as const);
   const veCobranca = tem("financeiro", "vendas");
   // "+ Conta a pagar" do menu: abre a aba e o formulário da conta nova
   const location = useLocation();
@@ -99,9 +100,9 @@ export default function Financeiro() {
     const d = lerDestaque(location.state);
     if (d) setDestaque(d);
     if (st?.aba) {
-      setAba(st.aba === "pagar" && !veContasPagar ? "receber" : st.aba);
+      const nova = st.aba === "pagar" && !veContasPagar ? "receber" : st.aba;
       setNovaAoAbrir(!!st.nova);
-      navigate(location.pathname, { replace: true, state: null });
+      navigate({ pathname: location.pathname, search: buscaDaAba(nova, "visao") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();

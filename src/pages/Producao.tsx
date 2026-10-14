@@ -24,6 +24,7 @@ import { ehKitAberto } from "@/lib/kits";
 import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 import { confirmar } from "@/components/Dialogos";
+import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
 
@@ -40,20 +41,15 @@ export default function Producao() {
   const location = useLocation();
   const navigate = useNavigate();
   const verCompras = pode("editar_producao") || pode("receber_compras");
-  const [aba, setAba] = useState<Aba>("producao");
+  const [aba, setAba] = useAbaUrl<Aba>("producao", ["producao", "reposicao", "compras", "cotacoes", "ficha"] as const);
   const [novaCompra, setNovaCompra] = useState(false);
 
   const [cotarItens, setCotarItens] = useState<{ produto_id: string; quantidade: number }[] | null>(null);
-  // aviso "cotação respondida" abre com ?aba=cotacoes
-  useEffect(() => {
-    const q = new URLSearchParams(location.search).get("aba") as Aba | null;
-    if (q && ["producao", "reposicao", "compras", "cotacoes", "ficha"].includes(q)) setAba(q);
-  }, [location.search]);
+  // o aviso "cotação respondida" abre com ?aba=cotacoes (a aba já vem do endereço)
   useEffect(() => {
     const st = location.state as any;
-    if (st?.aba) setAba(st.aba);
     if (st?.novaCompra) setNovaCompra(true);
-    if (st) navigate(location.pathname, { replace: true, state: null });
+    if (st) navigate({ pathname: location.pathname, search: st.aba ? buscaDaAba(st.aba, "producao") : location.search }, { replace: true, state: null });
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const abas: { value: Aba; label: string }[] = [

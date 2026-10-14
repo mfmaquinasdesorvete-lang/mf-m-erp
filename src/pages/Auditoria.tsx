@@ -11,6 +11,7 @@ import { calcularExcecoes, faixasAtraso, TIPOS, type Excecao, type TipoExcecao }
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ChecklistAuditoria } from "@/components/ChecklistAuditoria";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
 
@@ -21,7 +22,7 @@ const TABELAS: Record<string, string> = {
 };
 
 export default function Auditoria() {
-  const [aba, setAba] = useState<"checklist" | "excecoes" | "historico">("checklist");
+  const [aba, setAba] = useAbaUrl<"checklist" | "excecoes" | "historico">("checklist", ["checklist", "excecoes", "historico"] as const);
   const [tipoInicial, setTipoInicial] = useState<"" | TipoExcecao>("");
   const dados = useExcecoes();
   return (

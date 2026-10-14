@@ -35,6 +35,7 @@ import { FormacaoPreco, usePrecosPendentes } from "@/components/produtos/Formaca
 import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -131,7 +132,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { pode, papel, tem } = usePerfil();
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
-  const [aba, setAba] = useState<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas">(busca.get("aba") === "precos" ? "precos" : "produtos");
+  const [aba, setAba] = useAbaUrl<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas">("produtos", ["produtos", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"] as const);
   const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
