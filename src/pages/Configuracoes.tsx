@@ -7,6 +7,7 @@ import { PainelConfig } from "@/components/config/Painel";
 import { ConfigEmpresa } from "@/components/config/Empresa";
 import { ConfigRecebimentos } from "@/components/config/Recebimentos";
 import { ConfigOrcamentos } from "@/components/config/Orcamentos";
+import { ConfigDescontos } from "@/components/config/Descontos";
 import { ConfigPedidos } from "@/components/config/Pedidos";
 import { ConfigNotas } from "@/components/config/Notas";
 import { ConfigCatalogo } from "@/components/config/Catalogo";
@@ -22,7 +23,7 @@ function ConfigUnidades() {
 }
 
 const PAGINAS: Record<SecaoId, () => JSX.Element> = {
-  empresa: ConfigEmpresa, unidades: ConfigUnidades, recebimentos: ConfigRecebimentos, orcamentos: ConfigOrcamentos, comissoes: ConfigComissoes,
+  empresa: ConfigEmpresa, unidades: ConfigUnidades, recebimentos: ConfigRecebimentos, orcamentos: ConfigOrcamentos, descontos: ConfigDescontos, comissoes: ConfigComissoes,
   pedidos: ConfigPedidos, notas: ConfigNotas, catalogo: ConfigCatalogo, avisos: ConfigAvisos, email: ConfigEmail, contador: ConfigContador, dados: ConfigDados,
 };
 

@@ -57,6 +57,8 @@ export type Pedido = {
   proposta_token?: string; proposta_status?: string | null; proposta_enviada_em?: string | null; proposta_visualizada_em?: string | null;
   proposta_respondida_em?: string | null; proposta_validade?: string | null; proposta_resposta_nome?: string | null;
   motivo_rejeicao?: string | null; motivo_rejeicao_texto?: string | null; concorrente?: string | null;
+  /** desconto acima do máximo aprovado com a senha de um administrador (só o banco grava) */
+  desconto_aprovado_pct?: number | null; desconto_aprovado_por?: string | null; desconto_aprovado_em?: string | null;
 };
 
 export type OrdemServico = {

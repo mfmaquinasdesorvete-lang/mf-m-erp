@@ -4,14 +4,14 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BadgePercent, Bell, Building2, Calculator, Database, FileText, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
+  ArrowLeft, BadgePercent, Bell, Percent, Building2, Calculator, Database, FileText, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
 } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 
-export type SecaoId = "empresa" | "unidades" | "recebimentos" | "orcamentos" | "comissoes" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados";
+export type SecaoId = "empresa" | "unidades" | "recebimentos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados";
 export type Secao = { id: SecaoId; titulo: string; resumo: string; icone: LucideIcon; cor: string; grupo: string };
 
 export const SECOES: Secao[] = [
@@ -19,6 +19,7 @@ export const SECOES: Secao[] = [
   { id: "unidades", grupo: "Empresa", titulo: "Unidades", resumo: "Matriz e filial: CNPJ, IE, endereço e série da NF-e", icone: Building2, cor: "from-[#64748b] to-[#334155]" },
   { id: "recebimentos", grupo: "Empresa", titulo: "Recebimentos e taxas", resumo: "Pix, banco e InfinitePay de cada unidade, taxas, multa e juros", icone: BadgePercent, cor: "from-[#10b981] to-[#047857]" },
   { id: "orcamentos", grupo: "Vendas", titulo: "Orçamentos e garantia", resumo: "Validade, prazos, layout da proposta, garantia e laudo da OS", icone: FileText, cor: "from-[#0ea5e9] to-[#2563eb]" },
+  { id: "descontos", grupo: "Vendas", titulo: "Descontos", resumo: "Máximo por tipo de venda e senha de aprovação do administrador", icone: Percent, cor: "from-[#ef4444] to-[#b91c1c]" },
   { id: "comissoes", grupo: "Vendas", titulo: "Comissões", resumo: "Percentual padrão e regras por vendedor e categoria", icone: HandCoins, cor: "from-[#f59e0b] to-[#b45309]" },
   { id: "catalogo", grupo: "Vendas", titulo: "Catálogo e vitrine", resumo: "Catálogo do WhatsApp, vitrine do site e loja virtual", icone: ShoppingBag, cor: "from-[#ec4899] to-[#be185d]" },
   { id: "pedidos", grupo: "Operação", titulo: "Pedidos e expedição", resumo: "O que acontece sozinho na venda, etiquetas e impressora Zebra", icone: Package, cor: "from-[#f97316] to-[#c2410c]" },

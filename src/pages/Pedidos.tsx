@@ -34,6 +34,8 @@ import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/financeiro/LinkPedido";
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
+import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
+import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -216,6 +218,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const verPagamento = tem("vendas", "financeiro");
   const temInfinitePay = useTemInfinitePay((p as any).unidade_id);
   const [linkAgora, setLinkAgora] = useState(false);
+  // desconto acima do máximo (Configurações → Descontos): precisa da senha de aprovação de um administrador
+  const { data: regrasDesc = [] } = useRows<RegraDesconto>("regras_desconto", { order: "canal", ascending: true });
+  const [aprovarDesc, setAprovarDesc] = useState<string | null>(null);
   const editavel = podeEditar && (!p.id || p.status === "orcamento");
   // pedido aprovado: vendedor, comissão, origem e observações mudam com motivo; itens e valores só reabrindo
   const ajustavel = podeEditar && !!p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "");
@@ -247,6 +252,11 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     set(patch as Partial<Pedido>);
   }
   const subtotal = totalItens(p.itens);
+  const pctDesc = subtotal > 0 ? Math.round((Number(p.desconto || 0) / subtotal) * 10000) / 100 : 0;
+  const limiteDesc = maximoDesconto(regrasDesc, p.origem, p.forma_pagamento);
+  const descAcima = !!limiteDesc && pctDesc > limiteDesc.max + 0.005;
+  const descAprovado = Number(p.desconto_aprovado_pct ?? 0);
+  const precisaAprovarDesc = descAcima && descAprovado + 0.005 < pctDesc;
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
   // comissão prevista: % por categoria de cada item (o % digitado no pedido vale acima de tudo)
   const comissaoPrevista = percentualPedido(regrasComissao, vendedores.find((v) => v.id === p.vendedor_id), p.itens,
@@ -306,7 +316,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (Number(p.desconto || 0) > subtotal) throw new Error(`O desconto (${brl(p.desconto)}) é maior que o valor dos itens (${brl(subtotal)})`);
     const { itens, cliente: _c, notas: _n, numero: _num, valor_produtos: _vp, valor_total: _vt, created_at: _ca,
       proposta_token: _pt, proposta_status: _ps, proposta_enviada_em: _pe, proposta_visualizada_em: _pv, proposta_respondida_em: _pr,
-      proposta_validade: _pval, proposta_resposta_nome: _pn, ...cab } = p as any;
+      proposta_validade: _pval, proposta_resposta_nome: _pn, desconto_aprovado_pct: _dap, desconto_aprovado_por: _dapp, desconto_aprovado_em: _dae, ...cab } = p as any;
     const dados = limpar({
       ...cab,
       parcelas: Number(cab.parcelas), intervalo_dias: Number(cab.intervalo_dias),
@@ -351,6 +361,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const salvar = (e: FormEvent) => { e.preventDefault(); executar(gravar, "Pedido salvo"); };
 
   const aprovar = () => {
+    if (precisaAprovarDesc && limiteDesc) {
+      return notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
+    }
     const comLink = verPagamento && temInfinitePay && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
     return executar(async () => {
       const id = await gravar();
@@ -572,6 +585,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500" aria-hidden>%</span>
             </span>
             {Number(p.desconto) > 0 && <span className="mt-1 block text-xs text-slate-600">= {brl(p.desconto)} de desconto</span>}
+            {descAcima && limiteDesc && (precisaAprovarDesc ? (
+              <span className="mt-1 block text-xs text-amber-800">
+                Passa do máximo de {pctTexto(limiteDesc.max)} ({rotuloRegra(p.origem ?? "todos", p.forma_pagamento)}).
+                {editavel && <button type="button" className="ml-1 font-semibold text-brand underline" disabled={ocupado}
+                  onClick={() => executar(async () => setAprovarDesc(await gravar()), "Orçamento salvo: falta a senha do administrador", false)}>Aprovar desconto</button>}
+              </span>
+            ) : <span className="mt-1 block text-xs font-semibold text-emerald-700">Desconto aprovado (até {pctTexto(descAprovado)})</span>)}
           </Field>
           <FreteRapido pedido={p as any} cliente={cliente} produtos={produtos} disabled={!editavel} podeCotar={pode("cotar_frete")}
             onChange={(patch) => set(patch as Partial<Pedido>)} />
@@ -647,6 +667,11 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         </Modal>
       )}
       {etiquetas.modal}
+      {aprovarDesc && limiteDesc && (
+        <AprovarDesconto percentual={pctDesc} maximo={limiteDesc.max} contexto="pedido" pedidoId={aprovarDesc} canal={p.origem ?? "todos"} forma={p.forma_pagamento ?? null}
+          onClose={() => setAprovarDesc(null)}
+          onAprovado={(r) => { setP((x) => ({ ...x, desconto_aprovado_pct: r.percentual })); setAprovarDesc(null); notify(`Desconto aprovado por ${r.aprovado_por}`); }} />
+      )}
       {acaoMotivo === "editar" && (
         <MotivoAcao titulo={`Alterar pedido #${p.numero}`} rotulo="Salvar alterações" onConfirmar={editarAprovado} onClose={() => setAcaoMotivo(null)}>
           <p>O pedido já foi aprovado. A alteração fica na auditoria do pedido com o seu nome e o motivo.</p>

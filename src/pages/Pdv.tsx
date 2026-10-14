@@ -6,7 +6,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Banknote, CalendarClock, CheckCircle2, CreditCard, FileText, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShoppingCart, Split, Trash2, UserPlus, UserRound,
+  ArrowLeft, Banknote, CalendarClock, Camera, CheckCircle2, CreditCard, FileText, ImageOff, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShieldCheck,
+  ShoppingCart, Split, Trash2, UserPlus, UserRound,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { ModuloContext } from "@/lib/modulo";
@@ -28,9 +29,15 @@ import { useFormasPagamento } from "@/lib/formasPagamento";
 import { comUnidade, pdfCupom } from "@/lib/pdf";
 import { imprimirPdf } from "@/lib/imprimir";
 import type { Cliente, Produto } from "@/lib/types";
+import { enviarFotoProduto, urlFotoProduto } from "@/lib/catalogo";
+import { formaPdv, maximoDesconto, pctTexto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
+import { AprovarDesconto, type DescontoAprovado } from "@/components/vendas/AprovarDesconto";
 
 type Meio = "dinheiro" | "pix" | "cartao_credito" | "cartao_debito" | "link" | "prazo";
-type Linha = { produto_id: string; descricao: string; sku: string | null; quantidade: number; valor_unitario: number; tipo: string; numero_serie: string };
+type Linha = {
+  chave: string; produto_id: string; descricao: string; sku: string | null; quantidade: number; valor_unitario: number; tipo: string;
+  numero_serie: string; foto: string | null;
+};
 type Pagamento = { meio: Meio; valor: number; vencimento?: string };
 type Resultado = {
   pedido_id: string; numero: number; total: number; cliente_id: string;
@@ -48,7 +55,13 @@ const MEIOS: { meio: Meio; rotulo: string; icone: typeof Banknote; ajuda?: strin
 ];
 const rotuloMeio = (m: Meio) => MEIOS.find((x) => x.meio === m)?.rotulo ?? m;
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const num = (s: string) => { const v = Number(String(s).replace(/\./g, "").replace(",", ".")); return Number.isFinite(v) ? v : 0; };
+// "1.234,56", "38,5", "38.50" (ponto como decimal) e "1.500" (ponto de milhar)
+const num = (s: string) => {
+  const t = String(s).trim();
+  const v = Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : /^\d+\.\d{1,2}$/.test(t) ? t : t.replace(/\./g, ""));
+  return Number.isFinite(v) ? v : 0;
+};
+let seq = 0;
 const moeda = (n: number) => (n ? n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
 
 export default function Pdv() {
@@ -96,6 +109,13 @@ export default function Pdv() {
   const [feito, setFeito] = useState<Resultado | null>(null);
   const [linkConta, setLinkConta] = useState<string | null>(null);
   const [nfe, setNfe] = useState<"" | "emitindo" | "ok" | "erro">("");
+  // preço sendo digitado (por linha): o total acompanha a cada tecla; ao sair do campo volta formatado
+  const [precoTxt, setPrecoTxt] = useState<Record<string, string>>({});
+  const [enviandoFoto, setEnviandoFoto] = useState<string | null>(null);
+  // desconto acima do máximo da regra (Configurações → Descontos): só com a senha de um administrador
+  const { data: regrasDesc = [] } = useRows<RegraDesconto>("regras_desconto", { order: "canal", ascending: true });
+  const [aprovado, setAprovado] = useState<DescontoAprovado | null>(null);
+  const [pedirAprovacao, setPedirAprovacao] = useState(false);
   const busca = useRef<HTMLDivElement>(null);
   const pagar = useRef<HTMLDivElement>(null);
 
@@ -130,7 +150,13 @@ export default function Pdv() {
   const recebido = num(recebidoTxt);
   const troco = pagDinheiro > 0 && recebido > pagDinheiro ? r2(recebido - pagDinheiro) : 0;
   const temMaquina = itens.some((i) => i.tipo === "maquina");
-  const pronto = itens.length > 0 && total > 0 && pagamentos.length > 0 && Math.abs(falta) < 0.01
+  const semPreco = itens.filter((i) => !(i.valor_unitario > 0));
+  const formaVenda = formaPdv(pagamentos);
+  const pctDesconto = subtotal > 0 ? r2((descontoValor / subtotal) * 100) : 0;
+  const limite = maximoDesconto(regrasDesc, "balcao", formaVenda);
+  const acimaDoMaximo = !!limite && pctDesconto > limite.max + 0.005;
+  const precisaAprovar = acimaDoMaximo && !(aprovado && aprovado.percentual + 0.005 >= pctDesconto);
+  const pronto = itens.length > 0 && total > 0 && pagamentos.length > 0 && Math.abs(falta) < 0.01 && !semPreco.length && !precisaAprovar
     && !(pagamentos.some((p) => p.meio === "prazo") && !clienteId)
     && !(pagDinheiro > 0 && recebidoTxt && recebido < pagDinheiro);
 
@@ -143,11 +169,26 @@ export default function Pdv() {
     setItens((lista) => {
       const i = lista.findIndex((x) => x.produto_id === p.id && !x.numero_serie);
       if (i >= 0 && p.tipo !== "maquina") return lista.map((x, k) => (k === i ? { ...x, quantidade: x.quantidade + 1 } : x));
-      return [...lista, { produto_id: p.id, descricao: p.descricao, sku: p.sku, quantidade: 1, valor_unitario: precoPdv(p) || 0, tipo: p.tipo, numero_serie: "" }];
+      return [...lista, { chave: `l${++seq}`, produto_id: p.id, descricao: p.descricao, sku: p.sku, quantidade: 1, valor_unitario: precoPdv(p) || 0, tipo: p.tipo,
+        numero_serie: "", foto: (p as Produto & { foto_caminho?: string | null }).foto_caminho ?? null }];
     });
   }
   const mudar = (k: number, patch: Partial<Linha>) => setItens((l) => l.map((x, i) => (i === k ? { ...x, ...patch } : x)));
   const tirar = (k: number) => setItens((l) => l.filter((_, i) => i !== k));
+
+  /** Peça sem foto: tira (celular) ou escolhe a foto e ela fica no cadastro do produto. */
+  async function porFoto(produtoId: string, arquivo?: File) {
+    if (!arquivo) return;
+    setEnviandoFoto(produtoId);
+    try {
+      const caminho = await enviarFotoProduto(arquivo);
+      const { error } = await supabase.from("produtos").update({ foto_caminho: caminho }).eq("id", produtoId);
+      if (error) throw error;
+      setItens((l) => l.map((x) => (x.produto_id === produtoId ? { ...x, foto: caminho } : x)));
+      invalidate("produtos");
+      notify("Foto salva no cadastro da peça");
+    } catch (e) { notifyError(e); } finally { setEnviandoFoto(null); }
+  }
 
   function escolherMeio(m: Meio) {
     if (!dividir) { setPagamentos([{ meio: m, valor: total, ...(m === "prazo" ? { vencimento: somarDias(30) } : {}) }]); return; }
@@ -162,7 +203,7 @@ export default function Pdv() {
   };
 
   function novaVenda() {
-    setItens([]); setClienteId(null); setTabelaId(null); setDescontoTxt(""); setPagamentos([]); setDividir(false);
+    setItens([]); setClienteId(null); setTabelaId(null); setDescontoTxt(""); setPagamentos([]); setDividir(false); setAprovado(null); setPrecoTxt({});
     setRecebidoTxt(""); setObs(""); setFeito(null); setNfe("");
     setTimeout(() => busca.current?.querySelector("input")?.focus(), 50);
   }
@@ -192,7 +233,8 @@ export default function Pdv() {
           recebido_dinheiro: troco ? recebido : null, troco: troco || null, observacoes: obs || null,
         },
       });
-      invalidate("pedidos", "produtos", "estoque_unidade", "contas_receber", "clientes", "configuracoes");
+      invalidate("pedidos", "produtos", "estoque_unidade", "contas_receber", "clientes", "configuracoes", "aprovacoes_desconto");
+      setAprovado(null);
       notify(`Venda #${r.numero} concluída`);
     } catch (e) {
       notifyError(e);
@@ -258,6 +300,7 @@ export default function Pdv() {
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <div ref={busca} className="min-w-0 flex-1">
               <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Peça: nome, código ou código de barras (leitor)"
+                foto={(p) => urlFotoProduto((p as Produto & { foto_caminho?: string | null }).foto_caminho) || null}
                 detalhe={(p) => <span className="num">{brl(precoPdv(p))} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
             </div>
             {unidades.length > 1 && (
@@ -277,8 +320,20 @@ export default function Pdv() {
               {itens.map((i, k) => {
                 const tem = saldo(i.produto_id);
                 return (
-                  <li key={k} className="px-3 py-2.5">
+                  <li key={i.chave} className="px-3 py-2.5">
                     <div className="flex items-start gap-3">
+                      {i.foto ? (
+                        <img src={urlFotoProduto(i.foto)} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 bg-white object-contain" />
+                      ) : pode("editar_produtos") ? (
+                        <label className={`flex h-14 w-14 shrink-0 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-[10px] font-semibold text-slate-500 hover:border-brand hover:text-brand ${enviandoFoto === i.produto_id ? "pointer-events-none opacity-60" : ""}`}
+                          title="Pôr foto da peça (fica no cadastro do produto)">
+                          <Camera size={18} aria-hidden /> {enviandoFoto === i.produto_id ? "Enviando" : "Pôr foto"}
+                          <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Foto de ${i.descricao}`}
+                            onChange={(e) => { porFoto(i.produto_id, e.target.files?.[0]); e.target.value = ""; }} />
+                        </label>
+                      ) : (
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-200 text-slate-300" aria-hidden><ImageOff size={18} /></span>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="line-clamp-2 font-semibold">{i.descricao}</div>
                         <div className="text-xs text-slate-500">
@@ -296,14 +351,25 @@ export default function Pdv() {
                         <Button type="button" variant="secondary" className="!min-h-0 !px-2 !py-1.5" aria-label="Mais um" onClick={() => mudar(k, { quantidade: i.quantidade + 1 })}><Plus size={14} aria-hidden /></Button>
                       </div>
                       <span className="text-sm text-slate-500" aria-hidden>×</span>
-                      <input className="input w-28 py-1.5 text-right" inputMode="decimal" disabled={!pode("editar_pedidos")} defaultValue={moeda(i.valor_unitario)} key={`${i.produto_id}-${i.valor_unitario}`}
-                        onBlur={(e) => mudar(k, { valor_unitario: Math.max(0, num(e.target.value)) })} aria-label={`Preço unitário de ${i.descricao}`} />
+                      <span className="relative">
+                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-500" aria-hidden>R$</span>
+                        <input className={`input w-32 py-1.5 pl-9 text-right ${i.valor_unitario > 0 ? "" : "border-amber-500 ring-1 ring-amber-400"}`} inputMode="decimal"
+                          disabled={!pode("editar_pedidos")} placeholder="0,00" value={precoTxt[i.chave] ?? moeda(i.valor_unitario)} aria-label={`Preço unitário de ${i.descricao}`}
+                          onChange={(e) => {
+                            const t = e.target.value.replace(/[^\d,.]/g, "").slice(0, 12);
+                            setPrecoTxt((m) => ({ ...m, [i.chave]: t }));
+                            mudar(k, { valor_unitario: Math.max(0, r2(num(t))) });
+                          }}
+                          onBlur={() => setPrecoTxt((m) => { const n = { ...m }; delete n[i.chave]; return n; })}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
+                      </span>
                       {i.tipo === "maquina" && (
                         <input className="input min-w-0 flex-1 py-1.5 text-sm sm:max-w-[14rem]" placeholder="Nº de série (garantia)" value={i.numero_serie}
                           onChange={(e) => mudar(k, { numero_serie: e.target.value })} aria-label={`Número de série de ${i.descricao}`} />
                       )}
                       <Button type="button" variant="ghost" className="!min-h-0 ml-auto !px-2" aria-label={`Tirar ${i.descricao}`} onClick={() => tirar(k)}><Trash2 size={16} aria-hidden /></Button>
                     </div>
+                    {!(i.valor_unitario > 0) && <p className="mt-1.5 text-xs font-semibold text-amber-700">Sem preço no cadastro: digite o valor de venda.</p>}
                   </li>
                 );
               })}
@@ -351,6 +417,16 @@ export default function Pdv() {
                 </dd>
               </div>
               {descontoValor > 0 && <div className="flex justify-between text-xs text-slate-500"><dt>desconto aplicado</dt><dd>- {brl(descontoValor)}</dd></div>}
+              {acimaDoMaximo && limite && (precisaAprovar ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+                  <p>Desconto de <b>{pctTexto(pctDesconto)}</b> passa do máximo de <b>{pctTexto(limite.max)}</b> ({rotuloRegra("balcao", formaVenda)}).</p>
+                  <Button type="button" variant="secondary" className="mt-2 w-full !min-h-0 !py-1.5" onClick={() => setPedirAprovacao(true)}>
+                    <ShieldCheck size={15} aria-hidden /> Aprovar com a senha do administrador
+                  </Button>
+                </div>
+              ) : (
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700"><ShieldCheck size={14} aria-hidden /> Desconto aprovado por {aprovado?.aprovado_por} (até {pctTexto(aprovado?.percentual ?? 0)})</p>
+              ))}
               <div className="flex items-baseline justify-between border-t border-slate-200 pt-2"><dt className="text-base font-bold">Total</dt><dd className="text-2xl font-extrabold">{brl(total)}</dd></div>
             </dl>
           </Card>
@@ -421,6 +497,11 @@ export default function Pdv() {
               <summary className="cursor-pointer text-slate-600">Observação no pedido</summary>
               <textarea className="input mt-2" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} aria-label="Observação" />
             </details>
+            {itens.length > 0 && (semPreco.length > 0 || precisaAprovar) && (
+              <p className="text-xs font-semibold text-amber-700" role="status">
+                {semPreco.length > 0 ? `Falta o preço de ${semPreco.length === 1 ? "1 item" : `${semPreco.length} itens`}.` : "O desconto precisa da aprovação do administrador."}
+              </p>
+            )}
             <Button type="button" className="w-full !py-3 text-base" disabled={!pronto || enviando} onClick={finalizar}>
               <CheckCircle2 size={18} aria-hidden /> {enviando ? "Finalizando…" : `Finalizar venda ${total > 0 ? brl(total) : ""}`}
               <kbd className="ml-1 hidden rounded bg-white/20 px-1.5 text-xs sm:inline">F2</kbd>
@@ -441,6 +522,11 @@ export default function Pdv() {
         </div>
       )}
 
+      {pedirAprovacao && limite && (
+        <AprovarDesconto percentual={pctDesconto} maximo={limite.max} contexto="pdv" canal="balcao" forma={formaVenda}
+          onClose={() => setPedirAprovacao(false)}
+          onAprovado={(r) => { setAprovado(r); setPedirAprovacao(false); notify(`Desconto aprovado por ${r.aprovado_por}`); }} />
+      )}
       {cadastrar !== null && (
         <ClienteRapido inicial={cadastrar} clientes={clientes} onClose={() => setCadastrar(null)}
           onCriado={(c) => { setNovos((l) => [c, ...l.filter((x) => x.id !== c.id)]); escolherCliente(c.id, c); setCadastrar(null); invalidate("clientes"); }} />
