@@ -37,6 +37,7 @@ const Transportadoras = lazy(() => import("@/pages/Transportadoras"));
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const Usuarios = lazy(() => import("@/pages/Usuarios"));
 const Implantacao = lazy(() => import("@/pages/Implantacao"));
+const Importar = lazy(() => import("@/pages/Importar"));
 const Garantias = lazy(() => import("@/pages/Garantias"));
 const Relatorios = lazy(() => import("@/pages/Relatorios"));
 const Gerencial = lazy(() => import("@/pages/Gerencial"));
@@ -86,6 +87,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "configuracoes/:secao", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "implantacao", tela: "implantacao", element: <Implantacao /> },
+  { path: "importar", tela: "importar", element: <Importar /> },
   { path: "garantias", tela: "garantias", element: <Garantias /> },
   { path: "relatorios", tela: "relatorios", element: <Relatorios /> },
   { path: "gerencial", tela: "relatorios", element: <Gerencial /> },

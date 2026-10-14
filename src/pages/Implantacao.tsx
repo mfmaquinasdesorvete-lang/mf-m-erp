@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, FileText, Landmark, PackageSearch, ShoppingCart, Users } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, FileText, Landmark, PackageSearch, ShoppingCart, Users, Upload } from "lucide-react";
 import { Button, Card, PageHeader, Stat } from "@/components/ui";
 import { ler, useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +11,7 @@ import { usePerfil } from "@/lib/auth";
 import { dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { rotuloPapel } from "@/lib/permissoes";
+import { useVisivel } from "@/lib/menu";
 
 type Etapa = {
   id: string; fase: number; ordem: number; titulo: string; detalhe: string | null; prazo: string | null; responsavel: string | null;
@@ -82,6 +83,7 @@ export function andamento(ind: string | null, d: Indicadores | undefined): { tex
 }
 
 export default function Implantacao() {
+  const vis = useVisivel();
   const { tem, papel } = usePerfil();
   const podeMarcar = tem("financeiro");
   const admin = papel === "admin";
@@ -114,7 +116,11 @@ export default function Implantacao() {
     <div>
       <PageHeader title="Troca do Tiny"
         subtitle="O plano por fases, quem faz e até quando. Os números abaixo são medidos no próprio ERP e atualizam sozinhos."
-        actions={admin && <Button variant={editando ? "primary" : "secondary"} onClick={() => setEditando(!editando)}>{editando ? "Pronto" : "Mudar prazos e responsáveis"}</Button>} />
+        actions={<>
+          {/* o que vem do Tiny (planilhas, XML, contas) entra por aqui */}
+          {vis.ve("importar", "/importar") && <Link to="/importar" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><Upload size={16} aria-hidden /> Importar dados</Link>}
+          {admin && <Button variant={editando ? "primary" : "secondary"} onClick={() => setEditando(!editando)}>{editando ? "Pronto" : "Mudar prazos e responsáveis"}</Button>}
+        </>} />
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Notas pelo ERP (14 dias)" icon={FileText} tom={ind && ind.notas_tiny_14d === 0 && ind.notas_erp_14d > 0 ? "bom" : "atencao"}

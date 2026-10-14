@@ -1,6 +1,6 @@
 // Configurações → painel: cada assunto num cartão com a situação dele e, no topo, o que precisa de atenção.
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronRight, CircleAlert, CreditCard, UserCog } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleAlert, CreditCard, Upload, UserCog } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
@@ -65,6 +65,7 @@ export function PainelConfig() {
   const grupos = [...new Set(SECOES.map((s) => s.grupo))];
   const outras = [
     { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-[#64748b] to-[#334155]" },
+    { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "from-[#0ea5e9] to-[#2563eb]" },
     { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-[#f59e0b] to-[#b45309]" },
   ].filter((o) => vis.ve(o.tela, o.to));
   return (
