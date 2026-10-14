@@ -645,6 +645,15 @@ function FichaTecnica() {
       invalidate("produto_componentes", "necessidade_producao");
     } catch (e) { notifyError(e); invalidate("produto_componentes"); }
   }
+  // máquina usada, ficha montada errada…: esvazia de uma vez (dá para montar de novo depois)
+  async function tirarTodos() {
+    if (!item || !confirm(`Tirar todos os ${comps?.length ?? 0} itens da ficha de "${item.descricao}"? A ficha fica vazia (dá para montar de novo depois).`)) return;
+    const { error } = await supabase.from("produto_componentes").delete().eq("produto_id", item.id);
+    if (error) return notifyError(error);
+    setLista([]);
+    notify("Ficha técnica esvaziada");
+    invalidate("produto_componentes", "necessidade_producao");
+  }
   async function mudarModo(id: string, estocado: boolean) {
     const { error } = await supabase.from("produtos").update({ subconjunto_estocado: estocado }).eq("id", id);
     if (error) return notifyError(error);
@@ -768,7 +777,16 @@ function FichaTecnica() {
               <div><dt className="text-slate-500">Margem sobre peças</dt><dd className={`num text-lg font-bold ${margem < 0.25 ? "text-amber-700" : "text-emerald-700"}`}>{(margem * 100).toFixed(0)}%</dd></div>
             </>}
           </dl>
-          {editavel && <div className="mt-4 flex justify-end"><Button type="button" className="w-full sm:w-auto" onClick={salvar}>Salvar ficha técnica</Button></div>}
+          {editavel && (
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {comps?.length ? (
+                <Button type="button" variant="ghost" className="w-full !text-red-600 sm:w-auto" onClick={tirarTodos}>
+                  <Trash2 size={16} aria-hidden /> Tirar todos os itens
+                </Button>
+              ) : <span />}
+              <Button type="button" className="w-full sm:w-auto" onClick={salvar}>Salvar ficha técnica</Button>
+            </div>
+          )}
         </Card>
       )}
     </div>
