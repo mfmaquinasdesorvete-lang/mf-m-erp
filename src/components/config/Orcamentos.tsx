@@ -1,10 +1,11 @@
 // Configurações → Orçamentos e garantia: validade, prazo de entrega, observações padrão, layout da proposta,
 // garantia das máquinas e do conserto, preventiva e os prazos da OS.
+import { AVISO_OUTRA_EMPRESA_PADRAO } from "@/lib/garantia";
 import { BotaoSalvar, Bloco, CabecalhoSecao, campo, Opcao, secaoPorId, useCfgPagina } from "./comum";
 
 const CHAVES = ["validade_orcamento_dias", "orcamento_prazo_entrega", "orcamento_observacoes", "proposta_titulo", "proposta_cor", "proposta_fotos",
   "proposta_apresentacao", "proposta_condicoes", "proposta_rodape", "garantia_meses_padrao", "garantia_servico_dias", "preventiva_meses",
-  "os_armazenagem_dias", "termo_garantia"];
+  "os_armazenagem_dias", "termo_garantia", "aviso_outra_empresa"];
 const inteiro = (v: unknown, padrao: number) => (v === "" || v == null || !Number.isFinite(Number(v)) ? padrao : Math.max(0, Math.round(Number(v))));
 
 export function ConfigOrcamentos() {
@@ -13,6 +14,7 @@ export function ConfigOrcamentos() {
     ...r, validade_orcamento_dias: inteiro(r.validade_orcamento_dias, 7), garantia_meses_padrao: inteiro(r.garantia_meses_padrao, 12),
     garantia_servico_dias: inteiro(r.garantia_servico_dias, 90), preventiva_meses: inteiro(r.preventiva_meses, 6), os_armazenagem_dias: inteiro(r.os_armazenagem_dias, 90),
     proposta_titulo: r.proposta_titulo || "Proposta comercial", termo_garantia: r.termo_garantia ?? "",
+    aviso_outra_empresa: String(r.aviso_outra_empresa ?? "").trim() || AVISO_OUTRA_EMPRESA_PADRAO,
   }));
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
   const input = campo(cfg, set);
@@ -62,6 +64,16 @@ export function ConfigOrcamentos() {
               Cada máquina pode ter garantia própria no cadastro do produto; sem ela, vale a padrão. O prazo para retirar sai no comprovante de entrada da OS.
             </p>
             {texto("termo_garantia", "Termo de garantia (sai na proposta e no laudo da OS)", 4)}
+          </div>
+        </Bloco>
+
+        <Bloco titulo="Máquina vendida por outra empresa" descricao="Sai na OS, no comprovante de entrada e no laudo quando a máquina foi vendida por outra empresa (ex.: a My Frost). Deixa claro que a MF responde só pelo serviço e pelas peças que fornecer.">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            {texto("aviso_outra_empresa", "Aviso de responsabilidade ({empresa} = quem vendeu a máquina; {mf} = o nome da MF)", 5, AVISO_OUTRA_EMPRESA_PADRAO)}
+            <p className="text-xs text-slate-500 sm:col-span-4">
+              Para concluir a OS dessas máquinas, o sistema exige: número de série, condição de entrada, diagnóstico, serviço executado e orçamento aprovado pelo cliente.
+              Confirme o texto com o advogado.
+            </p>
           </div>
         </Bloco>
       </form>

@@ -171,6 +171,7 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
           <p className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
             <CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden />
             Nenhuma mensagem é enviada aos clientes. As máquinas entram sem garantia da MF e sem preventiva marcada: o contato é feito por vocês, quando quiserem.
+            A MF é uma empresa diferente da My Frost: nas OS dessas máquinas sai o aviso de que a MF responde só pelo serviço e pelas peças que fornecer.
           </p>
 
           {leitura.pecas.length > 0 && (

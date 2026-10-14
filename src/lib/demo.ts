@@ -308,6 +308,8 @@ function seed(): Db {
       { id: "e6", cliente_id: "c4", produto_id: "p1", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", numero_serie: "MF300-2024-0007", data_venda: dias(-610), garantia_ate: dias(-245), proxima_preventiva: dias(181), ultimo_contato: dias(-1) },
       { id: "e7", cliente_id: "c2", produto_id: "p3", descricao: "Máquina de Milk Shake MF-MS2 (2 hastes)", numero_serie: "MS2-2025-0410", data_venda: dias(-160), garantia_ate: dias(22), proxima_preventiva: dias(18) },
       { id: "e8", cliente_id: "c3", produto_id: "p2", descricao: "Máquina de Sorvete Expressa MF-150 Balcão", numero_serie: "MF150-2024-0099", data_venda: dias(-480), garantia_ate: dias(-115), proxima_preventiva: dias(-40), usada: true },
+      // vendida pela empresa anterior (outra empresa): sem garantia nem preventiva da MF
+      { id: "e9", cliente_id: "c2", produto_id: null, descricao: "My Frost Top 300 - Máquina de Sorvete Expresso", numero_serie: null, data_venda: "2022-03-15", garantia_ate: null, proxima_preventiva: null, origem: "My Frost", origem_ref: "demo-1" },
     ],
   };
   db.clientes.forEach((c, i) => { c.avisos_email = true; c.codigo = i + 1; });

@@ -12,7 +12,7 @@ import { HistoricoModal } from "@/pages/Garantias";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, whatsappLink } from "@/lib/format";
-import { situacaoGarantia } from "@/lib/garantia";
+import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { apagarFotoOS, enviarFotoOS, urlsFotos } from "@/lib/fotos";
@@ -168,19 +168,23 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const pecas = totalItens(o.itens);
   const total = o.em_garantia ? 0 : pecas + Number(o.valor_mao_obra || 0);
   const set = (patch: Partial<OS>) => setO((x) => ({ ...x, ...patch }));
+  // máquina vendida por outra empresa (ex.: My Frost): vem da máquina do cliente ou é marcada aqui
+  const origem = (o.maquina_origem || equip?.origem || "").trim() || null;
+  const aviso = origem ? avisoOutraEmpresa(origem, cfg) : "";
+  const diasReparo = o.garantia_reparo_dias ?? cfg?.garantia_servico_dias ?? 90;
 
   function escolherEquipamento(id: string) {
     const e = equipamentos.find((x) => x.id === id);
     if (!e) return set({ equipamento_id: null });
     set({
       equipamento_id: e.id, produto_id: e.produto_id, equipamento: e.descricao, numero_serie: e.numero_serie,
-      em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia",
+      em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
     });
   }
 
   async function gravar(): Promise<string> {
     const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, ...cab } = o as any;
-    const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0) });
+    const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0), maquina_origem: origem });
     const { data, error } = dados.id
       ? await supabase.from("ordens_servico").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("ordens_servico").insert(dados).select("id, numero").single();
@@ -216,6 +220,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const salvar = (e: FormEvent) => { e.preventDefault(); executar(gravar, "OS salva"); };
 
   const concluir = () => executar(async () => {
+    // máquina de outra empresa: a OS precisa do registro completo (o banco confere de novo)
+    const falta = origem ? faltaParaConcluirOutraEmpresa(o) : [];
+    if (falta.length) {
+      setAba(falta.some((f) => f.startsWith("orçamento")) && falta.length === 1 ? "pecas" : "atendimento");
+      throw new Error(`Máquina vendida pela ${origem} (outra empresa): para concluir, preencha ${falta.join(", ")}.`);
+    }
     const id = await gravar();
     const { error } = await supabase.rpc("concluir_os", { p_os: id });
     if (error) throw error;
@@ -264,6 +274,9 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         defeito_relatado: o.defeito_relatado ?? "", diagnostico: o.diagnostico, solucao: o.solucao, checklist: o.checklist ?? [],
         itens: o.itens, valor_mao_obra: Number(o.valor_mao_obra || 0), em_garantia: !!o.em_garantia, garantia_ate: equip?.garantia_ate,
         data_entrada: o.data_entrada, previsao: o.previsao, tecnico: o.tecnico,
+        condicao_entrada: o.condicao_entrada, maquina_origem: origem, aviso_outra_empresa: aviso || null,
+        orcamento_aprovado_em: o.orcamento_aprovado_em, orcamento_aprovado_por: o.orcamento_aprovado_por,
+        garantia_reparo_dias: diasReparo, garantia_reparo_condicoes: o.garantia_reparo_condicoes,
         assinatura: tipo === "entrada" ? o.assinatura_entrada : o.assinatura_entrega, recebido_por: tipo === "laudo" ? o.recebido_por : null,
       }, comUnidade(cfg, unidades.find((u) => u.id === (o as any).unidade_id)));
       setPdf({ blob, nome: `OS-${o.numero ?? "nova"}-${tipo}.pdf`, titulo: tipo === "entrada" ? "Comprovante de entrada" : "Laudo técnico e entrega" });
@@ -279,6 +292,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     o.diagnostico ? `Diagnóstico: ${o.diagnostico}` : "",
     o.em_garantia ? "Serviço coberto pela garantia." : total ? `Valor: ${brl(total)}` : "",
     o.previsao ? `Previsão: ${dataBR(o.previsao)}` : "",
+    origem ? `A MF Máquinas é uma empresa diferente da ${origem} e responde pelo serviço e pelas peças desta OS.` : "",
   ].filter(Boolean).join("\n");
 
   // faturada: a NFS-e autorizada em produção (acompanha a nota enquanto a janela está aberta)
@@ -328,6 +342,13 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
           );
         })()}
 
+        {origem && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <b>Máquina vendida pela {origem} (outra empresa).</b> {aviso}
+            <div className="mt-1 text-xs">Para concluir: nº de série, condição de entrada, diagnóstico, serviço executado, peças e orçamento aprovado. Tudo sai no comprovante e no laudo.</div>
+          </div>
+        )}
+
         <Tabs value={aba} onChange={setAba} options={abas} />
 
         {aba === "atendimento" && (
@@ -349,12 +370,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               <datalist id="tecnicos-os">{tecnicos.map((t) => <option key={t} value={t} />)}</datalist>
             </Field>
 
-            <Field label={equipCliente.length ? "Máquina do cliente (vendida pela MF)" : "Máquina do cliente"} className="sm:col-span-2">
+            <Field label="Máquina do cliente" className="sm:col-span-2">
               <select className="input" value={o.equipamento_id ?? ""} disabled={somenteLeitura || !o.cliente_id} onChange={(e) => escolherEquipamento(e.target.value)}>
                 <option value="">{o.cliente_id ? (equipCliente.length ? "Outra máquina / não cadastrada" : "Nenhuma máquina cadastrada para este cliente") : "Escolha o cliente primeiro"}</option>
                 {equipCliente.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.descricao}{e.numero_serie ? ` · ${e.numero_serie}` : ""} · {situacaoGarantia(e.garantia_ate) === "fora_garantia" ? "fora da garantia" : "em garantia"}
+                    {e.descricao}{e.numero_serie ? ` · ${e.numero_serie}` : ""} · {e.origem ? `vendida pela ${e.origem} (outra empresa)` : situacaoGarantia(e.garantia_ate) === "fora_garantia" ? "fora da garantia" : "em garantia"}
                   </option>
                 ))}
               </select>
@@ -363,8 +384,20 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               <input className="input" value={o.equipamento ?? ""} disabled={somenteLeitura} onChange={(e) => set({ equipamento: e.target.value })} required />
             </Field>
             <Field label="Nº de série">
-              <input className="input" value={o.numero_serie ?? ""} disabled={somenteLeitura} onChange={(e) => set({ numero_serie: e.target.value })} />
+              <input className="input" value={o.numero_serie ?? ""} disabled={somenteLeitura} placeholder={origem ? 'Da plaqueta (ou "sem plaqueta")' : ""}
+                onChange={(e) => set({ numero_serie: e.target.value })} />
             </Field>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:col-span-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4" checked={!!origem} disabled={somenteLeitura || !!equip?.origem}
+                  onChange={(e) => set({ maquina_origem: e.target.checked ? "My Frost" : null })} />
+                Máquina vendida por outra empresa (a MF responde só pelo serviço e pelas peças desta OS)
+              </label>
+              {origem && !equip?.origem && (
+                <input className="input max-w-[220px] py-1.5" aria-label="Empresa que vendeu a máquina" value={o.maquina_origem ?? ""} disabled={somenteLeitura}
+                  onChange={(e) => set({ maquina_origem: e.target.value })} />
+              )}
+            </div>
             {!o.equipamento_id && (
               <Field label="Modelo cadastrado (opcional)" className="sm:col-span-2">
                 <select className="input" value={o.produto_id ?? ""} disabled={somenteLeitura} onChange={(e) => {
@@ -385,6 +418,11 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
 
             <Field label="Defeito relatado pelo cliente" className="sm:col-span-4">
               <textarea className="input" rows={2} value={o.defeito_relatado ?? ""} disabled={somenteLeitura} onChange={(e) => set({ defeito_relatado: e.target.value })} required />
+            </Field>
+            <Field label={`Condição de entrada${origem ? " (obrigatória)" : ""}`} className="sm:col-span-4">
+              <textarea className="input" rows={2} value={o.condicao_entrada ?? ""} disabled={somenteLeitura}
+                placeholder="Como a máquina chegou: liga ou não, limpeza, riscos e amassados, peças faltando ou já trocadas por outros"
+                onChange={(e) => set({ condicao_entrada: e.target.value })} />
             </Field>
             <Field label="Diagnóstico técnico" className="sm:col-span-2">
               <textarea className="input" rows={3} value={o.diagnostico ?? ""} disabled={somenteLeitura} onChange={(e) => set({ diagnostico: e.target.value })} />
@@ -431,13 +469,42 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               <Field label="Garantia">
                 <label className="flex items-center gap-2 py-2 text-sm">
                   <input type="checkbox" className="h-5 w-5" checked={!!o.em_garantia} disabled={somenteLeitura} onChange={(e) => set({ em_garantia: e.target.checked })} />
-                  Coberto (sem cobrança)
+                  {origem ? "Retorno na garantia do reparo da MF (sem cobrança)" : "Coberto (sem cobrança)"}
                 </label>
               </Field>
               <Card className="col-span-2 flex items-center justify-between gap-3 p-3">
                 <span className="text-sm text-slate-500">Peças {brl(pecas)} · Mão de obra {brl(Number(o.valor_mao_obra || 0))}</span>
                 <span className="num shrink-0 whitespace-nowrap text-xl font-bold text-fg">{o.em_garantia ? "R$ 0,00" : brl(total)}</span>
               </Card>
+            </div>
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-4">
+              <div className="text-sm font-semibold text-fg sm:col-span-4">Orçamento aprovado pelo cliente{origem && !o.em_garantia ? " (obrigatório)" : ""}</div>
+              <Field label="Quando">
+                <input className="input" type="datetime-local" disabled={somenteLeitura}
+                  value={o.orcamento_aprovado_em ? new Date(new Date(o.orcamento_aprovado_em).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                  onChange={(e) => set({ orcamento_aprovado_em: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+              </Field>
+              <Field label="Por quem e como" className="sm:col-span-2">
+                <input className="input" value={o.orcamento_aprovado_por ?? ""} disabled={somenteLeitura} placeholder="Ex.: João (dono), pelo WhatsApp"
+                  onChange={(e) => set({ orcamento_aprovado_por: e.target.value })} />
+              </Field>
+              {!somenteLeitura && (
+                <div className="self-end">
+                  <Button type="button" variant="secondary" className="w-full" onClick={() => set({ orcamento_aprovado_em: new Date().toISOString() })}>Aprovado agora</Button>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-4">
+              <div className="text-sm font-semibold text-fg sm:col-span-4">Garantia do reparo (da MF: o serviço e as peças desta OS)</div>
+              <Field label="Prazo (dias)">
+                <input className="input" type="number" min={0} max={3650} disabled={somenteLeitura} placeholder={String(cfg?.garantia_servico_dias ?? 90)}
+                  value={o.garantia_reparo_dias ?? ""} onChange={(e) => set({ garantia_reparo_dias: e.target.value === "" ? null : Math.round(Number(e.target.value)) })} />
+              </Field>
+              <Field label={`Condições (vazio = ${origem ? "as condições padrão do reparo" : "o termo de garantia da configuração"})`} className="sm:col-span-3">
+                <textarea className="input" rows={2} disabled={somenteLeitura} value={o.garantia_reparo_condicoes ?? ""}
+                  placeholder={origem ? CONDICOES_REPARO_PADRAO : "Ex.: cobre as peças trocadas e a mão de obra deste conserto; não cobre outras peças da máquina, mau uso, queda ou ligação em tensão errada"}
+                  onChange={(e) => set({ garantia_reparo_condicoes: e.target.value })} />
+              </Field>
             </div>
           </div>
         )}

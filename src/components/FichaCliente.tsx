@@ -365,6 +365,12 @@ function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: 
             ))}
           </ul>
         )}
+        {equipamentos.some((e) => e.origem) && (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+            {[...new Set(equipamentos.filter((e) => e.origem).map((e) => e.origem))].join(", ")} é outra empresa. Nas máquinas vendidas por ela a MF não dá
+            garantia de fábrica: responde só pelo serviço e pelas peças que fornecer, com OS e orçamento aprovado.
+          </p>
+        )}
       </div>
       <div>
         <h3 className="mb-2 text-sm font-semibold">Ordens de serviço</h3>
