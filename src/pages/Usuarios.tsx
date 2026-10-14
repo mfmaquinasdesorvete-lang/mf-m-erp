@@ -17,6 +17,7 @@ import {
 } from "@/lib/permissoes";
 import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
 import { confirmar } from "@/components/Dialogos";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -81,7 +82,7 @@ export default function Usuarios() {
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
-  const [aba, setAba] = useState<"usuarios" | "permissoes" | "seguranca">("usuarios");
+  const [aba, setAba] = useAbaUrl<"usuarios" | "permissoes" | "seguranca">("usuarios", ["usuarios", "permissoes", "seguranca"] as const);
   const duas = useDuasEtapas();
   const invalidate = useInvalidate();
   const [busca, setBusca] = useState("");

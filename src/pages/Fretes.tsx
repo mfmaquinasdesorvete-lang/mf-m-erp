@@ -18,6 +18,7 @@ import {
   INDICADORES, REGIOES, STATUS_ENVIO, enviosDoMes, filtrarEnvios, freteDivergente, regiaoDaUf, rotuloServico,
   type ContextoPainel, type CotacaoEnvio, type DadosIndicadores, type Envio, type FiltrosPainel, type OcorrenciaEnvio, type PedidoValores, type StatusEnvio,
 } from "@/lib/fretes";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type PedidoResumo = {
   id: string; numero: number; status: string; vendedor_id: string | null; valor_total: number; created_at: string; enviado_em: string | null; modalidade_frete: number;
@@ -60,7 +61,7 @@ export default function Fretes() {
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useState<"painel" | "indicadores" | "envios">("painel");
+  const [aba, setAba] = useAbaUrl<"painel" | "indicadores" | "envios">("painel", ["painel", "indicadores", "envios"] as const);
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);

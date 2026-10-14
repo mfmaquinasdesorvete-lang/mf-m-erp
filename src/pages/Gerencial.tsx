@@ -16,6 +16,7 @@ import {
 } from "@/lib/gerencial";
 import type { Cliente } from "@/lib/types";
 import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
@@ -36,7 +37,7 @@ function Variacao({ c, base }: { c: Comparacao; base: string }) {
 
 export default function Gerencial() {
   const { filtrar } = useUnidade();
-  const [aba, setAba] = useState<Aba>("abc_produtos");
+  const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado"] as const);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const dia = hoje();

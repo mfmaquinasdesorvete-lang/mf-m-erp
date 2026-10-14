@@ -26,6 +26,7 @@ import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
 import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebidas } from "@/components/nfe/Evolucao";
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
+import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 
 const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
@@ -129,7 +130,7 @@ function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: stri
 export default function NotasFiscais() {
   const { pode, papel } = usePerfil();
   const contador = papel === "contador";
-  const [aba, setAba] = useState<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse">("emitidas");
+  const [aba, setAba] = useAbaUrl<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse">("emitidas", ["emitidas", "recebidas", "config", "regras", "compliance", "nfse"] as const);
   // "+ Emitir NF-e" do menu: abre a emissão
   const location = useLocation();
   const navigate = useNavigate();
@@ -143,11 +144,11 @@ export default function NotasFiscais() {
     const d = lerDestaque(location.state);
     if (d) setDestaque(d);
     if (st?.emitir) {
-      setAba("emitidas"); setEmitirAgora(true);
-      navigate(location.pathname, { replace: true, state: null });
+      setEmitirAgora(true);
+      navigate({ pathname: location.pathname, search: "" }, { replace: true, state: null });
     } else if (st?.aba) {
-      setAba(st.aba); setFiltroInicial(st.filtro);
-      navigate(location.pathname, { replace: true, state: null });
+      setFiltroInicial(st.filtro);
+      navigate({ pathname: location.pathname, search: buscaDaAba(st.aba, "emitidas") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   return (

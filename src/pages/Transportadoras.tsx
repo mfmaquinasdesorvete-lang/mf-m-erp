@@ -20,6 +20,7 @@ import {
   API, RECURSOS, SERVICOS, TIPOS, aConferir, combina, filtrar, nomeCurto, porMarca, redeNova, sugestoesAgrupar, temContato, ufsDa,
   type FiltroMarca, type Marca,
 } from "@/lib/transportadoras";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 const COR_API: Record<string, string> = {
   sim: "bg-emerald-100 text-emerald-800", parcial: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
@@ -29,7 +30,7 @@ const MSG = "Olá! Aqui é da MF Máquinas, gostaria de uma cotação de frete."
 const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
 
 export default function Transportadoras() {
-  const [aba, setAba] = useState<"marcas" | "lista">("marcas");
+  const [aba, setAba] = useAbaUrl<"marcas" | "lista">("marcas", ["marcas", "lista"] as const);
   return (
     <div>
       <Tabs value={aba} onChange={setAba} options={[{ value: "marcas", label: "Por marca" }, { value: "lista", label: "Lista completa (planilha)" }]} />

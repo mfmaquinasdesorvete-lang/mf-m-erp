@@ -20,6 +20,7 @@ import {
   analisar, apuracao, creditosEntradas, despesasComCredito, impostosDasNotas, mesesAte, saidaDeVenda, totaisXml,
   type Achado, type ContaPagarF, type Estrategia, type NotaEntrada, type NotaSaida, type PedidoF, type ProdutoF, type TotaisXml,
 } from "@/lib/analistaFiscal";
+import { useAbaUrl } from "@/lib/abaUrl";
 
 type Aba = "auditoria" | "economia" | "apuracao" | "regime" | "rotina";
 type ContaReceberF = { categoria?: string | null; valor: number; valor_pago?: number | null; status: string; vencimento: string; data_pagamento?: string | null; competencia?: string | null; unidade_id?: string | null };
@@ -31,7 +32,7 @@ const proximoMes = (am: string) => { const [a, m] = am.split("-").map(Number); r
 export default function AnalistaFiscal() {
   const navigate = useNavigate();
   const { unidades, atual, filtrar } = useUnidade();
-  const [aba, setAba] = useState<Aba>("auditoria");
+  const [aba, setAba] = useAbaUrl<Aba>("auditoria", ["auditoria", "economia", "apuracao", "regime", "rotina"] as const);
   const [mes, setMes] = useState(hoje().slice(0, 7));
   const meses = useMemo(() => mesesAte(mes, 12), [mes]);
 
