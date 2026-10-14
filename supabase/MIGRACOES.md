@@ -54,3 +54,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   31. `20261014051949_maquina_usada.sql`
   32. `20261014053611_os_maquina_outra_empresa.sql`
   33. `20261014061524_propostas_tiny.sql`
+  34. `20261014063805_descontos_aprovacao.sql`
+  35. `20261014064148_descontos_aprovacao_2.sql`
