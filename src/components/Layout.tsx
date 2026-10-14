@@ -9,7 +9,7 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
-import { grupoDaRota, grupos, todosItens, useVisivel, type Item } from "@/lib/menu";
+import { grupoDaRota, grupos, itensForaDoMenu, todosItens, useVisivel, type Item } from "@/lib/menu";
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
@@ -140,8 +140,10 @@ export function Layout() {
   const modulo = useMemo<Modulo>(() => {
     const path = location.pathname;
     const item = todosItens.filter((i) => i.to === path || (i.to !== "/" && path.startsWith(i.to + "/"))).sort((a, b) => b.to.length - a.to.length)[0];
-    const g = grupos.find((x) => x.id === (grupoDaRota(path) ?? "inicio"));
-    return { id: g?.id ?? "inicio", titulo: g?.titulo ?? "", icone: item?.icon ?? g?.icone };
+    const id = grupoDaRota(path) ?? "inicio";
+    const g = grupos.find((x) => x.id === id);
+    // Configurações e Usuários ficam na engrenagem (fora das áreas do menu), com a cor cinza
+    return { id, titulo: g?.titulo ?? (id === "admin" ? "Configurações" : ""), icone: item?.icon ?? g?.icone };
   }, [location.pathname]);
   useEffect(() => { document.documentElement.dataset.modulo = modulo.id; }, [modulo.id]);
 
@@ -240,6 +242,18 @@ export function Layout() {
               </section>
             );
           })}
+          {/* telas que não estão na lista (Configurações, Usuários, painéis de máquinas e produtos…) aparecem na busca */}
+          {busca.trim() && itensForaDoMenu.some((m) => vis.item(m) && combina(m, busca)) && (
+            <section className="mb-2 rounded-xl border border-white/15 bg-white/[0.04] px-1.5 pb-2 pt-1">
+              <h2 className="px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-nav-fraco">Outras telas</h2>
+              {itensForaDoMenu.filter((m) => vis.item(m) && combina(m, busca)).map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to} onClick={() => setAberto(false)}
+                  className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
+                  <Icon size={18} className="text-nav-fraco" /> {label}
+                </NavLink>
+              ))}
+            </section>
+          )}
         </nav>
           {maisAbaixo && (
             <button type="button" onClick={() => navRef.current?.scrollBy({ top: 240, behavior: "smooth" })} aria-label="Ver mais itens do menu"
@@ -250,20 +264,26 @@ export function Layout() {
           )}
         </div>
         <div className="border-t border-ink-line p-3">
+          {/* duas linhas: quem está logado em cima, os botões embaixo (numa linha só o nome sumia no notebook) */}
           <div className="flex items-center gap-2 px-1">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-soft text-sm font-bold text-brand-ice">{iniciais}</span>
             <span className="min-w-0 flex-1 leading-tight" title={perfil.nome}>
               <span className="block truncate text-sm font-semibold text-white">{perfil.nome}</span>
               <span className="block truncate text-xs text-nav-fraco">{[perfil.papel, ...(perfil.papeis_extras ?? [])].map(rotuloPapel).join(" · ")}</span>
             </span>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-1">
             {([
+              // engrenagem: Configurações (e, dentro dela, usuários e formas de pagamento)
+              ...(vis.ve("configuracoes", "/configuracoes") || vis.ve("usuarios", "/usuarios")
+                ? [["Configurações", Settings, () => { setAberto(false); navigate(vis.ve("configuracoes", "/configuracoes") ? "/configuracoes" : "/usuarios"); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],
               ["Sair", LogOut, () => supabase.auth.signOut()],
             ] as const).map(([rotulo, Icone, acao]) => (
               <button key={rotulo} onClick={acao} title={rotulo} aria-label={rotulo}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-nav-fraco hover:bg-ink-soft hover:text-white">
+                className="grid h-9 flex-1 place-items-center rounded-lg text-nav-fraco hover:bg-ink-soft hover:text-white">
                 <Icone size={17} />
               </button>
             ))}

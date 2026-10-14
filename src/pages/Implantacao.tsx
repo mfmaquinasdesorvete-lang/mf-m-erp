@@ -112,7 +112,7 @@ export default function Implantacao() {
 
   return (
     <div>
-      <PageHeader title="Troca do Tiny pelo ERP"
+      <PageHeader title="Troca do Tiny"
         subtitle="O plano por fases, quem faz e até quando. Os números abaixo são medidos no próprio ERP e atualizam sozinhos."
         actions={admin && <Button variant={editando ? "primary" : "secondary"} onClick={() => setEditando(!editando)}>{editando ? "Pronto" : "Mudar prazos e responsáveis"}</Button>} />
 

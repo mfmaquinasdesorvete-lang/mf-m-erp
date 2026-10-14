@@ -15,7 +15,7 @@ import { useConfig } from "@/lib/useConfig";
 import {
   ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
-import { grupos, type Item } from "@/lib/menu";
+import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -362,7 +362,7 @@ function MatrizPermissoes() {
   const [salvando, setSalvando] = useState(false);
   const acoes = Object.keys(ACOES_ROTULO) as (keyof typeof ACOES_ROTULO)[];
   const faz = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
-  const areas = grupos.map((g) => ({ ...g, titulo: g.titulo || "Início" }));
+  const areas = [...grupos.map((g) => ({ ...g, titulo: g.titulo || "Início" })), { id: "outras", titulo: "Outras telas (engrenagem e botões)", itens: itensForaDoMenu }];
 
   function alternar(p: Exclude<Papel, "admin">, to: string, ver: boolean) {
     const lista = new Set(atual[p] ?? []);

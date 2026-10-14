@@ -139,7 +139,7 @@ export default function AnalistaFiscal() {
       </div>
 
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "auditoria", label: "Auditoria" }, { value: "economia", label: "Pagar menos imposto" }, { value: "apuracao", label: "Apuração do mês" },
+        { value: "auditoria", label: "Conferência fiscal" }, { value: "economia", label: "Pagar menos imposto" }, { value: "apuracao", label: "Apuração do mês" },
         { value: "regime", label: "Real x Presumido" }, { value: "rotina", label: "Rotina simples" },
       ]} />
 
