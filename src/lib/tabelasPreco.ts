@@ -19,7 +19,13 @@ export const ARREDONDAMENTOS: { value: TabelaPreco["arredondamento"]; label: str
 export function arredondar(v: number, modo: TabelaPreco["arredondamento"]) {
   if (modo === "inteiro") return Math.ceil(v - 1e-9);
   if (modo === "final90") return Math.round((Math.ceil(v + 0.1 - 1e-9) - 0.1) * 100) / 100;
-  return Math.round(v * 100) / 100;
+  return centavos(v);
+}
+
+/** Arredonda para centavos como o banco (round(v, 2)): 18,795 vira 18,80, e não 18,79 pela conta do computador. */
+function centavos(v: number) {
+  // limpa o resto da conta do computador (1879,4999999… vira 1879,5) antes de arredondar
+  return Math.round(Number((v * 100).toFixed(6))) / 100;
 }
 
 /** Preço do produto na tabela (sem tabela = preço de venda). fixo = veio de um preço digitado. */

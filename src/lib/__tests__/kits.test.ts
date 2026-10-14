@@ -109,7 +109,7 @@ describe("estoqueKit (quantos kits dá para montar)", () => {
 
   // BUG (src/lib/kits.ts:39): Math.floor(saldo / quantidade) em ponto flutuante. Kit com 0,1 kg de graxa e 0,3 kg no
   // estoque: 0.3 / 0.1 = 2.9999999999999996 → floor = 2, mas dá para montar 3 kits. Afeta a tela de pedido/kits.
-  it.fails("quantidade fracionada: 0,3 kg de graxa para kits de 0,1 kg dá 3 kits", () => {
+  it("quantidade fracionada: 0,3 kg de graxa para kits de 0,1 kg dá 3 kits", () => {
     const comps = [kc("KG", "GRX", 0.1)];
     expect(estoqueKit("KG", comps, () => 0.3)).toBe(3);
   });

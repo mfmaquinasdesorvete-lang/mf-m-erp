@@ -38,7 +38,7 @@ describe("precoNaTabela", () => {
   // BUG (src/lib/tabelasPreco.ts:22): o arredondamento "centavos" faz Math.round(v * 100) / 100 sobre o valor em
   // ponto flutuante, enquanto o banco (preco_tabela) faz round(v, 2) em numeric exato. Produto de R$ 17,90 numa tabela
   // de +5%: 17,90 × 1,05 = 18,795 → banco R$ 18,80; a tela (pedido/PDV) calcula 18.794999… → R$ 18,79.
-  it.fails("meio centavo arredonda para cima como no banco (17,90 + 5% = 18,80)", () => {
+  it("meio centavo arredonda para cima como no banco (17,90 + 5% = 18,80)", () => {
     expect(precoNaTabela(tabela({ ajuste_percentual: 5 }), { id: "P", preco_venda: 17.9 }, []).preco).toBe(18.8);
   });
 
