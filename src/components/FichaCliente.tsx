@@ -13,6 +13,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
+import { textoVenda } from "@/lib/garantia";
 import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 
@@ -49,7 +50,7 @@ function useFicha(c: Cliente) {
     queryFn: async () => {
       const doc = digitos(c.cpf_cnpj);
       const vazio = Promise.resolve({ data: [] as any[] });
-      const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios] = await Promise.all([
+      const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios, legado] = await Promise.all([
         supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, " +
           "itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(sku)), notas:notas_fiscais(id, numero, status, ambiente)")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
@@ -59,11 +60,13 @@ function useFicha(c: Cliente) {
           .eq("cliente_id", c.id).order("vencimento", { ascending: false }),
         supabase.from("ordens_servico").select("id, numero, equipamento, numero_serie, defeito_relatado, status, em_garantia, valor_total, data_entrada")
           .eq("cliente_id", c.id).order("data_entrada", { ascending: false }),
-        supabase.from("equipamentos").select("id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada")
-          .eq("cliente_id", c.id).order("data_venda", { ascending: false }),
+        supabase.from("equipamentos").select("id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem")
+          .eq("cliente_id", c.id).order("data_venda", { ascending: false, nullsFirst: false }),
         supabase.from("contatos_cliente").select("id, tipo, canal, resultado, proximo_contato, created_at, created_by")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
         supabase.from("usuarios_erp").select("user_id, nome"),
+        // o que comprou na My Frost (empresa anterior), trazido do backup do Tiny: só data, item e quantidade
+        supabase.from("compras_legado").select("id, data, documento, descricao, quantidade, origem").eq("cliente_id", c.id).order("data", { ascending: false }),
       ]);
       const erro = [ped, notasC, contas, oss, equip, contatos].find((r) => r.error)?.error;
       if (erro) throw erro;
@@ -72,6 +75,8 @@ function useFicha(c: Cliente) {
       return {
         pedidos: (ped.data ?? []) as any[], notas, contas: (contas.data ?? []) as any[], oss: (oss.data ?? []) as any[],
         equipamentos: (equip.data ?? []) as any[], contatos: (contatos.data ?? []) as any[],
+        // antes da migração a tabela não existe: a ficha abre sem essa parte
+        legado: (legado.error ? [] : legado.data ?? []) as any[],
         nomes: new Map(((usuarios.data ?? []) as any[]).map((u) => [u.user_id, u.nome])),
       };
     },
@@ -134,7 +139,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
-          {aba === "assistencia" && <Assistencia oss={data.oss} equipamentos={data.equipamentos} />}
+          {aba === "assistencia" && <Assistencia oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} />}
           {aba === "atendimentos" && <Atendimentos cliente={c} contatos={data.contatos} nomes={data.nomes} />}
         </>
       )}
@@ -339,7 +344,7 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
   );
 }
 
-function Assistencia({ oss, equipamentos }: { oss: any[]; equipamentos: any[] }) {
+function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: any[]; legado: any[] }) {
   const dia = hoje();
   return (
     <div className="space-y-5">
@@ -350,7 +355,7 @@ function Assistencia({ oss, equipamentos }: { oss: any[]; equipamentos: any[] })
             {equipamentos.map((e) => (
               <li key={e.id} className="flex flex-wrap gap-x-3 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
-                <span>vendido em {dataBR(e.data_venda)}</span>
+                <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}
                 {e.proxima_preventiva && <span className={e.proxima_preventiva < dia ? "text-red-700" : ""}>preventiva {dataBR(e.proxima_preventiva)}{e.preventiva_agendada ? ` (agendada ${dataBR(e.preventiva_agendada)})` : ""}</span>}
               </li>
@@ -375,6 +380,21 @@ function Assistencia({ oss, equipamentos }: { oss: any[]; equipamentos: any[] })
           </ul>
         )}
       </div>
+      {legado.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-sm font-semibold">Compras na My Frost (empresa anterior)</h3>
+          <p className="mb-2 text-xs text-slate-500">Do backup do Tiny da My Frost: ajuda a saber que peças essa máquina já usou. Não são vendas da MF.</p>
+          <ul className="space-y-1 text-sm">
+            {legado.map((x) => (
+              <li key={x.id} className="flex flex-wrap gap-x-3 [overflow-wrap:anywhere]">
+                <span className="num text-slate-500">{dataBR(x.data)}</span>
+                <span>{Number(x.quantidade) !== 1 ? `${Number(x.quantidade).toLocaleString("pt-BR")} × ` : ""}{x.descricao}</span>
+                {x.documento && <span className="text-xs text-slate-500">{x.documento}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

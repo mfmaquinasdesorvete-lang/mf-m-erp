@@ -1033,6 +1033,7 @@ function bancosDemo(db: Db) {
   db.extrato_lancamentos = [];
   db.openfinance_conexoes = [];
   db.inter_conexoes = [];
+  db.compras_legado = [];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({
     id: uid(), conta_bancaria_id: conta, importacao_id: null, data, valor: r2(valor), descricao, documento: null, identificador: uid(), status: "pendente",
@@ -2481,6 +2482,48 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
           complemento: it.complemento, bairro: it.bairro, municipio: it.cidade, uf: it.uf,
         }).filter(([, v]) => v !== "" && v != null)));
       }
+    }
+    return { data: r, error: null };
+  },
+  // base da My Frost (no sistema real: public.importar_legado_myfrost / importar_pecas_myfrost)
+  importar_legado_myfrost: ({ p_clientes }) => {
+    const r = { novos: 0, existentes: 0, arquivados: 0, maquinas: 0, compras: 0, erros: [] as Row[] };
+    for (const c of p_clientes as Row[]) {
+      let cli = db.clientes.find((x: Row) => x.id_externo === `myfrost:${c.ref}` || (c.cpf_cnpj && x.cpf_cnpj === c.cpf_cnpj));
+      if (!cli) {
+        cli = { id: uid(), ...DEFAULTS.clientes(), codigo: db.clientes.reduce((m: number, x: Row) => Math.max(m, Number(x.codigo ?? 0)), 0) + 1,
+          nome: c.nome, nome_fantasia: c.fantasia || null, tipo_pessoa: c.tipo_pessoa, cpf_cnpj: c.cpf_cnpj || null, email: c.email || null,
+          telefone: c.telefone || null, whatsapp: c.celular || null, municipio: c.municipio || null, uf: c.uf || null, observacoes: c.obs,
+          tags: [...c.tags], id_externo: `myfrost:${c.ref}`, created_at: quando(0) };
+        db.clientes.push(cli);
+        r.novos++;
+      } else {
+        cli.tags = [...new Set([...(cli.tags ?? []), ...c.tags])].sort();
+        r.existentes++;
+      }
+      for (const m of c.maquinas ?? []) {
+        if (db.equipamentos.some((e: Row) => e.origem_ref === m.ref)) continue;
+        const prod = db.produtos.find((p: Row) => p.tipo === "maquina" && p.descricao.toLowerCase().includes(String(m.modelo).toLowerCase()));
+        db.equipamentos.push({ id: uid(), cliente_id: cli.id, produto_id: prod?.id ?? null, descricao: m.descricao, numero_serie: null, pedido_id: null,
+          data_venda: m.data, garantia_ate: null, proxima_preventiva: null, ultimo_contato: null, observacoes: m.obs, origem: "My Frost", origem_ref: m.ref, created_at: quando(0) });
+        r.maquinas++;
+      }
+      for (const x of c.compras ?? []) {
+        if (db.compras_legado.some((y: Row) => y.ref === x.ref)) continue;
+        db.compras_legado.push({ id: uid(), cliente_id: cli.id, origem: "My Frost", ...x, created_at: quando(0) });
+        r.compras++;
+      }
+    }
+    return { data: r, error: null };
+  },
+  importar_pecas_myfrost: ({ p_pecas }) => {
+    const r = { novas: 0, ja_existiam: 0, erros: [] as Row[] };
+    for (const x of p_pecas as Row[]) {
+      if (db.produtos.some((p: Row) => p.id_externo === `myfrost:${x.ref}`)) { r.ja_existiam++; continue; }
+      const skuUsado = x.sku && db.produtos.some((p: Row) => (p.sku ?? "").toUpperCase() === String(x.sku).toUpperCase());
+      db.produtos.push({ id: uid(), ...DEFAULTS.produtos?.(), sku: skuUsado ? null : x.sku || null, descricao: x.descricao, tipo: "peca", unidade: x.unidade || "UN",
+        ncm: x.ncm || null, preco_venda: x.preco_venda, preco_custo: x.preco_custo, ativo: true, id_externo: `myfrost:${x.ref}`, estoque_atual: 0, created_at: quando(0) });
+      r.novas++;
     }
     return { data: r, error: null };
   },
