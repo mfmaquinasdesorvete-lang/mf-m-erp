@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Cake, Eye, HandCoins, Lock, Users, Wallet } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
-import { Badge, Button, Field, Indicador, Modal } from "@/components/ui";
+import { Badge, Button, CampoMes, Field, Indicador, Modal } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -358,9 +358,9 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
 
   return (
     <Modal open onClose={onClose} title="Lançar salários no Contas a pagar">
-      <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">Mês trabalhado
-        <input type="month" className="input w-auto" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} />
-      </label>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">Mês trabalhado
+        <CampoMes value={mes} onChange={(v) => v && setMes(v)} rotulo="Mês trabalhado" />
+      </div>
       {!comSalario.length ? <p className="text-sm text-slate-600">Ninguém da equipe tem salário cadastrado.</p> : (
         <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
           {comSalario.map((f) => {

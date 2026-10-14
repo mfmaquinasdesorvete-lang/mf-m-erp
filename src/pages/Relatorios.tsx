@@ -221,21 +221,21 @@ export default function Relatorios() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr><th className="th pl-0">Vendedor</th><th className="th text-right">Vendido</th><th className="th text-right">Recebido</th><th className="th text-right" title="propostas ganhas / enviadas">Prop.</th></tr>
+                <tr><th className="th pl-0">Vendedor</th><th className="th !px-1.5 text-right">Vendido</th><th className="th !pr-0 !pl-1.5 text-right">Recebido</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {r.vendedores.map((c) => {
                   const pv = r.propostas.porVendedor.find(([n]) => n === c.nome)?.[1];
                   return (
                     <tr key={c.nome}>
-                      <td className="py-2 font-medium text-fg">{c.nome}<div className="text-xs font-normal text-slate-500">{c.pedidos} pedido(s)</div></td>
-                      <td className="num py-2 text-right">{brl(c.vendido)}</td>
-                      <td className="num py-2 text-right">{brl(c.recebido)}</td>
-                      <td className="num py-2 text-right">{pv ? `${pv.ganhas}/${pv.enviadas}` : "—"}</td>
+                      <td className="py-2 font-medium text-fg">{c.nome}
+                        <div className="text-xs font-normal text-slate-500">{c.pedidos} {c.pedidos === 1 ? "pedido" : "pedidos"}{pv ? ` · ${pv.ganhas} de ${pv.enviadas} ${pv.enviadas === 1 ? "proposta ganha" : "propostas ganhas"}` : ""}</div></td>
+                      <td className="num whitespace-nowrap py-2 pl-1.5 text-right">{brl(c.vendido)}</td>
+                      <td className="num whitespace-nowrap py-2 pl-1.5 text-right">{brl(c.recebido)}</td>
                     </tr>
                   );
                 })}
-                {!r.vendedores.length && <tr><td colSpan={4} className="py-6 text-center text-slate-500">Sem vendas no período.</td></tr>}
+                {!r.vendedores.length && <tr><td colSpan={3} className="py-6 text-center text-slate-500">Sem vendas no período.</td></tr>}
               </tbody>
             </table>
           </div>

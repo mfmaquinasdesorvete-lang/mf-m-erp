@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Printer, Search, User, Zap, ZapOff } from "lucide-react";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, RolagemLateral } from "@/components/ui";
 import { Cartao } from "@/components/fluxo/Cartao";
 import { BlocosEtapas, FaixaAcao, type ResumoEtapa } from "@/components/fluxo/Resumo";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
@@ -231,7 +231,7 @@ export default function Fluxo() {
         </div>
       ) : largo ? (
         // Quadro: uma coluna por etapa; coluna vazia vira uma faixa estreita
-        <div className="-mx-1 overflow-x-auto px-1 pb-3">
+        <RolagemLateral className="-mx-1" caixa="px-1 pb-3">
           <div className="flex min-w-full gap-2.5">
             {COLUNAS.map((c) => {
               const lista = porColuna.get(c.id)!;
@@ -267,7 +267,7 @@ export default function Fluxo() {
               );
             })}
           </div>
-        </div>
+        </RolagemLateral>
       ) : (
         // Celular e tablet: uma etapa embaixo da outra; as vazias viram uma linha só
         <div className="space-y-5">

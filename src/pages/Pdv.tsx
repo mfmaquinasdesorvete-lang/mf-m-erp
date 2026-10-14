@@ -118,6 +118,16 @@ export default function Pdv() {
   const [pedirAprovacao, setPedirAprovacao] = useState(false);
   const busca = useRef<HTMLDivElement>(null);
   const pagar = useRef<HTMLDivElement>(null);
+  // o botão Finalizar está na tela? (em notebook baixo ou no celular ele fica lá embaixo: aí aparece a barra fixa com o total)
+  const botaoFinal = useRef<HTMLDivElement>(null);
+  const [finalVisivel, setFinalVisivel] = useState(true);
+  useEffect(() => {
+    const el = botaoFinal.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setFinalVisivel(e.isIntersecting), { threshold: 0.6 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => { if (!unidadeId && padrao) setUnidadeId(padrao); }, [padrao]); // eslint-disable-line react-hooks/exhaustive-deps
   // vendedor padrão: o do usuário que está no balcão
@@ -502,19 +512,21 @@ export default function Pdv() {
                 {semPreco.length > 0 ? `Falta o preço de ${semPreco.length === 1 ? "1 item" : `${semPreco.length} itens`}.` : "O desconto precisa da aprovação do administrador."}
               </p>
             )}
-            <Button type="button" className="w-full !py-3 text-base" disabled={!pronto || enviando} onClick={finalizar}>
-              <CheckCircle2 size={18} aria-hidden /> {enviando ? "Finalizando…" : `Finalizar venda ${total > 0 ? brl(total) : ""}`}
-              <kbd className="ml-1 hidden rounded bg-white/20 px-1.5 text-xs sm:inline">F2</kbd>
-            </Button>
+            <div ref={botaoFinal}>
+              <Button type="button" className="w-full !py-3 text-base" disabled={!pronto || enviando} onClick={finalizar}>
+                <CheckCircle2 size={18} aria-hidden /> {enviando ? "Finalizando…" : `Finalizar venda ${total > 0 ? brl(total) : ""}`}
+                <kbd className="ml-1 hidden rounded bg-white/20 px-1.5 text-xs sm:inline">F2</kbd>
+              </Button>
+            </div>
           </Card>
         </div>
       </div>
 
       <VendasDeHoje />
 
-      {/* celular: total sempre à vista */}
-      {itens.length > 0 && !feito && (
-        <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-slate-200 bg-surface px-4 py-2.5 shadow-pop lg:hidden">
+      {/* total e Finalizar sempre à vista quando o botão de baixo sai da tela (celular e notebook de tela baixa) */}
+      {itens.length > 0 && !feito && !finalVisivel && (
+        <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-slate-200 bg-surface px-4 py-2.5 shadow-pop lg:inset-x-auto lg:bottom-4 lg:right-5 lg:w-[380px] lg:rounded-xl lg:border">
           <div className="flex-1"><div className="text-xs text-slate-500">{itens.length} {itens.length === 1 ? "item" : "itens"}</div><div className="num text-lg font-extrabold">{brl(total)}</div></div>
           <Button type="button" onClick={() => (pronto ? finalizar() : pagar.current?.scrollIntoView({ behavior: "smooth" }))} disabled={enviando}>
             {pronto ? "Finalizar" : "Cobrar"}

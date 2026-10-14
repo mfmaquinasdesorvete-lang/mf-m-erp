@@ -45,7 +45,7 @@ export function TrilhaEvolucao({ e }: { e: Evolucao }) {
   if (!e.etapas.length) return null;
   const feitas = e.etapas.filter((x) => x.estado === "ok").length;
   return (
-    <div className="flex min-w-max items-center gap-[3px]" aria-label={`Evolução: ${feitas} de ${e.etapas.length} etapas feitas`}>
+    <div className="flex max-w-[97px] flex-wrap items-center gap-[3px] 2xl:min-w-max 2xl:max-w-none 2xl:flex-nowrap" aria-label={`Evolução: ${feitas} de ${e.etapas.length} etapas feitas`}>
       {e.etapas.map((x) => {
         const I = ICONE_ETAPA[x.id];
         return (

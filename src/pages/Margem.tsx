@@ -1,7 +1,7 @@
 // Margem de contribuição: lucro de verdade de cada venda, produto, canal, vendedor, cliente e unidade.
 import { useMemo, useState } from "react";
 import { ArrowDownWideNarrow, FileDown, Percent, TrendingUp, Wallet } from "lucide-react";
-import { Button, PageHeader, Section, Stat, Tabs } from "@/components/ui";
+import { Button, CampoMes, PageHeader, Section, Stat, Table, Tabs } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
@@ -83,8 +83,8 @@ export default function Margem() {
       <PageHeader title="Margem de contribuição" subtitle="Quanto sobra de cada venda depois dos impostos, do custo do produto, da comissão, do frete e da taxa do pagamento."
         actions={<Button variant="secondary" onClick={exportar} disabled={!dados?.linhas.length}><FileDown size={16} /> Exportar</Button>} />
       <div className="mb-4 flex flex-wrap items-end gap-2">
-        <label className="text-sm">De <input type="month" className="input w-auto" value={de} onChange={(e) => setDe(e.target.value)} /></label>
-        <label className="text-sm">até <input type="month" className="input w-auto" value={ate} onChange={(e) => setAte(e.target.value)} /></label>
+        <div className="flex items-center gap-1 text-sm">De <CampoMes value={de} onChange={setDe} max={ate} rotulo="Do mês" /></div>
+        <div className="flex items-center gap-1 text-sm">até <CampoMes value={ate} onChange={setAte} min={de} rotulo="Até o mês" /></div>
         <select className="input w-auto" value={canal} onChange={(e) => setCanal(e.target.value)}>
           <option value="">Todos os canais</option>
           {Object.entries(CANAIS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -111,45 +111,43 @@ export default function Margem() {
           <button key={v} type="button" onClick={() => setOrdem(v)} className={`rounded-md px-2 py-0.5 font-semibold ${ordem === v ? "bg-brand text-brand-fg" : "text-slate-600"}`}>{l}</button>
         ))}
       </div>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-surface">
-        <table className="w-full min-w-[1120px] text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="th min-w-[240px]">{ROTULO[visao]}</th><th className="th text-right">{visao === "produto" ? "Qtd" : "Vendas"}</th>
-              <th className="th text-right">Receita</th><th className="th text-right">Impostos</th><th className="th text-right">Produto</th>
-              <th className="th text-right">Comissão</th><th className="th text-right">Frete</th><th className="th text-right">Taxas</th>
-              <th className="th text-right">Margem</th><th className="th w-40">Margem %</th>
+      {/* no notebook cabe sem rolar (quantidade embaixo do nome, margem e % na mesma coluna); no celular cada linha vira um cartão */}
+      <Table
+        head={<>
+          <th className="th min-w-[180px] 2xl:min-w-[240px]">{ROTULO[visao]}</th>
+          <th className="th text-right">Receita</th><th className="th text-right">Impostos</th><th className="th text-right">Produto</th>
+          <th className="th text-right">Comissão</th><th className="th text-right">Frete</th><th className="th text-right">Taxas</th>
+          <th className="th w-36 text-right">Margem</th>
+        </>}>
+        {dados?.linhas.map((l) => {
+          const pc = pctMc(l);
+          return (
+            <tr key={l.chave}>
+              <td className="td">
+                <div className="font-medium text-fg">{l.nome}{l.estimado && <span title="impostos estimados" className="text-slate-400"> *</span>}</div>
+                {l.detalhe && <div className="text-xs text-slate-500">{l.detalhe}</div>}
+                <div className="text-xs text-slate-500">{l.qtd.toLocaleString("pt-BR")} {visao === "produto" ? "unid." : l.qtd === 1 ? "venda" : "vendas"}</div>
+              </td>
+              <td className="td num whitespace-nowrap text-right">{brl(l.receita)}</td>
+              <td className="td num whitespace-nowrap text-right text-slate-600">{brl(l.impostos)}</td>
+              <td className="td num whitespace-nowrap text-right text-slate-600">{brl(l.cmv)}</td>
+              <td className="td num whitespace-nowrap text-right text-slate-600">{brl(l.comissao)}</td>
+              <td className="td num whitespace-nowrap text-right text-slate-600">{brl(l.frete)}</td>
+              <td className="td num whitespace-nowrap text-right text-slate-600">{brl(l.taxa)}</td>
+              <td className="td text-right">
+                <div className={`num whitespace-nowrap font-bold ${l.mc < 0 ? "text-red-600" : "text-fg"}`}>{brl(l.mc)}</div>
+                <div className="mt-1 flex items-center justify-end gap-2">
+                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                    <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, pc * 100))}%`, background: pc < 0 ? "#dc2626" : pc < 0.15 ? "var(--serie-2)" : "var(--serie-1)" }} />
+                  </div>
+                  <span className={`num text-xs font-semibold ${pc < 0 ? "text-red-600" : "text-slate-600"}`}>{pctTxt(pc)}</span>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {dados?.linhas.map((l) => {
-              const pc = pctMc(l);
-              return (
-                <tr key={l.chave}>
-                  <td className="td"><div className="font-medium text-fg">{l.nome}{l.estimado && <span title="impostos estimados" className="text-slate-400"> *</span>}</div>{l.detalhe && <div className="text-xs text-slate-500">{l.detalhe}</div>}</td>
-                  <td className="td num text-right">{l.qtd.toLocaleString("pt-BR")}</td>
-                  <td className="td num text-right">{brl(l.receita)}</td>
-                  <td className="td num text-right text-slate-600">{brl(l.impostos)}</td>
-                  <td className="td num text-right text-slate-600">{brl(l.cmv)}</td>
-                  <td className="td num text-right text-slate-600">{brl(l.comissao)}</td>
-                  <td className="td num text-right text-slate-600">{brl(l.frete)}</td>
-                  <td className="td num text-right text-slate-600">{brl(l.taxa)}</td>
-                  <td className={`td num text-right font-bold ${l.mc < 0 ? "text-red-600" : "text-fg"}`}>{brl(l.mc)}</td>
-                  <td className="td">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, pc * 100))}%`, background: pc < 0 ? "#dc2626" : pc < 0.15 ? "var(--serie-2)" : "var(--serie-1)" }} />
-                      </div>
-                      <span className={`num w-12 text-right font-semibold ${pc < 0 ? "text-red-600" : ""}`}>{pctTxt(pc)}</span>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {!dados?.linhas.length && <tr><td colSpan={10} className="py-8 text-center text-slate-500">Sem vendas aprovadas no período.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      </Table>
+      {!dados?.linhas.length && <p className="p-6 text-center text-sm text-slate-500">Sem vendas aprovadas no período.</p>}
     </div>
   );
 }

@@ -138,12 +138,14 @@ export default function Pedidos() {
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <div className="mb-4 space-y-3">
         <div className="flex flex-wrap gap-2">
-          <input className="input min-w-0 max-w-md flex-1" placeholder="Buscar nº, cliente, CPF ou CNPJ…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <input className="input min-w-0 basis-full sm:max-w-md sm:flex-1 sm:basis-auto" type="search" placeholder="Buscar nº, cliente, CPF ou CNPJ…" aria-label="Buscar vendas" value={busca} onChange={(e) => setBusca(e.target.value)} />
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* quebra em linhas (no celular rolar para o lado escondia metade das situações) */}
+        <div className="flex flex-wrap gap-2">
           {STATUS.map((st) => {
             const n = st === "todos" ? pedidos.length : pedidos.filter((x) => x.status === st).length;
+            if (!n && st !== "todos" && st !== filtro) return null; // situação sem nenhuma venda não ocupa espaço
             return (
               <button key={st} type="button" onClick={() => setFiltro(st)}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${filtro === st ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
@@ -165,14 +167,14 @@ export default function Pedidos() {
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
-              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} item(ns)</span>
+              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}</span>
               <span className="num text-base font-bold text-fg">{brl(p.valor_total)}</span>
             </div>
             <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
           </button>
           <div className="flex items-center justify-between gap-2 px-2 pb-2">
             <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
-            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Ver / editar <ChevronRight size={16} /></button>
+            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Abrir <ChevronRight size={16} /></button>
           </div>
           </div>
         ))}
@@ -193,7 +195,7 @@ export default function Pedidos() {
             <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} /></td>
             <td className="td text-right font-medium">{brl(p.valor_total)}</td>
             <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></td>
-            <CelulaAbrir texto="Ver / editar" />
+            <CelulaAbrir />
           </tr>
         ))}
       </Table>

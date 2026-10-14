@@ -237,9 +237,9 @@ export default function Clientes() {
             </>);
           },
         },
-        { label: "CPF/CNPJ", render: (r) => <span className="whitespace-nowrap" title={digitos(r.cpf_cnpj).length === 11 ? "CPF parcial: abra o cadastro para ver inteiro" : undefined}>{docParcial(r.cpf_cnpj) || "—"}</span> },
+        // cidade embaixo do documento: uma coluna a menos para a lista caber no notebook
+        { label: "CPF/CNPJ e cidade", render: (r) => <><span className="whitespace-nowrap" title={digitos(r.cpf_cnpj).length === 11 ? "CPF parcial: abra o cadastro para ver inteiro" : undefined}>{docParcial(r.cpf_cnpj) || "—"}</span><div className="text-xs text-slate-500">{[r.municipio, r.uf].filter(Boolean).join("/")}</div></> },
         { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
-        { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
       ]}
     />
     </>

@@ -97,12 +97,13 @@ h1, h2, h3 { text-wrap: balance; }
            disabled:bg-slate-50 disabled:text-slate-500;
   }
   /* iPhone: data e hora não passam da largura do campo nem ficam centralizadas */
-  input.input[type="date"], input.input[type="time"], input.input[type="datetime-local"], input.input[type="month"] {
+  input.input[type="date"], input.input[type="time"], input.input[type="datetime-local"] {
     -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%; display: block; min-height: 2.75rem;
   }
   input.input::-webkit-date-and-time-value { text-align: left; }
-  .th { @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500; }
-  .td { @apply px-4 py-3 text-sm align-top; }
+  /* notebook (até 1535 px): células um pouco mais justas para a tabela caber sem rolar para o lado */
+  .th { @apply whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 2xl:px-4 2xl:tracking-wider; }
+  .td { @apply px-3 py-3 text-sm align-top 2xl:px-4; }
 }
 .num { font-variant-numeric: tabular-nums; }
 :focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
@@ -119,6 +120,7 @@ select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
   .tabela > tbody > tr { padding: 14px 16px; }
   /* cada registro é um cartão separado, com a faixa da cor da área à esquerda (mais fácil de achar e ler) */
   .tabela-caixa.tabela-caixa { background: transparent; border-width: 0; box-shadow: none; overflow: visible; }
+  .tabela-caixa .overflow-x-auto { overflow: visible; } /* a sombra dos cartões não é cortada */
   .tabela > tbody { display: flex; flex-direction: column; gap: 10px; }
   /* !important: passa por cima das linhas divisórias da tabela (divide-y), que têm mais peso */
   .tabela.tabela > tbody > tr {

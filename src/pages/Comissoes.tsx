@@ -2,7 +2,7 @@
 // (no faturamento ou no recebimento) e pagamento pelo contas a pagar.
 import { useMemo, useState, type FormEvent } from "react";
 import { FileDown, Pencil, Plus, Printer, Wallet } from "lucide-react";
-import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -110,7 +110,7 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
         <select className="input w-auto" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="a_pagar">A pagar</option><option value="paga">Pagas</option><option value="cancelada">Canceladas</option><option value="todas">Todas</option>
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-600">Mês <input type="month" className="input w-auto" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês das comissões" /></label>
+        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês das comissões" /></div>
         <div className="flex-1" />
         <Button variant="secondary" onClick={imprimir}><Printer size={16} /> Imprimir</Button>
         <Button variant="secondary" onClick={exportar} disabled={!filtradas.length}><FileDown size={16} /> Exportar</Button>

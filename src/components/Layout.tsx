@@ -161,7 +161,7 @@ export function Layout() {
         </button>
       </header>
 
-      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-72 md:shrink-0 md:flex-col md:border-r md:border-ink-line`}>
+      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
         <div className="hidden px-5 pb-4 pt-6 md:block [@media(min-width:768px)_and_(max-height:860px)]:pb-3 [@media(min-width:768px)_and_(max-height:860px)]:pt-4"><div className="flex items-center justify-between gap-2"><Marca /><Sino /></div><div className="mt-4"><SeletorUnidade /></div></div>
         <div className="relative flex min-h-0 flex-1 flex-col">
         <AcessoRapido ve={vis.item} onIr={() => setAberto(false)} />
@@ -225,7 +225,7 @@ export function Layout() {
                       }
                       setAreaAberta(aberta && !buscando ? null : g.id);
                     }}
-                    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-white/5">
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/5 2xl:gap-2.5">
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${g.cor} text-white shadow-sm`}><Icone size={16} /></span>
                     <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-white">{g.titulo}</span>
                     <ChevronDown size={16} className={`shrink-0 text-nav-fraco transition ${aberta ? "rotate-180" : ""}`} />
@@ -271,7 +271,7 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="fundo-modulo min-w-0 flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-8">
+      <main className="fundo-modulo min-w-0 flex-1 px-4 pb-28 pt-5 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
         <ModuloContext.Provider value={modulo}>
         <div className="mx-auto max-w-7xl">
           {DEMO && (

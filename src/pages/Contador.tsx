@@ -2,7 +2,7 @@
 // envio automático, mês travado depois de fechado e conversa com o financeiro.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CircleHelp, Download, FilePlus2, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
-import { Badge, Button, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { TABELA, type ContaRevisao, type TipoConta } from "@/lib/aprovacao";
 import { Anexos } from "@/components/Anexos";
@@ -41,7 +41,7 @@ export default function Contador() {
         ? "Tudo o que você precisa para o fechamento: notas, XML, planilhas e conversa com o financeiro da MF."
         : `Fechamento mensal com o contador${cfg?.contador_nome ? ` (${cfg.contador_nome})` : ""}. ${cfg?.contador_envio_auto ? `Envio automático todo dia ${cfg.contador_envio_dia}.` : "Envio automático desligado (Configurações → Contador)."}`} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input type="month" aria-label="Competência" className="input w-auto" value={comp} max={new Date().toISOString().slice(0, 7)} onChange={(e) => e.target.value && setComp(e.target.value)} />
+        <CampoMes rotulo="Competência" value={comp} max={new Date().toISOString().slice(0, 7)} onChange={(v) => v && setComp(v)} />
         <div className="flex gap-1.5">
           {unidades.map((u) => (
             <button key={u.id} type="button" onClick={() => setUnid(u.id)}
@@ -161,7 +161,8 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
         </p>
       </Card>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      {/* lado a lado só em tela grande: no notebook a tabela de saídas (5 colunas) não cabe em meia largura */}
+      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
         <Section title="Saídas por CFOP (NF-e autorizadas)">
           <TabelaCfop titulo="Saídas por CFOP" linhas={r.saidas.map(([c, x]) => [c, x.valor, x.icms, x.ipi, x.pis + x.cofins])} cab={["CFOP", "Valor", "ICMS", "IPI", "PIS + COFINS"]} />
         </Section>

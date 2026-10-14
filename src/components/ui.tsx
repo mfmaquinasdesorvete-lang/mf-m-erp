@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
-import { useEffect, useId, useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { ChevronRight, X, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { useModulo } from "@/lib/modulo";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
@@ -294,6 +294,76 @@ export function Modal({
   );
 }
 
+const NOMES_MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const somarMes = (ym: string, n: number) => {
+  const [a, m] = ym.split("-").map(Number);
+  const t = a * 12 + (m - 1) + n;
+  return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+};
+/** "2026-10" → "outubro de 2026" */
+export const nomeMes = (ym: string) => { const [a, m] = ym.split("-"); return `${NOMES_MES[Number(m) - 1] ?? m} de ${a}`; };
+
+/**
+ * Escolha de mês (valor "AAAA-MM") em português e igual em todo navegador: o campo de mês nativo aparece em inglês
+ * ou como "--------- ----" no Safari e no Firefox. Setas para o mês anterior e o seguinte; "vazio" = opção de todos os meses.
+ */
+export function CampoMes({ value, onChange, min = "2020-01", max, vazio, className = "", rotulo = "Mês" }: {
+  value: string; onChange: (v: string) => void; min?: string; max?: string; vazio?: string; className?: string; rotulo?: string;
+}) {
+  const atual = new Date().toISOString().slice(0, 7);
+  const fim = max ?? somarMes(atual, 12);
+  const opcoes: string[] = [];
+  for (let m = fim; m >= min && opcoes.length < 240; m = somarMes(m, -1)) opcoes.push(m);
+  if (value && !opcoes.includes(value)) { opcoes.push(value); opcoes.sort().reverse(); }
+  const mover = (n: number) => {
+    const novo = somarMes(value || atual, n);
+    if (novo >= min && novo <= fim) onChange(novo);
+  };
+  const seta = "grid h-9 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 sm:h-8";
+  return (
+    <div className={`inline-flex min-w-0 items-center gap-0.5 ${className}`} role="group" aria-label={rotulo}>
+      <button type="button" className={seta} aria-label="Mês anterior" title="Mês anterior" disabled={!!value && value <= min} onClick={() => mover(-1)}><ChevronLeft size={16} /></button>
+      <select className="input w-auto min-w-0" value={value} onChange={(e) => onChange(e.target.value)} aria-label={rotulo}>
+        {vazio && <option value="">{vazio}</option>}
+        {opcoes.map((o) => <option key={o} value={o}>{nomeMes(o)}</option>)}
+      </select>
+      <button type="button" className={seta} aria-label="Próximo mês" title="Próximo mês" disabled={!!value && value >= fim} onClick={() => mover(1)}><ChevronRight size={16} /></button>
+    </div>
+  );
+}
+
+/**
+ * Caixa que rola para o lado e mostra que há mais conteúdo: uma seta no lado que continua (clicar rola).
+ * No celular a seta não aparece (o dedo já arrasta); lá as tabelas viram cartões.
+ */
+export function RolagemLateral({ children, className = "", caixa = "" }: { children: ReactNode; className?: string; caixa?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [lados, setLados] = useState({ esq: false, dir: false });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => {
+      const esq = el.scrollLeft > 4, dir = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+      setLados((l) => (l.esq === esq && l.dir === dir ? l : { esq, dir }));
+    };
+    medir();
+    el.addEventListener("scroll", medir, { passive: true });
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    return () => { el.removeEventListener("scroll", medir); ro.disconnect(); };
+  }, []);
+  const rolar = (lado: number) => ref.current?.scrollBy({ left: lado * ref.current.clientWidth * 0.7, behavior: "smooth" });
+  const seta = "absolute top-[min(50%,9rem)] z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-slate-300 bg-surface text-slate-700 shadow-pop hover:bg-slate-50 md:grid";
+  return (
+    <div className={`relative ${className}`}>
+      <div ref={ref} className={`overflow-x-auto ${caixa}`}>{children}</div>
+      {lados.esq && <button type="button" aria-label="Rolar para a esquerda" title="Tem mais à esquerda" onClick={() => rolar(-1)} className={`${seta} left-1`}><ChevronLeft size={18} /></button>}
+      {lados.dir && <button type="button" aria-label="Rolar para a direita" title="Tem mais à direita" onClick={() => rolar(1)} className={`${seta} right-1`}><ChevronRight size={18} /></button>}
+    </div>
+  );
+}
+
 /**
  * Tabela que vira lista de cartões no celular: cada célula ganha o nome da coluna
  * (data-label) e o CSS (.tabela em index.css) empilha "rótulo: valor".
@@ -318,11 +388,13 @@ export function Table({ head, children, empty }: { head: ReactNode; children: Re
     return () => obs.disconnect();
   }, []);
   return (
-    <Card className="tabela-caixa overflow-x-auto">
-      <table ref={ref} className="tabela w-full divide-y divide-slate-100 md:min-w-[720px]">
-        <thead className="bg-slate-50/80"><tr>{head}</tr></thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
-      </table>
+    <Card className="tabela-caixa overflow-hidden">
+      <RolagemLateral>
+        <table ref={ref} className="tabela w-full divide-y divide-slate-100 md:min-w-[720px]">
+          <thead className="bg-slate-50/80"><tr>{head}</tr></thead>
+          <tbody className="divide-y divide-slate-100">{children}</tbody>
+        </table>
+      </RolagemLateral>
       {empty && <p className="p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
     </Card>
   );
@@ -340,8 +412,19 @@ export function CelulaAbrir({ texto = "Abrir" }: { texto?: string }) {
 export function Tabs<T extends string>({
   value, onChange, options,
 }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
+  // no celular, muitas abas viravam 3 ou 4 linhas antes do conteúdo: lá vira uma lista de escolha de uma linha só
+  const lista = options.length > 3;
   return (
-    <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-surface p-1 shadow-card">
+    <>
+    {lista && (
+      <label className="mb-4 flex items-center gap-2 md:hidden">
+        <span className="sr-only">Seção</span>
+        <select className="input border-modulo/50 font-semibold text-fg" value={value} onChange={(e) => onChange(e.target.value as T)}>
+          {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </label>
+    )}
+    <div className={`mb-4 flex-wrap gap-1 rounded-xl border border-slate-200 bg-surface p-1 shadow-card ${lista ? "hidden md:inline-flex" : "inline-flex"}`}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -356,5 +439,28 @@ export function Tabs<T extends string>({
         </button>
       ))}
     </div>
+    </>
+  );
+}
+
+/**
+ * Ações secundárias de uma barra: no computador ficam à vista; no celular entram num botão "Mais" (a ação principal fica de fora).
+ * O menu fica montado mesmo fechado, para não perder um arquivo escolhido num botão de importar.
+ */
+export function MaisAcoes({ children, rotulo = "Mais" }: { children: ReactNode; rotulo?: string }) {
+  const [aberto, setAberto] = useState(false);
+  useFecharComEsc(aberto, () => setAberto(false));
+  return (
+    <>
+      <div className="hidden md:contents">{children}</div>
+      <div className="relative md:hidden">
+        <Button type="button" variant="secondary" aria-expanded={aberto} aria-haspopup="menu" onClick={() => setAberto((a) => !a)}><MoreHorizontal size={16} /> {rotulo}</Button>
+        {aberto && <div className="fixed inset-0 z-40" aria-hidden onClick={() => setAberto(false)} />}
+        <div role="menu" onClick={() => setAberto(false)}
+          className={`${aberto ? "flex" : "hidden"} absolute left-0 z-50 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
+          {children}
+        </div>
+      </div>
+    </>
   );
 }

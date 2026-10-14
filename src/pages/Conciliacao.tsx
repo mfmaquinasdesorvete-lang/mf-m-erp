@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowLeftRight, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus, Receipt, Undo2 } from "lucide-react";
-import { Badge, Button, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { brl, dataBR, digitos, hoje } from "@/lib/format";
@@ -178,7 +178,7 @@ export default function Conciliacao() {
           <option value="">Todas as contas</option>
           {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-600">Mês <input type="month" className="input w-auto" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Mês do extrato" /></label>
+        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
         {podeEditar && sugeridasNaLista.length > 0 && (
           <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
         )}
@@ -186,12 +186,11 @@ export default function Conciliacao() {
       </div>
 
       <Table empty={!lista.length}
-        head={<><th className="th">Data</th><th className="th">Descrição no banco</th><th className="th">Conta</th><th className="th">Situação</th><th className="th">Ligado a</th><th className="th text-right">Valor</th><th className="th" /></>}>
+        head={<><th className="th">Data / conta</th><th className="th">Descrição no banco</th><th className="th">Situação</th><th className="th">Ligado a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((l) => (
           <tr key={l.id}>
-            <td className="td whitespace-nowrap">{dataBR(l.data)}</td>
+            <td className="td whitespace-nowrap">{dataBR(l.data)}<div className="text-xs text-slate-500">{nomeConta(l.conta_bancaria_id)}</div></td>
             <td className="td">{l.descricao}{l.documento && <div className="text-xs text-slate-500">doc. {l.documento}</div>}</td>
-            <td className="td whitespace-nowrap text-sm">{nomeConta(l.conta_bancaria_id)}</td>
             <td className="td">
               {l.status === "pendente" && sugestoes.has(l.id) ? <span className="inline-flex rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Sugestão</span>
                 : l.status === "pendente" && divergentes.has(l.id) ? <span className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900" title="Nenhuma conta com este valor e data próxima: lance como receita/despesa, ligue a mano ou ignore">Divergente</span>
