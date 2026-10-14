@@ -95,8 +95,10 @@ export async function focus(path: string, init: RequestInit = {}, codigo?: strin
   const { base, token, secret } = conexao(codigo, op);
   if (!token) throw new HttpError(500, `${secret} não configurado no Supabase`);
 
+  // sem resposta da Focus em 45 s a chamada desiste (a função não fica presa até o limite do Supabase)
   return fetch(base + path, {
     ...init,
+    signal: init.signal ?? AbortSignal.timeout(45_000),
     headers: {
       "Content-Type": "application/json",
       Authorization: "Basic " + btoa(`${token}:`),

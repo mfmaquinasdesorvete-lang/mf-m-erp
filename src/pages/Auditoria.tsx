@@ -48,7 +48,10 @@ function useExcecoes() {
   const { data: lancamentos = [] } = useRows<any>("extrato_lancamentos");
   const { data: bancos = [] } = useRows<any>("contas_bancarias", { order: "nome", ascending: true });
   const { data: importacoes = [] } = useRows<any>("extrato_importacoes");
-  const { data: auditoria = [] } = useRows<any>("auditoria");
+  // as regras só olham o histórico das contas, dos produtos e das vendas (o resto do histórico não é baixado)
+  const { data: auditoria = [] } = useRows<any>("auditoria", {
+    filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]), key: ["excecoes"],
+  });
   const { data: documentos = [] } = useRows<any>("documentos", { select: "entidade, entidade_id" });
   const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
   const { data: recebidas = [] } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
@@ -214,10 +217,13 @@ function TratarExcecao({ e, t, onClose }: { e: Excecao; t: Tratativa; onClose: (
 /* ------------------------------ Histórico de alterações ------------------------------ */
 
 function HistoricoGeral() {
-  const { data: linhas = [] } = useRows<LinhaAuditoria>("auditoria");
   const [tabela, setTabela] = useState("");
   const [usuario, setUsuario] = useState("");
   const [mes, setMes] = useState(hoje().slice(0, 7));
+  // baixa só o mês escolhido (o histórico cresce cerca de mil linhas por dia)
+  const { data: linhas = [] } = useRows<LinhaAuditoria>("auditoria", {
+    filtro: (q) => (mes ? q.gte("created_at", `${mes}-01`).lt("created_at", proximoMes(mes)) : q), key: ["historico", mes],
+  });
   const [soAlteracoes, setSoAlteracoes] = useState(true);
   const usuarios = [...new Set(linhas.map((l) => l.usuario_nome ?? "sistema"))].sort();
   const lista = linhas
@@ -265,4 +271,10 @@ function HistoricoGeral() {
       <p className="mt-3 text-xs text-slate-500">O histórico é gravado pelo banco de dados a cada alteração e não pode ser editado nem apagado por ninguém.</p>
     </div>
   );
+}
+
+/** Primeiro dia do mês seguinte (AAAA-MM → AAAA-MM-01). */
+function proximoMes(mes: string) {
+  const [a, m] = mes.split("-").map(Number);
+  return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`;
 }

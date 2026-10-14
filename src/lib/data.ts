@@ -4,20 +4,24 @@ import { supabase } from "./supabase";
 /** Lista registros de uma tabela (com select opcional de relacionamentos). */
 export function useRows<T = any>(
   table: string,
-  opts: { select?: string; order?: string; ascending?: boolean; key?: unknown[] } = {},
+  opts: { select?: string; order?: string; ascending?: boolean; key?: unknown[]; filtro?: Filtro } = {},
 ) {
-  const { select = "*", order = "created_at", ascending = false, key = [] } = opts;
+  const { select = "*", order = "created_at", ascending = false, key = [], filtro } = opts;
   return useQuery({
     queryKey: [table, select, order, ascending, ...key],
     queryFn: async () => {
-      const { data, error } = await supabase.from(table).select(select).order(order, { ascending });
+      const { data, error } = await aplicar(supabase.from(table).select(select), filtro).order(order, { ascending });
       if (error) throw error;
       // O Supabase devolve no máximo 1000 linhas por consulta: lista maior vem em páginas
       if ((data?.length ?? 0) < PAGINA) return data as T[];
-      return (await todasAsPaginas(table, select, order, ascending)) as T[];
+      return (await todasAsPaginas(table, select, order, ascending, filtro)) as T[];
     },
   });
 }
+
+/** Filtro feito no servidor (ex.: só um mês, só algumas tabelas): a tela baixa só o que usa. Use junto uma `key`. */
+type Filtro = (q: any) => any;
+const aplicar = (q: any, filtro?: Filtro) => (filtro ? filtro(q) : q);
 
 const PAGINA = 1000;
 
@@ -29,11 +33,11 @@ export async function ler<T>(consulta: PromiseLike<{ data: T | null; error: unkn
 }
 
 /** Lê a tabela inteira de 1000 em 1000 (desempate pelo id para nenhuma linha repetir ou faltar entre as páginas). */
-async function todasAsPaginas(table: string, select: string, order: string, ascending: boolean) {
+async function todasAsPaginas(table: string, select: string, order: string, ascending: boolean, filtro?: Filtro) {
   const todas: unknown[] = [];
   let desempate = true;
   for (let de = 0; ; de += PAGINA) {
-    let q = supabase.from(table).select(select).order(order, { ascending });
+    let q = aplicar(supabase.from(table).select(select), filtro).order(order, { ascending });
     if (desempate) q = q.order("id", { ascending: true });
     const { data, error } = await q.range(de, de + PAGINA - 1);
     if (error && desempate && de === 0) { desempate = false; de -= PAGINA; continue; } // tabela sem coluna id
