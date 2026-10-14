@@ -244,8 +244,9 @@ export function Layout() {
         </nav>
           {maisAbaixo && (
             <button type="button" onClick={() => navRef.current?.scrollBy({ top: 240, behavior: "smooth" })} aria-label="Ver mais itens do menu"
-              className="absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-ink via-ink/90 to-transparent pb-1 text-xs font-semibold text-nav-fraco hover:text-white">
-              <span className="flex items-center gap-1"><ChevronDown size={14} /> mais opções</span>
+              className="absolute inset-x-0 bottom-0 flex h-8 items-end justify-center bg-gradient-to-t from-ink to-transparent pb-1 text-xs font-semibold text-nav-texto hover:text-white">
+              {/* faixa baixa e botão sólido: antes o degradê alto cobria metade de um item, que parecia desativado */}
+              <span className="flex items-center gap-1 rounded-full border border-white/10 bg-ink-line px-2.5 py-0.5 shadow"><ChevronDown size={14} /> mais opções</span>
             </button>
           )}
         </div>

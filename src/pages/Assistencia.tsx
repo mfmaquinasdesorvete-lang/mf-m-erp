@@ -16,6 +16,7 @@ import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
+import { baixarPlanilha } from "@/lib/exportar";
 import { supabase } from "@/lib/supabase";
 import { apagarFotoOS, enviarFotoOS, urlsFotos } from "@/lib/fotos";
 import { comUnidade, pdfOS } from "@/lib/pdf";
@@ -97,7 +98,15 @@ export default function Assistencia() {
       <PageHeader
         title="Assistência técnica"
         subtitle="Recepção com checklist e fotos, laudo, peças, assinatura do cliente e histórico por nº de série."
-        actions={pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
+        actions={<>
+          <Button variant="secondary" onClick={() => baixarPlanilha("ordens-de-servico", [{ nome: "OS", linhas: lista.map((o) => ({
+            OS: o.numero, Entrada: dataBR(o.data_entrada), Cliente: o.cliente?.nome ?? "", Equipamento: o.equipamento ?? "", Série: o.numero_serie ?? "",
+            Situação: o.status, Garantia: o.em_garantia ? "sim" : "não", Previsão: dataBR(o.previsao), Valor: o.em_garantia ? 0 : Number(o.valor_total ?? 0),
+            Faturada: o.faturada_em ? dataBR(o.faturada_em) : "",
+            Marcadores: (o.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
+          })) }]).catch(notifyError)}><FileDown size={16} /> Exportar</Button>
+          {pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
+        </>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
