@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingCart, Store, Truck,
   UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -108,6 +108,7 @@ export const grupos: Grupo[] = [
   {
     id: "admin", titulo: "Administração", cor: "from-[#64748b] to-[#334155]", icone: Settings,
     itens: [
+      { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
       { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
       { to: "/usuarios", tela: "usuarios", label: "Usuários", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel" },
       { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa marca logo cores unidades recebimentos pix taxas orçamento garantia comissão catálogo vitrine pedidos expedição zebra impressora etiqueta notas focus avisos e-mail contador backup exportar" },

@@ -1311,6 +1311,29 @@ function recalcular(db: Db) {
 }
 
 const db = seed();
+// Troca do Tiny (implantação): o mesmo plano do sistema real, com as duas primeiras etapas feitas
+db.implantacao_etapas ??= ([
+  [1, 1, "Cada pessoa entra no ERP pelo menos uma vez", "Vendas, assistência, contador e financeiro com o próprio usuário.", 3, "Administrador", "usuarios", true],
+  [1, 2, "Apagar os dados de teste", "Vendas, notas e contas criadas só para testar saem do ERP antes do uso de verdade.", 3, "Administrador", null, true],
+  [1, 3, "Treino rápido por área (30 minutos cada)", "Vendas, financeiro, fábrica e assistência: o caminho do dia a dia de cada um.", 9, "Administrador", null, false],
+  [1, 4, "Contador valida as regras de imposto", "Uma nota de cada tipo: venda, remessa, devolução e transferência SC↔SP.", 10, "Contador", null, false],
+  [1, 5, "Inventário do estoque (SC e SP)", "Contar as peças e insumos em Estoque → Contagem.", 10, "Fábrica", "estoque_contado", false],
+  [1, 6, "Custo de todas as peças e insumos", "Sem custo não há margem certa nem custo das máquinas pela ficha técnica.", 10, "Financeiro", "custos", false],
+  [1, 7, "NCM em todos os produtos", "Os insumos sem NCM travam a nota de remessa e de devolução.", 10, "Financeiro", "ncm", false],
+  [1, 8, "Clientes com CPF/CNPJ, telefone e estado", "Necessário para a nota, a cobrança e o WhatsApp.", 14, "Vendas", "clientes", false],
+  [1, 9, "Fornecedores com CNPJ", "Necessário para lançar a nota de compra e pagar com segurança.", 14, "Financeiro", "fornecedores", false],
+  [2, 1, "Toda venda nasce no ERP", "Orçamento → pedido → aprovação no ERP; o Tiny fica só para consulta.", 15, "Vendas", "pedidos", false],
+  [2, 2, "Notas fiscais só pelo ERP", "Nenhuma nota nova emitida no Tiny a partir desta data.", 15, "Financeiro", "notas_erp", false],
+  [2, 3, "Contas a receber e cobrança pelo ERP", "As parcelas nascem da venda; a régua de cobrança avisa o cliente.", 15, "Financeiro", "contas", false],
+  [2, 4, "Conferência diária do banco", "Extrato do banco conferido com as contas todo dia.", 20, "Financeiro", "extrato", false],
+  [3, 1, "Compras e reposição pelo ERP", "Pedido de compra, cotação e recebimento com entrada no estoque.", 42, "Fábrica", null, false],
+  [3, 2, "Produção com ordem de produção", "A OP baixa as peças da ficha técnica e coloca a máquina no estoque.", 42, "Fábrica", "producao", false],
+  [3, 3, "Assistência com OS e nota de serviço", "Entrada, laudo, peças, entrega e NFS-e pelo ERP.", 49, "Assistência", "os", false],
+  [4, 1, "Desligar o Tiny", "Baixar o histórico final do Tiny e cancelar a assinatura.", 57, "Administrador", null, false],
+] as const).map(([fase, ordem, titulo, detalhe, dias, responsavel, indicador, feito]) => ({
+  id: uid(), fase, ordem, titulo, detalhe, prazo: quando(dias).slice(0, 10), responsavel, indicador, observacao: null,
+  feito_em: feito ? quando(-1) : null, feito_nome: feito ? "Elem Olmedo" : null, created_at: quando(-2),
+}));
 let numeroPedido = 108;
 let numeroOS = 53;
 let numeroNfe = 1301;
@@ -1804,6 +1827,35 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     mudou.forEach((k) => { x[k] = k === "cpf" ? cpf || null : String(p_dados[k] ?? "").trim() || null; });
     if (mudou.length) eventoSeguranca("alterar_sigilo", "funcionario", p_funcionario, f.nome, mudou);
     return { data: null, error: null };
+  },
+  // no sistema real: public.implantacao_indicadores (contagens feitas no banco)
+  implantacao_indicadores: () => {
+    const desde = (dias: number) => new Date(Date.now() - dias * 864e5).toISOString();
+    const notas = (db.notas_fiscais ?? []).filter((n: Row) => n.status === "autorizada" && n.created_at > desde(14));
+    const prod = (db.produtos ?? []).filter((p: Row) => p.ativo);
+    const extrato = (db.extrato_lancamentos ?? []).filter((l: Row) => l.data > desde(30).slice(0, 10));
+    return {
+      data: {
+        usuarios: (db.usuarios_erp ?? []).filter((u: Row) => u.ativo).map((u: Row) => ({ nome: u.nome, papel: u.papel, ultimo_login: u.user_id === "u-cont" ? null : u.ultimo_acesso })),
+        notas_erp_14d: notas.filter((n: Row) => n.origem !== "importada").length, notas_tiny_14d: notas.filter((n: Row) => n.origem === "importada").length,
+        notas_tiny_ultima: quando(-16), notas_erp_ultima: quando(-1),
+        pedidos_7d: (db.pedidos ?? []).filter((p: Row) => p.created_at > desde(7) && p.status !== "cancelado").length,
+        pedidos_30d: (db.pedidos ?? []).filter((p: Row) => p.created_at > desde(30) && p.status !== "cancelado").length,
+        contas_7d: [...(db.contas_pagar ?? []), ...(db.contas_receber ?? [])].filter((c: Row) => c.created_at > desde(7)).length,
+        extrato_30d: extrato.length, extrato_conciliado_30d: extrato.filter((l: Row) => l.status === "conciliado").length,
+        os_30d: (db.ordens_servico ?? []).filter((o: Row) => o.created_at > desde(30)).length,
+        op_30d: (db.ordens_producao ?? []).filter((o: Row) => o.created_at > desde(30)).length,
+        estoque_itens: prod.filter((p: Row) => p.tipo !== "maquina" && !p.kit).length, estoque_contados_60d: 6,
+        pecas_sem_custo: prod.filter((p: Row) => p.tipo === "peca" && p.vendavel && !p.kit && !Number(p.preco_custo)).length,
+        insumos_sem_custo: prod.filter((p: Row) => p.tipo === "insumo" && !Number(p.preco_custo)).length,
+        sem_ncm: prod.filter((p: Row) => p.tipo !== "servico" && !p.ncm).length,
+        clientes_sem_doc: (db.clientes ?? []).filter((c: Row) => !String(c.cpf_cnpj ?? "").replace(/\D/g, "")).length,
+        clientes_sem_telefone: (db.clientes ?? []).filter((c: Row) => !c.telefone && !c.whatsapp).length,
+        clientes_sem_uf: (db.clientes ?? []).filter((c: Row) => !c.uf).length,
+        fornecedores_sem_cnpj: (db.fornecedores ?? []).filter((f: Row) => !f.cnpj).length,
+      },
+      error: null,
+    };
   },
   nomes_tecnicos: () => ({
     data: (db.funcionarios ?? []).filter((f: Row) => f.ativo && f.faz_assistencia && f.situacao !== "desligado")
