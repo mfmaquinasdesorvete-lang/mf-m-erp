@@ -9,6 +9,9 @@ import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
 import { whatsappLink } from "@/lib/format";
 import { combinaBusca } from "@/lib/buscaCliente";
+import { useLocation, useNavigate } from "react-router-dom";
+import { lerDestaque } from "@/lib/destaque";
+import { FaixaDestaque } from "./FaixaDestaque";
 
 export type CampoForm = {
   name: string;
@@ -89,11 +92,25 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const selecionavel = podeExcluir || acoesLote.length > 0;
   const { data: todos = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
   const filtroBase = props.filtroBase;
-  const data = useMemo(() => (filtroBase ? todos.filter(filtroBase) : todos), [todos, filtroBase]);
+  // aberto por outra tela só com alguns registros (ex.: Analista fiscal → produtos sem NCM): mostra só eles,
+  // mesmo fora do recorte da página, até clicar em "Ver todos"
+  const location = useLocation();
+  const navegar = useNavigate();
+  const [destaque, setDestaque] = useState(() => lerDestaque(location.state));
+  const data = useMemo(() => (destaque ? todos.filter((r) => destaque.ids.includes(r.id)) : filtroBase ? todos.filter(filtroBase) : todos),
+    [todos, filtroBase, destaque]);
+  const limparDestaque = () => { setDestaque(null); navegar(location.pathname + location.search, { replace: true, state: null }); };
   const save = useSave(table);
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Record<string, any> | null>(null);
   useEffect(() => { if (props.editarAgora) setEditando({ ...props.editarAgora }); }, [props.editarAgora]);
+  // um só registro em destaque: já abre o cadastro dele
+  const [destaqueAberto, setDestaqueAberto] = useState(false);
+  useEffect(() => {
+    if (!destaque || destaqueAberto || destaque.ids.length !== 1 || readOnly) return;
+    const r = todos.find((x) => x.id === destaque.ids[0]);
+    if (r) { setDestaqueAberto(true); setEditando({ ...r }); }
+  }, [destaque, destaqueAberto, todos, readOnly]);
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   const [fechadas, setFechadas] = useState<Set<string>>(() =>
@@ -280,6 +297,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           {!readOnly && <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
         </>}
       />
+
+      {destaque && <FaixaDestaque destaque={destaque} mostrando={data.length} onLimpar={limparDestaque} />}
 
       {/* No celular os filtros ficam guardados no botão "Filtros" (a lista aparece logo abaixo da busca);
           no computador continuam na mesma linha da busca. */}
