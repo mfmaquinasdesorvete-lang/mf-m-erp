@@ -407,6 +407,12 @@ function seed(): Db {
       anexos: [xmlNfe, { indice: 1, nome: "DANFE-12400.pdf", tipo: "application/pdf", tamanho: 84000, nfe: false }], lido: false, arquivado: false, cliente_id: null, fornecedor_id: "f1", respondido_em: null },
     { id: "em3", conta_id: "ec1", uid: 99, de_nome: "Sorveteria Gelato Nobre", de_email: "compras@gelatonobre.com.br", para: "comercial@mfmaquinas.com.br", assunto: "Re: Preventiva da MF-300", data: quando(-2.3),
       previa: "Pode ser na próxima terça de manhã. Obrigado pelo lembrete!", texto: "Pode ser na próxima terça de manhã. Obrigado pelo lembrete!", html: "<p>Pode ser na <b>próxima terça</b> de manhã.</p><p>Obrigado pelo lembrete!</p>", anexos: [], lido: true, arquivado: false, cliente_id: "c1", fornecedor_id: null, respondido_em: quando(-2.2) },
+    // extrato do Nubank que chegou por e-mail e ficou para conferir (remetente ainda não autorizado na conta)
+    { id: "em-ofx", conta_id: "ec1", uid: 99, de_nome: "Nubank", de_email: "extrato@nubank.com.br", para: "comercial@mfmaquinas.com.br", assunto: "Seu extrato da conta PJ", data: quando(-0.5),
+      previa: "Olá! Segue em anexo o extrato do período que você pediu.", texto: "Olá! Segue em anexo o extrato do período que você pediu.", html: null,
+      anexos: [{ indice: 0, nome: "NU_9988771_extrato.ofx", tipo: "application/x-ofx", tamanho: 2400, nfe: false, extrato: true }],
+      extratos: [{ indice: 0, nome: "NU_9988771_extrato.ofx", status: "aguardando", motivo: "extrato@nubank.com.br não está nos remetentes autorizados de Nubank SC", conta_id: "cb2", conta: "Nubank SC", periodo: [dias(-3), dias(-1)] }],
+      lido: false, arquivado: false, cliente_id: null, fornecedor_id: null, respondido_em: null },
   ];
   historicoDemo(db);
   for (const t of ["pedidos", "ordens_servico", "contas_receber", "contas_pagar", "notas_fiscais", "nfe_recebidas", "ordens_producao", "pedidos_compra", "equipamentos"]) {
@@ -3117,6 +3123,16 @@ function itensVinculados(n: Row) {
 }
 
 /** XML de exemplo (o que o fornecedor manda por e-mail). */
+/** Extrato OFX de exemplo (conta Nubank SC da demonstração). */
+function ofxExemplo() {
+  const d = (n: number) => dias(n).replace(/-/g, "");
+  return `OFXHEADER:100\nDATA:OFXSGML\nCHARSET:1252\n\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKACCTFROM><BANKID>0260<ACCTID>9988771</BANKACCTFROM><BANKTRANLIST>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>${d(-3)}<TRNAMT>1850.00<FITID>demo-email-1<MEMO>Pix recebido Sorveteria Gelato Nobre</STMTTRN>
+<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>${d(-2)}<TRNAMT>-89.90<FITID>demo-email-2<MEMO>Tarifa pacote de serviços</STMTTRN>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>${d(-1)}<TRNAMT>420.00<FITID>demo-email-3<MEMO>Pix recebido Juliana Rezende</STMTTRN>
+</BANKTRANLIST><LEDGERBAL><BALAMT>8380.10<DTASOF>${d(-1)}</LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
+}
+
 function xmlExemplo() {
   return `<?xml version="1.0" encoding="UTF-8"?><nfeProc><NFe><infNFe Id="NFe35261011222333000181550010000124001000000017" versao="4.00">
 <ide><nNF>12400</nNF><dhEmi>${new Date().toISOString()}</dhEmi></ide><emit><CNPJ>11222333000181</CNPJ><xNome>Refrigeração Andrade Ltda</xNome></emit><dest><CNPJ>46942855000132</CNPJ></dest>
@@ -3458,7 +3474,7 @@ const funcoes: Record<string, (b: any) => any> = {
     const e = db.emails.find((x) => x.id === b.email_id);
     if (b.acao === "anexo") {
       const a = e?.anexos[b.indice];
-      const conteudo = a?.nfe ? xmlExemplo() : "Arquivo de demonstração";
+      const conteudo = a?.nfe ? xmlExemplo() : a?.extrato ? ofxExemplo() : "Arquivo de demonstração";
       return { ok: true, nome: a?.nome ?? "anexo.txt", tipo: a?.tipo ?? "text/plain", base64: btoa(unescape(encodeURIComponent(conteudo))) };
     }
     if (b.acao === "importar_nfe") return importarXmlDemo(xmlExemplo());

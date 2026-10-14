@@ -5,6 +5,7 @@ import nodemailer from "npm:nodemailer@6.9.16";
 import tls from "node:tls";
 import { Buffer } from "node:buffer";
 import { ErroImap, ImapNativo } from "./imap-nativo.ts";
+import { type AnexoOfx, ehExtratoOfx, processarExtratos } from "./extrato-email.ts";
 
 export type Conta = {
   id: string; nome: string; email: string; imap_host: string; imap_porta: number; smtp_host: string | null; smtp_porta: number;
@@ -103,22 +104,36 @@ export async function sincronizarConta(db: SupabaseClient, conta: Conta) {
       const de = p.from?.value?.[0];
       const deEmail = (de?.address ?? "").toLowerCase();
       const texto = (p.text ?? "").slice(0, 100_000);
-      type Anexo = { indice: number; nome: string; tipo: string; tamanho: number; nfe: boolean };
-      const anexos: Anexo[] = (p.attachments ?? []).map((a: any, i: number): Anexo => ({
-        indice: i, nome: a.filename ?? `anexo-${i + 1}`, tipo: a.contentType, tamanho: a.size,
-        nfe: ehNfe(a.filename ?? "", a.content as Uint8Array),
-      })).filter((a: Anexo) => a.tipo !== "application/pkcs7-signature");
+      type Anexo = { indice: number; nome: string; tipo: string; tamanho: number; nfe: boolean; extrato: boolean };
+      const ofx: AnexoOfx[] = [];
+      const anexos: Anexo[] = (p.attachments ?? []).map((a: any, i: number): Anexo => {
+        const nome = a.filename ?? `anexo-${i + 1}`, conteudo = a.content as Uint8Array;
+        const nfe = ehNfe(nome, conteudo);
+        const extrato = !nfe && ehExtratoOfx(nome, conteudo);
+        if (extrato) ofx.push({ indice: i, nome, conteudo });
+        return { indice: i, nome, tipo: a.contentType, tamanho: a.size, nfe, extrato };
+      }).filter((a: Anexo) => a.tipo !== "application/pkcs7-signature");
       const enderecos = (v: unknown) => [v].flat().filter(Boolean).map((x: any) => x.text).join(", ") || null;
-      const { error } = await db.from("emails").upsert({
+      const { data: gravado, error } = await db.from("emails").upsert({
         conta_id: conta.id, uid: m.uid, message_id: p.messageId ?? null,
         de_nome: de?.name || null, de_email: deEmail || null, para: enderecos(p.to), cc: enderecos(p.cc),
         assunto: (p.subject ?? "(sem assunto)").slice(0, 500), data: (p.date ?? new Date()).toISOString(),
         previa: texto.replace(/\s+/g, " ").trim().slice(0, 220), texto, html: typeof p.html === "string" ? p.html.slice(0, 400_000) : null,
         anexos, cliente_id: porEmail(clientes, deEmail), fornecedor_id: porEmail(fornecedores, deEmail),
-      }, { onConflict: "conta_id,uid", ignoreDuplicates: true });
+      }, { onConflict: "conta_id,uid", ignoreDuplicates: true }).select("id");
+      const emailId = gravado?.[0]?.id as string | undefined;
       if (!error) {
         novos++;
         resumo.push({ de: de?.name || deEmail, assunto: p.subject ?? "" });
+      }
+      // extrato do banco (OFX) anexo: importa sozinho se der para confiar no remetente (ver extrato-email.ts)
+      if (emailId && ofx.length) {
+        try {
+          const extratos = await processarExtratos(db, emailId, m.source, deEmail, ofx);
+          await db.from("emails").update({ extratos }).eq("id", emailId);
+        } catch (e) {
+          console.warn("email-caixa: extrato do e-mail não processado", (e as Error).message);
+        }
       }
       ultimo = Math.max(ultimo, m.uid);
     }

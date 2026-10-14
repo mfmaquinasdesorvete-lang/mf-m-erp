@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { ArrowLeftRight, Ban, Check, FileUp, Landmark, Link2, Pencil, Plus, Receipt, Undo2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ArrowLeftRight, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus, Receipt, Undo2 } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
@@ -15,13 +15,15 @@ import { OpenFinancePainel, type ConexaoOF } from "@/components/financeiro/OpenF
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
   saldo_inicial: number; saldo_inicial_data: string; ativo: boolean;
+  /** quem pode mandar o extrato (OFX) desta conta por e-mail: endereço ou domínio */
+  extrato_remetentes?: string[];
 };
 type Lancamento = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; documento: string | null;
   status: "pendente" | "conciliado" | "ignorado" | "transferencia"; conta_receber_id: string | null; conta_pagar_id: string | null;
   par_transferencia_id: string | null; observacao: string | null; baixou_conta: boolean; created_at: string;
 };
-type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null };
+type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null; email_id?: string | null };
 type Conta = {
   id: string; descricao: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   unidade_id: string | null; conta_bancaria_id: string | null; cliente?: { nome: string } | null; fornecedor?: { nome: string } | null;
@@ -127,6 +129,7 @@ export default function Conciliacao() {
       )}
 
       {podeEditar && bancos.length > 0 && <OpenFinancePainel contas={bancos} />}
+      {podeEditar && bancos.length > 0 && <ExtratoPorEmail bancos={bancos} importacoes={importacoes} onEditar={setEditConta} />}
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {bancos.map((b) => {
@@ -215,11 +218,15 @@ export default function Conciliacao() {
 
 function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>; onClose: () => void }) {
   const [c, setC] = useState(conta);
+  const [remetentes, setRemetentes] = useState((conta.extrato_remetentes ?? []).join(", "));
   const save = useSave("contas_bancarias");
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
-      await save.mutateAsync(limpar({ ...c, saldo_inicial: Number(c.saldo_inicial || 0) }));
+      const lista = [...new Set(remetentes.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))];
+      const invalido = lista.find((x) => !/^(@?[a-z0-9.-]+\.[a-z]{2,}|[^@\s]+@[a-z0-9.-]+\.[a-z]{2,})$/.test(x));
+      if (invalido) throw new Error(`"${invalido}" não é um e-mail nem um domínio (ex.: nubank.com.br)`);
+      await save.mutateAsync(limpar({ ...c, saldo_inicial: Number(c.saldo_inicial || 0), extrato_remetentes: lista }));
       notify("Conta salva");
       onClose();
     } catch (err) { notifyError(err); }
@@ -239,6 +246,13 @@ function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>;
         <Field label="Saldo inicial"><input className="input" type="number" step="0.01" value={c.saldo_inicial ?? 0} onChange={(e) => setC({ ...c, saldo_inicial: Number(e.target.value) })} /></Field>
         <Field label="Saldo em (data)"><input className="input" type="date" value={c.saldo_inicial_data ?? ""} onChange={(e) => setC({ ...c, saldo_inicial_data: e.target.value })} required /></Field>
         <p className="text-xs text-slate-500 sm:col-span-2">O saldo inicial é o saldo do banco no fim do dia anterior ao primeiro lançamento que você vai importar.</p>
+        <Field label="Extrato por e-mail: remetentes autorizados" className="sm:col-span-2">
+          <input className="input" value={remetentes} onChange={(e) => setRemetentes(e.target.value)} placeholder="ex.: nubank.com.br, seu-email@gmail.com" autoComplete="off" />
+        </Field>
+        <p className="-mt-1 text-xs text-slate-500 sm:col-span-2">
+          O extrato (arquivo OFX) que chegar na caixa de e-mail do ERP vindo destes endereços ou domínios entra sozinho, se o número da conta do arquivo
+          bater com o campo Conta e o e-mail tiver a assinatura digital do remetente. Os outros ficam esperando você conferir na caixa de e-mail.
+        </p>
         <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-5 w-5" checked={c.ativo ?? true} onChange={(e) => setC({ ...c, ativo: e.target.checked })} /> Conta ativa</label>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -249,9 +263,51 @@ function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>;
   );
 }
 
+/* ------------------------------- Extrato por e-mail ------------------------------- */
+
+function ExtratoPorEmail({ bancos, importacoes, onEditar }: { bancos: ContaBancaria[]; importacoes: Importacao[]; onEditar: (c: ContaBancaria) => void }) {
+  const { data: caixas = [] } = useRows<{ id: string; email: string }>("email_contas", { select: "id, email" });
+  const ligadas = bancos.filter((b) => b.ativo && (b.extrato_remetentes ?? []).length > 0);
+  const ultima = (id: string) => importacoes.filter((i) => i.conta_bancaria_id === id && i.email_id).sort((a, c) => c.created_at.localeCompare(a.created_at))[0];
+  return (
+    <Card className="mb-5 p-4">
+      <h2 className="flex items-center gap-2 font-semibold"><Mail size={17} aria-hidden className="text-slate-500" /> Extrato por e-mail</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        Mande ou encaminhe o extrato em <b>OFX</b> para {caixas.length ? caixas.map((c) => <b key={c.id} className="break-all">{c.email} </b>) : <b>a caixa de e-mail do ERP</b>}
+        e ele entra sozinho em até 5 minutos. No Nubank: extrato → exportar → OFX (vai para o seu e-mail; crie um filtro que encaminhe para cá).
+      </p>
+      {!caixas.length && <p className="mt-1 text-sm text-amber-700">Ligue primeiro a caixa de e-mail em Configurações → Caixa de e-mail.</p>}
+      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {bancos.filter((b) => b.ativo && b.banco !== "caixa").map((b) => {
+          const u = ultima(b.id);
+          const ligada = ligadas.includes(b);
+          return (
+            <li key={b.id} className={`flex items-start justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${ligada ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200"}`}>
+              <span className="min-w-0">
+                <b className="block truncate">{b.nome}</b>
+                <span className="block text-xs text-slate-600">
+                  {ligada ? `de: ${(b.extrato_remetentes ?? []).join(", ")}` : "nenhum remetente autorizado"}
+                  {ligada && !b.numero ? " · falta o número da conta" : ""}
+                </span>
+                {u && <span className="block text-xs text-emerald-800">último pelo e-mail: {dataBR(u.created_at)}{u.periodo_fim ? ` (até ${dataBR(u.periodo_fim)})` : ""}</span>}
+              </span>
+              <button type="button" onClick={() => onEditar(b)} className="shrink-0 text-xs font-semibold text-brand hover:underline">{ligada ? "Alterar" : "Ligar"}</button>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
 /* ------------------------------------ Importar ------------------------------------ */
 
-function ImportarModal({ bancos, contaInicial, onClose }: { bancos: ContaBancaria[]; contaInicial: string; onClose: () => void }) {
+export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportado, onClose }: {
+  bancos: ContaBancaria[]; contaInicial: string; onClose: () => void;
+  /** arquivo já escolhido (ex.: anexo de um e-mail) */
+  arquivoInicial?: File;
+  onImportado?: (r: { novas: number; repetidas: number; conciliadas: number; conta: string }) => void;
+}) {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [res, setRes] = useState<ResultadoExtrato | null>(null);
   const [mapa, setMapa] = useState<MapaCsv | null>(null);
@@ -259,6 +315,7 @@ function ImportarModal({ bancos, contaInicial, onClose }: { bancos: ContaBancari
   const [ocupado, setOcupado] = useState(false);
   const invalidate = useInvalidate();
   const linhas: LinhaExtrato[] = res?.csv && mapa ? linhasCsv(res.csv.registros, mapa) : res?.linhas ?? [];
+  useEffect(() => { if (arquivoInicial) escolher(arquivoInicial); }, [arquivoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function escolher(f: File | null) {
     setArquivo(f); setRes(null); setMapa(null);
@@ -287,6 +344,7 @@ function ImportarModal({ bancos, contaInicial, onClose }: { bancos: ContaBancari
       if (error) throw error;
       notify(`${data.novas} lançamento(s) novos${data.repetidas ? `, ${data.repetidas} já importados antes` : ""}; ${data.conciliadas} conciliado(s) automaticamente`);
       invalidate("extrato_lancamentos", "extrato_importacoes", "contas_receber", "contas_pagar", "auditoria");
+      onImportado?.({ novas: data.novas, repetidas: data.repetidas, conciliadas: data.conciliadas, conta });
       onClose();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
@@ -309,7 +367,8 @@ function ImportarModal({ bancos, contaInicial, onClose }: { bancos: ContaBancari
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Arquivo do banco (.ofx ou .csv)">
-            <input className="input" type="file" accept=".ofx,.OFX,.csv,.CSV,.txt" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />
+            {arquivoInicial ? <div className="input truncate bg-slate-50">{arquivoInicial.name}</div>
+              : <input className="input" type="file" accept=".ofx,.OFX,.csv,.CSV,.txt" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />}
           </Field>
           <Field label="Conta">
             <select className="input" value={conta} onChange={(e) => setConta(e.target.value)}>
