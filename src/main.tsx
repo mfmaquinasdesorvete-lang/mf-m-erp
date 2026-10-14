@@ -1,8 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
+import { ErroTela } from "./components/ErroTela";
+import { notifyLeitura } from "./lib/notify";
 import { DEMO } from "./lib/supabase";
 // fonte servida pelo próprio site (sem depender do Google Fonts)
 import "@fontsource-variable/plus-jakarta-sans";
@@ -17,7 +19,11 @@ aplicarDestaque(lerDestaque());
 // "Nova versão do ERP" em vez de recarregar sozinho e perder o que está sendo digitado.
 window.addEventListener("vite:preloadError", () => window.dispatchEvent(new Event("erp-versao-nova")));
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: DEMO ? 0 : 30_000, retry: 1 } } });
+// Leitura que falhou (sem internet, sem permissão…) vira aviso na tela, e não "lista vazia" sem explicação
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: (e) => notifyLeitura(e) }),
+  defaultOptions: { queries: { staleTime: DEMO ? 0 : 30_000, retry: 1 } },
+});
 
 if (DEMO) {
   // A prévia roda em ambientes que bloqueiam caixas de diálogo do navegador.
@@ -34,7 +40,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <Router {...inicioDemo}>
-        <App />
+        {/* login e páginas públicas (loja, proposta, cotação, ficha) também não ficam em branco se algo falhar */}
+        <ErroTela>
+          <App />
+        </ErroTela>
       </Router>
     </QueryClientProvider>
   </React.StrictMode>,

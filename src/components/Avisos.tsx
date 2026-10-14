@@ -5,6 +5,7 @@ import { Bell, Check, ExternalLink, Mail, RefreshCw, Send, Smartphone } from "lu
 import { Badge, Button, Field, Modal, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { callFunction, DEMO, supabase } from "@/lib/supabase";
+import { ler } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import {
   EXEMPLOS, htmlEmail, mensagemCliente, PAPEL_ROTULO, textoTelegram, type Aviso, type AvisoTipo, type Empresa,
@@ -361,7 +362,7 @@ function Historico({ tipos, enviarAgora, ocupado }: { tipos: AvisoTipo[]; enviar
   });
   const { data: pessoas = [] } = useQuery({
     queryKey: ["usuarios_erp", "nomes"],
-    queryFn: async () => (await supabase.from("usuarios_erp").select("user_id, nome")).data ?? [],
+    queryFn: async () => ((await ler(supabase.from("usuarios_erp").select("user_id, nome"))) ?? []),
   });
   const titulo = (t: string) => tipos.find((x) => x.tipo === t)?.titulo ?? t;
   const nome = (a: Aviso) => (a.canal === "email" ? `${String(a.dados.cliente ?? "")} · ${a.destino}` : pessoas.find((p: any) => p.user_id === a.usuario_id)?.nome ?? a.destino);

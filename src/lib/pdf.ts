@@ -60,7 +60,7 @@ export function textoPdf(t: string): string {
 
 async function novoDoc() {
   const [{ jsPDF }, { default: autoTable }, logo] = await Promise.all([import("jspdf"), import("jspdf-autotable"), logoDataUrl()]);
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const doc = new jsPDF({ compress: true, unit: "mm", format: "a4" });
   // todo texto passa pela troca de caracteres (textos, quebras de linha e células das tabelas)
   const texto = doc.text.bind(doc);
   (doc as any).text = (t: string | string[], ...resto: unknown[]) => (texto as any)(Array.isArray(t) ? t.map(textoPdf) : textoPdf(String(t)), ...resto);
@@ -764,7 +764,7 @@ export async function pdfEtiquetas(lista: EtiquetaDados[], m: ModeloEtiqueta, so
   for (const p of paginas) {
     const chave = p.tipo === "transporte" ? fT : fV;
     const F = FOLHAS[chave];
-    if (!doc) doc = new jsPDF({ unit: "mm", format: F.pagina }) as unknown as Doc;
+    if (!doc) doc = new jsPDF({ compress: true, unit: "mm", format: F.pagina }) as unknown as Doc;
     else if (chave !== atual || slot >= F.slots.length) { doc.addPage(F.pagina); slot = 0; }
     atual = chave;
     const [x0, y0] = F.slots[slot++];
@@ -772,7 +772,7 @@ export async function pdfEtiquetas(lista: EtiquetaDados[], m: ModeloEtiqueta, so
     if (p.tipo === "transporte") await etiquetaTransporte(doc, p.d, p.i, x0, y0, F.w, F.h, m, logo, barras);
     else await etiquetaVolume(doc, p.d, p.i, x0, y0, F.w, F.h, m, barras);
   }
-  doc ??= new jsPDF({ unit: "mm", format: [100, 150] }) as unknown as Doc;
+  doc ??= new jsPDF({ compress: true, unit: "mm", format: [100, 150] }) as unknown as Doc;
   return { blob: doc.output("blob") as Blob, paginas: paginas.length };
 }
 
@@ -1092,8 +1092,8 @@ export async function pdfCupom(c: CupomPdf, cfg: Config): Promise<Blob> {
     linhas("Guarde este comprovante para troca e garantia.", 7, "normal", "center");
     return y + M;
   };
-  const altura = desenhar(new jsPDF({ unit: "mm", format: [L, 1000] }));
-  const doc = new jsPDF({ unit: "mm", format: [L, Math.max(altura, 60)] });
+  const altura = desenhar(new jsPDF({ compress: true, unit: "mm", format: [L, 1000] }));
+  const doc = new jsPDF({ compress: true, unit: "mm", format: [L, Math.max(altura, 60)] });
   desenhar(doc);
   return doc.output("blob");
 }

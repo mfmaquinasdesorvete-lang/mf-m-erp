@@ -115,6 +115,8 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined);
   const [novaSenha, setNovaSenha] = useState(LINK_RECUPERACAO && !LINK_EXPIRADO);
+  const [erroPerfil, setErroPerfil] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState(0);
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
 
@@ -132,8 +134,11 @@ export default function App() {
     queryClient.clear(); // dados de outro usuário não podem aparecer
     if (!userId) return setPerfil(session === null ? null : undefined);
     setPerfil(undefined);
+    setErroPerfil(null);
     const carregar = () => supabase.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, trocar_senha, ativo, unidade_id, preferencias").eq("user_id", userId).maybeSingle();
-    carregar().then(async ({ data }) => {
+    carregar().then(async ({ data, error }) => {
+      // sem internet ou servidor fora do ar: não é falta de acesso, é só tentar de novo
+      if (error) return setErroPerfil(error.message);
       if (!data) {
         // Primeiro acesso de um sistema novo: o primeiro usuário vira administrador.
         const nome = (session?.user.user_metadata?.nome as string) ?? "";
@@ -143,7 +148,7 @@ export default function App() {
       if (data?.ativo) aplicarPreferencias((data as any).preferencias);
       setPerfil(data?.ativo ? { ...data, email: session?.user.email ?? "" } as Perfil : null);
     });
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, tentativa]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Vitrine pública: abre sem login (é o link dos produtos no catálogo do WhatsApp)
   // Proposta comercial: o cliente abre pelo link, sem login
@@ -168,6 +173,7 @@ export default function App() {
 
   if (session === undefined) return <Carregando />;
   if (novaSenha && session) return <><Toaster /><NovaSenha onPronto={() => setNovaSenha(false)} /></>;
+  if (session && erroPerfil) return <SemConexao detalhe={erroPerfil} onTentar={() => setTentativa((t) => t + 1)} />;
   if (session && perfil === undefined) return <Carregando />;
   // senha provisória (usuário novo ou senha redefinida pelo administrador): troca antes de entrar
   if (session && perfil?.trocar_senha) return <><Toaster /><NovaSenha obrigatoria onPronto={() => setPerfil({ ...perfil, trocar_senha: false })} /></>;
@@ -215,6 +221,22 @@ function RotasERP() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+  );
+}
+
+function SemConexao({ detalhe, onTentar }: { detalhe: string; onTentar: () => void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4">
+      <Card className="max-w-sm p-6 text-center">
+        <h1 className="mb-2 text-lg font-semibold" role="alert">Sem conexão com o ERP</h1>
+        <p className="mb-2 text-sm text-slate-600">Não foi possível falar com o servidor. Confira a internet e tente de novo.</p>
+        <p className="mb-5 break-words text-xs text-slate-400">{detalhe}</p>
+        <div className="flex justify-center gap-2">
+          <Button onClick={onTentar}>Tentar de novo</Button>
+          <Button variant="secondary" onClick={() => supabase.auth.signOut()}>Sair</Button>
+        </div>
+      </Card>
+    </div>
   );
 }
 

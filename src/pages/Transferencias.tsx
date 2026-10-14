@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowRight, ExternalLink, FileText, Plus, Send, Trash2, Truck, X } from "lucide-react";
 import { Badge, Button, CelulaAbrir, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
+import { sincronizarItens } from "@/lib/itens";
 import { brl, dataBR } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -92,12 +93,12 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
       ? await supabase.from("transferencias").update(dados).eq("id", t.id).select("id, numero").single()
       : await supabase.from("transferencias").insert(dados).select("id, numero").single();
     if (error) throw error;
-    await supabase.from("transferencia_itens").delete().eq("transferencia_id", data.id);
-    const { error: e2 } = await supabase.from("transferencia_itens").insert(itens.map((i) => ({
-      transferencia_id: data.id, produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade),
+    // atualiza o que continua, grava o que entrou e só no fim tira o que saiu (nada some se a internet cair)
+    const ids = await sincronizarItens("transferencia_itens", "transferencia_id", data.id, itens, (i) => ({
+      produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade),
       custo_unitario: Number(i.custo_unitario) || 0, numero_serie: i.numero_serie || null,
-    })));
-    if (e2) throw e2;
+    }), { chaveNatural: "produto_id" });
+    setItens(itens.map((i, k) => ({ ...i, id: ids[k] || i.id })));
     setT({ ...t, id: data.id, numero: data.numero, status: t.status ?? "rascunho" });
     invalidar("transferencias");
     return data.id;
