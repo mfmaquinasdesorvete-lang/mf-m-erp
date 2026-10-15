@@ -72,3 +72,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   49. `20261015112201_ultimas_compras.sql` (ordem de compra → ver últimas compras: pedidos de compra e itens das notas de fornecedor, por fornecedor ou pela descrição)
   50. `20261015113611_maquinas_midia_tecnicos.sql` (painel das máquinas: galeria de fotos e vídeos, manuais e dicas, especificações, etapas de produção na OP, técnicos com região, página da máquina para o cliente, histórico de custos e sugestor de NCM)
   51. `20261015114351_servicos.sql` (tipo serviço: carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica; sem estoque nem reposição)
+  52. `20261015124941_itens_notas_fornecedor.sql` (itens das notas de fornecedor lidos do XML numa tabela própria; conferir itens: ligar ao produto, que já atualiza os fornecedores do produto, ou marcar como uso e consumo / bem da empresa / serviço; não mexe no estoque)

@@ -111,6 +111,11 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
     ? await db.from("produto_fornecedor").select("codigo_fornecedor, produto_id, fator_conversao").eq("fornecedor_id", fornecedorId)
     : { data: [] as any[] };
   const porCodigo = new Map((vinculos ?? []).map((v: any) => [v.codigo_fornecedor, v]));
+  // itens marcados em "Conferir itens das notas" como uso e consumo, bem da empresa ou serviço: não pedem vínculo
+  const { data: semEstoque } = fornecedorId
+    ? await db.from("fornecedor_itens_sem_estoque").select("codigo_fornecedor").eq("fornecedor_id", fornecedorId).eq("ativo", true)
+    : { data: [] as any[] };
+  const foraDoEstoque = new Set((semEstoque ?? []).map((v: any) => v.codigo_fornecedor));
 
   const eans = itens.map((i) => i.ean).filter(Boolean) as string[];
   const { data: porEan } = eans.length
@@ -120,10 +125,12 @@ export async function vincularItens(db: SupabaseClient, fornecedorId: string | n
 
   return itens.map((i) => {
     const v = porCodigo.get(i.codigo);
+    const semEstoque = !v && foraDoEstoque.has(i.codigo);
     return {
       ...i,
-      produto_id: (v?.produto_id ?? (i.ean ? mapaEan.get(i.ean) : null) ?? null) as string | null,
+      produto_id: (v?.produto_id ?? (i.ean && !semEstoque ? mapaEan.get(i.ean) : null) ?? null) as string | null,
       fator: Number(v?.fator_conversao ?? 1),
+      sem_estoque: semEstoque,
     };
   });
 }
@@ -190,13 +197,16 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
     if (!cfg.entrada_automatica_estoque) return await marcar("aguardando_vinculo", "Entrada automática desligada em Configurações.");
 
     const itens = await vincularItens(db, nfe.fornecedor_id, lido.itens);
-    const semVinculo = itens.filter((i) => !i.produto_id);
+    const semVinculo = itens.filter((i) => !i.produto_id && !i.sem_estoque);
     if (semVinculo.length) {
       return await marcar("aguardando_vinculo",
         `${semVinculo.length} item(ns) sem produto vinculado: ${semVinculo.slice(0, 3).map((i) => i.descricao).join(", ")}` +
         (semVinculo.length > 3 ? "…" : "") + ". Vincule uma vez; nas próximas notas será automático.");
     }
 
+    if (!itens.some((i) => i.produto_id)) {
+      return await marcar("concluido", "Só itens de uso e consumo, bens da empresa ou serviço: a nota não entra no estoque.");
+    }
     const { error } = await db.rpc("lancar_estoque_nfe_core", {
       p_nfe: nfe.id,
       p_itens: itens.map((i) => ({

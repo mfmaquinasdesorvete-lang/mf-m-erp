@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { Ban, CalendarClock, FileDown, FlaskConical, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
+import { Ban, CalendarClock, FileDown, FlaskConical, ListChecks, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
@@ -21,6 +21,7 @@ import { ABAS_EMITIDAS, ABAS_RECEBIDAS, numeroDaChave, situacaoEmitida, situacao
 import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, TituloMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
 import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
 import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
+import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
 import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
 import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebidas } from "@/components/nfe/Evolucao";
@@ -317,6 +318,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [conferir, setConferir] = useState(false);
   const invalidate = useInvalidate();
 
   async function sincronizar() {
@@ -343,6 +345,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
     <>
       {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
         <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
+        <Button variant="secondary" onClick={() => setConferir(true)} title="Ligar os itens das notas aos produtos do ERP (cadastro e fornecedores)"><ListChecks size={16} /> Conferir itens das notas</Button>
         <MaisAcoes>
         <Button variant="secondary" onClick={() => exportarNotas(`notas-recebidas-${aba}`, filtrada.map((n) => ({
           Número: numeroDaChave(n.chave), Emissão: dataBR(n.data_emissao), Fornecedor: n.emitente_nome ?? "", CNPJ: docFormat(n.emitente_cnpj),
@@ -401,6 +404,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {janela === "gerenciar" && <GerenciarMarcadores onClose={() => setJanela(null)} />}
       {janela === "marcadores" && <AplicarMarcadores tabela={tabela} notas={data.filter((n) => sel.has(n.id))} onClose={() => setJanela(null)} />}
       {abertaAtual && <RecebidaDetalhe nota={abertaAtual} leitura={leitura} onClose={() => setAberta(null)} />}
+      {conferir && <ConferirItensNotas onClose={() => setConferir(false)} />}
     </>
   );
 }

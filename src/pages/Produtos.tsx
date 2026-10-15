@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
@@ -43,6 +43,7 @@ import { CampoNcm } from "@/components/produtos/SugerirNcm";
 import { EditorEspecificacoes, EditorEtapas, SUGESTOES_ESPEC, SUGESTOES_PECA, type Especificacao } from "@/components/produtos/EditoresMaquina";
 import { FichaProduto } from "@/components/produtos/FichaProduto";
 import { ModelosMaquinas } from "@/components/produtos/ModelosMaquinas";
+import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -147,6 +148,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
   const [ficha, setFicha] = useState<Produto | null>(null);
+  const [itensNotas, setItensNotas] = useState(false);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
     "produto_fornecedor", { select: "produto_id, codigo_fornecedor, fator_conversao, fornecedor:fornecedores(nome)", order: "produto_id" });
@@ -436,6 +438,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {pode("editar_produtos") && <>
             <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
             <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>
+            {tem("financeiro", "tecnico") && <Button variant="secondary" onClick={() => setItensNotas(true)}><ListChecks size={16} /> Itens das notas de fornecedor</Button>}
           </>}
         </>}
         // estrela no bloco "Fornecedores deste produto" → o select "Fornecedor preferencial" acompanha
@@ -762,6 +765,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         onEditar={() => { const p = ficha; setFicha(null); setEditarAgora({ ...p }); }} />}
       {importar && <ImportarProdutos onClose={() => setImportar(false)} />}
       {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}
+      {itensNotas && <ConferirItensNotas onClose={() => setItensNotas(false)} />}
       {unificando && <UnificarProdutosLista produtos={unificando.lista} onFim={(m) => { unificando.fim(m); setUnificando(null); }} />}
       {kitAberto && <KitComponentesModal kit={kitAberto} podeEditar={pode("editar_produtos")} onClose={() => setKitAberto(null)} />}
     </>

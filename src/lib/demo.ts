@@ -203,6 +203,18 @@ function seed(): Db {
         processamento_msg: "Não parece compra (CFOP 5915). Ex.: remessa para conserto. Confira e lance manualmente se for o caso.",
         itens: [{ numero: 1, codigo: "MF300", ean: null, descricao: "MAQUINA SORVETE MF-300 P/ CONSERTO", ncm: "84186990", cfop: "5915", unidade: "UN", quantidade: 1, valor_unitario: 23900, valor_total: 23900 }],
       },
+      {
+        // nota antiga (histórico do sistema anterior): os itens servem para ligar cadastro e fornecedores
+        id: "nr4", chave: "42261033444555000181550010000127741000127740", emitente_nome: "Casa das Peças Refrigeração", emitente_cnpj: "33444555000181",
+        valor_total: 1386, data_emissao: quando(-40), situacao: "autorizada", manifestacao: "ciencia", fornecedor_id: "f3", conta_pagar_id: null,
+        estoque_lancado: false, processamento: "ignorada", processamento_msg: "Histórico: já lançada no sistema anterior.", origem: "xml", created_at: quando(-40),
+        itens: [
+          { numero: 1, codigo: "MTB-12", ean: "7891234567895", descricao: "MOTOR BATEDOR 1/2CV 220V", ncm: "85015210", cfop: "5102", unidade: "UN", quantidade: 2, valor_unitario: 405, valor_total: 810 },
+          { numero: 2, codigo: "KV-300", ean: null, descricao: "KIT VEDACAO CILINDRO MF300", ncm: "40169300", cfop: "5102", unidade: "UN", quantidade: 6, valor_unitario: 41, valor_total: 246 },
+          { numero: 3, codigo: "PAP-A4", ean: null, descricao: "PAPEL SULFITE A4 CHAMEX 500 FLS", ncm: "48025610", cfop: "5102", unidade: "PCT", quantidade: 5, valor_unitario: 30, valor_total: 150 },
+          { numero: 4, codigo: "PS-M6X20", ean: null, descricao: "PARAFUSO SEXTAVADO INOX M6 X 20", ncm: "73181500", cfop: "5102", unidade: "CX", quantidade: 2, valor_unitario: 90, valor_total: 180 },
+        ],
+      },
     ],
     produto_fornecedor: [
       { id: "pf1", fornecedor_id: "f1", codigo_fornecedor: "CMP-1HP-404", produto_id: "p8", fator_conversao: 1 },
@@ -1984,6 +1996,57 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       }
     }
     return { data: linhas.sort((x, y) => String(y.data).localeCompare(String(x.data))).slice(0, p_limite ?? 300), error: null };
+  },
+  // conferir itens das notas de fornecedor (no sistema real: itens_notas_fornecedor, lendo nfe_recebida_itens)
+  itens_notas_fornecedor: ({ p_unidade, p_desde }) => {
+    const grupos = new Map<string, Row>();
+    const notas = (db.nfe_recebidas ?? []).filter((n: Row) => !n.excluida_em && n.situacao !== "cancelada" && n.fornecedor_id && n.finalidade !== "devolucao"
+      && (!p_unidade || !n.unidade_id || n.unidade_id === p_unidade) && (!p_desde || String(n.data_emissao).slice(0, 10) >= p_desde))
+      .sort((a: Row, b: Row) => String(b.data_emissao).localeCompare(String(a.data_emissao)));
+    for (const n of notas) for (const i of (n.itens ?? []) as Row[]) {
+      if (!/^(51|54|61|64|71)/.test(String(i.cfop ?? "")) || !String(i.codigo ?? "").trim()) continue;
+      const k = `${n.fornecedor_id}|${i.codigo}`;
+      const g = grupos.get(k);
+      const data = String(n.data_emissao).slice(0, 10);
+      if (!g) grupos.set(k, { fornecedor_id: n.fornecedor_id, codigo: i.codigo, descricao: i.descricao, ncm: i.ncm, ean: i.ean, unidade: i.unidade, notas: 1,
+        quantidade: Number(i.quantidade), ultimo_valor: i.valor_unitario, ultima_data: data, primeira_data: data, _notas: new Set([n.id]) });
+      else { g._notas.add(n.id); g.notas = g._notas.size; g.quantidade += Number(i.quantidade); g.primeira_data = data; g.ean ??= i.ean; }
+    }
+    const lista: Row[] = [...grupos.values()].map(({ _notas, ...g }: Row): Row => {
+      const f = db.fornecedores.find((x: Row) => x.id === g.fornecedor_id);
+      const pf = (db.produto_fornecedor ?? []).find((x: Row) => x.fornecedor_id === g.fornecedor_id && x.codigo_fornecedor === g.codigo);
+      const se = (db.fornecedor_itens_sem_estoque ?? []).find((x: Row) => x.fornecedor_id === g.fornecedor_id && x.codigo_fornecedor === g.codigo && x.ativo);
+      const cod = String(g.codigo).toUpperCase();
+      const sug = !pf && !se ? db.produtos.find((p: Row) => p.ativo !== false && !p.unificado_em && ((g.ean && p.codigo_barras === g.ean)
+        || (cod.length >= 4 && String(p.codigo_fabricante ?? "").toUpperCase() === cod) || ((/[A-Z]/.test(cod) || cod.length >= 6) && String(p.sku ?? "").toUpperCase() === cod))) : null;
+      return { ...g, fornecedor: f?.nome_fantasia || f?.nome || null, fornecedor_cnpj: f?.cnpj ?? null, produto_id: pf?.produto_id ?? null, fator: pf?.fator_conversao ?? null,
+        sem_estoque: se?.tipo ?? null, sugestao_id: sug?.id ?? null, sugestao_motivo: sug ? (g.ean && sug.codigo_barras === g.ean ? "mesmo código de barras" : "mesmo código") : null };
+    });
+    return { data: lista.sort((a, b) => String(b.ultima_data).localeCompare(String(a.ultima_data)) || b.notas - a.notas), error: null };
+  },
+  ligar_itens_fornecedor: ({ p_itens }) => {
+    if (!podeFinanceiro()) return erro("sem permissão");
+    db.produto_fornecedor ??= [];
+    db.fornecedor_itens_sem_estoque ??= [];
+    let n = 0;
+    for (const v of p_itens ?? []) {
+      const pf = db.produto_fornecedor.find((x: Row) => x.fornecedor_id === v.fornecedor_id && x.codigo_fornecedor === v.codigo);
+      const se = db.fornecedor_itens_sem_estoque.find((x: Row) => x.fornecedor_id === v.fornecedor_id && x.codigo_fornecedor === v.codigo);
+      if (v.acao === "produto") {
+        if (!db.produtos.some((p: Row) => p.id === v.produto_id)) return erro(`produto não encontrado para o item "${v.descricao ?? v.codigo}"`);
+        if (pf) Object.assign(pf, { produto_id: v.produto_id, fator_conversao: Number(v.fator) || 1 });
+        else db.produto_fornecedor.push({ id: uid(), fornecedor_id: v.fornecedor_id, codigo_fornecedor: v.codigo, descricao_fornecedor: v.descricao, produto_id: v.produto_id, fator_conversao: Number(v.fator) || 1 });
+        if (se) se.ativo = false;
+        const ult = (rpcs.itens_notas_fornecedor({}).data as Row[]).find((x) => x.fornecedor_id === v.fornecedor_id && x.codigo === v.codigo);
+        fornecimentoDemo(v.produto_id, v.fornecedor_id, ult?.ultimo_valor != null ? Math.round((Number(ult.ultimo_valor) / (Number(v.fator) || 1)) * 100) / 100 : null, "nota", null);
+      } else if (["consumo", "ativo", "servico", "outro"].includes(v.acao)) {
+        if (pf) return erro(`o item "${v.descricao ?? v.codigo}" já está ligado a um produto: para trocar, ligue a outro produto`);
+        if (se) Object.assign(se, { tipo: v.acao, ativo: true });
+        else db.fornecedor_itens_sem_estoque.push({ id: uid(), fornecedor_id: v.fornecedor_id, codigo_fornecedor: v.codigo, descricao: v.descricao, tipo: v.acao, ativo: true });
+      } else if (v.acao === "pendente") { if (se) se.ativo = false; } else return erro(`ação inválida: ${v.acao}`);
+      n++;
+    }
+    return { data: n, error: null };
   },
   unificar_produtos: ({ p_principal, p_outros, p_motivo }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

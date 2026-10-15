@@ -131,6 +131,7 @@ export function evolucaoRecebida(n: RecebidaParaEvolucao, ev: EvolucaoRecebida |
     : { id: "fornecedor", rotulo: "Fornecedor", estado: "pendente", detalhe: "não cadastrado" });
   if (n.finalidade !== "devolucao") {
     etapas.push(n.estoque_lancado ? { id: "produtos", rotulo: "Estoque", estado: "ok", detalhe: "entrada no estoque feita" }
+      : n.processamento === "concluido" ? { id: "produtos", rotulo: "Estoque", estado: "ok", detalhe: "nota sem itens de estoque" }
       : n.processamento === "aguardando_vinculo" ? { id: "produtos", rotulo: "Estoque", estado: "problema", detalhe: "falta vincular produto" }
         : n.processamento === "revisao" ? { id: "produtos", rotulo: "Estoque", estado: "problema", detalhe: "conferir antes de lançar" }
           : { id: "produtos", rotulo: "Estoque", estado: "pendente", detalhe: "entrada não feita" });
