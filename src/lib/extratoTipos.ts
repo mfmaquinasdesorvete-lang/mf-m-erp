@@ -1,9 +1,10 @@
 // O que é cada lançamento do extrato, pela descrição do banco: Pix recebido, vendas no cartão, combustível…
-// Serve para o resumo da conta ("quantos Pix entraram?") e para a tela de combustível. Arquivo puro (testado).
+// Serve para o resumo da conta ("quantos Pix entraram?") e para as telas de combustível e de compras em marketplaces. Arquivo puro (testado).
+import { marketplaceDoExtrato } from "./marketplaces";
 
 export type TipoLanc =
   | "pix_recebido" | "vendas_cartao" | "outra_entrada"
-  | "pix_enviado" | "combustivel" | "pedagio" | "tarifa" | "outra_saida";
+  | "pix_enviado" | "combustivel" | "marketplace" | "pedagio" | "tarifa" | "outra_saida";
 
 export const TIPOS_LANC: { id: TipoLanc; rotulo: string; entrada: boolean }[] = [
   { id: "pix_recebido", rotulo: "Pix recebidos", entrada: true },
@@ -11,6 +12,7 @@ export const TIPOS_LANC: { id: TipoLanc; rotulo: string; entrada: boolean }[] = 
   { id: "outra_entrada", rotulo: "Outras entradas", entrada: true },
   { id: "pix_enviado", rotulo: "Pix enviados", entrada: false },
   { id: "combustivel", rotulo: "Combustível (postos)", entrada: false },
+  { id: "marketplace", rotulo: "Mercado Livre, TikTok e outros", entrada: false },
   { id: "pedagio", rotulo: "Pedágio", entrada: false },
   { id: "tarifa", rotulo: "Tarifas e juros", entrada: false },
   { id: "outra_saida", rotulo: "Compras e outras saídas", entrada: false },
@@ -38,6 +40,7 @@ export function tipoLancamento(descricao: string | null | undefined, valor: numb
     return "outra_entrada";
   }
   if (COMBUSTIVEL.test(d)) return "combustivel";
+  if (marketplaceDoExtrato(descricao, valor)) return "marketplace";
   if (PEDAGIO.test(d)) return "pedagio";
   if (/\bpix\b/.test(d)) return "pix_enviado";
   if (TARIFA.test(d)) return "tarifa";

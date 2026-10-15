@@ -1,7 +1,7 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
-  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingCart, Store, Truck,
+  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
 import { usePerfil } from "./auth";
@@ -84,6 +84,7 @@ export const grupos: Grupo[] = [
       { to: "/aprovacoes", tela: "financeiro", label: "Aprovações", curto: "Aprovar", icon: BadgeCheck, busca: "aprovação revisão alçada segunda revisão devolver rejeitar pendência documento contador validar" },
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo pix recebidos infinitepay nubank inter cartão" },
       { to: "/combustivel", tela: "financeiro", label: "Combustível (postos)", curto: "Combust.", icon: Fuel, busca: "posto gasolina diesel etanol abastecimento veículo carro gasto" },
+      { to: "/compras-marketplace", tela: "financeiro", label: "Compras em marketplaces", curto: "Marketpl.", icon: ShoppingBag, busca: "mercado livre tiktok tik tok shop shopee amazon compras online internet loja pix marketplace gasto" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],
   },

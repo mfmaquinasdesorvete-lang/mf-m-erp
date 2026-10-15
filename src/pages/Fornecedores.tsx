@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Building2, FileSpreadsheet, Wrench } from "lucide-react";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
@@ -14,6 +14,8 @@ import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { CampoBloqueio, SeloGolpe } from "@/components/fornecedores/Golpe";
 import { notify } from "@/lib/notify";
 import { ehPosto } from "@/lib/extratoTipos";
+import { useLojasDeMarketplace } from "@/lib/comprasMarketplace";
+import { MARKETPLACES } from "@/lib/marketplaces";
 
 const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
 
@@ -94,6 +96,17 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
   const [importar, setImportar] = useState<"fornecedor" | "transportadora" | null>(null);
   const [arrumar, setArrumar] = useState(false);
   const [receita, setReceita] = useState<Fornecedor | null>(null);
+  // lojas que venderam para a MF por marketplace (pela nota): filtro como o dos postos
+  const lojasMkt = useLojasDeMarketplace();
+  const filtrosForn = useMemo<FiltroCrud<Fornecedor>[]>(() => FILTROS_FORN.map((f) => f.label !== "Atividade" || !("opcoes" in f) ? f : {
+    ...f,
+    opcoes: [
+      ...f.opcoes,
+      { label: "Lojas de marketplace (Mercado Livre, TikTok…)", teste: (r: Fornecedor) => lojasMkt.has(digitos(r.cnpj)) },
+      ...MARKETPLACES.filter((m) => [...lojasMkt.values()].includes(m.id)).map((m) => ({ label: `Lojas do ${m.nome}`, teste: (r: Fornecedor) => lojasMkt.get(digitos(r.cnpj)) === m.id })),
+      { label: "Sem as lojas de marketplace", teste: (r: Fornecedor) => !lojasMkt.has(digitos(r.cnpj)) },
+    ],
+  }), [lojasMkt]);
   const podeImportar = tem("financeiro");
   const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
     podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
@@ -125,7 +138,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
               <Building2 size={15} /> Receita
             </button>
           )}
-          filtros={FILTROS_FORN}
+          filtros={filtrosForn}
           ordens={ORDENS_FORN}
           podeExcluir={papel === "admin"}
           plural="fornecedores"

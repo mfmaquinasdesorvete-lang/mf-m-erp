@@ -1118,6 +1118,27 @@ function bancosDemo(db: Db) {
   add("cb3", dias(-12), -180.5, "AUTO POSTO BOA VIAGEM · cartao");
   add("cb3", dias(-40), -210, "POSTO ESTRELA DO SUL LTDA · cartao");
   add("cb3", dias(-5), -12.3, "AUTOBAN · cartao");
+  // compras em marketplaces (tela Compras em marketplaces): notas das lojas com o intermediador (infIntermed) e os pagamentos
+  const notaMkt = (id: string, nf: number, d: number, loja: string, cnpj: string, intermed: string, usuario: string, itens: [string, number, number][], infCpl = "", fornecedor: string | null = null) => {
+    const total = r2(itens.reduce((t, [, q, v]) => t + q * v, 0));
+    db.nfe_recebidas.push({
+      id, chave: `422610${cnpj}55001${String(nf).padStart(9, "0")}1${String(nf).padStart(8, "0")}5`, emitente_nome: loja, emitente_cnpj: cnpj, valor_total: total, data_emissao: quando(d),
+      situacao: "autorizada", manifestacao: "ciencia", fornecedor_id: fornecedor, conta_pagar_id: null, estoque_lancado: false, processamento: "concluido", processamento_msg: null,
+      unidade_id: U_SC, created_at: quando(d), marcadores: [],
+      xml: `<nfeProc><NFe><infNFe><ide><indIntermed>1</indIntermed></ide><total><ICMSTot><vNF>${total.toFixed(2)}</vNF></ICMSTot></total><infIntermed><CNPJ>${intermed}</CNPJ><idCadIntTran>${usuario}</idCadIntTran></infIntermed><infAdic><infCpl>${infCpl}</infCpl></infAdic></infNFe></NFe></nfeProc>`,
+    });
+    db.nfe_recebida_itens = [...(db.nfe_recebida_itens ?? []), ...itens.map(([descricao, quantidade, valor_unitario], i) => ({ nfe_id: id, numero: i + 1, descricao, quantidade, valor_unitario, valor_total: r2(quantidade * valor_unitario) }))];
+  };
+  notaMkt("nmk1", 4410, -20, "Loja Exemplo Peças Online Ltda", "45111222000190", "03007331000141", "LOJAEXEMPLOPECAS", [["Rolamento 6202 2RS", 4, 18.9], ["Retentor 25x40x7", 6, 24.31]], "PEDIDO 2000008011112222", "fmk1");
+  notaMkt("nmk2", 1287, -35, "Eletro Componentes Exemplo Ltda", "38222333000171", "03007331000141", "ELETROCOMPEXEMPLO", [["Contatora 220V 25A", 2, 345.27]]);
+  notaMkt("nmk3", 4388, -50, "Loja Exemplo Peças Online Ltda", "45111222000190", "03007331000141", "LOJAEXEMPLOPECAS", [["Correia em V A-32", 2, 29.5]], "", "fmk1");
+  notaMkt("nmk4", 77, -15, "Utilidades Exemplo Comércio Ltda", "29333444000152", "99888777000166", "utilidades.exemplo", [["Organizador de bancada com 12 gavetas", 1, 98.75]], "Venda pelo TikTok Shop");
+  db.fornecedores.push({ id: "fmk1", nome: "Loja Exemplo Peças Online Ltda", cnpj: "45111222000190", municipio: "Joinville", uf: "SC", created_at: quando(-60) });
+  add("cb3", dias(-21), -221.45, "Pix PIX Marketplace · Enviado");
+  add("cb3", dias(-36), -690.54, "MERCADOLIVRE*ELETROCOMP · cartao");
+  add("cb3", dias(-16), -98.75, "Pix BYTEDANCE BRASIL TECNOLOGIA LTDA · Enviado");
+  add("cb3", dias(-8), -134.9, "MERCADOLIVRE*LOJAEXEMPLO · cartao");
+  add("cb3", dias(-7), -64, "MP *RESTAURANTEEXEMPLO · cartao");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
   const saldo = (c: string) => r2(Number(db.contas_bancarias.find((b) => b.id === c)!.saldo_inicial) + db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).reduce((s, l) => s + Number(l.valor), 0));
   db.extrato_importacoes = ["cb1", "cb2", "cb3"].map((c, i) => ({
@@ -1867,6 +1888,17 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     };
   },
   // técnicos que já atenderam o cliente (pelas OS) e os da região dele (cidades e estados que cada um atende)
+  // no sistema real: public.compras_marketplace (lê o grupo infIntermed e o texto do XML das notas de fornecedor)
+  compras_marketplace: () => ({
+    data: (db.nfe_recebidas ?? []).filter((n: Row) => !n.excluida_em && n.xml && (/<infIntermed>/.test(n.xml) || /tik\s*tok|bytedance|shopee|mercado\s*livre|mercadolivre/i.test(n.xml))).map((n: Row) => ({
+      nota_id: n.id,
+      intermediador_cnpj: n.xml.match(/<infIntermed>\s*<CNPJ>(\d{14})<\/CNPJ>/)?.[1] ?? null,
+      loja_usuario: n.xml.match(/<infIntermed>[\s\S]*?<idCadIntTran>([^<]*)<\/idCadIntTran>/)?.[1] ?? null,
+      pedido: n.xml.match(/pedido[^0-9<]{0,20}(\d{6,20})/i)?.[1] ?? null,
+      citado: n.xml.match(/(tik\s*tok|bytedance|shopee|amazon|mercado\s*livre|mercadolivre|aliexpress|shein|temu|magalu)/i)?.[1]?.toLowerCase() ?? null,
+    })),
+    error: null,
+  }),
   // no sistema real: public.maquinas_do_cliente (equipamentos + NF-e de venda emitidas + data do cadastro)
   maquinas_do_cliente: ({ p_cliente }) => {
     const c = db.clientes.find((x: Row) => x.id === p_cliente);

@@ -30,6 +30,8 @@ import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { BotaoFiltros, PainelFiltros, ResumoFiltradas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
 import { filtrosEmUso, passaFiltro } from "@/lib/filtroNotas";
+import { useComprasMarketplace } from "@/lib/comprasMarketplace";
+import { NOME_MARKETPLACE, OPCOES_FILTRO_MARKETPLACE, passaMarketplace } from "@/lib/marketplaces";
 
 const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
@@ -313,6 +315,8 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const [aba, setAba] = useState(() => (filtroInicial && ABAS_RECEBIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
   const [marcador, setMarcador] = useState("");
   const [etapa, setEtapa] = useState("");
+  const [mkt, setMkt] = useState("");
+  const { porNota: marketplaceDe } = useComprasMarketplace();
   const { data: excluidas = [] } = useExcluidas("nfe_recebidas", !leitura);
   const { data: evolucoes } = useEvolucaoRecebidas();
   const evolucao = useMemo(() => new Map(data.map((n) => [n.id, evolucaoRecebida(n as any, evolucoes?.get(n.id))])), [data, evolucoes]);
@@ -320,8 +324,9 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const filtros = useFiltrosNotas();
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
+    .filter((n) => passaMarketplace(marketplaceDe.get(n.id), mkt))
     .filter((n) => passaFiltro({ data: n.data_emissao, numero: numeroDaChave(n.chave), valor: n.valor_total }, filtros.f));
-  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
@@ -377,7 +382,11 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} />
+        <select className="input col-span-2 min-w-0 sm:w-auto" value={mkt} onChange={(e) => setMkt(e.target.value)} aria-label="Compra em marketplace">
+          <option value="">Marketplace: todas</option>
+          {OPCOES_FILTRO_MARKETPLACE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+        </select></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
       {aba !== "excluidas" && (filtros.aberto || filtrosEmUso(filtros.f) > 0) && <PainelFiltros f={filtros.f} onChange={filtros.setF} />}
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
