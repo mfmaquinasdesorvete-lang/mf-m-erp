@@ -90,6 +90,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "fornecedores", tela: "fornecedores", element: <Fornecedores tipo="fornecedores" /> },
   { path: "transportadoras", tela: "fornecedores", element: <Transportadoras /> },
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },
+  // extrato automático: quem cuida dos bancos também abre (o financeiro não abre as outras configurações)
+  { path: "configuracoes/bancos", tela: "conciliacao", element: <Configuracoes secaoFixa="bancos" /> },
   { path: "configuracoes/:secao", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "implantacao", tela: "implantacao", element: <Implantacao /> },

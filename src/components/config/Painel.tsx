@@ -38,6 +38,7 @@ export function PainelConfig() {
     empresa: cfg.logo_url ? { texto: "Logo e marca definidas", ok: true } : { texto: "Sem logo: os PDFs usam a padrão", ok: false },
     unidades: incompletas.length ? { texto: `${incompletas.map((x) => x.nome).join(", ")}: falta CNPJ, IE ou endereço`, ok: false } : { texto: `${u.length} ${pl(u.length, "unidade", "unidades")} prontas para NF-e`, ok: true },
     recebimentos: { texto: `Pix em ${comPix} de ${u.length} · link InfinitePay em ${comLink} de ${u.length}`, ok: comPix === u.length && u.length > 0 },
+    bancos: { texto: "Extrato que chega sozinho: Open Finance, API do Inter e OFX por e-mail" },
     orcamentos: { texto: `Validade ${cfg.validade_orcamento_dias ?? "—"} dias · garantia ${cfg.garantia_meses_padrao ?? "—"} meses · conserto ${cfg.garantia_servico_dias ?? 90} dias` },
     descontos: { texto: regrasDesc.length ? `${regrasDesc.filter((r) => r.ativo).length} ${pl(regrasDesc.filter((r) => r.ativo).length, "regra", "regras")} de desconto máximo` : "Sem limite de desconto" },
     comissoes: { texto: `${Number(cfg.comissao_percentual ?? 0).toLocaleString("pt-BR")}% padrão · regras em Comissões` },

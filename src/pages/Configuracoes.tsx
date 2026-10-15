@@ -13,6 +13,7 @@ import { ConfigNotas } from "@/components/config/Notas";
 import { ConfigCatalogo } from "@/components/config/Catalogo";
 import { ConfigAvisos, ConfigComissoes, ConfigContador, ConfigDados, ConfigEmail } from "@/components/config/Pequenas";
 import { ConfigCadastros } from "@/components/config/Cadastros";
+import { ConfigBancos } from "@/components/config/Bancos";
 
 function ConfigUnidades() {
   return (
@@ -24,12 +25,13 @@ function ConfigUnidades() {
 }
 
 const PAGINAS: Record<SecaoId, () => JSX.Element> = {
-  empresa: ConfigEmpresa, unidades: ConfigUnidades, recebimentos: ConfigRecebimentos, orcamentos: ConfigOrcamentos, descontos: ConfigDescontos, comissoes: ConfigComissoes,
+  empresa: ConfigEmpresa, unidades: ConfigUnidades, recebimentos: ConfigRecebimentos, bancos: ConfigBancos, orcamentos: ConfigOrcamentos, descontos: ConfigDescontos, comissoes: ConfigComissoes,
   pedidos: ConfigPedidos, notas: ConfigNotas, catalogo: ConfigCatalogo, avisos: ConfigAvisos, email: ConfigEmail, contador: ConfigContador, dados: ConfigDados, cadastros: ConfigCadastros,
 };
 
-export default function Configuracoes() {
-  const { secao } = useParams();
+export default function Configuracoes({ secaoFixa }: { secaoFixa?: SecaoId }) {
+  const { secao: daRota } = useParams();
+  const secao = secaoFixa ?? daRota;
   if (!secao) return <PainelConfig />;
   const s = secaoPorId(secao);
   if (!s) return <Navigate to="/configuracoes" replace />;

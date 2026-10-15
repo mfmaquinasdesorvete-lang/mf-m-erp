@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowLeftRight, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus, Receipt, Undo2 } from "lucide-react";
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus, Receipt, Scale, Undo2, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CartaoPainel, variacao } from "@/components/painel/Painel";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
@@ -10,10 +12,10 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
-import { OpenFinancePainel, type ConexaoOF } from "@/components/financeiro/OpenFinance";
-import { InterPainel, type ConexaoInter } from "@/components/financeiro/Inter";
+import type { ConexaoOF } from "@/components/financeiro/OpenFinance";
+import type { ConexaoInter } from "@/components/financeiro/Inter";
 import { AvisoContasRepetidas, ResumoExtrato } from "@/components/financeiro/ResumoExtrato";
-import { contasRepetidas, TIPOS_LANC, tipoLancamento, type TipoLanc } from "@/lib/extratoTipos";
+import { contasRepetidas, semRepetidos, TIPOS_LANC, tipoLancamento, transferenciasInternas, type TipoLanc } from "@/lib/extratoTipos";
 
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
@@ -28,15 +30,23 @@ type Lancamento = {
   /** FITID do OFX (ou resumo da linha do CSV): o mesmo lançamento não entra duas vezes na mesma conta */
   identificador?: string | null;
 };
-type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null; email_id?: string | null };
+export type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null; email_id?: string | null };
 type Conta = {
   id: string; descricao: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   unidade_id: string | null; conta_bancaria_id: string | null; cliente?: { nome: string } | null; fornecedor?: { nome: string } | null;
 };
 
+/** Cor do cartão de cada banco (faixa colorida com o saldo). */
+const COR_BANCO: Record<string, string> = {
+  infinitepay: "from-[#10b981] to-[#047857]", nubank: "from-[#a855f7] to-[#6d28d9]", inter: "from-[#f97316] to-[#c2410c]",
+  unicred: "from-[#22c55e] to-[#166534]", caixa: "from-[#64748b] to-[#334155]", outro: "from-[#0ea5e9] to-[#4f46e5]",
+};
+const somarMesIso = (ym: string, n: number) => { const [a, m] = ym.split("-").map(Number); const t = a * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
+
 export const BANCOS: Record<string, string> = { unicred: "Unicred", nubank: "Nubank", inter: "Banco Inter", infinitepay: "InfinitePay", outro: "Outro banco", caixa: "Caixa (dinheiro)" };
 
 export default function Conciliacao() {
+  const navigate = useNavigate();
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
   const { filtrar, padrao: unidadePadrao } = useUnidade();
@@ -74,6 +84,7 @@ export default function Conciliacao() {
   const doResumo = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && (!mes || l.data.startsWith(mes)));
   const repetidas = useMemo(() => contasRepetidas(lancamentos.filter((l) => contasTodas.some((b) => b.id === l.conta_bancaria_id && b.ativo))), [lancamentos, contasTodas]);
   const sugeridasNaLista = lista.filter((l) => l.status === "pendente" && sugestoes.has(l.id));
+  const pendentesTotal = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente").length;
 
   async function aprovar(ids: string[]) {
     setAprovando(true);
@@ -130,6 +141,7 @@ export default function Conciliacao() {
       <PageHeader title="Bancos e conciliação" subtitle="Conecte o banco pelo Open Finance (ou importe o extrato OFX/CSV) e o ERP liga cada entrada e saída à conta certa"
         actions={podeEditar && <>
           <Button variant="secondary" onClick={() => setEditConta({ banco: "unicred", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: hoje(), ativo: true, unidade_id: unidadePadrao ?? undefined })}><Plus size={16} /> Nova conta</Button>
+          <Button variant="secondary" onClick={() => navigate("/configuracoes/bancos")} title="Open Finance, API do Inter e extrato OFX por e-mail"><Zap size={16} /> Extrato automático</Button>
           <Button onClick={() => setImportar(true)} disabled={!bancos.some((b) => b.ativo)}><FileUp size={16} /> Importar extrato</Button>
         </>} />
 
@@ -140,9 +152,8 @@ export default function Conciliacao() {
         </Card>
       )}
 
-      {podeEditar && bancos.length > 0 && <OpenFinancePainel contas={bancos} />}
-      {podeEditar && bancos.length > 0 && <InterPainel contas={bancos} />}
-      {podeEditar && bancos.length > 0 && <ExtratoPorEmail bancos={bancos} importacoes={importacoes} onEditar={setEditConta} />}
+      {bancos.length > 0 && <PainelBancos bancos={bancos.filter((b) => b.ativo)} lancamentos={lancamentos} saldos={saldos} pendentes={pendentesTotal}
+        sugestoes={sugestoes.size} divergentes={divergentes.size} onPendentes={() => { setSituacao("pendente"); setTipo(""); }} />}
 
       <AvisoContasRepetidas pares={repetidas} nome={nomeConta} onEditar={podeEditar ? (id) => setEditConta(contasTodas.find((b) => b.id === id) ?? null) : undefined} />
 
@@ -153,18 +164,20 @@ export default function Conciliacao() {
           const difBanco = s.informado != null && s.extratoNaData != null ? Math.round((s.informado - s.extratoNaData) * 100) / 100 : 0;
           return (
             <button key={b.id} onClick={() => setContaSel(contaSel === b.id ? "" : b.id)}
-              className={`rounded-xl border bg-surface p-4 text-left shadow-card transition ${contaSel === b.id ? "border-brand ring-2 ring-brand/30" : "border-slate-200/80 hover:border-slate-300"} ${b.ativo ? "" : "opacity-60"}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 font-semibold text-fg"><Landmark size={15} className="shrink-0 text-slate-400" /> <span className="truncate">{b.nome}</span></div>
-                  <div className="text-xs text-slate-500">{BANCOS[b.banco] ?? b.banco}{b.numero ? ` · ${b.numero}` : ""}<EtiquetaUnidade id={b.unidade_id} /></div>
+              className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${contaSel === b.id ? "border-brand ring-2 ring-brand/40" : "border-slate-200/80"} ${b.ativo ? "" : "opacity-60"}`}>
+              <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-3.5 text-white`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-bold"><Landmark size={15} className="shrink-0 opacity-80" /> <span className="truncate">{b.nome}</span></div>
+                    <div className="text-xs text-white/80">{BANCOS[b.banco] ?? b.banco}{b.numero ? ` · ${b.numero}` : ""}<EtiquetaUnidade id={b.unidade_id} /></div>
+                  </div>
+                  {podeEditar && <span role="button" tabIndex={0} aria-label={`Editar ${b.nome}`} onClick={(e) => { e.stopPropagation(); setEditConta(b); }}
+                    className="rounded-md p-1 text-white/80 hover:bg-white/20 hover:text-white"><Pencil size={14} /></span>}
                 </div>
-                {podeEditar && <span role="button" tabIndex={0} aria-label={`Editar ${b.nome}`} onClick={(e) => { e.stopPropagation(); setEditConta(b); }}
-                  className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-fg"><Pencil size={14} /></span>}
+                <div className="num mt-2 text-2xl font-extrabold tracking-tight">{brl(s.extrato)}</div>
+                <div className="text-xs text-white/85">saldo pelo extrato · {s.openFinance ? "Open Finance" : s.inter ? "API do Inter" : "importado"}</div>
               </div>
-              <div className="mt-3 text-xl font-bold text-fg">{brl(s.extrato)}</div>
-              <div className="text-xs text-slate-500">saldo pelo extrato {s.openFinance ? <span className="font-semibold text-emerald-700">· Open Finance</span> : s.inter ? <span className="font-semibold text-emerald-700">· API do Inter</span> : "importado"}</div>
-              <dl className="mt-2 space-y-0.5 text-xs">
+              <dl className="w-full flex-1 space-y-0.5 px-4 pb-3.5 pt-2.5 text-xs">
                 <div className="flex justify-between gap-2"><dt className="text-slate-500">Pelo ERP (baixas)</dt><dd>{brl(s.erp)}</dd></div>
                 <div className={`flex justify-between gap-2 ${dif ? "font-semibold text-amber-700" : "text-emerald-700"}`}><dt>Diferença</dt><dd>{dif ? brl(dif) : "nenhuma ✓"}</dd></div>
                 {s.informado != null && (
@@ -235,9 +248,45 @@ export default function Conciliacao() {
   );
 }
 
+/* ------------------------------ Painel colorido do topo ------------------------------ */
+
+/** Saldo, entradas e saídas do mês (pelos extratos, sem as transferências entre as contas) e o que falta conciliar. */
+function PainelBancos({ bancos, lancamentos, saldos, pendentes, sugestoes, divergentes, onPendentes }: {
+  bancos: ContaBancaria[]; lancamentos: Lancamento[]; saldos: Record<string, { extrato: number }>;
+  pendentes: number; sugestoes: number; divergentes: number; onPendentes: () => void;
+}) {
+  const k = useMemo(() => {
+    const ids = new Set(bancos.map((b) => b.id));
+    const daqui = semRepetidos(lancamentos.filter((l) => ids.has(l.conta_bancaria_id) && l.status !== "transferencia"));
+    const internas = transferenciasInternas(daqui);
+    const mov = daqui.filter((l) => !internas.has(l.id));
+    const mes = hoje().slice(0, 7);
+    const meses = Array.from({ length: 6 }, (_, i) => somarMesIso(mes, i - 5));
+    const entrou = (m: string) => mov.filter((l) => l.data.startsWith(m) && l.valor > 0).reduce((t, l) => t + Number(l.valor), 0);
+    const saiu = (m: string) => mov.filter((l) => l.data.startsWith(m) && l.valor < 0).reduce((t, l) => t - Number(l.valor), 0);
+    return {
+      entrou: entrou(mes), saiu: saiu(mes), dEntrou: variacao(entrou(mes), entrou(somarMesIso(mes, -1))), dSaiu: variacao(saiu(mes), saiu(somarMesIso(mes, -1))),
+      tendEntrou: meses.map(entrou), tendSaiu: meses.map(saiu),
+    };
+  }, [bancos, lancamentos]);
+  const saldo = bancos.reduce((t, b) => t + Number(saldos[b.id]?.extrato ?? 0), 0);
+  const resultado = k.entrou - k.saiu;
+  return (
+    <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <CartaoPainel c={{ id: "saldo", rotulo: "Saldo nos bancos", valor: brl(saldo), icone: Landmark, cor: "var(--kpi-azul)", sub: `${bancos.length} ${pl(bancos.length, "conta ativa", "contas ativas")} · pelos extratos` }} />
+      <CartaoPainel anterior="mês passado" c={{ id: "entrou", rotulo: "Entrou este mês", valor: brl(k.entrou), icone: ArrowDownCircle, cor: "var(--kpi-verde)", delta: k.dEntrou, tendencia: k.tendEntrou,
+        sub: "sem as transferências entre as contas" }} />
+      <CartaoPainel anterior="mês passado" c={{ id: "saiu", rotulo: "Saiu este mês", valor: brl(k.saiu), icone: ArrowUpCircle, cor: "var(--kpi-laranja)", delta: k.dSaiu, bomCair: true, tendencia: k.tendSaiu,
+        sub: `resultado ${resultado >= 0 ? "+" : "−"} ${brl(Math.abs(resultado))}` }} />
+      <CartaoPainel c={{ id: "pend", rotulo: "Para conciliar", valor: pendentes.toLocaleString("pt-BR"), icone: Scale, cor: "var(--kpi-roxo)", onClick: onPendentes,
+        sub: pendentes ? `${sugestoes} com sugestão pronta · ${divergentes} sem par` : "tudo conciliado ✓" }} />
+    </div>
+  );
+}
+
 /* --------------------------------- Conta bancária --------------------------------- */
 
-function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>; onClose: () => void }) {
+export function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>; onClose: () => void }) {
   const [c, setC] = useState(conta);
   const [remetentes, setRemetentes] = useState((conta.extrato_remetentes ?? []).join(", "));
   const save = useSave("contas_bancarias");
@@ -286,7 +335,7 @@ function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBancaria>;
 
 /* ------------------------------- Extrato por e-mail ------------------------------- */
 
-function ExtratoPorEmail({ bancos, importacoes, onEditar }: { bancos: ContaBancaria[]; importacoes: Importacao[]; onEditar: (c: ContaBancaria) => void }) {
+export function ExtratoPorEmail({ bancos, importacoes, onEditar }: { bancos: ContaBancaria[]; importacoes: Importacao[]; onEditar: (c: ContaBancaria) => void }) {
   const { data: caixas = [] } = useRows<{ id: string; email: string }>("email_contas", { select: "id, email" });
   const ligadas = bancos.filter((b) => b.ativo && (b.extrato_remetentes ?? []).length > 0);
   const ultima = (id: string) => importacoes.filter((i) => i.conta_bancaria_id === id && i.email_id).sort((a, c) => c.created_at.localeCompare(a.created_at))[0];

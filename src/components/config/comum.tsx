@@ -4,20 +4,21 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BadgePercent, Bell, Percent, Building2, Calculator, Database, FileText, FolderTree, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
+  ArrowLeft, BadgePercent, Bell, Landmark, Percent, Building2, Calculator, Database, FileText, FolderTree, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
 } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 
-export type SecaoId = "empresa" | "unidades" | "recebimentos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados" | "cadastros";
+export type SecaoId = "empresa" | "unidades" | "recebimentos" | "bancos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados" | "cadastros";
 export type Secao = { id: SecaoId; titulo: string; resumo: string; icone: LucideIcon; cor: string; grupo: string };
 
 export const SECOES: Secao[] = [
   { id: "empresa", grupo: "Empresa", titulo: "Empresa e marca", resumo: "Dados gerais, logo, ícone, cores e o cabeçalho dos PDFs", icone: Palette, cor: "from-[#a855f7] to-[#6d28d9]" },
   { id: "unidades", grupo: "Empresa", titulo: "Unidades", resumo: "Matriz e filial: CNPJ, IE, endereço e série da NF-e", icone: Building2, cor: "from-[#64748b] to-[#334155]" },
   { id: "recebimentos", grupo: "Empresa", titulo: "Recebimentos e taxas", resumo: "Pix, banco e InfinitePay de cada unidade, taxas, multa e juros", icone: BadgePercent, cor: "from-[#10b981] to-[#047857]" },
+  { id: "bancos", grupo: "Empresa", titulo: "Bancos e extratos", resumo: "Extrato automático (Open Finance), API do Inter e extrato OFX por e-mail", icone: Landmark, cor: "from-[#0ea5e9] to-[#4f46e5]" },
   { id: "orcamentos", grupo: "Vendas", titulo: "Orçamentos e garantia", resumo: "Validade, prazos, layout da proposta, garantia e laudo da OS", icone: FileText, cor: "from-[#0ea5e9] to-[#2563eb]" },
   { id: "descontos", grupo: "Vendas", titulo: "Descontos", resumo: "Máximo por tipo de venda e senha de aprovação do administrador", icone: Percent, cor: "from-[#ef4444] to-[#b91c1c]" },
   { id: "comissoes", grupo: "Vendas", titulo: "Comissões", resumo: "Percentual padrão e regras por vendedor e categoria", icone: HandCoins, cor: "from-[#f59e0b] to-[#b45309]" },
@@ -39,11 +40,11 @@ export function IconeSecao({ s, tamanho = 22 }: { s: Secao; tamanho?: number }) 
 }
 
 /** Cabeçalho das páginas: voltar ao painel, ícone, título e o que a página faz. */
-export function CabecalhoSecao({ s, acoes }: { s: Secao; acoes?: ReactNode }) {
+export function CabecalhoSecao({ s, acoes, voltar = { to: "/configuracoes", rotulo: "Configurações" } }: { s: Secao; acoes?: ReactNode; voltar?: { to: string; rotulo: string } }) {
   return (
     <div className="mb-5">
-      <Link to="/configuracoes" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-fg">
-        <ArrowLeft size={16} aria-hidden /> Configurações
+      <Link to={voltar.to} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-fg">
+        <ArrowLeft size={16} aria-hidden /> {voltar.rotulo}
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
