@@ -2950,11 +2950,15 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         empresa: { nome: c.nome_fantasia, whatsapp: c.whatsapp, telefone: c.telefone, email: c.email, endereco: c.endereco, municipio: c.municipio, uf: c.uf, texto: c.catalogo_texto },
         produtos: db.produtos.filter((p) => p.ativo && p.no_catalogo && p.foto_caminho && p.preco_venda > 0)
           .sort((a, b) => (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) || a.descricao.localeCompare(b.descricao))
-          .map((p) => ({
-            id: p.id, sku: p.sku, nome: p.descricao, descricao: p.descricao_catalogo, tipo: p.tipo, preco: p.preco_venda, foto: p.foto_caminho,
-            disponibilidade: p.estoque_atual > 0 ? "in stock" : p.tipo === "maquina" ? "available for order" : "out of stock",
-            garantia_meses: p.garantia_meses ?? c.garantia_meses_padrao,
-          })),
+          .map((p) => {
+            const disponibilidade = p.estoque_atual > 0 ? "in stock" : p.tipo === "maquina" ? "available for order" : "out of stock";
+            return {
+              id: p.id, sku: p.sku, nome: p.descricao, descricao: p.descricao_catalogo, tipo: p.tipo, preco: p.preco_venda, foto: p.foto_caminho,
+              disponibilidade, garantia_meses: p.garantia_meses ?? c.garantia_meses_padrao,
+              titulo: p.titulo_anuncio || null, gtin: p.gtin_isento ? null : p.codigo_barras || null, categoria: p.categoria || null, peso_kg: p.peso_kg || null,
+              prazo_dias: disponibilidade === "available for order" ? p.prazo_reposicao_dias || 30 : null,
+            };
+          }),
       },
     };
   },

@@ -64,3 +64,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   41. `20261014171031_implantacao.sql` (plano de troca do Tiny: etapas com prazo e responsável + indicadores de uso)
   42. `20261014185800_busca_geral.sql` (busca geral do menu: clientes, vendas, notas, produtos, OS e fornecedores, com as permissões de quem busca)
   43. `20261014200212_excluir_os.sql` (excluir OS como a OC e a OP: some das listas, peças voltam ao estoque, conta em aberto cancelada, dá para restaurar; a OP leva junto as OC em cotação)
+  44. `20261014230258_loja_google.sql` (lista de produtos do Google Shopping pelo ERP: título do anúncio, código de barras, categoria, peso e prazo de envio sob encomenda)

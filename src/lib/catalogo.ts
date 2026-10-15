@@ -34,4 +34,7 @@ export const DISPONIBILIDADE: Record<string, { rotulo: string; tom: string }> = 
 export const urlFeed = () =>
   DEMO ? "https://SEU-PROJETO.supabase.co/functions/v1/catalogo-feed" : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/catalogo-feed`;
 
+/** Endereço da mesma lista no formato do Google Merchant Center (Google Shopping). */
+export const urlFeedGoogle = () => `${urlFeed()}?formato=google`;
+
 export const urlLoja = (id?: string) => `${DEMO ? "https://erp.mfmaquinas.com.br" : window.location.origin}/loja${id ? `/${id}` : ""}`;
