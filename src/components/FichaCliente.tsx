@@ -20,6 +20,7 @@ import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 import { DetalheProposta, SeloEmpresa, SeloSituacao } from "@/components/vendas/PropostasTiny";
 import type { PropostaTiny } from "@/lib/propostasTiny";
+import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
@@ -54,7 +55,7 @@ function useFicha(c: Cliente) {
     queryFn: async () => {
       const doc = digitos(c.cpf_cnpj);
       const vazio = Promise.resolve({ data: [] as any[] });
-      const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios, legado, propostasTiny] = await Promise.all([
+      const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios, legado, propostasTiny, notasMyFrost] = await Promise.all([
         supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, " +
           "itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(sku)), notas:notas_fiscais(id, numero, status, ambiente)")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
@@ -74,6 +75,8 @@ function useFicha(c: Cliente) {
         supabase.from("compras_legado").select("id, data, documento, descricao, quantidade, origem").eq("cliente_id", c.id).order("data", { ascending: false }),
         // propostas do Tiny (MF com valores; My Frost, a empresa anterior, sem valores)
         supabase.from("propostas_tiny").select("*").eq("cliente_id", c.id).order("data", { ascending: false }),
+        // notas fiscais da My Frost (empresa anterior): número, data, tipo e o valor da nota
+        supabase.from("notas_legado").select("id, numero, data, valor, natureza").eq("cliente_id", c.id).order("data", { ascending: false }),
       ]);
       const erro = [ped, notasC, contas, oss, equip, contatos].find((r) => r.error)?.error;
       if (erro) throw erro;
@@ -85,6 +88,7 @@ function useFicha(c: Cliente) {
         // antes da migração a tabela não existe: a ficha abre sem essa parte
         legado: (legado.error ? [] : legado.data ?? []) as any[],
         propostasTiny: (propostasTiny.error ? [] : propostasTiny.data ?? []) as PropostaTiny[],
+        notasMyFrost: (notasMyFrost.error ? [] : notasMyFrost.data ?? []) as NotaLegado[],
         nomes: new Map(((usuarios.data ?? []) as any[]).map((u) => [u.user_id, u.nome])),
       };
     },
@@ -159,7 +163,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {data && calc && (
         <>
           {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} />}
-          {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />}
+          {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} notasMyFrost={data.notasMyFrost} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
           {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} />}
@@ -243,7 +247,9 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
   );
 }
 
-function Compras({ compras, pedidos, propostasTiny }: { compras: ReturnType<typeof comprasDoCliente>; pedidos: any[]; propostasTiny: PropostaTiny[] }) {
+function Compras({ compras, pedidos, propostasTiny, notasMyFrost }: {
+  compras: ReturnType<typeof comprasDoCliente>; pedidos: any[]; propostasTiny: PropostaTiny[]; notasMyFrost: NotaLegado[];
+}) {
   const orcamentos = pedidos.filter((p) => ["orcamento", "cancelado"].includes(p.status));
   const [proposta, setProposta] = useState<PropostaTiny | null>(null);
   return (
@@ -292,7 +298,7 @@ function Compras({ compras, pedidos, propostasTiny }: { compras: ReturnType<type
       {propostasTiny.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-semibold">Propostas do Tiny ({propostasTiny.length})</h3>
-          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) ficam sem valores: não são vendas da MF.</p>
+          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) ficam sem valores: não são vendas da MF. O valor de cada nota da My Frost aparece em "Notas fiscais da My Frost".</p>
           <ul className="space-y-1.5 text-sm">
             {propostasTiny.map((p) => (
               <li key={p.id}>
@@ -305,6 +311,13 @@ function Compras({ compras, pedidos, propostasTiny }: { compras: ReturnType<type
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {notasMyFrost.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-sm font-semibold">Notas fiscais da My Frost ({notasMyFrost.length})</h3>
+          <p className="mb-1 text-xs text-slate-500">Emitidas pela My Frost (empresa anterior), com o valor de cada nota: é por quanto o cliente comprou. Não entram nos totais da MF.</p>
+          <ListaNotasMyFrost notas={notasMyFrost} />
         </div>
       )}
       {proposta && <DetalheProposta p={proposta} onClose={() => setProposta(null)} />}

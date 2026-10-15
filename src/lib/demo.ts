@@ -1100,6 +1100,11 @@ function bancosDemo(db: Db) {
     propTiny("mf", 163, -6, "Pendente", "c3", [{ descricao: "Máquina de Sorvete Expressa MF-150 Balcão", quantidade: 1, valor_unitario: 14500, produto_id: "p2" }], { proximo_contato: dias(-2) }),
     propTiny("my_frost", 1071, -420, "Concluído", "c2", [{ descricao: "My Frost Top 300 - Máquina de Sorvete Expresso", quantidade: 1 }]),
   ];
+  // notas fiscais da empresa anterior (no sistema real: aba NFes do backup, via importar_notas_legado)
+  db.notas_legado = [
+    { id: uid(), origem: "My Frost", numero: "5395", data: dias(-412), valor: 21500, natureza: "Venda de producao do estabelecimento", cliente_id: "c2" },
+    { id: uid(), origem: "My Frost", numero: "6120", data: dias(-95), valor: 3000, natureza: "Remessa de mercadoria ou bem para conserto ou reparo", cliente_id: "c2" },
+  ];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({
     id: uid(), conta_bancaria_id: conta, importacao_id: null, data, valor: r2(valor), descricao, documento: null, identificador: uid(), status: "pendente",
@@ -3008,6 +3013,23 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       };
       const ja = db.propostas_tiny.find((x: Row) => x.empresa === p_empresa && x.tiny_id === p.tiny_id);
       if (ja) { Object.assign(ja, linha); r.atualizadas++; } else { db.propostas_tiny.push({ id: uid(), ...linha, created_at: quando(0) }); r.novas++; }
+    }
+    return { data: r, error: null };
+  },
+  // notas fiscais da My Frost (no sistema real: public.importar_notas_legado) — só de quem já é cliente, pelo CPF/CNPJ
+  importar_notas_legado: ({ p_notas }) => {
+    const r = { novas: 0, atualizadas: 0, sem_cliente: 0, ambiguas: 0, erros: [] as Row[] };
+    db.notas_legado ??= [];
+    for (const n of p_notas as Row[]) {
+      const docs = new Set(((n.docs ?? []) as string[]).map((d) => String(d).replace(/\D/g, "")));
+      const clis = [...new Set(db.clientes.filter((c: Row) => docs.has(String(c.cpf_cnpj ?? "").replace(/\D/g, ""))).map((c: Row) => c.unificado_em ?? c.id))];
+      if (clis.length > 1) { r.ambiguas++; continue; }
+      if (!clis.length) { r.sem_cliente++; continue; }
+      const numero = String(n.numero ?? "").replace(/\D/g, "").replace(/^0+/, "");
+      if (!numero) { r.erros.push({ nota: n.numero ?? "?", erro: "nota sem número" }); continue; }
+      const linha = { numero, data: n.data ?? null, valor: typeof n.valor === "number" ? r2(n.valor) : null, natureza: n.natureza || null, cliente_id: clis[0] };
+      const ja = db.notas_legado.find((x: Row) => x.numero === numero);
+      if (ja) { Object.assign(ja, linha); r.atualizadas++; } else { db.notas_legado.push({ id: uid(), origem: "My Frost", ...linha, created_at: quando(0) }); r.novas++; }
     }
     return { data: r, error: null };
   },

@@ -99,13 +99,16 @@ export function montarPropostas(linhas: Linha[]): PropostaLida[] {
   return [...porId.values()].sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "") || Number(b.numero) - Number(a.numero));
 }
 
-export type LeituraPropostas = { propostas: PropostaLida[]; doBackup: boolean; arquivos: string[] };
+/** No backup da My Frost vêm também as abas das notas, contatos e pedidos (para as notas fiscais: notasMyFrost.ts). */
+export type AbasNotasBackup = { nfes: Linha[]; contatos: Linha[]; pedidos: Linha[] };
+export type LeituraPropostas = { propostas: PropostaLida[]; doBackup: boolean; arquivos: string[]; abasNotas?: AbasNotasBackup };
 
 /** Lê os arquivos (.xls/.xlsx/.csv) e junta as propostas (a mesma proposta em dois arquivos conta uma vez). */
 export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropostas> {
   const XLSX = await import("xlsx");
   const todas = new Map<string, PropostaLida>();
   let doBackup = false;
+  let abasNotas: AbasNotasBackup | undefined;
   for (const f of arquivos) {
     let wb;
     if (/\.csv$/i.test(f.name) || f.type === "text/csv") {
@@ -119,6 +122,14 @@ export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropost
     }
     const aba = wb.SheetNames.find((n) => sem(n) === "propostas") ?? wb.SheetNames.find((n) => /propost/i.test(n)) ?? wb.SheetNames[0];
     if (wb.SheetNames.some((n) => sem(n) === "contatos")) doBackup = true;
+    const abaNotas = wb.SheetNames.find((n) => sem(n) === "nfes");
+    if (doBackup && abaNotas) {
+      const linhasDa = (nome: string) => {
+        const a = wb.SheetNames.find((n) => sem(n) === nome);
+        return a ? XLSX.utils.sheet_to_json<Linha>(wb.Sheets[a], { defval: "", raw: true }) : [];
+      };
+      abasNotas = { nfes: linhasDa("nfes"), contatos: linhasDa("contatos"), pedidos: linhasDa("pedidos_venda_itens") };
+    }
     const linhas = XLSX.utils.sheet_to_json<Linha>(wb.Sheets[aba], { defval: "", raw: true });
     const colunas = new Set(Object.keys(linhas[0] ?? {}).map(sem));
     if (!colunas.has("id") || !colunas.has("numero da proposta") || !colunas.has("descricao")) {
@@ -127,7 +138,7 @@ export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropost
     for (const p of montarPropostas(linhas)) todas.set(p.tiny_id, p);
   }
   const propostas = [...todas.values()].sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "") || Number(b.numero) - Number(a.numero));
-  return { propostas, doBackup, arquivos: arquivos.map((f) => f.name) };
+  return { propostas, doBackup, arquivos: arquivos.map((f) => f.name), abasNotas };
 }
 
 /** O que vai para o banco. Na My Frost saem valores, desconto, frete, prazo e observações (o banco também tira). */
@@ -188,3 +199,6 @@ export function contatoDaProposta(p: { proximo_contato: string | null; situacao:
 
 export const subtotalProposta = (p: { itens: ItemPropostaTiny[] }) => p.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_unitario ?? 0), 0);
 export const nomeCliente = (p: PropostaTiny) => p.cliente?.nome_fantasia?.trim() || p.cliente?.nome || p.contato_nome || "—";
+
+/** Data da planilha (dd/mm/aaaa, aaaa-mm-dd, número de série do Excel ou Date) → aaaa-mm-dd. */
+export { data as dataDaPlanilha };

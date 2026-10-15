@@ -18,6 +18,7 @@ import {
   type EmpresaProposta, type PropostaTiny,
 } from "@/lib/propostasTiny";
 import { ImportarPropostasTiny } from "./ImportarPropostasTiny";
+import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 
 const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf)";
 
@@ -274,7 +275,7 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500">
-              <th className="py-1.5 pr-2">Item</th><th className="py-1.5 pr-2 text-right">Qtd</th>
+              <th className="py-1.5 pr-2">Item</th><th className="whitespace-nowrap py-1.5 pr-2 text-right">Qtd</th>
               {mf && <><th className="py-1.5 pr-2 text-right">Unitário</th><th className="py-1.5 text-right">Total</th></>}
             </tr></thead>
             <tbody>
@@ -319,7 +320,8 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
   );
 }
 
-/** Proposta → Pedido → OP → NF: os documentos do ERP deste cliente a partir da data da proposta (até 8 meses depois). */
+/** Proposta → Pedido → OP → NF: os documentos do ERP deste cliente a partir da data da proposta (até 8 meses depois).
+ *  Na proposta da My Frost, também as notas fiscais dela no mesmo período, com o valor da nota (por quanto o cliente comprou). */
 function DocumentosLigados({ p }: { p: PropostaTiny }) {
   const doc = (p.cliente?.cpf_cnpj ?? "").replace(/\D/g, "");
   const base = p.data ? new Date(`${p.data.slice(0, 10)}T12:00:00Z`) : null;
@@ -332,11 +334,15 @@ function DocumentosLigados({ p }: { p: PropostaTiny }) {
       const notasPor = (campo: string, valor: string) => supabase.from("notas_fiscais")
         .select("id, numero, serie, status, valor_total, created_at, finalidade, tipo_operacao, excluida_em, emissao:payload->>data_emissao")
         .eq(campo, valor).eq("status", "autorizada").eq("finalidade", "normal").eq("tipo_operacao", "saida");
-      const [{ data: pedsTodos }, { data: n1 }, { data: n2 }] = await Promise.all([
+      const [{ data: pedsTodos }, { data: n1 }, { data: n2 }, { data: nMyFrost }] = await Promise.all([
         supabase.from("pedidos").select("id, numero, status, created_at").eq("cliente_id", p.cliente_id!)
           .gte("created_at", de!).lte("created_at", `${ate}T23:59:59`).order("created_at"),
         notasPor("cliente_id", p.cliente_id!),
         doc ? notasPor("destinatario_doc", doc) : Promise.resolve({ data: [] as any[] }),
+        p.empresa === "my_frost"
+          ? supabase.from("notas_legado").select("id, numero, data, valor, natureza").eq("cliente_id", p.cliente_id!)
+            .gte("data", de!).lte("data", ate!).order("data")
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const peds = (pedsTodos ?? []).filter((x: any) => x.status !== "cancelado");
       const notas = [...new Map([...(n1 ?? []), ...(n2 ?? [])].filter((n: any) => !n.excluida_em).map((n: any) => [n.id, n])).values()];
@@ -350,12 +356,20 @@ function DocumentosLigados({ p }: { p: PropostaTiny }) {
         ops: ((ops ?? []) as any[]).filter((o) => !o.excluida_em) as { id: string; numero: number; status: string; pedido_id: string }[],
         notas: (notas as any[]).filter((n) => dia(n) >= de! && dia(n) <= ate!).map((n) => ({ ...n, dia: dia(n) }))
           .sort((a, b) => a.dia.localeCompare(b.dia)) as { id: string; numero: string | null; valor_total: number; dia: string }[],
+        notasMyFrost: (nMyFrost ?? []) as NotaLegado[],
       };
     },
   });
   if (!p.cliente_id || !p.data) return null;
   const vazio = data && !data.pedidos.length && !data.ops.length && !data.notas.length;
-  return (
+  return (<>
+    {p.empresa === "my_frost" && data && data.notasMyFrost.length > 0 && (
+      <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 text-sm">
+        <div className="font-semibold text-fg">Notas fiscais da My Frost</div>
+        <p className="text-xs text-slate-500">Deste cliente, de {dataBR(de)} a {dataBR(ate)}, com o valor de cada nota: é por quanto ele comprou.</p>
+        <ListaNotasMyFrost notas={data.notasMyFrost} />
+      </div>
+    )}
     <div className="rounded-xl border border-slate-200 p-3 text-sm">
       <div className="font-semibold text-fg">Pedido, OP e NF-e no ERP</div>
       <p className="text-xs text-slate-500">Deste cliente, de {dataBR(de)} a {dataBR(ate)}.</p>
@@ -371,7 +385,7 @@ function DocumentosLigados({ p }: { p: PropostaTiny }) {
         </ul>
       )}
     </div>
-  );
+  </>);
 }
 
 function MarcadoresDaProposta({ ids }: { ids?: string[] | null }) {

@@ -1,7 +1,8 @@
 // Vendas → Propostas do Tiny → Importar: lê a planilha de propostas exportada do Tiny (.xls/.xlsx/.csv, um ou vários
 // arquivos) ou o backup da My Frost, mostra o que entra e só grava com a confirmação do administrador.
 // MF: com valores, desconto, frete e condições; quem não é cliente vira cadastro. My Frost (empresa anterior): sem
-// valores e só de quem já é cliente do ERP (o banco confere as duas regras de novo).
+// valores e só de quem já é cliente do ERP (o banco confere as duas regras de novo). O backup da My Frost traz também as
+// notas fiscais dela (número, data, tipo e valor da nota): entram as dos clientes do ERP, para saber por quanto compraram.
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
@@ -11,9 +12,14 @@ import { notifyError } from "@/lib/notify";
 import { brl, digitos } from "@/lib/format";
 import { useUnidade } from "@/lib/unidade";
 import { EMPRESA_PROPOSTA, grupoSituacao, lerPropostasTiny, paraEnvio, subtotalProposta, type EmpresaProposta, type LeituraPropostas } from "@/lib/propostasTiny";
+import { montarNotasMyFrost } from "@/lib/notasMyFrost";
 
 const LOTE = 200;
-type Resultado = { novas: number; atualizadas: number; clientes_novos: number; sem_cliente: number; erros: string[] };
+const LOTE_NOTAS = 500;
+type Resultado = {
+  novas: number; atualizadas: number; clientes_novos: number; sem_cliente: number; erros: string[];
+  notas?: { novas: number; atualizadas: number; fora: number };
+};
 
 export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
   const { unidades, padrao } = useUnidade();
@@ -42,9 +48,17 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
     } catch (e) { notifyError(e); } finally { setOcupado(""); }
   }
 
+  const docsErp = useMemo(() => new Set(clientes.map((c) => digitos(c.cpf_cnpj)).filter((d) => d.length >= 11)), [clientes]);
+  // notas fiscais da My Frost do backup: vão só as de quem já é cliente do ERP (o banco confere de novo)
+  const notas = useMemo(() => {
+    const a = leitura?.abasNotas;
+    const todas = a ? montarNotasMyFrost(a.nfes, a.contatos, a.pedidos) : [];
+    return { total: todas.length, envio: todas.filter((n) => n.docs.some((d) => docsErp.has(d))) };
+  }, [leitura, docsErp]);
+
   const resumo = useMemo(() => {
     if (!leitura) return null;
-    const docs = new Set(clientes.map((c) => digitos(c.cpf_cnpj)).filter((d) => d.length >= 11));
+    const docs = docsErp;
     const externos = new Set(clientes.map((c) => c.id_externo).filter(Boolean));
     const ehCliente = (contato: string, doc: string) =>
       (doc.length >= 11 && docs.has(doc)) || (!!contato && externos.has(empresa === "my_frost" ? `myfrost:${contato}` : contato));
@@ -59,7 +73,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
       fechadas: ps.filter((p) => grupoSituacao(p.situacao) === "fechada").length,
       valorFechadas: ps.filter((p) => grupoSituacao(p.situacao) === "fechada").reduce((s, p) => s + subtotalProposta(p) - p.desconto + p.frete, 0),
     };
-  }, [leitura, clientes, empresa]);
+  }, [leitura, clientes, docsErp, empresa]);
 
   const pronto = !!leitura && !!empresa && (empresa === "mf" || combinado) && !ocupado;
 
@@ -78,6 +92,17 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
         r.novas += data?.novas ?? 0; r.atualizadas += data?.atualizadas ?? 0;
         r.clientes_novos += data?.clientes_novos ?? 0; r.sem_cliente += data?.sem_cliente ?? 0;
         r.erros.push(...((data?.erros ?? []) as { proposta: string; erro: string }[]).map((x) => `Proposta ${x.proposta}: ${x.erro}`));
+      }
+      if (empresa === "my_frost" && notas.envio.length) {
+        const n = { novas: 0, atualizadas: 0, fora: 0 };
+        for (let i = 0; i < notas.envio.length; i += LOTE_NOTAS) {
+          setProgresso(`Notas fiscais ${Math.min(i + LOTE_NOTAS, notas.envio.length)} de ${notas.envio.length}…`);
+          const { data, error } = await supabase.rpc("importar_notas_legado", { p_notas: notas.envio.slice(i, i + LOTE_NOTAS) });
+          if (error) throw error;
+          n.novas += data?.novas ?? 0; n.atualizadas += data?.atualizadas ?? 0; n.fora += (data?.sem_cliente ?? 0) + (data?.ambiguas ?? 0);
+          r.erros.push(...((data?.erros ?? []) as { nota: string; erro: string }[]).map((x) => `Nota ${x.nota}: ${x.erro}`));
+        }
+        r.notas = n;
       }
       setResultado(r);
     } catch (e) {
@@ -99,6 +124,10 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
             <li>{resultado.novas} propostas novas{resultado.atualizadas ? ` e ${resultado.atualizadas} atualizadas` : ""}</li>
             {resultado.clientes_novos > 0 && <li>{resultado.clientes_novos} clientes novos no cadastro (vieram da proposta)</li>}
             {resultado.sem_cliente > 0 && <li className="text-amber-700">{resultado.sem_cliente} propostas da My Frost ficaram de fora: não são de clientes do ERP</li>}
+            {resultado.notas && (
+              <li>{resultado.notas.novas + resultado.notas.atualizadas} notas fiscais da My Frost ligadas aos clientes, com o valor da nota
+                {resultado.notas.fora > 0 ? ` (${resultado.notas.fora} sem cliente certo ficaram de fora)` : ""}</li>
+            )}
           </ul>
           {resultado.erros.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -182,6 +211,13 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
                   {resumo.sem > 0 ? " (importe antes a Base da My Frost, em Clientes, se o advogado liberar)" : ""}.
                 </span>
               </p>
+              {notas.total > 0 && (
+                <p className="rounded-xl border border-slate-200 p-3 text-sm text-slate-700">
+                  O backup tem também {notas.total} notas fiscais da My Frost. Entram as {notas.envio.length} dos clientes do ERP, com número,
+                  data, tipo e o <b>valor da nota</b>, para saber por quanto o cliente comprou. Ficam na ficha do cliente e na proposta,
+                  separadas das vendas da MF (não entram nos totais).
+                </p>
+              )}
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-0.5 h-4 w-4" checked={combinado} onChange={(e) => setCombinado(e.target.checked)} />
                 <span>Os dados são da My Frost Máquinas. Confirmo que o uso pela MF para assistência e venda de peças foi combinado com o advogado.</span>
@@ -192,7 +228,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
           <div className="flex flex-wrap items-center justify-end gap-2">
             {progresso && <span className="mr-auto text-sm text-slate-500">{progresso}</span>}
             <Button variant="ghost" onClick={() => { setLeitura(null); setEmpresa(""); }} disabled={!!ocupado}>Outro arquivo</Button>
-            <Button onClick={importar} disabled={!pronto}>{ocupado === "importar" ? "Importando…" : `Importar ${empresa === "my_frost" ? resumo.com : resumo.total} propostas`}</Button>
+            <Button onClick={importar} disabled={!pronto}>{ocupado === "importar" ? "Importando…" : `Importar ${empresa === "my_frost" ? resumo.com : resumo.total} propostas${empresa === "my_frost" && notas.envio.length ? ` e ${notas.envio.length} notas` : ""}`}</Button>
           </div>
         </div>
       )}
