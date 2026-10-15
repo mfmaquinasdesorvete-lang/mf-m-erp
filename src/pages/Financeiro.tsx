@@ -22,7 +22,7 @@ import { BaixaModal } from "@/components/financeiro/BaixaModal";
 import { VisaoGeral } from "@/components/financeiro/VisaoGeral";
 import { CampoCategoria, CampoRateio, rateioOk } from "@/components/financeiro/CategoriaRateio";
 import { ContasFixas } from "@/components/financeiro/ContasFixas";
-import { Dre } from "@/components/financeiro/Dre";
+import { DreComExtratos } from "@/components/financeiro/Dre";
 import { PlanoContas } from "@/components/financeiro/PlanoContas";
 import { Cobranca } from "@/components/financeiro/Cobranca";
 import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/components/financeiro/Recibos";
@@ -144,7 +144,7 @@ export default function Financeiro() {
       {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
         : aba === "recibos" ? <Recibos />
         : aba === "fixas" && veContasPagar ? <ContasFixas />
-        : aba === "dre" && veContasPagar ? <Dre lancamentos={paraDre} />
+        : aba === "dre" && veContasPagar ? <DreComExtratos lancamentos={paraDre} />
         : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
         <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}

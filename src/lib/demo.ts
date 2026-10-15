@@ -11,6 +11,7 @@ import { percentualPedido } from "./comissao";
 import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
 import { pecasDoKit } from "./kits";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
+import { cfopDaOperacao, chaveValida, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
 import { gerarLinhaBancaria } from "./boleto";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
@@ -3537,6 +3538,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   },
   lancar_contas_nota: ({ p_nota, p_parcelas = 1, p_primeiro, p_intervalo = 30, p_forma = "boleto" }) => {
     const n = db.notas_fiscais.find((x) => x.id === p_nota);
+    if (n?.tipo_operacao === "entrada") return erro("nota de entrada não gera conta a receber (o pagamento de uma compra vai em Contas a pagar)");
     if (!n || n.status !== "autorizada") return erro("só depois que a nota for autorizada");
     if (db.contas_receber.some((c) => c.nota_fiscal_id === p_nota && c.status !== "cancelado")) return erro("as contas desta nota já foram lançadas");
     const parc = r2(n.valor_total / p_parcelas);
@@ -3550,8 +3552,10 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   estoque_nota_direta: ({ p_nota, p_estornar = false }) => {
     const n = db.notas_fiscais.find((x) => x.id === p_nota);
     if (!n?.itens) return erro("só para nota direta");
-    if (!!n.estoque_lancado === !p_estornar) return erro(p_estornar ? "o estoque desta nota não foi baixado" : "o estoque desta nota já foi baixado");
-    for (const i of n.itens) movimentar(i.produto_id, p_estornar ? "entrada" : "saida", Number(i.quantidade), `${p_estornar ? "Estorno da " : ""}NF-e ${n.numero} (nota direta)`, { unidade_id: n.unidade_id });
+    if (!!n.estoque_lancado === !p_estornar) return erro(p_estornar ? "o estoque desta nota não foi lançado" : "o estoque desta nota já foi lançado");
+    // nota de entrada: lançar dá entrada e estornar tira
+    const entra = p_estornar !== (n.tipo_operacao === "entrada");
+    for (const i of n.itens) movimentar(i.produto_id, entra ? "entrada" : "saida", Number(i.quantidade), `${p_estornar ? "Estorno da " : ""}NF-e ${n.tipo_operacao === "entrada" ? "de entrada " : ""}${n.numero} (nota direta)`, { unidade_id: n.unidade_id });
     n.estoque_lancado = !p_estornar;
     return { data: n.itens.length, error: null };
   },
@@ -3894,10 +3898,18 @@ const funcoes: Record<string, (b: any) => any> = {
       if (!c) throw new Error("escolha o cliente");
       const itens = (a.itens ?? []).map((i: Row) => ({ ...i, descricao: i.descricao || db.produtos.find((p) => p.id === i.produto_id)?.descricao }));
       const total = r2(itens.reduce((s2: number, i: Row) => s2 + i.quantidade * i.valor_unitario, 0) - Number(a.desconto ?? 0) + Number(a.frete ?? 0));
+      const op = operacaoNota(a.operacao);
+      const chave = String(a.chave_referenciada ?? "").replace(/\D/g, "");
+      if (chave && !chaveValida(chave)) throw new Error("chave da NF referenciada inválida: confira os 44 números (ou deixe em branco)");
+      const entrada = !!op?.entrada;
+      const cfop = op?.cfop ? cfopDaOperacao(op.cfop, (c.uf ?? "SC").toUpperCase() !== "SC") : "5102";
       const nota: Row = { id: uid(), pedido_id: null, unidade_id: a.unidade_id, cliente_id: c.id, destinatario_nome: c.nome, destinatario_doc: c.cpf_cnpj,
-        referencia: `direta-${uid()}`, status: "processando", valor_total: total, created_at: quando(0), operacao: a.operacao, itens, estoque_lancado: false,
-        tipo_operacao: "saida", finalidade: "normal", observacao_interna: "Nota direta",
-        payload: { natureza_operacao: a.natureza || "Venda de mercadoria", items: itens.map((i: Row, k: number) => ({ numero_item: k + 1, descricao: i.descricao, quantidade_comercial: i.quantidade, valor_unitario_comercial: i.valor_unitario, valor_bruto: r2(i.quantidade * i.valor_unitario) })) } };
+        referencia: `${entrada ? "entrada" : "direta"}-${uid()}`, status: "processando", valor_total: total, created_at: quando(0), operacao: a.operacao, itens, estoque_lancado: false,
+        tipo_operacao: entrada ? "entrada" : "saida", finalidade: "normal", observacao_interna: entrada ? `Nota de entrada · ${op!.rotulo}` : "Nota direta",
+        chave_referenciada: chave || null,
+        payload: { natureza_operacao: a.natureza || op?.natureza || "Venda de mercadoria", tipo_documento: entrada ? 0 : 1, ...(chave ? { notas_referenciadas: [{ chave_nfe: chave }] } : {}),
+          items: itens.map((i: Row, k: number) => ({ numero_item: k + 1, descricao: i.descricao, cfop, quantidade_comercial: i.quantidade, valor_unitario_comercial: i.valor_unitario, valor_bruto: r2(i.quantidade * i.valor_unitario),
+            ...(entrada ? { icms_situacao_tributaria: op!.icms_cst, pis_situacao_tributaria: op!.pis_cofins_cst, cofins_situacao_tributaria: op!.pis_cofins_cst } : {}) })) } };
       db.notas_fiscais.push(nota);
       setTimeout(() => Object.assign(nota, { status: "autorizada", numero: String(++numeroNfe), serie: "1", mensagem: "Autorizado o uso da NF-e" }), 3000);
       return { ok: true, nota };

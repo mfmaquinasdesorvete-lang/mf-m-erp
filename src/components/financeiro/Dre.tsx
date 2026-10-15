@@ -1,11 +1,16 @@
 // Financeiro → DRE: lucro do mês e dos meses anteriores pelo plano de contas, por competência ou por caixa,
-// com filtro por centro de custo, detalhe por categoria e exportação para Excel.
+// com filtro por centro de custo, detalhe por categoria e exportação para Excel. Entram também os extratos dos
+// bancos que não estão lançados como conta (dreExtrato.ts), com a opção de ver só as contas.
 // O gráfico escolhe o mês em foco. Celular: só esse mês, em linhas com % da receita e comparação com o mês
 // anterior. Computador: a tabela com todos os meses, o mês em foco destacado.
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { Button, Card, Tabs } from "@/components/ui";
-import { brl, hoje } from "@/lib/format";
+import { brl, hoje, pl } from "@/lib/format";
+import { useRows } from "@/lib/data";
+import { useUnidade } from "@/lib/unidade";
+import { soDigitos, type Parte } from "@/lib/partesRelacionadas";
+import { extratoParaDre, type ContaBancariaDre, type LancExtratoDre, type ResultadoExtratoDre } from "@/lib/dreExtrato";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
 import { dre, mesesAte, rotuloCategoria, type LancDre, type LinhaDre, type Regime } from "@/lib/dre";
@@ -19,8 +24,26 @@ const pct = (v: number | null) => (v === null ? "—" : `${(v * 100).toLocaleStr
 const valor = (v: number) => (v < 0 ? `(${brl(-v)})` : brl(v));
 const corLucro = (v: number) => (v >= 0 ? "text-emerald-700" : "text-red-700");
 
-export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
+/** DRE com os extratos dos bancos: carrega os lançamentos só quando a aba abre. */
+export function DreComExtratos({ lancamentos }: { lancamentos: LancDre[] }) {
+  const { filtrar } = useUnidade();
+  const { data: extrato = [], isLoading } = useRows<LancExtratoDre>("extrato_lancamentos", {
+    select: "id, conta_bancaria_id, data, valor, descricao, identificador, status, conta_receber_id, conta_pagar_id, par_transferencia_id", order: "data", ascending: true, key: ["dre"],
+  });
+  const { data: bancos = [] } = useRows<ContaBancariaDre>("contas_bancarias", { select: "id, ativo, unidade_id", order: "nome", ascending: true, key: ["dre"] });
+  const { data: funcionarios = [] } = useRows<{ nome: string }>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
+  const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
+  const { data: unidades = [] } = useRows<{ razao_social: string | null; cnpj: string | null }>("unidades", { select: "id, razao_social, cnpj", order: "nome", ascending: true, key: ["partes"] });
+  const r = useMemo<ResultadoExtratoDre>(() => extratoParaDre(extrato, bancos, lancamentos, {
+    funcionarios, partes,
+    propria: { nomes: [...new Set(unidades.map((u) => u.razao_social ?? "").filter(Boolean))], documentos: unidades.map((u) => soDigitos(u.cnpj)).filter(Boolean) },
+  }), [extrato, bancos, lancamentos, funcionarios, partes, unidades]);
+  return <Dre lancamentos={lancamentos} extrato={filtrar(r.lancamentos)} fora={r.fora} carregando={isLoading} />;
+}
+
+export function Dre({ lancamentos, extrato = [], fora, carregando }: { lancamentos: LancDre[]; extrato?: LancDre[]; fora?: ResultadoExtratoDre["fora"]; carregando?: boolean }) {
   const dia = hoje();
+  const [comExtrato, setComExtrato] = useState<"sim" | "nao">("sim");
   const [regime, setRegime] = useState<Regime>("competencia");
   const [periodo, setPeriodo] = useState<"6" | "12" | "ano">("6");
   const [centro, setCentro] = useState("");
@@ -29,7 +52,8 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
   const { data: cats = [] } = useCategorias();
   const { data: centros = [] } = useCentros();
   const meses = periodo === "ano" ? mesesAte(dia, Number(dia.slice(5, 7))) : mesesAte(dia, Number(periodo));
-  const d = useMemo(() => dre(lancamentos, cats, meses, regime, centro || null), [lancamentos, cats, meses.join(), regime, centro]); // eslint-disable-line react-hooks/exhaustive-deps
+  const todos = useMemo(() => (comExtrato === "sim" ? [...lancamentos, ...extrato] : lancamentos), [lancamentos, extrato, comExtrato]);
+  const d = useMemo(() => dre(todos, cats, meses, regime, centro || null), [todos, cats, meses.join(), regime, centro]); // eslint-disable-line react-hooks/exhaustive-deps
   const i = foco && meses.includes(foco) ? meses.indexOf(foco) : meses.length - 1;
   const mes = meses[i];
   const atual = d.resumo(i);
@@ -65,11 +89,15 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
       <div className="flex flex-wrap items-end gap-x-2">
         <Tabs value={regime} onChange={setRegime} options={[{ value: "competencia", label: "Competência" }, { value: "caixa", label: "Caixa" }]} />
         <Tabs value={periodo} onChange={setPeriodo} options={[{ value: "6", label: "6 meses" }, { value: "12", label: "12 meses" }, { value: "ano", label: `Ano ${dia.slice(0, 4)}` }]} />
-        <select className="input mb-4 w-full sm:w-auto" value={centro} onChange={(e) => setCentro(e.target.value)} aria-label="Centro de custo">
-          <option value="">Todos os centros de custo</option>
-          {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          {centros.length > 0 && <option value="sem">Sem centro de custo</option>}
-        </select>
+        <Tabs value={comExtrato} onChange={setComExtrato} options={[{ value: "sim", label: "Contas + extratos" }, { value: "nao", label: "Só contas lançadas" }]} />
+        {/* sem centro de custo cadastrado o filtro não tem o que mostrar */}
+        {centros.length > 0 && (
+          <select className="input mb-4 w-full sm:w-auto" value={centro} onChange={(e) => setCentro(e.target.value)} aria-label="Centro de custo">
+            <option value="">Todos os centros de custo</option>
+            {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            <option value="sem">Sem centro de custo</option>
+          </select>
+        )}
         <Button variant="secondary" className="mb-4 ml-auto" onClick={exportar}><FileDown size={16} aria-hidden /> Exportar</Button>
       </div>
 
@@ -82,8 +110,8 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
           </div>
           <dl className="num space-y-1 text-sm">
             <div className="flex justify-between gap-3"><dt className="min-w-0">Receita bruta</dt><dd className="whitespace-nowrap font-semibold">{brl(atual.receita)}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Custos e impostos</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.custos)}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Despesas</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.despesas)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Custos e impostos</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.custos || 0)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="min-w-0">(−) Despesas</dt><dd className="whitespace-nowrap font-semibold text-red-700">{brl(-atual.despesas || 0)}</dd></div>
             <div className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 text-base"><dt className="min-w-0 font-bold">(=) Lucro líquido</dt>
               <dd className={`whitespace-nowrap font-bold ${corLucro(atual.lucro)}`}>{brl(atual.lucro)}</dd></div>
           </dl>
@@ -118,6 +146,18 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
           <li>Cada conta entra na linha da categoria dela (Financeiro → <b>Plano de contas</b>). Categoria sem cadastro conta como despesa operacional.</li>
           <li>Toque numa linha com seta para ver as categorias que a compõem. Valores entre parênteses são saídas.</li>
           <li>Investimentos e distribuição de lucros aparecem embaixo, fora do resultado; transferências entre contas não entram.</li>
+          {comExtrato === "sim" ? (
+            <li>
+              <b>Extratos dos bancos:</b> entra o que passou nas contas e não está lançado como conta a pagar ou a receber, no dia do extrato
+              (Pix e cartão recebidos como receita; funcionários, combustível, impostos, tarifas e outros pagamentos pelo tipo).
+              {fora && <> Ficaram de fora {fora.transferencias} {pl(fora.transferencias, "transferência", "transferências")} entre as contas da MF,
+                {" "}{fora.partes} {pl(fora.partes, "movimento", "movimentos")} com sócios e empresas ligadas, {fora.ja_em_conta} {pl(fora.ja_em_conta, "linha que já entra", "linhas que já entram")} pela conta paga
+                {" "}e {fora.repetidas} {pl(fora.repetidas, "linha repetida", "linhas repetidas")} (mesmo extrato importado duas vezes).</>}
+              {" "}Para ver só as contas, toque em <b>Só contas lançadas</b>.
+            </li>
+          ) : <li>Só as contas lançadas em Contas a pagar e a receber. Os extratos dos bancos ficam de fora.</li>}
+          {centros.length === 0 && <li>Centros de custo: nenhum cadastrado. Cadastre em <b>Plano de contas</b> e divida as contas entre eles para filtrar o DRE por centro.</li>}
+          {centro && comExtrato === "sim" && <li>Filtro por centro de custo: os lançamentos dos extratos não têm centro e aparecem só em "Sem centro de custo".</li>}
         </ul>
       </details>
 
@@ -130,7 +170,7 @@ export function Dre({ lancamentos }: { lancamentos: LancDre[] }) {
         </div>
         {!temDados[i] ? (
           <p className="px-4 py-6 text-center text-sm text-slate-500">
-            Nenhuma conta {regime === "caixa" ? "paga ou recebida" : "com vencimento"} em {rotuloMesLongo(mes)}.
+            {carregando ? "Carregando os extratos…" : <>Nenhuma conta {regime === "caixa" ? "paga ou recebida" : "com vencimento"}{comExtrato === "sim" ? " nem lançamento de extrato" : ""} em {rotuloMesLongo(mes)}.</>}
             {temDados.some(Boolean) && " Escolha no gráfico um mês com barras."}
           </p>
         ) : (

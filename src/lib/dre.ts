@@ -1,4 +1,4 @@
-// DRE gerencial a partir das contas a receber e a pagar: cada categoria do plano de contas cai numa linha
+// DRE gerencial a partir das contas a receber e a pagar (e dos extratos dos bancos, ver dreExtrato.ts): cada categoria do plano de contas cai numa linha
 // (receita, deduções, custos, despesas, financeiro, outros). Regime de competência (pelo vencimento ou mês de
 // referência da conta fixa) ou de caixa (pela data em que o dinheiro entrou/saiu). Pode filtrar por centro de custo.
 
@@ -9,6 +9,8 @@ export type Rateio = { centro_custo_id: string; percentual: number }[];
 export type LancDre = {
   tipo: "receber" | "pagar"; categoria?: string | null; valor: number; valor_pago?: number | null; status: string;
   vencimento: string; data_pagamento?: string | null; competencia?: string | null; rateio?: Rateio | null;
+  /** Linha do DRE já definida (lançamento do extrato do banco); senão vem do plano de contas pela categoria. */
+  grupo?: GrupoDre; origem?: "conta" | "extrato";
 };
 export type Regime = "competencia" | "caixa";
 export type LinhaDre = { chave: string; rotulo: string; valores: number[]; total: number; tipo: "grupo" | "resultado" | "info"; detalhes: { categoria: string; valores: number[]; total: number }[] };
@@ -54,7 +56,7 @@ export function mesesAte(ate: string, n: number) {
 
 export function dre(lancs: LancDre[], categorias: CategoriaFin[], meses: string[], regime: Regime, centro?: string | null) {
   const mapa = new Map(categorias.map((c) => [`${c.tipo}|${norm(c.nome)}`, c.grupo]));
-  const grupoDe = (l: LancDre): GrupoDre =>
+  const grupoDe = (l: LancDre): GrupoDre => l.grupo ??
     mapa.get(`${l.tipo === "receber" ? "receita" : "despesa"}|${norm(l.categoria)}`) ?? (l.tipo === "receber" ? "receita" : "despesa_operacional");
   // valores com sinal: entrada +, saída −
   const valores = new Map<string, { grupo: GrupoDre; categoria: string; v: number[] }>();
