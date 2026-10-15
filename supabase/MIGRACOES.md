@@ -76,3 +76,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   53. `20261015131844_propostas_tiny_marcadores.sql` (propostas do Tiny: marcadores; vendas e financeiro mudam só próximo contato, situação e marcadores)
   54. `20261015140119_clientes_compra_maquina.sql` (cliente: data de compra da máquina, que no Tiny ficava no campo "Código"; importar contatos preenche só onde está vazio e unificar leva a data para o cadastro que fica)
   55. `20261015143058_maquinas_do_cliente.sql` (OS: máquinas do cliente com garantia, lidas dos equipamentos, das NF-e de venda emitidas (XML) e da data de compra do cadastro; taxa do diagnóstico por vídeo chamada fora da garantia, padrão R$ 150,00)
+  56. `20261015152112_linhas_produto.sql` (linhas de produtos como no Tiny: comissão fixa, conforme o desconto do item ou herdada; produto ligado a uma linha; comissão item a item: vendedor+categoria → linha → categoria → vendedor)

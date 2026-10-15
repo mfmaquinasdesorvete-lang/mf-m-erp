@@ -16,6 +16,7 @@ import { useUnidade } from "@/lib/unidade";
 import type { Vendedor } from "@/lib/types";
 import { pctTexto, percentualItem, type RegraComissao } from "@/lib/comissao";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { LinhasProduto } from "@/components/comissoes/LinhasProduto";
 
 type Comissao = {
   id: string; vendedor_id: string; pedido_id: string; descricao: string; base: number; percentual: number; valor: number;
@@ -27,12 +28,12 @@ const ROTULO: Record<string, string> = { a_pagar: "a pagar", paga: "paga", cance
 export default function Comissoes() {
   const { pode, user_id } = usePerfil();
   const financeiro = pode("contas_pagar");
-  const [aba, setAba] = useAbaUrl<"comissoes" | "vendedores" | "regras">("comissoes", ["comissoes", "vendedores", "regras"] as const);
+  const [aba, setAba] = useAbaUrl<"comissoes" | "vendedores" | "regras" | "linhas">("comissoes", ["comissoes", "vendedores", "regras", "linhas"] as const);
   return (
     <div>
       <PageHeader title="Comissões" subtitle="Vendedores e representantes: comissão gerada pelas vendas e paga pelo contas a pagar." />
-      {financeiro && <Tabs value={aba} onChange={setAba} options={[{ value: "comissoes", label: "Comissões" }, { value: "vendedores", label: "Vendedores e representantes" }, { value: "regras", label: "% por categoria" }]} />}
-      {aba === "vendedores" && financeiro ? <Vendedores /> : aba === "regras" && financeiro ? <RegrasCategoria /> : <ListaComissoes financeiro={financeiro} userId={user_id} />}
+      {financeiro && <Tabs value={aba} onChange={setAba} options={[{ value: "comissoes", label: "Comissões" }, { value: "vendedores", label: "Vendedores e representantes" }, { value: "regras", label: "% por categoria" }, { value: "linhas", label: "Linhas de produtos" }]} />}
+      {aba === "vendedores" && financeiro ? <Vendedores /> : aba === "regras" && financeiro ? <RegrasCategoria /> : aba === "linhas" && financeiro ? <LinhasProduto /> : <ListaComissoes financeiro={financeiro} userId={user_id} />}
     </div>
   );
 }
@@ -302,6 +303,7 @@ function RegrasCategoria() {
         <p className="mb-1 font-semibold">Como o % de cada produto é escolhido (o mais específico vence)</p>
         <ol className="ml-5 list-decimal space-y-0.5">
           <li><b>% do vendedor naquela categoria</b> (exceção de um vendedor)</li>
+          <li><b>% da linha do produto</b> (aba Linhas de produtos)</li>
           <li><b>% da categoria</b> para todos os vendedores</li>
           <li><b>% geral do vendedor</b> (cadastro do vendedor)</li>
         </ol>

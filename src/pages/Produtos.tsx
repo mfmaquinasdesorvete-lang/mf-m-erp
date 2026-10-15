@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
+import { DefinirLinha } from "@/components/comissoes/LinhasProduto";
+import type { LinhaProduto } from "@/lib/comissao";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
@@ -160,6 +162,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const [importarKits, setImportarKits] = useState(false);
   /** Unificar os marcados na lista: a janela devolve a mensagem quando termina (ou "Nada mudou"). */
   const [unificando, setUnificando] = useState<{ lista: Produto[]; fim: (mensagem: string) => void } | null>(null);
+  const [definindoLinha, setDefinindoLinha] = useState<{ ids: string[]; fim: (mensagem: string) => void } | null>(null);
+  const { data: linhas = [] } = useRows<LinhaProduto>("linhas_produto", { order: "nome", ascending: true });
+  const filtrosProduto = useMemo<FiltroCrud<Produto>[]>(() => [...FILTROS_PRODUTO,
+    { label: "Linha", valor: (r) => linhas.find((l) => l.id === r.linha_id)?.nome ?? null }], [linhas]);
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
@@ -415,7 +421,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         defaults={{ tipo: "peca", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, fora_de_linha: false, descricao: "", no_catalogo: false, ...atualCad.padrao }}
         searchKeys={["descricao", "sku", "ncm", "marca", "modelo", "categoria", "codigo_barras", "codigo_fabricante", "codigos_alternativos"]}
         editarAgora={editarAgora}
-        filtros={FILTROS_PRODUTO}
+        filtros={filtrosProduto}
         ordens={ORDENS_PRODUTO}
         podeExcluir={papel === "admin"}
         plural="produtos"
@@ -429,6 +435,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           ...(podeMover ? [{ label: "Unificar", executar: (ids: string[]) => ids.length < 2
             ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
             : new Promise<string>((fim) => setUnificando({ lista: produtosTodos.filter((p) => ids.includes(p.id)), fim })) }] : []),
+          ...(tem("financeiro") ? [{ label: "Definir linha", executar: (ids: string[]) => new Promise<string>((fim) => setDefinindoLinha({ ids, fim })) }] : []),
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={<>
@@ -466,6 +473,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             margem_desejada: r.margem_desejada === "" || r.margem_desejada == null ? null : Number(String(r.margem_desejada).replace(",", ".")),
             ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
             fornecedor_padrao_id: r.fornecedor_padrao_id || null,
+            linha_id: r.linha_id || null,
             embalagem_id: r.embalagem_id || null,
             foto_caminho: r.foto_caminho || null,
             prazo_reposicao_dias: r.prazo_reposicao_dias === "" || r.prazo_reposicao_dias == null ? null : Number(r.prazo_reposicao_dias),
@@ -510,6 +518,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "unidade", label: "Unidade de medida", type: "select", options: opcoesUnidade },
           { name: "categoria", label: "Categoria", type: "custom", span: 1,
             render: (v, set) => <CampoCategoriaProduto valor={v} onChange={set} opcoes={opcoesCategoria(categorias, produtos)} produtos={produtos} podeEditar={pode("editar_produtos")} /> },
+          { name: "linha_id", label: "Linha de produtos (comissão)", type: "select", span: 1,
+            options: [{ value: "", label: "Sem linha" }, ...linhas.filter((l) => l.ativo).map((l) => ({ value: l.id, label: l.nome }))] },
           { name: "localizacao", label: "Localização (depósito/prateleira)", span: 1 },
           { name: "marca", label: "Marca", span: 1 },
           { name: "modelo", label: "Modelo", span: 1 },
@@ -767,6 +777,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}
       {itensNotas && <ConferirItensNotas onClose={() => setItensNotas(false)} />}
       {unificando && <UnificarProdutosLista produtos={unificando.lista} onFim={(m) => { unificando.fim(m); setUnificando(null); }} />}
+      {definindoLinha && <DefinirLinha ids={definindoLinha.ids} onFim={(m) => { definindoLinha.fim(m); setDefinindoLinha(null); }} />}
       {kitAberto && <KitComponentesModal kit={kitAberto} podeEditar={pode("editar_produtos")} onClose={() => setKitAberto(null)} />}
     </>
   );

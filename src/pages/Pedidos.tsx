@@ -31,7 +31,7 @@ import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { combinaBusca } from "@/lib/buscaCliente";
-import { pctTexto, percentualPedido, type RegraComissao } from "@/lib/comissao";
+import { pctTexto, percentualPedido, type LinhaProduto, type RegraComissao } from "@/lib/comissao";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/financeiro/LinkPedido";
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
@@ -220,6 +220,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: cfg } = useConfig();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
+  const { data: linhasProduto = [] } = useRows<LinhaProduto>("linhas_produto", { order: "nome", ascending: true });
   const { data: tabelas = [] } = useRows<TabelaPreco>("tabelas_preco", { order: "nome", ascending: true });
   const { data: precosFixos = [] } = useRows<PrecoFixo>("tabela_preco_itens");
   // formas de pagamento cadastradas que a venda aceita (a já escolhida aparece mesmo se for inativada depois)
@@ -277,7 +278,12 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const total = Math.max(subtotal - Number(p.desconto || 0) + Number(p.frete || 0), 0);
   // comissão prevista: % por categoria de cada item (o % digitado no pedido vale acima de tudo)
   const comissaoPrevista = percentualPedido(regrasComissao, vendedores.find((v) => v.id === p.vendedor_id), p.itens,
-    (id) => produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual);
+    (id) => produtos.find((x) => x.id === id)?.categoria, p.comissao_percentual, {
+      // linha do produto e desconto de cada item (preço da tabela do pedido x preço cobrado)
+      linhaDe: (id) => linhasProduto.find((l) => l.id === produtos.find((x) => x.id === id)?.linha_id),
+      precoListaDe: (id) => { const prod = produtos.find((x) => x.id === id); return prod ? precoNaTabela(tabelaDe((p as any).tabela_preco_id), prod, precosFixos).preco : null; },
+      descontoPedido: Number(p.desconto || 0),
+    });
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
   // tabela de preço: novos itens entram com o preço dela; trocar a tabela reprecifica os itens do orçamento
   const tabelaDe = (id: string | null | undefined) => tabelas.find((t) => t.id === id) ?? null;

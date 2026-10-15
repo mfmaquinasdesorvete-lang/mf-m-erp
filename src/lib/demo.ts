@@ -1189,6 +1189,14 @@ function comercialDemo(db: Db) {
     { id: "tp2", nome: "Revenda", canal: "revenda", ajuste_percentual: -15, arredondamento: "centavos", observacoes: "Pedido mínimo R$ 1.000", ativo: true, created_at: quando(-40) },
   ];
   db.tabela_preco_itens = [{ id: "tpi1", tabela_id: "tp2", produto_id: "p5", preco: 72, created_at: quando(-20) }];
+  // linhas de produtos (como no Tiny): máquinas da franquia com 2% fixo; peças conforme o desconto; acessórios só agrupam
+  db.linhas_produto = [
+    { id: "lp1", nome: "Máquinas Franquia", comissao_tipo: "fixa", comissao_percentual: 2, comissao_faixas: [], ativo: true, marcadores: [], created_at: quando(-30) },
+    { id: "lp2", nome: "Peças e reposição", comissao_tipo: "desconto", comissao_percentual: 0, ativo: true, marcadores: [], created_at: quando(-30),
+      comissao_faixas: [{ desconto_ate: 0, percentual: 6 }, { desconto_ate: 5, percentual: 4 }, { desconto_ate: 10, percentual: 2 }] },
+    { id: "lp3", nome: "Acessórios", comissao_tipo: "herda", comissao_percentual: 0, comissao_faixas: [], ativo: true, marcadores: [], created_at: quando(-30) },
+  ];
+  db.produtos.forEach((p) => { p.linha_id ??= ["p1", "p2"].includes(p.id) ? "lp1" : ["p4", "p5", "p6", "p7", "p8"].includes(p.id) ? "lp2" : p.id === "p9" ? "lp3" : null; });
   const revendedor = db.clientes.find((c) => c.id === "c2");
   if (revendedor) revendedor.tabela_preco_id = "tp2";
   db.comissoes = [];
