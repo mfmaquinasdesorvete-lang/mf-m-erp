@@ -84,6 +84,12 @@ function seed(): Db {
       { id: "f3", nome: "EletroControl Automação", cnpj: "33444555000181", whatsapp: "41993334400", telefone: "4133221144", municipio: "Curitiba", uf: "PR" },
       { id: "f4", nome: "Cadastro Nacional de Empresas", cnpj: "44555666000181", municipio: "São Paulo", uf: "SP", bloqueado: true,
         bloqueio_motivo: "Golpe: boleto falso que chega todo mês. Não pagar.", bloqueado_em: quando(-3), bloqueado_por_nome: "Administrador" },
+      // marca com filiais (nomes e CNPJs inventados) e um repetido sem CNPJ na mesma cidade
+      { id: "f5", nome: "Distribuidora Frio Exemplo S.A.", nome_fantasia: "Frio Exemplo", cnpj: "55666777000101", telefone: "5130001000", municipio: "Porto Alegre", uf: "RS", receita_situacao: "ATIVA",
+        rede: [{ municipio: "Recife", uf: "PE", endereco: "Av. Exemplo, 100", telefone: "8130001000", origem: "site da marca" }] },
+      { id: "f6", nome: "Distribuidora Frio Exemplo S.A.", nome_fantasia: "Frio Exemplo", cnpj: "55666777000282", telefone: "4830002000", municipio: "São José", uf: "SC", matriz_id: "f5", receita_situacao: "ATIVA" },
+      { id: "f7", nome: "Distribuidora Frio Exemplo S.A.", nome_fantasia: "Frio Exemplo", cnpj: "55666777000363", telefone: "1130003000", municipio: "Osasco", uf: "SP", matriz_id: "f5", receita_situacao: "ATIVA" },
+      { id: "f8", nome: "Frio Exemplo - São José/SC", cnpj: null, telefone: "4830002000", municipio: "São José", uf: "SC", matriz_id: "f5" },
     ],
     produtos: [
       { id: "p1", sku: "MF-SOFT-300", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", tipo: "maquina", unidade: "UN", ncm: "84186990", origem: 0, peso_kg: 145, altura_cm: 150, largura_cm: 55, profundidade_cm: 80, preco_custo: 14800, preco_venda: 23900, garantia_meses: 12, estoque_atual: 4, estoque_minimo: 2, localizacao: "Galpão A", ativo: true, codigo_barras: null },
@@ -2530,6 +2536,40 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       for (const t of db.transportadoras.filter((x) => x.matriz_id === id)) t.matriz_id = m.matriz_id ?? m.id;
       for (const k of ["cnpj", "telefone", "email", "whatsapp", "municipio", "uf", "logradouro", "cep"]) if (!m[k] && o[k]) m[k] = o[k];
       atualizarDemo("transportadoras", o, { ativo: false, matriz_id: null, unificado_em: p_principal, observacoes: [o.observacoes, `Unificado em "${m.nome}": ${p_motivo ?? "cadastro repetido"}`].filter(Boolean).join("\n") });
+      n++;
+    }
+    return { data: n, error: null };
+  },
+  agrupar_fornecedores: ({ p_marca, p_filiais, p_nova_marca }) => {
+    if (!temPapelDemo("financeiro")) return erro("sem permissão para esta ação");
+    let marca = p_marca;
+    if (!marca) {
+      if (String(p_nova_marca ?? "").trim().length < 2) return erro("informe o nome da marca");
+      const n = { id: uid(), nome: String(p_nova_marca).trim(), nome_fantasia: String(p_nova_marca).trim(), codigo: proximoCodigo("fornecedores"), created_at: quando(0) };
+      db.fornecedores.push(n);
+      marca = n.id;
+    } else if (db.fornecedores.find((t) => t.id === marca)?.matriz_id) return erro("a marca escolhida já é filial de outra");
+    for (const f of p_filiais ?? []) {
+      if (f === marca) continue;
+      for (const t of db.fornecedores.filter((x) => x.matriz_id === f)) t.matriz_id = marca;
+      const t = db.fornecedores.find((x) => x.id === f);
+      if (t && !t.unificado_em) atualizarDemo("fornecedores", t, { matriz_id: marca });
+    }
+    return { data: marca, error: null };
+  },
+  unificar_fornecedores: ({ p_principal, p_outros, p_motivo }) => {
+    if (!temPapelDemo("financeiro")) return erro("sem permissão para esta ação");
+    const m = db.fornecedores.find((t) => t.id === p_principal);
+    if (!m || m.unificado_em) return erro("o principal já foi unificado em outro: escolha outro");
+    let n = 0;
+    for (const id of p_outros ?? []) {
+      const o = db.fornecedores.find((t) => t.id === id);
+      if (!o || id === p_principal || o.unificado_em) continue;
+      for (const tab of ["contas_pagar", "nfe_recebidas", "pedidos_compra", "cotacao_fornecedores", "contas_recorrentes"]) for (const r of db[tab] ?? []) if (r.fornecedor_id === id) r.fornecedor_id = p_principal;
+      for (const r of db.produtos ?? []) if (r.fornecedor_padrao_id === id) r.fornecedor_padrao_id = p_principal;
+      for (const t of db.fornecedores.filter((x) => x.matriz_id === id)) t.matriz_id = m.matriz_id ?? m.id;
+      for (const k of ["cnpj", "telefone", "email", "whatsapp", "municipio", "uf", "logradouro", "cep"]) if (!m[k] && o[k]) m[k] = o[k];
+      atualizarDemo("fornecedores", o, { matriz_id: null, unificado_em: p_principal, unificado_quando: new Date().toISOString(), observacoes: [o.observacoes, `Unificado em "${m.nome_fantasia || m.nome}": ${p_motivo ?? "cadastro repetido"}`].filter(Boolean).join("\n") });
       n++;
     }
     return { data: n, error: null };

@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { CalendarClock, Pencil, Plus, RefreshCw } from "lucide-react";
 import { Badge, Button, Field, Modal, Table } from "@/components/ui";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -53,7 +53,8 @@ export function ContasFixas() {
   const { filtrar, padrao } = useUnidade();
   const { data: todas = [] } = useRows<Fixa>("contas_recorrentes", { order: "descricao", ascending: true });
   const fixas = filtrar(todas);
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; chave_pix?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<{ id: string; nome: string; chave_pix?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: formas = [] } = useFormasPagamento();
   const [editando, setEditando] = useState<Partial<Fixa> | null>(null);

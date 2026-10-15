@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, PackageX, ShoppingCart, Truck, Scale } from "lucide-react";
 import { Button, Card, Stat } from "./ui";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra } from "@/lib/itens";
 import { supabase } from "@/lib/supabase";
 import { brl, hoje, pl } from "@/lib/format";
@@ -19,7 +19,8 @@ export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: bool
   const { data: movimentos = [] } = useRows<MovimentoRep>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at, referencia_tipo" });
   const { data: abertos = [] } = useRows<AbertoCompra & { pedido: { status: string } | null }>("pedido_compra_itens", { select: "produto_id, quantidade, quantidade_recebida, pedido:pedidos_compra(status)", order: "produto_id" });
   const { data: vinculos = [] } = useRows<VinculoFornecedor>("produto_fornecedor", { select: "produto_id, fornecedor_id", order: "produto_id" });
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const invalidate = useInvalidate();
   const sugestoes = useMemo(() => sugerirReposicao(produtos, {
     movimentos, vinculos, hoje: hoje(),

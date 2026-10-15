@@ -5,7 +5,7 @@ import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, ScanBarcode, Undo2, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
-import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
+import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -448,7 +448,8 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const [boleto, setBoleto] = useState<Pagar | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Pagar; acao: "cancelar" | "estornar" } | null>(null);
   const contaBanco = useNomeContaBancaria();
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string; cnpj?: string | null; bloqueado?: boolean; bloqueio_motivo?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<{ id: string; nome: string; cnpj?: string | null; bloqueado?: boolean; bloqueio_motivo?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const save = useSave("contas_pagar");
   // "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
   const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;

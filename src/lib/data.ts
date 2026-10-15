@@ -72,3 +72,12 @@ export function useInvalidate() {
 /** Converte strings vazias em null antes de gravar. */
 export const limpar = <T extends Record<string, any>>(row: T): T =>
   Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v === "" ? null : v])) as T;
+
+/** Tira os cadastros repetidos já unificados (fornecedores e transportadoras arquivados). Mesma lista → mesmo resultado. */
+const cacheSemUnificados = new WeakMap<object, unknown[]>();
+export function semUnificados<T>(lista: T[]): T[] {
+  const unificado = (x: T) => !!(x as { unificado_em?: string | null }).unificado_em;
+  let r = cacheSemUnificados.get(lista) as T[] | undefined;
+  if (!r) { r = lista.some(unificado) ? lista.filter((x) => !unificado(x)) : lista; cacheSemUnificados.set(lista, r); }
+  return r;
+}

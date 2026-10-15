@@ -10,7 +10,7 @@ import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje, pl } from "@/lib/format";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import type { Produto } from "@/lib/types";
@@ -154,7 +154,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
     "produto_fornecedor", { select: "produto_id, codigo_fornecedor, fator_conversao, fornecedor:fornecedores(nome)", order: "produto_id" });
-  const { data: fornecedores = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const { data: embalagens = [] } = useRows<{ id: string; descricao: string; ativo: boolean }>("embalagens", { order: "descricao", ascending: true });
   const [movimentar, setMovimentar] = useState<Produto | null>(null);
   const [historico, setHistorico] = useState<Produto | null>(null);

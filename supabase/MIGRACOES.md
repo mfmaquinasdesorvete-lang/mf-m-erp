@@ -81,3 +81,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   58. `20261015172706_avisos_urgencia.sql` (avisos entre usuários: para todos, um perfil ou pessoas escolhidas; urgência normal, importante ou urgente; quem mandou vê quem deu ciente)
   59. `20261015173930_usuarios_ultimo_acesso.sql` (último acesso de cada usuário, lido do login, para a auditoria; só administrador, financeiro e contador)
   60. `20261015180031_partes_relacionadas.sql` (partes relacionadas: sócios e empresas ligadas com CPF/CNPJ só no banco, para o painel do dinheiro entre as contas da MF, sócios e empresas ligadas; lê administrador, financeiro e contador, cadastra só o administrador)
+  61. `20261015184046_fornecedores_filiais.sql` (fornecedores como as transportadoras: marca com filiais (um nível), rede de filiais achadas na internet, agrupar e unificar repetidos sem apagar nada)

@@ -5,7 +5,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, Copy, Mail, MessageCircle, Plus, Send, Trash2, Trophy, XCircle } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { brl, dataBR, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -107,7 +107,8 @@ export function tituloCotacao(descricoes: string[], hoje = new Date()): string {
 
 function NovaCotacao({ inicial, onClose, onCriada }: { inicial: { produto_id: string; quantidade: number }[]; onClose: () => void; onCriada: (id: string) => void }) {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const { data: fornecimentos = [] } = useRows<Fornecimento>("fornecimentos");
   const { padrao } = useUnidade();
   const invalidate = useInvalidate();
@@ -247,7 +248,8 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
   const { data: todosItens = [] } = useRows<CotItem>("cotacao_itens", { order: "ordem", ascending: true });
   const { data: todosForns = [] } = useRows<CotForn>("cotacao_fornecedores", { order: "created_at", ascending: true });
   const { data: respostas = [] } = useRows<CotResp>("cotacao_respostas", { order: "updated_at" }); // a tabela não tem created_at
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const invalidate = useInvalidate();
   const [enviando, setEnviando] = useState(false);
   const [escolha, setEscolha] = useState<Record<string, string>>({});

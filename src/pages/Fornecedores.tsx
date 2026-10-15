@@ -1,18 +1,21 @@
-import { useMemo, useState } from "react";
-import { Building2, FileSpreadsheet, Wrench } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Building2, FileSpreadsheet, Layers, Wrench } from "lucide-react";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { supabase } from "@/lib/supabase";
 import { Contato, NomeCadastro } from "@/components/Contato";
 import { Button, Modal } from "@/components/ui";
+import { useInvalidate, useRows } from "@/lib/data";
+import { AgruparFiliais, FiliaisDaMarca, UnificarCadastros } from "@/components/cadastros/MarcaFiliais";
+import { confirmar } from "@/components/Dialogos";
 import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
 import { digitos, docFormat, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { CampoBloqueio, SeloGolpe } from "@/components/fornecedores/Golpe";
-import { notify } from "@/lib/notify";
+import { notify, notifyError } from "@/lib/notify";
 import { ehPosto } from "@/lib/extratoTipos";
 import { useLojasDeMarketplace } from "@/lib/comprasMarketplace";
 import { MARKETPLACES } from "@/lib/marketplaces";
@@ -90,6 +93,13 @@ async function situacaoTransportadoras(ids: string[], ativo: boolean) {
   return `${ids.length} ${pl(ids.length, "transportadora", "transportadoras")} ${ativo ? pl(ids.length, "ativada", "ativadas") : pl(ids.length, "inativada", "inativadas")}`;
 }
 
+/** Chama uma função do banco e devolve o texto para o aviso (erro vira exceção, mostrada pela lista). */
+async function rpc(nome: string, args: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc(nome, args);
+  if (error) throw error;
+  return data;
+}
+
 /** Fornecedores e transportadoras: cada um no seu item do menu (mesma permissão de tela). */
 export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "transportadoras" }) {
   const { pode, papel, tem } = usePerfil();
@@ -108,6 +118,50 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
     ],
   }), [lojasMkt]);
   const podeImportar = tem("financeiro");
+  const invalidar = useInvalidate();
+  // marca com filiais (como nas transportadoras) e cadastros repetidos
+  const { data: fornTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: transpTodas = [] } = useRows<Transportadora>("transportadoras", { order: "nome", ascending: true });
+  const [mostrarFiliais, setMostrarFiliais] = useState(false);
+  const [filiaisDe, setFiliaisDe] = useState<string | null>(null);
+  const [abrirForn, setAbrirForn] = useState<Fornecedor | null>(null);
+  const [unificando, setUnificando] = useState<{ lista: (Fornecedor | Transportadora)[]; tabela: "fornecedores" | "transportadoras"; fim?: (msg: string) => void } | null>(null);
+  const [agrupando, setAgrupando] = useState<{ lista: Fornecedor[]; fim: (msg: string) => void } | null>(null);
+  const filiaisPorMarca = useMemo(() => {
+    const m = new Map<string, Fornecedor[]>();
+    for (const f of fornTodos) if (f.matriz_id && !f.unificado_em) m.set(f.matriz_id, [...(m.get(f.matriz_id) ?? []), f]);
+    return m;
+  }, [fornTodos]);
+  const nomeForn = (id: string | null | undefined) => { const f = fornTodos.find((x) => x.id === id); return f ? (f.nome_fantasia?.trim() || f.nome) : ""; };
+  const baseForn = useCallback((r: Fornecedor) => !r.unificado_em && (mostrarFiliais || !r.matriz_id), [mostrarFiliais]);
+  const baseTransp = useCallback((r: Transportadora) => !r.unificado_em, []);
+  const marcaAberta = filiaisDe ? fornTodos.find((f) => f.id === filiaisDe) : null;
+
+  async function unificar(principal: string, outros: string[], motivo: string) {
+    if (!unificando) return;
+    try {
+      const n = await rpc(unificando.tabela === "fornecedores" ? "unificar_fornecedores" : "unificar_transportadoras", { p_principal: principal, p_outros: outros, p_motivo: motivo });
+      const msg = `${n} ${pl(Number(n), "repetido unificado", "repetidos unificados")}: tudo passou para o principal`;
+      invalidar(unificando.tabela, "nfe_recebidas", "contas_pagar", "pedidos_compra", "produtos");
+      if (unificando.fim) unificando.fim(msg); else notify(msg);
+      setUnificando(null);
+    } catch (e) { notifyError(e); }
+  }
+  async function agrupar(marca: string | null, filiais: string[], novaMarca: string | null) {
+    if (!agrupando) return;
+    try {
+      await rpc("agrupar_fornecedores", { p_marca: marca, p_filiais: filiais, p_nova_marca: novaMarca });
+      const msg = `${filiais.length - (marca ? 1 : 0)} ${pl(filiais.length, "filial agrupada", "filiais agrupadas")} na marca`;
+      invalidar("fornecedores");
+      agrupando.fim(msg);
+      setAgrupando(null);
+    } catch (e) { notifyError(e); }
+  }
+  async function separar(f: Fornecedor) {
+    if (!(await confirmar(`Tirar "${f.nome_fantasia?.trim() || f.nome}" da marca? Ele volta a aparecer sozinho na lista.`))) return;
+    const { error } = await supabase.from("fornecedores").update({ matriz_id: null }).eq("id", f.id);
+    if (error) notifyError(error); else { notify("Separado da marca"); invalidar("fornecedores"); }
+  }
   const botaoImportar = (tipo: "fornecedor" | "transportadora") =>
     podeImportar && <Button variant="secondary" onClick={() => setImportar(tipo)}><FileSpreadsheet size={16} /> Importar</Button>;
 
@@ -120,12 +174,28 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           <ReceitaCadastro registro={receita as any} tabela="fornecedores" />
         </Modal>
       )}
+      {unificando && <UnificarCadastros opcoes={unificando.lista} titulo={unificando.tabela} onClose={() => { unificando.fim?.("Nada mudou"); setUnificando(null); }} onUnificar={unificar} />}
+      {agrupando && <AgruparFiliais opcoes={agrupando.lista} marcas={fornTodos.filter((f) => filiaisPorMarca.has(f.id))}
+        onClose={() => { agrupando.fim("Nada mudou"); setAgrupando(null); }} onAgrupar={agrupar} />}
+      {marcaAberta && <FiliaisDaMarca marca={marcaAberta} filiais={filiaisPorMarca.get(marcaAberta.id) ?? []} rede={marcaAberta.rede ?? []}
+        podeEditar={pode("editar_fornecedores")} onClose={() => setFiliaisDe(null)} atualizado={() => invalidar("fornecedores")}
+        onUnificar={(lista) => setUnificando({ lista, tabela: "fornecedores" })} onSeparar={separar}
+        onAbrir={(f) => { setFiliaisDe(null); setAbrirForn({ ...f }); }} />}
       {aba === "fornecedores" ? (
         <CrudPage<Fornecedor>
           anexos="fornecedor"
           key="f"
           readOnly={!pode("editar_fornecedores")}
+          filtroBase={baseForn}
+          editarAgora={abrirForn}
+          acoesLote={pode("editar_fornecedores") ? [
+            { label: "Unificar repetidos", executar: (ids) => ids.length < 2 ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
+              : new Promise<string>((fim) => setUnificando({ lista: fornTodos.filter((f) => ids.includes(f.id)), tabela: "fornecedores", fim })) },
+            { label: "Agrupar como filiais de uma marca", executar: (ids) => ids.length < 2 ? Promise.resolve("Marque a matriz e as filiais (2 ou mais)")
+              : new Promise<string>((fim) => setAgrupando({ lista: fornTodos.filter((f) => ids.includes(f.id)), fim })) },
+          ] : []}
           extraActions={<>
+            <Button variant="secondary" aria-pressed={mostrarFiliais} onClick={() => setMostrarFiliais((v) => !v)}><Layers size={16} /> {mostrarFiliais ? "Esconder filiais" : "Mostrar filiais"}</Button>
             {pode("editar_fornecedores") && <Button variant="secondary" onClick={() => setArrumar(true)}><Wrench size={16} /> Arrumar cadastro</Button>}
             {botaoImportar("fornecedor")}
           </>}
@@ -165,7 +235,12 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           ]}
           columns={[
             ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").map((c) => c.label === "Nome"
-              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} /></> } : c),
+              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} />
+                {filiaisPorMarca.has(r.id) && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.id); }}
+                  className="mt-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 hover:bg-sky-200">
+                  <Layers size={12} aria-hidden /> {filiaisPorMarca.get(r.id)!.length} {pl(filiaisPorMarca.get(r.id)!.length, "filial", "filiais")}</button>}
+                {r.matriz_id && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.matriz_id!); }}
+                  className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">filial de {nomeForn(r.matriz_id)}</button>}</> } : c),
             { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
           ]}
         />
@@ -178,9 +253,12 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           ordens={ORDENS_TRANSP}
           podeExcluir={papel === "admin"}
           plural="transportadoras"
+          filtroBase={baseTransp}
           acoesLote={pode("editar_transportadoras") ? [
             { label: "Inativar", executar: (ids) => situacaoTransportadoras(ids, false) },
             { label: "Ativar", executar: (ids) => situacaoTransportadoras(ids, true) },
+            { label: "Unificar repetidos", executar: (ids) => ids.length < 2 ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
+              : new Promise<string>((fim) => setUnificando({ lista: transpTodas.filter((t) => ids.includes(t.id)), tabela: "transportadoras", fim })) },
           ] : []}
           title="Lista completa"
           table="transportadoras"

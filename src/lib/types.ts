@@ -153,9 +153,14 @@ export type KitComponente = { id: string; kit_id: string; componente_id: string;
 export type EscolhaKit = { componente_id: string; quantidade: number }[];
 
 type Endereco = { cep?: string | null; logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null; municipio: string | null; uf: string | null };
+/** Filial achada na internet (site da marca, Receita), guardada como referência até virar cadastro. */
+export type FilialRede = { nome?: string; cnpj?: string; municipio?: string; uf?: string; endereco?: string; telefone?: string; email?: string; origem?: string };
 export type Fornecedor = Endereco & { marcadores?: string[] | null; id: string; codigo?: number | null; created_at?: string; nome: string; nome_fantasia?: string | null; cnpj: string | null; inscricao_estadual?: string | null; telefone: string | null; whatsapp: string | null; email: string | null; observacoes?: string | null; chave_pix?: string | null;
   // conferência com a Receita (como nos clientes)
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
+  /** marca a que esta filial pertence (nulo = marca ou fornecedor avulso); unificado_em = cadastro repetido arquivado */
+  matriz_id?: string | null; unificado_em?: string | null; unificado_quando?: string | null;
+  site?: string | null; rede?: FilialRede[] | null; pesquisa_em?: string | null; pesquisa_fontes?: string[] | null;
   // golpe (boleto falso): as contas dele não podem ser pagas; quem/quando gravados pelo banco
   bloqueado?: boolean; bloqueio_motivo?: string | null; bloqueado_em?: string | null; bloqueado_por_nome?: string | null };
 export type TipoTransportadora = "transportadora" | "correios" | "agencia" | "aerea" | "plataforma" | "aplicativo" | "autonomo" | "proprio" | "retira" | "outro";

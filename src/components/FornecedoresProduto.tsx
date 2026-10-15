@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui";
-import { useInvalidate, useRows } from "@/lib/data";
+import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -15,7 +15,8 @@ const ORIGEM: Record<string, string> = { nota: "NF-e", pedido: "pedido de compra
 
 export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }: { produtoId?: string | null; podeEditar: boolean; aoMudarPreferido?: (fornecedorId: string) => void }) {
   const { data: todos = [] } = useRows<Fornecimento>("fornecimentos");
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const invalidate = useInvalidate();
   const [novo, setNovo] = useState({ fornecedor_id: "", preco: "", prazo: "" });
   if (!produtoId) return <span className="text-xs text-slate-500">Salve o produto para incluir os fornecedores.</span>;

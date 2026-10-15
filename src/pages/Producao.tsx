@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
-import { limpar, useInvalidate, useRows } from "@/lib/data";
+import { limpar, useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra, sincronizarItens } from "@/lib/itens";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
@@ -256,7 +256,8 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const [ocupado, setOcupado] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: necessidade = [] } = useNecessidade();
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor_id: string; ativo: boolean }>("fornecimentos", { select: "produto_id, fornecedor_id, ativo", order: "produto_id" });
   const { data: fichas = [] } = useRows<LinhaFicha>("produto_componentes", { select: "produto_id, componente_id, quantidade", order: "produto_id" });
   const invalidate = useInvalidate();
@@ -548,7 +549,8 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const [receber, setReceber] = useState(false);
   const [pdf, setPdf] = useState<Blob | null>(null);
   const [verUltimas, setVerUltimas] = useState(false);
-  const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
+  const fornecedores = semUnificados(fornecedoresTodos);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
   const { unidades, padrao } = useUnidade();
