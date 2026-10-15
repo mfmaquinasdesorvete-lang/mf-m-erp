@@ -111,7 +111,21 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
         <div className="min-w-0 text-sm text-slate-600">
           <div className="font-semibold text-fg">{c.nome}{c.codigo ? <span className="ml-2 whitespace-nowrap font-mono text-xs text-slate-500">cód. {c.codigo}</span> : null}</div>
           <div>{[docFormat(c.cpf_cnpj), [c.municipio, c.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") || "—"}</div>
-          {data && <MaquinasCliente maquinas={data.equipamentos} max={8} />}
+          {(!!c.enderecos_extras?.length || !!c.unificacoes?.length) && (
+            <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
+              {!!c.enderecos_extras?.length && (
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-800" title={c.enderecos_extras.map((e) => [e.etiqueta, [e.municipio, e.uf].filter(Boolean).join("/")].filter(Boolean).join(": ")).join(" · ")}>
+                  {c.enderecos_extras.length + 1} endereços{[c.endereco_etiqueta, ...c.enderecos_extras.map((e) => e.etiqueta)].some(Boolean) ? `: ${[c.endereco_etiqueta, ...c.enderecos_extras.map((e) => e.etiqueta)].filter(Boolean).join(", ")}` : ""}
+                </span>
+              )}
+              {!!c.unificacoes?.length && (
+                <span className="rounded-full bg-purple-100 px-2 py-0.5 font-semibold text-purple-800" title="Abra o cadastro para ver o que veio de cada um">
+                  unificado com {c.unificacoes.length} {c.unificacoes.length === 1 ? "cadastro" : "cadastros"}
+                </span>
+              )}
+            </div>
+          )}
+          {data &&<MaquinasCliente maquinas={data.equipamentos} max={8} />}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           {calc && <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}

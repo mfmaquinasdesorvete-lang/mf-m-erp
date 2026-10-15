@@ -13,6 +13,25 @@ export type Cliente = {
   desconto_padrao?: number | null; limite_credito?: number | null; cobranca_diferente?: boolean;
   cobranca_cep?: string | null; cobranca_logradouro?: string | null; cobranca_numero?: string | null; cobranca_complemento?: string | null;
   cobranca_bairro?: string | null; cobranca_municipio?: string | null; cobranca_uf?: string | null;
+  /** etiqueta do endereço principal (Loja, Residência, Prédio, Vizinho…) */
+  endereco_etiqueta?: string | null;
+  /** endereços 2 e 3 */
+  enderecos_extras?: EnderecoExtra[] | null;
+  /** cadastros juntados a este (unificar_clientes) e o que veio de cada um */
+  unificacoes?: Unificacao[] | null;
+};
+
+/** Endereço extra do cliente (até 2, além do principal). origem: "cadastro nº X" quando veio de uma unificação. */
+export type EnderecoExtra = {
+  etiqueta?: string | null; cep?: string | null; logradouro?: string | null; numero?: string | null; complemento?: string | null;
+  bairro?: string | null; municipio?: string | null; uf?: string | null; origem?: string | null;
+};
+
+/** Registro de uma unificação: quem era o outro cadastro e o que ficou no principal. */
+export type Unificacao = {
+  id?: string; codigo?: number | null; nome?: string | null; doc?: string | null; em?: string; por?: string | null;
+  email?: string | null; whatsapp?: string | null; telefone?: string | null; endereco?: string | null;
+  completou?: string[]; trouxe?: string[]; fora?: string[];
 };
 
 /** Pessoa de contato do cliente (compras, financeiro…). Excluir = ativo false. */

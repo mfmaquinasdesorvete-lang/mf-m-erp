@@ -66,7 +66,7 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
   const semWhats = clientes.filter((c) => !c.whatsapp).length;
 
   async function unificarCertos() {
-    if (!(await confirmar(`Unificar ${certos.length} ${pl(certos.length, "grupo", "grupos")}? Em cada grupo fica o cadastro com CPF/CNPJ (ou o mais completo); pedidos, contas, notas, OS, máquinas e anexos dos outros passam para ele, e os outros saem da lista (guardados como estavam).`))) return;
+    if (!(await confirmar(`Unificar ${certos.length} ${pl(certos.length, "grupo", "grupos")}? Em cada grupo fica o cadastro com CPF/CNPJ (ou o mais completo); pedidos, contas, notas, OS, máquinas e anexos dos outros passam para ele; o que é diferente (outro endereço, telefone, e-mail) fica guardado no principal, com o aviso "Cadastro unificado"; e os outros saem da lista (guardados como estavam).`))) return;
     await executar("certos", async () => {
       let feitos = 0;
       for (const g of certos) {
@@ -297,8 +297,8 @@ export function UnificarClientes({ clientes, onClose }: { clientes: Cliente[]; o
     try {
       const { data, error } = await supabase.rpc("unificar_clientes", { p_manter: principal, p_outros: clientes.filter((c) => c.id !== principal).map((c) => c.id) });
       if (error) throw error;
-      notify(`${data} ${pl(data, "cadastro", "cadastros")} ${pl(data, "unificado", "unificados")}: pedidos, contas, notas e atendimentos estão agora no principal`);
-      invalidar("clientes", "ficha_cliente");
+      notify(`${data} ${pl(data, "cadastro", "cadastros")} ${pl(data, "unificado", "unificados")}: pedidos, contas, notas e atendimentos estão agora no principal, com o aviso do que veio`);
+      invalidar("clientes", "ficha_cliente", "clientes_pessoas");
       onClose();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
@@ -306,9 +306,13 @@ export function UnificarClientes({ clientes, onClose }: { clientes: Cliente[]; o
   return (
     <Modal open wide onClose={onClose} title={`Unificar ${clientes.length} cadastros`}>
       <p className="mb-3 text-sm text-slate-600">
-        Escolha o cadastro que fica. Pedidos, contas, notas, ordens de serviço, equipamentos, atendimentos, e-mails e anexos dos outros passam para ele;
-        o que só os outros tinham (CPF/CNPJ, e-mail, WhatsApp, endereço…) completa o principal. Os outros cadastros são apagados.
+        Escolha o cadastro que fica. Pedidos, contas, notas, ordens de serviço, equipamentos, atendimentos, e-mails e anexos dos outros passam para ele.
       </p>
+      <ul className="mb-3 space-y-1 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+        <li><b className="text-fg">Nada se perde:</b> o que só os outros tinham (CPF/CNPJ, e-mail, WhatsApp, endereço…) completa o principal.</li>
+        <li><b className="text-fg">O que é diferente fica no principal:</b> outro endereço vira endereço 2 ou 3 (até 3), outro nome, e-mail ou telefone vira pessoa de contato, outro CPF/CNPJ fica anotado.</li>
+        <li><b className="text-fg">Aviso no cadastro:</b> o principal mostra "Cadastro unificado" com tudo o que veio de cada um. Os outros saem da lista, mas ficam guardados como estavam.</li>
+      </ul>
       <ul className="space-y-2">
         {clientes.map((c) => (
           <li key={c.id}>

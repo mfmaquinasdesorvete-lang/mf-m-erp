@@ -16,6 +16,7 @@ import { EtiquetasCliente } from "./QualidadeClientes";
 import { PessoasContato, type PessoaEditada } from "./PessoasContato";
 import { AssinaturaFicha, useAssinaturasFicha } from "./AssinaturaFicha";
 import { CategoriasContato, corTipo, useTiposContato } from "./TiposContato";
+import { AvisoUnificacao, EnderecosExtras, EtiquetaEndereco, limparEnderecos, MAX_ENDERECOS } from "./EnderecosCliente";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -36,7 +37,7 @@ export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "ce
 const ABAS: { id: Aba; label: string; Icon: LucideIcon }[] = [
   { id: "gerais", label: "Dados gerais", Icon: IdCard },
   { id: "contato", label: "Contato", Icon: Phone },
-  { id: "endereco", label: "Endereço", Icon: MapPin },
+  { id: "endereco", label: "Endereços", Icon: MapPin },
   { id: "complementares", label: "Complementares", Icon: BriefcaseBusiness },
   { id: "anexos", label: "Anexos", Icon: Paperclip },
   { id: "observacoes", label: "Observações", Icon: StickyNote },
@@ -167,7 +168,11 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   }
 
   function set(nome: string, valor: any, forcar = false) {
-    setC((r) => ({ ...r, [nome]: valor }));
+    setC((r) => ({
+      ...r, [nome]: valor,
+      // um e-mail só vale para os dois campos: o da NF-e acompanha o principal enquanto estiver vazio ou igual
+      ...(nome === "email" && (!r.email_nfe || r.email_nfe === r.email) ? { email_nfe: valor } : {}),
+    }));
     const p = reagir(nome, valor, { ...c, [nome]: valor }, forcar);
     if (!p) return;
     const t = setTimeout(() => setBuscando(nome), 150); // só mostra "buscando" se demorar
@@ -219,9 +224,13 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
     }
     setSalvando(true);
     try {
+      // o registro das unificações é do banco (não volta do formulário)
+      const { unificacoes: _u, ...dados } = c;
       const row = limpar({
-        ...c,
+        ...dados,
         nome: String(c.nome).trim(),
+        endereco_etiqueta: String(c.endereco_etiqueta ?? "").trim() || null,
+        enderecos_extras: limparEnderecos(c.enderecos_extras),
         contribuinte_icms: Number(c.contribuinte_icms ?? 9),
         uf: c.uf ? String(c.uf).toUpperCase() : null,
         cobranca_uf: c.cobranca_uf ? String(c.cobranca_uf).toUpperCase() : null,
@@ -251,7 +260,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
       invalidar("clientes_pessoas");
       pessoasCarregadas.current = true;
       setPessoas(finais);
-      const novo = { cobranca_diferente: false, tags: [], ...salvo };
+      const novo = { cobranca_diferente: false, tags: [], ...salvo, unificacoes: salvo.unificacoes ?? c.unificacoes };
       base.current = JSON.stringify(novo);
       setC(novo);
       return novo;
@@ -375,6 +384,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
         {/* conteúdo */}
         <div className="flex-1 space-y-4 p-3 sm:p-6">
           {aba === "gerais" && (<>
+            <AvisoUnificacao unificacoes={c.unificacoes} />
             <Secao icone={IdCard} titulo="Identificação" sub="Digite o CNPJ: nome, endereço e inscrição estadual vêm da Receita">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
                 <div className="col-span-1 sm:col-span-5">
@@ -452,7 +462,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("telefone", "Telefone", { span: 4 })}
                 {campo("telefone_adicional", "Telefone adicional", { span: 4 })}
                 {campo("email", "E-mail", { span: 6 })}
-                {campo("email_nfe", "E-mail para envio da NF-e", { span: 6, ajuda: "Vazio: a nota vai para o e-mail principal" })}
+                {campo("email_nfe", "E-mail para envio da NF-e", { span: 6, ajuda: "Vem igual ao e-mail principal; troque só se a nota vai para outro e-mail" })}
                 <Field label="Site" className="col-span-1 sm:col-span-6">
                   <div className="relative">
                     <Globe size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -472,11 +482,12 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           </>)}
 
           {aba === "endereco" && (<>
-            <Secao icone={MapPin} titulo="Endereço" sub="Digite o CEP: rua, bairro, cidade e UF vêm sozinhos" cor="sky"
+            <Secao icone={MapPin} titulo="Endereço 1 (principal)" sub="Digite o CEP: rua, bairro, cidade e UF vêm sozinhos. É o endereço da nota fiscal" cor="sky"
               acao={enderecoTexto(c) ? (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enderecoTexto(c)} ${c.cep ?? ""}`)}`} target="_blank" rel="noreferrer"
                   className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-brand hover:bg-brand-light"><MapPinned size={15} /> Mapa</a>
               ) : undefined}>
+              <div className="mb-3"><EtiquetaEndereco valor={c.endereco_etiqueta} disabled={!podeEditar} onChange={(v) => set("endereco_etiqueta", v)} /></div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
                 {campo("cep", "CEP", { span: 3, buscar: true })}
                 {campo("logradouro", "Endereço", { span: 7 })}
@@ -486,6 +497,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("municipio", "Município", { span: 3 })}
                 {campo("uf", "UF", { span: 2 })}
               </div>
+            </Secao>
+            <Secao icone={MapPinned} titulo="Outros endereços" sub={`Até ${MAX_ENDERECOS} endereços no total, cada um com etiqueta: entrega, outra loja, casa do dono, vizinho que recebe…`} cor="indigo">
+              <EnderecosExtras lista={c.enderecos_extras ?? []} disabled={!podeEditar} onChange={(l) => set("enderecos_extras", l)} />
             </Secao>
             <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
               <input type="checkbox" className="h-5 w-5" checked={!!c.cobranca_diferente} disabled={!podeEditar} onChange={(e) => set("cobranca_diferente", e.target.checked)} />

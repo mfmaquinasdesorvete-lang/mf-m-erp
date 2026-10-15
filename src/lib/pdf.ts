@@ -948,7 +948,12 @@ export async function pdfFichaCadastral(a: FichaAssinadaPdf, cfg: Config, rotulo
     ["E-mail", d.email ?? ""],
     ["E-mail para nota fiscal", d.email_nfe ?? ""],
     ["Site", d.website ?? ""],
-    ["Endereço", endereco()],
+    [d.endereco_etiqueta ? `Endereço (${d.endereco_etiqueta})` : "Endereço", endereco()],
+    // endereços 2 e 3, cada um com a sua etiqueta (Loja, Residência…)
+    ...((Array.isArray(d.enderecos_extras) ? d.enderecos_extras : []) as Record<string, any>[]).map((e, i): [string, string] => [
+      `Endereço ${i + 2}${e.etiqueta ? ` (${e.etiqueta})` : ""}`,
+      [[e.logradouro, e.numero].filter(Boolean).join(", "), e.complemento, e.bairro, e.municipio && `${e.municipio}/${e.uf ?? ""}`, e.cep && `CEP ${cepFmt(e.cep)}`].filter(Boolean).join(" - "),
+    ]),
     ["Endereço de cobrança", d.cobranca_diferente ? endereco("cobranca_") : ""],
   ];
   autoTable(doc, {

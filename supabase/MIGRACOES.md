@@ -66,3 +66,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   43. `20261014200212_excluir_os.sql` (excluir OS como a OC e a OP: some das listas, peças voltam ao estoque, conta em aberto cancelada, dá para restaurar; a OP leva junto as OC em cotação)
   44. `20261014230258_loja_google.sql` (lista de produtos do Google Shopping pelo ERP: título do anúncio, código de barras, categoria, peso e prazo de envio sob encomenda)
   45. `20261015103132_mercadolivre.sql` (Mercado Livre fase 1: contas, anúncios ligados aos produtos, vendas importadas com cliente, estoque de SP e conta a receber pelo líquido; cancelamento; chaves no cofre)
+  46. `20261015104403_clientes_enderecos_unificacao.sql` (clientes com até 3 endereços com etiqueta; e-mail único vale também para a NF-e; unificar cadastros guarda o que é diferente no principal e deixa o aviso do que foi unificado)
+  47. `20261015105119_ficha_enderecos.sql` (a ficha cadastral que o cliente confere e assina leva também os endereços 2 e 3 com etiqueta)

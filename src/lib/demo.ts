@@ -2088,11 +2088,39 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       for (const t of ["pedidos", "contas_receber", "ordens_servico", "equipamentos", "contatos_cliente", "notas_fiscais", "emails", "clientes_pessoas", "clientes_assinaturas"]) {
         for (const r of ((db as any)[t] ?? [])) if (r.cliente_id === id) r.cliente_id = p_manter;
       }
+      // nada se perde: o que só o outro tinha completa; o que é diferente fica guardado (endereço 2/3, pessoa de contato) com o aviso
+      const completou: string[] = [], trouxe: string[] = [], fora: string[] = [];
+      const rotulos: Record<string, string> = { cpf_cnpj: "CPF/CNPJ", email: "e-mail", whatsapp: "WhatsApp", telefone: "telefone", logradouro: "endereço", inscricao_estadual: "inscrição estadual", nome_fantasia: "nome fantasia" };
+      const semEndereco = !m.logradouro && !m.cep;
       for (const k of ["nome_fantasia", "cpf_cnpj", "inscricao_estadual", "email", "telefone", "whatsapp", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf",
         "telefone_adicional", "website", "email_nfe", "contato_observacoes", "inscricao_municipal", "inscricao_suframa", "regime_tributario", "data_nascimento", "status_crm",
-        "vendedor_id", "forma_pagamento_id", "condicao_pagamento", "desconto_padrao", "limite_credito"]) {
-        if (!m[k] && o[k]) m[k] = o[k];
+        "vendedor_id", "forma_pagamento_id", "condicao_pagamento", "desconto_padrao", "limite_credito", "endereco_etiqueta"]) {
+        const endereco = ["cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "endereco_etiqueta"].includes(k);
+        if (!m[k] && o[k] && (!endereco || semEndereco)) { m[k] = o[k]; if (rotulos[k]) completou.push(rotulos[k]); }
       }
+      const chave = (e: any) => `${String(e.cep ?? "").replace(/\D/g, "")}|${String(e.numero ?? "").replace(/\s/g, "").toLowerCase()}|${String(e.logradouro ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)}`;
+      const texto = (e: any) => [[e.logradouro, e.numero].filter(Boolean).join(", "), e.bairro, [e.municipio, e.uf].filter(Boolean).join("/")].filter(Boolean).join(" - ");
+      m.enderecos_extras = m.enderecos_extras ?? [];
+      for (const e of [{ etiqueta: o.endereco_etiqueta, cep: o.cep, logradouro: o.logradouro, numero: o.numero, complemento: o.complemento, bairro: o.bairro, municipio: o.municipio, uf: o.uf }, ...(o.enderecos_extras ?? [])]) {
+        if (!e.logradouro && !e.cep) continue;
+        if (chave(e) === chave(m) || m.enderecos_extras.some((x: any) => chave(x) === chave(e))) continue;
+        if (m.enderecos_extras.length < 2) {
+          m.enderecos_extras = [...m.enderecos_extras, { ...e, origem: `cadastro nº ${o.codigo ?? "?"}` }];
+          trouxe.push(`endereço ${texto(e)} (agora é o endereço ${m.enderecos_extras.length + 1})`);
+        } else fora.push(`endereço ${texto(e)} (não coube: o cadastro já tem 3 endereços)`);
+      }
+      const emailNovo = o.email && ![m.email, m.email_nfe].map((x) => String(x ?? "").toLowerCase()).includes(String(o.email).toLowerCase()) ? o.email : null;
+      const fim = (t: any) => String(t ?? "").replace(/\D/g, "").slice(-8);
+      const telNovo = [o.whatsapp, o.telefone].find((t) => fim(t).length === 8 && ![m.whatsapp, m.telefone, m.telefone_adicional].map(fim).includes(fim(t))) ?? null;
+      if (emailNovo || telNovo || (o.nome && ![m.nome, m.nome_fantasia].map((x) => String(x ?? "").toLowerCase()).includes(String(o.nome).toLowerCase()))) {
+        (db as any).clientes_pessoas = [...((db as any).clientes_pessoas ?? []), { id: uid(), cliente_id: p_manter, nome: o.nome ?? "Cadastro unificado", setor: `Cadastro unificado nº ${o.codigo ?? "?"}`, email: emailNovo, telefone: telNovo, ramal: null, ativo: true, created_at: new Date().toISOString() }];
+        trouxe.push(`pessoa de contato ${[o.nome ?? "sem nome", emailNovo, telNovo].filter(Boolean).join(" · ")}`);
+      }
+      const doc = String(o.cpf_cnpj ?? "").replace(/\D/g, "");
+      if ((doc.length === 11 || doc.length === 14) && doc !== String(m.cpf_cnpj ?? "").replace(/\D/g, "")) trouxe.push(`${doc.length === 11 ? "CPF" : "CNPJ"} ${doc}`);
+      m.unificacoes = [...(m.unificacoes ?? []), { id: o.id, codigo: o.codigo, nome: o.nome, doc: doc || undefined, em: new Date().toISOString(), por: "Demonstração",
+        email: o.email ?? undefined, whatsapp: o.whatsapp ?? undefined, telefone: o.telefone ?? undefined, endereco: texto(o) || undefined,
+        completou: completou.length ? completou : undefined, trouxe: trouxe.length ? trouxe : undefined, fora: fora.length ? fora : undefined }];
       m.tags = [...new Set([...(m.tags ?? []), ...(o.tags ?? [])])];
       db.clientes = db.clientes.filter((x) => x.id !== id);
       n++;
