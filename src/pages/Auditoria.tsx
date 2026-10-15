@@ -2,7 +2,8 @@ import { useCallback, useDeferredValue, useMemo, useRef, useState, type FormEven
 import { Link } from "react-router-dom";
 import { ShieldAlert, X } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
-import { useInvalidate, useRows } from "@/lib/data";
+import { ler, useInvalidate, useRows } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -85,7 +86,17 @@ function useExcecoes() {
   const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
   const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
   const { data: recebidas = NENHUM } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
-  const { data: usuarios = NENHUM } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
+  const { data: usuariosCad = NENHUM } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, created_at" });
+  // o último acesso vem do login (função do banco: só administrador, financeiro e contador); sem ele a regra de acesso fica de fora
+  const { data: acessos } = useQuery({
+    queryKey: ["usuarios_ultimo_acesso"],
+    queryFn: async () => (await ler(supabase.rpc("usuarios_ultimo_acesso"))) as { user_id: string; ultimo_acesso: string | null }[] | null,
+  });
+  const usuarios = useMemo(() => {
+    if (!acessos) return usuariosCad;
+    const m = new Map(acessos.map((a) => [a.user_id, a.ultimo_acesso]));
+    return usuariosCad.map((u: any) => (m.has(u.user_id) ? { ...u, ultimo_acesso: m.get(u.user_id) } : u));
+  }, [usuariosCad, acessos]);
   const { data: produtos = NENHUM } = useRows<any>("produtos", { select: "id, sku, descricao, tipo, unidade, ncm, preco_custo, preco_venda, estoque_atual, estoque_minimo, ativo, vendavel, kit, categoria, localizacao, fornecedor_padrao_id, fora_de_linha, created_at" });
   const { data: ordens = NENHUM } = useRows<any>("ordens_servico", { select: "id, numero, status, em_garantia, valor_total, unidade_id" });
   const { data: fornecedores = NENHUM } = useRows<any>("fornecedores", { select: "id, nome" });

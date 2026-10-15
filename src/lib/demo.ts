@@ -1859,6 +1859,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       .slice(0, lim).map((f: Row) => ({ tipo: "fornecedor", id: f.id, titulo: f.nome_fantasia || f.nome, sub: [f.municipio, f.uf].filter(Boolean).join("/") })));
     return { data: r, error: null };
   },
+  // no sistema real: public.usuarios_ultimo_acesso (data do login, de auth.users)
+  usuarios_ultimo_acesso: () => ({ data: (db.usuarios_erp ?? []).map((u: Row) => ({ user_id: u.user_id, ultimo_acesso: u.ultimo_acesso ?? null })), error: null }),
   // no sistema real: public.implantacao_indicadores (contagens feitas no banco)
   implantacao_indicadores: () => {
     const desde = (dias: number) => new Date(Date.now() - dias * 864e5).toISOString();

@@ -64,7 +64,8 @@ export type DadosAuditoria = {
   ordens: { id: string; numero: number; status: string; em_garantia: boolean; valor_total: number }[];
   fornecedores: { id: string; nome: string }[];
   recebidas?: { id: string; chave: string; emitente_nome: string; valor_total: number; data_emissao: string | null; situacao: string; processamento: string; conta_pagar_id: string | null; estoque_lancado: boolean }[];
-  usuarios?: { user_id: string; nome: string; papel: string; ativo: boolean; ultimo_acesso: string | null; created_at?: string }[];
+  /** ultimo_acesso: null = nunca entrou; ausente = não se sabe (sem permissão), e a regra não olha esse usuário */
+  usuarios?: { user_id: string; nome: string; papel: string; ativo: boolean; ultimo_acesso?: string | null; created_at?: string }[];
   produtos?: Produto[];
   hoje: string;
 };
@@ -286,6 +287,7 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
   // 17 e 18. acessos
   const usuarios = (d.usuarios ?? []).filter((u) => u.ativo);
   for (const u of usuarios) {
+    if (u.ultimo_acesso === undefined) continue;
     const ultimo = u.ultimo_acesso ?? u.created_at;
     if (!ultimo || diasEntre(ultimo, d.hoje) <= 90) continue;
     out.push({
