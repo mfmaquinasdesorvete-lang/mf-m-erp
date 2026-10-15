@@ -98,6 +98,8 @@ export function CampoUnidade({ value, onChange, disabled, label = "Unidade (CNPJ
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-slate-600">{label}</span>
       <select className="input" value={value ?? ""} disabled={disabled} onChange={(e) => onChange(e.target.value)} required>
+        {/* sem unidade escolhida o campo diz isso (antes mostrava a primeira unidade sem ter escolhido nenhuma, e o Salvar ficava travado) */}
+        {!value && <option value="" disabled>Escolha a unidade…</option>}
         {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}{u.uf ? ` (${u.uf})` : ""}</option>)}
       </select>
     </label>

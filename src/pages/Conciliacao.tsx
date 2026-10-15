@@ -39,7 +39,7 @@ export const BANCOS: Record<string, string> = { unicred: "Unicred", nubank: "Nub
 export default function Conciliacao() {
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
-  const { filtrar } = useUnidade();
+  const { filtrar, padrao: unidadePadrao } = useUnidade();
   const { data: contasTodas = [] } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
   const bancos = filtrar(contasTodas);
   const { data: lancamentos = [] } = useRows<Lancamento>("extrato_lancamentos", { order: "data", ascending: false });
@@ -129,7 +129,7 @@ export default function Conciliacao() {
     <div>
       <PageHeader title="Bancos e conciliação" subtitle="Conecte o banco pelo Open Finance (ou importe o extrato OFX/CSV) e o ERP liga cada entrada e saída à conta certa"
         actions={podeEditar && <>
-          <Button variant="secondary" onClick={() => setEditConta({ banco: "unicred", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: hoje(), ativo: true })}><Plus size={16} /> Nova conta</Button>
+          <Button variant="secondary" onClick={() => setEditConta({ banco: "unicred", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: hoje(), ativo: true, unidade_id: unidadePadrao ?? undefined })}><Plus size={16} /> Nova conta</Button>
           <Button onClick={() => setImportar(true)} disabled={!bancos.some((b) => b.ativo)}><FileUp size={16} /> Importar extrato</Button>
         </>} />
 
@@ -365,6 +365,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
       const n = digitos(r.conta);
       const achou = n && bancos.find((b) => digitos(b.numero) && (n.endsWith(digitos(b.numero)) || digitos(b.numero).endsWith(n)));
       if (achou) setConta(achou.id);
+      else if (bancos.some((b) => b.nome.trim().length >= 3 && f.name.toLowerCase().includes(b.nome.trim().toLowerCase()))) setConta(bancos.find((b) => b.nome.trim().length >= 3 && f.name.toLowerCase().includes(b.nome.trim().toLowerCase()))!.id); // ex.: "extrato-olist.ofx" → conta OLIST
       else if (/infinite/i.test(f.name)) setConta(bancos.find((b) => b.banco === "infinitepay")?.id ?? conta);
       else if (/nu(bank)?[_-]/i.test(f.name)) setConta(bancos.find((b) => b.banco === "nubank")?.id ?? conta);
     } catch (e) { notifyError(e); }
