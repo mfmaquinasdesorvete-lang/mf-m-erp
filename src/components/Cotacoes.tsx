@@ -246,7 +246,7 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
   const { data: cotacoes = [] } = useRows<Cotacao>("cotacoes", { order: "numero", ascending: false });
   const { data: todosItens = [] } = useRows<CotItem>("cotacao_itens", { order: "ordem", ascending: true });
   const { data: todosForns = [] } = useRows<CotForn>("cotacao_fornecedores", { order: "created_at", ascending: true });
-  const { data: respostas = [] } = useRows<CotResp>("cotacao_respostas");
+  const { data: respostas = [] } = useRows<CotResp>("cotacao_respostas", { order: "updated_at" }); // a tabela não tem created_at
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const invalidate = useInvalidate();
   const [enviando, setEnviando] = useState(false);

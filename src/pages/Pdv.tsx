@@ -74,7 +74,7 @@ export default function Pdv() {
   const [novos, setNovos] = useState<Cliente[]>([]);
   const clientes = useMemo(() => [...novos.filter((n) => !cadastrados.some((c) => c.id === n.id)), ...cadastrados], [novos, cadastrados]);
   const [cadastrar, setCadastrar] = useState<string | null>(null);
-  const { data: estoques = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade");
+  const { data: estoques = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id", ascending: true });
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; user_id: string | null; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: formas = [] } = useFormasPagamento();
   const { data: links = [] } = useRows<CobrancaLink>("cobrancas_link");
