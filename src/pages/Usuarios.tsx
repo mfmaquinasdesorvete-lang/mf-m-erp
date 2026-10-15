@@ -2,7 +2,8 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -44,11 +45,50 @@ function quando(v: string | null) {
   const dias = Math.floor((Date.now() - new Date(v).getTime()) / 86_400_000);
   return dias <= 0 ? "hoje" : dias === 1 ? "ontem" : dias < 30 ? `há ${dias} dias` : dataBR(v);
 }
-const iniciais = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
 const fone = (t: string | null) => {
   const d = (t ?? "").replace(/\D/g, "");
   return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : t ?? "";
 };
+
+/** Fotos dos usuários (só o administrador lê as de todos). */
+function useFotos() {
+  return useQuery({
+    queryKey: ["usuarios_erp", "fotos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("usuarios_erp").select("user_id, foto").not("foto", "is", null);
+      if (error) throw error;
+      return new Map((data ?? []).map((x: { user_id: string; foto: string }) => [x.user_id, x.foto]));
+    },
+  });
+}
+
+async function gravarFoto(u: Usuario, foto: string | null) {
+  const { error } = await supabase.from("usuarios_erp").update({ foto }).eq("user_id", u.user_id);
+  if (error) throw error;
+}
+
+/** Bolinha do usuário: toque para pôr ou trocar a foto (no celular abre a câmera ou a galeria). */
+function AvatarEditavel({ u, foto }: { u: Usuario; foto?: string | null }) {
+  const invalidate = useInvalidate();
+  const [ocupado, setOcupado] = useState(false);
+  async function trocar(arquivo?: File) {
+    if (!arquivo) return;
+    setOcupado(true);
+    try {
+      await gravarFoto(u, await reduzirFoto(arquivo));
+      notify(`Foto de ${u.nome} salva`);
+      invalidate("usuarios_erp");
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+  return (
+    <label className={`relative shrink-0 cursor-pointer ${ocupado ? "opacity-60" : ""}`} title={foto ? "Trocar a foto" : "Pôr foto"}>
+      <FotoUsuario nome={u.nome} foto={foto} tamanho={44} className="bg-slate-100 text-slate-700" />
+      <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-brand text-white ring-2 ring-surface"><Camera size={11} aria-hidden /></span>
+      <input type="file" accept="image/*" className="sr-only" disabled={ocupado} aria-label={`${foto ? "Trocar a foto" : "Pôr foto"} de ${u.nome}`}
+        onChange={(e) => { trocar(e.target.files?.[0]); e.target.value = ""; }} />
+    </label>
+  );
+}
 
 function ChipPapel({ p, extra }: { p: Papel; extra?: boolean }) {
   return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${COR_PAPEL[p]} ${extra ? "opacity-90" : ""}`}>{extra ? "+ " : ""}{rotuloPapel(p)}</span>;
@@ -62,6 +102,7 @@ export default function Usuarios() {
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const { data: fotos } = useFotos();
   const [aba, setAba] = useAbaUrl<"usuarios" | "permissoes">("usuarios", ["usuarios", "permissoes"] as const);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"ativos" | "inativos" | "todos">("ativos");
@@ -111,7 +152,7 @@ export default function Usuarios() {
                   const vend = vendedores.find((v) => v.user_id === u.user_id);
                   return (
                     <li key={u.user_id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${u.ativo ? "" : "opacity-70"}`}>
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-700" aria-hidden>{iniciais(u.nome)}</span>
+                      <AvatarEditavel u={u} foto={fotos?.get(u.user_id)} />
                       <div className="min-w-0 flex-1 basis-56">
                         <div className="font-semibold">{u.nome}{souEu && <span className="ml-1 text-xs font-normal text-slate-500">(você)</span>}
                           {u.cargo && <span className="ml-2 text-sm font-normal text-slate-600">· {u.cargo}</span>}</div>
@@ -152,6 +193,8 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
   const { unidades } = useUnidade();
   const invalidate = useInvalidate();
   const souEu = usuario?.user_id === eu.user_id;
+  const { data: fotos } = useFotos();
+  const foto = usuario ? fotos?.get(usuario.user_id) : undefined;
   const vendAtual = usuario ? vendedores.find((v) => v.user_id === usuario.user_id)?.id ?? "" : "";
   const [f, setF] = useState({
     nome: usuario?.nome ?? "", email: usuario?.email ?? "", cargo: usuario?.cargo ?? "", telefone: usuario?.telefone ?? "",
@@ -204,6 +247,15 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
   return (
     <Modal open onClose={onClose} title={usuario ? `Editar ${usuario.nome}` : "Novo usuário"} wide>
       <form onSubmit={salvar} className="space-y-4">
+        {usuario && (
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <AvatarEditavel u={usuario} foto={foto} />
+            <span className="text-slate-600">{foto ? "Toque na foto para trocar." : "Toque na bolinha para pôr a foto (no celular abre a câmera)."}</span>
+            {foto && <Button type="button" variant="ghost" onClick={async () => {
+              try { await gravarFoto(usuario, null); notify("Foto removida"); invalidate("usuarios_erp"); } catch (e) { notifyError(e); }
+            }}>Tirar a foto</Button>}
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nome *"><input className="input" value={f.nome} onChange={(e) => set({ nome: e.target.value })} required maxLength={120} autoComplete="off" /></Field>
           <Field label="E-mail de acesso *"><input className="input" type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} required autoComplete="off" /></Field>

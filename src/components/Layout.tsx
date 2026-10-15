@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
@@ -131,6 +132,11 @@ export function Layout() {
   const [aparencia, setAparencia] = useState(false);
   const [meusAvisos, setMeusAvisos] = useState(false);
   const iniciais = perfil.nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  // foto do usuário (Configurações → Usuários); cada um lê a própria
+  const { data: minhaFoto } = useQuery({
+    queryKey: ["usuarios_erp", "minha-foto", perfil.user_id], staleTime: 300_000,
+    queryFn: async () => ((await supabase.from("usuarios_erp").select("foto").eq("user_id", perfil.user_id).maybeSingle()).data?.foto as string | null) ?? null,
+  });
 
   useEffect(() => { setAberto(false); setBusca(""); }, [location.pathname]);
   useEffect(() => {
@@ -274,7 +280,8 @@ export function Layout() {
         <div className="border-t border-ink-line p-3">
           {/* duas linhas: quem está logado em cima, os botões embaixo (numa linha só o nome sumia no notebook) */}
           <div className="flex items-center gap-2 px-1">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-soft text-sm font-bold text-brand-ice">{iniciais}</span>
+            {minhaFoto ? <img src={minhaFoto} alt="" aria-hidden className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-soft text-sm font-bold text-brand-ice">{iniciais}</span>}
             <span className="min-w-0 flex-1 leading-tight" title={perfil.nome}>
               <span className="block truncate text-sm font-semibold text-white">{perfil.nome}</span>
               <span className="block truncate text-xs text-nav-fraco">{[perfil.papel, ...(perfil.papeis_extras ?? [])].map(rotuloPapel).join(" · ")}</span>
