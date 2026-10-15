@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { brl, dataBR, whatsappLink } from "@/lib/format";
+import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
 import { buscarCnpj, preencherVazios } from "@/lib/cnpj";
 import { DISPONIBILIDADE, urlFotoProduto, urlLoja, type DadosLoja, type ProdutoLoja } from "@/lib/catalogo";
@@ -195,6 +195,11 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
           <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{p.nome}</h1>
           {p.sku && <div className="mt-1 text-sm text-slate-500">Código {p.sku}</div>}
           <div className="num mt-4 text-3xl font-extrabold">{brl(p.preco)}</div>
+          {p.disponibilidade === "available for order" && p.prazo_dias ? (
+            <p className="mt-2 text-sm font-semibold text-sky-700">
+              Sob encomenda: envio previsto até {dataBR(somarDias(p.prazo_dias))} (em até {p.prazo_dias} dias)
+            </p>
+          ) : null}
           <p className="mt-4 whitespace-pre-line text-[16px] leading-relaxed text-slate-700">{p.descricao?.trim() || p.nome}</p>
           {p.tipo === "maquina" && p.garantia_meses ? (
             <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-emerald-700"><ShieldCheck size={18} /> Garantia de {p.garantia_meses} meses e assistência técnica própria</p>
