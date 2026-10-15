@@ -425,6 +425,7 @@ function seed(): Db {
     { id: 1, tipo: "pagamento", titulo: "Pagamento recebido: R$ 14.500,00", texto: "Doce Gelo Sorvetes Eireli · Pedido #102 - parcela 1/2", link: "/financeiro", papeis: ["financeiro", "vendas"], created_at: quando(-3) },
     { id: 2, tipo: "email", titulo: "Novo e-mail em Comercial", texto: "Juliana Rezende: Orçamento máquina expressa", link: "/email", papeis: ["vendas", "financeiro"], created_at: quando(-0.2) },
   ];
+  db.notificacoes_ciencia = [];
   db.loja_clientes = [];
   db.email_contas = [{ id: "ec1", nome: "Comercial", email: "comercial@mfmaquinas.com.br", imap_host: "imap.hostinger.com", imap_porta: 993, smtp_host: "smtp.hostinger.com", smtp_porta: 465, usuario: "comercial@mfmaquinas.com.br", unidade_id: null, papeis: ["vendas", "financeiro"], ativo: true, sincronizado_em: quando(-0.01), erro: null }];
   const xmlNfe = { indice: 0, nome: "NFe35261011222333000181550010000124001000000017.xml", tipo: "application/xml", tamanho: 9200, nfe: true };
@@ -2611,6 +2612,26 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   salvar_preferencias: ({ p }) => {
     const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
     if (u) u.preferencias = { ...u.preferencias, ...p };
+    return { data: null, error: null };
+  },
+  // avisos entre usuários (no sistema real: public.enviar_aviso, ciente_aviso e usuarios_para_aviso)
+  usuarios_para_aviso: () => ({ data: db.usuarios_erp.filter((u: Row) => u.ativo !== false).map((u: Row) => ({ user_id: u.user_id, nome: u.nome, papel: u.papel })), error: null }),
+  enviar_aviso: ({ p_titulo, p_texto, p_urgencia = "normal", p_para = [], p_papeis = [], p_link }) => {
+    if (!String(p_titulo ?? "").trim()) return { data: null, error: { message: "Escreva o aviso" } };
+    const eu = db.usuarios_erp.find((u: Row) => u.user_id === sessao?.user.id);
+    const pessoas = (p_para ?? []).length > 0;
+    const n = { id: ++seqNotif, tipo: "outro", titulo: String(p_titulo).trim(), texto: p_texto || null, link: p_link || null,
+      papeis: pessoas ? ["mensagem"] : p_papeis ?? [], urgencia: p_urgencia, destinatarios: pessoas ? p_para : [], remetente_id: sessao?.user.id ?? null,
+      remetente_nome: eu?.nome ?? null, exige_ciencia: p_urgencia !== "normal", created_at: new Date().toISOString() };
+    db.notificacoes.unshift(n);
+    const papel = eu?.papel;
+    if (pessoas ? p_para.includes(sessao?.user.id) : papel === "admin" || !n.papeis.length || n.papeis.includes(papel)) canais.forEach((f) => f(n));
+    return { data: n.id, error: null };
+  },
+  ciente_aviso: ({ p_id }) => {
+    db.notificacoes_ciencia = db.notificacoes_ciencia ?? [];
+    if (!db.notificacoes_ciencia.some((c: Row) => c.notificacao_id === p_id && c.user_id === sessao?.user.id))
+      db.notificacoes_ciencia.push({ notificacao_id: p_id, user_id: sessao?.user.id, ciente_em: new Date().toISOString() });
     return { data: null, error: null };
   },
   marcar_notificacoes_vistas: () => {

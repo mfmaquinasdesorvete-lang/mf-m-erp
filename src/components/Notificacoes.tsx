@@ -1,12 +1,22 @@
-// Notificações na tela: pop-up na hora (pagamento recebido, pedido da loja, e-mail novo) e o sino com o histórico.
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+// Notificações na tela: pop-up na hora (pagamento recebido, pedido da loja, e-mail novo), o sino com o histórico
+// e os avisos entre usuários. Aviso normal aparece no canto; importante e urgente aparecem no meio da tela e pedem "Ciente"
+// (o urgente toca de novo até a pessoa confirmar). Quem mandou vê quem já deu ciente.
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, BellRing, FileSignature, Mail, ShoppingBag, Wallet, X, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, Check, FileSignature, Mail, Megaphone, Send, ShoppingBag, Siren, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
+import { notify, notifyError } from "@/lib/notify";
+import { rotuloPapel } from "@/lib/permissoes";
+import { Button, Field, Modal } from "@/components/ui";
 
-export type Notificacao = { id: number; tipo: string; titulo: string; texto: string | null; link: string | null; created_at: string };
+export type Urgencia = "normal" | "importante" | "urgente";
+export type Notificacao = {
+  id: number; tipo: string; titulo: string; texto: string | null; link: string | null; created_at: string;
+  urgencia?: Urgencia; destinatarios?: string[]; papeis?: string[]; remetente_id?: string | null; remetente_nome?: string | null; exige_ciencia?: boolean;
+};
+type Ciencia = { notificacao_id: number; user_id: string; ciente_em: string };
 
 const ESTILO: Record<string, { icon: LucideIcon; cor: string }> = {
   pagamento: { icon: Wallet, cor: "var(--kpi-verde)" },
@@ -15,66 +25,125 @@ const ESTILO: Record<string, { icon: LucideIcon; cor: string }> = {
   proposta: { icon: FileSignature, cor: "var(--kpi-ciano)" },
   outro: { icon: BellRing, cor: "var(--kpi-laranja)" },
 };
+const NIVEL: Record<Urgencia, { rotulo: string; ajuda: string; icon: LucideIcon; cor: string; faixa: string }> = {
+  normal: { rotulo: "Normal", ajuda: "Aparece no canto da tela, com um toque", icon: Megaphone, cor: "var(--kpi-azul)", faixa: "from-[#0ea5e9] to-[#2563eb]" },
+  importante: { rotulo: "Importante", ajuda: "No meio da tela, com som; a pessoa confirma que leu", icon: AlertTriangle, cor: "var(--kpi-laranja)", faixa: "from-[#f59e0b] to-[#ea580c]" },
+  urgente: { rotulo: "Urgente", ajuda: "No meio da tela, em vermelho; o som repete até a pessoa clicar em Ciente", icon: Siren, cor: "var(--kpi-rosa)", faixa: "from-[#ef4444] to-[#b91c1c]" },
+};
+const estiloDe = (n: Notificacao) => n.remetente_id ? { icon: NIVEL[n.urgencia ?? "normal"].icon, cor: NIVEL[n.urgencia ?? "normal"].cor } : ESTILO[n.tipo] ?? ESTILO.outro;
 
-type Ctx = { lista: Notificacao[]; naoVistas: number; abrirPainel: () => void };
-const NotifCtx = createContext<Ctx>({ lista: [], naoVistas: 0, abrirPainel: () => {} });
+type Ctx = { lista: Notificacao[]; naoVistas: number; abrirPainel: () => void; novoAviso: () => void };
+const NotifCtx = createContext<Ctx>({ lista: [], naoVistas: 0, abrirPainel: () => {}, novoAviso: () => {} });
 export const useNotificacoes = () => useContext(NotifCtx);
 
-/** Som curto de aviso (sem arquivo de áudio). */
-function tocar() {
+const CHAVE_SOM = "erp.avisos.som";
+const somLigado = () => { try { return localStorage.getItem(CHAVE_SOM) !== "off"; } catch { return true; } };
+
+/** Som de aviso sem arquivo de áudio: normal = dois toques; importante = três toques subindo; urgente = sirene curta. */
+function tocar(nivel: Urgencia = "normal") {
+  if (nivel !== "urgente" && !somLigado()) return; // urgente toca sempre
   try {
     const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
-    [880, 1320].forEach((f, i) => {
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.frequency.value = f; o.type = "sine";
-      g.gain.setValueAtTime(0.0001, ac.currentTime + i * 0.16);
-      g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime + i * 0.16 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + i * 0.16 + 0.22);
-      o.connect(g).connect(ac.destination); o.start(ac.currentTime + i * 0.16); o.stop(ac.currentTime + i * 0.16 + 0.25);
+    const notas = nivel === "urgente" ? [988, 740, 988, 740, 988, 740] : nivel === "importante" ? [660, 880, 1175] : [880, 1320];
+    const passo = nivel === "urgente" ? 0.22 : 0.16, vol = nivel === "normal" ? 0.2 : 0.32;
+    notas.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * passo;
+      o.frequency.value = f; o.type = nivel === "urgente" ? "square" : "sine";
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(nivel === "urgente" ? vol * 0.5 : vol, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + passo + 0.06);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + passo + 0.1);
     });
+    setTimeout(() => ac.close().catch(() => {}), (notas.length * passo + 0.5) * 1000);
   } catch { /* navegador sem áudio */ }
 }
 
 export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const perfil = usePerfil();
+  const eu = perfil.user_id;
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [popups, setPopups] = useState<Notificacao[]>([]);
+  const [centro, setCentro] = useState<Notificacao[]>([]); // importantes e urgentes esperando "Ciente"
   const [painel, setPainel] = useState(false);
+  const [compor, setCompor] = useState(false);
+  const [som, setSom] = useState(somLigado);
   const vistos = useRef(new Set<number>());
+  const pendentesVistos = useRef(false);
 
-  const { data: lista = [] } = useQuery({
+  // aviso para pessoas escolhidas só aparece para elas (o administrador vê no banco, mas não recebe o pop-up dos outros)
+  const paraMim = (n: Notificacao) => !n.destinatarios?.length || n.destinatarios.includes(eu);
+  const meu = (n: Notificacao) => !!eu && n.remetente_id === eu;
+
+  const { data: todas = [] } = useQuery({
     queryKey: ["notificacoes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(40);
+      const { data, error } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(60);
       if (error) throw error;
       return data as Notificacao[];
     },
     refetchInterval: 60_000, // segurança caso a conexão em tempo real caia
   });
-  const { data: eu } = useQuery({
-    queryKey: ["usuarios_erp", "vistas", perfil.user_id],
-    queryFn: async () => (await supabase.from("usuarios_erp").select("notificacoes_vistas_em").eq("user_id", perfil.user_id).single()).data,
+  const lista = useMemo(() => todas.filter((n) => paraMim(n) || meu(n)).slice(0, 40), [todas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
+  const idsAvisos = lista.filter((n) => n.exige_ciencia).map((n) => n.id);
+  const { data: ciencias = [], isFetched: cienciasLidas } = useQuery({
+    queryKey: ["notificacoes_ciencia", idsAvisos.join(",")],
+    enabled: idsAvisos.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("notificacoes_ciencia").select("notificacao_id, user_id, ciente_em").in("notificacao_id", idsAvisos);
+      if (error) throw error;
+      return data as Ciencia[];
+    },
   });
-  const vistasEm = eu?.notificacoes_vistas_em ?? new Date().toISOString();
-  const naoVistas = lista.filter((n) => n.created_at > vistasEm).length;
+  const { data: dadosEu } = useQuery({
+    queryKey: ["usuarios_erp", "vistas", eu],
+    queryFn: async () => (await supabase.from("usuarios_erp").select("notificacoes_vistas_em").eq("user_id", eu).single()).data,
+  });
+  const vistasEm = dadosEu?.notificacoes_vistas_em ?? new Date().toISOString();
+  const naoVistas = lista.filter((n) => n.created_at > vistasEm && !meu(n)).length;
+  const jaCiente = (n: Notificacao) => ciencias.some((c) => c.notificacao_id === n.id && c.user_id === eu);
+
+  // importante ou urgente que chegou enquanto a pessoa estava fora: aparece no meio da tela ao entrar (últimos 7 dias)
+  useEffect(() => {
+    if (pendentesVistos.current || !eu || !todas.length || (idsAvisos.length > 0 && !cienciasLidas)) return;
+    pendentesVistos.current = true;
+    const limite = new Date(Date.now() - 7 * 864e5).toISOString();
+    const pendentes = lista.filter((n) => n.exige_ciencia && paraMim(n) && !(meu(n) && !n.destinatarios?.includes(eu)) && !jaCiente(n) && n.created_at > limite);
+    if (pendentes.length) { setCentro(pendentes.reverse()); tocar(pendentes.some((n) => n.urgencia === "urgente") ? "urgente" : "importante"); }
+  }, [todas, cienciasLidas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // urgente: a sirene repete a cada 4 segundos (até 2 minutos) enquanto não clicar em Ciente
+  const urgenteAberto = centro[0]?.urgencia === "urgente";
+  useEffect(() => {
+    if (!urgenteAberto) return;
+    let n = 0;
+    const t = setInterval(() => { if (++n > 30) clearInterval(t); else tocar("urgente"); }, 4000);
+    return () => clearInterval(t);
+  }, [urgenteAberto, centro[0]?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function mostrar(n: Notificacao) {
     if (vistos.current.has(n.id)) return;
     vistos.current.add(n.id);
-    // no celular o pop-up cobre o topo da tela: um de cada vez e por menos tempo (o histórico fica no sino)
-    const celular = window.matchMedia("(max-width: 767px)").matches;
-    setPopups((p) => [n, ...p].slice(0, celular ? 1 : 3));
-    tocar();
-    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-      try { new Notification(n.titulo, { body: n.texto ?? "", icon: "/logo-192.png", tag: `erp-${n.id}` }); } catch { /* sem suporte */ }
+    if (!paraMim(n) || (meu(n) && !n.destinatarios?.includes(eu))) return; // o próprio aviso para os outros não aparece para quem mandou
+    const nivel = n.urgencia ?? "normal";
+    if (nivel !== "normal") {
+      setCentro((c) => [...c.filter((x) => x.id !== n.id), n]);
+      tocar(nivel);
+    } else {
+      // no celular o pop-up cobre o topo da tela: um de cada vez e por menos tempo (o histórico fica no sino)
+      const celular = window.matchMedia("(max-width: 767px)").matches;
+      setPopups((p) => [n, ...p].slice(0, celular ? 1 : 3));
+      tocar("normal");
+      setTimeout(() => setPopups((p) => p.filter((x) => x.id !== n.id)), celular ? 6_000 : 12_000);
     }
-    setTimeout(() => setPopups((p) => p.filter((x) => x.id !== n.id)), celular ? 6_000 : 12_000);
+    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+      try { new Notification(n.titulo, { body: [n.remetente_nome && `De ${n.remetente_nome}`, n.texto].filter(Boolean).join(" · "), icon: "/logo-192.png", tag: `erp-${n.id}`, requireInteraction: nivel === "urgente" }); } catch { /* sem suporte */ }
+    }
   }
 
   // Tempo real: cada notificação nova (que a pessoa pode ver) aparece na hora
   useEffect(() => {
-    lista.forEach((n) => vistos.current.add(n.id)); // as que já existiam não viram pop-up
+    todas.forEach((n) => vistos.current.add(n.id)); // as que já existiam não viram pop-up
     const canal = supabase.channel("erp-notificacoes")
       .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "notificacoes" }, (payload: any) => {
         mostrar(payload.new as Notificacao);
@@ -85,7 +154,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       })
       .subscribe();
     return () => { supabase.removeChannel(canal); };
-  }, [lista.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [todas.length > 0, eu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function abrirPainel() {
     setPainel(true);
@@ -93,15 +162,31 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     setTimeout(() => qc.invalidateQueries({ queryKey: ["usuarios_erp", "vistas"] }), 1500);
   }
   const abrir = (n: Notificacao) => { setPopups((p) => p.filter((x) => x.id !== n.id)); setPainel(false); if (n.link) navigate(n.link); };
+  async function ciente(n: Notificacao, irPara?: boolean) {
+    setCentro((c) => c.filter((x) => x.id !== n.id));
+    if (n.exige_ciencia) {
+      const { error } = await supabase.rpc("ciente_aviso", { p_id: n.id });
+      if (error) notifyError(error);
+      qc.invalidateQueries({ queryKey: ["notificacoes_ciencia"] });
+    }
+    if (irPara && n.link) { setPainel(false); navigate(n.link); }
+  }
+  function alternarSom() {
+    const novo = !som;
+    try { localStorage.setItem(CHAVE_SOM, novo ? "on" : "off"); } catch { /* sem armazenamento */ }
+    setSom(novo);
+    if (novo) tocar("normal");
+  }
 
+  const atual = centro[0];
   return (
-    <NotifCtx.Provider value={{ lista, naoVistas, abrirPainel }}>
+    <NotifCtx.Provider value={{ lista, naoVistas, abrirPainel, novoAviso: () => setCompor(true) }}>
       {children}
 
-      {/* Pop-ups */}
+      {/* Pop-ups do canto (normal) */}
       <div className="pointer-events-none fixed inset-x-3 top-[70px] z-[60] flex flex-col items-end gap-2 md:inset-x-auto md:right-5 md:top-5" aria-live="assertive">
         {popups.map((n) => {
-          const e = ESTILO[n.tipo] ?? ESTILO.outro;
+          const e = estiloDe(n);
           return (
             <div key={n.id} role="alert"
               className="pointer-events-auto flex w-full max-w-sm animate-[entrar_.35s_ease-out] items-center gap-2.5 rounded-2xl border bg-surface p-2.5 shadow-pop md:items-start md:gap-3 md:p-4"
@@ -110,6 +195,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
               <div className="min-w-0 flex-1">
                 {/* no celular a linha toda é o botão de abrir; no computador fica o "Abrir →" */}
                 <button type="button" disabled={!n.link} onClick={() => abrir(n)} className="block w-full min-w-0 text-left disabled:cursor-default md:pointer-events-none">
+                  {n.remetente_nome && <span className="block text-xs font-semibold text-slate-500">De {n.remetente_nome}</span>}
                   <span className="block truncate text-sm font-bold leading-tight text-fg md:whitespace-normal md:text-[15px]">{n.titulo}</span>
                   {n.texto && <span className="mt-0.5 block truncate text-[13px] text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
                 </button>
@@ -121,15 +207,57 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
         })}
       </div>
 
+      {/* Importante e urgente: no meio da tela, até clicar em Ciente */}
+      {atual && (() => {
+        const nv = NIVEL[atual.urgencia ?? "importante"];
+        const urgente = atual.urgencia === "urgente";
+        return (
+          <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
+            <div className="relative w-full max-w-md">
+            {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
+            {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
+            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-3xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : "ring-2 ring-amber-400/60"}`}>
+              <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-extrabold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
+                  {centro.length > 1 && <span className="text-xs font-semibold text-white/85">1 de {centro.length}</span>}
+                </div>
+                <h2 id="aviso-titulo" className="mt-3 text-xl font-extrabold leading-tight [overflow-wrap:anywhere]">{atual.titulo}</h2>
+                <p className="mt-1 text-sm text-white/85">{atual.remetente_nome ? `De ${atual.remetente_nome} · ` : ""}{new Date(atual.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+              </div>
+              <div className="space-y-4 p-5">
+                {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-[15px] leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>Abrir</Button>}
+                  <Button onClick={() => ciente(atual)} autoFocus><Check size={16} /> Ciente</Button>
+                </div>
+                {urgente && <p className="text-center text-xs text-slate-500">O som repete até você clicar em Ciente.</p>}
+              </div>
+            </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Histórico */}
       {painel && (
         <div className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
           <div className="absolute inset-x-3 top-[70px] max-h-[75vh] overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-3 shadow-pop md:left-auto md:right-5 md:top-5 md:w-96"
             onClick={(e) => e.stopPropagation()}>
-            <div className="mb-2 flex items-center justify-between px-1">
+            <div className="mb-2 flex items-center justify-between gap-2 px-1">
               <span className="font-bold text-fg">Notificações</span>
-              <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+              <span className="flex items-center gap-1">
+                <button type="button" onClick={alternarSom} title={som ? "Som dos avisos ligado (o urgente toca sempre)" : "Som dos avisos desligado (o urgente toca sempre)"}
+                  aria-label={som ? "Desligar o som dos avisos" : "Ligar o som dos avisos"} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+                  {som ? <Volume2 size={17} /> : <VolumeX size={17} />}
+                </button>
+                <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+              </span>
             </div>
+            <button type="button" onClick={() => { setPainel(false); setCompor(true); }}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#6366f1] px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
+              <Send size={16} /> Enviar aviso para a equipe
+            </button>
             {"Notification" in window && Notification.permission === "default" && (
               <button type="button" onClick={() => Notification.requestPermission()} className="mb-2 w-full rounded-xl bg-brand-light px-3 py-2 text-left text-sm font-semibold text-fg">
                 🔔 Avisar também quando o ERP estiver minimizado
@@ -138,15 +266,30 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             {lista.length ? (
               <ul className="space-y-1">
                 {lista.map((n) => {
-                  const e = ESTILO[n.tipo] ?? ESTILO.outro;
+                  const e = estiloDe(n);
+                  const cientes = ciencias.filter((c) => c.notificacao_id === n.id);
+                  const total = n.destinatarios?.length ?? 0;
                   return (
                     <li key={n.id}>
-                      <button type="button" onClick={() => abrir(n)} className="flex w-full items-start gap-3 rounded-xl p-2 text-left hover:bg-slate-50">
+                      <button type="button" onClick={() => (n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n) ? setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]) : abrir(n))}
+                        className="flex w-full items-start gap-3 rounded-xl p-2 text-left hover:bg-slate-50">
                         <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
                         <span className="min-w-0 flex-1">
-                          <span className={`block text-sm leading-tight ${n.created_at > vistasEm ? "font-bold text-fg" : "font-semibold text-slate-700"}`}>{n.titulo}</span>
+                          {n.urgencia && n.urgencia !== "normal" && (
+                            <span className="mb-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white" style={{ background: NIVEL[n.urgencia].cor }}>{NIVEL[n.urgencia].rotulo}</span>
+                          )}
+                          <span className={`block text-sm leading-tight ${n.created_at > vistasEm && !meu(n) ? "font-bold text-fg" : "font-semibold text-slate-700"}`}>{n.titulo}</span>
                           {n.texto && <span className="block truncate text-xs text-slate-500">{n.texto}</span>}
-                          <span className="block text-[11px] text-slate-400">{new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                          <span className="block text-[11px] text-slate-400">
+                            {meu(n) ? "Você enviou" : n.remetente_nome ? `De ${n.remetente_nome}` : ""}{(meu(n) || n.remetente_nome) ? " · " : ""}
+                            {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                          </span>
+                          {meu(n) && n.exige_ciencia && (
+                            <span className={`mt-0.5 block text-[11px] font-semibold ${total && cientes.length >= total ? "text-emerald-600" : "text-amber-600"}`}>
+                              ✓ {cientes.length}{total ? ` de ${total}` : ""} {cientes.length === 1 ? "ciente" : "cientes"}
+                            </span>
+                          )}
+                          {!meu(n) && n.exige_ciencia && paraMim(n) && !jaCiente(n) && <span className="mt-0.5 block text-[11px] font-semibold text-red-600">Falta o seu ciente</span>}
                         </span>
                       </button>
                     </li>
@@ -157,7 +300,108 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
+
+      {compor && <NovoAviso onClose={() => setCompor(false)} />}
     </NotifCtx.Provider>
+  );
+}
+
+/** Escrever um aviso: para pessoas, para um perfil ou para todos, com o nível de urgência. */
+function NovoAviso({ onClose }: { onClose: () => void }) {
+  const { user_id: eu } = usePerfil();
+  const local = useLocation();
+  const qc = useQueryClient();
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ["usuarios_para_aviso"],
+    queryFn: async () => { const { data, error } = await supabase.rpc("usuarios_para_aviso"); if (error) throw error; return (data ?? []) as { user_id: string; nome: string; papel: string }[]; },
+  });
+  const [modo, setModo] = useState<"pessoas" | "perfil" | "todos">("pessoas");
+  const [pessoas, setPessoas] = useState<string[]>([]);
+  const [perfil, setPerfil] = useState("");
+  const [urgencia, setUrgencia] = useState<Urgencia>("normal");
+  const [titulo, setTitulo] = useState("");
+  const [texto, setTexto] = useState("");
+  const [ligar, setLigar] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const perfis = [...new Set(usuarios.map((u) => u.papel))].filter(Boolean);
+  const qtd = modo === "pessoas" ? pessoas.length : modo === "perfil" ? usuarios.filter((u) => u.papel === perfil || u.papel === "admin").length : usuarios.length;
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault();
+    if (modo === "pessoas" && !pessoas.length) return notifyError(new Error("Escolha pelo menos uma pessoa"));
+    if (modo === "perfil" && !perfil) return notifyError(new Error("Escolha o perfil"));
+    setEnviando(true);
+    const { error } = await supabase.rpc("enviar_aviso", {
+      p_titulo: titulo, p_texto: texto || null, p_urgencia: urgencia,
+      p_para: modo === "pessoas" ? pessoas : [], p_papeis: modo === "perfil" ? [perfil] : [], p_link: ligar ? local.pathname : null,
+    });
+    setEnviando(false);
+    if (error) return notifyError(error);
+    notify(urgencia === "normal" ? "Aviso enviado" : `Aviso ${NIVEL[urgencia].rotulo.toLowerCase()} enviado: você vê no sino quem deu ciente`);
+    qc.invalidateQueries({ queryKey: ["notificacoes"] });
+    onClose();
+  }
+
+  const aba = (v: typeof modo, rotulo: string) => (
+    <button type="button" onClick={() => setModo(v)} aria-pressed={modo === v}
+      className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${modo === v ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"}`}>{rotulo}</button>
+  );
+  return (
+    <Modal open onClose={onClose} title="Enviar aviso">
+      <form onSubmit={enviar} className="space-y-4">
+        <div>
+          <div className="mb-1.5 text-xs font-semibold text-slate-600">Para quem</div>
+          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 p-1">{aba("pessoas", "Pessoas")}{aba("perfil", "Um perfil")}{aba("todos", "Todos")}</div>
+          {modo === "pessoas" && (
+            <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {usuarios.map((u) => (
+                <label key={u.user_id} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm ${pessoas.includes(u.user_id) ? "border-brand bg-brand-light" : "border-slate-200 hover:bg-slate-50"}`}>
+                  <input type="checkbox" className="h-4 w-4" checked={pessoas.includes(u.user_id)} onChange={(e) => setPessoas(e.target.checked ? [...pessoas, u.user_id] : pessoas.filter((x) => x !== u.user_id))} />
+                  <span className="min-w-0 flex-1 truncate font-semibold text-fg">{u.nome}{u.user_id === eu ? " (você)" : ""}</span>
+                  <span className="shrink-0 text-xs text-slate-500">{rotuloPapel(u.papel)}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {modo === "perfil" && (
+            <select className="input mt-2" value={perfil} onChange={(e) => setPerfil(e.target.value)} aria-label="Perfil">
+              <option value="">Escolha o perfil…</option>
+              {perfis.filter((p) => p !== "admin").map((p) => <option key={p} value={p}>{rotuloPapel(p)}</option>)}
+            </select>
+          )}
+          {modo === "todos" && <p className="mt-2 text-sm text-slate-600">Todas as {usuarios.length} pessoas que usam o ERP recebem.</p>}
+        </div>
+
+        <div>
+          <div className="mb-1.5 text-xs font-semibold text-slate-600">Urgência</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {(Object.keys(NIVEL) as Urgencia[]).map((k) => {
+              const nv = NIVEL[k];
+              const ativo = urgencia === k;
+              return (
+                <button key={k} type="button" onClick={() => { setUrgencia(k); tocar(k); }} aria-pressed={ativo}
+                  className={`rounded-2xl border-2 p-3 text-left transition ${ativo ? "shadow-card" : "border-slate-200 opacity-80 hover:opacity-100"}`}
+                  style={ativo ? { borderColor: nv.cor, background: `color-mix(in srgb, ${nv.cor} 12%, transparent)` } : undefined}>
+                  <span className="flex items-center gap-1.5 font-bold" style={{ color: nv.cor }}><nv.icon size={17} /> {nv.rotulo}</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-slate-600">{nv.ajuda}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Toque num nível para ouvir o som.</p>
+        </div>
+
+        <Field label="Aviso"><input className="input" value={titulo} onChange={(e) => setTitulo(e.target.value)} required maxLength={140} placeholder="Ex.: Cliente esperando retorno da OS 15" /></Field>
+        <Field label="Detalhes (opcional)"><textarea className="input min-h-[90px]" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={2000} /></Field>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={ligar} onChange={(e) => setLigar(e.target.checked)} /> Ligar a esta tela (quem receber abre direto aqui)</label>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="mr-auto text-xs text-slate-500">{qtd} {qtd === 1 ? "pessoa recebe" : "pessoas recebem"}</span>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button disabled={enviando}><Send size={16} /> {enviando ? "Enviando…" : "Enviar"}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
