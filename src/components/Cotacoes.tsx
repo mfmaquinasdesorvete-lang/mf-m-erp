@@ -96,13 +96,23 @@ export function Cotacoes({ podeEditar, inicial, aoGerarPedidos }: {
 }
 
 /** Nova cotação: itens (busca de produto) e fornecedores sugeridos pelo histórico de cada produto. */
+/** Título da cotação pelos itens: "Pá Batedora + Vedação e Sanfona · out/2026" (nome curto, antes do " - "). */
+export function tituloCotacao(descricoes: string[], hoje = new Date()): string {
+  const nomes = descricoes.map((d) => d.split(/\s+[-–]\s+/)[0].trim()).filter(Boolean);
+  if (!nomes.length) return "";
+  const lista = nomes.length === 1 ? nomes[0] : nomes.length === 2 ? `${nomes[0]} e ${nomes[1]}` : `${nomes[0]}, ${nomes[1]} e mais ${nomes.length - 2}`;
+  const mes = hoje.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(".", "").replace(" de ", "/");
+  return `${lista} · ${mes}`.slice(0, 150);
+}
+
 function NovaCotacao({ inicial, onClose, onCriada }: { inicial: { produto_id: string; quantidade: number }[]; onClose: () => void; onCriada: (id: string) => void }) {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const { data: fornecimentos = [] } = useRows<Fornecimento>("fornecimentos");
   const { padrao } = useUnidade();
   const invalidate = useInvalidate();
-  const [titulo, setTitulo] = useState("");
+  // título: vem montado pelos itens (enquanto a pessoa não escreve outro)
+  const [tituloDigitado, setTitulo] = useState<string | null>(null);
   const [prazo, setPrazo] = useState(somarDias(3));
   const [entrega, setEntrega] = useState("");
   const [obs, setObs] = useState("");
@@ -113,6 +123,7 @@ function NovaCotacao({ inicial, onClose, onCriada }: { inicial: { produto_id: st
 
   const ativos = useMemo(() => produtos.filter((p) => p.ativo !== false), [produtos]);
   const produto = (id: string) => produtos.find((p) => p.id === id);
+  const titulo = tituloDigitado ?? tituloCotacao(linhas.map((l) => produto(l.produto_id)?.descricao ?? ""));
   // fornecedores que já venderam algum dos itens, por quantos itens cobrem
   const sugeridos = useMemo(() => {
     const ids = new Set(linhas.map((l) => l.produto_id));
@@ -157,7 +168,7 @@ function NovaCotacao({ inicial, onClose, onCriada }: { inicial: { produto_id: st
     <Modal open onClose={onClose} title="Nova cotação" wide>
       <form onSubmit={criar} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Título (opcional)" className="sm:col-span-3"><input className="input" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: reposição de peças de outubro" /></Field>
+          <Field label="Título (opcional)" className="sm:col-span-3"><input className="input" value={titulo} maxLength={150} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: reposição de peças de outubro" /></Field>
           <Field label="Responder até"><input type="date" className="input" value={prazo} onChange={(e) => setPrazo(e.target.value)} /></Field>
           <Field label="Entrega desejada"><input type="date" className="input" value={entrega} onChange={(e) => setEntrega(e.target.value)} /></Field>
           <Field label="Observação para os fornecedores"><input className="input" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: frete CIF para Joinville" /></Field>
