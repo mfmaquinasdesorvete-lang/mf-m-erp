@@ -4,6 +4,7 @@ import type { Cliente, Config, Item, ItemChecklist } from "./types";
 import type { Unidade } from "./unidade";
 import { brl, dataBR, docFormat } from "./format";
 import { CONDICOES_REPARO_PADRAO } from "./garantia";
+import { ehUsada, textoPadrao } from "./textosPadrao";
 import { formatarTelefone } from "./mascaras";
 import {
   AVISOS, cepFmt, codigoTransporte, codigoVolume, medidasTxt, pesoDoVolume, pesoTxt, volumeVazio,
@@ -284,6 +285,9 @@ export async function pdfOrcamento(p: {
   if (ehOrcamento && cfg.orcamento_prazo_entrega) y = paragrafo(doc, "Prazo de entrega", cfg.orcamento_prazo_entrega, y);
   if (ehOrcamento && cfg.proposta_condicoes) y = paragrafo(doc, "Condições", cfg.proposta_condicoes, y);
   if (Object.keys(p.garantias).length) y = paragrafo(doc, "Garantia", cfg.termo_garantia, y);
+  // máquina usada/seminova: as condições próprias (Configurações → Textos dos documentos)
+  if (p.itens.some((i) => ehUsada(i.descricao))) y = paragrafo(doc, "Máquina usada", textoPadrao(cfg, "usada_termo"), y);
+  if (!ehOrcamento && textoPadrao(cfg, "pedido_condicoes")) y = paragrafo(doc, "Condições do pedido", textoPadrao(cfg, "pedido_condicoes"), y);
   if (p.observacoes) y = paragrafo(doc, "Observações", p.observacoes, y);
   if (p.vendedor) y = paragrafo(doc, "Atendimento", `${p.vendedor}${cfg.whatsapp ? ` - WhatsApp ${cfg.whatsapp}` : ""}`, y);
   if (ehOrcamento && cfg.proposta_rodape) paragrafo(doc, "", cfg.proposta_rodape, y);
@@ -372,7 +376,7 @@ export async function pdfOS(o: {
   }
 
   y = paragrafo(doc, "Condições", o.tipo === "entrada"
-    ? `O orçamento do conserto será enviado pelo WhatsApp antes de qualquer serviço. Equipamentos não retirados em até ${cfg.os_armazenagem_dias ?? 90} dias após o aviso de conclusão poderão ser cobrados por armazenagem.`
+    ? textoPadrao(cfg, "os_condicoes_entrada", { dias: cfg.os_armazenagem_dias ?? 90 })
     : `Garantia do serviço executado: ${diasReparo} dias para as peças trocadas e a mão de obra. ${o.garantia_reparo_condicoes || (o.maquina_origem ? CONDICOES_REPARO_PADRAO : cfg.termo_garantia)}`, y);
 
   if (y > 250) { doc.addPage(); y = 20; }
@@ -433,10 +437,11 @@ export async function pdfPedidoCompra(pc: {
     doc.setFont("helvetica", "normal");
     y += 8;
   }
-  if (cotacao) y = paragrafo(doc, "Pedimos", "Por favor, informe preço unitário, prazo de entrega, condição de pagamento e valor do frete até o nosso endereço.", y);
+  if (cotacao) y = paragrafo(doc, "Pedimos", textoPadrao(cfg, "oc_cotacao"), y);
   if (pc.previsao_entrega) y = paragrafo(doc, "Entrega desejada", dataBR(pc.previsao_entrega), y);
   if (pc.condicao_pagamento) y = paragrafo(doc, "Condição de pagamento", pc.condicao_pagamento, y);
   if (pc.observacoes) y = paragrafo(doc, "Observações", pc.observacoes, y);
+  if (textoPadrao(cfg, "oc_condicoes")) y = paragrafo(doc, "Condições de fornecimento", textoPadrao(cfg, "oc_condicoes"), y);
   paragrafo(doc, "Entregar em", [cfg.razao_social, cfg.endereco, cfg.municipio && `${cfg.municipio}/${cfg.uf ?? ""}`].filter(Boolean).join(" - "), y);
   rodape(doc);
   return doc.output("blob");

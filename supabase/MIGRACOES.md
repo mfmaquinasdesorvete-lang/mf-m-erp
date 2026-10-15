@@ -68,3 +68,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   45. `20261015103132_mercadolivre.sql` (Mercado Livre fase 1: contas, anúncios ligados aos produtos, vendas importadas com cliente, estoque de SP e conta a receber pelo líquido; cancelamento; chaves no cofre)
   46. `20261015104403_clientes_enderecos_unificacao.sql` (clientes com até 3 endereços com etiqueta; e-mail único vale também para a NF-e; unificar cadastros guarda o que é diferente no principal e deixa o aviso do que foi unificado)
   47. `20261015105119_ficha_enderecos.sql` (a ficha cadastral que o cliente confere e assina leva também os endereços 2 e 3 com etiqueta)
+  48. `20261015110952_textos_padrao.sql` (textos padrão dos documentos: OP, OC, OS, pedido, termo da ficha cadastral e condições da máquina usada na proposta)

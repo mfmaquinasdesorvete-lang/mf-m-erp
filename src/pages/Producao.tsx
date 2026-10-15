@@ -14,6 +14,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
+import { textoPadrao } from "@/lib/textosPadrao";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, KitComponente, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
@@ -80,6 +81,7 @@ function useNecessidade() {
 }
 
 function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
+  const { data: cfgTextos } = useConfig();
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: ordensTodos = [], isLoading } = useRows<OrdemProducao>("ordens_producao", { select: "*, produto:produtos(*)" });
@@ -115,7 +117,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
         </label>
         <div className="flex flex-wrap gap-2">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10) })}><Plus size={16} /> Nova ordem de produção</Button>}
+          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
         </div>
       </div>
 
@@ -328,6 +330,9 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
 /* ============================== Pedidos de compra ============================== */
 
 function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: () => void }) {
+  const { data: cfgTextos } = useConfig();
+  // OC nova feita à mão: já vem com as observações padrão (Configurações → Textos dos documentos)
+  const novaOC = () => ({ status: "cotacao", frete: 0, itens: [], observacoes: textoPadrao(cfgTextos, "oc_observacoes") || null });
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: pcsTodos = [], isLoading } = useRows<PedidoCompra>("pedidos_compra", { select: "*, fornecedor:fornecedores(*), itens:pedido_compra_itens(*)" });
@@ -339,7 +344,7 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
   const recebeu = (p: PedidoCompra) => ["parcial", "recebido"].includes(p.status) || (p.itens ?? []).some((i) => Number(i.quantidade_recebida) > 0);
 
   useEffect(() => {
-    if (abrirNovo) { setAberto({ status: "cotacao", frete: 0, itens: [] }); onAberto(); }
+    if (abrirNovo) { setAberto(novaOC()); onAberto(); }
   }, [abrirNovo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lista = pcs.filter((p) => mostrarTodos || !["recebido", "cancelado"].includes(p.status));
@@ -359,7 +364,7 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
         </label>
         <div className="flex flex-wrap gap-2">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_producao") && <Button onClick={() => setAberto({ status: "cotacao", frete: 0, itens: [] })}><Plus size={16} /> Novo pedido de compra</Button>}
+          {pode("editar_producao") && <Button onClick={() => setAberto(novaOC())}><Plus size={16} /> Novo pedido de compra</Button>}
         </div>
       </div>
       <Table empty={!isLoading && !lista.length}

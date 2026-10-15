@@ -11,15 +11,18 @@ import { urlFotoProduto } from "@/lib/catalogo";
 import logo from "@/assets/logo.webp";
 import { corFundoLegivel } from "@/lib/tema";
 import { MOTIVOS } from "@/lib/propostas";
+import { TEXTOS_PADRAO } from "@/lib/textosPadrao";
 
 type Proposta = {
   numero: number; data: string | null; validade: string | null; status: string; pedido_status: string; cliente: string; vendedor: string | null;
-  itens: { descricao: string; quantidade: number; valor_unitario: number; total: number; foto: string | null; texto: string | null; garantia_meses: number | null }[];
+  itens: { descricao: string; quantidade: number; valor_unitario: number; total: number; foto: string | null; texto: string | null; garantia_meses: number | null; usada?: boolean }[];
   subtotal: number; desconto: number; frete: number; total: number; forma_pagamento: string; parcelas: number; observacoes: string | null;
   motivo_rejeicao: string | null;
   /** venda aprovada: o que falta pagar e se dá para pagar pelo link (Pix ou cartão) */
   pagamento?: { em_aberto: number; pago: number; link: boolean } | null;
-  empresa: { nome: string; razao_social: string; cnpj: string | null; whatsapp: string | null; telefone: string | null; email: string | null; endereco: string | null; municipio: string | null; uf: string | null; termo_garantia: string | null };
+  empresa: { nome: string; razao_social: string; cnpj: string | null; whatsapp: string | null; telefone: string | null; email: string | null; endereco: string | null; municipio: string | null; uf: string | null; termo_garantia: string | null;
+    /** condições da máquina usada (vazio: o texto padrão do sistema) */
+    termo_usada?: string | null };
   layout: { titulo: string; apresentacao: string | null; condicoes: string | null; rodape: string | null; cor: string };
 };
 
@@ -107,6 +110,7 @@ export default function PropostaPublica() {
           {p.observacoes && <Bloco titulo="Observações">{p.observacoes}</Bloco>}
           {p.layout.condicoes && <Bloco titulo="Condições">{p.layout.condicoes}</Bloco>}
           {p.itens.some((i) => i.garantia_meses) && p.empresa.termo_garantia && <Bloco titulo="Garantia">{p.empresa.termo_garantia}</Bloco>}
+          {p.itens.some((i) => i.usada) && <Bloco titulo="Máquina usada">{p.empresa.termo_usada || TEXTOS_PADRAO.usada_termo}</Bloco>}
 
           {aberta && (
             <div className="flex flex-col gap-2 border-t border-slate-200 pt-5 sm:flex-row print:hidden">
