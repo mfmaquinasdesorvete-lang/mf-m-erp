@@ -37,8 +37,9 @@ export function sugerirReposicao(produtos: Produto[], opc: {
 
   const out: Sugestao[] = [];
   for (const p of produtos) {
-    // máquina é produzida (ordem de produção); kit baixa os componentes; sob encomenda só se compra com pedido
-    if (p.ativo === false || p.kit || p.fora_de_linha || p.sob_encomenda || p.tipo === "maquina") continue;
+    // máquina é produzida (ordem de produção); kit baixa os componentes; sob encomenda só se compra com pedido;
+    // serviço (carga de gás, limpeza…) não tem estoque
+    if (p.ativo === false || p.kit || p.fora_de_linha || p.sob_encomenda || p.tipo === "maquina" || p.tipo === "servico") continue;
     const saidas90 = saidas.get(p.id) ?? 0;
     const consumoDia = saidas90 / 90;
     const minimo = Math.max(0, Number(p.estoque_minimo) || 0);

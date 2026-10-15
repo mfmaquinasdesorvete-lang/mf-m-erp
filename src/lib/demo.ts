@@ -94,6 +94,8 @@ function seed(): Db {
       { id: "p6", sku: "PC-PLACA-V3", descricao: "Placa eletrônica controladora V3", tipo: "peca", fornecedor_padrao_id: "f3", peso_kg: 0.4, unidade: "UN", ncm: "85371020", origem: 0, preco_custo: 610, preco_venda: 1180, estoque_atual: 2, estoque_minimo: 3, localizacao: "Prateleira 5", ativo: true },
       { id: "p7", sku: "PC-BICO-INOX", descricao: "Bico dosador inox", tipo: "peca", fornecedor_padrao_id: "f2", peso_kg: 0.3, unidade: "UN", ncm: "73269090", origem: 0, preco_custo: 55, preco_venda: 140, estoque_atual: 25, estoque_minimo: 10, localizacao: "Prateleira 2", ativo: true },
       { id: "p8", sku: "PC-COMP-1HP", descricao: "Compressor 1 HP R404A", tipo: "peca", fornecedor_padrao_id: "f1", peso_kg: 14, unidade: "UN", ncm: "84143019", origem: 1, preco_custo: 1350, preco_venda: 2290, estoque_atual: 3, estoque_minimo: 2, localizacao: "Galpão B", ativo: true },
+      { id: "sv1", sku: "SV-GAS", descricao: "Carga de gás (serviço)", tipo: "servico", unidade: "UN", ncm: "00000000", origem: 0, preco_custo: 90, preco_venda: 250, estoque_atual: 0, estoque_minimo: 0, ativo: true, vendavel: true, gtin_isento: true },
+      { id: "sv2", sku: "SV-LIMPEZA", descricao: "Limpeza e lavagem (serviço)", tipo: "servico", unidade: "UN", ncm: "00000000", origem: 0, preco_custo: 0, preco_venda: 180, estoque_atual: 0, estoque_minimo: 0, ativo: true, vendavel: true, gtin_isento: true },
       { id: "p9", sku: "AC-CASQ-500", descricao: "Suporte para casquinhas inox (20 un.)", tipo: "acessorio", unidade: "UN", ncm: "73239900", origem: 0, preco_custo: 85, preco_venda: 189, estoque_atual: 14, estoque_minimo: 5, ativo: true },
       { id: "p10", sku: "IN-LUB-ALIM", descricao: "Lubrificante grau alimentício 250 g", tipo: "insumo", unidade: "UN", ncm: "34031900", origem: 0, preco_custo: 22, preco_venda: 49, estoque_atual: 30, estoque_minimo: 10, ativo: true },
       { id: "p11", sku: "CP-CABO-001", descricao: "Uso Interno - Cabo PP 3x4,00 mm", tipo: "insumo", unidade: "MT", ncm: "85444900", origem: 0, preco_custo: 18.5, preco_venda: 0, estoque_atual: 120, estoque_minimo: 50, ativo: true, vendavel: false },
@@ -268,7 +270,12 @@ function seed(): Db {
       { id: "pci3", pedido_compra_id: "pco2", produto_id: "p7", descricao: "Bico dosador inox", quantidade: 20, custo_unitario: 0, quantidade_recebida: 0 },
       { id: "pci4", pedido_compra_id: "pco3", produto_id: "p8", descricao: "Compressor 1 HP R404A", quantidade: 6, custo_unitario: 1350, quantidade_recebida: 6 },
     ],
-    fornecimentos: [
+    tecnicos: [
+      { id: "tc1", nome: "Rafael Souza", tipo: "interno", whatsapp: "48999990001", municipio: "São José", uf: "SC", ufs: ["SC"], cidades: [], especialidades: "refrigeração e parte elétrica", ativo: true, created_at: quando(-30) },
+      { id: "tc2", nome: "Marcos Refrigeração", tipo: "parceiro", whatsapp: "34999990002", municipio: "Uberlândia", uf: "MG", ufs: [], cidades: ["Uberlândia/MG", "Uberaba/MG"], especialidades: "máquinas de sorvete expresso", ativo: true, created_at: quando(-20) },
+    ],
+    produtos_midia: [],
+        fornecimentos: [
       { id: "fm1", produto_id: "p4", fornecedor_id: "f1", codigo_fornecedor: "MT-050", preco: 410, preco_em: dias(-40), preco_origem: "nota", prazo_dias: 7, preferido: true, ativo: true, ultima_compra_em: dias(-40) },
       { id: "fm2", produto_id: "p5", fornecedor_id: "f2", codigo_fornecedor: "VD-KIT-22", preco: 38.5, preco_em: dias(-25), preco_origem: "nota", prazo_dias: 10, preferido: true, ativo: true, ultima_compra_em: dias(-25) },
       { id: "fm3", produto_id: "p5", fornecedor_id: "f1", codigo_fornecedor: null, preco: 44.9, preco_em: dias(-60), preco_origem: "cotacao", prazo_dias: 5, preferido: false, ativo: true, ultima_compra_em: null },

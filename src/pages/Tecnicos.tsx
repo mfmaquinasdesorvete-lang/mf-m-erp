@@ -1,0 +1,138 @@
+// Técnicos: a equipe da assistência e os parceiros (técnicos de outras cidades), com a região que cada um atende
+// (estados inteiros e/ou cidades). A OS guarda o técnico, e a ficha do cliente mostra quem já atendeu e quem
+// atende a região dele.
+import { useState } from "react";
+import { Users } from "lucide-react";
+import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
+import { Badge, Button } from "@/components/ui";
+import { Contato } from "@/components/Contato";
+import { useInvalidate, useRows } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
+import { usePerfil } from "@/lib/auth";
+import { notify, notifyError } from "@/lib/notify";
+import { pl } from "@/lib/format";
+
+export type Tecnico = {
+  id: string; nome: string; tipo: "interno" | "parceiro"; whatsapp: string | null; telefone: string | null; email: string | null;
+  municipio: string | null; uf: string | null; ufs: string[]; cidades: string[]; especialidades: string | null; observacoes: string | null;
+  ativo: boolean; created_at: string;
+};
+
+export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
+
+/** Região em texto: "SC, PR · Joinville/SC, Curitiba/PR". */
+export const textoRegiao = (t: Pick<Tecnico, "ufs" | "cidades" | "municipio" | "uf">) =>
+  [(t.ufs ?? []).join(", "), (t.cidades ?? []).join(", ")].filter(Boolean).join(" · ") || [t.municipio, t.uf].filter(Boolean).join("/") || "região não informada";
+
+/** "Joinville/SC, curitiba / pr" → ["Joinville/SC", "Curitiba/PR"]. */
+export function lerCidades(texto: string): string[] {
+  return texto.split(/[,;\n]+/).map((c) => c.trim()).filter(Boolean).map((c) => {
+    const [cid, uf] = c.split("/").map((x) => x.trim());
+    const nome = cid.toLowerCase().replace(/(^|\s)(\p{L})/gu, (m) => m.toUpperCase()).replace(/\b(De|Da|Do|Das|Dos|E)\b/g, (m) => m.toLowerCase());
+    return uf ? `${nome}/${uf.toUpperCase().slice(0, 2)}` : nome;
+  });
+}
+
+function EscolherUfs({ valor, onChange }: { valor: string[] | null | undefined; onChange: (v: string[]) => void }) {
+  const lista = valor ?? [];
+  return (
+    <div className="flex flex-wrap gap-1" role="group" aria-label="Estados que atende">
+      {UFS.map((u) => {
+        const on = lista.includes(u);
+        return (
+          <button key={u} type="button" aria-pressed={on} onClick={() => onChange(on ? lista.filter((x) => x !== u) : [...lista, u].sort())}
+            className={`num w-10 rounded-md py-1 text-xs font-bold transition ${on ? "bg-brand text-brand-fg" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>{u}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+const fields: CampoForm[] = [
+  { name: "nome", label: "Nome", required: true, span: 2 },
+  { name: "tipo", label: "Tipo", type: "select", options: [{ value: "interno", label: "Da equipe (MF)" }, { value: "parceiro", label: "Parceiro (outra cidade)" }] },
+  { name: "ativo", label: "Ativo", type: "checkbox" },
+  { name: "whatsapp", label: "WhatsApp", mask: "whatsapp" },
+  { name: "telefone", label: "Telefone", mask: "telefone" },
+  { name: "email", label: "E-mail", mask: "email", span: 2 },
+  { name: "municipio", label: "Cidade onde mora / base", span: 2 },
+  { name: "uf", label: "UF", mask: "uf" },
+  { name: "secao_regiao", label: "Região que atende", type: "secao", ajuda: "Marque os estados que ele cobre por inteiro e/ou escreva as cidades. A ficha do cliente mostra os técnicos da região dele." },
+  { name: "ufs", label: "Estados inteiros", type: "custom", span: 4, render: (v, set) => <EscolherUfs valor={v} onChange={set} /> },
+  {
+    name: "cidades", label: "Cidades (separadas por vírgula, com a UF: Joinville/SC, Curitiba/PR)", type: "custom", span: 4,
+    render: (v, set) => <CampoCidades valor={v} onChange={set} />,
+  },
+  { name: "especialidades", label: "Especialidades (ex.: refrigeração, parte elétrica, máquinas de açaí)", type: "textarea", span: 4 },
+  { name: "observacoes", label: "Observações (valor da visita, disponibilidade…)", type: "textarea", span: 4 },
+];
+
+/** Cidades: digita livre e vira a lista ao sair do campo (sem perder o que está digitando). */
+function CampoCidades({ valor, onChange }: { valor: string[] | null | undefined; onChange: (v: string[]) => void }) {
+  const [texto, setTexto] = useState((valor ?? []).join(", "));
+  return <input className="input" value={texto} onChange={(e) => setTexto(e.target.value)} onBlur={() => { const l = lerCidades(texto); onChange(l); setTexto(l.join(", ")); }} placeholder="Joinville/SC, Blumenau/SC" />;
+}
+
+const FILTROS: FiltroCrud<Tecnico>[] = [
+  { label: "Tipo", opcoes: [{ label: "Da equipe", teste: (t) => t.tipo === "interno" }, { label: "Parceiros", teste: (t) => t.tipo === "parceiro" }] },
+  { label: "Estado", valor: (t) => t.uf },
+  { label: "Situação", opcoes: [{ label: "Ativos", teste: (t) => t.ativo }, { label: "Inativos", teste: (t) => !t.ativo }] },
+];
+
+export default function Tecnicos() {
+  const { tem, papel } = usePerfil();
+  const invalidar = useInvalidate();
+  const { data: tecnicos = [] } = useRows<Tecnico>("tecnicos", { order: "nome", ascending: true });
+  const [ocupado, setOcupado] = useState(false);
+  const podeEditar = tem("tecnico", "financeiro");
+
+  /** Traz os funcionários marcados "faz assistência" que ainda não estão aqui. */
+  async function trazerEquipe() {
+    setOcupado(true);
+    try {
+      const { data, error } = await supabase.rpc("nomes_tecnicos");
+      if (error) throw error;
+      const ja = new Set(tecnicos.map((t) => t.nome.trim().toLowerCase()));
+      const novos = ((data ?? []) as { nome: string }[]).map((x) => x.nome).filter((n) => n && !ja.has(n.trim().toLowerCase()));
+      if (!novos.length) return notify("A equipe da assistência já está toda aqui");
+      const { error: e2 } = await supabase.from("tecnicos").insert(novos.map((nome) => ({ nome, tipo: "interno" })));
+      if (e2) throw e2;
+      invalidar("tecnicos");
+      notify(`${novos.length} ${pl(novos.length, "técnico trazido", "técnicos trazidos")} da equipe: marque a região de cada um`);
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+
+  return (
+    <CrudPage<Tecnico>
+      title="Técnicos"
+      table="tecnicos"
+      order="nome"
+      plural="técnicos"
+      readOnly={!podeEditar}
+      podeExcluir={papel === "admin"}
+      defaults={{ nome: "", tipo: "parceiro", ativo: true, ufs: [], cidades: [] }}
+      searchKeys={["nome", "municipio", "uf", "especialidades", "whatsapp", "email"]}
+      filtros={FILTROS}
+      beforeSave={(r) => ({ ...r, uf: r.uf ? String(r.uf).toUpperCase() : null, ufs: r.ufs ?? [], cidades: r.cidades ?? [] })}
+      extraActions={podeEditar && <Button variant="secondary" disabled={ocupado} onClick={trazerEquipe}><Users size={16} /> Trazer da equipe</Button>}
+      fields={fields}
+      columns={[
+        { label: "Técnico", render: (t) => (
+          <div>
+            <div className="font-medium">{t.nome} {!t.ativo && <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">inativo</span>}</div>
+            <div className="text-xs text-slate-500">{[t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ")}</div>
+          </div>
+        ) },
+        { label: "Tipo", render: (t) => <Badge value={t.tipo === "interno" ? "Da equipe" : "Parceiro"} /> },
+        { label: "Atende", render: (t) => <span className="text-sm">{textoRegiao(t)}</span> },
+        { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
+      ]}
+      cartaoCelular={(t, abrir) => (
+        <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
+          <span className="block text-[15px] font-bold text-fg">{t.nome}</span>
+          <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : "Parceiro"} · atende {textoRegiao(t)}</span>
+        </button>
+      )}
+    />
+  );
+}

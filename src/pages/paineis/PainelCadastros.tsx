@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, Factory, FileWarning, IdCard, Package, PackageX, ShieldAlert, Store, Truck, UserPlus, Users, UserX, Wrench,
+  AlertTriangle, Factory, FileWarning, IdCard, Package, PackageX, ShieldAlert, ShoppingCart, Store, Truck, UserPlus, Users, UserX, Wrench,
 } from "lucide-react";
 import { Section } from "@/components/ui";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
@@ -16,6 +16,8 @@ import { useRows } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { dataBR, digitos, somarDias, pl } from "@/lib/format";
 import type { Cliente, Produto } from "@/lib/types";
+import { vendasDaEmpresa } from "@/lib/gerencial";
+import { SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const tag = (c: Cliente, t: string) => (c.tags ?? []).includes(t);
@@ -30,6 +32,10 @@ export default function PainelCadastros() {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: fornecedores = [] } = useRows<{ id: string; ativo?: boolean }>("fornecedores", { order: "nome", ascending: true });
   const { data: pedidos = [] } = useRows<{ cliente_id: string; created_at: string; status: string }>("pedidos", { select: "cliente_id, created_at, status" });
+  // vendas de verdade (as mesmas do Painel gerencial): pedidos aprovados + notas de venda importadas do sistema anterior,
+  // com o cliente achado pelo CPF/CNPJ quando a nota não veio ligada ao cadastro
+  const { data: pedidosV = [] } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
+  const { data: notasV = [] } = useRows<any>("notas_fiscais", { select: SELECT_NOTAS_VENDAS, key: ["gerencial"] });
   const [periodo, setPeriodo] = usePeriodo("cadastros");
   const [fUf, setFUf] = useState<string | null>(null);
   const [ficha, setFicha] = useState<Cliente | null>(null);
@@ -39,10 +45,13 @@ export default function PainelCadastros() {
     const { atual, anterior } = intervalos(periodo);
     const bs = baldes(periodo);
     const vendas = pedidos.filter((p) => !["orcamento", "cancelado"].includes(p.status));
+    const todas = vendasDaEmpresa(pedidosV, notasV, clientes);
     const novos = (f: [string, string]) => clientes.filter((c) => dentro(c.created_at, f));
-    const compraram = (f: [string, string]) => new Set(vendas.filter((p) => dentro(p.created_at, f)).map((p) => p.cliente_id));
+    // todos que compraram (ERP + notas importadas) e só os do ERP novo
+    const compraram = (f: [string, string]) => new Set(todas.filter((v) => dentro(v.data, f)).map((v) => v.cliente));
+    const noErp = (f: [string, string]) => new Set(vendas.filter((p) => dentro(p.created_at, f)).map((p) => p.cliente_id));
     const ultimaCompra = new Map<string, string>();
-    for (const p of vendas) if ((ultimaCompra.get(p.cliente_id) ?? "") < p.created_at) ultimaCompra.set(p.cliente_id, p.created_at);
+    for (const v of todas) if (v.clienteId && (ultimaCompra.get(v.clienteId) ?? "") < v.data) ultimaCompra.set(v.clienteId, v.data);
     const seisMeses = somarDias(-180);
     const sumidos = [...ultimaCompra.entries()].filter(([, d]) => d.slice(0, 10) < seisMeses).length;
 
@@ -81,6 +90,7 @@ export default function PainelCadastros() {
     return {
       total, novos: novos(atual).length, dNovos: variacao(novos(atual).length, novos(anterior).length),
       compraram: compraram(atual).size, dCompraram: variacao(compraram(atual).size, compraram(anterior).size),
+      noErp: noErp(atual).size, dNoErp: variacao(noErp(atual).size, noErp(anterior).size), tendNoErp: bs.map((b) => noErp(b.atual).size),
       tendNovos: bs.map((b) => novos(b.atual).length), tendCompraram: bs.map((b) => compraram(b.atual).size),
       serie: bs.map((b) => ({ rotulo: b.rotulo, valores: [novos(b.atual).length, compraram(b.atual).size] })),
       sumidos, nuncaCompraram: clientes.filter((c) => !ultimaCompra.has(c.id)).length,
@@ -90,7 +100,7 @@ export default function PainelCadastros() {
       semDoc: clientes.filter((c) => ![11, 14].includes(digitos(c.cpf_cnpj).length)).length,
       recentes,
     };
-  }, [periodo, clientes, produtos, pedidos, fUf]);
+  }, [periodo, clientes, produtos, pedidos, pedidosV, notasV, fUf]);
 
   const fornecedoresAtivos = fornecedores.filter((f) => f.ativo !== false).length;
   const semNcm = k.problemas.find((p) => p.rotulo.startsWith("Sem NCM"))?.lista.length ?? 0;
@@ -100,7 +110,10 @@ export default function PainelCadastros() {
     { id: "clientes", rotulo: "Clientes", valor: k.total.toLocaleString("pt-BR"), icone: Users, cor: "var(--kpi-roxo)",
       sub: `${k.nuncaCompraram.toLocaleString("pt-BR")} ainda sem nenhuma compra`, onClick: () => navigate("/clientes") },
     { id: "novos", rotulo: "Clientes novos", valor: k.novos, icone: UserPlus, cor: "var(--kpi-verde)", delta: k.dNovos, tendencia: k.tendNovos, sub: "cadastrados no período" },
-    { id: "compraram", rotulo: "Compraram", valor: k.compraram, icone: Store, cor: "var(--kpi-azul)", delta: k.dCompraram, tendencia: k.tendCompraram, sub: "clientes diferentes com venda aprovada" },
+    { id: "compraram", rotulo: "Compraram", valor: k.compraram, icone: Store, cor: "var(--kpi-azul)", delta: k.dCompraram, tendencia: k.tendCompraram,
+      sub: "clientes diferentes: vendas do ERP + notas importadas do sistema anterior" },
+    { id: "no_erp", rotulo: "No ERP novo", valor: k.noErp, icone: ShoppingCart, cor: "var(--kpi-verde)", delta: k.dNoErp, tendencia: k.tendNoErp,
+      sub: "clientes com venda aprovada feita no ERP Line", onClick: () => navigate("/pedidos") },
     { id: "sumidos", rotulo: "Sumiram", valor: k.sumidos, icone: UserX, cor: "var(--kpi-laranja)", bomCair: true,
       sub: "compraram antes e nada nos últimos 6 meses", titulo: "Lista completa em Análises → Painel gerencial", onClick: () => navigate("/gerencial") },
   ];
@@ -120,7 +133,7 @@ export default function PainelCadastros() {
     <div className="space-y-4 sm:space-y-5">
       <CabecalhoPainel icone={Users} area="Cadastros" titulo="Como está a base" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-5">
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
       </div>
 

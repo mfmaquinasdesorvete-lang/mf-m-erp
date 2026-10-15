@@ -42,8 +42,45 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
 
   return (
     <div className="space-y-2">
-      {!lista.length ? <p className="text-xs text-slate-500">Nenhum fornecedor ainda: entram sozinhos com as NF-e de compra, os pedidos de compra e as cotações, ou inclua abaixo.</p> : (
-        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+      {!lista.length ? <p className="text-xs text-slate-500">Nenhum fornecedor ainda: entram sozinhos com as NF-e de compra, os pedidos de compra e as cotações, ou inclua abaixo.</p> : (<>
+        {/* computador: tabela (como no Tiny) */}
+        <div className="hidden overflow-x-auto rounded-lg border border-slate-200 sm:block">
+          <table className="w-full text-sm" aria-label="Fornecedores deste produto">
+            <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
+              <tr>
+                <th scope="col" className="w-10 px-3 py-2"><span className="sr-only">Preferido</span></th>
+                <th scope="col" className="px-3 py-2">Fornecedor</th>
+                <th scope="col" className="px-3 py-2">Código no fornecedor</th>
+                <th scope="col" className="px-3 py-2 text-right">Último preço</th>
+                <th scope="col" className="px-3 py-2 text-right">Prazo</th>
+                <th scope="col" className="px-3 py-2">Última compra</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {lista.map((f) => (
+                <tr key={f.id} className={f.preferido ? "bg-amber-50/60" : ""}>
+                  <td className="px-3 py-2">
+                    {f.preferido
+                      ? <Star size={16} className="fill-amber-400 text-amber-500" aria-label="Preferido" />
+                      : podeEditar
+                        ? <button type="button" className="rounded p-0.5 text-slate-400 hover:text-amber-500" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f)}><Star size={16} aria-hidden /></button>
+                        : null}
+                  </td>
+                  <td className="px-3 py-2 font-semibold text-fg">{nome(f.fornecedor_id)}</td>
+                  <td className="num px-3 py-2">{f.codigo_fornecedor || <span className="text-slate-400">—</span>}</td>
+                  <td className="px-3 py-2 text-right">
+                    {f.preco != null ? <span className={`num font-semibold ${Number(f.preco) === menor && lista.length > 1 ? "text-emerald-700" : ""}`}>{brl(f.preco)}</span> : <span className="text-xs text-slate-500">sem preço</span>}
+                    {f.preco_em && <span className="block text-[11px] text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
+                  </td>
+                  <td className="num px-3 py-2 text-right">{f.prazo_dias != null ? `${f.prazo_dias} dias` : "—"}</td>
+                  <td className="num px-3 py-2">{f.ultima_compra_em ? dataBR(f.ultima_compra_em) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* celular: cartões */}
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm sm:hidden">
           {lista.map((f) => (
             <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
               <span className="min-w-0 flex-1">
@@ -62,7 +99,7 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
             </li>
           ))}
         </ul>
-      )}
+      </>)}
       {podeEditar && (
         <div className="flex flex-wrap gap-2">
           <select className="input w-full sm:w-auto sm:min-w-0 sm:flex-1" value={novo.fornecedor_id} onChange={(e) => setNovo({ ...novo, fornecedor_id: e.target.value })} aria-label="Fornecedor a incluir">

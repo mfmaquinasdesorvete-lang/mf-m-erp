@@ -61,6 +61,7 @@ const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
+const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -77,6 +78,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },
   { path: "produtos/pecas", tela: "estoque", element: <Produtos key="pecas" cadastroFixo="pecas" /> },
   { path: "produtos/componentes", tela: "estoque", element: <Produtos key="componentes" cadastroFixo="componentes" /> },
+  { path: "produtos/servicos", tela: "estoque", element: <Produtos key="servicos" cadastroFixo="servicos" /> },
+  { path: "tecnicos", tela: "assistencia", element: <Tecnicos /> },
   { path: "financeiro", tela: "financeiro", element: <Financeiro /> },
   { path: "aprovacoes", tela: "financeiro", element: <Aprovacoes /> },
   { path: "notas", tela: "notas", element: <NotasFiscais /> },

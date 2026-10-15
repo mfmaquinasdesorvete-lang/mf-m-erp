@@ -33,9 +33,17 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
       { to: "/pedidos", tela: "pedidos", label: "Vendas e orçamentos", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento proposta venda" },
-      { to: "/pdv", tela: "pedidos", label: "PDV (venda de balcão)", curto: "PDV", icon: ScanBarcode, busca: "pdv balcão caixa venda rápida cupom comprovante troco leitor código de barras" },
-      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj painel dos cadastros base" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante" },
+    ],
+  },
+  {
+    // cadastros de pessoas e serviços usados em várias áreas
+    id: "cadastros", titulo: "Cadastros", cor: "from-[#a855f7] to-[#6d28d9]", icone: Users,
+    itens: [
+      { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj painel dos cadastros base" },
+      { to: "/tecnicos", tela: "assistencia", label: "Técnicos", curto: "Técnicos", icon: UserCog, busca: "técnico parceiro assistência região cidade estado atende quem atendeu" },
+      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
+      { to: "/produtos/servicos", tela: "estoque", label: "Serviços", curto: "Serviços", icon: Wrench, busca: "serviço carga de gás limpeza lavagem troca de compressor reparo mecânica mão de obra visita" },
     ],
   },
   {
@@ -63,7 +71,6 @@ export const grupos: Grupo[] = [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
       { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica ficha técnica" },
-      { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },
@@ -106,6 +113,8 @@ export const grupos: Grupo[] = [
  * de Configurações ou pela busca do menu). Ficam aqui para a busca, os atalhos e as permissões por perfil.
  */
 export const itensForaDoMenu: Item[] = [
+  // PDV: fica no cartão próprio do acesso rápido
+  { to: "/pdv", tela: "pedidos", label: "PDV (venda de balcão)", curto: "PDV", icon: ScanBarcode, busca: "pdv balcão caixa venda rápida cupom comprovante troco leitor código de barras" },
   { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa marca logo cores unidades recebimentos pix taxas orçamento garantia comissão catálogo avisos telegram backup" },
   { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
@@ -122,7 +131,7 @@ export const itensForaDoMenu: Item[] = [
 /** Área de uma rota (para abrir o bloco certo). */
 // área (cor e menu aberto) das telas que não estão na lista do menu
 const AREA_FORA: [string, string][] = [
-  ["/produtos/", "producao"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"], ["/painel/cadastros", "vendas"],
+  ["/produtos/servicos", "cadastros"], ["/produtos/", "producao"], ["/pdv", "vendas"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"], ["/painel/cadastros", "vendas"],
   ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"], ["/importar", "admin"],
 ];
 export const grupoDaRota = (path: string) =>

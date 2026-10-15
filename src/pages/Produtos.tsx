@@ -43,12 +43,13 @@ const tipos = [
   { value: "peca", label: "Peça de reposição (cliente compra)" },
   { value: "acessorio", label: "Acessório" },
   { value: "insumo", label: "Componente de produção (uso interno)" },
+  { value: "servico", label: "Serviço (sem estoque)" },
 ];
 
-const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção" };
+const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção", servico: "Serviços" };
 
 /** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
-export type Cadastro = "maquinas" | "pecas" | "componentes" | "todos";
+export type Cadastro = "maquinas" | "pecas" | "componentes" | "servicos" | "todos";
 const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
   { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-[#10b981] to-[#059669]",
     padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
@@ -56,6 +57,8 @@ const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; pad
     padrao: { tipo: "peca", vendavel: true, no_catalogo: true } },
   { id: "componentes", titulo: "Componentes de produção", ajuda: "O que vai dentro das máquinas (ficha técnica). Peça de reposição que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-[#f97316] to-[#dc2626]",
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
+  { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-[#14b8a6] to-[#0e7490]",
+    padrao: { tipo: "servico", vendavel: true, no_catalogo: false, unidade: "UN", ncm: "00000000", gtin_isento: true } },
   { id: "todos", titulo: "Todos", ajuda: "Todos os produtos, de qualquer cadastro.", cor: "from-[#64748b] to-[#334155]", padrao: {} },
 ];
 const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
@@ -111,7 +114,7 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
 }
 
 /** Rota de cada cadastro no menu (Cadastros → Máquinas, Peças de reposição, Componentes de produção). */
-export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/produtos/pecas", componentes: "/produtos/componentes", todos: "/estoque" };
+export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/produtos/pecas", componentes: "/produtos/componentes", servicos: "/produtos/servicos", todos: "/estoque" };
 
 export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } = {}) {
   const { data: produtosTodos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -191,7 +194,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const doCadastro = useMemo(() => ({
     maquinas: (r: Produto) => r.tipo === "maquina",
     pecas: (r: Produto) => r.tipo === "peca" || r.tipo === "acessorio",
-    componentes: (r: Produto) => r.tipo === "insumo" || (r.tipo !== "maquina" && naProducao.has(r.id)),
+    componentes: (r: Produto) => r.tipo === "insumo" || (r.tipo !== "maquina" && r.tipo !== "servico" && naProducao.has(r.id)),
+    servicos: (r: Produto) => r.tipo === "servico",
     todos: undefined,
   }), [naProducao]);
   const contagem = (c: Cadastro) => (c === "todos" ? produtos.length : produtos.filter(doCadastro[c]!).length);
@@ -225,7 +229,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const opcoesUnidade = [...UNIDADES.map(([v, l]) => ({ value: v, label: `${v} - ${l}` })), ...unidadesUsadas.map((u) => ({ value: u, label: `${u} (fora do padrão)` }))];
 
 
-  const NOME_CADASTRO: Record<string, string> = { maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção" };
+  const NOME_CADASTRO: Record<string, string> = { maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção", servico: "Serviço" };
   /** Selos do produto (inativo, produção, catálogo…) — iguais na tabela e no cartão do celular. */
   const selos = (r: Produto) => (<>
     {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
@@ -237,6 +241,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   </>);
   /** Estoque do produto: quantidade (vermelho se negativo ou no mínimo) e o saldo de cada unidade. */
   const estoque = (r: Produto) => {
+    if (r.tipo === "servico") return { texto: "serviço", detalhe: "sem estoque", alerta: false };
     if (r.kit) {
       const montaveis = estoqueKit(r.id, comps, (id) => (atual ? saldo(id, atual) : Number(produtos.find((p) => p.id === id)?.estoque_atual ?? 0)));
       return { texto: `${montaveis} ${pl(montaveis, "kit", "kits")}`, detalhe: "pelos componentes", alerta: false };
@@ -367,7 +372,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Cadastro de produtos">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="tablist" aria-label="Cadastro de produtos">
         {CADASTROS.map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
             className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition sm:gap-3 sm:p-3 ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
@@ -458,7 +463,22 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ...anuncioAoSalvar(r),
           };
         }}
-        fields={[
+        fields={cadastro === "servicos" ? [
+          // serviço: cadastro curto (sem estoque, catálogo, anúncio nem medidas)
+          { name: "descricao", label: "Nome do serviço", span: 3, required: true, placeholder: "Ex.: Carga de gás (serviço), Limpeza e lavagem (serviço)" },
+          { name: "sku", label: "Código", span: 1, placeholder: "Ex.: SV-GAS" },
+          { name: "unidade", label: "Unidade", type: "select", options: [{ value: "UN", label: "UN - serviço" }, { value: "H", label: "H - hora" }, { value: "VISITA", label: "Visita" }] },
+          { name: "preco_venda", label: "Preço cobrado do cliente", type: "number" },
+          { name: "preco_custo", label: "Custo (técnico, gás, terceiro)", type: "number" },
+          { name: "ativo", label: "Ativo", type: "checkbox", span: 1 },
+          { name: "observacoes", label: "O que está incluído (aparece para a equipe)", type: "textarea", span: 4, placeholder: "Ex.: recolhimento do gás, vácuo, carga de R404A até 1 kg e teste de vazamento" },
+          {
+            name: "motivo_alteracao", label: "Motivo da alteração (ao mudar preço ou custo já preenchidos)", type: "custom", span: 4,
+            render: (v, set, row) => row.id
+              ? <input className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste da tabela de serviços" />
+              : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
+          },
+        ] : [
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
           { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
           {

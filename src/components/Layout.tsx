@@ -29,6 +29,8 @@ const RAPIDOS: { to: string; label: string; cor: string }[] = [
   { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
   { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
   { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
+  // PDV: cartão próprio, na largura toda
+  { to: "/pdv", label: "PDV · venda de balcão", cor: "from-[#ec4899] to-[#9d174d]" },
 ];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -57,7 +59,7 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
     <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
       {itens.map(({ to, label, cor, item: { icon: Icon } }) => (
         <NavLink key={to} to={to} onClick={onIr} title={label}
-          className={({ isActive }) => `flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center text-[11.5px] font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
+          className={({ isActive }) => `flex items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${to === "/pdv" ? "col-span-3 flex-row gap-2 text-sm" : "flex-col text-[11.5px]"} ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
           <Icon size={18} aria-hidden />
           <span>{label}</span>
         </NavLink>

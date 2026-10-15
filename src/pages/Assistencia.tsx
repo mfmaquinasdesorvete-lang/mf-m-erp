@@ -484,7 +484,13 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
 
         {aba === "pecas" && (
           <div className="space-y-4">
-            <ItensEditor itens={o.itens} onChange={(itens) => set({ itens })} disabled={somenteLeitura} filtro={(p) => p.tipo !== "maquina"} />
+            <ItensEditor itens={o.itens} onChange={(itens) => set({ itens })} disabled={somenteLeitura} filtro={(p) => p.tipo !== "maquina" && p.tipo !== "servico"} />
+            {!somenteLeitura && (
+              <ServicosOS onEscolher={(sv) => set({
+                valor_mao_obra: Number(o.valor_mao_obra || 0) + Number(sv.preco_venda || 0),
+                solucao: [String(o.solucao ?? "").trim(), sv.descricao.replace(/\s*\(servi[cç]o\)\s*$/i, "")].filter(Boolean).join("; "),
+              })} />
+            )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Field label="Mão de obra (R$)">
                 <input className="input" type="number" step="0.01" min={0} value={o.valor_mao_obra} disabled={somenteLeitura} onChange={(e) => set({ valor_mao_obra: Number(e.target.value) })} />
@@ -621,6 +627,26 @@ function FotosOS({ fotos, podeEditar, ocupado, onEnviar, onRemover }: {
         )}
       </div>
       {!fotos.length && !podeEditar && <p className="py-6 text-center text-sm text-slate-500">Nenhuma foto anexada.</p>}
+    </div>
+  );
+}
+
+/** Serviços do cadastro (carga de gás, limpeza…): tocar soma o preço na mão de obra e escreve no serviço executado. */
+function ServicosOS({ onEscolher }: { onEscolher: (s: Produto) => void }) {
+  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const servicos = produtos.filter((p) => p.tipo === "servico" && p.ativo !== false);
+  if (!servicos.length) return null;
+  return (
+    <div className="rounded-xl border border-slate-200 p-3">
+      <div className="mb-2 text-xs font-semibold text-slate-600">Serviços (somam na mão de obra e vão para o serviço executado)</div>
+      <div className="flex flex-wrap gap-1.5">
+        {servicos.map((sv) => (
+          <button key={sv.id} type="button" onClick={() => onEscolher(sv)}
+            className="rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-800 hover:bg-teal-100">
+            + {sv.descricao.replace(/\s*\(servi[cç]o\)\s*$/i, "")}{Number(sv.preco_venda) > 0 ? ` · ${brl(Number(sv.preco_venda))}` : ""}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
