@@ -17,7 +17,7 @@ import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
 import { usePerfil } from "@/lib/auth";
-import type { Fornecedor, ItemCompra, KitComponente, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
+import type { EtapaOp, Fornecedor, ItemCompra, KitComponente, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
 import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
@@ -153,7 +153,8 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
 }
 
 function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemProducao>; onClose: () => void; irParaCompras: () => void }) {
-  const { pode } = usePerfil();
+  const perfil = usePerfil();
+  const { pode } = perfil;
   const [o, setO] = useState(inicial);
   const [ocupado, setOcupado] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -203,7 +204,30 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     if (error) throw error;
   }, ok);
 
-  const concluir = () => executar(async () => {
+  const etapas = (Array.isArray(o.etapas) ? o.etapas : []) as EtapaOp[];
+  const etapasMaquina = (produtos.find((p) => p.id === o.produto_id)?.etapas_producao ?? []) as string[];
+  const faltamEtapas = etapas.filter((e) => !e.feita).length;
+  /** Marca ou desmarca uma etapa e grava na hora (quem e quando ficam registrados). */
+  async function marcarEtapa(i: number) {
+    const novas = etapas.map((e, j) => (j === i ? { ...e, feita: !e.feita, por: !e.feita ? perfil.nome : null, em: !e.feita ? new Date().toISOString() : null } : e));
+    const { error } = await supabase.from("ordens_producao").update({ etapas: novas }).eq("id", o.id!);
+    if (error) return notifyError(error);
+    set({ etapas: novas });
+    invalidate("ordens_producao");
+  }
+  async function puxarEtapas() {
+    const novas = etapasMaquina.map((nome) => ({ nome, feita: false }));
+    const { error } = await supabase.from("ordens_producao").update({ etapas: novas }).eq("id", o.id!);
+    if (error) return notifyError(error);
+    set({ etapas: novas });
+    invalidate("ordens_producao");
+  }
+
+  const concluir = async () => {
+    if (faltamEtapas && !(await confirmar(`Faltam ${faltamEtapas} ${pl(faltamEtapas, "etapa", "etapas")} da conferência. Concluir a produção mesmo assim?`))) return;
+    return concluirAgora();
+  };
+  const concluirAgora = () => executar(async () => {
     if (o.numeros_serie !== undefined) await supabase.from("ordens_producao").update({ numeros_serie: o.numeros_serie }).eq("id", o.id!);
     const { error } = await supabase.rpc("concluir_producao", { p_ordem: o.id });
     if (error) throw error;
@@ -311,6 +335,33 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {o.id && (etapas.length > 0 || etapasMaquina.length > 0) && (
+          <div>
+            <h3 id="op-etapas" className="mb-2 text-sm font-bold text-fg">
+              Etapas de produção{etapas.length > 0 && <span className="ml-1 font-normal text-slate-500">· {faltamEtapas ? `${etapas.length - faltamEtapas} de ${etapas.length} feitas` : "todas feitas ✓"}</span>}
+            </h3>
+            {etapas.length ? (
+              <ol className="divide-y divide-slate-100 rounded-xl border border-slate-200" aria-labelledby="op-etapas">
+                {etapas.map((e, i) => (
+                  <li key={i}>
+                    <label className={`flex items-center gap-3 px-3 py-2.5 text-sm ${podeEditar ? "cursor-pointer hover:bg-slate-50" : ""}`}>
+                      <input type="checkbox" className="h-5 w-5 shrink-0 accent-emerald-600" checked={!!e.feita} disabled={!podeEditar} onChange={() => marcarEtapa(i)} />
+                      <span className="num w-5 shrink-0 text-xs font-bold text-slate-400">{i + 1}</span>
+                      <span className={`min-w-0 flex-1 font-medium ${e.feita ? "text-slate-500 line-through" : "text-fg"}`}>{e.nome}</span>
+                      {e.feita && (e.por || e.em) && <span className="shrink-0 text-right text-[11px] text-slate-500">{e.por ?? ""}{e.em ? ` · ${dataBR(e.em.slice(0, 10))}` : ""}</span>}
+                    </label>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-600">
+                <span className="min-w-0 flex-1">Esta OP foi criada antes das etapas. A máquina tem {etapasMaquina.length} {pl(etapasMaquina.length, "etapa", "etapas")} cadastradas.</span>
+                {podeEditar && <Button type="button" variant="secondary" onClick={puxarEtapas}>Usar a lista da máquina</Button>}
               </div>
             )}
           </div>

@@ -61,6 +61,11 @@ export type Produto = {
   prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
   titulo_anuncio?: string | null; slug?: string | null; meta_descricao?: string | null; palavras_chave?: string[] | null;
   descricao_anuncio?: string | null; gtin_isento?: boolean; unificado_em?: string | null; unificado_quando?: string | null;
+  /** ficha técnica / campos adicionais (nome e valor) */
+  especificacoes?: { nome: string; valor: string }[] | null;
+  /** máquinas: etapas que viram a lista de conferência de cada OP */
+  etapas_producao?: string[] | null;
+  dicas_manutencao?: string | null; video_url?: string | null;
 };
 
 export type Item = {
@@ -169,11 +174,14 @@ export type Transportadora = Endereco & { marcadores?: string[] | null;
   unificado_em?: string | null;
 };
 
+export type EtapaOp = { nome: string; feita: boolean; por?: string | null; em?: string | null };
 export type OrdemProducao = {
   /** marcadores coloridos (public.marcadores) */
   marcadores?: string[] | null;
   id: string; numero: number; produto_id: string; quantidade: number; status: string; previsao: string | null;
   responsavel: string | null; numeros_serie: string | null; observacoes: string | null; concluida_em: string | null; created_at: string;
+  /** lista de conferência copiada das etapas de produção da máquina ao criar a OP */
+  etapas?: EtapaOp[] | null;
   produto?: Produto;
 };
 export type Necessidade = {

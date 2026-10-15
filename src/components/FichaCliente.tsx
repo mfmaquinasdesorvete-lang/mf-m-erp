@@ -3,12 +3,13 @@
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageSquarePlus, Receipt, Repeat, Save, TrendingUp, Wallet, XCircle } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Receipt, Repeat, Save, TrendingUp, Wallet, Wrench, XCircle } from "lucide-react";
 import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import { DEMO, supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { brl, dataBR, digitos, docFormat, hoje, situacaoConta, pl } from "@/lib/format";
+import { brl, dataBR, digitos, docFormat, hoje, situacaoConta, pl, whatsappLink } from "@/lib/format";
+import { linkMaquina, mensagemMaquina, pecasEmGarantia } from "@/lib/maquinas";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
@@ -61,9 +62,10 @@ function useFicha(c: Cliente) {
         doc.length >= 11 ? supabase.from("notas_fiscais").select(NOTA).eq("destinatario_doc", doc) : vazio,
         supabase.from("contas_receber").select("id, descricao, valor, valor_pago, vencimento, status, data_pagamento, parcela, total_parcelas")
           .eq("cliente_id", c.id).order("vencimento", { ascending: false }),
-        supabase.from("ordens_servico").select("id, numero, equipamento, numero_serie, defeito_relatado, status, em_garantia, valor_total, data_entrada")
+        supabase.from("ordens_servico").select("id, numero, equipamento, numero_serie, defeito_relatado, status, em_garantia, valor_total, data_entrada, tecnico, " +
+          "itens:os_itens(descricao, quantidade, produto:produtos(preco_custo))")
           .eq("cliente_id", c.id).order("data_entrada", { ascending: false }),
-        supabase.from("equipamentos").select("id, cliente_id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem, usada")
+        supabase.from("equipamentos").select("id, cliente_id, produto_id, token, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem, usada")
           .eq("cliente_id", c.id).order("data_venda", { ascending: false, nullsFirst: false }),
         supabase.from("contatos_cliente").select("id, tipo, canal, resultado, proximo_contato, created_at, created_by")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
@@ -160,7 +162,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
-          {aba === "assistencia" && <Assistencia oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} />}
+          {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} />}
           {aba === "atendimentos" && <Atendimentos cliente={c} contatos={data.contatos} nomes={data.nomes} />}
         </>
       )}
@@ -385,21 +387,54 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
   );
 }
 
-function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: any[]; legado: any[] }) {
+function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[] }) {
   const dia = hoje();
+  const garantia = pecasEmGarantia(oss);
+  const nome = cliente.nome_fantasia?.trim() || cliente.nome;
+  const fone = cliente.whatsapp || cliente.telefone;
+  async function copiar(token: string) {
+    try { await navigator.clipboard.writeText(linkMaquina(token)); notify("Link da máquina copiado"); } catch { notify(linkMaquina(token)); }
+  }
   return (
     <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Indicador rotulo="Ordens de serviço" valor={String(oss.length)} cor="azul" />
+        <Indicador rotulo="Em garantia" valor={String(oss.filter((o) => o.em_garantia).length)} cor="verde" />
+        <Indicador rotulo="Peças em garantia" valor={garantia.quantidade.toLocaleString("pt-BR")} cor="ambar" />
+        <Indicador rotulo="Custo da garantia" valor={brl(garantia.custo)} cor="vermelho" sub="peças pelo custo do cadastro" />
+      </div>
+      {garantia.pecas.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Peças trocadas em garantia</h3>
+          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+            {garantia.pecas.map((x) => (
+              <li key={x.descricao} className="flex flex-wrap gap-x-3 px-3 py-1.5 [overflow-wrap:anywhere]">
+                <span className="min-w-0 flex-1">{x.quantidade.toLocaleString("pt-BR")} × {x.descricao}</span>
+                <span className="num font-semibold">{brl(x.custo)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div>
         <h3 className="mb-2 text-sm font-semibold">Equipamentos do cliente</h3>
         {!equipamentos.length ? <p className="text-sm text-slate-500">Nenhum equipamento registrado.</p> : (
           <ul className="space-y-1.5 text-sm">
             {equipamentos.map((e) => (
-              <li key={e.id} className="flex flex-wrap gap-x-3 [overflow-wrap:anywhere]">
+              <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
                 <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
                 {e.usada && <span className="font-semibold text-emerald-700">usada</span>}
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}
                 {e.proxima_preventiva && <span className={e.proxima_preventiva < dia ? "text-red-700" : ""}>preventiva {dataBR(e.proxima_preventiva)}{e.preventiva_agendada ? ` (agendada ${dataBR(e.preventiva_agendada)})` : ""}</span>}
+                {e.token && (
+                  <span className="flex gap-1">
+                    {fone && <a href={whatsappLink(fone, mensagemMaquina(nome, e.descricao, e.token))} target="_blank" rel="noreferrer" title="Mandar ao cliente o link da máquina (manuais, dicas e garantia)"
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={12} /> Manuais</a>}
+                    <button type="button" onClick={() => copiar(e.token)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      aria-label={`Copiar o link da máquina ${e.numero_serie ?? e.descricao}`}><Link2 size={12} /> Link</button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -428,6 +463,7 @@ function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: 
           </ul>
         )}
       </div>
+      <TecnicosRegiao cliente={cliente} equipamentos={equipamentos} />
       {legado.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-semibold">Compras na My Frost (empresa anterior)</h3>
@@ -443,6 +479,49 @@ function Assistencia({ oss, equipamentos, legado }: { oss: any[]; equipamentos: 
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+type TecnicoRegiao = { id: string; nome: string; tipo: string; whatsapp: string | null; telefone: string | null; municipio: string | null; uf: string | null;
+  atendimentos: number; ultimo: string | null; na_cidade: boolean; no_estado: boolean };
+
+/** Técnicos que já atenderam este cliente (pelas OS) e os que atendem a cidade ou o estado dele. */
+function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamentos: any[] }) {
+  const { data = [], isLoading, error } = useQuery({
+    queryKey: ["tecnicos_do_cliente", cliente.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("tecnicos_do_cliente", { p_cliente: cliente.id });
+      if (error) throw error;
+      return (data ?? []) as TecnicoRegiao[];
+    },
+  });
+  const lugar = [cliente.municipio, cliente.uf].filter(Boolean).join("/");
+  const maquina = equipamentos[0]?.descricao as string | undefined;
+  const msg = (t: TecnicoRegiao) => `Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas. Temos um cliente em ${lugar || "sua região"}${maquina ? ` com ${maquina}` : ""}. Você pode atender?`;
+  return (
+    <div>
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Wrench size={15} /> Técnicos {lugar ? `para ${lugar}` : "da região"}</h3>
+      {isLoading ? <p className="text-sm text-slate-500">Procurando…</p>
+        : error ? <p className="text-sm text-slate-500">Lista de técnicos indisponível.</p>
+        : !data.length ? <p className="text-sm text-slate-500">Nenhum técnico atende {lugar || "esta região"} ainda. Cadastre em Cadastros → Técnicos (cidades e estados que cada um atende).</p>
+        : (
+          <ul className="space-y-1.5 text-sm">
+            {data.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 [overflow-wrap:anywhere]">
+                <b className="text-fg">{t.nome}</b>
+                <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : "parceiro"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
+                {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
+                {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">na cidade</span>
+                  : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">no estado</span> : null}
+                {(t.whatsapp || t.telefone) && (
+                  <a href={whatsappLink(t.whatsapp || t.telefone, msg(t))} target="_blank" rel="noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={12} /> Chamar</a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
     </div>
   );
 }

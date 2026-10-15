@@ -186,6 +186,21 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     queryKey: ["funcionarios", "nomes_tecnicos"],
     queryFn: async () => ((await ler(supabase.rpc("nomes_tecnicos"))) ?? []).map((r: { nome: string }) => r.nome) as string[],
   });
+  // técnicos do cadastro: os que já atenderam este cliente e os da região dele vêm primeiro
+  const { data: daRegiao = [] } = useQuery({
+    queryKey: ["tecnicos_do_cliente", o.cliente_id],
+    enabled: !!o.cliente_id && !somenteLeitura,
+    queryFn: async () => ((await supabase.rpc("tecnicos_do_cliente", { p_cliente: o.cliente_id })).data ?? []) as
+      { nome: string; atendimentos: number; na_cidade: boolean; no_estado: boolean }[],
+  });
+  const { data: cadastroTecnicos = [] } = useQuery({
+    queryKey: ["tecnicos", "nomes"],
+    enabled: !somenteLeitura,
+    queryFn: async () => ((await supabase.from("tecnicos").select("nome").eq("ativo", true).order("nome")).data ?? []).map((t: { nome: string }) => t.nome),
+  });
+  const sugestoesTecnico = new Map<string, string>();
+  for (const t of daRegiao) sugestoesTecnico.set(t.nome, [t.atendimentos ? `já atendeu ${t.atendimentos}×` : "", t.na_cidade ? "na cidade" : t.no_estado ? "no estado" : ""].filter(Boolean).join(" · "));
+  for (const n of [...cadastroTecnicos, ...tecnicos]) if (!sugestoesTecnico.has(n)) sugestoesTecnico.set(n, "");
   const cliente = clientes.find((c) => c.id === o.cliente_id);
   const equipCliente = equipamentos.filter((e) => e.cliente_id === o.cliente_id);
   const equip = equipamentos.find((e) => e.id === o.equipamento_id);
@@ -388,9 +403,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               )}
             </Field>
             <Field label="Técnico">
-              {/* sugere os técnicos do cadastro de funcionários; dá para digitar outro nome */}
+              {/* sugere os técnicos (cadastro de técnicos e funcionários; os da região do cliente primeiro); dá para digitar outro nome */}
               <input className="input" list="tecnicos-os" value={o.tecnico ?? ""} disabled={somenteLeitura} onChange={(e) => set({ tecnico: e.target.value })} />
-              <datalist id="tecnicos-os">{tecnicos.map((t) => <option key={t} value={t} />)}</datalist>
+              <datalist id="tecnicos-os">{[...sugestoesTecnico].map(([nome, detalhe]) => <option key={nome} value={nome}>{detalhe}</option>)}</datalist>
+              {daRegiao.length > 0 && !o.tecnico && !somenteLeitura && (
+                <span className="mt-1 block text-xs text-slate-500">Da região: {daRegiao.slice(0, 3).map((t) => t.nome).join(", ")}</span>
+              )}
             </Field>
 
             <Field label="Máquina do cliente" className="sm:col-span-2">

@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, LayoutDashboard } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
@@ -37,6 +37,12 @@ import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { UnificarProdutosLista } from "@/components/produtos/UnificarProdutosLista";
+import { DocumentosMaquina, GaleriaProduto } from "@/components/produtos/GaleriaProduto";
+import { DesenhoMedidas } from "@/components/produtos/DesenhoMedidas";
+import { CampoNcm } from "@/components/produtos/SugerirNcm";
+import { EditorEspecificacoes, EditorEtapas, SUGESTOES_ESPEC, SUGESTOES_PECA, type Especificacao } from "@/components/produtos/EditoresMaquina";
+import { FichaProduto } from "@/components/produtos/FichaProduto";
+import { ModelosMaquinas } from "@/components/produtos/ModelosMaquinas";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -140,6 +146,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
+  const [ficha, setFicha] = useState<Produto | null>(null);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
     "produto_fornecedor", { select: "produto_id, codigo_fornecedor, fator_conversao, fornecedor:fornecedores(nome)", order: "produto_id" });
@@ -382,6 +389,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ))}
       </div>
       <p className="-mt-2 mb-3 text-xs text-slate-600 sm:text-sm">{atualCad.ajuda}</p>
+      {cadastro === "maquinas" && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
       {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
           <Boxes size={18} className="shrink-0" />
@@ -460,6 +468,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             prazo_reposicao_dias: r.prazo_reposicao_dias === "" || r.prazo_reposicao_dias == null ? null : Number(r.prazo_reposicao_dias),
             compra_minima: r.compra_minima === "" || r.compra_minima == null ? null : Number(r.compra_minima),
             motivo_alteracao: String(r.motivo_alteracao ?? "").trim() || null,
+            video_url: String(r.video_url ?? "").trim() || null,
+            ...(Array.isArray(r.especificacoes) ? { especificacoes: (r.especificacoes as Especificacao[]).map((e) => ({ nome: String(e.nome ?? "").trim(), valor: String(e.valor ?? "").trim() })).filter((e) => e.nome && e.valor) } : {}),
+            ...(Array.isArray(r.etapas_producao) ? { etapas_producao: (r.etapas_producao as string[]).map((e) => String(e).trim()).filter(Boolean) } : {}),
             ...anuncioAoSalvar(r),
           };
         }}
@@ -540,6 +551,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "altura_cm", label: "Altura (cm)", type: "number", span: 1 },
           { name: "largura_cm", label: "Largura (cm)", type: "number", span: 1 },
           { name: "profundidade_cm", label: "Profundidade (cm)", type: "number", span: 1 },
+          {
+            name: "desenho_medidas", label: "Medidas e peso (desenho)", type: "custom", span: 4,
+            render: (_v, _s, row) => <DesenhoMedidas largura={row.largura_cm} altura={row.altura_cm} profundidade={row.profundidade_cm} peso={row.peso_kg}
+              embalagem={embalagens.find((e) => e.id === row.embalagem_id)?.descricao} />,
+          },
           { name: "embalagem_id", label: "Embalagem padrão (envio)", type: "select", span: 2, ajuda: "As medidas da embalagem entram na cotação de frete (cubagem)",
             options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
           { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "Custo de compra = valor do item na NF do fornecedor (atualizado na entrada). Alterar custo ou preço já preenchido pede o motivo, que fica no histórico." },
@@ -584,7 +600,13 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "observacoes", label: "Observações internas", type: "textarea", span: 4 },
           { name: "secao_catalogo", label: "Catálogo do WhatsApp e vitrine", type: "secao", ajuda: "Produtos marcados aparecem no catálogo do WhatsApp e na vitrine, com foto e preço de venda." },
           { name: "no_catalogo", label: "Mostrar no catálogo", type: "checkbox", span: 1 },
-          { name: "foto_caminho", label: "Foto", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
+          { name: "foto_caminho", label: "Foto principal", type: "custom", span: 3, render: (v, set) => <FotoProduto valor={v} onChange={set} /> },
+          {
+            name: "galeria", label: "Fotos e vídeos (galeria)", type: "custom", span: 4,
+            render: (_v, _s, row, setCampo) => <GaleriaProduto produtoId={row.id} podeEditar={pode("editar_produtos") || tem("tecnico")}
+              fotoPrincipal={row.foto_caminho} aoEscolherPrincipal={(url) => setCampo("foto_caminho", url)} />,
+          },
+          { name: "video_url", label: "Link do vídeo (YouTube)", span: 4, placeholder: "https://www.youtube.com/watch?v=…" },
           {
             name: "aviso_catalogo", label: "Na loja e no WhatsApp", type: "custom", span: 4,
             render: (_v, _s, row) => {
@@ -634,8 +656,23 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "descricao_anuncio", label: "Texto do anúncio (sem telefone, e-mail ou link: os marketplaces proíbem)", type: "textarea", span: 4 },
           { name: "gtin_isento", label: "Sem GTIN/EAN (produto próprio, sem código de barras)", type: "checkbox", span: 4 },
+          { name: "secao_campos", label: "Ficha técnica e campos adicionais", type: "secao",
+            ajuda: "Nome e valor (ex.: Voltagem: 220 V; Part number; Compatível com). Saem na ficha do produto, na página da máquina do cliente e ajudam o anúncio." },
+          {
+            name: "especificacoes", label: "Campos adicionais", type: "custom", span: 4,
+            render: (v, set, row) => <EditorEspecificacoes valor={v} onChange={set} sugestoes={row.tipo === "maquina" ? SUGESTOES_ESPEC : SUGESTOES_PECA} />,
+          },
+          ...(cadastro === "maquinas" || cadastro === "todos" ? [
+            { name: "secao_maquina", label: "Máquina: etapas de produção, manuais e dicas", type: "secao" as const,
+              ajuda: "As etapas viram a lista de conferência de cada OP; os manuais e as dicas o cliente recebe pelo link da máquina dele." },
+            { name: "etapas_producao", label: "Etapas de produção", type: "custom" as const, span: 4 as const,
+              render: (v: any, set: (x: any) => void, row: Record<string, any>) => row.tipo === "maquina" ? <EditorEtapas valor={v} onChange={set} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },
+            { name: "dicas_manutencao", label: "Dicas de manutenção (o cliente lê na página da máquina)", type: "textarea" as const, span: 4 as const },
+            { name: "documentos_maquina", label: "Manuais (máquina, elétrico) e dicas em PDF", type: "custom" as const, span: 4 as const,
+              render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" ? <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || tem("tecnico")} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },
+          ] : []),
           { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao" },
-          { name: "ncm", label: "NCM (8 dígitos)", span: 1 },
+          { name: "ncm", label: "NCM (8 dígitos)", type: "custom", span: 2, render: (v, set, row) => <CampoNcm valor={v} onChange={set} produtoId={row.id} /> },
           { name: "cest", label: "CEST", span: 1 },
           { name: "cfop", label: "CFOP (vazio = padrão)", span: 1 },
           { name: "icms_situacao", label: "CSOSN/CST (vazio = padrão)", span: 1 },
@@ -707,6 +744,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         cartaoCelular={cartaoProduto}
         rowActions={(r) => (
           <>
+            <Button variant="ghost" title="Ficha do produto" aria-label={`Ficha de ${r.descricao}`} onClick={() => setFicha(r)}><IdCard size={16} /></Button>
             {pode("movimentar_estoque") && (
               <Button variant="ghost" title="Movimentar estoque" onClick={() => setMovimentar(r)}><ArrowDownUp size={16} /></Button>
             )}
@@ -720,6 +758,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
 
       <MovimentoModal produto={movimentar} onClose={() => setMovimentar(null)} />
       <HistoricoModal produto={historico} onClose={() => setHistorico(null)} />
+      {ficha && <FichaProduto produto={ficha} podeEditar={pode("editar_produtos") || tem("tecnico")} onClose={() => setFicha(null)}
+        onEditar={() => { const p = ficha; setFicha(null); setEditarAgora({ ...p }); }} />}
       {importar && <ImportarProdutos onClose={() => setImportar(false)} />}
       {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}
       {unificando && <UnificarProdutosLista produtos={unificando.lista} onFim={(m) => { unificando.fim(m); setUnificando(null); }} />}

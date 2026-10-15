@@ -1,0 +1,179 @@
+// Galeria do produto: fotos e vídeos curtos (reduzidos antes de subir) e, nas máquinas, os documentos (manual da
+// máquina, manual elétrico/esquema e dicas de manutenção). Tirar da galeria só esconde (ativo = false).
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, ImagePlus, Loader2, Play, Star, Trash2, Video, X } from "lucide-react";
+import { Button, useFecharComEsc } from "../ui";
+import { supabase } from "@/lib/supabase";
+import { notify, notifyError } from "@/lib/notify";
+import { enviarMidia, NOME_MIDIA, tamanhoTexto, urlMidia, VIDEO_MAX_SEG, type Midia, type TipoMidia } from "@/lib/midia";
+import { confirmar } from "@/components/Dialogos";
+
+export function useMidiaProduto(produtoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["produtos_midia", produtoId],
+    enabled: !!produtoId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produtos_midia").select("*").eq("produto_id", produtoId!).eq("ativo", true)
+        .order("ordem", { ascending: true }).order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Midia[];
+    },
+  });
+}
+
+/** Fotos e vídeos do produto, com envio (já reduzido) e visualização grande. */
+export function GaleriaProduto({ produtoId, podeEditar, fotoPrincipal, aoEscolherPrincipal }: {
+  produtoId?: string | null; podeEditar: boolean; fotoPrincipal?: string | null; aoEscolherPrincipal?: (url: string) => void;
+}) {
+  const qc = useQueryClient();
+  const { data: midia = [] } = useMidiaProduto(produtoId);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const [aberta, setAberta] = useState<Midia | null>(null);
+  const fotos = useRef<HTMLInputElement>(null);
+  const video = useRef<HTMLInputElement>(null);
+  if (!produtoId) return <span className="text-xs text-slate-500">Salve o produto para montar a galeria de fotos e vídeos.</span>;
+  const galeria = midia.filter((m) => m.tipo === "foto" || m.tipo === "video");
+
+  async function enviar(arquivos: FileList | null, tipo: TipoMidia) {
+    if (!arquivos?.length) return;
+    try {
+      for (const [i, a] of [...arquivos].entries()) {
+        setEnviando(tipo === "video" ? "Reduzindo o vídeo… 0%" : `Enviando foto ${i + 1} de ${arquivos.length}…`);
+        await enviarMidia(produtoId!, a, tipo, null, (pct) => setEnviando(`Reduzindo o vídeo… ${pct}%`));
+      }
+      notify(tipo === "video" ? "Vídeo enviado (já reduzido)" : `${arquivos.length === 1 ? "Foto enviada" : `${arquivos.length} fotos enviadas`}`);
+      qc.invalidateQueries({ queryKey: ["produtos_midia", produtoId] });
+    } catch (e) { notifyError(e); } finally { setEnviando(null); }
+  }
+  async function tirar(m: Midia) {
+    if (!(await confirmar(`Tirar ${m.tipo === "video" ? "este vídeo" : "esta foto"} da galeria?`))) return;
+    const { error } = await supabase.from("produtos_midia").update({ ativo: false }).eq("id", m.id);
+    if (error) return notifyError(error);
+    qc.invalidateQueries({ queryKey: ["produtos_midia", produtoId] });
+  }
+
+  return (
+    <div className="space-y-2">
+      {galeria.length > 0 ? (
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label="Fotos e vídeos">
+          {galeria.map((m) => {
+            const url = urlMidia(m.caminho);
+            const principal = m.tipo === "foto" && fotoPrincipal === url;
+            return (
+              <li key={m.id} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                <button type="button" className="block h-full w-full" onClick={() => setAberta(m)} aria-label={m.tipo === "video" ? "Ver vídeo" : "Ver foto"}>
+                  {m.tipo === "foto"
+                    ? <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    : <span className="relative grid h-full w-full place-items-center bg-ink text-white">
+                        <video src={url} muted preload="metadata" className="absolute inset-0 h-full w-full object-cover opacity-70" />
+                        <Play size={28} className="relative drop-shadow" aria-hidden />
+                      </span>}
+                </button>
+                {principal && <span className="absolute left-1 top-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">principal</span>}
+                {m.tipo === "video" && m.duracao_seg != null && <span className="num absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[10px] text-white">{m.duracao_seg}s</span>}
+                {podeEditar && (
+                  <span className="absolute right-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
+                    {m.tipo === "foto" && aoEscolherPrincipal && !principal && (
+                      <button type="button" title="Usar como foto principal" aria-label="Usar como foto principal" onClick={() => aoEscolherPrincipal(url)}
+                        className="rounded-md bg-white/90 p-1 text-amber-600 shadow"><Star size={13} /></button>
+                    )}
+                    <button type="button" title="Tirar da galeria" aria-label="Tirar da galeria" onClick={() => tirar(m)} className="rounded-md bg-white/90 p-1 text-red-600 shadow"><Trash2 size={13} /></button>
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : <p className="text-xs text-slate-500">Nenhuma foto ou vídeo ainda. Fotos de vários ângulos (e do código gravado na peça) evitam devolução.</p>}
+      {podeEditar && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={fotos} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { enviar(e.target.files, "foto"); e.target.value = ""; }} />
+          <input ref={video} type="file" accept="video/*" className="hidden" onChange={(e) => { enviar(e.target.files, "video"); e.target.value = ""; }} />
+          <Button type="button" variant="secondary" disabled={!!enviando} onClick={() => fotos.current?.click()}><ImagePlus size={15} /> Fotos</Button>
+          <Button type="button" variant="secondary" disabled={!!enviando} onClick={() => video.current?.click()}><Video size={15} /> Vídeo rápido</Button>
+          {enviando ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><Loader2 size={14} className="animate-spin" /> {enviando}</span>
+            : <span className="text-xs text-slate-500">O site reduz sozinho: foto até 1600 px, vídeo em 720p até {VIDEO_MAX_SEG} s.</span>}
+        </div>
+      )}
+      {aberta && <VerMidia m={aberta} onClose={() => setAberta(null)} />}
+    </div>
+  );
+}
+
+function VerMidia({ m, onClose }: { m: Midia; onClose: () => void }) {
+  useFecharComEsc(true, onClose);
+  const url = urlMidia(m.caminho);
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/85 p-3" role="dialog" aria-modal="true" aria-label={m.tipo === "video" ? "Vídeo" : "Foto"} onClick={onClose}>
+      <button type="button" onClick={onClose} className="absolute right-3 top-3 rounded-full bg-white/15 p-2 text-white hover:bg-white/25" aria-label="Fechar"><X size={20} /></button>
+      <div onClick={(e) => e.stopPropagation()} className="max-h-full max-w-full">
+        {m.tipo === "video"
+          ? <video src={url} controls autoPlay playsInline className="max-h-[85vh] max-w-full rounded-lg" />
+          : <img src={url} alt={m.titulo ?? ""} className="max-h-[85vh] max-w-full rounded-lg object-contain" />}
+      </div>
+    </div>
+  );
+}
+
+const TIPOS_DOC: TipoMidia[] = ["manual", "eletrico", "dicas", "outro"];
+
+/** Documentos da máquina: manual, manual elétrico/esquema, dicas de manutenção (PDF ou imagem). */
+export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: string | null; podeEditar: boolean }) {
+  const qc = useQueryClient();
+  const { data: midia = [] } = useMidiaProduto(produtoId);
+  const [tipo, setTipo] = useState<TipoMidia>("manual");
+  const [titulo, setTitulo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const arquivo = useRef<HTMLInputElement>(null);
+  if (!produtoId) return <span className="text-xs text-slate-500">Salve o produto para anexar os manuais.</span>;
+  const docs = midia.filter((m) => TIPOS_DOC.includes(m.tipo));
+
+  async function enviar(lista: FileList | null) {
+    if (!lista?.length) return;
+    setEnviando(true);
+    try {
+      for (const a of lista) await enviarMidia(produtoId!, a, tipo, titulo || null);
+      setTitulo("");
+      notify("Documento anexado");
+      qc.invalidateQueries({ queryKey: ["produtos_midia", produtoId] });
+    } catch (e) { notifyError(e); } finally { setEnviando(false); }
+  }
+  async function tirar(m: Midia) {
+    if (!(await confirmar(`Tirar "${m.titulo ?? NOME_MIDIA[m.tipo]}" dos documentos?`))) return;
+    const { error } = await supabase.from("produtos_midia").update({ ativo: false }).eq("id", m.id);
+    if (error) return notifyError(error);
+    qc.invalidateQueries({ queryKey: ["produtos_midia", produtoId] });
+  }
+
+  return (
+    <div className="space-y-2">
+      {docs.length > 0 ? (
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+          {docs.map((m) => (
+            <li key={m.id} className="flex items-center gap-3 px-3 py-2">
+              <FileText size={18} className="shrink-0 text-brand" aria-hidden />
+              <a href={urlMidia(m.caminho)} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">
+                <span className="block truncate font-semibold text-fg">{m.titulo || NOME_MIDIA[m.tipo]}</span>
+                <span className="text-xs text-slate-500">{NOME_MIDIA[m.tipo]}{m.tamanho ? ` · ${tamanhoTexto(m.tamanho)}` : ""}</span>
+              </a>
+              {podeEditar && <button type="button" onClick={() => tirar(m)} className="rounded p-1 text-red-600 hover:bg-red-50" aria-label={`Tirar ${m.titulo ?? "documento"}`}><Trash2 size={15} /></button>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-xs text-slate-500">Nenhum manual ainda. O cliente recebe estes documentos pelo link da máquina dele.</p>}
+      {podeEditar && (
+        <div className="flex flex-wrap gap-2">
+          <select className="input w-full sm:w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMidia)} aria-label="Tipo do documento">
+            {TIPOS_DOC.map((t) => <option key={t} value={t}>{NOME_MIDIA[t]}</option>)}
+          </select>
+          <input className="input w-full sm:w-auto sm:min-w-0 sm:flex-1" value={titulo} maxLength={200} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (opcional)" aria-label="Título do documento" />
+          <input ref={arquivo} type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => { enviar(e.target.files); e.target.value = ""; }} />
+          <Button type="button" variant="secondary" disabled={enviando} onClick={() => arquivo.current?.click()}>
+            {enviando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />} {enviando ? "Enviando…" : "Anexar PDF"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

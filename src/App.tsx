@@ -62,6 +62,7 @@ const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
+const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -173,6 +174,10 @@ export default function App() {
   // Ficha cadastral: o cliente confere, corrige e assina pelo link, sem login
   if (pathname.startsWith("/ficha/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><FichaPublica /></Suspense></>;
+  }
+  // Máquina do cliente: manuais, dicas, garantia e o botão da assistência, pelo link mandado no WhatsApp, sem login
+  if (pathname.startsWith("/maquina/")) {
+    return <><Toaster /><Suspense fallback={<Carregando />}><MaquinaPublica /></Suspense></>;
   }
   if (pathname === "/loja" || pathname.startsWith("/loja/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><Loja /></Suspense></>;

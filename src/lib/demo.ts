@@ -321,6 +321,13 @@ function seed(): Db {
     ],
   };
   db.clientes.forEach((c, i) => { c.avisos_email = true; c.codigo = i + 1; });
+  Object.assign(db.produtos.find((p) => p.id === "p1")!, {
+    especificacoes: [{ nome: "Voltagem", valor: "220 V monofásica" }, { nome: "Produção (litros/hora)", valor: "36" }, { nome: "Sabores", valor: "2 + 1 misto" }, { nome: "Gás refrigerante", valor: "R404A" }],
+    etapas_producao: ["Vácuo e teste de vazamento", "Giga de teste", "Teste de produção", "Acabamento", "Adesivação + conferência final", "Placa de identificação"],
+    dicas_manutencao: "Lave o cilindro e as pás todo fim de dia com água morna e detergente neutro.\nLubrifique as vedações uma vez por semana com lubrificante grau alimentício.\nDeixe 15 cm livres atrás da máquina para o ar circular.",
+  });
+  db.ordens_producao[0].etapas = db.produtos.find((p) => p.id === "p1")!.etapas_producao.map((nome: string, i: number) => ({ nome, feita: i < 2, por: i < 2 ? "Diego" : null, em: i < 2 ? quando(-1) : null }));
+  db.equipamentos.forEach((e, i) => { e.token = `e9a00000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`; });
   db.fornecedores.forEach((f, i) => { f.codigo = i + 1; });
   db.transportadoras.forEach((t, i) => { t.codigo = i + 1; });
   db.clientes[0].nome_fantasia = "Gelato Nobre";
@@ -1558,6 +1565,8 @@ class Query {
   delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
+  is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
+  not(c: string, op: string, v: any) { this.filtros.push((r) => (op === "is" ? (r[c] ?? null) !== v : r[c] !== v)); return this; }
   lt(c: string, v: any) { this.filtros.push((r) => r[c] < v); return this; }
   gte(c: string, v: any) { this.filtros.push((r) => r[c] >= v); return this; }
   lte(c: string, v: any) { this.filtros.push((r) => r[c] <= v); return this; }
@@ -1592,6 +1601,9 @@ class Query {
         if (this.tabela === "envio_cotacoes") { novo.ativa ??= true; novo.escolhida ??= false; const ev = db.envios.find((x) => x.id === novo.envio_id); if (ev?.status === "cotacao") ev.status = "aprovacao"; }
         if (this.tabela === "envio_ocorrencias") { novo.status ??= "aberta"; novo.atualizado_em = novo.created_at; }
         if (this.tabela === "fornecimentos" && novo.preferido) preferidoDemo(novo);
+        // como o gatilho trg_op_etapas: a OP nasce com a lista de conferência das etapas da máquina
+        if (this.tabela === "ordens_producao" && !novo.etapas?.length)
+          novo.etapas = (db.produtos.find((x) => x.id === novo.produto_id)?.etapas_producao ?? []).map((nome: string) => ({ nome, feita: false }));
         if (this.tabela === "estoque_movimentos") {
           t.pop();
           movimentar(novo.produto_id, novo.tipo, Number(novo.quantidade), novo.motivo ?? "", { numero_serie: novo.numero_serie, unidade_id: novo.unidade_id });
@@ -1827,6 +1839,71 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       },
       error: null,
     };
+  },
+  // técnicos que já atenderam o cliente (pelas OS) e os da região dele (cidades e estados que cada um atende)
+  tecnicos_do_cliente: ({ p_cliente }) => {
+    const c = db.clientes.find((x: Row) => x.id === p_cliente);
+    const sa = (t: unknown) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const cid = sa(c?.municipio), uf = String(c?.uf ?? "").toUpperCase();
+    const lista = (db.tecnicos ?? []).filter((t: Row) => t.ativo !== false).map((t: Row) => {
+      const os = (db.ordens_servico ?? []).filter((o: Row) => o.cliente_id === p_cliente && !o.excluida_em && (o.tecnico_id === t.id || sa(o.tecnico) === sa(t.nome)));
+      const naCidade = !!cid && ((t.cidades ?? []).some((x: string) => sa(x.split("/")[0]) === cid && (!x.split("/")[1] || x.split("/")[1].toUpperCase() === uf)) || (sa(t.municipio) === cid && String(t.uf).toUpperCase() === uf));
+      const noEstado = !!uf && ((t.ufs ?? []).includes(uf) || String(t.uf).toUpperCase() === uf);
+      return { id: t.id, nome: t.nome, tipo: t.tipo, whatsapp: t.whatsapp, telefone: t.telefone ?? null, municipio: t.municipio, uf: t.uf,
+        atendimentos: os.length, ultimo: os.map((o: Row) => o.data_entrada).sort().pop() ?? null, na_cidade: naCidade, no_estado: noEstado };
+    }).filter((t: Row) => t.atendimentos > 0 || t.no_estado || t.na_cidade);
+    return { data: lista.sort((a: Row, b: Row) => b.atendimentos - a.atendimentos || Number(b.na_cidade) - Number(a.na_cidade) || a.nome.localeCompare(b.nome)), error: null };
+  },
+  maquina_publica: ({ p_token }) => {
+    const e = db.equipamentos.find((x: Row) => x.token === p_token);
+    if (!e) return { data: null, error: null };
+    const p = db.produtos.find((x: Row) => x.id === e.produto_id);
+    const c = db.clientes.find((x: Row) => x.id === e.cliente_id);
+    const cfg = db.configuracoes[0];
+    return {
+      data: {
+        maquina: { descricao: p?.descricao ?? e.descricao, modelo: p?.modelo, numero_serie: e.numero_serie, data_venda: e.data_venda, garantia_ate: e.garantia_ate,
+          proxima_preventiva: e.proxima_preventiva, usada: e.usada, outra_empresa: e.origem, foto: p?.foto_caminho },
+        cliente: String(c?.nome_fantasia || c?.nome || "").trim().split(" ")[0] || null,
+        especificacoes: p?.especificacoes ?? [], dicas: p?.dicas_manutencao ?? null,
+        midia: (db.produtos_midia ?? []).filter((m: Row) => m.produto_id === p?.id && m.ativo !== false).map((m: Row) => ({ tipo: m.tipo, titulo: m.titulo, caminho: m.caminho, mime: m.mime })),
+        empresa: { nome: cfg.nome_fantasia || cfg.razao_social, whatsapp: cfg.whatsapp, telefone: cfg.telefone, email: cfg.email },
+      },
+      error: null,
+    };
+  },
+  historico_custos: ({ p_produto }) => {
+    const p = db.produtos.find((x: Row) => x.id === p_produto);
+    if (!p) return { data: [], error: null };
+    const linhas: Row[] = [{ data: quando(-60), evento: "cadastro", detalhe: null, quantidade: null, valor_unitario: null,
+      preco_custo: Math.round(Number(p.preco_custo ?? 0) * 0.92 * 100) / 100, preco_venda: Math.round(Number(p.preco_venda ?? 0) * 0.95 * 100) / 100, saldo: 0, usuario: "Administrador" }];
+    for (const pc of db.pedidos_compra ?? []) {
+      for (const i of db.pedido_compra_itens.filter((x: Row) => x.pedido_compra_id === pc.id && x.produto_id === p_produto && Number(x.custo_unitario) > 0)) {
+        const f = db.fornecedores.find((x: Row) => x.id === pc.fornecedor_id);
+        linhas.push({ data: pc.recebido_em ?? pc.created_at, evento: "compra", detalhe: `Pedido de compra ${pc.numero} · ${f?.nome_fantasia || f?.nome || ""}`, quantidade: i.quantidade,
+          valor_unitario: i.custo_unitario, preco_custo: null, preco_venda: null, saldo: Number(p.estoque_atual ?? 0), usuario: null });
+      }
+    }
+    if (Number(p.preco_custo) > 0) linhas.push({ data: quando(-8), evento: "alteracao", detalhe: "Custo atualizado pela nota de compra", quantidade: null, valor_unitario: null,
+      preco_custo: p.preco_custo, preco_venda: p.preco_venda, saldo: Number(p.estoque_atual ?? 0), usuario: "Administrador" });
+    return { data: linhas.sort((a, b) => String(b.data).localeCompare(String(a.data))), error: null };
+  },
+  sugerir_ncm: ({ p_produto }) => {
+    const p = db.produtos.find((x: Row) => x.id === p_produto);
+    if (!p) return { data: [], error: null };
+    const sa = (t: unknown) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const genericas = ["para", "compativel", "maquina", "maquinas", "frost", "sorvete", "expresso", "sabores", "sabor", "unidade", "peca", "pecas", "novo", "nova", "original"];
+    const palavras = [...new Set(sa(p.descricao).split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !genericas.includes(w)))];
+    const porNcm = new Map<string, Row>();
+    for (const o of db.produtos.filter((x: Row) => x.id !== p.id && /^\d{8}$/.test(String(x.ncm ?? "")))) {
+      const comuns = palavras.filter((w) => new RegExp(`(^|[^a-z0-9])${w}([^a-z0-9]|$)`).test(sa(o.descricao))).length;
+      const pts = (comuns >= Math.min(2, palavras.length) && palavras.length ? comuns * 20 : 0) + (p.categoria && o.categoria === p.categoria ? 3 : 0);
+      if (!pts) continue;
+      const atual = porNcm.get(o.ncm) ?? { ncm: o.ncm, fonte: comuns ? "produto parecido" : "mesma categoria", detalhe: o.descricao, pontos: 0 };
+      atual.pontos = Math.min(300, atual.pontos + pts);
+      porNcm.set(o.ncm, atual);
+    }
+    return { data: [...porNcm.values()].sort((a, b) => b.pontos - a.pontos).slice(0, 5), error: null };
   },
   nomes_tecnicos: () => ({
     data: (db.funcionarios ?? []).filter((f: Row) => f.ativo && f.faz_assistencia && f.situacao !== "desligado")

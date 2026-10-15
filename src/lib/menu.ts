@@ -70,6 +70,7 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
+      { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
       { to: "/producao", tela: "producao", label: "Produção e compras", curto: "Produção", icon: Factory, busca: "ordem de produção pedido de compra fábrica ficha técnica" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
@@ -123,7 +124,6 @@ export const itensForaDoMenu: Item[] = [
   { to: "/painel/cadastros", tela: "clientes", label: "Painel dos clientes", curto: "Pn. clientes", icon: LayoutDashboard, busca: "painel dos cadastros clientes novos sumidos qualidade" },
   { to: "/painel/maquinas", tela: "estoque", label: "Painel das máquinas", curto: "Pn. máq.", icon: LayoutDashboard, busca: "máquina modelo vendidas estoque montagem garantia" },
   { to: "/painel/produtos", tela: "estoque", label: "Painel dos produtos", curto: "Pn. prod.", icon: LayoutDashboard, busca: "produto peça mais vendidos curva abc parado giro margem reposição vai faltar" },
-  { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado" },
   { to: "/produtos/pecas", tela: "estoque", label: "Peças de reposição", curto: "Peças", icon: Wrench, busca: "peça reposição catálogo cliente compra" },
   { to: "/produtos/componentes", tela: "estoque", label: "Componentes de produção", curto: "Compon.", icon: Package, busca: "componente produção insumo matéria-prima ficha técnica fábrica" },
 ];
