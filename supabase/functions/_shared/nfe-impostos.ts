@@ -62,8 +62,8 @@ export type RegraTributaria = {
 };
 
 export type ContextoRegra = {
-  /** "remessa" = nota direta que não é venda (conserto, garantia, bonificação…): só valem regras de operação "Qualquer". */
-  operacao: "venda" | "transferencia" | "remessa"; interestadual: boolean; contribuinte: boolean;
+  /** "remessa" = nota direta que não é venda (conserto, garantia, bonificação…) e "entrada" = nota de entrada da MF: só valem regras de operação "Qualquer". */
+  operacao: "venda" | "transferencia" | "remessa" | "entrada"; interestadual: boolean; contribuinte: boolean;
   tipo: string; ncm: string; origem: number; cfop: string; unidade_id?: string | null; uf_destino?: string;
 };
 
@@ -131,7 +131,7 @@ function base(i: ItemBase) {
   return { bruto, liquido: r2(bruto - (i.desconto ?? 0) + (i.frete ?? 0)) };
 }
 
-function camposProduto(i: ItemBase, n: number, cfop: string, valorUnitario = i.valor_unitario) {
+export function camposProduto(i: ItemBase, n: number, cfop: string, valorUnitario = i.valor_unitario) {
   const bruto = r2(i.quantidade * valorUnitario);
   return {
     numero_item: n,
@@ -190,7 +190,7 @@ export function reducaoDaBase(aliquota: number, fixa: number, porAliquota?: Reco
 const CST_DESONERACAO = ["20", "30", "40", "41", "50", "70", "90"];
 
 /** CST do IPI que não leva base/alíquota (grupo IPINT): 01–05 e 51–55. */
-const IPI_NAO_TRIBUTADO = ["01", "02", "03", "04", "05", "51", "52", "53", "54", "55"];
+export const IPI_NAO_TRIBUTADO = ["01", "02", "03", "04", "05", "51", "52", "53", "54", "55"];
 
 /** Itens de uma venda: CFOP (produção x revenda, dentro x fora do estado) e todos os impostos. */
 export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribuinte: boolean }, itens: ItemBase[], ufs: AliquotasUf, opc: OpcoesRegras = {}) {

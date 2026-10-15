@@ -1,5 +1,6 @@
 // Notas fiscais → Emitir NF-e. Duas formas:
-//   Nota direta: escolhe empresa, cliente, operação e itens e emite, sem pedido.
+//   Nota direta: escolhe empresa, cliente, operação e itens e emite, sem pedido. Pode ser de saída ou de entrada
+//   (a MF emite a nota de quem não emite: máquina usada de pessoa física, conserto, retorno de comodato…), com ou sem NF referenciada.
 //   De um pedido: os pedidos aprovados que ainda não têm nota.
 // Antes de enviar, a mesma conferência do cadastro (cliente, produtos, unidade).
 import { useState } from "react";
@@ -16,7 +17,7 @@ import { callFunction } from "@/lib/supabase";
 import { AVISO_TESTE, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import type { Cliente, Item, Pedido, Produto } from "@/lib/types";
-import { OPERACOES_NOTA, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
+import { cfopDaOperacao, chaveValida, OPERACOES_NOTA, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { ClienteBusca } from "@/components/ClienteBusca";
 
 const COM_NOTA = ["autorizada", "processando", "contingencia"];
@@ -66,7 +67,7 @@ function Conferencia({ titulo, pendencias, onVoltar, onEmitir }: { titulo: strin
   );
 }
 
-/** NF-e direta: sem pedido. Cliente, operação (venda, remessa, garantia…) e itens. */
+/** NF-e direta: sem pedido. Cliente, operação (venda, remessa, garantia… ou uma entrada) e itens. */
 function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => void }) {
   const { unidades, padrao } = useUnidade();
   const invalidar = useInvalidate();
@@ -75,6 +76,9 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
   const { data: regras = [] } = useRows<{ cfop: string | null; ativo: boolean }>("regras_tributacao", { order: "prioridade", ascending: true });
+  const { data: notasCliente = [] } = useRows<{ id: string; numero: string | null; serie: string | null; chave: string | null; created_at: string; valor_total: number; cliente_id: string | null; status: string; tipo_operacao: string | null; destinatario_doc: string | null }>("notas_fiscais", {
+    select: "id, numero, serie, chave, created_at, valor_total, cliente_id, status, tipo_operacao, destinatario_doc", order: "created_at", ascending: false,
+  });
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
   const [clienteId, setClienteId] = useState("");
   const [operacao, setOperacao] = useState("venda");
@@ -84,6 +88,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const [frete, setFrete] = useState("");
   const [modalidade, setModalidade] = useState(9);
   const [obs, setObs] = useState("");
+  const [chaveRef, setChaveRef] = useState("");
   const [conferindo, setConferindo] = useState<Pendencia[] | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const op = operacaoNota(operacao)!;
@@ -91,16 +96,28 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const cliente = clientes.find((c) => c.id === clienteId);
   const subtotal = totalItens(itens);
   const total = subtotal - Number(desconto.replace(",", ".") || 0) + Number(frete.replace(",", ".") || 0);
-  const cfopOp = op.cfop && cliente?.uf && unidade?.uf && cliente.uf.toUpperCase() !== unidade.uf.toUpperCase() ? "6" + op.cfop.slice(1) : op.cfop;
+  const cfopOp = op.cfop ? cfopDaOperacao(op.cfop, !!(cliente?.uf && unidade?.uf && cliente.uf.toUpperCase() !== unidade.uf.toUpperCase())) : op.cfop;
   const temRegra = !op.cfop || regras.some((r) => r.ativo && r.cfop && r.cfop.replace(/\D/g, "") === cfopOp);
+  const entrada = !!op.entrada;
+  const chaveDigitos = chaveRef.replace(/\D/g, "");
+  const chaveOk = !chaveDigitos || !!chaveValida(chaveDigitos);
+  // NF-e autorizadas deste cliente (para referenciar a nota de venda da máquina, por exemplo)
+  const docCliente = (cliente?.cpf_cnpj ?? "").replace(/\D/g, "");
+  const notasDoCliente = cliente ? notasCliente.filter((x) => x.chave && x.status === "autorizada" && (x.cliente_id === cliente.id || (!!docCliente && (x.destinatario_doc ?? "").replace(/\D/g, "") === docCliente))).slice(0, 30) : [];
+  const ieCliente = cliente?.tipo_pessoa === "PJ" && Number(cliente.contribuinte_icms) === 1;
 
   async function emitir(conferido = false) {
     if (!unidade) return notify("Escolha a empresa", "erro");
     if (!cliente) return notify("Escolha o cliente", "erro");
     if (!itens.length) return notify("Adicione ao menos um item", "erro");
+    if (!chaveOk) return notify("Chave da NF referenciada inválida: confira os 44 números ou deixe em branco", "erro");
     if (!conferido) {
-      const lista = conferirPedido({ cliente, unidade, produtos, itens, aliquotasUf: ufsIcms.map((u) => u.uf) });
-      if (!temRegra) lista.push({ nivel: "alerta", texto: `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): o ICMS e o IPI saem como na venda (PIS/COFINS sem valor, CST 49). Cadastre a regra (Operação "Qualquer" e o CFOP) em Notas fiscais → Regras de tributação, conforme o contador.` } as Pendencia);
+      // na entrada não há DIFAL (os avisos de venda para consumidor final não valem)
+      const lista = conferirPedido({ cliente, unidade, produtos, itens, aliquotasUf: ufsIcms.map((u) => u.uf) }).filter((x) => !(entrada && x.texto.includes("DIFAL")));
+      if (!temRegra) lista.push({ nivel: "alerta", texto: entrada
+        ? `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): a nota sai com ICMS CST ${op.icms_cst} e PIS/COFINS CST ${op.pis_cofins_cst}, sem valores. Confirme com o contador; se ele pedir outra coisa, cadastre a regra (Operação "Qualquer" e o CFOP ${cfopOp}) em Notas fiscais → Regras de tributação.`
+        : `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): o ICMS e o IPI saem como na venda (PIS/COFINS sem valor, CST 49). Cadastre a regra (Operação "Qualquer" e o CFOP) em Notas fiscais → Regras de tributação, conforme o contador.` } as Pendencia);
+      if (entrada && ieCliente) lista.push({ nivel: "alerta", texto: `${cliente.nome} tem inscrição estadual: normalmente é a própria empresa que emite a nota (remessa para conserto 5915, venda ou devolução) e ela chega em NF-e recebidas. Emita esta só se ela não emitir.` } as Pendencia);
       if (lista.length) return setConferindo(lista);
     }
     setConferindo(null);
@@ -111,8 +128,11 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
         unidade_id: unidade.id, cliente_id: cliente.id, operacao, natureza: natureza.trim() || null,
         itens: itens.map((i) => ({ produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), valor_unitario: Number(i.valor_unitario) })),
         desconto: Number(desconto.replace(",", ".") || 0), frete: Number(frete.replace(",", ".") || 0), modalidade_frete: modalidade, observacoes: obs.trim() || null,
+        chave_referenciada: chaveDigitos || null,
       } });
-      notify(r.nota?.status === "autorizada" ? `NF-e ${r.nota.numero ?? ""} autorizada. Na nota: lançar conta a receber e baixar estoque.` : "NF-e enviada para a SEFAZ. Acompanhe na lista.");
+      notify(r.nota?.status === "autorizada"
+        ? `NF-e ${r.nota.numero ?? ""} autorizada. ${entrada ? (op.estoque ? "Na nota: dar entrada no estoque." : "Imprima o DANFE para ir junto com a máquina.") : "Na nota: lançar conta a receber e baixar estoque."}`
+        : "NF-e enviada para a SEFAZ. Acompanhe na lista.");
       invalidar("notas_fiscais");
       onClose();
     } catch (e) {
@@ -131,12 +151,39 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
         <div><CampoUnidade value={unidadeId} onChange={setUnidadeId} label="Empresa que emite" /></div>
         <Field label="Tipo de operação">
           <select className="input" value={operacao} onChange={(e) => { setOperacao(e.target.value); setNatureza(""); }}>
-            {OPERACOES_NOTA.map((o) => <option key={o.id} value={o.id}>{o.rotulo}{o.cfop ? ` (CFOP ${o.cfop})` : ""}</option>)}
+            <optgroup label="Saída (a MF envia)">
+              {OPERACOES_NOTA.filter((o) => !o.entrada).map((o) => <option key={o.id} value={o.id}>{o.rotulo}{o.cfop ? ` (CFOP ${o.cfop})` : ""}</option>)}
+            </optgroup>
+            <optgroup label="Entrada (a MF recebe de quem não emite nota)">
+              {OPERACOES_NOTA.filter((o) => o.entrada).map((o) => <option key={o.id} value={o.id}>{o.rotulo} (CFOP {o.cfop})</option>)}
+            </optgroup>
           </select>
-          <span className="mt-1 block text-xs text-slate-500">{op.ajuda}</span>
+          <span className="mt-1 block text-xs text-slate-500">{op.ajuda}{cfopOp && cfopOp !== op.cfop ? ` Outro estado: CFOP ${cfopOp}.` : ""}</span>
         </Field>
-        <Field label="Cliente (destinatário)" className="sm:col-span-2">
-          <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => setClienteId(id)} />
+        {entrada && (
+          <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900 sm:col-span-2">
+            <b>Nota de entrada:</b> a MF emite a nota da máquina ou peça que vem de pessoa física, MEI ou empresa sem inscrição estadual. O DANFE vai junto no transporte.
+            Devolução de uma venda da MF: use o botão <b>Devolução</b> na nota de venda.
+          </p>
+        )}
+        <Field label={entrada ? "Quem manda (remetente)" : "Cliente (destinatário)"} className="sm:col-span-2">
+          <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => { setClienteId(id); setChaveRef(""); }} />
+        </Field>
+        <Field label="NF referenciada (opcional)" className="sm:col-span-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {notasDoCliente.length > 0 && (
+              <select className="input sm:max-w-[16rem]" value={notasDoCliente.find((x) => x.chave === chaveDigitos)?.chave ?? ""} onChange={(e) => setChaveRef(e.target.value)}>
+                <option value="">Notas deste cliente…</option>
+                {notasDoCliente.map((x) => <option key={x.id} value={x.chave!}>NF {x.numero ?? "—"} · {dataBR(x.created_at)} · {brl(x.valor_total)}{x.tipo_operacao === "entrada" ? " · entrada" : ""}</option>)}
+              </select>
+            )}
+            <input className="input min-w-0 flex-1" inputMode="numeric" value={chaveRef} placeholder="Chave de acesso (44 números) ou deixe em branco" onChange={(e) => setChaveRef(e.target.value)} aria-invalid={!chaveOk} />
+          </div>
+          <span className={`mt-1 block text-xs ${chaveOk ? "text-slate-500" : "font-semibold text-red-700"}`}>
+            {!chaveOk ? "Chave inválida: confira os 44 números (o último é o dígito verificador)."
+              : chaveDigitos ? "A chave vai na nota (referência) e nas informações complementares."
+              : entrada ? "Ex.: a NF de venda da máquina (da MF ou da My Frost). Sem nota, deixe em branco." : "Só se a operação se referir a outra nota."}
+          </span>
         </Field>
         <Field label="Natureza da operação (como sai na nota)" className="sm:col-span-2">
           <input className="input" value={natureza} placeholder={op.natureza ?? unidade?.natureza_operacao ?? "Venda de mercadoria"} onChange={(e) => setNatureza(e.target.value)} />
@@ -158,7 +205,11 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
         <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
         <Button type="button" disabled={ocupado} onClick={() => emitir()}><Send size={15} /> {ocupado ? "Enviando…" : "Emitir NF-e"}</Button>
       </div>
-      <p className="mt-2 text-xs text-slate-500"><FileText size={12} className="mr-1 inline" />Depois de autorizada, abra a nota para <b>lançar a conta a receber</b> e <b>baixar o estoque</b>.</p>
+      <p className="mt-2 text-xs text-slate-500"><FileText size={12} className="mr-1 inline" />
+        {entrada
+          ? <>Depois de autorizada, abra a nota para {op.estoque ? <><b>dar entrada no estoque</b> e </> : null}imprimir o <b>DANFE</b>{op.id === "compra_usado" ? <> (o pagamento ao dono vai em Contas a pagar)</> : null}.</>
+          : <>Depois de autorizada, abra a nota para <b>lançar a conta a receber</b> e <b>baixar o estoque</b>.</>}
+      </p>
     </Modal>
   );
 }

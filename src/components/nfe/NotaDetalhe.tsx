@@ -62,11 +62,14 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
     queryKey: ["notas_fiscais", "relacionadas", n.id],
     queryFn: async () => {
       const ids = [n.nota_referenciada_id].filter(Boolean) as string[];
-      const [{ data: devolucoes }, { data: origem }] = await Promise.all([
+      const [{ data: devolucoes }, { data: origem }, { data: entradas }] = await Promise.all([
         supabase.from("notas_fiscais").select("id, numero, serie, status, valor_total, created_at").eq("nota_referenciada_id", n.id),
         ids.length ? supabase.from("notas_fiscais").select("id, numero, serie, status, valor_total, created_at").in("id", ids) : Promise.resolve({ data: [] as any[] }),
+        // notas de entrada (ou diretas) que citam esta pela chave, ex.: a máquina vendida que voltou para conserto
+        n.chave ? supabase.from("notas_fiscais").select("id, numero, serie, status, valor_total, created_at, operacao").eq("chave_referenciada", n.chave).eq("finalidade", "normal").is("excluida_em", null) : Promise.resolve({ data: [] as any[] }),
       ]);
-      return [...(origem ?? []).map((x: any) => ({ ...x, papel: "original" })), ...(devolucoes ?? []).map((x: any) => ({ ...x, papel: "devolucao" }))];
+      return [...(origem ?? []).map((x: any) => ({ ...x, papel: "original" })), ...(devolucoes ?? []).map((x: any) => ({ ...x, papel: "devolucao" })),
+        ...(entradas ?? []).filter((x: any) => x.id !== n.id).map((x: any) => ({ ...x, papel: "referencia" }))];
     },
   });
 
@@ -128,10 +131,10 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
 
         <EvolucaoDaNota n={n} />
 
-        {relacionadas.length > 0 && (
+        {(relacionadas.length > 0 || !!n.chave_referenciada) && (
           <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-900">
             {relacionadas.map((r: any) => (
-              <div key={r.id}>{r.papel === "original" ? "Devolução da NF" : "Devolução emitida:"} {r.numero ?? "(sem número)"} · {dataBR(r.created_at)} · {brl(r.valor_total)} · {situacaoEmitida(r).rotulo}</div>
+              <div key={r.id}>{r.papel === "original" ? "Devolução da NF" : r.papel === "referencia" ? `${operacaoNota(r.operacao ?? "")?.rotulo ?? "Nota"} que cita esta: NF` : "Devolução emitida:"} {r.numero ?? "(sem número)"} · {dataBR(r.created_at)} · {brl(r.valor_total)} · {situacaoEmitida(r).rotulo}</div>
             ))}
             {n.chave_referenciada && !relacionadas.some((r: any) => r.papel === "original") && <div>Nota referenciada: <span className="break-all">{n.chave_referenciada}</span></div>}
           </div>
@@ -340,6 +343,8 @@ function EvolucaoDaNota({ n }: { n: NotaEmitida }) {
 function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boolean; teste: boolean }) {
   const invalidate = useInvalidate();
   const op = operacaoNota(n.operacao ?? "venda");
+  // nota de entrada: o estoque entra (e o estorno tira); não há conta a receber
+  const entrada = n.tipo_operacao === "entrada";
   const [form, setForm] = useState<{ parcelas: string; primeiro: string; intervalo: string; forma: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [estoque, setEstoque] = useState(!!n.estoque_lancado);
@@ -358,7 +363,12 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
 
   return (
     <div className="space-y-2 rounded-xl border border-slate-200 p-3 text-sm">
-      <div className="font-semibold text-fg">Nota direta{op ? ` · ${op.rotulo}` : ""}</div>
+      <div className="font-semibold text-fg">{entrada ? "Nota de entrada" : "Nota direta"}{op ? ` · ${op.rotulo}` : ""}</div>
+      {entrada ? (
+        <div className="text-slate-600">
+          <b>Financeiro:</b> {op?.id === "compra_usado" ? "o pagamento ao dono da máquina vai em Contas a pagar." : "não gera conta (não é compra nem venda)."}
+        </div>
+      ) : (
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1">
           <b>Conta a receber:</b>{" "}
@@ -369,7 +379,8 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
           <Button type="button" variant="secondary" onClick={() => setForm({ parcelas: "1", primeiro: new Date().toISOString().slice(0, 10), intervalo: "30", forma: "boleto" })}>Lançar conta a receber</Button>
         )}
       </div>
-      {form && (
+      )}
+      {form && !entrada && (
         <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-5">
           <Field label="Parcelas"><input className="input" inputMode="numeric" value={form.parcelas} onChange={(e) => setForm({ ...form, parcelas: e.target.value })} /></Field>
           <Field label="1º vencimento"><input className="input" type="date" value={form.primeiro} onChange={(e) => setForm({ ...form, primeiro: e.target.value })} /></Field>
@@ -395,27 +406,29 @@ function AcoesNotaDireta({ n, leitura, teste }: { n: NotaEmitida; leitura: boole
         <span className="min-w-0 flex-1">
           <b>Estoque:</b>{" "}
           {teste ? <span className="text-slate-500">nota de teste não mexe no estoque</span>
-            : estoque ? <span className="text-emerald-700">baixado</span>
-            : <span className="text-slate-500">{op?.estoque ? "ainda não baixado" : "não sai do estoque da MF"}</span>}
+            : estoque ? <span className="text-emerald-700">{entrada ? "entrada lançada" : "baixado"}</span>
+            : <span className="text-slate-500">{entrada
+              ? (op?.estoque ? "ainda não entrou" : "não entra no estoque da MF (o bem é do cliente)")
+              : (op?.estoque ? "ainda não baixado" : "não sai do estoque da MF")}</span>}
         </span>
-        {!leitura && !teste && autorizada && !estoque && (
+        {!leitura && !teste && autorizada && !estoque && (!entrada || op?.estoque !== false) && (
           <Button type="button" variant="secondary" disabled={ocupado} onClick={() => rodar(async () => {
             const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: false });
             if (error) throw error;
             setEstoque(true);
-            return `Estoque baixado (${data} ${pl(data, "movimento", "movimentos")})`;
-          })}>Baixar estoque</Button>
+            return `${entrada ? "Entrada no estoque lançada" : "Estoque baixado"} (${data} ${pl(data, "movimento", "movimentos")})`;
+          })}>{entrada ? "Dar entrada no estoque" : "Baixar estoque"}</Button>
         )}
         {!leitura && !teste && estoque && (
-          <Button type="button" variant="ghost" disabled={ocupado} title="Devolve ao estoque o que esta nota baixou (ex.: nota cancelada)" onClick={async () => {
-            if (!(await confirmar("Devolver ao estoque os itens desta nota?"))) return;
+          <Button type="button" variant="ghost" disabled={ocupado} title={entrada ? "Tira do estoque o que esta nota deu entrada (ex.: nota cancelada)" : "Devolve ao estoque o que esta nota baixou (ex.: nota cancelada)"} onClick={async () => {
+            if (!(await confirmar(entrada ? "Tirar do estoque os itens que esta nota deu entrada?" : "Devolver ao estoque os itens desta nota?"))) return;
             rodar(async () => {
               const { data, error } = await supabase.rpc("estoque_nota_direta", { p_nota: n.id, p_estornar: true });
               if (error) throw error;
               setEstoque(false);
-              return `Estoque devolvido (${data} ${pl(data, "movimento", "movimentos")})`;
+              return `${entrada ? "Entrada estornada" : "Estoque devolvido"} (${data} ${pl(data, "movimento", "movimentos")})`;
             });
-          }}>Estornar estoque</Button>
+          }}>{entrada ? "Estornar entrada" : "Estornar estoque"}</Button>
         )}
       </div>
       {autorizada && (

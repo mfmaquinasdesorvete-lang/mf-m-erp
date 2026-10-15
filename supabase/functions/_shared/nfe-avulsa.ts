@@ -1,15 +1,19 @@
 // NF-e direta (sem pedido): cliente, operação e itens escolhidos na tela Notas fiscais → Emitir NF-e.
-// Mesmo cálculo de impostos da venda pelo pedido (itensVenda + regras de tributação + IBS/CBS).
+// Saída: mesmo cálculo de impostos da venda pelo pedido (itensVenda + regras de tributação + IBS/CBS).
+// Entrada (tipo 0): a MF emite a nota de quem não emite (pessoa física, MEI, sem IE), com ou sem NF referenciada (nfe-entrada.ts).
 // A nota guarda os itens (produto, quantidade, valor) para depois lançar a conta a receber e baixar o estoque.
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { configIbsCbs, emitir, exigirEmitente, itemBase, observacoes, ratear, regrasDa } from "./nfe-emissao.ts";
-import { operacaoNota } from "./nfe-operacoes.ts";
+import { chaveValida, operacaoNota } from "./nfe-operacoes.ts";
+import { itensEntrada } from "./nfe-entrada.ts";
 
 export type NotaAvulsa = {
   unidade_id: string; cliente_id: string; operacao: string; natureza?: string | null;
   itens: { produto_id: string; descricao?: string | null; quantidade: number; valor_unitario: number }[];
   desconto?: number | null; frete?: number | null; modalidade_frete?: number | null; observacoes?: string | null;
+  /** Chave (44 dígitos) da NF-e referenciada, opcional: ex. a nota de venda da máquina que volta para conserto. */
+  chave_referenciada?: string | null;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -26,6 +30,9 @@ export function validarAvulsa(n: Partial<NotaAvulsa>) {
     if (!(Number(i.valor_unitario) >= 0)) throw new HttpError(400, "valor dos itens não pode ser negativo");
   }
   if (Number(n.desconto ?? 0) < 0 || Number(n.frete ?? 0) < 0) throw new HttpError(400, "desconto e frete não podem ser negativos");
+  if (String(n.chave_referenciada ?? "").trim() && !chaveValida(n.chave_referenciada)) {
+    throw new HttpError(400, "chave da NF referenciada inválida: confira os 44 números (ou deixe em branco)");
+  }
 }
 
 export async function emitirAvulsa(db: any, n: NotaAvulsa) {
@@ -64,14 +71,22 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
   const fretes = ratear(Number(n.frete ?? 0), brutos);
   const ufs: AliquotasUf = Object.fromEntries((ufsLista ?? []).map((x: any) => [x.uf, x]));
   const usadas = new Set<RegraTributaria>();
-  // Remessa (conserto, garantia, bonificação, demonstração…) não é receita: sem regra própria, PIS/COFINS saem
-  // sem valor (CST 49, outras operações de saída) e as regras feitas só para "Venda" não entram.
-  const uOp = op.financeiro ? u : { ...u, pis_cst: "49", cofins_cst: "49" };
-  const items = itensVenda(uOp, { uf: c.uf.toUpperCase(), contribuinte }, n.itens.map((i, idx) => {
+  const bases = n.itens.map((i, idx) => {
     const p = produto(i.produto_id);
     return itemBase(p, (i.descricao || p.descricao).trim(), Number(i.quantidade), Number(i.valor_unitario),
       { desconto: descontos[idx], frete: fretes[idx], ...(op.cfop ? { cfop: op.cfop } : {}) });
-  }), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg), operacao: op.financeiro ? "venda" : "remessa" });
+  });
+  const regras = await regrasDa(db, u.id);
+  // Remessa (conserto, garantia, bonificação, demonstração…) não é receita: sem regra própria, PIS/COFINS saem
+  // sem valor (CST 49, outras operações de saída) e as regras feitas só para "Venda" não entram.
+  const uOp = op.financeiro ? u : { ...u, pis_cst: "49", cofins_cst: "49" };
+  const items = op.entrada
+    ? itensEntrada(op, bases, {
+      ufEmitente: u.uf, ufRemetente: c.uf, contribuinte, aliquotaInterna: Number(u.icms_aliquota_interna ?? 17), ipiEnquadramento: u.ipi_enquadramento,
+      regras, unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg), ibsCbsUnidade: { cst: u.ibs_cbs_cst, class_trib: u.ibs_cbs_class_trib },
+    })
+    : itensVenda(uOp, { uf: c.uf.toUpperCase(), contribuinte }, bases, ufs, { regras, unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg), operacao: op.financeiro ? "venda" : "remessa" });
+  const chaveRef = chaveValida(n.chave_referenciada);
 
   const totalProdutos = r2(brutos.reduce((a, b) => a + b, 0));
   const ipi = r2((items as any[]).reduce((s, i) => s + Number(i.ipi_valor ?? 0), 0));
@@ -82,11 +97,13 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
   const payload = {
     natureza_operacao: (n.natureza ?? "").trim() || op.natureza || u.natureza_operacao,
     data_emissao: new Date().toISOString(),
-    tipo_documento: 1,
+    // entrada: a MF emite a nota de quem manda (tipo 0); a outra parte vai nos campos do destinatário
+    tipo_documento: op.entrada ? 0 : 1,
     finalidade_emissao: 1,
     local_destino: interestadual ? 2 : 1,
     consumidor_final: contribuinte ? 0 : 1,
-    presenca_comprador: cfg.presenca_comprador,
+    presenca_comprador: op.entrada ? 9 : cfg.presenca_comprador,
+    ...(chaveRef ? { notas_referenciadas: [{ chave_nfe: chaveRef }] } : {}),
     cnpj_emitente: onlyDigits(u.cnpj),
     nome_destinatario: c.nome,
     ...(doc.length === 14 ? { cnpj_destinatario: doc } : { cpf_destinatario: doc }),
@@ -102,15 +119,15 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
     telefone_destinatario: onlyDigits(c.telefone || c.whatsapp) || undefined,
     email_destinatario: c.email || undefined,
     modalidade_frete: Number(n.modalidade_frete ?? 9),
-    informacoes_adicionais_contribuinte: [n.observacoes, observacoes(usadas), u.informacoes_complementares].filter(Boolean).join(" - "),
+    informacoes_adicionais_contribuinte: [n.observacoes, chaveRef ? `NF-e referenciada: ${chaveRef}` : "", observacoes(usadas), u.informacoes_complementares].filter(Boolean).join(" - "),
     items,
   };
 
-  const referencia = `direta-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 4)}`;
+  const referencia = `${op.entrada ? "entrada" : "direta"}-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 4)}`;
   return await emitir(db, referencia, payload, {
     unidade_id: u.id, cliente_id: c.id, destinatario_nome: c.nome, destinatario_doc: doc, valor_total: valorTotal,
-    tipo_operacao: "saida", finalidade: "normal", operacao: op.id,
+    tipo_operacao: op.entrada ? "entrada" : "saida", finalidade: "normal", operacao: op.id, ...(chaveRef ? { chave_referenciada: chaveRef } : {}),
     itens: n.itens.map((i) => ({ produto_id: i.produto_id, descricao: (i.descricao || produto(i.produto_id)?.descricao || "").trim(), quantidade: Number(i.quantidade), valor_unitario: Number(i.valor_unitario) })),
-    observacao_interna: `Nota direta · ${op.rotulo}`,
+    observacao_interna: `${op.entrada ? "Nota de entrada" : "Nota direta"} · ${op.rotulo}`,
   });
 }
