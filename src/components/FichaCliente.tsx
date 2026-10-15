@@ -127,7 +127,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
               )}
             </div>
           )}
-          {data &&<MaquinasCliente maquinas={data.equipamentos} max={8} />}
+          {data && <MaquinasCliente maquinas={data.equipamentos} compra={c.compra_maquina_em} max={8} />}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           {calc && <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}

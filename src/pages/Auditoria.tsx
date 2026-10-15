@@ -1,66 +1,95 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useDeferredValue, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ShieldAlert } from "lucide-react";
-import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { ShieldAlert, X } from "lucide-react";
+import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
 import { calcularExcecoes, faixasAtraso, TIPOS, type Excecao, type TipoExcecao } from "@/lib/auditoria";
-import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ChecklistAuditoria } from "@/components/ChecklistAuditoria";
 import { useAbaUrl } from "@/lib/abaUrl";
+import {
+  FILTROS_EXCECOES, filtrarExcecoes, hojeLocal, lerConsulta, somarDiasData, VER_EXCECOES,
+  type FiltrosExcecoes, type FiltrosHistorico, type VerExcecoes,
+} from "@/lib/auditoriaBusca";
+import { PainelAuditoria } from "@/components/auditoria/PainelAuditoria";
+import { HistoricoBusca } from "@/components/auditoria/HistoricoBusca";
+import { CampoBusca, Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
+import { useNomesRegistros, type Destino } from "@/components/auditoria/useAuditoria";
 
 export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
 
-const TABELAS: Record<string, string> = {
-  contas_receber: "Conta a receber", contas_pagar: "Conta a pagar", pedidos: "Pedido", clientes: "Cliente", fornecedores: "Fornecedor",
-  transportadoras: "Transportadora", produtos: "Produto", usuarios_erp: "Usuário", configuracoes: "Configurações", unidades: "Unidade",
-  vendedores: "Vendedor", comissoes: "Comissão", contas_bancarias: "Conta bancária", extrato_lancamentos: "Extrato", auditoria_excecoes: "Exceção", auditoria_checklist: "Checklist da auditoria",
-};
+type Aba = "painel" | "checklist" | "excecoes" | "historico";
+const ABAS = ["painel", "checklist", "excecoes", "historico"] as const;
 
 export default function Auditoria() {
-  const [aba, setAba] = useAbaUrl<"checklist" | "excecoes" | "historico">("checklist", ["checklist", "excecoes", "historico"] as const);
-  const [tipoInicial, setTipoInicial] = useState<"" | TipoExcecao>("");
+  const [aba, setAba] = useAbaUrl<Aba>("painel", ABAS);
+  // filtros com que a aba abre quando vem do painel ou do checklist; clicar na aba abre sem filtro
+  const [inicial, setInicial] = useState<{ n: number; exc?: Partial<FiltrosExcecoes>; hist?: Partial<FiltrosHistorico> }>({ n: 0 });
   const dados = useExcecoes();
+  const topo = useRef<HTMLDivElement>(null);
+  const abrir = useCallback((d: Destino) => {
+    setInicial((x) => ({ n: x.n + 1, exc: d.aba === "excecoes" ? d.filtros : undefined, hist: d.aba === "historico" ? d.filtros : undefined }));
+    setAba(d.aba);
+    // o painel é comprido: volta para o começo da lista que abriu
+    if (topo.current && topo.current.getBoundingClientRect().top < 0) topo.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [setAba]);
   return (
     <div>
-      <PageHeader title="Auditoria financeira" subtitle="Checklist do mês, exceções para conferir e o histórico de tudo o que foi alterado" />
-      <Tabs value={aba} onChange={(a) => { setAba(a); setTipoInicial(""); }} options={[
-        { value: "checklist", label: "Checklist do mês" }, { value: "excecoes", label: "Exceções" }, { value: "historico", label: "Histórico de alterações" },
+      <PageHeader title="Auditoria financeira" subtitle="Painel, checklist do mês, exceções para conferir e o histórico de tudo o que foi alterado" />
+      <div ref={topo} className="scroll-mt-4" />
+      <Tabs value={aba} onChange={(a) => { setAba(a); setInicial((x) => ({ n: x.n + 1 })); }} options={[
+        { value: "painel", label: "Painel" }, { value: "checklist", label: "Checklist do mês" },
+        { value: "excecoes", label: "Exceções" }, { value: "historico", label: "Histórico de alterações" },
       ]} />
-      {aba === "checklist" ? <ChecklistAuditoria dados={dados} verExcecoes={(t) => { setTipoInicial(t); setAba("excecoes"); }} />
-        : aba === "excecoes" ? <Excecoes dados={dados} tipoInicial={tipoInicial} key={tipoInicial} /> : <HistoricoGeral />}
+      {aba === "painel" ? <AbaPainel dados={dados} abrir={abrir} />
+        : aba === "checklist" ? <ChecklistAuditoria dados={dados} verExcecoes={(t) => abrir({ aba: "excecoes", filtros: { tipo: t } })} />
+          : aba === "excecoes" ? <Excecoes key={inicial.n} dados={dados} inicial={inicial.exc} abrir={abrir} />
+            : <AbaHistorico key={inicial.n} dados={dados} inicial={inicial.hist} />}
     </div>
   );
+}
+
+/** Painel e histórico mostram o nome atual do registro alterado (a alteração guarda só os campos que mudaram). */
+function AbaPainel({ dados, abrir }: { dados: DadosExcecoes; abrir: (d: Destino) => void }) {
+  const nomeRegistro = useNomesRegistros(dados.fontes);
+  return <PainelAuditoria dados={dados} nomeRegistro={nomeRegistro} abrir={abrir} />;
+}
+function AbaHistorico({ dados, inicial }: { dados: DadosExcecoes; inicial?: Partial<FiltrosHistorico> }) {
+  const nomeRegistro = useNomesRegistros(dados.fontes);
+  return <HistoricoBusca inicial={inicial} nomeRegistro={nomeRegistro} />;
 }
 
 /* ------------------------------------ Exceções ------------------------------------ */
 
 export type DadosExcecoes = ReturnType<typeof useExcecoes>;
 
+// lista vazia sempre a mesma enquanto carrega: senão as regras (e a busca) seriam refeitas a cada letra digitada
+const NENHUM: never[] = [];
+
 /** Exceções calculadas pelas regras + as registradas à mão pelo checklist, com a tratativa de cada uma. */
 function useExcecoes() {
   const { filtrar } = useUnidade();
-  const { data: receber = [] } = useRows<any>("contas_receber");
-  const { data: pagar = [] } = useRows<any>("contas_pagar");
-  const { data: lancamentos = [] } = useRows<any>("extrato_lancamentos");
-  const { data: bancos = [] } = useRows<any>("contas_bancarias", { order: "nome", ascending: true });
-  const { data: importacoes = [] } = useRows<any>("extrato_importacoes");
+  const { data: receber = NENHUM } = useRows<any>("contas_receber");
+  const { data: pagar = NENHUM } = useRows<any>("contas_pagar");
+  const { data: lancamentos = NENHUM } = useRows<any>("extrato_lancamentos");
+  const { data: bancos = NENHUM } = useRows<any>("contas_bancarias", { order: "nome", ascending: true });
+  const { data: importacoes = NENHUM } = useRows<any>("extrato_importacoes");
   // as regras só olham o histórico das contas, dos produtos e das vendas (o resto do histórico não é baixado)
-  const { data: auditoria = [] } = useRows<any>("auditoria", {
+  const { data: auditoria = NENHUM } = useRows<any>("auditoria", {
     filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]), key: ["excecoes"],
   });
-  const { data: documentos = [] } = useRows<any>("documentos", { select: "entidade, entidade_id" });
-  const { data: pedidos = [] } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
-  const { data: recebidas = [] } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
-  const { data: usuarios = [] } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
-  const { data: produtos = [] } = useRows<any>("produtos", { select: "id, sku, descricao, tipo, unidade, ncm, preco_custo, preco_venda, estoque_atual, estoque_minimo, ativo, vendavel, kit, categoria, localizacao, fornecedor_padrao_id, fora_de_linha, created_at" });
-  const { data: ordens = [] } = useRows<any>("ordens_servico", { select: "id, numero, status, em_garantia, valor_total, unidade_id" });
-  const { data: fornecedores = [] } = useRows<any>("fornecedores", { select: "id, nome" });
-  const { data: tratativas = [] } = useRows<Tratativa>("auditoria_excecoes");
+  const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
+  const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
+  const { data: recebidas = NENHUM } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
+  const { data: usuarios = NENHUM } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, ultimo_acesso, created_at" });
+  const { data: produtos = NENHUM } = useRows<any>("produtos", { select: "id, sku, descricao, tipo, unidade, ncm, preco_custo, preco_venda, estoque_atual, estoque_minimo, ativo, vendavel, kit, categoria, localizacao, fornecedor_padrao_id, fora_de_linha, created_at" });
+  const { data: ordens = NENHUM } = useRows<any>("ordens_servico", { select: "id, numero, status, em_garantia, valor_total, unidade_id" });
+  const { data: fornecedores = NENHUM } = useRows<any>("fornecedores", { select: "id, nome" });
+  const { data: tratativas = NENHUM as Tratativa[] } = useRows<Tratativa>("auditoria_excecoes");
 
   const bancosU = filtrar(bancos);
   const idsBancos = new Set(bancosU.map((b: any) => b.id));
@@ -81,21 +110,38 @@ function useExcecoes() {
   const trat = (e: Excecao): Tratativa => tratativas.find((t) => t.chave === e.chave) ?? { chave: e.chave, tipo: e.tipo, situacao: "indicio", impacto: null, responsavel: null, prazo: null, observacao: null };
   const fechada = (t: Tratativa) => t.situacao === "resolvido" || t.situacao === "descartado";
   const abertasPorTipo = (k: TipoExcecao) => excecoes.filter((e) => e.tipo === k && !fechada(trat(e))).length;
-  return { excecoes, trat, fechada, abertasPorTipo, receber: filtrar(receber), pagar: filtrar(pagar) };
+  // para o histórico mostrar o nome do registro alterado (todas as unidades: o histórico não separa por unidade)
+  const fontes = useMemo(() => ({ receber, pagar, pedidos, produtos, fornecedores, usuarios, bancos }), [receber, pagar, pedidos, produtos, fornecedores, usuarios, bancos]);
+  return { excecoes, trat, fechada, abertasPorTipo, receber: filtrar(receber), pagar: filtrar(pagar), fontes };
 }
 
-function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "" | TipoExcecao }) {
+/** Linha do histórico que gerou a exceção (alteração de conta, produto ou pedido). */
+const idHistorico = (e: Excecao) => { const m = e.chave.match(/^alteracao(?:_produto|_pedido)?:(\d+)$/); return m ? Number(m[1]) : null; };
+const GRAVIDADES = [["alta", "Alta", "bg-red-500"], ["media", "Média", "bg-amber-500"], ["baixa", "Baixa", "bg-slate-400"]] as const;
+
+function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: Partial<FiltrosExcecoes>; abrir: (d: Destino) => void }) {
   const { excecoes, trat, fechada, receber, pagar } = dados;
-  const [tipo, setTipo] = useState<"" | TipoExcecao>(tipoInicial);
-  const [ver, setVer] = useState<"abertas" | "todas" | "fechadas">("abertas");
+  const [f, setF] = useState<FiltrosExcecoes>({ ...FILTROS_EXCECOES, ...inicial });
+  const [texto, setTexto] = useState(inicial?.busca ?? "");
+  const busca = useDeferredValue(texto);
+  const termos = useMemo(() => lerConsulta(busca), [busca]);
+  const mudar = (m: Partial<FiltrosExcecoes>) => setF((x) => ({ ...x, chave: "", ...m }));
   const [editar, setEditar] = useState<{ e: Excecao; t: Tratativa } | null>(null);
-  const lista = excecoes
-    .filter((e) => !tipo || e.tipo === tipo)
-    .filter((e) => ver === "todas" || (ver === "abertas" ? !fechada(trat(e)) : fechada(trat(e))));
+  const dia = hojeLocal();
+  const lista = filtrarExcecoes(excecoes, { ...f, busca }, trat, dia, (t) => TIPOS[t].rotulo);
   const contagem = Object.keys(TIPOS).map((k) => ({ k: k as TipoExcecao, n: excecoes.filter((e) => e.tipo === k && !fechada(trat(e))).length }));
   const atrasoR = faixasAtraso(receber, hoje());
   const atrasoP = faixasAtraso(pagar, hoje());
-  const atrasados = (t: Tratativa) => t.prazo && t.prazo < hoje() && !fechada(t);
+  const atrasados = (t: Tratativa) => t.prazo && t.prazo < dia && !fechada(t);
+  const limpo = !texto && !f.tipo && !f.gravidade && f.ver === FILTROS_EXCECOES.ver && !f.chave;
+  const limpar = () => { setTexto(""); setF(FILTROS_EXCECOES); };
+
+  // exceção que nasceu do histórico: abre a linha do histórico (a alteração com quem, quando e o motivo)
+  function verNoHistorico(e: Excecao, id: number) {
+    abrir({ aba: "historico", filtros: e.data
+      ? { periodo: "livre", de: somarDiasData(e.data, -1), ate: somarDiasData(e.data, 1), ids: [id] }
+      : { periodo: "30d", ids: [id] } });
+  }
 
   function exportar() {
     baixarPlanilha("auditoria-excecoes", [{ nome: "Exceções", linhas: lista.map((e) => {
@@ -108,11 +154,11 @@ function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "
   return (
     <div>
       <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {([["A receber vencido", atrasoR], ["A pagar vencido", atrasoP]] as const).map(([titulo, f]) => (
+        {([["A receber vencido", atrasoR], ["A pagar vencido", atrasoP]] as const).map(([titulo, faixas]) => (
           <Card key={titulo} className="p-4">
             <div className="mb-2 text-sm font-semibold">{titulo} por faixa de atraso</div>
             <div className="grid grid-cols-4 gap-2 text-center">
-              {f.map((x) => (
+              {faixas.map((x) => (
                 <div key={x.rotulo} className={`rounded-lg px-2 py-2 ${x.qtd ? (x.max > 60 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800") : "bg-slate-50 text-slate-500"}`}>
                   <div className="text-[11px]">{x.rotulo}</div><div className="text-sm font-bold">{brl(x.valor)}</div><div className="text-[11px]">{x.qtd} {pl(x.qtd, "conta", "contas")}</div>
                 </div>
@@ -122,19 +168,34 @@ function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "
         ))}
       </div>
 
+      <div className="mb-3">
+        <CampoBusca value={texto} onChange={(v) => { setTexto(v); if (f.chave) mudar({}); }} rotulo="Buscar nas exceções"
+          placeholder="Buscar: fornecedor, cliente, valor (1.234,56), documento, responsável, observação…" />
+      </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
-        <button onClick={() => setTipo("")} className={`rounded-full px-3 py-1 text-xs font-semibold ${!tipo ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600"}`}>Todas ({contagem.reduce((s, c) => s + c.n, 0)})</button>
-        {contagem.filter((c) => c.n || tipo === c.k).map((c) => (
-          <button key={c.k} onClick={() => setTipo(c.k)} title={TIPOS[c.k].criterio}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${tipo === c.k ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600"}`}>{TIPOS[c.k].rotulo} ({c.n})</button>
+        <Pilula ativo={!f.tipo} onClick={() => mudar({ tipo: "" })}>Todas ({contagem.reduce((s, c) => s + c.n, 0)})</Pilula>
+        {contagem.filter((c) => c.n || f.tipo === c.k).map((c) => (
+          <Pilula key={c.k} ativo={f.tipo === c.k} onClick={() => mudar({ tipo: c.k })} title={TIPOS[c.k].criterio}>{TIPOS[c.k].rotulo} ({c.n})</Pilula>
         ))}
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="input w-auto" value={ver} onChange={(e) => setVer(e.target.value as any)} aria-label="Mostrar">
-          <option value="abertas">Em aberto (indício ou confirmado)</option><option value="fechadas">Resolvidas ou descartadas</option><option value="todas">Todas</option>
+        <select className="input w-auto max-w-full" value={f.ver} onChange={(e) => mudar({ ver: e.target.value as VerExcecoes })} aria-label="Mostrar">
+          {VER_EXCECOES.map((v) => <option key={v.valor} value={v.valor}>{v.rotulo}</option>)}
         </select>
-        {tipo && <span className="text-xs text-slate-500"><b>Critério:</b> {TIPOS[tipo].criterio}</span>}
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Gravidade">
+          {GRAVIDADES.map(([g, rotulo, cor]) => (
+            <Pilula key={g} ativo={f.gravidade === g} onClick={() => mudar({ gravidade: f.gravidade === g ? "" : g })} title={`Só gravidade ${rotulo.toLowerCase()}`}>
+              <span className={`mr-1 inline-block h-2 w-2 rounded-full ${cor}`} aria-hidden />{rotulo}
+            </Pilula>
+          ))}
+        </div>
         <Button variant="secondary" className="ml-auto" onClick={exportar} disabled={!lista.length}>Exportar</Button>
+      </div>
+      {f.tipo && <p className="mb-2 text-xs text-slate-500"><b>Critério:</b> {TIPOS[f.tipo].criterio}</p>}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <p className="text-sm text-slate-600" aria-live="polite"><b className="num text-fg">{lista.length}</b> {pl(lista.length, "exceção", "exceções")}</p>
+        {f.chave && <FiltroAtivo onRemover={() => mudar({ chave: "", ver: FILTROS_EXCECOES.ver })}>Exceção escolhida no painel · ver todas</FiltroAtivo>}
+        {!limpo && <Button variant="ghost" onClick={limpar}><X size={16} /> Limpar filtros</Button>}
       </div>
 
       {!excecoes.length ? (
@@ -144,6 +205,7 @@ function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "
           head={<><th className="th">Exceção</th><th className="th">Evidência</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Responsável / prazo</th><th className="th" /></>}>
           {lista.map((e) => {
             const t = trat(e);
+            const idHist = idHistorico(e);
             return (
               <tr key={e.chave}>
                 <td className="td">
@@ -151,12 +213,20 @@ function Excecoes({ dados, tipoInicial }: { dados: DadosExcecoes; tipoInicial: "
                     <span className={`h-2 w-2 rounded-full ${e.gravidade === "alta" ? "bg-red-500" : e.gravidade === "media" ? "bg-amber-500" : "bg-slate-400"}`} aria-label={`gravidade ${e.gravidade}`} />
                     {TIPOS[e.tipo].rotulo}
                   </div>
-                  <Link to={e.link} className="font-medium text-fg hover:underline">{e.titulo}</Link>
+                  {e.link === "/auditoria" ? (
+                    <button type="button" className="text-left font-medium text-fg hover:underline"
+                      onClick={() => (idHist != null ? verNoHistorico(e, idHist) : abrir({ aba: "checklist" }))}>
+                      <Destaque texto={e.titulo} termos={termos} />
+                    </button>
+                  ) : <Link to={e.link} className="font-medium text-fg hover:underline"><Destaque texto={e.titulo} termos={termos} /></Link>}
+                  {idHist != null && e.link !== "/auditoria" && (
+                    <button type="button" onClick={() => verNoHistorico(e, idHist)} className="mt-0.5 block text-xs font-semibold text-brand hover:underline">Ver no histórico</button>
+                  )}
                 </td>
-                <td className="td text-sm text-slate-600">{e.detalhe}{t.observacao && <div className="mt-1 text-xs text-slate-500">Obs.: {t.observacao}</div>}</td>
-                <td className={`td whitespace-nowrap text-right ${e.valor != null && e.valor < 0 ? "text-red-600" : ""}`}>{e.valor != null ? brl(e.valor) : "—"}</td>
+                <td className="td text-sm text-slate-600"><Destaque texto={e.detalhe} termos={termos} />{t.observacao && <div className="mt-1 text-xs text-slate-500">Obs.: <Destaque texto={t.observacao} termos={termos} /></div>}</td>
+                <td className={`td whitespace-nowrap text-right ${e.valor != null && e.valor < 0 ? "text-red-600" : ""}`}>{e.valor != null ? <Destaque texto={brl(e.valor)} termos={termos} /> : "—"}</td>
                 <td className="td"><Badge value={t.situacao} />{t.impacto && <div className="mt-1 text-xs text-slate-500">impacto {t.impacto}</div>}</td>
-                <td className="td text-sm">{t.responsavel ?? <span className="text-slate-400">—</span>}{t.prazo && <div className={`text-xs ${atrasados(t) ? "font-semibold text-red-600" : "text-slate-500"}`}>até {dataBR(t.prazo)}</div>}</td>
+                <td className="td text-sm">{t.responsavel ? <Destaque texto={t.responsavel} termos={termos} /> : <span className="text-slate-400">—</span>}{t.prazo && <div className={`text-xs ${atrasados(t) ? "font-semibold text-red-600" : "text-slate-500"}`}>até {dataBR(t.prazo)}</div>}</td>
                 <td className="td text-right"><Button variant="secondary" onClick={() => setEditar({ e, t })}>Tratar</Button></td>
               </tr>
             );
@@ -213,69 +283,4 @@ function TratarExcecao({ e, t, onClose }: { e: Excecao; t: Tratativa; onClose: (
       </form>
     </Modal>
   );
-}
-
-/* ------------------------------ Histórico de alterações ------------------------------ */
-
-function HistoricoGeral() {
-  const [tabela, setTabela] = useState("");
-  const [usuario, setUsuario] = useState("");
-  const [mes, setMes] = useState(hoje().slice(0, 7));
-  // baixa só o mês escolhido (o histórico cresce cerca de mil linhas por dia)
-  const { data: linhas = [] } = useRows<LinhaAuditoria>("auditoria", {
-    filtro: (q) => (mes ? q.gte("created_at", `${mes}-01`).lt("created_at", proximoMes(mes)) : q), key: ["historico", mes],
-  });
-  const [soAlteracoes, setSoAlteracoes] = useState(true);
-  const usuarios = [...new Set(linhas.map((l) => l.usuario_nome ?? "sistema"))].sort();
-  const lista = linhas
-    .filter((l) => !tabela || l.tabela === tabela)
-    .filter((l) => !usuario || (l.usuario_nome ?? "sistema") === usuario)
-    .filter((l) => !mes || l.created_at.startsWith(mes))
-    .filter((l) => !soAlteracoes || l.acao !== "insert")
-    .slice(0, 500);
-
-  function exportar() {
-    baixarPlanilha("historico-alteracoes", [{ nome: "Histórico", linhas: lista.map((l) => ({
-      Quando: new Date(l.created_at).toLocaleString("pt-BR"), Usuário: l.usuario_nome ?? "sistema", Origem: l.origem === "sistema" ? "automático" : "manual",
-      Cadastro: TABELAS[l.tabela] ?? l.tabela, Registro: l.registro_id ?? "", Ação: l.acao, Campos: (l.campos ?? []).join(", "),
-      Antes: l.antes ? JSON.stringify(l.antes) : "", Depois: l.depois ? JSON.stringify(l.depois) : "", Motivo: l.motivo ?? "",
-    })) }]).catch(notifyError);
-  }
-
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="input w-auto" value={tabela} onChange={(e) => setTabela(e.target.value)} aria-label="Cadastro">
-          <option value="">Todos os cadastros</option>
-          {Object.entries(TABELAS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <select className="input w-auto" value={usuario} onChange={(e) => setUsuario(e.target.value)} aria-label="Usuário">
-          <option value="">Todos os usuários</option>
-          {usuarios.map((u) => <option key={u}>{u}</option>)}
-        </select>
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={soAlteracoes} onChange={(e) => setSoAlteracoes(e.target.checked)} /> Só alterações e exclusões</label>
-        <Button variant="secondary" className="ml-auto" onClick={exportar} disabled={!lista.length}>Exportar</Button>
-      </div>
-      <Table empty={!lista.length}
-        head={<><th className="th">Quando</th><th className="th">Quem</th><th className="th">Cadastro</th><th className="th">O que mudou</th><th className="th">Motivo</th></>}>
-        {lista.map((l) => (
-          <tr key={l.id}>
-            <td className="td whitespace-nowrap text-sm">{new Date(l.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</td>
-            <td className="td text-sm">{l.usuario_nome ?? "sistema"}{l.origem === "sistema" && <div className="text-xs text-slate-500">automático</div>}</td>
-            <td className="td text-sm">{TABELAS[l.tabela] ?? l.tabela}<div className="text-xs text-slate-500">{(l.depois as any)?.descricao ?? (l.antes as any)?.descricao ?? (l.depois as any)?.nome ?? ""}</div></td>
-            <td className="td text-sm"><DescricaoMudanca l={l} /></td>
-            <td className="td text-sm text-amber-700">{l.motivo ?? ""}</td>
-          </tr>
-        ))}
-      </Table>
-      <p className="mt-3 text-xs text-slate-500">O histórico é gravado pelo banco de dados a cada alteração e não pode ser editado nem apagado por ninguém.</p>
-    </div>
-  );
-}
-
-/** Primeiro dia do mês seguinte (AAAA-MM → AAAA-MM-01). */
-function proximoMes(mes: string) {
-  const [a, m] = mes.split("-").map(Number);
-  return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`;
 }

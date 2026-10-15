@@ -2,6 +2,8 @@
 // Secret: TINY_API_TOKEN (Tiny → Configurações → Token API).
 // O Tiny limita as consultas por minuto (o limite vem no header x-limit-api): as chamadas são espaçadas.
 
+import { dataDoCodigo } from "./compra-maquina.ts";
+
 const BASE = "https://api.tiny.com.br/api2/";
 
 export const tinyToken = () => Deno.env.get("TINY_API_TOKEN")?.replace(/\s+/g, "") || null;
@@ -183,6 +185,8 @@ export function contatoParaItem(c: any) {
     email: txt(c.email).split(/[;, ]+/)[0] ?? "", fone: txt(c.fone), celular: txt(c.celular),
     cep: txt(c.cep), endereco: txt(c.endereco), numero: txt(c.numero), complemento: txt(c.complemento),
     bairro: txt(c.bairro), cidade: txt(c.cidade), uf: txt(c.uf), obs: txt(c.obs), tipos,
+    // no Tiny o "Código" do contato guardava o mês/ano da compra da máquina (ex.: 10/2020)
+    compra_maquina: dataDoCodigo(c.codigo),
   };
 }
 

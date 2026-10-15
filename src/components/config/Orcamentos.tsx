@@ -12,7 +12,7 @@ import { BotaoSalvar, Bloco, CabecalhoSecao, campo, Opcao, secaoPorId, useCfgPag
 
 const CHAVES = ["validade_orcamento_dias", "orcamento_prazo_entrega", "orcamento_observacoes", "proposta_titulo", "proposta_cor", "proposta_fotos",
   "proposta_apresentacao", "proposta_condicoes", "proposta_rodape", "garantia_meses_padrao", "garantia_servico_dias", "preventiva_meses",
-  "os_armazenagem_dias", "termo_garantia", "aviso_outra_empresa", "textos"];
+  "os_armazenagem_dias", "termo_garantia", "aviso_outra_empresa", "textos", "taxa_diagnostico_video"];
 const inteiro = (v: unknown, padrao: number) => (v === "" || v == null || !Number.isFinite(Number(v)) ? padrao : Math.max(0, Math.round(Number(v))));
 
 export function ConfigOrcamentos() {
@@ -20,6 +20,7 @@ export function ConfigOrcamentos() {
   const { cfg, set, mudar, salvar, salvando } = useCfgPagina(CHAVES, (r) => ({
     ...r, validade_orcamento_dias: inteiro(r.validade_orcamento_dias, 7), garantia_meses_padrao: inteiro(r.garantia_meses_padrao, 12),
     garantia_servico_dias: inteiro(r.garantia_servico_dias, 90), preventiva_meses: inteiro(r.preventiva_meses, 6), os_armazenagem_dias: inteiro(r.os_armazenagem_dias, 90),
+    taxa_diagnostico_video: r.taxa_diagnostico_video === "" || r.taxa_diagnostico_video == null || !Number.isFinite(Number(r.taxa_diagnostico_video)) ? 150 : Math.max(0, Number(r.taxa_diagnostico_video)),
     proposta_titulo: r.proposta_titulo || "Proposta comercial", termo_garantia: r.termo_garantia ?? "",
     aviso_outra_empresa: String(r.aviso_outra_empresa ?? "").trim() || AVISO_OUTRA_EMPRESA_PADRAO,
     // só guarda o que foi escrito (vazio = texto padrão do sistema)
@@ -109,6 +110,7 @@ export function ConfigOrcamentos() {
             {input("garantia_servico_dias", "Garantia do conserto (dias)", "", "number", { min: 0 })}
             {input("preventiva_meses", "Preventiva a cada (meses)", "", "number", { min: 0 })}
             {input("os_armazenagem_dias", "Prazo para retirar da assistência (dias)", "", "number", { min: 0 })}
+            {input("taxa_diagnostico_video", "Diagnóstico por vídeo chamada fora da garantia (R$)", "", "number", { min: 0, step: "0.01" })}
             <p className="text-xs text-slate-500 sm:col-span-4">
               Cada máquina pode ter garantia própria no cadastro do produto; sem ela, vale a padrão. O prazo para retirar sai no comprovante de entrada da OS.
             </p>

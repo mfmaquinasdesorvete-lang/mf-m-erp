@@ -67,7 +67,7 @@ function seed(): Db {
       catalogo_texto: "Máquinas de sorvete soft, expresso e milk shake com garantia, peças e assistência técnica própria.",
       telegram_bot: "MFMaquinasAvisosBot", avisos_email_ativo: true, email_responder_para: "comercial@mfmaquinas.com.br",
       ibs_cbs_ativo: true, cbs_aliquota: 0.9, ibs_uf_aliquota: 0.1, ibs_mun_aliquota: 0,
-      validade_orcamento_dias: 7, garantia_meses_padrao: 12, preventiva_meses: 6, comissao_percentual: 3, precificacao: PRECO_PADRAO,
+      validade_orcamento_dias: 7, garantia_meses_padrao: 12, taxa_diagnostico_video: 150, preventiva_meses: 6, comissao_percentual: 3, precificacao: PRECO_PADRAO,
       etiqueta_formato: "10x15", etiqueta_modelo: {},
       termo_garantia: "Garantia contra defeitos de fabricação conforme prazo indicado. Não cobre mau uso, quedas, ligação em tensão errada, falta de limpeza ou manutenção preventiva, nem peças de desgaste natural (vedações, correias, bicos).",
     }],
@@ -467,7 +467,7 @@ function fichaDemo(db: Db) {
   set("c3", { status_crm: "cliente", vendedor_id: "v1", data_nascimento: "1990-05-14" });
   set("c4", { status_crm: "cliente", vendedor_id: "v3", forma_pagamento_id: "fp3", limite_credito: 20000, cobranca_diferente: true,
     cobranca_cep: "74115060", cobranca_logradouro: "Rua 9", cobranca_numero: "120", cobranca_bairro: "Setor Oeste", cobranca_municipio: "Goiânia", cobranca_uf: "GO" });
-  set("c5", { status_crm: "lead" });
+  set("c5", { status_crm: "lead", compra_maquina_em: "2021-10-01" });
   db.clientes_pessoas = [
     { id: "cp1", cliente_id: "c1", nome: "Marcos Lima", setor: "Compras", email: "compras@gelatonobre.com.br", telefone: "16988880001", ramal: "21", ativo: true, created_at: quando(-60) },
     { id: "cp2", cliente_id: "c1", nome: "Ana Paula Souza", setor: "Financeiro", email: "financeiro@gelatonobre.com.br", telefone: "1633334444", ramal: "30", ativo: true, created_at: quando(-60) },
@@ -1113,6 +1113,11 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-1), -2700, "PAGAMENTO DE BOLETO - REFRIGERACAO ANDRADE");
   add("cb3", dias(-4), 3690, "Venda no crédito · Cliente balcão (Lanchonete)");
   add("cb3", dias(-4), -110.7, "Taxa · Taxa da venda no crédito");
+  // cartão da empresa: abastecimentos e pedágio (tela Combustível)
+  add("cb3", dias(-2), -250, "POSTO ESTRELA DO SUL LTDA · cartao");
+  add("cb3", dias(-12), -180.5, "AUTO POSTO BOA VIAGEM · cartao");
+  add("cb3", dias(-40), -210, "POSTO ESTRELA DO SUL LTDA · cartao");
+  add("cb3", dias(-5), -12.3, "AUTOBAN · cartao");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
   const saldo = (c: string) => r2(Number(db.contas_bancarias.find((b) => b.id === c)!.saldo_inicial) + db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).reduce((s, l) => s + Number(l.valor), 0));
   db.extrato_importacoes = ["cb1", "cb2", "cb3"].map((c, i) => ({
@@ -1854,6 +1859,21 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     };
   },
   // técnicos que já atenderam o cliente (pelas OS) e os da região dele (cidades e estados que cada um atende)
+  // no sistema real: public.maquinas_do_cliente (equipamentos + NF-e de venda emitidas + data do cadastro)
+  maquinas_do_cliente: ({ p_cliente }) => {
+    const c = db.clientes.find((x: Row) => x.id === p_cliente);
+    const eq = (db.equipamentos ?? []).filter((e: Row) => e.cliente_id === p_cliente).map((e: Row) => ({
+      fonte: "equipamento", descricao: e.descricao, quantidade: 1, data: e.data_venda ?? null, garantia_ate: e.garantia_ate ?? null,
+      nota: null, numero_serie: e.numero_serie ?? null, equipamento_id: e.id, origem: e.origem ?? null,
+    }));
+    const d: string | null = c?.compra_maquina_em ?? null;
+    const cad = d && !eq.some((e: Row) => String(e.data ?? "").slice(0, 7) === d.slice(0, 7)) ? [{
+      fonte: "cadastro", descricao: "Máquina (modelo não informado)", quantidade: 1, data: d,
+      garantia_ate: new Date(Date.UTC(Number(d.slice(0, 4)) + 1, Number(d.slice(5, 7)), 0)).toISOString().slice(0, 10),
+      nota: null, numero_serie: null, equipamento_id: null, origem: null,
+    }] : [];
+    return { data: [...eq, ...cad].sort((a, b) => String(b.data ?? "").localeCompare(String(a.data ?? ""))), error: null };
+  },
   tecnicos_do_cliente: ({ p_cliente }) => {
     const c = db.clientes.find((x: Row) => x.id === p_cliente);
     const sa = (t: unknown) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -2792,6 +2812,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
           id_externo: it.id_externo, nome: it.nome, nome_fantasia: it.fantasia, [doc]: it.cpf_cnpj, inscricao_estadual: it.ie,
           email: it.email, telefone: it.fone, whatsapp: it.celular, cep: it.cep, logradouro: it.endereco, numero: it.numero,
           complemento: it.complemento, bairro: it.bairro, municipio: it.cidade, uf: it.uf,
+          ...(tabela === "clientes" && !c.compra_maquina_em ? { compra_maquina_em: it.compra_maquina } : {}),
         }).filter(([, v]) => v !== "" && v != null)));
       }
     }

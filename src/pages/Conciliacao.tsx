@@ -12,6 +12,8 @@ import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoE
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
 import { OpenFinancePainel, type ConexaoOF } from "@/components/financeiro/OpenFinance";
 import { InterPainel, type ConexaoInter } from "@/components/financeiro/Inter";
+import { AvisoContasRepetidas, ResumoExtrato } from "@/components/financeiro/ResumoExtrato";
+import { contasRepetidas, TIPOS_LANC, tipoLancamento, type TipoLanc } from "@/lib/extratoTipos";
 
 export type ContaBancaria = {
   id: string; unidade_id: string; nome: string; banco: string; agencia: string | null; numero: string | null; tipo: string;
@@ -23,6 +25,8 @@ type Lancamento = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; documento: string | null;
   status: "pendente" | "conciliado" | "ignorado" | "transferencia"; conta_receber_id: string | null; conta_pagar_id: string | null;
   par_transferencia_id: string | null; observacao: string | null; baixou_conta: boolean; created_at: string;
+  /** FITID do OFX (ou resumo da linha do CSV): o mesmo lançamento não entra duas vezes na mesma conta */
+  identificador?: string | null;
 };
 type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null; email_id?: string | null };
 type Conta = {
@@ -48,6 +52,7 @@ export default function Conciliacao() {
   const [contaSel, setContaSel] = useState<string>("");
   const [situacao, setSituacao] = useState<string>("pendente");
   const [mes, setMes] = useState("");
+  const [tipo, setTipo] = useState<TipoLanc | "">("");
   const [editConta, setEditConta] = useState<Partial<ContaBancaria> | null>(null);
   const [importar, setImportar] = useState(false);
   const [tratar, setTratar] = useState<Lancamento | null>(null);
@@ -63,7 +68,11 @@ export default function Conciliacao() {
     .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
     .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
       : situacao === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === situacao))
-    .filter((l) => !mes || l.data.startsWith(mes));
+    .filter((l) => !mes || l.data.startsWith(mes))
+    .filter((l) => !tipo || tipoLancamento(l.descricao, Number(l.valor)) === tipo);
+  // base do resumo: conta e mês escolhidos, todas as situações
+  const doResumo = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && (!mes || l.data.startsWith(mes)));
+  const repetidas = useMemo(() => contasRepetidas(lancamentos.filter((l) => contasTodas.some((b) => b.id === l.conta_bancaria_id && b.ativo))), [lancamentos, contasTodas]);
   const sugeridasNaLista = lista.filter((l) => l.status === "pendente" && sugestoes.has(l.id));
 
   async function aprovar(ids: string[]) {
@@ -135,6 +144,8 @@ export default function Conciliacao() {
       {podeEditar && bancos.length > 0 && <InterPainel contas={bancos} />}
       {podeEditar && bancos.length > 0 && <ExtratoPorEmail bancos={bancos} importacoes={importacoes} onEditar={setEditConta} />}
 
+      <AvisoContasRepetidas pares={repetidas} nome={nomeConta} onEditar={podeEditar ? (id) => setEditConta(contasTodas.find((b) => b.id === id) ?? null) : undefined} />
+
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {bancos.map((b) => {
           const s = saldos[b.id];
@@ -168,6 +179,9 @@ export default function Conciliacao() {
         })}
       </div>
 
+      <ResumoExtrato lancs={doResumo} titulo={contaSel ? nomeConta(contaSel) : "todas as contas"} mes={mes} tipo={tipo}
+        onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} />
+
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
           <option value="pendente">Pendentes</option><option value="sugestao">Com sugestão ({[...sugestoes.keys()].length})</option>
@@ -177,6 +191,10 @@ export default function Conciliacao() {
         <select className="input w-auto" value={contaSel} onChange={(e) => setContaSel(e.target.value)} aria-label="Conta">
           <option value="">Todas as contas</option>
           {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+        </select>
+        <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoLanc | "")} aria-label="Tipo de lançamento">
+          <option value="">Todos os tipos</option>
+          {TIPOS_LANC.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
         </select>
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
         {podeEditar && sugeridasNaLista.length > 0 && (
@@ -319,6 +337,22 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
   const invalidate = useInvalidate();
   const linhas: LinhaExtrato[] = res?.csv && mapa ? linhasCsv(res.csv.registros, mapa) : res?.linhas ?? [];
   useEffect(() => { if (arquivoInicial) escolher(arquivoInicial); }, [arquivoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+  // o mesmo arquivo já entrou em outra conta? (importar de novo em outra conta duplica entradas, saídas e saldo)
+  const [jaEm, setJaEm] = useState<{ conta: string; iguais: number; amostra: number }[]>([]);
+  const chaveAmostra = linhas.slice(0, 80).map((l) => l.identificador).join("|");
+  useEffect(() => {
+    const ids = chaveAmostra ? chaveAmostra.split("|") : [];
+    if (!ids.length || !conta) { setJaEm([]); return; }
+    let vivo = true;
+    supabase.from("extrato_lancamentos").select("conta_bancaria_id").in("identificador", ids).neq("conta_bancaria_id", conta).limit(1000)
+      .then(({ data }) => {
+        if (!vivo) return;
+        const m = new Map<string, number>();
+        for (const r of (data ?? []) as { conta_bancaria_id: string }[]) m.set(r.conta_bancaria_id, (m.get(r.conta_bancaria_id) ?? 0) + 1);
+        setJaEm([...m].filter(([, n]) => n >= Math.min(5, ids.length)).map(([c, iguais]) => ({ conta: c, iguais, amostra: ids.length })));
+      });
+    return () => { vivo = false; };
+  }, [chaveAmostra, conta]);
 
   async function escolher(f: File | null) {
     setArquivo(f); setRes(null); setMapa(null);
@@ -403,6 +437,13 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
           </div>
         )}
 
+        {jaEm.map((j) => (
+          <div key={j.conta} role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <b>Este extrato já foi importado na conta “{bancos.find((b) => b.id === j.conta)?.nome ?? "outra conta"}”</b> ({j.iguais} de {j.amostra} lançamentos conferidos são iguais).
+            Importar aqui também duplica entradas, saídas e saldo. Confira a conta escolhida acima.
+          </div>
+        ))}
+
         {res && (
           linhas.length ? (
             <>
@@ -428,7 +469,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={enviar} disabled={!linhas.length || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : `Importar ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
+          <Button onClick={enviar} variant={jaEm.length ? "secondary" : "primary"} disabled={!linhas.length || !conta || ocupado}><FileUp size={16} /> {ocupado ? "Importando…" : `${jaEm.length ? "Importar mesmo assim" : "Importar"} ${linhas.length || ""} ${pl(linhas.length || "", "lançamento", "lançamentos")}`}</Button>
         </div>
       </div>
     </Modal>

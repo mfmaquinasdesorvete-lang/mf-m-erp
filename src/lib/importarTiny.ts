@@ -1,5 +1,7 @@
 // Lê a planilha de produtos exportada do Tiny / Olist ERP (.xls, .xlsx ou .csv)
 // e converte para os campos do ERP Line.
+import { abrirPlanilha } from "./planilha";
+
 export type ProdutoImportado = {
   id_externo: string; sku: string; descricao: string; tipo: "maquina" | "peca" | "acessorio" | "insumo";
   unidade: string; ncm: string; cest: string; origem: number; preco_venda: number; preco_custo: number;
@@ -104,7 +106,7 @@ export function converterLinhas(linhas: Record<string, unknown>[]): Leitura {
 /** Abre o arquivo (a biblioteca de planilhas só é baixada quando alguém importa). */
 export async function lerPlanilha(arquivo: File): Promise<Leitura> {
   const XLSX = await import("xlsx");
-  const wb = XLSX.read(await arquivo.arrayBuffer(), { type: "array", codepage: 1252 });
+  const wb = await abrirPlanilha(XLSX, arquivo);
   const ws = wb.Sheets[wb.SheetNames[0]];
   const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
   if (!linhas.length || !("Descrição" in linhas[0])) throw new Error("Não parece a planilha de produtos do Tiny/Olist (falta a coluna Descrição).");

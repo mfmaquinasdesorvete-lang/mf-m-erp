@@ -19,14 +19,18 @@ export type ExtratoEmail = {
   novas?: number; repetidas?: number; conciliadas?: number;
 };
 
-/** Texto do arquivo respeitando a codificação (bancos brasileiros ainda usam Windows-1252). */
+/**
+ * Texto do arquivo respeitando a codificação (bancos brasileiros ainda usam Windows-1252). Vale o conteúdo, não o
+ * cabeçalho: a InfinitePay declara CHARSET:1252 e manda UTF-8 ("Depósito" virava "DepÃ³sito"). Acento em
+ * Windows-1252 quase nunca forma UTF-8 válido, então: UTF-8 válido -> UTF-8; senão Windows-1252.
+ */
 export function decodificarExtrato(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-  const inicio = new TextDecoder("latin1").decode(bytes.slice(0, 400));
-  const declarado = /CHARSET:\s*1252|encoding="(windows-1252|iso-8859-1)"/i.test(inicio);
-  if (declarado) return new TextDecoder("windows-1252").decode(bytes);
-  const utf8 = new TextDecoder("utf-8").decode(bytes);
-  return utf8.includes("\uFFFD") ? new TextDecoder("windows-1252").decode(bytes) : utf8.replace(/^\uFEFF/, "");
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, "");
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
 }
 
 export const ehTextoOfx = (texto: string) => /<OFX>|OFXHEADER/i.test(texto);

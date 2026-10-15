@@ -17,6 +17,7 @@ import { PessoasContato, type PessoaEditada } from "./PessoasContato";
 import { AssinaturaFicha, useAssinaturasFicha } from "./AssinaturaFicha";
 import { CategoriasContato, corTipo, useTiposContato } from "./TiposContato";
 import { AvisoUnificacao, EnderecosExtras, EtiquetaEndereco, limparEnderecos, MAX_ENDERECOS } from "./EnderecosCliente";
+import { CampoMesAno } from "./CampoMesAno";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -184,10 +185,10 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const tocar = (nome: string) => setTocados((t) => new Set(t).add(nome));
 
   /** Campo do formulário (função, não componente: o campo não perde o foco ao digitar). */
-  const campo = (nome: string, rotulo: string, o: { span?: Span; tipo?: string; placeholder?: string; buscar?: boolean; ajuda?: string; obrigatorio?: boolean; linhas?: number } = {}) => {
+  const campo = (nome: string, rotulo: string, o: { span?: Span; classe?: string; tipo?: string; placeholder?: string; buscar?: boolean; ajuda?: string; obrigatorio?: boolean; linhas?: number } = {}) => {
     const mask = MASCARAS[nome];
     return (
-      <Field key={nome} label={rotulo + (o.obrigatorio ? " *" : "")} className={`col-span-1 ${SPAN[o.span ?? 6]}`}>
+      <Field key={nome} label={rotulo + (o.obrigatorio ? " *" : "")} className={`col-span-1 ${SPAN[o.span ?? 6]} ${o.classe ?? ""}`}>
         {mask ? (
           <CampoMascara f={{ name: nome, label: rotulo, mask, buscar: o.buscar, placeholder: o.placeholder }} valor={c[nome]} row={c}
             buscando={buscando === nome} mostrarErro={tocados.has(nome)} onBlur={() => tocar(nome)}
@@ -387,7 +388,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             <AvisoUnificacao unificacoes={c.unificacoes} />
             <Secao icone={IdCard} titulo="Identificação" sub="Digite o CNPJ: nome, endereço e inscrição estadual vêm da Receita">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
-                <div className="col-span-1 sm:col-span-5">
+                <div className="col-span-1 sm:col-span-6 lg:col-span-4">
                   <span className="mb-1.5 block text-xs font-semibold text-slate-600">Tipo de pessoa</span>
                   <div role="radiogroup" aria-label="Tipo de pessoa" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
                     {([["PJ", "Jurídica", Building2], ["PF", "Física", UserRound]] as const).map(([v, l, Icon]) => (
@@ -398,9 +399,12 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     ))}
                   </div>
                 </div>
-                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 5, buscar: true })}
-                <Field label="Código" className="col-span-1 sm:col-span-2">
+                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 6, classe: "lg:col-span-4", buscar: true })}
+                <Field label="Código" className="col-span-1 sm:col-span-6 lg:col-span-2">
                   <div className="input flex items-center bg-slate-50 font-mono text-slate-600">{c.codigo ?? <span className="font-sans text-slate-400">automático</span>}</div>
+                </Field>
+                <Field label="Compra da máquina" className="col-span-1 sm:col-span-6 lg:col-span-2">
+                  <CampoMesAno value={c.compra_maquina_em ?? null} disabled={!podeEditar} onChange={(v) => set("compra_maquina_em", v)} />
                 </Field>
                 {campo("nome", pj ? "Razão social" : "Nome completo", { span: 7, obrigatorio: true })}
                 {campo("nome_fantasia", pj ? "Nome fantasia" : "Apelido / como chamamos", { span: 5, placeholder: "Ex.: Gelato Nobre" })}

@@ -67,6 +67,7 @@ const FIELDS: CampoForm[] = [
   { name: "regime_tributario", label: "Regime tributário", type: "select", options: REGIMES },
   { name: "inscricao_suframa", label: "Inscrição Suframa" },
   { name: "data_nascimento", label: "Data de nascimento / abertura" },
+  { name: "compra_maquina_em", label: "Compra da máquina" },
   { name: "status_crm", label: "Status no CRM", type: "select", options: STATUS_CRM.map(({ value, label }) => ({ value, label })) },
   { name: "condicao_pagamento", label: "Condição de pagamento" },
   { name: "desconto_padrao", label: "Desconto padrão (%)" },
@@ -162,7 +163,8 @@ export default function Clientes() {
         ...[...new Set([...maquinas.values()].flat().map((m) => rotuloMaquina(m.descricao)))].sort((a, b) => a.localeCompare(b, "pt-BR"))
           .map((modelo) => ({ label: modelo, teste: (r: Cliente) => (maquinas.get(r.id) ?? []).some((m) => rotuloMaquina(m.descricao) === modelo) })),
         { label: "Comprou máquina usada", teste: (r: Cliente) => tag(r, "compra_usada") || (maquinas.get(r.id) ?? []).some((m) => m.usada) },
-        { label: "Sem máquina", teste: (r: Cliente) => !maquinas.has(r.id) },
+        { label: "Com data de compra da máquina", teste: (r: Cliente) => !!r.compra_maquina_em },
+        { label: "Sem máquina", teste: (r: Cliente) => !maquinas.has(r.id) && !r.compra_maquina_em },
       ],
     },
   ], [situacaoFicha, vendedores, tipos, maquinas]);
@@ -267,7 +269,7 @@ export default function Clientes() {
                 {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
               </div>
               <EtiquetasCliente c={r} tipos={tipos} />
-              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} />
+              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
             </>);
           },
         },

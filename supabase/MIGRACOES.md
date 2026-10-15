@@ -74,3 +74,5 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   51. `20261015114351_servicos.sql` (tipo serviço: carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica; sem estoque nem reposição)
   52. `20261015124941_itens_notas_fornecedor.sql` (itens das notas de fornecedor lidos do XML numa tabela própria; conferir itens: ligar ao produto, que já atualiza os fornecedores do produto, ou marcar como uso e consumo / bem da empresa / serviço; não mexe no estoque)
   53. `20261015131844_propostas_tiny_marcadores.sql` (propostas do Tiny: marcadores; vendas e financeiro mudam só próximo contato, situação e marcadores)
+  54. `20261015140119_clientes_compra_maquina.sql` (cliente: data de compra da máquina, que no Tiny ficava no campo "Código"; importar contatos preenche só onde está vazio e unificar leva a data para o cadastro que fica)
+  55. `20261015143058_maquinas_do_cliente.sql` (OS: máquinas do cliente com garantia, lidas dos equipamentos, das NF-e de venda emitidas (XML) e da data de compra do cadastro; taxa do diagnóstico por vídeo chamada fora da garantia, padrão R$ 150,00)

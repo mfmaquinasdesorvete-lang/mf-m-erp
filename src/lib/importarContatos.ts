@@ -1,12 +1,16 @@
 // Lê uma planilha de clientes / fornecedores / transportadoras (.xlsx, .xls ou .csv) exportada do Tiny,
 // de outro sistema ou do próprio ERP (botão Exportar) e converte para importar_contatos.
 // As colunas são reconhecidas pelo nome do cabeçalho, sem depender da ordem.
+import { dataDoCodigo } from "../../supabase/functions/_shared/compra-maquina";
+import { abrirPlanilha } from "./planilha";
 
 export type TipoContato = "cliente" | "fornecedor" | "transportadora";
 export type ContatoImportado = {
   id_externo: string; nome: string; fantasia: string; tipo_pessoa: string; cpf_cnpj: string; ie: string; contribuinte: string;
   email: string; fone: string; celular: string; cep: string; endereco: string; numero: string; complemento: string;
   bairro: string; cidade: string; uf: string; obs: string; tipos: TipoContato[];
+  /** mês/ano da compra da máquina (AAAA-MM-DD); no Tiny ficava no "Código" do contato */
+  compra_maquina: string;
 };
 export type LeituraContatos = {
   itens: ContatoImportado[];
@@ -20,7 +24,8 @@ const txt = (v: unknown) => String(v ?? "").replace(/ /g, " ").replace(/\s+/g, 
 
 /** Campo -> nomes de coluna aceitos (já sem acento e em minúsculas). A ordem decide empates ("nome fantasia" antes de "nome"). */
 const COLUNAS: [keyof ContatoImportado | "situacao" | "ignorar", string[]][] = [
-  ["ignorar", ["ie isento", "codigo", "cod", "data de cadastro", "data cadastro", "recebe avisos por e mail", "limite de credito", "pessoa de contato"]],
+  ["compra_maquina", ["codigo", "cod", "compra da maquina", "data de compra da maquina"]],
+  ["ignorar", ["ie isento", "data de cadastro", "data cadastro", "recebe avisos por e mail", "limite de credito", "pessoa de contato"]],
   ["id_externo", ["id", "id tiny", "id externo"]],
   ["fantasia", ["nome fantasia", "fantasia", "apelido"]],
   ["nome", ["razao social", "nome razao social", "nome completo", "nome", "cliente", "fornecedor", "transportadora"]],
@@ -126,6 +131,7 @@ export function converterContatos(linhas: unknown[][], padrao: TipoContato): Lei
       cep: digitos(col(r, "cep"), [8]), endereco: txt(col(r, "endereco")), numero: txt(col(r, "numero")).replace(/\.0+$/, ""),
       complemento: txt(col(r, "complemento")), bairro: txt(col(r, "bairro")), cidade: txt(col(r, "cidade")),
       uf: uf(col(r, "uf")), obs: txt(col(r, "obs")), tipos,
+      compra_maquina: dataDoCodigo(col(r, "compra_maquina")),
     });
   });
   const colunas = [...mapa.entries()].map(([campo, i]) => ({ campo, cabecalho: cab[i] }));
@@ -135,7 +141,8 @@ export function converterContatos(linhas: unknown[][], padrao: TipoContato): Lei
 /** Abre o arquivo (a biblioteca de planilhas só é baixada quando alguém importa). */
 export async function lerPlanilhaContatos(arquivo: File, padrao: TipoContato): Promise<LeituraContatos> {
   const XLSX = await import("xlsx");
-  const wb = XLSX.read(await arquivo.arrayBuffer(), { type: "array", codepage: 1252 });
+  // CSV como texto puro: o "Código" 05/21 não vira data e o CPF não perde o zero
+  const wb = await abrirPlanilha(XLSX, arquivo, { textoCru: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   // raw: CPF/CNPJ vêm como número inteiro (sem virar "1,23E+13")
   const linhas = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });

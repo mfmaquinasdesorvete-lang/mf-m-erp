@@ -28,6 +28,8 @@ import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebi
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
+import { BotaoFiltros, PainelFiltros, ResumoFiltradas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
+import { filtrosEmUso, passaFiltro } from "@/lib/filtroNotas";
 
 const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
 const POR_VEZ = 200;
@@ -188,8 +190,10 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
     return m;
   }, [data, evolucoes]);
   const filtroEtapa = FILTROS_EMITIDAS.find((f) => f.valor === etapa);
+  const filtros = useFiltrosNotas();
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
-    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
+    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
+    .filter((n) => passaFiltro({ data: n.created_at, numero: n.numero, valor: n.valor_total, uf: n.payload?.uf_destinatario }, filtros.f));
   const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
@@ -227,7 +231,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></div></>}</div>
+        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
         <div className="flex flex-wrap gap-2">
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
           <MaisAcoes>
@@ -244,8 +248,10 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
           </MaisAcoes>
         </div>
       </div>
+      {aba !== "excluidas" && (filtros.aberto || filtrosEmUso(filtros.f) > 0) && <PainelFiltros f={filtros.f} onChange={filtros.setF} comUf />}
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
+      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={filtrosEmUso(filtros.f) > 0} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -311,8 +317,10 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const { data: evolucoes } = useEvolucaoRecebidas();
   const evolucao = useMemo(() => new Map(data.map((n) => [n.id, evolucaoRecebida(n as any, evolucoes?.get(n.id))])), [data, evolucoes]);
   const filtroEtapa = FILTROS_RECEBIDAS.find((f) => f.valor === etapa);
+  const filtros = useFiltrosNotas();
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
-    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!));
+    .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
+    .filter((n) => passaFiltro({ data: n.data_emissao, numero: numeroDaChave(n.chave), valor: n.valor_total }, filtros.f));
   const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
@@ -369,9 +377,11 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></div></>}</div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} /></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
+      {aba !== "excluidas" && (filtros.aberto || filtrosEmUso(filtros.f) > 0) && <PainelFiltros f={filtros.f} onChange={filtros.setF} />}
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
+      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={filtrosEmUso(filtros.f) > 0} />
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>

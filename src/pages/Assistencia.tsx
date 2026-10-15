@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
+import { GarantiaCliente, naGarantia, type MaquinaCliente } from "@/components/assistencia/GarantiaCliente";
 
 const STATUS_EDITAVEIS = [
   { value: "aberta", label: "Aberta" },
@@ -222,6 +223,20 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     });
   }
 
+  // máquina achada nas notas emitidas ou no cadastro do cliente (quadro de garantia)
+  const taxaDiagnostico = Number(cfg?.taxa_diagnostico_video ?? 150);
+  function usarMaquina(m: MaquinaCliente) {
+    if (m.equipamento_id) return escolherEquipamento(m.equipamento_id);
+    set({
+      equipamento_id: null, equipamento: m.nota ? `${m.descricao} (${m.nota} de ${dataBR(m.data)})` : m.descricao,
+      em_garantia: naGarantia(m, hoje()), maquina_origem: m.origem ?? null,
+    });
+  }
+  function cobrarDiagnostico() {
+    set({ em_garantia: false, valor_mao_obra: Number(o.valor_mao_obra || 0) || taxaDiagnostico });
+    notify(`Diagnóstico por vídeo chamada (${brl(taxaDiagnostico)}) lançado na mão de obra: veja a aba Peças e valores`);
+  }
+
   async function gravar(): Promise<string> {
     const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, ...cab } = o as any;
     const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0), maquina_origem: origem });
@@ -395,6 +410,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               <ClienteBusca clientes={clientes} value={o.cliente_id} disabled={somenteLeitura} required onChange={(id) => set({ cliente_id: id, equipamento_id: null })} />
             </Field>
             <div className="sm:col-span-2"><CampoUnidade value={(o as any).unidade_id} disabled={somenteLeitura} label="Unidade que atende" onChange={(v) => set({ unidade_id: v } as any)} /></div>
+            {o.cliente_id && (
+              <div className="sm:col-span-4">
+                <GarantiaCliente clienteId={o.cliente_id} taxa={taxaDiagnostico} hoje={hoje()} editavel={!somenteLeitura}
+                  onUsar={usarMaquina} onCobrarTaxa={cobrarDiagnostico} />
+              </div>
+            )}
             <Field label="Situação">
               {encerrada ? <div className="py-2"><Badge value={o.status} /></div> : (
                 <select className="input" value={o.status} disabled={somenteLeitura} onChange={(e) => set({ status: e.target.value })}>

@@ -5,6 +5,7 @@ import { Snowflake } from "lucide-react";
 import { useRows } from "@/lib/data";
 import { dataBR, pl } from "@/lib/format";
 import { modeloMaquina } from "@/lib/legadoMyFrost";
+import { mesAnoCompra } from "../../../supabase/functions/_shared/compra-maquina";
 
 export type MaquinaResumo = {
   id: string; cliente_id: string; descricao: string; data_venda: string | null; usada?: boolean | null; origem?: string | null;
@@ -46,12 +47,23 @@ export function corMaquina(rotulo: string) {
 
 const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : "");
 
-export function MaquinasCliente({ maquinas, max = 4 }: { maquinas: MaquinaResumo[]; max?: number }) {
-  if (!maquinas.length) return null;
+/**
+ * compra: data de compra da máquina guardada no cadastro do cliente (no Tiny ficava no "Código"); vira uma etiqueta
+ * quando nenhuma máquina registrada é daquele mês.
+ */
+export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: MaquinaResumo[]; compra?: string | null; max?: number }) {
+  const soCadastro = !!compra && !maquinas.some((m) => (m.data_venda ?? "").slice(0, 7) === compra.slice(0, 7));
+  if (!maquinas.length && !soCadastro) return null;
   const ordem = [...maquinas].sort((a, b) => (b.data_venda ?? "").localeCompare(a.data_venda ?? ""));
   const resto = ordem.length - max;
   return (
     <div className="mt-0.5 flex flex-wrap gap-1">
+      {soCadastro && (
+        <span title={`Comprou máquina em ${mesAnoCompra(compra)} (data do cadastro do cliente; modelo não informado)`}
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-300 bg-surface px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
+          <Snowflake size={11} aria-hidden /> Máquina · {mesAnoCompra(compra)}
+        </span>
+      )}
       {ordem.slice(0, max).map((m) => {
         const r = rotuloMaquina(m.descricao);
         const quando = mesAno(m.data_venda);

@@ -13,6 +13,7 @@ import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { CampoBloqueio, SeloGolpe } from "@/components/fornecedores/Golpe";
 import { notify } from "@/lib/notify";
+import { ehPosto } from "@/lib/extratoTipos";
 
 const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
 
@@ -66,6 +67,7 @@ const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [
   },
   { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
   { label: "Golpe", opcoes: [{ label: "Bloqueados (golpe: não pagar)", teste: (r) => !!r.bloqueado }, { label: "Sem bloqueio", teste: (r) => !r.bloqueado }] },
+  { label: "Atividade", opcoes: [{ label: "Postos de combustível", teste: (r) => ehPosto(r) }, { label: "Sem os postos", teste: (r) => !ehPosto(r) }] },
   filtroCadastradoEm<Fornecedor>(),
 ];
 const ORDENS_FORN = ordensCadastro<Fornecedor>();
