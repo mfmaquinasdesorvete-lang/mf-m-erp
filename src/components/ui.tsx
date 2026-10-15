@@ -289,7 +289,7 @@ export function Modal({
             <X size={18} aria-hidden />
           </button>
         </div>
-        <div className="min-w-0 break-words p-4 sm:p-5">{children}</div>
+        <div className="modal-corpo min-w-0 break-words p-4 sm:p-5">{children}</div>
       </div>
     </div>,
     document.body,

@@ -90,6 +90,11 @@ body { @apply bg-canvas font-sans text-slate-800 antialiased; }
 h1, h2, h3 { text-wrap: balance; }
 
 @layer components {
+  /* janelas: a linha Cancelar/Salvar do fim do formulário fica presa no pé da tela quando a janela é mais alta que a tela
+     (notebook com tela baixa não via o Salvar sem rolar) */
+  .modal-corpo form > div:last-child:has(> button[type="submit"], > button:not([type])) {
+    @apply sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-slate-100 bg-surface px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5 rounded-b-2xl;
+  }
   /* 16px no celular evita o zoom automático do iPhone ao tocar no campo */
   .input {
     @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
