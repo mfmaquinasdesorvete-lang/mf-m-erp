@@ -33,6 +33,7 @@ export const USUARIOS_DEMO = [
   { user_id: "u-tec", nome: "Diego Técnico", papel: "tecnico", email: "assistencia@mfmaquinas.com.br" },
   { user_id: "u-cont", nome: "Escritório Contábil Exemplo", papel: "contador", email: "contador@escritorio.com.br" },
   { user_id: "u-exp", nome: "Lucas Expedição", papel: "expedicao", email: "expedicao@mfmaquinas.com.br" },
+  { user_id: "u-mkt", nome: "Bruna Marketplaces", papel: "marketplace", email: "marketplaces@mfmaquinas.com.br" },
 ];
 
 /** Leitura simples do XML de NF-e para a demonstração. */
@@ -4256,7 +4257,7 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
-    const ADIC = ["vendas", "financeiro", "tecnico", "expedicao"];
+    const ADIC = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace"];
     const extras = (v: any, papel: string) => (Array.isArray(v) && !["admin", "contador"].includes(papel) ? [...new Set(v as string[])].filter((p) => ADIC.includes(p) && p !== papel) : []);
     const ultimoAdmin = (u: Row, papel: string, ativo: boolean) => u.papel === "admin" && u.ativo && (papel !== "admin" || !ativo)
       && !db.usuarios_erp.some((x) => x.user_id !== u.user_id && x.papel === "admin" && x.ativo);

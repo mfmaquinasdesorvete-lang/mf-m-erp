@@ -240,6 +240,7 @@ function RotasERP() {
   const navigate = useNavigate();
   const inicio = papel === "contador" && vis.ve("contador", "/contador") ? "/contador"
     : papel === "expedicao" && vis.ve("expedicao", "/expedicao") ? "/expedicao"
+    : papel === "marketplace" && vis.ve("estoque", "/estoque") ? "/estoque"
     : vis.ve("painel", "/") ? null
     : todosItens.find((i) => i.to !== "/" && vis.item(i))?.to ?? null;
   useEffect(() => {

@@ -343,7 +343,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     { value: "qualidade" as const, label: "Qualidade do cadastro" },
     { value: "auditoria" as const, label: "Marketplace e anúncios" },
     { value: "categorias" as const, label: "Categorias" },
-    { value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" },
+    ...(tem("financeiro") ? [{ value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" }] : []),
     { value: "tabelas" as const, label: "Tabelas de preço" },
     ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
   ];
@@ -421,6 +421,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         title={cadastro === "todos" ? "Produtos e estoque" : atualCad.titulo}
         filtroBase={doCadastro[cadastro]}
         readOnly={!pode("editar_produtos")}
+        semNovo={!tem("financeiro")}
         table="produtos"
         marcadores={["produto", "produtos"]}
         order="descricao"
@@ -432,11 +433,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         podeExcluir={papel === "admin"}
         plural="produtos"
         acoesLote={pode("editar_produtos") ? [
-          { label: "Inativar", executar: (ids) => situacaoProdutos(ids, false) },
-          { label: "Ativar", executar: (ids) => situacaoProdutos(ids, true) },
-          ...(cadastro !== "maquinas" ? [{ label: "Mover para Máquinas", executar: (ids: string[]) => moverPara(ids, "maquina", "Máquinas") }] : []),
-          ...(cadastro !== "pecas" ? [{ label: "Mover para Peças de reposição", executar: (ids: string[]) => moverPara(ids, "peca", "Peças de reposição") }] : []),
-          ...(cadastro !== "componentes" ? [{ label: "Mover para Componentes de produção", executar: (ids: string[]) => moverPara(ids, "insumo", "Componentes de produção") }] : []),
+          // perfil Marketplaces: ativar, inativar e mudar de cadastro ficam com o financeiro
+          ...(tem("financeiro") ? [{ label: "Inativar", executar: (ids: string[]) => situacaoProdutos(ids, false) },
+            { label: "Ativar", executar: (ids: string[]) => situacaoProdutos(ids, true) }] : []),
+          ...(tem("financeiro") && cadastro !== "maquinas" ? [{ label: "Mover para Máquinas", executar: (ids: string[]) => moverPara(ids, "maquina", "Máquinas") }] : []),
+          ...(tem("financeiro") && cadastro !== "pecas" ? [{ label: "Mover para Peças de reposição", executar: (ids: string[]) => moverPara(ids, "peca", "Peças de reposição") }] : []),
+          ...(tem("financeiro") && cadastro !== "componentes" ? [{ label: "Mover para Componentes de produção", executar: (ids: string[]) => moverPara(ids, "insumo", "Componentes de produção") }] : []),
           ...(cadastro === "pecas" ? [{ label: "Pôr no catálogo", executar: (ids: string[]) => catalogo(ids, true) }, { label: "Tirar do catálogo", executar: (ids: string[]) => catalogo(ids, false) }] : []),
           ...(podeMover ? [{ label: "Unificar", executar: (ids: string[]) => ids.length < 2
             ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
@@ -449,8 +451,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {ehMaquinas ? <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
             : <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>}
           {pode("editar_produtos") && <>
-            <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
-            <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>
+            {tem("financeiro") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
+            {tem("financeiro") && <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>}
             {tem("financeiro", "tecnico") && <Button variant="secondary" onClick={() => setItensNotas(true)}><ListChecks size={16} /> Itens das notas de fornecedor</Button>}
           </>}
         </>}

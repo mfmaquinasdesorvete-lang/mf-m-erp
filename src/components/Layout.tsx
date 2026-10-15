@@ -47,6 +47,7 @@ const ATALHOS: Record<string, string[]> = {
   tecnico: ["/", "/assistencia", "/garantias", "/producao"],
   contador: ["/contador", "/notas", "/financeiro", "/documentos"],
   expedicao: ["/expedicao", "/fluxo"],
+  marketplace: ["/estoque", "/produtos/pecas", "/produtos/maquinas", "/documentos"],
 };
 
 /** Botões coloridos do acesso rápido (3 por linha). */

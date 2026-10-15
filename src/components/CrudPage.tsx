@@ -70,6 +70,8 @@ type Props<T> = {
   exportExtra?: (row: T) => Record<string, unknown>;
   /** Só consulta: esconde "Novo" e "Editar". */
   readOnly?: boolean;
+  /** Edita os existentes, mas não cria novos (ex.: perfil Marketplaces nos produtos). */
+  semNovo?: boolean;
   filtros?: FiltroCrud<T>[];
   /** Ordenações da lista (a primeira é a padrão). */
   ordens?: OrdemCrud<T>[];
@@ -309,7 +311,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           );
           // no celular: "Novo" à vista e o resto no botão "Mais" (eram até 5 botões antes da lista)
           return <>
-            {!readOnly && <Button className="md:order-last" onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
+            {!readOnly && !props.semNovo && <Button className="md:order-last" onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button>}
             {extraActions ? <MaisAcoes>{botaoExportar}{extraActions}</MaisAcoes> : botaoExportar}
           </>;
         })()}

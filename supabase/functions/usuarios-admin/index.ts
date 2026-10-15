@@ -8,8 +8,8 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 
-const PAPEIS = ["admin", "vendas", "financeiro", "tecnico", "contador", "expedicao"];
-const ADICIONAIS = ["vendas", "financeiro", "tecnico", "expedicao"];
+const PAPEIS = ["admin", "vendas", "financeiro", "tecnico", "contador", "expedicao", "marketplace"];
+const ADICIONAIS = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validarSenha(senha: unknown) {
