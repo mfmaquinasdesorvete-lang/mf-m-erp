@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contasRepetidas, ehCombustivel, estabelecimento, resumoPorMes, resumoPorTipo, tipoLancamento } from "../extratoTipos";
+import { contasRepetidas, ehCombustivel, estabelecimento, resumoPorMes, resumoPorTipo, tipoLancamento, transferenciasInternas } from "../extratoTipos";
 
 describe("tipoLancamento", () => {
   it("entradas", () => {
@@ -46,5 +46,18 @@ describe("resumos", () => {
   });
   it("nome do estabelecimento", () => {
     expect(estabelecimento("POSTO ESTRELA DO SUL LTDA · cartao")).toBe("Posto Estrela Do Sul Ltda");
+  });
+});
+
+describe("transferenciasInternas", () => {
+  it("mesmo valor saindo de uma conta e entrando em outra no mesmo dia ou no seguinte", () => {
+    const l = [
+      { id: "s1", conta_bancaria_id: "A", data: "2026-10-03", valor: -5000 },
+      { id: "e1", conta_bancaria_id: "B", data: "2026-10-04", valor: 5000 },
+      { id: "s2", conta_bancaria_id: "A", data: "2026-10-03", valor: -300 },
+      { id: "e2", conta_bancaria_id: "A", data: "2026-10-03", valor: 300 }, // mesma conta: estorno, não transferência
+      { id: "e3", conta_bancaria_id: "B", data: "2026-10-09", valor: 300 }, // longe demais
+    ];
+    expect([...transferenciasInternas(l)].sort()).toEqual(["e1", "s1"]);
   });
 });

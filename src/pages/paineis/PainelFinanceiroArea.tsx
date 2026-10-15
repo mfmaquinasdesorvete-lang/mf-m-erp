@@ -1,5 +1,7 @@
 // Painel do Financeiro: quanto tem, quanto entrou e saiu, para onde foi o dinheiro, quem deve (e há quanto tempo)
 // e o que vence nos próximos dias. Tocar numa categoria filtra os maiores pagamentos; os números levam à tela certa.
+// Entrou e saiu vêm dos extratos dos bancos (todo o dinheiro que passou nas contas, sem as transferências entre elas);
+// sem extrato importado, vêm das contas pagas e recebidas. A saída ligada a uma conta a pagar leva a categoria dela.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -22,9 +24,11 @@ import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { rotuloCategoria } from "@/lib/dre";
 import { aDecidir, type ContaDecisao } from "@/lib/programacao";
 import type { ContaFin } from "@/lib/financeiro";
+import { estabelecimento, ROTULO_TIPO, semRepetidos, tipoLancamento, transferenciasInternas } from "@/lib/extratoTipos";
 
 type Receber = ContaFin & { cliente_id?: string | null; cliente?: { nome: string; nome_fantasia?: string | null } | null };
 type Pagar = ContaFin & ContaDecisao & { fornecedor?: { nome: string } | null };
+type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; identificador: string | null; status: string; conta_pagar_id: string | null };
 const CORES = ["var(--serie-2)", "var(--serie-1)", "var(--serie-3)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const pagoValor = (c: ContaFin) => Number(c.valor_pago ?? c.valor ?? 0);
 const somaPago = (l: ContaFin[]) => l.reduce((s, c) => s + pagoValor(c), 0);
@@ -40,7 +44,7 @@ export default function PainelFinanceiroArea() {
   // mesmos selects do painel financeiro da tela inicial: a lista carregada serve aos dois
   const { data: recTodos = [], isLoading } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia, whatsapp, cpf_cnpj)", key: ["painel"] });
   const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)", key: ["painel"] });
-  const { data: extrato = [] } = useRows<{ status: string }>("extrato_lancamentos", { select: "status", order: "status", key: ["painel"] });
+  const { data: extrato = [] } = useRows<Lanc>("extrato_lancamentos", { select: "id, conta_bancaria_id, data, valor, descricao, identificador, status, conta_pagar_id", order: "data", key: ["painel"] });
   const { data: notasTodas = [] } = useRows<{ processamento: string; unidade_id: string | null }>("nfe_recebidas", { select: "processamento, unidade_id", key: ["painel"] });
   const { data: saldosTodos = [] } = useQuery({
     queryKey: ["saldos_bancarios"],
@@ -54,19 +58,44 @@ export default function PainelFinanceiroArea() {
   const rec = useMemo(() => filtrar(recTodos).filter((c) => c.status !== "cancelado").map((c) => ({ ...c, terceiro: c.cliente?.nome_fantasia?.trim() || c.cliente?.nome || null })), [recTodos, filtrar]);
   const pag = useMemo(() => vePagar ? filtrar(pagTodos).filter((c) => c.status !== "cancelado").map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })) : [], [pagTodos, filtrar, vePagar]);
   const saldos = filtrar(saldosTodos);
+  // extratos das contas ativas da unidade escolhida; o mesmo lançamento em duas contas conta uma vez; transferência entre contas não é entrada nem saída
+  const mov = useMemo(() => {
+    const ids = new Set(filtrar(saldosTodos).map((x) => x.conta_id));
+    const daqui = semRepetidos(extrato.filter((l) => ids.has(l.conta_bancaria_id) && l.status !== "transferencia"));
+    const internas = transferenciasInternas(daqui);
+    return daqui.filter((l) => !internas.has(l.id));
+  }, [extrato, saldosTodos, filtrar]);
+  const usaExtrato = mov.length > 0;
+  const nomeConta = (id: string) => saldosTodos.find((x) => x.conta_id === id)?.nome ?? "";
 
   const k = useMemo(() => {
     const { atual, anterior } = intervalos(periodo);
     const pagos = <T extends ContaFin>(l: T[], f: [string, string]) => l.filter((c) => c.status === "pago" && dentro(c.data_pagamento, f));
     const bs = baldes(periodo);
-    const recebido = somaPago(pagos(rec, atual)), recebidoAnt = somaPago(pagos(rec, anterior));
-    const pago = somaPago(pagos(pag, atual)), pagoAnt = somaPago(pagos(pag, anterior));
+    const contasRecebido = somaPago(pagos(rec, atual)), contasPago = somaPago(pagos(pag, atual));
+    // dinheiro que passou nos bancos (extratos) ou, sem extrato, as contas pagas e recebidas
+    const movDe = (f: [string, string]) => mov.filter((l) => dentro(l.data, f));
+    const entrouExt = (f: [string, string]) => movDe(f).reduce((t, l) => t + Math.max(0, Number(l.valor)), 0);
+    const saiuExt = (f: [string, string]) => movDe(f).reduce((t, l) => t + Math.max(0, -Number(l.valor)), 0);
+    const entrou = (f: [string, string]) => usaExtrato ? entrouExt(f) : somaPago(pagos(rec, f));
+    const saiu = (f: [string, string]) => usaExtrato ? saiuExt(f) : somaPago(pagos(pag, f));
+    const recebido = entrou(atual), recebidoAnt = entrou(anterior);
+    const pago = saiu(atual), pagoAnt = saiu(anterior);
     const ar = rec.filter((c) => c.status === "aberto"), ap = pag.filter((c) => c.status === "aberto");
     const vencidas = ar.filter((c) => c.vencimento < dia);
 
-    // para onde foi o dinheiro: pagamentos do período por categoria
+    // para onde foi o dinheiro: saídas do período por categoria (a da conta a pagar ligada, senão o tipo do extrato)
+    const contaPag = new Map(pag.map((c) => [c.id, c]));
+    type Saida = { rotulo: string; valor: number; data: string; categoria: string; detalhe: string };
+    const saidas: Saida[] = usaExtrato
+      ? movDe(atual).filter((l) => Number(l.valor) < 0).map((l) => {
+        const c = l.conta_pagar_id ? contaPag.get(l.conta_pagar_id) : undefined;
+        return { rotulo: c ? c.terceiro || c.descricao : estabelecimento(l.descricao), valor: -Number(l.valor), data: l.data,
+          categoria: c ? rotuloCategoria(c.categoria) : ROTULO_TIPO[tipoLancamento(l.descricao, Number(l.valor))], detalhe: nomeConta(l.conta_bancaria_id) };
+      })
+      : pagos(pag, atual).map((c) => ({ rotulo: c.terceiro || c.descricao, valor: pagoValor(c), data: c.data_pagamento ?? "", categoria: rotuloCategoria(c.categoria), detalhe: c.terceiro ? c.descricao : "" }));
     const porCategoria = new Map<string, number>();
-    for (const c of pagos(pag, atual)) { const n = rotuloCategoria(c.categoria); porCategoria.set(n, (porCategoria.get(n) ?? 0) + pagoValor(c)); }
+    for (const x of saidas) porCategoria.set(x.categoria, (porCategoria.get(x.categoria) ?? 0) + x.valor);
     const categorias = [...porCategoria.entries()].sort((a, b) => b[1] - a[1]);
     const principais = categorias.slice(0, 6);
     const outras = categorias.slice(6).reduce((s, [, v]) => s + v, 0);
@@ -85,33 +114,39 @@ export default function PainelFinanceiroArea() {
     }));
 
     return {
-      recebido, pago, resultado: recebido - pago,
+      recebido, pago, resultado: recebido - pago, contasRecebido, contasPago,
       dRecebido: variacao(recebido, recebidoAnt), dPago: variacao(pago, pagoAnt),
-      serie: bs.map((b) => ({ rotulo: b.rotulo, valores: [somaPago(pagos(rec, b.atual)), somaPago(pagos(pag, b.atual))] })),
-      tendRec: bs.map((b) => somaPago(pagos(rec, b.atual))), tendPag: bs.map((b) => somaPago(pagos(pag, b.atual))),
+      serie: bs.map((b) => ({ rotulo: b.rotulo, valores: [entrou(b.atual), saiu(b.atual)] })),
+      tendRec: bs.map((b) => entrou(b.atual)), tendPag: bs.map((b) => saiu(b.atual)),
+      porConta: saldos.map((x) => {
+        const l = mov.filter((m) => m.conta_bancaria_id === x.conta_id && dentro(m.data, atual));
+        return { nome: x.nome, saldo: Number(x.saldo), entrou: l.reduce((t, m) => t + Math.max(0, Number(m.valor)), 0), saiu: l.reduce((t, m) => t + Math.max(0, -Number(m.valor)), 0), n: l.length };
+      }),
       aReceber: somaAberto(ar), vencido: somaAberto(vencidas), qtdVencidas: vencidas.length,
       pctVencido: somaAberto(ar) ? (somaAberto(vencidas) / somaAberto(ar)) * 100 : 0,
       categorias: outras > 0 ? [...principais, ["Outras", outras] as [string, number]] : principais,
-      maiores: pagos(pag, atual).filter((c) => !fCategoria || (fCategoria === "Outras" ? !principais.some(([n]) => n === rotuloCategoria(c.categoria)) : rotuloCategoria(c.categoria) === fCategoria))
-        .sort((a, b) => pagoValor(b) - pagoValor(a)).slice(0, 6),
+      maiores: saidas.filter((x) => !fCategoria || (fCategoria === "Outras" ? !principais.some(([n]) => n === x.categoria) : x.categoria === fCategoria))
+        .sort((a, b) => b.valor - a.valor).slice(0, 6),
       devedores: [...devedores.values()].sort((a, b) => b.valor - a.valor).slice(0, 6),
       atraso: FAIXAS_ATRASO.map(([rotulo, de, ate]) => ({ rotulo, valores: [somaAberto(vencidas.filter((c) => { const n = diasEntre(c.vencimento, dia); return n >= de && n <= ate; }))] })),
       proximos, entra7: proximos.reduce((s, d) => s + d.valores[0], 0), sai7: proximos.reduce((s, d) => s + d.valores[1], 0),
       pagVencidas: ap.filter((c) => c.vencimento < dia), decidir: aDecidir(ap),
     };
-  }, [periodo, rec, pag, dia, fCategoria]);
+  }, [periodo, rec, pag, dia, fCategoria, mov, usaExtrato, saldos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saldoBancos = saldos.reduce((s, x) => s + Number(x.saldo), 0);
-  const extratoPendente = extrato.filter((l) => l.status === "pendente").length;
+  const extratoPendente = useMemo(() => { const ids = new Set(saldos.map((x) => x.conta_id)); return extrato.filter((l) => l.status === "pendente" && ids.has(l.conta_bancaria_id)).length; }, [extrato, saldos]);
   const notasLancar = filtrar(notasTodas).filter((n) => ["aguardando_vinculo", "revisao"].includes(n.processamento)).length;
 
   const cartoes: Cartao[] = [
     { id: "saldo", rotulo: "Saldo nos bancos", valor: saldos.length ? brl(saldoBancos) : "—", icone: Landmark, cor: "var(--kpi-azul)",
       sub: saldos.length ? `${saldos.length} ${pl(saldos.length, "conta", "contas")} ${pl(saldos.length, "bancária", "bancárias")}` : "cadastre as contas em Bancos e conciliação", onClick: () => navigate("/conciliacao") },
-    { id: "rec", rotulo: "Recebido", valor: brl(k.recebido), icone: ArrowDownCircle, cor: "var(--kpi-verde)", delta: k.dRecebido, tendencia: k.tendRec,
-      sub: `${brl(k.aReceber)} ainda a receber`, onClick: () => navigate("/financeiro", { state: { aba: "receber" } }) },
-    ...(vePagar ? [{ id: "pag", rotulo: "Pago", valor: brl(k.pago), icone: ArrowUpCircle, cor: "var(--kpi-laranja)", delta: k.dPago, bomCair: true, tendencia: k.tendPag,
-      sub: `resultado ${k.resultado >= 0 ? "+" : "−"} ${brl(Math.abs(k.resultado))}`, onClick: () => navigate("/financeiro", { state: { aba: "pagar" } }) } as Cartao] : []),
+    { id: "rec", rotulo: usaExtrato ? "Entrou nas contas" : "Recebido", valor: brl(k.recebido), icone: ArrowDownCircle, cor: "var(--kpi-verde)", delta: k.dRecebido, tendencia: k.tendRec,
+      sub: usaExtrato ? `extratos · contas recebidas no ERP: ${brl(k.contasRecebido)}` : `${brl(k.aReceber)} ainda a receber`,
+      onClick: () => navigate(usaExtrato ? "/conciliacao" : "/financeiro", { state: { aba: "receber" } }) },
+    ...(vePagar ? [{ id: "pag", rotulo: usaExtrato ? "Saiu das contas" : "Pago", valor: brl(k.pago), icone: ArrowUpCircle, cor: "var(--kpi-laranja)", delta: k.dPago, bomCair: true, tendencia: k.tendPag,
+      sub: `resultado ${k.resultado >= 0 ? "+" : "−"} ${brl(Math.abs(k.resultado))}${usaExtrato ? ` · contas pagas no ERP: ${brl(k.contasPago)}` : ""}`,
+      onClick: () => navigate(usaExtrato ? "/conciliacao" : "/financeiro", { state: { aba: "pagar" } }) } as Cartao] : []),
     { id: "venc", rotulo: "Vencido a receber", valor: brl(k.vencido), icone: AlertTriangle, cor: "var(--kpi-rosa)",
       sub: k.qtdVencidas ? `${k.qtdVencidas} ${pl(k.qtdVencidas, "parcela", "parcelas")} · ${Math.round(k.pctVencido)}% do que há para receber` : "ninguém atrasado", onClick: () => navigate("/financeiro", { state: { aba: "cobranca" } }) },
   ];
@@ -125,7 +160,7 @@ export default function PainelFinanceiroArea() {
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…" : vePagar
-    ? <>Entrou {brl(k.recebido)} e saiu {brl(k.pago)}: resultado de <b>{k.resultado >= 0 ? "+" : "−"} {brl(Math.abs(k.resultado))}</b>{frasePeriodo(k.dRecebido, periodo, "a mais recebido", "a menos recebido") ? ` · ${frasePeriodo(k.dRecebido, periodo, "a mais recebido", "a menos recebido")}` : ""}.</>
+    ? <>Entrou {brl(k.recebido)} e saiu {brl(k.pago)}{usaExtrato ? " nas contas" : ""}: resultado de <b>{k.resultado >= 0 ? "+" : "−"} {brl(Math.abs(k.resultado))}</b>{frasePeriodo(k.dRecebido, periodo, "a mais recebido", "a menos recebido") ? ` · ${frasePeriodo(k.dRecebido, periodo, "a mais recebido", "a menos recebido")}` : ""}.</>
     : <>Entrou {brl(k.recebido)}{frasePeriodo(k.dRecebido, periodo) ? ` · ${frasePeriodo(k.dRecebido, periodo)}` : ""}.</>;
 
   return (
@@ -143,9 +178,9 @@ export default function PainelFinanceiroArea() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title={periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"} className="xl:col-span-3">
-          <Colunas dados={vePagar ? k.serie : k.serie.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={250} vazio="Nada recebido nem pago no período."
-            series={vePagar ? [{ nome: "Recebido", cor: "var(--serie-3)" }, { nome: "Pago", cor: "var(--serie-2)" }] : [{ nome: "Recebido", cor: "var(--serie-3)" }]} />
+        <Section title={`${periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"}${usaExtrato ? " · extratos" : ""}`} className="xl:col-span-3">
+          <Colunas dados={vePagar ? k.serie : k.serie.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={250} vazio="Nada entrou nem saiu no período."
+            series={vePagar ? [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }, { nome: usaExtrato ? "Saiu" : "Pago", cor: "var(--serie-2)" }] : [{ nome: usaExtrato ? "Entrou" : "Recebido", cor: "var(--serie-3)" }]} />
         </Section>
         <Section title="Próximos 7 dias" className="xl:col-span-2">
           <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
@@ -161,7 +196,7 @@ export default function PainelFinanceiroArea() {
         {vePagar && (
           <Section title="Para onde foi o dinheiro" actions={<span className="text-xs text-slate-500">toque para ver as contas</span>}>
             {k.categorias.length
-              ? <Rosca total="Pago" ativo={fCategoria} onClicar={(i) => { const c = k.categorias[i][0]; setFCategoria(fCategoria === c ? null : c); }}
+              ? <Rosca total={usaExtrato ? "Saiu" : "Pago"} ativo={fCategoria} onClicar={(i) => { const c = k.categorias[i][0]; setFCategoria(fCategoria === c ? null : c); }}
                   fatias={k.categorias.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
               : <p className="py-10 text-center text-sm text-slate-500">Nada pago no período.</p>}
           </Section>
@@ -170,13 +205,33 @@ export default function PainelFinanceiroArea() {
           <Section title={fCategoria ? `Maiores pagamentos · ${fCategoria}` : "Maiores pagamentos"}>
             {fCategoria && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Categoria", valor: fCategoria, limpar: () => setFCategoria(null) }]} onLimpar={() => setFCategoria(null)} /></div>}
             <Ranking cor="var(--serie-2)" vazio="Nada pago no período."
-              itens={k.maiores.map((c) => ({ rotulo: c.terceiro || c.descricao, valor: pagoValor(c), detalhe: `${dataBR(c.data_pagamento)} · ${rotuloCategoria(c.categoria)}${c.terceiro ? ` · ${c.descricao}` : ""}` }))} />
+              itens={k.maiores.map((x) => ({ rotulo: x.rotulo, valor: x.valor, detalhe: `${dataBR(x.data)} · ${x.categoria}${x.detalhe ? ` · ${x.detalhe}` : ""}` }))} />
           </Section>
         )}
         <Section title="Precisa de atenção" className={vePagar ? "md:col-span-2 xl:col-span-1" : ""}>
           <ListaAtencao itens={atencao} vazio="Nada pendente no financeiro" />
         </Section>
       </div>
+
+      {k.porConta.length > 0 && (
+        <Section title="Contas bancárias" actions={<button type="button" onClick={() => navigate("/conciliacao")} className="text-sm font-semibold text-modulo-texto hover:underline">Abrir bancos</button>}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Conta</th><th className="py-1 pr-3 text-right">Entrou · {per.rotulo.toLowerCase()}</th>{vePagar && <th className="py-1 pr-3 text-right">Saiu</th>}<th className="py-1 text-right">Saldo</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {k.porConta.map((c) => (
+                  <tr key={c.nome}>
+                    <td className="py-1.5 pr-3 font-semibold text-fg">{c.nome}<span className="block text-xs font-normal text-slate-500">{c.n} {pl(c.n, "lançamento", "lançamentos")} no período</span></td>
+                    <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-emerald-700">{brl(c.entrou)}</td>
+                    {vePagar && <td className="num whitespace-nowrap py-1.5 pr-3 text-right text-orange-700">{brl(c.saiu)}</td>}
+                    <td className="num whitespace-nowrap py-1.5 text-right font-bold">{brl(c.saldo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Section title="Quem está devendo" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Cobrar</button>}>

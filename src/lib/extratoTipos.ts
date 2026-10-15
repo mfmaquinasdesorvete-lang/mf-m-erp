@@ -87,6 +87,27 @@ export function resumoPorMes(lancs: LancResumo[]) {
   return [...m.values()].sort((a, b) => b.mes.localeCompare(a.mes));
 }
 
+/**
+ * Transferências entre as próprias contas que ainda não foram marcadas: o mesmo valor sai de uma conta e entra em outra
+ * no mesmo dia (ou no seguinte). Devolve os ids dos dois lados, para não contarem como entrada nem saída.
+ */
+export function transferenciasInternas<T extends { id: string; conta_bancaria_id: string; data: string; valor: number }>(lancs: T[]): Set<string> {
+  const dia = (s: string) => Math.round(Date.parse(`${s.slice(0, 10)}T12:00:00Z`) / 864e5);
+  const entradas = new Map<string, T[]>();
+  for (const l of lancs) if (Number(l.valor) > 0) {
+    const k = Math.round(Number(l.valor) * 100).toString();
+    entradas.set(k, [...(entradas.get(k) ?? []), l]);
+  }
+  const usadas = new Set<string>();
+  for (const s of lancs) {
+    if (!(Number(s.valor) < 0)) continue;
+    const par = (entradas.get(Math.round(-Number(s.valor) * 100).toString()) ?? [])
+      .find((e) => !usadas.has(e.id) && e.conta_bancaria_id !== s.conta_bancaria_id && Math.abs(dia(e.data) - dia(s.data)) <= 1);
+    if (par) { usadas.add(par.id); usadas.add(s.id); }
+  }
+  return usadas;
+}
+
 /** Contas com o mesmo extrato importado (mesmos identificadores): o mesmo arquivo entrou em duas contas. */
 export function contasRepetidas(lancs: { conta_bancaria_id: string; identificador?: string | null }[], minimo = 5) {
   const porId = new Map<string, Set<string>>();
