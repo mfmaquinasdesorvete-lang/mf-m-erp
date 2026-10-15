@@ -65,3 +65,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   42. `20261014185800_busca_geral.sql` (busca geral do menu: clientes, vendas, notas, produtos, OS e fornecedores, com as permissões de quem busca)
   43. `20261014200212_excluir_os.sql` (excluir OS como a OC e a OP: some das listas, peças voltam ao estoque, conta em aberto cancelada, dá para restaurar; a OP leva junto as OC em cotação)
   44. `20261014230258_loja_google.sql` (lista de produtos do Google Shopping pelo ERP: título do anúncio, código de barras, categoria, peso e prazo de envio sob encomenda)
+  45. `20261015103132_mercadolivre.sql` (Mercado Livre fase 1: contas, anúncios ligados aos produtos, vendas importadas com cliente, estoque de SP e conta a receber pelo líquido; cancelamento; chaves no cofre)
