@@ -70,6 +70,7 @@ const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
+  { path: "vendas-maquinas", tela: "pedidos", element: <Pedidos area="maquinas" /> },
   { path: "painel/vendas", tela: "pedidos", element: <PainelVendas /> },
   { path: "painel/financeiro", tela: "financeiro", element: <PainelFinanceiroArea /> },
   { path: "painel/notas", tela: "notas", element: <PainelNotas /> },

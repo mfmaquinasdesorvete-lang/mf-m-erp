@@ -1,6 +1,7 @@
 // Vendas → Propostas do Tiny: o histórico de propostas comerciais do Tiny da MF (com valores) e da My Frost, a empresa
 // anterior (sem valores). Filtra por empresa, situação e vendedor; abre a proposta; a da MF pode virar um orçamento novo.
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileDown, FilePlus2, Tags, Upload } from "lucide-react";
 import { Button, CelulaAbrir, Modal, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -303,6 +304,7 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
             <p className="mt-2 whitespace-pre-wrap text-slate-700">{p.observacoes}</p>
           </details>
         )}
+        <DocumentosLigados p={p} />
         <div className="flex flex-wrap justify-end gap-2">
           {onNovoOrcamento && comProduto.length > 0 && (
             <Button variant="secondary" title="Abre um orçamento novo com os itens e os preços desta proposta (confira os preços)"
@@ -314,6 +316,61 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Proposta → Pedido → OP → NF: os documentos do ERP deste cliente a partir da data da proposta (até 8 meses depois). */
+function DocumentosLigados({ p }: { p: PropostaTiny }) {
+  const doc = (p.cliente?.cpf_cnpj ?? "").replace(/\D/g, "");
+  const base = p.data ? new Date(`${p.data.slice(0, 10)}T12:00:00Z`) : null;
+  const de = base ? somarDias(-15, base) : null;
+  const ate = base ? somarDias(240, base) : null;
+  const { data, isLoading } = useQuery({
+    queryKey: ["propostas_tiny", "documentos", p.id], enabled: !!p.cliente_id && !!de,
+    queryFn: async () => {
+      // NF-e da MF ligada ao cliente pelo cadastro ou pelo CPF/CNPJ (as importadas do Tiny vêm só com o documento)
+      const notasPor = (campo: string, valor: string) => supabase.from("notas_fiscais")
+        .select("id, numero, serie, status, valor_total, created_at, finalidade, tipo_operacao, excluida_em, emissao:payload->>data_emissao")
+        .eq(campo, valor).eq("status", "autorizada").eq("finalidade", "normal").eq("tipo_operacao", "saida");
+      const [{ data: pedsTodos }, { data: n1 }, { data: n2 }] = await Promise.all([
+        supabase.from("pedidos").select("id, numero, status, created_at").eq("cliente_id", p.cliente_id!)
+          .gte("created_at", de!).lte("created_at", `${ate}T23:59:59`).order("created_at"),
+        notasPor("cliente_id", p.cliente_id!),
+        doc ? notasPor("destinatario_doc", doc) : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const peds = (pedsTodos ?? []).filter((x: any) => x.status !== "cancelado");
+      const notas = [...new Map([...(n1 ?? []), ...(n2 ?? [])].filter((n: any) => !n.excluida_em).map((n: any) => [n.id, n])).values()];
+      const ids = peds.map((x: any) => x.id);
+      const { data: ops } = ids.length
+        ? await supabase.from("ordens_producao").select("id, numero, status, pedido_id, excluida_em").in("pedido_id", ids)
+        : { data: [] as any[] };
+      const dia = (n: any) => String(n.emissao ?? n.created_at).slice(0, 10);
+      return {
+        pedidos: peds as { id: string; numero: number; status: string; created_at: string }[],
+        ops: ((ops ?? []) as any[]).filter((o) => !o.excluida_em) as { id: string; numero: number; status: string; pedido_id: string }[],
+        notas: (notas as any[]).filter((n) => dia(n) >= de! && dia(n) <= ate!).map((n) => ({ ...n, dia: dia(n) }))
+          .sort((a, b) => a.dia.localeCompare(b.dia)) as { id: string; numero: string | null; valor_total: number; dia: string }[],
+      };
+    },
+  });
+  if (!p.cliente_id || !p.data) return null;
+  const vazio = data && !data.pedidos.length && !data.ops.length && !data.notas.length;
+  return (
+    <div className="rounded-xl border border-slate-200 p-3 text-sm">
+      <div className="font-semibold text-fg">Pedido, OP e NF-e no ERP</div>
+      <p className="text-xs text-slate-500">Deste cliente, de {dataBR(de)} a {dataBR(ate)}.</p>
+      {isLoading ? <p className="mt-2 text-slate-500">Procurando…</p> : vazio ? (
+        <p className="mt-2 text-slate-600">Nenhum pedido, OP ou NF-e da MF no ERP neste período.</p>
+      ) : data && (
+        <ul className="mt-2 space-y-1">
+          {data.pedidos.map((x) => (
+            <li key={x.id}>Pedido <b>#{x.numero}</b> · {dataBR(x.created_at)} · {x.status === "orcamento" ? "orçamento" : x.status}
+              {data.ops.filter((o) => o.pedido_id === x.id).map((o) => <span key={o.id}> · OP <b>#{o.numero}</b> ({o.status})</span>)}</li>
+          ))}
+          {data.notas.map((n) => <li key={n.id}>NF-e <b>{n.numero ?? "—"}</b> · {dataBR(n.dia)} · {brl(n.valor_total)}</li>)}
+        </ul>
+      )}
+    </div>
   );
 }
 

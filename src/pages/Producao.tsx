@@ -255,6 +255,10 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const [o, setO] = useState(inicial);
   const [ocupado, setOcupado] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  // vendas para ligar a OP (Venda de Máquinas: Proposta → Pedido → OP → NF)
+  const { data: vendas = [] } = useRows<{ id: string; numero: number; status: string; cliente: { nome: string } | null }>("pedidos", {
+    select: "id, numero, status, cliente:clientes(nome)", order: "numero", ascending: false, key: ["op"],
+  });
   const { data: necessidade = [] } = useNecessidade();
   const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const fornecedores = semUnificados(fornecedoresTodos);
@@ -387,7 +391,13 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
           <Field label="Nº de série das máquinas (separe por vírgula)" className="sm:col-span-2">
             <input className="input" value={o.numeros_serie ?? ""} disabled={!podeEditar} onChange={(e) => set({ numeros_serie: e.target.value })} />
           </Field>
-          <Field label="Observações" className="sm:col-span-4"><input className="input" value={o.observacoes ?? ""} disabled={!podeEditar} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
+          <Field label="Venda (pedido) desta máquina" className="sm:col-span-2">
+            <select className="input" value={o.pedido_id ?? ""} disabled={!podeEditar} onChange={(e) => set({ pedido_id: e.target.value || null })}>
+              <option value="">Estoque (sem venda)</option>
+              {vendas.filter((v) => v.status !== "cancelado" || v.id === o.pedido_id).map((v) => <option key={v.id} value={v.id}>#{v.numero} · {v.cliente?.nome ?? "—"}</option>)}
+            </select>
+          </Field>
+          <Field label="Observações" className="sm:col-span-2"><input className="input" value={o.observacoes ?? ""} disabled={!podeEditar} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
         </div>
 
         {o.id && (

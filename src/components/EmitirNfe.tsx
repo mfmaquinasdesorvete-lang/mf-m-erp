@@ -264,7 +264,7 @@ function DoPedido({ onClose, trocar }: { onClose: () => void; trocar: () => void
       {!isLoading && !pendentes.length ? (
         <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
           Nenhum pedido aprovado esperando nota.
-          <div className="mt-3 flex flex-wrap justify-center gap-2"><Button onClick={trocar}>Fazer nota direta</Button><Button variant="secondary" onClick={() => { onClose(); navigate("/pedidos"); }}>Ir para Vendas e orçamentos</Button></div>
+          <div className="mt-3 flex flex-wrap justify-center gap-2"><Button onClick={trocar}>Fazer nota direta</Button><Button variant="secondary" onClick={() => { onClose(); navigate("/pedidos"); }}>Ir para Venda de Peças</Button></div>
         </div>
       ) : (
         <Table head={<><th className="th">Pedido</th><th className="th">Data</th><th className="th">Cliente</th><th className="th text-right">Valor</th><th className="th" /></>}>

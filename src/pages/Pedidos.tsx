@@ -73,23 +73,34 @@ const novoPedido = (observacoes?: string | null): Partial<Pedido> & { itens: Ite
   modalidade_frete: 9, desconto: 0, frete: 0, itens: [], observacoes: observacoes?.trim() || null,
 });
 
-export default function Pedidos() {
+/** Venda de Peças (/pedidos) e Venda de Máquinas (/vendas-maquinas): a mesma lista de vendas, separada pelo que
+ * foi vendido (pedido com máquina vai para Máquinas). Em Máquinas ficam também as propostas do Tiny (MF e My Frost)
+ * e a OP de cada venda. */
+export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas" }) {
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: pedidosTodos = [], isLoading } = useRows<Pedido>("pedidos", { select: SELECT });
-  const pedidos = filtrar(pedidosTodos);
+  const { data: tiposProduto = [] } = useRows<{ id: string; tipo: string }>("produtos", { select: "id, tipo", order: "id", ascending: true, key: ["tipos"] });
+  const { data: ops = [] } = useRows<{ id: string; numero: number; status: string; pedido_id: string | null }>("ordens_producao", {
+    select: "id, numero, status, pedido_id", order: "numero", ascending: true, key: ["vendas"],
+  });
+  const maquinas = useMemo(() => new Set(tiposProduto.filter((x) => x.tipo === "maquina").map((x) => x.id)), [tiposProduto]);
+  const ehMaquina = (p: Pedido) => (p.itens ?? []).some((i) => maquinas.has(i.produto_id));
+  const opsDe = (id: string) => ops.filter((o) => o.pedido_id === id);
   const { data: cfgPedidos } = useConfig();
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
   const { data: marcadores = [] } = useMarcadores();
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
-  // Vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
+  // Máquinas: vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
   const [vista, setVista] = useState<"erp" | "tiny">("erp");
   const location = useLocation();
   const navigate = useNavigate();
   // vindo do Analista fiscal: só os pedidos apontados (ex.: vendas sem NF-e)
   const [destaque, setDestaque] = useState(() => lerDestaque(location.state));
+  // cada tela mostra só a sua área (a lista apontada por outra tela aparece inteira)
+  const pedidos = filtrar(pedidosTodos).filter((p) => !!destaque || ehMaquina(p) === (area === "maquinas"));
   useEffect(() => {
     // vindo do painel de vendas: já abre na situação clicada
     const status = (location.state as any)?.status;
@@ -117,18 +128,20 @@ export default function Pedidos() {
     (filtro === "todos" || p.status === filtro) &&
     (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, filtro, busca, destaque, marcador]);
+  ), [pedidos, filtro, busca, destaque, marcador]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
-      <PageHeader title="Vendas e orçamentos" subtitle="Do orçamento no WhatsApp à entrega, com frete e nota fiscal."
+      <PageHeader title={area === "maquinas" ? "Venda de Máquinas" : "Venda de Peças"}
+        subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF e da My Frost."
+          : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
         actions={vista === "erp" ? <>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista)}><FileDown size={16} /> Exportar</Button>
-          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> Novo orçamento</Button>}
+          {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta" : "Novo orçamento"}</Button>}
         </> : undefined} />
 
-      <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Vendas do ERP" }, { value: "tiny", label: "Propostas do Tiny" }]} />
-      {vista === "tiny" ? (
+      {area === "maquinas" && <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Propostas e vendas" }, { value: "tiny", label: "Propostas do Tiny (MF e My Frost)" }]} />}
+      {area === "maquinas" && vista === "tiny" ? (
         <PropostasTiny onNovoOrcamento={pode("editar_pedidos") ? (cliente_id, itens) => {
           setVista("erp");
           setAberto({ ...novoPedido(cfgPedidos?.orcamento_observacoes), cliente_id, itens });
@@ -168,7 +181,7 @@ export default function Pedidos() {
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
-              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}</span>
+              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}</span>
               <span className="num text-base font-bold text-fg">{brl(p.valor_total)}</span>
             </div>
             <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
@@ -179,13 +192,13 @@ export default function Pedidos() {
           </div>
           </div>
         ))}
-        {!isLoading && !lista.length && <p className="py-8 text-center text-sm text-slate-500">Nenhum pedido encontrado.</p>}
+        {!isLoading && !lista.length && <p className="py-8 text-center text-sm text-slate-500">{area === "maquinas" ? "Nenhuma proposta ou venda de máquina." : "Nenhum pedido encontrado."}</p>}
       </div>
 
       <div className="hidden md:block">
       <Table
         empty={!isLoading && lista.length === 0}
-        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th><th className="th">NF-e</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
+        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th>{area === "maquinas" && <th className="th">OP</th>}<th className="th">NF-e</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
@@ -193,7 +206,8 @@ export default function Pedidos() {
             <td className="td">{dataBR(p.created_at)}</td>
             <td className="td">{p.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>
-            <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} /></td>
+            {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
+            <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} />{p.notas?.find((n) => n.status === "autorizada")?.numero && <div className="text-xs text-slate-500">NF {p.notas.find((n) => n.status === "autorizada")!.numero}</div>}</td>
             <td className="td text-right font-medium">{brl(p.valor_total)}</td>
             <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></td>
             <CelulaAbrir />

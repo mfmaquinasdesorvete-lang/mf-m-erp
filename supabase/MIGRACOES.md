@@ -86,3 +86,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   63. `20261015201010_perfil_marketplace.sql` (perfil Marketplaces: ajusta os cadastros dos produtos — título, descrição, fotos, EAN, categorias, marcadores, medidas e embalagens — sem ver o financeiro; preço, custo, estoque, fornecedor, tipo e ativar/desativar ficam com o financeiro, travados também por gatilho)
   64. `20261015203337_nfe_entrada_estoque.sql` (NF-e de entrada emitida pela MF — máquina usada de pessoa física, conserto, retorno de comodato/demonstração —: o lançamento do estoque da nota direta de entrada dá entrada, e o estorno tira; nota de entrada não gera conta a receber)
   65. `20261015210615_usuarios_foto.sql` (foto de cada usuário, pequena e guardada no cadastro; aparece na lista de Usuários e no menu; só o administrador grava)
+  66. `20261015214323_op_pedido.sql` (a ordem de produção guarda de qual venda é: Venda de Máquinas mostra Proposta → Pedido → OP → NF)

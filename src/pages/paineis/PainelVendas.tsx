@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlarmClock, BadgePercent, ClipboardList, FileWarning, HandCoins, Hourglass, PackageCheck, PackageSearch, Plus, Receipt,
-  ScanBarcode, ShoppingCart, Target, ThumbsDown, TrendingUp, Truck, Users, Workflow,
+  IceCreamCone, ScanBarcode, ShoppingCart, Target, ThumbsDown, TrendingUp, Truck, Users, Workflow,
 } from "lucide-react";
 import { Badge, Section } from "@/components/ui";
 import { Area, Rosca, Ranking } from "@/components/Charts";
@@ -240,7 +240,8 @@ export default function PainelVendas() {
         <div className="space-y-3 xl:col-span-2">
           <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
           <AtalhosArea colunas="grid-cols-3" itens={[
-            { rotulo: "Vendas e orçamentos", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
+            { rotulo: "Venda de Peças", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
+            { rotulo: "Venda de Máquinas", icone: IceCreamCone, to: "/vendas-maquinas", tela: "pedidos" },
             { rotulo: "PDV", icone: ScanBarcode, to: "/pdv", tela: "pedidos" },
             { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length, tela: "fluxo" },
             { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes", tela: "fretes" },

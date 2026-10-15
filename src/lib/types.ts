@@ -83,7 +83,7 @@ export type Pedido = {
   modalidade_frete: number; valor_produtos: number; desconto: number; frete: number; valor_total: number;
   observacoes: string | null; created_at: string; cliente?: Cliente; itens?: Item[];
   /** ambiente "homologacao" = nota de teste, sem valor fiscal */
-  notas?: { id: string; status: string; ambiente?: string }[];
+  notas?: { id: string; status: string; ambiente?: string; numero?: string | null }[];
   vendedor_id?: string | null; comissao_percentual?: number | null; unidade_id?: string | null;
   transportadora_id?: string | null; codigo_rastreio?: string | null; aprovado_em?: string | null; volumes?: number | null; peso_total_kg?: number | null;
   proposta_token?: string; proposta_status?: string | null; proposta_enviada_em?: string | null; proposta_visualizada_em?: string | null;
@@ -187,6 +187,8 @@ export type OrdemProducao = {
   marcadores?: string[] | null;
   id: string; numero: number; produto_id: string; quantidade: number; status: string; previsao: string | null;
   responsavel: string | null; numeros_serie: string | null; observacoes: string | null; concluida_em: string | null; created_at: string;
+  /** venda (pedido) de que esta OP é: liga Proposta → Pedido → OP → NF na Venda de Máquinas */
+  pedido_id?: string | null;
   /** lista de conferência copiada das etapas de produção da máquina ao criar a OP */
   etapas?: EtapaOp[] | null;
   produto?: Produto;
