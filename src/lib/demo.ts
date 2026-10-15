@@ -1879,6 +1879,28 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: n, error: null };
   },
+  ultimas_compras: ({ p_fornecedor, p_busca, p_limite }) => {
+    const b = String(p_busca ?? "").trim().toLowerCase();
+    if (!p_fornecedor && b.length < 3) return { data: [], error: null };
+    const casa = (t: string) => !b || t.toLowerCase().startsWith(b) || t.toLowerCase().includes(" " + b);
+    const nomeF = (id: string | null) => { const f = db.fornecedores.find((x) => x.id === id); return f ? f.nome_fantasia || f.nome : null; };
+    const linhas: Row[] = [];
+    for (const pc of db.pedidos_compra ?? []) {
+      if (pc.excluida_em || pc.status === "cancelado" || (p_fornecedor && pc.fornecedor_id !== p_fornecedor)) continue;
+      for (const i of db.pedido_compra_itens.filter((x) => x.pedido_compra_id === pc.id && casa(x.descricao))) {
+        linhas.push({ tipo: "pedido", numero: String(pc.numero), ref_id: pc.id, data: String(pc.enviado_em ?? pc.created_at).slice(0, 10), descricao: i.descricao,
+          quantidade: i.quantidade, unidade: "UN", valor_unitario: i.custo_unitario, fornecedor: nomeF(pc.fornecedor_id), produto_id: i.produto_id });
+      }
+    }
+    for (const n of db.nfe_recebidas ?? []) {
+      if (n.excluida_em || (p_fornecedor && n.fornecedor_id !== p_fornecedor)) continue;
+      for (const i of (n.itens ?? []).filter((x: Row) => casa(x.descricao))) {
+        linhas.push({ tipo: "nota", numero: String(n.chave ?? "").slice(25, 34).replace(/^0+/, ""), ref_id: n.id, data: String(n.data_emissao).slice(0, 10), descricao: i.descricao,
+          quantidade: i.quantidade, unidade: i.unidade ?? "UN", valor_unitario: i.valor_unitario, fornecedor: nomeF(n.fornecedor_id) ?? n.emitente_nome, produto_id: null });
+      }
+    }
+    return { data: linhas.sort((x, y) => String(y.data).localeCompare(String(x.data))).slice(0, p_limite ?? 300), error: null };
+  },
   unificar_produtos: ({ p_principal, p_outros, p_motivo }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     const m = db.produtos.find((p) => p.id === p_principal);

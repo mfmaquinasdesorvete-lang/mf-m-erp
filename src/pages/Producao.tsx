@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CheckCircle2, ChevronRight, ClipboardList, Factory, FileDown, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, XCircle,
+  CheckCircle2, ChevronRight, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, XCircle,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
+import { UltimasCompras } from "@/components/compras/UltimasCompras";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, ItemCompra, KitComponente, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
@@ -398,6 +399,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const [ocupado, setOcupado] = useState(false);
   const [receber, setReceber] = useState(false);
   const [pdf, setPdf] = useState<Blob | null>(null);
+  const [verUltimas, setVerUltimas] = useState(false);
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
@@ -483,6 +485,14 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
           <Field label="Condição de pagamento" className="sm:col-span-2"><input className="input" placeholder="ex.: 28 dias boleto" value={p.condicao_pagamento ?? ""} disabled={!editavel} onChange={(e) => set({ condicao_pagamento: e.target.value })} /></Field>
           <Field label="Observações" className="sm:col-span-2"><input className="input" value={p.observacoes ?? ""} disabled={!editavel} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
         </div>
+        {p.fornecedor_id && (
+          <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <button type="button" onClick={() => setVerUltimas(true)} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
+              <History size={15} aria-hidden /> Ver últimas compras deste fornecedor
+            </button>
+          </div>
+        )}
+        {verUltimas && p.fornecedor_id && <UltimasCompras fornecedorId={p.fornecedor_id} fornecedorNome={fornecedor?.nome} onClose={() => setVerUltimas(false)} />}
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="itens w-full text-sm md:min-w-[620px]" aria-label="Itens do pedido de compra">
