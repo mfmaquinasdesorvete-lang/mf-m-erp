@@ -1140,6 +1140,17 @@ function bancosDemo(db: Db) {
   add("cb3", dias(-16), -98.75, "Pix BYTEDANCE BRASIL TECNOLOGIA LTDA · Enviado");
   add("cb3", dias(-8), -134.9, "MERCADOLIVRE*LOJAEXEMPLO · cartao");
   add("cb3", dias(-7), -64, "MP *RESTAURANTEEXEMPLO · cartao");
+  // tela Entre contas, sócios e empresas ligadas (nomes e documentos inventados)
+  db.partes_relacionadas = [
+    { id: "pr1", nome: "Sócia Exemplo da Silva", tipo: "socio", documentos: ["12345678909"], nomes_extrato: [], observacao: null, ativo: true, created_at: quando(-30) },
+    { id: "pr2", nome: "Gelados Exemplo Indústria", tipo: "empresa", documentos: ["11222333000181", "11222333000262"], nomes_extrato: ["GELADOS EXEMPLO"], observacao: null, ativo: true, created_at: quando(-30) },
+  ];
+  add("cb1", dias(-30), 5000, "Pix GELADOS EXEMPLO INDUSTRIA E COMERCIO LTDA · Recebido");
+  add("cb3", dias(-12), -2000, "Pix GELADOS EXEMPLO INDUSTRIA E COMERCIO LTDA · Enviado");
+  add("cb2", dias(-18), -1500, "Transferência enviada pelo Pix - SOCIA EXEMPLO DA SILVA - •••.456.789-•• - BANCO EXEMPLO");
+  add("cb1", dias(-9), 3000, "Pix Sócia Exemplo da Silva · Recebido");
+  add("cb1", dias(-6), -2500, "Pix MF MAQUINAS LTDA · Enviado");
+  add("cb2", dias(-6), 2500, "Transferência recebida pelo Pix - MF MAQUINAS LTDA");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
   const saldo = (c: string) => r2(Number(db.contas_bancarias.find((b) => b.id === c)!.saldo_inicial) + db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).reduce((s, l) => s + Number(l.valor), 0));
   db.extrato_importacoes = ["cb1", "cb2", "cb3"].map((c, i) => ({

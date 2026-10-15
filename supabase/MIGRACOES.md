@@ -80,3 +80,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   57. `20261015154454_compras_marketplace.sql` (compras em marketplaces: notas de fornecedor com intermediador (Mercado Livre, TikTok Shop, Shopee…), o usuário da loja e o número do pedido, lidos do XML; só leitura)
   58. `20261015172706_avisos_urgencia.sql` (avisos entre usuários: para todos, um perfil ou pessoas escolhidas; urgência normal, importante ou urgente; quem mandou vê quem deu ciente)
   59. `20261015173930_usuarios_ultimo_acesso.sql` (último acesso de cada usuário, lido do login, para a auditoria; só administrador, financeiro e contador)
+  60. `20261015180031_partes_relacionadas.sql` (partes relacionadas: sócios e empresas ligadas com CPF/CNPJ só no banco, para o painel do dinheiro entre as contas da MF, sócios e empresas ligadas; lê administrador, financeiro e contador, cadastra só o administrador)

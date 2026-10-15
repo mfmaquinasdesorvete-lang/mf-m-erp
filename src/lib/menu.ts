@@ -85,6 +85,7 @@ export const grupos: Grupo[] = [
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo pix recebidos infinitepay nubank inter cartão" },
       { to: "/combustivel", tela: "financeiro", label: "Combustível (postos)", curto: "Combust.", icon: Fuel, busca: "posto gasolina diesel etanol abastecimento veículo carro gasto" },
       { to: "/compras-marketplace", tela: "financeiro", label: "Compras em marketplaces", curto: "Marketpl.", icon: ShoppingBag, busca: "mercado livre tiktok tik tok shop shopee amazon compras online internet loja pix marketplace gasto" },
+      { to: "/partes-relacionadas", tela: "financeiro", label: "Entre contas, sócios e empresas ligadas", curto: "Ligadas", icon: ArrowLeftRight, busca: "partes relacionadas sócio socio empresa ligada transferência entre contas pix retirada aporte cpf cnpj" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],
   },
