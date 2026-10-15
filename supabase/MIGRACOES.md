@@ -89,3 +89,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
   66. `20261015214323_op_pedido.sql` (a ordem de produção guarda de qual venda é: Venda de Máquinas mostra Proposta → Pedido → OP → NF)
   67. `20261015220711_propostas_reimportar.sql` (importar de novo as propostas do Tiny ou o backup da My Frost não apaga o próximo contato e a situação mudados no ERP; a planilha só preenche o que está vazio)
   68. `20261015224933_notas_legado.sql` (notas fiscais da My Frost — número, data, tipo e valor da nota — ligadas ao cliente do ERP pelo CPF/CNPJ; aparecem na ficha do cliente e na proposta para saber por quanto ele comprou; não entram nos totais da MF)
+  69. `20261015234511_licenciados_my_frost.sql` (etiqueta "Licenciado My Frost" no cadastro do cliente: quem compra máquina pela My Frost Sorveterias, a licenciadora; a Venda de Máquinas e as propostas filtram por ela)

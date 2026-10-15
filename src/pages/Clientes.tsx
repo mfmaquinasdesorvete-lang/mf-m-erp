@@ -23,6 +23,7 @@ import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral
 import type { Vendedor } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
 import { cnpjValido } from "@/lib/compliance";
+import { ehLicenciado, tagsComLicenciado } from "@/components/clientes/Licenciado";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
 const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
@@ -204,7 +205,22 @@ export default function Clientes() {
           invalidar("fornecedores", "documentos");
           return `${data?.movidos ?? 0} ${pl(data?.movidos ?? 0, "movido", "movidos")} para Fornecedores (${data?.fornecedores_criados ?? 0} ${pl(data?.fornecedores_criados ?? 0, "fornecedor", "fornecedores")} ${pl(data?.fornecedores_criados ?? 0, "novo", "novos")}, os outros juntaram com o do mesmo CNPJ)`;
         },
-      }] : []}
+      }, ...[true, false].map((marcar) => ({
+        // licenciados da My Frost Sorveterias: etiqueta usada pela Venda de Máquinas e pelas propostas
+        label: marcar ? "Marcar como licenciado My Frost" : "Tirar a marca de licenciado",
+        executar: async (ids: string[]) => {
+          const mudar = todos.filter((c) => ids.includes(c.id) && ehLicenciado(c) !== marcar);
+          for (let i = 0; i < mudar.length; i += 20) {
+            const res = await Promise.all(mudar.slice(i, i + 20).map((c) =>
+              supabase.from("clientes").update({ tags: tagsComLicenciado(c.tags, marcar) }).eq("id", c.id)));
+            const erro = res.find((r) => r.error)?.error;
+            if (erro) throw erro;
+          }
+          invalidar("pedidos", "propostas_tiny");
+          const ja = ids.length - mudar.length;
+          return `${mudar.length} ${pl(mudar.length, "cliente", "clientes")} ${marcar ? `${pl(mudar.length, "marcado", "marcados")} como licenciado My Frost` : `sem a marca de licenciado`}${ja ? ` (${ja} já ${pl(ja, "estava", "estavam")} assim)` : ""}`;
+        },
+      }))] : []}
       anexos="cliente"
       title="Clientes"
       table="clientes"

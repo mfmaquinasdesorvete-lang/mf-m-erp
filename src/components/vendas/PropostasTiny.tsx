@@ -19,8 +19,9 @@ import {
 } from "@/lib/propostasTiny";
 import { ImportarPropostasTiny } from "./ImportarPropostasTiny";
 import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
+import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 
-const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf)";
+const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf, tags)";
 
 export function SeloSituacao({ s }: { s: string | null }) {
   return <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${corSituacao(s)}`}>{s || "sem situação"}</span>;
@@ -57,6 +58,8 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   const [aba, setAba] = useState<Aba>("todas");
   const [vendedor, setVendedor] = useState("");
   const [marcador, setMarcador] = useState("");
+  // só os clientes licenciados da My Frost Sorveterias (etiqueta do cadastro)
+  const [soLicenciados, setSoLicenciados] = useState(false);
   const [busca, setBusca] = useState("");
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [importar, setImportar] = useState(false);
@@ -65,7 +68,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   const dia = hoje();
 
   const vendedores = useMemo(() => [...new Set(todas.map((p) => p.vendedor).filter(Boolean) as string[])].sort(), [todas]);
-  const daEmpresa = todas.filter((p) => empresa === "todas" || p.empresa === empresa);
+  const daEmpresa = todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && (!soLicenciados || ehLicenciado(p.cliente)));
   const contatar = (p: PropostaTiny) => { const c = contatoDaProposta(p, dia); return c === "atrasado" || c === "hoje"; };
   const abas = useMemo(() => {
     const n = (s: string) => daEmpresa.filter((p) => situacaoPadrao(p.situacao) === s).length;
@@ -74,7 +77,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
       { id: "contatar", rotulo: "Contatar hoje", n: daEmpresa.filter(contatar).length },
       ...SITUACOES_TINY.map((s) => ({ id: s as string, rotulo: ROTULO_ABA_SITUACAO[s], n: n(s) })),
     ].filter((x) => x.n > 0 || x.id === "todas" || x.id === aba);
-  }, [daEmpresa, aba, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daEmpresa, aba, dia, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => {
     const l = daEmpresa.filter((p) =>
       (aba === "todas" || (aba === "contatar" ? contatar(p) : situacaoPadrao(p.situacao) === aba)) &&
@@ -82,7 +85,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
       (!busca || combinaBusca([p.numero, nomeCliente(p), p.contato_nome, p.cliente?.cpf_cnpj, p.cliente?.municipio, p.vendedor, ...p.itens.map((i) => i.descricao)], busca)));
     // na aba "Contatar hoje", o contato mais atrasado primeiro
     return aba === "contatar" ? [...l].sort((x, y) => String(x.proximo_contato).localeCompare(String(y.proximo_contato))) : l;
-  }, [daEmpresa, aba, vendedor, marcador, busca, dia]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daEmpresa, aba, vendedor, marcador, busca, dia, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
   const mf = lista.filter((p) => p.empresa === "mf");
   const fechadasMf = mf.filter((p) => grupoSituacao(p.situacao) === "fechada");
   const abertasMf = mf.filter((p) => grupoSituacao(p.situacao) === "aberta");
@@ -119,6 +122,11 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
               {e === "todas" ? "Todas as empresas" : e === "mf" ? "MF" : "My Frost"} <span className="num ml-1 opacity-90">{e === "todas" ? todas.length : todas.filter((p) => p.empresa === e).length}</span>
             </button>
           ))}
+          <button type="button" aria-pressed={soLicenciados} onClick={() => { setSoLicenciados((v) => !v); setSel(new Set()); }}
+            title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+            Licenciados <span className="num ml-1 opacity-90">{todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && ehLicenciado(p.cliente)).length}</span>
+          </button>
         </div>
         <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label="Situação das propostas">
           {abas.map((x) => (
@@ -157,7 +165,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
             <input type="checkbox" className="absolute right-3 top-3 h-5 w-5" checked={sel.has(p.id)} onChange={() => alternar(p.id)} aria-label={`Selecionar proposta ${p.numero ?? ""}`} />
             <button type="button" onClick={() => setAbertaId(p.id)} className="w-full p-4 pr-11 text-left active:bg-slate-50">
               <div className="flex items-start justify-between gap-2">
-                <span className="min-w-0 font-bold text-fg [overflow-wrap:anywhere]">#{p.numero ?? "—"} <SeloEmpresa e={p.empresa} /> · {nomeCliente(p)}</span>
+                <span className="min-w-0 font-bold text-fg [overflow-wrap:anywhere]">#{p.numero ?? "—"} <SeloEmpresa e={p.empresa} /> · {nomeCliente(p)}<SeloLicenciado cliente={p.cliente} /></span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5"><SeloSituacao s={p.situacao} /><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
               <div className="mt-1 text-sm text-slate-600 [overflow-wrap:anywhere]">{resumoItens(p)}</div>
@@ -187,7 +195,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
                 <td className="td whitespace-nowrap font-medium">#{p.numero ?? "—"} <SeloEmpresa e={p.empresa} /></td>
                 <td className="td whitespace-nowrap">{dataBR(p.data)}</td>
                 <td className="td"><ProxContato p={p} /></td>
-                <td className="td">{nomeCliente(p)}<div className="text-xs text-slate-500">{[p.cliente?.municipio, p.cliente?.uf].filter(Boolean).join("/")}{p.vendedor ? ` · ${p.vendedor}` : ""}</div></td>
+                <td className="td">{nomeCliente(p)}<SeloLicenciado cliente={p.cliente} /><div className="text-xs text-slate-500">{[p.cliente?.municipio, p.cliente?.uf].filter(Boolean).join("/")}{p.vendedor ? ` · ${p.vendedor}` : ""}</div></td>
                 <td className="td max-w-[260px] text-sm text-slate-600"><span className="line-clamp-2">{resumoItens(p)}</span></td>
                 <td className="td whitespace-nowrap text-right font-medium">{p.empresa === "mf" ? brl(p.total) : <span className="text-xs font-normal text-slate-500">sem valores</span>}</td>
                 <td className="td"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></td>
@@ -264,7 +272,7 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
         </div>
         <AcompanharProposta p={p} />
         <div>
-          <div className="font-semibold text-fg">{nomeCliente(p)}</div>
+          <div className="font-semibold text-fg">{nomeCliente(p)}<SeloLicenciado cliente={p.cliente} /></div>
           <div className="text-sm text-slate-600">{[p.cliente?.municipio, p.cliente?.uf].filter(Boolean).join("/")}{p.aos_cuidados ? ` · aos cuidados de ${p.aos_cuidados}` : ""}</div>
         </div>
         {!mf && (

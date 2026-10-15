@@ -38,6 +38,7 @@ import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
 import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
 import { confirmar } from "@/components/Dialogos";
+import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -91,6 +92,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
+  // Máquinas: só as vendas para os licenciados da My Frost Sorveterias (etiqueta do cadastro do cliente)
+  const [soLicenciados, setSoLicenciados] = useState(false);
   const { data: marcadores = [] } = useMarcadores();
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
   // Máquinas: vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
@@ -127,8 +130,9 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     (!destaque || destaque.ids.includes(p.id)) &&
     (filtro === "todos" || p.status === filtro) &&
     (!marcador || !!p.marcadores?.includes(marcador)) &&
+    (!soLicenciados || ehLicenciado(p.cliente)) &&
     (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, filtro, busca, destaque, marcador]); // eslint-disable-line react-hooks/exhaustive-deps
+  ), [pedidos, filtro, busca, destaque, marcador, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -154,6 +158,13 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         <div className="flex flex-wrap gap-2">
           <input className="input min-w-0 basis-full sm:max-w-md sm:flex-1 sm:basis-auto" type="search" placeholder="Buscar nº, cliente, CPF ou CNPJ…" aria-label="Buscar vendas" value={busca} onChange={(e) => setBusca(e.target.value)} />
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+          {area === "maquinas" && (
+            <button type="button" aria-pressed={soLicenciados} onClick={() => setSoLicenciados((v) => !v)}
+              title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+              Licenciados My Frost <span className="num ml-1 opacity-90">{pedidos.filter((x) => ehLicenciado(x.cliente)).length}</span>
+            </button>
+          )}
         </div>
         {/* quebra em linhas (no celular rolar para o lado escondia metade das situações) */}
         <div className="flex flex-wrap gap-2">
@@ -177,7 +188,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
             className="w-full rounded-xl p-4 pb-2 text-left active:bg-slate-50">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>} · {p.cliente?.nome}</span>
+              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
@@ -204,7 +215,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
             <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}</td>
             <td className="td">{dataBR(p.created_at)}</td>
-            <td className="td">{p.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
+            <td className="td">{p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
             <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} />{p.notas?.find((n) => n.status === "autorizada")?.numero && <div className="text-xs text-slate-500">NF {p.notas.find((n) => n.status === "autorizada")!.numero}</div>}</td>

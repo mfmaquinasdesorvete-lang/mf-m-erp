@@ -27,7 +27,7 @@ export type PropostaTiny = {
   desconto: number | null; frete: number | null; total: number | null; itens: ItemPropostaTiny[];
   /** marcadores coloridos (public.marcadores) */
   marcadores?: string[] | null;
-  cliente?: { id: string; nome: string; nome_fantasia?: string | null; codigo?: number | null; cpf_cnpj?: string | null; municipio?: string | null; uf?: string | null } | null;
+  cliente?: { id: string; nome: string; nome_fantasia?: string | null; codigo?: number | null; cpf_cnpj?: string | null; municipio?: string | null; uf?: string | null; tags?: string[] | null } | null;
 };
 
 type Linha = Record<string, unknown>;

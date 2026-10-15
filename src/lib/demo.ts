@@ -986,6 +986,7 @@ function planoDemo(db: Db) {
     { id: "revenda", chave: "revenda", nome: "Revenda", cor: "indigo", ordem: 2, ativo: true, sistema: false },
     { id: "parceiro", chave: "parceiro", nome: "Técnico parceiro", cor: "orange", ordem: 3, ativo: true, sistema: true },
     { id: "compra_usada", chave: "compra_usada", nome: "Compra máquina usada", cor: "emerald", ordem: 4, ativo: true, sistema: true },
+    { id: "licenciado_my_frost", chave: "licenciado_my_frost", nome: "Licenciado My Frost", cor: "purple", ordem: 5, ativo: true, sistema: true },
   ];
   // a cliente da máquina usada (e8) está no cadastro de quem compra usada
   { const c3 = db.clientes.find((c: Row) => c.id === "c3"); if (c3) c3.tags = [...(c3.tags ?? []), "compra_usada"]; }
@@ -998,7 +999,8 @@ function planoDemo(db: Db) {
   db.nfse = [];
   db.nfse_eventos = [];
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
-  Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
+  // c4 também é licenciado da licenciadora de sorveterias (venda de máquinas e proposta do Tiny aparecem com o selo)
+  Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita", "licenciado_my_frost"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
     receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],
       endereco: { cep: "74115050", logradouro: "Rua 9", numero: "1200", complemento: "Sala 4", bairro: "Setor Oeste", municipio: "Goiânia", uf: "GO" } } });
   Object.assign(db.clientes[4], { tags: ["cnpj_irregular"], receita_situacao: "BAIXADA", receita_em: quando(-1) });
