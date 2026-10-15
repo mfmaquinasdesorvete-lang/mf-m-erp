@@ -36,6 +36,7 @@ import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { UnificarProdutosLista } from "@/components/produtos/UnificarProdutosLista";
 
 const tipos = [
   { value: "maquina", label: "Máquina" },
@@ -145,6 +146,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const [historico, setHistorico] = useState<Produto | null>(null);
   const [importar, setImportar] = useState(false);
   const [importarKits, setImportarKits] = useState(false);
+  /** Unificar os marcados na lista: a janela devolve a mensagem quando termina (ou "Nada mudou"). */
+  const [unificando, setUnificando] = useState<{ lista: Produto[]; fim: (mensagem: string) => void } | null>(null);
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
@@ -408,6 +411,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           ...(cadastro !== "pecas" ? [{ label: "Mover para Peças de reposição", executar: (ids: string[]) => moverPara(ids, "peca", "Peças de reposição") }] : []),
           ...(cadastro !== "componentes" ? [{ label: "Mover para Componentes de produção", executar: (ids: string[]) => moverPara(ids, "insumo", "Componentes de produção") }] : []),
           ...(cadastro === "pecas" ? [{ label: "Pôr no catálogo", executar: (ids: string[]) => catalogo(ids, true) }, { label: "Tirar do catálogo", executar: (ids: string[]) => catalogo(ids, false) }] : []),
+          ...(podeMover ? [{ label: "Unificar", executar: (ids: string[]) => ids.length < 2
+            ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
+            : new Promise<string>((fim) => setUnificando({ lista: produtosTodos.filter((p) => ids.includes(p.id)), fim })) }] : []),
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={<>
@@ -696,6 +702,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <HistoricoModal produto={historico} onClose={() => setHistorico(null)} />
       {importar && <ImportarProdutos onClose={() => setImportar(false)} />}
       {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}
+      {unificando && <UnificarProdutosLista produtos={unificando.lista} onFim={(m) => { unificando.fim(m); setUnificando(null); }} />}
       {kitAberto && <KitComponentesModal kit={kitAberto} podeEditar={pode("editar_produtos")} onClose={() => setKitAberto(null)} />}
     </>
   );
