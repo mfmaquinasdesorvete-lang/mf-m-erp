@@ -1157,6 +1157,17 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-9), 3000, "Pix Sócia Exemplo da Silva · Recebido");
   add("cb1", dias(-6), -2500, "Pix MF MAQUINAS LTDA · Enviado");
   add("cb2", dias(-6), 2500, "Transferência recebida pelo Pix - MF MAQUINAS LTDA");
+  // tela Impostos, tarifas e funcionários (nomes inventados; "Rafael Souza Lima" e "Diego Martins" estão no cadastro de funcionários)
+  add("cb1", dias(-20), -1843.27, "Pix SECRETARIA DE ESTADO DA FAZENDA · Enviado");
+  add("cb1", dias(-25), -2310.5, "DARF - RECEITA FEDERAL · Pagamento efetuado");
+  add("cb2", dias(-33), -96.4, "Transferência enviada por boleto - PREFEITURA MUNICIPAL DE EXEMPLO");
+  add("cb3", dias(-44), -388.74, "DEPARTAMENTO ESTADUAL DE TRANSITO · Pagamento efetuado");
+  add("cb2", dias(-11), -2, "OLIST SERVICOS DIGITAIS LTDA · Tarifa lembretes de pagamento - ref. 101");
+  add("cb2", dias(-10), -0.5, "OLIST SERVICOS DIGITAIS LTDA · Tarifa Pix recebido - ref. 102");
+  add("cb2", dias(-4), -0.5, "OLIST SERVICOS DIGITAIS LTDA · Tarifa Pix recebido - ref. 103");
+  add("cb1", dias(-15), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
+  add("cb1", dias(-45), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
+  add("cb2", dias(-14), -150, "DIEGO MARTINS · Transferência enviada pelo Pix");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
   const saldo = (c: string) => r2(Number(db.contas_bancarias.find((b) => b.id === c)!.saldo_inicial) + db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).reduce((s, l) => s + Number(l.valor), 0));
   db.extrato_importacoes = ["cb1", "cb2", "cb3"].map((c, i) => ({

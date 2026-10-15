@@ -1,7 +1,7 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, IdCard, Inbox, Landmark, LayoutDashboard,
-  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Truck,
+  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
 import { usePerfil } from "./auth";
@@ -86,6 +86,7 @@ export const grupos: Grupo[] = [
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo pix recebidos infinitepay nubank inter cartão" },
       { to: "/combustivel", tela: "financeiro", label: "Combustível (postos)", curto: "Combust.", icon: Fuel, busca: "posto gasolina diesel etanol abastecimento veículo carro gasto" },
       { to: "/compras-marketplace", tela: "financeiro", label: "Compras em marketplaces", curto: "Marketpl.", icon: ShoppingBag, busca: "mercado livre tiktok tik tok shop shopee amazon compras online internet loja pix marketplace gasto" },
+      { to: "/impostos-tarifas", tela: "financeiro", label: "Impostos, tarifas e funcionários", curto: "Impostos", icon: Receipt, busca: "imposto guia darf das simples icms difal dare gnre sefaz prefeitura iss detran ipva tarifa taxa cartão olist zoop infinitepay funcionário salário pagamento folha contador" },
       { to: "/partes-relacionadas", tela: "financeiro", label: "Entre contas, sócios e empresas ligadas", curto: "Ligadas", icon: ArrowLeftRight, busca: "partes relacionadas sócio socio empresa ligada transferência entre contas pix retirada aporte cpf cnpj" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],

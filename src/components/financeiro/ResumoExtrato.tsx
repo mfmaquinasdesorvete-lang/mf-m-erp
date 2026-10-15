@@ -1,16 +1,17 @@
 // Resumo do extrato da conta escolhida: quantos Pix entraram, vendas no cartão, Pix enviados, combustível…
 // Cada quadro filtra a lista de lançamentos. Sem mês escolhido, mostra também mês a mês.
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Fuel, ShoppingBag } from "lucide-react";
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Fuel, Receipt, ShoppingBag, User } from "lucide-react";
 import { Card, nomeMes } from "@/components/ui";
 import { brl, pl } from "@/lib/format";
 import { resumoPorMes, resumoPorTipo, TIPOS_LANC, type LancResumo, type TipoLanc } from "@/lib/extratoTipos";
 
-export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes }: {
+export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes, funcionarios = [] }: {
   lancs: LancResumo[]; titulo: string; mes: string; tipo: TipoLanc | ""; onTipo: (t: TipoLanc | "") => void; onMes: (m: string) => void;
+  funcionarios?: { nome: string }[];
 }) {
   if (!lancs.length) return null;
-  const r = resumoPorTipo(lancs);
+  const r = resumoPorTipo(lancs, funcionarios);
   const meses = mes ? [] : resumoPorMes(lancs).slice(0, 12);
   const datas = lancs.map((l) => l.data).sort();
   const quadro = (t: (typeof TIPOS_LANC)[number]) => {
@@ -20,7 +21,7 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes }: {
       <button key={t.id} type="button" aria-pressed={ativo} onClick={() => onTipo(ativo ? "" : t.id)} disabled={!x.n}
         title={x.n ? `Mostrar só ${t.rotulo.toLowerCase()} na lista` : undefined}
         className={`min-w-0 rounded-lg border px-3 py-2 text-left transition disabled:opacity-50 ${ativo ? "border-brand ring-2 ring-brand/30" : "border-slate-200 hover:border-slate-300"}`}>
-        <div className="flex items-center gap-1 text-xs text-slate-500">{t.id === "combustivel" && <Fuel size={12} aria-hidden />}{t.id === "marketplace" && <ShoppingBag size={12} aria-hidden />}{t.rotulo}</div>
+        <div className="flex items-center gap-1 text-xs text-slate-500">{t.id === "combustivel" && <Fuel size={12} aria-hidden />}{t.id === "marketplace" && <ShoppingBag size={12} aria-hidden />}{t.id === "imposto" && <Receipt size={12} aria-hidden />}{t.id === "funcionario" && <User size={12} aria-hidden />}{t.rotulo}</div>
         <div className={`text-lg font-bold ${t.entrada ? "text-emerald-700" : "text-red-600"}`}>{x.n}</div>
         <div className="text-xs font-semibold text-slate-600">{brl(Math.abs(x.total))}</div>
       </button>
@@ -35,11 +36,12 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes }: {
       <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-emerald-700"><ArrowDownLeft size={13} /> Entraram</div>
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">{TIPOS_LANC.filter((t) => t.entrada).map(quadro)}</div>
       <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-red-600"><ArrowUpRight size={13} /> Saíram</div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">{TIPOS_LANC.filter((t) => !t.entrada).map(quadro)}</div>
-      {(r.combustivel.n > 0 || r.marketplace.n > 0) && (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{TIPOS_LANC.filter((t) => !t.entrada).map(quadro)}</div>
+      {(r.combustivel.n > 0 || r.marketplace.n > 0 || r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && (
         <p className="mt-2 text-xs text-slate-500">
           {r.combustivel.n > 0 && <><Link to="/combustivel" className="font-semibold text-brand hover:underline">Ver gastos com combustível</Link> por mês e por posto. </>}
-          {r.marketplace.n > 0 && <><Link to="/compras-marketplace" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas.</>}
+          {r.marketplace.n > 0 && <><Link to="/compras-marketplace" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
+          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <><Link to="/impostos-tarifas" className="font-semibold text-brand hover:underline">Ver impostos, tarifas e funcionários</Link> de todas as contas juntas.</>}
         </p>
       )}
       {meses.length > 1 && (

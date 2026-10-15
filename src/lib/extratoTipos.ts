@@ -1,20 +1,23 @@
-// O que é cada lançamento do extrato, pela descrição do banco: Pix recebido, vendas no cartão, combustível…
-// Serve para o resumo da conta ("quantos Pix entraram?") e para as telas de combustível e de compras em marketplaces. Arquivo puro (testado).
+// O que é cada lançamento do extrato, pela descrição do banco: Pix recebido, vendas no cartão, combustível, impostos…
+// Serve para o resumo da conta ("quantos Pix entraram?") e para as telas de combustível, compras em marketplaces e
+// impostos, tarifas e funcionários. Arquivo puro (testado).
 import { marketplaceDoExtrato } from "./marketplaces";
 
 export type TipoLanc =
   | "pix_recebido" | "vendas_cartao" | "outra_entrada"
-  | "pix_enviado" | "combustivel" | "marketplace" | "pedagio" | "tarifa" | "outra_saida";
+  | "pix_enviado" | "funcionario" | "imposto" | "combustivel" | "marketplace" | "pedagio" | "tarifa" | "outra_saida";
 
 export const TIPOS_LANC: { id: TipoLanc; rotulo: string; entrada: boolean }[] = [
   { id: "pix_recebido", rotulo: "Pix recebidos", entrada: true },
   { id: "vendas_cartao", rotulo: "Vendas no cartão / maquininha", entrada: true },
   { id: "outra_entrada", rotulo: "Outras entradas", entrada: true },
   { id: "pix_enviado", rotulo: "Pix enviados", entrada: false },
+  { id: "funcionario", rotulo: "Funcionários", entrada: false },
+  { id: "imposto", rotulo: "Impostos e guias", entrada: false },
   { id: "combustivel", rotulo: "Combustível (postos)", entrada: false },
   { id: "marketplace", rotulo: "Mercado Livre, TikTok e outros", entrada: false },
   { id: "pedagio", rotulo: "Pedágio", entrada: false },
-  { id: "tarifa", rotulo: "Tarifas e juros", entrada: false },
+  { id: "tarifa", rotulo: "Tarifas (cartão, OLIST, banco) e juros", entrada: false },
   { id: "outra_saida", rotulo: "Compras e outras saídas", entrada: false },
 ];
 export const ROTULO_TIPO = Object.fromEntries(TIPOS_LANC.map((t) => [t.id, t.rotulo])) as Record<TipoLanc, string>;
@@ -25,20 +28,69 @@ const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,
 export const COMBUSTIVEL = /\b(auto\s*posto|postos?|combustive(l|is)|petrobras|ipiranga|shell|br\s*mania|raizen|ale\s+combust|gasolina|diesel|etanol|abastec\w*|graal)\b/;
 const PEDAGIO = /\b(auto\s*ban|autoban|sem\s*parar|conectcar|veloe|move\s*mais|pedagio|arteris|ecovias|ecopistas|rodoanel|via\s*oeste|viaoeste|concessionaria|rodovia\w*)\b/;
 const TARIFA = /\b(tarifa|taxa|iof|juros|encargos?|anuidade|mensalidade|multa)\b/;
+// tarifa com o nome escrito ("OLIST · Tarifa Pix recebido"): vem antes do Pix, senão contava como Pix enviado
+const TARIFA_ESCRITA = /\b(tarifas?|mdr|anuidade|cesta de servicos|pacote de servicos)\b/;
 const VENDAS = /\b(vendas?|deposito infinitepay|antecipacao|recebiveis|maquininha|liquidacao|credito de vendas)\b/;
+
+// guias de imposto pelo nome de quem recebe ("restaurante da fazenda" não conta: precisa ser a secretaria)
+const IMPOSTO_FEDERAL = /\b(darf|receita federal|rfb|pgfn|fazenda nacional|simples nacional|pgdas\w*|documento de arrecadacao|previdencia social|inss|fgts|esocial|tesouro nacional)\b/;
+const IMPOSTO_ESTADUAL = /\b(sefaz|secretaria (de estado )?da fazenda|secretaria (de estado )?de fazenda|fazenda (publica|estadual|do estado)|dare|gnre|icms|difal|dar-[a-z]{2})\b/;
+const IMPOSTO_MUNICIPAL = /\b(prefeitura|municipio de|issqn|iss|iptu|itbi)\b/;
+const IMPOSTO_VEICULO = /\b(detran|departamento estadual de transito|ipva|licenciamento|dpvat)\b/;
+
+export type EsferaImposto = "Federal" | "Estadual" | "Municipal" | "Veículos (Detran)";
+export const ESFERAS: { id: EsferaImposto; dica: string }[] = [
+  { id: "Federal", dica: "DARF, Simples (DAS), INSS, FGTS, PGFN" },
+  { id: "Estadual", dica: "ICMS, DIFAL, DARE, GNRE (Secretaria da Fazenda)" },
+  { id: "Municipal", dica: "ISS, IPTU, taxas da prefeitura" },
+  { id: "Veículos (Detran)", dica: "IPVA, licenciamento, multas" },
+];
+
+/** De que esfera é a guia paga, pela descrição do extrato ou da conta; null se não parece imposto. */
+export function esferaImposto(descricao: string | null | undefined): EsferaImposto | null {
+  const d = sem(descricao);
+  if (IMPOSTO_VEICULO.test(d)) return "Veículos (Detran)";
+  if (IMPOSTO_ESTADUAL.test(d)) return "Estadual";
+  if (IMPOSTO_FEDERAL.test(d)) return "Federal";
+  if (IMPOSTO_MUNICIPAL.test(d)) return "Municipal";
+  return null;
+}
+
+export type OrigemTarifa = "OLIST" | "InfinitePay" | "Cartão" | "Banco";
+/** Quem cobrou a tarifa: a OLIST (link, Pix, boleto, cartão pela Zoop), a InfinitePay, outra maquininha ou o banco. */
+export function origemTarifa(descricao: string | null | undefined): OrigemTarifa {
+  const d = sem(descricao);
+  if (/\b(olist|zoop)\b/.test(d)) return "OLIST";
+  if (/\b(infinite\s*pay|infinitepay|cloudwalk)\b/.test(d)) return "InfinitePay";
+  if (/\b(cartao|maquininha|mdr|antecipacao|stone|cielo|getnet|pagseguro|sumup)\b/.test(d)) return "Cartão";
+  return "Banco";
+}
+
+/** Nome do funcionário (do cadastro) que aparece na descrição do extrato: "Pix EDSON LINDOLFO DA SILVA · Enviado". */
+export function funcionarioDoLancamento<T extends { nome: string }>(descricao: string | null | undefined, funcionarios: T[]): T | null {
+  const d = ` ${sem(descricao).replace(/[^a-z0-9]+/g, " ")} `;
+  return funcionarios.find((f) => {
+    const n = sem(f.nome).replace(/[^a-z0-9]+/g, " ").trim();
+    return n.split(" ").length >= 2 && d.includes(` ${n} `);
+  }) ?? null;
+}
 
 export const ehCombustivel = (nome: string | null | undefined) => COMBUSTIVEL.test(sem(nome));
 /** Fornecedor que é posto: pelo nome ou pela atividade na Receita (CNAE 4731-8, comércio varejista de combustíveis). */
 export const ehPosto = (f: { nome?: string | null; nome_fantasia?: string | null; receita?: unknown }) =>
   ehCombustivel(f.nome) || ehCombustivel(f.nome_fantasia) || /\b4731/.test(JSON.stringify(f.receita ?? ""));
 
-export function tipoLancamento(descricao: string | null | undefined, valor: number): TipoLanc {
+/** funcionarios: nomes do cadastro de funcionários (o Pix para eles vira "Funcionários"). */
+export function tipoLancamento(descricao: string | null | undefined, valor: number, funcionarios: { nome: string }[] = []): TipoLanc {
   const d = sem(descricao);
   if (valor > 0) {
     if (/\bpix\b/.test(d)) return "pix_recebido";
     if (VENDAS.test(d)) return "vendas_cartao";
     return "outra_entrada";
   }
+  if (esferaImposto(descricao)) return "imposto";
+  if (funcionarios.length && funcionarioDoLancamento(descricao, funcionarios)) return "funcionario";
+  if (TARIFA_ESCRITA.test(d)) return "tarifa";
   if (COMBUSTIVEL.test(d)) return "combustivel";
   if (marketplaceDoExtrato(descricao, valor)) return "marketplace";
   if (PEDAGIO.test(d)) return "pedagio";
@@ -51,10 +103,10 @@ export type ResumoTipo = { n: number; total: number };
 export type LancResumo = { data: string; valor: number; descricao: string | null; identificador?: string | null };
 
 /** Soma por tipo; o mesmo lançamento importado em duas contas (mesmo identificador) conta uma vez. */
-export function resumoPorTipo(lancs: LancResumo[]): Record<TipoLanc, ResumoTipo> {
+export function resumoPorTipo(lancs: LancResumo[], funcionarios: { nome: string }[] = []): Record<TipoLanc, ResumoTipo> {
   const r = Object.fromEntries(TIPOS_LANC.map((t) => [t.id, { n: 0, total: 0 }])) as Record<TipoLanc, ResumoTipo>;
   for (const l of semRepetidos(lancs)) {
-    const t = r[tipoLancamento(l.descricao, Number(l.valor))];
+    const t = r[tipoLancamento(l.descricao, Number(l.valor), funcionarios)];
     t.n += 1;
     t.total = Math.round((t.total + Number(l.valor)) * 100) / 100;
   }

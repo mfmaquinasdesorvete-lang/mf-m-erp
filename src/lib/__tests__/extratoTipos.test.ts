@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contasRepetidas, ehCombustivel, estabelecimento, resumoPorMes, resumoPorTipo, tipoLancamento, transferenciasInternas } from "../extratoTipos";
+import { contasRepetidas, ehCombustivel, esferaImposto, estabelecimento, funcionarioDoLancamento, origemTarifa, resumoPorMes, resumoPorTipo, tipoLancamento, transferenciasInternas } from "../extratoTipos";
 
 describe("tipoLancamento", () => {
   it("entradas", () => {
@@ -16,9 +16,35 @@ describe("tipoLancamento", () => {
     expect(tipoLancamento("SUPERMERCADO BOM PRECO · cartao", -80)).toBe("outra_saida");
   });
   it("imposto não é posto", () => {
-    expect(tipoLancamento("Pagamento de imposto DARF", -900)).toBe("outra_saida");
+    expect(tipoLancamento("Pagamento de imposto DARF", -900)).toBe("imposto");
     expect(ehCombustivel("Imposto")).toBe(false);
     expect(ehCombustivel("Comercial de Combustíveis Ltda")).toBe(true);
+  });
+  it("guias de imposto por esfera", () => {
+    expect(esferaImposto("Pix SECRETARIA DE ESTADO DA FAZENDA · Enviado")).toBe("Estadual");
+    expect(esferaImposto("DARE SANTA CATARINA · Pagamento efetuado")).toBe("Estadual");
+    expect(esferaImposto("Transferência enviada por boleto - DAR-AM - ref. CP-12")).toBe("Estadual");
+    expect(esferaImposto("Transferência enviada por boleto - PREFEITURA MUNICIPAL DE EXEMPLO")).toBe("Municipal");
+    expect(esferaImposto("MUNICIPIO DE EXEMPLO · Pagamento efetuado")).toBe("Municipal");
+    expect(esferaImposto("DEPARTAMENTO ESTADUAL DE TRANSITO · Pagamento efetuado")).toBe("Veículos (Detran)");
+    expect(esferaImposto("Documento de Arrecadação do Simples Nacional")).toBe("Federal");
+    expect(esferaImposto("RESTAURANTE DA FAZENDA · cartao")).toBeNull();
+    expect(esferaImposto("CASA DAS MANGUEIRAS · cartao")).toBeNull();
+    expect(tipoLancamento("Pix SECRETARIA DE ESTADO DA FAZENDA · Enviado", -350)).toBe("imposto");
+  });
+  it("tarifa escrita vem antes do Pix", () => {
+    expect(tipoLancamento("OLIST SERVICOS DIGITAIS LTDA · Tarifa Pix recebido - ref. 123", -0.5)).toBe("tarifa");
+    expect(origemTarifa("OLIST SERVICOS DIGITAIS LTDA · Tarifa lembretes de pagamento")).toBe("OLIST");
+    expect(origemTarifa("Taxa do cartão Olist (Zoop) · pedido Tiny nº 1")).toBe("OLIST");
+    expect(origemTarifa("Tarifa de manutenção")).toBe("Banco");
+  });
+  it("Pix para funcionário do cadastro", () => {
+    const f = [{ nome: "Fulano de Tal Exemplo" }];
+    expect(tipoLancamento("Pix FULANO DE TAL EXEMPLO · Enviado", -1500, f)).toBe("funcionario");
+    expect(tipoLancamento("FULANO DE TAL EXEMPLO · Transferência enviada pelo Pix", -50, f)).toBe("funcionario");
+    expect(tipoLancamento("Pix FULANO DE TAL EXEMPLO · Enviado", -1500)).toBe("pix_enviado");
+    expect(tipoLancamento("Pix FULANO DE TAL EXEMPLOS LTDA · Enviado", -1500, f)).toBe("pix_enviado");
+    expect(funcionarioDoLancamento("Pix Fulano de Tal Exemplo · Enviado", [{ nome: "Fulano" }])).toBeNull();
   });
 });
 

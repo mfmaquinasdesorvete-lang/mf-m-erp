@@ -58,6 +58,8 @@ export default function Conciliacao() {
   const { data: conexoesInter = [] } = useRows<ConexaoInter>("inter_conexoes");
   const { data: receber = [] } = useRows<Conta>("contas_receber", { select: "*, cliente:clientes(nome)" });
   const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)" });
+  // nomes do cadastro de funcionários: o Pix para eles aparece como "Funcionários" (quem não é do financeiro não lê o cadastro)
+  const { data: funcionarios = [] } = useRows<{ id: string; nome: string }>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
 
   const [contaSel, setContaSel] = useState<string>("");
   const [situacao, setSituacao] = useState<string>("pendente");
@@ -79,7 +81,7 @@ export default function Conciliacao() {
     .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
       : situacao === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === situacao))
     .filter((l) => !mes || l.data.startsWith(mes))
-    .filter((l) => !tipo || tipoLancamento(l.descricao, Number(l.valor)) === tipo);
+    .filter((l) => !tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo);
   // base do resumo: conta e mês escolhidos, todas as situações
   const doResumo = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && (!mes || l.data.startsWith(mes)));
   const repetidas = useMemo(() => contasRepetidas(lancamentos.filter((l) => contasTodas.some((b) => b.id === l.conta_bancaria_id && b.ativo))), [lancamentos, contasTodas]);
@@ -193,7 +195,7 @@ export default function Conciliacao() {
       </div>
 
       <ResumoExtrato lancs={doResumo} titulo={contaSel ? nomeConta(contaSel) : "todas as contas"} mes={mes} tipo={tipo}
-        onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} />
+        onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} funcionarios={funcionarios} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
