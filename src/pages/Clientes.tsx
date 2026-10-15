@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, BadgeCheck, Clock, FileSpreadsheet, IdCard, Wrench, LayoutDashboard } from "lucide-react";
+import { Archive, BadgeCheck, Clock, FileSpreadsheet, IdCard, Wrench, LayoutDashboard, UserPlus } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { ImportarContatos } from "@/components/ImportarContatos";
@@ -22,6 +22,7 @@ import { MaquinasCliente, rotuloMaquina, useMaquinasPorCliente } from "@/compone
 import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral";
 import type { Vendedor } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
+import { cnpjValido } from "@/lib/compliance";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
 const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
@@ -108,6 +109,7 @@ export default function Clientes() {
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [arrumar, setArrumar] = useState(false);
   const [unificar, setUnificar] = useState<string[] | null>(null);
+  const [abrirAgora, setAbrirAgora] = useState<Cliente | null>(null);
   const tipos = useTiposContato();
   const maquinas = useMaquinasPorCliente();
   const invalidar = useInvalidate();
@@ -209,6 +211,35 @@ export default function Clientes() {
       defaults={{ tipo_pessoa: "PF", contribuinte_icms: 9, nome: "", avisos_email: true }}
       searchKeys={["codigo", "nome", "nome_fantasia", "cpf_cnpj", "whatsapp", "telefone", "telefone_adicional", "email", "email_nfe", "municipio", "condicao_pagamento"]}
       formulario={(r, fechar) => <ClienteForm key={r.id ?? "novo"} registro={r} onClose={fechar} />}
+      editarAgora={abrirAgora}
+      semResultado={(busca) => {
+        // CPF/CNPJ digitado (com ou sem pontos) que não está no cadastro: diz isso e oferece cadastrar
+        const d = digitos(busca);
+        if (![11, 14].includes(d.length) || !/^[\d\s.\-/()]+$/.test(busca)) return null;
+        const cnpj = d.length === 14;
+        const filiais = cnpj ? todos.filter((c) => digitos(c.cpf_cnpj).slice(0, 8) === d.slice(0, 8)) : [];
+        return (
+          <div className="mb-3 rounded-2xl border border-slate-200 bg-surface p-4 text-sm">
+            <p className="text-fg"><b>Nenhum cliente com o {cnpj ? "CNPJ" : "CPF"} {docFormat(d)}.</b>{" "}
+              {cnpj && !cnpjValido(d) ? <span className="text-red-600">Esse CNPJ não é válido: confira os números.</span> : "Ele ainda não está cadastrado no ERP."}</p>
+            {filiais.length > 0 && (
+              <div className="mt-2 text-slate-600">
+                Mesma empresa (outra filial):
+                <ul className="mt-1 space-y-1">
+                  {filiais.slice(0, 5).map((c) => (
+                    <li key={c.id}><button type="button" className="font-semibold text-brand hover:underline" onClick={() => setAbrirAgora({ ...c })}>{c.nome_fantasia || c.nome}</button> <span className="num text-xs">{docFormat(c.cpf_cnpj)}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {papel !== "contador" && (
+              <Button type="button" className="mt-3" onClick={() => setAbrirAgora({ tipo_pessoa: cnpj ? "PJ" : "PF", cpf_cnpj: d, contribuinte_icms: 9, nome: "", avisos_email: true } as unknown as Cliente)}>
+                <UserPlus size={15} /> Cadastrar cliente com este {cnpj ? "CNPJ" : "CPF"}
+              </Button>
+            )}
+          </div>
+        );
+      }}
       fields={FIELDS}
       rowActions={(r) => {
         const temHistorico = comHistorico?.has(r.id);

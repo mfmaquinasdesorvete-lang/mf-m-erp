@@ -89,6 +89,8 @@ type Props<T> = {
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
   /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
   marcadores?: [string, string];
+  /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
+  semResultado?: (busca: string) => ReactNode;
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
@@ -151,6 +153,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     return ordens[ordem] ? [...lista].sort(ordens[ordem].comparar) : lista;
   }, [data, busca, searchKeys, filtros, escolhas, ordens, ordem]);
 
+  // a busca não achou nada: a tela pode mostrar um aviso próprio (ex.: cadastrar com o CNPJ digitado)
+  const avisoBusca = !isLoading && filtrados.length === 0 && busca.trim() ? props.semResultado?.(busca.trim()) ?? null : null;
   // mudou o filtro ou a busca: volta ao começo da lista
   useEffect(() => { setLimite(POR_VEZ); }, [busca, escolhas, ordem]);
   // a seleção só guarda o que ainda existe
@@ -387,9 +391,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         )}
       </div>
 
+      {avisoBusca}
       {props.cartaoCelular && (
         <div className="md:hidden">
-          {!isLoading && filtrados.length === 0 && <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
+          {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
           <ul className="space-y-2">
             {filtrados.slice(0, limite).map((row) => (
               <li key={row.id} className={`relative rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>
@@ -411,7 +416,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       )}
       <div className={props.cartaoCelular ? "hidden md:block" : ""}>
       <Table
-        empty={!isLoading && filtrados.length === 0}
+        empty={!isLoading && filtrados.length === 0 && !avisoBusca}
         head={<>
           {selecionavel && (
             <th className="th w-10">

@@ -25,6 +25,8 @@ export type PropostaTiny = {
   situacao: string | null; vendedor: string | null; cliente_id: string | null; contato_nome: string | null; aos_cuidados: string | null;
   unidade_id: string | null; validade_dias: number | null; prazo_entrega: string | null; observacoes: string | null;
   desconto: number | null; frete: number | null; total: number | null; itens: ItemPropostaTiny[];
+  /** marcadores coloridos (public.marcadores) */
+  marcadores?: string[] | null;
   cliente?: { id: string; nome: string; nome_fantasia?: string | null; codigo?: number | null; cpf_cnpj?: string | null; municipio?: string | null; uf?: string | null } | null;
 };
 
@@ -155,6 +157,33 @@ export function corSituacao(s: string | null | undefined) {
   if (/^aprov/.test(x)) return "bg-sky-100 text-sky-800";
   if (/aguard|pendent|enviad/.test(x)) return "bg-amber-100 text-amber-800";
   return "bg-slate-100 text-slate-700";
+}
+
+/** As situações do Tiny, na ordem das abas da tela de propostas. */
+export const SITUACOES_TINY = ["Em aberto", "Rascunho", "Pendente", "Aguardando", "Aprovado", "Não aprovado", "Concluído", "Modelo"] as const;
+export const ROTULO_ABA_SITUACAO: Record<string, string> = {
+  "Em aberto": "Em aberto", Rascunho: "Rascunhos", Pendente: "Pendentes", Aguardando: "Aguardando", Aprovado: "Aprovadas",
+  "Não aprovado": "Não aprovadas", "Concluído": "Concluídas", Modelo: "Modelos",
+};
+/** Situação escrita de qualquer jeito (com ou sem acento, plural) vira uma das do Tiny. */
+export function situacaoPadrao(s: string | null | undefined): string {
+  const x = sem(s);
+  if (!x) return "Em aberto";
+  if (/nao aprov|recus|cancel/.test(x)) return "Não aprovado";
+  if (/conclu|faturad|vendid/.test(x)) return "Concluído";
+  if (/^aprov/.test(x)) return "Aprovado";
+  if (/rascunh/.test(x)) return "Rascunho";
+  if (/pendent/.test(x)) return "Pendente";
+  if (/aguard|enviad/.test(x)) return "Aguardando";
+  if (/modelo/.test(x)) return "Modelo";
+  if (/aberto/.test(x)) return "Em aberto";
+  return txt(s);
+}
+/** Próximo contato de uma proposta ainda em aberto: atrasado, hoje ou mais para frente. */
+export function contatoDaProposta(p: { proximo_contato: string | null; situacao: string | null }, hoje: string): "atrasado" | "hoje" | "futuro" | null {
+  if (!p.proximo_contato || grupoSituacao(p.situacao) !== "aberta" || situacaoPadrao(p.situacao) === "Modelo") return null;
+  const d = p.proximo_contato.slice(0, 10);
+  return d < hoje ? "atrasado" : d === hoje ? "hoje" : "futuro";
 }
 
 export const subtotalProposta = (p: { itens: ItemPropostaTiny[] }) => p.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_unitario ?? 0), 0);

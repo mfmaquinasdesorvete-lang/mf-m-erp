@@ -1088,6 +1088,7 @@ function bancosDemo(db: Db) {
     propTiny("mf", 161, -12, "Aguardando", "c4", [{ descricao: "Máquina de Sorvete Expressa MF-150 Balcão", quantidade: 2, valor_unitario: 14500, produto_id: "p2" },
       { descricao: "Kit vedação do cilindro", quantidade: 4, valor_unitario: 95, produto_id: "p5" }], { proximo_contato: dias(3) }),
     propTiny("mf", 158, -25, "Não aprovado", "c5", [{ descricao: "Máquina de Milk Shake MF-MS2 (2 hastes)", quantidade: 1, valor_unitario: 3690, produto_id: "p3" }]),
+    propTiny("mf", 163, -6, "Pendente", "c3", [{ descricao: "Máquina de Sorvete Expressa MF-150 Balcão", quantidade: 1, valor_unitario: 14500, produto_id: "p2" }], { proximo_contato: dias(-2) }),
     propTiny("my_frost", 1071, -420, "Concluído", "c2", [{ descricao: "My Frost Top 300 - Máquina de Sorvete Expresso", quantidade: 1 }]),
   ];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
