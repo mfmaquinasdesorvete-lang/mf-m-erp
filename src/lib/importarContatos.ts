@@ -92,6 +92,9 @@ export function tiposDoTexto(v: unknown, padrao: TipoContato): TipoContato[] | n
   return tipos.length ? tipos : null; // só vendedor/funcionário etc.: não entra
 }
 
+/** "08/2023 - 05/2023": no Tiny alguém pôs datas (mês/ano) no nome fantasia; isso não é nome. */
+export const soDatas = (s: string) => /^\s*\d{1,2}\/\d{2,4}(\s*[-–,;/e]\s*\d{1,2}\/\d{2,4})*\s*$/.test(s);
+
 export function converterContatos(linhas: unknown[][], padrao: TipoContato): LeituraContatos {
   // o cabeçalho é a primeira linha (até a 10ª) que tem uma coluna de nome
   const iCab = linhas.slice(0, 10).findIndex((l) => l.some((c) => ["nome", "razao social"].includes(campoDoCabecalho(String(c ?? "")) ?? "") || campoDoCabecalho(String(c ?? "")) === "fantasia"));
@@ -109,7 +112,10 @@ export function converterContatos(linhas: unknown[][], padrao: TipoContato): Lei
   linhas.slice(iCab + 1).forEach((r, k) => {
     const linha = iCab + k + 2;
     if (!r.some((c) => txt(c))) return;
-    const fantasia = txt(col(r, "fantasia"));
+    const fantasiaLida = txt(col(r, "fantasia"));
+    // datas no nome fantasia vão para as observações (não se perdem)
+    const datasFantasia = soDatas(fantasiaLida) ? fantasiaLida : "";
+    const fantasia = datasFantasia ? "" : fantasiaLida;
     const nome = txt(col(r, "nome")) || fantasia;
     if (!nome) { ignorados.push({ linha, motivo: "sem nome" }); return; }
     if (/exclu/i.test(txt(col(r, "situacao")))) { ignorados.push({ linha, motivo: `${nome}: excluído` }); return; }
@@ -130,7 +136,8 @@ export function converterContatos(linhas: unknown[][], padrao: TipoContato): Lei
       fone: txt(col(r, "fone")), celular: txt(col(r, "celular")),
       cep: digitos(col(r, "cep"), [8]), endereco: txt(col(r, "endereco")), numero: txt(col(r, "numero")).replace(/\.0+$/, ""),
       complemento: txt(col(r, "complemento")), bairro: txt(col(r, "bairro")), cidade: txt(col(r, "cidade")),
-      uf: uf(col(r, "uf")), obs: txt(col(r, "obs")), tipos,
+      uf: uf(col(r, "uf")), tipos,
+      obs: [txt(col(r, "obs")), datasFantasia && `Datas que estavam no nome fantasia (vindas do Tiny): ${datasFantasia}`].filter(Boolean).join("\n"),
       compra_maquina: dataDoCodigo(col(r, "compra_maquina")),
     });
   });

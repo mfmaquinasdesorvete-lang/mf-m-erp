@@ -41,6 +41,16 @@ describe("planilha de contatos do Tiny", () => {
     expect(r.itens[0].endereco).toBe("Rua X");
     expect(r.itens[0].numero).toBe("10");
   });
+  it("datas no nome fantasia vão para as observações", () => {
+    const r = converterContatos([
+      ["Nome", "Fantasia", "Observações"],
+      ["Sorveteria A", "08/2023 - 05/2023", "cliente antigo"],
+      ["Sorveteria B", "Gelato B", ""],
+    ], "cliente");
+    expect(r.itens.map((i) => i.fantasia)).toEqual(["", "Gelato B"]);
+    expect(r.itens[0].obs).toBe("cliente antigo\nDatas que estavam no nome fantasia (vindas do Tiny): 08/2023 - 05/2023");
+    expect(r.itens[1].obs).toBe("");
+  });
   it("CSV em UTF-8 sem marca é lido como UTF-8", () => {
     expect(textoUtf8(new TextEncoder().encode('"Endereço";"Número"'))).toBe('"Endereço";"Número"');
     expect(textoUtf8(new Uint8Array([0x45, 0x6e, 0x64, 0xe7, 0x6f]))).toBeNull(); // "Endço" em Windows-1252
