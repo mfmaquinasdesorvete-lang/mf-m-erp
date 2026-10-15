@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
@@ -68,7 +68,7 @@ const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; pad
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
   { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-[#14b8a6] to-[#0e7490]",
     padrao: { tipo: "servico", vendavel: true, no_catalogo: false, unidade: "UN", ncm: "00000000", gtin_isento: true } },
-  { id: "todos", titulo: "Todos", ajuda: "Todos os produtos, de qualquer cadastro.", cor: "from-[#64748b] to-[#334155]", padrao: {} },
+  { id: "todos", titulo: "Todos", ajuda: "Peças, componentes e serviços juntos. As máquinas ficam na tela Máquinas (menu Fábrica e estoque).", cor: "from-[#64748b] to-[#334155]", padrao: {} },
 ];
 const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
 const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [
@@ -211,9 +211,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     pecas: (r: Produto) => r.tipo === "peca" || r.tipo === "acessorio",
     componentes: (r: Produto) => r.tipo === "insumo" || (r.tipo !== "maquina" && r.tipo !== "servico" && naProducao.has(r.id)),
     servicos: (r: Produto) => r.tipo === "servico",
-    todos: undefined,
+    // as máquinas têm tela própria (Máquinas): ficam fora de "Todos"
+    todos: (r: Produto) => r.tipo !== "maquina",
   }), [naProducao]);
-  const contagem = (c: Cadastro) => (c === "todos" ? produtos.length : produtos.filter(doCadastro[c]!).length);
+  const contagem = (c: Cadastro) => produtos.filter(doCadastro[c]).length;
+  const ehMaquinas = cadastro === "maquinas";
   const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
   const podeMover = pode("editar_produtos") && tem("financeiro");
   const sugeridos = useMemo(() => produtos.filter((p) => p.tipo === "peca" && p.vendavel === false && p.ativo !== false), [produtos]);
@@ -238,7 +240,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     const aviso = faltando.length ? `. ${faltando.length} ainda não aparece(m) na loja: ${faltando.slice(0, 3).map((p) => `${p.descricao} (${pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })})`).join("; ")}` : "";
     return `${ids.length} ${pl(ids.length, "produto", "produtos")} ${no ? "no catálogo" : "fora do catálogo"}${aviso}`;
   }
-  const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo));
+  // o aviso de estoque mínimo mostra só o que é desta tela (as máquinas na tela Máquinas, o resto em Produtos)
+  const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo) && doCadastro[cadastro](p));
   const consumo = resumoMovimentos(movimentos, hoje());
   const unidadesUsadas = [...new Set(produtos.map((p) => String(p.unidade ?? "").toUpperCase()))].filter((u) => u && !UNIDADES.some(([c]) => c === u));
   const opcoesUnidade = [...UNIDADES.map(([v, l]) => ({ value: v, label: `${v} - ${l}` })), ...unidadesUsadas.map((u) => ({ value: u, label: `${u} (fora do padrão)` }))];
@@ -387,17 +390,19 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="tablist" aria-label="Cadastro de produtos">
-        {CADASTROS.map((c) => (
+      {!ehMaquinas && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Cadastro de produtos">
+        {CADASTROS.filter((c) => c.id !== "maquinas").map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
             className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition sm:gap-3 sm:p-3 ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
             <span className="num text-xl font-bold sm:text-2xl">{contagem(c.id)}</span>
             <span className="min-w-0 text-sm font-bold leading-tight">{c.titulo}</span>
           </button>
         ))}
-      </div>
-      <p className="-mt-2 mb-3 text-xs text-slate-600 sm:text-sm">{atualCad.ajuda}</p>
-      {cadastro === "maquinas" && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
+      </div>}
+      <p className={`${ehMaquinas ? "" : "-mt-2 "}mb-3 text-xs text-slate-600 sm:text-sm`}>
+        {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="font-semibold text-brand hover:underline">Produtos e estoque</Link>.</> : atualCad.ajuda}
+      </p>
+      {ehMaquinas && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
       {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
           <Boxes size={18} className="shrink-0" />
@@ -440,8 +445,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={<>
           {/* os painéis saíram da lista do menu: ficam a um clique daqui */}
-          <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
-          <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>
+          {ehMaquinas ? <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
+            : <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>}
           {pode("editar_produtos") && <>
             <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>
             <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>

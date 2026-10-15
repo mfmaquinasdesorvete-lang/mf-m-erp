@@ -29,6 +29,12 @@ import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 
 type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
+/** Duas telas: Produção (ordens e ficha técnica) e Compras (reposição, cotações e pedidos de compra). */
+type Area = "producao" | "compras";
+const ABAS_DA_AREA: Record<Area, readonly Aba[]> = { producao: ["producao", "ficha"], compras: ["compras", "cotacoes", "reposicao"] };
+const ROTA_DA_AREA: Record<Area, string> = { producao: "/producao", compras: "/compras" };
+const areaDaAba = (a: string | null | undefined): Area | null =>
+  a && (ABAS_DA_AREA.compras as readonly string[]).includes(a) ? "compras" : a && (ABAS_DA_AREA.producao as readonly string[]).includes(a) ? "producao" : null;
 
 
 /** Quantidade no jeito brasileiro: 0,5 · 1.250 · 2,375 */
@@ -38,33 +44,45 @@ const qtd = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFrac
 const falta = (n: Necessidade) =>
   Math.max(0, Number(n.necessario) - Math.max(0, Number(n.estoque_atual) - Number(n.reservado_outras_op)) - Number(n.a_caminho));
 
-export default function Producao() {
+export default function Producao({ area = "producao" }: { area?: Area } = {}) {
   const { pode } = usePerfil();
   const location = useLocation();
   const navigate = useNavigate();
   const verCompras = pode("editar_producao") || pode("receber_compras");
-  const [aba, setAba] = useAbaUrl<Aba>("producao", ["producao", "reposicao", "compras", "cotacoes", "ficha"] as const);
+  const [aba, setAba] = useAbaUrl<Aba>(ABAS_DA_AREA[area][0], ABAS_DA_AREA[area]);
   const [novaCompra, setNovaCompra] = useState(false);
+  // aba da outra tela (link antigo "/producao?aba=compras", aviso de cotação respondida…): vai para a tela certa
+  const irPara = (a: Aba) => {
+    const outra = areaDaAba(a);
+    if (outra && outra !== area) navigate({ pathname: ROTA_DA_AREA[outra], search: buscaDaAba(a, ABAS_DA_AREA[outra][0]) });
+    else setAba(a);
+  };
 
   const [cotarItens, setCotarItens] = useState<{ produto_id: string; quantidade: number }[] | null>(null);
   // o aviso "cotação respondida" abre com ?aba=cotacoes (a aba já vem do endereço)
   useEffect(() => {
     const st = location.state as any;
+    const pedida = st?.aba ?? new URLSearchParams(location.search).get("aba");
+    const outra = areaDaAba(pedida);
+    if (outra && outra !== area) {
+      navigate({ pathname: ROTA_DA_AREA[outra], search: buscaDaAba(pedida, ABAS_DA_AREA[outra][0]) }, { replace: true, state: st ?? null });
+      return;
+    }
     if (st?.novaCompra) setNovaCompra(true);
-    if (st) navigate({ pathname: location.pathname, search: st.aba ? buscaDaAba(st.aba, "producao") : location.search }, { replace: true, state: null });
-  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (st) navigate({ pathname: location.pathname, search: st.aba ? buscaDaAba(st.aba, ABAS_DA_AREA[area][0]) : location.search }, { replace: true, state: null });
+  }, [location.state, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const abas: { value: Aba; label: string }[] = [
-    { value: "producao", label: "Ordens de produção" },
-    ...(verCompras ? [{ value: "reposicao" as Aba, label: "Reposição de estoque" }, { value: "cotacoes" as Aba, label: "Cotações" }, { value: "compras" as Aba, label: "Pedidos de compra" }] : []),
-    { value: "ficha", label: "Ficha técnica" },
-  ];
+  const abas: { value: Aba; label: string }[] = area === "producao"
+    ? [{ value: "producao", label: "Ordens de produção" }, { value: "ficha", label: "Ficha técnica" }]
+    : verCompras ? [{ value: "compras", label: "Pedidos de compra" }, { value: "cotacoes", label: "Cotações" }, { value: "reposicao", label: "Reposição de estoque" }] : [];
 
   return (
     <div>
-      <PageHeader title="Produção e compras" subtitle="Monte as máquinas, veja quais peças faltam e peça aos fornecedores com cotação." />
-      <Tabs value={aba} onChange={setAba} options={abas} />
-      {aba === "producao" && <OrdensProducao irParaCompras={() => setAba("compras")} />}
+      {area === "producao"
+        ? <PageHeader title="Produção" subtitle="Monte as máquinas: o quadro mostra cada ordem, o que está atrasado e as peças que faltam." />
+        : <PageHeader title="Compras" subtitle="Peça aos fornecedores com cotação, escolha se a compra vem para SC ou SP e mande pelo WhatsApp." />}
+      {area === "compras" && !verCompras ? <Card className="p-4 text-sm text-slate-600">Seu perfil não faz compras.</Card> : <Tabs value={aba} onChange={setAba} options={abas} />}
+      {aba === "producao" && <OrdensProducao irParaCompras={() => irPara("compras")} />}
       {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
         aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
       {aba === "cotacoes" && verCompras && <Cotacoes podeEditar={pode("editar_producao")} inicial={cotarItens}
@@ -91,6 +109,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
   const [verExcluidas, setVerExcluidas] = useState(false);
+  const [vista, setVista] = useAbaUrl<"quadro" | "lista">("quadro", ["quadro", "lista"] as const, "ver");
   const { data: marcadores = [] } = useMarcadores();
 
   const lista = ordens.filter((o) => mostrarTodas || ["planejada", "em_producao"].includes(o.status));
@@ -113,15 +132,24 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
       </div>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" checked={mostrarTodas} onChange={(e) => setMostrarTodas(e.target.checked)} /> Mostrar concluídas e canceladas
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Como ver as ordens">
+            {([["quadro", "Quadro"], ["lista", "Lista"]] as const).map(([v, r]) => (
+              <button key={v} type="button" aria-pressed={vista === v} onClick={() => setVista(v)}
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold ${vista === v ? "bg-brand text-brand-fg" : "text-slate-600 hover:bg-slate-100"}`}>{r}</button>
+            ))}
+          </div>
+          {vista === "lista" && <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" checked={mostrarTodas} onChange={(e) => setMostrarTodas(e.target.checked)} /> Mostrar concluídas e canceladas
+          </label>}
+        </div>
         <div className="flex flex-wrap gap-2">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
           {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
         </div>
       </div>
 
+      {vista === "quadro" ? <QuadroProducao ordens={ordens} faltas={faltasPorOP} marcadores={marcadores} carregando={isLoading} aoAbrir={setAberta} /> :
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">OP</th><th className="th">Produto</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((o) => {
@@ -144,11 +172,80 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
             </tr>
           );
         })}
-      </Table>
+      </Table>}
 
       {aberta && <OPModal inicial={aberta} onClose={() => setAberta(null)} irParaCompras={irParaCompras} />}
       {verExcluidas && <DocumentosExcluidos tabela="ordens_producao" onClose={() => setVerExcluidas(false)} />}
     </>
+  );
+}
+
+/** Para quem o fornecedor fatura e onde entrega (vai na mensagem do WhatsApp): razão social, CNPJ, IE e endereço da unidade. */
+function dadosDestino(u: { razao_social: string | null; cnpj: string | null; inscricao_estadual: string | null; logradouro: string | null; numero: string | null;
+  complemento: string | null; bairro: string | null; municipio: string | null; uf: string | null; cep: string | null }) {
+  const cnpj = String(u.cnpj ?? "").replace(/\D/g, "");
+  const cnpjFmt = cnpj.length === 14 ? cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : cnpj;
+  const cep = String(u.cep ?? "").replace(/\D/g, "");
+  return [
+    u.razao_social ?? "",
+    [cnpjFmt && `CNPJ ${cnpjFmt}`, u.inscricao_estadual && `IE ${u.inscricao_estadual}`].filter(Boolean).join(" · "),
+    [[u.logradouro, u.numero].filter(Boolean).join(", "), u.complemento, u.bairro].filter(Boolean).join(" - "),
+    [[u.municipio, u.uf].filter(Boolean).join("/"), cep.length === 8 && `CEP ${cep.slice(0, 5)}-${cep.slice(5)}`].filter(Boolean).join(" · "),
+  ].filter(Boolean);
+}
+
+/** Quadro da produção: cada ordem num cartão, nas colunas Planejadas → Em produção → Prontas no mês. */
+function QuadroProducao({ ordens, faltas, marcadores, carregando, aoAbrir }: {
+  ordens: OrdemProducao[]; faltas: Map<string, number>; marcadores: Parameters<typeof ChipsMarcadores>[0]["todos"]; carregando: boolean;
+  aoAbrir: (o: OrdemProducao) => void;
+}) {
+  const dia = hoje();
+  const mes = dia.slice(0, 7);
+  const porPrevisao = (a: OrdemProducao, b: OrdemProducao) => (a.previsao ?? "9999").localeCompare(b.previsao ?? "9999");
+  const colunas = [
+    { id: "planejada", titulo: "Planejadas", cor: "border-t-sky-500", lista: ordens.filter((o) => o.status === "planejada").sort(porPrevisao) },
+    { id: "em_producao", titulo: "Em produção", cor: "border-t-amber-500", lista: ordens.filter((o) => o.status === "em_producao").sort(porPrevisao) },
+    { id: "concluida", titulo: "Prontas no mês", cor: "border-t-emerald-500",
+      lista: ordens.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(mes)).sort((a, b) => (b.concluida_em ?? "").localeCompare(a.concluida_em ?? "")) },
+  ];
+  if (carregando) return <p className="py-6 text-center text-sm text-slate-500">Carregando…</p>;
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3" aria-label="Quadro da produção">
+      {colunas.map((c) => (
+        <section key={c.id} aria-label={c.titulo} className={`min-w-0 rounded-2xl border border-t-4 border-slate-200 bg-slate-50/60 p-2 ${c.cor}`}>
+          <h3 className="flex items-center justify-between px-1 pb-2 text-sm font-bold text-fg">{c.titulo} <span className="num rounded-full bg-surface px-2 py-0.5 text-xs text-slate-600 ring-1 ring-slate-200">{c.lista.length}</span></h3>
+          {!c.lista.length && <p className="px-1 pb-2 text-sm text-slate-500">Nenhuma.</p>}
+          <ul className="space-y-2">
+            {c.lista.map((o) => {
+              const f = faltas.get(o.id) ?? 0;
+              const aberta = c.id !== "concluida";
+              const atraso = aberta && o.previsao && o.previsao < dia ? Math.round((Date.parse(dia) - Date.parse(o.previsao)) / 864e5) : 0;
+              return (
+                <li key={o.id}>
+                  <button type="button" onClick={() => aoAbrir(o)}
+                    className={`w-full rounded-xl border bg-surface p-2.5 text-left shadow-sm transition hover:border-brand hover:shadow-pop ${atraso ? "border-red-300" : "border-slate-200"}`}>
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 text-sm font-bold text-fg [overflow-wrap:anywhere]">{Number(o.quantidade)}× {o.produto?.descricao ?? "Produto"}</span>
+                      <span className="shrink-0 text-xs font-semibold text-slate-500">OP #{o.numero}</span>
+                    </span>
+                    <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+                      {aberta && (f
+                        ? <span className="rounded-full bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">faltam {f} {pl(f, "peça", "peças")}</span>
+                        : <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">peças ok</span>)}
+                      {aberta && o.previsao && <span className={`rounded-full px-1.5 py-0.5 font-semibold ${atraso ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700"}`}>
+                        {atraso ? `atrasada ${atraso} ${pl(atraso, "dia", "dias")}` : `para ${dataBR(o.previsao)}`}</span>}
+                      {!aberta && o.concluida_em && <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">pronta em {dataBR(o.concluida_em)}</span>}
+                      {o.responsavel && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-700">{o.responsavel}</span>}
+                    </span>
+                    {(o.marcadores ?? []).length > 0 && <span className="mt-1 block"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -454,17 +551,22 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
-  const { unidades } = useUnidade();
+  const { unidades, padrao } = useUnidade();
   const invalidate = useInvalidate();
   const editavel = pode("editar_producao") && ["cotacao", "enviado"].includes(p.status ?? "cotacao");
   const fornecedor = fornecedores.find((f) => f.id === p.fornecedor_id);
+  // compra nova já vem para a unidade em que se está trabalhando; dá para trocar (SC ou SP) até confirmar
+  const unidadeId = (p as any).unidade_id ?? (p.id ? null : padrao);
+  const destino = unidades.find((u) => u.id === unidadeId);
+  // WhatsApp do fornecedor; sem ele, o celular do cadastro; sem nenhum, abre o WhatsApp para escolher o contato
+  const foneWhats = fornecedor?.whatsapp || (String(fornecedor?.telefone ?? "").replace(/\D/g, "").length >= 10 ? fornecedor?.telefone : null);
   const subtotal = p.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0);
   const set = (x: Partial<PedidoCompra> & { itens?: ItemCompra[] }) => setP((a) => ({ ...a, ...x }));
   const atualizarItem = (k: number, patch: Partial<ItemCompra>) => set({ itens: p.itens.map((i, j) => (j === k ? { ...i, ...patch } : i)) });
 
   async function gravar(status?: string) {
     const { itens, fornecedor: _f, numero: _n, valor_total: _v, created_at: _c, ...cab } = p as any;
-    const dados = limpar({ ...cab, frete: Number(cab.frete || 0), ...(status ? { status, ...(status === "enviado" ? { enviado_em: new Date().toISOString() } : {}) } : {}) });
+    const dados = limpar({ ...cab, unidade_id: cab.unidade_id ?? unidadeId ?? undefined, frete: Number(cab.frete || 0), ...(status ? { status, ...(status === "enviado" ? { enviado_em: new Date().toISOString() } : {}) } : {}) });
     const { data, error } = dados.id
       ? await supabase.from("pedidos_compra").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("pedidos_compra").insert(dados).select("id, numero").single();
@@ -505,7 +607,8 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
     !cotacao ? `Total: ${brl(subtotal + Number(p.frete || 0))}` : "",
     p.previsao_entrega ? `Precisamos para: ${dataBR(p.previsao_entrega)}` : "",
     p.condicao_pagamento && !cotacao ? `Pagamento: ${p.condicao_pagamento}` : "",
-  ].filter((l) => l !== "").join("\n");
+    ...(destino ? ["", `*Faturar e entregar para ${destino.nome}*`, ...dadosDestino(destino)] : []),
+  ].filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !== "")).join("\n").trim();
 
   async function gerarPdf() {
     if (!cfg) return;
@@ -531,6 +634,8 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
               {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
           </Field>
+          <div className="sm:col-span-2"><CampoUnidade label="Comprar para (recebe a mercadoria e a nota)" value={unidadeId} disabled={!editavel || p.status !== "cotacao" && !!p.id}
+            onChange={(id) => set({ unidade_id: id } as Partial<PedidoCompra>)} /></div>
           <Field label="Entrega desejada"><input className="input" type="date" value={p.previsao_entrega ?? ""} disabled={!editavel} onChange={(e) => set({ previsao_entrega: e.target.value })} /></Field>
           <Field label="Frete (R$)"><input className="input" type="number" step="0.01" min={0} value={p.frete ?? 0} disabled={!editavel} onChange={(e) => set({ frete: Number(e.target.value) })} /></Field>
           <Field label="Condição de pagamento" className="sm:col-span-2"><input className="input" placeholder="ex.: 28 dias boleto" value={p.condicao_pagamento ?? ""} disabled={!editavel} onChange={(e) => set({ condicao_pagamento: e.target.value })} /></Field>
@@ -582,8 +687,9 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
           {p.itens.length > 0 && <Button type="button" variant="ghost" onClick={gerarPdf}><FileDown size={16} /> PDF</Button>}
-          {fornecedor?.whatsapp && p.itens.length > 0 && (
-            <a href={whatsappLink(fornecedor.whatsapp, mensagem(p.status === "cotacao"))} target="_blank" rel="noreferrer"
+          {p.itens.length > 0 && (
+            <a href={whatsappLink(foneWhats, mensagem(p.status === "cotacao"))} target="_blank" rel="noreferrer"
+              title={foneWhats ? `Abre a conversa com ${fornecedor?.nome}` : "O fornecedor não tem WhatsApp no cadastro: o WhatsApp abre para você escolher o contato"}
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
               <MessageCircle size={16} /> {p.status === "cotacao" ? "Pedir cotação" : "Enviar pedido"} no WhatsApp
             </a>

@@ -245,10 +245,10 @@ export function gargalos(d: DadosGargalo, hoje: string): Gargalo[] {
     detalhe: `${osVelhas.filter((o) => o.status === "aguardando_peca").length} aguardando peça, ${osVelhas.filter((o) => o.status === "aguardando_aprovacao").length} aguardando aprovação do cliente.` });
 
   const atrasadas = d.compras.filter((c) => ["enviado", "parcial"].includes(c.status) && c.previsao_entrega && c.previsao_entrega < hoje);
-  add({ chave: "compras", titulo: "Compras com entrega atrasada", qtd: atrasadas.length, valor: total(atrasadas), rota: "/producao", nivel: "alerta",
+  add({ chave: "compras", titulo: "Compras com entrega atrasada", qtd: atrasadas.length, valor: total(atrasadas), rota: "/compras", nivel: "alerta",
     detalhe: "Cobre o fornecedor: a falta pode travar produção e vendas." });
   const cotacoes = d.compras.filter((c) => c.status === "cotacao" && dias(c.created_at, hoje) > 5);
-  add({ chave: "cotacoes", titulo: "Cotações de compra paradas há mais de 5 dias", qtd: cotacoes.length, valor: total(cotacoes), rota: "/producao", nivel: "info",
+  add({ chave: "cotacoes", titulo: "Cotações de compra paradas há mais de 5 dias", qtd: cotacoes.length, valor: total(cotacoes), rota: "/compras", nivel: "info",
     detalhe: "Feche ou cancele a cotação." });
 
   const rec = d.receber.filter((c) => c.status === "aberto" && c.vencimento < hoje);
@@ -257,7 +257,7 @@ export function gargalos(d: DadosGargalo, hoje: string): Gargalo[] {
   add({ chave: "pagar", titulo: "Contas a pagar vencidas", qtd: pag.length, valor: total(pag), rota: "/financeiro", nivel: "erro", detalhe: "Pague ou registre o pagamento para evitar juros." });
 
   const abaixo = d.produtos.filter((p) => p.ativo && !p.kit && !p.fora_de_linha && !p.sob_encomenda && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) < Number(p.estoque_minimo));
-  add({ chave: "minimo", titulo: "Produtos abaixo do estoque mínimo", qtd: abaixo.length, rota: "/producao", nivel: "alerta",
+  add({ chave: "minimo", titulo: "Produtos abaixo do estoque mínimo", qtd: abaixo.length, rota: "/compras", nivel: "alerta",
     detalhe: "Veja a sugestão de compra em Produção e compras → Reposição de estoque." });
 
   add({ chave: "parado", titulo: "Estoque sem venda há 6 meses", qtd: d.parado.length, valor: r2(d.parado.reduce((s, p) => s + p.valor, 0)), rota: "/estoque", nivel: "info",

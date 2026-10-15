@@ -206,7 +206,7 @@ function PainelGeral() {
     pode("editar_pedidos") && { label: "Novo orçamento", icon: Plus, to: "/pedidos", state: { novo: true }, cor: "var(--kpi-ciano)" },
     pode("editar_os") && { label: "Nova OS", icon: Wrench, to: "/assistencia", state: { novaOS: {} }, cor: "var(--kpi-laranja)" },
     podeVer("garantias") && { label: "Lembrar clientes", icon: BellRing, to: "/garantias", state: { lembretes: true }, cor: "var(--kpi-rosa)", aviso: lembretes.length },
-    pode("editar_producao") && { label: "Pedir peças", icon: ShoppingBag, to: "/producao", state: { aba: "compras", novaCompra: true }, cor: "var(--kpi-roxo)" },
+    pode("editar_producao") && { label: "Pedir peças", icon: ShoppingBag, to: "/compras", state: { aba: "compras", novaCompra: true }, cor: "var(--kpi-roxo)" },
     podeVer("financeiro") && { label: "Contas", icon: Wallet, to: "/financeiro", cor: "var(--kpi-verde)", aviso: k.qtdReceberVencido },
     podeVer("producao") && { label: "Produção", icon: Factory, to: "/producao", cor: "var(--kpi-azul)" },
     podeVer("estoque") && { label: "Estoque", icon: Boxes, to: "/estoque", cor: "var(--kpi-ciano)", aviso: k.estoqueBaixo.length },
@@ -219,7 +219,7 @@ function PainelGeral() {
     k.osAtrasadas > 0 && { icon: Wrench, cor: "var(--kpi-laranja)", texto: `${k.osAtrasadas} OS com a entrega atrasada`, to: "/assistencia" },
     lembretes.length > 0 && { icon: BellRing, cor: "var(--kpi-laranja)", texto: `${lembretes.length} ${pl(lembretes.length, "cliente", "clientes")} para lembrar da preventiva`, to: "/garantias", state: { lembretes: true } },
     podeVer("producao") && k.opsComFalta > 0 && { icon: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ${pl(k.opsComFalta, "ordem", "ordens")} de produção com peça faltando`, to: "/producao" },
-    pode("editar_producao") && k.comprasAtrasadas > 0 && { icon: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "pedido", "pedidos")} de compra com entrega atrasada`, to: "/producao", state: { aba: "compras" } },
+    pode("editar_producao") && k.comprasAtrasadas > 0 && { icon: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "pedido", "pedidos")} de compra com entrega atrasada`, to: "/compras", state: { aba: "compras" } },
     k.garantiaVence > 0 && { icon: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${k.garantiaVence} ${pl(k.garantiaVence, "garantia", "garantias")} vencendo em 30 dias`, to: "/garantias" },
     pode("nfe_recebidas") && k.nfeConferir > 0 && { icon: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.nfeConferir} ${pl(k.nfeConferir, "nota", "notas")} de fornecedor para conferir`, to: "/notas" },
     k.estoqueBaixo.length > 0 && { icon: Boxes, cor: "var(--kpi-laranja)", texto: `${k.estoqueBaixo.length} ${pl(k.estoqueBaixo.length, "item", "itens")} no estoque mínimo`, to: "/estoque" },
@@ -326,8 +326,8 @@ function PainelGeral() {
               <div className="grid grid-cols-2 gap-2">
                 <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
                 <Mini icon={PackageSearch} cor={k.opsComFalta ? "var(--kpi-rosa)" : "var(--kpi-verde)"} label="Peça faltando" valor={k.opsComFalta} onClick={() => navigate("/producao")} />
-                <Mini icon={ClipboardList} cor="var(--kpi-roxo)" label="Em cotação" valor={k.comprasCotacao} onClick={() => navigate("/producao", { state: { aba: "compras" } })} />
-                <Mini icon={Truck} cor="var(--kpi-laranja)" label="A caminho" valor={k.comprasCaminho} sub={k.comprasAtrasadas ? `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "atrasada", "atrasadas")}` : "no prazo"} onClick={() => navigate("/producao", { state: { aba: "compras" } })} />
+                <Mini icon={ClipboardList} cor="var(--kpi-roxo)" label="Em cotação" valor={k.comprasCotacao} onClick={() => navigate("/compras", { state: { aba: "compras" } })} />
+                <Mini icon={Truck} cor="var(--kpi-laranja)" label="A caminho" valor={k.comprasCaminho} sub={k.comprasAtrasadas ? `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "atrasada", "atrasadas")}` : "no prazo"} onClick={() => navigate("/compras", { state: { aba: "compras" } })} />
               </div>
             </Section>
           )}

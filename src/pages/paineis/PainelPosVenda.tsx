@@ -112,7 +112,7 @@ export default function PainelPosVenda() {
   const atencao: ItemAtencao[] = [
     k.atrasadas.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadas.length} OS com a entrega atrasada`, sub: k.atrasadas.slice(0, 3).map((o) => `#${o.numero} ${o.cliente?.nome ?? ""}`).join(" · "), to: "/assistencia" },
     k.etapas[2].lista.length > 0 && { icone: Hourglass, cor: "var(--kpi-roxo)", texto: `${k.etapas[2].lista.length} ${pl(k.etapas[2].lista.length, "orçamento", "orçamentos")} de conserto esperando o cliente aprovar`, sub: "vale ligar ou mandar WhatsApp", to: "/assistencia" },
-    k.etapas[1].lista.length > 0 && { icone: Clock, cor: "var(--kpi-laranja)", texto: `${k.etapas[1].lista.length} OS esperando peça`, sub: "confira os pedidos de compra", to: "/producao", state: { aba: "compras" } },
+    k.etapas[1].lista.length > 0 && { icone: Clock, cor: "var(--kpi-laranja)", texto: `${k.etapas[1].lista.length} OS esperando peça`, sub: "confira os pedidos de compra", to: "/compras", state: { aba: "compras" } },
     k.paradasRetirada.length > 0 && { icone: PackageCheck, cor: "var(--kpi-ciano)", texto: `${k.paradasRetirada.length} ${pl(k.paradasRetirada.length, "máquina", "máquinas")} prontas há mais de 7 dias sem retirada`, to: "/assistencia" },
     g.prevAtrasada > 0 && { icone: BellRing, cor: "var(--kpi-rosa)", texto: `${g.prevAtrasada} ${pl(g.prevAtrasada, "preventiva", "preventivas")} ${pl(g.prevAtrasada, "atrasada", "atrasadas")}`, sub: lembretes.length ? `${lembretes.length} ${pl(lembretes.length, "cliente", "clientes")} para lembrar` : undefined, to: "/garantias", state: { lembretes: true } },
     g.vence > 0 && { icone: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${g.vence} ${pl(g.vence, "garantia", "garantias")} vencendo em 30 dias`, sub: "oportunidade de contrato de manutenção", to: "/garantias" },
@@ -229,7 +229,7 @@ export default function PainelPosVenda() {
           { rotulo: "Lembrar clientes", icone: BellRing, to: "/garantias", state: { lembretes: true }, aviso: lembretes.length, tela: "garantias" },
           { rotulo: "Notas de serviço", icone: FileText, to: "/notas", state: { aba: "nfse" }, tela: "notas" },
           { rotulo: "Clientes", icone: Users, to: "/clientes", tela: "clientes" },
-          ...(podeVer("producao") ? [{ rotulo: "Peças (compras)", icone: Timer, to: "/producao", state: { aba: "compras" } }] : []),
+          ...(podeVer("producao") ? [{ rotulo: "Peças (compras)", icone: Timer, to: "/compras", state: { aba: "compras" } }] : []),
         ]} />
       </div>
     </div>

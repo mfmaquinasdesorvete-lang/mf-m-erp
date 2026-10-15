@@ -99,7 +99,7 @@ export default function PainelProducao() {
     { id: "feitas", rotulo: "Máquinas prontas", valor: un(k.feitas), icone: ClipboardCheck, cor: "var(--kpi-verde)", delta: k.dFeitas, tendencia: k.tendFeitas,
       sub: "OPs concluídas no período" },
     ...(verCompras ? [{ id: "compras", rotulo: "Compras a caminho", valor: brl(k.valorCaminho), icone: Truck, cor: "var(--kpi-laranja)",
-      sub: `${k.caminho.length} ${pl(k.caminho.length, "pedido", "pedidos")}${k.comprasAtrasadas.length ? ` · ${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "atrasado", "atrasados")}` : " · no prazo"}`, onClick: () => navigate("/producao", { state: { aba: "compras" } }) } as Cartao] : []),
+      sub: `${k.caminho.length} ${pl(k.caminho.length, "pedido", "pedidos")}${k.comprasAtrasadas.length ? ` · ${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "atrasado", "atrasados")}` : " · no prazo"}`, onClick: () => navigate("/compras", { state: { aba: "compras" } }) } as Cartao] : []),
     { id: "estoque", rotulo: "Dinheiro no estoque", valor: brl(k.estoque), icone: Warehouse, cor: "var(--kpi-roxo)",
       sub: `${k.abaixo.length} de ${k.itensAtivos} ${pl(k.itensAtivos, "item", "itens")} no mínimo · a preço de custo`, onClick: () => navigate("/estoque") },
   ];
@@ -107,8 +107,8 @@ export default function PainelProducao() {
   const atencao: ItemAtencao[] = [
     k.opsComFalta > 0 && { icone: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ${pl(k.opsComFalta, "OP", "OPs")} com peça faltando`, sub: k.pecas.slice(0, 3).map(([d]) => d).join(" · "), to: "/producao" },
     k.atrasadas.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadas.length} ${pl(k.atrasadas.length, "OP", "OPs")} passaram da data prevista`, to: "/producao" },
-    verCompras && k.comprasAtrasadas.length > 0 && { icone: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "pedido", "pedidos")} de compra com entrega atrasada`, sub: k.comprasAtrasadas.slice(0, 3).map((c) => c.fornecedor?.nome ?? `#${c.numero}`).join(" · "), to: "/producao", state: { aba: "compras" } },
-    verCompras && k.cotacao > 0 && { icone: ClipboardList, cor: "var(--kpi-roxo)", texto: `${k.cotacao} ${pl(k.cotacao, "pedido", "pedidos")} de compra em cotação`, to: "/producao", state: { aba: "cotacoes" } },
+    verCompras && k.comprasAtrasadas.length > 0 && { icone: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas.length} ${pl(k.comprasAtrasadas.length, "pedido", "pedidos")} de compra com entrega atrasada`, sub: k.comprasAtrasadas.slice(0, 3).map((c) => c.fornecedor?.nome ?? `#${c.numero}`).join(" · "), to: "/compras", state: { aba: "compras" } },
+    verCompras && k.cotacao > 0 && { icone: ClipboardList, cor: "var(--kpi-roxo)", texto: `${k.cotacao} ${pl(k.cotacao, "pedido", "pedidos")} de compra em cotação`, to: "/compras", state: { aba: "cotacoes" } },
     k.abaixo.length > 0 && { icone: Boxes, cor: "var(--kpi-laranja)", texto: `${k.abaixo.length} ${pl(k.abaixo.length, "item", "itens")} no estoque mínimo`, sub: verCompras ? "a reposição sugere o que comprar" : undefined, to: verCompras ? "/producao" : "/estoque", state: verCompras ? { aba: "reposicao" } : undefined },
     transito > 0 && { icone: ArrowLeftRight, cor: "var(--kpi-ciano)", texto: `${transito} ${pl(transito, "transferência", "transferências")} SC ↔ SP em trânsito`, sub: "confirme o recebimento quando chegar", to: "/transferencias" },
   ].filter(Boolean) as ItemAtencao[];
@@ -120,7 +120,7 @@ export default function PainelProducao() {
     <div className="space-y-4 sm:space-y-5">
       <CabecalhoPainel icone={Factory} area="Produção e estoque" titulo="Como está a fábrica" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo}
         acoes={pode("editar_producao") && (
-          <button type="button" onClick={() => navigate("/producao", { state: { aba: "compras", novaCompra: true } })}
+          <button type="button" onClick={() => navigate("/compras", { state: { aba: "compras", novaCompra: true } })}
             className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-3.5 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
             <Plus size={16} /> Pedir peças
           </button>
@@ -173,7 +173,7 @@ export default function PainelProducao() {
         {verCompras ? (
           <Section title="Compras a caminho por fornecedor" className="md:col-span-2 xl:col-span-1">
             <Ranking cor="var(--serie-2)" vazio="Nenhuma compra a caminho."
-              onClicar={() => navigate("/producao", { state: { aba: "compras" } })}
+              onClicar={() => navigate("/compras", { state: { aba: "compras" } })}
               itens={k.fornecedores.map(([nome, v]) => ({ rotulo: nome, valor: v.valor, detalhe: `${v.qtd} ${pl(v.qtd, "pedido", "pedidos")}` }))} />
           </Section>
         ) : null}
@@ -213,8 +213,8 @@ export default function PainelProducao() {
         <AtalhosArea itens={[
           { rotulo: "Ordens de produção", icone: Factory, to: "/producao", aviso: k.opsComFalta, tela: "producao" },
           ...(verCompras ? [
-            { rotulo: "Reposição de estoque", icone: Boxes, to: "/producao", state: { aba: "reposicao" }, aviso: k.abaixo.length },
-            { rotulo: "Pedidos de compra", icone: ShoppingBag, to: "/producao", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
+            { rotulo: "Reposição de estoque", icone: Boxes, to: "/compras", state: { aba: "reposicao" }, aviso: k.abaixo.length },
+            { rotulo: "Pedidos de compra", icone: ShoppingBag, to: "/compras", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
           ] : []),
           { rotulo: "Ficha técnica", icone: Wrench, to: "/producao", state: { aba: "ficha" }, tela: "producao" },
           { rotulo: "Produtos e estoque", icone: Warehouse, to: "/estoque", tela: "estoque" },

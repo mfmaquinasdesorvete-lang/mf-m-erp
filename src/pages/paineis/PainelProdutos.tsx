@@ -149,7 +149,7 @@ export default function PainelProdutos() {
   ];
 
   const atencao: ItemAtencao[] = [
-    k.vaiFaltar.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${k.vaiFaltar.length} ${pl(k.vaiFaltar.length, "produto", "produtos")} acabam antes de chegar reposição`, sub: k.vaiFaltar.slice(0, 3).map((x) => x.p.descricao).join(" · "), to: "/producao", state: { aba: "reposicao" } },
+    k.vaiFaltar.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${k.vaiFaltar.length} ${pl(k.vaiFaltar.length, "produto", "produtos")} acabam antes de chegar reposição`, sub: k.vaiFaltar.slice(0, 3).map((x) => x.p.descricao).join(" · "), to: "/compras", state: { aba: "reposicao" } },
     k.abaixoCusto.length > 0 && { icone: TrendingDown, cor: "var(--kpi-rosa)", texto: `${k.abaixoCusto.length} ${pl(k.abaixoCusto.length, "produto", "produtos")} com preço abaixo do custo`, sub: "cada venda dá prejuízo", to: "/estoque" },
     k.negativo.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.negativo.length} ${pl(k.negativo.length, "produto", "produtos")} com estoque negativo`, sub: "falta lançar entrada ou houve baixa errada", to: "/estoque" },
     k.semPreco.length > 0 && { icone: CircleDollarSign, cor: "var(--kpi-laranja)", texto: `${k.semPreco.length} ${pl(k.semPreco.length, "produto", "produtos")} à venda sem preço`, to: "/estoque" },
@@ -233,7 +233,7 @@ export default function PainelProdutos() {
           ) : <p className="py-10 text-center text-sm text-slate-500">Sem vendas nos últimos 12 meses.</p>}
         </Section>
         <Section title="Vai acabar antes da reposição chegar" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/producao", { state: { aba: "reposicao" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Repor</button>}>
+          actions={<button type="button" onClick={() => navigate("/compras", { state: { aba: "reposicao" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Repor</button>}>
           {k.vaiFaltar.length ? (
             <ul className="space-y-2.5">
               {k.vaiFaltar.slice(0, 7).map((x) => {
@@ -285,7 +285,7 @@ export default function PainelProdutos() {
           { rotulo: "Todos os produtos", icone: Boxes, to: "/estoque", aviso: k.negativo.length, tela: "estoque" },
           { rotulo: "Peças de reposição", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
           { rotulo: "Componentes", icone: Package, to: "/produtos/componentes", tela: "estoque" },
-          { rotulo: "Reposição", icone: PackageX, to: "/producao", state: { aba: "reposicao" }, aviso: k.vaiFaltar.length, tela: "producao" },
+          { rotulo: "Reposição", icone: PackageX, to: "/compras", state: { aba: "reposicao" }, aviso: k.vaiFaltar.length, tela: "producao" },
           { rotulo: "Margem", icone: PieChart, to: "/margem", tela: "margem" },
           { rotulo: "Painel gerencial", icone: Barcode, to: "/gerencial", tela: "relatorios" },
         ]} />
