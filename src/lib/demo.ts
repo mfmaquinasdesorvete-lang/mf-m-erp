@@ -1155,6 +1155,32 @@ function bancosDemo(db: Db) {
   add("cb3", dias(-16), -98.75, "Pix BYTEDANCE BRASIL TECNOLOGIA LTDA · Enviado");
   add("cb3", dias(-8), -134.9, "MERCADOLIVRE*LOJAEXEMPLO · cartao");
   add("cb3", dias(-7), -64, "MP *RESTAURANTEEXEMPLO · cartao");
+  // Sobre o ERP Line → Handoff, Ideias e Esquemas (exemplos inventados; no sistema real: public.projeto_itens e public.cadeias_causa)
+  const item = (x: Row) => ({ detalhe: null, area: "geral", responsavel: null, prioridade: "media", esforco: null, situacao: "aberta", prazo: null, motivo: null,
+    votos: [], criado_por: null, criado_nome: "Claude", concluido_em: null, atualizado_em: quando(-1), created_at: quando(-2), ...x });
+  db.projeto_itens = [
+    item({ id: "pj1", tipo: "pendencia", titulo: "Autorizar a publicação da nova tela de Vendas", detalhe: "Responder \"pode publicar\".", area: "vendas", responsavel: "empresa", prioridade: "alta" }),
+    item({ id: "pj2", tipo: "pendencia", titulo: "Baixar do Tiny os XML das notas que faltam", detalhe: "Tiny → Notas → baixar XML; no ERP: Importar dados → NF-e emitidas.", area: "notas", responsavel: "empresa", prioridade: "alta", prazo: dias(-2) }),
+    item({ id: "pj3", tipo: "pendencia", titulo: "Conferir os prazos do calendário de obrigações", area: "notas", responsavel: "contador", situacao: "aguardando", motivo: "resposta do contador" }),
+    item({ id: "pj4", tipo: "pendencia", titulo: "Relatório de giro do estoque", area: "producao", responsavel: "claude", situacao: "andamento" }),
+    item({ id: "pj5", tipo: "pendencia", titulo: "Filtros com período em todas as listas", area: "geral", responsavel: "claude", prioridade: "baixa" }),
+    item({ id: "pj6", tipo: "pendencia", titulo: "Cadastrar as embalagens novas", area: "logistica", responsavel: "empresa", situacao: "feita", concluido_em: quando(-1) }),
+    item({ id: "pj7", tipo: "decisao", titulo: "Venda não é NF: totais e contas usam o valor da venda", area: "financeiro", situacao: "feita", concluido_em: quando(-5) }),
+    item({ id: "pj8", tipo: "decisao", titulo: "Nada é apagado: cancelar ou descartar com motivo", situacao: "feita", concluido_em: quando(-5) }),
+    item({ id: "pj9", tipo: "ideia", titulo: "Avisar o cliente quando a máquina sair do conserto", area: "posvenda", prioridade: "alta", esforco: "pequeno", votos: ["u-admin", "u2"] }),
+    item({ id: "pj10", tipo: "ideia", titulo: "App para técnicos: fotos e assinatura na OS", area: "posvenda", prioridade: "alta", esforco: "grande", votos: ["u2"] }),
+    item({ id: "pj11", tipo: "ideia", titulo: "Previsão de compras pela produção planejada", area: "producao", situacao: "avaliando" }),
+    item({ id: "pj12", tipo: "ideia", titulo: "Etiqueta de envio direto do pedido", area: "logistica", situacao: "planejada", esforco: "medio" }),
+  ];
+  db.cadeias_causa = [
+    { id: "cc1", titulo: "Vendas antigas aparecem como \"Sem conta\"", efeito: "Na lista de Vendas, as vendas importadas aparecem como \"Sem conta\"", area: "vendas",
+      elos: [
+        { texto: "Os pedidos antigos entraram pela planilha de pedidos", tipo: "fato", evidencia: "Importar dados → histórico; os pedidos têm origem de importação", ligacao: "comprovada" },
+        { texto: "A planilha não traz as contas a receber", tipo: "fato", evidencia: "Os pedidos importados não têm campo de pagamento", ligacao: "comprovada" },
+        { texto: "A maioria dessas vendas já foi recebida", tipo: "hipotese", evidencia: null, ligacao: "correlacao" },
+      ], conclusao: "O \"Sem conta\" vem da importação. Que já foram recebidas é hipótese: conferir no extrato.", situacao: "em_revisao", motivo: null,
+      criado_por: null, criado_nome: "Claude", revisado_nome: null, revisado_em: null, atualizado_em: quando(-1), created_at: quando(-1) },
+  ];
   // tela Entre contas, sócios e empresas ligadas (nomes e documentos inventados)
   db.partes_relacionadas = [
     { id: "pr1", nome: "Sócia Exemplo da Silva", tipo: "socio", documentos: ["12345678909"], nomes_extrato: [], observacao: null, ativo: true, created_at: quando(-30) },
@@ -1871,6 +1897,55 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.salvar_item_projeto, mudar_situacao_projeto e votar_ideia (Sobre → Handoff e Ideias)
+  salvar_item_projeto: (a) => {
+    if (String(a.p_titulo ?? "").trim().length < 3) return erro("escreva o título (pelo menos 3 letras)");
+    const lista = (db.projeto_itens ??= []);
+    const dados = { titulo: String(a.p_titulo).trim(), detalhe: a.p_detalhe || null, area: a.p_area || "geral", responsavel: a.p_tipo === "pendencia" ? a.p_responsavel : null,
+      prioridade: a.p_prioridade || "media", esforco: a.p_tipo === "ideia" ? a.p_esforco ?? null : null, prazo: a.p_tipo === "pendencia" ? a.p_prazo ?? null : null, atualizado_em: new Date().toISOString() };
+    const r = a.p_id ? lista.find((x: Row) => x.id === a.p_id) : null;
+    if (r) { Object.assign(r, dados); return { data: r.id, error: null }; }
+    const novo = { id: uid(), tipo: a.p_tipo, situacao: a.p_tipo === "decisao" ? "feita" : "aberta", motivo: null, votos: [], criado_por: sessao?.user.id ?? null,
+      criado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? null, concluido_em: a.p_tipo === "decisao" ? dados.atualizado_em : null, created_at: dados.atualizado_em, ...dados };
+    lista.unshift(novo);
+    return { data: novo.id, error: null };
+  },
+  mudar_situacao_projeto: (a) => {
+    const r = (db.projeto_itens ?? []).find((x: Row) => x.id === a.p_id);
+    if (!r) return erro("item não encontrado");
+    if (a.p_situacao === "descartada" && String(a.p_motivo ?? "").trim().length < 5) return erro("escreva o motivo (pelo menos 5 letras)");
+    Object.assign(r, { situacao: a.p_situacao, motivo: ["descartada", "aguardando"].includes(a.p_situacao) ? a.p_motivo : null,
+      concluido_em: a.p_situacao === "feita" ? new Date().toISOString() : null, atualizado_em: new Date().toISOString() });
+    return { data: null, error: null };
+  },
+  votar_ideia: (a) => {
+    const r = (db.projeto_itens ?? []).find((x: Row) => x.id === a.p_id);
+    const eu = sessao?.user.id ?? "anon";
+    if (!r) return erro("só ideias recebem voto");
+    const votou = !r.votos.includes(eu);
+    r.votos = votou ? [...r.votos, eu] : r.votos.filter((v: string) => v !== eu);
+    return { data: votou, error: null };
+  },
+  // no sistema real: public.salvar_cadeia e revisar_cadeia (Sobre → Esquemas → Cadeia de causas)
+  salvar_cadeia: (a) => {
+    const lista = (db.cadeias_causa ??= []);
+    const dados = { titulo: a.p_titulo, efeito: a.p_efeito, area: a.p_area || "geral", elos: a.p_elos, conclusao: a.p_conclusao || null, situacao: "em_revisao", motivo: null,
+      revisado_nome: null, revisado_em: null, atualizado_em: new Date().toISOString() };
+    const r = a.p_id ? lista.find((x: Row) => x.id === a.p_id) : null;
+    if (r) { Object.assign(r, dados); return { data: r.id, error: null }; }
+    const novo = { id: uid(), criado_por: sessao?.user.id ?? null, criado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? null, created_at: dados.atualizado_em, ...dados };
+    lista.unshift(novo);
+    return { data: novo.id, error: null };
+  },
+  revisar_cadeia: (a) => {
+    const r = (db.cadeias_causa ?? []).find((x: Row) => x.id === a.p_id);
+    if (!r) return erro("cadeia não encontrada");
+    if (a.p_situacao === "descartada" && String(a.p_motivo ?? "").trim().length < 5) return erro("escreva o motivo (pelo menos 5 letras)");
+    const revisada = a.p_situacao === "revisada";
+    Object.assign(r, { situacao: a.p_situacao, motivo: a.p_situacao === "descartada" ? a.p_motivo : null, revisado_em: revisada ? new Date().toISOString() : null,
+      revisado_nome: revisada ? db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? null : null, atualizado_em: new Date().toISOString() });
+    return { data: null, error: null };
+  },
   // no sistema real: public.marcar_obrigacao e public.salvar_calendario_fiscal (calendário de obrigações do contador)
   marcar_obrigacao: (a) => {
     if (a.p_situacao === "nao_se_aplica" && String(a.p_observacao ?? "").trim().length < 5) return { data: null, error: { message: "escreva por que não se aplica (pelo menos 5 letras)" } };
