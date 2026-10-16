@@ -54,6 +54,11 @@ const FORMAS = [
 
 const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente)";
 
+/** Orçamento enviado pelo representante no Portal do representante. */
+const SeloPortal = () => (
+  <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Orçamento enviado pelo representante no portal">PORTAL</span>
+);
+
 function exportarPedidos(lista: Pedido[]) {
   const ped = lista.map((p: any) => ({
     Número: p.numero, Data: celula(p.created_at), Situação: ROTULO_STATUS[p.status as (typeof STATUS)[number]] ?? p.status, Cliente: p.cliente?.nome ?? "",
@@ -188,7 +193,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
             className="w-full rounded-xl p-4 pb-2 text-left active:bg-slate-50">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
+              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
@@ -213,7 +218,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       >
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
-            <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}</td>
+            <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}</td>
             <td className="td">{dataBR(p.created_at)}</td>
             <td className="td">{p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>
@@ -530,6 +535,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       <form onSubmit={salvar} className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {p.status && <Badge value={p.status} />}
+          {p.via_portal && <span className="rounded-md bg-teal-50 px-2 py-0.5 text-xs font-bold text-teal-800">Veio do portal do representante{p.status === "orcamento" ? ": confira e aprove pelo fluxo normal" : ""}</span>}
           {p.id && <Tabs value={aba} onChange={setAba} options={[{ value: "pedido", label: "Pedido" }, { value: "frete", label: "Frete e envio" }, { value: "auditoria", label: "Conferências" }]} />}
         </div>
 

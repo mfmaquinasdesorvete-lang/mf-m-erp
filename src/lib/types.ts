@@ -6,6 +6,8 @@ export type Cliente = {
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null; portal_token?: string;
+  /** cadastrado pelo representante no portal: falta a empresa conferir */
+  portal_conferir?: boolean;
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
   telefone_adicional?: string | null; website?: string | null; email_nfe?: string | null; contato_observacoes?: string | null;
   inscricao_municipal?: string | null; inscricao_suframa?: string | null; regime_tributario?: number | null; data_nascimento?: string | null;
@@ -95,6 +97,8 @@ export type Pedido = {
   /** pedido importado do Tiny: id_externo "tiny:<id>", número e situação no Tiny */
   id_externo?: string | null; numero_externo?: string | null; situacao_origem?: string | null;
   transportadora_id?: string | null; codigo_rastreio?: string | null; aprovado_em?: string | null; volumes?: number | null; peso_total_kg?: number | null;
+  /** orçamento enviado pelo representante no portal (/portal) */
+  via_portal?: boolean;
   proposta_token?: string; proposta_status?: string | null; proposta_enviada_em?: string | null; proposta_visualizada_em?: string | null;
   proposta_respondida_em?: string | null; proposta_validade?: string | null; proposta_resposta_nome?: string | null;
   motivo_rejeicao?: string | null; motivo_rejeicao_texto?: string | null; concorrente?: string | null;
@@ -157,6 +161,8 @@ export type Vendedor = {
   id: string; nome: string; tipo: "vendedor" | "representante"; user_id: string | null; percentual: number;
   base: "recebimento" | "faturamento"; descontar_frete: boolean; cpf_cnpj: string | null; email: string | null;
   whatsapp: string | null; pix: string | null; ativo: boolean;
+  /** tabela de preço do portal do representante (vazia = preço de venda) */
+  portal_tabela_preco_id?: string | null;
 };
 export type KitComponente = { id: string; kit_id: string; componente_id: string; quantidade: number; opcional: boolean; grupo: string | null; padrao: boolean };
 export type EscolhaKit = { componente_id: string; quantidade: number }[];
