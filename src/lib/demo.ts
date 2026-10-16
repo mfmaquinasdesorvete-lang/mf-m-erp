@@ -1871,6 +1871,21 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.marcar_obrigacao e public.salvar_calendario_fiscal (calendário de obrigações do contador)
+  marcar_obrigacao: (a) => {
+    if (a.p_situacao === "nao_se_aplica" && String(a.p_observacao ?? "").trim().length < 5) return { data: null, error: { message: "escreva por que não se aplica (pelo menos 5 letras)" } };
+    const lista = (db.obrigacoes_cumpridas ??= []);
+    const igual = (r: Row) => r.chave === a.p_chave && r.competencia === a.p_competencia && (r.unidade_id ?? null) === (a.p_unidade ?? null);
+    const feito = a.p_situacao === "feito";
+    const dados = { chave: a.p_chave, competencia: a.p_competencia, unidade_id: a.p_unidade ?? null, situacao: a.p_situacao,
+      feito_em: feito ? a.p_feito_em ?? new Date().toISOString().slice(0, 10) : null, valor: feito ? a.p_valor ?? null : null,
+      recibo: a.p_recibo || null, observacao: a.p_observacao || null, atualizado_em: new Date().toISOString(),
+      registrado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? null };
+    const r = lista.find(igual);
+    if (r) Object.assign(r, dados); else lista.push({ id: `ob${lista.length + 1}`, created_at: dados.atualizado_em, ...dados });
+    return { data: (r ?? lista[lista.length - 1]).id, error: null };
+  },
+  salvar_calendario_fiscal: ({ p }) => { db.configuracoes[0].calendario_fiscal = p; return { data: null, error: null }; },
   // no sistema real: public.busca_geral (mesmas regras, com as permissões de quem busca)
   busca_geral: ({ p_termo, p_limite }) => {
     const t = String(p_termo ?? "").trim();

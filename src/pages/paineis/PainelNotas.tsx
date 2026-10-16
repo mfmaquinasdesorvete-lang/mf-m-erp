@@ -19,6 +19,7 @@ import { usePerfil } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { brl, pl } from "@/lib/format";
 import type { NotaEmitida } from "@/components/nfe/NotaDetalhe";
+import { ProximasObrigacoes } from "@/components/contador/CalendarioObrigacoes";
 
 // mesmos selects das listas de notas: o que já foi carregado serve aos dois
 const SELECT_EMITIDAS = "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)";
@@ -41,7 +42,9 @@ const itensDe = (n: NotaEmitida): any[] => (Array.isArray(n.payload?.items) ? n.
 
 export default function PainelNotas() {
   const navigate = useNavigate();
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem } = usePerfil();
+  // calendário de obrigações: quem marca e acompanha (financeiro, contador e administrador)
+  const veObrigacoes = tem("financeiro") || papel === "contador";
   const veRecebidas = pode("nfe_recebidas") || papel === "contador";
   const { filtrar } = useUnidade();
   const { data: emTodas = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: SELECT_EMITIDAS });
@@ -154,6 +157,8 @@ export default function PainelNotas() {
       <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
       </div>
+
+      {veObrigacoes && <ProximasObrigacoes />}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title={veRecebidas ? "Notas de venda x notas de fornecedores" : "Notas de venda"} className="xl:col-span-3">

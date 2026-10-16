@@ -2,7 +2,7 @@
 // envio automático, mês travado depois de fechado e conversa com o financeiro.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CircleHelp, Download, FilePlus2, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
-import { Button, CampoMes, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
+import { Button, CampoMes, Card, Field, Modal, PageHeader, Section, Tabs } from "@/components/ui";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { TABELA, type ContaRevisao, type TipoConta } from "@/lib/aprovacao";
 import { Anexos } from "@/components/Anexos";
@@ -19,6 +19,8 @@ import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { COR_STATUS, ConciliacaoBancos, Divergencias, ResultadoMes } from "@/components/contador/FechamentoMes";
 import { conciliacaoDoMes, divergenciasDoMes, statusDoMes, type BancoMes } from "@/lib/fechamentoMes";
 import type { LancExtratoDre } from "@/lib/dreExtrato";
+import { useAbaUrl } from "@/lib/abaUrl";
+import { CalendarioObrigacoes } from "@/components/contador/CalendarioObrigacoes";
 
 type Fechamento = { id: string; unidade_id: string; competencia: string; status: string; enviado_em: string | null; fechado_em: string | null; arquivo_caminho: string | null; observacoes: string | null };
 type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; pedido_id?: string | null; payload?: { items?: Record<string, any>[] } | null };
@@ -41,12 +43,15 @@ export default function Contador() {
   const [unid, setUnid] = useState<string>("");
   useEffect(() => { if (!unid && unidades.length) setUnid(unidades.find((u) => u.matriz)?.id ?? unidades[0].id); }, [unidades, unid]);
   const contador = papel === "contador";
+  const [aba, setAba] = useAbaUrl<"fechamento" | "calendario">("fechamento", ["fechamento", "calendario"]);
 
   return (
     <div>
       <PageHeader title="Painel do contador" subtitle={contador
         ? "Tudo o que você precisa para o fechamento: notas, XML, planilhas e conversa com o financeiro da MF."
         : `Fechamento mensal com o contador${cfg?.contador_nome ? ` (${cfg.contador_nome})` : ""}. ${cfg?.contador_envio_auto ? `Envio automático todo dia ${cfg.contador_envio_dia}.` : "Envio automático desligado (Configurações → Contador)."}`} />
+      <Tabs value={aba} onChange={setAba} options={[{ value: "fechamento", label: "Fechamento do mês" }, { value: "calendario", label: "Calendário de obrigações" }]} />
+      {aba === "calendario" ? <CalendarioObrigacoes /> : <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <CampoMes rotulo="Competência" value={comp} max={new Date().toISOString().slice(0, 7)} onChange={(v) => v && setComp(v)} />
         <div className="flex gap-1.5">
@@ -57,6 +62,7 @@ export default function Contador() {
         </div>
       </div>
       {unid && <Competencia key={`${unid}-${comp}`} unidadeId={unid} comp={comp} contador={contador} />}
+      </>}
     </div>
   );
 }
