@@ -25,10 +25,11 @@ import { SeloTesteGiga } from "@/components/testeGiga/SeloGiga";
 import { useSituacaoGiga } from "@/lib/testeGigaDados";
 import { normalizarNs } from "@/lib/testeGiga";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
+import { consertosDasNotas, type NotaConserto } from "@/lib/consertos";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
-const NOTA = "id, numero, serie, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, payload, origem";
+const NOTA = "id, numero, serie, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, payload, origem, chave, chave_referenciada";
 const TIPOS: Record<string, string> = { pos_venda: "Pós-venda", cobranca: "Cobrança", preventiva: "Preventiva", garantia: "Garantia", outro: "Atendimento" };
 const CANAIS: Record<string, string> = { whatsapp: "WhatsApp", telefone: "Telefone", email: "E-mail", visita: "Visita", loja: "Na loja" };
 const ICONE = { erro: { Icon: XCircle, cor: "text-red-600" }, alerta: { Icon: AlertTriangle, cor: "text-amber-600" }, info: { Icon: Info, cor: "text-sky-600" } };
@@ -170,7 +171,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} notasMyFrost={data.notasMyFrost} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
-          {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} />}
+          {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} notas={data.notas} />}
           {aba === "atendimentos" && <Atendimentos cliente={c} contatos={data.contatos} nomes={data.nomes} />}
         </>
       )}
@@ -404,8 +405,9 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
   );
 }
 
-function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[] }) {
+function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[]; notas: NotaConserto[] }) {
   const dia = hoje();
+  const consertos = useMemo(() => consertosDasNotas(notas, dia), [notas, dia]);
   const garantia = pecasEmGarantia(oss);
   // teste do giga (REG-006) das máquinas fabricadas pela MF, pelo nº de série
   const { data: giga } = useSituacaoGiga(equipamentos.filter((e) => !e.origem).map((e) => e.numero_serie));
@@ -422,6 +424,7 @@ function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente;
         <Indicador rotulo="Peças em garantia" valor={garantia.quantidade.toLocaleString("pt-BR")} cor="ambar" />
         <Indicador rotulo="Custo da garantia" valor={brl(garantia.custo)} cor="vermelho" sub="peças pelo custo do cadastro" />
       </div>
+      {consertos.length > 0 && <ConsertosPelasNotas consertos={consertos} />}
       {garantia.pecas.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">Peças trocadas em garantia</h3>
@@ -509,6 +512,33 @@ type TecnicoRegiao = { id: string; nome: string; tipo: string; whatsapp: string 
 /** Técnicos do cliente: o técnico ligado a ele (clientes.tecnico_id) e os da mesma cidade. Os outros da região
  *  (estado, ou que já atenderam) ficam atrás do link "Técnicos da região", com o botão para ligar ao cliente.
  *  Os parceiros Dr. Frost (convidados do site de técnicos) vêm antes dos contatos. */
+/** Máquinas que vieram para conserto: a NF-e de entrada da MF e quando voltaram (NF-e de retorno). */
+function ConsertosPelasNotas({ consertos }: { consertos: ReturnType<typeof consertosDasNotas> }) {
+  const naMF = consertos.filter((c) => c.entrada && !c.retorno).length;
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold">
+        Máquinas que vieram para conserto ({consertos.filter((c) => c.entrada).length}){naMF > 0 && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{naMF} na MF</span>}
+      </h3>
+      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+        {consertos.map((c) => (
+          <li key={(c.entrada ?? c.retorno)!.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 [overflow-wrap:anywhere]">
+            <span className="min-w-0 flex-1 basis-56">
+              {c.entrada ? <>Veio em <b>{dataBR(c.entrada.created_at)}</b> · NF de entrada {c.entrada.numero}</> : <span className="text-slate-500">Entrada não está no ERP</span>}
+              {c.retorno ? <> → voltou em <b>{dataBR(c.retorno.created_at)}</b> · NF {c.retorno.numero}</> : <> → <b className="text-amber-700">ainda na MF</b></>}
+              {c.itens.length > 0 && <span className="block text-xs text-slate-500">{c.itens.slice(0, 3).join(" · ")}{c.itens.length > 3 ? ` +${c.itens.length - 3}` : ""}</span>}
+            </span>
+            {c.dias != null && <span className={`num shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${c.retorno ? "bg-slate-100 text-slate-700" : "bg-amber-100 text-amber-800"}`}>
+              {c.dias} {pl(c.dias, "dia", "dias")}{c.retorno ? "" : " até hoje"}
+            </span>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-xs text-slate-500">Pelas notas fiscais: entrada para conserto (CFOP 1915/2915) e retorno (5916/6916), ligados pela nota referenciada.</p>
+    </div>
+  );
+}
+
 function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamentos: any[] }) {
   const { pode } = usePerfil();
   const podeLigar = pode("editar_clientes");
