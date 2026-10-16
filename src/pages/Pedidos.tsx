@@ -5,7 +5,7 @@ import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
-import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, RotateCcw, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, Trash2, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
@@ -14,7 +14,7 @@ import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from 
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
-import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
+import { brl, dataBR, hoje, pl, somarDias, whatsappLink } from "@/lib/format";
 import { MEIOS_VENDA, useFormasPagamento } from "@/lib/formasPagamento";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -37,8 +37,15 @@ import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/fin
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
 import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
-import { confirmar } from "@/components/Dialogos";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
+import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
+import { AplicarMarcadores } from "@/components/nfe/Marcadores";
+import { noPeriodo, SEM_PERIODO, somar, type Periodo } from "@/lib/filtroLista";
+
+/** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
+const resumoPulados = (p: { numero: number; motivo: string }[]) =>
+  p.slice(0, 6).map((x) => `#${x.numero} (${x.motivo})`).join("; ") + (p.length > 6 ? ` e mais ${p.length - 6}` : "");
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -83,8 +90,9 @@ const novoPedido = (observacoes?: string | null): Partial<Pedido> & { itens: Ite
  * foi vendido (pedido com máquina vai para Máquinas). Em Máquinas ficam também as propostas do Tiny (MF e My Frost)
  * e a OP de cada venda. */
 export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas" }) {
-  const { pode } = usePerfil();
+  const { pode, tem } = usePerfil();
   const { filtrar } = useUnidade();
+  const invalidate = useInvalidate();
   const { data: pedidosTodos = [], isLoading } = useRows<Pedido>("pedidos", { select: SELECT });
   const { data: tiposProduto = [] } = useRows<{ id: string; tipo: string }>("produtos", { select: "id, tipo", order: "id", ascending: true, key: ["tipos"] });
   const { data: ops = [] } = useRows<{ id: string; numero: number; status: string; pedido_id: string | null }>("ordens_producao", {
@@ -97,6 +105,12 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
+  // situação do pedido no Tiny (os que vieram do histórico do Tiny guardam a situação de lá)
+  const [situacaoTiny, setSituacaoTiny] = useState("");
+  const selecao = useSelecao();
+  const [marcandoLote, setMarcandoLote] = useState(false);
+  const [lancando, setLancando] = useState(false);
   // Máquinas: só as vendas para os licenciados da My Frost Sorveterias (etiqueta do cadastro do cliente)
   const [soLicenciados, setSoLicenciados] = useState(false);
   const { data: marcadores = [] } = useMarcadores();
@@ -131,13 +145,35 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     }
   }, [location.state, pedidosTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lista = useMemo(() => pedidos.filter((p) =>
+  // tudo menos a situação: as contagens dos botões de situação seguem a busca, o período e os outros filtros
+  const semSituacao = useMemo(() => pedidos.filter((p) =>
     (!destaque || destaque.ids.includes(p.id)) &&
-    (filtro === "todos" || p.status === filtro) &&
     (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!soLicenciados || ehLicenciado(p.cliente)) &&
+    (!situacaoTiny || (situacaoTiny === "-" ? !p.situacao_origem : p.situacao_origem === situacaoTiny)) &&
+    noPeriodo(p.created_at, periodo) &&
     (!busca || combinaBusca([p.numero, p.numero_externo, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, filtro, busca, destaque, marcador, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
+  ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => semSituacao.filter((p) => filtro === "todos" || p.status === filtro), [semSituacao, filtro]);
+  const situacoesTiny = useMemo(() => [...new Set(pedidos.map((p) => p.situacao_origem).filter((s): s is string => !!s))].sort(), [pedidos]);
+  const selecionados = useMemo(() => pedidos.filter((p) => selecao.tem(p.id)), [pedidos, selecao]);
+  const nFiltros = (marcador ? 1 : 0) + (situacaoTiny ? 1 : 0) + (soLicenciados ? 1 : 0);
+  const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setPeriodo(SEM_PERIODO); setFiltro("todos"); };
+
+  async function excluirSelecionados() {
+    const motivo = await pedirTexto(`Excluir ${selecionados.length} ${pl(selecionados.length, "pedido", "pedidos")}? Só orçamentos e vendas canceladas são excluídos `
+      + "(venda aprovada, faturada ou entregue: cancele antes). O pedido some das listas e fica na auditoria. Escreva o motivo:", "",
+      { titulo: "Excluir pedidos", ok: "Excluir", minimo: 5 });
+    if (!motivo) return;
+    try {
+      const { data, error } = await supabase.rpc("excluir_pedidos", { p_ids: selecionados.map((p) => p.id), p_motivo: motivo });
+      if (error) throw error;
+      const r = data as { excluidos: number; pulados: { numero: number; motivo: string }[] };
+      notify(`${r.excluidos} ${pl(r.excluidos, "pedido excluído", "pedidos excluídos")}.${r.pulados.length ? ` Ficaram ${r.pulados.length}: ${resumoPulados(r.pulados)}` : ""}`, r.pulados.length ? "erro" : undefined);
+      selecao.limpar();
+      invalidate("pedidos", "auditoria");
+    } catch (e) { notifyError(e); }
+  }
 
   return (
     <div>
@@ -159,42 +195,44 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
 
       {destaque && <FaixaDestaque destaque={destaque} mostrando={lista.length}
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
-      <div className="mb-4 space-y-3">
-        <div className="flex flex-wrap gap-2">
-          <input className="input min-w-0 basis-full sm:max-w-md sm:flex-1 sm:basis-auto" type="search" placeholder="Buscar nº, cliente, CPF ou CNPJ…" aria-label="Buscar vendas" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF ou CNPJ…"
+        periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" nFiltros={nFiltros} onLimpar={limparFiltros}
+        filtros={<>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+          {situacoesTiny.length > 0 && (
+            <select className="input w-auto" aria-label="Situação no Tiny" value={situacaoTiny} onChange={(e) => setSituacaoTiny(e.target.value)}>
+              <option value="">Situação no Tiny: todas</option>
+              {situacoesTiny.map((s) => <option key={s} value={s}>Tiny: {s}</option>)}
+              <option value="-">Feitos no ERP (sem Tiny)</option>
+            </select>
+          )}
           {area === "maquinas" && (
             <button type="button" aria-pressed={soLicenciados} onClick={() => setSoLicenciados((v) => !v)}
               title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+              className={`h-10 shrink-0 rounded-lg border px-3 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
               Licenciados My Frost <span className="num ml-1 opacity-90">{pedidos.filter((x) => ehLicenciado(x.cliente)).length}</span>
             </button>
           )}
-        </div>
-        {/* quebra em linhas (no celular rolar para o lado escondia metade das situações) */}
-        <div className="flex flex-wrap gap-2">
-          {STATUS.map((st) => {
-            const n = st === "todos" ? pedidos.length : pedidos.filter((x) => x.status === st).length;
-            if (!n && st !== "todos" && st !== filtro) return null; // situação sem nenhuma venda não ocupa espaço
-            return (
-              <button key={st} type="button" onClick={() => setFiltro(st)}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${filtro === st ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
-                {ROTULO_STATUS[st]} <span className="num ml-1 opacity-90">{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        </>} />
+      <ChipsSituacao valor={filtro} onChange={setFiltro}
+        opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />
 
       {/* Celular: cartões */}
       <div className="space-y-2 md:hidden">
+        {lista.length > 0 && (
+          <label className="flex items-center gap-2 px-1 text-sm text-slate-600">
+            <input type="checkbox" className="h-5 w-5" checked={lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} />
+            Marcar todos da lista
+          </label>
+        )}
         {lista.map((p) => (
-          <div key={p.id} className="rounded-xl border border-slate-200 bg-surface shadow-card">
+          <div key={p.id} className="relative rounded-xl border border-slate-200 bg-surface shadow-card">
+          <input type="checkbox" className="absolute right-3 top-3 z-[1] h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
-            className="w-full rounded-xl p-4 pb-2 text-left active:bg-slate-50">
+            className="w-full rounded-xl p-4 pb-2 pr-10 text-left active:bg-slate-50">
             <div className="flex items-center justify-between gap-2">
               <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
-              <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
+              <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
               <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}</span>
@@ -214,14 +252,15 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       <div className="hidden md:block">
       <Table
         empty={!isLoading && lista.length === 0}
-        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th>{area === "maquinas" && <th className="th">OP</th>}<th className="th">NF-e</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
+        head={<><th className="th w-10"><input type="checkbox" className="h-4 w-4" aria-label="Marcar todos da lista" checked={lista.length > 0 && lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} /></th><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th>{area === "maquinas" && <th className="th">OP</th>}<th className="th">NF-e</th><th className="th text-right">Total da venda</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((p) => (
-          <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
+          <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
+            <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} /></td>
             <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}</td>
             <td className="td">{dataBR(p.created_at)}</td>
             <td className="td">{p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
-            <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>
+            <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
             <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} />{p.notas?.find((n) => n.status === "autorizada")?.numero && <div className="text-xs text-slate-500">NF {p.notas.find((n) => n.status === "autorizada")!.numero}</div>}</td>
             <td className="td text-right font-medium">{brl(p.valor_total)}</td>
@@ -231,10 +270,84 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         ))}
       </Table>
       </div>
+
+      {/* quantidade e soma do que está na lista (valor da venda, não o da NF), como no Tiny; com seleção, as ações em lote */}
+      <RodapeLista quantidade={lista.length} nome={["pedido", "pedidos"]} total={somar(lista, (p) => p.valor_total)} rotuloTotal="valor das vendas"
+        selecionados={selecionados.length} totalSelecionados={somar(selecionados, (p) => p.valor_total)} onLimparSelecao={selecao.limpar}
+        acoes={<>
+          <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>
+          <Button variant="ghost" onClick={() => exportarPedidos(selecionados)}><FileDown size={15} /> Exportar</Button>
+          {tem("financeiro") && <Button variant="ghost" onClick={() => setLancando(true)}><Receipt size={15} /> Lançar contas</Button>}
+          {pode("editar_pedidos") && tem("vendas", "financeiro") && <Button variant="ghost" className="!text-red-600" onClick={excluirSelecionados}><Trash2 size={15} /> Excluir</Button>}
+        </>} />
       </>}
 
+      {marcandoLote && <AplicarMarcadores tabela="pedidos" notas={selecionados} nome={["venda", "vendas"]} onClose={() => setMarcandoLote(false)} />}
+      {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
     </div>
+  );
+}
+
+/** Situação que o pedido tinha no Tiny (histórico importado). */
+function SituacaoTiny({ s }: { s: string }) {
+  return <span className="inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title="Situação do pedido no Tiny">Tiny: {s}</span>;
+}
+
+/** Lança as contas a receber das vendas marcadas que ainda não têm conta (valor e parcelas da venda, não os da NF). */
+function LancarContasLote({ pedidos, onClose }: { pedidos: Pedido[]; onClose: (ok: boolean) => void }) {
+  const [modo, setModo] = useState<"recebidas" | "aberto">("recebidas");
+  const [data, setData] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [resultado, setResultado] = useState<{ pedidos: number; contas: number; total: number; pulados: { numero: number; motivo: string }[] } | null>(null);
+  const invalidate = useInvalidate();
+  const aptas = pedidos.filter((p) => ["aprovado", "faturado", "entregue"].includes(p.status));
+  async function lancar(e: FormEvent) {
+    e.preventDefault();
+    setOcupado(true);
+    try {
+      const { data: r, error } = await supabase.rpc("lancar_contas_pedidos", { p_ids: pedidos.map((p) => p.id), p_recebidas: modo === "recebidas", p_data: data || null });
+      if (error) throw error;
+      setResultado(r as typeof resultado);
+      invalidate("contas_receber", "pedidos", "auditoria");
+    } catch (err) { notifyError(err); } finally { setOcupado(false); }
+  }
+  if (resultado) return (
+    <Modal open onClose={() => onClose(true)} title="Contas lançadas">
+      <p className="text-sm"><b>{resultado.contas}</b> {pl(resultado.contas, "conta lançada", "contas lançadas")} de <b>{resultado.pedidos}</b> {pl(resultado.pedidos, "venda", "vendas")} · total <b>{brl(resultado.total)}</b>.</p>
+      {resultado.pulados.length > 0 && (
+        <div className="mt-3"><p className="text-sm font-semibold">Ficaram de fora ({resultado.pulados.length}):</p>
+          <ul className="mt-1 max-h-60 space-y-0.5 overflow-auto text-sm text-slate-600">{resultado.pulados.map((x) => <li key={x.numero}>#{x.numero}: {x.motivo}</li>)}</ul>
+        </div>
+      )}
+      <div className="mt-4 flex justify-end"><Button onClick={() => onClose(true)}>Fechar</Button></div>
+    </Modal>
+  );
+  return (
+    <Modal open onClose={() => onClose(false)} title="Lançar contas a receber">
+      <form onSubmit={lancar} className="space-y-3 text-sm">
+        <p>{pedidos.length} {pl(pedidos.length, "venda marcada", "vendas marcadas")}; {aptas.length} {pl(aptas.length, "pode", "podem")} ter conta (aprovada, faturada ou entregue). As que já têm conta a receber ficam de fora.
+          O valor é o <b>da venda</b> (não o da NF), nas parcelas da venda.</p>
+        <fieldset className="space-y-2">
+          <legend className="mb-1 font-semibold">Como lançar</legend>
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 p-2.5">
+            <input type="radio" name="modo" className="mt-0.5" checked={modo === "recebidas"} onChange={() => setModo("recebidas")} />
+            <span><b>Já recebidas</b> (histórico): entram pagas, sem aviso ao cliente, sem comissão e sem ir para a aprovação.</span>
+          </label>
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 p-2.5">
+            <input type="radio" name="modo" className="mt-0.5" checked={modo === "aberto"} onChange={() => setModo("aberto")} />
+            <span><b>Em aberto</b> (a receber): entram na cobrança. A régua manda lembrete ao cliente 3 dias antes, no dia e 5 dias depois do vencimento; a comissão segue a regra do vendedor quando a conta for recebida.</span>
+          </label>
+        </fieldset>
+        <Field label={modo === "recebidas" ? "Data do recebimento (vazio: o vencimento de cada parcela)" : "Primeiro vencimento (vazio: o prazo da própria venda)"}>
+          <input type="date" className="input" value={data} max={modo === "recebidas" ? hoje() : undefined} onChange={(e) => setData(e.target.value)} />
+        </Field>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="secondary" onClick={() => onClose(false)}>Cancelar</Button>
+          <Button disabled={ocupado || !aptas.length}>{ocupado ? "Lançando…" : "Lançar contas"}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
