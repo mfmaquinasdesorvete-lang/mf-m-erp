@@ -1,4 +1,4 @@
-export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace";
+export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace" | "representante";
 
 export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "admin", label: "Administrador", descricao: "Acesso total, usuários e configurações" },
@@ -8,9 +8,10 @@ export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "contador", label: "Contador", descricao: "Só consulta: notas fiscais, financeiro e o fechamento mensal (XML e planilhas)" },
   { value: "expedicao", label: "Expedição", descricao: "Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE" },
   { value: "marketplace", label: "Marketplaces", descricao: "Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque)" },
+  { value: "representante", label: "Representante (portal)", descricao: "Externo: só o portal, com os próprios pedidos, orçamentos, clientes da carteira e comissões" },
 ];
 
-/** Papéis que podem ser somados ao principal (admin e contador não se misturam). */
+/** Papéis que podem ser somados ao principal (admin, contador e representante não se misturam). */
 export const PAPEIS_ADICIONAIS: Papel[] = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace"];
 
 export const rotuloPapel = (p: string | null | undefined) => PAPEIS.find((x) => x.value === p)?.label ?? p ?? "";
@@ -40,6 +41,8 @@ const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
   // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
   marketplace: ["estoque", "documentos", "mercadolivre"],
+  // externo: nenhuma tela do ERP; só o portal (/portal), que lê e grava pelas funções portal_* do banco
+  representante: [],
 };
 
 /** Ações de escrita (espelham as políticas do banco). */
@@ -72,6 +75,7 @@ const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
   expedicao: ["expedir"],
   // o banco segura preço, custo, estoque, fornecedor, tipo e ativar/desativar (perfil_marketplace)
   marketplace: ["editar_produtos"],
+  representante: [],
 };
 
 /** Papel principal + adicionais (sem admin, que já vê tudo). */
@@ -101,6 +105,12 @@ export type MenuOculto = Partial<Record<Exclude<Papel, "admin">, string[]>>;
  */
 export const itemVisivel = (papel: Papel | null | undefined, extras: readonly string[] | null | undefined, tela: Tela, to: string | undefined, oculto: MenuOculto) =>
   papel === "admin" || papeisDe(papel, extras).some((p) => TELAS[p].includes(tela) && !(to && ((oculto[p] ?? []).includes(to) || (OCULTO_FIXO[p] ?? []).includes(to))));
+
+/** Representante externo: entra só no portal (/portal). */
+export const ehRepresentante = (papel: Papel | string | null | undefined) => papel === "representante";
+
+/** Papéis internos (telas do ERP), sem o representante: para a tabela de perfis. */
+export const PAPEIS_INTERNOS = PAPEIS.filter((p) => p.value !== "representante");
 
 /** Itens que o papel nunca vê, mesmo estando numa tela dele (o Marketplaces cuida do cadastro, não do estoque). */
 const OCULTO_FIXO: MenuOculto = { marketplace: ["/transferencias"] };

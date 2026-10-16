@@ -7,7 +7,7 @@ import { PerfilProvider, usePerfil, type Perfil } from "@/lib/auth";
 import { todosItens, useVisivel } from "@/lib/menu";
 import { UnidadeProvider } from "@/lib/unidade";
 import { aplicarPreferencias } from "@/lib/tema";
-import { podeVer, type Tela } from "@/lib/permissoes";
+import { ehRepresentante, podeVer, type Tela } from "@/lib/permissoes";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
@@ -69,6 +69,7 @@ const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
+const Portal = lazy(() => import("@/pages/Portal"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -215,6 +216,16 @@ export default function App() {
         <Login linkExpirado={LINK_EXPIRADO} />
       ) : !perfil ? (
         <SemAcesso email={session.user.email ?? ""} />
+      ) : ehRepresentante(perfil.papel) ? (
+        // representante externo: só o portal (/portal), sem o menu e sem as telas do ERP
+        <PerfilProvider perfil={perfil}>
+          <Suspense fallback={<Carregando />}>
+            <Routes>
+              <Route path="portal/*" element={<Portal />} />
+              <Route path="*" element={<Navigate to="/portal" replace />} />
+            </Routes>
+          </Suspense>
+        </PerfilProvider>
       ) : (
         <PerfilProvider perfil={perfil}>
           <UnidadeProvider inicial={perfil.unidade_id ?? null}>

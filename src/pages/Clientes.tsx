@@ -22,6 +22,7 @@ import { MaquinasCliente, rotuloMaquina, useMaquinasPorCliente } from "@/compone
 import { completude, REGIMES, rotuloCrm, STATUS_CRM } from "@/lib/fichaCadastral";
 import type { Vendedor } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
+import { notifyError } from "@/lib/notify";
 import { cnpjValido } from "@/lib/compliance";
 import { ehLicenciado, tagsComLicenciado } from "@/components/clientes/Licenciado";
 
@@ -105,7 +106,7 @@ const filtrosBase = (): FiltroCrud<Cliente>[] => [
 const ORDENS = ordensCadastro<Cliente>();
 
 export default function Clientes() {
-  const { papel, tem } = usePerfil();
+  const { papel, tem, pode } = usePerfil();
   const [importar, setImportar] = useState(false);
   const [myFrost, setMyFrost] = useState(false);
   const [ficha, setFicha] = useState<Cliente | null>(null);
@@ -158,6 +159,8 @@ export default function Clientes() {
       ],
     },
     { label: "Vendedor", valor: (r) => vendedores.find((v) => v.id === r.vendedor_id)?.nome ?? null },
+    // cliente novo cadastrado pelo representante no portal
+    { label: "Portal do representante", opcoes: [{ label: "Para conferir", teste: (r: Cliente) => !!r.portal_conferir }] },
     {
       // modelo da máquina (vendida pela MF ou pela My Frost), usada e quem ainda não tem máquina
       label: "Máquina", opcoes: [
@@ -283,6 +286,19 @@ export default function Clientes() {
                 {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
                 {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
                 {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
+                {r.portal_conferir && (
+                  <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                    do portal: conferir
+                    {pode("editar_clientes") && (
+                      <button type="button" className="ml-0.5 rounded underline hover:no-underline" title="Dados conferidos: tirar a marca"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { error } = await supabase.from("clientes").update({ portal_conferir: false }).eq("id", r.id);
+                          if (error) notifyError(error); else invalidar("clientes");
+                        }}>conferido</button>
+                    )}
+                  </span>
+                )}
               </div>
               <EtiquetasCliente c={r} tipos={tipos} />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />

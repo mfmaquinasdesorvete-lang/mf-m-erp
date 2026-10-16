@@ -342,7 +342,7 @@ export function Layout() {
   );
 }
 
-function AlterarSenha({ onClose }: { onClose: () => void }) {
+export function AlterarSenha({ onClose }: { onClose: () => void }) {
   const [senha, setSenha] = useState("");
   const [confirma, setConfirma] = useState("");
   const [salvando, setSalvando] = useState(false);

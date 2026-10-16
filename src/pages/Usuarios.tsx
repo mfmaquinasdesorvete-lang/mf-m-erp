@@ -14,10 +14,12 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
 import {
-  ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
+  ACOES_ROTULO, PAPEIS, PAPEIS_ADICIONAIS, PAPEIS_INTERNOS, TELAS_ROTULO, acoesDoPapel, podeVer, rotuloPapel, telasDoPapel, type MenuOculto, type Papel, type Tela,
 } from "@/lib/permissoes";
 import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { gerarSenha } from "@/lib/senhas";
+import { erroPortal, textoConvite } from "@/lib/portal";
 
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
@@ -28,17 +30,10 @@ type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boole
 const COR_PAPEL: Record<Papel, string> = {
   admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
   tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800", expedicao: "bg-orange-100 text-orange-800",
-  marketplace: "bg-rose-100 text-rose-800",
+  marketplace: "bg-rose-100 text-rose-800", representante: "bg-teal-100 text-teal-800",
 };
 const SITE = typeof window !== "undefined" ? window.location.origin : "https://erp.myfrost.ai";
 
-/** Senha provisória fácil de ditar: 3 blocos sem letras parecidas (ex.: kfrm-4827-tpzw). */
-function gerarSenha() {
-  const letras = "abcdefghjkmnpqrstuvwxyz", nums = "23456789";
-  const r = new Uint32Array(12); crypto.getRandomValues(r);
-  const pega = (s: string, i: number) => s[r[i] % s.length];
-  return [0, 1, 2, 3].map((i) => pega(letras, i)).join("") + "-" + [4, 5, 6, 7].map((i) => pega(nums, i)).join("") + "-" + [8, 9, 10, 11].map((i) => pega(letras, i)).join("");
-}
 
 function quando(v: string | null) {
   if (!v) return "nunca entrou";
@@ -202,19 +197,23 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
     ativo: usuario?.ativo ?? true, vendedor_id: vendAtual, senha: usuario ? "" : gerarSenha(),
   });
   const [salvando, setSalvando] = useState(false);
-  const [criado, setCriado] = useState<{ nome: string; email: string; senha: string; telefone: string } | null>(null);
+  const [criado, setCriado] = useState<{ nome: string; email: string; senha: string; telefone: string; portal?: boolean } | null>(null);
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
-  const comExtras = f.papel !== "admin" && f.papel !== "contador";
+  // representante externo: só o portal, sem papéis adicionais nem unidade, e sempre ligado a um cadastro de vendedor
+  const representante = f.papel === "representante";
+  const comExtras = f.papel !== "admin" && f.papel !== "contador" && !representante;
   const extras = comExtras ? f.extras.filter((p) => p !== f.papel) : [];
-  const vendeTambem = f.papel === "admin" || f.papel === "vendas" || extras.includes("vendas");
+  const vendeTambem = representante || f.papel === "admin" || f.papel === "vendas" || extras.includes("vendas");
   const telasVistas = (Object.keys(TELAS_ROTULO) as Tela[]).filter((t) => podeVer(f.papel, t, extras));
   const ultimoAdmin = !!usuario && usuario.papel === "admin" && usuario.ativo && admins <= 1;
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     if (f.papel !== "admin" && ultimoAdmin) return notifyError(new Error("é preciso manter ao menos um administrador ativo"));
+    if (representante && !f.vendedor_id) return notifyError(new Error("escolha o cadastro do representante (Comissões → Vendedores)"));
     setSalvando(true);
     try {
+      if (representante) return await salvarRepresentante();
       const dados = { nome: f.nome, cargo: f.cargo, telefone: f.telefone, papel: f.papel, papeis_extras: extras, unidade_id: f.unidade_id || null };
       let userId = usuario?.user_id;
       if (!usuario) {
@@ -242,7 +241,39 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
     } catch (err) { notifyError(err); } finally { setSalvando(false); }
   }
 
-  if (criado) return <Modal open onClose={onClose} title="Usuário criado"><Credenciais {...criado} onClose={onClose} /></Modal>;
+  /**
+   * Representante: a função usuarios-admin não conhece o papel novo, então o banco cuida dele.
+   * Login novo: guarda o convite (vendedor + e-mail) e cria o login pela mesma função; o gatilho do banco
+   * faz o login nascer representante e ligado ao vendedor. Login que já existe: portal_ligar_representante.
+   */
+  async function salvarRepresentante() {
+    const base = { nome: f.nome, cargo: f.cargo, telefone: f.telefone, papeis_extras: [], unidade_id: null };
+    const rpc = async (fn: string, args: Record<string, unknown>) => {
+      const { error } = await supabase.rpc(fn, args);
+      if (error) throw new Error(erroPortal(error.message));
+    };
+    let userId = usuario?.user_id;
+    if (!usuario) {
+      await rpc("portal_convidar_representante", { p_vendedor: f.vendedor_id, p_email: f.email });
+      // papel "vendas" só passa pela função; o convite troca para representante na mesma gravação
+      const r = await callFunction<{ user_id: string }>("usuarios-admin", { acao: "criar", ...base, papel: "vendas", email: f.email, senha: f.senha })
+        .catch((e) => { throw new Error(erroPortal((e as Error).message)); });
+      userId = r.user_id;
+    } else {
+      await callFunction("usuarios-admin", {
+        acao: "atualizar", user_id: usuario.user_id, ...base,
+        ...(f.email.trim().toLowerCase() !== usuario.email ? { email: f.email } : {}),
+        ...(f.ativo !== usuario.ativo ? { ativo: f.ativo } : {}),
+      });
+    }
+    // garante o papel e o vínculo (sem efeito se o convite já fez)
+    await rpc("portal_ligar_representante", { p_vendedor: f.vendedor_id, p_user: userId });
+    invalidate("usuarios_erp", "vendedores");
+    if (!usuario) setCriado({ nome: f.nome, email: f.email.trim().toLowerCase(), senha: f.senha, telefone: f.telefone, portal: true });
+    else { notify("Representante atualizado"); onClose(); }
+  }
+
+  if (criado) return <Modal open onClose={onClose} title={criado.portal ? "Representante convidado" : "Usuário criado"}><Credenciais {...criado} onClose={onClose} /></Modal>;
 
   return (
     <Modal open onClose={onClose} title={usuario ? `Editar ${usuario.nome}` : "Novo usuário"} wide>
@@ -278,6 +309,13 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
           {ultimoAdmin && !souEu && <p className="mt-1 text-xs text-slate-500">É o único administrador ativo: o papel não pode mudar.</p>}
         </fieldset>
 
+        {representante && (
+          <p className="rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-900">
+            Representante externo: entra só no <b>Portal do representante</b> e vê apenas os próprios pedidos, clientes da carteira e comissões.
+            Escolha abaixo o cadastro dele em Comissões → Vendedores.
+          </p>
+        )}
+
         {comExtras && (
           <fieldset>
             <legend className="mb-1.5 text-xs font-semibold text-slate-600">Papéis adicionais (a pessoa também faz)</legend>
@@ -291,16 +329,18 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Unidade em que trabalha">
-            <select className="input" value={f.unidade_id} onChange={(e) => set({ unidade_id: e.target.value })}>
-              <option value="">Todas as unidades</option>
-              {unidades.filter((u) => u.ativo).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
-          </Field>
+          {!representante && (
+            <Field label="Unidade em que trabalha">
+              <select className="input" value={f.unidade_id} onChange={(e) => set({ unidade_id: e.target.value })}>
+                <option value="">Todas as unidades</option>
+                {unidades.filter((u) => u.ativo).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </Field>
+          )}
           {vendeTambem && (
-            <Field label="Cadastro de vendedor (comissões)">
-              <select className="input" value={f.vendedor_id} onChange={(e) => set({ vendedor_id: e.target.value })}>
-                <option value="">Não vinculado</option>
+            <Field label={representante ? "Cadastro do representante *" : "Cadastro de vendedor (comissões)"}>
+              <select className="input" value={f.vendedor_id} onChange={(e) => set({ vendedor_id: e.target.value })} required={representante}>
+                <option value="">{representante ? "Escolha…" : "Não vinculado"}</option>
                 {vendedores.filter((v) => v.ativo && (!v.user_id || v.user_id === usuario?.user_id)).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
               </select>
             </Field>
@@ -325,7 +365,9 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
 
         <div className="rounded-lg bg-slate-50 p-3 text-sm">
           <div className="mb-1 flex items-center gap-1.5 font-semibold"><ShieldCheck size={15} aria-hidden /> Com esse acesso, vê:</div>
-          <p className="text-slate-700">{f.papel === "admin" ? "Tudo, inclusive usuários e configurações." : telasVistas.map((t) => TELAS_ROTULO[t]).join(" · ")}</p>
+          <p className="text-slate-700">{f.papel === "admin" ? "Tudo, inclusive usuários e configurações."
+            : representante ? "Só o Portal do representante: os próprios pedidos e orçamentos, os clientes da carteira e as comissões. Nenhum dado da empresa."
+            : telasVistas.map((t) => TELAS_ROTULO[t]).join(" · ")}</p>
         </div>
 
         {usuario && <Historico tabela="usuarios_erp" id={usuario.user_id} />}
@@ -356,7 +398,7 @@ function SenhaModal({ usuario, onClose }: { usuario: Usuario; onClose: () => voi
   }
   return (
     <Modal open onClose={onClose} title={`Nova senha · ${usuario.nome}`}>
-      {pronto ? <Credenciais nome={usuario.nome} email={usuario.email} senha={senha} telefone={usuario.telefone ?? ""} onClose={onClose} /> : (
+      {pronto ? <Credenciais nome={usuario.nome} email={usuario.email} senha={senha} telefone={usuario.telefone ?? ""} portal={usuario.papel === "representante"} onClose={onClose} /> : (
         <form onSubmit={salvar} className="space-y-3">
           <Field label={souEu ? "Sua nova senha (mín. 8)" : "Senha provisória (mín. 8)"}>
             <span className="flex gap-2">
@@ -376,8 +418,9 @@ function SenhaModal({ usuario, onClose }: { usuario: Usuario; onClose: () => voi
 }
 
 /** Dados de acesso para passar à pessoa (copiar ou WhatsApp). */
-function Credenciais({ nome, email, senha, telefone, onClose }: { nome: string; email: string; senha: string; telefone: string; onClose: () => void }) {
-  const texto = `Olá, ${nome.split(" ")[0]}! Seu acesso ao ERP da MF Máquinas:\n${SITE}\nE-mail: ${email}\nSenha provisória: ${senha}\nNo primeiro acesso você cria a sua senha pessoal.`;
+function Credenciais({ nome, email, senha, telefone, portal, onClose }: { nome: string; email: string; senha: string; telefone: string; portal?: boolean; onClose: () => void }) {
+  const texto = portal ? textoConvite({ nome, email, senha, site: SITE })
+    : `Olá, ${nome.split(" ")[0]}! Seu acesso ao ERP da MF Máquinas:\n${SITE}\nE-mail: ${email}\nSenha provisória: ${senha}\nNo primeiro acesso você cria a sua senha pessoal.`;
   const [copiado, setCopiado] = useState(false);
   async function copiar() {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); } catch { notifyError(new Error("não deu para copiar: selecione o texto e copie")); }
@@ -408,14 +451,14 @@ function MatrizPermissoes() {
   const editavel = meuPapel === "admin";
   const { data: cfg } = useConfig();
   const invalidate = useInvalidate();
-  const perfis = PAPEIS.filter((p) => p.value !== "admin") as { value: Exclude<Papel, "admin">; label: string }[];
+  const perfis = PAPEIS_INTERNOS.filter((p) => p.value !== "admin") as { value: Exclude<Papel, "admin">; label: string }[];
   const salvo = (cfg?.menu_oculto ?? {}) as MenuOculto;
   const [oculto, setOculto] = useState<MenuOculto | null>(null);
   const atual = oculto ?? salvo;
   const mudou = oculto !== null && JSON.stringify(oculto) !== JSON.stringify(salvo);
   const [salvando, setSalvando] = useState(false);
   const acoes = Object.keys(ACOES_ROTULO) as (keyof typeof ACOES_ROTULO)[];
-  const faz = useMemo(() => Object.fromEntries(PAPEIS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
+  const faz = useMemo(() => Object.fromEntries(PAPEIS_INTERNOS.map((p) => [p.value, new Set<string>(acoesDoPapel(p.value))])), []);
   const areas = [...grupos.map((g) => ({ ...g, titulo: g.titulo || "Início" })), { id: "outras", titulo: "Outras telas (engrenagem e botões)", itens: itensForaDoMenu }];
 
   function alternar(p: Exclude<Papel, "admin">, to: string, ver: boolean) {
@@ -509,19 +552,20 @@ function MatrizPermissoes() {
         <table className="w-full min-w-[640px] text-sm">
           <caption className="px-4 pt-3 text-left font-semibold">O que pode criar ou alterar</caption>
           <thead><tr className="border-b border-slate-200">
-            <th className="th" />{PAPEIS.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
+            <th className="th" />{PAPEIS_INTERNOS.map((p) => <th key={p.value} scope="col" className="th text-center">{p.label}</th>)}
           </tr></thead>
           <tbody>
             {acoes.map((k) => (
               <tr key={k} className="border-b border-slate-100 last:border-0">
                 <th scope="row" className="td text-left font-normal">{ACOES_ROTULO[k]}</th>
-                {PAPEIS.map((p) => <td key={p.value} className="td text-center"><Marca ok={faz[p.value].has(k)} /></td>)}
+                {PAPEIS_INTERNOS.map((p) => <td key={p.value} className="td text-center"><Marca ok={faz[p.value].has(k)} /></td>)}
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
-      <p className="text-xs text-slate-500">Usuários, unidades, configurações e exclusões ficam só com o administrador. O contador só consulta (e fecha o mês).</p>
+      <p className="text-xs text-slate-500">Usuários, unidades, configurações e exclusões ficam só com o administrador. O contador só consulta (e fecha o mês).
+        O representante externo não entra no ERP: vê só o Portal do representante (os próprios pedidos, clientes e comissões).</p>
     </div>
   );
 }

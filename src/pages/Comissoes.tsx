@@ -1,7 +1,7 @@
 // Comissões de vendedores e representantes: cadastro, comissões geradas pelas vendas
 // (no faturamento ou no recebimento) e pagamento pelo contas a pagar.
 import { useMemo, useState, type FormEvent } from "react";
-import { FileDown, Pencil, Plus, Printer, Wallet } from "lucide-react";
+import { FileDown, Pencil, Plus, Printer, Send, Wallet } from "lucide-react";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -17,6 +17,8 @@ import type { Vendedor } from "@/lib/types";
 import { pctTexto, percentualItem, type RegraComissao } from "@/lib/comissao";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { LinhasProduto } from "@/components/comissoes/LinhasProduto";
+import { ConvitePortal } from "@/components/comissoes/ConvitePortal";
+import { ajusteTexto, type TabelaPreco } from "@/lib/tabelasPreco";
 
 type Comissao = {
   id: string; vendedor_id: string; pedido_id: string; descricao: string; base: number; percentual: number; valor: number;
@@ -185,9 +187,14 @@ function PagarModal({ comissoes, nome, onClose }: { comissoes: Comissao[]; nome:
 /* --------------------------- Cadastro de vendedores --------------------------- */
 
 function Vendedores() {
+  const { papel } = usePerfil();
+  const admin = papel === "admin";
   const { data: vendedores = [], isLoading } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: usuarios = [] } = useRows<{ user_id: string; nome: string; papel: string }>("usuarios_erp", { order: "nome", ascending: true });
+  const { data: tabelas = [] } = useRows<TabelaPreco>("tabelas_preco", { order: "nome", ascending: true });
   const [editando, setEditando] = useState<Partial<Vendedor> | null>(null);
+  const [convite, setConvite] = useState<Vendedor | null>(null);
+  const vinculados = useMemo(() => new Set(vendedores.map((v) => v.user_id).filter((x): x is string => !!x)), [vendedores]);
   const invalidar = useInvalidate();
   const set = (k: keyof Vendedor) => (e: { target: { value: string } }) => setEditando((v) => ({ ...v, [k]: e.target.value }));
 
@@ -196,7 +203,7 @@ function Vendedores() {
     const v = editando!;
     const row = { nome: v.nome, tipo: v.tipo ?? "vendedor", user_id: v.user_id || null, percentual: Number(String(v.percentual ?? 0).replace(",", ".")),
       base: v.base ?? "recebimento", descontar_frete: v.descontar_frete ?? true, cpf_cnpj: v.cpf_cnpj || null, email: v.email || null,
-      whatsapp: v.whatsapp || null, pix: v.pix || null, ativo: v.ativo ?? true };
+      whatsapp: v.whatsapp || null, pix: v.pix || null, ativo: v.ativo ?? true, portal_tabela_preco_id: v.portal_tabela_preco_id || null };
     const { error } = v.id ? await supabase.from("vendedores").update(row).eq("id", v.id) : await supabase.from("vendedores").insert(row);
     if (error) return notifyError(error);
     notify("Salvo");
@@ -208,6 +215,7 @@ function Vendedores() {
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="max-w-2xl text-sm text-slate-600">
+          {admin && <>Representante externo: use <b>Portal</b> para criar o login dele (vê só os próprios pedidos, clientes e comissões). </>}
           No pedido, escolha o vendedor: a comissão sai sozinha. <b>No recebimento</b>: cada parcela paga gera a comissão dela.
           <b> No faturamento</b>: a comissão sai inteira quando o pedido é aprovado. Pedido cancelado cancela a comissão que ainda não foi paga.
         </p>
@@ -221,8 +229,14 @@ function Vendedores() {
             <td className="td">{v.tipo === "representante" ? "Representante" : "Vendedor"}</td>
             <td className="td num text-right">{Number(v.percentual).toLocaleString("pt-BR")}%</td>
             <td className="td">{v.base === "faturamento" ? "no faturamento" : "no recebimento"}{v.descontar_frete ? " · sem frete" : ""}</td>
-            <td className="td">{usuarios.find((u) => u.user_id === v.user_id)?.nome ?? "—"}</td>
-            <td className="td text-right"><Button variant="secondary" onClick={() => setEditando(v)}><Pencil size={15} /> Editar</Button></td>
+            <td className="td">{usuarios.find((u) => u.user_id === v.user_id)?.nome ?? "—"}
+              {usuarios.find((u) => u.user_id === v.user_id)?.papel === "representante" && <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Entra só no Portal do representante">PORTAL</span>}</td>
+            <td className="td whitespace-nowrap text-right">
+              {admin && v.ativo && !v.user_id && (
+                <Button variant="ghost" className="mr-1" title="Criar ou ligar o login do representante no portal" onClick={() => setConvite(v)}><Send size={15} aria-hidden /> Portal</Button>
+              )}
+              <Button variant="secondary" onClick={() => setEditando(v)}><Pencil size={15} /> Editar</Button>
+            </td>
           </tr>
         ))}
       </Table>
@@ -243,6 +257,12 @@ function Vendedores() {
                 <option value="">—</option>{usuarios.map((u) => <option key={u.user_id} value={u.user_id}>{u.nome}</option>)}
               </select>
             </Field>
+            <Field label="Tabela de preço no portal (representante)" className="sm:col-span-2">
+              <select className="input" value={editando.portal_tabela_preco_id ?? ""} onChange={set("portal_tabela_preco_id")}>
+                <option value="">Preço de venda</option>
+                {tabelas.filter((t) => t.ativo || t.id === editando.portal_tabela_preco_id).map((t) => <option key={t.id} value={t.id}>{t.nome} ({ajusteTexto(t.ajuste_percentual)})</option>)}
+              </select>
+            </Field>
             <Field label="CPF/CNPJ" className="sm:col-span-2"><input className="input" value={editando.cpf_cnpj ?? ""} onChange={set("cpf_cnpj")} /></Field>
             <Field label="WhatsApp" className="sm:col-span-2"><input className="input" value={editando.whatsapp ?? ""} onChange={set("whatsapp")} /></Field>
             <Field label="E-mail" className="sm:col-span-2"><input className="input" type="email" value={editando.email ?? ""} onChange={set("email")} /></Field>
@@ -255,6 +275,7 @@ function Vendedores() {
           </form>
         </Modal>
       )}
+      {convite && <ConvitePortal vendedor={convite} usuarios={usuarios} vinculados={vinculados} onClose={() => setConvite(null)} />}
     </>
   );
 }
