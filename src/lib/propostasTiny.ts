@@ -101,7 +101,7 @@ export function montarPropostas(linhas: Linha[]): PropostaLida[] {
 
 /** No backup da My Frost vêm também as abas das notas, contatos e pedidos (para as notas fiscais: notasMyFrost.ts). */
 export type AbasNotasBackup = { nfes: Linha[]; contatos: Linha[]; pedidos: Linha[] };
-export type LeituraPropostas = { propostas: PropostaLida[]; doBackup: boolean; arquivos: string[]; abasNotas?: AbasNotasBackup };
+export type LeituraPropostas = { propostas: PropostaLida[]; doBackup: boolean; arquivos: string[]; vazios: string[]; abasNotas?: AbasNotasBackup };
 
 /** Lê os arquivos (.xls/.xlsx/.csv) e junta as propostas (a mesma proposta em dois arquivos conta uma vez). */
 export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropostas> {
@@ -109,6 +109,7 @@ export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropost
   const todas = new Map<string, PropostaLida>();
   let doBackup = false;
   let abasNotas: AbasNotasBackup | undefined;
+  const vazios: string[] = []; // arquivos só com o cabeçalho (o filtro do Tiny não tinha proposta)
   for (const f of arquivos) {
     let wb;
     if (/\.csv$/i.test(f.name) || f.type === "text/csv") {
@@ -130,15 +131,20 @@ export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropost
       };
       abasNotas = { nfes: linhasDa("nfes"), contatos: linhasDa("contatos"), pedidos: linhasDa("pedidos_venda_itens") };
     }
-    const linhas = XLSX.utils.sheet_to_json<Linha>(wb.Sheets[aba], { defval: "", raw: true });
-    const colunas = new Set(Object.keys(linhas[0] ?? {}).map(sem));
+    // as colunas vêm do cabeçalho: o Tiny exporta só o cabeçalho quando o filtro não tem nenhuma proposta
+    const cabecalho = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[aba], { header: 1, defval: "", blankrows: false })[0] ?? [];
+    const colunas = new Set(cabecalho.map(sem));
     if (!colunas.has("id") || !colunas.has("numero da proposta") || !colunas.has("descricao")) {
       throw new Error(`"${f.name}" não parece a planilha de propostas do Tiny (precisa das colunas ID, Número da proposta e Descrição).`);
     }
-    for (const p of montarPropostas(linhas)) todas.set(p.tiny_id, p);
+    const linhas = XLSX.utils.sheet_to_json<Linha>(wb.Sheets[aba], { defval: "", raw: true });
+    const lidas = montarPropostas(linhas);
+    if (!lidas.length) { vazios.push(f.name); continue; }
+    for (const p of lidas) todas.set(p.tiny_id, p);
   }
+  if (!todas.size) throw new Error(arquivos.length > 1 ? "Nenhum dos arquivos tem proposta (só o cabeçalho)." : `"${arquivos[0]?.name}" não tem nenhuma proposta (só o cabeçalho).`);
   const propostas = [...todas.values()].sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "") || Number(b.numero) - Number(a.numero));
-  return { propostas, doBackup, arquivos: arquivos.map((f) => f.name), abasNotas };
+  return { propostas, doBackup, arquivos: arquivos.map((f) => f.name).filter((n) => !vazios.includes(n)), vazios, abasNotas };
 }
 
 /** O que vai para o banco. Na My Frost saem valores, desconto, frete, prazo e observações (o banco também tira). */

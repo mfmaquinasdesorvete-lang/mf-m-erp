@@ -167,6 +167,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
             <li>{leitura.arquivos.length > 1 ? `${leitura.arquivos.length} arquivos` : leitura.arquivos[0]}{resumo.de ? `, de ${resumo.de.split("-").reverse().join("/")} a ${resumo.ate?.split("-").reverse().join("/")}` : ""}.</li>
             <li>Situação no Tiny: {resumo.situacoes.map(([s, n]) => `${s} (${n})`).join(", ")}.</li>
+            {leitura.vazios.length > 0 && <li className="text-slate-500">Sem nenhuma proposta (só o cabeçalho), ficaram de fora: {leitura.vazios.join(", ")}.</li>}
           </ul>
 
           <fieldset className="space-y-2">
