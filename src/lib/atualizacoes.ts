@@ -147,6 +147,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Portal do representante; técnico ligado ao cliente; vendas com período, soma e ações em lote.",
       "Páginas Módulos e Atualizações, com a versão no fim do menu.",
       "Calendário de obrigações do Lucro Real no Painel do contador e no Painel fiscal; venda devolvida sai dos relatórios.",
+      "Contas a pagar mais simples: uma situação por conta, um botão com o próximo passo e o resto no menu \"⋯\", visões com contagem e total no rodapé.",
     ],
   },
 };

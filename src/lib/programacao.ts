@@ -79,3 +79,52 @@ export function gruposPorUnidade<T extends ContaDecisao>(l: T[]) {
   }
   return [...m.entries()].map(([unidade_id, contas]) => ({ unidade_id: unidade_id || null, contas, total: Math.round(contas.reduce((s, c) => s + Number(c.valor), 0) * 100) / 100 }));
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Lista de contas a pagar: as visões (abas com contagem) e uma situação só por conta, em palavras.
+
+export type VisaoPagar = "para_pagar" | "vencidas" | "semana" | "decidir" | "falta_aprovar" | "agendadas" | "nao_pagar" | "pagas" | "todas";
+export const VISOES_PAGAR: { v: VisaoPagar; rotulo: string }[] = [
+  { v: "para_pagar", rotulo: "Para pagar" }, { v: "vencidas", rotulo: "Vencidas" }, { v: "semana", rotulo: "Próximos 7 dias" },
+  { v: "decidir", rotulo: "A decidir" }, { v: "falta_aprovar", rotulo: "Falta aprovar" }, { v: "agendadas", rotulo: "Programadas" },
+  { v: "nao_pagar", rotulo: "Não pagar" }, { v: "pagas", rotulo: "Pagas" }, { v: "todas", rotulo: "Todas" },
+];
+type ContaLista = ContaDecisao & { data_pagamento?: string | null };
+
+const somaDias = (dia: string, n: number) => { const d = new Date(`${dia}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
+/** Segurada: "não pagar" escolhido ou fornecedor marcado como golpe. */
+export const contaParada = (c: ContaDecisao) => c.status === "aberto" && (c.decisao === "nao_pagar" || !!c.fornecedor?.bloqueado);
+
+export function naVisaoPagar(c: ContaLista, v: VisaoPagar, hoje: string): boolean {
+  const aberta = c.status === "aberto", ativa = aberta && !contaParada(c);
+  switch (v) {
+    case "para_pagar": return ativa;
+    case "vencidas": return ativa && diaDoPagamento(c) < hoje;
+    case "semana": return ativa && diaDoPagamento(c) >= hoje && diaDoPagamento(c) <= somaDias(hoje, 7);
+    case "decidir": return ativa && !c.decisao;
+    case "falta_aprovar": return ativa && aguardaAprovacao(c);
+    case "agendadas": return ativa && (c.decisao === "pagar" || c.decisao === "agendado");
+    case "nao_pagar": return contaParada(c);
+    case "pagas": return c.status === "pago";
+    default: return c.status !== "cancelado";
+  }
+}
+
+/** A situação da conta numa etiqueta só (e uma linha de explicação quando ajuda). */
+export function situacaoPagar(c: ContaLista, hoje: string): { texto: string; tom: Tom; sub?: string | null } {
+  if (c.status === "pago") return { texto: c.data_pagamento ? `Paga em ${dm(c.data_pagamento)}` : "Paga", tom: "ok" };
+  if (c.status === "cancelado") return { texto: "Cancelada", tom: "parada" };
+  if (c.fornecedor?.bloqueado) return { texto: "Golpe · não pagar", tom: "golpe", sub: c.fornecedor.bloqueio_motivo ?? null };
+  if (c.decisao === "nao_pagar") return { texto: "Não pagar", tom: "parada", sub: [c.decisao_motivo, c.decisao_por_nome && `por ${c.decisao_por_nome}`].filter(Boolean).join(" · ") || null };
+  const d = diaDoPagamento(c);
+  if (aguardaAprovacao(c)) return { texto: "Falta aprovar", tom: "decidir", sub: d < hoje ? `venceu há ${diasEntre(d, hoje)} ${diasEntre(d, hoje) === 1 ? "dia" : "dias"}` : null };
+  if (c.decisao === "pagar" || c.decisao === "agendado") {
+    if (d <= hoje) return { texto: "Pagar hoje", tom: "ok", sub: d < hoje ? `programada para ${dm(d)}` : null };
+    return { texto: `${c.decisao === "agendado" ? "Agendada" : "Programada"} ${dm(d)}`, tom: "agenda" };
+  }
+  const n = diasEntre(hoje, c.vencimento);
+  if (n < 0) return { texto: `Vencida há ${-n} ${n === -1 ? "dia" : "dias"}`, tom: "atrasada", sub: "a decidir" };
+  if (n === 0) return { texto: "Vence hoje", tom: "decidir", sub: "a decidir" };
+  return { texto: "A decidir", tom: "decidir", sub: n <= 7 ? `vence em ${n} ${n === 1 ? "dia" : "dias"}` : null };
+}

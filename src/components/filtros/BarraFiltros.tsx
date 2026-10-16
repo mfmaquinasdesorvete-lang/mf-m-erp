@@ -112,7 +112,8 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
   selecionados?: number; totalSelecionados?: number; acoes?: ReactNode; onLimparSelecao?: () => void;
 }) {
   return (
-    <div className="sticky bottom-0 z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-surface/95 px-4 py-2 shadow-card backdrop-blur"
+    // celular: fica logo acima da barra de atalhos fixa do pé da tela
+    <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-surface/95 px-4 py-2 shadow-card backdrop-blur md:bottom-0"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}>
       {selecionados > 0 ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2">

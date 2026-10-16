@@ -17,7 +17,7 @@ type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: bool
 
 const MOTIVOS = ["Sem caixa agora", "Esperando boleto ou NF correta", "Em negociação com o fornecedor", "Cobrança indevida", "Pagar no mês que vem"];
 
-function useProgramar() {
+export function useProgramar() {
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
   async function programar(ids: string[], acao: Acao, data?: string | null, motivo?: string | null) {

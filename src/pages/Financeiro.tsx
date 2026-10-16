@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, ScanBarcode, Undo2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, Tags, Undo2, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -28,14 +28,17 @@ import { Cobranca } from "@/components/financeiro/Cobranca";
 import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/components/financeiro/Recibos";
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
-import { BarraLote, BotoesDecisao, ChipDecisao, PagarLoteModal } from "@/components/financeiro/DecisaoPagamento";
-import { aDecidir, aguardaAprovacao, filtrarDecisao, motivoNaoPagar, paraPagarHoje, type Decisao, type FiltroDecisao } from "@/lib/programacao";
+import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
+import { aguardaAprovacao, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, situacaoPagar, VISOES_PAGAR, type Decisao, type VisaoPagar } from "@/lib/programacao";
+import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
+import { noPeriodo, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { MenuAcoes } from "@/components/MenuAcoes";
 import { AvisoGolpe } from "@/components/fornecedores/Golpe";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { CampoBoleto, ConferirBoletoModal } from "@/components/financeiro/Boleto";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
-import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
+import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 
 type Receber = {
@@ -197,15 +200,14 @@ function Filtros({ filtro, setFiltro, mes, setMes, onNovo, onImprimir, onExporta
 
 type LinhaRel = { vencimento: string; descricao: string; terceiro: string; status: string; data_pagamento: string | null; valor: number; valor_pago: number | null; unidade_id?: string | null };
 
-function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string) {
+function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string, rotuloFiltro?: string) {
   const { data: cfg } = useConfig();
   const { nome, atual, unidades } = useUnidade();
   const [pdf, setPdf] = useState<Blob | null>(null);
   const titulo = tipo === "receber" ? "Contas a receber" : "Contas a pagar";
   const terceiro = tipo === "receber" ? "Cliente" : "Fornecedor";
   const filtros = () => [
-    FILTROS.find((f) => f.value === filtro)?.label,
-    mes ? `vencimento em ${mes.split("-").reverse().join("/")}` : "todos os meses",
+    ...(rotuloFiltro ? [rotuloFiltro] : [FILTROS.find((f) => f.value === filtro)?.label, mes ? `vencimento em ${mes.split("-").reverse().join("/")}` : "todos os meses"]),
     atual ? nome(atual) : "todas as unidades",
   ].join(" · ");
 
@@ -435,13 +437,16 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const { pode } = usePerfil();
   const podeDecidir = pode("editar_financeiro");
   const { data: cfgRecibo } = useConfig();
-  const [filtro, setFiltro] = useState(destaque ? "todos" : "pendentes");
-  const [filtroDec, setFiltroDec] = useState<FiltroDecisao>("todas");
+  // uma visão por vez (com a contagem de cada uma), busca, período do vencimento e filtros guardados num botão
+  const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : "para_pagar");
+  const [busca, setBusca] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
+  const [categoria, setCategoria] = useState("");
+  const [marcador, setMarcador] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
   const { data: marcadores = [] } = useMarcadores();
   const [lotePagarHoje, setLotePagarHoje] = useState(false);
   const dia = hoje();
-  const [mes, setMes] = useState("");
   const [editando, setEditando] = useState<Partial<Pagar> | null>(null);
   const [baixa, setBaixa] = useState<Pagar | null>(null);
   const [baixaCom, setBaixaCom] = useState<{ valor: number; data: string } | null>(null);
@@ -458,8 +463,16 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
     setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
     onNovaAberta?.();
   }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
-  const doFiltro = filtrar(contas, filtro, mes);
-  const lista = filtrarDecisao(doFiltro, filtroDec, dia);
+
+  const termo = busca.trim().toLowerCase();
+  const base = useMemo(() => contas.filter((c) =>
+    (!termo || [c.descricao, c.fornecedor?.nome, c.documento, c.categoria].some((t) => (t ?? "").toLowerCase().includes(termo)))
+    && noPeriodo(c.vencimento, periodo) && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))),
+  [contas, termo, periodo, categoria, marcador]);
+  const lista = useMemo(() => base.filter((c) => naVisaoPagar(c, visao, dia)).sort((a, b) => visao === "pagas"
+    ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))), [base, visao, dia]);
+  const visoes = VISOES_PAGAR.map((x) => ({ value: x.v, label: x.rotulo, n: base.filter((c) => naVisaoPagar(c, x.v, dia)).length }));
+  const categorias = [...new Set(contas.map((c) => c.categoria).filter(Boolean))].sort();
   const pagarHoje = paraPagarHoje(contas, dia);
   const marcadas = contas.filter((c) => sel.has(c.id));
   const abertasVisiveis = lista.filter((c) => c.status === "aberto");
@@ -467,15 +480,28 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const marcar = (id: string) => setSel((s0) => { const s1 = new Set(s0); if (s1.has(id)) s1.delete(id); else s1.add(id); return s1; });
   const marcarTodas = () => setSel(todasMarcadas ? new Set() : new Set(abertasVisiveis.map((c) => c.id)));
   const somaDe = (l: Pagar[]) => l.reduce((s0, c) => s0 + Number(c.valor), 0);
-  const chipsDec: { v: FiltroDecisao; rotulo: string; l: Pagar[] }[] = [
-    { v: "todas", rotulo: "Todas", l: doFiltro },
-    { v: "decidir", rotulo: "A decidir", l: aDecidir(doFiltro) },
-    { v: "hoje", rotulo: "Pagar hoje", l: filtrarDecisao(doFiltro, "hoje", dia) },
-    { v: "agendadas", rotulo: "Agendadas", l: filtrarDecisao(doFiltro, "agendadas", dia) },
-    { v: "nao_pagar", rotulo: "Não pagar", l: filtrarDecisao(doFiltro, "nao_pagar", dia) },
-  ];
-  const rel = useRelatorio("pagar", filtro, mes);
+  const rotuloVisao = VISOES_PAGAR.find((x) => x.v === visao)?.rotulo ?? "";
+  const rel = useRelatorio("pagar", "todos", "", [rotuloVisao, temPeriodo(periodo) ? `vencimento ${rotuloPeriodo(periodo, dia).toLowerCase()}` : "", termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
+  const novaConta = () => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
+  const acoesDe = (c: Pagar) => (
+    <AcoesPagar conta={c} podeDecidir={podeDecidir} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => setEditando(c)}
+      onEstornar={() => setMotivo({ conta: c, acao: "estornar" })}
+      recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />} />
+  );
+  const situacaoDe = (c: Pagar) => {
+    const s = situacaoPagar(c, dia);
+    return (
+      <div className="min-w-0">
+        <span className="flex flex-wrap items-center gap-1">
+          <span title={s.sub ?? undefined} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${COR_TOM[s.tom]}`}>{s.texto}</span>
+          {s.texto === "Falta aprovar" && <ChipRevisao conta={c as any} />}
+        </span>
+        {s.sub && <div className={`mt-0.5 text-xs ${s.tom === "golpe" ? "text-red-700" : "text-slate-500"}`}>{s.sub}</div>}
+        {((c as any).marcadores ?? []).length > 0 && <div className="mt-1"><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></div>}
+      </div>
+    );
+  };
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -495,87 +521,74 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
     <>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={contas.length} onLimpar={onLimparDestaque} />}
       {rel.visor}
-      <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
-        onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))}
-        onNovo={() => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any)} />
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, descrição ou documento…"
+        periodo={periodo} onPeriodo={setPeriodo} rotuloData="Vencimento"
+        nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0)}
+        filtros={<>
+          <label className="text-xs font-semibold text-slate-600">Categoria
+            <select className="input mt-0.5 h-9 w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              <option value="">Todas</option>
+              {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} className="h-9" />
+        </>}
+        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); }}
+        direita={<>
+          <Button variant="secondary" onClick={() => rel.imprimir(paraRel())} title="Imprimir a lista"><Printer size={16} /><span className="hidden lg:inline"> Imprimir</span></Button>
+          <Button variant="secondary" onClick={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))} title="Exportar para Excel"><FileDown size={16} /><span className="hidden lg:inline"> Exportar</span></Button>
+          <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
+        </>} />
       {podeDecidir && pagarHoje.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <Wallet size={18} className="shrink-0" aria-hidden />
-          <span className="mr-auto"><b>{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje</b> (aprovadas ou agendadas) · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
-          <Button type="button" variant="secondary" onClick={() => setFiltroDec("hoje")}>Ver</Button>
-          <Button type="button" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Pagar todas</Button>
+          <span className="mr-auto"><b>{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje</b> · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
+          <Button type="button" variant="secondary" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Registrar o pagamento de todas</Button>
         </div>
       )}
-      {filtro !== "pago" && (
-        <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar pela decisão de pagamento">
-          {chipsDec.map((x) => (
-            <button key={x.v} type="button" aria-pressed={filtroDec === x.v} onClick={() => setFiltroDec(x.v)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroDec === x.v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
-              {x.rotulo} <span className="opacity-90">{x.l.length}{x.v !== "todas" && x.l.length > 0 ? ` · ${brl(somaDe(x.l))}` : ""}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <ChipsSituacao opcoes={visoes} valor={visao} onChange={(v) => { setVisao(v); setSel(new Set()); }} rotulo="Visão das contas" />
       {podeDecidir && abertasVisiveis.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">
           <input type="checkbox" className="h-5 w-5" checked={todasMarcadas} onChange={marcarTodas} /> Marcar todas em aberto ({abertasVisiveis.length})
         </label>
       )}
       <ListaContas vazia={lista.length === 0}>
-        {lista.map((c) => {
-          const s = situacaoConta(c.status, c.vencimento);
-          return (
-            <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
-              detalhe={[c.categoria, c.documento, c.linha_digitavel && "boleto", c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}
-              valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} marcado={sel.has(c.id)}
-              marcar={podeDecidir && c.status === "aberto"
-                ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
-                : null}
-              situacao={<>
-                {s !== "aberto" && <Badge value={s} />}<ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno />
-                {c.decisao === "nao_pagar" && motivoNaoPagar(c) && <span className={`w-full text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</span>}
-              </>}
-              acoes={<>
-                <BotaoMarcadores tabela="contas_pagar" registro={c as any} nome={["conta a pagar", "contas a pagar"]} />
-                {podeDecidir && c.status === "aberto" && <BotoesDecisao conta={c} atalho />}
-                {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)} />}
-                {(c.status === "aberto" || c.linha_digitavel) && <BotaoAtalho icon={ScanBarcode} label="Boleto" cor={COR_ATALHO.azul} title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)} />}
-                {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
-                {c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
-                <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setEditando(c)} />
-              </>} />
-          );
-        })}
+        {lista.map((c) => (
+          <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
+            detalhe={[c.categoria, c.documento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}
+            valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} marcado={sel.has(c.id)}
+            marcar={podeDecidir && c.status === "aberto"
+              ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
+              : null}
+            situacao={situacaoDe(c)}
+            acoes={<div className="col-span-full px-1.5">{acoesDe(c)}</div>} />
+        ))}
       </ListaContas>
       <div className="hidden md:block">
       <Table
         empty={lista.length === 0}
-        head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Descrição e fornecedor</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
+        head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Fornecedor e descrição</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th text-right">Ação</th></>}
       >
         {lista.map((c) => (
           <tr key={c.id} className={sel.has(c.id) ? "bg-brand/5" : undefined}>
             {podeDecidir && <td className="td" data-label="Marcar">{c.status === "aberto" && <input type="checkbox" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />}</td>}
-            <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
-            <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} />
-              <div className="text-xs text-slate-500">{[c.fornecedor?.nome, c.categoria].filter(Boolean).join(" · ")}</div>
-              {(c.documento || c.data_pagamento || c.linha_digitavel) && <div className="text-xs text-slate-500">{[c.documento, c.linha_digitavel && "boleto", c.data_pagamento && `pago em ${dataBR(c.data_pagamento)}`, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</div>}</td>
-            <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={situacaoConta(c.status, c.vencimento)} /><ChipDecisao conta={c} hoje={dia} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></span>{c.decisao === "nao_pagar" && motivoNaoPagar(c) && <div className={`mt-0.5 text-xs ${c.fornecedor?.bloqueado ? "text-red-700" : "text-slate-500"}`}>{motivoNaoPagar(c)}</div>}</td>
-            <td className="td whitespace-nowrap text-right font-medium">{brl(c.valor)}</td>
-            <td className="td text-right">
-              {podeDecidir && c.status === "aberto" && <div className="mb-1 flex justify-end"><BotoesDecisao conta={c} compacto /></div>}
-              <div className="flex flex-wrap justify-end gap-1">
-              <BotaoMarcadores tabela="contas_pagar" registro={c as any} nome={["conta a pagar", "contas a pagar"]} />
-              {c.status === "aberto" && !c.fornecedor?.bloqueado && !aguardaAprovacao(c) && <Button variant="ghost" title="Registrar o pagamento (valor, data, banco; parcial ou com desconto)" onClick={() => setBaixa(c)}><Wallet size={15} /> Baixa</Button>}
-              {(c.status === "aberto" || c.linha_digitavel) && <Button variant="ghost" title="Conferir o boleto: já foi pago? multa e juros" onClick={() => setBoleto(c)}><ScanBarcode size={15} /> Boleto</Button>}
-              {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />}
-              {c.status === "pago" && <Button variant="ghost" title="Estornar o pagamento (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
-              <Button variant="secondary" title="Editar" aria-label="Editar" onClick={() => setEditando(c)}><Pencil size={15} /></Button>
-              </div>
+            <td className="td whitespace-nowrap">
+              <div className="num font-medium">{dataBR(c.vencimento)}</div>
+              {c.status === "aberto" && c.pagar_em && c.pagar_em !== c.vencimento && c.decisao !== "nao_pagar" && <div className="text-xs text-slate-500">pagar {dataBR(c.pagar_em).slice(0, 5)}</div>}
             </td>
+            <td className="td">
+              <div className="flex flex-wrap items-center gap-x-1.5 font-semibold text-fg">{c.fornecedor?.nome || c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /></div>
+              <div className="text-xs text-slate-500">{[!mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) && c.descricao, c.categoria, c.documento, c.linha_digitavel && "boleto",
+                c.data_pagamento && c.conta_bancaria_id && `saiu de ${contaBanco(c.conta_bancaria_id)}`].filter(Boolean).join(" · ")}</div>
+            </td>
+            <td className="td">{situacaoDe(c)}</td>
+            <td className="td num whitespace-nowrap text-right font-semibold">{brl(c.valor)}</td>
+            <td className="td">{acoesDe(c)}</td>
           </tr>
         ))}
       </Table>
       </div>
+      {!(podeDecidir && marcadas.length > 0) && <RodapeLista quantidade={lista.length} nome={["conta", "contas"]} total={somaDe(lista)} rotuloTotal={`total · ${rotuloVisao.toLowerCase()}`} />}
 
       <Modal open={!!editando} onClose={() => setEditando(null)} title={editando?.id ? "Editar conta a pagar" : "Nova conta a pagar"}>
         {editando && (
@@ -630,6 +643,50 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
         onPagar={(valor, data) => { setBaixaCom({ valor, data }); setBaixa(contas.find((x) => x.id === boleto.id) ?? boleto); setBoleto(null); }} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
     </>
+  );
+}
+
+/**
+ * Ações de uma conta a pagar: um botão com o próximo passo (pagar, registrar o pagamento, aprovar, recibo…) e o resto
+ * no menu "⋯" (agendar, não pagar, voltar a decidir, boleto, marcadores, editar, estornar).
+ */
+function AcoesPagar({ conta: c, podeDecidir, onBaixa, onBoleto, onEditar, onEstornar, recibo }: {
+  conta: Pagar; podeDecidir: boolean; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void; recibo: ReactNode;
+}) {
+  const { programar, ocupado } = useProgramar();
+  const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "marcadores" | null>(null);
+  const aberta = c.status === "aberto", golpe = !!c.fornecedor?.bloqueado, falta = aguardaAprovacao(c);
+  const decidida = c.decisao === "pagar" || c.decisao === "agendado";
+  const podeMexer = podeDecidir && aberta && !golpe;
+  const hojeDia = hoje();
+  let principal: ReactNode;
+  if (c.status === "pago") principal = recibo;
+  else if (!podeMexer) principal = <Button variant="secondary" onClick={onEditar}><Eye size={15} /> Ver</Button>;
+  else if (falta) principal = <Link to="/aprovacoes" title="A conta precisa ser aprovada antes de pagar" className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100">Aprovar</Link>;
+  else if (c.decisao === "nao_pagar") principal = <Button variant="secondary" disabled={ocupado} onClick={() => programar([c.id], "limpar")} title="Volta para a decidir"><RotateCcw size={15} /> Retomar</Button>;
+  else if (decidida) principal = <Button className="whitespace-nowrap" onClick={onBaixa} title="O dinheiro já saiu: registre o pagamento (valor, data e banco)"><Wallet size={15} /> Registrar pagamento</Button>;
+  else principal = (
+    <Button variant="secondary" className="whitespace-nowrap" disabled={ocupado} onClick={() => programar([c.id], "pagar")} title="Entra na lista de pagar hoje no dia do vencimento (ou hoje, se já venceu)">
+      <Check size={15} /> {c.vencimento <= hojeDia ? "Pagar hoje" : "Pagar no vencimento"}
+    </Button>
+  );
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      {principal}
+      <MenuAcoes itens={[
+        podeMexer && !falta && { rotulo: c.decisao === "agendado" ? "Mudar o dia do pagamento" : "Agendar um dia…", icone: CalendarClock, onClick: () => setJanela("agendar") },
+        podeMexer && c.decisao !== "nao_pagar" && { rotulo: "Não pagar…", icone: Ban, onClick: () => setJanela("nao_pagar") },
+        podeMexer && !!c.decisao && c.decisao !== "nao_pagar" && { rotulo: "Voltar a decidir", icone: RotateCcw, onClick: () => programar([c.id], "limpar") },
+        aberta && !golpe && !falta && !decidida && { rotulo: "Registrar pagamento", icone: Wallet, onClick: onBaixa },
+        (aberta || !!c.linha_digitavel) && { rotulo: "Conferir boleto", icone: ScanBarcode, onClick: onBoleto },
+        { rotulo: "Marcadores", icone: Tags, onClick: () => setJanela("marcadores") },
+        { rotulo: aberta ? "Editar" : "Ver detalhes", icone: aberta ? Pencil : Eye, onClick: onEditar },
+        c.status === "pago" && { rotulo: "Estornar o pagamento", icone: Undo2, onClick: onEstornar, perigo: true },
+      ]} />
+      {janela === "agendar" && <ModalAgendar contas={[c]} onClose={() => setJanela(null)} />}
+      {janela === "nao_pagar" && <ModalNaoPagar contas={[c]} onClose={() => setJanela(null)} />}
+      {janela === "marcadores" && <AplicarMarcadores tabela="contas_pagar" notas={[c as any]} nome={["conta a pagar", "contas a pagar"]} onClose={() => setJanela(null)} />}
+    </div>
   );
 }
 
