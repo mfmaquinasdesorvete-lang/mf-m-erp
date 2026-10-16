@@ -12,6 +12,9 @@ import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, pl, whatsappLink } from "@/lib/format";
 import { urlFotoProduto, urlLoja } from "@/lib/catalogo";
 import { avaliarAnuncio } from "@/lib/marketplace";
+import { linkAnuncio } from "@/lib/mlAnuncios";
+import { useAnunciosML } from "@/lib/useMercadoLivre";
+import { CelulaEstoque, CelulaPreco, detalheSituacao, SituacaoChip } from "../mercadolivre/AnunciosMercadoLivre";
 import { notify } from "@/lib/notify";
 import { FornecedoresProduto } from "../FornecedoresProduto";
 import { ChipsMarcadores, useMarcadores } from "../nfe/Marcadores";
@@ -130,17 +133,11 @@ function AbaGeral({ p, podeEditar }: { p: ProdutoFicha; podeEditar: boolean }) {
 }
 
 function AbaAnuncios({ p }: { p: ProdutoFicha }) {
-  const { data: ml = [], error } = useQuery({
-    queryKey: ["ml_anuncios", "produto", p.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ml_anuncios").select("id, ml_item_id, variation_id, titulo, sku").eq("produto_id", p.id);
-      if (error) throw error;
-      return (data ?? []) as { id: string; ml_item_id: string; variation_id: string | null; titulo: string | null; sku: string | null }[];
-    },
-  });
+  // o que o ERP manda para cada anúncio do Mercado Livre ligado a este produto (mesmo cálculo do envio)
+  const { anuncios: ml, conta, carregando, erro } = useAnunciosML(p.id);
+  const envioLigado = !!conta && (!!conta.enviar_estoque || !!conta.enviar_preco);
   const nota = avaliarAnuncio(p as never);
   const naLoja = !!p.no_catalogo && !!p.foto_caminho && Number(p.preco_venda) > 0 && p.ativo !== false;
-  const linkMl = (id: string) => `https://produto.mercadolivre.com.br/${id.replace(/^MLB/, "MLB-")}`;
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
@@ -150,19 +147,33 @@ function AbaAnuncios({ p }: { p: ProdutoFicha }) {
           <span className="block text-xs text-slate-600">{nota.pendencias.length ? `Falta: ${nota.pendencias.map((x) => x.texto).join(" · ")}` : "Pronto para anunciar em qualquer marketplace."}</span>
         </div>
       </div>
-      <Table head={<><th className="th">Onde</th><th className="th">Situação</th><th className="th">Anúncio</th></>}>
-        {ml.map((a) => (
-          <tr key={a.id}>
-            <td className="td font-semibold">Mercado Livre</td>
-            <td className="td"><span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">ligado</span></td>
-            <td className="td"><a href={linkMl(a.ml_item_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">{a.titulo || a.ml_item_id} <ExternalLink size={12} /></a>
-              <span className="num block text-xs text-slate-500">{a.ml_item_id}{a.variation_id ? ` · variação ${a.variation_id}` : ""}</span></td>
-          </tr>
-        ))}
-        {!ml.length && (
-          <tr><td className="td font-semibold">Mercado Livre</td><td className="td"><span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{error ? "sem acesso" : "sem anúncio ligado"}</span></td>
-            <td className="td text-xs text-slate-500">Quando a conta do Mercado Livre estiver ligada, os anúncios com o mesmo SKU aparecem aqui.</td></tr>
+      <section>
+        <h3 className="mb-2 text-sm font-bold text-fg">Mercado Livre: o que o ERP manda</h3>
+        {ml.length > 0 ? (
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+            {ml.map((a) => (
+              <li key={a.anuncio_id} className="grid gap-2 p-3 text-sm sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="min-w-0">
+                  <a href={linkAnuncio(a.ml_item_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">{a.titulo || a.ml_item_id} <ExternalLink size={12} /></a>
+                  <span className="num block text-xs text-slate-500">{a.ml_item_id}{a.variation_id ? ` · variação ${a.variation_id}` : ""}</span>
+                  <span className="mt-1 block"><SituacaoChip s={a.situacao} /></span>
+                  {detalheSituacao(a) && <span className={`mt-0.5 block text-xs ${a.situacao === "erro" ? "text-red-700" : "text-slate-500"}`}>{detalheSituacao(a)}</span>}
+                </div>
+                <div className="min-w-0"><span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estoque</span><CelulaEstoque a={a} /></div>
+                <div className="min-w-0"><span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Preço</span><CelulaPreco a={a} /></div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-500">
+            {carregando ? "Carregando…" : erro ? "Sem acesso aos anúncios do Mercado Livre."
+              : conta ? "Nenhum anúncio ligado a este produto. Em Vendas → Mercado Livre, \"Buscar anúncios\" liga pelo mesmo SKU; ou ligue na lista."
+              : "Quando a conta do Mercado Livre estiver conectada, os anúncios com o mesmo SKU aparecem aqui com o estoque e o preço que o ERP manda."}
+          </p>
         )}
+        {ml.length > 0 && !envioLigado && <p className="mt-1 text-xs text-amber-800">O envio de estoque e preço está desligado (Vendas → Mercado Livre → Envio de estoque e preço).</p>}
+      </section>
+      <Table head={<><th className="th">Onde</th><th className="th">Situação</th><th className="th">Anúncio</th></>}>
         <tr>
           <td className="td font-semibold">Loja do site e catálogo do WhatsApp</td>
           <td className="td"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${naLoja ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{naLoja ? "no ar" : p.no_catalogo ? "falta foto ou preço" : "fora do catálogo"}</span></td>

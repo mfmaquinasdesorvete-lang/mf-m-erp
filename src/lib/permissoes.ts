@@ -18,11 +18,11 @@ export const rotuloPapel = (p: string | null | undefined) => PAPEIS.find((x) => 
 export type Tela =
   | "painel" | "pedidos" | "assistencia" | "estoque" | "financeiro" | "notas"
   | "clientes" | "fornecedores" | "configuracoes" | "usuarios" | "garantias" | "relatorios" | "producao" | "email" | "comissoes" | "documentos" | "fluxo" | "margem" | "contador" | "conciliacao" | "auditoria" | "fretes" | "funcionarios"
-  | "expedicao" | "implantacao" | "importar";
+  | "expedicao" | "implantacao" | "importar" | "mercadolivre";
 
 /** Nome de cada tela na tabela de permissões (na ordem em que aparecem). */
 export const TELAS_ROTULO: Record<Tela, string> = {
-  painel: "Painel inicial", pedidos: "Vendas, orçamentos e PDV", fluxo: "Fluxo de pedidos", expedicao: "Separação e embalagem", fretes: "Fretes e envios", comissoes: "Comissões",
+  painel: "Painel inicial", pedidos: "Vendas, orçamentos e PDV", mercadolivre: "Mercado Livre (anúncios, estoque e preço)", fluxo: "Fluxo de pedidos", expedicao: "Separação e embalagem", fretes: "Fretes e envios", comissoes: "Comissões",
   clientes: "Clientes", fornecedores: "Fornecedores e transportadoras", estoque: "Produtos e estoque", producao: "Produção, compras e cotações",
   funcionarios: "Funcionários (RH)", assistencia: "Assistência técnica", garantias: "Garantias", financeiro: "Financeiro", conciliacao: "Conciliação bancária", margem: "Margem",
   relatorios: "Relatórios", notas: "Notas fiscais", contador: "Contador e fechamento", auditoria: "Auditoria", documentos: "Documentos",
@@ -31,13 +31,14 @@ export const TELAS_ROTULO: Record<Tela, string> = {
 
 /** Telas que cada papel vê (admin vê todas). */
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
-  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
-  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "documentos", "pedidos", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios"],
+  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
+  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
   tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "estoque", "clientes"],
   expedicao: ["expedicao", "fluxo", "documentos"],
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
-  marketplace: ["estoque", "documentos"],
+  // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
+  marketplace: ["estoque", "documentos", "mercadolivre"],
 };
 
 /** Ações de escrita (espelham as políticas do banco). */

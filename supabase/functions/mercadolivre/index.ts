@@ -7,6 +7,9 @@
 //  POST { acao: "sincronizar" }                             (vendas, financeiro ou agendamento) → vendas que o aviso não trouxe
 //  POST { acao: "importar", order_id }                      (vendas) → busca de novo uma venda
 //  POST { acao: "desconectar" }                             (admin) → para de importar e esquece os tokens
+// Fase 2 (estoque e preço nos anúncios):
+//  POST { acao: "anuncios" }                (financeiro, marketplaces ou agendamento de 5 min) → manda o que está na fila
+//  POST { acao: "buscar_anuncios" }         (vendas, financeiro ou marketplaces) → traz os anúncios da conta e liga pelo SKU
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -14,6 +17,7 @@ import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { enderecoSite } from "../_shared/site.ts";
 import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, pedirToken } from "../_shared/mercadolivre.ts";
+import { buscarAnuncios, enviarAnuncios } from "./anuncios.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -47,6 +51,18 @@ Deno.serve(async (req) => {
         const { data: c } = await db.from("ml_contas").select("*").neq("status", "desligada").order("created_at").limit(1).maybeSingle();
         if (!c) return json({ ok: true, resultado: "nenhuma conta conectada" });
         return json({ ok: true, resultado: await sincronizar(db, c as Conta) });
+      }
+      case "anuncios": {
+        if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["financeiro", "marketplace"]);
+        const { data: c } = await db.from("ml_contas").select("*").neq("status", "desligada").order("created_at").limit(1).maybeSingle();
+        if (!c) return json({ ok: true, resultado: { aviso: "nenhuma conta do Mercado Livre conectada" } });
+        const conta = c as Conta & { ml_user_id: number };
+        return json({ ok: true, resultado: await enviarAnuncios(db, conta, () => tokenValido(db, conta)) });
+      }
+      case "buscar_anuncios": {
+        await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await buscarAnuncios(db, conta, await tokenValido(db, conta)) });
       }
     }
     return json({ error: "ação inválida" }, 400);
@@ -103,7 +119,7 @@ async function tokenValido(db: SupabaseClient, conta: Conta): Promise<string> {
       return t.access_token;
     } catch (e) {
       // outra chamada pode ter renovado ao mesmo tempo: relê o cofre e tenta com o refresh token novo
-      const antes = s.ml_refresh_token;
+      const antes: string | undefined = s.ml_refresh_token;
       s = await segredos(db);
       if (tentativa === 0 && s.ml_refresh_token && s.ml_refresh_token !== antes) continue;
       if (e instanceof ErroML && (e.codigo === "invalid_grant" || e.status === 400 || e.status === 401)) {

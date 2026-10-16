@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -34,6 +34,7 @@ export const grupos: Grupo[] = [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
       { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Peças", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
       { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Máquinas", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
+      { to: "/mercado-livre", tela: "mercadolivre", label: "Mercado Livre", curto: "M. Livre", icon: Handshake, busca: "marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
     ],
   },
