@@ -148,6 +148,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Páginas Módulos e Atualizações, com a versão no fim do menu.",
       "Calendário de obrigações do Lucro Real no Painel do contador e no Painel fiscal; venda devolvida sai dos relatórios.",
       "Contas a pagar mais simples: uma situação por conta, um botão com o próximo passo e o resto no menu \"⋯\", visões com contagem e total no rodapé.",
+      "Vendas como no Tiny: se já foi paga (recebida, a receber, vencida ou sem conta), forma de pagamento e de envio em ícone, rastreio, NF, foto do produto e filtro pelo pagamento.",
     ],
   },
 };

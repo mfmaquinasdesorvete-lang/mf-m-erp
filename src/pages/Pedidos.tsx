@@ -9,7 +9,7 @@ import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, 
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
-import { Badge, CelulaAbrir, Button, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Badge, Button, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
@@ -42,6 +42,12 @@ import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
 import { noPeriodo, SEM_PERIODO, somar, type Periodo } from "@/lib/filtroLista";
+import { urlFotoProduto } from "@/lib/catalogo";
+import {
+  contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
+  type ContaVenda, type Envio, type EnvioVenda, type Pagamento, type SituacaoPagamento, type TransportadoraVenda,
+} from "@/lib/vendasLista";
+import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
 
 /** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
 const resumoPulados = (p: { numero: number; motivo: string }[]) =>
@@ -59,20 +65,35 @@ const FORMAS = [
   { value: "dinheiro", label: "Dinheiro" },
 ];
 
-const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente)";
+// com as contas a receber (do pedido e das notas dele), os envios e a transportadora: pagamento e envio na lista
+const CONTA = "id,status,valor,valor_pago,vencimento,data_pagamento,forma_pagamento";
+const TRANSP = "nome,nome_fantasia,tipo,rastreio_url";
+const SELECT = `*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente,contas:contas_receber(${CONTA})), `
+  + `contas:contas_receber(${CONTA}), envios:envios(id,status,created_at,transportadora_nome,codigo_rastreio,coletado_em,entregue_em,transportadora:transportadoras(${TRANSP})), `
+  + `transportadora:transportadoras(${TRANSP})`;
+
+type PedidoLista = Omit<Pedido, "notas"> & { notas?: (NonNullable<Pedido["notas"]>[number] & { contas?: ContaVenda[] })[]; contas?: ContaVenda[]; envios?: EnvioVenda[]; transportadora?: TransportadoraVenda | null; enviado_em?: string | null; estoque_baixado?: boolean | null };
+/** O que a lista mostra de cada venda, calculado uma vez. */
+type InfoVenda = { contas: ContaVenda[]; pg: Pagamento | null; meio: ReturnType<typeof meioDaVenda>; envio: Envio; sinais: ReturnType<typeof sinaisDaVenda>; nf: string | null; oc: string | null; foto: string | null };
 
 /** Orçamento enviado pelo representante no Portal do representante. */
 const SeloPortal = () => (
   <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Orçamento enviado pelo representante no portal">PORTAL</span>
 );
 
-function exportarPedidos(lista: Pedido[]) {
-  const ped = lista.map((p: any) => ({
-    Número: p.numero, Data: celula(p.created_at), Situação: ROTULO_STATUS[p.status as (typeof STATUS)[number]] ?? p.status, Cliente: p.cliente?.nome ?? "",
-    "CPF/CNPJ": p.cliente?.cpf_cnpj ?? "", Origem: p.origem, Vendedor: p.vendedor ?? "", Produtos: Number(p.valor_produtos ?? 0),
-    Desconto: Number(p.desconto ?? 0), Frete: Number(p.frete ?? 0), Total: Number(p.valor_total ?? 0),
-    Pagamento: FORMAS.find((f) => f.value === p.forma_pagamento)?.label ?? p.forma_pagamento, Parcelas: p.parcelas, Observações: p.observacoes ?? "",
-  }));
+function exportarPedidos(lista: Pedido[], infoDe?: (id: string) => InfoVenda | undefined) {
+  const ped = lista.map((p: any) => {
+    const i = infoDe?.(p.id);
+    return {
+      Número: p.numero, Data: celula(p.created_at), Situação: ROTULO_STATUS[p.status as (typeof STATUS)[number]] ?? p.status, Cliente: p.cliente?.nome ?? "",
+      "CPF/CNPJ": p.cliente?.cpf_cnpj ?? "", UF: p.cliente?.uf ?? "", Origem: p.origem, "Nº no Tiny": p.numero_externo ?? "", "Nº pedido (OC)": i?.oc ?? "",
+      Vendedor: p.vendedor ?? "", Produtos: Number(p.valor_produtos ?? 0),
+      Desconto: Number(p.desconto ?? 0), Frete: Number(p.frete ?? 0), Total: Number(p.valor_total ?? 0),
+      "Forma de pagamento": i?.meio?.rotulo ?? FORMAS.find((f) => f.value === p.forma_pagamento)?.label ?? p.forma_pagamento ?? "", Parcelas: p.parcelas,
+      Pagamento: i?.pg ? ROTULO_PAGAMENTO[i.pg.situacao] : "", Recebido: i?.pg ? i.pg.recebido : "",
+      "Nota fiscal": i?.nf ?? "", "Forma de envio": i?.envio.rotulo ?? "", Rastreio: i?.envio.rastreio ?? "", Observações: p.observacoes ?? "",
+    };
+  });
   const itens = lista.flatMap((p: any) => (p.itens ?? []).map((i: Item) => ({
     Pedido: p.numero, Cliente: p.cliente?.nome ?? "", Item: i.descricao, Quantidade: Number(i.quantidade), Unitário: Number(i.valor_unitario),
     Total: Number(i.quantidade) * Number(i.valor_unitario), "Nº de série": i.numero_serie ?? "",
@@ -93,8 +114,15 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const { pode, tem } = usePerfil();
   const { filtrar } = useUnidade();
   const invalidate = useInvalidate();
-  const { data: pedidosTodos = [], isLoading } = useRows<Pedido>("pedidos", { select: SELECT });
-  const { data: tiposProduto = [] } = useRows<{ id: string; tipo: string }>("produtos", { select: "id, tipo", order: "id", ascending: true, key: ["tipos"] });
+  const { data: pedidosTodos = [], isLoading } = useRows<PedidoLista>("pedidos", { select: SELECT });
+  const { data: tiposProduto = [] } = useRows<{ id: string; tipo: string; foto_caminho: string | null }>("produtos", { select: "id, tipo, foto_caminho", order: "id", ascending: true, key: ["tipos"] });
+  // pedidos do Tiny: nº do pedido do cliente (ordem de compra) e a forma de pagamento que vieram de lá (só o administrador lê)
+  const { data: docsTiny = [] } = useRows<{ tiny_id: string; oc: string | null; fp: string | null }>("tiny_documentos", {
+    select: "tiny_id, oc:dados->>numero_ordem_compra, fp:dados->>forma_pagamento", order: "tiny_id", ascending: true, key: ["vendas"],
+    filtro: (q) => q.eq("tipo", "pedido"),
+  });
+  // a situação do pagamento vem das contas a receber: só para quem vê o financeiro ou as vendas
+  const vePagamento = tem("financeiro", "vendas");
   const { data: ops = [] } = useRows<{ id: string; numero: number; status: string; pedido_id: string | null }>("ordens_producao", {
     select: "id, numero, status, pedido_id", order: "numero", ascending: true, key: ["vendas"],
   });
@@ -145,20 +173,47 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     }
   }, [location.state, pedidosTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // tudo menos a situação: as contagens dos botões de situação seguem a busca, o período e os outros filtros
-  const semSituacao = useMemo(() => pedidos.filter((p) =>
+  // pagamento, forma de pagamento, envio, NF, nº do pedido do cliente e foto de cada venda
+  const fotos = useMemo(() => new Map(tiposProduto.filter((x) => x.foto_caminho).map((x) => [x.id, x.foto_caminho!])), [tiposProduto]);
+  const tinyPorId = useMemo(() => new Map(docsTiny.map((d) => [`tiny:${d.tiny_id}`, d])), [docsTiny]);
+  const dia = hoje();
+  const info = useMemo(() => {
+    const m = new Map<string, InfoVenda>();
+    for (const p of pedidosTodos) {
+      const contas = contasDaVenda(p);
+      const doc = p.id_externo ? tinyPorId.get(p.id_externo) : undefined;
+      const nf = (p.notas ?? []).find((n) => n.status === "autorizada" && n.ambiente !== "homologacao")?.numero ?? null;
+      const comFoto = (p.itens ?? []).find((i) => i.produto_id && fotos.has(i.produto_id));
+      m.set(p.id, {
+        contas, pg: pagamentoDaVenda(p, contas, dia), meio: meioDaVenda(p, contas, doc?.fp), envio: envioDaVenda(p, p.envios ?? [], nf),
+        sinais: sinaisDaVenda(p, contas), nf, oc: doc?.oc?.trim() || null, foto: comFoto ? urlFotoProduto(fotos.get(comFoto.produto_id!)) : null,
+      });
+    }
+    return m;
+  }, [pedidosTodos, tinyPorId, fotos, dia]);
+  const [pagamento, setPagamento] = useState<SituacaoPagamento | "">("");
+
+  // tudo menos a situação e o pagamento: as contagens dos botões seguem a busca, o período e os outros filtros
+  const filtrados = useMemo(() => pedidos.filter((p) =>
     (!destaque || destaque.ids.includes(p.id)) &&
     (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!soLicenciados || ehLicenciado(p.cliente)) &&
     (!situacaoTiny || (situacaoTiny === "-" ? !p.situacao_origem : p.situacao_origem === situacaoTiny)) &&
     noPeriodo(p.created_at, periodo) &&
-    (!busca || combinaBusca([p.numero, p.numero_externo, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
+    (!busca || combinaBusca([p.numero, p.numero_externo, info.get(p.id)?.oc, info.get(p.id)?.nf, p.codigo_rastreio, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
+  ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, periodo, info]); // eslint-disable-line react-hooks/exhaustive-deps
+  const doPagamento = (p: Pedido) => !pagamento || info.get(p.id)?.pg?.situacao === pagamento;
+  const semSituacao = useMemo(() => filtrados.filter(doPagamento), [filtrados, pagamento, info]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => semSituacao.filter((p) => filtro === "todos" || p.status === filtro), [semSituacao, filtro]);
+  const semPagamento = useMemo(() => filtrados.filter((p) => filtro === "todos" || p.status === filtro), [filtrados, filtro]);
   const situacoesTiny = useMemo(() => [...new Set(pedidos.map((p) => p.situacao_origem).filter((s): s is string => !!s))].sort(), [pedidos]);
   const selecionados = useMemo(() => pedidos.filter((p) => selecao.tem(p.id)), [pedidos, selecao]);
   const nFiltros = (marcador ? 1 : 0) + (situacaoTiny ? 1 : 0) + (soLicenciados ? 1 : 0);
-  const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setPeriodo(SEM_PERIODO); setFiltro("todos"); };
+  const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setPeriodo(SEM_PERIODO); setFiltro("todos"); setPagamento(""); };
+  const infoDe = (id: string) => info.get(id);
+  // no rodapé: quanto da lista já entrou e quanto falta receber (pelas contas, valor da venda)
+  const recebidoLista = somar(lista, (p) => info.get(p.id)?.pg?.recebido ?? 0);
+  const aReceberLista = somar(lista, (p) => { const pg = info.get(p.id)?.pg; return pg && pg.situacao !== "sem_conta" ? pg.total - pg.recebido : 0; });
 
   async function excluirSelecionados() {
     const motivo = await pedirTexto(`Excluir ${selecionados.length} ${pl(selecionados.length, "pedido", "pedidos")}? Só orçamentos e vendas canceladas são excluídos `
@@ -181,7 +236,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF e da My Frost."
           : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
         actions={vista === "erp" ? <>
-          <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista)}><FileDown size={16} /> Exportar</Button>
+          <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
           {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta" : "Novo orçamento"}</Button>}
         </> : undefined} />
 
@@ -216,6 +271,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         </>} />
       <ChipsSituacao valor={filtro} onChange={setFiltro}
         opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />
+      {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={semPagamento} info={info} />}
 
       {/* Celular: cartões */}
       <div className="space-y-2 md:hidden">
@@ -229,16 +285,24 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <div key={p.id} className="relative rounded-xl border border-slate-200 bg-surface shadow-card">
           <input type="checkbox" className="absolute right-3 top-3 z-[1] h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
-            className="w-full rounded-xl p-4 pb-2 pr-10 text-left active:bg-slate-50">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
-              <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
+            className="flex w-full gap-3 rounded-xl p-4 pb-2 pr-10 text-left active:bg-slate-50">
+            <MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} />
+            <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <span className="min-w-0 font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /></span>
+              <span className="flex shrink-0 flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
-              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}</span>
+              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}</span>
               <span className="num text-base font-bold text-fg">{brl(p.valor_total)}</span>
             </div>
+            {/* pagamento e envio em ícone, como no Tiny */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
+              {info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} compacto />}
+            </div>
             <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
+            </div>
           </button>
           <div className="flex items-center justify-between gap-2 px-2 pb-2">
             <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
@@ -249,23 +313,36 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         {!isLoading && !lista.length && <p className="py-8 text-center text-sm text-slate-500">{area === "maquinas" ? "Nenhuma proposta ou venda de máquina." : "Nenhum pedido encontrado."}</p>}
       </div>
 
-      <div className="hidden md:block">
+      {/* colunas mais justas: a lista inteira cabe no notebook sem rolar para o lado */}
+      <div className="hidden md:block [&_.td]:px-2 [&_.th]:px-2 2xl:[&_.td]:px-3 2xl:[&_.th]:px-3">
       <Table
         empty={!isLoading && lista.length === 0}
-        head={<><th className="th w-10"><input type="checkbox" className="h-4 w-4" aria-label="Marcar todos da lista" checked={lista.length > 0 && lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} /></th><th className="th">Nº</th><th className="th">Data</th><th className="th">Cliente</th><th className="th">Status</th>{area === "maquinas" && <th className="th">OP</th>}<th className="th">NF-e</th><th className="th text-right">Total da venda</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
+        head={<><th className="th w-10"><input type="checkbox" className="h-4 w-4" aria-label="Marcar todos da lista" checked={lista.length > 0 && lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} /></th>
+          <th className="th w-12"><span className="sr-only">Produto</span></th><th className="th">Nº e data</th><th className="th">Cliente</th><th className="th">Situação</th>
+          {area === "maquinas" && <th className="th">OP</th>}{vePagamento && <th className="th">Pagamento</th>}<th className="th text-right">Total</th>
+          <th className="th"><span title="Embaixo do número: E estoque baixado · C contas lançadas · N NF-e autorizada · P proposta enviada">NF e feito</span></th><th className="th">Envio</th><th className="th"><span className="sr-only">Marcadores e abrir</span></th></>}
       >
         {lista.map((p) => (
           <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
             <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} /></td>
-            <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}</td>
-            <td className="td">{dataBR(p.created_at)}</td>
-            <td className="td">{p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
+            <td className="td w-12 py-1.5 pr-0"><MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} descricao={(p.itens ?? []).map((x) => x.descricao).join(" · ")} /></td>
+            <td className="td whitespace-nowrap font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}
+              {p.numero_externo && <div><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span></div>}
+              <div className="text-xs font-normal text-slate-500">{dataBR(p.created_at)}</div>
+              {info.get(p.id)?.oc && <div className="text-[11px] font-normal text-slate-500" title="Nº do pedido do cliente (ordem de compra ou pedido da loja), como veio do Tiny">Ped. {info.get(p.id)!.oc}</div>}</td>
+            <td className="td">{p.cliente?.nome}{p.cliente?.uf && <span className="ml-1.5 rounded bg-slate-100 px-1 py-px text-[11px] font-bold text-slate-600" title="Estado do cliente">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
-            <td className="td"><Badge value={p.notas?.find((n) => n.status !== "erro")?.status ?? null} />{p.notas?.find((n) => n.status === "autorizada")?.numero && <div className="text-xs text-slate-500">NF {p.notas.find((n) => n.status === "autorizada")!.numero}</div>}</td>
-            <td className="td text-right font-medium">{brl(p.valor_total)}</td>
-            <td className="td" onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></td>
-            <CelulaAbrir />
+            {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}
+            <td className="td whitespace-nowrap text-right font-medium">{brl(p.valor_total)}</td>
+            <td className="td whitespace-nowrap">{info.get(p.id)?.nf ? <span className="num font-semibold text-fg" title="NF-e autorizada">{info.get(p.id)!.nf}</span>
+              : <Badge value={p.notas?.find((n) => n.status !== "erro" && n.status !== "autorizada")?.status ?? null} />}
+              {info.get(p.id) && <div className="mt-1"><SinaisVenda s={info.get(p.id)!.sinais} /></div>}</td>
+            <td className="td min-w-[7.5rem] max-w-[12rem]">{info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} />}</td>
+            {/* marcadores e a seta de abrir na mesma coluna (a linha inteira abre a venda) */}
+            <td className="td whitespace-nowrap pl-0 text-right"><span className="inline-flex items-center gap-1">
+              <span onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></span>
+              <ChevronRight size={18} className="text-brand" aria-hidden /></span></td>
           </tr>
         ))}
       </Table>
@@ -273,10 +350,11 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
 
       {/* quantidade e soma do que está na lista (valor da venda, não o da NF), como no Tiny; com seleção, as ações em lote */}
       <RodapeLista quantidade={lista.length} nome={["pedido", "pedidos"]} total={somar(lista, (p) => p.valor_total)} rotuloTotal="valor das vendas"
+        extras={vePagamento ? [{ valor: recebidoLista, rotulo: "recebido", cor: "text-emerald-700" }, { valor: aReceberLista, rotulo: "a receber", cor: "text-sky-700" }].filter((x) => x.valor > 0) : undefined}
         selecionados={selecionados.length} totalSelecionados={somar(selecionados, (p) => p.valor_total)} onLimparSelecao={selecao.limpar}
         acoes={<>
           <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>
-          <Button variant="ghost" onClick={() => exportarPedidos(selecionados)}><FileDown size={15} /> Exportar</Button>
+          <Button variant="ghost" onClick={() => exportarPedidos(selecionados, infoDe)}><FileDown size={15} /> Exportar</Button>
           {tem("financeiro") && <Button variant="ghost" onClick={() => setLancando(true)}><Receipt size={15} /> Lançar contas</Button>}
           {pode("editar_pedidos") && tem("vendas", "financeiro") && <Button variant="ghost" className="!text-red-600" onClick={excluirSelecionados}><Trash2 size={15} /> Excluir</Button>}
         </>} />
@@ -285,6 +363,34 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {marcandoLote && <AplicarMarcadores tabela="pedidos" notas={selecionados} nome={["venda", "vendas"]} onClose={() => setMarcandoLote(false)} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
+    </div>
+  );
+}
+
+const ORDEM_PAGAMENTO: SituacaoPagamento[] = ["recebido", "a_receber", "parcial", "vencido", "sem_conta"];
+const CHIP_PAGAMENTO: Record<SituacaoPagamento, string> = { recebido: "Recebidas", a_receber: "A receber", parcial: "Recebidas em parte", vencido: "Vencidas", sem_conta: "Sem conta" };
+
+/** Filtro pelo pagamento (pelas contas a receber), com a contagem: o que já foi pago e o que não foi. */
+function ChipsPagamento({ valor, onChange, lista, info }: {
+  valor: SituacaoPagamento | ""; onChange: (v: SituacaoPagamento | "") => void; lista: Pedido[]; info: Map<string, InfoVenda>;
+}) {
+  const n = (s: SituacaoPagamento) => lista.filter((p) => info.get(p.id)?.pg?.situacao === s).length;
+  return (
+    <div className="-mt-1 mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Pagamento">
+      <span className="mr-0.5 text-xs font-semibold text-slate-500">Pagamento:</span>
+      {ORDEM_PAGAMENTO.map((s) => {
+        const qtd = n(s);
+        if (!qtd && valor !== s) return null;
+        const ativo = valor === s;
+        return (
+          <button key={s} type="button" aria-pressed={ativo} onClick={() => onChange(ativo ? "" : s)}
+            title={s === "sem_conta" ? "Vendas sem conta a receber no ERP (as do Tiny vieram sem as contas)" : undefined}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${ativo ? "ring-2 ring-brand " : ""}${COR_PAGAMENTO[s]}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />{CHIP_PAGAMENTO[s]} <span className="num opacity-80">{qtd}</span>
+          </button>
+        );
+      })}
+      {valor && <button type="button" onClick={() => onChange("")} className="px-1 text-xs font-semibold text-slate-500 hover:text-fg">Todas</button>}
     </div>
   );
 }
@@ -480,7 +586,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > 24) throw new Error("Parcelas: de 1 a 24");
     if (Number(p.desconto || 0) < 0) throw new Error("O desconto não pode ser negativo");
     if (Number(p.desconto || 0) > subtotal) throw new Error(`O desconto (${brl(p.desconto)}) é maior que o valor dos itens (${brl(subtotal)})`);
-    const { itens, cliente: _c, notas: _n, numero: _num, valor_produtos: _vp, valor_total: _vt, created_at: _ca,
+    // o que veio junto da lista (contas, envios, transportadora) não é campo do pedido
+    const { itens, cliente: _c, notas: _n, contas: _cr, envios: _en, transportadora: _tr, numero: _num, valor_produtos: _vp, valor_total: _vt, created_at: _ca,
       proposta_token: _pt, proposta_status: _ps, proposta_enviada_em: _pe, proposta_visualizada_em: _pv, proposta_respondida_em: _pr,
       proposta_validade: _pval, proposta_resposta_nome: _pn, desconto_aprovado_pct: _dap, desconto_aprovado_por: _dapp, desconto_aprovado_em: _dae, ...cab } = p as any;
     const dados = limpar({

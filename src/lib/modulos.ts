@@ -19,7 +19,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/": "Resumo do dia: vendas, contas da semana, avisos e atalhos para o que precisa de atenção.",
   "/email": "Caixa de e-mail da empresa dentro do ERP, para ler e enviar sem sair do sistema.",
   "/painel/vendas": "Indicadores de vendas por período, com comparação, funil, canal e vendedor; tocar num gráfico filtra o resto.",
-  "/pedidos": "Orçamentos e pedidos de peças, com a situação do Tiny, filtro por período, soma no rodapé e ações em lote (marcadores, exportar, lançar contas, excluir).",
+  "/pedidos": "Orçamentos e pedidos de peças: se já foram pagos, forma de pagamento e de envio em ícone, rastreio, NF e foto do produto, com a situação do Tiny, período, soma no rodapé e ações em lote.",
   "/vendas-maquinas": "Propostas da MF e da My Frost e vendas de máquinas, ligadas ao pedido, à ordem de produção e à NF-e.",
   "/mercado-livre": "Conta do Mercado Livre ligada ao ERP: as vendas pagas entram sozinhas e o estoque e o preço do ERP vão para os anúncios.",
   "/comissoes": "Comissões de vendedores e representantes: % por vendedor, por categoria e por linha de produtos, calculadas item a item.",

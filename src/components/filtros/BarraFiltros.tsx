@@ -107,8 +107,10 @@ export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotul
 }
 
 /** Rodapé fixo da lista: quantidade e total do que está filtrado (como no Tiny); com seleção, as ações em lote. */
-export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor total", selecionados = 0, totalSelecionados, acoes, onLimparSelecao }: {
+export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor total", extras, selecionados = 0, totalSelecionados, acoes, onLimparSelecao }: {
   quantidade: number; nome: [string, string]; total?: number; rotuloTotal?: string;
+  /** outras somas da lista (ex.: recebido e a receber), ao lado do total */
+  extras?: { valor: number; rotulo: string; cor?: string }[];
   selecionados?: number; totalSelecionados?: number; acoes?: ReactNode; onLimparSelecao?: () => void;
 }) {
   return (
@@ -125,9 +127,10 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
           )}
         </div>
       ) : <span className="text-xs text-slate-500">Marque as linhas para as ações em lote.</span>}
-      <div className="ml-auto flex items-end gap-5 text-right">
+      <div className="ml-auto flex flex-wrap items-end justify-end gap-x-5 gap-y-1 text-right">
         <div><div className="num text-base font-bold text-fg">{quantidade.toLocaleString("pt-BR")}</div><div className="text-[11px] text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
         {total != null && <div><div className="num text-base font-bold text-fg">{brl(total)}</div><div className="text-[11px] text-slate-500">{rotuloTotal}</div></div>}
+        {extras?.map((x) => <div key={x.rotulo}><div className={`num text-base font-bold ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-[11px] text-slate-500">{x.rotulo}</div></div>)}
       </div>
     </div>
   );
