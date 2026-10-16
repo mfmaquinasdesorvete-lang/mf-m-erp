@@ -10,7 +10,7 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
-import { ATALHOS_CELULAR, RAPIDOS, grupoDaRota, grupos, itensForaDoMenu, todosItens, useVisivel, type Item } from "@/lib/menu";
+import { ATALHOS_CELULAR, RAPIDOS, grupoDaRota, grupos, itensForaDoMenu, painelDaArea, todosItens, useVisivel, type Item } from "@/lib/menu";
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
@@ -200,8 +200,17 @@ export function Layout() {
                 )}
               </NavLink>
             );
-            // Painel e e-mail: soltos no alto
-            if (!g.titulo) return <div key={g.id} className="mb-3 grid grid-cols-2 gap-1">{itens.map(link)}</div>;
+            // Início, e-mail e documentos: soltos no alto, lado a lado (ícone em cima do nome quando são três)
+            if (!g.titulo) return (
+              <div key={g.id} className={`mb-3 grid gap-1 ${itens.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+                {itens.length < 3 ? itens.map(link) : itens.map(({ to, curto, label, icon: Icon }) => (
+                  <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} title={label}
+                    className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[12.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
+                    {({ isActive }) => <><Icon size={18} className={isActive ? "text-modulo" : "text-nav-fraco"} />{curto}</>}
+                  </NavLink>
+                ))}
+              </div>
+            );
             const aberta = buscando || areaAberta === g.id;
             const Icone = g.icone ?? Boxes;
             // o "+" só aparece para quem pode fazer (antes o contador via "+ Conta" e "+ NF-e" sem poder lançar)
@@ -212,7 +221,8 @@ export function Layout() {
                   <button type="button" aria-expanded={aberta}
                     onClick={() => {
                       // computador: o nome da área abre o painel dela (no celular só abre a lista, onde o painel é o primeiro item)
-                      const painel = itens.find((i) => i.to.startsWith("/painel/")) ?? (g.id === "analises" ? itens.find((i) => i.to === "/gerencial") : undefined);
+                      const alvo = painelDaArea(g);
+                      const painel = alvo ? itens.find((i) => i.to === alvo) : undefined;
                       if (painel && !buscando && location.pathname !== painel.to && window.matchMedia("(min-width: 768px)").matches) {
                         setAreaAberta(g.id);
                         navigate(painel.to);
@@ -283,12 +293,12 @@ export function Layout() {
               </button>
             ))}
           </div>
-          {/* versão em uso, com data e hora: abre as atualizações dia a dia; "Módulos" explica cada tela */}
+          {/* versão em uso, com data e hora: abre as atualizações dia a dia; "Sobre" explica cada tela */}
           <div className="mt-1 flex items-center justify-between gap-2 px-1 text-[11px] leading-tight text-nav-fraco">
             <Link to="/sobre?aba=atualizacoes" onClick={() => setAberto(false)} title="Ver as atualizações dia a dia" className="min-w-0 truncate hover:text-white">
               ERP Line {VERSAO ? <>v{VERSAO.numero} · {VERSAO.quando}</> : "· prévia"}
             </Link>
-            <Link to="/sobre" onClick={() => setAberto(false)} className="shrink-0 font-semibold hover:text-white">Módulos</Link>
+            <Link to="/sobre" onClick={() => setAberto(false)} title="Sobre o ERP Line: módulos, atualizações, esquemas e ideias" className="shrink-0 font-semibold hover:text-white">Sobre</Link>
           </div>
         </div>
       </aside>

@@ -62,8 +62,25 @@ describe("entradas do menu por perfil", async () => {
     expect(menuDoPerfil(grupos, itensForaDoMenu, ent, perfis.find((p) => p.id === "compras")!).barra.map((i) => i.to)).toEqual(["/compras", "/notas", "/fornecedores", "/estoque"]);
   });
 
-  it("acusa o botão rápido com nome de outra tela e a área com uma tela só para vários perfis", () => {
-    expect(achados.map((a) => a.id)).toContain("rapido:/painel/notas");
-    expect(achados.some((a) => a.id.startsWith("so-uma:analises:/documentos"))).toBe(true);
+  it("no menu de verdade: botões rápidos com o nome certo, nomes curtos únicos, nenhuma área vazia e todas abrem um painel", () => {
+    expect(achados.filter((a) => a.gravidade !== "info")).toEqual([]);
+    expect(achados.filter((a) => /^(rapido|curto|so-uma|titulo-area)/.test(a.id))).toEqual([]);
+    expect(grupos.find((g) => g.id === "financeiro")!.itens.length).toBeLessThanOrEqual(8);
+  });
+
+  it("acusa o botão rápido com nome de outra tela, nome curto repetido, área com uma tela só e área sem painel", () => {
+    const it2 = (to: string, label: string, curto: string, tela = "t") => ({ to, label, curto, tela, busca: "a" });
+    const G = [
+      { id: "fis", titulo: "Fiscal", cor: "a", itens: [it2("/painel/f", "Painel fiscal", "Painel"), it2("/nf", "Notas fiscais", "Notas")] },
+      { id: "ges", titulo: "Gestão", cor: "b", itens: [it2("/g1", "G1", "G1", "g"), it2("/g2", "G2", "G2", "g"), it2("/g3", "G3", "G3", "g"), it2("/doc", "Documentos", "Docs", "doc")] },
+      { id: "ven", titulo: "Vendas", cor: "c", itens: [it2("/pecas", "Venda de Peças", "Peças")] },
+      { id: "pro", titulo: "Produtos", cor: "d", painel: "/cat", itens: [it2("/cat", "Peças de reposição", "Peças")] },
+    ];
+    const ps = ["a", "b", "c"].map((id) => ({ id, nome: id.toUpperCase(), ve: (i: { tela: string }) => i.tela !== "g", pode: () => true }));
+    const ids = auditarNavegacao(G, [], { rapidos: [{ to: "/painel/f", label: "Notas fiscais" }], atalhos: { admin: ["/pecas", "/cat"] } }, ps).map((a) => a.id);
+    expect(ids).toContain("rapido:/painel/f");
+    expect(ids).toContain("curto:pecas");
+    expect(ids).toContain("so-uma:ges:/doc");
+    expect(ids).toContain("titulo-area"); // Gestão e Vendas sem painel; Produtos tem (painel: "/cat")
   });
 });

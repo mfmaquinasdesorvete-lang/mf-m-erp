@@ -131,7 +131,7 @@ export function textoAuditoria(achados: Achado[], resumo: { areas: number; telas
 // ---------------------------------------------------------------------------------------------------------------
 
 export type ItemNav = ItemAud & { curto?: string };
-export type GrupoNav = Omit<GrupoAud, "itens"> & { itens: ItemNav[]; acao?: { label: string; to: string; tela: string; pode: string } };
+export type GrupoNav = Omit<GrupoAud, "itens"> & { itens: ItemNav[]; painel?: string; acao?: { label: string; to: string; tela: string; pode: string } };
 export type PerfilAud = { id: string; nome: string; ve: (i: { to: string; tela: string }) => boolean; pode: (acao: string) => boolean };
 export type EntradasNav = { rapidos: { to: string; label: string }[]; atalhos: Record<string, string[]> };
 
@@ -209,7 +209,7 @@ export function auditarNavegacao(grupos: GrupoNav[], fora: ItemNav[], e: Entrada
   }
 
   // 6. o nome da área: em umas abre o painel, em outras só abre a lista
-  const semPainel = grupos.filter((g) => g.titulo && g.id !== "analises" && !g.itens.some((i) => i.to.startsWith("/painel/")));
+  const semPainel = grupos.filter((g) => g.titulo && !(g.painel ?? g.itens.find((i) => i.to.startsWith("/painel/"))));
   if (semPainel.length && semPainel.length < grupos.filter((g) => g.titulo).length) {
     out.push({ id: "titulo-area", gravidade: "info", titulo: `${lista(semPainel.map((g) => g.titulo))}: o nome da área só abre a lista`, rotas: semPainel.flatMap((g) => g.itens.map((i) => i.to)),
       detalhe: "No computador, tocar no nome das outras áreas abre o painel delas; nestas, só abre a lista.", sugestao: "Dar um painel a essas áreas ou deixar todas iguais." });

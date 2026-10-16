@@ -17,7 +17,8 @@ type Fornecedor = { id: string; nome: string; nome_fantasia: string | null; cnpj
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export default function Combustivel() {
+/** `embutido`: dentro de Gastos separados (a tela de abas já tem o título). */
+export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
   const { filtrar } = useUnidade();
   const { data: contasTodas = [] } = useRows<Conta>("contas_bancarias", { order: "nome", ascending: true });
   const contas = filtrar(contasTodas);
@@ -68,7 +69,7 @@ export default function Combustivel() {
   const periodo = mes ? nomeMes(mes) : "todo o extrato importado";
   return (
     <div>
-      <PageHeader title="Combustível" subtitle="Gastos em postos separados do resto: abastecimentos pagos (extratos dos bancos e cartões), notas dos postos e postos no cadastro" />
+      {!embutido && <PageHeader title="Combustível" subtitle="Gastos em postos separados do resto: abastecimentos pagos (extratos dos bancos e cartões), notas dos postos e postos no cadastro" />}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>

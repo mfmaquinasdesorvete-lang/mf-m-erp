@@ -27,7 +27,8 @@ function Chip({ m }: { m: Marketplace }) {
   return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${ESTILO[m].chip}`}>{NOME_MARKETPLACE[m]}</span>;
 }
 
-export default function ComprasMarketplace() {
+/** `embutido`: dentro de Gastos separados (a tela de abas já tem o título). */
+export default function ComprasMarketplace({ embutido }: { embutido?: boolean } = {}) {
   const { filtrar } = useUnidade();
   const { data: contasTodas = [] } = useRows<Conta>("contas_bancarias", { order: "nome", ascending: true });
   const contas = filtrar(contasTodas);
@@ -139,7 +140,7 @@ export default function ComprasMarketplace() {
 
   return (
     <div>
-      <PageHeader title="Compras em marketplaces" subtitle="Mercado Livre, TikTok Shop, Shopee e Amazon separados do resto: notas das lojas (o marketplace vem na nota) e pagamentos nos extratos" />
+      {!embutido && <PageHeader title="Compras em marketplaces" subtitle="Mercado Livre, TikTok Shop, Shopee e Amazon separados do resto: notas das lojas (o marketplace vem na nota) e pagamentos nos extratos" />}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>

@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -13,6 +13,8 @@ export type Grupo = {
   id: string; titulo: string; itens: Item[];
   /** cor da área (a mesma dos botões coloridos) e ícone do bloco */
   cor?: string; icone?: typeof Boxes;
+  /** tela que o nome da área abre no computador, quando não é o item "/painel/…" da área */
+  painel?: string;
   /** ação direta da área (ex.: "+ Pedido" abre o pedido novo); só aparece para quem pode fazer (`pode`) */
   acao?: { label: string; dica: string; to: string; state?: Record<string, unknown>; tela: Tela; pode: Acao };
 };
@@ -25,6 +27,8 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/", tela: "painel", label: "Início", curto: "Início", icon: LayoutDashboard, busca: "painel dashboard resumo" },
       { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
+      // em Gestão, seis perfis viam só "Documentos" (a área parecia vazia): no Início todos acham
+      { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
     ],
   },
   {
@@ -32,8 +36,8 @@ export const grupos: Grupo[] = [
     acao: { label: "Venda", dica: "Nova venda ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos", pode: "editar_pedidos" },
     itens: [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
-      { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Peças", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
-      { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Máquinas", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
+      { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
+      { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Venda máq.", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
       { to: "/mercado-livre", tela: "mercadolivre", label: "Mercado Livre", curto: "M. Livre", icon: Handshake, busca: "marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
       { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
@@ -43,6 +47,7 @@ export const grupos: Grupo[] = [
     // cadastros de pessoas e serviços usados em várias áreas
     id: "cadastros", titulo: "Cadastros", cor: "from-[#a855f7] to-[#6d28d9]", icone: Users,
     itens: [
+      { to: "/painel/cadastros", tela: "clientes", label: "Painel dos clientes", curto: "Painel", icon: LayoutDashboard, busca: "painel dos cadastros clientes novos sumidos qualidade dashboard indicadores" },
       { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj painel dos cadastros base" },
       { to: "/tecnicos", tela: "assistencia", label: "Técnicos", curto: "Técnicos", icon: UserCog, busca: "técnico parceiro assistência região cidade estado atende quem atendeu" },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
@@ -50,7 +55,8 @@ export const grupos: Grupo[] = [
     ],
   },
   {
-    id: "logistica", titulo: "Logística", cor: "from-[#a855f7] to-[#6d28d9]", icone: Truck,
+    // cor própria (era a mesma roxa dos Cadastros); o nome da área abre o Fluxo de pedidos, que é o quadro dela
+    id: "logistica", titulo: "Logística", cor: "from-[#65a30d] to-[#3f6212]", icone: Truck, painel: "/fluxo",
     itens: [
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega quadro" },
       { to: "/expedicao", tela: "expedicao", label: "Separação e embalagem", curto: "Expedição", icon: PackageCheck, busca: "expedição separar conferir embalar despachar lista de separação picking etiqueta volume" },
@@ -76,7 +82,7 @@ export const grupos: Grupo[] = [
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
       { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield" },
       { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
-      { to: "/compras", tela: "producao", label: "Compras", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
+      { to: "/compras", tela: "producao", label: "Compras e cotações", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },
@@ -88,10 +94,9 @@ export const grupos: Grupo[] = [
       { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo contas fixas" },
       { to: "/aprovacoes", tela: "financeiro", label: "Aprovações", curto: "Aprovar", icon: BadgeCheck, busca: "aprovação revisão alçada segunda revisão devolver rejeitar pendência documento contador validar" },
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo pix recebidos infinitepay nubank inter cartão" },
-      { to: "/combustivel", tela: "financeiro", label: "Combustível (postos)", curto: "Combust.", icon: Fuel, busca: "posto gasolina diesel etanol abastecimento veículo carro gasto" },
-      { to: "/compras-marketplace", tela: "financeiro", label: "Compras em marketplaces", curto: "Marketpl.", icon: ShoppingBag, busca: "mercado livre tiktok tik tok shop shopee amazon compras online internet loja pix marketplace gasto" },
-      { to: "/impostos-tarifas", tela: "financeiro", label: "Impostos, tarifas e funcionários", curto: "Impostos", icon: Receipt, busca: "imposto guia darf das simples icms difal dare gnre sefaz prefeitura iss detran ipva tarifa taxa cartão olist zoop infinitepay funcionário salário pagamento folha contador" },
-      { to: "/partes-relacionadas", tela: "financeiro", label: "Entre contas, sócios e empresas ligadas", curto: "Ligadas", icon: ArrowLeftRight, busca: "partes relacionadas sócio socio empresa ligada transferência entre contas pix retirada aporte cpf cnpj" },
+      // combustível, marketplaces e impostos/tarifas/funcionários eram três telas: agora uma, com abas
+      { to: "/gastos", tela: "financeiro", label: "Gastos separados", curto: "Gastos", icon: Receipt, busca: "combustível posto gasolina diesel etanol abastecimento veículo carro marketplace mercado livre tiktok tik tok shop shopee amazon compras online internet loja imposto guia darf das simples icms difal dare gnre sefaz prefeitura iss detran ipva tarifa taxa cartão olist zoop infinitepay funcionário salário pagamento folha gasto" },
+      { to: "/partes-relacionadas", tela: "financeiro", label: "Entre contas e sócios", curto: "Ligadas", icon: ArrowLeftRight, busca: "partes relacionadas empresas ligadas sócio socio empresa ligada transferência entre contas pix retirada aporte cpf cnpj" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],
   },
@@ -106,14 +111,13 @@ export const grupos: Grupo[] = [
     ],
   },
   {
-    id: "analises", titulo: "Gestão", cor: "from-[#6366f1] to-[#4338ca]", icone: BarChart3,
+    id: "analises", titulo: "Gestão", cor: "from-[#6366f1] to-[#4338ca]", icone: BarChart3, painel: "/gerencial",
     itens: [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
       { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
       { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor" },
-      { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
     ],
   },
 ];
@@ -130,7 +134,6 @@ export const itensForaDoMenu: Item[] = [
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
   { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
   { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },
-  { to: "/painel/cadastros", tela: "clientes", label: "Painel dos clientes", curto: "Pn. clientes", icon: LayoutDashboard, busca: "painel dos cadastros clientes novos sumidos qualidade" },
   { to: "/painel/maquinas", tela: "estoque", label: "Painel das máquinas", curto: "Pn. máq.", icon: LayoutDashboard, busca: "máquina modelo vendidas estoque montagem garantia" },
   { to: "/painel/produtos", tela: "estoque", label: "Painel dos produtos", curto: "Pn. prod.", icon: LayoutDashboard, busca: "produto peça mais vendidos curva abc parado giro margem reposição vai faltar" },
   { to: "/produtos/pecas", tela: "estoque", label: "Peças de reposição", curto: "Peças", icon: Wrench, busca: "peça reposição catálogo cliente compra" },
@@ -140,9 +143,12 @@ export const itensForaDoMenu: Item[] = [
 /** Área de uma rota (para abrir o bloco certo). */
 // área (cor e menu aberto) das telas que não estão na lista do menu
 const AREA_FORA: [string, string][] = [
-  ["/produtos/servicos", "cadastros"], ["/produtos/", "producao"], ["/pdv", "vendas"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"], ["/painel/cadastros", "vendas"],
+  ["/produtos/servicos", "cadastros"], ["/produtos/", "producao"], ["/pdv", "vendas"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"],
   ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"], ["/importar", "admin"],
 ];
+/** A tela que o nome da área abre no computador: a indicada em `painel` ou o item "/painel/…" da área. */
+export const painelDaArea = (g: { painel?: string; itens: { to: string }[] }) => g.painel ?? g.itens.find((i) => i.to.startsWith("/painel/"))?.to;
+
 export const grupoDaRota = (path: string) =>
   grupos.find((g) => g.id !== "inicio" && g.itens.some((i) => i.to !== "/" && (path === i.to || path.startsWith(i.to + "/"))))?.id
   ?? AREA_FORA.find(([r]) => path === r || path.startsWith(r.endsWith("/") ? r : r + "/"))?.[1] ?? null;
@@ -152,7 +158,8 @@ export const todosItens = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 export const RAPIDOS: { to: string; label: string; cor: string }[] = [
   { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
-  { to: "/painel/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
+  // "Fiscal" (a área): o botão abre o Painel fiscal, e "Notas fiscais" é outra tela
+  { to: "/painel/notas", label: "Fiscal", cor: "from-[#0ea5e9] to-[#2563eb]" },
   { to: "/painel/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
   { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
   { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },

@@ -1,12 +1,15 @@
 // Cadastro completo do cliente, em abas (como no Tiny): dados gerais, contato e pessoas de contato, endereço e cobrança,
 // dados complementares (fiscal, comercial e crédito), anexos, observações e a assinatura eletrônica da ficha.
 // Em cima, a barra de "cadastro x% completo" mostra o que falta e leva direto à aba.
+// Cliente novo começa passo a passo (estilo onboarding): uma pergunta por vez, revisão e, no fim, os próximos passos
+// (assinatura da ficha, venda, completar o cadastro). "Ver tudo em abas" troca para o formulário completo a qualquer hora.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CircleCheck, Copy, Globe, HandCoins, IdCard, Landmark, Mail, MapPin, MapPinned,
-  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, StickyNote, Tags, Truck, UserRound, Users, Wallet, X, type LucideIcon,
+  ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CircleCheck, ClipboardList, Copy, Globe, HandCoins, IdCard, Landmark, LayoutList, Mail, MapPin, MapPinned,
+  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, X, type LucideIcon,
 } from "lucide-react";
 import { Button, Field, useFecharComEsc } from "../ui";
 import { CampoMascara } from "../CrudPage";
@@ -29,7 +32,8 @@ import { usePerfil } from "@/lib/auth";
 import {
   CONDICOES, completude, iniciais, numeroBR, pendenciasCadastro, REGIMES, rotuloCrm, STATUS_CRM, type Aba,
 } from "@/lib/fichaCadastral";
-import type { PessoaContato } from "@/lib/types";
+import type { PessoaContato, Vendedor } from "@/lib/types";
+import { docParaConferir, errosDoPasso, faltasDoPasso, PASSOS, passoLiberado, resumoDoPasso } from "@/lib/onboardingCliente";
 import { confirmar } from "@/components/Dialogos";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
@@ -57,7 +61,7 @@ const ROTULO: Record<string, string> = {
   cpf_cnpj: "CPF/CNPJ", inscricao_estadual: "Inscrição estadual", whatsapp: "WhatsApp", telefone: "Telefone", telefone_adicional: "Telefone adicional",
   email: "E-mail", email_nfe: "E-mail para NF-e", cep: "CEP", uf: "UF", cobranca_cep: "CEP de cobrança", cobranca_uf: "UF de cobrança",
 };
-const SPAN = { 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4", 5: "sm:col-span-5", 6: "sm:col-span-6", 7: "sm:col-span-7", 8: "sm:col-span-8", 12: "sm:col-span-12" } as const;
+const SPAN = { 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4", 5: "sm:col-span-5", 6: "sm:col-span-6", 7: "sm:col-span-7", 8: "sm:col-span-8", 9: "sm:col-span-9", 12: "sm:col-span-12" } as const;
 type Span = keyof typeof SPAN;
 
 const COR_SECAO = {
@@ -97,7 +101,15 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const [salvando, setSalvando] = useState(false);
   const save = useSave("clientes");
   const invalidar = useInvalidate();
-  const { tem } = usePerfil();
+  const { tem, pode } = usePerfil();
+  const navigate = useNavigate();
+  // cliente novo: passo a passo; "pronto" é a tela depois de cadastrar
+  const [modo, setModo] = useState<"passos" | "abas" | "pronto">(registro.id ? "abas" : "passos");
+  const [n, setN] = useState(0);
+  /** Tentou seguir com erro: os erros do passo ficam à vista (e somem conforme são corrigidos). */
+  const [mostrarErros, setMostrarErros] = useState(false);
+  const corpoRef = useRef<HTMLDivElement>(null);
+  const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const podeEditar = tem("vendas", "financeiro", "tecnico");
   // mandar para Fornecedores e mexer nas categorias: vendas e financeiro (e admin)
   const podeMover = tem("vendas", "financeiro");
@@ -136,6 +148,17 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
       const { data, error } = await supabase.from("contas_receber").select("valor,status").eq("cliente_id", c.id).eq("status", "aberto");
       if (error) return null;
       return (data ?? []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+    },
+  });
+
+  // CPF/CNPJ que já está em outro cadastro (o banco não deixa repetir): avisa já no primeiro passo
+  const docNovo = !c.id ? docParaConferir(c.cpf_cnpj) : null;
+  const { data: repetido } = useQuery({
+    queryKey: ["clientes", "mesmo-doc", docNovo], enabled: !!docNovo, staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clientes").select("id, nome, nome_fantasia, codigo, arquivado_em").eq("cpf_cnpj", docNovo!).limit(1);
+      if (error) return null;
+      return (data?.[0] ?? null) as { id: string; nome: string; nome_fantasia: string | null; codigo: number | null; arquivado_em: string | null } | null;
     },
   });
 
@@ -301,7 +324,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
       const { error } = await supabase.rpc("clientes_virar_fornecedor", { p_ids: [salvo.id], p_manter_cliente: true });
       if (error) notifyError(error); else invalidar("fornecedores");
     }
-    if (eraNovo) {
+    if (eraNovo && modo === "passos") {
+      setModo("pronto");
+    } else if (eraNovo) {
       notify("Cliente cadastrado. Agora é só pedir a assinatura da ficha.");
       setAba("assinatura");
     } else {
@@ -315,6 +340,315 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
 
   const i = ABAS.findIndex((a) => a.id === aba);
   const pendAba = (id: Aba) => pend.filter((p) => p.aba === id).length;
+
+  // ------------------------------------------------------------------ passo a passo (cliente novo)
+  const passo = PASSOS[n].id;
+  const liberado = passoLiberado(c);
+  const irPara = (k: number) => {
+    setN(k);
+    setMostrarErros(false);
+    corpoRef.current?.closest("[role=dialog]")?.scrollTo({ top: 0 });
+    // no computador o cursor já vai para o primeiro campo (no celular o teclado subiria sozinho)
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setTimeout(() => corpoRef.current?.querySelector<HTMLElement>("input:not([type=checkbox]):not(:disabled), select, textarea")?.focus(), 50);
+    }
+  };
+  function avancar() {
+    const erros = errosDoPasso(passo, c);
+    if (erros.length || (passo === "quem" && repetido)) {
+      // o aviso fica no passo (o aviso flutuante tampava o botão "Próximo")
+      setTocados((t) => new Set([...t, ...erros.map((e) => e.campo)]));
+      return setMostrarErros(true);
+    }
+    irPara(Math.min(n + 1, PASSOS.length - 1));
+  }
+  async function abrirRepetido() {
+    const { data, error } = await supabase.from("clientes").select("*").eq("id", repetido!.id).single();
+    if (error) return notifyError(error);
+    const existente = { cobranca_diferente: false, tags: [], ...data };
+    base.current = JSON.stringify(existente);
+    tagsAntes.current = existente.tags ?? [];
+    setC(existente);
+    setAba("gerais");
+    setModo("abas");
+  }
+  function cadastrarOutro() {
+    const vazio = { cobranca_diferente: false, tags: [], ...registro };
+    base.current = JSON.stringify(vazio);
+    setC(vazio);
+    setPessoas([]);
+    pessoasCarregadas.current = false;
+    setTocados(new Set());
+    setModo("passos");
+    irPara(0);
+  }
+  const nomeVendedor = vendedores.find((v) => v.id === c.vendedor_id)?.nome ?? null;
+  const nomesResumo = {
+    vendedor: nomeVendedor, forma: formas.find((f) => f.id === c.forma_pagamento_id)?.nome ?? null,
+    tabela: tabelasPreco.find((t) => t.id === c.tabela_preco_id)?.nome ?? null,
+    tipos: tipos.filter((t) => (c.tags ?? []).includes(t.chave)).map((t) => t.nome),
+  };
+  const faltas = faltasDoPasso(passo, c);
+  const errosVisiveis = mostrarErros ? [...errosDoPasso(passo, c).map((e) => e.erro), ...(passo === "quem" && repetido ? ["Esse CPF/CNPJ já está cadastrado: abra o cadastro dele"] : [])] : [];
+  const pctNovo = completude(c);
+
+  if (modo !== "abas") return createPortal(
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 backdrop-blur-[2px] sm:p-6"
+      role="dialog" aria-modal="true" aria-label={modo === "pronto" ? `${nomeTopo} cadastrado` : "Novo cliente"}>
+      <div className="flex min-h-full w-full max-w-3xl flex-col bg-canvas shadow-pop sm:min-h-0 sm:rounded-2xl">
+        {modo === "pronto" ? (
+          // ---------------------------------------------------------- cadastrado: próximos passos
+          <div className="flex flex-1 flex-col items-center px-4 py-8 text-center sm:px-8">
+            <button type="button" onClick={onClose} className="self-end rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar"><X size={20} /></button>
+            <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15"><CircleCheck size={36} /></span>
+            <h2 className="mt-3 text-balance text-xl font-extrabold text-fg sm:text-2xl">{nomeTopo} está cadastrado</h2>
+            <p className="mt-1 text-sm text-slate-500">{c.codigo ? `Cliente nº ${c.codigo} · ` : ""}ficha {pct}% completa</p>
+            <div className="mt-6 grid w-full max-w-xl gap-2 text-left sm:grid-cols-2">
+              {([
+                { Icon: PenLine, titulo: "Pedir a assinatura da ficha", sub: "O cliente confere os dados pelo link e autoriza o uso (LGPD)", cor: "bg-emerald-50 text-emerald-600", ir: () => { setAba("assinatura"); setModo("abas"); } },
+                ...(pode("editar_pedidos") ? [{ Icon: ShoppingCart, titulo: "Nova venda para ele", sub: "Abre o pedido já com este cliente", cor: "bg-sky-50 text-sky-600",
+                  ir: () => { onClose(); navigate("/pedidos", { state: { novo: true, cliente_id: c.id } }); } }] : []),
+                ...(pend.some((p) => p.aba !== "assinatura") ? [{ Icon: ClipboardList, titulo: "Completar o cadastro", cor: "bg-amber-50 text-amber-600",
+                  sub: `Falta: ${pend.filter((p) => p.aba !== "assinatura").map((p) => p.item.toLowerCase()).join(", ")}`,
+                  ir: () => { setAba(pend.find((p) => p.aba !== "assinatura")!.aba); setModo("abas"); } }] : []),
+                { Icon: UserPlus, titulo: "Cadastrar outro cliente", sub: "Começa de novo, do primeiro passo", cor: "bg-purple-50 text-purple-600", ir: cadastrarOutro },
+              ]).map(({ Icon, titulo, sub, cor, ir }) => (
+                <button key={titulo} type="button" onClick={ir}
+                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-surface p-4 text-left shadow-card transition hover:border-brand hover:shadow-pop">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${cor}`}><Icon size={18} /></span>
+                  <span className="min-w-0"><span className="block font-bold text-fg">{titulo}</span><span className="block text-xs text-slate-500">{sub}</span></span>
+                </button>
+              ))}
+            </div>
+            <Button type="button" variant="secondary" className="mt-6" onClick={onClose}>Fechar</Button>
+          </div>
+        ) : (<>
+          {/* topo: a pergunta do passo e a trilha */}
+          <div className="bg-gradient-to-br from-ink via-ink-soft to-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-200">Novo cliente · passo {n + 1} de {PASSOS.length}</div>
+                <h2 className="text-balance text-lg font-extrabold leading-tight sm:text-xl">{PASSOS[n].pergunta}</h2>
+                <p className="mt-0.5 text-sm text-white/70">{PASSOS[n].dica}</p>
+              </div>
+              <button type="button" onClick={fechar} className="rounded-lg p-2 text-white/80 hover:bg-white/10" aria-label="Fechar"><X size={20} /></button>
+            </div>
+            <ol className="mt-4 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${PASSOS.length}, minmax(0, 1fr))` }} aria-label="Passos do cadastro">
+              {PASSOS.map((p, k) => (
+                <li key={p.id}>
+                  <button type="button" disabled={k > liberado} onClick={() => irPara(k)} aria-current={k === n ? "step" : undefined}
+                    title={k > liberado ? "Termine o passo anterior" : p.titulo} className="w-full text-left disabled:cursor-not-allowed">
+                    <span className={`block h-1.5 rounded-full transition ${k < n ? "bg-emerald-400" : k === n ? "bg-sky-400" : "bg-white/15"}`} />
+                    <span className={`mt-1.5 hidden items-center gap-1 text-[11px] font-semibold sm:flex ${k === n ? "text-white" : "text-white/60"}`}>
+                      {k < n ? <Check size={12} className="text-emerald-300" /> : <span>{k + 1}.</span>} {p.titulo}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* o passo; Enter num campo vai para o próximo (o Enter do CNPJ/CEP busca, como antes) */}
+          <div ref={corpoRef} className="flex-1 space-y-4 p-3 sm:p-6"
+            onKeyDown={(e) => {
+              const t = e.target as HTMLElement;
+              if (e.key === "Enter" && !e.defaultPrevented && t.tagName === "INPUT" && (t as HTMLInputElement).type !== "checkbox" && passo !== "revisao") { e.preventDefault(); avancar(); }
+            }}>
+            {passo === "quem" && (<>
+              <div role="radiogroup" aria-label="Tipo de cliente" className="grid grid-cols-2 gap-2">
+                {([["PJ", "Empresa", "Tem CNPJ: sorveteria, açaiteria, revenda", Building2], ["PF", "Pessoa física", "Compra no CPF", UserRound]] as const).map(([v, l, sub, Icon]) => (
+                  <button key={v} type="button" role="radio" aria-checked={c.tipo_pessoa === v} onClick={() => set("tipo_pessoa", v)}
+                    className={`flex items-start gap-3 rounded-2xl border-2 p-3 text-left transition sm:p-4 ${c.tipo_pessoa === v ? "border-brand bg-brand-light" : "border-slate-200 bg-surface hover:border-slate-300"}`}>
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${c.tipo_pessoa === v ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-500"}`}><Icon size={18} /></span>
+                    <span className="min-w-0"><span className="block font-bold text-fg">{l}</span><span className="hidden text-xs text-slate-500 sm:block">{sub}</span></span>
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 12, buscar: true, ajuda: pj ? "Toque na lupa (ou Enter) para buscar na Receita" : "Pode deixar para depois" })}
+                {repetido && (
+                  <div className="col-span-1 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-12">
+                    <TriangleAlert size={18} className="shrink-0" />
+                    <span className="min-w-0 flex-1">Já cadastrado: <b>{repetido.nome_fantasia || repetido.nome}</b>{repetido.codigo ? ` (nº ${repetido.codigo})` : ""}{repetido.arquivado_em ? ", arquivado" : ""}.</span>
+                    <Button type="button" variant="secondary" onClick={abrirRepetido}>Abrir esse cadastro</Button>
+                  </div>
+                )}
+                {campo("nome", pj ? "Razão social" : "Nome completo", { span: 12, obrigatorio: true })}
+                {campo("nome_fantasia", pj ? "Nome fantasia" : "Apelido / como chamamos", { span: 12, placeholder: "Ex.: Gelato Nobre" })}
+                {pj && (<>
+                  <Field label="Contribuinte de ICMS" className="col-span-1 sm:col-span-6">
+                    <select className="input" value={c.contribuinte_icms ?? 9} onChange={(e) => set("contribuinte_icms", Number(e.target.value))}>
+                      <option value={9}>Não contribuinte (consumidor final)</option>
+                      <option value={1}>Contribuinte (tem IE)</option>
+                      <option value={2}>Isento de inscrição</option>
+                    </select>
+                  </Field>
+                  {campo("inscricao_estadual", "Inscrição estadual", { span: 6 })}
+                </>)}
+              </div>
+            </>)}
+
+            {passo === "contato" && (<>
+              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                {campo("whatsapp", "Celular / WhatsApp", { span: 6 })}
+                {campo("telefone", "Telefone", { span: 6 })}
+                {campo("email", "E-mail", { span: 12 })}
+                {campo("email_nfe", "E-mail para a NF-e", { span: 12, ajuda: "Vem igual ao e-mail; troque só se a nota vai para outro" })}
+                <label className="col-span-1 flex items-center gap-2 text-sm sm:col-span-12">
+                  <input type="checkbox" className="h-5 w-5" checked={c.avisos_email !== false} onChange={(e) => set("avisos_email", e.target.checked)} />
+                  Recebe avisos por e-mail (pedido, nota, entrega, garantia)
+                </label>
+              </div>
+              <details className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:p-5">
+                <summary className="cursor-pointer font-semibold text-fg">Pessoas de contato <span className="font-normal text-slate-500">(opcional: quem compra, quem paga, quem recebe)</span></summary>
+                <div className="mt-3"><PessoasContato pessoas={pessoas} onChange={setPessoas} /></div>
+              </details>
+            </>)}
+
+            {passo === "endereco" && (<>
+              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                {campo("cep", "CEP", { span: 4, buscar: true })}
+                {campo("logradouro", "Rua", { span: 8 })}
+                {campo("numero", "Número", { span: 3 })}
+                {campo("complemento", "Complemento", { span: 4 })}
+                {campo("bairro", "Bairro", { span: 5 })}
+                {campo("municipio", "Cidade", { span: 9 })}
+                {campo("uf", "UF", { span: 3 })}
+              </div>
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+                <input type="checkbox" className="h-5 w-5" checked={!!c.cobranca_diferente} onChange={(e) => set("cobranca_diferente", e.target.checked)} />
+                <span><span className="block font-semibold text-fg">A cobrança vai para outro endereço</span>
+                  <span className="text-xs text-slate-500">Boletos e correspondência de cobrança</span></span>
+              </label>
+              {c.cobranca_diferente && (
+                <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                  {campo("cobranca_cep", "CEP de cobrança", { span: 4, buscar: true })}
+                  {campo("cobranca_logradouro", "Rua", { span: 8 })}
+                  {campo("cobranca_numero", "Número", { span: 3 })}
+                  {campo("cobranca_bairro", "Bairro", { span: 9 })}
+                  {campo("cobranca_municipio", "Cidade", { span: 9 })}
+                  {campo("cobranca_uf", "UF", { span: 3 })}
+                </div>
+              )}
+            </>)}
+
+            {passo === "venda" && (
+              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                <div className="col-span-1 sm:col-span-12">
+                  <span className="mb-1.5 block text-xs font-semibold text-slate-600">Além de cliente, ele é</span>
+                  <div className="flex flex-wrap gap-2">
+                    {tipos.filter((t) => t.ativo).map((t) => {
+                      const on = (c.tags ?? []).includes(t.chave);
+                      return (
+                        <button key={t.chave} type="button" aria-pressed={on} onClick={() => toggleTag(t.chave)}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? corTipo(t.cor).chip : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                          {on ? <CircleCheck size={15} /> : <span className="text-base leading-none">+</span>} {t.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="col-span-1 sm:col-span-12">
+                  <span className="mb-1.5 block text-xs font-semibold text-slate-600">Em que pé está</span>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Status no CRM">
+                    {STATUS_CRM.map((x) => (
+                      <button key={x.value} type="button" role="radio" aria-checked={c.status_crm === x.value} onClick={() => set("status_crm", c.status_crm === x.value ? null : x.value)}
+                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${c.status_crm === x.value ? `${x.cor} shadow-sm ring-1 ring-black/10` : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                        {x.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Field label="Vendedor" className="col-span-1 sm:col-span-6">
+                  <VendedorSelect value={c.vendedor_id} onChange={(id) => set("vendedor_id", id)} />
+                </Field>
+                <Field label="Forma de pagamento" className="col-span-1 sm:col-span-6">
+                  <select className="input" value={c.forma_pagamento_id ?? ""} onChange={(e) => set("forma_pagamento_id", e.target.value || null)}>
+                    <option value="">— escolher no pedido</option>
+                    {formas.filter((f) => f.uso !== "pagar" && f.ativo).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                  </select>
+                </Field>
+                <div className="col-span-1 sm:col-span-6">
+                  {campo("condicao_pagamento", "Condição de pagamento", { span: 12, placeholder: "Ex.: 30 60, 3x" })}
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {CONDICOES.map((x) => (
+                      <button key={x} type="button" onClick={() => set("condicao_pagamento", x)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.condicao_pagamento === x ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{x}</button>
+                    ))}
+                  </div>
+                </div>
+                <Field label="Tabela de preço" className="col-span-1 sm:col-span-6">
+                  <select className="input" value={c.tabela_preco_id ?? ""} onChange={(e) => set("tabela_preco_id", e.target.value || null)}>
+                    <option value="">Preço de venda (padrão)</option>
+                    {tabelasPreco.filter((t) => t.ativo).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                  </select>
+                </Field>
+                <Field label="Já tem máquina? Mês/ano da compra" className="col-span-1 sm:col-span-6">
+                  <CampoMesAno value={c.compra_maquina_em ?? null} onChange={(v) => set("compra_maquina_em", v)} />
+                </Field>
+                {campo("observacoes", "Observações", { span: 12, tipo: "textarea", linhas: 2, placeholder: "Ex.: indicado pelo técnico da região; quer a máquina até o fim do mês" })}
+              </div>
+            )}
+
+            {passo === "revisao" && (<>
+              <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:p-5">
+                <div className="flex items-center justify-between text-sm font-semibold text-fg">
+                  <span>A ficha fica {pctNovo}% completa</span>
+                  <span className="text-xs font-normal text-slate-500">a assinatura do cliente vem depois</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={pctNovo} aria-valuemin={0} aria-valuemax={100} aria-label="Ficha completa">
+                  <div className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500" style={{ width: `${pctNovo}%` }} />
+                </div>
+              </div>
+              {PASSOS.slice(0, -1).map((p, k) => {
+                const linhas = resumoDoPasso(p.id, c, nomesResumo);
+                const falta = faltasDoPasso(p.id, c);
+                return (
+                  <button key={p.id} type="button" onClick={() => irPara(k)}
+                    className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-surface p-4 text-left shadow-card transition hover:border-brand">
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${falta.length ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      {falta.length ? k + 1 : <Check size={16} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-fg">{p.titulo}</span>
+                      {linhas.length ? linhas.map((l) => <span key={l} className="block truncate text-sm text-slate-600">{l}</span>)
+                        : <span className="block text-sm text-slate-400">Nada preenchido</span>}
+                      {falta.length > 0 && <span className="mt-1 block text-xs font-semibold text-amber-700">Falta: {falta.join(", ").toLowerCase()}</span>}
+                    </span>
+                    <Pencil size={15} className="mt-1 shrink-0 text-slate-400" aria-label="Corrigir" />
+                  </button>
+                );
+              })}
+            </>)}
+
+            {errosVisiveis.length > 0 && (
+              <div role="alert" className="flex gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                <TriangleAlert size={18} className="mt-0.5 shrink-0" />
+                <div>{errosVisiveis.map((e) => <div key={e}>{e}</div>)}</div>
+              </div>
+            )}
+            {passo !== "revisao" && faltas.length > 0 && (
+              <p className="text-xs text-slate-500">Para a ficha ficar completa falta: {faltas.join(", ").toLowerCase()}. Dá para seguir e completar depois.</p>
+            )}
+          </div>
+
+          {/* rodapé: voltar, ver tudo em abas, próximo / cadastrar */}
+          <div className="sticky bottom-0 z-10 flex items-center gap-2 border-t border-slate-200 bg-surface/95 px-3 py-3 backdrop-blur sm:rounded-b-2xl sm:px-6">
+            <Button type="button" variant="ghost" disabled={n === 0} onClick={() => irPara(n - 1)}><ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span></Button>
+            <button type="button" onClick={() => { setAba(n < 4 ? (["gerais", "contato", "endereco", "complementares"] as Aba[])[n] : "gerais"); setModo("abas"); }}
+              title="Ver o cadastro completo, com todas as abas" className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-fg">
+              <LayoutList size={14} /> <span className="hidden sm:inline">Ver tudo em abas</span><span className="sm:hidden">Abas</span>
+            </button>
+            <div className="flex-1" />
+            {passo === "revisao"
+              ? <Button type="button" disabled={salvando} onClick={salvar}><Save size={16} /> {salvando ? "Cadastrando…" : "Cadastrar cliente"}</Button>
+              : <Button type="button" onClick={avancar}>Próximo <ArrowRight size={16} /></Button>}
+          </div>
+        </>)}
+      </div>
+    </div>,
+    document.body,
+  );
 
   // ------------------------------------------------------------------ tela
   return createPortal(

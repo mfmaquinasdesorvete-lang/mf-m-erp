@@ -3,15 +3,15 @@
 
 /** O que faz cada área do menu (pelo id do grupo em menu.ts). */
 export const SOBRE_AREAS: Record<string, string> = {
-  inicio: "O resumo do dia e a caixa de e-mail da empresa.",
+  inicio: "O resumo do dia, a caixa de e-mail da empresa e os documentos (todos os anexos num lugar só).",
   vendas: "Do orçamento à venda: peças, máquinas, PDV, Mercado Livre, comissões e metas.",
-  cadastros: "Pessoas e serviços usados em todas as áreas: clientes, técnicos parceiros, fornecedores e serviços.",
+  cadastros: "Pessoas e serviços usados em todas as áreas: painel dos clientes, clientes, técnicos parceiros, fornecedores e serviços.",
   logistica: "Depois da venda: fluxo dos pedidos, separação e embalagem, fretes, transportadoras e embalagens.",
   posvenda: "Ordens de serviço, garantias e preventivas das máquinas dos clientes.",
   producao: "Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.",
-  financeiro: "Contas a pagar e a receber, aprovações, bancos e conciliação, e os painéis que separam combustível, marketplaces, impostos e partes relacionadas.",
+  financeiro: "Contas a pagar e a receber, aprovações, bancos e conciliação, gastos separados (combustível, marketplaces, impostos, tarifas e funcionários) e o dinheiro entre contas e sócios.",
   notas: "Notas fiscais emitidas e recebidas, painel fiscal, painel do contador e analista fiscal.",
-  analises: "Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny, funcionários e documentos.",
+  analises: "Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.",
 };
 
 /** O que faz cada tela (pelo endereço). */
@@ -24,7 +24,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/mercado-livre": "Conta do Mercado Livre ligada ao ERP: as vendas pagas entram sozinhas e o estoque e o preço do ERP vão para os anúncios.",
   "/comissoes": "Comissões de vendedores e representantes: % por vendedor, por categoria e por linha de produtos, calculadas item a item.",
   "/metas": "Metas de vendas por vendedor, estado e região, com projeção do mês e ranking.",
-  "/clientes": "Cadastro completo dos clientes (até 3 endereços, conferência na Receita, WhatsApp, máquinas compradas, técnico ligado) e a Ficha 360°.",
+  "/clientes": "Cadastro dos clientes: o novo é passo a passo (Receita, contato, endereço, venda e revisão); o completo tem até 3 endereços, WhatsApp, máquinas compradas, técnico ligado e a Ficha 360°.",
   "/tecnicos": "Técnicos parceiros por cidade e região, para indicar a quem precisa de assistência.",
   "/fornecedores": "Fornecedores conferidos na Receita, com filiais, produtos que vendem, cotações e últimas compras.",
   "/produtos/servicos": "Serviços sem estoque (carga de gás, limpeza, troca de compressor…) usados nas OS e nas vendas.",
@@ -47,9 +47,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/financeiro": "Contas a pagar e a receber, contas fixas, recibos, boletos, régua de cobrança, plano de contas e DRE.",
   "/aprovacoes": "Revisão das contas antes do contador (1ª e 2ª revisão e pendências); a conta a pagar só é paga depois de aprovada.",
   "/conciliacao": "Contas bancárias, extratos (OFX, e-mail, Open Finance, Banco Inter) e conciliação com as contas lançadas.",
-  "/combustivel": "Gastos com combustível, separados por posto.",
-  "/compras-marketplace": "Compras no Mercado Livre, TikTok Shop, Shopee e Amazon, separadas das compras de fornecedores.",
-  "/impostos-tarifas": "Guias de imposto pagas, tarifas de cartão e da Olist e pagamentos aos funcionários, de todas as contas.",
+  "/gastos": "Gastos acompanhados à parte, uma aba para cada: combustível por posto, compras no Mercado Livre, TikTok, Shopee e Amazon, impostos pagos, tarifas de cartão e da Olist e pagamentos aos funcionários, de todas as contas.",
   "/partes-relacionadas": "Dinheiro entre as contas da MF, com os sócios e com as empresas ligadas, separado do resto.",
   "/auditoria": "Histórico de alterações, checklist do mês e exceções do financeiro.",
   "/painel/notas": "Indicadores fiscais: faturamento, impostos, CFOP, notas rejeitadas e as próximas obrigações do Lucro Real.",

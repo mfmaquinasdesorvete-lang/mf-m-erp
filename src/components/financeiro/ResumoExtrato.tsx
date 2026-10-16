@@ -39,9 +39,9 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes, funcion
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{TIPOS_LANC.filter((t) => !t.entrada).map(quadro)}</div>
       {(r.combustivel.n > 0 || r.marketplace.n > 0 || r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && (
         <p className="mt-2 text-xs text-slate-500">
-          {r.combustivel.n > 0 && <><Link to="/combustivel" className="font-semibold text-brand hover:underline">Ver gastos com combustível</Link> por mês e por posto. </>}
-          {r.marketplace.n > 0 && <><Link to="/compras-marketplace" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
-          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <><Link to="/impostos-tarifas" className="font-semibold text-brand hover:underline">Ver impostos, tarifas e funcionários</Link> de todas as contas juntas.</>}
+          {r.combustivel.n > 0 && <><Link to="/gastos" className="font-semibold text-brand hover:underline">Ver gastos com combustível</Link> por mês e por posto. </>}
+          {r.marketplace.n > 0 && <><Link to="/gastos?aba=marketplaces" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
+          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <><Link to="/gastos?aba=impostos" className="font-semibold text-brand hover:underline">Ver impostos, tarifas e funcionários</Link> de todas as contas juntas.</>}
         </p>
       )}
       {meses.length > 1 && (

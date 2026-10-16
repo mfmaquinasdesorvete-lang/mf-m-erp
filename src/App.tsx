@@ -56,11 +56,9 @@ const AnalistaFiscal = lazy(() => import("@/pages/AnalistaFiscal"));
 const Funcionarios = lazy(() => import("@/pages/Funcionarios"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
 const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
-const Combustivel = lazy(() => import("@/pages/Combustivel"));
+const GastosSeparados = lazy(() => import("@/pages/GastosSeparados"));
 const PartesRelacionadas = lazy(() => import("@/pages/PartesRelacionadas"));
-const ComprasMarketplace = lazy(() => import("@/pages/ComprasMarketplace"));
 const MercadoLivre = lazy(() => import("@/pages/MercadoLivre"));
-const ImpostosTarifas = lazy(() => import("@/pages/ImpostosTarifas"));
 const Auditoria = lazy(() => import("@/pages/Auditoria"));
 const Fretes = lazy(() => import("@/pages/Fretes"));
 const FormasPagamento = lazy(() => import("@/pages/FormasPagamento"));
@@ -126,10 +124,12 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "funcionarios", tela: "funcionarios", element: <Funcionarios /> },
   { path: "documentos", tela: "documentos", element: <Documentos /> },
   { path: "conciliacao", tela: "conciliacao", element: <Conciliacao /> },
-  { path: "combustivel", tela: "financeiro", element: <Combustivel /> },
+  { path: "gastos", tela: "financeiro", element: <GastosSeparados /> },
+  // endereços antigos (links salvos e avisos): abrem a aba certa de Gastos separados
+  { path: "combustivel", tela: "financeiro", element: <ParaGastos /> },
+  { path: "compras-marketplace", tela: "financeiro", element: <ParaGastos aba="marketplaces" /> },
+  { path: "impostos-tarifas", tela: "financeiro", element: <ParaGastos aba="impostos" manter /> },
   { path: "partes-relacionadas", tela: "financeiro", element: <PartesRelacionadas /> },
-  { path: "compras-marketplace", tela: "financeiro", element: <ComprasMarketplace /> },
-  { path: "impostos-tarifas", tela: "financeiro", element: <ImpostosTarifas /> },
   { path: "auditoria", tela: "auditoria", element: <Auditoria /> },
   { path: "fretes", tela: "fretes", element: <Fretes /> },
   { path: "formas-pagamento", tela: "financeiro", element: <FormasPagamento /> },
@@ -137,6 +137,14 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
 ];
 
 const Carregando = () => <div className="p-8 text-slate-500">Carregando…</div>;
+
+/** Endereço antigo de combustível, marketplaces ou impostos: vai para a aba de Gastos separados (`manter`: a aba do endereço vale lá). */
+function ParaGastos({ aba, manter }: { aba?: string; manter?: boolean }) {
+  const q = new URLSearchParams(useLocation().search);
+  if (!(manter && q.get("aba"))) { if (aba) q.set("aba", aba); else q.delete("aba"); }
+  const busca = q.toString();
+  return <Navigate to={`/gastos${busca ? `?${busca}` : ""}`} replace />;
+}
 
 // Volta do link "Esqueci minha senha" (lido antes de o Supabase limpar o endereço)
 const LINK_RECUPERACAO = typeof window !== "undefined" && (/[?&]nova-senha=1/.test(window.location.search) || /type=recovery/.test(window.location.hash));

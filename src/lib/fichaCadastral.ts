@@ -2,7 +2,7 @@
 // regime tributário e a assinatura eletrônica da ficha cadastral. Funções puras.
 import { digitos } from "./format";
 
-type ClienteFicha = {
+export type ClienteFicha = {
   tipo_pessoa?: string | null; nome?: string | null; cpf_cnpj?: string | null; inscricao_estadual?: string | null; contribuinte_icms?: number | string | null;
   email?: string | null; whatsapp?: string | null; telefone?: string | null; cep?: string | null; logradouro?: string | null; numero?: string | null;
   bairro?: string | null; municipio?: string | null; uf?: string | null; data_nascimento?: string | null; status_crm?: string | null; vendedor_id?: string | null;

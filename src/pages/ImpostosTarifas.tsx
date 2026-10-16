@@ -31,9 +31,11 @@ const GRUPOS_FIXOS: Record<AbaGasto, { id: string; sub: string; icone: LucideIco
   funcionarios: [],
 };
 
-export default function ImpostosTarifas() {
+/** `aba`: dentro de Gastos separados cada tipo é uma aba de lá (sem as abas e o título daqui). */
+export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {}) {
   const { filtrar } = useUnidade();
-  const [aba, setAba] = useAbaUrl<AbaGasto>("impostos", ABAS);
+  const [abaUrl, setAba] = useAbaUrl<AbaGasto>("impostos", ABAS);
+  const aba = abaFixa ?? abaUrl;
   const { data: contasTodas = [] } = useRows<Conta>("contas_bancarias", { order: "nome", ascending: true });
   const contas = filtrar(contasTodas).filter((c) => c.ativo);
   const { data: lancamentos = [] } = useRows<LancGasto>("extrato_lancamentos", { order: "data", ascending: false });
@@ -94,10 +96,11 @@ export default function ImpostosTarifas() {
 
   return (
     <div>
-      <PageHeader title="Impostos, tarifas e funcionários"
-        subtitle="Guias de imposto pagas, tarifas de cartão e da OLIST e pagamentos aos funcionários, separados do resto e juntando todas as contas" />
-
-      <Tabs value={aba} onChange={trocarAba} options={ABAS_GASTO.map((a) => ({ value: a.id, label: a.rotulo }))} />
+      {!abaFixa && <>
+        <PageHeader title="Impostos, tarifas e funcionários"
+          subtitle="Guias de imposto pagas, tarifas de cartão e da OLIST e pagamentos aos funcionários, separados do resto e juntando todas as contas" />
+        <Tabs value={aba} onChange={trocarAba} options={ABAS_GASTO.map((a) => ({ value: a.id, label: a.rotulo }))} />
+      </>}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
