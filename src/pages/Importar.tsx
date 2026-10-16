@@ -12,9 +12,10 @@ import { ImportarKitsTiny } from "@/components/produtos/ImportarKitsTiny";
 import { ImportarPropostasTiny } from "@/components/vendas/ImportarPropostasTiny";
 import { ImportarMyFrost } from "@/components/clientes/ImportarMyFrost";
 import { ImportarTiny } from "@/components/ImportarTiny";
+import { ImportarPedidosTiny } from "@/components/vendas/ImportarPedidosTiny";
 import { ImportarModal, type ContaBancaria } from "@/pages/Conciliacao";
 
-type Id = "nfe_emitidas" | "nfe_recebidas" | "clientes" | "fornecedores" | "transportadoras" | "produtos" | "kits" | "propostas" | "extrato" | "myfrost" | "tiny_api";
+type Id = "nfe_emitidas" | "nfe_recebidas" | "clientes" | "fornecedores" | "transportadoras" | "produtos" | "kits" | "propostas" | "pedidos_tiny" | "extrato" | "myfrost" | "tiny_api";
 type Cartao = { id: Id; grupo: string; titulo: string; resumo: string; vaiPara: string; icone: LucideIcon; cor: string; pode: boolean };
 
 export default function Importar() {
@@ -31,6 +32,7 @@ export default function Importar() {
     { id: "produtos", grupo: "Produtos", titulo: "Produtos do Tiny", resumo: "Planilha de produtos (descrição, códigos, NCM, preços)", vaiPara: "Fábrica e estoque → Produtos e estoque", icone: Package, cor: "from-[#f59e0b] to-[#b45309]", pode: pode("editar_produtos") },
     { id: "kits", grupo: "Produtos", titulo: "Kits do Tiny", resumo: "Composição dos kits (o que vai dentro de cada um)", vaiPara: "Produtos e estoque → kits", icone: Boxes, cor: "from-[#ec4899] to-[#be185d]", pode: pode("editar_produtos") },
     { id: "propostas", grupo: "Vendas", titulo: "Propostas do Tiny", resumo: "Planilhas de propostas comerciais (histórico de MF e My Frost)", vaiPara: "Venda de Máquinas → Propostas do Tiny", icone: ScrollText, cor: "from-[#10b981] to-[#047857]", pode: admin },
+    { id: "pedidos_tiny", grupo: "Vendas", titulo: "Pedidos de venda do Tiny", resumo: "Todos os pedidos de venda, com itens, direto da API do Tiny (histórico completo, ligado às notas)", vaiPara: "Venda de Peças e Venda de Máquinas", icone: Cloud, cor: "from-[#0ea5e9] to-[#047857]", pode: admin },
     { id: "extrato", grupo: "Bancos", titulo: "Extrato do banco", resumo: "Arquivo OFX ou CSV do banco para conferir com as contas", vaiPara: "Financeiro → Bancos e conciliação", icone: Landmark, cor: "from-[#f59e0b] to-[#ea580c]", pode: pode("editar_financeiro") },
     { id: "myfrost", grupo: "Bases antigas", titulo: "Base da My Frost", resumo: "Clientes, máquinas e peças da empresa anterior, do backup do Tiny", vaiPara: "Clientes (com etiqueta da máquina)", icone: Archive, cor: "from-[#64748b] to-[#334155]", pode: admin },
     { id: "tiny_api", grupo: "Bases antigas", titulo: "Tiny pela API", resumo: "Cadastros, produtos com estoque e contas em aberto direto da API do Tiny (precisa do token nos segredos do Supabase)", vaiPara: "Vários cadastros", icone: Cloud, cor: "from-[#475569] to-[#0f172a]", pode: admin },
@@ -73,7 +75,8 @@ export default function Importar() {
       {aberto === "propostas" && <ImportarPropostasTiny onClose={fechar} />}
       {aberto === "myfrost" && <ImportarMyFrost onClose={fechar} />}
       {aberto === "extrato" && <Extrato onClose={fechar} />}
-      {aberto === "tiny_api" && <Janela titulo="Tiny pela API" onClose={fechar}><ImportarTiny /></Janela>}
+      {aberto === "pedidos_tiny" && <Janela titulo="Pedidos de venda do Tiny" onClose={fechar}><ImportarPedidosTiny /></Janela>}
+      {aberto === "tiny_api" &&<Janela titulo="Tiny pela API" onClose={fechar}><ImportarTiny /></Janela>}
     </div>
   );
 }

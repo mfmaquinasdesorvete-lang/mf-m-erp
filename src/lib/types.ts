@@ -92,6 +92,8 @@ export type Pedido = {
   /** ambiente "homologacao" = nota de teste, sem valor fiscal */
   notas?: { id: string; status: string; ambiente?: string; numero?: string | null }[];
   vendedor_id?: string | null; comissao_percentual?: number | null; unidade_id?: string | null;
+  /** pedido importado do Tiny: id_externo "tiny:<id>", número e situação no Tiny */
+  id_externo?: string | null; numero_externo?: string | null; situacao_origem?: string | null;
   transportadora_id?: string | null; codigo_rastreio?: string | null; aprovado_em?: string | null; volumes?: number | null; peso_total_kg?: number | null;
   proposta_token?: string; proposta_status?: string | null; proposta_enviada_em?: string | null; proposta_visualizada_em?: string | null;
   proposta_respondida_em?: string | null; proposta_validade?: string | null; proposta_resposta_nome?: string | null;

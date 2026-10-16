@@ -131,7 +131,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     (filtro === "todos" || p.status === filtro) &&
     (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!soLicenciados || ehLicenciado(p.cliente)) &&
-    (!busca || combinaBusca([p.numero, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
+    (!busca || combinaBusca([p.numero, p.numero_externo, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
   ), [pedidos, filtro, busca, destaque, marcador, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -188,7 +188,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
             className="w-full rounded-xl p-4 pb-2 text-left active:bg-slate-50">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
+              <span className="font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /></span>
               <span className="flex flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
@@ -213,7 +213,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       >
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
-            <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}</td>
+            <td className="td font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}</td>
             <td className="td">{dataBR(p.created_at)}</td>
             <td className="td">{p.cliente?.nome}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}</td>

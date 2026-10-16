@@ -24,7 +24,7 @@ import type { Cliente, Pedido } from "@/lib/types";
 const SELECT = "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id,status,numero,serie,chave,ambiente)";
 const CANAL: Record<string, string> = {
   whatsapp: "WhatsApp", telefone: "Telefone", presencial: "Presencial", representante: "Representante",
-  loja: "Loja virtual", marketplace: "Marketplace", balcao: "Balcão (PDV)",
+  loja: "Loja virtual", marketplace: "Marketplace", balcao: "Balcão (PDV)", tiny: "Tiny (histórico)",
 };
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--kpi-laranja)"];
 const canal = (p: Pedido) => CANAL[p.origem] ?? p.origem ?? "Outro";
