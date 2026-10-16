@@ -6,15 +6,15 @@ import {
 } from "lucide-react";
 import { usePerfil } from "./auth";
 import { useConfig } from "./useConfig";
-import { itemVisivel, type MenuOculto, type Tela } from "./permissoes";
+import { itemVisivel, type Acao, type MenuOculto, type Tela } from "./permissoes";
 
 export type Item = { to: string; tela: Tela; label: string; curto: string; icon: typeof Boxes; busca?: string };
 export type Grupo = {
   id: string; titulo: string; itens: Item[];
   /** cor da área (a mesma dos botões coloridos) e ícone do bloco */
   cor?: string; icone?: typeof Boxes;
-  /** ação direta da área (ex.: "+ Pedido" abre o pedido novo) */
-  acao?: { label: string; dica: string; to: string; state?: Record<string, unknown>; tela: Tela };
+  /** ação direta da área (ex.: "+ Pedido" abre o pedido novo); só aparece para quem pode fazer (`pode`) */
+  acao?: { label: string; dica: string; to: string; state?: Record<string, unknown>; tela: Tela; pode: Acao };
 };
 
 // Menu por área de trabalho: cada área é um bloco separado (abre só a área em uso).
@@ -29,7 +29,7 @@ export const grupos: Grupo[] = [
   },
   {
     id: "vendas", titulo: "Vendas", cor: "from-[#10b981] to-[#059669]", icone: ShoppingCart,
-    acao: { label: "Venda", dica: "Nova venda ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos" },
+    acao: { label: "Venda", dica: "Nova venda ou orçamento", to: "/pedidos", state: { novo: true }, tela: "pedidos", pode: "editar_pedidos" },
     itens: [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
       { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Peças", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
@@ -61,7 +61,7 @@ export const grupos: Grupo[] = [
   },
   {
     id: "posvenda", titulo: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]", icone: Wrench,
-    acao: { label: "OS", dica: "Abrir ordem de serviço", to: "/assistencia", state: { novaOS: {} }, tela: "assistencia" },
+    acao: { label: "OS", dica: "Abrir ordem de serviço", to: "/assistencia", state: { novaOS: {} }, tela: "assistencia", pode: "editar_os" },
     itens: [
       { to: "/painel/posvenda", tela: "assistencia", label: "Painel da assistência", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos técnico conserto tempo garantia preventiva pós-venda" },
       { to: "/assistencia", tela: "assistencia", label: "Ordens de serviço", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico assistência técnica" },
@@ -82,7 +82,7 @@ export const grupos: Grupo[] = [
   },
   {
     id: "financeiro", titulo: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]", icone: Wallet,
-    acao: { label: "Conta", dica: "Lançar conta a pagar", to: "/financeiro", state: { aba: "pagar", nova: true }, tela: "financeiro" },
+    acao: { label: "Conta", dica: "Lançar conta a pagar", to: "/financeiro", state: { aba: "pagar", nova: true }, tela: "financeiro", pode: "contas_pagar" },
     itens: [
       { to: "/painel/financeiro", tela: "financeiro", label: "Painel do financeiro", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos saldo caixa inadimplência despesas categoria" },
       { to: "/financeiro", tela: "financeiro", label: "Contas a pagar e receber", curto: "Contas", icon: Wallet, busca: "boleto pix pagamento recebimento cobrança parcela dre fluxo de caixa recibo contas fixas" },
@@ -97,7 +97,7 @@ export const grupos: Grupo[] = [
   },
   {
     id: "notas", titulo: "Fiscal", cor: "from-[#0ea5e9] to-[#2563eb]", icone: FileText,
-    acao: { label: "NF-e", dica: "Emitir nota fiscal", to: "/notas", state: { emitir: true }, tela: "notas" },
+    acao: { label: "NF-e", dica: "Emitir nota fiscal", to: "/notas", state: { emitir: true }, tela: "notas", pode: "emitir_nfe" },
     itens: [
       { to: "/painel/notas", tela: "notas", label: "Painel fiscal", curto: "Painel", icon: LayoutDashboard, busca: "painel de notas dashboard indicadores gráficos impostos cfop faturamento rejeitada" },
       { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus emitir emitida recebida fornecedor" },
@@ -148,6 +148,31 @@ export const grupoDaRota = (path: string) =>
   ?? AREA_FORA.find(([r]) => path === r || path.startsWith(r.endsWith("/") ? r : r + "/"))?.[1] ?? null;
 
 export const todosItens = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu];
+
+/** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
+export const RAPIDOS: { to: string; label: string; cor: string }[] = [
+  { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
+  { to: "/painel/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
+  { to: "/painel/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
+  { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
+  { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
+  { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
+  // PDV: cartão próprio, na largura toda
+  { to: "/pdv", label: "PDV · venda de balcão", cor: "from-[#ec4899] to-[#9d174d]" },
+];
+
+/** Atalhos da barra de baixo do celular, na ordem de prioridade de cada papel (papel sem lista usa a do administrador). */
+export const ATALHOS_CELULAR: Record<string, string[]> = {
+  admin: ["/", "/pedidos", "/assistencia", "/financeiro"],
+  vendas: ["/", "/pedidos", "/clientes", "/garantias"],
+  financeiro: ["/", "/financeiro", "/conciliacao", "/notas"],
+  tecnico: ["/", "/assistencia", "/garantias", "/producao"],
+  contador: ["/contador", "/notas", "/financeiro", "/documentos"],
+  expedicao: ["/expedicao", "/fluxo"],
+  marketplace: ["/estoque", "/produtos/pecas", "/produtos/maquinas", "/documentos"],
+  // a lista do administrador não serve para Compras: a barra ficava vazia
+  compras: ["/compras", "/notas", "/fornecedores", "/estoque"],
+};
 
 /**
  * O que a pessoa logada vê: a tela tem de estar entre as do papel (principal ou adicional) e não pode estar

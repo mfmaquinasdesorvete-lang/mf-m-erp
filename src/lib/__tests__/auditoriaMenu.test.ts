@@ -43,3 +43,27 @@ describe("auditoria do menu", () => {
     expect(real.filter((a) => a.id.startsWith("texto:"))).toEqual([]);
   });
 });
+
+describe("entradas do menu por perfil", async () => {
+  const { RAPIDOS, ATALHOS_CELULAR } = await import("../menu");
+  const { auditarNavegacao, menuDoPerfil } = await import("../auditoriaMenu");
+  const { PAPEIS_INTERNOS, acoesDoPapel, itemVisivel } = await import("../permissoes");
+  const perfis = PAPEIS_INTERNOS.filter((p) => p.value !== "admin").map((p) => ({
+    id: p.value, nome: p.label, ve: (i: { to: string; tela: string }) => itemVisivel(p.value, [], i.tela as never, i.to, {}),
+    pode: (a: string) => acoesDoPapel(p.value).includes(a as never),
+  }));
+  const ent = { rapidos: RAPIDOS, atalhos: ATALHOS_CELULAR };
+  const achados = auditarNavegacao(grupos, itensForaDoMenu, ent, perfis);
+
+  it("nenhum perfil fica com a barra do celular vazia, e nenhum botão + aparece para quem não pode", () => {
+    expect(achados.filter((a) => a.gravidade === "alta")).toEqual([]);
+    const contador = menuDoPerfil(grupos, itensForaDoMenu, ent, perfis.find((p) => p.id === "contador")!);
+    expect(contador.areas.filter((a) => a.mais)).toEqual([]);
+    expect(menuDoPerfil(grupos, itensForaDoMenu, ent, perfis.find((p) => p.id === "compras")!).barra.map((i) => i.to)).toEqual(["/compras", "/notas", "/fornecedores", "/estoque"]);
+  });
+
+  it("acusa o botão rápido com nome de outra tela e a área com uma tela só para vários perfis", () => {
+    expect(achados.map((a) => a.id)).toContain("rapido:/painel/notas");
+    expect(achados.some((a) => a.id.startsWith("so-uma:analises:/documentos"))).toBe(true);
+  });
+});

@@ -125,3 +125,95 @@ export function textoAuditoria(achados: Achado[], resumo: { areas: number; telas
   if (!achados.length) linhas.push("Nada a apontar.");
   return linhas.join("\n").trim();
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Entradas do menu por perfil: acesso rápido, barra do celular, botões "+" das áreas e o que cada perfil vê.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type ItemNav = ItemAud & { curto?: string };
+export type GrupoNav = Omit<GrupoAud, "itens"> & { itens: ItemNav[]; acao?: { label: string; to: string; tela: string; pode: string } };
+export type PerfilAud = { id: string; nome: string; ve: (i: { to: string; tela: string }) => boolean; pode: (acao: string) => boolean };
+export type EntradasNav = { rapidos: { to: string; label: string }[]; atalhos: Record<string, string[]> };
+
+/** O que um perfil encontra em cada entrada do menu. */
+export function menuDoPerfil(grupos: GrupoNav[], fora: ItemNav[], e: EntradasNav, p: PerfilAud) {
+  const todos = [...grupos.flatMap((g) => g.itens), ...fora];
+  const achar = (to: string) => todos.find((i) => i.to === to);
+  return {
+    areas: grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", itens: g.itens.filter(p.ve), total: g.itens.length,
+      mais: g.acao && p.ve({ to: g.acao.to, tela: g.acao.tela }) && p.pode(g.acao.pode) ? g.acao.label : null })),
+    rapidos: e.rapidos.filter((r) => { const i = achar(r.to); return !!i && p.ve(i); }),
+    barra: (e.atalhos[p.id] ?? e.atalhos.admin ?? []).map(achar).filter((i): i is ItemNav => !!i && p.ve(i)),
+    barraPropria: !!e.atalhos[p.id],
+    fora: fora.filter(p.ve),
+  };
+}
+
+export function auditarNavegacao(grupos: GrupoNav[], fora: ItemNav[], e: EntradasNav, perfis: PerfilAud[]): Achado[] {
+  const todos = [...grupos.flatMap((g) => g.itens.map((i) => ({ ...i, area: g.id }))), ...fora.map((i) => ({ ...i, area: "fora" }))];
+  const out: Achado[] = [];
+  const nomes = (ps: PerfilAud[]) => lista(ps.map((p) => p.nome));
+
+  // 1. barra do celular vazia ou emprestada de outro papel
+  for (const p of perfis) {
+    const m = menuDoPerfil(grupos, fora, e, p);
+    if (!m.barra.length) {
+      out.push({ id: `barra:${p.id}`, gravidade: "alta", titulo: `${p.nome}: barra do celular vazia`, rotas: [],
+        detalhe: "No celular, a barra de baixo fica só com \"Mais\": a pessoa precisa abrir o menu para tudo.", sugestao: `Escolher até 4 telas de ${p.nome} para a barra.` });
+    } else if (!m.barraPropria) {
+      out.push({ id: `barra-emprestada:${p.id}`, gravidade: "info", titulo: `${p.nome}: barra do celular emprestada do administrador`, rotas: m.barra.map((i) => i.to),
+        detalhe: `Sem lista própria, a barra mostra ${lista(m.barra.map((i) => `"${i.curto ?? i.label}"`))}.`, sugestao: "Dar uma lista própria ao perfil." });
+    }
+  }
+
+  // 2. botão "+" para quem não pode fazer
+  for (const g of grupos) {
+    if (!g.acao) continue;
+    const errados = perfis.filter((p) => p.ve({ to: g.acao!.to, tela: g.acao!.tela }) && !p.pode(g.acao!.pode) && menuDoPerfil(grupos, fora, e, p).areas.find((a) => a.id === g.id)?.mais);
+    if (errados.length) out.push({ id: `mais:${g.id}`, gravidade: "alta", titulo: `"+ ${g.acao.label}" aparece para quem não pode`, rotas: [g.acao.to],
+      detalhe: `${nomes(errados)} ${errados.length === 1 ? "vê" : "veem"} o botão sem poder fazer.`, sugestao: "Mostrar o botão só para quem pode." });
+  }
+
+  // 3. botão do acesso rápido com o nome de outra tela
+  for (const r of e.rapidos) {
+    const outra = todos.find((i) => norm(i.label) === norm(r.label) && i.to !== r.to);
+    const alvo = todos.find((i) => i.to === r.to);
+    if (outra && alvo) out.push({ id: `rapido:${r.to}`, gravidade: "media", titulo: `Botão "${r.label}" abre "${alvo.label}"`, rotas: [r.to, outra.to],
+      detalhe: `No acesso rápido o botão se chama "${r.label}", mas abre "${alvo.label}"; a tela "${outra.label}" é outra.`, sugestao: `Chamar o botão de "${alvo.label}" ou fazê-lo abrir "${outra.label}".` });
+  }
+
+  // 4. nome curto repetido na barra do celular (o mesmo nome leva a telas diferentes)
+  const naBarra = new Set(Object.values(e.atalhos).flat());
+  const vistos = new Set<string>();
+  for (const i of todos) {
+    if (!i.curto || !naBarra.has(i.to) || vistos.has(norm(i.curto))) continue;
+    const iguais = todos.filter((x) => x.curto && norm(x.curto) === norm(i.curto!) && x.to !== i.to && x.area !== "inicio");
+    if (iguais.length && !/^painel$/i.test(i.curto)) {
+      vistos.add(norm(i.curto));
+      out.push({ id: `curto:${norm(i.curto)}`, gravidade: "info", titulo: `"${i.curto}" quer dizer telas diferentes`, rotas: [i.to, ...iguais.map((x) => x.to)],
+        detalhe: `Na barra do celular "${i.curto}" é ${lista([i, ...iguais].map((x) => `"${x.label}"`))}, conforme o perfil.`, sugestao: "Dar nomes curtos diferentes." });
+    }
+  }
+
+  // 5. área que, para vários perfis, mostra uma tela só (sempre a mesma)
+  for (const g of grupos.filter((x) => x.titulo && x.itens.length > 3)) {
+    const sos = perfis.map((p) => ({ p, v: g.itens.filter(p.ve) })).filter((x) => x.v.length === 1);
+    const porTela = new Map<string, PerfilAud[]>();
+    for (const x of sos) porTela.set(x.v[0].to, [...(porTela.get(x.v[0].to) ?? []), x.p]);
+    for (const [to, ps] of porTela) if (ps.length >= 3) {
+      const label = g.itens.find((i) => i.to === to)!.label;
+      out.push({ id: `so-uma:${g.id}:${to}`, gravidade: "media", titulo: `${g.titulo} mostra só "${label}" para ${ps.length} perfis`, rotas: [to],
+        detalhe: `Para ${nomes(ps)}, a área ${g.titulo} tem uma tela só: "${label}". A área parece vazia e a tela fica escondida.`,
+        sugestao: `Levar "${label}" para uma área que esses perfis já usam (ou para o Início).` });
+    }
+  }
+
+  // 6. o nome da área: em umas abre o painel, em outras só abre a lista
+  const semPainel = grupos.filter((g) => g.titulo && g.id !== "analises" && !g.itens.some((i) => i.to.startsWith("/painel/")));
+  if (semPainel.length && semPainel.length < grupos.filter((g) => g.titulo).length) {
+    out.push({ id: "titulo-area", gravidade: "info", titulo: `${lista(semPainel.map((g) => g.titulo))}: o nome da área só abre a lista`, rotas: semPainel.flatMap((g) => g.itens.map((i) => i.to)),
+      detalhe: "No computador, tocar no nome das outras áreas abre o painel delas; nestas, só abre a lista.", sugestao: "Dar um painel a essas áreas ou deixar todas iguais." });
+  }
+
+  return out.sort((a, b) => PESO[a.gravidade] - PESO[b.gravidade] || a.titulo.localeCompare(b.titulo, "pt-BR"));
+}

@@ -150,6 +150,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Contas a pagar mais simples: uma situação por conta, um botão com o próximo passo e o resto no menu \"⋯\", visões com contagem e total no rodapé.",
       "Vendas como no Tiny: se já foi paga (recebida, a receber, vencida ou sem conta), forma de pagamento e de envio em ícone, rastreio, NF, foto do produto e filtro pelo pagamento.",
       "Sobre o ERP Line com indicadores, filtros e ações: Handoff (pendências por responsável, decisões e o texto pronto para passar adiante), Ideias (anotar, votar e avaliar) e Esquemas (processos em rascunho para a equipe, fluxograma do menu com auditoria e cadeia de causas com fatos e hipóteses).",
+      "Menu auditado por perfil: os botões \"+\" das áreas só aparecem para quem pode lançar, o perfil Compras ganhou a barra do celular e o fluxograma do menu mostra o menu \"como\" cada perfil.",
     ],
   },
 };

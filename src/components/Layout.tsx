@@ -10,7 +10,7 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
-import { grupoDaRota, grupos, itensForaDoMenu, todosItens, useVisivel, type Item } from "@/lib/menu";
+import { ATALHOS_CELULAR, RAPIDOS, grupoDaRota, grupos, itensForaDoMenu, todosItens, useVisivel, type Item } from "@/lib/menu";
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
@@ -25,33 +25,10 @@ import { AvisoVersao, ErroTela } from "./ErroTela";
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 
 
-/** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
-const RAPIDOS: { to: string; label: string; cor: string }[] = [
-  { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
-  { to: "/painel/notas", label: "Notas fiscais", cor: "from-[#0ea5e9] to-[#2563eb]" },
-  { to: "/painel/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
-  { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
-  { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
-  { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
-  // PDV: cartão próprio, na largura toda
-  { to: "/pdv", label: "PDV · venda de balcão", cor: "from-[#ec4899] to-[#9d174d]" },
-];
-
 const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const combina = (m: Item, termo: string) => {
   const t = semAcento(`${m.label} ${m.busca ?? ""}`);
   return semAcento(termo).split(/\s+/).filter(Boolean).every((p) => t.includes(p));
-};
-
-/** Atalhos da barra inferior do celular, na ordem de prioridade de cada papel. */
-const ATALHOS: Record<string, string[]> = {
-  admin: ["/", "/pedidos", "/assistencia", "/financeiro"],
-  vendas: ["/", "/pedidos", "/clientes", "/garantias"],
-  financeiro: ["/", "/financeiro", "/conciliacao", "/notas"],
-  tecnico: ["/", "/assistencia", "/garantias", "/producao"],
-  contador: ["/contador", "/notas", "/financeiro", "/documentos"],
-  expedicao: ["/expedicao", "/fluxo"],
-  marketplace: ["/estoque", "/produtos/pecas", "/produtos/maquinas", "/documentos"],
 };
 
 /** Botões coloridos do acesso rápido (3 por linha). */
@@ -163,7 +140,7 @@ export function Layout() {
   // engrenagem do rodapé: Configurações (ou, para quem não as vê, Usuários ou Importar dados)
   const engrenagem = [["configuracoes", "/configuracoes"], ["usuarios", "/usuarios"], ["importar", "/importar"]]
     .find(([t, to]) => vis.ve(t as Tela, to))?.[1] ?? null;
-  const atalhos = (ATALHOS[perfil.papel] ?? ATALHOS.admin)
+  const atalhos = (ATALHOS_CELULAR[perfil.papel] ?? ATALHOS_CELULAR.admin)
     .map((to) => todosItens.find((i) => i.to === to)!)
     .filter((i) => i && vis.item(i));
 
@@ -227,7 +204,8 @@ export function Layout() {
             if (!g.titulo) return <div key={g.id} className="mb-3 grid grid-cols-2 gap-1">{itens.map(link)}</div>;
             const aberta = buscando || areaAberta === g.id;
             const Icone = g.icone ?? Boxes;
-            const acao = g.acao && vis.ve(g.acao.tela, g.acao.to) ? g.acao : null;
+            // o "+" só aparece para quem pode fazer (antes o contador via "+ Conta" e "+ NF-e" sem poder lançar)
+            const acao = g.acao && vis.ve(g.acao.tela, g.acao.to) && perfil.pode(g.acao.pode) ? g.acao : null;
             return (
               <section key={g.id} className={`mb-2 overflow-hidden rounded-xl border transition ${aberta ? "border-white/15 bg-white/[0.04]" : "border-transparent"}`}>
                 <div className="flex items-center gap-1 pr-1.5">
