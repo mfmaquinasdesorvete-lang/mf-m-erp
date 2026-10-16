@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { DefinirLinha } from "@/components/comissoes/LinhasProduto";
 import type { LinhaProduto } from "@/lib/comissao";
@@ -38,6 +38,7 @@ import { TabelasPreco } from "@/components/produtos/TabelasPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { useVisivel } from "@/lib/menu";
 import { UnificarProdutosLista } from "@/components/produtos/UnificarProdutosLista";
 import { DocumentosMaquina, GaleriaProduto } from "@/components/produtos/GaleriaProduto";
 import { DesenhoMedidas } from "@/components/produtos/DesenhoMedidas";
@@ -143,6 +144,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }
   const navigate = useNavigate();
   const { pode, papel, tem } = usePerfil();
+  const vis = useVisivel();
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
   const [aba, setAba] = useAbaUrl<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas">("produtos", ["produtos", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"] as const);
@@ -450,6 +452,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {/* os painéis saíram da lista do menu: ficam a um clique daqui */}
           {ehMaquinas ? <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
             : <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>}
+          {ehMaquinas && vis.ve("testegiga", "/teste-giga") && <Button variant="secondary" onClick={() => navigate("/teste-giga")}><PlugZap size={16} /> Teste do giga (REG-006)</Button>}
           {pode("editar_produtos") && <>
             {tem("financeiro") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}
             {tem("financeiro") && <Button variant="secondary" onClick={() => setImportarKits(true)}><Boxes size={16} /> Kits do Tiny</Button>}

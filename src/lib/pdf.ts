@@ -1159,3 +1159,87 @@ export async function pdfCupom(c: CupomPdf, cfg: Config): Promise<Blob> {
   return doc.output("blob");
 }
 const r2Cupom = (n: number) => Math.round(n * 100) / 100;
+
+// ---------------------------------------------------------------------
+// Registro de qualidade REG-006 · Teste do giga: as mesmas colunas do formulário de papel (folha deitada), com o
+// quadro de cabeçalho (empresa · TESTE DO GIGA · código, revisão e página) repetido em todas as folhas.
+// ---------------------------------------------------------------------
+export type LinhaPdfGiga = {
+  data: string; maquina: string; ns: string; operador: string; funcional: string; aterramento: string; tensao: string; observacoes: string;
+  /** testes reprovados (saem em vermelho) */
+  reprovados: string[]; anulado: boolean;
+};
+
+export async function pdfRegistroGiga(r: { codigo: string; titulo: string; revisao: string; filtros: string; linhas: LinhaPdfGiga[] }, cfg: Config) {
+  const { doc, autoTable, logo } = await novoDoc("landscape");
+  const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+  const M = 10, TOPO = 8, ALT = 21;
+  const xMeio = M + 70, xDir = w - M - 50;
+  const COL_TESTE: Record<number, string> = { 4: "funcional", 5: "aterramento", 6: "tensao" };
+
+  autoTable(doc, {
+    startY: TOPO + ALT + 9,
+    margin: { left: M, right: M, top: TOPO + ALT + 9, bottom: 14 },
+    head: [
+      [{ content: "Data", rowSpan: 2 }, { content: "Máquina", rowSpan: 2 }, { content: "NS", rowSpan: 2 }, { content: "Operador", rowSpan: 2 },
+        { content: "Funcional", rowSpan: 2 }, { content: "Giga de Testes", colSpan: 2 }, { content: "Observações", rowSpan: 2 }],
+      ["Cont. Aterram.", "Tensão Suport."],
+    ],
+    body: r.linhas.length
+      ? r.linhas.map((l) => [l.data, l.maquina, l.ns, l.operador, l.funcional, l.aterramento, l.tensao, l.observacoes])
+      : [[{ content: "Nenhum teste no período escolhido.", colSpan: 8, styles: { halign: "center", textColor: [100, 116, 139] } }]],
+    theme: "grid",
+    // uma máquina não se divide entre duas folhas
+    rowPageBreak: "avoid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 1.6, textColor: [30, 41, 59], lineColor: [148, 163, 184], lineWidth: 0.2, valign: "middle" },
+    headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: "bold", halign: "center", valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 24 }, 1: { cellWidth: 44 }, 2: { cellWidth: 26, fontStyle: "bold" }, 3: { cellWidth: 32 },
+      4: { cellWidth: 20, halign: "center" }, 5: { cellWidth: 30, halign: "center" }, 6: { cellWidth: 34, halign: "center" },
+    },
+    // reprovado em vermelho; lançamento anulado apagado (fica no histórico)
+    didParseCell: (c: any) => {
+      if (c.section !== "body") return;
+      const l = r.linhas[c.row.index];
+      if (!l) return;
+      if (l.anulado) { c.cell.styles.textColor = [148, 163, 184]; return; }
+      const teste = COL_TESTE[c.column.index];
+      if (teste && l.reprovados.includes(teste)) { c.cell.styles.textColor = [200, 30, 30]; c.cell.styles.fontStyle = "bold"; }
+    },
+  });
+
+  let y = (doc as any).lastAutoTable.finalY + 12;
+  if (y > h - 22) { doc.addPage(); y = TOPO + ALT + 18; }
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(30, 41, 59);
+  doc.text("Verificado por: ________________________________________", M, y);
+  doc.text("Data: ____/____/________", M + 130, y);
+
+  // quadro do cabeçalho e rodapé em todas as folhas
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(71, 85, 105); doc.setLineWidth(0.3);
+    doc.rect(M, TOPO, w - 2 * M, ALT);
+    doc.line(xMeio, TOPO, xMeio, TOPO + ALT);
+    doc.line(xDir, TOPO, xDir, TOPO + ALT);
+    doc.line(xDir, TOPO + ALT / 3, w - M, TOPO + ALT / 3);
+    doc.line(xDir, TOPO + (2 * ALT) / 3, w - M, TOPO + (2 * ALT) / 3);
+    if (logo) doc.addImage(logo, "PNG", M + 2, TOPO + 2.5, 16, 16);
+    doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    const nome = (doc.splitTextToSize(cfg.nome_fantasia || cfg.razao_social || "", xMeio - M - 23) as string[]).slice(0, 2);
+    doc.text(nome, M + 20, TOPO + (nome.length > 1 ? 9 : 12));
+    doc.setFontSize(17);
+    doc.text(r.titulo, (xMeio + xDir) / 2, TOPO + ALT / 2 + 2.2, { align: "center" });
+    doc.setFontSize(9);
+    doc.text(`Código: ${r.codigo}`, xDir + 3, TOPO + 4.9);
+    doc.setFont("helvetica", "normal");
+    doc.text(r.revisao, xDir + 3, TOPO + ALT / 3 + 4.9);
+    doc.text(`Página ${i} de ${total}`, xDir + 3, TOPO + (2 * ALT) / 3 + 4.9);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    doc.text("Resultados", M, TOPO + ALT + 6);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...CINZA);
+    doc.text(r.filtros, M, h - 6);
+    doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")} pelo ERP`, w - M, h - 6, { align: "right" });
+  }
+  return doc.output("blob");
+}

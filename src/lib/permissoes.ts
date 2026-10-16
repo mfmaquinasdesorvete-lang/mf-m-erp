@@ -18,12 +18,12 @@ export const rotuloPapel = (p: string | null | undefined) => PAPEIS.find((x) => 
 export type Tela =
   | "painel" | "pedidos" | "assistencia" | "estoque" | "financeiro" | "notas"
   | "clientes" | "fornecedores" | "configuracoes" | "usuarios" | "garantias" | "relatorios" | "producao" | "email" | "comissoes" | "documentos" | "fluxo" | "margem" | "contador" | "conciliacao" | "auditoria" | "fretes" | "funcionarios"
-  | "expedicao" | "implantacao" | "importar" | "mercadolivre" | "metas";
+  | "expedicao" | "implantacao" | "importar" | "mercadolivre" | "metas" | "testegiga";
 
 /** Nome de cada tela na tabela de permissões (na ordem em que aparecem). */
 export const TELAS_ROTULO: Record<Tela, string> = {
   painel: "Painel inicial", pedidos: "Vendas, orçamentos e PDV", mercadolivre: "Mercado Livre (anúncios, estoque e preço)", fluxo: "Fluxo de pedidos", expedicao: "Separação e embalagem", fretes: "Fretes e envios", comissoes: "Comissões", metas: "Metas de vendas",
-  clientes: "Clientes", fornecedores: "Fornecedores e transportadoras", estoque: "Produtos e estoque", producao: "Produção, compras e cotações",
+  clientes: "Clientes", fornecedores: "Fornecedores e transportadoras", estoque: "Produtos e estoque", producao: "Produção, compras e cotações", testegiga: "Teste do giga (REG-006)",
   funcionarios: "Funcionários (RH)", assistencia: "Assistência técnica", garantias: "Garantias", financeiro: "Financeiro", conciliacao: "Conciliação bancária", margem: "Margem",
   relatorios: "Relatórios", notas: "Notas fiscais", contador: "Contador e fechamento", auditoria: "Auditoria", documentos: "Documentos",
   email: "E-mail", configuracoes: "Configurações", usuarios: "Usuários", implantacao: "Troca do Tiny (implantação)", importar: "Importar dados",
@@ -33,9 +33,10 @@ export const TELAS_ROTULO: Record<Tela, string> = {
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // metas: o vendedor vê só a própria (o banco filtra); administrador e financeiro veem e cadastram todas
   vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
-  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios"],
+  // teste do giga (REG-006): o técnico lança; o financeiro só vê o painel e a lista
+  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "testegiga", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
-  tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "estoque", "clientes"],
+  tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "testegiga", "estoque", "clientes"],
   expedicao: ["expedicao", "fluxo", "documentos"],
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
   // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
@@ -47,7 +48,7 @@ export type Acao =
   | "editar_pedidos" | "editar_os" | "editar_produtos" | "movimentar_estoque" | "editar_fornecedores"
   | "editar_clientes" | "editar_financeiro" | "contas_pagar" | "emitir_nfe" | "nfe_recebidas"
   | "editar_equipamentos" | "editar_producao" | "receber_compras" | "editar_transportadoras" | "cotar_frete"
-  | "emitir_nfse" | "cancelar_nfse" | "configurar_nfse" | "expedir";
+  | "emitir_nfse" | "cancelar_nfse" | "configurar_nfse" | "expedir" | "lancar_teste_giga";
 
 export const ACOES_ROTULO: Record<Acao, string> = {
   editar_pedidos: "Criar e editar pedidos, orçamentos e vendas no PDV", editar_clientes: "Cadastrar e editar clientes",
@@ -56,6 +57,7 @@ export const ACOES_ROTULO: Record<Acao, string> = {
   editar_os: "Abrir e editar ordens de serviço", editar_equipamentos: "Cadastrar equipamentos dos clientes",
   editar_produtos: "Cadastrar e editar produtos e preços", movimentar_estoque: "Movimentar estoque e contagem",
   editar_producao: "Produção, compras de peças e cotações", receber_compras: "Receber compras no estoque",
+  lancar_teste_giga: "Lançar e anular testes do giga (REG-006)",
   editar_fornecedores: "Cadastrar e editar fornecedores", editar_transportadoras: "Cadastrar transportadoras", cotar_frete: "Cotar e aprovar frete",
   editar_financeiro: "Contas a receber, baixas e cobranças", contas_pagar: "Contas a pagar e pagamentos", nfe_recebidas: "NF-e de fornecedores (entrada)",
 };
@@ -67,7 +69,7 @@ const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
     "editar_financeiro", "contas_pagar", "emitir_nfe", "nfe_recebidas", "editar_producao", "receber_compras", "editar_transportadoras",
     "emitir_nfse", "cancelar_nfse", "configurar_nfse", "expedir",
   ],
-  tecnico: ["editar_os", "editar_clientes", "editar_equipamentos", "editar_producao"],
+  tecnico: ["editar_os", "editar_clientes", "editar_equipamentos", "editar_producao", "lancar_teste_giga"],
   contador: [],
   expedicao: ["expedir"],
   // o banco segura preço, custo, estoque, fornecedor, tipo e ativar/desativar (perfil_marketplace)

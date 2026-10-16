@@ -21,6 +21,9 @@ import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 import { DetalheProposta, SeloEmpresa, SeloSituacao } from "@/components/vendas/PropostasTiny";
 import type { PropostaTiny } from "@/lib/propostasTiny";
 import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
+import { SeloTesteGiga } from "@/components/testeGiga/SeloGiga";
+import { useSituacaoGiga } from "@/lib/testeGigaDados";
+import { normalizarNs } from "@/lib/testeGiga";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
@@ -403,6 +406,8 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
 function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[] }) {
   const dia = hoje();
   const garantia = pecasEmGarantia(oss);
+  // teste do giga (REG-006) das máquinas fabricadas pela MF, pelo nº de série
+  const { data: giga } = useSituacaoGiga(equipamentos.filter((e) => !e.origem).map((e) => e.numero_serie));
   const nome = cliente.nome_fantasia?.trim() || cliente.nome;
   const fone = cliente.whatsapp || cliente.telefone;
   async function copiar(token: string) {
@@ -436,6 +441,7 @@ function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente;
             {equipamentos.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
+                {giga && e.numero_serie && !e.origem && <SeloTesteGiga s={giga.get(normalizarNs(e.numero_serie))} />}
                 <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
                 {e.usada && <span className="font-semibold text-emerald-700">usada</span>}
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}

@@ -1,10 +1,11 @@
 // Painel das máquinas: quantas vendemos e de quais modelos, quanto há pronto e em montagem de cada modelo (e para
 // quantos meses dá no ritmo de venda), onde estão as máquinas vendidas, garantias e preventivas, e quais modelos mais
-// voltam para a assistência. Tocar num modelo (ranking ou tabela) filtra o painel inteiro.
+// voltam para a assistência. Tocar num modelo (ranking ou tabela) filtra o painel inteiro. Máquinas reprovadas no teste do
+// giga (REG-006) esperando reteste entram em "Precisa de atenção".
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlarmClock, BadgeDollarSign, CalendarClock, Factory, Hash, MapPin, PackageX, ShieldAlert, ShieldCheck, ShoppingCart, TrendingDown,
+  AlarmClock, BadgeDollarSign, CalendarClock, Factory, Hash, MapPin, PackageX, PlugZap, ShieldAlert, ShieldCheck, ShoppingCart, TrendingDown,
   Warehouse, Wrench,
 } from "lucide-react";
 import { Section } from "@/components/ui";
@@ -20,6 +21,9 @@ import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { vendasDaEmpresa } from "@/lib/gerencial";
 import { diasDeEstoque, linhasVendidas, margemPct, SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 import type { Cliente, Equipamento, OrdemProducao, OrdemServico, Produto } from "@/lib/types";
+import { useVisivel } from "@/lib/menu";
+import { aguardandoReteste } from "@/lib/testeGiga";
+import { useTestesGiga } from "@/lib/testeGigaDados";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const un = (v: number) => `${v.toLocaleString("pt-BR")} máq.`;
@@ -52,6 +56,10 @@ export default function PainelMaquinas() {
   const { data: osTodas = [] } = useRows<OrdemServico>("ordens_servico", { select: "*, cliente:clientes(*), itens:os_itens(*)" });
   const [periodo, setPeriodo] = usePeriodo("maquinas");
   const [fModelo, setFModelo] = useState<string | null>(null);
+  // teste do giga: só para quem vê a tela (técnico, financeiro e administrador)
+  const verGiga = useVisivel().ve("testegiga", "/teste-giga");
+  const { data: giga } = useTestesGiga(verGiga);
+  const gigaReteste = useMemo(() => aguardandoReteste((giga?.linhas ?? []).filter((t) => !fModelo || t.produto_id === fModelo)), [giga, fModelo]);
   const per = PERIODOS.find((p) => p.id === periodo)!;
   const dia = hoje();
 
@@ -174,6 +182,7 @@ export default function PainelMaquinas() {
   const atencao: ItemAtencao[] = [
     semMaquina.length > 0 && { icone: PackageX, cor: "var(--kpi-rosa)", texto: `${semMaquina.length} ${pl(semMaquina.length, "modelo", "modelos")} vendendo e sem máquina pronta nem em montagem`, sub: semMaquina.slice(0, 3).map((m) => m.nome).join(" · "), to: "/producao" },
     produzir.length > 0 && { icone: Factory, cor: "var(--kpi-laranja)", texto: `${produzir.length} ${pl(produzir.length, "modelo", "modelos")} dão para menos de 30 dias de venda`, sub: produzir.slice(0, 3).map((m) => `${m.nome} (${m.diasDa ?? 0} dias)`).join(" · "), to: "/producao" },
+    gigaReteste.length > 0 && { icone: PlugZap, cor: "var(--kpi-rosa)", texto: `${gigaReteste.length} ${pl(gigaReteste.length, "máquina reprovada", "máquinas reprovadas")} no teste do giga, esperando reteste`, sub: gigaReteste.slice(0, 4).map((s) => s.ns).join(" · "), to: "/teste-giga" },
     k.atrasadasOP.length > 0 && { icone: AlarmClock, cor: "var(--kpi-rosa)", texto: `${k.atrasadasOP.length} ${pl(k.atrasadasOP.length, "OP", "OPs")} de máquina passaram da data prevista`, to: "/producao" },
     k.venceLogo.length > 0 && { icone: ShieldAlert, cor: "var(--kpi-laranja)", texto: `${k.venceLogo.length} ${pl(k.venceLogo.length, "garantia", "garantias")} vencem nos próximos 30 dias`, sub: "boa hora para oferecer preventiva ou contrato", to: "/garantias" },
     k.prevAtrasada.length > 0 && { icone: CalendarClock, cor: "var(--kpi-rosa)", texto: `${k.prevAtrasada.length} ${pl(k.prevAtrasada.length, "preventiva", "preventivas")} ${pl(k.prevAtrasada.length, "atrasada", "atrasadas")}`, sub: k.prevAtrasada.slice(0, 3).map((e) => e.cliente?.nome_fantasia || e.cliente?.nome || e.descricao).join(" · "), to: "/garantias" },
@@ -269,9 +278,10 @@ export default function PainelMaquinas() {
 
       <div className="space-y-3">
         <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
-        <AtalhosArea itens={[
+        <AtalhosArea colunas="grid-cols-3 sm:grid-cols-7" itens={[
           { rotulo: "Cadastro das máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
           { rotulo: "Ordens de produção", icone: Warehouse, to: "/producao", aviso: semMaquina.length + produzir.length, tela: "producao" },
+          { rotulo: "Teste do giga", icone: PlugZap, to: "/teste-giga", aviso: gigaReteste.length, tela: "testegiga" },
           { rotulo: "Garantias", icone: ShieldCheck, to: "/garantias", aviso: k.prevAtrasada.length, tela: "garantias" },
           { rotulo: "Assistência", icone: Wrench, to: "/assistencia", tela: "assistencia" },
           { rotulo: "Vendas", icone: ShoppingCart, to: "/pedidos", tela: "pedidos" },

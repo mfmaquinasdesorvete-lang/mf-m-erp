@@ -3,7 +3,7 @@
 
 export type ChaveTexto =
   | "pedido_condicoes" | "op_observacoes" | "oc_observacoes" | "oc_cotacao" | "oc_condicoes"
-  | "os_condicoes_entrada" | "ficha_termo" | "usada_termo";
+  | "os_condicoes_entrada" | "ficha_termo" | "usada_termo" | "reg006_revisao";
 
 export const TEXTOS_PADRAO: Record<ChaveTexto, string> = {
   pedido_condicoes: "",
@@ -20,6 +20,8 @@ export const TEXTOS_PADRAO: Record<ChaveTexto, string> = {
   usada_termo: "Máquina usada (seminova): revisada e testada antes da entrega e vendida no estado em que se encontra, com as marcas normais de uso. "
     + "Garantia de 90 dias contados da entrega para defeitos de funcionamento (art. 26 do Código de Defesa do Consumidor). "
     + "Não cobre peças de desgaste (vedações, bicos, correias), mau uso, falta de limpeza ou instalação elétrica fora do padrão.",
+  // revisão do formulário de qualidade REG-006 (Teste do giga): sai no cabeçalho do PDF
+  reg006_revisao: "Revisão 00",
 };
 
 /** Texto salvo na configuração ou o padrão, com {dias} e {empresa} trocados. */
