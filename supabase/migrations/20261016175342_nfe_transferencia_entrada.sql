@@ -171,3 +171,21 @@ revoke execute on function public.transferencia_da_chave(text) from public, anon
 grant execute on function public.transferencia_da_chave(text) to authenticated, service_role;
 revoke execute on function public.cfop_entrada_transferencia(text, boolean, text) from public, anon;
 grant execute on function public.cfop_entrada_transferencia(text, boolean, text) to authenticated, service_role;
+
+-- Trava: NF-e de transferência do ERP não entra no estoque pela tela de notas recebidas (nem pela entrada
+-- automática); só pela tela Transferências (receber_transferencia_nfe, que liga a nota à transferência).
+create or replace function public.trg_nfe_recebida_transferencia()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.estoque_lancado and not coalesce(old.estoque_lancado, false) and new.transferencia_id is null
+     and exists (select 1 from public.notas_fiscais n
+                  where n.chave = regexp_replace(coalesce(new.chave, ''), '\D', '', 'g') and n.transferencia_id is not null) then
+    raise exception 'NF-e de transferência entre as unidades da MF: dê a entrada em Estoque → Transferências (o estoque entra uma vez só)';
+  end if;
+  return new;
+end $$;
+
+do $$ begin
+  create trigger trg_nfe_recebida_transferencia before update of estoque_lancado on public.nfe_recebidas
+    for each row execute function public.trg_nfe_recebida_transferencia();
+exception when duplicate_object then null; end $$;

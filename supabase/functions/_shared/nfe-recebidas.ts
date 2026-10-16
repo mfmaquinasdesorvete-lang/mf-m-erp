@@ -179,6 +179,11 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
     if (cfg.recebidas_processar_desde && nfe.data_emissao && String(nfe.data_emissao).slice(0, 10) < cfg.recebidas_processar_desde) {
       return await marcar("ignorada", "Histórico: já lançada no sistema anterior.");
     }
+    // NF-e de transferência entre as unidades da MF: a entrada é dada pela tela Transferências (estoque uma vez só)
+    const { data: transf } = await db.rpc("transferencia_da_chave", { p_chave: nfe.chave });
+    if (transf) {
+      return await marcar("revisao", "NF-e de transferência entre as unidades da MF: dê a entrada em Estoque → Transferências (o estoque entra uma vez só).");
+    }
 
     // A ciência libera o XML. Se já foi dada por fora (ex.: painel da Focus), a SEFAZ recusa a repetição: segue assim mesmo.
     if (!nfe.manifestacao && nfe.origem !== "xml") await manifestar(db, nfe.chave, "ciencia").catch(() => null);
