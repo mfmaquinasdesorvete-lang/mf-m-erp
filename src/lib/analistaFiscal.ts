@@ -5,6 +5,7 @@
 // Tudo é estimativa gerencial para conversar com o contador: a apuração oficial (SPED, LALUR) é dele.
 
 import { comDestaque } from "./destaque";
+import { cbenefObrigatorio } from "../../supabase/functions/_shared/nfe-conferencia";
 import { pl } from "@/lib/format";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -30,6 +31,7 @@ export type ContaPagarF = {
 export type UnidadeF = {
   id: string; nome: string; codigo?: string; uf?: string | null; regime_tributario?: number | null; fabrica?: boolean;
   icms_aliquota_interna?: number | null; pis_cofins_exclui_icms?: boolean | null; transf_icms_cst?: string | null;
+  transf_cbenef?: string | null;
 };
 export type ProdutoF = { id: string; descricao: string; tipo?: string | null; ncm?: string | null; ipi_aliquota?: number | null; ativo?: boolean | null; vendavel?: boolean | null; kit?: boolean | null };
 export type PedidoF = { id: string; numero?: number | null; status: string; created_at: string; valor_total?: number | null; unidade_id?: string | null };
@@ -300,13 +302,22 @@ export function analisar(ctx: ContextoFiscal) {
     acao: "Conferir o regime com o contador e corrigir em Configurações → Unidades.", quem: "Você e o contador", link: "/configuracoes/unidades",
   });
 
-  const transfComIcms = ctx.unidades.filter((u) => u.transf_icms_cst && u.transf_icms_cst !== "41");
-  if (transfComIcms.length) add({
-    id: "transf", nivel: "alerta", titulo: "Transferência entre SC e SP com ICMS",
-    detalhe: "Desde 2024 a transferência entre estabelecimentos da mesma empresa não tem ICMS (STF ADC 49, LC 204/2023). Destacar só faz sentido se o contador quiser levar o crédito para a outra unidade.",
-    acao: "Confirmar com o contador e ajustar o CST da transferência em Configurações da NF-e.", quem: "Você e o contador", link: "/notas", estado: { aba: "config" },
+  // SC rejeita a nota sem o código de benefício (cBenef) quando o ICMS sai sem destaque (CST 40, 41, 50…)
+  const transfSemCbenef = ctx.unidades.filter((u) => cbenefObrigatorio(u.uf, u.transf_icms_cst) && !(u.transf_cbenef ?? "").trim());
+  if (transfSemCbenef.length) add({
+    id: "transf_cbenef", nivel: "problema", titulo: "Transferência SC → SP será rejeitada sem o cBenef",
+    detalhe: `${transfSemCbenef.map((u) => u.nome).join(", ")}: transferência com CST ${transfSemCbenef.map((u) => u.transf_icms_cst).join("/")} sem o código de benefício fiscal. A SEFAZ recusa a nota (rejeição "CST com benefício fiscal e não informado o código").`,
+    acao: "Pedir ao contador o cBenef da transferência (ou a opção de destacar o ICMS, CST 00) e informar em Configurações da NF-e → Transferência.",
+    quem: "Você e o contador", link: "/notas", estado: { aba: "config" },
   });
-  else if (ctx.unidades.length > 1) add({ id: "transf", nivel: "ok", titulo: "Transferências SC ↔ SP sem ICMS", detalhe: "Configuradas como não tributadas (CST 41), conforme a ADC 49 do STF." });
+
+  const transfComIcms = ctx.unidades.filter((u) => u.transf_icms_cst === "00");
+  if (transfComIcms.length) add({
+    id: "transf", nivel: "alerta", titulo: "Transferência entre SC e SP com ICMS destacado",
+    detalhe: `${transfComIcms.map((u) => u.nome).join(", ")}: a transferência sai com ICMS (CST 00), que vira débito na origem e crédito no destino. É uma opção da empresa (LC 87/1996, art. 12, § 5º, com a LC 204/2023; Convênio ICMS 178/2023); a outra é sair sem ICMS (STF, ADC 49).`,
+    acao: "Confirmar com o contador que é a opção da empresa (Configurações da NF-e → Transferência).", quem: "Você e o contador", link: "/notas", estado: { aba: "config" },
+  });
+  else if (ctx.unidades.length > 1 && !transfSemCbenef.length) add({ id: "transf", nivel: "ok", titulo: "Transferências SC ↔ SP sem ICMS", detalhe: "Configuradas sem destaque do ICMS (STF, ADC 49), com o código de benefício quando a UF exige." });
 
   const pendentes = ctx.saidas.filter((n) => ["erro", "denegada", "contingencia"].includes(n.status) && n.ambiente !== "homologacao" && !n.excluida_em);
   if (pendentes.length) add({

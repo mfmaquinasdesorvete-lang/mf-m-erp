@@ -6,7 +6,7 @@ import { Card, Section } from "./ui";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, pl } from "@/lib/format";
-import { buracosNumeracao, conferirCliente, conferirProduto, conferirUnidade, REFORMA, TESTE_2026, type Pendencia } from "@/lib/compliance";
+import { buracosNumeracao, conferirCliente, conferirProduto, conferirTransferenciaUnidade, conferirUnidade, REFORMA, TESTE_2026, type Pendencia } from "@/lib/compliance";
 import type { Cliente, Produto } from "@/lib/types";
 
 type Nota = { id: string; status: string; numero: string | null; serie: string | null; unidade_id: string | null; valor_total: number; created_at: string; mensagem: string | null; payload?: { items?: Record<string, number>[] } | null };
@@ -40,6 +40,7 @@ export function ComplianceFiscal() {
         texto: `${n.emitente_nome} · ${brl(n.valor_total)} · emitida há ${dias} dias sem manifestação conclusiva (prazo: 180 dias)` }));
     return [
       { titulo: "Unidades (CNPJ emitente)", itens: unidades.flatMap(conferirUnidade), ok: "CNPJ, IE e endereço das unidades conferem" },
+      ...(unidades.length > 1 ? [{ titulo: "NF-e de transferência SC ↔ SP", itens: unidades.flatMap(conferirTransferenciaUnidade), ok: "Configuração da transferência sem rejeição prevista" }] : []),
       { titulo: "Produtos", itens: ativos.flatMap((p) => conferirProduto(p, fabrica)), ok: "Todos os produtos à venda têm NCM válido" },
       { titulo: "Clientes com movimento", itens: clientes.filter((c) => comMovimento.has(c.id)).flatMap(conferirCliente), ok: "Cadastros dos clientes prontos para NF-e" },
       { titulo: "NF-e emitidas", ok: "Nenhuma nota com erro ou na fila",

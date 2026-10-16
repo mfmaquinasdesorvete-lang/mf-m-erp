@@ -8,6 +8,8 @@ o que fazer e quem faz. Itens marcados com (ERP) já são conferidos pela tela A
 - [ ] Regime Lucro Real (CRT 3) nas duas unidades (ERP).
 - [ ] "Excluir o ICMS da base do PIS/COFINS" ligado (Tema 69) (ERP).
 - [ ] CST de transferência SC ↔ SP sem ICMS (41), salvo opção do contador pela LC 204/2023 (ERP).
+- [ ] Em SC, transferência sem destaque (CST 40/41/50) com o código de benefício (cBenef) da transferência: sem ele a SEFAZ rejeita (ERP).
+- [ ] Transferência recebida com a NF-e (Transferências → dar entrada): nota no livro de entradas do destino com CFOP 1152/2152 (revenda) e o crédito do ICMS se houve destaque.
 - [ ] Alíquotas internas de ICMS (SC 17%, SP 18%) e tabela de DIFAL/FCP de todas as UFs preenchida.
 
 ## Produtos

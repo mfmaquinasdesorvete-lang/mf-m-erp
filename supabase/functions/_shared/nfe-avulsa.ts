@@ -4,9 +4,9 @@
 // A nota guarda os itens (produto, quantidade, valor) para depois lançar a conta a receber e baixar o estoque.
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
-import { configIbsCbs, emitir, exigirEmitente, itemBase, observacoes, ratear, regrasDa } from "./nfe-emissao.ts";
+import { configIbsCbs, emitir, exigirCbenef, exigirEmitente, itemBase, observacoes, ratear, regrasDa } from "./nfe-emissao.ts";
 import { chaveValida, operacaoNota } from "./nfe-operacoes.ts";
-import { itensEntrada } from "./nfe-entrada.ts";
+import { itensEntrada, pendenciasEntrada } from "./nfe-entrada.ts";
 
 export type NotaAvulsa = {
   unidade_id: string; cliente_id: string; operacao: string; natureza?: string | null;
@@ -32,6 +32,10 @@ export function validarAvulsa(n: Partial<NotaAvulsa>) {
   if (Number(n.desconto ?? 0) < 0 || Number(n.frete ?? 0) < 0) throw new HttpError(400, "desconto e frete não podem ser negativos");
   if (String(n.chave_referenciada ?? "").trim() && !chaveValida(n.chave_referenciada)) {
     throw new HttpError(400, "chave da NF referenciada inválida: confira os 44 números (ou deixe em branco)");
+  }
+  const op = operacaoNota(String(n.operacao))!;
+  if (op.exige_referencia && !chaveValida(n.chave_referenciada)) {
+    throw new HttpError(400, `${op.rotulo}: informe a chave da NF de remessa (a nota de ida). O retorno precisa citar a nota de saída.`);
   }
 }
 
@@ -87,6 +91,13 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
     })
     : itensVenda(uOp, { uf: c.uf.toUpperCase(), contribuinte }, bases, ufs, { regras, unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg), operacao: op.financeiro ? "venda" : "remessa" });
   const chaveRef = chaveValida(n.chave_referenciada);
+  // conferência antes de enviar: cBenef que a UF exige (SC: CST 40, 41, 50…) para aqui, sem gastar número
+  if (op.entrada) {
+    const erros = pendenciasEntrada(op, { ufEmitente: u.uf, itens: items as Record<string, unknown>[], chaveReferenciada: chaveRef }).filter((p) => p.nivel === "erro");
+    if (erros.length) throw new HttpError(400, erros.map((p) => p.texto).join(" "));
+  } else {
+    exigirCbenef(u.uf, items as Record<string, unknown>[], "Ponha o código na regra de tributação do CFOP desta operação (Notas fiscais → Regras de tributação), conforme o contador.");
+  }
 
   const totalProdutos = r2(brutos.reduce((a, b) => a + b, 0));
   const ipi = r2((items as any[]).reduce((s, i) => s + Number(i.ipi_valor ?? 0), 0));
@@ -101,6 +112,7 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
     tipo_documento: op.entrada ? 0 : 1,
     finalidade_emissao: 1,
     local_destino: interestadual ? 2 : 1,
+    // remetente sem IE (pessoa física) fica com indFinal 1 também na entrada: com 0 a SEFAZ pode recusar (rejeição 696)
     consumidor_final: contribuinte ? 0 : 1,
     presenca_comprador: op.entrada ? 9 : cfg.presenca_comprador,
     ...(chaveRef ? { notas_referenciadas: [{ chave_nfe: chaveRef }] } : {}),

@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade } from "@/lib/unidade";
 import { CLASS_TRIB, CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, descricaoCodigo, type Codigo } from "@/lib/codigosFiscais";
+import { cbenefObrigatorio } from "../../supabase/functions/_shared/nfe-conferencia";
+import { OPCOES_ICMS_TRANSFERENCIA } from "../../supabase/functions/_shared/nfe-transferencia";
 
 type Aba = "geral" | "icms" | "ipi" | "pis" | "ibs" | "transf";
 
@@ -19,7 +21,10 @@ const CAMPOS_UNIDADE = [
   "pis_cst", "pis_aliquota", "cofins_cst", "cofins_aliquota", "pis_cofins_exclui_icms",
   "ibs_cbs_cst", "ibs_cbs_class_trib",
   "transf_icms_cst", "transf_pis_cofins_cst", "transf_destacar_ipi", "transf_ibs_cbs_cst", "transf_ibs_cbs_class_trib",
+  "transf_cbenef", "transf_ipi_base",
 ] as const;
+/** Colunas novas (migração da transferência): só vão no salvar se o banco já tem a coluna. */
+const CAMPOS_NOVOS = ["transf_cbenef", "transf_ipi_base"];
 const NUMEROS_UNIDADE = ["serie_nfe", "icms_aliquota_interna", "icms_reducao_base", "pis_aliquota", "cofins_aliquota"];
 const CAMPOS_CONFIG = ["ibs_cbs_ativo", "cbs_aliquota", "ibs_uf_aliquota", "ibs_mun_aliquota"] as const;
 const NUMEROS_CONFIG = ["cbs_aliquota", "ibs_uf_aliquota", "ibs_mun_aliquota"];
@@ -84,6 +89,10 @@ export function ConfigNfe({ podeEditar, irParaRegras }: { podeEditar: boolean; i
       const row: Record<string, any> = { ...u };
       for (const k of NUMEROS_UNIDADE) row[k] = num(row[k]);
       row.informacoes_complementares = String(row.informacoes_complementares ?? "").trim() || null;
+      row.transf_cbenef = String(row.transf_cbenef ?? "").trim().toUpperCase() || null;
+      row.transf_ipi_base = row.transf_ipi_base || "custo";
+      if (row.transf_cbenef && !/^[A-Z0-9]{8,10}$/.test(row.transf_cbenef)) throw new Error("Código de benefício (cBenef) da transferência: 8 a 10 letras e números, sem espaços (ex.: o que o contador passar).");
+      for (const k of CAMPOS_NOVOS) if (!(k in unidade)) delete row[k];
       const { error } = await supabase.from("unidades").update(row).eq("id", unidade.id);
       if (error) throw error;
       const cfg: Record<string, any> = { ...c, ibs_cbs_ativo: !!c.ibs_cbs_ativo };
@@ -204,17 +213,85 @@ export function ConfigNfe({ podeEditar, irParaRegras }: { podeEditar: boolean; i
         )}
 
         {aba === "transf" && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <p className="text-sm text-slate-600 sm:col-span-4">
-              NF-e quando esta unidade <b>envia</b> mercadoria para a outra (CFOP 5151/6151 para o que fabrica, 5152/6152 para o resto, valor pelo custo).
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              NF-e quando esta unidade <b>envia</b> mercadoria para a outra. O valor é o custo (LC 87/1996, art. 13, § 4º: no que foi comprado, a
+              entrada mais recente; no que foi fabricado, matéria-prima, material secundário, mão de obra e embalagem).
+              As opções abaixo são escolhas da empresa: <b>confirme com o contador</b> antes de mudar.
             </p>
-            {codigo("transf_icms_cst", "ICMS: situação tributária (CST)", CST_ICMS, "sm:col-span-2")}
-            {codigo("transf_pis_cofins_cst", "PIS/COFINS: situação tributária (CST)", CST_PIS_COFINS, "sm:col-span-2")}
-            {codigo("transf_ibs_cbs_cst", "IBS/CBS: situação tributária (CST)", CST_IBS_CBS, "sm:col-span-2")}
-            {classTrib("transf_ibs_cbs_class_trib", "IBS/CBS: classificação (cClassTrib)")}
-            <div />
-            <div className="sm:col-span-4">{chk("transf_destacar_ipi", "Destacar IPI ao transferir máquina fabricada aqui")}</div>
-            <p className="text-xs text-slate-500 sm:col-span-4">Transferência entre estabelecimentos do mesmo CNPJ base não tem IBS/CBS (LC 214/2025, art. 6º, II): sai só o código 410 / 410002.</p>
+
+            <fieldset className="rounded-xl border border-slate-200 p-3">
+              <legend className="px-1 text-sm font-semibold">ICMS</legend>
+              <div className="space-y-2">
+                {[...OPCOES_ICMS_TRANSFERENCIA, ...(u.transf_icms_cst && !OPCOES_ICMS_TRANSFERENCIA.some((o) => o.cst === u.transf_icms_cst)
+                  ? [{ cst: String(u.transf_icms_cst), rotulo: `${u.transf_icms_cst} · ${descricaoCodigo(CST_ICMS, u.transf_icms_cst) || "CST gravado"}`, ajuda: "CST fora das opções da transferência: confira com o contador." }] : [])].map((o) => (
+                  <label key={o.cst} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2 ${u.transf_icms_cst === o.cst ? "border-brand bg-surface" : "border-slate-200"}`}>
+                    <input type="radio" className="mt-1 h-4 w-4 shrink-0" name="transf_icms_cst" checked={u.transf_icms_cst === o.cst} disabled={bloqueado}
+                      onChange={() => setU({ ...u, transf_icms_cst: o.cst })} />
+                    <span><span className="text-sm font-semibold">{o.rotulo}</span><span className="block text-xs text-slate-600">{o.ajuda}</span></span>
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <Field label="Código de benefício fiscal da transferência (cBenef)" className="sm:col-span-2">
+                  <input className="input uppercase" maxLength={10} value={u.transf_cbenef ?? ""} onChange={set("transf_cbenef")}
+                    placeholder="Peça o código ao contador" disabled={bloqueado || u.transf_icms_cst === "00"} />
+                </Field>
+                <p className="self-end pb-2 text-xs text-slate-500 sm:col-span-2">
+                  Vai na nota quando o ICMS sai sem destaque (CST 40, 41, 50). Com CST 00 não vai. Uma regra de tributação de transferência com cBenef vale por cima deste.
+                </p>
+              </div>
+              {cbenefObrigatorio(unidade.uf, u.transf_icms_cst) && !String(u.transf_cbenef ?? "").trim() && (
+                <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Com o CST {u.transf_icms_cst}, a SEFAZ de {unidade.uf} recusa a nota sem o cBenef. Informe o código que o contador indicar ou escolha destacar o ICMS (CST 00).
+                  Enquanto isso, o ERP não envia a nota de transferência (para não perder o número).
+                </p>
+              )}
+            </fieldset>
+
+            <fieldset className="rounded-xl border border-slate-200 p-3">
+              <legend className="px-1 text-sm font-semibold">IPI (só no que esta unidade fabrica)</legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <div className="sm:col-span-4">{chk("transf_destacar_ipi", "Destacar o IPI ao transferir máquina ou peça fabricada aqui")}</div>
+                <Field label="Base do IPI na transferência" className="sm:col-span-2">
+                  <select className="input" value={u.transf_ipi_base || "custo"} onChange={set("transf_ipi_base")} disabled={bloqueado || !u.transf_destacar_ipi}>
+                    <option value="custo">Custo (o valor da nota)</option>
+                    <option value="preco_venda">Preço de venda do cadastro</option>
+                  </select>
+                </Field>
+                <p className="text-xs text-slate-600 sm:col-span-4">
+                  A filial que revende o que a matriz fabrica é equiparada a industrial (RIPI, Decreto 7.212/2010, art. 9º, III), salvo se só vende no varejo:
+                  aí o IPI destacado na transferência vira crédito na filial, que destaca de novo na venda. Na transferência, o IPI tem valor mínimo: o preço de
+                  atacado da praça (RIPI, art. 195, I); o custo pode ficar abaixo. Sem destacar, a nota sai sem o IPI: só com o fundamento que o contador indicar
+                  (ex.: suspensão, por uma regra de tributação com o CST e o enquadramento). <b>Confirme com o contador.</b>
+                </p>
+              </div>
+            </fieldset>
+
+            <fieldset className="rounded-xl border border-slate-200 p-3">
+              <legend className="px-1 text-sm font-semibold">PIS/COFINS e IBS/CBS</legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                {codigo("transf_pis_cofins_cst", "PIS/COFINS: situação tributária (CST)", CST_PIS_COFINS, "sm:col-span-2")}
+                <p className="self-end pb-2 text-xs text-slate-500 sm:col-span-2">
+                  Transferência não é receita nem compra: sem PIS/COFINS na saída e sem crédito na entrada (Leis 10.637/2002 e 10.833/2003). Padrão: 08 (sem incidência).
+                </p>
+                {codigo("transf_ibs_cbs_cst", "IBS/CBS: situação tributária (CST)", CST_IBS_CBS, "sm:col-span-2")}
+                {classTrib("transf_ibs_cbs_class_trib", "IBS/CBS: classificação (cClassTrib)")}
+                <div />
+                <p className="text-xs text-slate-500 sm:col-span-4">Transferência entre estabelecimentos do mesmo CNPJ base não tem IBS/CBS (LC 214/2025, art. 6º, II): sai só o código 410 / 410002.</p>
+              </div>
+            </fieldset>
+
+            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="mb-1 font-semibold text-slate-700">CFOP (sai sozinho)</p>
+              <ul className="list-disc space-y-0.5 pl-4">
+                <li><b>5151/6151</b>: produção desta unidade (máquina, ou item marcado na ficha técnica como fabricado aqui ou com etapa em terceiro). Só em unidade que fabrica.</li>
+                <li><b>5152/6152</b>: o que foi comprado pronto (peças, acessórios, máquina usada comprada).</li>
+                <li><b>5155/6155 e 5156/6156</b>: quando a mercadoria vai direto do fornecedor ou da fábrica para a outra unidade, sem passar por aqui. Use uma regra de tributação com o CFOP de saída.</li>
+                <li><b>5552/6552</b> (bem do ativo) e <b>5557/6557</b> (material de uso e consumo): também por regra de tributação.</li>
+                <li>Na unidade que recebe, a entrada é pelo uso: <b>1152/2152</b> para revender (a filial) e <b>1151/2151</b> para industrializar (insumo na fábrica).</li>
+              </ul>
+            </div>
           </div>
         )}
       </Card>

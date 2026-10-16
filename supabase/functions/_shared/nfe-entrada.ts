@@ -1,5 +1,5 @@
 // Itens da NF-e de entrada emitida pela MF (tipo 0): máquina usada comprada de pessoa física, entrada para conserto
-// ou garantia, retorno de comodato ou de demonstração e outras entradas. A MF emite porque quem manda não emite nota
+// ou garantia, retorno de conserto, de comodato ou de demonstração e outras entradas. A MF emite porque quem manda não emite nota
 // (pessoa física, MEI ou empresa sem inscrição estadual).
 //
 // Sem regra de tributação para o CFOP, vão os CST padrão da operação, sem valores (sem destaque de ICMS e sem crédito
@@ -10,7 +10,8 @@
 import {
   aliquotaInterestadual, camposProduto, type ConfigIbsCbs, grupoIbsCbs, IPI_NAO_TRIBUTADO, type ItemBase, type RegraTributaria, regraAplicavel,
 } from "./nfe-impostos.ts";
-import { cfopDaOperacao, type OperacaoNota } from "./nfe-operacoes.ts";
+import { cfopDaOperacao, chaveValida, type OperacaoNota } from "./nfe-operacoes.ts";
+import { type Pendencia, pendenciaCbenef } from "./nfe-conferencia.ts";
 
 export type OpcoesEntrada = {
   /** UF da MF (quem emite e recebe) e da outra parte (quem manda). */
@@ -95,4 +96,30 @@ export function itensEntrada(op: OperacaoNota, itens: ItemBase[], o: OpcoesEntra
 
     return { ...camposProduto({ ...i, cfop }, idx + 1, cfop), ...icms, ...ipi, ...pis, ...cofins, ...ibsCbs };
   });
+}
+
+/**
+ * Conferência da nota de entrada antes de emitir (a tela mostra; o servidor bloqueia os erros):
+ * cBenef que a UF de quem emite exige (SC: CST 40, 41, 50…) e a NF de remessa nos retornos.
+ */
+export function pendenciasEntrada(op: OperacaoNota, a: { ufEmitente: string; itens: Record<string, unknown>[]; chaveReferenciada?: string | null }): Pendencia[] {
+  const r: Pendencia[] = [];
+  const cfops = [...new Set(a.itens.map((i) => String(i.cfop ?? "")).filter(Boolean))].join(", ") || op.cfop;
+  const cb = pendenciaCbenef(a.ufEmitente, a.itens,
+    `Crie a regra de tributação (Notas fiscais → Regras de tributação) com Operação "Qualquer", o CFOP ${cfops} e o código de benefício que o contador indicar (ou o CST que ele mandar usar).`);
+  if (cb) r.push(cb);
+  if (op.exige_referencia && !chaveValida(a.chaveReferenciada)) {
+    r.push({ nivel: "erro", texto: `${op.rotulo}: informe a chave da NF de remessa (a nota de ida). O retorno precisa citar a nota de saída para fechar a operação.` });
+  }
+  return r;
+}
+
+/**
+ * CST de PIS/COFINS na devolução. Venda devolvida que pagou PIS/COFINS dá crédito no Lucro Real (Leis 10.637/2002
+ * e 10.833/2003, art. 3º, VIII): CST 50. Sem PIS/COFINS na venda: 98 (outras entradas). Devolução de compra (saída)
+ * estorna o crédito tomado: 49 (outras saídas), com os valores da compra.
+ */
+export function cstPisCofinsDevolucao(tipo: "venda" | "compra", valorOriginal: number) {
+  if (tipo === "compra") return "49";
+  return Number(valorOriginal) > 0 ? "50" : "98";
 }

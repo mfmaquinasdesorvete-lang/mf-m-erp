@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cfopDaOperacao, chaveValida, operacaoNota, OPERACOES_NOTA } from "../../../supabase/functions/_shared/nfe-operacoes";
-import { itensEntrada as calcular, type OpcoesEntrada } from "../../../supabase/functions/_shared/nfe-entrada";
+import { itensEntrada as calcular, cstPisCofinsDevolucao, type OpcoesEntrada, pendenciasEntrada } from "../../../supabase/functions/_shared/nfe-entrada";
 import type { ItemBase, RegraTributaria } from "../../../supabase/functions/_shared/nfe-impostos";
 import type { OperacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 
@@ -17,8 +17,12 @@ const base = { ufEmitente: "SC", ufRemetente: "SC", contribuinte: false, aliquot
 
 describe("operações de entrada", () => {
   it("separa entradas e saídas e acha a operação", () => {
-    expect(OPERACOES_NOTA.filter((o) => o.entrada).map((o) => o.id)).toEqual(["entrada_conserto", "compra_usado", "retorno_comodato", "retorno_demonstracao", "outras_entradas"]);
+    expect(OPERACOES_NOTA.filter((o) => o.entrada).map((o) => o.id)).toEqual(["entrada_conserto", "entrada_retorno_conserto", "compra_usado", "compra_usado_industrializacao", "retorno_comodato", "retorno_demonstracao", "outras_entradas"]);
     expect(operacaoNota("compra_usado")?.cfop).toBe("1102");
+    expect(operacaoNota("compra_usado_industrializacao")?.cfop).toBe("1101");
+    expect(operacaoNota("entrada_retorno_conserto")?.cfop).toBe("1916");
+    // retornos citam a nota de remessa
+    expect(OPERACOES_NOTA.filter((o) => o.exige_referencia).map((o) => o.cfop)).toEqual(["1916", "1909", "1913"]);
     expect(operacaoNota("venda")?.entrada).toBeFalsy();
   });
 
@@ -82,5 +86,51 @@ describe("itens da nota de entrada", () => {
 
   it("recusa operação de saída", () => {
     expect(() => itensEntrada(operacaoNota("venda")!, [maquina], base)).toThrow();
+  });
+});
+
+describe("Lucro Real: CST de entrada e conferência antes de emitir", () => {
+  it("cada entrada com o CST coerente: crédito só na compra de PJ de bem tributado (por regra); sem crédito nas demais", () => {
+    const esperado: Record<string, [string, string]> = {
+      entrada_conserto: ["1915", "50"], entrada_retorno_conserto: ["1916", "50"], compra_usado: ["1102", "90"], compra_usado_industrializacao: ["1101", "90"],
+      retorno_comodato: ["1909", "41"], retorno_demonstracao: ["1913", "41"], outras_entradas: ["1949", "90"],
+    };
+    for (const [id, [cfop, cst]] of Object.entries(esperado)) {
+      const [i] = itensEntrada(operacaoNota(id)!, [maquina], base);
+      expect([i.cfop, i.icms_situacao_tributaria]).toEqual([cfop, cst]);
+      expect(["70", "98"]).toContain(i.pis_situacao_tributaria);
+      expect(i).not.toHaveProperty("ipi_valor");
+    }
+    // de outro estado: 1→2
+    expect(itensEntrada(operacaoNota("entrada_retorno_conserto")!, [maquina], { ...base, ufRemetente: "PR" })[0].cfop).toBe("2916");
+  });
+
+  it("SC com CST 41/50 sem cBenef: bloqueia e manda criar a regra do CFOP", () => {
+    const op = operacaoNota("retorno_comodato")!;
+    const itens = itensEntrada(op, [maquina], base);
+    const p = pendenciasEntrada(op, { ufEmitente: "SC", itens, chaveReferenciada: CHAVE });
+    expect(p).toHaveLength(1);
+    expect(p[0].nivel).toBe("erro");
+    expect(p[0].texto).toContain("CFOP 1909");
+    // com a regra do CFOP e o código, passa
+    const regras: RegraTributaria[] = [{ nome: "Comodato", prioridade: 1, cfop: "1909", codigo_beneficio: "SC777777" }];
+    expect(pendenciasEntrada(op, { ufEmitente: "SC", itens: itensEntrada(op, [maquina], { ...base, regras }), chaveReferenciada: CHAVE })).toEqual([]);
+    // SP não pede cBenef; compra de usado (CST 90) também não
+    expect(pendenciasEntrada(op, { ufEmitente: "SP", itens, chaveReferenciada: CHAVE })).toEqual([]);
+    const compra = operacaoNota("compra_usado")!;
+    expect(pendenciasEntrada(compra, { ufEmitente: "SC", itens: itensEntrada(compra, [maquina], base) })).toEqual([]);
+  });
+
+  it("retorno sem a chave da remessa: bloqueia", () => {
+    const op = operacaoNota("retorno_demonstracao")!;
+    const p = pendenciasEntrada(op, { ufEmitente: "SP", itens: itensEntrada(op, [maquina], { ...base, ufEmitente: "SP", ufRemetente: "SP" }), chaveReferenciada: null });
+    expect(p.map((x) => x.nivel)).toEqual(["erro"]);
+    expect(p[0].texto).toContain("NF de remessa");
+  });
+
+  it("devolução: venda tributada dá crédito (50); sem PIS/COFINS na venda, 98; compra estorna (49)", () => {
+    expect(cstPisCofinsDevolucao("venda", 16.5)).toBe("50");
+    expect(cstPisCofinsDevolucao("venda", 0)).toBe("98");
+    expect(cstPisCofinsDevolucao("compra", 16.5)).toBe("49");
   });
 });

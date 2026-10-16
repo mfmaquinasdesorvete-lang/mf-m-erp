@@ -2,6 +2,8 @@
 // Regras gerais de validação; não substituem a análise do contador.
 import type { Cliente, Produto } from "./types";
 import type { Unidade } from "./unidade";
+import { cbenefObrigatorio } from "../../supabase/functions/_shared/nfe-conferencia";
+import { CST_TRANSFERENCIA } from "../../supabase/functions/_shared/nfe-transferencia";
 
 export type Pendencia = { nivel: "erro" | "alerta"; texto: string };
 
@@ -61,6 +63,17 @@ export function conferirUnidade(u: Unidade | undefined): Pendencia[] {
   if (!dig(u.inscricao_estadual)) r.push({ nivel: "erro", texto: `${u.nome}: sem inscrição estadual` });
   const falta = [!u.logradouro && "rua", !u.numero && "número", !u.bairro && "bairro", !u.municipio && "cidade", dig(u.cep).length !== 8 && "CEP", !u.uf && "UF"].filter(Boolean);
   if (falta.length) r.push({ nivel: "erro", texto: `${u.nome}: endereço incompleto (${falta.join(", ")})` });
+  return r;
+}
+
+/** Configuração da NF-e de transferência da unidade (o que daria rejeição na SEFAZ). */
+export function conferirTransferenciaUnidade(u: Unidade): Pendencia[] {
+  const r: Pendencia[] = [];
+  const cst = String(u.transf_icms_cst ?? "");
+  if (cbenefObrigatorio(u.uf, cst) && !String(u.transf_cbenef ?? "").trim()) {
+    r.push({ nivel: "erro", texto: `${u.nome}: transferência com ICMS CST ${cst} sem o código de benefício (cBenef). A SEFAZ de ${u.uf} rejeita a nota. Informe o código ou escolha destacar o ICMS em Configurações da NF-e → Transferência (confirme com o contador).` });
+  }
+  if (cst && !CST_TRANSFERENCIA.includes(cst)) r.push({ nivel: "erro", texto: `${u.nome}: CST ${cst} não serve para a NF-e de transferência (use 41, 00 ou 90, conforme o contador).` });
   return r;
 }
 

@@ -18,6 +18,9 @@ import { AVISO_TESTE, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import type { Cliente, Item, Pedido, Produto } from "@/lib/types";
 import { cfopDaOperacao, chaveValida, OPERACOES_NOTA, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
+import { type AliquotasUf, itemDoCadastro, itensVenda, type RegraTributaria, type UnidadeFiscal } from "../../supabase/functions/_shared/nfe-impostos";
+import { itensEntrada, pendenciasEntrada } from "../../supabase/functions/_shared/nfe-entrada";
+import { pendenciaCbenef } from "../../supabase/functions/_shared/nfe-conferencia";
 import { ClienteBusca } from "@/components/ClienteBusca";
 
 const COM_NOTA = ["autorizada", "processando", "contingencia"];
@@ -47,7 +50,8 @@ function useAmbiente() {
   }).data;
 }
 
-function Conferencia({ titulo, pendencias, onVoltar, onEmitir }: { titulo: string; pendencias: Pendencia[]; onVoltar: () => void; onEmitir: () => void }) {
+/** Conferência fiscal antes de emitir: erros (vermelho) impedem; alertas (amarelo) deixam emitir mesmo assim. */
+export function Conferencia({ titulo, pendencias, onVoltar, onEmitir }: { titulo: string; pendencias: Pendencia[]; onVoltar: () => void; onEmitir: () => void }) {
   const erros = pendencias.some((x) => x.nivel === "erro");
   return (
     <Modal open onClose={onVoltar} title={`Conferência fiscal · ${titulo}`}>
@@ -57,7 +61,7 @@ function Conferencia({ titulo, pendencias, onVoltar, onEmitir }: { titulo: strin
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        {erros ? "Corrija os itens em vermelho (no cadastro do cliente, do produto ou da unidade) e tente de novo: a SEFAZ rejeitaria a nota." : "São só alertas. Confira e, se estiver certo, emita assim mesmo."}
+        {erros ? "Corrija os itens em vermelho e tente de novo: a SEFAZ rejeitaria a nota e o número ficaria perdido." : "São só alertas. Confira e, se estiver certo, emita assim mesmo."}
       </p>
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onVoltar}>Voltar</Button>
@@ -74,8 +78,8 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const ambiente = useAmbiente();
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
-  const { data: regras = [] } = useRows<{ cfop: string | null; ativo: boolean }>("regras_tributacao", { order: "prioridade", ascending: true });
+  const { data: ufsIcms = [] } = useRows<{ uf: string; aliquota_interna: number; fcp: number }>("icms_uf", { order: "uf", ascending: true });
+  const { data: regras = [] } = useRows<RegraTributaria>("regras_tributacao", { order: "prioridade", ascending: true });
   const { data: notasCliente = [] } = useRows<{ id: string; numero: string | null; serie: string | null; chave: string | null; created_at: string; valor_total: number; cliente_id: string | null; status: string; tipo_operacao: string | null; destinatario_doc: string | null }>("notas_fiscais", {
     select: "id, numero, serie, chave, created_at, valor_total, cliente_id, status, tipo_operacao, destinatario_doc", order: "created_at", ascending: false,
   });
@@ -98,6 +102,25 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const total = subtotal - Number(desconto.replace(",", ".") || 0) + Number(frete.replace(",", ".") || 0);
   const cfopOp = op.cfop ? cfopDaOperacao(op.cfop, !!(cliente?.uf && unidade?.uf && cliente.uf.toUpperCase() !== unidade.uf.toUpperCase())) : op.cfop;
   const temRegra = !op.cfop || regras.some((r) => r.ativo && r.cfop && r.cfop.replace(/\D/g, "") === cfopOp);
+
+  /** Itens como a função vai montar (CST, cBenef): para a conferência parar o que a SEFAZ rejeitaria. */
+  function previaItens(): Record<string, unknown>[] {
+    if (!unidade?.uf || !cliente?.uf) return [];
+    const doCadastro = itens.map((i) => {
+      const p = produtos.find((x) => x.id === i.produto_id);
+      return itemDoCadastro(p ?? { id: i.produto_id, tipo: "peca" }, i.descricao, Number(i.quantidade), Number(i.valor_unitario), op.cfop ? { cfop: op.cfop } : {});
+    });
+    const daUnidade = regras.filter((r) => r.ativo !== false && (!r.unidade_id || r.unidade_id === unidade.id));
+    const contrib = cliente.tipo_pessoa === "PJ" && Number(cliente.contribuinte_icms) === 1;
+    try {
+      if (op.entrada) {
+        return itensEntrada(op, doCadastro, { ufEmitente: unidade.uf, ufRemetente: cliente.uf, contribuinte: contrib, aliquotaInterna: Number(unidade.icms_aliquota_interna ?? 17), regras: daUnidade, unidade_id: unidade.id });
+      }
+      const ufs: AliquotasUf = Object.fromEntries(ufsIcms.map((x) => [x.uf, x]));
+      const u = (op.financeiro ? unidade : { ...unidade, pis_cst: "49", cofins_cst: "49" }) as unknown as UnidadeFiscal;
+      return itensVenda(u, { uf: cliente.uf.toUpperCase(), contribuinte: contrib }, doCadastro, ufs, { regras: daUnidade, unidade_id: unidade.id, operacao: op.financeiro ? "venda" : "remessa" });
+    } catch { return []; }
+  }
   const entrada = !!op.entrada;
   const chaveDigitos = chaveRef.replace(/\D/g, "");
   const chaveOk = !chaveDigitos || !!chaveValida(chaveDigitos);
@@ -117,6 +140,12 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
       if (!temRegra) lista.push({ nivel: "alerta", texto: entrada
         ? `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): a nota sai com ICMS CST ${op.icms_cst} e PIS/COFINS CST ${op.pis_cofins_cst}, sem valores. Confirme com o contador; se ele pedir outra coisa, cadastre a regra (Operação "Qualquer" e o CFOP ${cfopOp}) em Notas fiscais → Regras de tributação.`
         : `Não há regra de tributação para o CFOP ${cfopOp} (${op.rotulo}): o ICMS e o IPI saem como na venda (PIS/COFINS sem valor, CST 49). Cadastre a regra (Operação "Qualquer" e o CFOP) em Notas fiscais → Regras de tributação, conforme o contador.` } as Pendencia);
+      const previa = previaItens();
+      if (entrada) lista.push(...pendenciasEntrada(op, { ufEmitente: unidade.uf ?? "", itens: previa, chaveReferenciada: chaveDigitos }));
+      else {
+        const cb = pendenciaCbenef(unidade.uf, previa, `Ponha o código na regra de tributação do CFOP ${cfopOp ?? "da venda"} (Notas fiscais → Regras de tributação), conforme o contador.`);
+        if (cb) lista.push(cb);
+      }
       if (entrada && ieCliente) lista.push({ nivel: "alerta", texto: `${cliente.nome} tem inscrição estadual: normalmente é a própria empresa que emite a nota (remessa para conserto 5915, venda ou devolução) e ela chega em NF-e recebidas. Emita esta só se ela não emitir.` } as Pendencia);
       if (lista.length) return setConferindo(lista);
     }
@@ -169,7 +198,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
         <Field label={entrada ? "Quem manda (remetente)" : "Cliente (destinatário)"} className="sm:col-span-2">
           <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => { setClienteId(id); setChaveRef(""); }} />
         </Field>
-        <Field label="NF referenciada (opcional)" className="sm:col-span-2">
+        <Field label={op.exige_referencia ? "NF de remessa (obrigatória)" : "NF referenciada (opcional)"} className="sm:col-span-2">
           <div className="flex flex-col gap-2 sm:flex-row">
             {notasDoCliente.length > 0 && (
               <select className="input sm:max-w-[16rem]" value={notasDoCliente.find((x) => x.chave === chaveDigitos)?.chave ?? ""} onChange={(e) => setChaveRef(e.target.value)}>
@@ -181,6 +210,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
           </div>
           <span className={`mt-1 block text-xs ${chaveOk ? "text-slate-500" : "font-semibold text-red-700"}`}>
             {!chaveOk ? "Chave inválida: confira os 44 números (o último é o dígito verificador)."
+              : op.exige_referencia && !chaveDigitos ? "Obrigatória: a chave da NF de remessa (a nota de ida). O retorno precisa citar a saída."
               : chaveDigitos ? "A chave vai na nota (referência) e nas informações complementares."
               : entrada ? "Ex.: a NF de venda da máquina (da MF ou da My Frost). Sem nota, deixe em branco." : "Só se a operação se referir a outra nota."}
           </span>
