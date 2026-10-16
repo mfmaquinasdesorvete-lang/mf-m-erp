@@ -2,6 +2,8 @@
 // e na margem como um pedido faturado: só os itens com CFOP de venda (remessa, transferência, conserto, garantia e
 // devolução ficam de fora), no dia da emissão, com os impostos destacados na própria nota. O custo é o do cadastro,
 // achado pelo código do item (SKU, código do fabricante ou alternativo) ou pela descrição igual.
+// Venda devolvida (NF-e de devolução que aponta para ela pela chave ou pelo id) sai inteira; devolução parcial
+// reduz a venda na proporção do valor devolvido.
 import type { Item, Pedido, Produto } from "./types";
 
 /** 5101–5125, 5401–5405 (e os mesmos em 6 e 7): venda de produção, de mercadoria e com ST. Transferência (x15x) não. */
@@ -16,13 +18,14 @@ export type NotaVenda = {
   id: string; numero?: string | null; created_at: string; status: string; ambiente?: string | null; pedido_id: string | null;
   unidade_id?: string | null; cliente_id?: string | null; tipo_operacao?: string | null; finalidade?: string | null; excluida_em?: string | null;
   destinatario_nome?: string | null; payload?: { items?: ItemNota[] } | null;
+  valor_total?: number | string | null; chave?: string | null; chave_referenciada?: string | null; nota_referenciada_id?: string | null;
   cliente?: { id: string; nome: string; municipio?: string | null; uf?: string | null } | null;
 };
 /** Pedido montado a partir da nota (id "nf:<id da nota>"); origem "nfe". */
 export type PedidoDaNota = Pedido & { itens: (Item & { produto?: Pick<Produto, "preco_custo" | "tipo"> | null })[]; de_nota: true; numero_nota: string | null };
 
 export const SELECT_NOTAS_VENDA =
-  "id, numero, created_at, status, ambiente, pedido_id, unidade_id, cliente_id, tipo_operacao, finalidade, excluida_em, destinatario_nome, payload, cliente:clientes(id, nome, municipio, uf, tipo_pessoa, contribuinte_icms)";
+  "id, numero, created_at, status, ambiente, pedido_id, unidade_id, cliente_id, tipo_operacao, finalidade, excluida_em, destinatario_nome, payload, valor_total, chave, chave_referenciada, nota_referenciada_id, cliente:clientes(id, nome, municipio, uf, tipo_pessoa, contribuinte_icms)";
 
 const n = (v: unknown) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const chaveTexto = (s: string | null | undefined) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -50,6 +53,18 @@ export function notaEhVendaSemPedido(nf: NotaVenda) {
     && (nf.payload?.items ?? []).some((i) => CFOP_VENDA.test(String(i.cfop ?? "").replace(/\D/g, "")));
 }
 
+/** Valor devolvido de cada nota (pelo id): NF-e de devolução autorizada que aponta para ela pelo id ou pela chave. */
+export function devolvidoPorNota(notas: NotaVenda[]) {
+  const porChave = new Map(notas.filter((nf) => nf.chave).map((nf) => [nf.chave as string, nf.id]));
+  const devolvido = new Map<string, number>();
+  for (const d of notas) {
+    if (d.finalidade !== "devolucao" || d.status !== "autorizada" || d.excluida_em || d.ambiente === "homologacao") continue;
+    const alvo = d.nota_referenciada_id ?? (d.chave_referenciada ? porChave.get(d.chave_referenciada) : undefined);
+    if (alvo && alvo !== d.id) devolvido.set(alvo, (devolvido.get(alvo) ?? 0) + n(d.valor_total));
+  }
+  return devolvido;
+}
+
 /**
  * Pedidos "faturados" montados das notas de venda sem pedido + as notas correspondentes (só os itens de venda),
  * para a margem usar os impostos reais destacados (ICMS, PIS e COFINS de cada item).
@@ -58,10 +73,19 @@ export function vendasDasNotas(notas: NotaVenda[], produtos: Produto[]) {
   const achar = indiceProdutos(produtos);
   const pedidos: PedidoDaNota[] = [];
   const notasDosPedidos: { pedido_id: string; status: string; ambiente: string; payload: { items: Record<string, number>[] } }[] = [];
-  let semProduto = 0;
+  const devolvido = devolvidoPorNota(notas);
+  let semProduto = 0, devolvidas = 0;
   for (const nf of notas) {
     if (!notaEhVendaSemPedido(nf)) continue;
-    const vendas = (nf.payload?.items ?? []).filter((i) => CFOP_VENDA.test(String(i.cfop ?? "").replace(/\D/g, "")));
+    const todos = nf.payload?.items ?? [];
+    // devolução: a parte devolvida sai da venda (valor da nota inteira, porque a devolução também leva frete e IPI)
+    const valorNota = n(nf.valor_total) || todos.reduce((s, i) => s + n(i.valor_bruto), 0);
+    const fator = valorNota > 0 ? Math.max(0, 1 - (devolvido.get(nf.id) ?? 0) / valorNota) : 1;
+    if (fator < 0.005) { devolvidas++; continue; }
+    const vendas = todos.filter((i) => CFOP_VENDA.test(String(i.cfop ?? "").replace(/\D/g, ""))).map((i) => fator === 1 ? i : {
+      ...i, valor_bruto: n(i.valor_bruto) * fator, quantidade_comercial: n(i.quantidade_comercial) * fator,
+      icms_valor: n(i.icms_valor) * fator, pis_valor: n(i.pis_valor) * fator, cofins_valor: n(i.cofins_valor) * fator,
+    });
     const id = `nf:${nf.id}`;
     const itens = vendas.map((i, k) => {
       const p = achar(i);
@@ -86,7 +110,7 @@ export function vendasDasNotas(notas: NotaVenda[], produtos: Produto[]) {
       payload: { items: vendas.map((i) => ({ icms_valor: n(i.icms_valor), pis_valor: n(i.pis_valor), cofins_valor: n(i.cofins_valor) })) },
     });
   }
-  return { pedidos, notas: notasDosPedidos, semProduto };
+  return { pedidos, notas: notasDosPedidos, semProduto, devolvidas };
 }
 
 /** Rótulo da venda na lista: "#123" (pedido) ou "NF 294" (venda que só tem a nota). */

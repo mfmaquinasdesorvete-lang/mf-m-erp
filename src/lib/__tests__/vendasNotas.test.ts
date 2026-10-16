@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CFOP_VENDA, notaEhVendaSemPedido, rotuloVenda, vendasDasNotas, type NotaVenda } from "../vendasNotas";
+import { CFOP_VENDA, devolvidoPorNota, notaEhVendaSemPedido, rotuloVenda, vendasDasNotas, type NotaVenda } from "../vendasNotas";
 import type { Produto } from "../types";
 
 const prod = (x: Partial<Produto>) => ({ id: "p", sku: null, descricao: "", tipo: "peca", preco_custo: 0, ativo: true, ...x }) as Produto;
@@ -44,5 +44,25 @@ describe("vendas que só existem na nota fiscal", () => {
     expect(notas[0].payload.items[0]).toEqual({ icms_valor: 1400, pis_valor: 330, cofins_valor: 1520 });
     expect(rotuloVenda(p)).toBe("NF 294");
     expect(rotuloVenda({ numero: 12 })).toBe("#12");
+  });
+
+  it("venda devolvida sai dos relatórios; devolução parcial reduz na proporção", () => {
+    const venda = nota({ id: "v14", numero: "14", chave: "CHAVE14", valor_total: 50000, payload: { items: [
+      { descricao: "Torno exemplo", cfop: "6102", quantidade_comercial: 2, valor_bruto: 50000, icms_valor: 3500 },
+    ] } });
+    // entrada de devolução importada do Tiny: aponta pela chave da nota de venda
+    const devolucao = nota({ id: "d15", numero: "15", finalidade: "devolucao", tipo_operacao: "entrada", valor_total: 50000, chave_referenciada: "CHAVE14", payload: { items: [] } });
+    expect(devolvidoPorNota([venda, devolucao]).get("v14")).toBe(50000);
+    const total = vendasDasNotas([venda, devolucao], []);
+    expect(total.pedidos).toHaveLength(0);
+    expect(total.devolvidas).toBe(1);
+
+    // metade devolvida (pelo id), e uma devolução cancelada não conta
+    const metade = nota({ id: "d16", finalidade: "devolucao", tipo_operacao: "entrada", valor_total: 25000, nota_referenciada_id: "v14" });
+    const cancelada = nota({ id: "d17", finalidade: "devolucao", tipo_operacao: "entrada", status: "cancelada", valor_total: 25000, nota_referenciada_id: "v14" });
+    const parcial = vendasDasNotas([venda, metade, cancelada], []);
+    expect(parcial.pedidos[0].valor_total).toBe(25000);
+    expect(parcial.pedidos[0].itens.map((i) => [i.quantidade, i.valor_unitario])).toEqual([[1, 25000]]);
+    expect(parcial.notas[0].payload.items[0].icms_valor).toBe(1750);
   });
 });
