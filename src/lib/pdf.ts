@@ -60,9 +60,9 @@ export function textoPdf(t: string): string {
   });
 }
 
-async function novoDoc() {
+async function novoDoc(orientation: "portrait" | "landscape" = "portrait") {
   const [{ jsPDF }, { default: autoTable }, logo] = await Promise.all([import("jspdf"), import("jspdf-autotable"), logoDataUrl()]);
-  const doc = new jsPDF({ compress: true, unit: "mm", format: "a4" });
+  const doc = new jsPDF({ compress: true, unit: "mm", format: "a4", orientation });
   // todo texto passa pela troca de caracteres (textos, quebras de linha e células das tabelas)
   const texto = doc.text.bind(doc);
   (doc as any).text = (t: string | string[], ...resto: unknown[]) => (texto as any)(Array.isArray(t) ? t.map(textoPdf) : textoPdf(String(t)), ...resto);
@@ -520,6 +520,56 @@ export async function pdfComissoes(r: {
   doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(30, 41, 59);
   doc.text("TOTAL", w - 75, y);
   doc.text(brl(r.linhas.filter((l) => l.status !== "cancelada").reduce((s, l) => s + l.valor, 0)), w - 14, y, { align: "right" });
+  rodape(doc);
+  return doc.output("blob");
+}
+
+// ---------------------------------------------------------------------
+// Necessidades de compra (Compras): a lista filtrada, em folha deitada (são muitas colunas)
+// ---------------------------------------------------------------------
+export async function pdfNecessidadesCompra(r: {
+  filtros: string; periodo: number;
+  linhas: {
+    produto: string; codigos: string; fornecedor: string; unidade: string; custo: number; entradas: number; saidas: number; fisico: number;
+    virtual: number; minimo: number; maximo: number; saidasPeriodo: number; mediaMes: number; cobertura: number | null; prazo: number;
+    /** produzir = máquina ou peça fabricada: vai por OP, não entra no valor da compra */
+    comprar: number; valor: number; critico: boolean; produzir?: boolean;
+  }[];
+}, cfg: Config) {
+  const { doc, autoTable, logo } = await novoDoc("landscape");
+  cabecalho(doc, cfg, "NECESSIDADES DE COMPRA", `${r.linhas.length} ${pl(r.linhas.length, "produto", "produtos")}`, logo);
+  doc.setFontSize(8.5); doc.setTextColor(...CINZA); doc.text(r.filtros, 14, 37);
+  const q = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  autoTable(doc, {
+    startY: 41,
+    head: [["Produto", "Fornecedor", "Un", "Custo médio", "Entradas prev.", "Saídas prev.", "Físico", "Virtual", "Mín.", "Máx.",
+      `Saídas ${r.periodo}d`, "Média/mês", "Cobertura", "Prazo", "Comprar", "Valor"]],
+    body: r.linhas.map((l) => [`${l.produto}${l.codigos ? `\n${l.codigos}` : ""}`, l.fornecedor, l.unidade, brl(l.custo), q(l.entradas), q(l.saidas), q(l.fisico),
+      q(l.virtual), q(l.minimo), q(l.maximo), q(l.saidasPeriodo), q(l.mediaMes), l.cobertura === null ? "-" : `${l.cobertura} d`, `${l.prazo} d`,
+      l.comprar ? `${q(l.comprar)}${l.produzir ? " (OP)" : ""}` : "", l.comprar && !l.produzir ? brl(l.valor) : ""]),
+    styles: { font: "helvetica", fontSize: 7, cellPadding: 1.4, textColor: [30, 41, 59] },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
+    alternateRowStyles: { fillColor: [246, 248, 251] },
+    columnStyles: {
+      0: { cellWidth: 58 }, 1: { cellWidth: 32 }, 2: { cellWidth: 8 },
+      ...Object.fromEntries([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((i) => [i, { halign: "right" }])),
+      14: { halign: "right", fontStyle: "bold" },
+    },
+    // estoque negativo e item crítico em vermelho
+    didParseCell: (c: any) => {
+      if (c.section !== "body") return;
+      const l = r.linhas[c.row.index];
+      if ((c.column.index === 6 && l.fisico < 0) || (c.column.index === 7 && l.virtual < 0) || (c.column.index === 0 && l.critico)) c.cell.styles.textColor = [200, 30, 30];
+    },
+    margin: { left: 14, right: 14 },
+  });
+  let y = (doc as any).lastAutoTable.finalY + 7;
+  const h = doc.internal.pageSize.getHeight();
+  if (y > h - 18) { doc.addPage(); y = 20; }
+  const w = doc.internal.pageSize.getWidth();
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(30, 41, 59);
+  doc.text("COMPRA SUGERIDA", w - 80, y);
+  doc.text(brl(r.linhas.reduce((s, l) => s + (l.comprar && !l.produzir ? l.valor : 0), 0)), w - 14, y, { align: "right" });
   rodape(doc);
   return doc.output("blob");
 }

@@ -73,7 +73,7 @@ export const grupos: Grupo[] = [
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
       { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
-      { to: "/compras", tela: "producao", label: "Compras", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque whatsapp sc sp" },
+      { to: "/compras", tela: "producao", label: "Compras", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },

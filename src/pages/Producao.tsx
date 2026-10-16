@@ -18,6 +18,7 @@ import { UltimasCompras } from "@/components/compras/UltimasCompras";
 import { usePerfil } from "@/lib/auth";
 import type { EtapaOp, Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
+import { NecessidadesCompra } from "@/components/compras/NecessidadesCompra";
 import { Cotacoes } from "@/components/Cotacoes";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { niveis, temFicha, type LinhaFicha } from "@/lib/estrutura";
@@ -27,10 +28,10 @@ import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
 
-type Aba = "producao" | "reposicao" | "compras" | "cotacoes" | "ficha";
-/** Duas telas: Produção (ordens e ficha técnica) e Compras (reposição, cotações e pedidos de compra). */
+type Aba = "producao" | "reposicao" | "necessidades" | "compras" | "cotacoes" | "ficha";
+/** Duas telas: Produção (ordens e ficha técnica) e Compras (pedidos de compra, cotações, necessidades de compra e reposição). */
 type Area = "producao" | "compras";
-const ABAS_DA_AREA: Record<Area, readonly Aba[]> = { producao: ["producao", "ficha"], compras: ["compras", "cotacoes", "reposicao"] };
+const ABAS_DA_AREA: Record<Area, readonly Aba[]> = { producao: ["producao", "ficha"], compras: ["compras", "cotacoes", "necessidades", "reposicao"] };
 const ROTA_DA_AREA: Record<Area, string> = { producao: "/producao", compras: "/compras" };
 const areaDaAba = (a: string | null | undefined): Area | null =>
   a && (ABAS_DA_AREA.compras as readonly string[]).includes(a) ? "compras" : a && (ABAS_DA_AREA.producao as readonly string[]).includes(a) ? "producao" : null;
@@ -73,7 +74,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
 
   const abas: { value: Aba; label: string }[] = area === "producao"
     ? [{ value: "producao", label: "Ordens de produção" }, { value: "ficha", label: "Ficha técnica" }]
-    : verCompras ? [{ value: "compras", label: "Pedidos de compra" }, { value: "cotacoes", label: "Cotações" }, { value: "reposicao", label: "Reposição de estoque" }] : [];
+    : verCompras ? [{ value: "compras", label: "Pedidos de compra" }, { value: "cotacoes", label: "Cotações" }, { value: "necessidades", label: "Necessidades de compra" }, { value: "reposicao", label: "Reposição de estoque" }] : [];
 
   return (
     <div>
@@ -83,6 +84,8 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
       {area === "compras" && !verCompras ? <Card className="p-4 text-sm text-slate-600">Seu perfil não faz compras.</Card> : <Tabs value={aba} onChange={setAba} options={abas} />}
       {aba === "producao" && <OrdensProducao irParaCompras={() => irPara("compras")} />}
       {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
+        aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
+      {aba === "necessidades" && verCompras && <NecessidadesCompra podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
         aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
       {aba === "cotacoes" && verCompras && <Cotacoes podeEditar={pode("editar_producao")} inicial={cotarItens}
         aoGerarPedidos={() => { setCotarItens(null); setAba("compras"); }} />}

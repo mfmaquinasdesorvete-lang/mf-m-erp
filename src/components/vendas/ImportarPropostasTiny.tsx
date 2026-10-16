@@ -17,7 +17,7 @@ import { montarNotasMyFrost } from "@/lib/notasMyFrost";
 const LOTE = 200;
 const LOTE_NOTAS = 500;
 type Resultado = {
-  novas: number; atualizadas: number; clientes_novos: number; sem_cliente: number; erros: string[];
+  novas: number; atualizadas: number; clientes_novos: number; sem_cliente: number; da_outra_empresa: number; erros: string[];
   notas?: { novas: number; atualizadas: number; fora: number };
 };
 
@@ -80,7 +80,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
   async function importar() {
     if (!leitura || !empresa) return;
     setOcupado("importar");
-    const r: Resultado = { novas: 0, atualizadas: 0, clientes_novos: 0, sem_cliente: 0, erros: [] };
+    const r: Resultado = { novas: 0, atualizadas: 0, clientes_novos: 0, sem_cliente: 0, da_outra_empresa: 0, erros: [] };
     try {
       const lista = leitura.propostas.map((p) => paraEnvio(p, empresa));
       for (let i = 0; i < lista.length; i += LOTE) {
@@ -91,6 +91,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
         if (error) throw error;
         r.novas += data?.novas ?? 0; r.atualizadas += data?.atualizadas ?? 0;
         r.clientes_novos += data?.clientes_novos ?? 0; r.sem_cliente += data?.sem_cliente ?? 0;
+        r.da_outra_empresa += data?.da_outra_empresa ?? 0;
         r.erros.push(...((data?.erros ?? []) as { proposta: string; erro: string }[]).map((x) => `Proposta ${x.proposta}: ${x.erro}`));
       }
       if (empresa === "my_frost" && notas.envio.length) {
@@ -124,6 +125,11 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
             <li>{resultado.novas} propostas novas{resultado.atualizadas ? ` e ${resultado.atualizadas} atualizadas` : ""}</li>
             {resultado.clientes_novos > 0 && <li>{resultado.clientes_novos} clientes novos no cadastro (vieram da proposta)</li>}
             {resultado.sem_cliente > 0 && <li className="text-amber-700">{resultado.sem_cliente} propostas da My Frost ficaram de fora: não são de clientes do ERP</li>}
+            {resultado.da_outra_empresa > 0 && (
+              <li className="text-amber-700">
+                {resultado.da_outra_empresa} propostas ficaram de fora: já estão no ERP como da {empresa === "mf" ? "My Frost" : "MF"} (confira se escolheu a empresa certa)
+              </li>
+            )}
             {resultado.notas && (
               <li>{resultado.notas.novas + resultado.notas.atualizadas} notas fiscais da My Frost ligadas aos clientes, com o valor da nota
                 {resultado.notas.fora > 0 ? ` (${resultado.notas.fora} sem cliente certo ficaram de fora)` : ""}</li>
