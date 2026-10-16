@@ -13,6 +13,7 @@ import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
+import { SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -102,6 +103,9 @@ function PainelGeral() {
   const { data: ordensTodos = [] } = useRows<OrdemServico>("ordens_servico");
   const ordens = filtrar(ordensTodos);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  // vendas que só têm a nota fiscal (emitidas no Tiny ou direto, sem pedido no ERP) também contam, como nos Relatórios
+  const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA });
+  const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, produtos).pedidos) as unknown as Pedido[], [notasTodas, produtos, filtrar]);
   const { data: receberTodos = [] } = useRows<Conta>("contas_receber");
   const receber = filtrar(receberTodos);
   const { data: pagarTodos = [] } = useRows<Conta>("contas_pagar");
@@ -121,7 +125,7 @@ function PainelGeral() {
     const h = hoje();
     const soma = (l: Conta[], f: (c: Conta) => boolean, campo: "valor" | "valor_pago" = "valor") =>
       l.filter(f).reduce((s, c) => s + Number(c[campo] ?? 0), 0);
-    const validos = pedidos.filter((p) => !["orcamento", "cancelado"].includes(p.status));
+    const validos = [...pedidos.filter((p) => !["orcamento", "cancelado"].includes(p.status)), ...vendasNotas];
     const vendas = (r: string[]) => validos.filter((p) => dentro(p.created_at, r));
     const recebido = (r: string[]) => soma(receber, (c) => c.status === "pago" && dentro(c.data_pagamento, r), "valor_pago");
     const pago = (r: string[]) => soma(pagar, (c) => c.status === "pago" && dentro(c.data_pagamento, r), "valor_pago");
@@ -185,13 +189,13 @@ function PainelGeral() {
         { rotulo: "Pronta p/ retirar", valor: ordens.filter((o) => o.status === "concluida").length, cor: "var(--serie-3)" },
       ],
     };
-  }, [periodo, pedidos, ordens, produtos, receber, pagar, equipamentos, recebidas, ops, compras, necessidade]);
+  }, [periodo, pedidos, vendasNotas, ordens, produtos, receber, pagar, equipamentos, recebidas, ops, compras, necessidade]);
 
   const per = PERIODOS.find((p) => p.id === periodo)!;
 
   // Cartões coloridos: os 4 primeiros que o papel pode ver
   const kpis = ([
-    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "pedido", "pedidos")}`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
+    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "venda", "vendas")} (pedidos e notas)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
     podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
     { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
     podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro" },
