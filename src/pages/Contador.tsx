@@ -2,7 +2,7 @@
 // envio automático, mês travado depois de fechado e conversa com o financeiro.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CircleHelp, Download, FilePlus2, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
-import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
+import { Button, CampoMes, Card, Field, Modal, PageHeader, Section } from "@/components/ui";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { TABELA, type ContaRevisao, type TipoConta } from "@/lib/aprovacao";
 import { Anexos } from "@/components/Anexos";
@@ -16,11 +16,17 @@ import { useConfig } from "@/lib/useConfig";
 import { buracosNumeracao } from "@/lib/compliance";
 import { nomeCfop } from "@/lib/cfop";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
+import { COR_STATUS, ConciliacaoBancos, Divergencias, ResultadoMes } from "@/components/contador/FechamentoMes";
+import { conciliacaoDoMes, divergenciasDoMes, statusDoMes, type BancoMes } from "@/lib/fechamentoMes";
+import type { LancExtratoDre } from "@/lib/dreExtrato";
 
 type Fechamento = { id: string; unidade_id: string; competencia: string; status: string; enviado_em: string | null; fechado_em: string | null; arquivo_caminho: string | null; observacoes: string | null };
-type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; payload?: { items?: Record<string, any>[] } | null };
+type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; pedido_id?: string | null; payload?: { items?: Record<string, any>[] } | null };
 type Recebida = { id: string; unidade_id: string | null; valor_total: number; data_emissao: string | null; manifestacao: string | null; situacao: string | null; emitente_nome: string; itens?: { cfop?: string; valor_total?: number }[] | null };
-type Conta = { unidade_id: string | null; status: string; valor: number; valor_pago: number | null; data_pagamento: string | null };
+type Conta = { unidade_id?: string | null; status: string; valor: number; valor_pago?: number | null; data_pagamento?: string | null };
+// mesmo select e mesma key do LancamentosMes e do DRE: as consultas são feitas uma vez só
+const SELECT_PAGAR = "*, fornecedor:fornecedores(nome)", SELECT_RECEBER = "*, cliente:clientes(nome, nome_fantasia)";
+const SELECT_EXTRATO = "id, conta_bancaria_id, data, valor, descricao, identificador, status, conta_receber_id, conta_pagar_id, par_transferencia_id";
 type Msg = { id: string; unidade_id: string | null; competencia: string; autor: string; autor_nome: string | null; texto: string; resolvida: boolean; created_at: string };
 
 const mesAnterior = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 7); };
@@ -60,17 +66,23 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
   const { papel, nome: meuNome } = usePerfil();
   const invalidar = useInvalidate();
   const { data: fechamentos = [] } = useRows<Fechamento>("fechamentos", {});
-  const { data: notasTodas = [] } = useRows<Nota & { ambiente?: string }>("notas_fiscais", { select: "id, unidade_id, status, numero, serie, valor_total, created_at, payload, ambiente" });
+  const { data: notasTodas = [] } = useRows<Nota & { ambiente?: string }>("notas_fiscais", { select: "id, unidade_id, status, numero, serie, valor_total, created_at, pedido_id, payload, ambiente" });
   const notas = notasTodas.filter((n) => n.ambiente !== "homologacao"); // nota de teste não vai para o contador
   const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", { select: "id, unidade_id, valor_total, data_emissao, manifestacao, situacao, emitente_nome, itens" });
   const { data: cartas = [] } = useRows<{ nota_id: string; status: string; created_at: string }>("nfe_cartas_correcao", {});
   const { data: inut = [] } = useRows<{ unidade_id: string; status: string; created_at: string }>("nfe_inutilizacoes", {});
-  const { data: receber = [] } = useRows<Conta>("contas_receber", { select: "unidade_id, status, valor, valor_pago, data_pagamento" });
-  const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: "unidade_id, status, valor, valor_pago, data_pagamento" });
+  const { data: receber = [] } = useRows<LancMes>("contas_receber", { select: SELECT_RECEBER, key: ["contador"] });
+  const { data: pagar = [] } = useRows<LancMes>("contas_pagar", { select: SELECT_PAGAR, key: ["contador"] });
+  const { data: extrato = [] } = useRows<LancExtratoDre & { status: string }>("extrato_lancamentos", { select: SELECT_EXTRATO, order: "data", ascending: true, key: ["dre"] });
+  const { data: bancos = [] } = useRows<BancoMes>("contas_bancarias", { select: "id, nome, ativo, unidade_id", order: "nome", ascending: true });
   const [ocupado, setOcupado] = useState("");
   const f = fechamentos.find((x) => x.unidade_id === unidadeId && x.competencia === comp);
   const unidade = unidades.find((u) => u.id === unidadeId);
   const terminou = comp < new Date().toISOString().slice(0, 7);
+  const contas = useMemo(() => [
+    ...receber.map((c) => ({ ...c, tipo: "receber" as const })),
+    ...pagar.map((c) => ({ ...c, tipo: "pagar" as const })),
+  ], [receber, pagar]);
 
   const r = useMemo(() => {
     const doMes = notas.filter((n) => n.unidade_id === unidadeId && noMes(n.created_at, comp));
@@ -87,21 +99,30 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
     }
     const entradas = new Map<string, number>();
     for (const n of rec) for (const i of n.itens ?? []) entradas.set(i.cfop ?? "—", (entradas.get(i.cfop ?? "—") ?? 0) + Number(i.valor_total ?? 0));
-    const pend: string[] = [];
+    const fiscais: { id: string; texto: string; bloqueia: boolean; link: string }[] = [];
     const problema = doMes.filter((n) => ["erro", "contingencia", "processando"].includes(n.status));
-    if (problema.length) pend.push(`${problema.length} NF-e ${pl(problema.length, "emitida", "emitidas")} com erro, em processamento ou na contingência`);
+    if (problema.length) fiscais.push({ id: "nfe-problema", bloqueia: true, link: "/notas", texto: `${problema.length} NF-e ${pl(problema.length, "emitida", "emitidas")} com erro, em processamento ou na contingência` });
     const semManif = rec.filter((n) => n.situacao !== "cancelada" && !["confirmacao", "desconhecimento", "nao_realizada"].includes(n.manifestacao ?? ""));
-    if (semManif.length) pend.push(`${semManif.length} ${pl(semManif.length, "nota", "notas")} de fornecedor sem manifestação conclusiva`);
+    if (semManif.length) fiscais.push({ id: "sem-manifestacao", bloqueia: false, link: "/notas?aba=recebidas", texto: `${semManif.length} ${pl(semManif.length, "nota", "notas")} de fornecedor sem manifestação conclusiva` });
     const buracos = buracosNumeracao(notas.filter((n) => n.unidade_id === unidadeId && n.status !== "erro" && n.created_at.slice(0, 7) <= comp));
-    if (buracos.length) pend.push(`Números de NF-e pulados: ${buracos.flatMap((b) => b.faltando).slice(0, 10).join(", ")} (inutilizar)`);
+    if (buracos.length) fiscais.push({ id: "numeracao", bloqueia: true, link: "/notas?aba=compliance", texto: `Números de NF-e pulados: ${buracos.flatMap((b) => b.faltando).slice(0, 10).join(", ")} (inutilizar)` });
     return {
       emitidas: aut.length, valorEmitidas: soma(aut), canceladas: doMes.filter((n) => n.status === "cancelada").length,
       recebidas: rec.length, valorRecebidas: soma(rec),
       cartas: cartas.filter((c) => idsNotas.has(c.nota_id) && c.status === "autorizada" && noMes(c.created_at, comp)).length,
       inutilizacoes: inut.filter((i) => i.unidade_id === unidadeId && i.status === "autorizada" && noMes(i.created_at, comp)).length,
-      recebimentos: pago(receber), pagamentos: pago(pagar), saidas: [...saidas.entries()].sort(), entradas: [...entradas.entries()].sort(), pend,
+      recebimentos: pago(receber), pagamentos: pago(pagar), saidas: [...saidas.entries()].sort(), entradas: [...entradas.entries()].sort(), fiscais,
     };
   }, [notas, recebidas, cartas, inut, receber, pagar, unidadeId, comp]);
+
+  // fechamento: primeiro as pendências (com o caminho até o documento), depois os números
+  const conciliacao = useMemo(() => conciliacaoDoMes(extrato, bancos, unidadeId, comp), [extrato, bancos, unidadeId, comp]);
+  const divergencias = useMemo(() => divergenciasDoMes({ comp, unidadeId, extrato, bancos, contas, notas, recebidas, fiscais: r.fiscais }),
+    [comp, unidadeId, extrato, bancos, contas, notas, recebidas, r.fiscais]);
+  const bloqueantes = divergencias.filter((d) => d.bloqueia).length;
+  const aValidar = contas.filter((c) => c.unidade_id === unidadeId && c.status === "pago" && noMes(c.data_pagamento, comp)
+    && c.revisao === "aprovado" && c.contador_status !== "validado" && c.contador_status !== "duvida").length;
+  const situacao = statusDoMes({ fechado: f?.status === "fechado", enviado: f?.status === "enviado", terminou, bloqueantes, aValidar });
 
   async function pacote(enviar: boolean) {
     setOcupado(enviar ? "enviar" : "baixar");
@@ -113,8 +134,13 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
     } catch (e) { notifyError(e); } finally { setOcupado(""); }
   }
   async function fechar() {
-    const obs = (await pedirTexto("Observação do fechamento (opcional):", ""));
+    const falta = [bloqueantes ? `${bloqueantes} ${pl(bloqueantes, "pendência que impede", "pendências que impedem")} o fechamento` : "",
+      aValidar ? `${aValidar} ${pl(aValidar, "lançamento", "lançamentos")} sem validação do contador` : ""].filter(Boolean).join(" e ");
+    const obs = await pedirTexto(falta
+      ? `O mês ainda tem ${falta}. Para fechar assim, escreva a justificativa (fica no fechamento e na trilha):`
+      : "Observação do fechamento (opcional):", "");
     if (obs === null) return;
+    if (falta && obs.trim().length < 10) return notifyError(new Error("Escreva a justificativa (pelo menos 10 letras) ou resolva as pendências antes de fechar."));
     const { error } = await supabase.rpc("fechar_competencia", { p_unidade: unidadeId, p_competencia: comp, p_observacoes: obs || null });
     if (error) return notifyError(error);
     notify("Mês fechado: pagamentos e recebimentos deste mês ficam travados"); invalidar("fechamentos");
@@ -132,7 +158,7 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-bold text-fg">{nomeMes(comp)} · {nome(unidadeId)}</h2>
-          <Badge value={status === "fechado" ? "concluido" : status === "enviado" ? "enviado" : "aberto"} />
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${COR_STATUS[situacao.status]}`}>{situacao.rotulo}</span>
           <span className="text-sm text-slate-500">
             {status === "fechado" ? `fechado em ${dataBR(f?.fechado_em)}` : status === "enviado" ? `pacote enviado em ${dataBR(f?.enviado_em)}` : "ainda não enviado"}
             {unidade?.cnpj ? ` · CNPJ ${docFormat(unidade.cnpj)}` : ""}
@@ -145,10 +171,16 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
             <div key={l as string} className="rounded-xl border border-slate-200 p-2.5"><div className="text-xs text-slate-500">{l}</div><div className="num font-bold text-fg">{v}</div></div>
           ))}
         </div>
-        <div className="mt-3">
-          {r.pend.length ? (
-            <ul className="space-y-1 text-sm">{r.pend.map((p) => <li key={p} className="flex gap-2 text-amber-800"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />{p}</li>)}</ul>
-          ) : <p className="flex items-center gap-1.5 text-sm text-emerald-700"><CheckCircle2 size={16} /> Sem pendências fiscais neste mês.</p>}
+        <div className="mt-3 text-sm">
+          {divergencias.length ? (
+            <a href="#pendencias-mes" className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 ${bloqueantes ? "text-amber-800" : "text-slate-700"}`}>
+              <span className={`h-2 w-2 shrink-0 rounded-full ${bloqueantes ? "bg-amber-500" : "bg-slate-400"}`} aria-hidden />
+              <b>{bloqueantes ? `${bloqueantes} ${pl(bloqueantes, "pendência impede", "pendências impedem")} o fechamento` : "Nenhuma pendência impede o fechamento"}</b>
+              {divergencias.length - bloqueantes > 0 && <span>· {divergencias.length - bloqueantes} para conferir</span>}
+              <span className="font-semibold text-brand">ver a lista ↓</span>
+            </a>
+          ) : <p className="flex items-center gap-1.5 text-emerald-700"><CheckCircle2 size={16} aria-hidden /> Sem pendências neste mês.</p>}
+          {situacao.status !== "com_pendencias" && <p className="mt-1 text-xs text-slate-500">{situacao.explicacao}</p>}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={() => pacote(false)} disabled={!!ocupado}><Download size={16} /> {ocupado === "baixar" ? "Montando o pacote…" : "Baixar pacote (XML + planilhas)"}</Button>
@@ -162,6 +194,14 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
         </p>
       </Card>
 
+      {/* pendências antes dos números; cada uma leva à tela de origem */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div id="pendencias-mes" className="min-w-0 scroll-mt-20 xl:col-span-2"><Divergencias lista={divergencias} unidadeId={unidadeId} comp={comp} meuNome={meuNome} /></div>
+        <div className="min-w-0"><ConciliacaoBancos contas={conciliacao} /></div>
+      </div>
+
+      <ResultadoMes unidadeId={unidadeId} comp={comp} contas={contas} />
+
       {/* lado a lado só em tela grande: no notebook a tabela de saídas (5 colunas) não cabe em meia largura */}
       <div className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
         <Section title="Saídas por CFOP (NF-e autorizadas)">
@@ -172,7 +212,7 @@ function Competencia({ unidadeId, comp, contador }: { unidadeId: string; comp: s
         </Section>
       </div>
 
-      <LancamentosMes unidadeId={unidadeId} comp={comp} contador={contador} fechado={status === "fechado"} />
+      <div id="lancamentos-mes" className="scroll-mt-20"><LancamentosMes unidadeId={unidadeId} comp={comp} contador={contador} fechado={status === "fechado"} /></div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Section title="Conversa com o financeiro"><Mensagens unidadeId={unidadeId} comp={comp} meuNome={meuNome} /></Section>
@@ -281,8 +321,8 @@ type LancMes = ContaRevisao & { tipo: TipoConta; terceiro: string | null; valor_
 function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: string; comp: string; contador: boolean; fechado: boolean }) {
   const { tem } = usePerfil();
   const invalidar = useInvalidate();
-  const { data: pagar = [] } = useRows<LancMes>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)", key: ["contador"] });
-  const { data: receber = [] } = useRows<LancMes>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia)", key: ["contador"] });
+  const { data: pagar = [] } = useRows<LancMes>("contas_pagar", { select: SELECT_PAGAR, key: ["contador"] });
+  const { data: receber = [] } = useRows<LancMes>("contas_receber", { select: SELECT_RECEBER, key: ["contador"] });
   const [filtro, setFiltro] = useState<"todos" | "validar" | "nao_aprovados" | "duvidas">("todos");
   const [ocupado, setOcupado] = useState(false);
   const [corrigir, setCorrigir] = useState<LancMes | null>(null);
