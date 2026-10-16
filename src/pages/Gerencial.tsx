@@ -1,5 +1,5 @@
 // Painel gerencial: para decidir. Vendas do ERP e do sistema anterior juntas, comparadas com o mês e o ano anteriores,
-// curva ABC de produtos e clientes, clientes que pararam de comprar, tendências e onde a operação está travando.
+// curva ABC de produtos e clientes, clientes que pararam de comprar, tendências, metas de vendas e onde a operação está travando.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, Info, Receipt, TrendingUp, Users, XCircle } from "lucide-react";
@@ -17,11 +17,12 @@ import {
 import type { Cliente } from "@/lib/types";
 import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { PainelMetas } from "@/components/metas/PainelMetas";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
 const NIVEL = { erro: { Icon: XCircle, cor: "text-red-600", borda: "border-red-200" }, alerta: { Icon: AlertTriangle, cor: "text-amber-600", borda: "border-amber-200" }, info: { Icon: Info, cor: "text-sky-600", borda: "border-slate-200" } };
-type Aba = "abc_produtos" | "abc_clientes" | "clientes" | "tendencias" | "parado";
+type Aba = "abc_produtos" | "abc_clientes" | "clientes" | "tendencias" | "parado" | "metas";
 
 /** "▲ 12,5% vs mês passado" com seta e texto (não depende só da cor). */
 function Variacao({ c, base }: { c: Comparacao; base: string }) {
@@ -37,7 +38,7 @@ function Variacao({ c, base }: { c: Comparacao; base: string }) {
 
 export default function Gerencial() {
   const { filtrar } = useUnidade();
-  const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado"] as const);
+  const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado", "metas"] as const);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const dia = hoje();
@@ -120,7 +121,10 @@ export default function Gerencial() {
         { value: "clientes", label: `Clientes parados (${parados.length})` },
         { value: "tendencias", label: "Tendências" },
         { value: "parado", label: `Estoque parado (${r.parado.length})` },
+        { value: "metas", label: "Metas" },
       ]} />
+
+      {aba === "metas" && <PainelMetas />}
 
       {(aba === "abc_produtos" || aba === "abc_clientes") && (
         <TabelaABC linhas={aba === "abc_produtos" ? r.abcProdutos : r.abcClientes} tipo={aba === "abc_produtos" ? "produto" : "cliente"} verTodos={verTodos} setVerTodos={setVerTodos}

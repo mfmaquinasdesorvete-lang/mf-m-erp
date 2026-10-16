@@ -1,7 +1,7 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard,
-  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Truck,
+  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
 import { usePerfil } from "./auth";
@@ -36,6 +36,7 @@ export const grupos: Grupo[] = [
       { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Máquinas", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
       { to: "/mercado-livre", tela: "mercadolivre", label: "Mercado Livre", curto: "M. Livre", icon: Handshake, busca: "marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
+      { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
     ],
   },
   {
@@ -106,7 +107,7 @@ export const grupos: Grupo[] = [
   {
     id: "analises", titulo: "Gestão", cor: "from-[#6366f1] to-[#4338ca]", icone: BarChart3,
     itens: [
-      { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior" },
+      { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
       { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
       { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
