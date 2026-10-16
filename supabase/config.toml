@@ -56,3 +56,8 @@ verify_jwt = false
 # WhatsApp oficial (Meta): o webhook chega sem login (assinatura conferida dentro da função).
 [functions.whatsapp]
 verify_jwt = false
+
+# Mercado Livre: o aviso de venda chega sem login (a venda é sempre buscada na API com o token da MF); o agendamento
+# chama com Bearer ERP_CRON_TOKEN e as ações do ERP conferem o usuário dentro da função (requireErpUser).
+[functions.mercadolivre]
+verify_jwt = false
