@@ -1,15 +1,21 @@
 // Configurações → Apagar dados de teste (só administrador).
 // Marca pedidos, OS, ordens de produção e contas avulsas; "Ver o que vai sair" mostra tudo que será apagado
 // (e o estoque que volta); só apaga depois de digitar APAGAR. NF-e autorizada nunca é apagada (ver testes_apagar).
+// Conta conciliada com o extrato do banco (ou lançada pela conciliação) é dinheiro que entrou: fica travada aqui,
+// e o banco também barra (gatilho trg_extrato_conciliado_nao_e_teste).
 import { useState } from "react";
-import { Eraser, Eye, Trash2 } from "lucide-react";
+import { Eraser, Eye, Lock, Trash2 } from "lucide-react";
 import { Button, Card } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 
-type Linha = { id: string; numero?: number; status?: string; created_at?: string; valor_total?: number; descricao?: string; valor?: number; pedido_id?: string | null; os_id?: string | null; cliente?: { nome: string } | null };
+type Linha = {
+  id: string; numero?: number; status?: string; created_at?: string; valor_total?: number; descricao?: string; valor?: number;
+  pedido_id?: string | null; os_id?: string | null; id_externo?: string | null; cliente?: { nome: string } | null;
+  extrato?: { status: string; data: string; valor: number }[] | null;
+};
 type Previa = {
   pedidos: { numero: number; cliente: string | null; total: number; status: string }[];
   os: { numero: number; cliente: string | null; status: string }[];
@@ -24,8 +30,22 @@ export function ApagarTestes() {
   const { data: pedidos = [] } = useRows<Linha>("pedidos", { select: "id, numero, status, created_at, valor_total, cliente:clientes(nome)", order: "numero", ascending: true });
   const { data: os = [] } = useRows<Linha>("ordens_servico", { select: "id, numero, status, created_at, cliente:clientes(nome)", order: "numero", ascending: true });
   const { data: ops = [] } = useRows<Linha>("ordens_producao", { select: "id, numero, status, created_at", order: "numero", ascending: true });
-  const { data: contas = [] } = useRows<Linha>("contas_receber", { select: "id, descricao, valor, status, created_at, pedido_id, os_id, cliente:clientes(nome)", order: "created_at", ascending: true });
+  const { data: contas = [] } = useRows<Linha>("contas_receber", {
+    select: "id, descricao, valor, status, created_at, pedido_id, os_id, id_externo, cliente:clientes(nome), extrato:extrato_lancamentos(status, data, valor)",
+    order: "created_at", ascending: true,
+  });
   const avulsas = contas.filter((c) => !c.pedido_id && !c.os_id);
+  // por que a conta não pode sair daqui (null = pode)
+  const travaConta = (c: Linha): string | null => {
+    const e = (c.extrato ?? []).find((x) => x.status === "conciliado");
+    if (e) return `conciliada com a entrada de ${brl(e.valor)} em ${dataBR(e.data)} no extrato do banco`;
+    if (c.id_externo) return "lançada pela conciliação do extrato";
+    return null;
+  };
+  const travaDe = (campo: "pedido_id" | "os_id", id: string) => {
+    const c = contas.find((x) => x[campo] === id && travaConta(x));
+    return c ? `tem parcela ${travaConta(c)}` : null;
+  };
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [confirma, setConfirma] = useState("");
@@ -55,12 +75,19 @@ export function ApagarTestes() {
     }
   }
 
-  const grupo = (titulo: string, tipo: string, linhas: Linha[], rotulo: (l: Linha) => string, chave: (l: Linha) => string) => linhas.length > 0 && (
+  const grupo = (titulo: string, tipo: string, linhas: Linha[], rotulo: (l: Linha) => string, chave: (l: Linha) => string, trava: (l: Linha) => string | null = () => null) => linhas.length > 0 && (
     <fieldset className="min-w-0">
       <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</legend>
       <div className="space-y-1">
         {linhas.map((l) => {
           const k = `${tipo}:${chave(l)}`;
+          const motivo = trava(l);
+          if (motivo) return (
+            <div key={k} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-sm text-slate-500">
+              <Lock size={16} className="mt-0.5 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1">{rotulo(l)}<span className="block text-xs">Não é teste: {motivo}.</span></span>
+            </div>
+          );
           return (
             <label key={k} className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm ${marcados.has(k) ? "border-red-300 bg-red-50" : "border-slate-200"}`}>
               <input type="checkbox" className="h-4 w-4" checked={marcados.has(k)} onChange={() => alternar(k)} />
@@ -79,12 +106,13 @@ export function ApagarTestes() {
       <p className="mb-3 text-sm text-slate-500">
         Marque o que foi teste. O ERP mostra tudo que vai sair junto (parcelas, comissões, envios, avisos) e devolve ao estoque o que o teste tirou.
         NF-e autorizada não é apagada: fica guardada, com uma observação, para a devolução com o contador.
+        Conta já conciliada com o extrato do banco aparece com cadeado: é dinheiro que entrou e não sai por aqui.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
-        {grupo("Pedidos", "pedido", pedidos, (l) => `#${l.numero} · ${l.cliente?.nome ?? "sem cliente"} · ${brl(l.valor_total)} · ${l.status} · ${dataBR(l.created_at)}`, (l) => String(l.numero))}
-        {grupo("Ordens de serviço", "os", os, (l) => `OS #${l.numero} · ${l.cliente?.nome ?? "sem cliente"} · ${l.status} · ${dataBR(l.created_at)}`, (l) => String(l.numero))}
+        {grupo("Pedidos", "pedido", pedidos, (l) => `#${l.numero} · ${l.cliente?.nome ?? "sem cliente"} · ${brl(l.valor_total)} · ${l.status} · ${dataBR(l.created_at)}`, (l) => String(l.numero), (l) => travaDe("pedido_id", l.id))}
+        {grupo("Ordens de serviço", "os", os, (l) => `OS #${l.numero} · ${l.cliente?.nome ?? "sem cliente"} · ${l.status} · ${dataBR(l.created_at)}`, (l) => String(l.numero), (l) => travaDe("os_id", l.id))}
         {grupo("Ordens de produção (não concluídas)", "op", ops.filter((o) => o.status !== "concluida"), (l) => `OP #${l.numero} · ${l.status} · ${dataBR(l.created_at)}`, (l) => String(l.numero))}
-        {grupo("Contas a receber avulsas", "conta", avulsas, (l) => `${l.descricao} · ${l.cliente?.nome ?? ""} · ${brl(l.valor)} · ${l.status}`, (l) => l.id)}
+        {grupo("Contas a receber avulsas", "conta", avulsas, (l) => `${l.descricao} · ${l.cliente?.nome ?? ""} · ${brl(l.valor)} · ${l.status}`, (l) => l.id, travaConta)}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button type="button" variant="secondary" disabled={!total || ocupado} onClick={() => chamar(false)}><Eye size={16} aria-hidden /> Ver o que vai sair ({total})</Button>

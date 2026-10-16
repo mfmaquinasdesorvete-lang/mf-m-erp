@@ -1531,7 +1531,7 @@ const saldoUn = (produto: string, unidade: string) => Number(db.estoque_unidade.
 // Consultas no estilo do supabase-js (select com relacionamentos)
 // ---------------------------------------------------------------------
 const FK_PAI: Record<string, string> = { clientes: "cliente_id", fornecedores: "fornecedor_id", pedidos: "pedido_id", produtos: "produto_id", transferencias: "transferencia_id", unidades: "unidade_id", ordens_servico: "os_id" };
-const FK_FILHO: Record<string, string> = { pedidos: "pedido_id", ordens_servico: "os_id", pedidos_compra: "pedido_compra_id", transferencias: "transferencia_id" };
+const FK_FILHO: Record<string, string> = { pedidos: "pedido_id", ordens_servico: "os_id", pedidos_compra: "pedido_compra_id", transferencias: "transferencia_id", contas_receber: "conta_receber_id" };
 
 function dividir(sel: string) {
   const partes: string[] = [];
