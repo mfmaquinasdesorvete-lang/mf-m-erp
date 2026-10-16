@@ -213,6 +213,7 @@ end $$;
 --        giga?, observacoes? }
 --   NS já aprovado: recusa. NS com teste reprovado: vira reteste do último, com a tentativa seguinte.
 --   Medida fora do limite marcada como aprovada: exige a explicação nas observações e fica registrada.
+--   Máquina reprovada: exige nas observações o que falhou.
 -- ---------------------------------------------------------------------
 create or replace function public.teste_giga_lancar(p jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -353,6 +354,9 @@ begin
   end if;
   if cardinality(v_div) > 0 and v_obs is null then
     raise exception 'medida fora do limite marcada como aprovada: explique nas observações (%)', array_to_string(v_div, '; ');
+  end if;
+  if 'reprovado' in (v_funcional, v_aterr, v_tensao) and v_obs is null then
+    raise exception 'máquina reprovada: escreva nas observações o que falhou';
   end if;
 
   perform set_config('erp.acao_usuario', 'on', true);

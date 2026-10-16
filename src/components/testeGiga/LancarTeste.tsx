@@ -125,6 +125,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
       : !f.funcional || !f.aterramento || !f.tensao ? "Marque Aprovado ou Reprovado nos três testes."
       : invalida ? "Confira as medidas: há número inválido."
       : div.length && !f.observacoes.trim() ? "Medida fora do limite marcada como aprovada: explique nas observações."
+      : geral === "reprovada" && !f.observacoes.trim() ? "Máquina reprovada: escreva nas observações o que falhou."
       : f.operador === "outro" && !f.operador_nome.trim() ? "Escreva o nome do operador."
       : null;
     if (erro) return notifyError(new Error(erro));
@@ -288,8 +289,8 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
       )}
 
       <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:p-4">
-        <Field label={div.length ? "Observações (obrigatório: medida fora do limite)" : "Observações"}>
-          <textarea className="input" rows={2} maxLength={1000} value={f.observacoes} required={div.length > 0}
+        <Field label={div.length ? "Observações (obrigatório: medida fora do limite)" : geral === "reprovada" ? "Observações (obrigatório: o que falhou)" : "Observações"}>
+          <textarea className="input" rows={2} maxLength={1000} value={f.observacoes} required={div.length > 0 || geral === "reprovada"}
             placeholder={geral === "reprovada" ? "O que falhou e o que foi feito (ex.: cabo terra solto, reapertado)" : "Opcional"}
             onChange={(e) => set({ observacoes: e.target.value })} />
         </Field>
