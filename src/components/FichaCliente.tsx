@@ -24,6 +24,7 @@ import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasM
 import { SeloTesteGiga } from "@/components/testeGiga/SeloGiga";
 import { useSituacaoGiga } from "@/lib/testeGigaDados";
 import { normalizarNs } from "@/lib/testeGiga";
+import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
@@ -503,16 +504,22 @@ function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente;
 }
 
 type TecnicoRegiao = { id: string; nome: string; tipo: string; whatsapp: string | null; telefone: string | null; municipio: string | null; uf: string | null;
-  atendimentos: number; ultimo: string | null; na_cidade: boolean; no_estado: boolean };
+  atendimentos: number; ultimo: string | null; na_cidade: boolean; no_estado: boolean; drfrost?: boolean; verificado?: boolean };
 
-/** Técnicos que já atenderam este cliente (pelas OS) e os que atendem a cidade ou o estado dele. */
+/** Técnicos que já atenderam este cliente (pelas OS) e os que atendem a cidade ou o estado dele.
+ *  Os parceiros Dr. Frost (convidados do site de técnicos) vêm antes dos contatos. */
 function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamentos: any[] }) {
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["tecnicos_do_cliente", cliente.id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("tecnicos_do_cliente", { p_cliente: cliente.id });
       if (error) throw error;
-      return (data ?? []) as TecnicoRegiao[];
+      const lista = (data ?? []) as TecnicoRegiao[];
+      if (!lista.length) return lista;
+      const { data: extra } = await supabase.from("tecnicos").select("id, drfrost, verificado").in("id", lista.map((t) => t.id));
+      const porId = new Map(((extra ?? []) as { id: string; drfrost: boolean; verificado: boolean }[]).map((x) => [x.id, x]));
+      return lista.map((t) => ({ ...t, drfrost: !!porId.get(t.id)?.drfrost, verificado: !!porId.get(t.id)?.verificado }))
+        .sort((a, b) => b.atendimentos - a.atendimentos || Number(b.drfrost) - Number(a.drfrost) || Number(b.na_cidade) - Number(a.na_cidade) || a.nome.localeCompare(b.nome));
     },
   });
   const lugar = [cliente.municipio, cliente.uf].filter(Boolean).join("/");
@@ -528,8 +535,8 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
           <ul className="space-y-1.5 text-sm">
             {data.map((t) => (
               <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 [overflow-wrap:anywhere]">
-                <b className="text-fg">{t.nome}</b>
-                <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : "parceiro"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
+                <b className="text-fg">{t.nome}</b> <SeloDrFrost t={t} />
+                <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : t.drfrost ? "parceiro" : "contato"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
                 {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
                 {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">na cidade</span>
                   : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">no estado</span> : null}

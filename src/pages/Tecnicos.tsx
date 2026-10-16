@@ -1,8 +1,10 @@
 // Técnicos: a equipe da assistência e os parceiros (técnicos de outras cidades), com a região que cada um atende
 // (estados inteiros e/ou cidades). A OS guarda o técnico, e a ficha do cliente mostra quem já atendeu e quem
-// atende a região dele.
+// atende a região dele. Parceiros Dr. Frost: convidados, com anúncio no site de técnicos (cadastro completo do
+// anúncio); os demais são contatos (já atenderam ou vieram da internet).
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { ExternalLink, Users } from "lucide-react";
+import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button } from "@/components/ui";
 import { Contato } from "@/components/Contato";
@@ -16,7 +18,18 @@ export type Tecnico = {
   id: string; nome: string; tipo: "interno" | "parceiro"; whatsapp: string | null; telefone: string | null; email: string | null;
   municipio: string | null; uf: string | null; ufs: string[]; cidades: string[]; especialidades: string | null; observacoes: string | null;
   ativo: boolean; created_at: string;
+  drfrost?: boolean; drfrost_id?: string | null; drfrost_url?: string | null; drfrost_desde?: string | null; drfrost_status?: string | null;
+  nome_fantasia?: string | null; verificado?: boolean; destaque?: boolean; instagram?: string | null; facebook?: string | null;
+  site?: string | null; youtube?: string | null; endereco?: string | null; servicos?: string[]; diferenciais?: string[];
+  area_atuacao?: string | null; apresentacao?: string | null;
 };
+
+/** Lista separada por vírgula (serviços, diferenciais): digita livre e vira a lista ao sair do campo. */
+function CampoLista({ valor, onChange, placeholder }: { valor: string[] | null | undefined; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [texto, setTexto] = useState((valor ?? []).join(", "));
+  return <input className="input" value={texto} placeholder={placeholder} onChange={(e) => setTexto(e.target.value)}
+    onBlur={() => { const l = [...new Set(texto.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean))]; onChange(l); setTexto(l.join(", ")); }} />;
+}
 
 export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
@@ -65,6 +78,22 @@ const fields: CampoForm[] = [
   },
   { name: "especialidades", label: "Especialidades (ex.: refrigeração, parte elétrica, máquinas de açaí)", type: "textarea", span: 4 },
   { name: "observacoes", label: "Observações (valor da visita, disponibilidade…)", type: "textarea", span: 4 },
+  { name: "secao_drfrost", label: "Site Dr. Frost", type: "secao", ajuda: "Parceiro convidado, com anúncio no site de técnicos. Os demais técnicos são contatos (já atenderam ou vieram da internet)." },
+  { name: "drfrost", label: "Parceiro Dr. Frost (convidado)", type: "checkbox" },
+  { name: "verificado", label: "Anúncio verificado", type: "checkbox" },
+  { name: "destaque", label: "Destaque no site", type: "checkbox" },
+  { name: "nome_fantasia", label: "Nome no site / empresa", span: 2 },
+  { name: "drfrost_url", label: "Link do anúncio", span: 2, placeholder: "https://drfrost.com.br/guia/…" },
+  { name: "instagram", label: "Instagram", span: 2 },
+  { name: "facebook", label: "Facebook", span: 2 },
+  { name: "site", label: "Site", span: 2 },
+  { name: "youtube", label: "YouTube", span: 2 },
+  { name: "servicos", label: "Serviços (máquinas que atende, separados por vírgula)", type: "custom", span: 4,
+    render: (v, set) => <CampoLista valor={v} onChange={set} placeholder="Máquinas de Sorvete Expresso, Máquina de Açaí Expresso" /> },
+  { name: "diferenciais", label: "Diferenciais (separados por vírgula)", type: "custom", span: 4,
+    render: (v, set) => <CampoLista valor={v} onChange={set} placeholder="Refrigeração, Pane Elétrica, Técnico Autorizado" /> },
+  { name: "area_atuacao", label: "Área de atuação (texto do site)", span: 4 },
+  { name: "apresentacao", label: "Apresentação (texto do site)", type: "textarea", span: 4 },
 ];
 
 /** Cidades: digita livre e vira a lista ao sair do campo (sem perder o que está digitando). */
@@ -74,6 +103,8 @@ function CampoCidades({ valor, onChange }: { valor: string[] | null | undefined;
 }
 
 const FILTROS: FiltroCrud<Tecnico>[] = [
+  { label: "Origem", opcoes: [{ label: "Parceiros Dr. Frost (convidados)", teste: (t) => !!t.drfrost }, { label: "Verificados no site", teste: (t) => !!t.drfrost && !!t.verificado },
+    { label: "Contatos (já atenderam ou da internet)", teste: (t) => !t.drfrost }] },
   { label: "Tipo", opcoes: [{ label: "Da equipe", teste: (t) => t.tipo === "interno" }, { label: "Parceiros", teste: (t) => t.tipo === "parceiro" }] },
   { label: "Estado", valor: (t) => t.uf },
   { label: "Situação", opcoes: [{ label: "Ativos", teste: (t) => t.ativo }, { label: "Inativos", teste: (t) => !t.ativo }] },
@@ -110,27 +141,29 @@ export default function Tecnicos() {
       plural="técnicos"
       readOnly={!podeEditar}
       podeExcluir={papel === "admin"}
-      defaults={{ nome: "", tipo: "parceiro", ativo: true, ufs: [], cidades: [] }}
-      searchKeys={["nome", "municipio", "uf", "especialidades", "whatsapp", "email"]}
+      defaults={{ nome: "", tipo: "parceiro", ativo: true, ufs: [], cidades: [], drfrost: false, verificado: false, destaque: false, servicos: [], diferenciais: [] }}
+      searchKeys={["nome", "nome_fantasia", "municipio", "uf", "especialidades", "whatsapp", "email", "instagram", "area_atuacao"]}
       filtros={FILTROS}
-      beforeSave={(r) => ({ ...r, uf: r.uf ? String(r.uf).toUpperCase() : null, ufs: r.ufs ?? [], cidades: r.cidades ?? [] })}
+      beforeSave={(r) => ({ ...r, uf: r.uf ? String(r.uf).toUpperCase() : null, ufs: r.ufs ?? [], cidades: r.cidades ?? [], servicos: r.servicos ?? [], diferenciais: r.diferenciais ?? [] })}
       extraActions={podeEditar && <Button variant="secondary" disabled={ocupado} onClick={trazerEquipe}><Users size={16} /> Trazer da equipe</Button>}
       fields={fields}
       columns={[
         { label: "Técnico", render: (t) => (
           <div>
-            <div className="font-medium">{t.nome} {!t.ativo && <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">inativo</span>}</div>
-            <div className="text-xs text-slate-500">{[t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ")}</div>
+            <div className="flex flex-wrap items-center gap-1 font-medium">{t.nome} <SeloDrFrost t={t} />
+              {t.drfrost_url && <a href={t.drfrost_url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline" title="Abrir o anúncio no site Dr. Frost" aria-label="Abrir o anúncio no site Dr. Frost"><ExternalLink size={13} /></a>}
+              {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">inativo</span>}</div>
+            <div className="text-xs text-slate-500">{[t.nome_fantasia, t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ")}</div>
           </div>
         ) },
-        { label: "Tipo", render: (t) => <Badge value={t.tipo === "interno" ? "Da equipe" : "Parceiro"} /> },
+        { label: "Tipo", render: (t) => <Badge value={t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"} /> },
         { label: "Atende", render: (t) => <span className="text-sm">{textoRegiao(t)}</span> },
         { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
       cartaoCelular={(t, abrir) => (
         <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
-          <span className="block text-[15px] font-bold text-fg">{t.nome}</span>
-          <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : "Parceiro"} · atende {textoRegiao(t)}</span>
+          <span className="flex flex-wrap items-center gap-1 text-[15px] font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
+          <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"} · atende {textoRegiao(t)}</span>
         </button>
       )}
     />
