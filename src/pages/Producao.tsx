@@ -29,6 +29,8 @@ import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocum
 import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
+import { TesteGigaDaOp } from "@/components/testeGiga/SeloGiga";
+import { avisoGigaDaOp } from "@/lib/testeGigaDados";
 
 type Aba = "producao" | "reposicao" | "necessidades" | "compras" | "cotacoes" | "ficha";
 /** Duas telas: Produção (ordens e ficha técnica) e Compras (pedidos de compra, cotações, necessidades de compra e reposição). */
@@ -315,6 +317,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
 
   const etapas = (Array.isArray(o.etapas) ? o.etapas : []) as EtapaOp[];
   const etapasMaquina = (produtos.find((p) => p.id === o.produto_id)?.etapas_producao ?? []) as string[];
+  const ehMaquina = produtos.find((p) => p.id === o.produto_id)?.tipo === "maquina";
   const faltamEtapas = etapas.filter((e) => !e.feita).length;
   /** Marca ou desmarca uma etapa e grava na hora (quem e quando ficam registrados). */
   async function marcarEtapa(i: number) {
@@ -334,6 +337,10 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
 
   const concluir = async () => {
     if (faltamEtapas && !(await confirmar(`Faltam ${faltamEtapas} ${pl(faltamEtapas, "etapa", "etapas")} da conferência. Concluir a produção mesmo assim?`))) return;
+    // teste do giga (REG-006): só avisa, não bloqueia
+    const aviso = ehMaquina ? await avisoGigaDaOp(o.numeros_serie) : null;
+    if (aviso && !(await confirmar(`${aviso} Concluir a produção mesmo assim? O teste pode ser lançado depois.`,
+      { titulo: "Teste do giga (REG-006)", ok: "Concluir mesmo assim", perigo: false }))) return;
     return concluirAgora();
   };
   const concluirAgora = () => executar(async () => {
@@ -481,6 +488,8 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
             )}
           </div>
         )}
+
+        {o.id && ehMaquina && <TesteGigaDaOp numerosSerie={o.numeros_serie} produtoId={o.produto_id} opId={o.id} />}
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
           {podeEditar && o.id && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => mudarStatus("cancelada", "Ordem cancelada")} disabled={ocupado}><XCircle size={16} /> Cancelar OP</Button>}

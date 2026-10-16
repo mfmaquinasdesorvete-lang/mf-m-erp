@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Fuel, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -74,6 +74,7 @@ export const grupos: Grupo[] = [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
       { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
+      { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield" },
       { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
       { to: "/compras", tela: "producao", label: "Compras", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },

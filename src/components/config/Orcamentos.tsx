@@ -147,6 +147,12 @@ export function ConfigOrcamentos() {
           </div>
         </Bloco>
 
+        <Bloco titulo="Teste do giga (REG-006)" descricao="Revisão do formulário de qualidade que sai no cabeçalho do PDF do REG-006 (Máquinas → Teste do giga → Registros). Mude quando o formulário for revisado." fechado>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            {textoDoc("reg006_revisao", "Revisão do REG-006", "Ex.: Revisão 01. Vazio usa a do sistema (Revisão 00).", 1)}
+          </div>
+        </Bloco>
+
         <Bloco titulo="Ordem de compra (OC)" descricao="Vale para a solicitação de cotação e para o pedido de compra enviados ao fornecedor." fechado>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {textoDoc("oc_observacoes", "Observações da OC nova", "Já vem nas observações de toda OC nova feita à mão.", 2)}

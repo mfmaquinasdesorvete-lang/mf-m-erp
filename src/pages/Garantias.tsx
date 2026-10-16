@@ -12,6 +12,7 @@ import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, Produto } from "@/lib/types";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { TesteGigaDoNs } from "@/components/testeGiga/SeloGiga";
 
 type Filtro = "todos" | "em_garantia" | "vence_logo" | "fora_garantia" | "prev_atrasada" | "prev_proxima";
 
@@ -286,6 +287,7 @@ export function HistoricoModal({ equipamento, onClose }: { equipamento: { id?: s
 
   return (
     <Modal open onClose={onClose} title={`Histórico · ${equipamento.descricao}${equipamento.numero_serie ? ` (${equipamento.numero_serie})` : ""}`} wide>
+      <TesteGigaDoNs ns={equipamento.numero_serie} rotulo="Teste na fábrica (REG-006):" className="mb-4" />
       {isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : !ordens.length ? (
         <p className="py-6 text-center text-sm text-slate-500">Nenhum atendimento registrado para esta máquina.</p>
       ) : (

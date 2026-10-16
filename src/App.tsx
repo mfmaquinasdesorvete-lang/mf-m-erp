@@ -42,6 +42,7 @@ const Garantias = lazy(() => import("@/pages/Garantias"));
 const Relatorios = lazy(() => import("@/pages/Relatorios"));
 const Gerencial = lazy(() => import("@/pages/Gerencial"));
 const Producao = lazy(() => import("@/pages/Producao"));
+const TesteGiga = lazy(() => import("@/pages/TesteGiga"));
 const Loja = lazy(() => import("@/pages/Loja"));
 const Transferencias = lazy(() => import("@/pages/Transferencias"));
 const Email = lazy(() => import("@/pages/Email"));
@@ -90,6 +91,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "produtos/pecas", tela: "estoque", element: <Produtos key="pecas" cadastroFixo="pecas" /> },
   { path: "produtos/componentes", tela: "estoque", element: <Produtos key="componentes" cadastroFixo="componentes" /> },
   { path: "produtos/servicos", tela: "estoque", element: <Produtos key="servicos" cadastroFixo="servicos" /> },
+  // registro de qualidade REG-006 (teste das máquinas na bancada)
+  { path: "teste-giga", tela: "testegiga", element: <TesteGiga /> },
   { path: "tecnicos", tela: "assistencia", element: <Tecnicos /> },
   { path: "financeiro", tela: "financeiro", element: <Financeiro /> },
   { path: "aprovacoes", tela: "financeiro", element: <Aprovacoes /> },
