@@ -133,8 +133,10 @@ function FiltroMarcador({ valor, onChange }: { valor: string; onChange: (v: stri
 }
 
 export default function NotasFiscais() {
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem } = usePerfil();
   const contador = papel === "contador";
+  // perfil Compras (sem vendas nem financeiro): só as notas de fornecedor
+  const soRecebidas = !contador && !tem("vendas", "financeiro") && pode("nfe_recebidas");
   const [aba, setAba] = useAbaUrl<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse">("emitidas", ["emitidas", "recebidas", "config", "regras", "compliance", "nfse"] as const);
   // "+ Emitir NF-e" do menu: abre a emissão
   const location = useLocation();
@@ -159,6 +161,7 @@ export default function NotasFiscais() {
   return (
     <div>
       <PageHeader title="Notas fiscais" />
+      {soRecebidas ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <>
       <Tabs value={aba} onChange={setAba} options={[
         { value: "emitidas", label: "NF-e emitidas (vendas)" },
         ...(pode("nfe_recebidas") || contador ? [{ value: "recebidas" as const, label: "NF-e recebidas (fornecedores)" }] : []),
@@ -168,6 +171,7 @@ export default function NotasFiscais() {
         { value: "compliance", label: "Compliance fiscal" },
       ]} />
       {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
+      </>}
     </div>
   );
 }
@@ -317,7 +321,10 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const [etapa, setEtapa] = useState("");
   const [mkt, setMkt] = useState("");
   const { porNota: marketplaceDe } = useComprasMarketplace();
-  const { data: excluidas = [] } = useExcluidas("nfe_recebidas", !leitura);
+  // compras vê e trabalha as notas; excluir, restaurar e lançar contas a pagar ficam com o financeiro
+  const { tem } = usePerfil();
+  const fin = !leitura && tem("financeiro");
+  const { data: excluidas = [] } = useExcluidas("nfe_recebidas", fin);
   const { data: evolucoes } = useEvolucaoRecebidas();
   const evolucao = useMemo(() => new Map(data.map((n) => [n.id, evolucaoRecebida(n as any, evolucoes?.get(n.id))])), [data, evolucoes]);
   const filtroEtapa = FILTROS_RECEBIDAS.find((f) => f.valor === etapa);
@@ -350,7 +357,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const abertaAtual = aberta ? data.find((n) => n.id === aberta.id) ?? aberta : null;
   const abas = [
     ...ABAS_RECEBIDAS.map((a) => ({ valor: a.valor, rotulo: a.rotulo, n: data.filter(a.filtro).length, icone: a.valor === "devolucoes" ? <Undo2 size={14} /> : undefined })),
-    ...(!leitura ? [{ valor: "excluidas", rotulo: "Excluídas", n: excluidas.length }] : []),
+    ...(fin ? [{ valor: "excluidas", rotulo: "Excluídas", n: excluidas.length }] : []),
   ].filter((a) => a.n > 0 || ["todas", "pendentes", "lancadas"].includes(a.valor) || a.valor === aba);
   const tabela: TabelaNota = "nfe_recebidas";
 
@@ -366,7 +373,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
           Marcadores: (n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
         })))}><FileDown size={16} /> Exportar</Button>
         <BotaoImportar tipo="recebidas" rotulo="Importar XML ou .zip" />
-        <Button variant="secondary" title="Das notas importadas que ficaram só como histórico: as duplicatas que ainda vão vencer viram contas a pagar (sem repetir)"
+        {fin && <Button variant="secondary" title="Das notas importadas que ficaram só como histórico: as duplicatas que ainda vão vencer viram contas a pagar (sem repetir)"
           onClick={async () => {
             try {
               const { data: n, error } = await supabase.rpc("lancar_duplicatas_a_vencer");
@@ -374,7 +381,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
               notify(n ? `${n} ${pl(n, "parcela", "parcelas")} a vencer ${pl(n, "lançada", "lançadas")} no contas a pagar` : "Nenhuma parcela a vencer sem conta lançada");
               invalidate("contas_pagar");
             } catch (e) { notifyError(e); }
-          }}><CalendarClock size={16} /> Lançar contas a vencer</Button>
+          }}><CalendarClock size={16} /> Lançar contas a vencer</Button>}
         <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>
         </MaisAcoes>
         <p className="hidden text-sm text-slate-500 md:block">

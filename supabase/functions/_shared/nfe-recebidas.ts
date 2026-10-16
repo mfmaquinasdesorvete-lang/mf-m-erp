@@ -5,6 +5,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { ambienteParaMensagem, codigoUnidade, erroDeToken, focus, focusJson, recebidasDisponiveis } from "./focusnfe.ts";
 import { type Duplicata, type ItemNota, lerCabecalho, lerNfe } from "./nfe-xml.ts";
+import { custosAutomaticos, opcoesPadraoNota } from "./nota-custo.ts";
 
 export type RecebidaFocus = {
   chave_nfe: string;
@@ -78,7 +79,7 @@ export async function carregarItens(db: SupabaseClient, nfe: { id: string; chave
   if (!xml) return null;
   const lido = lerNfe(xml);
   await db.from("nfe_recebidas").update({ itens: lido.itens, nfe_completa: true }).eq("id", nfe.id);
-  return lido;
+  return { ...lido, xml };
 }
 
 /** Lança as duplicatas da nota em contas a pagar (ou parcela única no vencimento informado). */
@@ -151,11 +152,13 @@ async function marcarDevolucao(db: SupabaseClient, id: string) {
 
 type Config = {
   entrada_automatica_estoque: boolean; conta_pagar_automatica: boolean;
+  /** regras de preço (configuracoes.precificacao): custo_nota e finalidade_nota dizem como calcular o custo pela nota */
+  precificacao?: unknown;
   /** Notas de fornecedor emitidas antes desta data já foram lançadas no sistema anterior: não entram sozinhas. */
   recebidas_processar_desde?: string | null;
 };
 /** Campos de configuracoes usados no processamento automático. */
-export const CONFIG_RECEBIDAS = "entrada_automatica_estoque, conta_pagar_automatica, recebidas_processar_desde";
+export const CONFIG_RECEBIDAS = "entrada_automatica_estoque, conta_pagar_automatica, recebidas_processar_desde, precificacao";
 
 /**
  * Processa uma NF-e recebida: ciência -> XML -> contas a pagar -> entrada no estoque.
@@ -207,13 +210,24 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
     if (!itens.some((i) => i.produto_id)) {
       return await marcar("concluido", "Só itens de uso e consumo, bens da empresa ou serviço: a nota não entra no estoque.");
     }
-    const { error } = await db.rpc("lancar_estoque_nfe_core", {
-      p_nfe: nfe.id,
-      p_itens: itens.map((i) => ({
-        codigo: i.codigo, descricao: i.descricao, produto_id: i.produto_id,
-        quantidade: i.quantidade, valor_unitario: i.valor_unitario, fator: i.fator, atualizar_custo: true,
-      })),
+    // Custo completo pela nota (a mesma conta da tela, em nota-custo.ts): frete, seguro e outras despesas rateados,
+    // desconto, IPI, ICMS-ST e os créditos do custo líquido, dividido pelo fator. A conta fica em nfe_custos_itens.
+    const opcoes = opcoesPadraoNota(cfg.precificacao);
+    const itensEstoque = itens.map((i) => ({
+      codigo: i.codigo, descricao: i.descricao, produto_id: i.produto_id,
+      quantidade: i.quantidade, valor_unitario: i.valor_unitario, fator: i.fator,
+    }));
+    const custos = custosAutomaticos(lido.xml, itens, opcoes);
+    let { error } = await db.rpc("entrada_automatica_nota", {
+      p_nfe: nfe.id, p_itens: itensEstoque, p_custos: custos,
+      p_opcoes: { finalidade: opcoes.finalidade, descontar_creditos: opcoes.descontarCreditos },
     });
+    // banco ainda sem a função nova (migração não aplicada): a entrada de antes, com o custo pelo valor unitário
+    if (error && (error.code === "PGRST202" || /entrada_automatica_nota/.test(error.message))) {
+      ({ error } = await db.rpc("lancar_estoque_nfe_core", {
+        p_nfe: nfe.id, p_itens: itensEstoque.map((i) => ({ ...i, atualizar_custo: true })),
+      }));
+    }
     if (error) return await marcar("aguardando_vinculo", `Erro ao lançar estoque: ${error.message}`);
     // o gatilho do banco marca a nota como "concluido"
   } catch (e) {

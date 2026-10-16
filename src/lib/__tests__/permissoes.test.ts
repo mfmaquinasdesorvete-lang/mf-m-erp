@@ -26,3 +26,28 @@ describe("perfil Marketplaces", () => {
     expect(pode("vendas", "editar_produtos", ["marketplace"])).toBe(true);
   });
 });
+
+describe("perfil Compras", () => {
+  it("vê compras, notas, fornecedores, produtos e documentos; não vê o financeiro nem as vendas", () => {
+    for (const t of ["producao", "notas", "fornecedores", "estoque", "documentos"] as const) expect(podeVer("compras", t)).toBe(true);
+    for (const t of ["financeiro", "conciliacao", "pedidos", "clientes", "relatorios", "usuarios", "contador"] as const) {
+      expect(podeVer("compras", t)).toBe(false);
+    }
+  });
+  it("faz OC, recebe, cuida das notas de fornecedor e dos fornecedores; não mexe em contas nem emite nota", () => {
+    for (const a of ["editar_producao", "receber_compras", "nfe_recebidas", "editar_fornecedores"] as const) expect(pode("compras", a)).toBe(true);
+    for (const a of ["contas_pagar", "editar_financeiro", "emitir_nfe", "movimentar_estoque", "editar_produtos", "editar_pedidos"] as const) {
+      expect(pode("compras", a)).toBe(false);
+    }
+    expect(temPapel("compras", [], "financeiro")).toBe(false);
+  });
+  it("fica na tela de Compras: sem ordens de produção, painel fiscal e transferências", () => {
+    expect(itemVisivel("compras", [], "producao", "/compras", {})).toBe(true);
+    for (const to of ["/producao", "/painel/notas", "/transferencias"]) expect(itemVisivel("compras", [], to === "/painel/notas" ? "notas" : to === "/transferencias" ? "estoque" : "producao", to, {})).toBe(false);
+    expect(itemVisivel("compras", [], "notas", "/notas", {})).toBe(true);
+  });
+  it("pode ser papel adicional", () => {
+    expect(podeVer("tecnico", "notas", ["compras"])).toBe(true);
+    expect(pode("vendas", "receber_compras", ["compras"])).toBe(true);
+  });
+});

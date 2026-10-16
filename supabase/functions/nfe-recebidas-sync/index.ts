@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    await requireErpUser(req, ["financeiro"]);
+    // notas de fornecedor: financeiro e compras; contas a pagar só o financeiro (abaixo)
+    await requireErpUser(req, ["financeiro", "compras"]);
     const body = await req.json();
     const db = adminClient();
 
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
         if (!body.nfe_id) return json({ ok: true, automaticas: await processarPendentes(db) });
         const nfe = await carregarNota();
         const { data: cfg } = await db.from("configuracoes")
-          .select("entrada_automatica_estoque, conta_pagar_automatica").eq("id", 1).single();
+          .select("entrada_automatica_estoque, conta_pagar_automatica, precificacao").eq("id", 1).single();
         await db.from("nfe_recebidas").update({ tentativas: 0 }).eq("id", nfe.id);
         await processarNota(db, { ...nfe, tentativas: 0 }, cfg!);
         const { data } = await db.from("nfe_recebidas").select("processamento, processamento_msg").eq("id", nfe.id).single();
@@ -84,6 +85,7 @@ Deno.serve(async (req) => {
       }
 
       case "lancar_conta": {
+        await requireErpUser(req, ["financeiro"]);
         const nfe = await carregarNota();
         if (nfe.conta_pagar_id) throw new HttpError(400, "esta nota já foi lançada em contas a pagar");
         let duplicatas: { numero: string | null; vencimento: string; valor: number }[] = [];

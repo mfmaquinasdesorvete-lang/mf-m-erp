@@ -1,15 +1,16 @@
 // Nota de fornecedor aberta: dados, itens, manifestação, processamento, marcadores, observação e ações
 // (entrada no estoque, contas a pagar, reprocessar, NF de devolução de compra, excluir).
+// Abas da nota completa: itens e custos (vínculo, conversão, custo de entrada), preços, marcadores dos
+// produtos e ordem de compra (fornecedor/NotaFornecedorAbas).
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Download, PackagePlus, RefreshCw, Tags, Trash2, Undo2 } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, Field, Modal, Tabs } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
 import { numeroDaChave, situacaoRecebida } from "@/lib/notas";
-import { EntradaEstoqueModal } from "@/components/EntradaEstoqueModal";
 import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
@@ -17,6 +18,8 @@ import { DevolucaoModal } from "./DevolucaoModal";
 import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
 import { evolucaoRecebida } from "@/lib/evolucaoNota";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
+import { usePerfil } from "@/lib/auth";
+import { ABAS_NOTA, NotaFornecedorAbas, type AbaNota } from "./fornecedor/NotaFornecedorAbas";
 
 export type Recebida = {
   id: string; chave: string; emitente_nome: string; emitente_cnpj: string; valor_total: number; data_emissao: string;
@@ -29,7 +32,14 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
   const { data: marcadores = [] } = useMarcadores();
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
-  const [janela, setJanela] = useState<"marcadores" | "entrada" | "devolucao" | "excluir" | null>(null);
+  const [janela, setJanela] = useState<"marcadores" | "devolucao" | "excluir" | null>(null);
+  const { tem } = usePerfil();
+  // contas a pagar, NF de devolução e excluir ficam com o financeiro (o Compras trabalha a nota, o custo e a OC)
+  const fin = tem("financeiro");
+  const [aba, setAba] = useState<AbaNota>("resumo");
+  // as abas da nota completa só carregam (XML, produtos, OC) depois do primeiro clique, e não perdem o que foi feito
+  const [abriuAbas, setAbriuAbas] = useState(false);
+  const irPara = (a: AbaNota) => { setAba(a); if (a !== "resumo") setAbriuAbas(true); };
   const [obs, setObs] = useState(n.observacao_interna ?? "");
   const sit = situacaoRecebida(n);
   const { data: itens = [] } = useQuery({
@@ -92,6 +102,13 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
           <ChipsMarcadores ids={n.marcadores} todos={marcadores} />
           {!leitura && <Button type="button" variant="ghost" onClick={() => setJanela("marcadores")}><Tags size={15} /> Marcadores</Button>}
         </div>
+        {!leitura && <Tabs value={aba} onChange={irPara} options={ABAS_NOTA} />}
+        {!leitura && abriuAbas && (
+          <NotaFornecedorAbas aba={aba} podeEditar={!leitura} podeAprovar={fin}
+            nota={{ id: n.id, chave: n.chave, emitente_nome: n.emitente_nome, emitente_cnpj: n.emitente_cnpj, valor_total: Number(n.valor_total),
+              situacao: n.situacao, estoque_lancado: n.estoque_lancado, fornecedor_id: n.fornecedor_id ?? null }} />
+        )}
+        {aba === "resumo" && <>
         {n.processamento_msg && n.processamento !== "concluido" && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{n.processamento_msg}</div>}
 
         <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -146,20 +163,20 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             {ativa && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento) && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "processar", nfe_id: n.id }, (r) => `Situação: ${String(r.processamento).replace(/_/g, " ")}`, true)}><RefreshCw size={15} /> Processar de novo</Button>
             )}
-            {ativa && !n.estoque_lancado && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => setJanela("entrada")}><PackagePlus size={15} /> Entrada no estoque</Button>}
-            {ativa && !n.conta_pagar_id && n.finalidade !== "devolucao" && (
+            {ativa && !n.estoque_lancado && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => irPara("itens")}><PackagePlus size={15} /> Entrada no estoque</Button>}
+            {ativa && fin && !n.conta_pagar_id && n.finalidade !== "devolucao" && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "lancar_conta", nfe_id: n.id }, (r) => `${r.contas} ${pl(r.contas, "parcela", "parcelas")} ${pl(r.contas, "lançada", "lançadas")} em contas a pagar`, true)}>Lançar a pagar</Button>
             )}
-            {ativa && n.finalidade !== "devolucao" && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
-            {!n.estoque_lancado && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
+            {ativa && fin && n.finalidade !== "devolucao" && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
+            {fin && !n.estoque_lancado && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
           </div>
         )}
         <EvolucaoRecebida n={n} />
         <Historico tabela="nfe_recebidas" id={n.id} />
+        </>}
       </div>
 
       {janela === "marcadores" && <AplicarMarcadores tabela="nfe_recebidas" notas={[n]} onClose={() => setJanela(null)} />}
-      {janela === "entrada" && <EntradaEstoqueModal nota={n} onClose={() => setJanela(null)} />}
       {janela === "devolucao" && <DevolucaoModal origem={{ tipo: "recebida", id: n.id }} onClose={() => { setJanela(null); onClose(); }} />}
       {janela === "excluir" && (
         <MotivoAcao titulo="Excluir nota de fornecedor" rotulo="Excluir" perigo onClose={() => setJanela(null)}
