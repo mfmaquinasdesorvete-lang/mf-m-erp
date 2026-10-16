@@ -4293,7 +4293,7 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {
-    const ADIC = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace"];
+    const ADIC = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace", "compras"];
     const extras = (v: any, papel: string) => (Array.isArray(v) && !["admin", "contador"].includes(papel) ? [...new Set(v as string[])].filter((p) => ADIC.includes(p) && p !== papel) : []);
     const ultimoAdmin = (u: Row, papel: string, ativo: boolean) => u.papel === "admin" && u.ativo && (papel !== "admin" || !ativo)
       && !db.usuarios_erp.some((x) => x.user_id !== u.user_id && x.papel === "admin" && x.ativo);

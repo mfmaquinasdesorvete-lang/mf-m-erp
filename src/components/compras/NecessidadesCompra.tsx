@@ -80,8 +80,8 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
   aoCotar?: (itens: { produto_id: string; quantidade: number }[]) => void;
 }) {
   const { pode, tem } = usePerfil();
-  // o perfil Marketplaces edita produto, mas o banco não deixa mudar estoque mínimo e máximo
-  const podeMinMax = pode("editar_produtos") && tem("financeiro");
+  // o perfil Marketplaces edita produto, mas o banco não deixa mudar estoque mínimo e máximo; o Compras muda (só esses campos)
+  const podeMinMax = (pode("editar_produtos") && tem("financeiro")) || tem("compras");
   const { unidades, atual, padrao, nome: nomeUnidade } = useUnidade();
   const { data: cfg } = useConfig();
   const invalidate = useInvalidate();

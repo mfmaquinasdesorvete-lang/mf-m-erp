@@ -15,6 +15,8 @@ import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
+import { NotasDaOc } from "@/components/compras/NotasDaOc";
+import { Historico } from "@/components/Historico";
 import { usePerfil } from "@/lib/auth";
 import type { EtapaOp, Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
 import { Reposicao } from "@/components/Reposicao";
@@ -701,6 +703,10 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
             detalhe={(x) => [x.sku, `custo ${brl(x.preco_custo)}`, `estoque ${Number(x.estoque_atual)} (mín. ${Number(x.estoque_minimo)})`].filter(Boolean).join(" · ")} />
         )}
         <div className="text-right text-sm text-slate-600">Itens {brl(subtotal)} · Frete {brl(p.frete)} · <span className="num text-lg font-bold text-fg">Total {brl(subtotal + Number(p.frete || 0))}</span></div>
+        {p.id && p.status && ["enviado", "parcial", "recebido"].includes(p.status) && (
+          <NotasDaOc pedido={{ id: p.id, numero: Number(p.numero), status: p.status, itens: p.itens }} onBaixa={onClose} />
+        )}
+        {p.id && pode("receber_compras") && <Historico tabela="pedidos_compra" id={p.id} />}
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
           {p.itens.length > 0 && <Button type="button" variant="ghost" onClick={gerarPdf}><FileDown size={16} /> PDF</Button>}

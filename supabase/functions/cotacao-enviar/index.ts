@@ -22,7 +22,7 @@ function corLegivel(hex: string | null | undefined) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    await requireErpUser(req, ["financeiro", "tecnico"]);
+    await requireErpUser(req, ["financeiro", "tecnico", "compras"]);
     const { cotacao_id, fornecedores, mensagem } = await req.json();
     const db = adminClient();
     const { data: c } = await db.from("cotacoes").select("*").eq("id", cotacao_id).single();

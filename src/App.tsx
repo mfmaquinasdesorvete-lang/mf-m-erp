@@ -235,6 +235,7 @@ const INICIO_DO_PAPEL: Partial<Record<string, { to: string; tela: Tela }>> = {
   vendas: { to: "/painel/vendas", tela: "pedidos" },
   financeiro: { to: "/painel/financeiro", tela: "financeiro" },
   tecnico: { to: "/painel/posvenda", tela: "assistencia" },
+  compras: { to: "/compras", tela: "producao" },
 };
 let inicioFeitoPara: string | null = null; // quem já foi levado à tela inicial nesta aba
 

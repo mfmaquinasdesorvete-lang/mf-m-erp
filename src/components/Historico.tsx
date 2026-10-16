@@ -25,8 +25,12 @@ export const ROTULO_CAMPO: Record<string, string> = {
   primeiro_vencimento: "1º vencimento", codigo_rastreio: "rastreio", marcadores: "marcadores", observacao_interna: "observação interna",
   papeis_extras: "papéis adicionais", cargo: "função", trocar_senha: "senha provisória",
 };
-/** Itens do pedido no histórico do pedido. */
-const ITEM: Record<string, string> = { item_incluido: "incluiu item", item_removido: "removeu item", item_alterado: "alterou item" };
+/** Itens do pedido no histórico do pedido; eventos da nota de fornecedor (custo, OC, entrada) na nota e na OC. */
+const ITEM: Record<string, string> = {
+  item_incluido: "incluiu item", item_removido: "removeu item", item_alterado: "alterou item",
+  custos_nota: "custo e preço pela nota", entrada_nota: "entrada pela nota", oc_ligada: "nota ligada à OC",
+  oc_desligada: "nota desligada da OC", recebido_pela_nota: "recebido pela nota",
+};
 const DINHEIRO = ["valor", "valor_pago", "desconto", "preco_venda", "preco_custo", "saldo_inicial", "valor_total", "frete"];
 const DATA = ["vencimento", "data_pagamento", "prazo", "data", "primeiro_vencimento", "aprovado_em", "reaberto_em", "enviado_em"];
 

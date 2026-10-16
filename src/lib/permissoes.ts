@@ -1,4 +1,4 @@
-export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace";
+export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace" | "compras";
 
 export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "admin", label: "Administrador", descricao: "Acesso total, usuários e configurações" },
@@ -8,10 +8,11 @@ export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "contador", label: "Contador", descricao: "Só consulta: notas fiscais, financeiro e o fechamento mensal (XML e planilhas)" },
   { value: "expedicao", label: "Expedição", descricao: "Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE" },
   { value: "marketplace", label: "Marketplaces", descricao: "Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque)" },
+  { value: "compras", label: "Compras", descricao: "Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço para aprovação, vínculo com a OC), fornecedores e estoque" },
 ];
 
 /** Papéis que podem ser somados ao principal (admin e contador não se misturam). */
-export const PAPEIS_ADICIONAIS: Papel[] = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace"];
+export const PAPEIS_ADICIONAIS: Papel[] = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace", "compras"];
 
 export const rotuloPapel = (p: string | null | undefined) => PAPEIS.find((x) => x.value === p)?.label ?? p ?? "";
 
@@ -39,6 +40,8 @@ const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
   // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
   marketplace: ["estoque", "documentos", "mercadolivre"],
+  // área de Compras (OC, cotações, necessidades, reposição), notas de fornecedor, fornecedores, produtos e estoque
+  compras: ["producao", "notas", "fornecedores", "estoque", "documentos"],
 };
 
 /** Ações de escrita (espelham as políticas do banco). */
@@ -71,6 +74,9 @@ const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
   expedicao: ["expedir"],
   // o banco segura preço, custo, estoque, fornecedor, tipo e ativar/desativar (perfil_marketplace)
   marketplace: ["editar_produtos"],
+  // produto: o banco deixa mudar só marcadores, mínimo/máximo, prazo, compra mínima e fornecedor padrão; preço e custo
+  // passam pela nota (custo) e pela aprovação (preço)
+  compras: ["editar_producao", "receber_compras", "nfe_recebidas", "editar_fornecedores"],
 };
 
 /** Papel principal + adicionais (sem admin, que já vê tudo). */
@@ -102,4 +108,9 @@ export const itemVisivel = (papel: Papel | null | undefined, extras: readonly st
   papel === "admin" || papeisDe(papel, extras).some((p) => TELAS[p].includes(tela) && !(to && ((oculto[p] ?? []).includes(to) || (OCULTO_FIXO[p] ?? []).includes(to))));
 
 /** Itens que o papel nunca vê, mesmo estando numa tela dele (o Marketplaces cuida do cadastro, não do estoque). */
-const OCULTO_FIXO: MenuOculto = { marketplace: ["/transferencias"] };
+const OCULTO_FIXO: MenuOculto = {
+  marketplace: ["/transferencias"],
+  // Compras fica na tela de Compras e nas notas de fornecedor: sem as ordens de produção, o painel das notas
+  // emitidas e as transferências entre unidades
+  compras: ["/producao", "/painel/notas", "/transferencias"],
+};
