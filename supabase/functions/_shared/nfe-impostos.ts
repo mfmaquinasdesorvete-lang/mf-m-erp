@@ -11,6 +11,10 @@ export type UnidadeFiscal = {
   pis_cst: string; pis_aliquota: number; cofins_cst: string; cofins_aliquota: number; pis_cofins_exclui_icms: boolean;
   ipi_cst: string; ipi_enquadramento: string; difal_ativo: boolean;
   transf_icms_cst: string; transf_pis_cofins_cst: string; transf_destacar_ipi: boolean;
+  /** Código de benefício fiscal (cBenef) da transferência: vai nos CST sem destaque (SC exige no 40, 41, 50…). */
+  transf_cbenef?: string | null;
+  /** Base do IPI na transferência do que a unidade fabrica: "custo" (padrão) ou "preco_venda" (RIPI, art. 195, I). */
+  transf_ipi_base?: string | null;
   /** Reforma Tributária: CST e classificação tributária (cClassTrib) do IBS/CBS na venda e na transferência. */
   ibs_cbs_cst?: string; ibs_cbs_class_trib?: string; transf_ibs_cbs_cst?: string; transf_ibs_cbs_class_trib?: string;
   /** CST do IPI quando a alíquota da TIPI é zero (51 = saída tributada com alíquota zero). */
@@ -28,7 +32,37 @@ export type ItemBase = {
   desconto?: number; frete?: number;
   cfop?: string | null;           // CFOP próprio do produto (sobrepõe a regra)
   ipi_aliquota?: number | null;
+  /** Como o item chega (ficha técnica): comprado, fabricado ou terceirizado. Vazio = pelo tipo. */
+  origem_producao?: string | null;
+  /** Subconjunto com estoque próprio (feito na fábrica). */
+  subconjunto_estocado?: boolean | null;
+  /** Preço de venda do cadastro (base do IPI na transferência, se a unidade escolher). */
+  preco_venda?: number | null;
 };
+
+/** Produto do cadastro no formato do cálculo (mesmo jeito na função e na tela). */
+export function itemDoCadastro(p: Record<string, any>, descricao: string, quantidade: number, valor: number, extra: Partial<ItemBase> = {}): ItemBase {
+  const so = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+  return {
+    codigo: p.sku || String(p.id ?? "").slice(0, 8), descricao, ncm: so(p.ncm), cest: p.cest ? so(p.cest) : null,
+    unidade: p.unidade || "UN", origem: Number(p.origem ?? 0), tipo: p.tipo, quantidade: Number(quantidade), valor_unitario: Number(valor),
+    cfop: p.cfop || null, ipi_aliquota: p.ipi_aliquota == null ? null : Number(p.ipi_aliquota),
+    origem_producao: p.origem_producao ?? null, subconjunto_estocado: !!p.subconjunto_estocado,
+    preco_venda: p.preco_venda == null ? null : Number(p.preco_venda), ...extra,
+  };
+}
+
+/**
+ * O item é produção da unidade? Só em unidade que fabrica. Vale a ficha técnica: "fabricado aqui" ou "com etapa em
+ * terceiro" é produção; "comprado pronto" é revenda (mesmo sendo máquina, ex.: usada comprada de cliente). Sem a
+ * informação, máquina e subconjunto com estoque próprio contam como produção.
+ */
+export function produzidoNaUnidade(i: Pick<ItemBase, "tipo" | "origem_producao" | "subconjunto_estocado">, unidade: { fabrica?: boolean | null }) {
+  if (!unidade.fabrica) return false;
+  if (i.origem_producao === "comprado") return false;
+  if (i.origem_producao === "fabricado" || i.origem_producao === "terceirizado") return true;
+  return i.tipo === "maquina" || !!i.subconjunto_estocado;
+}
 
 export type AliquotasUf = Record<string, { aliquota_interna: number; fcp: number }>;
 
@@ -277,11 +311,15 @@ export function itensVenda(unidade: UnidadeFiscal, dest: { uf: string; contribui
   });
 }
 
-/** Itens de transferência entre unidades (valor = custo; CFOP 5151/6151 produção, 5152/6152 demais). */
+/**
+ * Itens de transferência entre unidades. Valor = custo (LC 87/1996, art. 13, § 4º). CFOP 5151/6151 para a produção
+ * da unidade (ficha técnica) e 5152/6152 para o que foi comprado. O ICMS segue a opção da unidade: 00 destaca o
+ * crédito; 41/40/50/90 saem sem ICMS, com o cBenef (da regra ou da unidade) quando houver. Confirmar com o contador.
+ */
 export function itensTransferencia(unidade: UnidadeFiscal, ufDestino: string, itens: ItemBase[], opc: OpcoesRegras = {}) {
   const inter = ufDestino.toUpperCase() !== unidade.uf.toUpperCase();
   return itens.map((i, idx) => {
-    const produzido = i.tipo === "maquina" && unidade.fabrica;
+    const produzido = produzidoNaUnidade(i, unidade);
     const cfopPadrao = trocarParaInterestadual(produzido ? "5151" : "5152", inter);
     const regra = regraAplicavel(opc.regras, { operacao: "transferencia", interestadual: inter, contribuinte: true, tipo: i.tipo, ncm: i.ncm, origem: i.origem, cfop: cfopPadrao, unidade_id: opc.unidade_id, uf_destino: ufDestino.toUpperCase() });
     if (regra) opc.usadas?.add(regra);
@@ -292,14 +330,30 @@ export function itensTransferencia(unidade: UnidadeFiscal, ufDestino: string, it
       ...(regra && !vazio(regra.ibs_cbs_class_trib) ? { transf_ibs_cbs_class_trib: regra.ibs_cbs_class_trib! } : {}) };
     const cfop = regra?.cfop_saida ? String(regra.cfop_saida).replace(/\D/g, "") : cfopPadrao;
     const { liquido } = base(i);
+    // IPI: só no que a unidade fabrica e se ela destaca (RIPI, Decreto 7.212/2010). Base: o custo ou, se a unidade
+    // escolher, o preço de venda do cadastro (valor tributável mínimo, RIPI art. 195, I). A regra pode mudar o CST.
     const ipiAliq = !vazio(regra?.ipi_aliquota) ? Number(regra!.ipi_aliquota) : produzido && origem.transf_destacar_ipi ? Number(i.ipi_aliquota ?? 0) : 0;
-    const ipi = ipiAliq > 0
-      ? { ipi_situacao_tributaria: origem.ipi_cst, ipi_codigo_enquadramento_legal: origem.ipi_enquadramento, ipi_base_calculo: liquido, ipi_aliquota: ipiAliq, ipi_valor: r2(liquido * ipiAliq / 100) }
-      : {};
+    const ipiBase = origem.transf_ipi_base === "preco_venda" && Number(i.preco_venda) > 0 ? r2(i.quantidade * Number(i.preco_venda)) : liquido;
+    const cstIpiRegra = String(regra?.ipi_cst ?? "");
+    const ipi = regra?.ipi_destacar === false ? {}
+      // CST sem imposto vindo da regra (ex.: 55 suspensão): só o código e o enquadramento
+      : IPI_NAO_TRIBUTADO.includes(cstIpiRegra)
+        ? { ipi_situacao_tributaria: cstIpiRegra, ipi_codigo_enquadramento_legal: regra?.ipi_enquadramento || origem.ipi_enquadramento }
+        : ipiAliq > 0
+          ? { ipi_situacao_tributaria: origem.ipi_cst, ipi_codigo_enquadramento_legal: origem.ipi_enquadramento, ipi_base_calculo: ipiBase, ipi_aliquota: ipiAliq, ipi_valor: r2(ipiBase * ipiAliq / 100) }
+          // TIPI 0% no que a unidade fabrica: o CST de alíquota zero, como na venda
+          : produzido && origem.transf_destacar_ipi && origem.ipi_cst_aliquota_zero
+            ? (IPI_NAO_TRIBUTADO.includes(origem.ipi_cst_aliquota_zero)
+              ? { ipi_situacao_tributaria: origem.ipi_cst_aliquota_zero, ipi_codigo_enquadramento_legal: origem.ipi_enquadramento }
+              : { ipi_situacao_tributaria: origem.ipi_cst_aliquota_zero, ipi_codigo_enquadramento_legal: origem.ipi_enquadramento, ipi_base_calculo: ipiBase, ipi_aliquota: 0, ipi_valor: 0 })
+            : {};
     const aliq = !vazio(regra?.icms_aliquota) ? Number(regra!.icms_aliquota) : inter ? aliquotaInterestadual(origem.uf, ufDestino, i.origem) : Number(origem.icms_aliquota_interna);
-    const icms = origem.transf_icms_cst === "00"
+    // cBenef: o da regra ou o da transferência da unidade; não vai no CST 00 (com destaque)
+    const cbenef = String(regra?.codigo_beneficio || origem.transf_cbenef || "").trim().toUpperCase();
+    const cstIcms = String(origem.transf_icms_cst || "41");
+    const icms = cstIcms === "00"
       ? { icms_situacao_tributaria: "00", icms_modalidade_base_calculo: 3, icms_base_calculo: liquido, icms_aliquota: aliq, icms_valor: r2(liquido * aliq / 100) }
-      : { icms_situacao_tributaria: origem.transf_icms_cst };
+      : { icms_situacao_tributaria: cstIcms, ...(cbenef ? { codigo_beneficio_fiscal: cbenef } : {}) };
     // IBS/CBS: transferência entre estabelecimentos do mesmo contribuinte não tem incidência (CST 410 / 410002)
     const ibsCbs = grupoIbsCbs(origem.transf_ibs_cbs_cst ?? "410", origem.transf_ibs_cbs_class_trib ?? "410002",
       liquido - Number((icms as any).icms_valor ?? 0), opc.ibsCbs);

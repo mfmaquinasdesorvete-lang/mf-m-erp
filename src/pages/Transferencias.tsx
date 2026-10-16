@@ -1,7 +1,9 @@
 // Transferências de mercadoria entre a matriz (SC) e a filial (SP):
 // rascunho → enviada (sai do estoque da origem, emite NF-e) → recebida (entra no destino).
+// Antes de emitir, a conferência fiscal (cBenef, custo, cadastro) para o que a SEFAZ rejeitaria.
+// Com a NF-e autorizada, o destino dá a entrada ligada à nota: estoque + livro de entradas (CFOP de entrada e crédito do ICMS).
 import { useMemo, useState } from "react";
-import { ArrowRight, ExternalLink, FileText, Plus, Send, Trash2, Truck, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, BookCheck, ExternalLink, FileText, Plus, Send, Trash2, Truck, X } from "lucide-react";
 import { Badge, Button, CelulaAbrir, Field, Modal, PageHeader, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
@@ -10,25 +12,36 @@ import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
 import { usePerfil } from "@/lib/auth";
-import { useUnidade } from "@/lib/unidade";
+import { useUnidade, type Unidade } from "@/lib/unidade";
+import { conferirProduto, conferirUnidade, type Pendencia } from "@/lib/compliance";
 import type { Produto } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
+import { Conferencia } from "@/components/EmitirNfe";
+import { type ItemBase, itemDoCadastro, itensTransferencia, type RegraTributaria, type UnidadeFiscal } from "../../supabase/functions/_shared/nfe-impostos";
+import { pendenciasTransferencia, resumoEntradaTransferencia } from "../../supabase/functions/_shared/nfe-transferencia";
+import { explicarRejeicao } from "../../supabase/functions/_shared/nfe-conferencia";
 
 type Item = { id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; numero_serie?: string | null };
 type Transf = {
   id: string; numero: number; origem_id: string; destino_id: string; status: string; observacoes: string | null;
   enviada_em: string | null; recebida_em: string | null; created_at: string; itens?: Item[];
 };
-type Nota = { id: string; transferencia_id: string | null; status: string; numero: string | null; danfe_url: string | null; mensagem: string | null; created_at: string };
+type Nota = {
+  id: string; transferencia_id: string | null; status: string; numero: string | null; chave: string | null; ambiente: string | null;
+  danfe_url: string | null; mensagem: string | null; created_at: string; payload?: { items?: Record<string, any>[] } | null;
+};
+type Recebida = { id: string; chave: string; transferencia_id?: string | null; estoque_lancado: boolean; processamento: string | null; cfop_entrada?: string | null; icms_credito?: number | null };
 type Saldo = { produto_id: string; unidade_id: string; quantidade: number };
 
-const ROTULO: Record<string, string> = { rascunho: "rascunho", enviada: "em trânsito", recebida: "recebida", cancelada: "cancelada" };
+/** Produto do cadastro no formato do cálculo da nota (o mesmo que a função usa). */
+const itemDaTela = (p: Produto | undefined, i: Item): ItemBase =>
+  itemDoCadastro(p ?? { id: i.produto_id, tipo: "peca" }, i.descricao, Number(i.quantidade), Number(i.custo_unitario) || Number(p?.preco_custo) || 0.01);
 
 export default function Transferencias() {
   const { pode } = usePerfil();
   const { unidades, atual, nome } = useUnidade();
   const { data: lista = [], isLoading } = useRows<Transf>("transferencias", { select: "*, itens:transferencia_itens(*)" });
-  const { data: notas = [] } = useRows<Nota>("notas_fiscais", { key: ["transf"] });
+  const { data: notas = [] } = useRows<Nota>("notas_fiscais", { key: ["transf"], filtro: (q) => q.not("transferencia_id", "is", null) });
   const [aberta, setAberta] = useState<Partial<Transf> | null>(null);
   const podeEditar = pode("editar_producao") || pode("movimentar_estoque");
 
@@ -65,23 +78,65 @@ export default function Transferencias() {
   );
 }
 
+/** Rejeição da SEFAZ (ou a conferência do servidor) em português claro, com o que fazer. */
+function MotivoRecusa({ mensagem }: { mensagem: string }) {
+  // rejeição da SEFAZ (a nota foi enviada); o resto é a conferência do ERP, que já vem explicada
+  const sefaz = /^(nf-e não autorizada|rejei|denegad)/i.test(mensagem.trim());
+  const e = sefaz ? explicarRejeicao(mensagem.replace(/^NF-e não autorizada:\s*/i, "")) : null;
+  return (
+    <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+      <p className="flex items-start gap-1.5 font-semibold"><AlertTriangle size={16} className="mt-0.5 shrink-0" />
+        {e ? `A SEFAZ recusou a nota: ${e.titulo.toLowerCase()}${e.item ? ` (item ${e.item})` : ""}` : "A nota não foi enviada"}</p>
+      <p className="mt-1">{e ? e.oQueFazer : mensagem}</p>
+      {e && <p className="mt-1 text-xs text-red-700/80">Mensagem da SEFAZ: {e.original}</p>}
+    </div>
+  );
+}
+
 function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Partial<Transf>; todasNotas: Nota[]; onClose: () => void; podeEditar: boolean }) {
   const { unidades, nome } = useUnidade();
   const invalidar = useInvalidate();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: saldos = [] } = useRows<Saldo>("estoque_unidade", { order: "produto_id" });
+  const { data: regras = [] } = useRows<RegraTributaria>("regras_tributacao", { order: "prioridade", ascending: true });
   const [t, setT] = useState(inicial);
   const [itens, setItens] = useState<Item[]>(inicial.itens ?? []);
   const [ocupado, setOcupado] = useState(false);
+  const [conferindo, setConferindo] = useState<Pendencia[] | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
   const rascunho = !t.id || t.status === "rascunho";
   const editavel = rascunho && podeEditar;
   const saldo = (produto: string, unidade?: string) => Number(saldos.find((s) => s.produto_id === produto && s.unidade_id === unidade)?.quantidade ?? 0);
   const total = useMemo(() => itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.custo_unitario), 0), [itens]);
   const notas = t.id ? todasNotas.filter((n) => n.transferencia_id === t.id) : [];
   const ultimaNota = [...notas].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const origem = unidades.find((u) => u.id === t.origem_id);
+  const destino = unidades.find((u) => u.id === t.destino_id);
+  const produto = (id: string) => produtos.find((p) => p.id === id);
+
+  // nota autorizada em produção: a que vale para a entrada no destino
+  const notaValida = notas.filter((n) => n.status === "autorizada" && n.ambiente !== "homologacao" && n.chave).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const { data: recebidas = [] } = useRows<Recebida>("nfe_recebidas", {
+    key: ["transf", notaValida?.chave ?? "-"], filtro: (q) => q.eq("chave", notaValida?.chave ?? "-"),
+  });
+  const recebida = recebidas[0];
+  const entradaFeita = !!recebida && recebida.transferencia_id === t.id;
+
+  // prévia do que vai na nota (mesmo cálculo da função): CFOP e ICMS de cada item
+  const previa = useMemo(() => {
+    if (!origem || !destino?.uf || !itens.length) return [];
+    try {
+      return itensTransferencia(origem as unknown as UnidadeFiscal, destino.uf, itens.map((i) => itemDaTela(produto(i.produto_id), i)),
+        { regras: regras.filter((r) => r.ativo !== false && (!r.unidade_id || r.unidade_id === origem.id)), unidade_id: origem.id }) as Record<string, any>[];
+    } catch { return []; }
+  }, [origem, destino, itens, regras, produtos]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const entrada = useMemo(() => (notaValida?.payload?.items?.length && destino
+    ? resumoEntradaTransferencia(notaValida.payload.items, destino, notaValida.payload.items.map((x) => produtos.find((p) => p.sku === x.codigo_produto)?.tipo))
+    : null), [notaValida, destino, produtos]);
 
   function adicionar(id: string) {
-    const p = produtos.find((x) => x.id === id);
+    const p = produto(id);
     if (!p || itens.some((i) => i.produto_id === id)) return;
     setItens([...itens, { produto_id: p.id, descricao: p.descricao, quantidade: 1, custo_unitario: Number(p.preco_custo) || 0 }]);
   }
@@ -118,12 +173,48 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
     notify(msg);
   });
 
-  const emitirNota = () => acao(async () => {
+  /** Conferência antes de emitir: cadastro das unidades e dos produtos, cBenef, CST e custo. */
+  function conferir(): Pendencia[] {
+    const lista: Pendencia[] = [...conferirUnidade(origem as Unidade | undefined), ...conferirUnidade(destino as Unidade | undefined)];
+    const vistos = new Set<string>();
+    for (const i of itens) {
+      const p = produto(i.produto_id);
+      if (!p || vistos.has(p.id)) continue;
+      vistos.add(p.id);
+      lista.push(...conferirProduto(p, !!origem?.fabrica).filter((x) => !x.texto.includes("sem preço")));
+    }
+    if (origem) lista.push(...pendenciasTransferencia({ origem, itens: previa, custos: itens.map((i) => ({ descricao: i.descricao, custo: Number(i.custo_unitario) || Number(produto(i.produto_id)?.preco_custo) || 0 })) }));
+    return lista;
+  }
+
+  const emitirNota = (conferido = false) => acao(async () => {
+    if (!conferido) {
+      const lista = conferir();
+      if (lista.length) { setConferindo(lista); return; }
+    }
+    setConferindo(null);
     if (!(await confirmarSeTeste())) throw new Error("Emissão cancelada: ambiente de teste");
-    const r = await callFunction("nfe-emitir", { transferencia_id: t.id });
-    invalidar("notas_fiscais");
-    notify(r?.ok === false ? "A nota voltou com erro: veja a mensagem" : "NF-e de transferência enviada para a SEFAZ");
+    setFalha(null);
+    try {
+      const r = await callFunction("nfe-emitir", { transferencia_id: t.id });
+      notify(r?.ok === false ? "A nota voltou com erro: veja o que fazer na transferência" : "NF-e de transferência enviada para a SEFAZ");
+    } catch (e) {
+      setFalha((e as Error).message);
+    } finally {
+      invalidar("notas_fiscais");
+    }
   });
+
+  const darEntrada = () => acao(async () => {
+    const { data, error } = await supabase.rpc("receber_transferencia_nfe", { p_transf: t.id });
+    if (error) throw error;
+    const r = (data ?? {}) as { estoque?: boolean; cfop_entrada?: string; icms_credito?: number; aviso?: string | null };
+    if (t.status === "enviada") setT((x) => ({ ...x, status: "recebida" }));
+    invalidar("transferencias", "produtos", "estoque_unidade", "nfe_recebidas");
+    notify(r.aviso ?? `${r.estoque ? `Entrou no estoque de ${nome(t.destino_id)} e a` : "A"} nota foi para o livro de entradas (CFOP ${r.cfop_entrada ?? "—"}${Number(r.icms_credito) > 0 ? `, crédito de ICMS ${brl(Number(r.icms_credito))}` : ""}).`, r.aviso ? "erro" : undefined);
+  });
+
+  if (conferindo) return <Conferencia titulo={`transferência #${t.numero ?? ""}`} pendencias={conferindo} onVoltar={() => setConferindo(null)} onEmitir={() => emitirNota(true)} />;
 
   return (
     <Modal open wide onClose={onClose} title={t.id ? `Transferência #${t.numero}` : "Nova transferência"}>
@@ -160,11 +251,13 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
           {itens.map((i, k) => {
             const tem = saldo(i.produto_id, t.origem_id);
             const falta = rascunho && Number(i.quantidade) > tem;
+            const n = previa[k];
             return (
               <li key={i.produto_id} className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-[1fr_90px_120px_140px_auto] sm:items-center">
                 <div className="col-span-2 sm:col-span-1">
                   <div className="font-semibold text-fg">{i.descricao}</div>
                   <div className={`text-xs ${falta ? "font-semibold text-red-600" : "text-slate-500"}`}>tem {tem} em {nome(t.origem_id)}{falta ? " · não dá para enviar" : ""}</div>
+                  {n && <div className="text-xs text-slate-500">CFOP {n.cfop} · ICMS CST {n.icms_situacao_tributaria}{Number(n.icms_valor) > 0 ? ` ${brl(n.icms_valor)}` : ""}{n.codigo_beneficio_fiscal ? ` · cBenef ${n.codigo_beneficio_fiscal}` : ""}{Number(n.ipi_valor) > 0 ? ` · IPI ${brl(n.ipi_valor)}` : ""}</div>}
                 </div>
                 <Field label="Qtd"><input className="input" type="number" min={1} step="any" value={i.quantidade} disabled={!editavel}
                   onChange={(e) => setItens(itens.map((x, j) => (j === k ? { ...x, quantidade: Number(e.target.value) } : x)))} /></Field>
@@ -179,12 +272,30 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
           {!itens.length && <li className="p-6 text-center text-sm text-slate-500">Nenhum item ainda.</li>}
         </ul>
         <div className="text-right text-sm text-slate-600">Valor da nota (custo): <b className="num text-fg">{brl(total)}</b></div>
+        {editavel && (
+          <p className="text-xs text-slate-500">
+            O custo vem do cadastro. No que foi comprado, vale a entrada mais recente; no que foi fabricado, a lei soma matéria-prima, material
+            secundário, mão de obra e embalagem (LC 87/1996, art. 13, § 4º). O custo da ficha técnica tem só os materiais: confira com o contador.
+          </p>
+        )}
 
         <Field label="Observações (saem na nota)">
           <textarea className="input" rows={2} value={t.observacoes ?? ""} disabled={!editavel} onChange={(e) => setT({ ...t, observacoes: e.target.value })} />
         </Field>
 
-        {ultimaNota?.mensagem && ultimaNota.status === "erro" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{ultimaNota.mensagem}</p>}
+        {falha ? <MotivoRecusa mensagem={falha} /> : ultimaNota?.mensagem && ultimaNota.status === "erro" && <MotivoRecusa mensagem={`NF-e não autorizada: ${ultimaNota.mensagem}`} />}
+
+        {notaValida && destino && (
+          <div className={`rounded-lg px-3 py-2 text-sm ${entradaFeita ? "bg-emerald-50 text-emerald-900" : "bg-sky-50 text-sky-900"}`}>
+            {entradaFeita
+              ? <>Entrada registrada no livro de entradas de {destino.nome}: CFOP {recebida?.cfop_entrada ?? entrada?.cfops ?? "—"}
+                {Number(recebida?.icms_credito) > 0 ? `, crédito de ICMS ${brl(Number(recebida?.icms_credito))}` : ", sem crédito de ICMS (nota sem destaque)"}.</>
+              : <>Entrada em {destino.nome}: CFOP {entrada?.cfops || "—"}{entrada && entrada.icms_credito > 0 ? ` · crédito de ICMS ${brl(entrada.icms_credito)}` : " · sem crédito de ICMS (nota sem destaque)"}
+                {entrada && entrada.ipi_destacado > 0 ? ` · IPI destacado ${brl(entrada.ipi_destacado)} (crédito só se ${destino.nome} for equiparada a industrial: confirme com o contador)` : ""}.
+                {recebida && !recebida.transferencia_id && " A nota já chegou nas NF-e recebidas (busca da SEFAZ): a entrada liga as duas pela chave, sem duplicar."}
+                {recebida?.estoque_lancado && !recebida.transferencia_id && " Atenção: o estoque desta nota já foi lançado pelas NF-e recebidas; a entrada aqui não lança de novo."}</>}
+          </div>
+        )}
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
           {t.id && podeEditar && ["rascunho", "enviada"].includes(t.status ?? "") && (
@@ -206,12 +317,19 @@ function TransfModal({ inicial, todasNotas, onClose, podeEditar }: { inicial: Pa
             })}><Send size={16} /> Enviar (baixa da origem)</Button>
           )}
           {t.status && ["enviada", "recebida"].includes(t.status) && podeEditar && (!ultimaNota || ["erro", "cancelada"].includes(ultimaNota.status)) && (
-            <Button type="button" variant="secondary" disabled={ocupado} onClick={emitirNota}><FileText size={16} /> Emitir NF-e de transferência</Button>
+            <Button type="button" variant="secondary" disabled={ocupado} onClick={() => emitirNota()}><FileText size={16} /> Emitir NF-e de transferência</Button>
           )}
           {ultimaNota?.danfe_url && <a href={ultimaNota.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"><ExternalLink size={15} /> DANFE</a>}
-          {t.status === "enviada" && podeEditar && (
-            <Button type="button" disabled={ocupado} onClick={() => rpc("receber_transferencia", t.id!, "Recebida: entrou no estoque de " + nome(t.destino_id), "recebida")}>
-              <Truck size={16} /> Chegou em {nome(t.destino_id)}
+          {podeEditar && notaValida && !entradaFeita && ["enviada", "recebida"].includes(t.status ?? "") && (
+            <Button type="button" disabled={ocupado} onClick={darEntrada}>
+              {t.status === "enviada" ? <><Truck size={16} /> Chegou em {nome(t.destino_id)}: dar entrada com a NF-e</> : <><BookCheck size={16} /> Registrar a nota no livro de entradas de {nome(t.destino_id)}</>}
+            </Button>
+          )}
+          {t.status === "enviada" && podeEditar && !notaValida && (
+            <Button type="button" variant="secondary" disabled={ocupado} onClick={async () => (await confirmar(
+              `Esta transferência ainda não tem NF-e autorizada (em produção). Sem ela a entrada não vai para o livro de entradas de ${nome(t.destino_id)} e a mercadoria não deveria viajar. Receber só o estoque assim mesmo?`,
+              { titulo: "Receber sem NF-e?", ok: "Receber só o estoque" })) && rpc("receber_transferencia", t.id!, "Recebida: entrou no estoque de " + nome(t.destino_id), "recebida")}>
+              <Truck size={16} /> Chegou em {nome(t.destino_id)} (sem NF-e)
             </Button>
           )}
         </div>

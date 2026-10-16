@@ -355,7 +355,7 @@ function seed(): Db {
   // Matriz SC e filial SP
   const fiscal = { regime_tributario: 3, natureza_operacao: "Venda de mercadoria", cfop_venda_producao: "5101", cfop_venda_revenda: "5102", icms_cst: "00", icms_reducao_base: 0,
     pis_cst: "01", pis_aliquota: 1.65, cofins_cst: "01", cofins_aliquota: 7.6, pis_cofins_exclui_icms: true, ipi_cst: "50", ipi_enquadramento: "999", difal_ativo: true,
-    transf_icms_cst: "41", transf_pis_cofins_cst: "08", transf_destacar_ipi: true, ativo: true, serie_nfe: 1,
+    transf_icms_cst: "41", transf_pis_cofins_cst: "08", transf_destacar_ipi: true, transf_cbenef: null, transf_ipi_base: "custo", ativo: true, serie_nfe: 1,
     ipi_cst_aliquota_zero: "51", ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", transf_ibs_cbs_cst: "410", transf_ibs_cbs_class_trib: "410002", informacoes_complementares: null };
   db.unidades = [
     { id: U_SC, codigo: "SC", nome: "Matriz SC", matriz: true, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "46942855000132", inscricao_estadual: "261770233",
@@ -3243,6 +3243,39 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     Object.assign(t, { status: "recebida", recebida_em: quando(0) });
     return { data: null, error: null };
   },
+  // entrada da transferência com a NF-e autorizada: estoque do destino + livro de entradas (nfe_recebidas), sem duplicar
+  receber_transferencia_nfe: ({ p_transf }) => {
+    const t = db.transferencias.find((x) => x.id === p_transf);
+    if (!t || !["enviada", "recebida"].includes(t.status)) return erro("só transferência enviada (em trânsito) ou recebida tem entrada");
+    const n = db.notas_fiscais.filter((x) => x.transferencia_id === t.id && x.status === "autorizada" && x.chave && x.ambiente !== "homologacao").slice(-1)[0];
+    if (!n) return erro("a NF-e desta transferência ainda não está autorizada (em produção): sem ela a entrada não vai para o livro de entradas");
+    const destino = db.unidades.find((u) => u.id === t.destino_id);
+    const origem = db.unidades.find((u) => u.id === t.origem_id);
+    const itens = ((n.payload?.items ?? []) as Row[]).map((i, k) => ({ numero: k + 1, descricao: i.descricao, cfop: i.cfop,
+      cfop_entrada: `${String(i.cfop ?? "").startsWith("6") ? "2" : "1"}152`, quantidade: i.quantidade_comercial, valor_total: i.valor_bruto, icms_valor: Number(i.icms_valor ?? 0) }));
+    const cfops = [...new Set(itens.map((i) => i.cfop_entrada))].join(", ");
+    const icms = r2(itens.reduce((s2, i) => s2 + i.icms_valor, 0));
+    let r = db.nfe_recebidas.find((x) => x.chave === n.chave);
+    const jaLancado = !!r?.estoque_lancado;
+    let estoque = false;
+    const eraEnviada = t.status === "enviada";
+    if (eraEnviada) {
+      if (!jaLancado) {
+        for (const i of db.transferencia_itens.filter((x) => x.transferencia_id === t.id)) movimentar(i.produto_id, "entrada", i.quantidade, `Transferência #${t.numero} (recebimento, NF-e ${n.numero ?? ""})`, { unidade_id: t.destino_id, numero_serie: i.numero_serie });
+        estoque = true;
+      }
+      Object.assign(t, { status: "recebida", recebida_em: quando(0) });
+    }
+    const msg = `Transferência #${t.numero} de ${origem?.nome ?? ""}: entrada pela tela Transferências (CFOP de entrada ${cfops}).`;
+    if (r) Object.assign(r, { transferencia_id: t.id, cfop_entrada: cfops, icms_credito: icms, processamento: "concluido", estoque_lancado: true, observacao_interna: msg });
+    else {
+      r = { id: uid(), chave: n.chave, emitente_nome: origem?.razao_social ?? origem?.nome, emitente_cnpj: origem?.cnpj, valor_total: n.valor_total, data_emissao: n.created_at,
+        situacao: "autorizada", manifestacao: null, nfe_completa: false, unidade_id: destino?.id, processamento: "concluido", processamento_msg: msg, estoque_lancado: true,
+        itens, transferencia_id: t.id, cfop_entrada: cfops, icms_credito: icms, observacao_interna: msg, origem: "sefaz", marcadores: [], created_at: quando(0) };
+      db.nfe_recebidas.push(r);
+    }
+    return { data: { nfe_recebida_id: r!.id, estoque, cfop_entrada: cfops, icms_credito: icms, aviso: eraEnviada && jaLancado ? "O estoque desta nota já tinha entrado pelas NF-e recebidas: a transferência foi marcada como recebida sem lançar de novo." : null }, error: null };
+  },
   cancelar_transferencia: ({ p_transf }) => {
     const t = db.transferencias.find((x) => x.id === p_transf);
     if (!t || ["recebida", "cancelada"].includes(t.status)) return erro("transferência já finalizada");
@@ -3941,9 +3974,15 @@ const funcoes: Record<string, (b: any) => any> = {
     if (b.transferencia_id) {
       const t = db.transferencias.find((x) => x.id === b.transferencia_id)!;
       const valor = db.transferencia_itens.filter((i) => i.transferencia_id === t.id).reduce((s, i) => s + i.quantidade * i.custo_unitario, 0);
-      const nota = { id: uid(), transferencia_id: t.id, unidade_id: t.origem_id, referencia: `transf-${t.numero}-1`, status: "processando", valor_total: r2(valor), created_at: quando(0) };
+      const origem = db.unidades.find((u) => u.id === t.origem_id);
+      const inter = origem?.uf !== db.unidades.find((u) => u.id === t.destino_id)?.uf;
+      const items = db.transferencia_itens.filter((i) => i.transferencia_id === t.id).map((i, k) => ({ numero_item: k + 1, descricao: i.descricao,
+        cfop: `${inter ? "6" : "5"}${db.produtos.find((p) => p.id === i.produto_id)?.tipo === "maquina" && origem?.fabrica ? "151" : "152"}`,
+        quantidade_comercial: i.quantidade, valor_unitario_comercial: i.custo_unitario, valor_bruto: r2(i.quantidade * i.custo_unitario), icms_situacao_tributaria: origem?.transf_icms_cst ?? "41" }));
+      const nota = { id: uid(), transferencia_id: t.id, unidade_id: t.origem_id, referencia: `transf-${t.numero}-1`, status: "processando", valor_total: r2(valor), created_at: quando(0),
+        ambiente: "producao", payload: { natureza_operacao: "Transferência de mercadoria", items } };
       db.notas_fiscais.push(nota);
-      setTimeout(() => Object.assign(nota, { status: "autorizada", numero: String(++numeroNfe), serie: "1", mensagem: "Autorizado o uso da NF-e" }), 3000);
+      setTimeout(() => Object.assign(nota, { status: "autorizada", numero: String(++numeroNfe), serie: "1", chave: `42261000000000000000550010000${String(numeroNfe).padStart(6, "0")}100000000`.slice(0, 44), mensagem: "Autorizado o uso da NF-e" }), 3000);
       return { ok: true, nota };
     }
     const p = db.pedidos.find((x) => x.id === b.pedido_id)!;

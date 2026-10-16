@@ -14,6 +14,8 @@ export type OperacaoNota = {
   icms_cst?: string; pis_cofins_cst?: string;
   /** IBS/CBS padrão da entrada (sem regra): operação não onerosa = 410 / 410999. Vazio = o da unidade. */
   ibs_cbs_cst?: string; ibs_cbs_class_trib?: string;
+  /** Retorno: a nota precisa citar a NF de remessa (chave), que liga o retorno à saída e encerra a suspensão/não incidência. */
+  exige_referencia?: boolean;
 };
 
 export const OPERACOES_NOTA: OperacaoNota[] = [
@@ -33,21 +35,30 @@ export const OPERACOES_NOTA: OperacaoNota[] = [
     ajuda: "Qualquer outra saída que não é venda. Combine o CFOP e os impostos com o contador." },
 
   // Entradas: a MF emite a nota quando quem manda não emite (pessoa física, MEI ou empresa sem inscrição estadual).
+  // Lucro Real: PIS/COFINS de entrada com crédito só na compra de pessoa jurídica de bem sujeito às contribuições
+  // (CST 50–56; Leis 10.637/2002 e 10.833/2003, art. 3º). Nas demais, sem crédito: 70 (aquisição sem crédito) ou 98
+  // (outras entradas). Devolução de venda (com crédito) sai pelo botão Devolução da nota de venda (finalidade 4).
   { id: "entrada_conserto", rotulo: "Entrada para conserto ou garantia", natureza: "Entrada de bem recebido para conserto", cfop: "1915",
     financeiro: false, estoque: false, entrada: true, icms_cst: "50", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999",
-    ajuda: "Máquina ou peça do cliente que vem para conserto ou garantia e volta para ele. Não entra no estoque da MF. Na volta: Retorno de conserto (5916). ICMS suspenso (CST 50): confirme com o contador." },
-  { id: "compra_usado", rotulo: "Compra de máquina ou peça usada", natureza: "Compra de mercadoria usada", cfop: "1102",
+    ajuda: "Máquina ou peça do cliente que vem para conserto ou garantia e volta para ele. Não entra no estoque da MF. Na volta: Retorno de conserto (5916). ICMS suspenso (CST 50; em SC pede o cBenef na regra do CFOP): confirme com o contador." },
+  { id: "entrada_retorno_conserto", rotulo: "Retorno de conserto (bem da MF)", natureza: "Retorno de mercadoria remetida para conserto", cfop: "1916",
+    financeiro: false, estoque: true, entrada: true, icms_cst: "50", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999", exige_referencia: true,
+    ajuda: "Máquina ou peça da MF que foi consertar fora (Remessa para conserto 5915) e volta de quem não emite nota. Entra no estoque. Cite a NF de remessa. ICMS suspenso como na remessa (CST 50; em SC pede o cBenef na regra do CFOP): confirme com o contador." },
+  { id: "compra_usado", rotulo: "Compra de máquina ou peça usada (para revender)", natureza: "Compra de mercadoria usada", cfop: "1102",
     financeiro: false, estoque: true, entrada: true, icms_cst: "90", pis_cofins_cst: "70",
-    ajuda: "A MF compra a máquina usada (ou pega como parte do pagamento de uma nova) de pessoa física ou de quem não emite nota. Entra no estoque. Sem destaque de ICMS e PIS/COFINS sem crédito (CST 70): confirme com o contador." },
+    ajuda: "A MF compra a máquina usada (ou pega como parte do pagamento de uma nova) de pessoa física ou de quem não emite nota, para revender como está. Entra no estoque. Sem destaque de ICMS. PIS/COFINS sem crédito (CST 70): pessoa física não gera crédito e o cliente que vende o próprio equipamento (ativo) não paga PIS/COFINS sobre ele (Lei 10.833/2003, art. 3º, § 2º, II e § 3º, I). Confirme com o contador." },
+  { id: "compra_usado_industrializacao", rotulo: "Compra de máquina usada para recondicionar", natureza: "Compra de mercadoria usada para industrialização", cfop: "1101",
+    financeiro: false, estoque: true, entrada: true, icms_cst: "90", pis_cofins_cst: "70",
+    ajuda: "Máquina usada comprada para recondicionar ou desmontar e aproveitar as peças: é compra para industrialização (recondicionar é industrializar, RIPI art. 4º, V). Mesmos impostos da compra de usado. A revenda da recondicionada pode ter IPI: confirme com o contador." },
   { id: "retorno_comodato", rotulo: "Retorno de comodato", natureza: "Retorno de bem remetido em comodato", cfop: "1909",
-    financeiro: false, estoque: true, entrada: true, icms_cst: "41", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999",
-    ajuda: "Máquina da MF que estava emprestada (comodato) e volta. Entra no estoque." },
+    financeiro: false, estoque: true, entrada: true, icms_cst: "41", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999", exige_referencia: true,
+    ajuda: "Máquina da MF que estava emprestada (comodato) e volta. Entra no estoque. Cite a NF de remessa em comodato. Comodato não tem ICMS (CST 41; STF, Súmula 573; em SC pede o cBenef na regra do CFOP)." },
   { id: "retorno_demonstracao", rotulo: "Retorno de demonstração", natureza: "Retorno de mercadoria remetida para demonstração", cfop: "1913",
-    financeiro: false, estoque: true, entrada: true, icms_cst: "41", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999",
-    ajuda: "Máquina que foi para teste ou feira e volta. Entra no estoque." },
+    financeiro: false, estoque: true, entrada: true, icms_cst: "41", pis_cofins_cst: "98", ibs_cbs_cst: "410", ibs_cbs_class_trib: "410999", exige_referencia: true,
+    ajuda: "Máquina que foi para teste ou feira e volta. Entra no estoque. Cite a NF de remessa para demonstração. Use o mesmo tratamento do ICMS da remessa (41 ou 50, com o cBenef em SC): confirme com o contador." },
   { id: "outras_entradas", rotulo: "Outras entradas", natureza: "Outra entrada de mercadoria", cfop: "1949",
     financeiro: false, estoque: true, entrada: true, icms_cst: "90", pis_cofins_cst: "98",
-    ajuda: "Qualquer outra entrada. Combine o CFOP e os impostos com o contador." },
+    ajuda: "Qualquer outra entrada (ex.: brinde ou doação recebida). Sem crédito de ICMS e de PIS/COFINS. Combine o CFOP e os impostos com o contador." },
 ];
 
 export const operacaoNota = (id: string) => OPERACOES_NOTA.find((o) => o.id === id) ?? null;

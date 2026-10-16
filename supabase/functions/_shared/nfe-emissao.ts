@@ -5,9 +5,11 @@
 // de cada unidade e produto. Valide com o contador e teste em homologação antes da produção.
 import { json } from "./cors.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
-import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
+import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itemDoCadastro, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
+import { pendenciaCbenef } from "./nfe-conferencia.ts";
+import { pendenciasTransferencia } from "./nfe-transferencia.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -32,11 +34,17 @@ export function exigirEmitente(u: any) {
   if (faltando.length) throw new HttpError(400, `preencha em Configurações → Unidades (${u?.nome ?? "unidade"}): ${faltando.join(", ")}`);
 }
 
-export const itemBase = (p: any, descricao: string, quantidade: number, valor: number, extra: Partial<ItemBase> = {}): ItemBase => ({
-  codigo: p.sku || p.id.slice(0, 8), descricao, ncm: onlyDigits(p.ncm), cest: p.cest ? onlyDigits(p.cest) : null,
-  unidade: p.unidade, origem: Number(p.origem ?? 0), tipo: p.tipo, quantidade: Number(quantidade), valor_unitario: Number(valor),
-  cfop: p.cfop || null, ipi_aliquota: p.ipi_aliquota == null ? null : Number(p.ipi_aliquota), ...extra,
-});
+export const itemBase = (p: any, descricao: string, quantidade: number, valor: number, extra: Partial<ItemBase> = {}): ItemBase =>
+  itemDoCadastro(p, descricao, quantidade, valor, extra);
+
+/**
+ * Para antes de enviar quando a SEFAZ da UF de quem emite exige o cBenef e ele falta (rejeição certa:
+ * a nota não sai e o número fica perdido). `comoResolver` diz onde configurar.
+ */
+export function exigirCbenef(uf: string, items: Record<string, unknown>[], comoResolver: string) {
+  const p = pendenciaCbenef(uf, items, comoResolver);
+  if (p) throw new HttpError(400, p.texto);
+}
 
 export async function emitir(db: any, referencia: string, payload: Record<string, unknown>, nota: Record<string, unknown>) {
   const r = await enviarNfe(referencia, payload, await codigoUnidade(db, nota.unidade_id as string));
@@ -106,6 +114,7 @@ export async function emitirPedido(db: any, pedidoId: string) {
   const items = itensVenda(u, { uf: c.uf.toUpperCase(), contribuinte }, pedido.itens.map((i: any, idx: number) =>
     itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade, i.valor_unitario,
       { desconto: descontos[idx], frete: fretes[idx] })), ufs, { regras: await regrasDa(db, u.id), unidade_id: u.id, usadas, ibsCbs: configIbsCbs(cfg) });
+  exigirCbenef(u.uf, items, "Ponha o código na regra de tributação que dá esse CST (Notas fiscais → Regras de tributação), conforme o contador.");
 
   const payload = {
     natureza_operacao: u.natureza_operacao,
@@ -164,9 +173,14 @@ export async function emitirTransferencia(db: any, transferenciaId: string) {
   const inter = d.uf.toUpperCase() !== t.origem.uf.toUpperCase();
   const { data: cfg } = await db.from("configuracoes").select("*").eq("id", 1).single();
   const usadas = new Set<RegraTributaria>();
-  const items = itensTransferencia(t.origem, d.uf.toUpperCase(), t.itens.map((i: any) =>
-    itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade,
-      Number(i.custo_unitario) || Number(i.produto.preco_custo) || 0.01)), { regras: await regrasDa(db, t.origem_id), unidade_id: t.origem_id, usadas, ibsCbs: configIbsCbs(cfg) });
+  // valor = custo (LC 87/1996, art. 13, § 4º): o da transferência ou, se vazio, o do cadastro
+  const custos = t.itens.map((i: any) => ({ descricao: i.descricao, custo: Number(i.custo_unitario) || Number(i.produto?.preco_custo) || 0 }));
+  const items = itensTransferencia(t.origem, d.uf.toUpperCase(), t.itens.map((i: any, k: number) =>
+    itemBase(i.produto, i.numero_serie ? `${i.descricao} - Nº série ${i.numero_serie}` : i.descricao, i.quantidade, custos[k].custo || 0.01)),
+    { regras: await regrasDa(db, t.origem_id), unidade_id: t.origem_id, usadas, ibsCbs: configIbsCbs(cfg) });
+  // conferência antes de enviar: o que daria rejeição certa (ex.: SC sem cBenef no CST 41) para aqui, sem gastar número
+  const erros = pendenciasTransferencia({ origem: t.origem, itens: items, custos }).filter((p) => p.nivel === "erro");
+  if (erros.length) throw new HttpError(400, erros.map((p) => p.texto).join(" "));
   const payload = {
     natureza_operacao: "Transferência de mercadoria",
     data_emissao: new Date().toISOString(),

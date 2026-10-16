@@ -3,12 +3,14 @@
 //     física ou não contribuinte; o cliente contribuinte normalmente emite a dele, que chega em NF-e recebidas);
 //   * devolução de compra: a MF emite nota de SAÍDA para o fornecedor, referenciando a NF dele.
 // Os impostos acompanham a nota original na proporção devolvida (ICMS e ST pela base/alíquota da original,
-// IPI no grupo de "IPI devolvido", PIS/COFINS em "outras operações"). Sem dependências: testável.
+// IPI no grupo de "IPI devolvido" (crédito do IPI na devolução: RIPI, art. 229), PIS/COFINS com crédito na devolução
+// de venda tributada (CST 50) e estorno na de compra (CST 49)).
 //
 // ATENÇÃO: CST de PIS/COFINS e o tratamento do crédito variam por empresa. Confira com o contador e teste
 // em homologação.
 import { XMLParser } from "npm:fast-xml-parser@4.5.0";
 import { type ConfigIbsCbs, grupoIbsCbs } from "./nfe-impostos.ts";
+import { cstPisCofinsDevolucao } from "./nfe-entrada.ts";
 
 export type TipoDevolucao = "venda" | "compra";
 
@@ -222,9 +224,9 @@ export function itensDevolucao(
       icms_aliquota_interna_uf_destino: o.difal.pInterna, icms_aliquota_interestadual: o.difal.pInter, icms_percentual_partilha: o.difal.pPart || 100,
       fcp_valor_uf_destino: r2(o.difal.vFCP * r), icms_valor_uf_destino: r2(o.difal.vDest * r), icms_valor_uf_remetente: r2(o.difal.vRemet * r),
     } : {};
-    const cstPc = opc.tipo === "venda" ? "98" : "49";
-    const pis = { pis_situacao_tributaria: cstPc, pis_base_calculo: r2(o.pis.vBC * r), pis_aliquota_porcentual: o.pis.p, pis_valor: r2(o.pis.v * r) };
-    const cofins = { cofins_situacao_tributaria: cstPc, cofins_base_calculo: r2(o.cofins.vBC * r), cofins_aliquota_porcentual: o.cofins.p, cofins_valor: r2(o.cofins.v * r) };
+    // PIS/COFINS: a devolução de venda tributada dá crédito (CST 50, Lei 10.833/2003, art. 3º, VIII); a de compra estorna (49)
+    const pis = { pis_situacao_tributaria: cstPisCofinsDevolucao(opc.tipo, o.pis.v), pis_base_calculo: r2(o.pis.vBC * r), pis_aliquota_porcentual: o.pis.p, pis_valor: r2(o.pis.v * r) };
+    const cofins = { cofins_situacao_tributaria: cstPisCofinsDevolucao(opc.tipo, o.cofins.v), cofins_base_calculo: r2(o.cofins.vBC * r), cofins_aliquota_porcentual: o.cofins.p, cofins_valor: r2(o.cofins.v * r) };
     const ibsCbs = grupoIbsCbs(o.ibscbs?.cst ?? opc.unidade.ibs_cbs_cst, o.ibscbs?.classTrib || opc.unidade.ibs_cbs_class_trib,
       liquido - Number((icms as any).icms_valor ?? 0) - pis.pis_valor - cofins.cofins_valor
         - Number((difal as any).icms_valor_uf_destino ?? 0) - Number((difal as any).fcp_valor_uf_destino ?? 0), opc.ibsCbs);
