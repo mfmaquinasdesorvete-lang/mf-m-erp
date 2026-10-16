@@ -11,6 +11,7 @@ import { notifyError } from "@/lib/notify";
 import type { RegraComissao } from "@/lib/comissao";
 import { CANAIS, margemPedido, pctMc, somar, zero, type Contexto, type PedidoMargem, type Valores } from "@/lib/margem";
 import type { KitComponente, Produto, Vendedor } from "@/lib/types";
+import { rotuloVenda, SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 
 const VALIDOS = ["aprovado", "faturado", "entregue"];
 type Visao = "venda" | "produto" | "canal" | "vendedor" | "cliente" | "unidade";
@@ -32,7 +33,8 @@ export default function Margem() {
   const { data: cotacoes = [] } = useRows<{ pedido_id: string; valor: number; escolhida: boolean }>("cotacoes_frete", {});
   const { data: formas = [] } = useRows<{ id: string; taxa_percentual: number; tarifa_fixa: number }>("formas_pagamento", { order: "ordem", ascending: true });
   const { data: envios = [] } = useRows<{ pedido_id: string | null; status: string; pagador: string; valor_aprovado: number | null; valor_final: number | null }>("envios", { order: "created_at", ascending: true });
-  const { data: notas = [] } = useRows<Contexto["notas"][number]>("notas_fiscais", { select: "pedido_id, status, payload, ambiente" });
+  // as notas servem para os impostos reais de cada pedido e, sem pedido (importadas do Tiny), como a própria venda
+  const { data: notas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA, key: ["vendas"] });
   const { data: ufs = [] } = useRows<{ uf: string; aliquota_interna: number; fcp: number }>("icms_uf", { order: "uf", ascending: true });
   const [de, setDe] = useState(mesesAtras(2));
   const [ate, setAte] = useState(mesAtual());
@@ -42,8 +44,9 @@ export default function Margem() {
 
   const dados = useMemo(() => {
     if (!cfg) return null;
-    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas, ufs, cfg, formas, envios, regrasComissao };
-    const vendas = filtrar(pedidosTodos).filter((p) => {
+    const nv = vendasDasNotas(notas, produtos);
+    const ctx: Contexto = { produtos, comps, unidades, vendedores, comissoes, cotacoes, notas: [...(notas as Contexto["notas"]), ...nv.notas], ufs, cfg, formas, envios, regrasComissao };
+    const vendas = filtrar([...pedidosTodos, ...(nv.pedidos as PedidoMargem[])]).filter((p) => {
       const d = (p.aprovado_em ?? p.created_at).slice(0, 7);
       return VALIDOS.includes(p.status) && d >= de && d <= ate && (!canal || p.origem === canal);
     });
@@ -56,7 +59,7 @@ export default function Margem() {
       grupos.set(chave, g);
     };
     for (const { p, r } of calc) {
-      if (visao === "venda") add(p.id, `#${p.numero} · ${p.cliente?.nome ?? ""}`, r.total, 1, `${dataBR(p.aprovado_em ?? p.created_at)} · ${CANAIS[p.origem] ?? p.origem}`, r.impostosEstimados);
+      if (visao === "venda") add(p.id, `${rotuloVenda(p)} · ${p.cliente?.nome ?? ""}`, r.total, 1, `${dataBR(p.aprovado_em ?? p.created_at)} · ${CANAIS[p.origem] ?? p.origem}`, r.impostosEstimados);
       else if (visao === "produto") for (const i of r.itens) add(i.produto_id, i.descricao, i, i.quantidade, undefined, r.impostosEstimados);
       else if (visao === "canal") add(p.origem, CANAIS[p.origem] ?? p.origem, r.total, 1, undefined, r.impostosEstimados);
       else if (visao === "vendedor") { const v = vendedores.find((x) => x.id === p.vendedor_id); add(v?.id ?? p.vendedor ?? "-", v?.nome ?? p.vendedor ?? "Sem vendedor", r.total, 1, undefined, r.impostosEstimados); }
@@ -64,7 +67,9 @@ export default function Margem() {
       else add(p.unidade_id ?? "-", nomeUnidade(p.unidade_id), r.total, 1, undefined, r.impostosEstimados);
     }
     const linhas = [...grupos.values()].sort((a, b) => ordem === "pct" ? pctMc(b) - pctMc(a) : ordem === "receita" ? b.receita - a.receita : b.mc - a.mc);
-    return { total, linhas, n: vendas.length, estimadas: calc.filter((x) => x.r.impostosEstimados).length };
+    const deNotas = vendas.filter((p) => (p as { de_nota?: boolean }).de_nota);
+    const semCusto = deNotas.reduce((s, p) => s + p.itens.filter((i) => i.produto_id.startsWith("nf-item:")).length, 0);
+    return { total, linhas, n: vendas.length, estimadas: calc.filter((x) => x.r.impostosEstimados).length, deNotas: deNotas.length, semCusto };
   }, [cfg, produtos, comps, unidades, vendedores, regrasComissao, comissoes, cotacoes, formas, envios, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
 
   function exportar() {
@@ -103,6 +108,10 @@ export default function Margem() {
         {dados && dados.estimadas > 0 && <p className="mt-3 text-xs text-slate-500">
           {dados.estimadas} {pl(dados.estimadas, "venda", "vendas")} sem NF-e autorizada: impostos estimados pelo cadastro da unidade (ICMS, DIFAL, PIS e COFINS). IPI não entra (é cobrado à parte do cliente).
           O custo do produto é o custo atual do cadastro.</p>}
+        {dados && dados.deNotas > 0 && <p className="mt-2 text-xs text-slate-500">
+          {dados.deNotas} {pl(dados.deNotas, "venda vem", "vendas vêm")} das notas fiscais sem pedido no ERP (importadas do Tiny): só os itens de venda (remessa, transferência, conserto e garantia ficam de fora),
+          com os impostos destacados na nota. Sem vendedor, frete e taxa (não estão na nota).
+          {dados.semCusto > 0 && <> {dados.semCusto} {pl(dados.semCusto, "item não foi achado", "itens não foram achados")} no cadastro de produtos pelo código ou pela descrição e {pl(dados.semCusto, "entra", "entram")} sem custo.</>}</p>}
       </Section>
 
       <Tabs value={visao} onChange={setVisao} options={(Object.keys(ROTULO) as Visao[]).map((v) => ({ value: v, label: `Por ${ROTULO[v].toLowerCase()}` }))} />

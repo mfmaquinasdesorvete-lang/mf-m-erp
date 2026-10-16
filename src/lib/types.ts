@@ -67,8 +67,15 @@ export type Produto = {
   especificacoes?: { nome: string; valor: string }[] | null;
   /** máquinas: etapas que viram a lista de conferência de cada OP */
   etapas_producao?: string[] | null;
+  /** como o item chega: comprado pronto, fabricado aqui ou fabricado com etapa em terceiro (ex.: injeção da pá) */
+  origem_producao?: "comprado" | "fabricado" | "terceirizado" | null;
+  /** etapas com detalhe (a OP usa só os nomes, em etapas_producao) */
+  etapas?: EtapaProducao[] | null;
   dicas_manutencao?: string | null; video_url?: string | null;
 };
+
+/** Etapa de produção: externa = feita fora (terceiro), com quem faz e o prazo em dias. */
+export type EtapaProducao = { nome: string; externa?: boolean; quem?: string | null; dias?: number | null };
 
 export type Item = {
   id?: string; produto_id: string; descricao: string; quantidade: number;

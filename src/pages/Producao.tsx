@@ -270,7 +270,10 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   // o que falta: peça comprada vira pedido de compra; subconjunto com estoque próprio vira OP dele
   const faltantes = nec.filter((n) => falta(n) > 0 && !n.subconjunto);
   const subFaltando = nec.filter((n) => falta(n) > 0 && n.subconjunto);
-  const produziveis = produtos.filter((p) => p.tipo === "maquina" || temFicha(fichas, p.id));
+  // máquinas, subconjuntos (com ficha) e as peças fabricadas aqui (eixos, pás…); unificado ou inativo não entra
+  // (a não ser o da própria OP que está aberta)
+  const produziveis = produtos.filter((p) => p.id === o.produto_id || (!p.unificado_em && p.ativo
+    && (p.tipo === "maquina" || temFicha(fichas, p.id) || !!p.subconjunto_estocado || ["fabricado", "terceirizado"].includes(p.origem_producao ?? ""))));
   const nNiveis = o.produto_id ? niveis(fichas, o.produto_id) : 0;
   const set = (p: Partial<OrdemProducao>) => setO((x) => ({ ...x, ...p }));
 

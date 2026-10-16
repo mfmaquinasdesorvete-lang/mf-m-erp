@@ -8,7 +8,8 @@ import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
 import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { MOTIVOS } from "@/lib/propostas";
-import type { Vendedor } from "@/lib/types";
+import type { Produto, Vendedor } from "@/lib/types";
+import { SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 
 type ItemV = { produto_id: string; descricao: string; quantidade: number; valor_unitario: number; produto?: { preco_custo: number; tipo: string } | null };
 type PedidoR = {
@@ -38,6 +39,10 @@ export default function Relatorios() {
   const { filtrar } = useUnidade();
   const { data: pedidosTodos = [] } = useRows<PedidoR>("pedidos", { select: "id, unidade_id, created_at, status, valor_total, vendedor, vendedor_id, desconto, frete, comissao_percentual, proposta_status, proposta_enviada_em, proposta_visualizada_em, proposta_respondida_em, motivo_rejeicao, concorrente, itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(preco_custo, tipo))" });
   const pedidos = filtrar(pedidosTodos);
+  // vendas que só têm a nota fiscal (importadas do Tiny, sem pedido no ERP) também contam
+  const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA });
+  const { data: produtosCad = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, produtosCad).pedidos) as unknown as PedidoR[], [notasTodas, produtosCad, filtrar]);
   const { data: receberTodos = [] } = useRows<Conta>("contas_receber");
   const receber = filtrar(receberTodos);
   const { data: pagarTodos = [] } = useRows<Conta>("contas_pagar");
@@ -50,7 +55,8 @@ export default function Relatorios() {
     const meses = ultimosMeses(Number(periodo));
     const inicio = meses[0] + "-01";
     const noPeriodo = (d: string | null | undefined) => !!d && d.slice(0, 10) >= inicio;
-    const vendas = pedidos.filter((p) => VALIDOS.includes(p.status) && noPeriodo(p.created_at));
+    const vendas = [...pedidos, ...vendasNotas].filter((p) => VALIDOS.includes(p.status) && noPeriodo(p.created_at));
+    const deNotas = vendas.filter((p) => (p as { de_nota?: boolean }).de_nota).length;
 
     const porMes = meses.map((m) => ({
       rotulo: rotuloMes(m),
@@ -155,12 +161,12 @@ export default function Relatorios() {
 
     return {
       porMes, top, receitaVendas, receitaServicos, cmv, despesas, totalDespesas, lucroBruto, fluxo, saldo8, vencidoReceber, vencidoPagar,
-      ticket: vendas.length ? receitaVendas / vendas.length : 0, qtdVendas: vendas.length,
+      ticket: vendas.length ? receitaVendas / vendas.length : 0, qtdVendas: vendas.length, deNotas,
       margem: receitaVendas ? (receitaVendas - cmv) / receitaVendas : 0,
       vendedores: [...vend.entries()].map(([nome, v]) => ({ nome, ...v })).sort((a, b) => b.vendido - a.vendido),
       propostas,
     };
-  }, [periodo, pedidos, receber, pagar, ordens, vendedoresCad, comissoes]);
+  }, [periodo, pedidos, vendasNotas, receber, pagar, ordens, vendedoresCad, comissoes]);
 
 
   // Planilha com uma aba por quadro da tela (mesmo período)
@@ -172,7 +178,7 @@ export default function Relatorios() {
       { Linha: "= Resultado do período", Valor: r.lucroBruto - r.totalDespesas },
     ];
     baixarPlanilha(`relatorios-${periodo}-meses`, [
-      { nome: "Resumo", linhas: [{ Período: `últimos ${periodo} meses`, Vendas: r.receitaVendas, Pedidos: r.qtdVendas, "Ticket médio": r.ticket,
+      { nome: "Resumo", linhas: [{ Período: `últimos ${periodo} meses`, Vendas: r.receitaVendas, "Qtd. de vendas": r.qtdVendas, "Vendas pelas notas fiscais (sem pedido)": r.deNotas, "Ticket médio": r.ticket,
         "Margem bruta %": Math.round(r.margem * 1000) / 10, "Saldo previsto 8 semanas": r.saldo8 }] },
       { nome: "Vendas por mês", linhas: r.porMes.map((m) => ({ Mês: m.rotulo, Vendas: m.valores[0] })) },
       { nome: "Produtos", linhas: r.top.map((t) => ({ Produto: t.rotulo, Faturado: t.valor, Quantidade: t.detalhe })) },
@@ -193,7 +199,7 @@ export default function Relatorios() {
       ]} />
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={TrendingUp} tom="info" label="Vendas no período" valor={brl(r.receitaVendas)} sub={`${r.qtdVendas} ${pl(r.qtdVendas, "pedido", "pedidos")}`} />
+        <Stat icon={TrendingUp} tom="info" label="Vendas no período" valor={brl(r.receitaVendas)} sub={`${r.qtdVendas} ${pl(r.qtdVendas, "venda", "vendas")}${r.deNotas ? ` · ${r.deNotas} pelas notas fiscais` : ""}`} />
         <Stat icon={Receipt} label="Ticket médio" valor={brl(r.ticket)} />
         <Stat icon={Percent} tom={r.margem < 0.2 ? "atencao" : "bom"} label="Margem bruta dos produtos"
           valor={`${(r.margem * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} sub="venda menos custo do produto" />

@@ -7,7 +7,7 @@ import type { Unidade } from "./unidade";
 import { percentualPedido, type RegraComissao } from "./comissao";
 
 export const CANAIS: Record<string, string> = {
-  whatsapp: "WhatsApp", telefone: "Telefone", presencial: "Presencial", representante: "Representante", loja: "Loja virtual", proposta: "Proposta", marketplace: "Marketplace", balcao: "Balcão (PDV)",
+  whatsapp: "WhatsApp", telefone: "Telefone", presencial: "Presencial", representante: "Representante", loja: "Loja virtual", proposta: "Proposta", marketplace: "Marketplace", balcao: "Balcão (PDV)", nfe: "Nota fiscal sem pedido (Tiny)",
 };
 
 export type Valores = { receita: number; impostos: number; cmv: number; comissao: number; frete: number; taxa: number; mc: number };
