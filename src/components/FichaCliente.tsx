@@ -506,48 +506,149 @@ function Assistencia({ cliente, oss, equipamentos, legado }: { cliente: Cliente;
 type TecnicoRegiao = { id: string; nome: string; tipo: string; whatsapp: string | null; telefone: string | null; municipio: string | null; uf: string | null;
   atendimentos: number; ultimo: string | null; na_cidade: boolean; no_estado: boolean; drfrost?: boolean; verificado?: boolean };
 
-/** Técnicos que já atenderam este cliente (pelas OS) e os que atendem a cidade ou o estado dele.
+/** Técnicos do cliente: o técnico ligado a ele (clientes.tecnico_id) e os da mesma cidade. Os outros da região
+ *  (estado, ou que já atenderam) ficam atrás do link "Técnicos da região", com o botão para ligar ao cliente.
  *  Os parceiros Dr. Frost (convidados do site de técnicos) vêm antes dos contatos. */
 function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamentos: any[] }) {
-  const { data = [], isLoading, error } = useQuery({
+  const { pode } = usePerfil();
+  const podeLigar = pode("editar_clientes");
+  const [verRegiao, setVerRegiao] = useState(false);
+  const [escolher, setEscolher] = useState(false);
+  const [gravando, setGravando] = useState(false);
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["tecnicos_do_cliente", cliente.id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("tecnicos_do_cliente", { p_cliente: cliente.id });
-      if (error) throw error;
-      const lista = (data ?? []) as TecnicoRegiao[];
-      if (!lista.length) return lista;
-      const { data: extra } = await supabase.from("tecnicos").select("id, drfrost, verificado").in("id", lista.map((t) => t.id));
-      const porId = new Map(((extra ?? []) as { id: string; drfrost: boolean; verificado: boolean }[]).map((x) => [x.id, x]));
-      return lista.map((t) => ({ ...t, drfrost: !!porId.get(t.id)?.drfrost, verificado: !!porId.get(t.id)?.verificado }))
-        .sort((a, b) => b.atendimentos - a.atendimentos || Number(b.drfrost) - Number(a.drfrost) || Number(b.na_cidade) - Number(a.na_cidade) || a.nome.localeCompare(b.nome));
+      const [r, cli] = await Promise.all([
+        supabase.rpc("tecnicos_do_cliente", { p_cliente: cliente.id }),
+        supabase.from("clientes").select("tecnico_id").eq("id", cliente.id).maybeSingle(),
+      ]);
+      if (r.error) throw r.error;
+      const ligadoId = ((cli.data ?? null) as { tecnico_id: string | null } | null)?.tecnico_id ?? null;
+      let lista = (r.data ?? []) as TecnicoRegiao[];
+      // técnico ligado de fora da região (ou que a busca não trouxe): entra na lista do mesmo jeito
+      if (ligadoId && !lista.some((t) => t.id === ligadoId)) {
+        const { data: t } = await supabase.from("tecnicos").select("id, nome, tipo, whatsapp, telefone, municipio, uf").eq("id", ligadoId).maybeSingle();
+        if (t) lista = [{ ...(t as Omit<TecnicoRegiao, "atendimentos" | "ultimo" | "na_cidade" | "no_estado">), atendimentos: 0, ultimo: null, na_cidade: false, no_estado: false }, ...lista];
+      }
+      if (lista.length) {
+        const { data: extra } = await supabase.from("tecnicos").select("id, drfrost, verificado").in("id", lista.map((t) => t.id));
+        const porId = new Map(((extra ?? []) as { id: string; drfrost: boolean; verificado: boolean }[]).map((x) => [x.id, x]));
+        lista = lista.map((t) => ({ ...t, drfrost: !!porId.get(t.id)?.drfrost, verificado: !!porId.get(t.id)?.verificado }))
+          .sort((a, b) => b.atendimentos - a.atendimentos || Number(b.drfrost) - Number(a.drfrost) || Number(b.na_cidade) - Number(a.na_cidade) || a.nome.localeCompare(b.nome));
+      }
+      return { ligadoId, lista };
     },
   });
+  const lista = data?.lista ?? [];
+  const ligado = lista.find((t) => t.id === data?.ligadoId);
+  const naCidade = lista.filter((t) => t.id !== data?.ligadoId && t.na_cidade);
+  const regiao = lista.filter((t) => t.id !== data?.ligadoId && !t.na_cidade);
   const lugar = [cliente.municipio, cliente.uf].filter(Boolean).join("/");
   const maquina = equipamentos[0]?.descricao as string | undefined;
   const msg = (t: TecnicoRegiao) => `Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas. Temos um cliente em ${lugar || "sua região"}${maquina ? ` com ${maquina}` : ""}. Você pode atender?`;
+
+  async function ligar(id: string | null) {
+    setGravando(true);
+    try {
+      const { error: e } = await supabase.from("clientes").update({ tecnico_id: id }).eq("id", cliente.id);
+      if (e) throw e;
+      notify(id ? "Técnico ligado ao cliente" : "Técnico desligado do cliente");
+      setEscolher(false);
+      await refetch();
+    } catch (err) { notifyError(err); } finally { setGravando(false); }
+  }
+
+  const linha = (t: TecnicoRegiao, acao?: ReactNode) => (
+    <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 [overflow-wrap:anywhere]">
+      <b className="text-fg">{t.nome}</b> <SeloDrFrost t={t} />
+      <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : t.drfrost ? "parceiro" : "contato"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
+      {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
+      {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">na cidade</span>
+        : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">no estado</span> : null}
+      <span className="ml-auto flex items-center gap-1.5">
+        {acao}
+        {(t.whatsapp || t.telefone) && (
+          <a href={whatsappLink(t.whatsapp || t.telefone, msg(t))} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={12} /> Chamar</a>
+        )}
+      </span>
+    </li>
+  );
+  const botaoLigar = (t: TecnicoRegiao) => podeLigar && (
+    <button type="button" disabled={gravando} onClick={() => ligar(t.id)}
+      className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Link2 size={12} /> Ligar ao cliente</button>
+  );
+
   return (
     <div>
-      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Wrench size={15} /> Técnicos {lugar ? `para ${lugar}` : "da região"}</h3>
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Wrench size={15} /> Técnicos {lugar ? `para ${lugar}` : "do cliente"}</h3>
       {isLoading ? <p className="text-sm text-slate-500">Procurando…</p>
         : error ? <p className="text-sm text-slate-500">Lista de técnicos indisponível.</p>
-        : !data.length ? <p className="text-sm text-slate-500">Nenhum técnico atende {lugar || "esta região"} ainda. Cadastre em Cadastros → Técnicos (cidades e estados que cada um atende).</p>
         : (
-          <ul className="space-y-1.5 text-sm">
-            {data.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 [overflow-wrap:anywhere]">
-                <b className="text-fg">{t.nome}</b> <SeloDrFrost t={t} />
-                <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : t.drfrost ? "parceiro" : "contato"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
-                {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
-                {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">na cidade</span>
-                  : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">no estado</span> : null}
-                {(t.whatsapp || t.telefone) && (
-                  <a href={whatsappLink(t.whatsapp || t.telefone, msg(t))} target="_blank" rel="noreferrer"
-                    className="ml-auto inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={12} /> Chamar</a>
-                )}
+          <div className="space-y-2 text-sm">
+            {(ligado || naCidade.length > 0) ? (
+              <ul className="space-y-1.5">
+                {ligado && linha(ligado, <>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">técnico do cliente</span>
+                  {podeLigar && <button type="button" disabled={gravando} onClick={() => ligar(null)} className="text-xs text-slate-500 underline hover:text-red-700 disabled:opacity-50">tirar</button>}
+                </>)}
+                {naCidade.map((t) => linha(t, botaoLigar(t)))}
+              </ul>
+            ) : (
+              <p className="text-slate-500">Nenhum técnico ligado a este cliente nem na cidade{cliente.municipio ? ` de ${cliente.municipio}` : ""}.</p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {regiao.length > 0 && (
+                <button type="button" onClick={() => setVerRegiao((v) => !v)} aria-expanded={verRegiao}
+                  className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400">
+                  {verRegiao ? "Esconder" : "Ver"} técnicos da região{cliente.uf ? ` (${cliente.uf})` : ""} · {regiao.length} {verRegiao ? "↑" : "→"}
+                </button>
+              )}
+              {podeLigar && (
+                <button type="button" onClick={() => setEscolher((v) => !v)} className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400">
+                  {ligado ? "Trocar o técnico do cliente" : "Ligar um técnico ao cliente"}
+                </button>
+              )}
+            </div>
+            {escolher && <EscolherTecnico onEscolher={(id) => ligar(id)} gravando={gravando} />}
+            {verRegiao && <ul className="space-y-1.5">{regiao.map((t) => linha(t, botaoLigar(t)))}</ul>}
+          </div>
+        )}
+    </div>
+  );
+}
+
+/** Busca qualquer técnico ativo pelo nome ou cidade, para ligar ao cliente. */
+function EscolherTecnico({ onEscolher, gravando }: { onEscolher: (id: string) => void; gravando: boolean }) {
+  const [busca, setBusca] = useState("");
+  const termo = busca.trim().replace(/[%_,()]/g, " ").trim();
+  const { data = [], isFetching } = useQuery({
+    queryKey: ["tecnicos_busca", termo],
+    enabled: termo.length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tecnicos").select("id, nome, municipio, uf").eq("ativo", true)
+        .or(`nome.ilike.%${termo}%,municipio.ilike.%${termo}%`).order("nome").limit(10);
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; municipio: string | null; uf: string | null }[];
+    },
+  });
+  return (
+    <div className="rounded-lg border border-slate-200 p-2">
+      <input className="input" autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou cidade do técnico…" aria-label="Buscar técnico" />
+      {termo.length >= 2 && (
+        <ul className="mt-1.5 space-y-1">
+          {!data.length ? <li className="px-1 text-xs text-slate-500">{isFetching ? "Procurando…" : "Nenhum técnico encontrado."}</li>
+            : data.map((t) => (
+              <li key={t.id}>
+                <button type="button" disabled={gravando} onClick={() => onEscolher(t.id)}
+                  className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-sm hover:bg-slate-100 disabled:opacity-50">
+                  <span className="font-medium">{t.nome}</span>
+                  <span className="text-xs text-slate-500">{[t.municipio, t.uf].filter(Boolean).join("/")}</span>
+                </button>
               </li>
             ))}
-          </ul>
-        )}
+        </ul>
+      )}
     </div>
   );
 }
