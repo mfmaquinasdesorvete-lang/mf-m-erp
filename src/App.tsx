@@ -71,6 +71,7 @@ const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
+const Sobre = lazy(() => import("@/pages/Sobre"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -282,6 +283,8 @@ function RotasERP() {
         {ROTAS.filter((r) => vis.ve(r.tela, `/${r.path}`)).map((r) => (
           <Route key={r.path} path={r.path} element={r.element} />
         ))}
+        {/* Sobre o ERP Line (módulos e atualizações): todos que entram no ERP abrem, pela versão no fim do menu */}
+        <Route path="sobre" element={<Sobre />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

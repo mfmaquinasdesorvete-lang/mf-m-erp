@@ -21,6 +21,9 @@ import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
 
+// versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
+const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
+
 
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 const RAPIDOS: { to: string; label: string; cor: string }[] = [
@@ -301,6 +304,13 @@ export function Layout() {
                 <Icone size={17} />
               </button>
             ))}
+          </div>
+          {/* versão em uso, com data e hora: abre as atualizações dia a dia; "Módulos" explica cada tela */}
+          <div className="mt-1 flex items-center justify-between gap-2 px-1 text-[11px] leading-tight text-nav-fraco">
+            <Link to="/sobre?aba=atualizacoes" onClick={() => setAberto(false)} title="Ver as atualizações dia a dia" className="min-w-0 truncate hover:text-white">
+              ERP Line {VERSAO ? <>v{VERSAO.numero} · {VERSAO.quando}</> : "· prévia"}
+            </Link>
+            <Link to="/sobre" onClick={() => setAberto(false)} className="shrink-0 font-semibold hover:text-white">Módulos</Link>
           </div>
         </div>
       </aside>
