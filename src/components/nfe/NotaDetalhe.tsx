@@ -15,6 +15,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
+import { GnreNota } from "./GnreNota";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { LinhaDoTempo, useEvolucaoEmitidas } from "./Evolucao";
 import { evolucaoEmitida } from "@/lib/evolucaoNota";
@@ -130,6 +131,8 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
         </div>
 
         <EvolucaoDaNota n={n} />
+
+        {!importada && !teste && <GnreNota nota={n} podeFin={!!podeFin} />}
 
         {(relacionadas.length > 0 || !!n.chave_referenciada) && (
           <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-900">

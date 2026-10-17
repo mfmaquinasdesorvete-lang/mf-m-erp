@@ -8,6 +8,7 @@ import { useConfig } from "@/lib/useConfig";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade } from "@/lib/unidade";
+import { lerUfs } from "@/lib/gnre";
 import { CLASS_TRIB, CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, descricaoCodigo, type Codigo } from "@/lib/codigosFiscais";
 import { cbenefObrigatorio } from "../../supabase/functions/_shared/nfe-conferencia";
 import { OPCOES_ICMS_TRANSFERENCIA } from "../../supabase/functions/_shared/nfe-transferencia";
@@ -21,10 +22,10 @@ const CAMPOS_UNIDADE = [
   "pis_cst", "pis_aliquota", "cofins_cst", "cofins_aliquota", "pis_cofins_exclui_icms",
   "ibs_cbs_cst", "ibs_cbs_class_trib",
   "transf_icms_cst", "transf_pis_cofins_cst", "transf_destacar_ipi", "transf_ibs_cbs_cst", "transf_ibs_cbs_class_trib",
-  "transf_cbenef", "transf_ipi_base",
+  "transf_cbenef", "transf_ipi_base", "gnre_automatica", "gnre_ufs_inscritas",
 ] as const;
 /** Colunas novas (migração da transferência): só vão no salvar se o banco já tem a coluna. */
-const CAMPOS_NOVOS = ["transf_cbenef", "transf_ipi_base"];
+const CAMPOS_NOVOS = ["transf_cbenef", "transf_ipi_base", "gnre_automatica", "gnre_ufs_inscritas"];
 const NUMEROS_UNIDADE = ["serie_nfe", "icms_aliquota_interna", "icms_reducao_base", "pis_aliquota", "cofins_aliquota"];
 const CAMPOS_CONFIG = ["ibs_cbs_ativo", "cbs_aliquota", "ibs_uf_aliquota", "ibs_mun_aliquota"] as const;
 const NUMEROS_CONFIG = ["cbs_aliquota", "ibs_uf_aliquota", "ibs_mun_aliquota"];
@@ -60,7 +61,9 @@ export function ConfigNfe({ podeEditar, irParaRegras }: { podeEditar: boolean; i
 
   const id = unidadeId || padrao || unidades[0]?.id || "";
   const unidade = unidades.find((x) => x.id === id);
-  useEffect(() => { if (unidade) setU(pegar(unidade, CAMPOS_UNIDADE, NUMEROS_UNIDADE)); }, [unidade]);
+  useEffect(() => {
+    if (unidade) setU({ ...pegar(unidade, CAMPOS_UNIDADE, NUMEROS_UNIDADE), gnre_ufs_inscritas: ((unidade as any).gnre_ufs_inscritas ?? []).join(", ") });
+  }, [unidade]);
   useEffect(() => { if (config) setC(pegar(config, CAMPOS_CONFIG, NUMEROS_CONFIG)); }, [config]);
 
   const bloqueado = !podeEditar;
@@ -91,6 +94,8 @@ export function ConfigNfe({ podeEditar, irParaRegras }: { podeEditar: boolean; i
       row.informacoes_complementares = String(row.informacoes_complementares ?? "").trim() || null;
       row.transf_cbenef = String(row.transf_cbenef ?? "").trim().toUpperCase() || null;
       row.transf_ipi_base = row.transf_ipi_base || "custo";
+      row.gnre_automatica = !!row.gnre_automatica;
+      row.gnre_ufs_inscritas = lerUfs(String(row.gnre_ufs_inscritas ?? "")).filter((x) => x !== unidade.uf);
       if (row.transf_cbenef && !/^[A-Z0-9]{8,10}$/.test(row.transf_cbenef)) throw new Error("Código de benefício (cBenef) da transferência: 8 a 10 letras e números, sem espaços (ex.: o que o contador passar).");
       for (const k of CAMPOS_NOVOS) if (!(k in unidade)) delete row[k];
       const { error } = await supabase.from("unidades").update(row).eq("id", unidade.id);
@@ -153,6 +158,10 @@ export function ConfigNfe({ podeEditar, irParaRegras }: { podeEditar: boolean; i
             {campo("icms_aliquota_interna", "Alíquota dentro do estado (%)")}
             {campo("icms_reducao_base", "Redução da base de cálculo (%)", "", "0")}
             <div className="sm:col-span-4">{chk("difal_ativo", "Calcular DIFAL na venda para consumidor final (sem IE) de outro estado")}</div>
+            <div className="sm:col-span-4">{chk("gnre_automatica", "Lançar sozinho a conta da GNRE (DIFAL, FCP e ICMS-ST) quando a NF-e para outro estado sair autorizada — vence no próximo dia útil, a guia sai no portal da GNRE")}</div>
+            <Field label="Estados onde esta unidade tem inscrição de substituto tributário (o imposto vai na apuração mensal, sem GNRE por nota)" className="sm:col-span-4">
+              <input className="input" value={u.gnre_ufs_inscritas ?? ""} onChange={set("gnre_ufs_inscritas")} disabled={bloqueado} placeholder="Ex.: PR, RS — vazio se não tiver (confirmar com o contador)" />
+            </Field>
             <p className="text-xs text-slate-500 sm:col-span-4">
               Para outro estado a alíquota sai sozinha: 12% (S/SE) ou 7% (N, NE, CO e ES); 4% para produto com conteúdo importado.
               A redução da base só entra com CST 20 ou 70.

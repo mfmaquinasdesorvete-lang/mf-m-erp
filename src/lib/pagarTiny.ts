@@ -1,7 +1,7 @@
 // Contas a pagar como no Tiny (e melhor): de onde veio cada conta, qual data vale no período, a série de contas de uma
 // ocorrência (parcelada, semanal, mensal…), o mês de competência para o DRE e a lista agrupada por fornecedor.
 
-export type CodigoOrigem = "nf" | "st" | "oc" | "cte" | "frete" | "fixa" | "comissao" | "extrato" | "infinitepay" | "olist" | "tiny" | "manual" | "outro";
+export type CodigoOrigem = "nf" | "st" | "gnre" | "oc" | "cte" | "frete" | "fixa" | "comissao" | "extrato" | "infinitepay" | "olist" | "tiny" | "manual" | "outro";
 
 /** Uma linha da visão contas_pagar_origem. */
 export type OrigemConta = {
@@ -12,6 +12,7 @@ export type OrigemConta = {
 export const ORIGENS: Record<CodigoOrigem, { sigla: string; rotulo: string; cor: string }> = {
   nf: { sigla: "NF", rotulo: "Nota de fornecedor", cor: "bg-sky-100 text-sky-800" },
   st: { sigla: "ST", rotulo: "Serviço tomado", cor: "bg-teal-100 text-teal-800" },
+  gnre: { sigla: "GNRE", rotulo: "Guia GNRE (DIFAL / ICMS-ST)", cor: "bg-rose-100 text-rose-800" },
   oc: { sigla: "OC", rotulo: "Ordem de compra", cor: "bg-violet-100 text-violet-800" },
   cte: { sigla: "CT-e", rotulo: "Fatura de CT-e", cor: "bg-amber-100 text-amber-900" },
   frete: { sigla: "Frete", rotulo: "Frete de envio", cor: "bg-amber-100 text-amber-900" },
@@ -25,12 +26,13 @@ export const ORIGENS: Record<CodigoOrigem, { sigla: string; rotulo: string; cor:
   outro: { sigla: "Outra", rotulo: "Outra origem", cor: "bg-slate-100 text-slate-700" },
 };
 
-/** "NF 910849", "NFS-e 77", "OC 56", "Envio 12", "Fatura 789" ou só a sigla. */
+/** "NF 910849", "NFS-e 77", "GNRE NF 1203", "OC 56", "Envio 12", "Fatura 789" ou só a sigla. */
 export function rotuloOrigem(o: OrigemConta | null | undefined): string | null {
   if (!o) return null;
   const s = ORIGENS[o.origem]?.sigla ?? "Outra";
   if (o.origem === "nf" && o.nf_numero) return `NF ${o.nf_numero}`;
   if (o.origem === "st" && o.nf_numero) return `NFS-e ${o.nf_numero}`;
+  if (o.origem === "gnre" && o.nf_numero) return `GNRE NF ${o.nf_numero}`;
   if (o.origem === "oc" && o.oc_numero) return `OC ${o.oc_numero}`;
   if (o.origem === "frete" && o.envio_numero) return `Envio ${o.envio_numero}`;
   if (o.origem === "cte" && o.fatura_numero) return `Fatura ${o.fatura_numero}`;

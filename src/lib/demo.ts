@@ -1653,12 +1653,13 @@ function origemPagarDemo(db: Db) {
     const fat = (db.cte_faturas ?? []).find((f) => f.conta_pagar_id === c.id);
     const env = (db.envios ?? []).find((e) => e.conta_pagar_id === c.id);
     const st = (db.nfse_importadas ?? []).find((n) => n.conta_pagar_id === c.id);
+    const gn = (db.gnre_guias ?? []).find((g) => g.conta_pagar_id === c.id);
     const oc = /^PC (\d+)/.exec(c.documento ?? "")?.[1] ?? /^Pedido de compra #(\d+)/.exec(c.descricao ?? "")?.[1] ?? null;
     const obs = String(c.observacoes ?? "");
-    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : st ? "st" : oc ? "oc" : c.recorrente_id ? "fixa"
+    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : st ? "st" : gn ? "gnre" : oc ? "oc" : c.recorrente_id ? "fixa"
       : obs.startsWith("Gerado pelo ERP a partir das comissões") ? "comissao" : obs.startsWith("Lançado a partir do extrato bancário") ? "extrato" : "outro";
     return {
-      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : st?.numero ?? null, oc_numero: oc,
+      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : st?.numero ?? gn?.nf_numero ?? null, oc_numero: oc,
       envio_numero: env?.numero != null ? String(env.numero) : null, fatura_numero: fat?.numero != null ? String(fat.numero) : null,
       emissao_efetiva: c.emissao ?? (String(nr?.data_emissao ?? st?.data_emissao ?? c.created_at ?? "").slice(0, 10) || null),
     };
@@ -3333,6 +3334,37 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const id = db.acessos_usuarios.length + 1;
     db.acessos_usuarios.unshift({ id, user_id: sessao?.user.id, nome: eu?.nome ?? null, entrou_em: agora, ultimo_sinal_em: agora, dispositivo: p_dispositivo ?? null, navegador: p_navegador ?? null, ip: null });
     return { data: id, error: null };
+  },
+  gnre_lancar_nota: ({ p_nota }) => {
+    db.gnre_guias = db.gnre_guias ?? [];
+    if (db.gnre_guias.some((g: Row) => g.nota_fiscal_id === p_nota)) return { data: null, error: { message: "Esta nota já tem GNRE lançada" } };
+    const n = db.notas_fiscais.find((x: Row) => x.id === p_nota);
+    const itens = (n?.payload?.items ?? []) as Row[];
+    const soma = (f: (i: Row) => number) => r2(itens.reduce((t, i) => t + f(i), 0));
+    const difal = soma((i) => Number(i.icms_valor_uf_destino ?? 0)), fcp = soma((i) => Number(i.fcp_valor_uf_destino ?? 0));
+    const st = soma((i) => Number(i.icms_valor_st ?? 0) + Number(i.fcp_valor_st ?? 0));
+    const total = r2(difal + fcp + st);
+    if (!n || n.status !== "autorizada" || total <= 0) return { data: null, error: { message: "Esta nota não tem DIFAL, FCP nem ICMS-ST para outro estado (ou não está autorizada)" } };
+    const uf = String(n.payload?.uf_destinatario ?? "").toUpperCase();
+    const venc = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    const conta = { id: uid(), descricao: `GNRE – NF ${n.numero ?? "?"} – ${uf}`, categoria: "impostos", documento: `NF ${n.numero ?? "?"} · GNRE`, valor: total, vencimento: venc,
+      status: "aberto", revisao: "aprovado", lancamento: "automatico", unidade_id: n.unidade_id ?? null, emissao: new Date().toISOString().slice(0, 10),
+      observacoes: "Gerado pelo ERP (demonstração). Gerar a guia no portal da GNRE.", created_at: new Date().toISOString(), rateio: [], marcadores: [] };
+    db.contas_pagar.unshift(conta);
+    const g = { id: uid(), nota_fiscal_id: n.id, unidade_id: n.unidade_id ?? null, uf, nf_numero: n.numero, valor_difal: difal, valor_fcp: fcp, valor_st: st, valor_total: total,
+      vencimento: venc, conta_pagar_id: conta.id, situacao: "a_gerar", codigo_barras: null, observacao: "Lançada pelo financeiro", created_at: new Date().toISOString() };
+    db.gnre_guias.unshift(g);
+    return { data: g.id, error: null };
+  },
+  gnre_informar_guia: ({ p_id, p_codigo }) => {
+    const g = (db.gnre_guias ?? []).find((x: Row) => x.id === p_id);
+    const cod = String(p_codigo ?? "").replace(/\D/g, "");
+    if (!g) return { data: null, error: { message: "Guia não encontrada" } };
+    if (cod.length !== 44 && cod.length !== 48) return { data: null, error: { message: "O código de barras da GNRE tem 44 ou 48 números" } };
+    g.codigo_barras = cod; g.situacao = "gerada";
+    const c = db.contas_pagar.find((x: Row) => x.id === g.conta_pagar_id && x.status === "aberto");
+    if (c) c.linha_digitavel = cod;
+    return { data: null, error: null };
   },
   responder_aviso: ({ p_id, p_texto, p_urgencia = "normal" }) => {
     if (!String(p_texto ?? "").trim()) return { data: null, error: { message: "Escreva a resposta" } };
