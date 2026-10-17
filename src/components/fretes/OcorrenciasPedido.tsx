@@ -6,7 +6,7 @@ import { AlertTriangle, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { useInvalidate, ler } from "@/lib/data";
-import { dataBR, pl } from "@/lib/format";
+import { dataHoraBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -63,7 +63,7 @@ export function OcorrenciasPedido({ pedidoId, statusPedido }: { pedidoId: string
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <b className="text-fg">{TIPOS_OCORRENCIA.find(([k]) => k === o.tipo)?.[1] ?? o.tipo}</b>
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${o.status === "aberta" ? "bg-amber-200 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{o.status}</span>
-                    <span className="text-xs text-slate-500">envio #{numero(o.envio_id)} · {dataBR(o.created_at)} · {o.responsavel ? `responsável: ${o.responsavel}` : "sem responsável"}</span>
+                    <span className="text-xs text-slate-500">envio #{numero(o.envio_id)} · {dataHoraBR(o.created_at)} · {o.responsavel ? `responsável: ${o.responsavel}` : "sem responsável"}</span>
                   </span>
                   <span className="block text-slate-700">{o.descricao}</span>
                   {o.status === "resolvida" && o.resolucao && <span className="block text-xs text-emerald-800">Resolução: {o.resolucao}</span>}

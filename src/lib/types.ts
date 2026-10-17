@@ -140,7 +140,7 @@ export type Config = {
   aviso_outra_empresa?: string | null; // OS de máquina vendida por outra empresa ({empresa}, {mf})
   proposta_titulo?: string; proposta_apresentacao?: string | null; proposta_condicoes?: string | null;
   proposta_rodape?: string | null; proposta_cor?: string; proposta_fotos?: boolean;
-  nfe_automatica?: boolean; link_pagamento_ao_aprovar?: boolean; vender_sem_estoque?: boolean; expedicao_apos?: "aprovacao" | "nfe";
+  nfe_automatica?: boolean; link_pagamento_ao_aprovar?: boolean; vender_sem_estoque?: boolean; pedido_ocorrencias_excluir?: boolean; expedicao_apos?: "aprovacao" | "nfe";
   etiqueta_formato?: "10x15" | "a4";
   contador_nome?: string | null; contador_email?: string | null; contador_envio_auto?: boolean; contador_envio_dia?: number;
   /** telefone, site, endereço e Instagram do escritório de contabilidade (Painel do contador → Contabilidade) */

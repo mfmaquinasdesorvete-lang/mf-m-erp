@@ -10,6 +10,7 @@ import {
   AVISOS, cepFmt, codigoTransporte, codigoVolume, medidasTxt, pesoDoVolume, pesoTxt, volumeVazio,
   type AvisoId, type EtiquetaDados, type ModeloEtiqueta,
 } from "./etiquetaDados";
+import qrcode from "qrcode-generator";
 import logoPdf from "@/assets/logo-pdf.jpg";
 import { logoDaEmpresa } from "./marca";
 import { pl } from "@/lib/format";
@@ -221,6 +222,29 @@ function paragrafo(doc: Doc, titulo: string, texto: string, y: number) {
   return y + 3;
 }
 
+/** "Pague com Pix": o QR Code desenhado em quadradinhos (nítido na impressão) e o copia e cola ao lado. */
+function blocoPix(doc: Doc, pix: { copiaECola: string; valor: number; rotulo: string }, y: number) {
+  const lado = 34;
+  if (y + lado + 6 > LIMITE_Y) { doc.addPage(); y = 20; }
+  const q = qrcode(0, "M");
+  q.addData(pix.copiaECola);
+  q.make();
+  const n = q.getModuleCount(), m = lado / n;
+  doc.setFillColor(255, 255, 255); doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(13, y - 2, doc.internal.pageSize.getWidth() - 26, lado + 6, 2, 2, "S");
+  doc.setFillColor(15, 23, 42);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) doc.rect(15 + c * m, y + 1 + r * m, m + 0.02, m + 0.02, "F");
+  const x = 15 + lado + 6, w = doc.internal.pageSize.getWidth() - x - 16;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+  doc.text(`Pague com Pix · ${brl(pix.valor)}`, x, y + 5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(71, 85, 105);
+  doc.text(doc.splitTextToSize(`${pix.rotulo}. Aponte a câmera do app do banco para o QR Code ou use o Pix copia e cola:`, w), x, y + 10);
+  doc.setFont("courier", "normal"); doc.setFontSize(6.5); doc.setTextColor(30, 41, 59);
+  doc.text(doc.splitTextToSize(pix.copiaECola, w).slice(0, 6), x, y + 19);
+  doc.setFont("helvetica", "normal");
+  return y + lado + 9;
+}
+
 // ---------------------------------------------------------------------
 // Orçamento / pedido
 // ---------------------------------------------------------------------
@@ -229,8 +253,13 @@ export async function pdfOrcamento(p: {
   forma_pagamento: string; parcelas: number; observacoes?: string | null; vendedor?: string | null;
   garantias: Record<string, number>; // produto_id -> meses (só máquinas)
   validade?: string | null;
+  /** Pix copia e cola (com o valor) para o QR Code "Pague com Pix" */
+  pix?: { copiaECola: string; valor: number; rotulo: string } | null;
+  /** título do arquivo (aparece no leitor de PDF) */
+  titulo?: string;
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
+  if (p.titulo) doc.setProperties({ title: p.titulo });
   const ehOrcamento = !p.status || p.status === "orcamento";
   // Layout da proposta (Configurações → Proposta comercial)
   const cor = hexRgb(cfg.proposta_cor) ?? NAVY;
@@ -280,6 +309,7 @@ export async function pdfOrcamento(p: {
   const formas: Record<string, string> = { boleto: "Boleto bancário", pix: "Pix", cartao: "Cartão", transferencia: "Transferência", dinheiro: "Dinheiro" };
   const condicao = `${formas[p.forma_pagamento] ?? p.forma_pagamento}${p.parcelas > 1 ? ` em ${p.parcelas}x de ${brl(total / p.parcelas)}` : " à vista"}.`;
   y = paragrafo(doc, "Condições de pagamento", condicao, y);
+  if (p.pix) y = blocoPix(doc, p.pix, y);
   if (ehOrcamento) y = paragrafo(doc, "Validade", p.validade
     ? `Proposta válida até ${dataBR(p.validade)}. Preços sujeitos a disponibilidade de estoque.`
     : `Esta proposta é válida por ${cfg.validade_orcamento_dias} dias a partir da data de emissão. Preços sujeitos a disponibilidade de estoque.`, y);

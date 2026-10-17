@@ -12,7 +12,7 @@ import type { ImpressoraEtiqueta } from "@/lib/types";
 import { BotaoSalvar, Bloco, CabecalhoSecao, Opcao, secaoPorId, useCfgPagina } from "./comum";
 
 const CHAVES = ["nfe_automatica", "link_pagamento_ao_aprovar", "vender_sem_estoque", "etiqueta_formato", "expedicao_apos", "impressora_etiqueta",
-  "risco_ativo", "risco_valor_alto", "risco_pontos_travar"];
+  "risco_ativo", "risco_valor_alto", "risco_pontos_travar", "pedido_ocorrencias_excluir"];
 /** Número digitado (vírgula ou ponto) ou o padrão. */
 const numero = (v: unknown, padrao: number) => {
   const t = String(v ?? "").trim();
@@ -58,6 +58,9 @@ export function ConfigPedidos() {
             </Opcao>
             <Opcao ligado={!!cfg.vender_sem_estoque} onChange={(v) => mudar({ vender_sem_estoque: v })}>
               <b>Aprovar venda sem estoque</b> (o estoque pode ficar negativo). Desligado, a aprovação é bloqueada e mostra o que falta; produtos <i>sob encomenda</i> passam sempre.
+            </Opcao>
+            <Opcao ligado={!!cfg.pedido_ocorrencias_excluir} onChange={(v) => mudar({ pedido_ocorrencias_excluir: v })}>
+              <b>Permitir excluir ocorrências dos pedidos</b> (vendas e financeiro). Desligado, as ocorrências ficam para sempre; a exclusão fica no histórico da auditoria.
             </Opcao>
           </div>
           <label className="mt-3 block max-w-md">

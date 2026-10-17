@@ -8,6 +8,9 @@ import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const brl = (v: number) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+/** "Proposta 1234 - Nome do cliente.pdf" (como no Tiny), sem os caracteres que o sistema de arquivos não aceita */
+const arquivoProposta = (titulo: string, numero: number, cliente?: string | null) =>
+  `${[`${titulo.trim() || "Proposta"} ${numero}`, (cliente ?? "").trim()].filter(Boolean).join(" - ").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120).trim()}.pdf`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -15,7 +18,7 @@ Deno.serve(async (req) => {
     await requireErpUser(req, ["vendas"]);
     const { pedido_id, para, mensagem, pdf_base64 } = await req.json();
     const db = adminClient();
-    const { data: p } = await db.from("pedidos").select("*, cliente:clientes(nome, email), vend:vendedores(nome, email)").eq("id", pedido_id).single();
+    const { data: p } = await db.from("pedidos").select("*, cliente:clientes(nome, nome_fantasia, email), vend:vendedores(nome, email)").eq("id", pedido_id).single();
     if (!p) throw new HttpError(404, "pedido não encontrado");
     const destino = String(para || p.cliente?.email || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destino)) throw new HttpError(400, "informe o e-mail do cliente");
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
       </div></div>`;
     await enviarEmail({
       para: destino, assunto: titulo, html, texto, responderPara: p.vend?.email || cfg?.email || null, idempotencia: `proposta-${pedido_id}-${Date.now()}`,
-      anexos: pdf_base64 ? [{ nome: `proposta-${p.numero}.pdf`, base64: pdf_base64 }] : [],
+      anexos: pdf_base64 ? [{ nome: arquivoProposta(cfg?.proposta_titulo ?? "Proposta", p.numero, p.cliente?.nome_fantasia || p.cliente?.nome), base64: pdf_base64 }] : [],
     });
     return json({ ok: true, link, para: destino });
   } catch (e) {

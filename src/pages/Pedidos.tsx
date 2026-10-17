@@ -5,7 +5,8 @@ import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
-import { CheckCircle2, ChevronRight, FileDown, FileText, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Trash2, Truck, XCircle } from "lucide-react";
+import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
+import { CheckCircle2, ChevronRight, FileDown, FileText, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Trash2, Truck, Wrench, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
@@ -30,6 +31,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
 import { combinaBusca } from "@/lib/buscaCliente";
 import { pctTexto, percentualPedido, type LinhaProduto, type RegraComissao } from "@/lib/comissao";
 import { ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
@@ -199,6 +201,13 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     return m;
   }, [pedidosTodos, tinyPorId, fotos, dia]);
   const [pagamento, setPagamento] = useState<SituacaoPagamento | "">("");
+  // forma de envio (como no Tiny): pela transportadora/serviço que a venda mostra (Correios, Rodonaves, retira…)
+  const [formaEnvio, setFormaEnvio] = useState("");
+  const formasEnvio = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const p of pedidos) { const r = info.get(p.id)?.envio?.rotulo; if (r) n.set(r, (n.get(r) ?? 0) + 1); }
+    return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
+  }, [pedidos, info]);
 
   // tudo menos a situação e o pagamento: as contagens dos botões seguem a busca, o período e os outros filtros
   const filtrados = useMemo(() => pedidos.filter((p) =>
@@ -206,17 +215,18 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     (!marcador || !!p.marcadores?.includes(marcador)) &&
     (!soLicenciados || ehLicenciado(p.cliente)) &&
     (!situacaoTiny || (situacaoTiny === "-" ? !p.situacao_origem : p.situacao_origem === situacaoTiny)) &&
+    (!formaEnvio || info.get(p.id)?.envio?.rotulo === formaEnvio) &&
     noPeriodo(p.created_at, periodo) &&
     (!busca || combinaBusca([p.numero, p.numero_externo, info.get(p.id)?.oc, info.get(p.id)?.nf, p.codigo_rastreio, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
-  ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, periodo, info]); // eslint-disable-line react-hooks/exhaustive-deps
+  ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, formaEnvio, periodo, info]); // eslint-disable-line react-hooks/exhaustive-deps
   const doPagamento = (p: Pedido) => !pagamento || info.get(p.id)?.pg?.situacao === pagamento;
   const semSituacao = useMemo(() => filtrados.filter(doPagamento), [filtrados, pagamento, info]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => semSituacao.filter((p) => filtro === "todos" || p.status === filtro), [semSituacao, filtro]);
   const semPagamento = useMemo(() => filtrados.filter((p) => filtro === "todos" || p.status === filtro), [filtrados, filtro]);
   const situacoesTiny = useMemo(() => [...new Set(pedidos.map((p) => p.situacao_origem).filter((s): s is string => !!s))].sort(), [pedidos]);
   const selecionados = useMemo(() => pedidos.filter((p) => selecao.tem(p.id)), [pedidos, selecao]);
-  const nFiltros = (marcador ? 1 : 0) + (situacaoTiny ? 1 : 0) + (soLicenciados ? 1 : 0);
-  const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setPeriodo(SEM_PERIODO); setFiltro("todos"); setPagamento(""); };
+  const nFiltros = (marcador ? 1 : 0) + (situacaoTiny ? 1 : 0) + (soLicenciados ? 1 : 0) + (formaEnvio ? 1 : 0);
+  const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setFormaEnvio(""); setPeriodo(SEM_PERIODO); setFiltro("todos"); setPagamento(""); };
   const infoDe = (id: string) => info.get(id);
   // no rodapé: quanto da lista já entrou e quanto falta receber (pelas contas, valor da venda)
   // no quadro as situações são as colunas: valem todas as vendas dos filtros
@@ -273,6 +283,12 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         )}
         filtros={<>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+          {formasEnvio.length > 0 && (
+            <select className="input w-auto" aria-label="Forma de envio" value={formaEnvio} onChange={(e) => setFormaEnvio(e.target.value)}>
+              <option value="">Forma de envio: todas</option>
+              {formasEnvio.map(([r, n]) => <option key={r} value={r}>Envio: {r} ({n})</option>)}
+            </select>
+          )}
           {situacoesTiny.length > 0 && (
             <select className="input w-auto" aria-label="Situação no Tiny" value={situacaoTiny} onChange={(e) => setSituacaoTiny(e.target.value)}>
               <option value="">Situação no Tiny: todas</option>
@@ -528,6 +544,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
+  const navigate = useNavigate();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
   const { data: linhasProduto = [] } = useRows<LinhaProduto>("linhas_produto", { order: "nome", ascending: true });
@@ -764,6 +781,15 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     }, "NF-e enviada para a SEFAZ. Acompanhe em Notas fiscais.");
   };
 
+  // OS a partir do pedido (como no Tiny): cliente, máquina e pedido já preenchidos na Assistência
+  const abrirOS = () => {
+    const maquina = p.itens.find((i) => produtos.find((x) => x.id === i.produto_id)?.tipo === "maquina") ?? p.itens[0];
+    navigate("/assistencia", { state: { novaOS: {
+      cliente_id: p.cliente_id, pedido_id: p.id, produto_id: maquina?.produto_id ?? null, equipamento: maquina?.descricao ?? "",
+      numero_serie: maquina?.numero_serie ?? null, defeito_relatado: `Aberta pelo pedido de venda #${p.numero}: `, unidade_id: p.unidade_id ?? null,
+    } } });
+  };
+
   const mensagemWhats = () => {
     const linhas = p.itens.map((i) => `• ${i.quantidade}x ${i.descricao} — ${brl(i.quantidade * i.valor_unitario)}`);
     return [
@@ -773,8 +799,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       Number(p.frete) ? `Frete: ${brl(p.frete)}` : "",
       `*Total: ${brl(total)}*`,
       `Pagamento: ${FORMAS.find((f) => f.value === p.forma_pagamento)?.label}${Number(p.parcelas) > 1 ? ` em ${p.parcelas}x` : ""}`,
+      pixPedido ? `\n*Pix copia e cola* (${pixPedido.rotulo.toLowerCase()}, ${brl(pixPedido.valor)}):\n${pixPedido.copiaECola}` : "",
     ].filter((l) => l !== "").join("\n");
   };
+  // Pix do pedido (chave da unidade): vai no PDF e no WhatsApp quando a forma de pagamento é Pix
+  const unidadePedido = unidades.find((u) => u.id === p.unidade_id);
+  const pixPedido = p.forma_pagamento === "pix" ? pixDoPedido(unidadePedido, { numero: p.numero, valor_total: total, parcelas: Number(p.parcelas || 1) }) : null;
+  const tituloPdf = tituloPedido(p, cliente, cfg?.proposta_titulo || "Proposta");
 
   async function montarPdf(): Promise<Blob | null> {
     if (!cfg || !p.itens.length) return null;
@@ -787,7 +818,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       numero: p.numero, status: p.status, cliente, itens: p.itens, desconto: Number(p.desconto || 0), frete: Number(p.frete || 0),
       forma_pagamento: p.forma_pagamento ?? "boleto", parcelas: Number(p.parcelas || 1), observacoes: p.observacoes,
       vendedor: vendedores.find((v) => v.id === p.vendedor_id)?.nome ?? p.vendedor, garantias, validade: p.proposta_validade,
-    }, comUnidade(cfg, unidades.find((u) => u.id === p.unidade_id)));
+      pix: pixPedido, titulo: tituloPdf,
+    }, comUnidade(cfg, unidadePedido));
   }
   async function gerarPdf() {
     if (!p.itens.length) return notify("Adicione itens antes de gerar o PDF", "erro");
@@ -945,6 +977,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         {p.itens.length > 0 && (p.status === "orcamento" || !p.id || p.proposta_status) && (
           <PropostaPainel pedido={p} cliente={cliente} podeEditar={podeEditar} gravar={gravar} pdfBase64={pdfBase64} onAlterado={recarregar} />
         )}
+        {p.id && <OcorrenciasVenda pedidoId={p.id} podeExcluir={!!cfg?.pedido_ocorrencias_excluir} />}
         {p.id && <OcorrenciasPedido pedidoId={p.id} statusPedido={p.status ?? ""} />}
         {p.id && <Anexos entidade="pedido" id={p.id} />}
 
@@ -972,6 +1005,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           )}
           {podeEditar && (p.status === "aprovado" || p.status === "faturado") && (
             <Button type="button" variant="secondary" onClick={entregar} disabled={ocupado}><Truck size={16} /> Marcar entregue</Button>
+          )}
+          {pode("editar_os") && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
+            <Button type="button" variant="secondary" title="Abrir uma ordem de serviço (instalação, entrega técnica, garantia) ligada a este pedido" onClick={abrirOS}><Wrench size={16} /> Abrir OS</Button>
           )}
           {ajustavel && !temNotaValida && (
             <Button type="button" variant="secondary" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
@@ -1026,8 +1062,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         </MotivoAcao>
       )}
       {pdf && (
-        <PdfViewer blob={pdf} nome={`${p.status && p.status !== "orcamento" ? "pedido" : "orcamento"}-${p.numero ?? "rascunho"}-mf-maquinas.pdf`}
-          titulo={p.numero ? `${p.status === "orcamento" ? "Orçamento" : "Pedido"} #${p.numero}` : "Orçamento (rascunho)"} onClose={() => setPdf(null)} />
+        <PdfViewer blob={pdf} nome={arquivoPedido(p, cliente, cfg?.proposta_titulo || "Proposta")} titulo={tituloPdf} onClose={() => setPdf(null)} />
       )}
     </Modal>
   );
