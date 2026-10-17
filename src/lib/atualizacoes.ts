@@ -168,6 +168,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Auditoria financeira: \"Recebimento sem origem\" agora lê a origem escrita na conta (\"pedido Tiny nº…\" que existe no ERP, nota fiscal ligada) e o recebido por conta de terceiros tem a sua própria exceção.",
       "Sobre → Rodada: a rodada de trabalho de relance — etapas até o site, números ao vivo, o que foi pedido e o que virou, o que falta de quem, escopo, suposições, conflitos, semáforo e riscos.",
       "Sobre → Módulos descreve também PDV, painel das máquinas, peças, componentes, formas de pagamento e usuários.",
+      "Fiscal → Parcelamentos de impostos: Receita Federal, PGFN, SEFAZ SC e SP e prefeitura, com cada parcela paga, atrasada ou a vencer, quem pagou (MF, outra empresa, conta pessoal ou contador) com o comprovante, avisos 7 e 2 dias antes, no dia e no atraso, e o risco de o parcelamento ser cancelado. Regras de cancelamento: conferir com o contador.",
     ],
   },
 };

@@ -68,6 +68,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/notas": "NF-e emitidas e recebidas: emitir (com ou sem pedido), entrada, transferência, devolução, carta de correção, XML e marcadores.",
   "/contador": "Situação do mês para o contador (pendências, conciliação dos bancos, fechamento e pacote de arquivos) e o calendário de obrigações do Lucro Real, com o que foi pago ou entregue.",
   "/analista-fiscal": "Auditoria fiscal, apuração estimada e estratégias legais para pagar menos imposto, para conferir com o contador.",
+  "/parcelamentos": "Parcelamentos de impostos (Receita Federal, PGFN, SEFAZ SC e SP, prefeitura): parcelas pagas e a vencer, quem pagou cada uma com o comprovante, avisos antes do vencimento e risco de cancelar o parcelamento.",
   "/gerencial": "Painel para decidir: curva ABC, clientes parados, tendências, gargalos e metas.",
   "/relatorios": "Relatórios de faturamento, DRE e fluxo de caixa, com exportação.",
   "/margem": "Margem de contribuição por venda, canal, produto, vendedor, cliente e unidade.",

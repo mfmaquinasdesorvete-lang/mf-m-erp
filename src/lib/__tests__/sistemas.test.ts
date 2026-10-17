@@ -22,6 +22,8 @@ describe("sistemas", () => {
     expect(b.ok && b.alvo).toBe("produtos");
     const c = interpretarEcl("audit");
     expect(c.ok && c.destinos.length).toBe(ECL[0].alvos.flatMap((x) => x.destinos).length);
+    const pa = interpretarEcl("AUDIT parcelamentos");
+    expect(pa.ok && pa.destinos[0].to).toBe("/parcelamentos");
     const v = interpretarEcl("VISUALIZE rodada");
     expect(v.ok && v.destinos[0].to).toBe("/sobre?aba=rodada");
   });

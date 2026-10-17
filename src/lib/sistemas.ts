@@ -33,8 +33,8 @@ export const SISTEMAS: Sistema[] = [
         telas: [{ rotulo: "Entre contas e sócios", to: "/partes-relacionadas" }] },
       { nome: "Auditoria e fechamento", situacao: "tem", texto: "Checklist do mês, exceções, histórico de alterações, mês travado e o pacote do contador.",
         telas: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Painel do contador", to: "/contador" }] },
-      { nome: "Impostos", situacao: "parcial", texto: "Analista fiscal (auditoria e economia legal), calendário do Lucro Real e guias pagas. A apuração oficial continua com o contador.",
-        telas: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Impostos pagos", to: "/gastos?aba=impostos" }] },
+      { nome: "Impostos", situacao: "parcial", texto: "Analista fiscal (auditoria e economia legal), calendário do Lucro Real, guias pagas e parcelamentos com avisos de prazo e quem pagou. A apuração oficial continua com o contador.",
+        telas: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Parcelamentos", to: "/parcelamentos" }, { rotulo: "Impostos pagos", to: "/gastos?aba=impostos" }] },
       { nome: "Comissões", situacao: "tem", texto: "Por vendedor, categoria e linha de produto, ligadas às vendas e ao financeiro.",
         telas: [{ rotulo: "Comissões", to: "/comissoes" }] },
       { nome: "Orçamento (previsto x realizado)", situacao: "falta", texto: "Quanto se planeja gastar por categoria e centro de custo, comparado com o realizado mês a mês.", telas: [] },
@@ -108,6 +108,7 @@ export const ECL: ComandoEcl[] = [
     alvos: [
       { alvo: "financeiro", palavras: ["financeiro", "financas", "contas", "bancos", "caixa"], destinos: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Painel do contador", to: "/contador" }] },
       { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas", "nf", "tributos"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Painel fiscal", to: "/painel/notas" }] },
+      { alvo: "parcelamentos", palavras: ["parcelamentos", "parcelamento", "parcelas", "dividas", "pgfn", "refis"], destinos: [{ rotulo: "Parcelamentos de impostos", to: "/parcelamentos" }] },
       { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque", "pecas"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }, { rotulo: "Marketplace e anúncios", to: "/estoque?aba=auditoria" }] },
       { alvo: "menu", palavras: ["menu", "telas", "erp", "sistema"], destinos: [{ rotulo: "Auditoria do menu", to: "/sobre?aba=esquemas" }] },
     ],

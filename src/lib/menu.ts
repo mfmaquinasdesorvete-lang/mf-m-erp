@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
+  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
@@ -108,6 +108,7 @@ export const grupos: Grupo[] = [
       { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus emitir emitida recebida fornecedor" },
       { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
       { to: "/analista-fiscal", tela: "contador", label: "Analista fiscal", curto: "Analista", icon: Scale, busca: "imposto economia auditoria fiscal lucro real presumido crédito pis cofins icms ipi irpj csll planejamento" },
+      { to: "/parcelamentos", tela: "contador", label: "Parcelamentos de impostos", curto: "Parcelas", icon: CalendarClock, busca: "parcelamento parcela imposto dívida divida ativa pgfn receita federal e-cac regularize sefaz icms iss refis transação darf dae dare atrasada vencimento rescisão" },
     ],
   },
   {

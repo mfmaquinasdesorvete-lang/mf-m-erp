@@ -15,6 +15,8 @@ import { cfopDaOperacao, chaveValida, operacaoNota } from "../../supabase/functi
 import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
 import { gerarLinhaBancaria } from "./boleto";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
+import { gerarParcelas } from "./parcelamentos";
+import { ultimoDiaUtil } from "./obrigacoes";
 
 type Row = Record<string, any>;
 type Db = Record<string, Row[]>;
@@ -999,6 +1001,42 @@ function planoDemo(db: Db) {
   ];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
+  // parcelamentos de impostos (exemplos inventados; no sistema real: public.parcelamentos e parcelamento_parcelas)
+  {
+    const mesAtras = (k: number) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - k); return { ano: d.getUTCFullYear(), mes: d.getUTCMonth() + 1 }; };
+    const ate = (k: number) => { const m = mesAtras(k); return ultimoDiaUtil(m.ano, m.mes); };
+    const diaDez = (k: number) => { const m = mesAtras(k); return `${m.ano}-${String(m.mes).padStart(2, "0")}-10`; };
+    const base = { descricao: null, valor_consolidado: null, corrige_selic: true, max_atrasos: 3, observacoes: null, dia_vencimento: null };
+    db.parcelamentos = [
+      { ...base, id: "pa1", unidade_id: U_SC, orgao: "receita_federal", modalidade: "Parcelamento ordinário (Lei 10.522)", numero: "10010.000000/2025-01", data_adesao: ate(14),
+        qtd_parcelas: 60, valor_parcela: 1850, valor_consolidado: 111000, primeira_parcela: ate(14), vencimento_regra: "ultimo_dia_util", rescinde_ultima: true, situacao: "ativo" },
+      { ...base, id: "pa2", unidade_id: U_SC, orgao: "pgfn", modalidade: "Transação tributária (PGFN)", numero: "TR-0000001", data_adesao: ate(8),
+        qtd_parcelas: 24, valor_parcela: 920, primeira_parcela: ate(8), vencimento_regra: "ultimo_dia_util", rescinde_ultima: true, situacao: "ativo",
+        observacoes: "Débitos de IRPJ e CSLL inscritos em dívida ativa (exemplo)." },
+      { ...base, id: "pa3", unidade_id: U_SC, orgao: "sefaz_sc", modalidade: "Parcelamento de ICMS", numero: "SC-2025-0001", data_adesao: diaDez(5),
+        qtd_parcelas: 12, valor_parcela: 640, primeira_parcela: diaDez(5), vencimento_regra: "dia", dia_vencimento: 10, rescinde_ultima: false, situacao: "ativo" },
+      { ...base, id: "pa4", unidade_id: U_SP, orgao: "sefaz_sp", modalidade: "Parcelamento de ICMS (PEP)", numero: "SP-2023-0002", data_adesao: diaDez(30),
+        qtd_parcelas: 18, valor_parcela: 410, primeira_parcela: diaDez(30), vencimento_regra: "dia", dia_vencimento: 10, rescinde_ultima: false, situacao: "quitado" },
+    ];
+    const hoje = hojeISO();
+    // quem pagou: a maioria a MF, algumas outra empresa ou a conta pessoal (como acontece de verdade)
+    const quem = ["mf", "mf", "outra_empresa", "mf", "pessoal", "mf"];
+    const atrasar: Record<string, number> = { pa1: 1, pa2: 2, pa3: 0, pa4: 0 };
+    db.parcelamento_parcelas = db.parcelamentos.flatMap((p) => {
+      const lista = gerarParcelas(p as never);
+      const passadas = lista.filter((x) => x.vencimento < hoje).length;
+      return lista.map((x) => {
+        const paga = x.vencimento < hoje && x.numero <= passadas - atrasar[p.id];
+        const por = quem[x.numero % quem.length];
+        return {
+          id: `pp-${p.id}-${x.numero}`, parcelamento_id: p.id, numero: x.numero, vencimento: x.vencimento, valor: x.valor, situacao: paga ? "pago" : "a_pagar",
+          pago_em: paga ? x.vencimento : null, valor_pago: paga ? Math.round(Number(x.valor) * (p.corrige_selic ? 1.03 : 1) * 100) / 100 : null,
+          pago_por: paga ? por : null, pago_por_nome: paga && por === "outra_empresa" ? "Empresa ligada (exemplo)" : null,
+          extrato_lancamento_id: null, observacao: null, atualizado_em: quando(-1),
+        };
+      });
+    });
+  }
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
   // categorias dos produtos (como no Tiny)
   const cats = ["As Máquinas My Frost", "Chave Extratora - Portelo", "Peças de Reposição", "Peças Eletrica - My Frost", "Peças Mecânica - My Frost",
@@ -1665,7 +1703,8 @@ const VIEWS: Record<string, () => Row[]> = {
 
 // Histórico de alterações (no sistema real: gatilho zz_auditoria do Postgres)
 const AUDITADAS = new Set(["contas_receber", "contas_pagar", "pedidos", "clientes", "fornecedores", "transportadoras", "produtos", "usuarios_erp",
-  "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes"]);
+  "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes",
+  "parcelamentos", "parcelamento_parcelas"]);
 const IGNORAR_AUD = new Set(["motivo_alteracao", "updated_at", "valor_produtos", "valor_pecas", "valor_total", "created_at"]);
 function registrarDemo(tabela: string, acao: string, antes: Row | null, depois: Row | null, motivo: string | null, origem: "usuario" | "sistema") {
   db.auditoria ??= [];

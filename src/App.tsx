@@ -53,6 +53,7 @@ const PainelExpedicao = lazy(() => import("@/pages/paineis/PainelExpedicao"));
 const Margem = lazy(() => import("@/pages/Margem"));
 const Contador = lazy(() => import("@/pages/Contador"));
 const AnalistaFiscal = lazy(() => import("@/pages/AnalistaFiscal"));
+const Parcelamentos = lazy(() => import("@/pages/Parcelamentos"));
 const Funcionarios = lazy(() => import("@/pages/Funcionarios"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
 const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
@@ -122,6 +123,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "margem", tela: "margem", element: <Margem /> },
   { path: "contador", tela: "contador", element: <Contador /> },
   { path: "analista-fiscal", tela: "contador", element: <AnalistaFiscal /> },
+  { path: "parcelamentos", tela: "contador", element: <Parcelamentos /> },
   { path: "funcionarios", tela: "funcionarios", element: <Funcionarios /> },
   { path: "documentos", tela: "documentos", element: <Documentos /> },
   { path: "conciliacao", tela: "conciliacao", element: <Conciliacao /> },
