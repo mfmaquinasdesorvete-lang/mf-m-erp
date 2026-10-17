@@ -21,8 +21,9 @@ import {
   type Achado, type ContaPagarF, type Estrategia, type NotaEntrada, type NotaSaida, type PedidoF, type ProdutoF, type TotaisXml,
 } from "@/lib/analistaFiscal";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { DeducoesFiscais } from "@/components/fiscal/DeducoesFiscais";
 
-type Aba = "auditoria" | "economia" | "apuracao" | "regime" | "rotina";
+type Aba = "auditoria" | "deducoes" | "economia" | "apuracao" | "regime" | "rotina";
 type ContaReceberF = { categoria?: string | null; valor: number; valor_pago?: number | null; status: string; vencimento: string; data_pagamento?: string | null; competencia?: string | null; unidade_id?: string | null };
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -32,7 +33,7 @@ const proximoMes = (am: string) => { const [a, m] = am.split("-").map(Number); r
 export default function AnalistaFiscal() {
   const navigate = useNavigate();
   const { unidades, atual, filtrar } = useUnidade();
-  const [aba, setAba] = useAbaUrl<Aba>("auditoria", ["auditoria", "economia", "apuracao", "regime", "rotina"] as const);
+  const [aba, setAba] = useAbaUrl<Aba>("auditoria", ["auditoria", "deducoes", "economia", "apuracao", "regime", "rotina"] as const);
   const [mes, setMes] = useState(hoje().slice(0, 7));
   const meses = useMemo(() => mesesAte(mes, 12), [mes]);
 
@@ -140,11 +141,12 @@ export default function AnalistaFiscal() {
       </div>
 
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "auditoria", label: "Conferência fiscal" }, { value: "economia", label: "Pagar menos imposto" }, { value: "apuracao", label: "Apuração do mês" },
+        { value: "auditoria", label: "Conferência fiscal" }, { value: "deducoes", label: "Deduções (modo avançado)" }, { value: "economia", label: "Pagar menos imposto" }, { value: "apuracao", label: "Apuração do mês" },
         { value: "regime", label: "Real x Presumido" }, { value: "rotina", label: "Rotina simples" },
       ]} />
 
       {aba === "auditoria" && <Auditoria achados={a.achados} abrir={navigate} />}
+      {aba === "deducoes" && <DeducoesFiscais />}
       {aba === "economia" && <Economia estrategias={a.estrategias} />}
       {aba === "apuracao" && <Apuracao mes={mes} m={doMes} />}
       {aba === "regime" && <Regime a={a} />}

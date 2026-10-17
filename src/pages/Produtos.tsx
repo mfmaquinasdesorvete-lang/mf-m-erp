@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import type { Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
+import { RegistrarBaixa } from "@/components/fiscal/BaixaEstoque";
 import { ImportarProdutos } from "@/components/ImportarProdutos";
 import { ImportarKitsTiny } from "@/components/produtos/ImportarKitsTiny";
 import { KitComponentesModal } from "@/components/KitComponentes";
@@ -803,6 +804,8 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
   const [motivo, setMotivo] = useState("");
   const [documento, setDocumento] = useState("");
   const [serie, setSerie] = useState("");
+  // saída que não é venda (perda, quebra, uso interno, sucata…) vai pela baixa com motivo fiscal
+  const [baixaFiscal, setBaixaFiscal] = useState(false);
   const invalidate = useInvalidate();
   const { padrao, nome } = useUnidade();
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
@@ -843,21 +846,31 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
             <option value="ajuste">Ajuste de inventário (saldo final)</option>
           </select>
         </Field>
+        {tipo === "saida" && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2">
+            Saída que não é venda (quebra, defeito, obsolescência, furto, uso interno, manutenção da fábrica, sucata ou amostra) vai pela
+            <b> baixa com motivo fiscal</b>: ela mostra o documento que a lei pede para a perda virar despesa dedutível no Lucro Real.
+            <div className="mt-2"><Button type="button" onClick={() => setBaixaFiscal(true)}>Fazer a baixa com motivo fiscal</Button></div>
+          </div>
+        )}
+        {tipo !== "saida" && <>
         <Field label={tipo === "ajuste" ? "Saldo correto" : "Quantidade"}>
           <input className="input" type="number" step="any" min={tipo === "ajuste" ? 0 : 0.001} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} required />
         </Field>
         <Field label="Motivo (obrigatório)" className="sm:col-span-2">
           <input className="input" value={motivo} onChange={(e) => setMotivo(e.target.value)} required minLength={3}
-            placeholder={tipo === "ajuste" ? "Ex.: contagem física da prateleira 3" : tipo === "saida" ? "Ex.: peça danificada, uso interno" : "Ex.: devolução de cliente"} />
+            placeholder={tipo === "ajuste" ? "Ex.: contagem física da prateleira 3" : "Ex.: devolução de cliente"} />
         </Field>
         <Field label="Documento de referência"><input className="input" value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder="NF, pedido, OS…" /></Field>
         <Field label="Nº de série (opcional)"><input className="input" value={serie} onChange={(e) => setSerie(e.target.value)} /></Field>
         {tipo === "ajuste" && <p className="text-xs text-slate-500 sm:col-span-2">Para conferir várias peças de uma vez, use a aba Contagem de estoque: ela mostra as divergências e pede a justificativa de cada uma.</p>}
+        </>}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button>Confirmar</Button>
+          {tipo !== "saida" && <Button>Confirmar</Button>}
         </div>
       </form>
+      {baixaFiscal && produto && <RegistrarBaixa produtoInicial={produto as never} onClose={() => { setBaixaFiscal(false); onClose(); }} />}
     </Modal>
   );
 }

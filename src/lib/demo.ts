@@ -1096,6 +1096,16 @@ function planoDemo(db: Db) {
   const nfseFora = (x: Row) => ({ codigo_verificacao: null, chave_acesso: null, competencia: null, municipio: null, cliente_id: null, fornecedor_id: null,
     valor_iss: null, iss_retido: false, valor_ir: 0, valor_inss: 0, valor_pis: 0, valor_cofins: 0, valor_csll: 0, valor_liquido: null, discriminacao: null,
     codigo_servico: null, prestador_doc: null, prestador_nome: null, tomador_doc: null, tomador_nome: null, numero: null, rps: null, created_at: quando(0), ...x });
+  // modo fiscal avançado: uma quebra na fabricação documentada e um furto ainda sem boletim de ocorrência
+  db.baixas_estoque = [
+    { id: "bx1", numero: 1, unidade_id: U_SC, motivo: "quebra_fabricacao", produto_id: "p4", quantidade: 1, custo_unitario: 420, valor: 420, peso_kg: null,
+      equipamento: null, fornecedor_id: null, nota_devolucao_id: null, evidencia: "Foto no grupo da produção", descricao: "Motor queimou no teste do giga", situacao: "registrada",
+      cancelada_motivo: null, criado_por_nome: "Rafael Financeiro", created_at: quando(-12) },
+    { id: "bx2", numero: 2, unidade_id: U_SC, motivo: "furto_extravio", produto_id: "p4", quantidade: 1, custo_unitario: 420, valor: 420, peso_kg: null,
+      equipamento: null, fornecedor_id: null, nota_devolucao_id: null, evidencia: null, descricao: "Não achado no inventário de setembro", situacao: "registrada",
+      cancelada_motivo: null, criado_por_nome: "Rafael Financeiro", created_at: quando(-5) },
+  ];
+  db.configuracoes[0].fiscal_avancado = true;
   db.nfse_importadas = [
     nfseFora({ id: "nsi1", tipo: "emitida", unidade_id: U_SC, chave: "emitida:sc:r2426", rps: "2426", data_emissao: dias(-60), tomador_nome: "Sorveteria Franquia Ltda",
       valor_servicos: 6000, valor_pis: 39, valor_cofins: 180, valor_csll: 60, situacao: "sem_numero", origem: "tiny" }),
@@ -2991,6 +3001,50 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       novos++;
     }
     return { data: { novos, atualizados, ignorados }, error: null };
+  },
+  registrar_baixa_estoque: ({ p_unidade, p_motivo, p_descricao, p_itens, p_evidencia, p_fornecedor, p_equipamento }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para dar baixa no estoque");
+    if (String(p_descricao ?? "").trim().length < 5) return erro("descreva o que aconteceu (pelo menos 5 letras)");
+    if (["obsolescencia", "furto_extravio"].includes(p_motivo) && String(p_evidencia ?? "").trim().length < 3)
+      return erro(p_motivo === "furto_extravio" ? "informe o número do boletim de ocorrência (sem ele a perda não é dedutível)" : "informe o laudo (e fotos) da obsolescência ou deterioração (sem ele a perda pode ser glosada)");
+    if (p_motivo === "defeito_fornecedor" && !p_fornecedor) return erro("escolha o fornecedor para a NF de devolução");
+    if (p_motivo === "manutencao_fabrica" && String(p_equipamento ?? "").trim().length < 2) return erro("informe a máquina da fábrica em que as peças foram aplicadas");
+    db.baixas_estoque ??= [];
+    const numero = db.baixas_estoque.reduce((m: number, b: Row) => Math.max(m, b.numero), 0) + 1;
+    let valor = 0;
+    for (const i of p_itens ?? []) {
+      const p = db.produtos.find((x) => x.id === i.produto_id);
+      const qtd = Number(i.quantidade);
+      if (!p || !(qtd > 0)) return erro("item inválido");
+      if (p_motivo === "sucata" && !(Number(i.peso_kg) > 0)) return erro(`pese a sucata: informe o peso (kg) de ${p.descricao}`);
+      if (saldoUn(p.id, p_unidade) < qtd) return erro(`saldo insuficiente de ${p.descricao} nesta unidade`);
+      const id = uid();
+      const v = r2(Number(p.preco_custo ?? 0) * qtd);
+      db.baixas_estoque.push({ id, numero, unidade_id: p_unidade, motivo: p_motivo, produto_id: p.id, quantidade: qtd, custo_unitario: p.preco_custo ?? 0, valor: v,
+        peso_kg: Number(i.peso_kg) || null, equipamento: p_equipamento || null, fornecedor_id: p_fornecedor || null, nota_devolucao_id: null,
+        evidencia: p_evidencia || null, descricao: String(p_descricao).trim(), situacao: "registrada", cancelada_motivo: null, criado_por_nome: "Você", created_at: quando(0) });
+      movimentar(p.id, "saida", qtd, `Baixa #${numero}: ${p_descricao}`, { referencia_tipo: "baixa", referencia_id: id, unidade_id: p_unidade });
+      valor += v;
+    }
+    return { data: { numero, itens: (p_itens ?? []).length, valor: r2(valor) }, error: null };
+  },
+  documentar_baixa_estoque: ({ p_id, p_evidencia, p_nota_devolucao, p_equipamento, p_peso_kg, p_comprovada }) => {
+    if (!podeFinanceiro()) return erro("sem permissão");
+    const b = (db.baixas_estoque ?? []).find((x: Row) => x.id === p_id);
+    if (!b) return erro("baixa não encontrada");
+    Object.assign(b, { evidencia: p_evidencia || b.evidencia, nota_devolucao_id: p_nota_devolucao || b.nota_devolucao_id, equipamento: p_equipamento || b.equipamento,
+      peso_kg: Number(p_peso_kg) > 0 ? Number(p_peso_kg) : b.peso_kg, situacao: p_comprovada ? "comprovada" : b.situacao });
+    return { data: null, error: null };
+  },
+  cancelar_baixa_estoque: ({ p_numero, p_motivo }) => {
+    if (!podeFinanceiro()) return erro("sem permissão");
+    if (String(p_motivo ?? "").trim().length < 5) return erro("informe o motivo do cancelamento");
+    const lista = (db.baixas_estoque ?? []).filter((x: Row) => x.numero === p_numero && x.situacao !== "cancelada");
+    for (const b of lista) {
+      movimentar(b.produto_id, "entrada", b.quantidade, `Baixa #${b.numero} cancelada: ${p_motivo}`, { referencia_tipo: "baixa", referencia_id: b.id, unidade_id: b.unidade_id });
+      Object.assign(b, { situacao: "cancelada", cancelada_motivo: p_motivo });
+    }
+    return lista.length ? { data: lista.length, error: null } : erro("baixa não encontrada ou já cancelada");
   },
   importar_nfse: ({ p_itens }) => {
     if (!podeFinanceiro()) return erro("sem permissão para importar notas de serviço");
