@@ -10,6 +10,8 @@ describe("contas a pagar como no Tiny", () => {
     expect(rotuloOrigem(origem({ origem: "frete", envio_numero: "12" }))).toBe("Envio 12");
     expect(rotuloOrigem(origem({ origem: "cte", fatura_numero: "789" }))).toBe("Fatura 789");
     expect(rotuloOrigem(origem({ origem: "extrato" }))).toBe("Extrato");
+    expect(rotuloOrigem(origem({ origem: "st", nf_numero: "77" }))).toBe("NFS-e 77");
+    expect(rotuloOrigem(origem({ origem: "st" }))).toBe("ST");
     expect(rotuloOrigem(null)).toBeNull();
     expect(termosOrigem(origem({ origem: "nf", nf_numero: "1234" }))).toEqual(["NF 1234", "1234", "Nota de fornecedor"]);
   });

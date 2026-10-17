@@ -1,27 +1,39 @@
 // Notas fiscais → NFS-e: notas de serviço feitas fora do ERP. Emitidas pela MF (Tiny, portal da prefeitura, Emissor
 // Nacional) e recebidas de fornecedores (tomadas). Entram pelo XML, pelo ZIP com XMLs ou pelo relatório do Tiny.
 import { useMemo, useState } from "react";
-import { CheckCircle2, FileUp, Info } from "lucide-react";
+import { CheckCircle2, FileUp, Info, Pencil, Receipt } from "lucide-react";
 import { Button, Field, Modal, Table } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notifyError } from "@/lib/notify";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
+import { usePerfil } from "@/lib/auth";
 import { brl, dataBR, docFormat } from "@/lib/format";
-import { lerArquivosNfse, retencoes, SITUACAO_IMPORTADA, valorNumero, type ItemNfse, type NfseImportada } from "@/lib/nfseImportada";
+import { lerArquivosNfse, ORIGEM_IMPORTADA, retencoes, situacaoImportada, valorNumero, type ItemNfse, type NfseImportada } from "@/lib/nfseImportada";
+import { FormServicoTomado, LancarContaServico } from "./ServicoTomado";
+
+type ContaLigada = { status: "aberto" | "pago" | "cancelado"; vencimento: string; valor: number } | null;
+type Linha = NfseImportada & { conta?: ContaLigada };
 
 const dig = (s: unknown) => String(s ?? "").replace(/\D/g, "");
 
 export function ListaNfseImportadas({ tipo }: { tipo: "emitida" | "tomada" }) {
   const { filtrar } = useUnidade();
-  const { data = [], isLoading } = useRows<NfseImportada>("nfse_importadas", {
+  const { tem } = usePerfil();
+  const financeiro = tem("financeiro");
+  const { data = [], isLoading } = useRows<Linha>("nfse_importadas", {
+    select: tipo === "tomada" ? "*, conta:contas_pagar(status, vencimento, valor)" : "*",
     order: "data_emissao", ascending: false, key: [tipo], filtro: (q) => q.eq("tipo", tipo),
   });
+  const [corrigir, setCorrigir] = useState<NfseImportada | null>(null);
+  const [lancarConta, setLancarConta] = useState<NfseImportada | null>(null);
   const lista = filtrar(data);
   const total = lista.filter((n) => n.situacao !== "cancelada").reduce((s, n) => s + Number(n.valor_servicos), 0);
   const retido = lista.filter((n) => n.situacao !== "cancelada").reduce((s, n) => s + retencoes(n), 0);
-  const semNumero = lista.filter((n) => n.situacao === "sem_numero").length;
+  const semNumero = lista.filter((n) => n.situacao === "sem_numero" && n.origem !== "manual").length;
   const emitida = tipo === "emitida";
+  const contaAtiva = (n: Linha) => !!n.conta_pagar_id && !!n.conta && n.conta.status !== "cancelado";
+  const semConta = emitida ? 0 : lista.filter((n) => n.situacao !== "cancelada" && !contaAtiva(n)).length;
 
   if (!isLoading && !lista.length && emitida) return null;
   return (
@@ -31,13 +43,15 @@ export function ListaNfseImportadas({ tipo }: { tipo: "emitida" | "tomada" }) {
         {lista.length} {lista.length === 1 ? "nota" : "notas"} · serviços {brl(total)} · retenções {brl(retido)}
         {emitida ? " (descontadas pelo cliente: viram crédito na apuração)" : " (a MF desconta do fornecedor e recolhe)"}
         {semNumero > 0 && <span className="text-amber-700"> · {semNumero} sem número: confira na prefeitura e importe o XML</span>}
+        {semConta > 0 && <span className="text-amber-700"> · {semConta} sem conta a pagar lançada</span>}
       </p>
       <Table empty={!isLoading && !lista.length} head={<>
         <th className="th">Data</th><th className="th">Número</th><th className="th">{emitida ? "Tomador (cliente)" : "Prestador (fornecedor)"}</th>
         <th className="th text-right">Valor</th><th className="th text-right">Retenções</th><th className="th">Situação</th>
+        {!emitida && <th className="th">Conta a pagar</th>}
       </>}>
         {lista.map((n) => {
-          const s = SITUACAO_IMPORTADA[n.situacao];
+          const s = situacaoImportada(n);
           const nome = emitida ? n.tomador_nome : n.prestador_nome;
           const doc = emitida ? n.tomador_doc : n.prestador_doc;
           return (
@@ -56,13 +70,34 @@ export function ListaNfseImportadas({ tipo }: { tipo: "emitida" | "tomada" }) {
               </td>
               <td className="td text-right whitespace-nowrap" data-label="Retenções">{retencoes(n) ? brl(retencoes(n)) : "—"}</td>
               <td className="td" data-label="Situação">
-                <span title={s.ajuda} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.cor}`}>{s.label}</span>
-                <span className="ml-1 text-xs text-slate-400">{n.origem === "tiny" ? "Tiny" : "XML"}</span>
+                <span title={s.ajuda} className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${s.cor}`}>{s.label}</span>
+                <span className="ml-1 text-xs text-slate-400">{ORIGEM_IMPORTADA[n.origem] ?? n.origem}</span>
               </td>
+              {!emitida && (
+                <td className="td" data-label="Conta a pagar">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {contaAtiva(n) ? (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${n.conta!.status === "pago" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-800"}`}
+                        title={`Vence em ${dataBR(n.conta!.vencimento)} · ${brl(n.conta!.valor)}`}>
+                        {n.conta!.status === "pago" ? "Paga" : `Lançada · vence ${dataBR(n.conta!.vencimento)}`}
+                      </span>
+                    ) : n.situacao !== "cancelada" && financeiro ? (
+                      <Button variant="secondary" className="!px-2 !py-1 text-xs" onClick={() => setLancarConta(n)}><Receipt size={14} /> Lançar conta</Button>
+                    ) : <span className="text-xs text-slate-400">—</span>}
+                    {financeiro && n.origem === "manual" && n.situacao !== "cancelada" && !contaAtiva(n) && (
+                      <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => setCorrigir(n)}>
+                        <Pencil size={12} /> Corrigir
+                      </button>
+                    )}
+                  </div>
+                </td>
+              )}
             </tr>
           );
         })}
       </Table>
+      {corrigir && <FormServicoTomado inicial={corrigir} onClose={() => setCorrigir(null)} />}
+      {lancarConta && <LancarContaServico nota={lancarConta} onClose={() => setLancarConta(null)} />}
     </section>
   );
 }

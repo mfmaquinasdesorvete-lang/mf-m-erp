@@ -1,7 +1,7 @@
 // Notas fiscais → NFS-e (serviços): todas as notas de serviço e a configuração fiscal de cada unidade (CNPJ/município).
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, FileUp, FlaskConical, Info, Save, Settings2 } from "lucide-react";
+import { FilePlus2, FileText, FileUp, FlaskConical, Info, Save, Settings2 } from "lucide-react";
 import { Button, Field, Table, Tabs } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -12,6 +12,7 @@ import { brl, dataBR, docFormat } from "@/lib/format";
 import { NATUREZAS_NFSE, NFSE_EM_ANDAMENTO, REGIMES_NFSE, type Nfse, type NfseConfig } from "@/lib/nfse";
 import { ChipNfse } from "./NfseOS";
 import { ImportarNfse, ListaNfseImportadas } from "./NfseImportadas";
+import { FormServicoTomado } from "./ServicoTomado";
 
 const FILTROS: { value: string; label: string; teste: (n: Nfse) => boolean }[] = [
   { value: "todas", label: "Todas", teste: () => true },
@@ -26,6 +27,7 @@ export function NfsePainel() {
   const { pode, tem } = usePerfil();
   const [aba, setAba] = useState<"notas" | "tomadas" | "config">("notas");
   const [importar, setImportar] = useState(false);
+  const [servico, setServico] = useState(false);
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -35,13 +37,24 @@ export function NfsePainel() {
           { value: "config", label: "Configuração por unidade" },
         ]} />
         {aba !== "config" && tem("financeiro") && (
-          <Button variant="secondary" onClick={() => setImportar(true)}><FileUp size={16} /> Importar notas</Button>
+          <div className="flex flex-wrap gap-2">
+            {aba === "tomadas" && <Button onClick={() => setServico(true)}><FilePlus2 size={16} /> Lançar serviço tomado</Button>}
+            <Button variant="secondary" onClick={() => setImportar(true)}><FileUp size={16} /> Importar notas</Button>
+          </div>
         )}
       </div>
       {aba === "notas" ? <><ListaNfse /><ListaNfseImportadas tipo="emitida" /></>
-        : aba === "tomadas" ? <ListaNfseImportadas tipo="tomada" />
+        : aba === "tomadas" ? <>
+          <p className="mt-3 flex gap-2 text-sm text-slate-600">
+            <Info size={16} className="mt-0.5 shrink-0 text-slate-400" />
+            Serviços que a MF contratou: entram pelo XML da NFS-e (Importar notas) ou pela descrição, com ou sem nota (Lançar serviço tomado).
+            Cada um vira conta a pagar com um toque, já sem os impostos retidos.
+          </p>
+          <ListaNfseImportadas tipo="tomada" />
+        </>
         : <ConfigNfse podeEditar={pode("configurar_nfse")} />}
       {importar && <ImportarNfse onClose={() => setImportar(false)} />}
+      {servico && <FormServicoTomado onClose={() => setServico(false)} />}
     </div>
   );
 }

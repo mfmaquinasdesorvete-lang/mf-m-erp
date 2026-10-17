@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerRelatorioTinyNfse, lerXmlNfse, retencoes, valorNumero } from "../nfseImportada";
+import { lerRelatorioTinyNfse, lerXmlNfse, liquidoNfse, retencoes, situacaoImportada, valorNumero } from "../nfseImportada";
 
 const ABRASF = `<?xml version="1.0" encoding="UTF-8"?>
 <ConsultarNfseResposta xmlns="http://www.abrasf.org.br/nfse.xsd"><ListaNfse>
@@ -77,5 +77,15 @@ describe("NFS-e de fora do ERP", () => {
   it("soma das retenções e valores em formato brasileiro", () => {
     expect(retencoes({ valor_ir: 22.5, valor_inss: 0, valor_pis: 9.75, valor_cofins: 45, valor_csll: 15, valor_iss: 30, iss_retido: true })).toBe(122.25);
     expect(valorNumero("1.234,56")).toBe(1234.56);
+  });
+
+  it("serviço tomado lançado na tela: sem nota e valor a pagar sem as retenções", () => {
+    expect(situacaoImportada({ origem: "manual", situacao: "sem_numero" }).label).toBe("Sem nota");
+    expect(situacaoImportada({ origem: "xml", situacao: "sem_numero" }).label).toBe("Sem número");
+    expect(situacaoImportada({ origem: "manual", situacao: "normal" }).label).toBe("Autorizada");
+    const base = { valor_servicos: 1000, valor_ir: 15, valor_inss: 0, valor_pis: 0, valor_cofins: 0, valor_csll: 0, valor_iss: 50 };
+    expect(liquidoNfse({ ...base, iss_retido: true, valor_liquido: null })).toBe(935);
+    expect(liquidoNfse({ ...base, iss_retido: false, valor_liquido: null })).toBe(985);
+    expect(liquidoNfse({ ...base, iss_retido: true, valor_liquido: 940 })).toBe(940);
   });
 });

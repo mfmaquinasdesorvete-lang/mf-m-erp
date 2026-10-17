@@ -1109,7 +1109,7 @@ function planoDemo(db: Db) {
   // NFS-e feitas fora do ERP: uma emitida no Tiny (só RPS) e uma recebida do escritório de contabilidade
   const nfseFora = (x: Row) => ({ codigo_verificacao: null, chave_acesso: null, competencia: null, municipio: null, cliente_id: null, fornecedor_id: null,
     valor_iss: null, iss_retido: false, valor_ir: 0, valor_inss: 0, valor_pis: 0, valor_cofins: 0, valor_csll: 0, valor_liquido: null, discriminacao: null,
-    codigo_servico: null, prestador_doc: null, prestador_nome: null, tomador_doc: null, tomador_nome: null, numero: null, rps: null, created_at: quando(0), ...x });
+    codigo_servico: null, prestador_doc: null, prestador_nome: null, tomador_doc: null, tomador_nome: null, numero: null, rps: null, conta_pagar_id: null, created_at: quando(0), ...x });
   // modo fiscal avançado: uma quebra na fabricação documentada e um furto ainda sem boletim de ocorrência
   db.baixas_estoque = [
     { id: "bx1", numero: 1, unidade_id: U_SC, motivo: "quebra_fabricacao", produto_id: "p4", quantidade: 1, custo_unitario: 420, valor: 420, peso_kg: null,
@@ -1652,14 +1652,15 @@ function origemPagarDemo(db: Db) {
     const nr = (db.nfe_recebidas ?? []).find((n) => (c.nfe_recebida_id ? n.id === c.nfe_recebida_id : n.conta_pagar_id === c.id));
     const fat = (db.cte_faturas ?? []).find((f) => f.conta_pagar_id === c.id);
     const env = (db.envios ?? []).find((e) => e.conta_pagar_id === c.id);
+    const st = (db.nfse_importadas ?? []).find((n) => n.conta_pagar_id === c.id);
     const oc = /^PC (\d+)/.exec(c.documento ?? "")?.[1] ?? /^Pedido de compra #(\d+)/.exec(c.descricao ?? "")?.[1] ?? null;
     const obs = String(c.observacoes ?? "");
-    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : oc ? "oc" : c.recorrente_id ? "fixa"
+    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : st ? "st" : oc ? "oc" : c.recorrente_id ? "fixa"
       : obs.startsWith("Gerado pelo ERP a partir das comissões") ? "comissao" : obs.startsWith("Lançado a partir do extrato bancário") ? "extrato" : "outro";
     return {
-      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : null, oc_numero: oc,
+      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : st?.numero ?? null, oc_numero: oc,
       envio_numero: env?.numero != null ? String(env.numero) : null, fatura_numero: fat?.numero != null ? String(fat.numero) : null,
-      emissao_efetiva: c.emissao ?? (String(nr?.data_emissao ?? c.created_at ?? "").slice(0, 10) || null),
+      emissao_efetiva: c.emissao ?? (String(nr?.data_emissao ?? st?.data_emissao ?? c.created_at ?? "").slice(0, 10) || null),
     };
   });
 }
@@ -1836,7 +1837,7 @@ const saldoUn = (produto: string, unidade: string) => Number(db.estoque_unidade.
 // ---------------------------------------------------------------------
 // Consultas no estilo do supabase-js (select com relacionamentos)
 // ---------------------------------------------------------------------
-const FK_PAI: Record<string, string> = { clientes: "cliente_id", fornecedores: "fornecedor_id", pedidos: "pedido_id", produtos: "produto_id", transferencias: "transferencia_id", unidades: "unidade_id", ordens_servico: "os_id", transportadoras: "transportadora_id" };
+const FK_PAI: Record<string, string> = { clientes: "cliente_id", fornecedores: "fornecedor_id", contas_pagar: "conta_pagar_id", pedidos: "pedido_id", produtos: "produto_id", transferencias: "transferencia_id", unidades: "unidade_id", ordens_servico: "os_id", transportadoras: "transportadora_id" };
 const FK_FILHO: Record<string, string> = { pedidos: "pedido_id", ordens_servico: "os_id", pedidos_compra: "pedido_compra_id", transferencias: "transferencia_id", contas_receber: "conta_receber_id", notas_fiscais: "nota_fiscal_id" };
 
 function dividir(sel: string) {
@@ -3180,6 +3181,59 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       if (ja) { Object.assign(ja, dados); atualizadas++; } else { db.nfse_importadas.push({ id: uid(), created_at: quando(0), cliente_id: null, fornecedor_id: null, ...dados }); novas++; }
     }
     return { data: { novas, atualizadas, ignoradas, motivos }, error: null };
+  },
+  registrar_servico_tomado: ({ p }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para lançar serviços tomados");
+    db.nfse_importadas ??= [];
+    const atual = p?.id ? db.nfse_importadas.find((n: Row) => n.id === p.id && n.tipo === "tomada") : null;
+    if (p?.id && !atual) return erro("serviço tomado não encontrado");
+    if (atual && atual.origem !== "manual") return erro("só dá para corrigir o serviço lançado na tela; a nota do XML vem do arquivo");
+    if (atual?.conta_pagar_id && db.contas_pagar.some((c) => c.id === atual.conta_pagar_id && c.status !== "cancelado")) return erro("este serviço já tem conta a pagar: cancele a conta antes de corrigir");
+    if (atual && p.cancelar === "true") { atual.situacao = "cancelada"; return { data: atual.id, error: null }; }
+    const unidade = db.unidades.find((u) => u.id === p.unidade_id);
+    if (!unidade) return erro("escolha a unidade da MF que tomou o serviço");
+    const forn = db.fornecedores.find((f) => f.id === p.fornecedor_id);
+    if (!forn) return erro("escolha o fornecedor (prestador do serviço)");
+    const valor = Number(p.valor_servicos);
+    if (!(valor > 0)) return erro("informe o valor do serviço");
+    if (String(p.discriminacao ?? "").trim().length < 3) return erro("descreva o serviço tomado");
+    const numero = String(p.numero ?? "").trim().replace(/^0+/, "") || null;
+    const n = (k: string) => Number(p[k]) || 0;
+    const issRetido = !!p.iss_retido && n("valor_iss") > 0;
+    const liquido = r2(valor - n("valor_ir") - n("valor_inss") - n("valor_pis") - n("valor_cofins") - n("valor_csll") - (issRetido ? n("valor_iss") : 0));
+    if (liquido <= 0) return erro("as retenções passam do valor do serviço");
+    const prest = String(forn.cnpj ?? "").replace(/\D/g, "") || null;
+    const id = atual?.id ?? uid();
+    const chave = `tomada:${prest ?? forn.id}:${numero ? "n" + numero : "m" + id}`;
+    if (db.nfse_importadas.some((x: Row) => x.chave === chave && x.id !== id)) return erro(`a NFS-e ${numero} deste fornecedor já está no ERP`);
+    const dados = { tipo: "tomada", unidade_id: unidade.id, chave, numero, rps: null, data_emissao: p.data_emissao, competencia: p.competencia ?? null,
+      prestador_doc: prest, prestador_nome: forn.nome, tomador_doc: unidade.cnpj ?? null, tomador_nome: unidade.razao_social ?? unidade.nome, fornecedor_id: forn.id, cliente_id: null,
+      valor_servicos: valor, valor_iss: p.valor_iss != null ? n("valor_iss") : null, iss_retido: issRetido, valor_ir: n("valor_ir"), valor_inss: n("valor_inss"),
+      valor_pis: n("valor_pis"), valor_cofins: n("valor_cofins"), valor_csll: n("valor_csll"), valor_liquido: liquido, discriminacao: String(p.discriminacao).trim(),
+      codigo_servico: null, municipio: null, codigo_verificacao: null, chave_acesso: null, situacao: numero ? "normal" : "sem_numero", origem: "manual" };
+    if (atual) Object.assign(atual, dados); else db.nfse_importadas.push({ id, created_at: new Date().toISOString(), conta_pagar_id: null, ...dados });
+    return { data: id, error: null };
+  },
+  lancar_conta_servico_tomado: ({ p_nfse, p_vencimento, p_categoria, p_fornecedor }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (!p_vencimento) return erro("informe o vencimento");
+    const nota = (db.nfse_importadas ?? []).find((n: Row) => n.id === p_nfse && n.tipo === "tomada");
+    if (!nota) return erro("serviço tomado não encontrado");
+    if (nota.situacao === "cancelada") return erro("serviço tomado cancelado: não lança conta");
+    if (nota.conta_pagar_id && db.contas_pagar.some((c) => c.id === nota.conta_pagar_id && c.status !== "cancelado")) return erro("a conta a pagar deste serviço já foi lançada");
+    const forn = db.fornecedores.find((f) => f.id === (nota.fornecedor_id ?? p_fornecedor));
+    if (!forn) return erro("escolha o fornecedor do serviço (o CNPJ do prestador não está no cadastro)");
+    const ret = Number(nota.valor_ir) + Number(nota.valor_inss) + Number(nota.valor_pis) + Number(nota.valor_cofins) + Number(nota.valor_csll) + (nota.iss_retido ? Number(nota.valor_iss ?? 0) : 0);
+    const valor = r2(nota.valor_liquido ?? Number(nota.valor_servicos) - ret);
+    const conta = { id: uid(), created_at: new Date().toISOString(), descricao: [nota.numero ? `NFS-e ${nota.numero}` : "Serviço tomado", forn.nome, String(nota.discriminacao ?? "").slice(0, 80)].filter(Boolean).join(" · "),
+      categoria: p_categoria || "serviços profissionais", fornecedor_id: forn.id, valor, vencimento: p_vencimento, status: "aberto", unidade_id: nota.unidade_id,
+      documento: nota.numero ? `NFS-e ${nota.numero}` : null, emissao: nota.data_emissao, competencia: `${String(nota.competencia ?? nota.data_emissao).slice(0, 7)}-01`,
+      chave_pix: forn.chave_pix ?? null, revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null,
+      observacoes: "Lançado a partir do serviço tomado (Notas fiscais → NFS-e → Recebidas)" + (ret > 0 ? ". Retenções a recolher pela MF em guia própria (confirmar com o contador)" : "") };
+    db.contas_pagar.push(conta);
+    nota.conta_pagar_id = conta.id;
+    nota.fornecedor_id ??= forn.id;
+    return { data: conta.id, error: null };
   },
   criar_fatura_cte: ({ p_ctes, p_numero, p_vencimento, p_valor, p_emissao, p_lancar }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

@@ -4,6 +4,8 @@
 // Leitura por texto (sem DOMParser) para funcionar igual na tela e nos testes.
 
 export type SituacaoNfseImportada = "normal" | "sem_numero" | "cancelada";
+/** De onde veio: relatório do Tiny, XML da nota ou lançado na tela (serviço tomado pela descrição, com ou sem nota). */
+export type OrigemNfseImportada = "tiny" | "xml" | "manual";
 
 export type NfseImportada = {
   id: string; tipo: "emitida" | "tomada"; unidade_id: string; numero: string | null; rps: string | null;
@@ -12,7 +14,8 @@ export type NfseImportada = {
   municipio: string | null; cliente_id: string | null; fornecedor_id: string | null;
   valor_servicos: number; valor_iss: number | null; iss_retido: boolean;
   valor_ir: number; valor_inss: number; valor_pis: number; valor_cofins: number; valor_csll: number; valor_liquido: number | null;
-  discriminacao: string | null; codigo_servico: string | null; situacao: SituacaoNfseImportada; origem: "tiny" | "xml"; created_at: string;
+  discriminacao: string | null; codigo_servico: string | null; situacao: SituacaoNfseImportada; origem: OrigemNfseImportada; created_at: string;
+  conta_pagar_id?: string | null;
 };
 
 /** Item enviado para importar_nfse. */
@@ -31,9 +34,25 @@ export const SITUACAO_IMPORTADA: Record<SituacaoNfseImportada, { label: string; 
   cancelada: { label: "Cancelada", cor: "bg-slate-200 text-slate-700", ajuda: "Cancelada na prefeitura" },
 };
 
+export const ORIGEM_IMPORTADA: Record<OrigemNfseImportada, string> = { tiny: "Tiny", xml: "XML", manual: "Lançado na tela" };
+
+/** Situação para mostrar: o serviço lançado na tela sem o número é "Sem nota" (não é um RPS esperando a prefeitura). */
+export function situacaoImportada(n: Pick<NfseImportada, "situacao" | "origem">) {
+  if (n.origem === "manual" && n.situacao === "sem_numero") {
+    return { label: "Sem nota", cor: "bg-amber-100 text-amber-800", ajuda: "Lançado sem o número da NFS-e: quando a nota chegar, ponha o número (Corrigir) e importe o XML, que completa este lançamento" };
+  }
+  return SITUACAO_IMPORTADA[n.situacao];
+}
+
+type Valores = Pick<NfseImportada, "valor_ir" | "valor_inss" | "valor_pis" | "valor_cofins" | "valor_csll" | "valor_iss" | "iss_retido">;
+
 /** Retenções da nota (o que o tomador desconta e recolhe). */
-export const retencoes = (n: Pick<NfseImportada, "valor_ir" | "valor_inss" | "valor_pis" | "valor_cofins" | "valor_csll" | "valor_iss" | "iss_retido">) =>
+export const retencoes = (n: Valores) =>
   Number(n.valor_ir) + Number(n.valor_inss) + Number(n.valor_pis) + Number(n.valor_cofins) + Number(n.valor_csll) + (n.iss_retido ? Number(n.valor_iss ?? 0) : 0);
+
+/** O que a MF paga ao prestador: o líquido da nota ou o valor do serviço menos as retenções. */
+export const liquidoNfse = (n: Valores & Pick<NfseImportada, "valor_servicos" | "valor_liquido">) =>
+  n.valor_liquido != null ? Number(n.valor_liquido) : Math.round((Number(n.valor_servicos) - retencoes(n)) * 100) / 100;
 
 /* ------------------------------------------- XML ------------------------------------------- */
 
