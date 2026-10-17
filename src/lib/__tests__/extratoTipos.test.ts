@@ -15,6 +15,13 @@ describe("tipoLancamento", () => {
     expect(tipoLancamento("Tarifa de manutenção", -15)).toBe("tarifa");
     expect(tipoLancamento("SUPERMERCADO BOM PRECO · cartao", -80)).toBe("outra_saida");
   });
+  it("oficina diesel é manutenção de veículo, não posto; posto que vende diesel continua posto", () => {
+    expect(tipoLancamento("Transferência enviada por Boleto - OFICINA EXEMPLO DIESEL LTDA - ***000000001** - Ref. 1", -614.17)).toBe("veiculo");
+    expect(tipoLancamento("Pix EXEMPLO DIESEL LTDA · Enviado", -1000)).toBe("veiculo");
+    expect(ehCombustivel("Exemplo Diesel Ltda")).toBe(false);
+    expect(tipoLancamento("POSTO EXEMPLO DIESEL · cartao", -300)).toBe("combustivel");
+    expect(tipoLancamento("BORRACHARIA DO EXEMPLO · cartao", -80)).toBe("veiculo");
+  });
   it("imposto não é posto", () => {
     expect(tipoLancamento("Pagamento de imposto DARF", -900)).toBe("imposto");
     expect(ehCombustivel("Imposto")).toBe(false);

@@ -190,6 +190,17 @@ export function contatoParaItem(c: any) {
   };
 }
 
+/**
+ * Data em que o contato foi cadastrado no Tiny ("data_criacao" na API v2; aceita também outros nomes de campo de
+ * data de criação/cadastro/inclusão, porque o nome não é o mesmo em todas as consultas). Null se não veio.
+ */
+export function dataCadastroContato(c: any): string | null {
+  if (!c || typeof c !== "object") return null;
+  const chave = ["data_criacao", "dataCriacao", "data_cadastro", "data_inclusao"].find((k) => c[k])
+    ?? Object.keys(c).find((k) => /^data_?(cria|cadastr|inclus)/i.test(k) && c[k]);
+  return chave ? dataIso(c[chave]) : null;
+}
+
 /** Conta a receber/pagar da pesquisa do Tiny -> item de importar_contas. */
 export function contaParaItem(c: any) {
   return {

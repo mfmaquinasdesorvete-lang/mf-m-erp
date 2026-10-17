@@ -18,6 +18,7 @@ import { dataBR, digitos, somarDias, pl } from "@/lib/format";
 import type { Cliente, Produto } from "@/lib/types";
 import { vendasDaEmpresa } from "@/lib/gerencial";
 import { SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
+import { FONTE_DESDE, desdeReal, type ClienteDesde } from "@/lib/clienteDesde";
 
 const CORES = ["var(--serie-1)", "var(--serie-3)", "var(--serie-2)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const tag = (c: Cliente, t: string) => (c.tags ?? []).includes(t);
@@ -36,6 +37,9 @@ export default function PainelCadastros() {
   // com o cliente achado pelo CPF/CNPJ quando a nota não veio ligada ao cadastro
   const { data: pedidosV = [] } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
   const { data: notasV = [] } = useRows<any>("notas_fiscais", { select: SELECT_NOTAS_VENDAS, key: ["gerencial"] });
+  // "cliente novo" pela data real (cadastro no Tiny, compra da máquina, 1ª venda, proposta…): os cadastros trazidos do
+  // Tiny e das planilhas têm a data da importação, que não é a data em que a pessoa virou cliente
+  const { data: desdes = [] } = useRows<ClienteDesde>("clientes_desde", { select: "cliente_id, desde, fonte", order: "cliente_id", key: ["rodada"] });
   const [periodo, setPeriodo] = usePeriodo("cadastros");
   const [fUf, setFUf] = useState<string | null>(null);
   const [ficha, setFicha] = useState<Cliente | null>(null);
@@ -46,7 +50,9 @@ export default function PainelCadastros() {
     const bs = baldes(periodo);
     const vendas = pedidos.filter((p) => !["orcamento", "cancelado"].includes(p.status));
     const todas = vendasDaEmpresa(pedidosV, notasV, clientes);
-    const novos = (f: [string, string]) => clientes.filter((c) => dentro(c.created_at, f));
+    const desde = new Map(desdes.map((d) => [d.cliente_id, d]));
+    const novos = (f: [string, string]) => clientes.filter((c) => { const d = desde.get(c.id); return desdeReal(d) && dentro(d!.desde, f); });
+    const semData = desdes.filter((d) => !desdeReal(d)).length;
     // todos que compraram (ERP + notas importadas) e só os do ERP novo
     const compraram = (f: [string, string]) => new Set(todas.filter((v) => dentro(v.data, f)).map((v) => v.cliente));
     const noErp = (f: [string, string]) => new Set(vendas.filter((p) => dentro(p.created_at, f)).map((p) => p.cliente_id));
@@ -83,12 +89,14 @@ export default function PainelCadastros() {
       { rotulo: "Sem foto no catálogo", lista: ativos.filter((p) => p.no_catalogo && !p.foto_caminho) },
     ].filter((x) => x.lista.length);
 
-    // cadastro antigo (importado) pode vir sem data: fica depois, pelo código
+    // pela data real; importado sem data fica depois, pelo código
+    const quando = (c: Cliente) => { const d = desde.get(c.id); return desdeReal(d) ? d!.desde : ""; };
     const recentes = clientes.filter((c) => !fUf || (c.uf || "Sem estado") === fUf || (fUf === "Outros" && !principais.some(([u]) => u === (c.uf || "Sem estado"))))
-      .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "") || Number(b.codigo ?? 0) - Number(a.codigo ?? 0)).slice(0, 6);
+      .sort((a, b) => quando(b).localeCompare(quando(a)) || Number(b.codigo ?? 0) - Number(a.codigo ?? 0)).slice(0, 6)
+      .map((c) => ({ c, d: desde.get(c.id) }));
 
     return {
-      total, novos: novos(atual).length, dNovos: variacao(novos(atual).length, novos(anterior).length),
+      total, semData, novos: novos(atual).length, dNovos: variacao(novos(atual).length, novos(anterior).length),
       compraram: compraram(atual).size, dCompraram: variacao(compraram(atual).size, compraram(anterior).size),
       noErp: noErp(atual).size, dNoErp: variacao(noErp(atual).size, noErp(anterior).size), tendNoErp: bs.map((b) => noErp(b.atual).size),
       tendNovos: bs.map((b) => novos(b.atual).length), tendCompraram: bs.map((b) => compraram(b.atual).size),
@@ -100,7 +108,7 @@ export default function PainelCadastros() {
       semDoc: clientes.filter((c) => ![11, 14].includes(digitos(c.cpf_cnpj).length)).length,
       recentes,
     };
-  }, [periodo, clientes, produtos, pedidos, pedidosV, notasV, fUf]);
+  }, [periodo, clientes, desdes, produtos, pedidos, pedidosV, notasV, fUf]);
 
   const fornecedoresAtivos = fornecedores.filter((f) => f.ativo !== false).length;
   const semNcm = k.problemas.find((p) => p.rotulo.startsWith("Sem NCM"))?.lista.length ?? 0;
@@ -109,7 +117,9 @@ export default function PainelCadastros() {
   const cartoes: Cartao[] = [
     { id: "clientes", rotulo: "Clientes", valor: k.total.toLocaleString("pt-BR"), icone: Users, cor: "var(--kpi-roxo)",
       sub: `${k.nuncaCompraram.toLocaleString("pt-BR")} ainda sem nenhuma compra`, onClick: () => navigate("/clientes") },
-    { id: "novos", rotulo: "Clientes novos", valor: k.novos, icone: UserPlus, cor: "var(--kpi-verde)", delta: k.dNovos, tendencia: k.tendNovos, sub: "cadastrados no período" },
+    { id: "novos", rotulo: "Clientes novos", valor: k.novos, icone: UserPlus, cor: "var(--kpi-verde)", delta: k.dNovos, tendencia: k.tendNovos,
+      sub: "pela data real: cadastro no Tiny, compra, 1ª venda ou proposta",
+      titulo: k.semData ? `${k.semData.toLocaleString("pt-BR")} cadastros importados ainda sem a data do Tiny não contam como novos` : undefined },
     { id: "compraram", rotulo: "Compraram", valor: k.compraram, icone: Store, cor: "var(--kpi-azul)", delta: k.dCompraram, tendencia: k.tendCompraram,
       sub: "clientes diferentes: vendas do ERP + notas importadas do sistema anterior" },
     { id: "no_erp", rotulo: "No ERP novo", valor: k.noErp, icone: ShoppingCart, cor: "var(--kpi-verde)", delta: k.dNoErp, tendencia: k.tendNoErp,
@@ -149,17 +159,17 @@ export default function PainelCadastros() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title={fUf ? `Clientes · ${fUf}` : "Últimos clientes cadastrados"} actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
+        <Section title={fUf ? `Clientes · ${fUf}` : "Clientes mais recentes"} actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
           {fUf && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Estado", valor: fUf, limpar: () => setFUf(null) }]} onLimpar={() => setFUf(null)} /></div>}
           {k.recentes.length ? (
             <ul className="divide-y divide-slate-100">
-              {k.recentes.map((c) => (
+              {k.recentes.map(({ c, d }) => (
                 <li key={c.id}>
                   <button type="button" onClick={() => setFicha(c)} className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-slate-50">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-sm font-bold text-modulo-texto">{nomeDe(c).slice(0, 1).toUpperCase()}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-fg">{nomeDe(c)}</span>
-                      <span className="block truncate text-xs text-slate-500">{[c.municipio && `${c.municipio}/${c.uf ?? ""}`, c.created_at && `desde ${dataBR(c.created_at.slice(0, 10))}`].filter(Boolean).join(" · ") || "—"}</span>
+                      <span className="block truncate text-xs text-slate-500">{[c.municipio && `${c.municipio}/${c.uf ?? ""}`, desdeReal(d) ? `desde ${dataBR(d!.desde)} (${FONTE_DESDE[d!.fonte] ?? d!.fonte})` : "importado, sem a data do Tiny"].filter(Boolean).join(" · ") || "—"}</span>
                     </span>
                   </button>
                 </li>

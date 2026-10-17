@@ -2,11 +2,13 @@
 // POST { acao: "status" }                  -> situação da importação e se o TINY_API_TOKEN está cadastrado
 // POST { acao: "iniciar", unidade_id }     -> confere o token e começa do zero (o que já existe é atualizado, não duplica)
 // POST { acao: "continuar" }               -> avança ~40 s e devolve o progresso; a tela chama de novo até concluir
+// POST { acao: "datas_contatos", pagina }  -> só a data de cadastro no Tiny dos contatos já importados (~40 s por vez;
+//                                             devolve a próxima página, ou null no fim)
 // O Tiny limita as consultas por minuto: quando ele pede para esperar, a resposta traz { aguardar: segundos }.
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
-import { contaParaItem, contatoParaItem, num, produtoParaItem, Ritmo, tiny, TinyErro, tinyToken } from "../_shared/tiny.ts";
+import { contaParaItem, contatoParaItem, dataCadastroContato, num, produtoParaItem, Ritmo, tiny, TinyErro, tinyToken } from "../_shared/tiny.ts";
 
 const ETAPAS = ["contatos", "produtos", "receber_aberto", "receber_parcial", "pagar_aberto", "pagar_parcial", "concluida"] as const;
 type Etapa = (typeof ETAPAS)[number];
@@ -32,7 +34,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const { userId } = await requireErpUser(req, ["financeiro"]);
-    const { acao, unidade_id } = await req.json();
+    const { acao, unidade_id, pagina } = await req.json();
     const db = adminClient();
     // as funções de importação conferem o papel de quem chamou
     const dbUsuario = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -62,6 +64,38 @@ Deno.serve(async (req) => {
       };
       await db.from("importacao_tiny").upsert(estado);
       return json({ ok: true, configurado: true, estado });
+    }
+
+    if (acao === "datas_contatos") {
+      const ritmo = new Ritmo();
+      const fim = Date.now() + PRAZO_MS;
+      let pg: number | null = Math.max(1, Number(pagina) || 1);
+      let paginas = 1, lidos = 0, comData = 0, gravados = 0, aguardar = 0;
+      let chaves: string[] | null = null;
+      try {
+        while (pg && Date.now() < fim) {
+          const lista = await tiny("contatos.pesquisa.php", { pesquisa: "", pagina: pg }, token, ritmo);
+          const regs: any[] = lista?.contatos?.map((x: any) => x.contato) ?? [];
+          paginas = Number(lista?.numero_paginas) || paginas;
+          if (!regs.length) { pg = null; break; }
+          chaves ??= Object.keys(regs[0] ?? {});
+          const itens = regs.map((r) => ({ id_externo: String(r?.id ?? ""), data: dataCadastroContato(r) })).filter((x) => x.id_externo && x.data);
+          lidos += regs.length;
+          comData += itens.length;
+          if (itens.length) {
+            const { data, error } = await dbUsuario.rpc("datas_contatos_tiny", { p_itens: itens });
+            if (error) throw new HttpError(400, error.message);
+            gravados += Number((data as { gravados?: number })?.gravados ?? 0);
+          }
+          pg = pg + 1 > paginas ? null : pg + 1;
+        }
+      } catch (x) {
+        if (x instanceof TinyErro && x.excessoDeConsultas) aguardar = 60;
+        else if (x instanceof TinyErro && x.fatal) throw new HttpError(400, motivoFatal(x));
+        else throw x;
+      }
+      // sem nenhuma data, devolve só os nomes dos campos que o Tiny mandou (para achar o campo certo), nunca os valores
+      return json({ ok: true, pagina: pg, paginas, lidos, com_data: comData, gravados, aguardar, campos: comData ? undefined : chaves });
     }
 
     if (acao !== "continuar") throw new HttpError(400, "ação inválida");
@@ -105,6 +139,7 @@ Deno.serve(async (req) => {
           // se algo der errado antes de gravar o lote, a próxima chamada recomeça deste ponto
           const inicioLote = e.indice;
           const itens: any[] = [];
+          const datas: { id_externo: string; data: string }[] = [];
           let lidos = 0, ignorados = 0;
           try {
             while (e.indice < registros.length && itens.length < LOTE && Date.now() < fim) {
@@ -114,6 +149,8 @@ Deno.serve(async (req) => {
                   const d = await tiny("contato.obter.php", { id: r.id }, token, ritmo);
                   const item = contatoParaItem(d?.contato ?? r);
                   if (item) itens.push(item); else ignorados++;
+                  const data = dataCadastroContato(d?.contato) ?? dataCadastroContato(r);
+                  if (item && data) datas.push({ id_externo: item.id_externo, data });
                 } else {
                   const d = (await tiny("produto.obter.php", { id: r.id }, token, ritmo))?.produto;
                   // o saldo às vezes já vem na pesquisa; se não, consulta o estoque (só de quem vai entrar)
@@ -138,6 +175,8 @@ Deno.serve(async (req) => {
               soma(t, contatos
                 ? await rpc("importar_contatos", { p_itens: itens })
                 : await rpc("importar_produtos", { p_itens: itens, p_unidade: e.unidade_id, p_lancar_estoque: true }));
+              // a data de cadastro no Tiny vale como "cliente desde" (a data da importação não)
+              if (datas.length) await rpc("datas_contatos_tiny", { p_itens: datas });
             }
           } catch (x) {
             e.indice = inicioLote;

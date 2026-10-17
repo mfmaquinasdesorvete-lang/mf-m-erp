@@ -58,7 +58,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
   const idQuiosque = marcadores.find((m) => ehMarcadorQuiosque(m.nome))?.id;
   const quiosques = idQuiosque ? notas.filter((n) => !n.excluida_em && (n.marcadores ?? []).includes(idQuiosque)) : [];
   const totalQuiosques = quiosques.reduce((s, n) => s + Number(n.valor_total ?? 0), 0);
-  const comDataReal = desde.filter((d) => d.fonte !== "cadastro").length;
+  const comDataReal = desde.filter((d) => d.fonte !== "cadastro" && d.fonte !== "importado").length;
   const anoAtual = String(new Date().getFullYear());
   const antigos = desde.filter((d) => String(d.desde).slice(0, 4) < anoAtual).length;
 

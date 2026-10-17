@@ -5,7 +5,7 @@ import { marketplaceDoExtrato } from "./marketplaces";
 
 export type TipoLanc =
   | "pix_recebido" | "vendas_cartao" | "outra_entrada"
-  | "pix_enviado" | "funcionario" | "imposto" | "combustivel" | "marketplace" | "pedagio" | "tarifa" | "outra_saida";
+  | "pix_enviado" | "funcionario" | "imposto" | "combustivel" | "veiculo" | "marketplace" | "pedagio" | "tarifa" | "outra_saida";
 
 export const TIPOS_LANC: { id: TipoLanc; rotulo: string; entrada: boolean }[] = [
   { id: "pix_recebido", rotulo: "Pix recebidos", entrada: true },
@@ -15,6 +15,7 @@ export const TIPOS_LANC: { id: TipoLanc; rotulo: string; entrada: boolean }[] = 
   { id: "funcionario", rotulo: "Funcionários", entrada: false },
   { id: "imposto", rotulo: "Impostos e guias", entrada: false },
   { id: "combustivel", rotulo: "Combustível (postos)", entrada: false },
+  { id: "veiculo", rotulo: "Manutenção de veículos (oficina, peças, pneus)", entrada: false },
   { id: "marketplace", rotulo: "Mercado Livre, TikTok e outros", entrada: false },
   { id: "pedagio", rotulo: "Pedágio", entrada: false },
   { id: "tarifa", rotulo: "Tarifas (cartão, OLIST, banco) e juros", entrada: false },
@@ -24,8 +25,13 @@ export const ROTULO_TIPO = Object.fromEntries(TIPOS_LANC.map((t) => [t.id, t.rot
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Posto de combustível pelo nome (no extrato, no fornecedor ou no emitente da nota). "Imposto" não conta. */
-export const COMBUSTIVEL = /\b(auto\s*posto|postos?|combustive(l|is)|petrobras|ipiranga|shell|br\s*mania|raizen|ale\s+combust|gasolina|diesel|etanol|abastec\w*|graal)\b/;
+/**
+ * Posto de combustível pelo nome (no extrato, no fornecedor ou no emitente da nota). "Imposto" não conta, e "diesel"
+ * sozinho também não: "MJ Diesel" é a oficina dos veículos (posto que vende diesel tem "posto" ou "combustíveis" no nome).
+ */
+export const COMBUSTIVEL = /\b(auto\s*posto|postos?|combustive(l|is)|petrobras|ipiranga|shell|br\s*mania|raizen|ale\s+combust|gasolina|etanol|abastec\w*|graal)\b/;
+/** Oficina, peças e pneus dos veículos da empresa ("diesel" sem "posto" é mecânica diesel). */
+const VEICULO = /\b(diesel|oficina|auto\s*center|autocenter|centro automotivo|auto\s*pecas|autopecas|pneus?|pneumaticos|borracharia|funilaria|retifica|guincho|mecanica (diesel|automotiva|de veiculos))\b/;
 const PEDAGIO = /\b(auto\s*ban|autoban|sem\s*parar|conectcar|veloe|move\s*mais|pedagio|arteris|ecovias|ecopistas|rodoanel|via\s*oeste|viaoeste|concessionaria|rodovia\w*)\b/;
 const TARIFA = /\b(tarifa|taxa|iof|juros|encargos?|anuidade|mensalidade|multa)\b/;
 // tarifa com o nome escrito ("OLIST · Tarifa Pix recebido"): vem antes do Pix, senão contava como Pix enviado
@@ -92,6 +98,7 @@ export function tipoLancamento(descricao: string | null | undefined, valor: numb
   if (funcionarios.length && funcionarioDoLancamento(descricao, funcionarios)) return "funcionario";
   if (TARIFA_ESCRITA.test(d)) return "tarifa";
   if (COMBUSTIVEL.test(d)) return "combustivel";
+  if (VEICULO.test(d)) return "veiculo";
   if (marketplaceDoExtrato(descricao, valor)) return "marketplace";
   if (PEDAGIO.test(d)) return "pedagio";
   if (/\bpix\b/.test(d)) return "pix_enviado";

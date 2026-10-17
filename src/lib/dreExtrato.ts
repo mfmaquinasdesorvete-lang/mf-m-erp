@@ -24,6 +24,7 @@ const DESTINO: Record<TipoLanc, { grupo: GrupoDre; categoria: string }> = {
   funcionario: { grupo: "despesa_operacional", categoria: "Funcionários (Pix)" },
   imposto: { grupo: "deducao", categoria: "Impostos e guias pagos" },
   combustivel: { grupo: "despesa_operacional", categoria: "Combustível" },
+  veiculo: { grupo: "despesa_operacional", categoria: "Manutenção de veículos" },
   marketplace: { grupo: "custo", categoria: "Compras em marketplaces" },
   pedagio: { grupo: "despesa_operacional", categoria: "Pedágio" },
   tarifa: { grupo: "despesa_financeira", categoria: "Tarifas (cartão, OLIST, banco) e juros" },

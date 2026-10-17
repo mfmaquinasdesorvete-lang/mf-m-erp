@@ -1303,6 +1303,10 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-15), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
   add("cb1", dias(-45), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
   add("cb2", dias(-14), -150, "DIEGO MARTINS · Transferência enviada pelo Pix");
+  // fatura da transportadora paga por boleto (conferência dos CT-e) e a oficina dos veículos (não é posto)
+  add("cb1", dias(-24), -412.6, "Transferência enviada por Boleto - EXPRESSO SAO MIGUEL S A - ***283070001** - Ref. CP-501");
+  add("cb1", dias(-70), -356.1, "Transferência enviada por Boleto - EXPRESSO SAO MIGUEL S A - ***283070001** - Ref. CP-388");
+  add("cb1", dias(-12), -614.17, "Transferência enviada por Boleto - OFICINA EXEMPLO DIESEL LTDA - ***000000001** - Ref. CP-90");
   // compras repetidas no cartão da maquininha: a conciliação "Por favorecido" junta e lança de uma vez
   for (const [d, v] of [[-3, -38.5], [-10, -42], [-17, -35.9], [-24, -40.2], [-31, -37]] as const) add("cb3", dias(d), v, `PADARIA PAO EXEMPLO ${d === -17 ? "02" : "01"} · mfmaquinas`);
   for (const [d, v] of [[-8, -64.9], [-38, -64.9]] as const) add("cb2", dias(d), v, "Transferência enviada por Boleto - INTERNET EXEMPLO TELECOM LTDA - 12345678000199 - Ref. CP-77");
@@ -1464,6 +1468,40 @@ function comercialDemo(db: Db) {
   }
   Object.assign(db.configuracoes[0], { contador_nome: "Escritório Contábil Exemplo", contador_email: "financeiro@escritorio-exemplo.com.br", contador_envio_auto: true, contador_envio_dia: 5,
     contador_dados: { razao: "Escritório Contábil Exemplo Ltda", telefone: "(19) 3000-1000", site: "www.escritorio-exemplo.com.br", instagram: "escritorioexemplo", endereco: "Rua Exemplo, 100 - Centro - Campinas - SP" } });
+  // CT-e da transportadora (no sistema real: public.ctes e cte_faturas, pela planilha do site dela; nomes inventados)
+  {
+    const MF = "46942855000132";
+    const linha = (n: number, d: number, sentido: string, outro: string, outroCnpj: string, frete: "pago" | "a_pagar", valor: number, nf: number, prevAtraso = 0, fatura: string | null = null) => {
+      const entrada = sentido === "entrada", transf = sentido === "transferencia";
+      const rem = entrada ? [outroCnpj, outro] : [MF, "MF MAQUINAS LTDA"];
+      const dest = entrada ? [MF, "MF MAQUINAS LTDA"] : transf ? ["46942855000213", "MF MAQUINAS LTDA"] : [outroCnpj, outro];
+      const paga = (frete === "pago" && !entrada) || (frete === "a_pagar" && (entrada || transf));
+      return { id: `cte${n}`, transportadora_id: "t7", transportadora_raiz: "00428307", numero: String(3100000 + n), tipo: "CT-e", emissao: dias(d),
+        ag_origem: entrada ? "PORTO ALEGRE" : "PALHOCA", ag_destino: entrada ? "PALHOCA" : transf ? "AMERICANA" : "CURITIBA",
+        remetente_cnpj: rem[0], remetente_nome: rem[1], destinatario_cnpj: dest[0], destinatario_nome: dest[1], nf_numero: String(20000 + n), nf_serie: "1", nf_valor: nf,
+        frete, peso_tipo: "Peso", peso: 3 + (n % 7) * 4, volumes: 1 + (n % 3), valor, prev_entrega: dias(d + 1), ocorrencia: d + 1 + prevAtraso <= 0 ? "ENTREGUE" : "EM TRANSITO",
+        ocorrencia_em: d + 1 + prevAtraso <= 0 ? `${dias(d + 1 + prevAtraso)}T11:20:00-03:00` : null, sentido, mf_paga: paga, unidade_id: transf ? U_SP : U_SC,
+        nfe_recebida_id: entrada ? `nfe-${n}` : null, nota_fiscal_id: entrada ? null : `nf-${n}`, fatura_id: fatura, origem: "planilha", arquivo: "transportadora.csv" };
+    };
+    db.cte_faturas = [{ id: "fat1", transportadora_id: "t7", transportadora_raiz: "00428307", numero: "FT-55120", emissao: dias(-40), vencimento: dias(-25), valor: 412.6,
+      situacao: "aberta", conta_pagar_id: null, unidade_id: U_SC, observacao: null, origem: "manual", criado_em: quando(-40) }];
+    db.ctes = [
+      linha(1, -62, "entrada", "COMPONENTES EXEMPLO LTDA", "11222333000144", "a_pagar", 88.36, 4054, 0, "fat1"),
+      linha(2, -58, "entrada", "REDUTORES EXEMPLO LTDA", "22333444000155", "a_pagar", 189.6, 7833.19, 0, "fat1"),
+      linha(3, -55, "saida", "SORVETERIA EXEMPLO LTDA", "33444555000166", "pago", 74.94, 1120, 1, "fat1"),
+      linha(4, -50, "entrada", "DISTRIBUIDORA FRIO EXEMPLO", "44555666000177", "pago", 294, 20529.83),
+      linha(5, -33, "entrada", "COMPONENTES EXEMPLO LTDA", "11222333000144", "a_pagar", 62.49, 300),
+      linha(6, -30, "entrada", "REDUTORES EXEMPLO LTDA", "22333444000155", "a_pagar", 166.24, 5825.36),
+      linha(7, -27, "saida", "GELATERIA EXEMPLO ME", "55666777000188", "pago", 68.86, 980),
+      linha(8, -24, "transferencia", "", "", "a_pagar", 121.41, 100, 0),
+      linha(9, -20, "entrada", "VEDACOES EXEMPLO LTDA", "66777888000199", "a_pagar", 70.23, 464, 3),
+      linha(10, -15, "entrada", "COMPONENTES EXEMPLO LTDA", "11222333000144", "a_pagar", 139, 188, 6),
+      linha(11, -12, "saida", "ACAITERIA EXEMPLO LTDA", "77888999000100", "pago", 131.23, 600),
+      linha(12, -8, "entrada", "REDUTORES EXEMPLO LTDA", "22333444000155", "a_pagar", 553.23, 24703),
+      linha(13, -5, "entrada", "METALURGICA EXEMPLO LTDA", "88999000000111", "a_pagar", 81.91, 1286.08),
+      linha(14, -1, "saida", "SORVETERIA EXEMPLO LTDA", "33444555000166", "pago", 72.5, 420),
+    ];
+  }
   // contatos do escritório por setor (no sistema real: public.contabilidade_contatos; nomes só no banco)
   db.contabilidade_contatos = ([
     ["recepcao", "Ana Recepção", "atendimento", "(19) 9 1111-0001"], ["fiscal", "Bia Fiscal", "fiscal01", "(19) 9 1111-0002"], ["fiscal", "Caio Fiscal", "fiscal02", "(19) 3000-1002"],
@@ -1741,7 +1779,7 @@ const VIEWS: Record<string, () => Row[]> = {
 // Histórico de alterações (no sistema real: gatilho zz_auditoria do Postgres)
 const AUDITADAS = new Set(["contas_receber", "contas_pagar", "pedidos", "clientes", "fornecedores", "transportadoras", "produtos", "usuarios_erp",
   "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes",
-  "parcelamentos", "parcelamento_parcelas", "conciliacao_regras", "contabilidade_contatos"]);
+  "parcelamentos", "parcelamento_parcelas", "conciliacao_regras", "contabilidade_contatos", "cte_faturas"]);
 const IGNORAR_AUD = new Set(["motivo_alteracao", "updated_at", "valor_produtos", "valor_pecas", "valor_total", "created_at"]);
 function registrarDemo(tabela: string, acao: string, antes: Row | null, depois: Row | null, motivo: string | null, origem: "usuario" | "sistema") {
   db.auditoria ??= [];
@@ -2922,6 +2960,55 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       return { id: e.id, conta_id: e.conta_id, data: e.data, de_nome: e.de_nome, de_email: e.de_email, assunto: e.assunto, previa: e.previa, anexos: e.anexos, lido: e.lido, setor: c?.setor ?? "escritorio", contato: c?.nome ?? null };
     }).filter(Boolean).sort((a, b) => String(b!.data).localeCompare(String(a!.data)));
     return { data: linhas.slice(0, Number(p_limite) || 50), error: null };
+  },
+  importar_ctes: ({ p_transportadora, p_linhas, p_arquivo }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    const dig = (x: unknown) => String(x ?? "").replace(/\D/g, "");
+    const raiz = dig(db.transportadoras.find((t) => t.id === p_transportadora)?.cnpj).slice(0, 8) || null;
+    const unid = (c: string) => db.unidades.find((u) => dig(u.cnpj) === c)?.id ?? null;
+    let novos = 0, atualizados = 0, ignorados = 0;
+    db.ctes ??= [];
+    for (const l of p_linhas ?? []) {
+      if (!String(l.numero ?? "").trim() || !l.emissao) { ignorados++; continue; }
+      const rem = dig(l.remetente_cnpj), dest = dig(l.destinatario_cnpj), ur = unid(rem), ud = unid(dest);
+      const sentido = ur && ud ? "transferencia" : ud ? "entrada" : ur ? "saida" : "outro";
+      const mf_paga = (l.frete === "pago" && !!ur) || (l.frete === "a_pagar" && !!ud);
+      const ja = db.ctes.find((c) => (c.transportadora_raiz ?? "") === (raiz ?? "") && (c.ag_origem ?? "") === (l.ag_origem ?? "") && c.numero === String(l.numero).trim());
+      if (ja) { Object.assign(ja, { ocorrencia: l.ocorrencia, ocorrencia_em: l.ocorrencia_em, prev_entrega: l.prev_entrega }); atualizados++; continue; }
+      db.ctes.push({ ...l, id: uid(), numero: String(l.numero).trim(), transportadora_id: p_transportadora, transportadora_raiz: raiz, remetente_cnpj: rem, destinatario_cnpj: dest,
+        sentido, mf_paga, unidade_id: l.frete === "pago" ? ur ?? ud : ud ?? ur, nfe_recebida_id: null, nota_fiscal_id: null, fatura_id: null, origem: "planilha", arquivo: p_arquivo });
+      novos++;
+    }
+    return { data: { novos, atualizados, ignorados }, error: null };
+  },
+  criar_fatura_cte: ({ p_ctes, p_numero, p_vencimento, p_valor, p_emissao, p_lancar }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (!String(p_numero ?? "").trim()) return erro("informe o número da fatura");
+    if (!p_vencimento) return erro("informe o vencimento");
+    const sel = (db.ctes ?? []).filter((c) => (p_ctes ?? []).includes(c.id) && c.mf_paga && !c.fatura_id);
+    if (!sel.length) return erro("escolha os CT-e da fatura");
+    if (sel.length !== p_ctes.length) return erro("só entram CT-e pagos pela MF e ainda sem fatura");
+    const valor = p_valor ?? r2(sel.reduce((s, c) => s + Number(c.valor), 0));
+    const id = uid();
+    db.cte_faturas.push({ id, transportadora_id: sel[0].transportadora_id, transportadora_raiz: sel[0].transportadora_raiz, numero: String(p_numero).trim(), emissao: p_emissao,
+      vencimento: p_vencimento, valor, situacao: "aberta", conta_pagar_id: null, unidade_id: sel[0].unidade_id, observacao: null, origem: "manual", criado_em: new Date().toISOString() });
+    for (const c of sel) c.fatura_id = id;
+    if (p_lancar) {
+      const conta = { id: uid(), created_at: new Date().toISOString(), descricao: `Fatura de frete nº ${String(p_numero).trim()} · Expresso São Miguel (${sel.length} CT-e)`, categoria: "frete",
+        fornecedor_id: null, valor, vencimento: p_vencimento, status: "aberto", unidade_id: sel[0].unidade_id, observacoes: "Lançada pela fatura de CT-e (Logística → Fretes e envios → Faturas)" };
+      db.contas_pagar.push(conta);
+      db.cte_faturas[db.cte_faturas.length - 1].conta_pagar_id = conta.id;
+    }
+    return { data: id, error: null };
+  },
+  cancelar_fatura_cte: ({ p_fatura, p_motivo }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (String(p_motivo ?? "").trim().length < 3) return erro("informe o motivo");
+    const f = db.cte_faturas.find((x) => x.id === p_fatura && x.situacao !== "cancelada");
+    if (!f) return erro("fatura não encontrada ou já cancelada");
+    Object.assign(f, { situacao: "cancelada", observacao: [f.observacao, `Cancelada: ${String(p_motivo).trim()}`].filter(Boolean).join(" · ") });
+    for (const c of db.ctes ?? []) if (c.fatura_id === f.id) c.fatura_id = null;
+    return { data: null, error: null };
   },
   conciliar_em_lote: ({ p_ids, p_acao, p_direcao, p_categoria, p_motivo, p_fornecedor, p_cliente, p_regra }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

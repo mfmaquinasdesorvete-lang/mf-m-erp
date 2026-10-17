@@ -6,6 +6,8 @@ import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, ClipboardList,
 import { Button, PageHeader, Table, Tabs } from "@/components/ui";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
+import { CtePainel } from "@/components/fretes/CtePainel";
+import { CteFaturas } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -61,7 +63,7 @@ export default function Fretes() {
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useAbaUrl<"painel" | "indicadores" | "envios">("painel", ["painel", "indicadores", "envios"] as const);
+  const [aba, setAba] = useAbaUrl<"painel" | "indicadores" | "envios" | "cte" | "faturas">("painel", ["painel", "indicadores", "envios", "cte", "faturas"] as const);
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);
@@ -142,14 +144,18 @@ export default function Fretes() {
 
   return (
     <div>
-      <PageHeader title="Fretes e envios" subtitle="Cotação padronizada, aprovação, coleta, entrega e ocorrências de cada envio"
+      <PageHeader title="Fretes e envios" subtitle="Cotação padronizada, aprovação, coleta, entrega e ocorrências de cada envio; CT-e e faturas das transportadoras"
         actions={podeEditar && <Button onClick={() => setAberto({})}><Plus size={16} /> Novo envio</Button>} />
       {aberto && <EnvioForm envioId={aberto.id} onClose={() => { setAberto(null); invalidar("envios", "envio_ocorrencias", "envio_cotacoes", "documentos"); }} />}
 
       <Tabs value={aba} onChange={(v) => { setAba(v); setIndicador(null); }}
-        options={[{ value: "painel", label: "Painel" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` }]} />
+        options={[{ value: "painel", label: "Painel" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
+          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }]} />
 
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-3">
+      {aba === "cte" && <CtePainel transportadoras={transportadoras} />}
+      {aba === "faturas" && <CteFaturas transportadoras={transportadoras} />}
+
+      {aba !== "cte" && aba !== "faturas" && <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-3">
         {aba === "indicadores" ? (
           <label className="block min-w-[12rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Mês</span>
             <select className="input" value={mes} onChange={(x) => setMes(x.target.value)}>
@@ -168,7 +174,7 @@ export default function Fretes() {
         {filtroSelect("Status", "status", (Object.keys(STATUS_ENVIO) as StatusEnvio[]).map((s) => [s, STATUS_ENVIO[s].rotulo]))}
         {filtroSelect("Tipo de máquina", "equipamento", equipamentos.map((q) => [q, q]))}
         {totalFiltros > 0 && <Button variant="ghost" onClick={() => setFiltros({})}><X size={15} /> Limpar</Button>}
-      </div>
+      </div>}
 
       {aba === "painel" && (
         <div className="mb-5 space-y-4">

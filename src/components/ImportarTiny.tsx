@@ -12,6 +12,8 @@ type Estado = {
   iniciado_em: string | null; concluido_em: string | null;
 };
 type Resposta = { configurado: boolean; estado: Estado | null; aguardar?: number };
+type RespDatas = { pagina: number | null; paginas: number; lidos: number; com_data: number; gravados: number; aguardar?: number; campos?: string[] };
+type ProgressoDatas = { pagina: number | null; paginas: number; lidos: number; comData: number; gravados: number; campos?: string[]; fim: boolean };
 
 const ETAPAS: [string, string][] = [
   ["contatos", "Clientes, fornecedores e transportadoras"],
@@ -33,6 +35,7 @@ export function ImportarTiny() {
   const [rodando, setRodando] = useState(false);
   const [pausa, setPausa] = useState(0);
   const [erro, setErro] = useState("");
+  const [datas, setDatas] = useState<ProgressoDatas | null>(null);
   const ativo = useRef(true);
 
   useEffect(() => {
@@ -64,6 +67,38 @@ export function ImportarTiny() {
       }
     } catch (e) {
       if (ativo.current) setErro((e as Error).message);
+    } finally {
+      if (ativo.current) { setRodando(false); setPausa(0); }
+    }
+  }
+
+  /** Só a data de cadastro no Tiny dos contatos já importados: é ela que vale como "cliente desde" (não a da importação). */
+  async function trazerDatas() {
+    setErro("");
+    setRodando(true);
+    const p: ProgressoDatas = { pagina: 1, paginas: 1, lidos: 0, comData: 0, gravados: 0, fim: false };
+    setDatas({ ...p });
+    try {
+      while (p.pagina && ativo.current) {
+        const r: RespDatas = await callFunction<RespDatas>("tiny-importar", { acao: "datas_contatos", pagina: p.pagina });
+        p.lidos += r.lidos; p.comData += r.com_data; p.gravados += r.gravados; p.paginas = r.paginas;
+        if (r.campos) p.campos = r.campos;
+        p.pagina = r.pagina;
+        if (ativo.current) setDatas({ ...p });
+        if (r.aguardar) {
+          for (let s = r.aguardar; s > 0 && ativo.current; s--) { setPausa(s); await espera(1000); }
+          setPausa(0);
+        }
+      }
+      if (!p.pagina) {
+        p.fim = true;
+        setDatas({ ...p });
+        notify(p.comData ? `Data de cadastro do Tiny gravada em ${p.gravados} clientes` : "O Tiny não mandou a data de cadastro dos contatos");
+        qc.invalidateQueries({ queryKey: ["clientes_desde"] });
+        qc.invalidateQueries({ queryKey: ["clientes"] });
+      }
+    } catch (x) {
+      if (ativo.current) setErro((x as Error).message);
     } finally {
       if (ativo.current) { setRodando(false); setPausa(0); }
     }
@@ -159,6 +194,23 @@ export function ImportarTiny() {
             </Button>
           )}
           {rodando && <span className="text-sm text-slate-500">Importando… pode continuar usando o ERP em outra aba.</span>}
+        </div>
+      )}
+
+      {info?.configurado && !emAndamento && (
+        <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
+          <p className="mb-2 text-slate-600">
+            <b>Data de cadastro no Tiny:</b> os clientes trazidos do Tiny ficaram com a data da importação, e cliente importado não conta como
+            novo. Este botão busca no Tiny só a data em que cada contato foi cadastrado lá, sem mudar mais nada.
+          </p>
+          {datas && (
+            <p className="mb-2 text-slate-700">
+              {datas.fim ? "Pronto: " : `Página ${datas.pagina ?? datas.paginas} de ${datas.paginas}: `}
+              {datas.lidos.toLocaleString("pt-BR")} contatos lidos, {datas.comData.toLocaleString("pt-BR")} com data, {datas.gravados.toLocaleString("pt-BR")} gravadas.
+              {datas.fim && !datas.comData && datas.campos && <span className="block text-amber-700">O Tiny não mandou a data de cadastro nesta consulta. Campos que vieram: {datas.campos.join(", ")}.</span>}
+            </p>
+          )}
+          <Button type="button" variant="secondary" disabled={rodando} onClick={() => { ativo.current = true; trazerDatas(); }}>Trazer a data de cadastro do Tiny</Button>
         </div>
       )}
     </Card>
