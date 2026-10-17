@@ -183,6 +183,8 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Fretes e envios → Faturas de frete: junte os CT-e da fatura da transportadora, veja se o valor bate com a soma e lance a conta a pagar (categoria frete, passa pela aprovação); conferência mês a mês com o que saiu do banco para a transportadora.",
       "Clientes novos pela data real: o Painel de Cadastros não conta mais como novo quem só foi trazido do Tiny ou de planilha; vale o cadastro no Tiny, a compra da máquina, a 1ª venda ou a proposta. A tela de importação do Tiny ganhou o botão para trazer a data de cadastro de lá.",
       "Oficina não é posto: \"diesel\" no nome sozinho não marca mais posto de combustível; oficina, peças e pneus dos veículos entram em \"Manutenção de veículos\" no resumo do extrato e no DRE.",
+      "Contas a pagar em quadro (Kanban): botão Lista/Quadro; colunas A decidir, Falta aprovar, Programadas, Pagar hoje, Pagas (30 dias) e Não pagar, com quantidade e total. No computador, arrastar a conta para outra coluna faz a ação dela — pagar hoje, programar um dia, não pagar com motivo, voltar a decidir ou registrar o pagamento —, com as mesmas travas de aprovação e de fornecedor golpe; no celular as colunas deslizam para o lado.",
+      "Painel pessoal: importar o extrato em PDF (o Itaú só entrega assim). O PDF é lido no próprio aparelho, mostra as primeiras linhas para conferir antes de gravar e não repete o que já entrou.",
     ],
   },
 };

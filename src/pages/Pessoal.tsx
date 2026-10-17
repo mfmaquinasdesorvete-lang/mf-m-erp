@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { lerExtrato } from "@/lib/extrato";
+import { lerExtratoPdf } from "@/lib/extratoPdf";
 import { numeroBR } from "@/lib/fichaCadastral";
 import {
   CATEGORIAS, CORES_CONTA, NOME_TIPO_CONTA, TIPOS_CONTA, categoriaDe, proximos, resumoMes, saldoConta,
@@ -58,7 +59,7 @@ export default function Pessoal() {
         actions={<>
           <MaisAcoes>
             <Button variant="secondary" onClick={() => setEditConta({ tipo: "corrente", cor: Object.keys(CORES_CONTA)[contas.length % 8], saldo_inicial: 0, saldo_inicial_em: hoje(), ativa: true, ordem: contas.length })}><Landmark size={16} /> Nova conta</Button>
-            <Button variant="secondary" onClick={() => setImportar(true)} disabled={!ativas.length}><FileUp size={16} /> Importar extrato (OFX ou CSV)</Button>
+            <Button variant="secondary" onClick={() => setImportar(true)} disabled={!ativas.length}><FileUp size={16} /> Importar extrato (OFX, CSV ou PDF)</Button>
           </MaisAcoes>
           <Button onClick={() => setEditLanc({ conta_id: conta || ativas[0]?.id, data: hoje(), situacao: "realizado", valor: undefined })} disabled={!ativas.length}><Plus size={16} /> Lançar</Button>
         </>} />
@@ -290,11 +291,20 @@ function ImportarModal({ contas, onClose, onFeito }: { contas: ContaPessoal[]; o
   const [linhas, setLinhas] = useState<{ data: string; valor: number; descricao: string; identificador: string }[] | null>(null);
   const [nome, setNome] = useState("");
   const [gravando, setGravando] = useState(false);
+  const [pdf, setPdf] = useState<{ ignoradas: number } | null>(null);
   async function ler(f: File | undefined) {
     if (!f) return;
     try {
-      const r = await lerExtrato(f);
       setNome(f.name);
+      // PDF (Itaú e outros que só entregam assim): lido aqui no navegador, o arquivo não sai do aparelho
+      if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+        const r = await lerExtratoPdf(f);
+        setPdf({ ignoradas: r.ignoradas });
+        setLinhas(r.linhas);
+        return;
+      }
+      setPdf(null);
+      const r = await lerExtrato(f);
       setLinhas(r.linhas.filter((x) => x.valor && x.data).map((x) => ({ data: x.data, valor: x.valor, descricao: x.descricao || "Lançamento do extrato", identificador: x.identificador })));
     } catch (e) { notifyError(e); }
   }
@@ -314,11 +324,23 @@ function ImportarModal({ contas, onClose, onFeito }: { contas: ContaPessoal[]; o
     <Modal open onClose={onClose} title="Importar extrato pessoal">
       <div className="space-y-3">
         <Field label="Conta"><select className="input" value={conta} onChange={(e) => setConta(e.target.value)}>{contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Field>
-        <Field label="Arquivo do banco (OFX ou CSV)"><input type="file" accept=".ofx,.csv,.txt" className="input" onChange={(e) => ler(e.target.files?.[0])} /></Field>
+        <Field label="Arquivo do banco (OFX, CSV ou PDF)"><input type="file" accept=".ofx,.csv,.txt,.pdf,application/pdf" className="input" onChange={(e) => ler(e.target.files?.[0])} /></Field>
         {linhas && (
           <div className="rounded-xl bg-slate-50 p-3 text-sm">
             <b>{nome}</b>: {linhas.length} {pl(linhas.length, "lançamento", "lançamentos")} · entradas {brl(entradas)} · saídas {brl(saidas)}.
             <div className="mt-1 text-xs text-slate-500">A categoria vem do texto de cada linha; dá para trocar depois. Importar o mesmo extrato de novo não repete nada.</div>
+          </div>
+        )}
+        {linhas && pdf && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <b>Extrato em PDF:</b> confira as primeiras linhas antes de importar{pdf.ignoradas ? ` (${pdf.ignoradas} linhas de saldo e totais ficaram de fora)` : ""}.
+            {linhas.length === 0 && <span className="block">Nenhum lançamento reconhecido: o PDF pode ser de outro modelo. Use o OFX do banco, se houver.</span>}
+            <ul className="mt-2 max-h-48 divide-y divide-amber-200 overflow-y-auto text-xs">
+              {linhas.slice(0, 30).map((x) => (
+                <li key={x.identificador} className="flex gap-2 py-1"><span className="num shrink-0">{dataBR(x.data)}</span><span className="min-w-0 flex-1 truncate">{x.descricao}</span>
+                  <span className={`num shrink-0 font-semibold ${x.valor < 0 ? "text-red-700" : "text-emerald-700"}`}>{brl(x.valor)}</span></li>
+              ))}
+            </ul>
           </div>
         )}
         <div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={gravar} disabled={!linhas?.length || gravando}>{gravando ? "Importando…" : "Importar"}</Button></div>

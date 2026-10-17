@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, Tags, Undo2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -29,6 +29,7 @@ import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/componen
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
+import { KanbanPagar } from "@/components/financeiro/KanbanPagar";
 import { aguardaAprovacao, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, situacaoPagar, VISOES_PAGAR, type Decisao, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
@@ -439,6 +440,9 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const { data: cfgRecibo } = useConfig();
   // uma visão por vez (com a contagem de cada uma), busca, período do vencimento e filtros guardados num botão
   const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : "para_pagar");
+  // lista ou quadro (Kanban); a escolha fica guardada neste aparelho
+  const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:modo") === "quadro" && !destaque ? "quadro" : "lista"; } catch { return "lista"; } });
+  const setModo = (m: "lista" | "quadro") => { setModoState(m); setSel(new Set()); try { localStorage.setItem("erp:pagar:modo", m); } catch { /* sem armazenamento */ } };
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
   const [categoria, setCategoria] = useState("");
@@ -535,6 +539,14 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
         </>}
         onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); }}
         direita={<>
+          <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as contas em">
+            {([["lista", List, "Lista"], ["quadro", SquareKanban, "Quadro"]] as const).map(([m, Icone, rotulo]) => (
+              <button key={m} type="button" aria-pressed={modo === m} onClick={() => setModo(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por etapa até o pagamento" : "Lista com as visões"}
+                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${modo === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
+              </button>
+            ))}
+          </div>
           <Button variant="secondary" onClick={() => rel.imprimir(paraRel())} title="Imprimir a lista"><Printer size={16} /><span className="hidden lg:inline"> Imprimir</span></Button>
           <Button variant="secondary" onClick={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))} title="Exportar para Excel"><FileDown size={16} /><span className="hidden lg:inline"> Exportar</span></Button>
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
@@ -546,6 +558,9 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
           <Button type="button" variant="secondary" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Registrar o pagamento de todas</Button>
         </div>
       )}
+      {modo === "quadro" ? (
+        <KanbanPagar contas={base} podeDecidir={podeDecidir} situacaoDe={situacaoDe} acoesDe={acoesDe} onRegistrar={(c) => setBaixa(c)} />
+      ) : <>
       <ChipsSituacao opcoes={visoes} valor={visao} onChange={(v) => { setVisao(v); setSel(new Set()); }} rotulo="Visão das contas" />
       {podeDecidir && abertasVisiveis.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">
@@ -589,6 +604,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
       </Table>
       </div>
       {!(podeDecidir && marcadas.length > 0) && <RodapeLista quantidade={lista.length} nome={["conta", "contas"]} total={somaDe(lista)} rotuloTotal={`total · ${rotuloVisao.toLowerCase()}`} />}
+      </>}
 
       <Modal open={!!editando} onClose={() => setEditando(null)} title={editando?.id ? "Editar conta a pagar" : "Nova conta a pagar"}>
         {editando && (

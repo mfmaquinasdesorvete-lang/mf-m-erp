@@ -117,8 +117,8 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
           onClick={() => setSoAtraso(!soAtraso)} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Mês a mês (frete pago pela MF)">
+      <div className="grid gap-4 xl:grid-cols-5">
+        <Section title="Mês a mês (frete pago pela MF)" className="xl:col-span-3">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-2">Mês</th><th className="py-1 pr-2 text-right">CT-e</th>
@@ -126,7 +126,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
                 <th className="py-1 pr-2 text-right">Total</th><th className="py-1 text-right" title="frete das compras sobre o valor das notas de compra">% compras</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {meses.map((m) => (
-                  <tr key={m.mes}><td className="py-1.5 pr-2 font-semibold capitalize">{nomeMes(m.mes)}</td><td className="num py-1.5 pr-2 text-right">{m.qtdPagoMF}</td>
+                  <tr key={m.mes}><td className="whitespace-nowrap py-1.5 pr-2 font-semibold">{nomeMes(m.mes).replace(/^./, (x) => x.toUpperCase())}</td><td className="num py-1.5 pr-2 text-right">{m.qtdPagoMF}</td>
                     <td className="num py-1.5 pr-2 text-right">{brl(m.compras)}</td><td className="num py-1.5 pr-2 text-right">{brl(m.vendas)}</td>
                     <td className="num py-1.5 pr-2 text-right">{brl(m.transferencias)}</td><td className="num py-1.5 pr-2 text-right font-semibold">{brl(m.fretePagoMF)}</td>
                     <td className="num py-1.5 text-right">{pct(div(m.compras, m.nfCompras))}</td></tr>
@@ -135,7 +135,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
             </table>
           </div>
         </Section>
-        <Section title="Onde negociar o frete das compras">
+        <Section title="Onde negociar o frete das compras" className="xl:col-span-2">
           <p className="mb-2 text-xs text-slate-500">Fornecedores que mandam com frete à pagar (a MF paga). Muitos CT-e pequenos: peça frete pago (CIF) ou junte os pedidos.</p>
           <ul className="divide-y divide-slate-100 text-sm">
             {negociar.map((f) => (

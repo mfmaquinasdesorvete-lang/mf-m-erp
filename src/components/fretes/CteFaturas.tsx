@@ -155,7 +155,7 @@ function ConferenciaBanco({ ctes, transportadoras }: { ctes: Cte[]; transportado
             <th className="py-1 pr-2 text-right">Pago no banco</th><th className="py-1 text-right">Em aberto (acumulado)</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {linhas.map((l) => (
-              <tr key={l.mes}><td className="py-1.5 pr-2 font-semibold capitalize">{nomeMes(l.mes)}</td><td className="num py-1.5 pr-2 text-right">{brl(l.frete)}</td>
+              <tr key={l.mes}><td className="whitespace-nowrap py-1.5 pr-2 font-semibold">{nomeMes(l.mes).replace(/^./, (x) => x.toUpperCase())}</td><td className="num py-1.5 pr-2 text-right">{brl(l.frete)}</td>
                 <td className="num py-1.5 pr-2 text-right">{brl(l.pago)}</td>
                 <td className={`num py-1.5 text-right font-semibold ${l.emAberto < -0.009 ? "text-amber-700" : ""}`}>{brl(l.emAberto)}</td></tr>
             ))}

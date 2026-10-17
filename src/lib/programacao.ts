@@ -128,3 +128,44 @@ export function situacaoPagar(c: ContaLista, hoje: string): { texto: string; tom
   if (n === 0) return { texto: "Vence hoje", tom: "decidir", sub: "a decidir" };
   return { texto: "A decidir", tom: "decidir", sub: n <= 7 ? `vence em ${n} ${n === 1 ? "dia" : "dias"}` : null };
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Quadro (Kanban) das contas a pagar: cada conta numa coluna, na ordem do caminho até o pagamento. Arrastar para outra
+// coluna faz a ação que a coluna pede, com as mesmas travas da lista (aprovação, golpe, motivo do "não pagar").
+
+export type ColunaPagar = "decidir" | "aprovar" | "programadas" | "hoje" | "pagas" | "nao_pagar";
+export const COLUNAS_PAGAR: { id: ColunaPagar; rotulo: string; dica: string; cor: string }[] = [
+  { id: "decidir", rotulo: "A decidir", dica: "Ninguém escolheu ainda: pagar, agendar ou não pagar", cor: "#d97706" },
+  { id: "aprovar", rotulo: "Falta aprovar", dica: "Esperando a aprovação (Financeiro → Aprovações)", cor: "#7c3aed" },
+  { id: "programadas", rotulo: "Programadas", dica: "Aprovadas para um dia que ainda não chegou", cor: "#0284c7" },
+  { id: "hoje", rotulo: "Pagar hoje", dica: "O dia chegou: pagar e registrar o pagamento", cor: "#059669" },
+  { id: "pagas", rotulo: "Pagas", dica: "Pagamento registrado (últimos 30 dias)", cor: "#475569" },
+  { id: "nao_pagar", rotulo: "Não pagar", dica: "Seguradas com motivo, ou fornecedor marcado como golpe", cor: "#dc2626" },
+];
+
+/** Em que coluna do quadro a conta fica; null = fora do quadro (cancelada). */
+export function colunaPagar(c: ContaLista, hoje: string): ColunaPagar | null {
+  if (c.status === "cancelado") return null;
+  if (c.status === "pago") return "pagas";
+  if (c.status !== "aberto") return null;
+  if (contaParada(c)) return "nao_pagar";
+  if (aguardaAprovacao(c)) return "aprovar";
+  if (c.decisao === "pagar" || c.decisao === "agendado") return diaDoPagamento(c) <= hoje ? "hoje" : "programadas";
+  return "decidir";
+}
+
+export type AcaoArrastar = "limpar" | "pagar_hoje" | "agendar" | "nao_pagar" | "registrar";
+/** O que acontece ao soltar a conta na coluna: a ação, ou o motivo de não poder (null = mesma coluna, nada a fazer). */
+export function soltarNaColuna(c: ContaLista, destino: ColunaPagar, hoje: string): { acao: AcaoArrastar } | { motivo: string } | null {
+  const origem = colunaPagar(c, hoje);
+  if (!origem || origem === destino) return null;
+  if (c.status !== "aberto") return { motivo: "Conta já paga: para desfazer, use \"Estornar o pagamento\" no menu da conta" };
+  if (c.fornecedor?.bloqueado) return { motivo: "Fornecedor marcado como golpe: a conta fica em \"Não pagar\"" };
+  if (destino === "aprovar") return { motivo: "A conta vai para aprovação sozinha; quem aprova é Financeiro → Aprovações" };
+  if (destino === "decidir") return { acao: "limpar" };
+  if (destino === "nao_pagar") return { acao: "nao_pagar" };
+  if (aguardaAprovacao(c)) return { motivo: TEXTO_FALTA_APROVAR };
+  if (destino === "hoje") return { acao: "pagar_hoje" };
+  if (destino === "programadas") return { acao: "agendar" };
+  return { acao: "registrar" };
+}
