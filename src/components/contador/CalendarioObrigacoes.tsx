@@ -15,7 +15,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, pl } from "@/lib/format";
 import { diaLocal } from "@/lib/filtroLista";
 import {
-  chaveRegistro, configDaUnidade, iso, ocorrenciasNoPeriodo, rotuloCompetencia, ROTULO_SITUACAO, situacaoDe, somarMes,
+  chaveRegistro, configDaUnidade, CPR_SP, iso, ocorrenciasNoPeriodo, rotuloCompetencia, ROTULO_SITUACAO, situacaoDe, somarMes,
   type ConfigCalendario, type ConfigUnidade, type Ocorrencia, type RegistroObrigacao, type Situacao, type UnidadeCal,
 } from "@/lib/obrigacoes";
 
@@ -329,19 +329,34 @@ function AjustarPrazos({ cfg, unidades, onClose }: { cfg: ConfigCalendario; unid
             <fieldset key={u.id} className="rounded-xl border border-slate-200 p-3">
               <legend className="px-1 text-sm font-bold text-fg">{u.nome}{u.uf ? ` (${u.uf})` : ""}</legend>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Dia do ICMS no mês seguinte"><input className="input" type="number" min={1} max={31} placeholder="sem data" value={c.icms_dia ?? ""} onChange={(e) => mudar(u.id, "icms_dia", diaOuNada(e.target.value))} /></Field>
+                {u.uf === "SP" && (
+                  <Field label="ICMS: código de recolhimento (CPR)">
+                    <select className="input" value={c.icms_cpr ?? ""} onChange={(e) => mudar(u.id, "icms_cpr", e.target.value || null)}>
+                      <option value="">Sem CPR (usar o dia ao lado)</option>
+                      {Object.entries(CPR_SP).map(([cpr, x]) => <option key={cpr} value={cpr}>CPR {cpr}: {x.regra} ({x.atividades})</option>)}
+                    </select>
+                  </Field>
+                )}
+                <Field label="Dia do ICMS no mês seguinte"><input className="input" type="number" min={1} max={31} placeholder={u.uf === "SP" && c.icms_cpr ? "pelo CPR" : "sem data"} disabled={u.uf === "SP" && !!c.icms_cpr} value={u.uf === "SP" && c.icms_cpr ? "" : c.icms_dia ?? ""} onChange={(e) => mudar(u.id, "icms_dia", diaOuNada(e.target.value))} /></Field>
                 <Field label="Dia da EFD ICMS/IPI"><input className="input" type="number" min={1} max={31} placeholder="sem data" value={c.efd_dia ?? ""} onChange={(e) => mudar(u.id, "efd_dia", diaOuNada(e.target.value))} /></Field>
                 <Field label="Dia do ISS (prefeitura)"><input className="input" type="number" min={1} max={31} placeholder="sem data" disabled={!c.iss} value={c.iss_dia ?? ""} onChange={(e) => mudar(u.id, "iss_dia", diaOuNada(e.target.value))} /></Field>
               </div>
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-fg">
                 <label className="flex items-center gap-2"><input type="checkbox" checked={c.ipi !== false} onChange={(e) => mudar(u.id, "ipi", e.target.checked)} /> Recolhe IPI</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={!!c.iss} onChange={(e) => mudar(u.id, "iss", e.target.checked)} /> Tem ISS (presta serviço)</label>
+                {u.uf === "SP" && c.icms_cpr && (
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={c.icms_cpr_confirmado !== false} onChange={(e) => mudar(u.id, "icms_cpr_confirmado", e.target.checked)} /> CPR confirmado (CADESP ou contador)</label>
+                )}
+                {c.iss && c.iss_dia && (
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={c.iss_confirmado !== false} onChange={(e) => mudar(u.id, "iss_confirmado", e.target.checked)} /> Dia do ISS confirmado na prefeitura</label>
+                )}
               </div>
             </fieldset>
           );
         })}
         <p className="text-xs text-slate-500">
-          Padrões: SC com ICMS no dia 10 e EFD no dia 20; SP com EFD no dia 20 e o dia do ICMS pelo código de recolhimento do CNAE (Anexo IV do RICMS/SP).
+          Padrões: SC com ICMS no dia 10 e EFD no dia 20; SP com EFD no dia 20 e o dia do ICMS pelo código de recolhimento (CPR) do CNAE principal
+          (Anexo IV do RICMS/SP): o ERP calcula a data de cada mês como na Agenda Tributária Paulista. O CPR está no cadastro do CADESP.
           Confirme com o contador antes de salvar.
         </p>
         <div className="flex justify-end gap-2">

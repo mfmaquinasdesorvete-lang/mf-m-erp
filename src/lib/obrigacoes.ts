@@ -10,7 +10,13 @@ export type Esfera = "federal" | "estadual" | "municipal";
 export type TipoObrigacao = "guia" | "declaracao";
 
 /** Ajustes do contador (configuracoes.calendario_fiscal). */
-export type ConfigUnidade = { icms_dia?: number | null; efd_dia?: number | null; ipi?: boolean; iss?: boolean; iss_dia?: number | null };
+export type ConfigUnidade = {
+  icms_dia?: number | null; efd_dia?: number | null; ipi?: boolean; iss?: boolean; iss_dia?: number | null;
+  /** SP: código de recolhimento (CPR) do CNAE principal; o dia do ICMS de cada mês sai dele (Anexo IV do RICMS/SP) */
+  icms_cpr?: string | null;
+  /** false = ainda a confirmar (o calendário avisa); ausente = confirmado */
+  icms_cpr_confirmado?: boolean; iss_confirmado?: boolean;
+};
 export type ConfigCalendario = {
   irpj?: "anual" | "trimestral"; folha?: boolean; unidades?: Record<string, ConfigUnidade>;
   /** AAAA-MM: acompanhar a partir deste mês (o que venceu antes fica de fora, já cuidado pelo contador) */
@@ -97,6 +103,19 @@ const dia = (n: number, modo: Ajuste) => (c: Competencia) => { const m = seguint
 const comFolha = (c: Ctx) => c.cfg.folha !== false;
 const texto = (s: string) => () => s;
 
+/**
+ * ICMS de SP (regime periódico): o prazo é o do código de recolhimento (CPR) do CNAE principal, no Anexo IV do RICMS/SP.
+ * A Agenda Tributária Paulista de cada mês só põe a data no calendário: dia sem expediente vai para o dia útil seguinte
+ * (ex.: outubro/2026 — CPR 1031 no dia 5, CPR 1200 no dia 20 e CPR 1250 no dia 26, porque 25/10 é domingo).
+ */
+export const CPR_SP: Record<string, { regra: string; atividades: string; prazo: (ano: number, mes: number) => string }> = {
+  "1031": { regra: "3º dia útil do mês seguinte", atividades: "combustíveis, energia, comunicação e outras do art. 3º", prazo: (a, m) => nesimoDiaUtil(a, m, 3) },
+  "1200": { regra: "dia 20 do mês seguinte", atividades: "a maior parte da indústria e do comércio", prazo: (a, m) => diaDoMes(a, m, 20, "prorroga") },
+  "1250": { regra: "dia 25 do mês seguinte", atividades: "alimentos, têxteis, mobiliário e outras", prazo: (a, m) => diaDoMes(a, m, 25, "prorroga") },
+};
+const cprDe = (c: Ctx) => (c.unidade?.uf === "SP" && c.cu.icms_cpr && CPR_SP[c.cu.icms_cpr] ? c.cu.icms_cpr : null);
+const aConfirmar = (falta: boolean | undefined, onde: string) => (falta === false ? ` — a confirmar ${onde}` : "");
+
 export const REGRAS: Regra[] = [
   // ----- federais, da empresa (CNPJ raiz, centralizadas na matriz) -----
   {
@@ -164,12 +183,21 @@ export const REGRAS: Regra[] = [
   },
   {
     chave: "icms", nome: "ICMS", tipo: "guia", esfera: "estadual", escopo: "unidade", periodicidade: "mensal",
-    quando: (c) => c.cu.icms_dia ? `dia ${c.cu.icms_dia} do mês seguinte (antecipa se não for dia útil)` : "dia ainda não definido: ajuste em \"Ajustar prazos\"",
+    quando: (c) => {
+      const cpr = cprDe(c);
+      if (cpr) return `${CPR_SP[cpr].regra}, pelo CPR ${cpr} (Agenda Tributária Paulista)${aConfirmar(c.cu.icms_cpr_confirmado, "o CPR no CADESP ou com o contador")}`;
+      return c.cu.icms_dia ? `dia ${c.cu.icms_dia} do mês seguinte (antecipa se não for dia útil)` : "dia ainda não definido: ajuste em \"Ajustar prazos\"";
+    },
     base: (c) => c.unidade?.uf === "SC" ? "RICMS/SC, art. 60 (o § 4º amplia o prazo para quem entrega a EFD em dia)"
       : c.unidade?.uf === "SP" ? "RICMS/SP, Anexo IV: o prazo depende do código de recolhimento (CPR) do CNAE principal"
       : "Regulamento do ICMS do estado",
     dica: "ICMS próprio do mês, já com os créditos. DIFAL e ICMS-ST de outro estado sem inscrição lá são pagos a cada nota, antes da saída.",
-    conferir: true, prazo: (comp, c) => (c.cu.icms_dia ? dia(c.cu.icms_dia, "antecipa")(comp) : null),
+    conferir: true,
+    prazo: (comp, c) => {
+      const cpr = cprDe(c);
+      if (cpr) { const m = seguinte(comp); return CPR_SP[cpr].prazo(m.ano, m.mes); }
+      return c.cu.icms_dia ? dia(c.cu.icms_dia, "antecipa")(comp) : null;
+    },
   },
   {
     chave: "efd_icms_ipi", nome: "EFD ICMS/IPI (SPED Fiscal)", tipo: "declaracao", esfera: "estadual", escopo: "unidade", periodicidade: "mensal",
@@ -181,7 +209,7 @@ export const REGRAS: Regra[] = [
   },
   {
     chave: "iss", nome: "ISS (serviços prestados e retidos)", tipo: "guia", esfera: "municipal", escopo: "unidade", periodicidade: "mensal",
-    quando: (c) => c.cu.iss_dia ? `dia ${c.cu.iss_dia} do mês seguinte (antecipa se não for dia útil)` : "dia ainda não definido: ajuste em \"Ajustar prazos\"",
+    quando: (c) => c.cu.iss_dia ? `dia ${c.cu.iss_dia} do mês seguinte (antecipa se não for dia útil)${aConfirmar(c.cu.iss_confirmado, "na prefeitura ou com o contador")}` : "dia ainda não definido: ajuste em \"Ajustar prazos\"",
     base: texto("Lei Complementar 116/2003 e a lei do município"), dica: "NFS-e das ordens de serviço e ISS retido de serviços tomados.",
     conferir: true, aplica: (c) => c.cu.iss === true, prazo: (comp, c) => (c.cu.iss_dia ? dia(c.cu.iss_dia, "antecipa")(comp) : null),
   },

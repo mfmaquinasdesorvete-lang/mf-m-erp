@@ -390,7 +390,7 @@ function seed(): Db {
   // Matriz SC e filial SP
   const fiscal = { regime_tributario: 3, natureza_operacao: "Venda de mercadoria", cfop_venda_producao: "5101", cfop_venda_revenda: "5102", icms_cst: "00", icms_reducao_base: 0,
     pis_cst: "01", pis_aliquota: 1.65, cofins_cst: "01", cofins_aliquota: 7.6, pis_cofins_exclui_icms: true, ipi_cst: "50", ipi_enquadramento: "999", difal_ativo: true,
-    transf_icms_cst: "41", transf_pis_cofins_cst: "08", transf_destacar_ipi: true, transf_cbenef: null, transf_ipi_base: "custo", ativo: true, serie_nfe: 1,
+    transf_icms_cst: "41", transf_pis_cofins_cst: "49", transf_destacar_ipi: true, transf_cbenef: null, transf_ipi_base: "custo", ativo: true, serie_nfe: 1,
     ipi_cst_aliquota_zero: "51", ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", transf_ibs_cbs_cst: "410", transf_ibs_cbs_class_trib: "410002", informacoes_complementares: null };
   db.unidades = [
     { id: U_SC, codigo: "SC", nome: "Matriz SC", matriz: true, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "46942855000132", inscricao_estadual: "261770233",

@@ -65,6 +65,18 @@ describe("calendário do Lucro Real", () => {
     // acompanhar a partir de novembro: o que vence em outubro fica de fora
     expect(ocorrenciasNoPeriodo("2026-10-01", "2026-11-30", [SC], { inicio: "2026-11" }).every((o) => (o.vencimento ?? o.mesReferencia) >= "2026-11")).toBe(true);
   });
+  it("ICMS de SP pelo CPR do CNAE (Agenda Tributária Paulista de outubro/2026) e prazos a confirmar", () => {
+    const comCpr = (cpr: string, extra = {}) => ocorrenciasNoPeriodo("2026-10-01", "2026-10-31", [SC, SP], { unidades: { sp: { icms_cpr: cpr, ...extra } } });
+    expect(venc(comCpr("1031"), "icms", "sp")).toEqual([["2026-09", "2026-10-05"]]); // 3º dia útil
+    expect(venc(comCpr("1200"), "icms", "sp")).toEqual([["2026-09", "2026-10-20"]]);
+    expect(venc(comCpr("1250"), "icms", "sp")).toEqual([["2026-09", "2026-10-26"]]); // 25/10 é domingo
+    const o = comCpr("1200", { icms_cpr_confirmado: false }).find((x) => x.regra.chave === "icms" && x.unidade?.id === "sp")!;
+    expect(o.quando).toMatch(/CPR 1200.*a confirmar/);
+    // o CPR só vale em SP: em SC continua o dia do ICMS
+    const sc = ocorrenciasNoPeriodo("2026-10-01", "2026-10-31", [SC], { unidades: { sc: { icms_cpr: "1031", iss_dia: 10, iss_confirmado: false } } });
+    expect(venc(sc, "icms", "sc")).toEqual([["2026-09", "2026-10-09"]]);
+    expect(sc.find((x) => x.regra.chave === "iss")?.quando).toMatch(/dia 10.*a confirmar na prefeitura/);
+  });
   it("anuais: ECD em junho, ECF em julho, ajuste em março, 13º em dezembro", () => {
     const ano = ocorrenciasNoPeriodo("2026-01-01", "2026-12-31", [SC], {});
     expect(venc(ano, "ecd")).toEqual([["2025", "2026-06-30"]]);
