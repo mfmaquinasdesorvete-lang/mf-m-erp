@@ -3357,6 +3357,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     db.gnre_guias.unshift(g);
     return { data: g.id, error: null };
   },
+  custos_anteriores_produtos: () => ({ data: [], error: null }),
   lancar_conta_devolucao: ({ p_nota = null, p_recebida = null, p_valor = null, p_vencimento = null, p_chave_pix = null }) => {
     const n = p_nota ? db.notas_fiscais.find((x: Row) => x.id === p_nota) : (db.nfe_recebidas ?? []).find((x: Row) => x.id === p_recebida);
     if (!n || n.finalidade !== "devolucao") return { data: null, error: { message: "Esta nota não é uma devolução de venda" } };

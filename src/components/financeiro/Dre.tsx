@@ -17,7 +17,10 @@ import { extratoParaDre, type ContaBancariaDre, type LancExtratoDre, type Result
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
 import { dre, mesesAte, rotuloCategoria, type LancDre, type LinhaDre, type Regime } from "@/lib/dre";
-import { contasSemNotas, contribuicao, daUnidade, notasParaDre, type Contribuicao, type DevolucaoRecebida, type NotaDre } from "@/lib/dreNotas";
+import { contasSemNotas, contribuicao, daUnidade, jurosDescontosDasBaixas, mesesAnoAnterior, notasParaDre, taxasPorCanal, vendasPorMes,
+  type Contribuicao, type CustoAnterior, type DevolucaoRecebida, type NfseDre, type NotaDre } from "@/lib/dreNotas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import type { Produto } from "@/lib/types";
 import { useCategorias, useCentros } from "./CategoriaRateio";
 
@@ -37,7 +40,7 @@ export function DreComExtratos({ lancamentos }: { lancamentos: LancDre[] }) {
   const { data: extrato = [], isLoading } = useRows<LancExtratoDre>("extrato_lancamentos", {
     select: "id, conta_bancaria_id, data, valor, descricao, identificador, status, conta_receber_id, conta_pagar_id, par_transferencia_id", order: "data", ascending: true, key: ["dre"],
   });
-  const { data: bancos = [] } = useRows<ContaBancariaDre>("contas_bancarias", { select: "id, ativo, unidade_id", order: "nome", ascending: true, key: ["dre"] });
+  const { data: bancos = [] } = useRows<ContaBancariaDre>("contas_bancarias", { select: "id, ativo, unidade_id, nome", order: "nome", ascending: true, key: ["dre"] });
   const { data: funcionarios = [] } = useRows<{ nome: string }>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
   const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
   const { data: unidades = [] } = useRows<{ razao_social: string | null; cnpj: string | null }>("unidades", { select: "id, razao_social, cnpj", order: "nome", ascending: true, key: ["partes"] });
@@ -47,11 +50,27 @@ export function DreComExtratos({ lancamentos }: { lancamentos: LancDre[] }) {
   }), [extrato, bancos, lancamentos, funcionarios, partes, unidades]);
   const { data: notas = [], isLoading: carregandoNotas } = useRows<NotaDre>("notas_fiscais", { select: SELECT_NOTAS_DRE, order: "created_at", ascending: true, key: ["dre"] });
   const { data: devolucoes = [] } = useRows<DevolucaoRecebida>("nfe_recebidas", {
-    select: "id, data_emissao, valor_total, unidade_id, finalidade, situacao, excluida_em", order: "data_emissao", ascending: true, key: ["dre-devolucoes"],
+    select: "id, data_emissao, valor_total, unidade_id, finalidade, situacao, excluida_em, icms_credito, itens", order: "data_emissao", ascending: true, key: ["dre-devolucoes"],
     filtro: (q) => q.eq("finalidade", "devolucao"),
   });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const doNotas = useMemo(() => notasParaDre(notas, devolucoes, produtos), [notas, devolucoes, produtos]);
+  // CMV pelo custo do dia da venda: as mudanças de custo do cadastro (auditoria)
+  const { data: custosAnteriores = [] } = useQuery({
+    queryKey: ["produtos", "custos-anteriores"],
+    queryFn: async () => { const { data, error } = await supabase.rpc("custos_anteriores_produtos"); if (error) throw error; return (data ?? []) as CustoAnterior[]; },
+  });
+  // ISS das NFS-e (emitidas pelo ERP e as importadas)
+  const { data: nfseErp = [] } = useRows<{ status: string; ambiente: string | null; data_emissao: string | null; autorizada_em: string | null; valor_iss: number | null; iss_retido: boolean | null; unidade_id: string | null }>("nfse", {
+    select: "status, ambiente, data_emissao, autorizada_em, valor_iss, iss_retido, unidade_id", order: "created_at", ascending: true, key: ["dre"],
+  });
+  const { data: nfseImp = [] } = useRows<{ tipo: string; situacao: string | null; data_emissao: string | null; valor_iss: number | null; iss_retido: boolean | null; unidade_id: string | null }>("nfse_importadas", {
+    select: "tipo, situacao, data_emissao, valor_iss, iss_retido, unidade_id", order: "data_emissao", ascending: true, key: ["dre"], filtro: (q) => q.eq("tipo", "emitida"),
+  });
+  const nfse = useMemo<NfseDre[]>(() => [
+    ...nfseErp.map((x) => ({ data: x.data_emissao ?? x.autorizada_em, valor_iss: x.valor_iss, iss_retido: x.iss_retido, unidade_id: x.unidade_id, valida: x.status === "autorizada" && x.ambiente !== "homologacao" })),
+    ...nfseImp.map((x) => ({ data: x.data_emissao, valor_iss: x.valor_iss, iss_retido: x.iss_retido, unidade_id: x.unidade_id, valida: !/cancel/i.test(x.situacao ?? "") })),
+  ], [nfseErp, nfseImp]);
+  const doNotas = useMemo(() => notasParaDre(notas, devolucoes, produtos, { custosAnteriores, nfse }), [notas, devolucoes, produtos, custosAnteriores, nfse]);
   return <Dre lancamentos={lancamentos} extrato={r.lancamentos} fora={r.fora} carregando={isLoading} notas={doNotas} carregandoNotas={carregandoNotas} />;
 }
 
@@ -73,10 +92,12 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
   const meses = periodo === "ano" ? mesesAte(dia, Number(dia.slice(5, 7))) : mesesAte(dia, Number(periodo));
   const usaNotas = fonte === "notas" && regime === "competencia" && !!notas;
   // receita pelas notas: das contas sai o que as notas já contam (vendas, impostos sobre a venda, compras de mercadoria)
-  const base = useMemo(() => {
+  // competência: juros e descontos das baixas (diferença entre o pago e o valor da conta) entram no resultado financeiro
+  const contasBase = useMemo(() => {
     const contas = comExtrato === "sim" ? [...lancamentos, ...extrato] : lancamentos;
-    return usaNotas ? [...contasSemNotas(contas, cats), ...notas!.lancamentos] : contas;
-  }, [lancamentos, extrato, comExtrato, usaNotas, notas, cats]);
+    return regime === "competencia" ? [...contas, ...jurosDescontosDasBaixas(lancamentos)] : contas;
+  }, [lancamentos, extrato, comExtrato, regime]);
+  const base = useMemo(() => (usaNotas ? [...contasSemNotas(contasBase, cats), ...notas!.lancamentos] : contasBase), [contasBase, usaNotas, notas, cats]);
   const todos = useMemo(() => daUnidade(base, unidade || null), [base, unidade]);
   const d = useMemo(() => dre(todos, cats, meses, regime, centro || null), [todos, cats, meses.join(), regime, centro]); // eslint-disable-line react-hooks/exhaustive-deps
   const c = useMemo(() => contribuicao(d.linhas, cats, meses.length), [d, cats, meses.length]);
@@ -86,6 +107,12 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
     return { ...u, d: du, c: contribuicao(du.linhas, cats, meses.length) };
   })), [base, unidades, cats, meses.join(), regime, centro]); // eslint-disable-line react-hooks/exhaustive-deps
   const semUnidade = useMemo(() => base.filter((l) => !l.unidade_id && l.status !== "cancelado").length, [base]);
+  // nº de notas e ticket médio; o mesmo período um ano antes; o caixa do mesmo período; as taxas por canal
+  const ind = useMemo(() => (usaNotas ? vendasPorMes(notas!.vendas, meses, unidade || null) : null), [usaNotas, notas, meses.join(), unidade]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dAno = useMemo(() => dre(todos, cats, mesesAnoAnterior(meses), regime, centro || null), [todos, cats, meses.join(), regime, centro]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dCaixa = useMemo(() => dre(daUnidade(comExtrato === "sim" ? [...lancamentos, ...extrato] : lancamentos, unidade || null), cats, meses, "caixa", centro || null),
+    [lancamentos, extrato, comExtrato, unidade, cats, meses.join(), centro]); // eslint-disable-line react-hooks/exhaustive-deps
+  const taxas = useMemo(() => taxasPorCanal(daUnidade(contasBase, unidade || null), meses), [contasBase, unidade, meses.join()]); // eslint-disable-line react-hooks/exhaustive-deps
   const i = foco && meses.includes(foco) ? meses.indexOf(foco) : meses.length - 1;
   const mes = meses[i];
   const atual = d.resumo(i);
@@ -115,6 +142,11 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
     linhas.push({ Linha: "Margem de contribuição", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), c.mc[k]])), Total: c.total.mc } as any);
     linhas.push({ Linha: "Despesas fixas", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), c.fixas[k]])), Total: c.total.fixas } as any);
     linhas.push({ Linha: "Ponto de equilíbrio (receita)", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), c.pe[k] ?? ""])), Total: c.total.pe ?? "" } as any);
+    linhas.push({ Linha: "Margem bruta (% da receita líquida)", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), d.margemBruta[k] === null ? "" : Math.round(d.margemBruta[k]! * 1000) / 10])), Total: d.margemBrutaTotal === null ? "" : Math.round(d.margemBrutaTotal * 1000) / 10 } as any);
+    if (ind) {
+      linhas.push({ Linha: "Notas de venda (nº)", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), ind.nNotas[k]])), Total: ind.nNotas.reduce((a, b) => a + b, 0) } as any);
+      linhas.push({ Linha: "Ticket médio", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), ind.ticket[k] ?? ""])), Total: "" } as any);
+    }
     linhas.push({ Linha: "Margem líquida", ...Object.fromEntries(meses.map((m, k) => [rotuloMes(m), d.margem[k] === null ? "" : Math.round(d.margem[k]! * 1000) / 10])), Total: d.margemTotal === null ? "" : Math.round(d.margemTotal * 1000) / 10 } as any);
     const nomeUn = unidade ? (unidades.find((u) => u.id === unidade)?.codigo ?? "unidade") : "consolidado";
     baixarPlanilha(`dre-${usaNotas ? "notas" : "contas"}-${nomeUn}-${regime}-${meses[0]}-a-${meses[meses.length - 1]}`, [{ nome: "DRE", linhas }]).catch(notifyError);
@@ -169,6 +201,8 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
             </div>
           )}
           {anterior && <Comparacao agora={atual.lucro} antes={anterior.lucro} mes={meses[i - 1]} />}
+          <ComparacaoAno receita={atual.receita} lucro={atual.lucro} antes={dAno.resumo(i)} mes={mesesAnoAnterior([mes])[0]} />
+          {ind && ind.nNotas[i] > 0 && <p className="mt-1 text-xs text-slate-600">{ind.nNotas[i]} {pl(ind.nNotas[i], "NF-e de venda", "NF-e de venda")} · ticket médio <b>{brl(ind.ticket[i] ?? 0)}</b>{d.margemBruta[i] !== null && <> · margem bruta <b>{pct(d.margemBruta[i])}</b></>}</p>}
         </Card>
 
         <Card className="min-w-0 p-4 lg:col-span-2">
@@ -187,6 +221,8 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
 
       <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
         <QuadroContribuicao c={c} i={i} mes={mes} />
+        <QuadroCaixa competencia={d} caixa={dCaixa} i={i} mes={mes} />
+        <QuadroTaxas taxas={taxas} i={i} mes={mes} receita={receitas[i]} />
         {porUnidade.length > 0 && <QuadroUnidades lista={porUnidade} i={i} mes={mes} semUnidade={semUnidade} />}
       </div>
 
@@ -209,6 +245,9 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
             </li>
           ) : <li>Só as contas lançadas em Contas a pagar e a receber. Os extratos dos bancos ficam de fora.</li>}
           {usaNotas && <li><b>Receita pelas notas:</b> receita bruta = produtos dos itens com CFOP de venda − desconto + IPI, no dia da emissão; impostos destacados (ICMS, IPI, PIS, COFINS, DIFAL e FCP) e devoluções de venda (NF-e de entrada de devolução e as que o cliente emitiu) nas deduções; CMV = quantidade × custo do cadastro. Saem das contas as vendas de produtos, os recebimentos soltos do extrato, os impostos (guias) e as compras de mercadoria, que as notas já contam; a receita de serviços (assistência técnica) continua vindo das contas a receber. Impostos sobre o lucro (IRPJ e CSLL) não entram aqui — confirmar com o contador.</li>}
+          {usaNotas && <li><b>Devoluções:</b> a devolução de venda entra nas deduções e o que ela devolve volta: os impostos da nota de devolução (estorno de impostos) e o custo do que voltou ao estoque (estorno de CMV). O CMV usa o custo do cadastro no dia da venda; o ISS das NFS-e entra nas deduções (o retido pelo cliente, não).</li>}
+          {regime === "competencia" && <li><b>Juros e descontos:</b> a diferença entre o valor pago e o valor da conta (pago a mais, pago a menos, recebido a mais ou a menos) entra no resultado financeiro, no mês do pagamento.</li>}
+          <li><b>Tributos sobre o lucro:</b> IRPJ e CSLL ficam numa linha própria, depois do resultado antes dos tributos (categorias IRPJ e CSLL do Plano de contas). A apuração oficial do Lucro Real é do contador.</li>
           <li><b>Margem de contribuição</b> = receita − impostos, custos e despesas variáveis. <b>Ponto de equilíbrio</b> = despesas fixas ÷ margem de contribuição %: a receita do mês que paga tudo sem lucro nem prejuízo. Fixa ou variável vem do Plano de contas (* = sugestão do ERP).</li>
           {unidades.length > 1 && <li><b>Unidade:</b> SC e SP mostram só o que é de cada uma; o consolidado soma as duas sem as transferências entre elas (notas de transferência e transferências entre as contas da empresa ficam de fora).{semUnidade > 0 && ` ${semUnidade} ${pl(semUnidade, "lançamento está", "lançamentos estão")} sem unidade e aparecem só no consolidado.`}</li>}
           {centros.length === 0 && <li>Centros de custo: nenhum cadastrado. Cadastre em <b>Plano de contas</b> e divida as contas entre eles para filtrar o DRE por centro.</li>}
@@ -233,6 +272,9 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
             {d.linhas.map((l) => <LinhaMes key={l.chave} l={l} i={i} receita={receitas[i]} aberto={abertos.has(l.chave)} alternar={alternar} />)}
             <li className="flex items-center justify-between px-4 py-2.5 text-sm text-slate-600">
               <span className="font-semibold">Margem líquida</span><span className="num font-semibold">{pct(d.margem[i])}</span>
+            </li>
+            <li className="flex items-center justify-between px-4 py-2.5 text-sm text-slate-600">
+              <span className="font-semibold">Margem bruta</span><span className="num font-semibold">{pct(d.margemBruta[i])}</span>
             </li>
             <li className="flex items-center justify-between px-4 py-2.5 text-sm text-slate-600">
               <span className="font-semibold">Margem de contribuição</span><span className="num font-semibold">{valor(c.mc[i])} ({pct(c.mcPct[i])})</span>
@@ -290,6 +332,18 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
               {d.margem.map((m, k) => <td key={k} className={`num px-4 py-2 text-right ${k === i ? "bg-modulo/5" : ""}`}>{pct(m)}</td>)}
               <td className="num px-4 py-2 text-right font-semibold">{pct(d.margemTotal)}</td>
             </tr>
+            <tr className="text-slate-600">
+              <td className="sticky left-0 z-10 whitespace-nowrap bg-surface px-4 py-2 font-semibold">Margem bruta</td>
+              {d.margemBruta.map((m, k) => <td key={k} className={`num px-4 py-2 text-right ${k === i ? "bg-modulo/5" : ""}`}>{pct(m)}</td>)}
+              <td className="num px-4 py-2 text-right font-semibold">{pct(d.margemBrutaTotal)}</td>
+            </tr>
+            {ind && (
+              <tr className="text-slate-600">
+                <td className="sticky left-0 z-10 whitespace-nowrap bg-surface px-4 py-2 font-semibold">Notas de venda · ticket médio</td>
+                {ind.nNotas.map((q, k) => <td key={k} className={`num whitespace-nowrap px-4 py-2 text-right ${k === i ? "bg-modulo/5" : ""}`}>{q ? <>{q} · {brl(ind.ticket[k] ?? 0)}</> : "—"}</td>)}
+                <td className="num whitespace-nowrap px-4 py-2 text-right font-semibold">{ind.nNotas.reduce((a, b) => a + b, 0)}</td>
+              </tr>
+            )}
             <tr className="text-slate-600">
               <td className="sticky left-0 z-10 whitespace-nowrap bg-surface px-4 py-2 font-semibold">Margem de contribuição</td>
               {c.mc.map((v, k) => <td key={k} className={`num whitespace-nowrap px-4 py-2 text-right ${k === i ? "bg-modulo/5" : ""}`}>{c.receita[k] ? <>{valor(v)} <span className="text-xs">({pct(c.mcPct[k])})</span></> : "—"}</td>)}
@@ -464,6 +518,85 @@ function QuadroUnidades({ lista, i, mes, semUnidade }: { lista: PorUnidade[]; i:
         </table>
       </div>
       <p className="mt-2 text-[11px] text-slate-500">Consolidado sem as transferências entre as unidades.{semUnidade > 0 && ` ${semUnidade} ${pl(semUnidade, "lançamento sem unidade entra", "lançamentos sem unidade entram")} só no consolidado.`}</p>
+    </Card>
+  );
+}
+
+/** O mesmo mês do ano anterior (sazonalidade do sorvete). */
+function ComparacaoAno({ receita, lucro, antes, mes }: { receita: number; lucro: number; antes: { receita: number; lucro: number }; mes: string }) {
+  if (!antes.receita && !antes.lucro) return <p className="mt-1 text-xs text-slate-500">Sem lançamentos em {rotuloMes(mes)} para comparar com o ano anterior.</p>;
+  const varRec = antes.receita ? (receita - antes.receita) / Math.abs(antes.receita) : null;
+  return (
+    <p className="mt-1 text-xs text-slate-600">
+      Mesmo mês do ano anterior ({rotuloMes(mes)}): receita {brl(antes.receita)}
+      {varRec !== null && <b className={varRec >= 0 ? "text-emerald-700" : "text-red-700"}> ({varRec >= 0 ? "▲" : "▼"} {pct(Math.abs(varRec))})</b>}, lucro {brl(antes.lucro)}.
+    </p>
+  );
+}
+
+/** Competência × caixa no mês em foco: o lucro do DRE e o que de fato entrou e saiu. */
+function QuadroCaixa({ competencia, caixa, i, mes }: { competencia: ReturnType<typeof dre>; caixa: ReturnType<typeof dre>; i: number; mes: string }) {
+  const v = (d: ReturnType<typeof dre>, k: string) => d.linhas.find((l) => l.chave === k)?.valores[i] ?? 0;
+  const lucro = v(competencia, "liquido"), gerado = v(caixa, "liquido");
+  const linhas: [string, number, number][] = [
+    ["Receita / recebido", v(competencia, "receita"), v(caixa, "receita")],
+    ["Custos e impostos / pagos", v(competencia, "deducao") + v(competencia, "custo"), v(caixa, "deducao") + v(caixa, "custo")],
+    ["Despesas / pagas", v(competencia, "despesas") + v(competencia, "financeiro") + v(competencia, "outros"), v(caixa, "despesas") + v(caixa, "financeiro") + v(caixa, "outros")],
+    ["Resultado", lucro, gerado],
+  ];
+  return (
+    <Card className="min-w-0 p-4">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-bold">DRE × caixa</h3>
+        <span className="text-xs text-slate-500 first-letter:uppercase">{rotuloMesLongo(mes)}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="text-xs uppercase text-slate-500"><th className="py-1 text-left font-semibold"><span className="sr-only">Linha</span></th><th className="py-1 pl-3 text-right font-semibold">DRE (competência)</th><th className="py-1 pl-3 text-right font-semibold">Caixa</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {linhas.map(([r, a, b], k) => (
+              <tr key={r} className={k === linhas.length - 1 ? "font-bold" : ""}>
+                <td className="py-1.5 pr-3">{r}</td>
+                <td className={`num whitespace-nowrap py-1.5 pl-3 text-right ${k === linhas.length - 1 ? corLucro(a) : ""}`}>{valor(a)}</td>
+                <td className={`num whitespace-nowrap py-1.5 pl-3 text-right ${k === linhas.length - 1 ? corLucro(b) : ""}`}>{valor(b)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-xs text-slate-600">
+        {Math.abs(lucro - gerado) < 1 ? "O lucro do mês e o caixa andaram juntos." : lucro > gerado
+          ? `O caixa ficou ${brl(lucro - gerado)} abaixo do lucro: vendas a prazo ainda a receber, compras pagas adiantadas ou estoque parado.`
+          : `O caixa ficou ${brl(gerado - lucro)} acima do lucro: recebimentos de meses anteriores ou contas do mês ainda não pagas.`}
+        {" "}Caixa = contas pagas e recebidas no mês{" "}(e os extratos, se ligados).
+      </p>
+    </Card>
+  );
+}
+
+/** Taxas de maquininha, marketplace, antecipação e tarifas por canal. */
+function QuadroTaxas({ taxas, i, mes, receita }: { taxas: ReturnType<typeof taxasPorCanal>; i: number; mes: string; receita: number }) {
+  const doMes = taxas.filter((t) => t.valores[i]).sort((a, b) => b.valores[i] - a.valores[i]);
+  const total = doMes.reduce((s, t) => s + t.valores[i], 0);
+  return (
+    <Card className="min-w-0 p-4">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-bold">Taxas e tarifas por canal</h3>
+        <span className="text-xs text-slate-500 first-letter:uppercase">{rotuloMesLongo(mes)}</span>
+      </div>
+      {!doMes.length ? <p className="text-sm text-slate-600">Nenhuma taxa ou tarifa lançada no mês.</p> : (
+        <ul className="space-y-1.5 text-sm">
+          {doMes.map((t) => (
+            <li key={t.canal}>
+              <div className="flex justify-between gap-3"><span className="min-w-0">{t.canal}</span>
+                <span className="num whitespace-nowrap font-semibold">{brl(t.valores[i])}{receita > 0 && <span className="ml-1 text-xs font-normal text-slate-500">{pct(t.valores[i] / receita)} da receita</span>}</span></div>
+              <div className="h-1.5 rounded-full bg-slate-100" aria-hidden><div className="h-full rounded-full bg-amber-400" style={{ width: `${(t.valores[i] / (doMes[0].valores[i] || 1)) * 100}%` }} /></div>
+            </li>
+          ))}
+          <li className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 font-bold"><span>Total</span><span className="num whitespace-nowrap">{brl(total)}{receita > 0 && <span className="ml-1 text-xs font-semibold text-slate-500">{pct(total / receita)}</span>}</span></li>
+        </ul>
+      )}
+      <p className="mt-2 text-[11px] text-slate-500">Canal pela conta do banco do extrato, pelo fornecedor ou pela descrição. Vale negociar a taxa quando o volume do canal cresce.</p>
     </Card>
   );
 }

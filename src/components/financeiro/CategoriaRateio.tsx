@@ -19,6 +19,7 @@ export const GRUPOS: { value: GrupoDre; label: string; tipo: "receita" | "despes
   { value: "despesa_operacional", label: "Despesas operacionais", tipo: "despesa" },
   { value: "despesa_financeira", label: "Despesas financeiras", tipo: "despesa" },
   { value: "outros", label: "Outras receitas e despesas", tipo: "ambos" },
+  { value: "tributos", label: "Tributos sobre o lucro (IRPJ, CSLL)", tipo: "despesa" },
   { value: "investimento", label: "Investimento (fora do resultado)", tipo: "despesa" },
   { value: "retirada", label: "Distribuição de lucros (fora do resultado)", tipo: "despesa" },
   { value: "transferencia", label: "Transferência (não entra no DRE)", tipo: "ambos" },

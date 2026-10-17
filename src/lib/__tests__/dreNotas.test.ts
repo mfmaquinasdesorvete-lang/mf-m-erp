@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dre, type CategoriaFin, type LancDre } from "../dre";
-import { CAT_NOTAS, comportamentoDe, contasSemNotas, contribuicao, daUnidade, notasParaDre, type NotaDre } from "../dreNotas";
+import { CAT_NOTAS, comportamentoDe, contasSemNotas, contribuicao, daUnidade, jurosDescontosDasBaixas, mesesAnoAnterior, notasParaDre, taxasPorCanal, vendasPorMes, type NotaDre } from "../dreNotas";
 import type { Produto } from "../types";
 
 const U1 = "u-sc", U2 = "u-sp";
@@ -86,5 +86,67 @@ describe("Fixa × variável e ponto de equilíbrio", () => {
     expect(c.pe[0]).toBe(5000);
     expect(c.seguranca[0]).toBeCloseTo(0.5);
     expect(c.categorias.find((x) => x.categoria === "folha")).toMatchObject({ comportamento: "fixa", sugerido: false });
+  });
+});
+
+describe("DRE 2: devoluções, custo do dia, ISS, juros, canais e tributos", () => {
+  it("devolução emitida estorna impostos e CMV; CMV pelo custo da data da venda; ISS só do não retido", () => {
+    const notas: NotaDre[] = [
+      nota({ id: "v", created_at: "2026-09-10T15:00:00Z", payload: { items: [{ cfop: "5101", codigo_produto: "A1", quantidade_comercial: 1, valor_bruto: 1000 }] } }),
+      nota({ id: "w", created_at: "2026-10-20T15:00:00Z", payload: { items: [{ cfop: "5101", codigo_produto: "A1", quantidade_comercial: 1, valor_bruto: 1000 }] } }),
+      nota({ id: "d", created_at: "2026-10-25T15:00:00Z", finalidade: "devolucao", tipo_operacao: "entrada", valor_total: 1000,
+        payload: { items: [{ codigo_produto: "A1", quantidade_comercial: 1, icms_valor: 120, pis_valor: 16.5, cofins_valor: 76 }] } }),
+    ];
+    // custo era 300 até 01/10 e passou a 400
+    const r = notasParaDre(notas, [], [produto("p1", "A1", 400)], {
+      custosAnteriores: [{ produto_id: "p1", alterado_em: "2026-10-01T12:00:00Z", custo_antes: 300 }],
+      nfse: [{ data: "2026-10-05", valor_iss: 50, iss_retido: false, valida: true }, { data: "2026-10-06", valor_iss: 30, iss_retido: true, valida: true }],
+    });
+    const de = (cat: string, mes: string) => r.lancamentos.filter((l) => l.categoria === cat && l.competencia!.startsWith(mes));
+    expect(de(CAT_NOTAS.cmv, "2026-09")[0].valor).toBe(300);
+    expect(de(CAT_NOTAS.cmv, "2026-10")[0].valor).toBe(400);
+    expect(de(CAT_NOTAS.estornoImpostos, "2026-10")[0]).toMatchObject({ tipo: "receber", grupo: "deducao", valor: 212.5 });
+    expect(de(CAT_NOTAS.estornoCmv, "2026-10")[0]).toMatchObject({ tipo: "receber", grupo: "custo", valor: 400 });
+    expect(de(CAT_NOTAS.iss, "2026-10").map((l) => l.valor)).toEqual([50]);
+    expect(r.vendas.map((v) => v.valor)).toEqual([1000, 1000]);
+    expect(r.devolucoes).toBe(1);
+    expect(vendasPorMes(r.vendas, ["2026-09", "2026-10"], null)).toEqual({ nNotas: [1, 1], ticket: [1000, 1000] });
+  });
+
+  it("juros e descontos pela baixa; conta com restante não conta", () => {
+    const base = { status: "pago", vencimento: "2026-10-01", data_pagamento: "2026-10-03" } as const;
+    const j = jurosDescontosDasBaixas([
+      { ...base, id: "a", tipo: "pagar", valor: 100, valor_pago: 105 },
+      { ...base, id: "b", tipo: "pagar", valor: 100, valor_pago: 95 },
+      { ...base, id: "c", tipo: "receber", valor: 200, valor_pago: 190 },
+      { ...base, id: "p", tipo: "pagar", valor: 50, valor_pago: 40 },
+      { status: "aberto", vencimento: "2026-10-20", id: "r", conta_origem_id: "p", tipo: "pagar", valor: 10 },
+    ]);
+    expect(j.map((x) => [x.categoria, x.grupo, x.valor])).toEqual([
+      ["juros e multas pagos (nas baixas)", "despesa_financeira", 5],
+      ["descontos obtidos (nas baixas)", "receita_financeira", 5],
+      ["descontos concedidos (nas baixas)", "despesa_financeira", 10],
+    ]);
+  });
+
+  it("taxas por canal e meses do ano anterior", () => {
+    const t = taxasPorCanal([
+      { tipo: "pagar", categoria: "Tarifas (cartão, OLIST, banco) e juros", canal: "InfinitePay SP", valor: 30, status: "pago", vencimento: "2026-10-02" },
+      { tipo: "pagar", categoria: "tarifas bancárias", descricao: "Tarifa Mercado Pago", valor: 12.5, status: "aberto", vencimento: "2026-10-09" },
+      { tipo: "pagar", categoria: "Compras em marketplaces", descricao: "Mercado Livre", valor: 900, status: "pago", vencimento: "2026-10-09" },
+    ], ["2026-10"]);
+    expect(t.map((x) => [x.canal, x.total])).toEqual([["InfinitePay", 30], ["Mercado Livre / Mercado Pago", 12.5]]);
+    expect(mesesAnoAnterior(["2026-01", "2026-10"])).toEqual(["2025-01", "2025-10"]);
+  });
+
+  it("tributos sobre o lucro em linha própria e margem bruta", () => {
+    const cats: CategoriaFin[] = [{ nome: "vendas", tipo: "receita", grupo: "receita" }, { nome: "IRPJ", tipo: "despesa", grupo: "tributos" },
+      { nome: "fornecedores", tipo: "despesa", grupo: "custo" }];
+    const l = (tipo: LancDre["tipo"], categoria: string, valor: number): LancDre => ({ tipo, categoria, valor, status: "aberto", vencimento: "2026-10-05" });
+    const d = dre([l("receber", "vendas", 1000), l("pagar", "fornecedores", 400), l("pagar", "IRPJ", 90)], cats, ["2026-10"], "competencia");
+    expect(d.linhas.find((x) => x.chave === "antes")?.valores[0]).toBe(600);
+    expect(d.linhas.find((x) => x.chave === "tributos")?.valores[0]).toBe(-90);
+    expect(d.linhas.find((x) => x.chave === "liquido")?.valores[0]).toBe(510);
+    expect(d.margemBruta[0]).toBeCloseTo(0.6);
   });
 });

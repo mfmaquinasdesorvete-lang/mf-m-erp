@@ -3,14 +3,16 @@
 // referência da conta fixa) ou de caixa (pela data em que o dinheiro entrou/saiu). Pode filtrar por centro de custo.
 
 export type GrupoDre = "receita" | "deducao" | "custo" | "despesa_operacional" | "receita_financeira" | "despesa_financeira"
-  | "outros" | "investimento" | "retirada" | "transferencia";
+  | "outros" | "tributos" | "investimento" | "retirada" | "transferencia";
 export type CategoriaFin = { nome: string; tipo: "receita" | "despesa"; grupo: GrupoDre };
 export type Rateio = { centro_custo_id: string; percentual: number }[];
 export type LancDre = {
   tipo: "receber" | "pagar"; categoria?: string | null; valor: number; valor_pago?: number | null; status: string;
   vencimento: string; data_pagamento?: string | null; competencia?: string | null; rateio?: Rateio | null;
   /** Linha do DRE já definida (lançamento do extrato do banco); senão vem do plano de contas pela categoria. */
-  grupo?: GrupoDre; origem?: "conta" | "extrato" | "nota"; unidade_id?: string | null;
+  grupo?: GrupoDre; origem?: "conta" | "extrato" | "nota" | "baixa"; unidade_id?: string | null;
+  /** Para as taxas por canal: conta do banco (extrato), descrição e fornecedor da conta. */
+  canal?: string | null; descricao?: string | null;
 };
 export type Regime = "competencia" | "caixa";
 export type LinhaDre = { chave: string; rotulo: string; valores: number[]; total: number; tipo: "grupo" | "resultado" | "info"; detalhes: { categoria: string; valores: number[]; total: number }[] };
@@ -21,7 +23,7 @@ export const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
 export const ROTULO_GRUPO: Record<GrupoDre, string> = {
   receita: "Receita de vendas e serviços", deducao: "Impostos sobre vendas e deduções", custo: "Custos (mercadoria, matéria-prima, frete)",
   despesa_operacional: "Despesas operacionais", receita_financeira: "Receitas financeiras", despesa_financeira: "Despesas financeiras (tarifas, juros)",
-  outros: "Outras receitas e despesas", investimento: "Investimentos (fora do resultado)", retirada: "Distribuição de lucros (fora do resultado)",
+  outros: "Outras receitas e despesas", tributos: "Tributos sobre o lucro (IRPJ e CSLL)", investimento: "Investimentos (fora do resultado)", retirada: "Distribuição de lucros (fora do resultado)",
   transferencia: "Transferências (não entram no DRE)",
 };
 
@@ -34,6 +36,7 @@ export const ORDEM_DRE: { grupo: GrupoDre; rotulo: string; sinal: "+" | "−" | 
   { grupo: "receita_financeira", rotulo: "Receitas financeiras", sinal: "+", dica: "rendimentos, juros recebidos" },
   { grupo: "despesa_financeira", rotulo: "Despesas financeiras", sinal: "−", dica: "tarifas bancárias, juros pagos" },
   { grupo: "outros", rotulo: "Outras receitas e despesas", sinal: "±", dica: "o que não é do dia a dia (venda de bem usado, multa)" },
+  { grupo: "tributos", rotulo: "Tributos sobre o lucro", sinal: "−", dica: "IRPJ e CSLL (a apuração é do contador)" },
   { grupo: "investimento", rotulo: "Investimentos", sinal: "fora", dica: "máquinas, obras, equipamentos: fora do resultado" },
   { grupo: "retirada", rotulo: "Distribuição de lucros", sinal: "fora", dica: "retirada dos sócios: fora do resultado" },
   { grupo: "transferencia", rotulo: "Transferências", sinal: "fora", dica: "entre contas da empresa: não entram no DRE" },
@@ -105,17 +108,22 @@ export function dre(lancs: LancDre[], categorias: CategoriaFin[], meses: string[
   const operacional = resultado("operacional", "(=) Resultado operacional", mais(bruto.valores, despesas.valores));
   const financeiro = grupo("financeiro", "(±) Resultado financeiro", ["receita_financeira", "despesa_financeira"]);
   const outros = grupo("outros", "(±) Outras receitas e despesas", ["outros"]);
-  const liquido = resultado("liquido", "(=) Lucro líquido", mais(mais(operacional.valores, financeiro.valores), outros.valores));
+  const antes = resultado("antes", "(=) Resultado antes dos tributos", mais(mais(operacional.valores, financeiro.valores), outros.valores));
+  const tributos = grupo("tributos", "(−) Tributos sobre o lucro (IRPJ, CSLL)", ["tributos"]);
+  const liquido = resultado("liquido", "(=) Lucro líquido", mais(antes.valores, tributos.valores));
   const investimentos = grupo("investimentos", "Investimentos (fora do resultado)", ["investimento"], "info");
   const retiradas = grupo("retiradas", "Distribuição de lucros (fora do resultado)", ["retirada"], "info");
 
   const margem = liquido.valores.map((v, i) => (receita.valores[i] > 0 ? v / receita.valores[i] : null));
   return {
-    meses, linhas: [receita, deducao, liquida, custo, bruto, despesas, operacional, financeiro, outros, liquido, investimentos, retiradas],
+    meses, linhas: [receita, deducao, liquida, custo, bruto, despesas, operacional, financeiro, outros, ...(tributos.valores.some(Boolean) ? [antes, tributos] : []), liquido, investimentos, retiradas],
     margem, margemTotal: receita.total > 0 ? liquido.total / receita.total : null,
+    /** Margem bruta: lucro bruto ÷ receita líquida (como no Tiny). */
+    margemBruta: bruto.valores.map((v, i) => (liquida.valores[i] > 0 ? v / liquida.valores[i] : null)),
+    margemBrutaTotal: liquida.total > 0 ? bruto.total / liquida.total : null,
     resumo: (i: number) => ({
       receita: receita.valores[i], custos: r2(deducao.valores[i] + custo.valores[i]),
-      despesas: r2(despesas.valores[i] + financeiro.valores[i] + outros.valores[i]), lucro: liquido.valores[i], margem: margem[i],
+      despesas: r2(despesas.valores[i] + financeiro.valores[i] + outros.valores[i] + tributos.valores[i]), lucro: liquido.valores[i], margem: margem[i],
     }),
   };
 }

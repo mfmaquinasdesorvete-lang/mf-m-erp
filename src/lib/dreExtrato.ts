@@ -11,7 +11,7 @@ export type LancExtratoDre = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; identificador?: string | null;
   status?: string | null; conta_receber_id?: string | null; conta_pagar_id?: string | null; par_transferencia_id?: string | null;
 };
-export type ContaBancariaDre = { id: string; ativo?: boolean | null; unidade_id?: string | null };
+export type ContaBancariaDre = { id: string; ativo?: boolean | null; unidade_id?: string | null; nome?: string | null };
 /** Conta paga ou recebida (para não contar a mesma linha duas vezes). */
 export type ContaPagaDre = { tipo: "receber" | "pagar"; valor: number; valor_pago?: number | null; status: string; data_pagamento?: string | null };
 
@@ -80,7 +80,7 @@ export function extratoParaDre(
     out.push({
       tipo: v > 0 ? "receber" : "pagar", categoria, grupo, valor: Math.abs(v), valor_pago: Math.abs(v), status: "pago",
       vencimento: l.data.slice(0, 10), data_pagamento: l.data.slice(0, 10), origem: "extrato",
-      unidade_id: ativas.get(l.conta_bancaria_id)?.unidade_id ?? null,
+      unidade_id: ativas.get(l.conta_bancaria_id)?.unidade_id ?? null, canal: ativas.get(l.conta_bancaria_id)?.nome ?? null, descricao: l.descricao,
     });
   }
   return { lancamentos: out, fora };
