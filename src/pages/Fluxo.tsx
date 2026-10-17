@@ -171,48 +171,52 @@ export default function Fluxo() {
   );
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Fluxo de pedidos" subtitle="Do orçamento à entrega, de todos os canais. Cada cartão mostra o próximo passo e o botão para fazê-lo."
-        actions={cfg && (cfg.nfe_automatica ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700" title="Pedido aprovado tem a nota emitida sozinho">
-            <Zap size={13} aria-hidden /> NF-e automática ligada
-          </span>
-        ) : podeVer("configuracoes") ? (
-          <Link to="/configuracoes/pedidos" title="Hoje cada pedido aprovado espera alguém emitir a nota pelo botão Emitir NF-e do cartão"
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 hover:border-amber-500">
-            <ZapOff size={13} aria-hidden /> NF-e automática desligada · Ligar <ArrowRight size={13} aria-hidden />
-          </Link>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800" title="Emita a nota de cada pedido aprovado pelo botão Emitir NF-e no cartão">
-            <ZapOff size={13} aria-hidden /> NF-e automática desligada
-          </span>
-        ))} />
-
-      {/* Filtros */}
+    <div className="space-y-3">
+      {/* Cabeçalho compacto: título, busca, vendedor e a NF-e automática numa linha; os canais numa faixa só */}
       <div className="space-y-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <label className="relative block sm:w-72">
-            <span className="sr-only">Buscar</span>
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input pl-9" placeholder="Buscar nº ou cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          </label>
-          {escolheVendedor && vendedores.length > 0 && (
-            <select className="input sm:w-60" aria-label="Vendedor" value={vendedorSel} onChange={(e) => setVendedorSel(e.target.value)}>
-              <option value="">Todos os vendedores</option>
-              {meuVendedor && <option value={meuVendedor.id}>Minhas vendas</option>}
-              {vendedores.filter((v) => v.ativo !== false && v.id !== meuVendedor?.id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-              <option value="sem">Sem vendedor</option>
-            </select>
-          )}
-          {!escolheVendedor && meuVendedor && (
-            <div className="flex gap-1.5">
-              {chip("todas", !minhas, () => setMinhas(false), "Todas as vendas")}
-              {chip("minhas", minhas, () => setMinhas(true), <><User size={14} /> Minhas vendas</>)}
-            </div>
-          )}
-        </div>
-        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Canal de venda">
-          {[["", "Todos os canais"], ...Object.entries(CANAIS)].map(([v, l]) => chip(v || "todos", canal === v, () => setCanal(v), l))}
+        <PageHeader compacto title="Fluxo de pedidos" subtitle="Do orçamento à entrega, de todos os canais. Cada cartão mostra o próximo passo e o botão para fazê-lo."
+          actions={<>
+            <label className="relative block w-full sm:w-60">
+              <span className="sr-only">Buscar</span>
+              <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input className="input !min-h-0 !py-1.5 pl-8 text-sm" placeholder="Buscar nº ou cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+            </label>
+            {escolheVendedor && vendedores.length > 0 && (
+              <select className="input !min-h-0 !py-1.5 text-sm sm:w-48" aria-label="Vendedor" value={vendedorSel} onChange={(e) => setVendedorSel(e.target.value)}>
+                <option value="">Todos os vendedores</option>
+                {meuVendedor && <option value={meuVendedor.id}>Minhas vendas</option>}
+                {vendedores.filter((v) => v.ativo !== false && v.id !== meuVendedor?.id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                <option value="sem">Sem vendedor</option>
+              </select>
+            )}
+            {!escolheVendedor && meuVendedor && (
+              <div className="flex gap-1.5">
+                {chip("todas", !minhas, () => setMinhas(false), "Todas as vendas")}
+                {chip("minhas", minhas, () => setMinhas(true), <><User size={14} /> Minhas vendas</>)}
+              </div>
+            )}
+            {cfg && (cfg.nfe_automatica ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700" title="Pedido aprovado tem a nota emitida sozinho">
+                <Zap size={13} aria-hidden /> NF-e automática ligada
+              </span>
+            ) : podeVer("configuracoes") ? (
+              <Link to="/configuracoes/pedidos" title="Hoje cada pedido aprovado espera alguém emitir a nota pelo botão Emitir NF-e do cartão"
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:border-amber-500">
+                <ZapOff size={13} aria-hidden /> NF-e automática desligada · Ligar <ArrowRight size={13} aria-hidden />
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800" title="Emita a nota de cada pedido aprovado pelo botão Emitir NF-e no cartão">
+                <ZapOff size={13} aria-hidden /> NF-e automática desligada
+              </span>
+            ))}
+          </>} />
+        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Canal de venda">
+          {[["", "Todos os canais"], ...Object.entries(CANAIS)].map(([v, l]) => (
+            <button key={v || "todos"} type="button" onClick={() => setCanal(v)} aria-pressed={canal === v}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition ${canal === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+              {l}
+            </button>
+          ))}
         </div>
       </div>
 

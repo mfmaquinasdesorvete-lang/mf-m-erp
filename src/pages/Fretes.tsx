@@ -20,6 +20,7 @@ import {
   INDICADORES, REGIOES, STATUS_ENVIO, enviosDoMes, filtrarEnvios, freteDivergente, regiaoDaUf, rotuloServico,
   type ContextoPainel, type CotacaoEnvio, type DadosIndicadores, type Envio, type FiltrosPainel, type OcorrenciaEnvio, type PedidoValores, type StatusEnvio,
 } from "@/lib/fretes";
+import { rotuloColeta } from "@/lib/coleta";
 import { useAbaUrl } from "@/lib/abaUrl";
 
 type PedidoResumo = {
@@ -261,7 +262,7 @@ export default function Fretes() {
                     {e.codigo_rastreio ? <div className="text-xs text-slate-500">rastreio {e.codigo_rastreio}</div> : e.status === "transito" ? <div className="text-xs font-semibold text-amber-700">sem rastreio</div> : null}
                   </td>
                   <td className="td whitespace-nowrap text-xs" data-label="Datas">
-                    {e.coleta_prevista && !e.coletado_em && <div>coleta {dataBR(e.coleta_prevista)}</div>}
+                    {e.coleta_prevista && !e.coletado_em && <div className={e.coleta_urgente ? "font-semibold text-red-700" : undefined}>coleta {e.coleta_periodo ? rotuloColeta(e.coleta_prevista, e.coleta_periodo).replace(/ \(.*\)$/, "") : dataBR(e.coleta_prevista)}{e.coleta_urgente ? " · urgência" : ""}</div>}
                     {e.coletado_em && <div>coletado {dataBR(e.coletado_em)}</div>}
                     {(e.entrega_prevista || e.prazo_desejado) && !e.entregue_em && <div className={(e.entrega_prevista ?? e.prazo_desejado)! < dia ? "font-semibold text-red-700" : ""}>entrega {dataBR(e.entrega_prevista ?? e.prazo_desejado)}</div>}
                     {e.entregue_em && <div>entregue {dataBR(e.entregue_em)}{!e.comprovante_em && !comAnexo.has(e.id) && (

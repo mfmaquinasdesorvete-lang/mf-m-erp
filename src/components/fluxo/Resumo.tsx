@@ -55,13 +55,13 @@ export function FaixaAcao({ porTipo, total, nivel, soAcao, tipo, onSoAcao, onTip
   }
   const vermelho = nivel === 2;
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2.5 ${vermelho ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
-      <AlertTriangle size={20} className={`shrink-0 ${vermelho ? "text-red-600" : "text-amber-700"}`} />
-      <div className="min-w-0 flex-1 basis-56">
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border px-3 py-1.5 ${vermelho ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+      <AlertTriangle size={18} className={`shrink-0 ${vermelho ? "text-red-600" : "text-amber-700"}`} />
+      <div className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-x-2 gap-y-1">
         <p className={`text-sm font-bold ${vermelho ? "text-red-800" : "text-amber-900"}`}>
           {total === 1 ? "1 pedido precisa de ação agora" : `${total} pedidos precisam de ação agora`}
         </p>
-        <div className="mt-1 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {porTipo.map(([t, n]) => (
             <button key={t} type="button" onClick={() => onTipo(t)} aria-pressed={tipo === t} title={tipo === t ? "Mostrar todos de novo" : "Mostrar só esses pedidos"}
               className={`max-w-full truncate whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold transition ${tipo === t
@@ -72,7 +72,7 @@ export function FaixaAcao({ porTipo, total, nivel, soAcao, tipo, onSoAcao, onTip
         </div>
       </div>
       <button type="button" onClick={() => onSoAcao(!soAcao)} aria-pressed={soAcao}
-        className={`inline-flex min-h-[42px] w-full shrink-0 items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold shadow-sm transition sm:min-h-0 sm:w-auto ${
+        className={`inline-flex min-h-[38px] w-full shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-1 text-sm font-semibold shadow-sm transition sm:min-h-0 sm:w-auto ${
           soAcao ? "bg-brand text-brand-fg" : "border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`}>
         {soAcao ? <><X size={15} /> Ver todos os pedidos</> : "Ver só esses"}
       </button>

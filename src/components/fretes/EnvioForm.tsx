@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, BadgeCheck, CheckCircle2, CircleDollarSign, ClipboardCopy, History, MessageCircle, PackageCheck, Plus, Printer, Ruler, Search, Send,
-  Trash2, Truck, X,
+  Trash2, Truck, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Field, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
@@ -14,11 +14,12 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { useInvalidate, useRows, ler } from "@/lib/data";
 import { brl, dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { buscarCep } from "@/lib/cep";
 import type { Transportadora } from "@/lib/types";
+import { integracaoApi } from "@/lib/transportadoras";
 import {
   MODALIDADES, PAGADORES, RESTRICOES, STATUS_ENVIO, TIPOS_ADICIONAL, TIPOS_EXCECAO, TIPOS_OCORRENCIA, TIPOS_SERVICO,
   analisarAprovacao, cotacaoVencida, diferencaFrete, ehMaquina, faltandoParaCotar, maisBarataValida, mensagemCotacao, rotuloAdicional, rotuloServico,
@@ -26,6 +27,7 @@ import {
   type CotacaoEnvio, type Envio, type ExcecaoEnvio, type OcorrenciaEnvio, type Volume,
 } from "@/lib/fretes";
 import { confirmar } from "@/components/Dialogos";
+import { AgendarColeta } from "./Coleta";
 
 export type Embalagem = { id: string; descricao: string; tipo: string; largura_cm: number | null; altura_cm: number | null; comprimento_cm: number | null; peso_kg: number | null; ativo: boolean };
 
@@ -46,7 +48,7 @@ const semMedida = (v: Volume, k: "largura_cm" | "altura_cm" | "comprimento_cm" |
 type Usuarios = (u?: string | null) => string;
 
 export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envioId?: string | null; inicial?: Partial<Envio>; novaOcorrencia?: boolean; onClose: () => void }) {
-  const { pode } = usePerfil();
+  const { pode, tem } = usePerfil();
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const invalidar = useInvalidate();
   const { unidades, padrao } = useUnidade();
@@ -363,6 +365,11 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
                 <Field label="Comprovante recebido em"><input className="input" type="date" value={e.comprovante_em ?? ""} onChange={(x) => set({ comprovante_em: x.target.value })} /></Field>
                 <div className="flex items-end"><Button type="button" variant="secondary" disabled={!!e.comprovante_em} onClick={() => set({ comprovante_em: hoje() })}><PackageCheck size={15} /> Recebi hoje</Button></div>
               </div>
+              {salvo && (
+                <AgendarColeta envio={salvo} transportadoras={transportadoras} podeAgendar={tem("vendas", "financeiro", "expedicao")}
+                  pendente={(e.transportadora_id ?? null) !== (salvo.transportadora_id ?? null) || (e.unidade_id ?? null) !== (salvo.unidade_id ?? null)}
+                  nomeUsuario={nomeUsuario} onMudou={() => carregado.refetch()} />
+              )}
               {trocouTransp && (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
                   <Field label={`Justificativa da troca (o frete foi aprovado com ${transportadoras.find((x) => x.id === salvo?.transportadora_id)?.nome ?? salvo?.transportadora_nome ?? "outra transportadora"})`}>
@@ -537,6 +544,28 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
   const falta = faltandoParaCotar(envio);
   const incompletos = volumesIncompletos(envio.volumes ?? []);
   const atualizar = () => { refetch(); recarregarExcecoes(); onMudou(); };
+  // Rodonaves com API ligada no ERP: a marca (cartão) ativa
+  const rte = transportadoras.find((x) => x.ativo && !x.matriz_id && integracaoApi(x) === "rodonaves");
+  const [cotandoRte, setCotandoRte] = useState(false);
+  async function cotarRodonaves() {
+    if (!rte) return;
+    if (incompletos.length) return notify(`Cotação sem medidas não é comparável. Complete e salve: ${incompletos.join("; ")}`, "erro");
+    setCotandoRte(true);
+    try {
+      const r = await callFunction<{ valor: number; prazo: number | null; origem: string; destino: string }>("rodonaves", { acao: "cotar", envio_id: envio.id });
+      const { error } = await supabase.from("envio_cotacoes").insert({
+        envio_id: envio.id, transportadora_id: rte.id, valor: r.valor, prazo_dias: r.prazo, validade: somarDias(7), tipo_servico: "padrao", tabela_versao: "API", adicionais: [],
+        observacoes: `Simulação pela API da Rodonaves (${r.origem} → ${r.destino}); confira adicionais e validade na proposta`,
+      });
+      if (error) throw error;
+      notify(`Rodonaves: ${brl(r.valor)}${r.prazo != null ? `, ${r.prazo} ${pl(r.prazo, "dia útil", "dias úteis")}` : ""}`);
+      atualizar();
+    } catch (err) {
+      notifyError(err);
+    } finally {
+      setCotandoRte(false);
+    }
+  }
 
   function abrirNova() {
     setNova({ transportadora_id: "", transportadora_nome: "", valor: "", prazo_dias: "", validade: somarDias(7), observacoes: "", tipo_servico: "padrao", tabela_versao: "", adicionais: [] });
@@ -596,6 +625,10 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-600">Pedir cotação com os dados padronizados:</span>
             <Button type="button" variant="ghost" onClick={() => navigator.clipboard?.writeText(msg).then(() => notify("Mensagem copiada"))}><ClipboardCopy size={14} /> Copiar mensagem</Button>
+            {rte && (
+              <Button type="button" variant="secondary" disabled={cotandoRte || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Simula o frete na API da Rodonaves e registra a cotação"}
+                onClick={cotarRodonaves}><Zap size={14} /> {cotandoRte ? "Cotando na Rodonaves…" : "Cotar na Rodonaves (API)"}</Button>
+            )}
           </div>
           {falta.length > 0 && <p className="mb-2 text-xs text-amber-800">Salve antes os dados que faltam ({falta.join(", ")}) para a cotação sair completa.</p>}
           <div className="flex flex-wrap gap-2">

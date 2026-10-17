@@ -106,3 +106,8 @@ export function filtrar(lista: Marca[], f: FiltroMarca) {
   if (f === "alerta") return lista.filter((m) => !!m.marca.alerta);
   return lista;
 }
+
+/** Integração pela API já pronta no ERP (hoje só a Rodonaves/RTE: cotação). */
+export function integracaoApi(t: Pick<Transportadora, "nome" | "nome_fantasia" | "site">): "rodonaves" | null {
+  return /rodonaves|\brte\b|rte\.com\.br/i.test([t.nome, t.nome_fantasia, t.site].filter(Boolean).join(" ")) ? "rodonaves" : null;
+}

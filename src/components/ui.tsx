@@ -37,9 +37,26 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`rounded-xl border border-slate-200/80 bg-surface shadow-card ${className}`}>{children}</div>;
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+/** compacto: uma linha só (ícone menor, sem a explicação embaixo — ela fica no título ao passar o mouse) e as ações ao lado. */
+export function PageHeader({ title, subtitle, actions, compacto }: { title: string; subtitle?: string; actions?: ReactNode; compacto?: boolean }) {
   const modulo = useModulo();
   const Icone = modulo?.icone;
+  if (compacto) {
+    return (
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2" title={subtitle}>
+          {Icone && (
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-modulo to-modulo-escuro text-white" aria-hidden>
+              <Icone size={17} />
+            </span>
+          )}
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg">{title}</h1>
+          {subtitle && <span className="sr-only">{subtitle}</span>}
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
+      </div>
+    );
+  }
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">

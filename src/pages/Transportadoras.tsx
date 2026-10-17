@@ -4,7 +4,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Link2, Mail, MapPin, Merge, Pencil,
-  Phone, Plug, Plus, Search, SearchCheck, Truck, Unlink, Users,
+  Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
 } from "lucide-react";
 import { Button, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Contato } from "@/components/Contato";
@@ -12,14 +12,15 @@ import Fornecedores from "@/pages/Fornecedores";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { dataBR, digitos, docFormat, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import type { ContatoTransportadora, Transportadora, UnidadeRede } from "@/lib/types";
 import {
-  API, RECURSOS, SERVICOS, TIPOS, aConferir, combina, filtrar, nomeCurto, porMarca, redeNova, sugestoesAgrupar, temContato, ufsDa,
+  API, RECURSOS, SERVICOS, TIPOS, aConferir, combina, filtrar, integracaoApi, nomeCurto, porMarca, redeNova, sugestoesAgrupar, temContato, ufsDa,
   type FiltroMarca, type Marca,
 } from "@/lib/transportadoras";
+import { FrequenciaColetaEditor } from "@/components/fretes/Coleta";
 import { useAbaUrl } from "@/lib/abaUrl";
 
 const COR_API: Record<string, string> = {
@@ -155,7 +156,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
   onSeparar: (t: Transportadora) => void; onConferir: () => void;
 }) {
   const t = m.marca;
-  const [aba, setAba] = useState<"filiais" | "contatos" | "rede" | "condicoes" | "internet">("filiais");
+  const [aba, setAba] = useState<"filiais" | "contatos" | "rede" | "condicoes" | "coleta" | "internet">("filiais");
   const rede = redeNova(m);
   const ufs = ufsDa(m);
   const api = API[t.api ?? "desconhecido"];
@@ -164,7 +165,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
   const qtdContatos = (t.contatos?.length ?? 0) + (t.emails_operacionais?.length ?? 0);
   const abas: { v: typeof aba; rotulo: string; n?: number }[] = [
     { v: "filiais", rotulo: "Filiais", n: m.filiais.length }, { v: "contatos", rotulo: "Contatos", n: qtdContatos },
-    { v: "rede", rotulo: "Rede de unidades", n: rede.filter((u) => !u.cadastrada).length }, { v: "condicoes", rotulo: "Condições" }, { v: "internet", rotulo: "API e internet" },
+    { v: "rede", rotulo: "Rede de unidades", n: rede.filter((u) => !u.cadastrada).length }, { v: "condicoes", rotulo: "Condições" }, { v: "coleta", rotulo: "Coleta" }, { v: "internet", rotulo: "API e internet" },
   ];
   return (
     <li className={`rounded-2xl border bg-surface shadow-card ${t.ativo ? "border-slate-200" : "border-dashed border-slate-300 opacity-75"}`}>
@@ -221,6 +222,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
             logradouro: u.endereco ?? null, observacoes: u.origem ? `Veio da rede (${u.origem})` : null,
           })} />}
           {aba === "condicoes" && <Condicoes t={t} />}
+          {aba === "coleta" && <FrequenciaColetaEditor transportadora={t} podeEditar={podeEditar} />}
           {aba === "internet" && <Internet t={t} podeEditar={podeEditar} onConferir={onConferir} />}
         </div>
       )}
@@ -360,11 +362,39 @@ function Internet({ t, podeEditar, onConferir }: { t: Transportadora; podeEditar
         {t.servicos?.length ? <><dt className="font-semibold text-slate-600">Serviços</dt><dd>{t.servicos.map((s) => SERVICOS[s] ?? s).join(", ")}</dd></> : null}
         {t.abrangencia?.length ? <><dt className="font-semibold text-slate-600">Atende</dt><dd>{t.abrangencia.join(", ")}</dd></> : null}
       </dl>
+      {integracaoApi(t) && <TestarApi t={t} />}
       {t.pesquisa_fontes?.length ? (
         <details className="text-xs"><summary className="cursor-pointer font-semibold text-slate-600">Fontes ({t.pesquisa_fontes.length})</summary>
           <ul className="mt-1 space-y-0.5">{t.pesquisa_fontes.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer" className="break-all text-brand hover:underline">{u}</a></li>)}</ul>
         </details>
       ) : null}
+    </div>
+  );
+}
+
+/** Integração pronta no ERP: confere se o usuário e a senha da API (secrets do Supabase) entram. */
+function TestarApi({ t }: { t: Transportadora }) {
+  const [estado, setEstado] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [testando, setTestando] = useState(false);
+  async function testar() {
+    setTestando(true);
+    try {
+      const r = await callFunction<{ servidor: string }>("rodonaves", { acao: "testar" });
+      setEstado({ ok: true, texto: `Conectado (servidor ${r.servidor}). A cotação aparece no envio: Fretes → envio → Cotações → "Cotar na Rodonaves (API)".` });
+    } catch (e) {
+      setEstado({ ok: false, texto: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setTestando(false);
+    }
+  }
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <PlugZap size={16} className="text-emerald-700" aria-hidden />
+        <span className="min-w-0 flex-1 text-sm">Cotação pela API de {nomeCurto(t)} ligada no ERP. O usuário e a senha ficam nos secrets do Supabase, nunca no cadastro.</span>
+        <Button type="button" variant="secondary" className="!min-h-0 !py-1 text-xs" disabled={testando} onClick={testar}>{testando ? "Testando…" : "Testar conexão"}</Button>
+      </div>
+      {estado && <p className={`mt-1.5 text-xs ${estado.ok ? "text-emerald-800" : "text-red-700"}`}>{estado.texto}</p>}
     </div>
   );
 }

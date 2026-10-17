@@ -31,6 +31,9 @@ export type Envio = {
   sem_comprovante_motivo?: string | null; sem_comprovante_por?: string | null; sem_comprovante_em?: string | null;
   conferencia_obs?: string | null; conferido_por?: string | null; conferido_em?: string | null;
   conta_pagar_id?: string | null; motivo_excecao?: string | null;
+  // agendamento da coleta (migração coletas_agendamento): período, urgência, nº da coleta e quem agendou
+  coleta_periodo?: "manha" | "tarde" | null; coleta_urgente?: boolean | null; coleta_protocolo?: string | null; coleta_obs?: string | null;
+  coleta_agendada_por?: string | null; coleta_agendada_em?: string | null;
 };
 
 /** Adicional da cotação (TDE, TRT...). previsto = false: aceito depois da aprovação, com justificativa. */

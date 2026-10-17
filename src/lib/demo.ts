@@ -17,6 +17,8 @@ import { gerarLinhaBancaria } from "./boleto";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 import { gerarParcelas } from "./parcelamentos";
 import { ultimoDiaUtil } from "./obrigacoes";
+import { conferirAgendamento, frequenciaDe, type FrequenciaColeta } from "./coleta";
+import { faltaParaCotarRte } from "../../supabase/functions/_shared/rodonaves";
 
 type Row = Record<string, any>;
 type Db = Record<string, Row[]>;
@@ -1106,6 +1108,11 @@ function planoDemo(db: Db) {
       cancelada_motivo: null, criado_por_nome: "Rafael Financeiro", created_at: quando(-5) },
   ];
   db.configuracoes[0].fiscal_avancado = true;
+  // frequência de coleta (como no portal da Rodonaves): Rodonaves seg–sex na matriz; São Miguel só terça e quinta à tarde
+  db.coleta_frequencias = [
+    { id: "cf1", transportadora_id: "t1", unidade_id: U_SC, dias: [1, 2, 3, 4, 5], manha: true, tarde: true, antecedencia_dias: 1, observacao: "Pedir até 11h para coletar à tarde", atualizado_em: quando(-3) },
+    { id: "cf2", transportadora_id: "t6", unidade_id: U_SC, dias: [2, 4], manha: false, tarde: true, antecedencia_dias: 1, observacao: null, atualizado_em: quando(-3) },
+  ];
   db.nfse_importadas = [
     nfseFora({ id: "nsi1", tipo: "emitida", unidade_id: U_SC, chave: "emitida:sc:r2426", rps: "2426", data_emissao: dias(-60), tomador_nome: "Sorveteria Franquia Ltda",
       valor_servicos: 6000, valor_pis: 39, valor_cofins: 180, valor_csll: 60, situacao: "sem_numero", origem: "tiny" }),
@@ -4131,6 +4138,19 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: null, error: null };
   },
   aprovar_cotacao_envio: ({ p_cotacao, p_cobrar_cliente = false }) => rpcs.aprovar_frete_envio({ p_cotacao, p_justificativa: null, p_cobrar_cliente }),
+  // agendamento da coleta: mesma regra do banco (frequência da transportadora no endereço; fora dela, só urgência)
+  agendar_coleta: ({ p_envio, p_data, p_periodo, p_protocolo = null, p_urgente = false, p_obs = null }) => {
+    const e = db.envios.find((x) => x.id === p_envio);
+    if (!e) return erro("Envio não encontrado");
+    if (["entregue", "cancelado"].includes(e.status) || e.coletado_em) return erro("Este envio já foi coletado, entregue ou cancelado");
+    if (!e.transportadora_id && !String(e.transportadora_nome ?? "").trim()) return erro("Escolha a transportadora antes de agendar a coleta");
+    const t = db.transportadoras.find((x) => x.id === e.transportadora_id);
+    const problema = conferirAgendamento(p_data, p_periodo, hojeISO(), frequenciaDe((db.coleta_frequencias ?? []) as FrequenciaColeta[], t ? { id: String(t.id), matriz_id: t.matriz_id ?? null } : null, e.unidade_id), !!p_urgente);
+    if (problema) return erro(problema);
+    Object.assign(e, { coleta_prevista: p_data, coleta_periodo: p_periodo, coleta_urgente: !!p_urgente, coleta_protocolo: String(p_protocolo ?? "").trim() || e.coleta_protocolo || null,
+      coleta_obs: String(p_obs ?? "").trim() || null, coleta_agendada_por: sessao?.user.id ?? null, coleta_agendada_em: new Date().toISOString() });
+    return { data: { coleta_prevista: p_data, coleta_periodo: p_periodo, urgente: !!p_urgente }, error: null };
+  },
   // adicional fora da cotação aprovada: só com justificativa; soma no aprovado
   registrar_adicional_envio: ({ p_envio, p_tipo, p_valor, p_justificativa, p_descricao = null }) => {
     const e = db.envios.find((x) => x.id === p_envio);
@@ -4603,6 +4623,19 @@ const funcoes: Record<string, (b: any) => any> = {
     return { ok: true };
   },
   "focus-config": () => ({ ok: true, ambiente: "homologacao", eventos: ["nfe", "nfe_recebida"] }),
+  // Rodonaves: na demonstração a cotação é uma conta de exemplo (peso e valor), com as mesmas exigências da função
+  rodonaves: (b) => {
+    if (b.acao === "testar") return { ok: true, servidor: "01wapi (demonstração)", tentativas: [] };
+    if (b.acao !== "cotar") return { ok: true };
+    const e = db.envios.find((x) => x.id === b.envio_id);
+    if (!e) throw new Error("envio não encontrado");
+    const u = db.unidades.find((x) => x.id === e.unidade_id);
+    const falta = faltaParaCotarRte({ ...e, cep_origem: e.cep_origem || u?.cep }, u?.cnpj);
+    if (falta.length) throw new Error(`Para cotar na Rodonaves falta: ${falta.join(", ")}. Complete e salve o envio.`);
+    const valor = r2(48 + Number(e.peso_total_kg) * 1.9 + Number(e.valor_mercadoria) * 0.006);
+    return { ok: true, valor, prazo: e.uf_destino === "SC" ? 2 : 5, origem: `${String(u?.municipio ?? "").toUpperCase()}/${u?.uf ?? ""}`,
+      destino: `${String(e.cidade_destino ?? "").toUpperCase()}/${e.uf_destino ?? ""}`, servidor: "demonstração" };
+  },
   infinitepay: (b) => {
     // mesmo caminho da função: conta, pedido (todas as parcelas em aberto), proposta aprovada e área do cliente
     const alvoConta = (id: string) => {
