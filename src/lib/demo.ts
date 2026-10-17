@@ -4062,6 +4062,18 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (eq) Object.assign(eq, { proxima_preventiva: dias(30.4 * db.configuracoes[0].preventiva_meses), ultimo_contato: hojeISO() });
     return { data: null, error: null };
   },
+  reabrir_os: ({ p_os, p_motivo, p_status = "em_reparo" }) => {
+    const o = db.ordens_servico.find((x) => x.id === p_os);
+    if (!o) return erro("OS não encontrada");
+    if (String(p_motivo ?? "").trim().length < 5) return erro("escreva o motivo da reabertura (pelo menos 5 letras)");
+    if (o.status !== "concluida") return erro("só a OS concluída e ainda não entregue pode ser reaberta");
+    if (db.contas_receber.some((c) => c.os_id === o.id && c.status === "pago")) return erro("a cobrança desta OS já foi recebida: estorne o recebimento no financeiro antes de reabrir");
+    for (const c of db.contas_receber.filter((x) => x.os_id === o.id && x.status === "aberto")) c.status = "cancelado";
+    if (o.estoque_baixado) for (const i of db.os_itens.filter((x) => x.os_id === o.id)) movimentar(i.produto_id, "entrada", i.quantidade, `OS #${o.numero} reaberta`, { unidade_id: o.unidade_id });
+    Object.assign(o, { status: p_status, concluida_em: null, estoque_baixado: false,
+      reaberturas: [...(o.reaberturas ?? []), { em: quando(0), nome: "Você (prévia)", motivo: String(p_motivo).trim(), concluida_em: o.concluida_em, voltou_para: p_status }] });
+    return { data: null, error: null };
+  },
   receber_pedido_compra: ({ p_pedido, p_itens, p_gerar_conta, p_vencimento }) => {
     const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
     if (!pc || ["recebido", "cancelado"].includes(pc.status)) return erro("pedido já finalizado");

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, Search, ShieldCheck, ShieldOff, Trash2, Wrench,
+  Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, RotateCcw, Search, ShieldCheck, ShieldOff, Trash2, Wrench,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
@@ -45,9 +45,11 @@ const CHECKLIST_PADRAO = [
 ];
 
 const SELECT = "*, cliente:clientes(*), itens:os_itens(*)";
+type Reabertura = { em: string; nome?: string | null; motivo: string; concluida_em?: string | null; voltou_para?: string };
 type OSX = OrdemServico & {
   equipamento_id?: string | null; checklist?: ItemChecklist[]; fotos?: FotoOS[];
   assinatura_entrada?: string | null; assinatura_entrega?: string | null; recebido_por?: string | null; entregue_em?: string | null;
+  reaberturas?: Reabertura[];
 };
 type OS = Partial<OSX> & { itens: Item[] };
 
@@ -171,6 +173,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const [ocupado, setOcupado] = useState(false);
   const [pdf, setPdf] = useState<{ blob: Blob; nome: string; titulo: string } | null>(null);
   const [historico, setHistorico] = useState(false);
+  const [reabrir, setReabrir] = useState(false);
   const { data: notasOS = [] } = useNfsesDaOS(o.id);
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -238,7 +241,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   }
 
   async function gravar(): Promise<string> {
-    const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, ...cab } = o as any;
+    const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, reaberturas: _r, ...cab } = o as any;
     const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0), maquina_origem: origem });
     const { data, error } = dados.id
       ? await supabase.from("ordens_servico").update(dados).eq("id", dados.id).select("id, numero").single()
@@ -404,6 +407,15 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
 
         <Tabs value={aba} onChange={setAba} options={abas} />
 
+        {aba === "atendimento" && !!o.reaberturas?.length && (
+          <ul className="mb-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-900">
+            {o.reaberturas.map((r, i) => (
+              <li key={i} className="flex gap-1.5"><RotateCcw size={14} className="mt-0.5 shrink-0" aria-hidden />
+                <span>Reaberta em {new Date(r.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {r.nome ? ` por ${r.nome}` : ""}: {r.motivo}</span></li>
+            ))}
+          </ul>
+        )}
         {aba === "atendimento" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Field label="Cliente" className="sm:col-span-2">
@@ -616,6 +628,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
           </div>
           <span className="hidden sm:block sm:flex-1" />
           <div className="grid grid-cols-3 gap-2 sm:flex">
+            {podeEditar && o.status === "concluida" && <Button type="button" variant="ghost" className="col-span-3 border border-slate-200 sm:border-0" onClick={() => setReabrir(true)} disabled={ocupado}><RotateCcw size={16} /> Reabrir OS</Button>}
             {podeEditar && o.status === "concluida" && <Button type="button" variant="secondary" className="col-span-3" onClick={entregar} disabled={ocupado}><PackageCheck size={16} /> Marcar entregue</Button>}
             {!somenteLeitura && <Button variant="secondary" className={o.id ? "" : "col-span-3"} disabled={ocupado}>Salvar</Button>}
             {o.id && !somenteLeitura && (
@@ -626,9 +639,45 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
       </form>
 
       {pdf && <PdfViewer {...pdf} onClose={() => setPdf(null)} />}
+      {reabrir && o.id && <ReabrirOS numero={o.numero} cobrada={total > 0} comPecas={o.itens.length > 0} ocupado={ocupado} onClose={() => setReabrir(false)}
+        onConfirmar={(motivo, status) => executar(async () => {
+          const { error } = await supabase.rpc("reabrir_os", { p_os: o.id, p_motivo: motivo, p_status: status });
+          if (error) throw error;
+          setReabrir(false);
+        }, `OS #${o.numero} reaberta`)} />}
       {historico && (
         <HistoricoModal equipamento={{ id: o.equipamento_id ?? undefined, numero_serie: o.numero_serie, descricao: o.equipamento ?? "" }} onClose={() => setHistorico(false)} />
       )}
+    </Modal>
+  );
+}
+
+/** Reabrir a OS concluída sem querer: escolhe para onde volta e o motivo (fica no histórico da OS). */
+function ReabrirOS({ numero, cobrada, comPecas, ocupado, onClose, onConfirmar }: {
+  numero?: number; cobrada: boolean; comPecas: boolean; ocupado: boolean; onClose: () => void; onConfirmar: (motivo: string, status: string) => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [status, setStatus] = useState("em_reparo");
+  const ok = motivo.trim().length >= 5;
+  return (
+    <Modal open onClose={onClose} title={`Reabrir a OS #${numero ?? ""}`}>
+      <div className="space-y-3 text-sm">
+        <p>A OS volta para o conserto como se não tivesse sido concluída.{comPecas ? " As peças voltam para o estoque." : ""}
+          {cobrada ? " A cobrança em aberto desta OS é cancelada." : ""} Ao concluir de novo, {comPecas || cobrada ? "isso é feito outra vez e " : ""}o cliente recebe o aviso de pronta.</p>
+        <p className="rounded-lg bg-amber-50 p-2 text-[13px] text-amber-900">Se o cliente tem e-mail, ele já pode ter recebido o aviso de "máquina pronta": avise que ainda está em conserto.</p>
+        <Field label="Volta para">
+          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
+            {STATUS_EDITAVEIS.filter((s) => s.value !== "cancelada").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Motivo (fica no histórico da OS)">
+          <textarea className="input" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: concluí sem querer, o conserto não terminou" />
+        </Field>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button type="button" onClick={() => onConfirmar(motivo.trim(), status)} disabled={!ok || ocupado}><RotateCcw size={16} /> Reabrir OS</Button>
+        </div>
+      </div>
     </Modal>
   );
 }
