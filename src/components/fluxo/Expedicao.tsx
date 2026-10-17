@@ -13,6 +13,7 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { usePerfil } from "@/lib/auth";
 import type { Exp, PedidoFluxo as P } from "@/lib/fluxo";
 import type { KitComponente, Produto, Transportadora } from "@/lib/types";
+import { QuadroRisco, useRiscoPedido } from "./ConferenciaRisco";
 
 export const ETAPA: Record<string, string> = { separar: "a separar", separando: "separando", conferido: "conferido", embalado: "embalado", despachado: "despachado", entregue: "entregue" };
 
@@ -55,6 +56,9 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
   const [scan, setScan] = useState("");
   const etiquetasImp = useEtiquetas();
   const nota = p.notas?.find((n) => n.status === "autorizada" && n.ambiente !== "homologacao");
+  // venda por cartão ou link com risco no limite: o despacho espera a conferência (o banco também trava)
+  const { data: risco } = useRiscoPedido(p.id);
+  const travado = !!risco?.travar;
   const prod = (id: string) => produtos.find((x) => x.id === id);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const atual = PASSOS.indexOf(exp.status);
@@ -89,6 +93,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
         {!nota && pode("emitir_nfe") && !p.notas?.some((n) => ["processando", "contingencia"].includes(n.status)) && <Button type="button" variant="secondary" disabled={ocupado} onClick={emitirNota}><FileText size={15} /> Emitir NF-e</Button>}
         {!nota && p.notas?.some((n) => ["processando", "contingencia"].includes(n.status)) && <Badge value={p.notas.find((n) => ["processando", "contingencia"].includes(n.status))!.status} />}
       </div>
+      <QuadroRisco pedidoId={p.id} numero={p.numero} />
 
       {(exp.status === "separar" || exp.status === "separando") && (
         <div className="space-y-3">
@@ -145,7 +150,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
             <Button type="button" variant="secondary" onClick={etiquetas} title="Conferir, editar e imprimir as etiquetas"><Printer size={16} /> Etiquetas</Button>
             {exp.status === "conferido"
               ? <Button type="button" disabled={ocupado} onClick={() => avancar("embalado", { volumes: Number(f.volumes), peso_kg: f.peso_kg ? Number(f.peso_kg.replace(",", ".")) : null, transportadora_id: f.transportadora_id || null })}><PackageCheck size={16} /> Embalado</Button>
-              : <Button type="button" disabled={ocupado || !nota} title={nota ? "" : "emita a NF-e antes"} onClick={() => avancar("despachado", { transportadora_id: f.transportadora_id || null, codigo_rastreio: f.codigo_rastreio })}><Send size={16} /> Despachar</Button>}
+              : <Button type="button" disabled={ocupado || !nota || travado} title={!nota ? "emita a NF-e antes" : travado ? "confira o risco antes (quadro acima)" : ""} onClick={() => avancar("despachado", { transportadora_id: f.transportadora_id || null, codigo_rastreio: f.codigo_rastreio })}><Send size={16} /> Despachar</Button>}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 // impressora Zebra (teste de impressão pelo driver ou direto pelo Zebra Browser Print, calibragem e escurecimento).
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardCheck, ListChecks, PackageCheck, Printer, Send, Settings2, Truck } from "lucide-react";
+import { ClipboardCheck, ListChecks, PackageCheck, Printer, Send, Settings2, ShieldAlert, Truck } from "lucide-react";
 import { Button, Indicador } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
@@ -11,11 +11,20 @@ import { comPadrao, pdfTeste, ZPL_CALIBRAR, zebraEnviar, zebraPadrao, zplTeste }
 import type { ImpressoraEtiqueta } from "@/lib/types";
 import { BotaoSalvar, Bloco, CabecalhoSecao, Opcao, secaoPorId, useCfgPagina } from "./comum";
 
-const CHAVES = ["nfe_automatica", "link_pagamento_ao_aprovar", "vender_sem_estoque", "etiqueta_formato", "expedicao_apos", "impressora_etiqueta"];
+const CHAVES = ["nfe_automatica", "link_pagamento_ao_aprovar", "vender_sem_estoque", "etiqueta_formato", "expedicao_apos", "impressora_etiqueta",
+  "risco_ativo", "risco_valor_alto", "risco_pontos_travar"];
+/** Número digitado (vírgula ou ponto) ou o padrão. */
+const numero = (v: unknown, padrao: number) => {
+  const t = String(v ?? "").trim();
+  const n = Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+  return Number.isFinite(n) && n > 0 ? n : padrao;
+};
 
 export function ConfigPedidos() {
   const s = secaoPorId("pedidos")!;
-  const { cfg, set, mudar, salvar, salvando } = useCfgPagina(CHAVES);
+  const { cfg, set, mudar, salvar, salvando } = useCfgPagina(CHAVES, (row) => ({
+    ...row, risco_ativo: row.risco_ativo !== false, risco_valor_alto: numero(row.risco_valor_alto, 3000), risco_pontos_travar: Math.round(numero(row.risco_pontos_travar, 25)),
+  }));
   const { data: exps = [] } = useRows<{ status: string; despachado_em?: string | null; created_at: string }>("expedicoes", { select: "status, despachado_em, created_at", key: ["config"] });
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
   const conta = (st: string) => exps.filter((e) => e.status === st).length;
@@ -58,6 +67,24 @@ export function ConfigPedidos() {
               <option value="aprovacao">Logo que a venda é aprovada (separa enquanto a nota sai)</option>
             </select>
           </label>
+        </Bloco>
+
+        <Bloco titulo={<span className="flex items-center gap-2"><ShieldAlert size={18} className="text-amber-600" /> Conferência de risco antes de despachar</span>}
+          descricao="Vendas pagas por cartão ou por link ganham pontos de risco (pagamento sem baixa, primeira compra, valor alto, CPF/CNPJ irregular, endereço incompleto, pedidos seguidos, cartão em muitas parcelas…). Do limite para cima, o despacho espera o financeiro aprovar dizendo o que conferiu. Vendas do Mercado Livre ficam de fora.">
+          <Opcao ligado={cfg.risco_ativo !== false} onChange={(v) => mudar({ risco_ativo: v })}>
+            <b>Conferir o risco antes de despachar</b> vendas por cartão ou link (o financeiro recebe o aviso quando o pedido entra na expedição).
+          </Opcao>
+          <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-slate-600">Valor alto (R$)</span>
+              <input className="input" inputMode="decimal" value={cfg.risco_valor_alto ?? 3000} onChange={set("risco_valor_alto")} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-slate-600">Trava a partir de (pontos)</span>
+              <input className="input" type="number" min={1} max={200} value={cfg.risco_pontos_travar ?? 25} onChange={set("risco_pontos_travar")} />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Médio a partir de 25 pontos e alto a partir de 50. Só pagamento sem baixa já soma 40.</p>
         </Bloco>
 
         <Bloco titulo="Etiquetas" descricao="O modelo (o que aparece, avisos, rodapé, etiqueta de volume) fica em qualquer pedido: Etiquetas → Modelo das etiquetas.">

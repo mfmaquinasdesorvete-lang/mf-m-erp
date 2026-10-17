@@ -9,6 +9,7 @@ import {
 import { Section } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, ListaAtencao, type Cartao, type ItemAtencao } from "@/components/painel/Painel";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
+import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
@@ -205,6 +206,7 @@ export default function PainelExpedicao() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}
       </div>
+      <RiscosParaDespachar />
 
       {/* Etapas: botões grandes para o tablet */}
       <div role="tablist" aria-label="Etapa" className="grid grid-cols-2 gap-2 sm:grid-cols-4">

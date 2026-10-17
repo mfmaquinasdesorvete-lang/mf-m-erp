@@ -8,6 +8,7 @@ import { PageHeader, RolagemLateral } from "@/components/ui";
 import { Cartao } from "@/components/fluxo/Cartao";
 import { BlocosEtapas, FaixaAcao, type ResumoEtapa } from "@/components/fluxo/Resumo";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
+import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl } from "@/lib/format";
@@ -219,6 +220,7 @@ export default function Fluxo() {
           ))}
         </div>
       </div>
+      <RiscosParaDespachar />
 
       {/* Resumo: o que precisa de ação agora e um bloco por etapa */}
       <FaixaAcao porTipo={porTipo} total={totalAlertas} nivel={nivelGeral} soAcao={filtrando} tipo={tipo}

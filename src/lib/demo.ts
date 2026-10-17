@@ -1496,7 +1496,8 @@ function comercialDemo(db: Db) {
   ];
   novosExp.forEach(([id, numero, cliente_id, itens, status, d], k) => {
     const unidade_id = pd1.unidade_id;
-    db.pedidos.push({ id, numero, cliente_id, origem: k === 1 ? "loja" : "whatsapp", status: "faturado", vendedor: "Carla", forma_pagamento: "pix", parcelas: 1, intervalo_dias: 30,
+    // pd7: venda no cartão em 6x, para a conferência de risco antes de despachar
+    db.pedidos.push({ id, numero, cliente_id, origem: k === 1 ? "loja" : "whatsapp", status: "faturado", vendedor: "Carla", forma_pagamento: id === "pd7" ? "cartao" : "pix", parcelas: id === "pd7" ? 6 : 1, intervalo_dias: 30,
       modalidade_frete: 0, desconto: 0, frete: 0, created_at: quando(d - 0.4), aprovado_em: quando(d - 0.3), estoque_baixado: true, unidade_id });
     itens.forEach(([produto_id, quantidade, valor_unitario], j) => db.pedido_itens.push({ id: `${id}-i${j}`, pedido_id: id, produto_id, descricao: db.produtos.find((x) => x.id === produto_id)!.descricao, quantidade, valor_unitario }));
     db.notas_fiscais.push({ id: `nf-${id}`, pedido_id: id, referencia: `pedido-${numero}-1`, status: "autorizada", numero: String(1290 + k), serie: "1", chave: `4226${String(numero).padStart(40, "0")}`,
@@ -1646,6 +1647,31 @@ function recalcular(db: Db) {
 }
 
 const db = seed();
+
+/** Conferência de risco (demonstração): a mesma ideia do banco, com os sinais principais. */
+function riscoDemo(pedidoId: string) {
+  const p = db.pedidos.find((x) => x.id === pedidoId);
+  if (!p) return null;
+  if (p.forma_pagamento !== "cartao" || p.origem === "marketplace" || p.status === "cancelado") {
+    return { elegivel: false, pontos: 0, nivel: "baixo", motivos: [], travar: false, ativo: true, limite: 25, conferencia: null };
+  }
+  const c = db.clientes.find((x) => x.id === p.cliente_id) ?? {};
+  const motivos: { codigo: string; pontos: number; texto: string }[] = [];
+  const add = (codigo: string, pontos: number, texto: string) => motivos.push({ codigo, pontos, texto });
+  if (!db.contas_receber.some((r) => r.pedido_id === p.id && r.status === "pago")) add("pagamento", 40, "Pagamento por cartão ou link ainda sem baixa no ERP");
+  if (!db.pedidos.some((o) => o.cliente_id === p.cliente_id && o.id !== p.id && o.created_at < p.created_at && !["cancelado", "orcamento"].includes(o.status))) add("cliente_novo", 25, "Primeira compra do cliente");
+  const valor = Number(p.valor_total ?? db.pedido_itens.filter((i) => i.pedido_id === p.id).reduce((s, i) => s + i.quantidade * i.valor_unitario, 0));
+  if (valor >= 3000) add("valor_alto", 20, "Valor a partir de R$ 3.000,00");
+  if (![11, 14].includes(String(c.cpf_cnpj ?? "").replace(/\D/g, "").length)) add("sem_documento", 30, "Cliente sem CPF/CNPJ válido no cadastro");
+  if (Number(p.parcelas) >= 6) add("parcelas", 10, `Cartão em ${p.parcelas}x`);
+  const pontos = motivos.reduce((s, m) => s + m.pontos, 0);
+  const conf = (db.conferencias_risco ?? []).find((x) => x.pedido_id === p.id);
+  const travar = conf?.situacao === "recusada" || (pontos >= 25 && !(conf?.situacao === "aprovada" && Number(conf.valor_conferido) === valor));
+  return {
+    elegivel: true, pontos, nivel: pontos >= 50 ? "alto" : pontos >= 25 ? "medio" : "baixo", motivos, travar, ativo: true, limite: 25, meio: "cartao",
+    conferencia: conf ? { situacao: conf.situacao, por: conf.decidido_por_nome, em: conf.decidido_em, observacao: conf.observacao, pontos: conf.pontos, valor: conf.valor_conferido, valor_mudou: Number(conf.valor_conferido) !== valor } : null,
+  };
+}
 // Troca do Tiny (implantação): o mesmo plano do sistema real, com as duas primeiras etapas feitas
 db.implantacao_etapas ??= ([
   [1, 1, "Cada pessoa entra no ERP pelo menos uma vez", "Vendas, assistência, contador e financeiro com o próprio usuário.", 3, "Administrador", "usuarios", true],
@@ -3683,6 +3709,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (p_etapa === "conferido" && (p_dados.itens_conferidos ?? e.itens_conferidos).length < db.pedido_itens.filter((i) => i.pedido_id === p.id).length) return erro("confira todos os itens antes de concluir a conferência");
     if (p_etapa === "embalado" && !(p_dados.volumes ?? e.volumes)) return erro("informe a quantidade de volumes");
     if (p_etapa === "despachado" && !db.notas_fiscais.some((n) => n.pedido_id === p.id && n.status === "autorizada")) return erro("o pedido ainda não tem NF-e autorizada: emita a nota antes de despachar");
+    if (p_etapa === "despachado" && riscoDemo(p.id)?.travar) return erro("conferência de risco pendente: o financeiro precisa aprovar antes de despachar");
     for (const k of ["itens_conferidos", "volumes", "peso_kg", "transportadora_id", "codigo_rastreio", "responsavel", "observacoes"]) if (p_dados[k] != null && p_dados[k] !== "") e[k] = p_dados[k];
     e.status = p_etapa;
     e[`${p_etapa === "separando" ? "separando" : p_etapa}_em`] = quando(0);
@@ -3692,6 +3719,24 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     if (p_etapa === "entregue" && ["aprovado", "faturado"].includes(p.status)) p.status = "entregue";
     return { data: null, error: null };
+  },
+  risco_pedido: ({ p_pedido }) => ({ data: riscoDemo(p_pedido), error: null }),
+  riscos_para_despachar: () => ({
+    data: (db.expedicoes ?? []).filter((e) => ["separar", "separando", "conferido", "embalado"].includes(e.status)).flatMap((e) => {
+      const r = riscoDemo(e.pedido_id); const p = db.pedidos.find((x) => x.id === e.pedido_id);
+      if (!r?.elegivel || !p) return [];
+      const c = db.clientes.find((x) => x.id === p.cliente_id);
+      return [{ pedido_id: p.id, numero: p.numero, cliente: c?.nome_fantasia || c?.nome || null, valor: Number(p.valor_total ?? 0), etapa: e.status, pontos: r.pontos, nivel: r.nivel, travar: r.travar, situacao: r.conferencia?.situacao ?? null }];
+    }),
+    error: null,
+  }),
+  decidir_risco: ({ p_pedido, p_decisao, p_observacao }) => {
+    if (String(p_observacao ?? "").trim().length < 5) return erro("escreva o que foi conferido (pelo menos 5 letras)");
+    const r = riscoDemo(p_pedido); const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!r?.elegivel || !p) return erro("este pedido não passa pela conferência de risco");
+    db.conferencias_risco = [...(db.conferencias_risco ?? []).filter((x) => x.pedido_id !== p_pedido),
+      { id: uid(), pedido_id: p_pedido, situacao: p_decisao, pontos: r.pontos, nivel: r.nivel, motivos: r.motivos, valor_conferido: Number(p.valor_total ?? 0), observacao: p_observacao, decidido_por_nome: "Administrador (demonstração)", decidido_em: quando(0) }];
+    return { data: riscoDemo(p_pedido), error: null };
   },
   garantir_fechamento: ({ p_unidade, p_competencia }) => {
     db.fechamentos ??= [];
