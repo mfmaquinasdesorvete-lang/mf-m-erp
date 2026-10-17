@@ -56,7 +56,7 @@ async function cnpjWs(d: string): Promise<DadosCnpj | null> {
   };
 }
 
-// 3) CNPJá (público): Receita + inscrições estaduais
+// CNPJá (público, poucas consultas por minuto): Receita + inscrições estaduais
 async function cnpja(d: string): Promise<DadosCnpj | null> {
   const j = await json(`https://open.cnpja.com/office/${d}`);
   if (!j?.company?.name) return null;
@@ -75,15 +75,12 @@ export async function buscarCnpj(cnpj: string | null | undefined): Promise<Dados
   const d = digitos(cnpj);
   if (d.length !== 14) return null;
   if (cache.has(d)) return cache.get(d)!;
+  // 1º o CNPJá (Receita e inscrições estaduais numa consulta); fora do ar ou no limite, BrasilAPI + CNPJ.ws
+  const ja = await cnpja(d);
+  if (ja) { cache.set(d, ja); return ja; }
   const [base, ws] = await Promise.all([brasilApi(d), cnpjWs(d)]);
-  let dados = base ?? ws;
-  let inscricoes = ws?.inscricoes;
-  if (!dados || !inscricoes?.length) {
-    const ja = await cnpja(d);
-    dados = dados ?? ja;
-    if (!inscricoes?.length) inscricoes = ja?.inscricoes;
-  }
-  const res = dados ? { ...dados, inscricoes: inscricoes ?? [] } : null;
+  const dados = base ?? ws;
+  const res = dados ? { ...dados, inscricoes: ws?.inscricoes ?? [] } : null;
   cache.set(d, res);
   return res;
 }

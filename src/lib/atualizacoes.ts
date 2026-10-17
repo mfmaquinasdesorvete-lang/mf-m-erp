@@ -171,6 +171,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Fiscal → Parcelamentos de impostos: Receita Federal, PGFN, SEFAZ SC e SP e prefeitura, com cada parcela paga, atrasada ou a vencer, quem pagou (MF, outra empresa, conta pessoal ou contador) com o comprovante, avisos 7 e 2 dias antes, no dia e no atraso, e o risco de o parcelamento ser cancelado. Regras de cancelamento: conferir com o contador.",
       "Créditos das compras: as notas de fornecedor do histórico do Tiny (só com o XML) ganharam a lista de itens; o Analista fiscal e o Painel do contador passam a mostrar os créditos de PIS/COFINS, ICMS e IPI das entradas, sem lançar estoque nem contas.",
       "Calendário fiscal: ICMS da filial SP pelo código de recolhimento (CPR) do CNAE, com a data de cada mês como na Agenda Tributária Paulista; prazos ainda não confirmados aparecem como \"a confirmar\". Transferência SC ↔ SP com PIS/COFINS CST 49, como o contador usa.",
+      "Consulta de CNPJ pelo CNPJá: no cadastro e na conferência automática de clientes e fornecedores vêm, numa consulta só, a situação na Receita, a inscrição estadual de cada estado, Simples Nacional ou MEI, a atividade principal (CNAE), o porte e a data de abertura; a ficha mostra tudo no quadro da Receita.",
     ],
   },
 };

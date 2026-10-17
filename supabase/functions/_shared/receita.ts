@@ -5,9 +5,12 @@
 
 export type Endereco = { cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null; uf: string | null };
 export type Inscricao = { numero: string; uf: string; ativa: boolean };
+export type Opcao = { optante: boolean; desde: string | null };
 export type DadosReceita = {
   nome: string; fantasia: string | null; situacao: string | null; email: string | null; telefones: string[];
   endereco: Endereco; inscricoes: Inscricao[] | null; fonte: string; consultado_em?: string;
+  /** Simples Nacional e MEI (optante e desde quando), atividade principal (CNAE), abertura e porte, quando a fonte informa */
+  simples?: Opcao | null; mei?: Opcao | null; cnae?: { codigo: string; descricao: string } | null; abertura?: string | null; porte?: string | null;
 };
 export type ClienteReceita = {
   nome: string; nome_fantasia?: string | null; email?: string | null; telefone?: string | null; whatsapp?: string | null;
@@ -26,6 +29,14 @@ const ou = (v: unknown) => (v == null || String(v).trim() === "" ? null : String
 const titulo = (s: string) => s.toLowerCase().replace(/(^|[\s(/-])(\p{L})/gu, (_m, a, b) => a + b.toUpperCase())
   .replace(/\s(De|Da|Do|Das|Dos|E)\s/g, (m) => m.toLowerCase());
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const data = (v: unknown) => (/^\d{4}-\d{2}-\d{2}/.test(String(v ?? "")) ? String(v).slice(0, 10) : null);
+const opcao = (optante: unknown, desde: unknown): Opcao | null =>
+  optante == null || optante === "" ? null : { optante: optante === true || /^(s|sim|true)$/i.test(String(optante)), desde: data(desde) };
+/** CNAE com a máscara: 5611203 → 5611-2/03 */
+export const cnaeFormatado = (c: unknown) => { const d = dig(c); return d.length === 7 ? `${d.slice(0, 4)}-${d[4]}/${d.slice(5)}` : d || null; };
+const cnae = (codigo: unknown, descricao: unknown) => (dig(codigo) ? { codigo: cnaeFormatado(codigo)!, descricao: String(descricao ?? "").trim() } : null);
+/** Texto todo em maiúsculas vira "Título"; o que já vem com maiúsculas e minúsculas fica como está. */
+const capitalizar = (s: unknown) => { const t = ou(s); return t && t === t.toUpperCase() ? titulo(t) : t; };
 
 /** Celular (com ou sem o 9 da frente) vira o número do WhatsApp: DDD + 9 dígitos. Fixo devolve null. */
 export function whatsappDoTelefone(t: string | null | undefined): string | null {
@@ -49,6 +60,8 @@ export function daBrasilApi(j: any): DadosReceita | null {
       municipio: ou(j.municipio) ? titulo(j.municipio) : null, uf: ou(j.uf),
     },
     inscricoes: null, fonte: "BrasilAPI",
+    simples: opcao(j.opcao_pelo_simples, j.data_opcao_pelo_simples), mei: opcao(j.opcao_pelo_mei, j.data_opcao_pelo_mei),
+    cnae: cnae(j.cnae_fiscal, j.cnae_fiscal_descricao), abertura: data(j.data_inicio_atividade), porte: ou(j.porte),
   };
 }
 
@@ -68,6 +81,34 @@ export function doCnpjWs(j: any): DadosReceita | null {
     inscricoes: (e.inscricoes_estaduais ?? []).map((i: any) => ({ numero: dig(i.inscricao_estadual), uf: String(i.estado?.sigla ?? ""), ativa: i.ativo !== false }))
       .filter((i: Inscricao) => i.numero),
     fonte: "CNPJ.ws",
+    simples: opcao(j.simples?.simples, j.simples?.data_opcao_simples), mei: opcao(j.simples?.mei, j.simples?.data_opcao_mei),
+    cnae: cnae(e.atividade_principal?.id, e.atividade_principal?.descricao), abertura: data(e.data_inicio_atividade), porte: ou(j.porte?.descricao),
+  };
+}
+
+/**
+ * CNPJá aberto (https://open.cnpja.com/office/<cnpj>, sem chave, poucas consultas por minuto): Receita, inscrições
+ * estaduais de todos os estados, Simples Nacional e MEI e a atividade principal numa consulta só.
+ */
+export function doCnpja(j: any): DadosReceita | null {
+  if (!j?.company?.name) return null;
+  const a = j.address ?? {};
+  const situacao = ou(j.status?.text);
+  return {
+    nome: String(j.company.name), fantasia: capitalizar(j.alias),
+    situacao: situacao ? semAcento(situacao).toUpperCase() : null,
+    email: ou(j.emails?.[0]?.address)?.toLowerCase() ?? null,
+    telefones: (j.phones ?? []).map((p: any) => dig(`${p?.area ?? ""}${p?.number ?? ""}`)).filter((t: string) => t.length >= 10),
+    endereco: {
+      cep: dig(a.zip) || null, logradouro: capitalizar(a.street), numero: ou(a.number), complemento: ou(a.details),
+      bairro: capitalizar(a.district), municipio: capitalizar(a.city), uf: ou(a.state),
+    },
+    inscricoes: Array.isArray(j.registrations)
+      ? j.registrations.map((i: any) => ({ numero: dig(i.number), uf: String(i.state ?? ""), ativa: i.enabled !== false })).filter((i: Inscricao) => i.numero)
+      : null,
+    fonte: "CNPJá",
+    simples: opcao(j.company.simples?.optant, j.company.simples?.since), mei: opcao(j.company.simei?.optant, j.company.simei?.since),
+    cnae: cnae(j.mainActivity?.id, j.mainActivity?.text), abertura: data(j.founded), porte: ou(j.company.size?.text),
   };
 }
 

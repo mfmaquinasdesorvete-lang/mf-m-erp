@@ -395,6 +395,16 @@ export function ReceitaCadastro({ registro: inicial, tabela }: { registro: Clien
             {c.ie_situacao && <> · <span className={c.ie_situacao === "baixada" ? "font-semibold text-amber-700" : ""}>{ROTULO_IE[c.ie_situacao] ?? c.ie_situacao}</span></>}
             <span className="text-xs text-slate-500"> · conferido em {dataBR(c.receita_em)}{r?.fonte ? ` (${r.fonte})` : ""}</span>
           </p>
+          {r?.cnae && <p><span className="text-xs text-slate-500">Atividade principal:</span> {r.cnae.codigo} · {r.cnae.descricao}</p>}
+          {r && (r.simples || r.mei || r.porte || r.abertura) && (
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {r.mei?.optante ? <span className="rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-800">MEI{r.mei.desde ? ` desde ${dataBR(r.mei.desde)}` : ""}</span>
+                : r.simples && <span className={`rounded-full px-2 py-0.5 font-semibold ${r.simples.optante ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>
+                  {r.simples.optante ? `Simples Nacional${r.simples.desde ? ` desde ${dataBR(r.simples.desde)}` : ""}` : "Não é do Simples Nacional"}</span>}
+              {r.porte && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">Porte: {r.porte}</span>}
+              {r.abertura && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">Aberta em {dataBR(r.abertura)}</span>}
+            </div>
+          )}
           {r && (c.tags ?? []).includes("endereco_receita") && (
             <div className="rounded-lg bg-sky-50 p-2.5">
               <div className="mb-1 font-semibold text-sky-900">Dois endereços</div>

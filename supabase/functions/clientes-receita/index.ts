@@ -6,9 +6,9 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
-import { conciliarCliente, daBrasilApi, type DadosReceita, doCnpjWs } from "../_shared/receita.ts";
+import { conciliarCliente, daBrasilApi, type DadosReceita, doCnpja, doCnpjWs } from "../_shared/receita.ts";
 
-const POR_LOTE = 3;          // a consulta pública do CNPJ.ws aceita 3 por minuto
+const POR_LOTE = 3;          // CNPJá aberto e CNPJ.ws aceitam poucas consultas por minuto
 const ESPERA_MS = 20_000;
 
 async function buscar(url: string) {
@@ -17,10 +17,16 @@ async function buscar(url: string) {
   return r.ok ? await r.json() : null;
 }
 
-/** CNPJ.ws (com inscrição estadual) e, se não responder, BrasilAPI (sem inscrição estadual). */
+/**
+ * CNPJá (Receita + inscrições estaduais + Simples/MEI + atividade numa consulta); sem resposta ou no limite, CNPJ.ws
+ * (com inscrição estadual) e, por último, BrasilAPI (sem inscrição estadual).
+ */
 export async function consultar(cnpj: string): Promise<DadosReceita | null> {
   let dados: DadosReceita | null = null;
-  try { dados = doCnpjWs(await buscar(`https://publica.cnpj.ws/cnpj/${cnpj}`)); } catch (e) { if ((e as HttpError).status === 429) throw e; }
+  try { dados = doCnpja(await buscar(`https://open.cnpja.com/office/${cnpj}`)); } catch { /* limite ou fora do ar: vai para a próxima fonte */ }
+  if (!dados) {
+    try { dados = doCnpjWs(await buscar(`https://publica.cnpj.ws/cnpj/${cnpj}`)); } catch (e) { if ((e as HttpError).status === 429) throw e; }
+  }
   if (!dados) {
     try { dados = daBrasilApi(await buscar(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)); } catch { /* sem resposta */ }
   }
