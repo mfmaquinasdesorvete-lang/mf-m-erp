@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { useNotificacoes } from "@/components/Notificacoes";
+import { PainelAcessos } from "@/components/usuarios/Acessos";
+import { quandoAcesso, ultimoPorPessoa, type Acesso } from "@/lib/acessos";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -104,6 +106,11 @@ export default function Usuarios() {
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: funcionarios = [] } = useRows<Funcionario>("funcionarios", { select: "id, nome, cargo, user_id, ativo, whatsapp, pix", order: "nome", ascending: true });
   const { data: fotos } = useFotos();
+  const desdeAcessos = useMemo(() => new Date(Date.now() - 31 * 864e5).toISOString(), []);
+  const { data: acessos = [] } = useRows<Acesso>("acessos_usuarios", {
+    order: "entrou_em", ascending: false, key: ["30dias"], filtro: (q) => q.gte("entrou_em", desdeAcessos).limit(2000),
+  });
+  const ultimo = useMemo(() => ultimoPorPessoa(acessos), [acessos]);
   const [aba, setAba] = useAbaUrl<"usuarios" | "permissoes">("usuarios", ["usuarios", "permissoes"] as const);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"ativos" | "inativos" | "todos">("ativos");
@@ -125,6 +132,7 @@ export default function Usuarios() {
 
       {aba === "permissoes" ? <MatrizPermissoes /> : (
         <>
+          <PainelAcessos usuarios={usuarios} fotos={fotos} ultimo={ultimo} />
           {(provisoria > 0 || nuncaEntrou > 0 || admins === 1) && (
             <div className="mb-3 flex flex-wrap gap-2 text-sm">
               {provisoria > 0 && <span className="rounded-lg bg-amber-50 px-3 py-1.5 text-amber-900">{provisoria} com senha provisória (trocam no próximo acesso)</span>}
@@ -166,7 +174,7 @@ export default function Usuarios() {
                       <div className="text-right text-xs text-slate-600">
                         {!u.ativo ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-semibold text-slate-700">inativo</span>
                           : u.trocar_senha ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">senha provisória</span> : null}
-                        <div className="mt-0.5">último acesso: {quando(u.ultimo_acesso)}</div>
+                        <div className="mt-0.5">último acesso: {ultimo.get(u.user_id) ? quandoAcesso(ultimo.get(u.user_id)!) : quando(u.ultimo_acesso)}</div>
                       </div>
                       <div className="flex gap-1">
                         {u.telefone && <a className="inline-flex items-center rounded-lg px-2 py-2 text-emerald-700 hover:bg-slate-100" href={whatsappLink(u.telefone, `Olá, ${u.nome.split(" ")[0]}!`)} target="_blank" rel="noreferrer" aria-label={`WhatsApp de ${u.nome}`} title="WhatsApp"><MessageCircle size={16} aria-hidden /></a>}

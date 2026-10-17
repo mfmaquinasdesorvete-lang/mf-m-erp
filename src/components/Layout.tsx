@@ -8,6 +8,7 @@ import {
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
+import { descreverAparelho } from "@/lib/acessos";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
 import { ATALHOS_CELULAR, RAPIDOS, abreEmOutraAba, alvoDoLink, grupoDaRota, grupos, itensForaDoMenu, painelDaArea, todosItens, useVisivel, type Item } from "@/lib/menu";
@@ -150,6 +151,18 @@ export function Layout() {
     return { id, titulo: g?.titulo ?? (id === "admin" ? "Configurações" : ""), icone: item?.icon ?? g?.icone };
   }, [location.pathname]);
   useEffect(() => { document.documentElement.dataset.modulo = modulo.id; }, [modulo.id]);
+
+  // registro dos acessos (Usuários → topo): marca a entrada e, com a tela aberta e visível, um sinal a cada 5 minutos
+  useEffect(() => {
+    if (!perfil.user_id) return;
+    const { dispositivo, navegador } = descreverAparelho(navigator.userAgent);
+    const sinal = () => { if (!document.hidden) supabase.rpc("registrar_acesso", { p_dispositivo: dispositivo, p_navegador: navegador }).then(() => {}, () => {}); };
+    sinal();
+    const t = setInterval(sinal, 5 * 60_000);
+    const voltou = () => { if (!document.hidden) sinal(); };
+    document.addEventListener("visibilitychange", voltou);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", voltou); };
+  }, [perfil.user_id]);
 
   // engrenagem do rodapé: Configurações (ou, para quem não as vê, Usuários ou Importar dados)
   const engrenagem = [["configuracoes", "/configuracoes"], ["usuarios", "/usuarios"], ["importar", "/importar"]]

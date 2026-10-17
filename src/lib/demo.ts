@@ -3324,6 +3324,16 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (pessoas ? p_para.includes(sessao?.user.id) : papel === "admin" || !n.papeis.length || n.papeis.includes(papel)) canais.forEach((f) => f(n));
     return { data: n.id, error: null };
   },
+  registrar_acesso: ({ p_dispositivo, p_navegador }) => {
+    db.acessos_usuarios ??= [];
+    const agora = new Date().toISOString();
+    const eu = db.usuarios_erp.find((u: Row) => u.user_id === sessao?.user.id);
+    const aberto = db.acessos_usuarios.find((a: Row) => a.user_id === sessao?.user.id && Date.now() - Date.parse(a.ultimo_sinal_em) < 30 * 60_000);
+    if (aberto) { aberto.ultimo_sinal_em = agora; return { data: aberto.id, error: null }; }
+    const id = db.acessos_usuarios.length + 1;
+    db.acessos_usuarios.unshift({ id, user_id: sessao?.user.id, nome: eu?.nome ?? null, entrou_em: agora, ultimo_sinal_em: agora, dispositivo: p_dispositivo ?? null, navegador: p_navegador ?? null, ip: null });
+    return { data: id, error: null };
+  },
   responder_aviso: ({ p_id, p_texto, p_urgencia = "normal" }) => {
     if (!String(p_texto ?? "").trim()) return { data: null, error: { message: "Escreva a resposta" } };
     const o = db.notificacoes.find((n: Row) => n.id === p_id && n.remetente_id);
