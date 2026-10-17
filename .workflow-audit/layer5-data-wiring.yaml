@@ -1,0 +1,22 @@
+# Camada 5 — o que a tela calcula com valor fixo quando o dado real existe
+dados_de_mentira: 0   # 49 setTimeout, 4 Math.random e ~95 listas fixas conferidos: nenhum dado inventado fora do modo demonstração
+ligacoes_faltando:
+  - id: 27
+    tela: FreteVenda.tsx:75, fretes/FreteRapido.tsx:69
+    usa: municipio/uf da configuração (matriz)
+    deveria: unidade do pedido (municipio, uf, cep) — como EnvioForm.tsx:119
+  - id: 28
+    tela: Relatorios.tsx:89-96
+    usa: comissao_percentual do pedido ou % do vendedor
+    deveria: percentualPedido com comissao_regras e linhas (src/lib/comissao.ts:64)
+  - id: 44
+    tela: paineis/PainelMaquinas.tsx:242
+    usa: margem mínima fixa de 15%
+    deveria: metas_vendas.meta_margem do mês
+  - id: 40
+    tela: ~18 mensagens de WhatsApp em 14 arquivos
+    usa: "MF Máquinas" escrito no código
+    deveria: configuracoes.nome_fantasia (como Producao.tsx:630)
+paridade_celular:
+  - "#33 Marcar todos escondido no cabeçalho da tabela em 5 listas"
+  - "#45 margem e situação escondidas; #48 aviso de estoque sem ação; #49 loja do PDV escondida"

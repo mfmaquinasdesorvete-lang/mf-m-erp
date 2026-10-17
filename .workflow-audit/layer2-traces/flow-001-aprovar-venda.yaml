@@ -1,0 +1,10 @@
+# Fluxo: Vendas → abrir pedido → escolher cliente → aprovar → NF-e automática
+passos:
+  - tela: Pedidos (PedidoModal, src/pages/Pedidos.tsx:847)
+    acao: busca de cliente (ClienteBusca.tsx:57) — Esc fechava a lista E a janela (corrigido)
+  - tela: Pedidos
+    acao: Aprovar → aprovar_pedido → nfe-emitir (Pedidos.tsx:715-742)
+    achado: mensagem verde "NF-e enviada" mesmo com NF-e barrada (corrigido: só fala da NF-e quando foi enviada)
+  - tela: Expedição (fluxo/Expedicao.tsx:33)
+    achado: trava ligada depois da pergunta de teste — dois cliques podiam emitir duas notas (corrigido)
+caminho_de_volta: X/Esc fecha sem perguntar se há itens digitados (achado #10, em aberto)

@@ -1,0 +1,6 @@
+# Fluxo: Financeiro → Contas a pagar → Nova conta → ocorrência parcelada → Salvar
+passos:
+  - tela: Financeiro → Contas a pagar (src/pages/Financeiro.tsx:714)
+    acao: série de parcelas grava direto em contas_pagar (Financeiro.tsx:594), fora do useSave
+    achado: o botão olhava só save.isPending — clique duplo criava todas as parcelas em dobro (corrigido com trava própria)
+  - retorno: "N contas lançadas" + lista atualizada (ok)

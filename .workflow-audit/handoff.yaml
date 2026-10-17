@@ -1,0 +1,876 @@
+# Handoff Brief — gerado pelo workflow-audit (adaptado ao React do ERP Line)
+# Consumido por /plan --workflow-audit
+
+project: mf-m-erp
+audit_date: 2026-10-17
+source_files_scanned: 268
+code_at_audit: 332e69b
+fixes_commit: 4cc1f72
+
+summary:
+  total_issues: 57
+  critical: 10
+  high: 23
+  medium: 16
+  low: 8
+  fixed: 30
+  open: 27
+
+file_timestamps:
+  src/components/Avisos.tsx: "2026-10-14T18:04:09+00:00"
+  src/components/CategoriasProdutos.tsx: "2026-10-14T18:04:09+00:00"
+  src/components/Charts.tsx: "2026-10-13T12:41:23+00:00"
+  src/components/ClienteBusca.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/CrudPage.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/EmitirNfe.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/FreteVenda.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/ImportarTiny.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/KitComponentes.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/Toaster.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/clientes/AssinaturaFicha.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/clientes/ClienteForm.tsx: "2026-10-17T00:36:45+00:00"
+  src/components/clientes/QualidadeClientes.tsx: "2026-10-17T02:20:54+00:00"
+  src/components/clientes/TiposContato.tsx: "2026-10-10T14:53:58+00:00"
+  src/components/config/Cobranca.tsx: "2026-10-17T18:27:16+00:00"
+  src/components/config/comum.tsx: "2026-10-17T18:27:16+00:00"
+  src/components/contador/Contabilidade.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/financeiro/AprovarPagar.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/financeiro/Cobranca.tsx: "2026-10-17T18:27:16+00:00"
+  src/components/financeiro/DecisaoPagamento.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/financeiro/LinkPagamento.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/financeiro/PainelFinanceiro.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/fiscal/DeducoesFiscais.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/fluxo/Expedicao.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/fretes/CteFaturas.tsx: "2026-10-17T12:57:40+00:00"
+  src/components/fretes/CtePainel.tsx: "2026-10-17T12:57:40+00:00"
+  src/components/fretes/EnvioForm.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/fretes/FreteRapido.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/mercadolivre/AnunciosMercadoLivre.tsx: "2026-10-17T21:38:52+00:00"
+  src/components/nfe/DevolucaoModal.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/nfe/RecebidaDetalhe.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/painel/Painel.tsx: "2026-10-17T10:31:36+00:00"
+  src/components/produtos/FichaProduto.tsx: "2026-10-16T15:46:21+00:00"
+  src/components/produtos/GaleriaProduto.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/sobre/Guardanapo.tsx: "2026-10-16T22:24:25+00:00"
+  src/components/sobre/Sistemas.tsx: "2026-10-17T03:18:51+00:00"
+  src/components/ui.tsx: "2026-10-17T22:27:26+00:00"
+  src/components/vendas/ColunasVenda.tsx: "2026-10-16T21:43:27+00:00"
+  src/components/vendas/PropostasTiny.tsx: "2026-10-15T23:54:49+00:00"
+  src/lib/analistaFiscal.ts: "2026-10-16T17:47:04+00:00"
+  src/lib/auditoria.ts: "2026-10-17T01:02:54+00:00"
+  src/lib/fechamentoMes.ts: "2026-10-16T04:57:53+00:00"
+  src/lib/menu.ts: "2026-10-17T18:35:00+00:00"
+  src/lib/permissoes.ts: "2026-10-17T22:27:26+00:00"
+  src/pages/AnalistaFiscal.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Aprovacoes.tsx: "2026-10-17T09:35:36+00:00"
+  src/pages/Assistencia.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Auditoria.tsx: "2026-10-17T01:02:54+00:00"
+  src/pages/Comissoes.tsx: "2026-10-17T21:17:01+00:00"
+  src/pages/Contador.tsx: "2026-10-17T10:06:35+00:00"
+  src/pages/Dashboard.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Financeiro.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Garantias.tsx: "2026-10-17T10:06:35+00:00"
+  src/pages/Gerencial.tsx: "2026-10-17T21:38:52+00:00"
+  src/pages/Implantacao.tsx: "2026-10-14T19:10:39+00:00"
+  src/pages/ImpostosTarifas.tsx: "2026-10-16T23:07:21+00:00"
+  src/pages/Login.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Pdv.tsx: "2026-10-17T18:35:00+00:00"
+  src/pages/Pedidos.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Pessoal.tsx: "2026-10-17T05:45:01+00:00"
+  src/pages/Producao.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Produtos.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/Relatorios.tsx: "2026-10-16T00:58:11+00:00"
+  src/pages/Sobre.tsx: "2026-10-17T03:18:51+00:00"
+  src/pages/Transportadoras.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/paineis/PainelCadastros.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/paineis/PainelFinanceiroArea.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/paineis/PainelMaquinas.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/paineis/PainelProducao.tsx: "2026-10-17T22:27:26+00:00"
+  src/pages/paineis/PainelVendas.tsx: "2026-10-17T10:06:35+00:00"
+
+issues:
+  - id: 1
+    finding: "NF-e: trava ligada só depois da pergunta de teste (que consulta o servidor) — dois cliques emitiam duas notas"
+    category: race_condition_ux
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: critical
+    roi: excellent
+    blast_radius: "3 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/EmitirNfe.tsx
+      - src/components/fluxo/Expedicao.tsx
+      - src/components/nfe/DevolucaoModal.tsx
+    group_hint: travas_clique_duplo
+  - id: 2
+    finding: "Clique duplo lançava o estoque duas vezes (ajuste de inventário em dobro)"
+    category: race_condition_ux
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: critical
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Produtos.tsx
+    group_hint: travas_clique_duplo
+  - id: 3
+    finding: "Clique duplo criava a série de parcelas a pagar em dobro (insert direto, fora do )"
+    category: race_condition_ux
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: critical
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Financeiro.tsx
+    group_hint: travas_clique_duplo
+  - id: 4
+    finding: "Clique duplo somava o adicional de frete duas vezes no valor aprovado"
+    category: race_condition_ux
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/fretes/EnvioForm.tsx
+    group_hint: travas_clique_duplo
+  - id: 5
+    finding: "Esc na busca de cliente fechava o formulário inteiro (pedido, OS, NF-e direta, contas, serviço tomado…)"
+    category: silent_state_reset
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: critical
+    roi: excellent
+    blast_radius: "2 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/ClienteBusca.tsx
+      - src/components/ui.tsx
+    group_hint: formularios_sem_aviso
+  - id: 6
+    finding: "Janela de baixo voltava ao topo da pilha ao receber dados e o Esc seguinte a fechava (ex.: categorias dentro do cadastro de produto)"
+    category: modal_stacking
+    urgency: critical
+    risk_fix: medium
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/ui.tsx
+    group_hint: formularios_sem_aviso
+  - id: 7
+    finding: "Foto da OS apagada sem confirmação; lixeira invisível mas tocável no celular; arquivo apagado antes de gravar a OS"
+    category: destructive_no_confirm
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: critical
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Assistencia.tsx
+    group_hint: confirmacoes
+  - id: 8
+    finding: "Produção concluída mesmo quando os números de série não foram gravados (erro ignorado)"
+    category: error_recovery_missing
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Producao.tsx
+    group_hint: erros_visiveis
+  - id: 9
+    finding: "Ficha cadastral podia ser assinada sem a declaração ter carregado"
+    category: loading_state_trap
+    urgency: critical
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/clientes/AssinaturaFicha.tsx
+    group_hint: erros_visiveis
+  - id: 10
+    finding: "Esc e X descartam formulários grandes sem \"Sair sem salvar?\" (pedido, OS, NF-e direta, produto, contas, OP, OC, transferência, e-mail, parcelamento). Só avisa"
+    category: silent_state_reset
+    urgency: critical
+    risk_fix: medium
+    risk_no_fix: high
+    roi: good
+    blast_radius: "~11 arquivo(s)"
+    fix_effort: medium
+    status: open
+    files:
+      - src/components/clientes/ClienteForm.tsx
+      - src/components/ui.tsx
+    group_hint: formularios_sem_aviso
+  - id: 11
+    finding: "Aprovação dizia \"NF-e enviada\" mesmo com a NF-e barrada ou com erro"
+    category: missing_feedback
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: fixed
+    files:
+      - src/pages/Pedidos.tsx
+    group_hint: retorno_ao_usuario
+  - id: 12
+    finding: "\"Importar de novo (atualiza)\" do Tiny sobrescrevia preço, custo, NCM e endereços sem perguntar"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/ImportarTiny.tsx
+    group_hint: confirmacoes
+  - id: 13
+    finding: "Ações em lote dos cadastros (inativar, tirar do catálogo) sem confirmação; erro de rede/permissão aparecia como \"tem vínculos\""
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: fixed
+    files:
+      - src/components/CrudPage.tsx
+    group_hint: confirmacoes
+  - id: 14
+    finding: "Componente do kit apagado no clique (muda a baixa de estoque)"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/KitComponentes.tsx
+    group_hint: confirmacoes
+  - id: 15
+    finding: "\"Desfazer\" em lote apagava agendamentos e motivos de não pagar sem perguntar"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/financeiro/DecisaoPagamento.tsx
+    group_hint: confirmacoes
+  - id: 16
+    finding: "Link de pagamento já enviado descartado com um toque"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/financeiro/LinkPagamento.tsx
+    group_hint: confirmacoes
+  - id: 17
+    finding: "Cotação de frete apagada sem confirmação e sem mostrar erro"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/FreteVenda.tsx
+    group_hint: confirmacoes
+  - id: 18
+    finding: "\"Tirar da marca\" (transportadora) sem confirmação, ao contrário de Fornecedores"
+    category: destructive_no_confirm
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Transportadoras.tsx
+    group_hint: confirmacoes
+  - id: 19
+    finding: "\"Máquinas vendidas\" e o atalho Vendas do Painel das máquinas abriam a Venda de Peças (que exclui máquinas)"
+    category: wrong_destination
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/paineis/PainelMaquinas.tsx
+    group_hint: destinos_e_abas
+  - id: 20
+    finding: "\"Notas de fornecedor para conferir\" abria as NF-e emitidas"
+    category: nav_container_mismatch
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "3 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Dashboard.tsx
+      - src/components/financeiro/PainelFinanceiro.tsx
+      - src/pages/paineis/PainelFinanceiroArea.tsx
+    group_hint: destinos_e_abas
+  - id: 21
+    finding: "Início: \"Cobranças vencidas\" abria a Visão geral e \"Orçamentos abertos\" todos os pedidos"
+    category: promise_scope_mismatch
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Dashboard.tsx
+    group_hint: destinos_e_abas
+  - id: 22
+    finding: "Rotina do Analista fiscal: 4 botões (\"Notas recebidas\", \"Regras\", \"Compliance\", \"Contas a pagar\") abriam a aba padrão"
+    category: nav_container_mismatch
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/AnalistaFiscal.tsx
+    group_hint: destinos_e_abas
+  - id: 23
+    finding: "\"Pedidos de compra em cotação\" abria a aba Cotações (outra tabela)"
+    category: wrong_destination
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/paineis/PainelProducao.tsx
+    group_hint: destinos_e_abas
+  - id: 24
+    finding: "Contador caía em Financeiro sem aba marcada (cobrança escondida para ele)"
+    category: permission_dead_end
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/pages/Financeiro.tsx
+    group_hint: perfis
+  - id: 25
+    finding: "\"Entre contas e sócios\" no menu do Vendas levava a uma tela bloqueada"
+    category: permission_dead_end
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/lib/permissoes.ts
+    group_hint: perfis
+  - id: 26
+    finding: "Início e Contas diziam \"tudo em dia\" / \"nenhum registro\" enquanto carregavam"
+    category: empty_state_missing
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "2 arquivo(s)"
+    fix_effort: small
+    status: fixed
+    files:
+      - src/pages/Dashboard.tsx
+      - src/pages/Financeiro.tsx
+    group_hint: retorno_ao_usuario
+  - id: 27
+    finding: "Cotação de frete manda a cidade da matriz como origem em pedido da filial SP (preço e prazo errados)"
+    category: unwired_data
+    urgency: high
+    risk_fix: low
+    risk_no_fix: high
+    roi: excellent
+    blast_radius: "2 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/components/FreteVenda.tsx
+      - src/components/fretes/FreteRapido.tsx
+    group_hint: dados_reais
+  - id: 28
+    finding: "Comissão prevista nos Relatórios ignora as regras de comissão (difere do Pedido e da Margem)"
+    category: unwired_data
+    urgency: high
+    risk_fix: medium
+    risk_no_fix: high
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Relatorios.tsx
+    group_hint: dados_reais
+  - id: 29
+    finding: "\"Compras e cotações\" aparece no menu do Vendas e a tela bloqueia (\"Seu perfil não faz compras\"); cartões do Início e do Pós-venda levam lá"
+    category: permission_dead_end
+    urgency: high
+    risk_fix: medium
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "3 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Producao.tsx
+      - src/lib/menu.ts
+    group_hint: perfis
+  - id: 30
+    finding: "Painel da fábrica leva o perfil Compras a /producao e /transferencias (escondidas); o pedido de Reposição se perde"
+    category: context_dropping
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/paineis/PainelProducao.tsx
+    group_hint: destinos_e_abas
+  - id: 31
+    finding: "Indicadores do Painel de vendas: no quadro Kanban (padrão) a situação clicada é ignorada e as máquinas não aparecem"
+    category: promise_scope_mismatch
+    urgency: high
+    risk_fix: medium
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "2 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Pedidos.tsx
+      - src/pages/paineis/PainelVendas.tsx
+    group_hint: destinos_e_abas
+  - id: 32
+    finding: "\"Precisa de atenção\" e cartões dos painéis não conferem o perfil: o clique volta ao Início sem aviso. (+ 5 painéis)"
+    category: permission_dead_end
+    urgency: high
+    risk_fix: medium
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "6 arquivo(s)"
+    fix_effort: medium
+    status: open
+    files:
+      - src/components/painel/Painel.tsx
+    group_hint: perfis
+  - id: 33
+    finding: "\"Marcar todos\" some no celular (cabeçalho da tabela escondido) em CT-e, anúncios, comissões, cadastros e propostas do Tiny"
+    category: platform_gap
+    urgency: high
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "5 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/components/mercadolivre/AnunciosMercadoLivre.tsx
+      - src/pages/Comissoes.tsx
+      - src/components/CrudPage.tsx
+      - src/components/fretes/CtePainel.tsx
+      - src/components/vendas/PropostasTiny.tsx
+    group_hint: celular
+  - id: 34
+    finding: "Erros de leitura engolidos em 9 consultas (): falha parece lista vazia"
+    category: error_recovery_missing
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "9 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Assistencia.tsx
+      - src/components/fretes/CtePainel.tsx
+      - src/components/fretes/EnvioForm.tsx
+      - src/components/produtos/FichaProduto.tsx
+      - src/components/clientes/QualidadeClientes.tsx
+      - src/components/config/Cobranca.tsx
+      - src/components/financeiro/Cobranca.tsx
+    group_hint: erros_visiveis
+  - id: 35
+    finding: "Erros que sumiam: itens da nota de fornecedor (parecia nota sem XML), escolha da cotação no Frete rápido e registro da troca de senha"
+    category: error_recovery_missing
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "3 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/fretes/FreteRapido.tsx
+      - src/pages/Login.tsx
+      - src/components/nfe/RecebidaDetalhe.tsx
+    group_hint: erros_visiveis
+  - id: 36
+    finding: "Garantias: histórico da máquina sem paginar (1.000 OS) e \"Agendou\" sem conferir o erro"
+    category: error_recovery_missing
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Garantias.tsx
+    group_hint: erros_visiveis
+  - id: 37
+    finding: "Configurações ficam em \"Carregando…\" para sempre se a leitura falhar (sem \"tentar de novo\"). + 8 páginas"
+    category: loading_state_trap
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "9 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/components/config/comum.tsx
+    group_hint: erros_visiveis
+  - id: 38
+    finding: "Garantias ignora o filtro mandado pelos painéis (\"vencem em 30 dias\", \"fora da garantia\")"
+    category: promise_scope_mismatch
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "4 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Garantias.tsx
+    group_hint: destinos_e_abas
+  - id: 39
+    finding: "Clique duplo em outros botões: salvar cotação e criar envio (), ocorrência do envio (), mensagem ao contador (), painel pessoal ()"
+    category: race_condition_ux
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "4 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Contador.tsx
+      - src/components/fretes/EnvioForm.tsx
+      - src/components/FreteVenda.tsx
+      - src/pages/Pessoal.tsx
+    group_hint: travas_clique_duplo
+  - id: 40
+    finding: "\"MF Máquinas\" escrito direto em ~18 mensagens de WhatsApp (não segue o nome em Configurações → Empresa). , e mais 12"
+    category: unwired_data
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: marginal
+    blast_radius: "14 arquivo(s)"
+    fix_effort: medium
+    status: open
+    files:
+      - src/components/clientes/ClienteForm.tsx
+      - src/pages/Pedidos.tsx
+    group_hint: dados_reais
+  - id: 41
+    finding: "Busca do menu não troca o destaque quando a pessoa já está em Clientes/Estoque/Fornecedores"
+    category: context_dropping
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/components/CrudPage.tsx
+    group_hint: destinos_e_abas
+  - id: 42
+    finding: "Exceções da Auditoria \"Pedido #N\" / \"OS #N\" abrem a lista, não o registro"
+    category: promise_scope_mismatch
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "2 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Auditoria.tsx
+      - src/lib/auditoria.ts
+    group_hint: destinos_e_abas
+  - id: 43
+    finding: "Sobre → Sistemas e Esquemas: links e passos sem filtro de perfil (não admin cai em \"Módulos\")"
+    category: nav_container_mismatch
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: marginal
+    blast_radius: "3 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Sobre.tsx
+      - src/components/sobre/Guardanapo.tsx
+      - src/components/sobre/Sistemas.tsx
+    group_hint: destinos_e_abas
+  - id: 44
+    finding: "Alerta de margem do Painel das máquinas fixo em 15% (ignora a margem mínima das Metas)"
+    category: unwired_data
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/paineis/PainelMaquinas.tsx
+    group_hint: dados_reais
+  - id: 45
+    finding: "Margem por modelo e \"Em risco/Inativo\" escondidos no celular"
+    category: platform_gap
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "2 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Gerencial.tsx
+      - src/pages/paineis/PainelMaquinas.tsx
+    group_hint: celular
+  - id: 46
+    finding: "Botões da galeria do produto (foto principal, tirar) invisíveis em iPad e celular deitado"
+    category: gesture_only_action
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/produtos/GaleriaProduto.tsx
+    group_hint: celular
+  - id: 47
+    finding: "Motivo da conta devolvida para correção só no tooltip (invisível no celular)"
+    category: gesture_only_action
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: medium
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/financeiro/AprovarPagar.tsx
+    group_hint: celular
+  - id: 48
+    finding: "Aviso de estoque baixo sem ação no celular (o filtro \"No mínimo\" já existe)"
+    category: platform_gap
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Produtos.tsx
+    group_hint: celular
+  - id: 49
+    finding: "Escolha da loja no PDV escondida na tela inicial do celular"
+    category: platform_gap
+    urgency: medium
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/pages/Pdv.tsx
+    group_hint: celular
+  - id: 50
+    finding: "Links de aba errada: certificados (só admin vê o Monitor), CT-e e faturas, clientes que sumiram"
+    category: nav_container_mismatch
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: excellent
+    blast_radius: "3 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/contador/Contabilidade.tsx
+      - src/components/fiscal/DeducoesFiscais.tsx
+      - src/pages/paineis/PainelCadastros.tsx
+    group_hint: destinos_e_abas
+  - id: 51
+    finding: "Avisos verdes/vermelhos sem (leitor de tela não anuncia)"
+    category: missing_feedback
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: excellent
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: fixed
+    files:
+      - src/components/Toaster.tsx
+    group_hint: retorno_ao_usuario
+  - id: 52
+    finding: "Outras exclusões sem confirmação: categorias, tipos de contato, desconectar Telegram, tirar cotação do envio"
+    category: destructive_no_confirm
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "4 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/components/Avisos.tsx
+      - src/components/CategoriasProdutos.tsx
+      - src/components/fretes/EnvioForm.tsx
+      - src/components/clientes/TiposContato.tsx
+    group_hint: confirmacoes
+  - id: 53
+    finding: "Forma de pagamento só como ícone no celular; botões só com ícone abaixo de 1024px em Contas a pagar"
+    category: gesture_only_action
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "2 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/pages/Financeiro.tsx
+      - src/components/vendas/ColunasVenda.tsx
+    group_hint: celular
+  - id: 54
+    finding: "Elementos com cara de clicáveis sem ação (valor de inadimplentes sublinhado, fatias do gráfico)"
+    category: phantom_touch_target
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: good
+    blast_radius: "2 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/components/Charts.tsx
+      - src/components/financeiro/PainelFinanceiro.tsx
+    group_hint: celular
+  - id: 55
+    finding: "Links genéricos: \"esses clientes\" (Analista fiscal), \"NF-e com erro\" (Contador), \"sem categoria\" (fechamento), conta da fatura de frete, OP #N, conta em Aprovações"
+    category: promise_scope_mismatch
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: marginal
+    blast_radius: "6 arquivo(s)"
+    fix_effort: small
+    status: open
+    files:
+      - src/pages/Aprovacoes.tsx
+      - src/pages/Contador.tsx
+      - src/components/fretes/CteFaturas.tsx
+      - src/pages/paineis/PainelProducao.tsx
+      - src/lib/analistaFiscal.ts
+      - src/lib/fechamentoMes.ts
+    group_hint: destinos_e_abas
+  - id: 56
+    finding: "Links internos sem conferir o perfil: Implantação → Usuários, Impostos → Funcionários, \"Abrir\" do Analista fiscal"
+    category: permission_dead_end
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: marginal
+    blast_radius: "3 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/pages/AnalistaFiscal.tsx
+      - src/pages/Implantacao.tsx
+      - src/pages/ImpostosTarifas.tsx
+    group_hint: perfis
+  - id: 57
+    finding: "Cartões \"Entrou/Saiu\" mandam a aba para a Conciliação, que não lê"
+    category: context_dropping
+    urgency: low
+    risk_fix: low
+    risk_no_fix: low
+    roi: marginal
+    blast_radius: "1 arquivo(s)"
+    fix_effort: trivial
+    status: open
+    files:
+      - src/pages/paineis/PainelFinanceiroArea.tsx
+    group_hint: destinos_e_abas

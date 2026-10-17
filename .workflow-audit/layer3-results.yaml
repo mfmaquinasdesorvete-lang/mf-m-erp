@@ -1,0 +1,77 @@
+# Camada 3 — problemas por categoria (mesmos ids do report.md)
+audit_date: 2026-10-17
+categorias:
+  context_dropping:
+    - { id: 30, urgencia: high, situacao: open, arquivos: ["src/pages/paineis/PainelProducao.tsx"] }
+    - { id: 41, urgencia: medium, situacao: open, arquivos: ["src/components/CrudPage.tsx"] }
+    - { id: 57, urgencia: low, situacao: open, arquivos: ["src/pages/paineis/PainelFinanceiroArea.tsx"] }
+  destructive_no_confirm:
+    - { id: 7, urgencia: critical, situacao: fixed, arquivos: ["src/pages/Assistencia.tsx"] }
+    - { id: 12, urgencia: high, situacao: fixed, arquivos: ["src/components/ImportarTiny.tsx"] }
+    - { id: 13, urgencia: high, situacao: fixed, arquivos: ["src/components/CrudPage.tsx"] }
+    - { id: 14, urgencia: high, situacao: fixed, arquivos: ["src/components/KitComponentes.tsx"] }
+    - { id: 15, urgencia: high, situacao: fixed, arquivos: ["src/components/financeiro/DecisaoPagamento.tsx"] }
+    - { id: 16, urgencia: high, situacao: fixed, arquivos: ["src/components/financeiro/LinkPagamento.tsx"] }
+    - { id: 17, urgencia: high, situacao: fixed, arquivos: ["src/components/FreteVenda.tsx"] }
+    - { id: 18, urgencia: high, situacao: fixed, arquivos: ["src/pages/Transportadoras.tsx"] }
+    - { id: 52, urgencia: low, situacao: open, arquivos: ["src/components/Avisos.tsx", "src/components/CategoriasProdutos.tsx", "src/components/fretes/EnvioForm.tsx", "src/components/clientes/TiposContato.tsx"] }
+  empty_state_missing:
+    - { id: 26, urgencia: high, situacao: fixed, arquivos: ["src/pages/Dashboard.tsx", "src/pages/Financeiro.tsx"] }
+  error_recovery_missing:
+    - { id: 8, urgencia: critical, situacao: fixed, arquivos: ["src/pages/Producao.tsx"] }
+    - { id: 34, urgencia: medium, situacao: open, arquivos: ["src/pages/Assistencia.tsx", "src/components/fretes/CtePainel.tsx", "src/components/fretes/EnvioForm.tsx", "src/components/produtos/FichaProduto.tsx", "src/components/clientes/QualidadeClientes.tsx", "src/components/config/Cobranca.tsx", "src/components/financeiro/Cobranca.tsx"] }
+    - { id: 35, urgencia: medium, situacao: fixed, arquivos: ["src/components/fretes/FreteRapido.tsx", "src/pages/Login.tsx", "src/components/nfe/RecebidaDetalhe.tsx"] }
+    - { id: 36, urgencia: medium, situacao: open, arquivos: ["src/pages/Garantias.tsx"] }
+  gesture_only_action:
+    - { id: 46, urgencia: medium, situacao: fixed, arquivos: ["src/components/produtos/GaleriaProduto.tsx"] }
+    - { id: 47, urgencia: medium, situacao: fixed, arquivos: ["src/components/financeiro/AprovarPagar.tsx"] }
+    - { id: 53, urgencia: low, situacao: open, arquivos: ["src/pages/Financeiro.tsx", "src/components/vendas/ColunasVenda.tsx"] }
+  loading_state_trap:
+    - { id: 9, urgencia: critical, situacao: fixed, arquivos: ["src/components/clientes/AssinaturaFicha.tsx"] }
+    - { id: 37, urgencia: medium, situacao: open, arquivos: ["src/components/config/comum.tsx"] }
+  missing_feedback:
+    - { id: 11, urgencia: high, situacao: fixed, arquivos: ["src/pages/Pedidos.tsx"] }
+    - { id: 51, urgencia: low, situacao: fixed, arquivos: ["src/components/Toaster.tsx"] }
+  modal_stacking:
+    - { id: 6, urgencia: critical, situacao: fixed, arquivos: ["src/components/ui.tsx"] }
+  nav_container_mismatch:
+    - { id: 20, urgencia: high, situacao: fixed, arquivos: ["src/pages/Dashboard.tsx", "src/components/financeiro/PainelFinanceiro.tsx", "src/pages/paineis/PainelFinanceiroArea.tsx"] }
+    - { id: 22, urgencia: high, situacao: fixed, arquivos: ["src/pages/AnalistaFiscal.tsx"] }
+    - { id: 43, urgencia: medium, situacao: open, arquivos: ["src/pages/Sobre.tsx", "src/components/sobre/Guardanapo.tsx", "src/components/sobre/Sistemas.tsx"] }
+    - { id: 50, urgencia: low, situacao: fixed, arquivos: ["src/components/contador/Contabilidade.tsx", "src/components/fiscal/DeducoesFiscais.tsx", "src/pages/paineis/PainelCadastros.tsx"] }
+  permission_dead_end:
+    - { id: 24, urgencia: high, situacao: fixed, arquivos: ["src/pages/Financeiro.tsx"] }
+    - { id: 25, urgencia: high, situacao: fixed, arquivos: ["src/lib/permissoes.ts"] }
+    - { id: 29, urgencia: high, situacao: open, arquivos: ["src/pages/Producao.tsx", "src/lib/menu.ts"] }
+    - { id: 32, urgencia: high, situacao: open, arquivos: ["src/components/painel/Painel.tsx"] }
+    - { id: 56, urgencia: low, situacao: open, arquivos: ["src/pages/AnalistaFiscal.tsx", "src/pages/Implantacao.tsx", "src/pages/ImpostosTarifas.tsx"] }
+  phantom_touch_target:
+    - { id: 54, urgencia: low, situacao: open, arquivos: ["src/components/Charts.tsx", "src/components/financeiro/PainelFinanceiro.tsx"] }
+  platform_gap:
+    - { id: 33, urgencia: high, situacao: open, arquivos: ["src/components/mercadolivre/AnunciosMercadoLivre.tsx", "src/pages/Comissoes.tsx", "src/components/CrudPage.tsx", "src/components/fretes/CtePainel.tsx", "src/components/vendas/PropostasTiny.tsx"] }
+    - { id: 45, urgencia: medium, situacao: open, arquivos: ["src/pages/Gerencial.tsx", "src/pages/paineis/PainelMaquinas.tsx"] }
+    - { id: 48, urgencia: medium, situacao: open, arquivos: ["src/pages/Produtos.tsx"] }
+    - { id: 49, urgencia: medium, situacao: open, arquivos: ["src/pages/Pdv.tsx"] }
+  promise_scope_mismatch:
+    - { id: 21, urgencia: high, situacao: fixed, arquivos: ["src/pages/Dashboard.tsx"] }
+    - { id: 31, urgencia: high, situacao: open, arquivos: ["src/pages/Pedidos.tsx", "src/pages/paineis/PainelVendas.tsx"] }
+    - { id: 38, urgencia: medium, situacao: open, arquivos: ["src/pages/Garantias.tsx"] }
+    - { id: 42, urgencia: medium, situacao: open, arquivos: ["src/pages/Auditoria.tsx", "src/lib/auditoria.ts"] }
+    - { id: 55, urgencia: low, situacao: open, arquivos: ["src/pages/Aprovacoes.tsx", "src/pages/Contador.tsx", "src/components/fretes/CteFaturas.tsx", "src/pages/paineis/PainelProducao.tsx", "src/lib/analistaFiscal.ts", "src/lib/fechamentoMes.ts"] }
+  race_condition_ux:
+    - { id: 1, urgencia: critical, situacao: fixed, arquivos: ["src/components/EmitirNfe.tsx", "src/components/fluxo/Expedicao.tsx", "src/components/nfe/DevolucaoModal.tsx"] }
+    - { id: 2, urgencia: critical, situacao: fixed, arquivos: ["src/pages/Produtos.tsx"] }
+    - { id: 3, urgencia: critical, situacao: fixed, arquivos: ["src/pages/Financeiro.tsx"] }
+    - { id: 4, urgencia: critical, situacao: fixed, arquivos: ["src/components/fretes/EnvioForm.tsx"] }
+    - { id: 39, urgencia: medium, situacao: open, arquivos: ["src/pages/Contador.tsx", "src/components/fretes/EnvioForm.tsx", "src/components/FreteVenda.tsx", "src/pages/Pessoal.tsx"] }
+  silent_state_reset:
+    - { id: 5, urgencia: critical, situacao: fixed, arquivos: ["src/components/ClienteBusca.tsx", "src/components/ui.tsx"] }
+    - { id: 10, urgencia: critical, situacao: open, arquivos: ["src/components/clientes/ClienteForm.tsx", "src/components/ui.tsx"] }
+  unwired_data:
+    - { id: 27, urgencia: high, situacao: open, arquivos: ["src/components/FreteVenda.tsx", "src/components/fretes/FreteRapido.tsx"] }
+    - { id: 28, urgencia: high, situacao: open, arquivos: ["src/pages/Relatorios.tsx"] }
+    - { id: 40, urgencia: medium, situacao: open, arquivos: ["src/components/clientes/ClienteForm.tsx", "src/pages/Pedidos.tsx"] }
+    - { id: 44, urgencia: medium, situacao: open, arquivos: ["src/pages/paineis/PainelMaquinas.tsx"] }
+  wrong_destination:
+    - { id: 19, urgencia: high, situacao: fixed, arquivos: ["src/pages/paineis/PainelMaquinas.tsx"] }
+    - { id: 23, urgencia: high, situacao: fixed, arquivos: ["src/pages/paineis/PainelProducao.tsx"] }

@@ -1,0 +1,28 @@
+source: workflow-audit
+version: adaptado-react-1
+timestamp: 2026-10-17T22:40:00Z
+project: mf-m-erp
+personas:
+  - name: "Vendas"
+    goal: "Fechar a venda e emitir a nota sem retrabalho"
+    key_workflows: ["Orçamento → venda", "Aprovar com NF-e automática"]
+    evaluation: { discovery: 4, efficiency: 4, feedback: 4, recovery: 4 }
+    issues_found: [{ finding_ref: 5, impact: "Esc apagava o pedido em edição" }, { finding_ref: 11, impact: "Mensagem dizia NF-e enviada sem ter sido" }, { finding_ref: 29, impact: "Menu levava a tela bloqueada" }]
+  - name: "Financeiro"
+    goal: "Pagar e receber certo, também pelo celular"
+    key_workflows: ["Lançar conta parcelada", "Aprovar e pagar", "Cobrar vencidas"]
+    evaluation: { discovery: 4, efficiency: 3, feedback: 4, recovery: 4 }
+    issues_found: [{ finding_ref: 3, impact: "Parcelas duplicadas no clique duplo" }, { finding_ref: 26, impact: "Lista vazia durante a carga" }, { finding_ref: 33, impact: "Sem marcar todos no celular" }]
+  - name: "Técnico"
+    goal: "Registrar a OS com fotos e entregar"
+    key_workflows: ["OS com fotos"]
+    evaluation: { discovery: 4, efficiency: 4, feedback: 4, recovery: 4 }
+    issues_found: [{ finding_ref: 7, impact: "Foto apagada por toque invisível" }]
+evaluation_matrix:
+  - { workflow: "Aprovar venda", discovery: 4, efficiency: 4, feedback: 4, recovery: 4 }
+  - { workflow: "Conta parcelada", discovery: 4, efficiency: 4, feedback: 4, recovery: 4 }
+  - { workflow: "Painel → tela", discovery: 3, efficiency: 3, feedback: 3, recovery: 3 }
+checks_performed:
+  categories_scanned: [dead_end, wrong_destination, mock_data, destructive_no_confirm, silent_state_reset, incomplete_navigation, missing_activation, unwired_data, platform_gap, promise_scope_mismatch, buried_primary_action, dismiss_trap, context_dropping, notif_nav_fragility, sheet_asymmetry, empty_state_missing, error_recovery_missing, keyboard_obscures, permission_dead_end, modal_stacking, nav_container_mismatch, two_step_flow, missing_feedback, gesture_only_action, loading_state_trap, stale_nav_context, phantom_touch_target, invisible_control, race_condition_ux, invisible_selection, inconsistent_pattern, orphaned_code, double_nested_nav]
+  persona_evaluation: true
+  personas_defined: 3

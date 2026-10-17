@@ -1,0 +1,7 @@
+# Fluxo: painéis e Início → cartão ou "Precisa de atenção" → tela de destino
+verificado:
+  - "Máquinas vendidas" → /pedidos (Venda de Peças, sem máquinas) — corrigido para /vendas-maquinas
+  - "Notas de fornecedor para conferir" → /notas (aba emitidas) — corrigido para a aba recebidas
+  - "Cobranças vencidas" / "Orçamentos abertos" → listas sem filtro — corrigido (aba cobrança / situação orçamento)
+  - ListaAtencao (painel/Painel.tsx:233) não confere o perfil — em aberto (#32)
+  - Indicadores do Painel de vendas → quadro Kanban ignora a situação — em aberto (#31)
