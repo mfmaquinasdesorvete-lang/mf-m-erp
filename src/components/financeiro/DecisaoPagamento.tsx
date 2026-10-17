@@ -1,6 +1,7 @@
 // Contas a pagar: botões de decisão por conta (Pagar, Agendar, Não pagar), a etiqueta da decisão, a barra de
 // ações das contas marcadas e o pagamento em lote (uma conta bancária por unidade).
 import { useState, type FormEvent } from "react";
+import { confirmar } from "@/components/Dialogos";
 import { Ban, CalendarClock, Check, CheckCheck, Wallet, X } from "lucide-react";
 import { BotaoAtalho, Button, COR_ATALHO, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -276,7 +277,7 @@ export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () 
       <Button type="button" variant="secondary" disabled={ocupado || !idsPagar.length} onClick={async () => { if (await programar(idsPagar, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>
       <Button type="button" variant="secondary" disabled={!idsPagar.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>
       <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("nao_pagar")}><Ban size={15} /> Não pagar</Button>
-      <Button type="button" variant="ghost" disabled={ocupado || !ids.length} onClick={async () => { if (await programar(ids, "limpar")) onLimpar(); }} title="Tirar a decisão (volta para a decidir)"><X size={15} /> Desfazer</Button>
+      <Button type="button" variant="ghost" disabled={ocupado || !ids.length} onClick={async () => { if (await confirmar(`Desfazer a decisão de ${ids.length} ${pl(ids.length, "conta", "contas")}? Agendamentos e motivos de "não pagar" se perdem.`) && await programar(ids, "limpar")) onLimpar(); }} title="Tirar a decisão (volta para a decidir)"><X size={15} /> Desfazer</Button>
       <Button type="button" disabled={!idsPagar.length} onClick={() => setJanela("lote")}><CheckCheck size={15} /> Pagamento em lote</Button>
       {janela === "agendar" && <ModalAgendar contas={aprovadas} onClose={() => { setJanela(null); onLimpar(); }} />}
       {janela === "nao_pagar" && <ModalNaoPagar contas={abertas} onClose={() => { setJanela(null); onLimpar(); }} />}

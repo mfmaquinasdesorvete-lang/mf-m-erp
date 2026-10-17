@@ -150,8 +150,10 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
       if (lista.length) return setConferindo(lista);
     }
     setConferindo(null);
-    if (!(await confirmarSeTeste())) return;
+    // trava antes da pergunta de teste (ela consulta o servidor): dois cliques não emitem duas notas
+    if (ocupado) return;
     setOcupado(true);
+    if (!(await confirmarSeTeste())) return setOcupado(false);
     try {
       const r = await callFunction<{ nota?: { status: string; numero?: string | null } }>("nfe-emitir", { avulsa: {
         unidade_id: unidade.id, cliente_id: cliente.id, operacao, natureza: natureza.trim() || null,
@@ -268,8 +270,9 @@ function DoPedido({ onClose, trocar }: { onClose: () => void; trocar: () => void
       if (lista.length) return setConferindo({ pedido: p, pendencias: lista });
     }
     setConferindo(null);
-    if (!(await confirmarSeTeste())) return;
+    if (ocupado) return;
     setOcupado(p.id);
+    if (!(await confirmarSeTeste())) return setOcupado(null);
     try {
       const r = await callFunction<{ nota?: { status: string; numero?: string | null } }>("nfe-emitir", { pedido_id: p.id });
       notify(r.nota?.status === "autorizada" ? `NF-e ${r.nota.numero ?? ""} autorizada` : "NF-e enviada para a SEFAZ. Acompanhe na lista.");

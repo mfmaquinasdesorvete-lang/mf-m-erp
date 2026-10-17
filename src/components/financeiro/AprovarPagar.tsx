@@ -82,7 +82,7 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
       return podeAgir ? (
         <button type="button" disabled={ocupado} onClick={() => executar("reenviar", [c], null)} title={c.revisao_comentario ? `Motivo: ${c.revisao_comentario}` : undefined}
           className={`${BTN} border border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100`}><RotateCcw size={15} aria-hidden /> Já corrigi: reenviar</button>
-      ) : null;
+      ) : c.revisao_comentario ? <span className="text-xs text-orange-900">Motivo: {c.revisao_comentario}</span> : null;
     }
     if (!i.pode) {
       return <span className="text-xs text-slate-500" title={i.motivo}>Esperando a {i.etapa}ª revisão{i.motivo === "você lançou esta conta" || i.motivo === "você fez a 1ª revisão" ? ` (${i.motivo})` : ""}</span>;

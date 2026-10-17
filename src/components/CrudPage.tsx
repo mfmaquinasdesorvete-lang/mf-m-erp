@@ -188,9 +188,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     if (!ids.length || !(await confirmar(`Excluir ${ids.length} ${pl(ids.length, singularDe(plural), plural)}? Isso não pode ser desfeito.`))) return;
     let feitos = 0;
     const presos: string[] = [];
+    let outroErro = ""; // erro que não é de vínculo (rede, permissão): aparece como é
     const apagar = async (lote: string[]) => {
       const { error, count } = await supabase.from(table).delete({ count: "exact" }).in("id", lote);
       if (!error) { feitos += count ?? lote.length; return true; }
+      if (error.code !== "23503") outroErro = error.message;
       return false;
     };
     try {
@@ -206,7 +208,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       invalidar(table);
     }
     setSel(new Set(presos));
-    if (presos.length) {
+    if (presos.length && outroErro) {
+      notify(`${feitos} ${pl(feitos, "excluído", "excluídos")}. ${presos.length} não foram excluídos: ${outroErro} (continuam selecionados).`, "erro");
+    } else if (presos.length) {
       notify(`${feitos} ${pl(feitos, "excluído", "excluídos")}. ${presos.length} não puderam ser excluídos porque têm pedidos, notas, contas ou outros registros ligados (continuam selecionados).`, "erro");
     } else notify(`${feitos} ${pl(feitos, singularDe(plural), plural)} ${pl(feitos, "excluído", "excluídos")}`);
   }
@@ -398,6 +402,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             {marcadores && <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>}
             {acoesLote.map((a) => (
               <Button key={a.label} variant="ghost" disabled={!!excluindo} onClick={async () => {
+                // ação em lote muda vários cadastros de uma vez e a seleção some depois: pergunta antes
+                if (!(await confirmar(`${a.label}: ${sel.size} ${pl(sel.size, singularDe(plural), plural)}?`))) return;
                 setExcluindo(`${a.label.toLowerCase()}…`);
                 try { notify((await a.executar([...sel])) || "Feito"); setSel(new Set()); invalidar(table); } catch (e) { notifyError(e); } finally { setExcluindo(null); }
               }}>{a.label}</Button>

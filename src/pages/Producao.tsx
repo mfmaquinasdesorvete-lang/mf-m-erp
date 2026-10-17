@@ -344,7 +344,11 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     return concluirAgora();
   };
   const concluirAgora = () => executar(async () => {
-    if (o.numeros_serie !== undefined) await supabase.from("ordens_producao").update({ numeros_serie: o.numeros_serie }).eq("id", o.id!);
+    // os números de série entram na conclusão pelo que está gravado: sem gravar, não conclui
+    if (o.numeros_serie !== undefined) {
+      const { error: e1 } = await supabase.from("ordens_producao").update({ numeros_serie: o.numeros_serie }).eq("id", o.id!);
+      if (e1) throw e1;
+    }
     const { error } = await supabase.rpc("concluir_producao", { p_ordem: o.id });
     if (error) throw error;
   }, "Produção concluída: peças baixadas e máquinas no estoque");

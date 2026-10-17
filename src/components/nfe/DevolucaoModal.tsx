@@ -42,8 +42,9 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
   const invalido = escolhidos.some((i) => Number(String(qtd[i.numero]).replace(",", ".")) > i.disponivel + 1e-9);
 
   async function emitir() {
-    if (!previa || !(await confirmarSeTeste())) return;
-    setOcupado(true);
+    if (!previa || ocupado) return;
+    setOcupado(true); // trava antes da pergunta de teste: dois cliques não emitem duas notas
+    if (!(await confirmarSeTeste())) return setOcupado(false);
     try {
       const r = await callFunction("nfe-emitir", {
         devolucao: origem, motivo,

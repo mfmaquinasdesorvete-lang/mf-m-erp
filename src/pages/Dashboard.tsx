@@ -100,7 +100,7 @@ function PainelGeral() {
   const escolher = (p: Periodo) => { setPeriodo(p); try { localStorage.setItem("mf-erp-periodo", p); } catch { /* sem armazenamento */ } };
 
   const { filtrar } = useUnidade();
-  const { data: pedidosTodos = [] } = useRows<Pedido>("pedidos");
+  const { data: pedidosTodos = [], isLoading: carregandoPedidos } = useRows<Pedido>("pedidos");
   const pedidos = filtrar(pedidosTodos);
   const { data: ordensTodos = [] } = useRows<OrdemServico>("ordens_servico");
   const ordens = filtrar(ordensTodos);
@@ -108,10 +108,12 @@ function PainelGeral() {
   // vendas que só têm a nota fiscal (emitidas no Tiny ou direto, sem pedido no ERP) também contam, como nos Relatórios
   const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA });
   const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, produtos).pedidos) as unknown as Pedido[], [notasTodas, produtos, filtrar]);
-  const { data: receberTodos = [] } = useRows<Conta>("contas_receber");
+  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Conta>("contas_receber");
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [] } = useRows<Conta>("contas_pagar");
+  const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Conta>("contas_pagar");
   const pagar = filtrar(pagarTodos);
+  // enquanto carrega não dá para dizer "tudo em dia" (falha de leitura aparece no aviso vermelho)
+  const carregando = carregandoPedidos || carregandoReceber || carregandoPagar;
   const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda" });
   const { data: recebidasTodos = [] } = useRows<{ processamento: string }>("nfe_recebidas", { select: "processamento" });
   const recebidas = filtrar(recebidasTodos);
@@ -200,8 +202,8 @@ function PainelGeral() {
     podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "venda", "vendas")} (pedidos e notas)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
     podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
     { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
-    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro" },
-    podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos" },
+    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro", state: { aba: "cobranca" } },
+    podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos", state: { status: "orcamento" } },
     podeVer("producao") && { id: "prod", label: "Em produção", valor: `${k.maquinasEmProducao} máq.`, sub: k.opsComFalta ? `${k.opsComFalta} OP com peça faltando` : "peças ok", icon: Factory, cor: "var(--kpi-azul)", to: "/producao" },
     { id: "garantia", label: "Em garantia", valor: k.emGarantia, sub: `${k.garantiaVence} vencem em 30 dias`, icon: ShieldCheck, cor: "var(--kpi-verde)", to: "/garantias" },
     podeVer("garantias") && { id: "prev", label: "Preventivas a lembrar", valor: lembretes.length, sub: `${k.prevAtrasada} ${pl(k.prevAtrasada, "atrasada", "atrasadas")}`, icon: BellRing, cor: "var(--kpi-rosa)", to: "/garantias", state: { lembretes: true } },
@@ -216,20 +218,20 @@ function PainelGeral() {
     podeVer("financeiro") && { label: "Contas", icon: Wallet, to: "/financeiro", cor: "var(--kpi-verde)", aviso: k.qtdReceberVencido },
     podeVer("producao") && { label: "Produção", icon: Factory, to: "/producao", cor: "var(--kpi-azul)" },
     podeVer("estoque") && { label: "Estoque", icon: Boxes, to: "/estoque", cor: "var(--kpi-ciano)", aviso: k.estoqueBaixo.length },
-    pode("nfe_recebidas") && { label: "Notas", icon: FileWarning, to: "/notas", cor: "var(--kpi-laranja)", aviso: k.nfeConferir },
+    pode("nfe_recebidas") && { label: "Notas", icon: FileWarning, to: "/notas", state: { aba: "recebidas" }, cor: "var(--kpi-laranja)", aviso: k.nfeConferir },
   ].filter(Boolean) as Acao[]).slice(0, 8);
 
   const atencao = [
-    podeVer("financeiro") && k.qtdReceberVencido > 0 && { icon: Wallet, cor: "var(--kpi-rosa)", texto: `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cobrança", "cobranças")} ${pl(k.qtdReceberVencido, "vencida", "vencidas")}: ${brl(k.receberVencido)}`, to: "/financeiro" },
+    podeVer("financeiro") && k.qtdReceberVencido > 0 && { icon: Wallet, cor: "var(--kpi-rosa)", texto: `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cobrança", "cobranças")} ${pl(k.qtdReceberVencido, "vencida", "vencidas")}: ${brl(k.receberVencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
     pode("contas_pagar") && k.pagarVencido > 0 && { icon: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${brl(k.pagarVencido)} em contas a pagar vencidas`, to: "/financeiro" },
     k.osAtrasadas > 0 && { icon: Wrench, cor: "var(--kpi-laranja)", texto: `${k.osAtrasadas} OS com a entrega atrasada`, to: "/assistencia" },
     lembretes.length > 0 && { icon: BellRing, cor: "var(--kpi-laranja)", texto: `${lembretes.length} ${pl(lembretes.length, "cliente", "clientes")} para lembrar da preventiva`, to: "/garantias", state: { lembretes: true } },
     podeVer("producao") && k.opsComFalta > 0 && { icon: PackageSearch, cor: "var(--kpi-rosa)", texto: `${k.opsComFalta} ${pl(k.opsComFalta, "ordem", "ordens")} de produção com peça faltando`, to: "/producao" },
     pode("editar_producao") && k.comprasAtrasadas > 0 && { icon: Truck, cor: "var(--kpi-laranja)", texto: `${k.comprasAtrasadas} ${pl(k.comprasAtrasadas, "pedido", "pedidos")} de compra com entrega atrasada`, to: "/compras", state: { aba: "compras" } },
     k.garantiaVence > 0 && { icon: ShieldCheck, cor: "var(--kpi-laranja)", texto: `${k.garantiaVence} ${pl(k.garantiaVence, "garantia", "garantias")} vencendo em 30 dias`, to: "/garantias" },
-    pode("nfe_recebidas") && k.nfeConferir > 0 && { icon: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.nfeConferir} ${pl(k.nfeConferir, "nota", "notas")} de fornecedor para conferir`, to: "/notas" },
+    pode("nfe_recebidas") && k.nfeConferir > 0 && { icon: FileWarning, cor: "var(--kpi-roxo)", texto: `${k.nfeConferir} ${pl(k.nfeConferir, "nota", "notas")} de fornecedor para conferir`, to: "/notas", state: { aba: "recebidas" } },
     k.estoqueBaixo.length > 0 && { icon: Boxes, cor: "var(--kpi-laranja)", texto: `${k.estoqueBaixo.length} ${pl(k.estoqueBaixo.length, "item", "itens")} no estoque mínimo`, to: "/estoque" },
-    podeVer("pedidos") && k.orcamentos > 0 && { icon: ClipboardList, cor: "var(--kpi-ciano)", texto: `${k.orcamentos} ${pl(k.orcamentos, "orçamento", "orçamentos")} esperando resposta`, to: "/pedidos" },
+    podeVer("pedidos") && k.orcamentos > 0 && { icon: ClipboardList, cor: "var(--kpi-ciano)", texto: `${k.orcamentos} ${pl(k.orcamentos, "orçamento", "orçamentos")} esperando resposta`, to: "/pedidos", state: { status: "orcamento" } },
   ].filter(Boolean) as { icon: LucideIcon; cor: string; texto: string; to: string; state?: unknown }[];
 
   const h = new Date().getHours();
@@ -243,7 +245,7 @@ function PainelGeral() {
           <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">{saudacao}, {nome.split(" ")[0]} 👋</h1>
           <p className="mt-0.5 text-[15px] text-slate-500">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-            {" · "}{atencao.length ? <span className="font-semibold text-red-600">{atencao.length} {pl(atencao.length, "assunto", "assuntos")} pedem atenção</span> : "tudo em dia"}
+            {" · "}{carregando ? "conferindo…" : atencao.length ? <span className="font-semibold text-red-600">{atencao.length} {pl(atencao.length, "assunto", "assuntos")} pedem atenção</span> : "tudo em dia"}
           </p>
         </div>
         <div role="tablist" aria-label="Período" className="grid grid-cols-4 gap-1 rounded-2xl border border-slate-200 bg-surface p-1 shadow-card sm:inline-grid">
@@ -323,7 +325,7 @@ function PainelGeral() {
                 </li>
               ))}
             </ul>
-          ) : <p className="py-10 text-center text-slate-500">Tudo em dia por aqui. ✅</p>}
+          ) : carregando ? <p className="py-10 text-center text-slate-500">Conferindo o que precisa de atenção…</p> : <p className="py-10 text-center text-slate-500">Tudo em dia por aqui. ✅</p>}
         </Section>
 
         <div className="space-y-4 xl:col-span-3">

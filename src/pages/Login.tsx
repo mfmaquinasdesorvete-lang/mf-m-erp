@@ -219,7 +219,10 @@ export function NovaSenha({ onPronto, obrigatoria = false }: { onPronto: () => v
         : /session|expired|jwt/i.test(error.message) ? "O link expirou. Volte e peça um novo em “Esqueci minha senha”." : error.message);
       return;
     }
-    if (obrigatoria) await supabase.rpc("marcar_senha_trocada");
+    if (obrigatoria) {
+      const { error: e2 } = await supabase.rpc("marcar_senha_trocada");
+      if (e2) { setErro(`A senha foi trocada, mas não deu para registrar a troca: ${e2.message}. No próximo acesso o ERP pode pedir de novo.`); return; }
+    }
     setAviso("Senha nova salva. Entrando…");
     if (!obrigatoria) window.history.replaceState(null, "", "/");
     setTimeout(onPronto, 900);

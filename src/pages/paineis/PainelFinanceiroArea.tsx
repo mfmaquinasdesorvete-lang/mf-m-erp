@@ -172,7 +172,7 @@ export default function PainelFinanceiroArea() {
     vePagar && k.decidir.length > 0 && { icone: CalendarClock, cor: "var(--kpi-laranja)", texto: `${k.decidir.length} ${pl(k.decidir.length, "conta", "contas")} a pagar esperando decisão`, sub: "pagar, agendar ou não pagar", to: "/financeiro", state: { aba: "pagar" } },
     k.qtdVencidas > 0 && { icone: MessageCircle, cor: "var(--kpi-rosa)", texto: `${k.qtdVencidas} ${pl(k.qtdVencidas, "parcela", "parcelas")} ${pl(k.qtdVencidas, "vencida", "vencidas")} para cobrar: ${brl(k.vencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
     extratoPendente > 0 && { icone: Scale, cor: "var(--kpi-roxo)", texto: `${extratoPendente} ${pl(extratoPendente, "lançamento", "lançamentos")} do extrato para conciliar`, to: "/conciliacao" },
-    vePagar && notasLancar > 0 && { icone: FileWarning, cor: "var(--kpi-ciano)", texto: `${notasLancar} ${pl(notasLancar, "nota", "notas")} de fornecedor para conferir e lançar`, to: "/notas" },
+    vePagar && notasLancar > 0 && { icone: FileWarning, cor: "var(--kpi-ciano)", texto: `${notasLancar} ${pl(notasLancar, "nota", "notas")} de fornecedor para conferir e lançar`, to: "/notas", state: { aba: "recebidas" } },
   ].filter(Boolean) as ItemAtencao[];
 
   const resumo = isLoading ? "Carregando…" : vePagar

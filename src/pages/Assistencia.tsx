@@ -17,6 +17,7 @@ import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
+import { confirmar } from "@/components/Dialogos";
 import { supabase } from "@/lib/supabase";
 import { apagarFotoOS, enviarFotoOS, urlsFotos } from "@/lib/fotos";
 import { comUnidade, pdfOS } from "@/lib/pdf";
@@ -314,11 +315,14 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   }
 
   async function removerFoto(caminho: string) {
+    // a foto de entrada é prova em garantia: pergunta antes e só apaga o arquivo depois que a OS deixou de apontar para ele
+    if (!(await confirmar("Apagar esta foto da OS? Não dá para desfazer.", { perigo: true }))) return;
     const fotos = (o.fotos ?? []).filter((f) => f.caminho !== caminho);
     await executar(async () => {
-      await apagarFotoOS(caminho);
-      await supabase.from("ordens_servico").update({ fotos }).eq("id", o.id!);
+      const { error } = await supabase.from("ordens_servico").update({ fotos }).eq("id", o.id!);
+      if (error) throw error;
       set({ fotos });
+      await apagarFotoOS(caminho);
     }, "Foto removida", false);
   }
 
@@ -701,7 +705,7 @@ function FotosOS({ fotos, podeEditar, ocupado, onEnviar, onRemover }: {
             <figcaption className="px-2 py-1 text-[11px] text-slate-500">{new Date(f.criado_em).toLocaleString("pt-BR")}</figcaption>
             {podeEditar && (
               <button type="button" onClick={() => onRemover(f.caminho)} aria-label="Remover foto"
-                className="absolute right-1.5 top-1.5 rounded-lg bg-surface/90 p-1.5 text-red-600 opacity-0 shadow transition group-hover:opacity-100 focus:opacity-100">
+                className="absolute right-1.5 top-1.5 rounded-lg bg-surface/90 p-1.5 text-red-600 shadow transition focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
                 <Trash2 size={14} />
               </button>
             )}

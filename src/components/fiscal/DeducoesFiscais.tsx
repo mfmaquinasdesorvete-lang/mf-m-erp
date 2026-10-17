@@ -119,7 +119,7 @@ export function DeducoesFiscais() {
       texto: fretesSemCte.length
         ? `${fretesSemCte.length} ${pl(fretesSemCte.length, "conta", "contas")} de frete sem CT-e ligado (${brl(fretesSemCte.reduce((s, c) => s + Number(c.valor), 0))}). Monte a fatura em Fretes → Faturas de frete.`
         : "Fretes pagos pela fatura de CT-e (Fretes → Faturas de frete).",
-      acao: { rotulo: "CT-e e faturas", ir: () => navigate("/fretes") },
+      acao: { rotulo: "CT-e e faturas", ir: () => navigate("/fretes?aba=faturas") },
     },
     {
       titulo: "Crédito de PIS/COFINS sobre fretes", situacao: fretes.base ? "parcial" : "falta",

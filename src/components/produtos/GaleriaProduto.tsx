@@ -73,7 +73,7 @@ export function GaleriaProduto({ produtoId, podeEditar, fotoPrincipal, aoEscolhe
                 {principal && <span className="absolute left-1 top-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">principal</span>}
                 {m.tipo === "video" && m.duracao_seg != null && <span className="num absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[10px] text-white">{m.duracao_seg}s</span>}
                 {podeEditar && (
-                  <span className="absolute right-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
+                  <span className="absolute right-1 top-1 flex gap-1 opacity-100 transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
                     {m.tipo === "foto" && aoEscolherPrincipal && !principal && (
                       <button type="button" title="Usar como foto principal" aria-label="Usar como foto principal" onClick={() => aoEscolherPrincipal(url)}
                         className="rounded-md bg-white/90 p-1 text-amber-600 shadow"><Star size={13} /></button>

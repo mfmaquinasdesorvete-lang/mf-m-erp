@@ -277,19 +277,25 @@ export function Badge({ value, forte }: { value: string | null | undefined; fort
 
 const pilhaModais: symbol[] = [];
 
-/** Esc fecha só a janela de cima (ex.: o PDF aberto por cima da ficha). */
+/**
+ * Esc fecha só a janela de cima (ex.: o PDF aberto por cima da ficha). A janela entra na pilha quando abre e não sai
+ * quando é redesenhada (o onClose fica numa referência): senão a janela de baixo voltava para o topo ao receber dados
+ * novos e o Esc seguinte fechava ela. Esc já tratado por um campo (lista de busca aberta) não fecha a janela.
+ */
 export function useFecharComEsc(open: boolean, onClose: () => void) {
+  const fechar = useRef(onClose);
+  fechar.current = onClose;
   useEffect(() => {
     if (!open) return;
     const id = Symbol();
     pilhaModais.push(id);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && pilhaModais[pilhaModais.length - 1] === id && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && pilhaModais[pilhaModais.length - 1] === id && fechar.current();
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
       pilhaModais.splice(pilhaModais.indexOf(id), 1);
     };
-  }, [open, onClose]);
+  }, [open]);
 }
 
 export function Modal({

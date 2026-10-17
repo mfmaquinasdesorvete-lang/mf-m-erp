@@ -120,16 +120,17 @@ export default function Financeiro() {
     const d = lerDestaque(location.state);
     if (d) setDestaque(d);
     if (st?.aba) {
-      const nova = st.aba === "pagar" && !veContasPagar ? "receber" : st.aba;
+      // aba que o perfil não vê (contas a pagar, cobrança) vira contas a receber, em vez de ficar sem aba marcada
+      const nova = (st.aba === "pagar" && !veContasPagar) || (st.aba === "cobranca" && !veCobranca) ? "receber" : st.aba;
       setNovaAoAbrir(!!st.nova);
       setTipoInicial(st.tipo ?? "");
       navigate({ pathname: location.pathname, search: buscaDaAba(nova, "visao") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();
-  const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
+  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
+  const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
   const pagar = filtrar(pagarTodos);
 
   const resumo = useMemo(() => {
@@ -180,7 +181,7 @@ export default function Financeiro() {
               valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>}
           {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)}
-            tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <ContasReceber contas={receber} />}
+            tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
         </>
       )}
     </div>
@@ -253,7 +254,7 @@ function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string, ro
 
 /* ----------------------------- Contas a receber ----------------------------- */
 
-function ContasReceber({ contas }: { contas: Receber[] }) {
+function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carregando?: boolean }) {
   const { data: cfgRecibo } = useConfig();
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
@@ -323,7 +324,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       <Filtros filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes}
         onImprimir={() => rel.imprimir(paraRel())} onExportar={() => rel.exportar(paraRel(), (c) => ({ Forma: c.forma_pagamento }))}
         onNovo={podeEditar ? () => setNova({ forma_pagamento: "boleto", vencimento: somarDias(3), descricao: "", unidade_id: padrao, categoria: "vendas", rateio: [] } as any) : undefined} />
-      <ListaContas vazia={lista.length === 0}>
+      <ListaContas vazia={!carregando && lista.length === 0}>
         {lista.map((c) => {
           const s = situacaoConta(c.status, c.vencimento);
           const links = [...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])];
@@ -355,7 +356,7 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
       </ListaContas>
       <div className="hidden md:block">
       <Table
-        empty={lista.length === 0}
+        empty={!carregando && lista.length === 0}
         head={<><th className="th">Vencimento</th><th className="th">Descrição</th><th className="th">Cliente</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th" /></>}
       >
         {lista.map((c) => {
@@ -448,8 +449,8 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque }: {
-  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void;
+function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false }: {
+  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void; carregando?: boolean;
 }) {
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
@@ -502,6 +503,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
   const invalidar = useInvalidate();
   // conta nova: uma só ou uma série (parcelada, semanal, mensal…); competência pelo vencimento, mês anterior, emissão ou escolhida
   const [serie, setSerie] = useState<{ ocorrencia: Ocorrencia; vezes: number; modo: ModoCompetencia; mes: string; mexeu: boolean }>({ ocorrencia: "unica", vezes: 2, modo: "vencimento", mes: "", mexeu: false });
+  const [gravandoSerie, setGravandoSerie] = useState(false);
   const abrirConta = (c: Partial<Pagar>) => {
     setEditando(c);
     setSerie({ ocorrencia: "unica", vezes: 2, modo: c.vencimento ? modoDaCompetencia(c.competencia, c.vencimento, c.emissao) : "vencimento", mes: (c.competencia ?? "").slice(0, 7), mexeu: false });
@@ -576,6 +578,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
+    if (gravandoSerie) return;
     try {
       const { fornecedor: _f, created_at: _c, ...row } = editando as any;
       if (!rateioOk(row.rateio)) return notify("Os centros de custo precisam somar 100%", "erro");
@@ -591,7 +594,9 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
         const semBoleto = { linha_digitavel: null, boleto_multa_pct: null, boleto_juros_mes_pct: null, boleto_juros_dia: null };
         const linhas = partes.map((p, i) => limpar({ ...row, ...(i > 0 ? semBoleto : {}), valor: p.valor, vencimento: p.vencimento, descricao: p.descricao, documento: p.documento,
           competencia: serie.modo === "vencimento" ? null : p.competencia }));
-        const { error } = await supabase.from("contas_pagar").insert(linhas);
+        // a série grava direto (sem o useSave): trava própria contra o clique duplo
+        setGravandoSerie(true);
+        const { error } = await supabase.from("contas_pagar").insert(linhas).then((r) => { setGravandoSerie(false); return r; });
         if (error) throw error;
         invalidar("contas_pagar", "contas_pagar_origem");
         notify(`${linhas.length} contas lançadas`);
@@ -670,7 +675,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
           <input type="checkbox" className="h-5 w-5" checked={todasMarcadas} onChange={marcarTodas} /> Marcar todas em aberto ({abertasVisiveis.length})
         </label>
       )}
-      <ListaContas vazia={lista.length === 0}>
+      <ListaContas vazia={!carregando && lista.length === 0}>
         {lista.map((c) => (
           <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
             detalhe={<><ChipTipo tipo={tipoDe(c)} className="mr-1" /><ChipOrigem o={origens.get(c.id)} className="mr-1" />{[c.categoria, c.documento, nomeForma(c.forma_pagamento_id), c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</>}
@@ -684,7 +689,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
       </ListaContas>
       <div className="hidden md:block">
       <Table
-        empty={lista.length === 0}
+        empty={!carregando && lista.length === 0}
         head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Fornecedor e descrição</th><th className="th">Origem</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th text-right">Ação</th></>}
       >
         {lista.map((c) => (
@@ -806,7 +811,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
                 <Button type="button" variant="ghost" className="mr-auto text-red-600" onClick={() => { setMotivo({ conta: editando as Pagar, acao: "cancelar" }); setEditando(null); }}><Ban size={15} /> Cancelar conta</Button>
               )}
               <Button type="button" variant="secondary" onClick={() => setEditando(null)}>Cancelar</Button>
-              <Button disabled={save.isPending}>Salvar</Button>
+              <Button disabled={save.isPending || gravandoSerie}>{gravandoSerie ? "Lançando…" : "Salvar"}</Button>
             </div>
           </form>
         )}

@@ -54,7 +54,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
           if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((i) => Math.min(i + 1, achados.length - 1)); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((i) => Math.max(i - 1, 0)); }
           else if (e.key === "Enter") { e.preventDefault(); if (achados[ativo]) escolher(achados[ativo]); }
-          else if (e.key === "Escape") { e.preventDefault(); setConsulta(null); (e.target as HTMLInputElement).blur(); }
+          else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setConsulta(null); (e.target as HTMLInputElement).blur(); } // fecha só a lista, não a janela
         }}
       />
       {/* mantém o "obrigatório" do formulário */}

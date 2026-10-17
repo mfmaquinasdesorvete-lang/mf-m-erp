@@ -126,4 +126,6 @@ const OCULTO_FIXO: MenuOculto = {
   // Compras fica na tela de Compras e nas notas de fornecedor: sem as ordens de produção, o painel das notas
   // emitidas e as transferências entre unidades
   compras: ["/producao", "/painel/notas", "/transferencias"],
+  // a lista de entre contas e sócios é só do administrador, do financeiro e do contador (a própria tela bloqueia)
+  vendas: ["/partes-relacionadas"],
 };

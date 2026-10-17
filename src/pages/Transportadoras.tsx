@@ -2,6 +2,7 @@
 // que atendem a MF dentro dela; a rede (unidades achadas nos CT-e e na internet), os contatos dos e-mails,
 // as condições comerciais e o que veio da internet "a conferir". A lista completa (planilha) continua na outra aba.
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { confirmar } from "@/components/Dialogos";
 import {
   AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Link2, Mail, MapPin, Merge, Pencil,
   Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
@@ -72,6 +73,7 @@ function PorMarca() {
   }
 
   async function rpcSeparar(t: Transportadora) {
+    if (!(await confirmar(`Tirar ${nomeCurto(t)} da marca? Ela vira um cadastro próprio (para voltar, agrupe de novo).`))) return;
     const { error } = await supabase.from("transportadoras").update({ matriz_id: null }).eq("id", t.id);
     if (error) return notifyError(error);
     notify(`${nomeCurto(t)} saiu da marca e virou um cadastro próprio`);

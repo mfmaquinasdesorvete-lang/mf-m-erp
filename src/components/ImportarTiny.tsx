@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { confirmar } from "@/components/Dialogos";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Field } from "@/components/ui";
 import { notify } from "@/lib/notify";
@@ -239,7 +240,11 @@ export function ImportarTiny() {
           ) : emAndamento ? (
             <Button type="button" onClick={() => { ativo.current = true; rodar("continuar"); }}>Continuar importação</Button>
           ) : (
-            <Button type="button" disabled={!unidade} onClick={() => { ativo.current = true; rodar("iniciar"); }}>
+            <Button type="button" disabled={!unidade} onClick={async () => {
+              // importar de novo sobrescreve no ERP o que veio do Tiny (preço, custo, NCM, categoria, endereços)
+              if (e?.etapa === "concluida" && !(await confirmar("Importar de novo do Tiny? Preços, custos, NCM, categorias e endereços voltam para o que está no Tiny, desfazendo o que foi corrigido no ERP.", { perigo: true, ok: "Importar de novo" }))) return;
+              ativo.current = true; rodar("iniciar");
+            }}>
               {e?.etapa === "concluida" ? "Importar de novo (atualiza)" : "Importar tudo do Tiny"}
             </Button>
           )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmar } from "@/components/Dialogos";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MessageCircle, PackageOpen, Plus, Send, Trash2, Truck } from "lucide-react";
 import { Badge, Button, Field } from "./ui";
@@ -105,7 +106,9 @@ export function FreteVenda({ pedido, onAlterado }: { pedido: PedidoFrete; onAlte
   }
 
   async function remover(c: Cotacao) {
-    await supabase.from("cotacoes_frete").delete().eq("id", c.id);
+    if (!(await confirmar("Remover esta cotação de frete?"))) return;
+    const { error } = await supabase.from("cotacoes_frete").delete().eq("id", c.id);
+    if (error) return notifyError(error);
     refetch();
   }
 

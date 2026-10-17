@@ -165,7 +165,7 @@ export default function PainelMaquinas() {
 
   const cartoes: Cartao[] = [
     { id: "vendidas", rotulo: "Máquinas vendidas", valor: un(k.vendidas), icone: ShoppingCart, cor: "var(--kpi-verde)", delta: k.dVendidas, tendencia: k.tendVendidas,
-      sub: `${k.ranking.length} ${pl(k.ranking.length, "modelo", "modelos")} ${pl(k.ranking.length, "diferente", "diferentes")}`, onClick: () => navigate("/pedidos") },
+      sub: `${k.ranking.length} ${pl(k.ranking.length, "modelo", "modelos")} ${pl(k.ranking.length, "diferente", "diferentes")}`, onClick: () => navigate("/vendas-maquinas") },
     { id: "fat", rotulo: "Faturamento com máquinas", valor: brl(k.faturamento), icone: BadgeDollarSign, cor: "var(--kpi-azul)", delta: k.dFaturamento, tendencia: k.tendFat,
       sub: k.vendidas ? `preço médio de ${brl(k.ticket)} por máquina` : "nenhuma máquina vendida no período", onClick: () => navigate("/margem") },
     { id: "estoque", rotulo: "Prontas no estoque", valor: un(k.estoque), icone: Warehouse, cor: "var(--kpi-roxo)",
@@ -284,7 +284,7 @@ export default function PainelMaquinas() {
           { rotulo: "Teste do giga", icone: PlugZap, to: "/teste-giga", aviso: gigaReteste.length, tela: "testegiga" },
           { rotulo: "Garantias", icone: ShieldCheck, to: "/garantias", aviso: k.prevAtrasada.length, tela: "garantias" },
           { rotulo: "Assistência", icone: Wrench, to: "/assistencia", tela: "assistencia" },
-          { rotulo: "Vendas", icone: ShoppingCart, to: "/pedidos", tela: "pedidos" },
+          { rotulo: "Vendas", icone: ShoppingCart, to: "/vendas-maquinas", tela: "pedidos" },
           { rotulo: "Margem", icone: BadgeDollarSign, to: "/margem", tela: "margem" },
         ]} />
       </div>

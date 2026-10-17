@@ -15,10 +15,11 @@ export function Toaster() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex max-w-sm flex-col gap-2">
+    <div className="fixed bottom-4 right-4 z-[60] flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
       {avisos.map((a) => (
         <div
           key={a.id}
+          role={a.tipo === "erro" ? "alert" : undefined}
           className={`rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${a.tipo === "erro" ? "bg-[#c62828]" : "bg-[#1b7a4b]"}`}
         >
           {a.texto}

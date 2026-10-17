@@ -31,8 +31,10 @@ export function useAcoesExpedicao() {
     return true;
   }
   async function emitirNota(pedidoId: string) {
-    if (!(await confirmarSeTeste())) return false;
+    // trava antes da pergunta de teste (ela consulta o servidor): dois cliques não emitem duas notas
+    if (ocupado) return false;
     setOcupado(pedidoId);
+    if (!(await confirmarSeTeste())) { setOcupado(null); return false; }
     try { await callFunction("nfe-emitir", { pedido_id: pedidoId }); notify("NF-e enviada para a SEFAZ"); invalidar("pedidos", "notas_fiscais"); return true; }
     catch (e) { notifyError(e); return false; }
     finally { setOcupado(null); }

@@ -45,7 +45,8 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
   const { data: itens = [] } = useQuery({
     queryKey: ["nfe_recebidas", "itens", n.id],
     queryFn: async () => {
-      const { data } = await supabase.from("nfe_recebidas").select("itens").eq("id", n.id).single();
+      const { data, error } = await supabase.from("nfe_recebidas").select("itens").eq("id", n.id).single();
+      if (error) throw error; // falha de leitura não pode parecer "nota sem XML"
       return (data?.itens ?? []) as { numero: number; codigo: string; descricao: string; ncm: string | null; cfop: string | null; unidade: string; quantidade: number; valor_unitario: number; valor_total: number }[];
     },
   });

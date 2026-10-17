@@ -819,6 +819,7 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
   const [serie, setSerie] = useState("");
   // saída que não é venda (perda, quebra, uso interno, sucata…) vai pela baixa com motivo fiscal
   const [baixaFiscal, setBaixaFiscal] = useState(false);
+  const [gravando, setGravando] = useState(false); // clique duplo não lança duas vezes
   const invalidate = useInvalidate();
   const { padrao, nome } = useUnidade();
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
@@ -827,7 +828,8 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
-    if (!produto) return;
+    if (!produto || gravando) return;
+    setGravando(true);
     try {
       const qtd = Number(quantidade);
       // Ajuste informa o saldo final desejado; gravamos a diferença.
@@ -844,6 +846,8 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
       onClose();
     } catch (err) {
       notifyError(err);
+    } finally {
+      setGravando(false);
     }
   }
 
@@ -880,7 +884,7 @@ function MovimentoModal({ produto, onClose }: { produto: Produto | null; onClose
         </>}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          {tipo !== "saida" && <Button>Confirmar</Button>}
+          {tipo !== "saida" && <Button disabled={gravando}>{gravando ? "Gravando…" : "Confirmar"}</Button>}
         </div>
       </form>
       {baixaFiscal && produto && <RegistrarBaixa produtoInicial={produto as never} onClose={() => { setBaixaFiscal(false); onClose(); }} />}

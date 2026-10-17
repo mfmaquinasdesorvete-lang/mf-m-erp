@@ -125,7 +125,7 @@ export default function PainelCadastros() {
     { id: "no_erp", rotulo: "No ERP novo", valor: k.noErp, icone: ShoppingCart, cor: "var(--kpi-verde)", delta: k.dNoErp, tendencia: k.tendNoErp,
       sub: "clientes com venda aprovada feita no ERP Line", onClick: () => navigate("/pedidos") },
     { id: "sumidos", rotulo: "Sumiram", valor: k.sumidos, icone: UserX, cor: "var(--kpi-laranja)", bomCair: true,
-      sub: "compraram antes e nada nos últimos 6 meses", titulo: "Lista completa em Análises → Painel gerencial", onClick: () => navigate("/gerencial") },
+      sub: "compraram antes e nada nos últimos 6 meses", titulo: "Lista completa em Análises → Painel gerencial", onClick: () => navigate("/gerencial?aba=clientes") },
   ];
 
   const atencao: ItemAtencao[] = [

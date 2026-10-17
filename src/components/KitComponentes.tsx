@@ -1,6 +1,7 @@
 // Estoque → produto do tipo kit → Componentes: o que sai do estoque quando o kit é vendido.
 // Um componente pode ser outro kit (ex.: Mecânica Dupla leva 2 Mecânicas Q 050): sai pelas peças dele.
 import { Trash2 } from "lucide-react";
+import { confirmar } from "@/components/Dialogos";
 import { Button, Modal } from "./ui";
 import { ProdutoBusca } from "./ProdutoBusca";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -26,7 +27,11 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
   }
   const atualizar = (c: KitComponente, patch: Partial<KitComponente>) => gravar(supabase.from("kit_componentes").update(patch).eq("id", c.id));
   const adicionar = (id: string) => gravar(supabase.from("kit_componentes").insert({ kit_id: kit.id, componente_id: id, quantidade: 1 }));
-  const remover = (c: KitComponente) => gravar(supabase.from("kit_componentes").delete().eq("id", c.id));
+  const remover = async (c: KitComponente) => {
+    // a baixa de estoque do kit muda na hora: pergunta antes
+    if (!(await confirmar("Tirar este componente do kit? A quantidade e o grupo dele se perdem.", { perigo: true }))) return;
+    return gravar(supabase.from("kit_componentes").delete().eq("id", c.id));
+  };
 
   return (
     <Modal open onClose={onClose} title={`Componentes do kit: ${kit.descricao}`} wide>

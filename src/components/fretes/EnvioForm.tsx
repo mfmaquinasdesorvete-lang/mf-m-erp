@@ -547,6 +547,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
   // Rodonaves com API ligada no ERP: a marca (cartão) ativa
   const rte = transportadoras.find((x) => x.ativo && !x.matriz_id && integracaoApi(x) === "rodonaves");
   const [cotandoRte, setCotandoRte] = useState(false);
+  const [gravando, setGravando] = useState(false); // clique duplo não grava duas vezes
   async function cotarRodonaves() {
     if (!rte) return;
     if (incompletos.length) return notify(`Cotação sem medidas não é comparável. Complete e salve: ${incompletos.join("; ")}`, "erro");
@@ -577,11 +578,14 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
     if (!nova.validade) return notify("Informe até quando a cotação vale", "erro");
     const adicionais = nova.adicionais.filter((a) => a.valor.trim() !== "").map((a) => ({ tipo: a.tipo, valor: Number(a.valor.replace(",", ".")), ...(a.descricao.trim() ? { descricao: a.descricao.trim() } : {}) }));
     if (adicionais.some((a) => !(a.valor >= 0))) return notify("Valor de adicional inválido", "erro");
+    if (gravando) return;
+    setGravando(true);
     const { error } = await supabase.from("envio_cotacoes").insert({
       envio_id: envio.id, transportadora_id: nova.transportadora_id || null, transportadora_nome: nova.transportadora_id ? null : nova.transportadora_nome.trim(),
       valor: Number(nova.valor.replace(",", ".")), prazo_dias: nova.prazo_dias ? Number(nova.prazo_dias) : null, validade: nova.validade, observacoes: nova.observacoes || null,
       tipo_servico: nova.tipo_servico, tabela_versao: nova.tabela_versao.trim() || null, adicionais,
     });
+    setGravando(false);
     if (error) return notifyError(error);
     notify("Cotação registrada");
     setNova(null);
@@ -610,7 +614,10 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
     const valor = Number(extra.valor.replace(",", "."));
     if (!(valor > 0)) return notify("Informe o valor do adicional", "erro");
     if (extra.justificativa.trim().length < 5) return notify("Adicional fora da cotação aprovada só com justificativa (quem pediu e por quê)", "erro");
+    if (gravando) return;
+    setGravando(true);
     const { error } = await supabase.rpc("registrar_adicional_envio", { p_envio: envio.id, p_tipo: extra.tipo, p_valor: valor, p_justificativa: extra.justificativa.trim(), p_descricao: extra.descricao.trim() || null });
+    setGravando(false);
     if (error) return notifyError(error);
     notify(`Adicional de ${brl(valor)} somado ao frete aprovado`);
     setExtra(null);
@@ -743,7 +750,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
           <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
             <span className="mr-auto text-sm text-slate-600">Total: <b className="num text-fg">{brl((Number(nova.valor.replace(",", ".")) || 0) + nova.adicionais.reduce((s, a) => s + (Number(a.valor.replace(",", ".")) || 0), 0))}</b></span>
             <Button type="button" variant="ghost" onClick={() => setNova(null)}>Cancelar</Button>
-            <Button type="button" onClick={adicionar}>Salvar cotação</Button>
+            <Button type="button" onClick={adicionar} disabled={gravando}>{gravando ? "Salvando…" : "Salvar cotação"}</Button>
           </div>
         </div>
       ) : (
@@ -771,7 +778,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
               <textarea className="input col-span-2 sm:col-span-6" rows={2} aria-label="Justificativa do adicional" placeholder="Justificativa: quem pediu e por quê (obrigatória)" value={extra.justificativa} onChange={(x) => setExtra({ ...extra, justificativa: x.target.value })} />
               <div className="col-span-2 flex justify-end gap-2 sm:col-span-6">
                 <Button type="button" variant="ghost" onClick={() => setExtra(null)}>Cancelar</Button>
-                <Button type="button" onClick={registrarExtra}>Aceitar adicional</Button>
+                <Button type="button" onClick={registrarExtra} disabled={gravando}>Aceitar adicional</Button>
               </div>
             </div>
           ) : (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmar } from "@/components/Dialogos";
 import { Copy, ExternalLink, Link2, Loader2, MessageCircle, Receipt } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
@@ -74,6 +75,7 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
     }
   }
   async function descartar(id: string) {
+    if (!(await confirmar("Tirar este link da conta? Se o cliente já recebeu, o link deixa de valer.", { perigo: true }))) return;
     const { error } = await supabase.rpc("descartar_cobranca_link", { p_id: id });
     if (error) return notifyError(error);
     invalidar("cobrancas_link");

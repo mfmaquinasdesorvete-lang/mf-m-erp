@@ -124,7 +124,7 @@ export function PainelFinanceiro() {
   if (temBancos && previsto7 < 0) atencao.push({ tom: "ruim", texto: `O saldo previsto para os próximos 7 dias fica negativo (${brl(previsto7)}).`, acao: "Ver fluxo", onClick: () => document.getElementById("fluxo-caixa")?.scrollIntoView({ behavior: "smooth" }) });
   if (k.pagVencidas.length) atencao.push({ tom: "ruim", texto: `${k.pagVencidas.length} ${pl(k.pagVencidas.length, "conta", "contas")} a pagar ${pl(k.pagVencidas.length, "vencida", "vencidas")}: ${brl(soma(k.pagVencidas))}.`, acao: "Pagar", onClick: () => setLista({ titulo: "A pagar vencidas", tipo: "pagar", contas: k.pagVencidas }) });
   if (k.recVencidas.length) atencao.push({ tom: "atencao", texto: `${new Set(k.recVencidas.map((c) => c.cliente_id)).size} ${pl(new Set(k.recVencidas.map((c) => c.cliente_id)).size, "cliente", "clientes")} com ${brl(soma(k.recVencidas))} vencido.`, acao: "Cobrar", onClick: () => setLista({ titulo: "A receber vencidas", tipo: "receber", contas: k.recVencidas }) });
-  if (nfeConferir) atencao.push({ tom: "atencao", texto: `${nfeConferir} ${pl(nfeConferir, "nota", "notas")} de fornecedor para conferir e lançar.`, acao: "Abrir", onClick: () => navigate("/notas") });
+  if (nfeConferir) atencao.push({ tom: "atencao", texto: `${nfeConferir} ${pl(nfeConferir, "nota", "notas")} de fornecedor para conferir e lançar.`, acao: "Abrir", onClick: () => navigate("/notas", { state: { aba: "recebidas" } }) });
   if (extratoPendente) atencao.push({ tom: "atencao", texto: `${extratoPendente} ${pl(extratoPendente, "lançamento", "lançamentos")} do extrato para conciliar.`, acao: "Conciliar", onClick: () => navigate("/conciliacao") });
 
   return (

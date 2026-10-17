@@ -227,6 +227,7 @@ function AssinarPresencial({ cliente, salvarAntes, onCancelar, onAssinado }: {
 
   async function assinar() {
     if (erro) return notify(erro, "erro");
+    if (!termo) return notify("A declaração ainda não carregou: espere ou recarregue a página antes de assinar", "erro");
     if (!png) return notify("Faça a assinatura no quadro", "erro");
     if (!aceite) return notify("Marque que leu e concorda com a declaração", "erro");
     setOcupado(true);
@@ -259,7 +260,7 @@ function AssinarPresencial({ cliente, salvarAntes, onCancelar, onAssinado }: {
       </label>
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={onCancelar}>Voltar</Button>
-        <Button type="button" disabled={ocupado} onClick={assinar}><CheckCircle2 size={16} /> {ocupado ? "Registrando…" : "Assinar ficha"}</Button>
+        <Button type="button" disabled={ocupado || !termo} onClick={assinar}><CheckCircle2 size={16} /> {ocupado ? "Registrando…" : "Assinar ficha"}</Button>
       </div>
     </div>
   );

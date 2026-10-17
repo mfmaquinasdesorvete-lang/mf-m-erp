@@ -93,7 +93,9 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
     if (pedido.id && pedido.status === "orcamento") {
       const { data, error } = await supabase.from("cotacoes_frete").insert({ pedido_id: pedido.id, transportadora_id: transportadoraId, transportadora_nome: transportadoraId ? null : nomeLivre ?? null,
         valor, prazo_dias: prazo }).select("id").single();
-      if (!error && data) await supabase.rpc("escolher_cotacao_frete", { p_cotacao: data.id, p_cobrar_cliente: true });
+      if (error) { notifyError(error); return; }
+      const { error: e2 } = await supabase.rpc("escolher_cotacao_frete", { p_cotacao: data.id, p_cobrar_cliente: true });
+      if (e2) { notifyError(e2); return; }
       refetch();
     }
     notify(`Frete de ${brl(valor)}${transportadoraId ? ` (${nomeT(transportadoraId)})` : ""} no pedido`);

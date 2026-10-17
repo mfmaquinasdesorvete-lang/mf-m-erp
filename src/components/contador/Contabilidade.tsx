@@ -22,7 +22,7 @@ type Form = { id?: string; setor: SetorContabil; nome: string; email: string; wh
 
 export function Contabilidade() {
   const { data: cfg } = useConfig();
-  const { pode } = usePerfil();
+  const { pode, papel } = usePerfil();
   const podeEditar = pode("editar_financeiro");
   const { data: contatos = [] } = useRows<ContatoContabil>("contabilidade_contatos", { order: "ordem", ascending: true });
   const { data: emails = [] } = useQuery({
@@ -81,7 +81,7 @@ export function Contabilidade() {
             <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
               <h3 className="font-bold text-fg">{g.rotulo}</h3>
               {g.paraQue && <p className="text-xs text-slate-600">{g.paraQue}</p>}
-              {g.id === "certificado" && <Link to="/sobre?aba=monitor" className="text-xs font-semibold text-brand hover:underline">Ver a data de vencimento em Chaves e certificados</Link>}
+              {g.id === "certificado" && papel === "admin" && <Link to="/sobre?aba=monitor" className="text-xs font-semibold text-brand hover:underline">Ver a data de vencimento em Chaves e certificados</Link>}
             </div>
             <ul className="divide-y divide-slate-100">
               {g.contatos.map((c) => {

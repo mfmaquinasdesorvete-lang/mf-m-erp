@@ -641,11 +641,11 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (v !== Number(p.desconto || 0)) set({ desconto: v });
   }, [subtotal, descPct]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function executar(acao: () => Promise<unknown>, ok: string, fechar = true) {
+  async function executar(acao: () => Promise<unknown>, ok: string | (() => string), fechar = true) {
     setOcupado(true);
     try {
       await acao();
-      notify(ok);
+      notify(typeof ok === "function" ? ok() : ok);
       invalidate("pedidos", "produtos", "contas_receber", "notas_fiscais");
       if (fechar) onClose();
     } catch (e) {
@@ -716,6 +716,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       return notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
     }
     const comLink = verPagamento && temInfinitePay && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
+    // a mensagem final só fala da NF-e quando ela foi mesmo enviada (falha ou bloqueio já aparece em vermelho)
+    let nfeEnviada = false;
     return executar(async () => {
       const id = await gravar();
       const { error } = await supabase.rpc("aprovar_pedido", { p_pedido: id });
@@ -726,7 +728,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         if (lista.some((x) => x.nivel === "erro")) notify(`NF-e automática não enviada: ${lista.find((x) => x.nivel === "erro")!.texto}`, "erro");
         // em homologação a nota automática sairia só como teste: não emite sozinha
         else if ((await ambienteNfe().catch(() => "producao")) !== "producao") notify("NF-e automática não enviada: o ERP está em homologação (teste). Ajuste o FOCUS_NFE_ENV para producao.", "erro");
-        else await callFunction("nfe-emitir", { pedido_id: id }).catch((e) => notify(`NF-e automática: ${(e as Error).message}`, "erro"));
+        else await callFunction("nfe-emitir", { pedido_id: id }).then(() => { nfeEnviada = true; }, (e) => notify(`NF-e automática: ${(e as Error).message}`, "erro"));
       }
       // venda por Pix ou cartão: fica na tela com o link de pagamento pronto para mandar ao cliente
       if (comLink) {
@@ -734,7 +736,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         if (data) setP({ ...(data as any), itens: (data as any).itens ?? [] });
         setLinkAgora(true);
       }
-    }, cfg?.nfe_automatica ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro", !comLink);
+    }, () => (nfeEnviada ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro"), !comLink);
   };
 
   const cancelar = async () => {

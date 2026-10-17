@@ -332,10 +332,10 @@ function Regime({ a }: { a: ReturnType<typeof analisar> }) {
 }
 
 const ROTINA: { titulo: string; texto: string; link: string; botao: string }[] = [
-  { titulo: "Confirmar as compras na SEFAZ toda semana", texto: "Com a confirmação o XML completo chega sozinho e o crédito de ICMS/IPI entra na apuração.", link: "/notas", botao: "Notas recebidas" },
-  { titulo: "Categoria certa em toda conta a pagar", texto: "Energia, aluguel, frete e manutenção dão crédito de PIS/COFINS. Impostos e folha ficam separados.", link: "/financeiro", botao: "Contas a pagar" },
-  { titulo: "Regras de tributação em vez de ajustar nota a nota", texto: "Cada operação (venda, revenda, outro estado, consumidor final) com a sua regra: o ERP calcula sozinho.", link: "/notas", botao: "Regras" },
-  { titulo: "Conferência fiscal antes de emitir", texto: "O Compliance fiscal mostra NCM, IE e endereço errados antes de a nota ser rejeitada.", link: "/notas", botao: "Compliance" },
+  { titulo: "Confirmar as compras na SEFAZ toda semana", texto: "Com a confirmação o XML completo chega sozinho e o crédito de ICMS/IPI entra na apuração.", link: "/notas?aba=recebidas", botao: "Notas recebidas" },
+  { titulo: "Categoria certa em toda conta a pagar", texto: "Energia, aluguel, frete e manutenção dão crédito de PIS/COFINS. Impostos e folha ficam separados.", link: "/financeiro?aba=pagar", botao: "Contas a pagar" },
+  { titulo: "Regras de tributação em vez de ajustar nota a nota", texto: "Cada operação (venda, revenda, outro estado, consumidor final) com a sua regra: o ERP calcula sozinho.", link: "/notas?aba=regras", botao: "Regras" },
+  { titulo: "Conferência fiscal antes de emitir", texto: "O Compliance fiscal mostra NCM, IE e endereço errados antes de a nota ser rejeitada.", link: "/notas?aba=compliance", botao: "Compliance" },
   { titulo: "Fechamento do mês automático para o contador", texto: "O pacote com XML e planilhas vai sozinho; a conversa fica registrada no Painel do contador.", link: "/contador", botao: "Painel do contador" },
   { titulo: "Uma conversa por trimestre com este relatório", texto: "Baixe o relatório desta tela e revise com o contador as oportunidades marcadas \"Avaliar\".", link: "/analista-fiscal", botao: "Baixar relatório acima" },
 ];
