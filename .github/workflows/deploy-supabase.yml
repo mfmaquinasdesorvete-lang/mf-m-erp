@@ -9,6 +9,11 @@ name: Publicar Supabase
 
 on:
   workflow_dispatch:
+    inputs:
+      funcoes:
+        description: "Publicar só estas funções (nomes separados por espaço). Vazio = todas."
+        required: false
+        default: ""
 
 jobs:
   deploy:
@@ -22,11 +27,17 @@ jobs:
         with:
           version: 2.120.0
       - name: Edge Functions
+        env:
+          SO: ${{ inputs.funcoes }}
         run: |
+          # com o campo "funcoes" preenchido, publica só as que estão nele
+          quer() { [ -z "$SO" ] || [[ " $SO " == *" $1 "* ]]; }
           for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse cotacao-enviar; do
+            quer "$fn" || continue
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
           done
           # chamadas externas (Focus, Telegram, agendamento) não enviam o login do Supabase
           for fn in focus-webhook nfe-processar nfse-processar avisos-enviar telegram-webhook email-descadastrar catalogo-feed email-caixa contador-pacote clientes-receita infinitepay backup-baixar inter openfinance whatsapp mercadolivre; do
+            quer "$fn" || continue
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
           done
