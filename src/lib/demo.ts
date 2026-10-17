@@ -1505,6 +1505,20 @@ function comercialDemo(db: Db) {
     db.expedicoes.push({ id: `ex-${id}`, pedido_id: id, unidade_id, status, itens_conferidos: [], volumes: null, peso_kg: null, transportadora_id: null, codigo_rastreio: null,
       responsavel: status === "separando" ? "Lucas Expedição" : null, separando_em: status === "separando" ? quando(d) : null, created_at: quando(d - 0.2) });
   });
+  // Mercado Livre (demonstração): a conta conectada e vendas depois da venda (envio, NF-e e rastreio)
+  db.ml_contas = [{ id: "mlc1", ml_user_id: 123456, apelido: "LOJA.DEMO", unidade_id: U_SP, status: "ativa", erro: null, token_expira_em: quando(0.2), conectado_em: quando(-20),
+    sincronizado_em: quando(-0.01), ultimas_novas: 2, enviar_estoque: true, enviar_preco: false, emitir_nfe: true, created_at: quando(-20) }];
+  const mlVenda = (id: string, n: number, d: number, extra: Row): Row => ({
+    id, conta_id: "mlc1", ml_order_id: 2000010000000 + n, ml_pack_id: null, pedido_id: null, data_venda: quando(d), comprador: `COMPRADOR${n}`, total: 0, logistica: "cross_docking",
+    situacao: "importada", pendencia: null, envio_status: null, envio_substatus: null, envio_modo: "me2", rastreio_ml: null, envio_atualizado_em: quando(d + 0.1),
+    nota_enviada_em: null, nota_erro: null, nota_tentativas: 0, rastreio_enviado_em: null, rastreio_erro: null, rastreio_tentativas: 0, created_at: quando(d), ...extra });
+  db.ml_pedidos = [
+    mlVenda("mlp1", 1, -6, { pedido_id: "pd1", total: 389.8, envio_status: "delivered", rastreio_ml: "MEL4471200BR", nota_enviada_em: quando(-5.8), nota_ml_id: "fd-1" }),
+    mlVenda("mlp2", 2, -1.2, { pedido_id: "pd6", total: 2349, envio_status: "ready_to_ship", envio_substatus: "invoice_pending" }),
+    mlVenda("mlp3", 3, -0.1, { pedido_id: "pd8", total: 3788, envio_status: "handling", envio_modo: "custom", logistica: null }),
+    mlVenda("mlp4", 4, -2, { pedido_id: "pd2", total: 1560, envio_status: "ready_to_ship", envio_modo: "me1", logistica: null, rastreio_erro: "O Mercado Livre recusou: shipment status invalid for update", rastreio_tentativas: 5 }),
+    mlVenda("mlp5", 5, -0.05, { total: 179.9, situacao: "pendente", pendencia: "Produto do anúncio MLB123 sem ligação com o cadastro" }),
+  ];
   // Contador: impostos destacados nas notas (como viriam da emissão), um fechamento já enviado e uma mensagem
   for (const n of db.notas_fiscais.filter((x) => x.status === "autorizada" && x.pedido_id)) {
     const p = db.pedidos.find((x) => x.id === n.pedido_id);
@@ -1922,6 +1936,7 @@ class Query {
   update(p: any) { this.op = "update"; this.payload = p; return this; }
   delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
+  neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   not(c: string, op: string, v: any) { this.filtros.push((r) => (op === "is" ? (r[c] ?? null) !== v : r[c] !== v)); return this; }
@@ -3738,6 +3753,17 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       { id: uid(), pedido_id: p_pedido, situacao: p_decisao, pontos: r.pontos, nivel: r.nivel, motivos: r.motivos, valor_conferido: Number(p.valor_total ?? 0), observacao: p_observacao, decidido_por_nome: "Administrador (demonstração)", decidido_em: quando(0) }];
     return { data: riscoDemo(p_pedido), error: null };
   },
+  ml_tentar_de_novo: ({ p_ml_pedido }) => {
+    const v = (db.ml_pedidos ?? []).find((x) => x.id === p_ml_pedido);
+    if (v) Object.assign(v, { nota_tentativas: v.nota_enviada_em ? v.nota_tentativas : 0, nota_erro: null, rastreio_tentativas: v.rastreio_enviado_em ? v.rastreio_tentativas : 0, rastreio_erro: null });
+    return { data: null, error: null };
+  },
+  ml_configurar: ({ p_conta, p_emitir_nfe }) => {
+    const c = (db.ml_contas ?? []).find((x) => x.id === p_conta);
+    if (!c) return erro("conta do Mercado Livre não encontrada");
+    if (p_emitir_nfe != null) c.emitir_nfe = p_emitir_nfe;
+    return { data: null, error: null };
+  },
   garantir_fechamento: ({ p_unidade, p_competencia }) => {
     db.fechamentos ??= [];
     let f = db.fechamentos.find((x) => x.unidade_id === p_unidade && x.competencia === p_competencia);
@@ -4550,6 +4576,22 @@ function nfseDemo(b: Row) {
 }
 
 const funcoes: Record<string, (b: any) => any> = {
+  mercadolivre: (b) => {
+    if (b.acao !== "pos_venda") return { ok: true, resultado: null };
+    const conta = (db.ml_contas ?? [])[0];
+    const notas = { enviadas: 0, erros: 0 }, rastreios = { enviados: 0, erros: 0 };
+    for (const v of db.ml_pedidos ?? []) {
+      const autorizada = db.notas_fiscais.some((n) => n.pedido_id === v.pedido_id && n.status === "autorizada");
+      if (conta?.emitir_nfe && v.pedido_id && autorizada && !v.nota_enviada_em && !v.nota_erro && v.situacao !== "cancelada") {
+        Object.assign(v, { nota_enviada_em: quando(0), nota_ml_id: `fd-${v.id}` }); notas.enviadas++;
+      }
+      const exp = db.expedicoes.find((e) => e.pedido_id === v.pedido_id && ["despachado", "entregue"].includes(e.status) && e.codigo_rastreio);
+      if (["me1", "custom"].includes(v.envio_modo) && exp && !v.rastreio_enviado_em && v.rastreio_tentativas < 5) {
+        Object.assign(v, { rastreio_enviado_em: quando(0), rastreio_erro: null, envio_status: "shipped", rastreio_ml: exp.codigo_rastreio }); rastreios.enviados++;
+      }
+    }
+    return { ok: true, resultado: { notas, rastreios } };
+  },
   nfse: (b) => nfseDemo(b),
   "cotacao-enviar": (b) => {
     const forns = db.cotacao_fornecedores.filter((x) => x.cotacao_id === b.cotacao_id && (b.fornecedores?.length ? b.fornecedores.includes(x.id) : x.status === "pendente"));

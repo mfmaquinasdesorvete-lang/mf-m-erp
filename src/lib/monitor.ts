@@ -92,6 +92,7 @@ export const AUTOMACOES: Record<string, { nome: string; texto: string; tela?: st
   "erp-inter": { nome: "Banco Inter", texto: "Extrato e saldo do Inter, a cada 4 horas.", tela: "/conciliacao" },
   "erp-mercadolivre": { nome: "Mercado Livre: vendas", texto: "Traz as vendas pagas do Mercado Livre.", tela: "/mercado-livre" },
   "erp-mercadolivre-anuncios": { nome: "Mercado Livre: anúncios", texto: "Manda o estoque e o preço do ERP para os anúncios.", tela: "/mercado-livre" },
+  "erp-mercadolivre-posvenda": { nome: "Mercado Livre: NF-e e rastreio", texto: "Manda a NF-e autorizada e o rastreio do envio próprio para as vendas do Mercado Livre.", tela: "/mercado-livre" },
   "erp-mercadolivre-conferir": { nome: "Mercado Livre: conferência", texto: "Confere todos os anúncios uma vez por dia.", tela: "/mercado-livre" },
   "erp-nfe-processar": { nome: "Notas de fornecedor", texto: "Busca na SEFAZ as notas contra o CNPJ, faz a ciência e dá entrada.", tela: "/notas?aba=recebidas" },
   "erp-nfse-processar": { nome: "NFS-e", texto: "Acompanha as notas de serviço enviadas até autorizar.", tela: "/assistencia" },

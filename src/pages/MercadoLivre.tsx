@@ -1,5 +1,5 @@
-// Mercado Livre (Vendas → Mercado Livre): os anúncios com o estoque e o preço que o ERP manda, os ajustes desse envio
-// e a conta conectada. Também recebe a volta do "Conectar" (/mercado-livre/retorno?code=…&state=…).
+// Mercado Livre (Vendas → Mercado Livre): os anúncios com o estoque e o preço que o ERP manda, os ajustes desse envio,
+// as vendas depois da venda (envio, NF-e e rastreio) e a conta conectada. Também recebe a volta do "Conectar" (/mercado-livre/retorno?code=…&state=…).
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -12,12 +12,14 @@ import { concluirConexaoML, sincronizarAgora, useAnunciosML } from "@/lib/useMer
 import { ContaMercadoLivre } from "@/components/mercadolivre/ContaMercadoLivre";
 import { EnvioEstoquePreco } from "@/components/mercadolivre/EnvioEstoquePreco";
 import { AnunciosMercadoLivre } from "@/components/mercadolivre/AnunciosMercadoLivre";
+import { VendasMercadoLivre } from "@/components/mercadolivre/VendasMercadoLivre";
 
-type Aba = "anuncios" | "envio" | "conta";
+type Aba = "anuncios" | "vendas" | "envio" | "conta";
 
 export default function MercadoLivre() {
   const { tem } = usePerfil();
   const podeMudar = tem("financeiro", "marketplace");
+  const veVendas = tem("vendas", "financeiro");
   const { conta, anuncios, carregando, erro } = useAnunciosML();
   const [aba, setAba] = useState<Aba | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
@@ -43,7 +45,7 @@ export default function MercadoLivre() {
     <div>
       <PageHeader
         title="Mercado Livre"
-        subtitle="O ERP manda o estoque e o preço para os anúncios. Aqui você vê o que vai para cada anúncio, ajusta o envio e conecta a conta."
+        subtitle="O ERP manda o estoque e o preço para os anúncios e, depois da venda, a NF-e e o rastreio. Aqui você vê cada anúncio e cada venda, ajusta o envio e conecta a conta."
         actions={conta && podeMudar ? (
           <Button onClick={sincronizar} disabled={sincronizando || !envioLigado} title={envioLigado ? "Manda agora estoque e preço de todos os anúncios ligados" : "Ligue antes o envio do estoque ou do preço"}>
             {sincronizando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Sincronizar agora
@@ -60,10 +62,12 @@ export default function MercadoLivre() {
       )}
       <Tabs value={atual} onChange={setAba} options={[
         { value: "anuncios", label: atencao ? `Anúncios (${atencao} para ver)` : "Anúncios" },
+        ...(veVendas && conta ? [{ value: "vendas" as const, label: "Vendas e notas" }] : []),
         { value: "envio", label: "Envio de estoque e preço" },
         { value: "conta", label: conta ? "Conta" : "Conectar a conta" },
       ]} />
       {atual === "anuncios" && <AnunciosMercadoLivre conta={conta} anuncios={anuncios} carregando={carregando} erro={erro} podeMudar={podeMudar} />}
+      {atual === "vendas" && veVendas && <VendasMercadoLivre conta={conta} />}
       {atual === "envio" && <EnvioEstoquePreco conta={conta} podeMudar={podeMudar} irConta={() => setAba("conta")} />}
       {atual === "conta" && <ContaMercadoLivre conta={conta} />}
     </div>

@@ -17,6 +17,8 @@ export type ContaML = {
   token_expira_em: string | null; conectado_em: string; sincronizado_em: string | null; ultimas_novas: number;
   enviar_estoque?: boolean; enviar_preco?: boolean; preco_tabela_id?: string | null; preco_ajuste?: number | null;
   estoque_seguranca?: number | null; estoque_maximo?: number | null; trava_preco?: number | null;
+  /** o ERP emite a NF-e das vendas (e manda o XML para o Mercado Livre); falso enquanto outro sistema emite */
+  emitir_nfe?: boolean;
 };
 
 /** Uma linha de ml_anuncios_lista: o anúncio, o produto ligado e o que já foi enviado. */

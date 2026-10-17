@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { idDoRecurso, linkAutorizacao, normalizarPedido, siglaUF } from "../../../supabase/functions/_shared/mercadolivre";
+import { caminhoNotaML, idDoRecurso, linkAutorizacao, normalizarPedido, prepararXmlNfe, siglaUF, situacaoEnvio } from "../../../supabase/functions/_shared/mercadolivre";
 
 // venda como a API do Mercado Livre devolve (só os campos que o ERP usa)
 const order = {
@@ -75,5 +75,32 @@ describe("Mercado Livre: venda no formato do ERP", () => {
     expect(u.hostname).toBe("auth.mercadolivre.com.br");
     expect(u.searchParams.get("redirect_uri")).toBe("https://erp.exemplo.com.br/mercado-livre/retorno");
     expect(u.searchParams.get("state")).toBe("abc");
+  });
+});
+
+describe("Mercado Livre: depois da venda (envio, NF-e)", () => {
+  it("situação do envio no formato novo e no antigo", () => {
+    expect(situacaoEnvio({ status: "shipped", substatus: "out_for_delivery", logistic: { mode: "me2" }, tracking_number: "BR123" }))
+      .toEqual({ status: "shipped", substatus: "out_for_delivery", modo: "me2", rastreio: "BR123" });
+    expect(situacaoEnvio({ status: "ready_to_ship", mode: "custom", tracking_number: "" }))
+      .toEqual({ status: "ready_to_ship", substatus: null, modo: "custom", rastreio: null });
+    expect(situacaoEnvio(null)).toEqual({ status: null, substatus: null, modo: null, rastreio: null });
+  });
+
+  it("NF-e vai para o pacote; venda sem pacote usa o número da venda", () => {
+    expect(caminhoNotaML(2000009876543210, 2000004444)).toBe("/packs/2000004444/fiscal_documents");
+    expect(caminhoNotaML(2000009876543210, null)).toBe("/packs/2000009876543210/fiscal_documents");
+  });
+
+  it("XML da NF-e: só a autorizada, com a declaração e até 1 MB", () => {
+    const proc = '<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe"><NFe/><protNFe/></nfeProc>';
+    const ok = prepararXmlNfe("\uFEFF" + proc);
+    expect("xml" in ok && ok.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?><nfeProc')).toBe(true);
+    const comDeclaracao = prepararXmlNfe('<?xml version="1.0"?>' + proc);
+    expect("xml" in comDeclaracao && comDeclaracao.xml).toBe('<?xml version="1.0"?>' + proc);
+    expect(prepararXmlNfe(null)).toEqual({ erro: "XML da NF-e não encontrado" });
+    expect(prepararXmlNfe("<NFe><infNFe/></NFe>")).toEqual({ erro: "o XML não é de NF-e autorizada (sem nfeProc)" });
+    expect(prepararXmlNfe(proc + " ".repeat(1_000_001))).toEqual({ xml: expect.any(String) }); // espaço do fim sai no trim
+    expect(prepararXmlNfe(proc.replace("<NFe/>", `<NFe>${"x".repeat(1_000_001)}</NFe>`))).toEqual({ erro: "o XML passa de 1 MB" });
   });
 });

@@ -180,3 +180,34 @@ export function idDoRecurso(resource: unknown, prefixo: "orders" | "shipments"):
   const m = String(resource ?? "").match(new RegExp(`/${prefixo}/(\\d+)`));
   return m ? m[1] : null;
 }
+
+// ---------------------------------------------------------------------
+// Depois da venda (fase A): situação do envio, NF-e e rastreio
+// ---------------------------------------------------------------------
+export type SituacaoEnvio = { status: string | null; substatus: string | null; modo: string | null; rastreio: string | null };
+
+/** Situação do envio (formato novo ou antigo de /shipments/{id}): status, substatus, modo (me2, me1, custom…) e rastreio. */
+export function situacaoEnvio(envio: any): SituacaoEnvio {
+  return {
+    status: texto(envio?.status),
+    substatus: texto(envio?.substatus),
+    modo: texto(envio?.logistic?.mode) ?? texto(envio?.mode),
+    rastreio: texto(envio?.tracking_number),
+  };
+}
+
+/** Pacote da venda: a NF-e vai para /packs/{pack_id}; venda sem pacote usa o número da venda. */
+export const caminhoNotaML = (orderId: number | string, packId?: number | string | null) => `/packs/${packId || orderId}/fiscal_documents`;
+
+/**
+ * XML da NF-e pronto para o Mercado Livre: precisa ser a nota autorizada (nfeProc), começar pela declaração XML e ter
+ * até 1 MB. Quando não serve, devolve o motivo (vai para o erro da fila).
+ */
+export function prepararXmlNfe(xml: string | null | undefined): { xml: string } | { erro: string } {
+  let s = String(xml ?? "").replace(/^﻿/, "").trim();
+  if (!s) return { erro: "XML da NF-e não encontrado" };
+  if (!/<nfeProc[\s>]/.test(s)) return { erro: "o XML não é de NF-e autorizada (sem nfeProc)" };
+  if (!s.startsWith("<?xml")) s = `<?xml version="1.0" encoding="UTF-8"?>${s}`;
+  if (new TextEncoder().encode(s).length > 1_000_000) return { erro: "o XML passa de 1 MB" };
+  return { xml: s };
+}

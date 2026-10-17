@@ -10,14 +10,18 @@
 // Fase 2 (estoque e preço nos anúncios):
 //  POST { acao: "anuncios" }                (financeiro, marketplaces ou agendamento de 5 min) → manda o que está na fila
 //  POST { acao: "buscar_anuncios" }         (vendas, financeiro ou marketplaces) → traz os anúncios da conta e liga pelo SKU
+// Fase A (depois da venda):
+//  POST { acao: "pos_venda" }               (vendas, financeiro ou agendamento de 10 min) → manda as NF-e autorizadas e o
+//       rastreio dos envios por conta própria; a situação do envio (enviado, entregue…) chega junto com cada venda.
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { enderecoSite } from "../_shared/site.ts";
-import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, pedirToken } from "../_shared/mercadolivre.ts";
+import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, pedirToken, situacaoEnvio } from "../_shared/mercadolivre.ts";
 import { buscarAnuncios, enviarAnuncios } from "./anuncios.ts";
+import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -58,6 +62,13 @@ Deno.serve(async (req) => {
         if (!c) return json({ ok: true, resultado: { aviso: "nenhuma conta do Mercado Livre conectada" } });
         const conta = c as Conta & { ml_user_id: number };
         return json({ ok: true, resultado: await enviarAnuncios(db, conta, () => tokenValido(db, conta)) });
+      }
+      case "pos_venda": {
+        if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["vendas", "financeiro"]);
+        const { data: c } = await db.from("ml_contas").select("*").eq("status", "ativa").order("created_at").limit(1).maybeSingle();
+        if (!c) return json({ ok: true, resultado: { aviso: "nenhuma conta do Mercado Livre conectada" } });
+        const token = await tokenValido(db, c as Conta);
+        return json({ ok: true, resultado: { notas: await enviarNotas(db, token), rastreios: await enviarRastreios(db, token) } });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
@@ -150,6 +161,11 @@ async function importar(db: SupabaseClient, conta: Conta, token: string, orderId
   }
   const { data, error } = await db.rpc("ml_importar_pedido", { p: { conta_id: conta.id, ...venda } });
   if (error) throw new Error(error.message);
+  // situação do envio (enviado, entregue…): vai para a venda e para a expedição do ERP
+  if (v.envio) {
+    const { error: e2 } = await db.rpc("ml_registrar_envio", { p: { order_id: venda.order_id, ...situacaoEnvio(v.envio) } });
+    if (e2) console.error("mercadolivre: situação do envio", venda.order_id, e2.message);
+  }
   return data;
 }
 
