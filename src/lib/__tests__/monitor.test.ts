@@ -35,6 +35,8 @@ describe("monitor das automações", () => {
   it("situação: falhou, atrasada (mais de 2 intervalos), falhou e voltou, ainda não rodou, desligada, em dia", () => {
     expect(situacaoAutomacao(auto("*/5 * * * *", 3), agora)).toBe("ok");
     expect(situacaoAutomacao(auto("*/5 * * * *", 3, { ultima_situacao: "failed" }), agora)).toBe("falhou");
+    // a rodada em andamento não é falha (o vigia chegou a avisar que ele mesmo falhava)
+    expect(situacaoAutomacao(auto("13 * * * *", 0, { ultima_situacao: "running" }), agora)).toBe("ok");
     expect(situacaoAutomacao(auto("*/5 * * * *", 16), agora)).toBe("atrasada");
     expect(situacaoAutomacao(auto("7 11 * * *", 16 * 60), agora)).toBe("ok");
     expect(situacaoAutomacao(auto("7 11 * * *", 50 * 60), agora)).toBe("atrasada");

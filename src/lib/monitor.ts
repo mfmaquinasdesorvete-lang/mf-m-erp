@@ -67,7 +67,8 @@ export function agendaEmPortugues(agenda: string): string {
 export function situacaoAutomacao(a: Automacao, agora: Date | string): SituacaoAuto {
   if (!a.ativo) return "desligada";
   if (!a.ultima) return "aguardando";
-  if (a.ultima_situacao && a.ultima_situacao !== "succeeded") return "falhou";
+  // só "failed" é falha: "running"/"starting" é a rodada ainda em andamento
+  if (a.ultima_situacao === "failed") return "falhou";
   const atraso = (new Date(agora).getTime() - new Date(a.ultima).getTime()) / 60000;
   if (atraso > 2 * intervaloCron(a.agenda) + 5) return "atrasada";
   if (a.falhas_24h > 0) return "instavel";
