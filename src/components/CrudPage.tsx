@@ -49,6 +49,8 @@ export type FiltroCrud<T> =
 export type OrdemCrud<T> = { label: string; comparar: (a: T, b: T) => number };
 
 const POR_VEZ = 200;
+/** Filtros à vista na linha da busca, no computador (os outros ficam no botão "Filtros"). */
+const VISIVEIS_PC = 2;
 
 type Props<T> = {
   title: string;
@@ -60,6 +62,8 @@ type Props<T> = {
   order?: string;
   rowActions?: (row: T) => ReactNode;
   extraActions?: ReactNode;
+  /** Logo abaixo do título (avisos, atalhos): a tela começa sempre pelo título. */
+  aposTitulo?: ReactNode;
   /** Ajusta os dados antes de gravar (ex.: converter números). */
   beforeSave?: (row: Record<string, any>) => Record<string, any>;
   /** Reage à mudança de um campo (ex.: CEP preenche endereço). */
@@ -164,6 +168,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
 
   const filtrosAtivos = Object.values(escolhas).filter(Boolean).length;
   const temFiltros = filtros.length > 0 || ordens.length > 1;
+  // no computador: os primeiros filtros à vista; os outros e a ordem no painel do botão "Filtros"
+  const maisFiltros = filtros.length > VISIVEIS_PC || ordens.length > 1;
+  const escondidosAtivos = filtros.slice(VISIVEIS_PC).some((f) => escolhas[f.label]);
   const [painel, setPainel] = useState(false);
   const celular = useCelular();
   const todosMarcados = filtrados.length > 0 && filtrados.every((r) => sel.has(r.id));
@@ -317,53 +324,60 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         })()}
       />
 
+      {props.aposTitulo}
       {destaque && <FaixaDestaque destaque={destaque} mostrando={data.length} onLimpar={limparDestaque} />}
 
       {/* No celular os filtros ficam guardados no botão "Filtros" (a lista aparece logo abaixo da busca);
-          no computador continuam na mesma linha da busca. */}
+          no computador os 2 primeiros ficam na linha da busca e o resto abre no mesmo botão. */}
       <div className="mb-3 flex flex-wrap items-end gap-2">
-        <div className="relative min-w-0 flex-1 md:w-full md:max-w-md md:flex-none">
+        <div className="relative min-w-0 flex-1 md:w-full md:max-w-sm md:flex-none">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
         {temFiltros && (
           <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
-            className={`inline-flex min-h-[46px] shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold md:hidden ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
-            <SlidersHorizontal size={16} /> Filtros
+            className={`inline-flex min-h-[46px] shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold md:order-1 md:min-h-[38px] ${maisFiltros ? "" : "md:hidden"} ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
+            <SlidersHorizontal size={16} /> {painel ? "Fechar filtros" : "Filtros"}
             {filtrosAtivos > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-white">{filtrosAtivos}</span>}
           </button>
         )}
-        <div className={`${painel ? "grid" : "hidden"} w-full grid-cols-2 gap-x-2 gap-y-2.5 md:contents`}>
-          {filtros.map((f, i) => (
-            <label key={f.label} className="min-w-0 md:contents">
-              <span className="mb-1 block truncate text-xs font-semibold text-slate-500 md:hidden">{f.label}</span>
-              <select className={`input min-w-0 md:!w-auto md:max-w-[14rem] ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
-                value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
-                <option value="">{celular ? "Todos" : `${f.label}: todos`}</option>
-                {"valor" in f
-                  ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
-                  : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
-              </select>
-            </label>
-          ))}
-          {ordens.length > 1 && (
-            <label className="min-w-0 md:contents">
-              <span className="mb-1 block text-xs font-semibold text-slate-500 md:hidden">Ordem</span>
-              <select className="input min-w-0 md:!w-auto" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
-                {ordens.map((o, i) => <option key={o.label} value={i}>{celular ? o.label : `Ordem: ${o.label}`}</option>)}
-              </select>
-            </label>
-          )}
-        </div>
+        {/* no computador os primeiros filtros ficam na linha da busca; o resto (e a ordem) abre no botão "Filtros" */}
+        {[filtros.slice(0, VISIVEIS_PC), filtros.slice(VISIVEIS_PC)].map((grupo, g) => (grupo.length > 0 || (g === 1 && ordens.length > 1)) && (
+          <div key={g} className={`${painel ? "grid" : "hidden"} w-full grid-cols-2 gap-x-2 gap-y-2.5 ${g === 0 ? "md:contents" : "md:order-2 md:grid-cols-4 md:rounded-xl md:border md:border-slate-200 md:p-3"}`}>
+            {grupo.map((f) => {
+              const i = filtros.indexOf(f);
+              return (
+                <label key={f.label} className={`min-w-0 ${g === 0 ? "md:contents" : ""}`}>
+                  <span className={`mb-1 block truncate text-xs font-semibold text-slate-500 ${g === 0 ? "md:hidden" : ""}`}>{f.label}</span>
+                  <select className={`input min-w-0 ${g === 0 ? "md:!w-auto md:max-w-[12rem]" : ""} ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
+                    value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
+                    <option value="">{celular || g === 1 ? "Todos" : `${f.label}: todos`}</option>
+                    {"valor" in f
+                      ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
+                      : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+                  </select>
+                </label>
+              );
+            })}
+            {g === 1 && ordens.length > 1 && (
+              <label className="min-w-0">
+                <span className="mb-1 block text-xs font-semibold text-slate-500">Ordem</span>
+                <select className="input min-w-0" aria-label="Ordenar" value={ordem} onChange={(e) => setOrdem(Number(e.target.value))}>
+                  {ordens.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+        ))}
         {(filtrosAtivos > 0 || busca) && (
-          <button type="button" className={`px-2 py-2 text-sm text-brand hover:underline ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
+          <button type="button" className={`px-2 py-2 text-sm text-brand hover:underline md:order-1 ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
         )}
-        {/* filtros escolhidos, à vista com o painel fechado (celular) */}
+        {/* filtros escolhidos, à vista com o painel fechado (no computador, só os que estão dentro do painel) */}
         {!painel && filtrosAtivos > 0 && (
-          <div className="flex w-full flex-wrap gap-1.5 md:hidden">
+          <div className={`flex w-full flex-wrap gap-1.5 md:order-3 ${escondidosAtivos ? "" : "md:hidden"}`}>
             {Object.entries(escolhas).filter(([, v]) => v).map(([k, v]) => (
               <button key={k} type="button" onClick={() => setEscolhas((x) => ({ ...x, [k]: "" }))} aria-label={`Tirar o filtro ${k}`}
-                className="inline-flex max-w-full items-center gap-1 rounded-full bg-brand-light px-2.5 py-1 text-xs font-semibold text-fg">
+                className={`inline-flex max-w-full items-center gap-1 rounded-full bg-brand-light px-2.5 py-1 text-xs font-semibold text-fg ${filtros.findIndex((f) => f.label === k) < VISIVEIS_PC ? "md:hidden" : ""}`}>
                 <span className="truncate">{k}: {v}</span> <X size={13} className="shrink-0" />
               </button>
             ))}

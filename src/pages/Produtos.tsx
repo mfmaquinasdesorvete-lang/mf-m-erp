@@ -341,13 +341,13 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     );
   };
   const abasProdutos = [
-    { value: "produtos" as const, label: "Produtos e estoque" },
-    { value: "qualidade" as const, label: "Qualidade do cadastro" },
-    { value: "auditoria" as const, label: "Marketplace e anúncios" },
+    { value: "produtos" as const, label: "Produtos" },
+    { value: "qualidade" as const, label: "Qualidade" },
+    { value: "auditoria" as const, label: "Anúncios" },
     { value: "categorias" as const, label: "Categorias" },
-    ...(tem("financeiro") ? [{ value: "precos" as const, label: precosPendentes ? `Formação de preço (${precosPendentes})` : "Formação de preço" }] : []),
+    ...(tem("financeiro") ? [{ value: "precos" as const, label: precosPendentes ? `Preços (${precosPendentes})` : "Preços" }] : []),
     { value: "tabelas" as const, label: "Tabelas de preço" },
-    ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem de estoque" }] : []),
+    ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem" }] : []),
   ];
   return (
     <>
@@ -374,51 +374,54 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       ) : aba === "contagem" ? (
         <ContagemEstoque produtos={produtos} podeEditar={pode("movimentar_estoque")} />
       ) : <>
-      {podeMover && precosPendentes > 0 && (
-        <button type="button" onClick={() => setAba("precos")}
-          className="mb-3 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
-          <AlertTriangle size={18} className="shrink-0" />
-          <span className="min-w-0 flex-1"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
-          <span className="shrink-0 font-semibold underline">Revisar</span>
-        </button>
-      )}
-      {baixos.length > 0 && (
-        <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-          <span>
-            <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
-            <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
-              {baixos.length > 6 && "…"}</span>
-          </span>
-        </div>
-      )}
-
-      {!ehMaquinas && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Cadastro de produtos">
-        {CADASTROS.filter((c) => c.id !== "maquinas").map((c) => (
-          <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
-            className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition sm:gap-3 sm:p-3 ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-pop " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
-            <span className="num text-xl font-bold sm:text-2xl">{contagem(c.id)}</span>
-            <span className="min-w-0 text-sm font-bold leading-tight">{c.titulo}</span>
-          </button>
-        ))}
-      </div>}
-      <p className={`${ehMaquinas ? "" : "-mt-2 "}mb-3 text-xs text-slate-600 sm:text-sm`}>
-        {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="font-semibold text-brand hover:underline">Produtos e estoque</Link>.</> : atualCad.ajuda}
-      </p>
-      {ehMaquinas && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
-      {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
-          <Boxes size={18} className="shrink-0" />
-          <span className="min-w-0 flex-1"><b>Sugestão de separação:</b> {sugeridos.length} {pl(sugeridos.length, "produto", "produtos")} estão como peça de reposição mas marcados <b>"não vende"</b> (o cliente não compra). Pelo jeito são componentes de produção.</span>
-          <Button variant="secondary" onClick={() => setVerSugestao(true)}>Conferir e mover</Button>
-        </div>
-      )}
       {verSugestao && <SugestaoComponentes produtos={sugeridos} onClose={() => setVerSugestao(false)} onMover={async (ids) => {
         try { notify(await moverPara(ids, "insumo", "Componentes de produção")); invalidar("produtos"); setVerSugestao(false); } catch (e) { notifyError(e); }
       }} />}
 
       <CrudPage<Produto>
         key={cadastro}
+        // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
+        aposTitulo={<>
+          {podeMover && precosPendentes > 0 && (
+            <button type="button" onClick={() => setAba("precos")}
+              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800">
+              <AlertTriangle size={18} className="shrink-0" />
+              <span className="min-w-0 flex-1"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
+              <span className="shrink-0 font-semibold underline">Revisar</span>
+            </button>
+          )}
+          {baixos.length > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+              <span>
+                <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
+                <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
+                  {baixos.length > 6 && "…"}</span>
+              </span>
+            </div>
+          )}
+
+          {!ehMaquinas && <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Cadastro de produtos">
+            {CADASTROS.filter((c) => c.id !== "maquinas").map((c) => (
+              <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-card " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
+                {c.titulo}
+                <span className={`num rounded-full px-1.5 text-xs leading-5 ${cadastro === c.id ? "bg-white/25" : "bg-slate-100 text-slate-600"}`}>{contagem(c.id)}</span>
+              </button>
+            ))}
+          </div>}
+          <p className="mb-3 text-xs text-slate-600 sm:text-sm">
+            {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="font-semibold text-brand hover:underline">Produtos e estoque</Link>.</> : atualCad.ajuda}
+          </p>
+          {ehMaquinas && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
+          {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
+              <Boxes size={18} className="shrink-0" />
+              <span className="min-w-0 flex-1"><b>Sugestão de separação:</b> {sugeridos.length} {pl(sugeridos.length, "produto", "produtos")} estão como peça de reposição mas marcados <b>"não vende"</b> (o cliente não compra). Pelo jeito são componentes de produção.</span>
+              <Button variant="secondary" onClick={() => setVerSugestao(true)}>Conferir e mover</Button>
+            </div>
+          )}
+        </>}
         anexos="produto"
         title={cadastro === "todos" ? "Produtos e estoque" : atualCad.titulo}
         filtroBase={doCadastro[cadastro]}

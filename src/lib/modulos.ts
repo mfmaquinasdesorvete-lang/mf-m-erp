@@ -9,9 +9,23 @@ export const SOBRE_AREAS: Record<string, string> = {
   logistica: "Depois da venda: fluxo dos pedidos, separação e embalagem, fretes, transportadoras e embalagens.",
   posvenda: "Ordens de serviço, garantias e preventivas das máquinas dos clientes.",
   producao: "Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.",
-  financeiro: "Contas a pagar e a receber, aprovações, bancos e conciliação, gastos separados (combustível, marketplaces, impostos, tarifas e funcionários) e o dinheiro entre contas e sócios.",
+  financeiro: "Contas a pagar e a receber, aprovações, bancos e conciliação, gastos separados (combustível, marketplaces, impostos, tarifas, funcionários e quiosques) e o dinheiro entre contas e sócios.",
   notas: "Notas fiscais emitidas e recebidas, painel fiscal, painel do contador e analista fiscal.",
   analises: "Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.",
+};
+
+/** Telas fora da lista do menu: por onde se chega nelas (além da busca do menu). */
+export const ONDE_ABRE: Record<string, string> = {
+  "/pdv": "Cartão rosa \"PDV\" no alto do menu",
+  "/painel/maquinas": "Botão \"Painel das máquinas\" na tela Máquinas",
+  "/painel/produtos": "Botão \"Painel dos produtos\" em Produtos e estoque",
+  "/produtos/pecas": "Cartão \"Peças de reposição\" em Produtos e estoque",
+  "/produtos/componentes": "Cartão \"Componentes de produção\" em Produtos e estoque",
+  "/formas-pagamento": "Engrenagem no fim do menu → Configurações",
+  "/usuarios": "Engrenagem no fim do menu → Configurações",
+  "/importar": "Engrenagem no fim do menu → Configurações",
+  "/configuracoes": "Engrenagem no fim do menu",
+  "/configuracoes/cadastros": "Engrenagem no fim do menu → Configurações",
 };
 
 /** O que faz cada tela (pelo endereço). */
@@ -37,7 +51,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/assistencia": "Ordens de serviço com a máquina e a garantia do cliente, peças e serviços, NFS-e e o aviso das máquinas vendidas pela My Frost.",
   "/garantias": "Garantias das máquinas vendidas e preventivas a fazer.",
   "/painel/producao": "Indicadores da fábrica: ordens de produção, peças faltando, estoque mínimo e compras.",
-  "/estoque": "Produtos e estoque por unidade: NCM, EAN, custos, preços, kits, tabelas de preço, formação de preço e contagem.",
+  "/estoque": "Produtos e estoque por unidade: NCM, EAN, custos, preços, kits, tabelas de preço, formação de preço e contagem. Em Qualidade, as correções sugeridas pelo ERP (NCM, custo, categoria, marca) para aplicar com um toque.",
   "/produtos/maquinas": "Máquinas fabricadas: ficha técnica em vários níveis, fotos e vídeos, manuais, garantia e custos.",
   "/teste-giga": "Registro de qualidade REG-006: teste de cada máquina na bancada, com histórico e reteste.",
   "/producao": "Ordens de produção planejadas, em produção, prontas e atrasadas, com as peças que faltam.",
@@ -47,7 +61,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/financeiro": "Contas a pagar e a receber, contas fixas, recibos, boletos, régua de cobrança, plano de contas e DRE.",
   "/aprovacoes": "Revisão das contas antes do contador (1ª e 2ª revisão e pendências); a conta a pagar só é paga depois de aprovada.",
   "/conciliacao": "Contas bancárias, extratos (OFX, e-mail, Open Finance, Banco Inter) e conciliação com as contas lançadas.",
-  "/gastos": "Gastos acompanhados à parte, uma aba para cada: combustível por posto, compras no Mercado Livre, TikTok, Shopee e Amazon, impostos pagos, tarifas de cartão e da Olist e pagamentos aos funcionários, de todas as contas.",
+  "/gastos": "Gastos acompanhados à parte, uma aba para cada: combustível por posto, compras no Mercado Livre, TikTok, Shopee e Amazon, impostos pagos, tarifas de cartão e da Olist, pagamentos aos funcionários e a montagem dos quiosques (MDF, fitas, tinta e ferragens das notas com o marcador Quiosques), de todas as contas.",
   "/partes-relacionadas": "Dinheiro entre as contas da MF, com os sócios e com as empresas ligadas, separado do resto.",
   "/auditoria": "Histórico de alterações, checklist do mês e exceções do financeiro.",
   "/painel/notas": "Indicadores fiscais: faturamento, impostos, CFOP, notas rejeitadas e as próximas obrigações do Lucro Real.",
@@ -60,17 +74,17 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/implantacao": "Plano da troca do Tiny: etapas, prazos, responsáveis e o uso do ERP.",
   "/funcionarios": "Funcionários: dados pessoais, contrato, salário, documentos e ligação com o usuário do ERP.",
   "/documentos": "Todos os anexos (pedidos, OS, clientes, contas, produtos) num lugar só.",
-  "/pdv": "Venda de balcão em tela própria: leitor de código de barras, desconto com senha e comprovante de 80 mm.",
+  "/pdv": "Venda de balcão em tela própria, só com as peças de reposição: bipa ou digita o produto (com foto), escolhe o cliente (ou cadastra na hora) e o vendedor, e recebe em dinheiro com troco, Pix, cartão ou dividido. Desconto acima do limite pede a senha do administrador. Ao finalizar, a venda fica entregue, o estoque da loja baixa, a conta entra recebida e sai o comprovante de 80 mm; link InfinitePay e \"a prazo\" deixam a conta em aberto.",
   "/configuracoes": "Empresa e marca, unidades, recebimentos, NF-e, textos padrão, avisos, backup e as demais configurações.",
   "/importar": "Planilhas, XML, extratos e dados do Tiny e da My Frost, num lugar só.",
-  "/usuarios": "Usuários, papéis e o que cada perfil vê no menu.",
-  "/formas-pagamento": "Formas de pagamento com parcelas, prazo e taxa, usadas nas vendas e nas contas.",
+  "/usuarios": "Quem acessa o ERP: papel principal e adicionais (vendas, financeiro, técnico, contador, expedição, marketplaces, compras), unidade, função, contato e foto. Senha provisória com troca obrigatória no primeiro acesso, ligação com o cadastro de vendedor, o que cada papel pode fazer e o que cada perfil vê no menu.",
+  "/formas-pagamento": "Formas de pagamento como no Tiny: nome, meio (Pix, boleto, cartão, dinheiro…), condição (parcelas, intervalo e 1º vencimento) e custo (taxa % e tarifa por parcela). As vendas e as contas fixas escolhem daqui, e a taxa entra na margem.",
   "/configuracoes/cadastros": "Categorias e marcadores coloridos de todos os cadastros.",
   "/painel/cadastros": "Clientes novos e sumidos e a qualidade dos cadastros.",
-  "/painel/maquinas": "Máquinas vendidas por modelo, estoque × venda, garantias a vencer e preventivas atrasadas.",
+  "/painel/maquinas": "Como estão as máquinas: quantas vendemos e de quais modelos, quanto há pronto e em montagem (e para quantos meses dá no ritmo de venda), onde estão as vendidas, garantias a vencer, preventivas atrasadas e os modelos que mais voltam para a assistência. Tocar num modelo filtra o painel inteiro.",
   "/painel/produtos": "Produtos mais vendidos, curva ABC, parados, margem e o que vai faltar.",
-  "/produtos/pecas": "Catálogo das peças de reposição vendidas aos clientes.",
-  "/produtos/componentes": "Componentes e insumos usados na produção das máquinas.",
+  "/produtos/pecas": "Peças de reposição: o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.",
+  "/produtos/componentes": "Componentes de produção: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta \"também vende\".",
 };
 
 /** Páginas abertas por link, sem entrar no ERP (clientes, fornecedores e representantes). */

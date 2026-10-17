@@ -87,17 +87,21 @@ export function PainelPeriodo({ periodo, onChange, rotulo = "Data" }: { periodo:
 }
 
 /** Situações em botões pequenos com a contagem (a que não tem nada some, menos a escolhida e "todos"). */
-export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotulo = "Situação" }: {
+/** `cores`: cada situação com a sua cor (bolinha quando solta, fundo quando escolhida), como os selos da lista. */
+export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotulo = "Situação", cores }: {
   opcoes: { value: T; label: string; n: number }[]; valor: T; onChange: (v: T) => void; rotulo?: string;
+  cores?: Partial<Record<T, { ponto: string; ativo: string }>>;
 }) {
   return (
     <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label={rotulo}>
       {opcoes.map((o, i) => {
         if (!o.n && i > 0 && o.value !== valor) return null;
         const ativo = o.value === valor;
+        const cor = cores?.[o.value];
         return (
           <button key={o.value} type="button" aria-pressed={ativo} onClick={() => onChange(o.value)}
-            className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${ativo ? (cor ? `${cor.ativo} border-transparent text-white shadow-card` : "border-brand bg-brand text-brand-fg") : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            {cor && <span className={`h-2 w-2 rounded-full ${ativo ? "bg-white/90" : cor.ponto}`} aria-hidden />}
             {o.label} <span className="num ml-0.5 opacity-80">{o.n}</span>
           </button>
         );

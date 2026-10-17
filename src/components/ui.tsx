@@ -160,64 +160,64 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
 }
 
 const badgeColors: Record<string, string> = {
-  orcamento: "bg-slate-100 text-slate-700",
-  aprovado: "bg-blue-50 text-blue-700",
-  faturado: "bg-indigo-50 text-indigo-700",
-  entregue: "bg-emerald-50 text-emerald-700",
-  cancelado: "bg-red-50 text-red-700",
-  cancelada: "bg-red-50 text-red-700",
-  aberto: "bg-amber-50 text-amber-800",
-  pago: "bg-emerald-50 text-emerald-700",
-  vencido: "bg-red-50 text-red-700",
-  aberta: "bg-amber-50 text-amber-800",
-  em_diagnostico: "bg-sky-50 text-sky-700",
-  aguardando_aprovacao: "bg-purple-50 text-purple-700",
-  aguardando_peca: "bg-orange-50 text-orange-700",
-  em_reparo: "bg-blue-50 text-blue-700",
-  concluida: "bg-emerald-50 text-emerald-700",
-  processando: "bg-sky-50 text-sky-700",
-  autorizada: "bg-emerald-50 text-emerald-700",
-  erro: "bg-red-50 text-red-700",
-  enviado: "bg-emerald-50 text-emerald-700",
-  em_transito: "bg-sky-50 text-sky-700",
-  recebida: "bg-emerald-50 text-emerald-700",
+  orcamento: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
+  aprovado: "bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-200",
+  faturado: "bg-indigo-100 text-indigo-800 ring-1 ring-inset ring-indigo-200",
+  entregue: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  cancelado: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  cancelada: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  aberto: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  pago: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  vencido: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  aberta: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  em_diagnostico: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  aguardando_aprovacao: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
+  aguardando_peca: "bg-orange-100 text-orange-800 ring-1 ring-inset ring-orange-200",
+  em_reparo: "bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-200",
+  concluida: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  processando: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  autorizada: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  erro: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  enviado: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  em_transito: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  recebida: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   rascunho: "bg-slate-100 text-slate-700",
-  enviando: "bg-sky-50 text-sky-700",
+  enviando: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
   pendente: "bg-slate-100 text-slate-700",
-  aguardando_xml: "bg-sky-50 text-sky-700",
-  aguardando_vinculo: "bg-amber-50 text-amber-800",
-  revisao: "bg-purple-50 text-purple-700",
-  concluido: "bg-emerald-50 text-emerald-700",
+  aguardando_xml: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  aguardando_vinculo: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  revisao: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
+  concluido: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   ignorada: "bg-slate-100 text-slate-500",
-  ativo: "bg-emerald-50 text-emerald-700",
+  ativo: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   inativo: "bg-slate-100 text-slate-500",
-  ferias: "bg-sky-50 text-sky-700",
-  afastado: "bg-amber-50 text-amber-800",
+  ferias: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  afastado: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
   desligado: "bg-slate-100 text-slate-500",
-  em_garantia: "bg-emerald-50 text-emerald-700",
-  vence_logo: "bg-amber-50 text-amber-800",
+  em_garantia: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  vence_logo: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
   fora_garantia: "bg-slate-100 text-slate-600",
-  planejada: "bg-sky-50 text-sky-700",
-  em_producao: "bg-amber-50 text-amber-800",
-  pc_cotacao: "bg-purple-50 text-purple-700",
-  pc_enviado: "bg-sky-50 text-sky-700",
-  pc_parcial: "bg-amber-50 text-amber-800",
-  pc_recebido: "bg-emerald-50 text-emerald-700",
-  pc_cancelado: "bg-red-50 text-red-700",
-  escolhida: "bg-emerald-50 text-emerald-700",
-  contingencia: "bg-amber-50 text-amber-800",
-  denegada: "bg-red-50 text-red-700",
-  enviada: "bg-sky-50 text-sky-700",
-  visualizada: "bg-purple-50 text-purple-700",
-  aprovada: "bg-emerald-50 text-emerald-700",
-  rejeitada: "bg-red-50 text-red-700",
+  planejada: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  em_producao: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  pc_cotacao: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
+  pc_enviado: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  pc_parcial: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  pc_recebido: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  pc_cancelado: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  escolhida: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  contingencia: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  denegada: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  enviada: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  visualizada: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
+  aprovada: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
+  rejeitada: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
   expirada: "bg-slate-100 text-slate-600",
-  conciliado: "bg-emerald-50 text-emerald-700",
+  conciliado: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   ignorado: "bg-slate-100 text-slate-500",
-  transferencia: "bg-sky-50 text-sky-700",
-  indicio: "bg-amber-50 text-amber-800",
-  confirmado: "bg-red-50 text-red-700",
-  resolvido: "bg-emerald-50 text-emerald-700",
+  transferencia: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  indicio: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
+  confirmado: "bg-red-100 text-red-800 ring-1 ring-inset ring-red-200",
+  resolvido: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
   descartado: "bg-slate-100 text-slate-500",
 };
 
@@ -232,10 +232,16 @@ const badgeLabel: Record<string, string> = {
   transferencia: "transferência", indicio: "indício", ferias: "em férias",
 };
 
-export function Badge({ value }: { value: string | null | undefined }) {
+/** Selo cheio (fundo forte e letra branca) para a etapa da venda: a lista fica colorida nos dois temas. */
+const badgeForte: Record<string, string> = {
+  orcamento: "bg-[#7c3aed]", aprovado: "bg-solido-azul", faturado: "bg-[#4338ca]", entregue: "bg-solido-verde", cancelado: "bg-solido-vermelho",
+};
+
+export function Badge({ value, forte }: { value: string | null | undefined; forte?: boolean }) {
   if (!value) return <span className="text-slate-400">—</span>;
+  const cheio = forte ? badgeForte[value] : undefined;
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeColors[value] ?? "bg-slate-100 text-slate-700"}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${cheio ? `${cheio} text-white shadow-card` : badgeColors[value] ?? "bg-slate-100 text-slate-700"}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" aria-hidden />
       {badgeLabel[value] ?? value.replace(/_/g, " ")}
     </span>
@@ -446,23 +452,29 @@ export function Tabs<T extends string>({
 }
 
 /**
- * Ações secundárias de uma barra: no computador ficam à vista; no celular entram num botão "Mais" (a ação principal fica de fora).
+ * Ações secundárias de uma barra: entram num botão "Mais", no celular e no computador (a ação principal fica de fora, à vista).
  * O menu fica montado mesmo fechado, para não perder um arquivo escolhido num botão de importar.
  */
 export function MaisAcoes({ children, rotulo = "Mais" }: { children: ReactNode; rotulo?: string }) {
   const [aberto, setAberto] = useState(false);
+  // o menu abre logo abaixo do botão, alinhado pela direita dele, mas sempre dentro da tela (com 16px de folga)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
   useFecharComEsc(aberto, () => setAberto(false));
+  // igual no celular e no computador: as ações de apoio ficam no "Mais" e a principal fica à vista (antes, no computador,
+  // eram até 6 botões em fila antes da lista)
   return (
-    <>
-      <div className="hidden md:contents">{children}</div>
-      <div className="relative md:hidden">
-        <Button type="button" variant="secondary" aria-expanded={aberto} aria-haspopup="menu" onClick={() => setAberto((a) => !a)}><MoreHorizontal size={16} /> {rotulo}</Button>
-        {aberto && <div className="fixed inset-0 z-40" aria-hidden onClick={() => setAberto(false)} />}
-        <div role="menu" onClick={() => setAberto(false)}
-          className={`${aberto ? "flex" : "hidden"} absolute left-0 z-50 mt-1 w-64 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
-          {children}
-        </div>
+    <div className="relative">
+      <Button type="button" variant="secondary" aria-expanded={aberto} aria-haspopup="menu" onClick={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const largura = Math.min(window.innerWidth - 32, 18 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16));
+        setPos({ top: r.bottom + 4, left: Math.max(16, Math.min(r.right - largura, window.innerWidth - largura - 16)), width: largura });
+        setAberto((a) => !a);
+      }}><MoreHorizontal size={16} /> {rotulo}</Button>
+      {aberto && <div className="fixed inset-0 z-40" aria-hidden onClick={() => setAberto(false)} />}
+      <div role="menu" onClick={() => setAberto(false)} style={pos ? { top: pos.top, left: pos.left, width: pos.width } : undefined}
+        className={`${aberto ? "flex" : "hidden"} fixed z-50 max-h-[70vh] flex-col gap-1 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
+        {children}
       </div>
-    </>
+    </div>
   );
 }

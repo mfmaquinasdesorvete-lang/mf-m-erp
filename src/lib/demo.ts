@@ -172,11 +172,27 @@ function seed(): Db {
     ],
     nfe_cartas_correcao: [],
     nfe_inutilizacoes: [],
+    // data real em que virou cliente (no sistema real: a view public.clientes_desde)
+    clientes_desde: [
+      { cliente_id: "c1", desde: "2019-03-12", fonte: "compra_maquina" }, { cliente_id: "c2", desde: "2022-08-05", fonte: "my_frost" },
+      { cliente_id: "c3", desde: "2024-11-20", fonte: "proposta" },
+    ],
+    // correções sugeridas para o cadastro (no sistema real: public.produto_sugestoes, gerar/aplicar/ignorar_sugestoes_produtos)
+    produto_sugestoes: [
+      { id: "ps1", produto_id: "p4", campo: "marca", valor: "WEG", fonte: "regra", confianca: "alta", detalhe: "o nome do produto cita a marca", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps2", produto_id: "p6", campo: "ncm", valor: "85371090", fonte: "analise", confianca: "media", detalhe: "placa controladora montada: 8537.10.90 (confirmar com o contador)", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps3", produto_id: "p7", campo: "categoria", valor: "Peças de reposição", fonte: "produto_parecido", confianca: "media", detalhe: "outros bicos dosadores estão nessa categoria", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps4", produto_id: "p11", campo: "categoria", valor: "Componentes elétricos", fonte: "analise", confianca: "baixa", detalhe: "cabo elétrico de uso interno", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps5", produto_id: "p5", campo: "codigo_barras", valor: "7891234567895", fonte: "nota_fornecedor", confianca: "alta", detalhe: "NF 93321 de Inox Paulista Componentes (mesmo código do fornecedor)", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps6", produto_id: "p8", campo: "ncm", valor: null, fonte: "regra", confianca: "conferir", detalhe: "conferir se o NCM é o da peça e não o da máquina", situacao: "pendente", criado_em: quando(-1) },
+      { id: "ps7", produto_id: "psc1", campo: "preco_custo", valor: "386.4", fonte: "ficha_tecnica", confianca: "alta", detalhe: "soma das peças da ficha técnica", situacao: "pendente", criado_em: quando(-1) },
+    ],
     marcadores: [
       { id: "mk1", nome: "1ª venda", cor: "indigo", icone: "star", ativo: true, ordem: 1 }, { id: "mk2", nome: "Pago", cor: "emerald", icone: "circle-check", ativo: true, ordem: 2 },
       { id: "mk3", nome: "Aguardando pagamento", cor: "amber", icone: "clock", ativo: true, ordem: 3 }, { id: "mk4", nome: "Carta de correção", cor: "orange", icone: "file-pen", ativo: true, ordem: 4 },
       { id: "mk5", nome: "Enviado ao cliente", cor: "sky", icone: "send", ativo: true, ordem: 5 }, { id: "mk6", nome: "Garantia", cor: "slate", icone: "shield", ativo: true, ordem: 6 },
       { id: "mk7", nome: "Devolução", cor: "purple", icone: "undo-2", ativo: true, ordem: 7 }, { id: "mk8", nome: "Conferir", cor: "red", icone: "triangle-alert", ativo: true, ordem: 8 },
+      { id: "mk9", nome: "Quiosques", cor: "amber", icone: "package", ativo: true, ordem: 9 },
     ],
     regras_tributacao: [
       { id: "rt1", nome: "Venda para consumidor final de outro estado", ativo: true, prioridade: 50, operacao: "venda", destino: "interestadual", tipo_cliente: "nao_contribuinte",
@@ -1155,6 +1171,12 @@ function bancosDemo(db: Db) {
   add("cb3", dias(-16), -98.75, "Pix BYTEDANCE BRASIL TECNOLOGIA LTDA · Enviado");
   add("cb3", dias(-8), -134.9, "MERCADOLIVRE*LOJAEXEMPLO · cartao");
   add("cb3", dias(-7), -64, "MP *RESTAURANTEEXEMPLO · cartao");
+  // montagem dos quiosques (Gastos separados → Quiosques): notas com o marcador "Quiosques" e os pagamentos dessas lojas
+  notaMkt("nq1", 9021, -44, "Madeiras Exemplo Comércio de Chapas Ltda", "31444555000109", "", "", [["MDF BRANCO TX 2F 15MM 2750X1840", 6, 289.9], ["FITA BRANCO TX 22MM 50MT", 4, 38.5], ["DOBRADIÇA CURVA AMORT CALÇO FIX", 12, 9.8], ["PARAFUSO PHILLIPS 4,0X40 CX 500", 2, 41]]);
+  notaMkt("nq2", 3310, -30, "Tintas Exemplo Ltda", "32555666000177", "", "", [["TINTA PU PRETO FOSCO 3,6L", 2, 412], ["PRIMER PU CINZA 3,6L", 1, 265], ["ENDURECEDOR 066 0,834ML", 3, 58.9], ["LIXA SECO 220", 20, 2.4]]);
+  for (const id of ["nq1", "nq2"]) { const n = db.nfe_recebidas.find((x: Row) => x.id === id); if (n) { n.marcadores = ["mk9"]; n.xml = null; } }
+  add("cb1", dias(-43), -2093, "PIX MADEIRAS EXEMPLO COMERCIO DE CHAPAS · Enviado");
+  add("cb3", dias(-29), -1313.7, "TINTAS EXEMPLO · cartao");
   // Sobre o ERP Line → Handoff, Ideias e Esquemas (exemplos inventados; no sistema real: public.projeto_itens e public.cadeias_causa)
   const item = (x: Row) => ({ detalhe: null, area: "geral", responsavel: null, prioridade: "media", esforco: null, situacao: "aberta", prazo: null, motivo: null,
     votos: [], criado_por: null, criado_nome: "Claude", concluido_em: null, atualizado_em: quando(-1), created_at: quando(-2), ...x });
@@ -1897,6 +1919,26 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.gerar/aplicar/ignorar_sugestoes_produtos (Produtos → Qualidade do cadastro)
+  gerar_sugestoes_produtos: () => ({ data: { novas: 0, vencidas: 0 }, error: null }),
+  aplicar_sugestoes_produtos: ({ p_ids }) => {
+    let aplicadas = 0, puladas = 0;
+    for (const s of (db.produto_sugestoes ?? []).filter((x: Row) => p_ids.includes(x.id) && x.situacao === "pendente" && x.valor != null)) {
+      const p = db.produtos.find((x: Row) => x.id === s.produto_id);
+      if (!p) continue;
+      const antes = p[s.campo];
+      if (s.campo === "preco_custo" ? Number(antes) > 0 : ["categoria", "marca", "codigo_barras"].includes(s.campo) && antes) { s.situacao = "vencida"; puladas++; continue; }
+      p[s.campo] = s.campo === "preco_custo" ? Number(s.valor) : s.valor;
+      Object.assign(s, { situacao: "aplicada", valor_anterior: antes ?? null, decidido_nome: "Você", decidido_em: new Date().toISOString() });
+      aplicadas++;
+    }
+    return { data: { aplicadas, puladas }, error: null };
+  },
+  ignorar_sugestoes_produtos: ({ p_ids }) => {
+    const l = (db.produto_sugestoes ?? []).filter((x: Row) => p_ids.includes(x.id) && x.situacao === "pendente");
+    for (const s of l) Object.assign(s, { situacao: "ignorada", decidido_nome: "Você", decidido_em: new Date().toISOString() });
+    return { data: l.length, error: null };
+  },
   // no sistema real: public.salvar_item_projeto, mudar_situacao_projeto e votar_ideia (Sobre → Handoff e Ideias)
   salvar_item_projeto: (a) => {
     if (String(a.p_titulo ?? "").trim().length < 3) return erro("escreva o título (pelo menos 3 letras)");

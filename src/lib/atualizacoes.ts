@@ -155,6 +155,18 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Cliente novo passo a passo: quem é (com a Receita e o aviso de CPF/CNPJ já cadastrado), contato, endereço, venda e revisão; no fim, pedir a assinatura da ficha, abrir uma venda ou completar o cadastro.",
     ],
   },
+  "2026-10-17": {
+    titulo: "Cadastros consertados, quiosques e sistemas",
+    itens: [
+      "Correções sugeridas no cadastro de produtos (Produtos → Qualidade): NCM, custo, categoria, marca, código de barras e tipo, achados nas notas de fornecedor, compras, fichas técnicas e na análise do cadastro; aplicar ou ignorar com um toque. NCM sem confiança alta: confirmar com o contador.",
+      "Cliente desde: a data real (compra da máquina, 1ª venda, 1ª NF-e, proposta, notas da My Frost, máquina vendida ou OS), não a do cadastro no ERP.",
+      "Gastos separados → Quiosques: MDF, fitas de borda, tinta e ferragens da montagem dos quiosques, pelas notas com o marcador Quiosques, mês a mês e com os pagamentos nos extratos.",
+      "Telas mais enxutas: título primeiro, só o botão principal à vista e o resto em \"Mais\", 2 filtros na linha da busca e os outros no botão \"Filtros\".",
+      "Vendas mais coloridas: cada situação com a sua cor na lista e nos filtros, também a situação do Tiny.",
+      "Sobre → Sistemas: o sistema financeiro e o de inteligência módulo a módulo (o que já tem, em parte e o que falta) e a linguagem de comandos (ECL) com AUDIT e IMPROVE.",
+      "Sobre → Módulos descreve também PDV, painel das máquinas, peças, componentes, formas de pagamento e usuários.",
+    ],
+  },
 };
 
 export type Versao = { numero: string; dia: string; titulo: string; itens: string[]; mudancas: Mudanca[] };

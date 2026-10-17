@@ -1,27 +1,29 @@
-// Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, as versões dia a dia, esquemas para
-// explicar à equipe (processos, fluxograma do menu com auditoria, cadeia de causas), as ideias e o handoff.
+// Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, os sistemas (finance-os, analytics-os e a
+// linguagem de comandos ECL), as versões dia a dia, esquemas para explicar à equipe (processos, fluxograma do menu com
+// auditoria, cadeia de causas), as ideias e o handoff.
 // Cada aba começa pelos indicadores, depois os filtros e as ações.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutGrid, Lightbulb, Lock, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader, Stat, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
-import { PAGINAS_POR_LINK, SOBRE_AREAS, SOBRE_TELAS } from "@/lib/modulos";
+import { ONDE_ABRE, PAGINAS_POR_LINK, SOBRE_AREAS, SOBRE_TELAS } from "@/lib/modulos";
 import { versoesDoHistorico } from "@/lib/atualizacoes";
 import { auditarMenu } from "@/lib/auditoriaMenu";
 import { pl } from "@/lib/format";
 import { Handoff } from "@/components/sobre/Handoff";
 import { Ideias } from "@/components/sobre/Ideias";
 import { Esquemas } from "@/components/sobre/Esquemas";
+import { Sistemas } from "@/components/sobre/Sistemas";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 
-const ABAS = ["modulos", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
+const ABAS = ["modulos", "sistemas", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -34,13 +36,14 @@ export default function Sobre() {
   return (
     <div>
       <PageHeader title="Sobre o ERP Line"
-        subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. O que faz cada módulo, o que mudou, esquemas para a equipe, ideias e o handoff.` : "O que faz cada módulo, o que mudou, esquemas para a equipe, ideias e o handoff."}
+        subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. O que faz cada módulo, os sistemas, o que mudou, esquemas para a equipe, ideias e o handoff.` : "O que faz cada módulo, os sistemas, o que mudou, esquemas para a equipe, ideias e o handoff."}
         actions={<Button variant="secondary" onClick={() => setIdeia({})}><Lightbulb size={16} /> Anotar ideia</Button>} />
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "modulos", label: "Módulos" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
+        { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
         { value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "handoff" as const, label: "Handoff" }] : []),
       ]} />
       {aba === "modulos" && <Modulos onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
+      {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
       {aba === "atualizacoes" && <Atualizacoes />}
       {aba === "esquemas" && <Esquemas />}
       {aba === "ideias" && <Ideias />}
@@ -57,9 +60,11 @@ function Modulos({ onIdeia, onAuditoria }: { onIdeia: (i: InicialItem) => void; 
   const [soMeu, setSoMeu] = useState(false);
   const termo = semAcento(busca.trim());
   const combina = (i: Item) => (!soMeu || vis.item(i)) && (!termo || termo.split(/\s+/).every((p) => semAcento(`${i.label} ${SOBRE_TELAS[i.to] ?? ""} ${i.busca ?? ""}`).includes(p)));
+  // as telas fora da lista do menu (PDV, painéis, peças, componentes…) aparecem na área delas, com o caminho até elas
+  const foraDe = (id: string) => itensForaDoMenu.filter((i) => (grupoDaRota(i.to) ?? "admin") === id);
   const todosBlocos = [
-    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", cor: g.cor ?? "from-[#64748b] to-[#334155]", Icone: g.icone ?? LayoutGrid, itens: g.itens })),
-    { id: "outras", titulo: "Outras telas", texto: "Abertas pela engrenagem, pelos painéis, por botões dentro das telas ou pela busca do menu.", cor: "from-[#64748b] to-[#334155]", Icone: Boxes, itens: itensForaDoMenu },
+    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", cor: g.cor ?? "from-[#64748b] to-[#334155]", Icone: g.icone ?? LayoutGrid, itens: [...g.itens, ...foraDe(g.id)] })),
+    { id: "admin", titulo: "Configurações", texto: "Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.", cor: "from-[#64748b] to-[#334155]", Icone: Settings, itens: foraDe("admin") },
   ];
   const blocos = todosBlocos.filter((b) => !area || b.id === area).map((b) => ({ ...b, itens: b.itens.filter(combina) })).filter((b) => b.itens.length);
   const todas = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu];
@@ -123,8 +128,9 @@ function Modulos({ onIdeia, onAuditoria }: { onIdeia: (i: InicialItem) => void; 
                         </span>
                       )}
                       <p className="text-[13px] leading-snug text-slate-600">{SOBRE_TELAS[i.to] ?? "—"}</p>
+                      {ONDE_ABRE[i.to] && <p className="mt-0.5 text-[11.5px] font-semibold text-slate-500">Fora da lista do menu · abre por: {ONDE_ABRE[i.to]}</p>}
                     </div>
-                    <button type="button" onClick={() => onIdeia({ titulo: `${i.label}: `, area: id === "outras" ? (grupoDaRota(i.to) ?? "geral") : id })}
+                    <button type="button" onClick={() => onIdeia({ titulo: `${i.label}: `, area: id === "admin" ? "geral" : id })}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600" title={`Anotar ideia sobre ${i.label}`} aria-label={`Anotar ideia sobre ${i.label}`}>
                       <Lightbulb size={16} />
                     </button>

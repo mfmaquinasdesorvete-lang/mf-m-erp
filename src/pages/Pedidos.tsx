@@ -269,7 +269,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             </button>
           )}
         </>} />
-      <ChipsSituacao valor={filtro} onChange={setFiltro}
+      <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
         opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />
       {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={semPagamento} info={info} />}
 
@@ -290,7 +290,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <span className="min-w-0 font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /></span>
-              <span className="flex shrink-0 flex-col items-end gap-1"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
+              <span className="flex shrink-0 flex-col items-end gap-1"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
               <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}</span>
@@ -331,7 +331,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
               <div className="text-xs font-normal text-slate-500">{dataBR(p.created_at)}</div>
               {info.get(p.id)?.oc && <div className="text-[11px] font-normal text-slate-500" title="Nº do pedido do cliente (ordem de compra ou pedido da loja), como veio do Tiny">Ped. {info.get(p.id)!.oc}</div>}</td>
             <td className="td">{p.cliente?.nome}{p.cliente?.uf && <span className="ml-1.5 rounded bg-slate-100 px-1 py-px text-[11px] font-bold text-slate-600" title="Estado do cliente">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
-            <td className="td"><Badge value={p.status} />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
+            <td className="td"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
             {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}
             <td className="td whitespace-nowrap text-right font-medium">{brl(p.valor_total)}</td>
@@ -395,9 +395,31 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
   );
 }
 
+/** Cor de cada situação nos filtros (a mesma dos selos da lista); fundo sólido não muda com o tema. */
+const CORES_STATUS: Partial<Record<(typeof STATUS)[number], { ponto: string; ativo: string }>> = {
+  todos: { ponto: "bg-slate-400", ativo: "bg-solido-cinza" },
+  orcamento: { ponto: "bg-purple-500", ativo: "bg-[#7c3aed]" },
+  aprovado: { ponto: "bg-sky-500", ativo: "bg-solido-azul" },
+  faturado: { ponto: "bg-indigo-500", ativo: "bg-[#4338ca]" },
+  entregue: { ponto: "bg-emerald-500", ativo: "bg-solido-verde" },
+  cancelado: { ponto: "bg-red-500", ativo: "bg-solido-vermelho" },
+};
+
+/** Cor da situação que veio do Tiny, pelo nome (entregue, faturado, cancelado…). */
+const corTiny = (s: string) => {
+  const t = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /cancel/.test(t) ? "bg-red-100 text-red-800 ring-red-200"
+    : /entreg/.test(t) ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
+    : /fatur|emitid/.test(t) ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
+    : /envi|transit|pronto|prepar/.test(t) ? "bg-orange-100 text-orange-800 ring-orange-200"
+    : /aprov|andamento/.test(t) ? "bg-sky-100 text-sky-800 ring-sky-200"
+    : /aberto|aguard/.test(t) ? "bg-amber-100 text-amber-800 ring-amber-200"
+    : "bg-slate-100 text-slate-700 ring-slate-200";
+};
+
 /** Situação que o pedido tinha no Tiny (histórico importado). */
 function SituacaoTiny({ s }: { s: string }) {
-  return <span className="inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title="Situação do pedido no Tiny">Tiny: {s}</span>;
+  return <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${corTiny(s)}`} title="Situação do pedido no Tiny">Tiny: {s}</span>;
 }
 
 /** Lança as contas a receber das vendas marcadas que ainda não têm conta (valor e parcelas da venda, não os da NF). */

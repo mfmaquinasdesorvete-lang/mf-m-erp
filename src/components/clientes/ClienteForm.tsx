@@ -35,6 +35,7 @@ import {
 import type { PessoaContato, Vendedor } from "@/lib/types";
 import { docParaConferir, errosDoPasso, faltasDoPasso, PASSOS, passoLiberado, resumoDoPasso } from "@/lib/onboardingCliente";
 import { confirmar } from "@/components/Dialogos";
+import { FONTE_DESDE, useClienteDesde } from "@/lib/clienteDesde";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
 export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -150,6 +151,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
       return (data ?? []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
     },
   });
+
+  // cliente desde: a data real (compra da máquina, 1ª venda, NF-e, proposta…), não a do cadastro no ERP
+  const { data: desde } = useClienteDesde(c.id);
 
   // CPF/CNPJ que já está em outro cadastro (o banco não deixa repetir): avisa já no primeiro passo
   const docNovo = !c.id ? docParaConferir(c.cpf_cnpj) : null;
@@ -920,7 +924,11 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 </Field>
                 {campo("desconto_padrao", "Desconto padrão (%)", { span: 3, tipo: "decimal", placeholder: "0" })}
                 <Field label="Cliente desde" className="col-span-1 sm:col-span-3">
-                  <div className="input flex items-center bg-slate-50 text-slate-600">{c.created_at ? dataBR(c.created_at) : "hoje"}</div>
+                  <div className="input flex flex-col justify-center bg-slate-50 leading-tight text-slate-700"
+                    title={desde && desde.fonte !== "cadastro" && c.created_at ? `No ERP desde ${dataBR(c.created_at)}` : undefined}>
+                    <span className="font-semibold">{desde ? dataBR(desde.desde) : c.created_at ? dataBR(c.created_at) : "hoje"}</span>
+                    {desde && <span className="text-[11px] text-slate-500">{FONTE_DESDE[desde.fonte] ?? desde.fonte}</span>}
+                  </div>
                 </Field>
               </div>
             </Secao>
