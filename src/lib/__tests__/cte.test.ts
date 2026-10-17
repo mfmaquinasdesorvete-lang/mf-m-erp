@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  atrasoDias, conferenciaMensal, dataIso, faturavel, lerPlanilhaCtes, numeroBR, pagamentoDaTransportadora, pesoDoFrete, porMes, porRemetente,
-  resumoCtes, tipoFrete, type Cte,
+  atrasoDias, conferenciaMensal, dataIso, faturasSugeridas, faturavel, lerPlanilhaCtes, numeroBR, pagamentoDaTransportadora, pesoDoFrete, porMes, porRemetente,
+  resumoCtes, tipoFrete, valido, type Cte,
 } from "../cte";
 
 // planilha no formato da transportadora (dados de exemplo)
@@ -110,6 +110,39 @@ describe("conferência com o extrato", () => {
       { mes: "2026-03", frete: 0, pago: 50, emAberto: 0 },
       { mes: "2026-02", frete: 50, pago: 100, emAberto: 50 },
       { mes: "2026-01", frete: 100, pago: 0, emAberto: 100 },
+    ]);
+  });
+});
+
+describe("CT-e da SEFAZ no painel", () => {
+  it("cancelado fica fora das contas, do que falta faturar e da fatura", () => {
+    const l = [
+      cte({ id: "1", valor: 100, chave: "4".repeat(44), situacao: "autorizado" }),
+      cte({ id: "2", valor: 70, chave: "5".repeat(44), situacao: "cancelado" }),
+      cte({ id: "3", valor: 30 }),
+    ];
+    expect(resumoCtes(l)).toMatchObject({ qtd: 2, fretePagoMF: 130, semFatura: 130, qtdSemFatura: 2, cancelados: 1 });
+    expect(valido(l[0])).toBe(true);
+    expect(valido(l[1])).toBe(false);
+    expect(valido(l[2])).toBe(true);
+    expect(faturavel(l[1])).toBe(false);
+    expect(conferenciaMensal(l, []).map((m) => m.frete)).toEqual([130]);
+  });
+
+  it("faturas para montar: por transportadora e pelo nº da fatura do CT-e, com o vencimento da duplicata", () => {
+    const cob = (fatura: string, venc: string) => ({ fatura, valor: null, duplicatas: [{ numero: "1", vencimento: venc, valor: null }] });
+    const l = [
+      cte({ id: "a", transportadora_id: "t1", valor: 100, emissao: "2026-09-10" }),
+      cte({ id: "b", transportadora_id: "t1", valor: 50.5, emissao: "2026-09-02", chave: "4".repeat(44) }),
+      cte({ id: "c", transportadora_id: "t2", valor: 80, emissao: "2026-09-20", chave: "5".repeat(44), cobranca: cob("FT-9", "2026-10-15") }),
+      cte({ id: "d", transportadora_id: "t2", valor: 20, emissao: "2026-09-21", chave: "6".repeat(44), cobranca: cob("FT-9", "2026-10-10") }),
+      cte({ id: "e", transportadora_id: "t2", valor: 999, fatura_id: "f" }),
+      cte({ id: "f", transportadora_id: "t2", valor: 999, situacao: "cancelado" }),
+      cte({ id: "g", transportadora_id: "t2", valor: 999, mf_paga: false }),
+    ];
+    expect(faturasSugeridas(l)).toEqual([
+      { chave: "t1|", transportadora_id: "t1", fatura: null, vencimento: null, ids: ["a", "b"], qtd: 2, total: 150.5, desde: "2026-09-02", ate: "2026-09-10", daSefaz: 1 },
+      { chave: "t2|FT-9", transportadora_id: "t2", fatura: "FT-9", vencimento: "2026-10-10", ids: ["c", "d"], qtd: 2, total: 100, desde: "2026-09-20", ate: "2026-09-21", daSefaz: 2 },
     ]);
   });
 });

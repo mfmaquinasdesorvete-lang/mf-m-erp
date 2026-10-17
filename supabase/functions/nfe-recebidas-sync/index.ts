@@ -7,12 +7,14 @@
 // POST { acao: "xml", chave }                         -> devolve o XML da nota
 // POST { acao: "importar_xml", xml }                  -> nota de compra pelo arquivo XML (entra no estoque/contas)
 // POST { acao: "importar_xmls", xmls: string[] }       -> várias de uma vez (ex.: .zip do sistema anterior), resultado por arquivo
+// POST { acao: "sincronizar_ctes" }                   -> busca agora os CT-e (fretes) de SC e SP e completa os XML
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import {
   baixarXml, carregarItens, lancarContaPagar, manifestar, processarNota, processarPendentes,
   importarXml, sincronizarRecebidas, vincularItens,
 } from "../_shared/nfe-recebidas.ts";
+import { sincronizarCtes } from "../_shared/cte-recebidas.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 
 const TIPOS = ["ciencia", "confirmacao", "desconhecimento", "nao_realizada"];
@@ -49,6 +51,9 @@ Deno.serve(async (req) => {
         const automaticas = await processarPendentes(db);
         return json({ ok: true, processadas, automaticas, avisos });
       }
+
+      case "sincronizar_ctes":
+        return json({ ok: true, ...(await sincronizarCtes(db, 40)) });
 
       case "processar": {
         if (!body.nfe_id) return json({ ok: true, automaticas: await processarPendentes(db) });

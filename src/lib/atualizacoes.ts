@@ -196,6 +196,8 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Aprovar ou não ali mesmo: botões Aprovar e Não em cada conta para quem aprova, faixa \"Sua vez de aprovar\" com Aprovar as completas (com o total por tipo antes de confirmar) e o Não pede o motivo (devolver para corrigir ou rejeitar e cancelar).",
       "Celular: os valores dos cartões dos painéis não quebram mais no meio (a letra se ajusta à largura do cartão) e os textos pequenos ficaram maiores.",
       "Notas de serviço feitas fora do ERP (Notas fiscais → NFS-e → Importar notas): as emitidas pela MF no Tiny, na prefeitura ou no Emissor Nacional e as recebidas de fornecedores (aba Recebidas), pelo XML, ZIP ou relatório do Tiny, com ISS e retenções de IR, INSS, PIS, COFINS e CSLL.",
+      "CT-e automáticos da SEFAZ (Fretes e envios → CT-e): a cada 15 minutos, junto com as notas dos fornecedores, o ERP busca pela Focus os CT-e de SC e SP em que a MF aparece; vê quem paga o frete, liga a transportadora pelo CNPJ (cadastra a que falta) e a nota transportada pela chave, sem repetir o que veio pela planilha. CT-e cancelado fica fora das contas. Botão Buscar agora.",
+      "Faturas para montar: os CT-e que a MF paga e ainda não estão em fatura, juntos por transportadora (e pelo nº da fatura quando vem no CT-e, com o vencimento); um toque monta a fatura e ela vai para Contas a pagar como Transportadoras, passando pela aprovação. O crédito de PIS/COFINS sobre os fretes no Analista fiscal já conta os CT-e da SEFAZ (confirmar com o contador).",
     ],
   },
 };

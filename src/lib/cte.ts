@@ -1,7 +1,8 @@
 // CT-e (conhecimentos de transporte) e faturas de frete: lê a planilha que a transportadora deixa baixar (a da
 // Expresso São Miguel: Documento;Tipo;Nota Fiscal;CNPJ Dest;…;Ocorrência;Data;Hora), e faz as contas do painel —
 // frete que a MF paga (compras, vendas, transferências), % do frete sobre a nota, entrega no prazo e o que ainda não
-// entrou em fatura. Arquivo puro (testado).
+// entrou em fatura. Os CT-e da SEFAZ (busca automática pela Focus) chegam com a chave; o cancelado fica fora das contas.
+// Arquivo puro (testado).
 
 export type LinhaCte = {
   numero: string; tipo: string; nf_numero: string | null; nf_serie: string | null; nf_valor: number | null;
@@ -10,10 +11,22 @@ export type LinhaCte = {
   volumes: number | null; valor: number; emissao: string; prev_entrega: string | null; ocorrencia: string | null; ocorrencia_em: string | null;
 };
 export type Sentido = "entrada" | "saida" | "transferencia" | "outro";
+export type SituacaoCte = "autorizado" | "cancelado" | "denegado";
+export type CobrancaCte = { fatura: string | null; valor: number | null; duplicatas: { numero: string | null; vencimento: string | null; valor: number | null }[] };
 export type Cte = Omit<LinhaCte, "ocorrencia_em"> & {
   id: string; ocorrencia_em: string | null; sentido: Sentido; mf_paga: boolean; unidade_id: string | null; transportadora_id: string | null;
   nfe_recebida_id: string | null; nota_fiscal_id: string | null; fatura_id: string | null; origem: string;
+  /** só nos que vieram da SEFAZ (ou que a SEFAZ confirmou) */
+  chave?: string | null; situacao?: SituacaoCte; tomador?: string | null; emitente_nome?: string | null; cobranca?: CobrancaCte | null;
+  icms?: number | null; sefaz_em?: string | null; municipio_inicio?: string | null; uf_inicio?: string | null; municipio_fim?: string | null; uf_fim?: string | null;
 };
+/** Colunas da lista (sem o XML, que é grande). */
+export const COLUNAS_CTE = "id, transportadora_id, numero, serie, tipo, emissao, ag_origem, ag_destino, remetente_cnpj, remetente_nome, " +
+  "destinatario_cnpj, destinatario_nome, nf_numero, nf_serie, nf_valor, frete, peso_tipo, peso, volumes, valor, prev_entrega, ocorrencia, ocorrencia_em, " +
+  "sentido, mf_paga, unidade_id, nfe_recebida_id, nota_fiscal_id, fatura_id, origem, chave, situacao, tomador, emitente_nome, cobranca, icms, sefaz_em, " +
+  "municipio_inicio, uf_inicio, municipio_fim, uf_fim";
+/** Vale nas contas: autorizado (os da planilha não têm situação e valem). */
+export const valido = (c: { situacao?: SituacaoCte | null }) => (c.situacao ?? "autorizado") === "autorizado";
 export type FaturaCte = {
   id: string; transportadora_id: string | null; numero: string; emissao: string | null; vencimento: string; valor: number;
   situacao: "aberta" | "paga" | "cancelada"; conta_pagar_id: string | null; unidade_id: string | null; observacao: string | null;
@@ -100,9 +113,11 @@ export const pesoDoFrete = (c: Pick<Cte, "valor" | "nf_valor">) => (c.nf_valor &
 export type ResumoCtes = {
   qtd: number; fretePagoMF: number; qtdPagoMF: number; compras: number; vendas: number; transferencias: number;
   nfCompras: number; nfVendas: number; semFatura: number; qtdSemFatura: number; entregues: number; noPrazo: number; atrasoMedio: number | null;
+  cancelados: number;
 };
-/** Números do painel para a lista dada (já filtrada pelo período). */
-export function resumoCtes(ctes: Cte[]): ResumoCtes {
+/** Números do painel para a lista dada (já filtrada pelo período). CT-e cancelado não conta. */
+export function resumoCtes(todos: Cte[]): ResumoCtes {
+  const ctes = todos.filter(valido);
   const pagos = ctes.filter((c) => c.mf_paga);
   const soma = (l: Cte[], f: (c: Cte) => number) => r2(l.reduce((s, c) => s + (Number(f(c)) || 0), 0));
   const comEntrega = ctes.filter((c) => atrasoDias(c) != null);
@@ -115,6 +130,7 @@ export function resumoCtes(ctes: Cte[]): ResumoCtes {
     semFatura: soma(pagos.filter((c) => !c.fatura_id), (c) => c.valor), qtdSemFatura: pagos.filter((c) => !c.fatura_id).length,
     entregues: comEntrega.length, noPrazo: comEntrega.length - atrasados.length,
     atrasoMedio: atrasados.length ? r2(atrasados.reduce((s, c) => s + (atrasoDias(c) ?? 0), 0) / atrasados.length) : null,
+    cancelados: todos.length - ctes.length,
   };
 }
 
@@ -128,7 +144,7 @@ export function porMes(ctes: Cte[]) {
 /** Quem mais gera frete pago pela MF nas compras (remetente) — onde negociar frete ou CIF com o fornecedor. */
 export function porRemetente(ctes: Cte[], limite = 8) {
   const m = new Map<string, { nome: string; qtd: number; frete: number; nf: number }>();
-  for (const c of ctes.filter((x) => x.mf_paga && x.sentido === "entrada")) {
+  for (const c of ctes.filter((x) => x.mf_paga && x.sentido === "entrada" && valido(x))) {
     const k = c.remetente_cnpj ?? c.remetente_nome ?? "?";
     const g = m.get(k) ?? { nome: c.remetente_nome ?? k, qtd: 0, frete: 0, nf: 0 };
     g.qtd += 1; g.frete = r2(g.frete + Number(c.valor)); g.nf = r2(g.nf + Number(c.nf_valor ?? 0));
@@ -137,8 +153,33 @@ export function porRemetente(ctes: Cte[], limite = 8) {
   return [...m.values()].sort((a, b) => b.frete - a.frete).slice(0, limite);
 }
 
-/** CT-e que podem entrar numa fatura: a MF paga, sem fatura, da mesma transportadora. */
-export const faturavel = (c: Pick<Cte, "mf_paga" | "fatura_id">) => c.mf_paga && !c.fatura_id;
+/** CT-e que podem entrar numa fatura: a MF paga, sem fatura, autorizado (não cancelado). */
+export const faturavel = (c: Pick<Cte, "mf_paga" | "fatura_id" | "situacao">) => c.mf_paga && !c.fatura_id && valido(c);
+
+export type FaturaSugerida = {
+  chave: string; transportadora_id: string | null; fatura: string | null; vencimento: string | null;
+  ids: string[]; qtd: number; total: number; desde: string; ate: string; daSefaz: number;
+};
+/**
+ * Faturas para montar: os CT-e que a MF paga e ainda estão sem fatura, juntos por transportadora — e pelo nº da fatura
+ * quando a própria transportadora informa no CT-e (com o vencimento da duplicata). Os mais antigos primeiro.
+ */
+export function faturasSugeridas(ctes: Cte[]): FaturaSugerida[] {
+  const grupos = new Map<string, FaturaSugerida>();
+  for (const c of ctes.filter(faturavel)) {
+    const fatura = c.cobranca?.fatura?.trim() || null;
+    const k = `${c.transportadora_id ?? ""}|${fatura ?? ""}`;
+    const g = grupos.get(k) ?? { chave: k, transportadora_id: c.transportadora_id, fatura, vencimento: null, ids: [], qtd: 0, total: 0, desde: c.emissao, ate: c.emissao, daSefaz: 0 };
+    g.ids.push(c.id); g.qtd += 1; g.total = r2(g.total + Number(c.valor));
+    if (c.emissao < g.desde) g.desde = c.emissao;
+    if (c.emissao > g.ate) g.ate = c.emissao;
+    if (c.chave) g.daSefaz += 1;
+    const venc = (c.cobranca?.duplicatas ?? []).map((d) => d.vencimento).filter((v): v is string => !!v).sort()[0];
+    if (venc && (!g.vencimento || venc < g.vencimento)) g.vencimento = venc;
+    grupos.set(k, g);
+  }
+  return [...grupos.values()].sort((a, b) => a.desde.localeCompare(b.desde));
+}
 
 const SUFIXOS = new Set(["s", "a", "sa", "ltda", "me", "eireli", "epp", "cia"]);
 /**
@@ -159,10 +200,10 @@ export function pagamentoDaTransportadora(descricao: string, nome: string, raiz?
  * Mês a mês: o frete dos CT-e que a MF paga (pela emissão) x o que saiu do banco para a transportadora. A fatura do mês
  * costuma ser paga no mês seguinte, por isso a conta que vale é a acumulada ("em aberto" = CT-e até o mês − pago até o mês).
  */
-export function conferenciaMensal(ctes: Pick<Cte, "emissao" | "valor" | "mf_paga">[], pagamentos: { data: string; valor: number }[]) {
+export function conferenciaMensal(ctes: Pick<Cte, "emissao" | "valor" | "mf_paga" | "situacao">[], pagamentos: { data: string; valor: number }[]) {
   const meses = new Map<string, { frete: number; pago: number }>();
   const m = (k: string) => meses.get(k) ?? meses.set(k, { frete: 0, pago: 0 }).get(k)!;
-  for (const c of ctes) if (c.mf_paga) m(c.emissao.slice(0, 7)).frete += Number(c.valor) || 0;
+  for (const c of ctes) if (c.mf_paga && valido(c)) m(c.emissao.slice(0, 7)).frete += Number(c.valor) || 0;
   const primeiro = [...meses.keys()].sort()[0];
   // pagamento antes do 1º CT-e da lista é de fatura antiga: fica fora da conta
   for (const p of pagamentos) if (primeiro && p.data.slice(0, 7) >= primeiro) m(p.data.slice(0, 7)).pago += Math.abs(Number(p.valor) || 0);

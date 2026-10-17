@@ -69,7 +69,14 @@ describe("fretes e serviços", () => {
     expect(creditoFretes([
       { mf_paga: true, sentido: "entrada", valor: 1000 }, { mf_paga: true, sentido: "saida", valor: 200 },
       { mf_paga: false, sentido: "entrada", valor: 500 }, { mf_paga: true, sentido: "transferencia", valor: 300 },
-    ])).toEqual({ base: 1200, credito: 111, n: 2 });
+    ])).toEqual({ base: 1200, credito: 111, n: 2, daSefaz: 0 });
+  });
+
+  it("CT-e da SEFAZ conta; cancelado não dá crédito", () => {
+    expect(creditoFretes([
+      { mf_paga: true, sentido: "entrada", valor: 1000, chave: "4".repeat(44), situacao: "autorizado" },
+      { mf_paga: true, sentido: "saida", valor: 400, chave: "5".repeat(44), situacao: "cancelado" },
+    ])).toEqual({ base: 1000, credito: 92.5, n: 1, daSefaz: 1 });
   });
 
   it("frete e serviço sem documento", () => {

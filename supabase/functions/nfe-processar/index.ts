@@ -1,6 +1,7 @@
 // Execução agendada (a cada 15 min, ver supabase/agendamento.sql):
 // busca NF-e novas de fornecedores na Focus e processa as pendentes
 // (ciência -> XML -> contas a pagar -> entrada no estoque) reenvia as NF-e da fila de contingência e emite a NF-e automática dos pedidos aprovados.
+// Por último busca os CT-e (fretes) de SC e SP: a SEFAZ só guarda os últimos 3 meses para distribuição.
 // Deploy com --no-verify-jwt; protegido pelo header Authorization: Bearer <token do agendamento>.
 import { json } from "../_shared/cors.ts";
 import { adminClient } from "../_shared/supabase.ts";
@@ -8,6 +9,7 @@ import { processarPendentes, sincronizarRecebidas } from "../_shared/nfe-recebid
 import { reenviarContingencia } from "../_shared/nfe-envio.ts";
 import { emitirAutomaticas } from "../_shared/nfe-emissao.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
+import { sincronizarCtes } from "../_shared/cte-recebidas.ts";
 
 Deno.serve(async (req) => {
   if (!(await chamadaDoAgendamento(req))) return json({ error: "não autorizado" }, 401);
@@ -26,5 +28,6 @@ Deno.serve(async (req) => {
   const processadas = await processarPendentes(db);
   const contingencia = await reenviarContingencia(db).catch(() => 0);
   const automaticas = await emitirAutomaticas(db).catch(() => 0);
-  return json({ ok: true, sincronizadas, processadas, erroSync, contingencia, automaticas });
+  const ctes = await sincronizarCtes(db).catch((e) => ({ erro: (e as Error).message }));
+  return json({ ok: true, sincronizadas, processadas, erroSync, contingencia, automaticas, ctes });
 });

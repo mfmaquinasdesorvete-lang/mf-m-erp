@@ -205,10 +205,11 @@ export const ALIQ_PIS_COFINS = 0.0925;
  * de aquisição; frete na venda dá crédito pelo art. 3º, IX. Transferência entre unidades: só com produto acabado,
  * por decisão do CARF/STJ — fica de fora da estimativa.
  */
-export function creditoFretes(ctes: { mf_paga: boolean; sentido: string; valor: number }[]) {
-  const pagos = ctes.filter((c) => c.mf_paga && (c.sentido === "entrada" || c.sentido === "saida"));
+export function creditoFretes(ctes: { mf_paga: boolean; sentido: string; valor: number; situacao?: string | null; chave?: string | null }[]) {
+  // CT-e cancelado ou denegado não dá crédito
+  const pagos = ctes.filter((c) => c.mf_paga && (c.sentido === "entrada" || c.sentido === "saida") && (c.situacao ?? "autorizado") === "autorizado");
   const base = Math.round(pagos.reduce((s, c) => s + Number(c.valor), 0) * 100) / 100;
-  return { base, credito: Math.round(base * ALIQ_PIS_COFINS * 100) / 100, n: pagos.length };
+  return { base, credito: Math.round(base * ALIQ_PIS_COFINS * 100) / 100, n: pagos.length, daSefaz: pagos.filter((c) => !!c.chave).length };
 }
 
 /** Conta a pagar de frete sem CT-e ligado (pela categoria ou descrição). */

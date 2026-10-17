@@ -11,7 +11,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
-import { conferenciaMensal, faturavel, pagamentoDaTransportadora, type Cte, type FaturaCte } from "@/lib/cte";
+import { COLUNAS_CTE, conferenciaMensal, faturavel, pagamentoDaTransportadora, type Cte, type FaturaCte } from "@/lib/cte";
 import type { Transportadora } from "@/lib/types";
 
 type Conta = { id: string; status: string; vencimento: string; valor: number };
@@ -22,7 +22,7 @@ export function CteFaturas({ transportadoras }: { transportadoras: Transportador
   const { tem } = usePerfil();
   const podeFaturar = tem("financeiro");
   const { filtrar } = useUnidade();
-  const { data: todosCtes = [] } = useRows<Cte>("ctes", { order: "emissao", ascending: false });
+  const { data: todosCtes = [] } = useRows<Cte>("ctes", { select: COLUNAS_CTE, order: "emissao", ascending: false });
   const { data: todas = [] } = useRows<FaturaCte>("cte_faturas", { order: "vencimento", ascending: false });
   const ids = todas.map((f) => f.conta_pagar_id).filter(Boolean) as string[];
   const { data: contas = [] } = useRows<Conta>("contas_pagar", { select: "id, status, vencimento, valor", key: ["cte-faturas", ids.join()], filtro: (q) => q.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]) });
@@ -170,8 +170,10 @@ function ConferenciaBanco({ ctes, transportadoras }: { ctes: Cte[]; transportado
 }
 
 /** Junta CT-e sem fatura (da mesma transportadora) numa fatura; com "lançar", cria a conta a pagar. */
-export function MontarFatura({ ctes, transportadoras, inicial, onClose }: {
-  ctes: Cte[]; transportadoras: Transportadora[]; inicial?: string[]; onClose: (ok?: boolean) => void;
+export function MontarFatura({ ctes, transportadoras, inicial, numeroInicial, vencimentoInicial, onClose }: {
+  ctes: Cte[]; transportadoras: Transportadora[]; inicial?: string[];
+  /** nº e vencimento que a transportadora informou no próprio CT-e (conferir com a fatura) */
+  numeroInicial?: string | null; vencimentoInicial?: string | null; onClose: (ok?: boolean) => void;
 }) {
   const invalidar = useInvalidate();
   const livres = ctes.filter(faturavel);
@@ -181,9 +183,9 @@ export function MontarFatura({ ctes, transportadoras, inicial, onClose }: {
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
   const [marcados, setMarcados] = useState<Set<string>>(() => new Set(inicial?.length ? inicial : livres.filter((c) => c.transportadora_id === primeiro).map((c) => c.id)));
-  const [numero, setNumero] = useState("");
+  const [numero, setNumero] = useState(numeroInicial ?? "");
   const [emissao, setEmissao] = useState(hoje());
-  const [vencimento, setVencimento] = useState(somarDias(15));
+  const [vencimento, setVencimento] = useState(vencimentoInicial ?? somarDias(15));
   const [valor, setValor] = useState("");
   const [lancar, setLancar] = useState(true);
   const [gravando, setGravando] = useState(false);

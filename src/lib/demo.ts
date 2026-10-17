@@ -1555,6 +1555,20 @@ function comercialDemo(db: Db) {
       linha(13, -5, "entrada", "METALURGICA EXEMPLO LTDA", "88999000000111", "a_pagar", 81.91, 1286.08),
       linha(14, -1, "saida", "SORVETERIA EXEMPLO LTDA", "33444555000166", "pago", 72.5, 420),
     ];
+    // os que vieram sozinhos da SEFAZ (pela Focus): com a chave, quem paga (tomador) e, às vezes, a fatura no próprio CT-e
+    const sefaz = (n: number, extra: Row) => Object.assign(linha(n, extra.d as number, extra.sentido as string, extra.outro as string, extra.cnpj as string,
+      extra.frete as "pago" | "a_pagar", extra.valor as number, extra.nf as number), {
+      chave: `4226100042830700011857001${String(3100000 + n).padStart(9, "0")}1${String(n).padStart(8, "0")}0`.slice(0, 44), origem: "sefaz", ag_origem: null, ag_destino: null,
+      situacao: extra.situacao ?? "autorizado", tomador: extra.frete === "pago" ? "remetente" : "destinatario", emitente_nome: "TRANSPORTADORA EXEMPLO S/A",
+      cobranca: extra.cobranca ?? null, sefaz_em: quando(extra.d as number), arquivo: null, ocorrencia: null, ocorrencia_em: null,
+    });
+    db.ctes.push(
+      sefaz(15, { d: -4, sentido: "entrada", outro: "REDUTORES EXEMPLO LTDA", cnpj: "22333444000155", frete: "a_pagar", valor: 212.37, nf: 9850,
+        cobranca: { fatura: "FT-60210", valor: 292.37, duplicatas: [{ numero: "1", vencimento: dias(12), valor: 292.37 }] } }),
+      sefaz(16, { d: -3, sentido: "entrada", outro: "VEDACOES EXEMPLO LTDA", cnpj: "66777888000199", frete: "a_pagar", valor: 80, nf: 610,
+        cobranca: { fatura: "FT-60210", valor: 292.37, duplicatas: [{ numero: "1", vencimento: dias(12), valor: 292.37 }] } }),
+      sefaz(17, { d: -2, sentido: "saida", outro: "GELATERIA EXEMPLO ME", cnpj: "55666777000188", frete: "pago", valor: 95.1, nf: 1480, situacao: "cancelado" }),
+    );
   }
   // contatos do escritório por setor (no sistema real: public.contabilidade_contatos; nomes só no banco)
   db.contabilidade_contatos = ([
@@ -3015,6 +3029,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }).filter(Boolean).sort((a, b) => String(b!.data).localeCompare(String(a!.data)));
     return { data: linhas.slice(0, Number(p_limite) || 50), error: null };
   },
+  ctes_sefaz_situacao: () => ({ data: { em: quando(0), novos: 0, atualizados: 0, completos: 0, erro: null, pendentes_xml: 0,
+    da_sefaz: (db.ctes ?? []).filter((c) => c.chave).length }, error: null }),
   importar_ctes: ({ p_transportadora, p_linhas, p_arquivo }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     const dig = (x: unknown) => String(x ?? "").replace(/\D/g, "");
@@ -3107,7 +3123,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     if (!String(p_numero ?? "").trim()) return erro("informe o número da fatura");
     if (!p_vencimento) return erro("informe o vencimento");
-    const sel = (db.ctes ?? []).filter((c) => (p_ctes ?? []).includes(c.id) && c.mf_paga && !c.fatura_id);
+    const sel = (db.ctes ?? []).filter((c) => (p_ctes ?? []).includes(c.id) && c.mf_paga && !c.fatura_id && (c.situacao ?? "autorizado") === "autorizado");
     if (!sel.length) return erro("escolha os CT-e da fatura");
     if (sel.length !== p_ctes.length) return erro("só entram CT-e pagos pela MF e ainda sem fatura");
     const valor = p_valor ?? r2(sel.reduce((s, c) => s + Number(c.valor), 0));
@@ -4609,6 +4625,7 @@ const funcoes: Record<string, (b: any) => any> = {
   // na prévia as fotos continuam pelo link (não há armazenamento)
   "produtos-fotos": () => ({ copiadas: 0, falharam: 0, restantes: 0 }),
   "nfe-recebidas-sync": (b) => {
+    if (b.acao === "sincronizar_ctes") return { ok: true, novos: 0, atualizados: 0, completos: 0, avisos: [] };
     if (b.acao === "importar_xmls") {
       const desde = db.configuracoes[0].recebidas_processar_desde ?? hojeISO();
       return { ok: true, resultados: (b.xmls as string[]).map((xml) => {

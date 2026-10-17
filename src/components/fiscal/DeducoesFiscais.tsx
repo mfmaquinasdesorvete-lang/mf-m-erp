@@ -49,8 +49,8 @@ export function DeducoesFiscais() {
     key: ["fiscal", inicio], filtro: (q) => q.lt("valor", 0).gte("data", inicio),
   });
   const { data: funcionarios = [] } = useRows<{ nome: string }>("funcionarios", { select: "nome", order: "nome", key: ["fiscal"] });
-  const { data: ctes = [] } = useRows<{ mf_paga: boolean; sentido: string; valor: number; fatura_id: string | null; unidade_id: string | null }>("ctes", {
-    select: "mf_paga, sentido, valor, fatura_id, unidade_id", order: "emissao", key: ["fiscal"],
+  const { data: ctes = [] } = useRows<{ mf_paga: boolean; sentido: string; valor: number; fatura_id: string | null; unidade_id: string | null; situacao: string | null; chave: string | null }>("ctes", {
+    select: "mf_paga, sentido, valor, fatura_id, unidade_id, situacao, chave", order: "emissao", key: ["fiscal"],
   });
   const { data: faturas = [] } = useRows<{ conta_pagar_id: string | null }>("cte_faturas", { select: "conta_pagar_id", order: "created_at", key: ["fiscal"] });
   const { data: contas = [] } = useRows<{ id: string; descricao: string; categoria: string | null; fornecedor_id: string | null; valor: number; status: string; vencimento: string; unidade_id: string | null }>("contas_pagar", {
@@ -123,7 +123,7 @@ export function DeducoesFiscais() {
     },
     {
       titulo: "Crédito de PIS/COFINS sobre fretes", situacao: fretes.base ? "parcial" : "falta",
-      texto: `${fretes.n} CT-e pagos pela MF em compras e vendas: base ${brl(fretes.base)}, crédito estimado ${brl(fretes.credito)} (9,25%). Confirmar com o contador se já entra na EFD-Contribuições.`,
+      texto: `${fretes.n} CT-e pagos pela MF em compras e vendas${fretes.daSefaz ? ` (${fretes.daSefaz} vindos sozinhos da SEFAZ)` : ""}: base ${brl(fretes.base)}, crédito estimado ${brl(fretes.credito)} (9,25%). CT-e cancelado fica fora. Confirmar com o contador se já entra na EFD-Contribuições.`,
     },
   ];
 
