@@ -1092,6 +1092,17 @@ function planoDemo(db: Db) {
     serie_dps: 1, proximo_numero_dps: 1, ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", codigo_indicador_operacao: null, consumidor_final: false }];
   db.nfse = [];
   db.nfse_eventos = [];
+  // NFS-e feitas fora do ERP: uma emitida no Tiny (só RPS) e uma recebida do escritório de contabilidade
+  const nfseFora = (x: Row) => ({ codigo_verificacao: null, chave_acesso: null, competencia: null, municipio: null, cliente_id: null, fornecedor_id: null,
+    valor_iss: null, iss_retido: false, valor_ir: 0, valor_inss: 0, valor_pis: 0, valor_cofins: 0, valor_csll: 0, valor_liquido: null, discriminacao: null,
+    codigo_servico: null, prestador_doc: null, prestador_nome: null, tomador_doc: null, tomador_nome: null, numero: null, rps: null, created_at: quando(0), ...x });
+  db.nfse_importadas = [
+    nfseFora({ id: "nsi1", tipo: "emitida", unidade_id: U_SC, chave: "emitida:sc:r2426", rps: "2426", data_emissao: dias(-60), tomador_nome: "Sorveteria Franquia Ltda",
+      valor_servicos: 6000, valor_pis: 39, valor_cofins: 180, valor_csll: 60, situacao: "sem_numero", origem: "tiny" }),
+    nfseFora({ id: "nsi2", tipo: "tomada", unidade_id: U_SC, chave: "tomada:11222333000181:n55", numero: "55", data_emissao: dias(-10), prestador_doc: "11222333000181",
+      prestador_nome: "Escritório Contábil Exemplo", tomador_doc: "46942855000132", valor_servicos: 1500, valor_iss: 30, iss_retido: true, valor_ir: 22.5,
+      valor_pis: 9.75, valor_cofins: 45, valor_csll: 15, valor_liquido: 1377.75, discriminacao: "Honorários contábeis", situacao: "normal", origem: "xml" }),
+  ];
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
   // c4 também é licenciado da licenciadora de sorveterias (venda de máquinas e proposta do Tiny aparecem com o selo)
   Object.assign(db.clientes[3], { tags: ["ie_baixada", "endereco_receita", "licenciado_my_frost"], receita_situacao: "ATIVA", ie_situacao: "baixada", receita_em: quando(-2),
@@ -2980,6 +2991,30 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       novos++;
     }
     return { data: { novos, atualizados, ignorados }, error: null };
+  },
+  importar_nfse: ({ p_itens }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para importar notas de serviço");
+    const dig = (x: unknown) => String(x ?? "").replace(/\D/g, "");
+    const unid = (c: string) => (c ? db.unidades.find((u) => dig(u.cnpj) === c)?.id ?? null : null);
+    let novas = 0, atualizadas = 0, ignoradas = 0;
+    const motivos: string[] = [];
+    db.nfse_importadas ??= [];
+    for (const i of p_itens ?? []) {
+      const prest = dig(i.prestador_doc), toma = dig(i.tomador_doc);
+      let unidade = unid(prest), tipo = unidade ? "emitida" : null;
+      if (!unidade && unid(toma)) { unidade = unid(toma); tipo = "tomada"; }
+      if (!unidade && i.origem === "tiny") { unidade = i.unidade_id; tipo = "emitida"; }
+      const numero = String(i.numero ?? "").replace(/^0+/, ""), rps = String(i.rps ?? "").replace(/^0+/, "");
+      if (!unidade) { ignoradas++; motivos.push(`${i.arquivo ?? "nota"}: nem o prestador nem o tomador é uma unidade da MF`); continue; }
+      if (!(Number(i.valor_servicos) > 0) || !i.data_emissao || !(numero || rps)) { ignoradas++; motivos.push(`${i.arquivo ?? "nota"}: sem número, data ou valor`); continue; }
+      const chave = `${tipo}:${tipo === "emitida" ? unidade : prest}:${numero ? "n" + numero : "r" + rps}`;
+      const ja = db.nfse_importadas.find((n: Row) => n.chave === chave || (rps && n.tipo === tipo && n.unidade_id === unidade && n.rps === rps));
+      const dados = { ...i, tipo, unidade_id: unidade, chave, numero: numero || ja?.numero || null, rps: rps || ja?.rps || null, prestador_doc: prest || null,
+        tomador_doc: toma || null, valor_servicos: Number(i.valor_servicos), iss_retido: !!i.iss_retido,
+        situacao: i.situacao === "cancelada" ? "cancelada" : numero || ja?.numero ? "normal" : "sem_numero" };
+      if (ja) { Object.assign(ja, dados); atualizadas++; } else { db.nfse_importadas.push({ id: uid(), created_at: quando(0), cliente_id: null, fornecedor_id: null, ...dados }); novas++; }
+    }
+    return { data: { novas, atualizadas, ignoradas, motivos }, error: null };
   },
   criar_fatura_cte: ({ p_ctes, p_numero, p_vencimento, p_valor, p_emissao, p_lancar }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");

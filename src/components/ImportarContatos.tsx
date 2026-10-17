@@ -13,7 +13,11 @@ const CAMPO: Record<string, string> = {
   id_externo: "ID do Tiny", nome: "nome / razão social", fantasia: "fantasia", tipo_pessoa: "tipo de pessoa", cpf_cnpj: "CPF/CNPJ",
   ie: "inscrição estadual", contribuinte: "contribuinte", email: "e-mail", fone: "telefone", celular: "celular/WhatsApp", cep: "CEP",
   endereco: "endereço", numero: "número", complemento: "complemento", bairro: "bairro", cidade: "cidade", uf: "UF", obs: "observações",
-  tipos: "tipo de contato", situacao: "situação",
+  tipos: "tipo de contato", situacao: "situação", compra_maquina: "código (compra da máquina)", cadastro_em: "data de cadastro",
+  site: "site", fone2: "fax/telefone 2", email_nfe: "e-mail da NF-e", im: "inscrição municipal", suframa: "Suframa", crt: "regime tributário",
+  nascimento: "data de nascimento", limite_credito: "limite de crédito", pessoas_contato: "pessoas de contato", vendedor: "vendedor",
+  cob_cep: "CEP de cobrança", cob_endereco: "endereço de cobrança", cob_numero: "número de cobrança", cob_complemento: "complemento de cobrança",
+  cob_bairro: "bairro de cobrança", cob_cidade: "cidade de cobrança", cob_uf: "UF de cobrança",
 };
 type Resultado = { clientes: number; fornecedores: number; transportadoras: number; atualizados: number };
 const LOTE = 500;
@@ -85,7 +89,11 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
             Escolha uma planilha do Excel (.xlsx, .xls) ou .csv com os {ROTULO[tipo]}. Serve a exportação do Tiny
             (<b>Cadastros → Clientes e Fornecedores → ⋯ → Exportar</b>), de outro sistema ou a do botão <b>Exportar</b> daqui.
             As colunas são reconhecidas pelo nome: nome ou razão social, fantasia, CPF/CNPJ, inscrição estadual, e-mail, telefone, celular,
-            CEP, endereço, número, bairro, cidade, UF e observações.
+            CEP, endereço, número, bairro, cidade, UF e observações — e, do Tiny, também data de cadastro, site, e-mail da NF-e,
+            inscrição municipal, regime tributário, limite de crédito, pessoas de contato, vendedor e endereço de cobrança.
+          </p>
+          <p className="text-sm text-slate-500">
+            Já importou antes? Importe a mesma planilha de novo: quem já existe só ganha os campos que faltavam, sem duplicar.
           </p>
           <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center hover:border-brand ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
             <FileSpreadsheet size={36} className="text-brand" />
@@ -103,6 +111,9 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
             {porTipo.length > 1 && <li>Pela coluna de tipo: {porTipo.map(([t, n]) => `${n} ${ROTULO[t]}`).join(", ")}.</li>}
             <li>Colunas reconhecidas: {leitura.colunas.map((c) => CAMPO[c.campo] ?? c.campo).join(", ")}.</li>
+            {leitura.naoUsadas.length > 0 && (
+              <li className="text-amber-700">Colunas que o ERP não usa (ficam de fora): {leitura.naoUsadas.join(", ")}.</li>
+            )}
             {contar((i) => !i.cpf_cnpj) > 0 && <li className="text-amber-700">{contar((i) => !i.cpf_cnpj)} sem CPF/CNPJ: entram pelo nome. Complete antes de emitir NF-e.</li>}
             {leitura.ignorados.length > 0 && (
               <li className="text-slate-500">

@@ -1,7 +1,7 @@
 // Notas fiscais → NFS-e (serviços): todas as notas de serviço e a configuração fiscal de cada unidade (CNPJ/município).
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, FlaskConical, Info, Save, Settings2 } from "lucide-react";
+import { FileText, FileUp, FlaskConical, Info, Save, Settings2 } from "lucide-react";
 import { Button, Field, Table, Tabs } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -11,6 +11,7 @@ import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat } from "@/lib/format";
 import { NATUREZAS_NFSE, NFSE_EM_ANDAMENTO, REGIMES_NFSE, type Nfse, type NfseConfig } from "@/lib/nfse";
 import { ChipNfse } from "./NfseOS";
+import { ImportarNfse, ListaNfseImportadas } from "./NfseImportadas";
 
 const FILTROS: { value: string; label: string; teste: (n: Nfse) => boolean }[] = [
   { value: "todas", label: "Todas", teste: () => true },
@@ -22,15 +23,25 @@ const FILTROS: { value: string; label: string; teste: (n: Nfse) => boolean }[] =
 ];
 
 export function NfsePainel() {
-  const { pode } = usePerfil();
-  const [aba, setAba] = useState<"notas" | "config">("notas");
+  const { pode, tem } = usePerfil();
+  const [aba, setAba] = useState<"notas" | "tomadas" | "config">("notas");
+  const [importar, setImportar] = useState(false);
   return (
     <div>
-      <Tabs value={aba} onChange={setAba} options={[
-        { value: "notas", label: "Notas de serviço" },
-        { value: "config", label: "Configuração por unidade" },
-      ]} />
-      {aba === "notas" ? <ListaNfse /> : <ConfigNfse podeEditar={pode("configurar_nfse")} />}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <Tabs value={aba} onChange={setAba} options={[
+          { value: "notas", label: "Emitidas" },
+          { value: "tomadas", label: "Recebidas (tomadas)" },
+          { value: "config", label: "Configuração por unidade" },
+        ]} />
+        {aba !== "config" && tem("financeiro") && (
+          <Button variant="secondary" onClick={() => setImportar(true)}><FileUp size={16} /> Importar notas</Button>
+        )}
+      </div>
+      {aba === "notas" ? <><ListaNfse /><ListaNfseImportadas tipo="emitida" /></>
+        : aba === "tomadas" ? <ListaNfseImportadas tipo="tomada" />
+        : <ConfigNfse podeEditar={pode("configurar_nfse")} />}
+      {importar && <ImportarNfse onClose={() => setImportar(false)} />}
     </div>
   );
 }
@@ -56,6 +67,7 @@ function ListaNfse() {
       <p className="mb-3 flex gap-2 text-sm text-slate-600">
         <Info size={16} className="mt-0.5 shrink-0 text-slate-400" />
         A NFS-e é emitida na ordem de serviço (Assistência → OS → Nota de serviço). A OS só fica faturada quando a prefeitura autoriza.
+        Notas feitas fora do ERP (Tiny, portal da prefeitura, Emissor Nacional) entram pelo botão Importar notas, com o XML ou o relatório do Tiny.
       </p>
       <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTROS.map((x) => (

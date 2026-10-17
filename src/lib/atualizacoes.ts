@@ -185,6 +185,8 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Oficina não é posto: \"diesel\" no nome sozinho não marca mais posto de combustível; oficina, peças e pneus dos veículos entram em \"Manutenção de veículos\" no resumo do extrato e no DRE.",
       "Contas a pagar em quadro (Kanban): botão Lista/Quadro; colunas A decidir, Falta aprovar, Programadas, Pagar hoje, Pagas (30 dias) e Não pagar, com quantidade e total. No computador, arrastar a conta para outra coluna faz a ação dela — pagar hoje, programar um dia, não pagar com motivo, voltar a decidir ou registrar o pagamento —, com as mesmas travas de aprovação e de fornecedor golpe; no celular as colunas deslizam para o lado.",
       "Painel pessoal: importar o extrato em PDF (o Itaú só entrega assim). O PDF é lido no próprio aparelho, mostra as primeiras linhas para conferir antes de gravar e não repete o que já entrou.",
+      "Clientes do Tiny completos: a importação da planilha passa a trazer data de cadastro (vale como \"cliente desde\"), site, fax, e-mail da NF-e, inscrição municipal, regime tributário, limite de crédito, pessoas de contato, vendedor e endereço de cobrança, e mostra as colunas que ficaram de fora. Importar a mesma planilha de novo completa sem duplicar.",
+      "Notas de serviço feitas fora do ERP (Notas fiscais → NFS-e → Importar notas): as emitidas pela MF no Tiny, na prefeitura ou no Emissor Nacional e as recebidas de fornecedores (aba Recebidas), pelo XML, ZIP ou relatório do Tiny, com ISS e retenções de IR, INSS, PIS, COFINS e CSLL.",
     ],
   },
 };

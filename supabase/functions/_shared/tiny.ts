@@ -187,7 +187,24 @@ export function contatoParaItem(c: any) {
     bairro: txt(c.bairro), cidade: txt(c.cidade), uf: txt(c.uf), obs: txt(c.obs), tipos,
     // no Tiny o "Código" do contato guardava o mês/ano da compra da máquina (ex.: 10/2020)
     compra_maquina: dataDoCodigo(c.codigo),
+    // demais campos do cadastro do Tiny (mesmos nomes da importação por planilha)
+    cadastro_em: dataCadastroContato(c) ?? "", site: txt(c.site), fone2: txt(c.fax), email_nfe: txt(c.email_nfe).split(/[;, ]+/)[0] ?? "",
+    im: txt(c.im), suframa: txt(c.suframa ?? c.inscricao_suframa), crt: /^[123]$/.test(txt(c.crt)) ? txt(c.crt) : "",
+    nascimento: txt(c.tipo_pessoa).toUpperCase() === "J" ? "" : dataIso(c.data_nascimento) ?? "",
+    limite_credito: num(c.limite_credito) > 0 ? num(c.limite_credito).toFixed(2) : "",
+    pessoas_contato: pessoasContato(c), vendedor: txt(c.nome_vendedor),
+    cob_cep: digitos(c.cep_cobranca), cob_endereco: txt(c.endereco_cobranca), cob_numero: txt(c.numero_cobranca),
+    cob_complemento: txt(c.complemento_cobranca), cob_bairro: txt(c.bairro_cobranca), cob_cidade: txt(c.cidade_cobranca), cob_uf: txt(c.uf_cobranca),
   };
+}
+
+/** Pessoas de contato do Tiny -> uma linha por pessoa ("Nome · departamento · telefone · e-mail"). */
+function pessoasContato(c: any): string {
+  const lista: any[] = Array.isArray(c?.pessoas_contato) ? c.pessoas_contato : [];
+  const linhas = lista.map((x) => x?.pessoa_contato ?? x).map((p) =>
+    [txt(p?.nome), txt(p?.departamento), [txt(p?.telefone), txt(p?.ramal) && `ramal ${txt(p.ramal)}`].filter(Boolean).join(" "), txt(p?.email)]
+      .filter(Boolean).join(" · ")).filter(Boolean);
+  return (linhas.length ? linhas.join("\n") : txt(c?.contatos)).slice(0, 2000);
 }
 
 /**

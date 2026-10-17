@@ -57,6 +57,10 @@ export default function PainelNotas() {
       return (data ?? []) as Nfse[];
     },
   });
+  // notas de serviço feitas fora do ERP (Tiny, prefeitura, Emissor Nacional) também contam
+  const { data: nfseForaTodas = [] } = useRows<{ unidade_id: string; tipo: string; situacao: string; data_emissao: string }>("nfse_importadas", {
+    select: "unidade_id, tipo, situacao, data_emissao", order: "data_emissao", key: ["painel"],
+  });
   const [periodo, setPeriodo] = usePeriodo("notas");
   const [fCfop, setFCfop] = useState<string | null>(null);
   const per = PERIODOS.find((p) => p.id === periodo)!;
@@ -64,6 +68,7 @@ export default function PainelNotas() {
   const emitidas = useMemo(() => filtrar(emTodas).filter((n) => !n.excluida_em), [emTodas, filtrar]);
   const recebidas = useMemo(() => (veRecebidas ? filtrar(recTodas).filter((n) => !n.excluida_em) : []), [recTodas, filtrar, veRecebidas]);
   const nfse = filtrar(nfseTodas);
+  const nfseFora = filtrar(nfseForaTodas).filter((n) => n.tipo === "emitida" && n.situacao === "normal");
 
   const k = useMemo(() => {
     const { atual, anterior } = intervalos(periodo);
@@ -107,10 +112,11 @@ export default function PainelNotas() {
         devolucoes: doPeriodo.filter((n) => n.finalidade === "devolucao").length,
       },
       aResolver: recebidas.filter((n) => n.situacao !== "cancelada" && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento)),
-      nfseNoPeriodo: nfse.filter((n) => n.status === "autorizada" && n.ambiente !== "homologacao" && dentro(n.created_at, atual)).length,
+      nfseNoPeriodo: nfse.filter((n) => n.status === "autorizada" && n.ambiente !== "homologacao" && dentro(n.created_at, atual)).length
+        + nfseFora.filter((n) => dentro(n.data_emissao, atual)).length,
       nfseRejeitadas: nfse.filter((n) => n.status === "rejeitada").length,
     };
-  }, [periodo, emitidas, recebidas, nfse, fCfop, veRecebidas]);
+  }, [periodo, emitidas, recebidas, nfse, nfseFora, fCfop, veRecebidas]);
 
   const cartoes: Cartao[] = [
     { id: "fat", rotulo: "Faturado em NF-e", valor: brl(k.faturado), sub: `${k.qtd} ${pl(k.qtd, "nota", "notas")} de venda ${pl(k.qtd, "autorizada", "autorizadas")}`, icone: Receipt, cor: "var(--kpi-azul)", delta: k.dFaturado, tendencia: k.tendFat,
