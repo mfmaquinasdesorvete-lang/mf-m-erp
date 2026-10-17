@@ -5,7 +5,7 @@ import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
-import { CheckCircle2, ChevronRight, FileDown, FileText, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, Trash2, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileDown, FileText, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Trash2, Truck, XCircle } from "lucide-react";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
@@ -48,6 +48,7 @@ import {
   type ContaVenda, type Envio, type EnvioVenda, type Pagamento, type SituacaoPagamento, type TransportadoraVenda,
 } from "@/lib/vendasLista";
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
+import { KanbanVendas } from "@/components/vendas/KanbanVendas";
 
 /** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
 const resumoPulados = (p: { numero: number; motivo: string }[]) =>
@@ -149,6 +150,12 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const navigate = useNavigate();
   // vindo do Analista fiscal: só os pedidos apontados (ex.: vendas sem NF-e)
   const [destaque, setDestaque] = useState(() => lerDestaque(location.state));
+  // quadro (Kanban) ou lista; a escolha fica guardada no aparelho, separada para peças e máquinas
+  const chaveVisual = `erp:vendas:visual:${area}`;
+  const [visual, setVisualState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem(chaveVisual) === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
+  const setVisual = (v: "quadro" | "lista") => { setVisualState(v); selecao.limpar(); try { localStorage.setItem(chaveVisual, v); } catch { /* sem armazenamento */ } };
+  // vindo de um destaque (aviso, painel), a lista mostra só aqueles pedidos
+  const quadro = visual === "quadro" && !destaque;
   // cada tela mostra só a sua área (a lista apontada por outra tela aparece inteira)
   const pedidos = filtrar(pedidosTodos).filter((p) => !!destaque || ehMaquina(p) === (area === "maquinas"));
   useEffect(() => {
@@ -212,8 +219,10 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const limparFiltros = () => { setBusca(""); setMarcador(""); setSituacaoTiny(""); setSoLicenciados(false); setPeriodo(SEM_PERIODO); setFiltro("todos"); setPagamento(""); };
   const infoDe = (id: string) => info.get(id);
   // no rodapé: quanto da lista já entrou e quanto falta receber (pelas contas, valor da venda)
-  const recebidoLista = somar(lista, (p) => info.get(p.id)?.pg?.recebido ?? 0);
-  const aReceberLista = somar(lista, (p) => { const pg = info.get(p.id)?.pg; return pg && pg.situacao !== "sem_conta" ? pg.total - pg.recebido : 0; });
+  // no quadro as situações são as colunas: valem todas as vendas dos filtros
+  const naTela = quadro ? semSituacao : lista;
+  const recebidoLista = somar(naTela, (p) => info.get(p.id)?.pg?.recebido ?? 0);
+  const aReceberLista = somar(naTela, (p) => { const pg = info.get(p.id)?.pg; return pg && pg.situacao !== "sem_conta" ? pg.total - pg.recebido : 0; });
 
   async function excluirSelecionados() {
     const motivo = await pedirTexto(`Excluir ${selecionados.length} ${pl(selecionados.length, "pedido", "pedidos")}? Só orçamentos e vendas canceladas são excluídos `
@@ -252,6 +261,16 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF ou CNPJ…"
         periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" nFiltros={nFiltros} onLimpar={limparFiltros}
+        direita={!destaque && (
+          <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as vendas em">
+            {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
+              <button key={m} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
+                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                <Icone size={15} aria-hidden /><span>{rotulo}</span>
+              </button>
+            ))}
+          </div>
+        )}
         filtros={<>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
           {situacoesTiny.length > 0 && (
@@ -269,10 +288,20 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             </button>
           )}
         </>} />
-      <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
-        opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />
-      {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={semPagamento} info={info} />}
+      {!quadro && <ChipsSituacao valor={filtro} onChange={setFiltro} cores={CORES_STATUS}
+        opcoes={STATUS.map((st) => ({ value: st, label: ROTULO_STATUS[st], n: st === "todos" ? semSituacao.length : semSituacao.filter((x) => x.status === st).length }))} />}
+      {vePagamento && <ChipsPagamento valor={pagamento} onChange={setPagamento} lista={quadro ? filtrados : semPagamento} info={info} />}
 
+      {quadro && (
+        <KanbanVendas vendas={semSituacao} onAbrir={(p) => setAberto({ ...p, itens: p.itens ?? [] })}
+          onVerNaLista={(c) => { setFiltro(c); setVisual("lista"); }}
+          extras={(p) => <>
+            {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
+            {info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} compacto />}
+          </>} />
+      )}
+
+      {!quadro && <>
       {/* Celular: cartões */}
       <div className="space-y-2 md:hidden">
         {lista.length > 0 && (
@@ -356,9 +385,10 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         ))}
       </Table>
       </div>
+      </>}
 
       {/* quantidade e soma do que está na lista (valor da venda, não o da NF), como no Tiny; com seleção, as ações em lote */}
-      <RodapeLista quantidade={lista.length} nome={["pedido", "pedidos"]} total={somar(lista, (p) => p.valor_total)} rotuloTotal="valor das vendas"
+      <RodapeLista quantidade={naTela.length} nome={["pedido", "pedidos"]} total={somar(naTela, (p) => p.valor_total)} rotuloTotal="valor das vendas" dica={quadro ? null : undefined}
         extras={vePagamento ? [{ valor: recebidoLista, rotulo: "recebido", cor: "text-emerald-700" }, { valor: aReceberLista, rotulo: "a receber", cor: "text-sky-700" }].filter((x) => x.valor > 0) : undefined}
         selecionados={selecionados.length} totalSelecionados={somar(selecionados, (p) => p.valor_total)} onLimparSelecao={selecao.limpar}
         acoes={<>

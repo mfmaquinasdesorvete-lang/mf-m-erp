@@ -57,7 +57,7 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
   return (
     <>
       {/* abas coloridas: cada passo com quantas contas e quanto (tocar leva à coluna) */}
-      <nav aria-label="Passos até o pagamento" className="-mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:grid md:grid-cols-3 md:px-0 xl:grid-cols-6">
+      <nav aria-label="Passos até o pagamento" className="relative -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:grid md:grid-cols-3 md:px-0 xl:grid-cols-6">
         {colunas.map((col) => (
           <button key={col.id} type="button" onClick={() => irPara(col.id)} title={`${col.explica} ${col.fazer}`}
             className={`flex min-w-[9.5rem] shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0 ${col.lista.length ? "" : "opacity-55"}`}
@@ -71,7 +71,8 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
         ))}
       </nav>
       <p className="mb-2 hidden text-[13px] text-slate-600 md:block">O caminho vai da esquerda para a direita. Arraste a conta para outra coluna para mudar o passo (pagar hoje, programar, não pagar, voltar a decidir ou registrar o pagamento).</p>
-      <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das contas a pagar">
+      {/* relative: o texto só para leitor de tela (sr-only) dos cartões fica preso aqui e não alarga a página no celular */}
+      <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das contas a pagar">
         {colunas.map((col) => {
           const ok = aceita(col.id);
           return (

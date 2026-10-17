@@ -111,8 +111,10 @@ export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotul
 }
 
 /** Rodapé fixo da lista: quantidade e total do que está filtrado (como no Tiny); com seleção, as ações em lote. */
-export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor total", extras, selecionados = 0, totalSelecionados, acoes, onLimparSelecao }: {
+export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor total", extras, selecionados = 0, totalSelecionados, acoes, onLimparSelecao, dica = "Marque as linhas para as ações em lote." }: {
   quantidade: number; nome: [string, string]; total?: number; rotuloTotal?: string;
+  /** a dica do computador quando nada está marcado (null: sem dica, ex.: no quadro, onde não se marca) */
+  dica?: string | null;
   /** outras somas da lista (ex.: recebido e a receber), ao lado do total */
   extras?: { valor: number; rotulo: string; cor?: string }[];
   selecionados?: number; totalSelecionados?: number; acoes?: ReactNode; onLimparSelecao?: () => void;
@@ -130,7 +132,7 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
             <button type="button" onClick={onLimparSelecao} className="inline-flex items-center gap-1 px-1 text-xs font-semibold text-slate-600 hover:text-fg"><X size={13} aria-hidden /> Limpar seleção</button>
           )}
         </div>
-      ) : <span className="hidden text-xs text-slate-500 md:inline">Marque as linhas para as ações em lote.</span>}
+      ) : dica ? <span className="hidden text-xs text-slate-500 md:inline">{dica}</span> : null}
       <div className="ml-auto flex w-full flex-wrap items-end justify-between gap-x-3 gap-y-1 text-right md:w-auto md:justify-end md:gap-x-5">
         <div className="text-left md:text-right"><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-[11px] leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
         {total != null && <div><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{brl(total)}</div><div className="text-[11px] leading-tight text-slate-500">{rotuloTotal}</div></div>}
