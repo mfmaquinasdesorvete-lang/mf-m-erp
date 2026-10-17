@@ -4,16 +4,23 @@
 // POST { acao: "continuar" }               -> avança ~40 s e devolve o progresso; a tela chama de novo até concluir
 // POST { acao: "datas_contatos", pagina }  -> só a data de cadastro no Tiny dos contatos já importados (~40 s por vez;
 //                                             devolve a próxima página, ou null no fim)
+// POST { acao: "recebidas", unidade_id, pagina, indice } -> contas a receber já pagas no Tiny (desde 2025), com a data do
+//                                             pagamento, gravadas como recebidas e ligadas à venda (importar_recebidas_tiny);
+//                                             ~40 s por vez, devolve onde parou (pagina/indice) ou pagina null no fim
 // O Tiny limita as consultas por minuto: quando ele pede para esperar, a resposta traz { aguardar: segundos }.
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
-import { contaParaItem, contatoParaItem, dataCadastroContato, num, produtoParaItem, Ritmo, tiny, TinyErro, tinyToken } from "../_shared/tiny.ts";
+import {
+  contaParaItem, contatoParaItem, dataCadastroContato, num, produtoParaItem, recebidaParaItem, Ritmo, tiny, TinyErro, tinyToken,
+} from "../_shared/tiny.ts";
 
 const ETAPAS = ["contatos", "produtos", "receber_aberto", "receber_parcial", "pagar_aberto", "pagar_parcial", "concluida"] as const;
 type Etapa = (typeof ETAPAS)[number];
 const LOTE = 25;
 const PRAZO_MS = 40_000;
+/** Recebimentos: só as contas emitidas desde esta data (o extrato dos bancos no ERP começa em 2025). */
+const RECEBIDAS_DESDE = "01/01/2025";
 
 type Estado = {
   etapa: Etapa; pagina: number; indice: number; unidade_id: string | null;
@@ -34,7 +41,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const { userId } = await requireErpUser(req, ["financeiro"]);
-    const { acao, unidade_id, pagina } = await req.json();
+    const { acao, unidade_id, pagina, indice } = await req.json();
     const db = adminClient();
     // as funções de importação conferem o papel de quem chamou
     const dbUsuario = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -96,6 +103,61 @@ Deno.serve(async (req) => {
       }
       // sem nenhuma data, devolve só os nomes dos campos que o Tiny mandou (para achar o campo certo), nunca os valores
       return json({ ok: true, pagina: pg, paginas, lidos, com_data: comData, gravados, aguardar, campos: comData ? undefined : chaves });
+    }
+
+    if (acao === "recebidas") {
+      const { data: u } = await db.from("unidades").select("id").eq("id", unidade_id).maybeSingle();
+      if (!u) throw new HttpError(400, "escolha a unidade das contas que não têm venda ligada");
+      const ritmo = new Ritmo();
+      const fim = Date.now() + PRAZO_MS;
+      let pg: number | null = Math.max(1, Number(pagina) || 1);
+      let ind = Math.max(0, Number(indice) || 0);
+      let paginas = 1, lidas = 0, aguardar = 0;
+      const totais: Record<string, number> = {};
+      const erros: string[] = [];
+      let chaves: string[] | null = null;
+      try {
+        while (pg && Date.now() < fim) {
+          const lista = await tiny("contas.receber.pesquisa.php", { pagina: pg, situacao: "pago", data_ini_emissao: RECEBIDAS_DESDE }, token, ritmo);
+          const contas: any[] = lista?.contas?.map((x: any) => x.conta) ?? [];
+          paginas = Number(lista?.numero_paginas) || paginas;
+          if (!contas.length) { pg = null; break; }
+          // a página em lotes de LOTE contas (cada lote é gravado antes do próximo: se o tempo acabar, nada se perde)
+          while (ind < contas.length && !aguardar && Date.now() < fim) {
+            const itens: ReturnType<typeof recebidaParaItem>[] = [];
+            while (ind < contas.length && itens.length < LOTE && Date.now() < fim) {
+              const c = contas[ind];
+              try {
+                // o detalhe traz a data do pagamento e o contato; a pesquisa só traz o vencimento
+                const d = (await tiny("conta.receber.obter.php", { id: c.id }, token, ritmo))?.conta;
+                if (d && !chaves) chaves = Object.keys(d);
+                itens.push(recebidaParaItem({ ...c, ...(d ?? {}) }));
+              } catch (x) {
+                if (x instanceof TinyErro && x.excessoDeConsultas) { aguardar = 60; break; }
+                if (x instanceof TinyErro && x.fatal) throw x;
+                itens.push(recebidaParaItem(c)); // sem o detalhe, grava com o que veio na pesquisa
+              }
+              ind++; lidas++;
+            }
+            if (itens.length) {
+              const { data, error } = await dbUsuario.rpc("importar_recebidas_tiny", { p_itens: itens, p_unidade: unidade_id });
+              if (error) throw new HttpError(400, error.message);
+              const r = (data ?? {}) as Record<string, unknown>;
+              soma(totais, r);
+              for (const x of (r.erros as { id: string; erro: string }[] | undefined) ?? []) erros.push(`${x.id}: ${x.erro}`);
+            }
+          }
+          if (aguardar || ind < contas.length) break;
+          if (ind >= contas.length) { ind = 0; pg = pg + 1 > paginas ? null : pg + 1; }
+        }
+      } catch (x) {
+        if (x instanceof TinyErro && x.excessoDeConsultas) aguardar = 60;
+        else if (x instanceof TinyErro && x.fatal) throw new HttpError(400, motivoFatal(x));
+        else throw x;
+      }
+      // sem a data do pagamento, devolve só os nomes dos campos que o Tiny mandou (para achar o campo certo), nunca os valores
+      return json({ ok: true, pagina: pg, indice: ind, paginas, lidas, aguardar, ...totais, erros: erros.slice(0, 20),
+        campos: totais.sem_data ? chaves : undefined });
     }
 
     if (acao !== "continuar") throw new HttpError(400, "ação inválida");

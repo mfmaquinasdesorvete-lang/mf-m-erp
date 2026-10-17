@@ -14,6 +14,15 @@ type Estado = {
 type Resposta = { configurado: boolean; estado: Estado | null; aguardar?: number };
 type RespDatas = { pagina: number | null; paginas: number; lidos: number; com_data: number; gravados: number; aguardar?: number; campos?: string[] };
 type ProgressoDatas = { pagina: number | null; paginas: number; lidos: number; comData: number; gravados: number; campos?: string[]; fim: boolean };
+/** Resposta de uma rodada dos recebimentos (contas já pagas no Tiny) e o acumulado na tela. */
+type RespRecebidas = {
+  pagina: number | null; indice: number; paginas: number; lidas: number; aguardar?: number; erros?: string[]; campos?: string[];
+  criadas?: number; baixadas?: number; ja_existiam?: number; ja_na_venda?: number; com_venda?: number; sem_data?: number; ignoradas?: number;
+};
+type ProgressoRecebidas = {
+  pagina: number | null; indice: number; paginas: number; lidas: number; criadas: number; baixadas: number; jaExistiam: number;
+  jaNaVenda: number; comVenda: number; semData: number; ignoradas: number; erros: string[]; campos?: string[]; fim: boolean;
+};
 
 const ETAPAS: [string, string][] = [
   ["contatos", "Clientes, fornecedores e transportadoras"],
@@ -36,6 +45,7 @@ export function ImportarTiny() {
   const [pausa, setPausa] = useState(0);
   const [erro, setErro] = useState("");
   const [datas, setDatas] = useState<ProgressoDatas | null>(null);
+  const [recebidas, setRecebidas] = useState<ProgressoRecebidas | null>(null);
   const ativo = useRef(true);
 
   useEffect(() => {
@@ -96,6 +106,46 @@ export function ImportarTiny() {
         notify(p.comData ? `Data de cadastro do Tiny gravada em ${p.gravados} clientes` : "O Tiny não mandou a data de cadastro dos contatos");
         qc.invalidateQueries({ queryKey: ["clientes_desde"] });
         qc.invalidateQueries({ queryKey: ["clientes"] });
+      }
+    } catch (x) {
+      if (ativo.current) setErro((x as Error).message);
+    } finally {
+      if (ativo.current) { setRodando(false); setPausa(0); }
+    }
+  }
+
+  /**
+   * Contas a receber já pagas no Tiny: entram como recebidas, ligadas à venda e ao cliente, e a conciliação do extrato passa
+   * a sugerir o Pix ou depósito de cada uma (sinal e saldo das máquinas inclusive). Pode rodar de novo: não duplica.
+   */
+  async function trazerRecebidas() {
+    setErro("");
+    setRodando(true);
+    const p: ProgressoRecebidas = {
+      pagina: 1, indice: 0, paginas: 1, lidas: 0, criadas: 0, baixadas: 0, jaExistiam: 0, jaNaVenda: 0, comVenda: 0, semData: 0,
+      ignoradas: 0, erros: [], fim: false,
+    };
+    setRecebidas({ ...p });
+    try {
+      while (p.pagina && ativo.current) {
+        const r = await callFunction<RespRecebidas>("tiny-importar", { acao: "recebidas", unidade_id: unidade, pagina: p.pagina, indice: p.indice });
+        p.lidas += r.lidas; p.paginas = r.paginas;
+        p.criadas += r.criadas ?? 0; p.baixadas += r.baixadas ?? 0; p.jaExistiam += r.ja_existiam ?? 0; p.jaNaVenda += r.ja_na_venda ?? 0;
+        p.comVenda += r.com_venda ?? 0; p.semData += r.sem_data ?? 0; p.ignoradas += r.ignoradas ?? 0;
+        p.erros = [...p.erros, ...(r.erros ?? [])].slice(-20);
+        if (r.campos) p.campos = r.campos;
+        p.pagina = r.pagina; p.indice = r.indice;
+        if (ativo.current) setRecebidas({ ...p });
+        if (r.aguardar) {
+          for (let s = r.aguardar; s > 0 && ativo.current; s--) { setPausa(s); await espera(1000); }
+          setPausa(0);
+        }
+      }
+      if (!p.pagina) {
+        p.fim = true;
+        setRecebidas({ ...p });
+        notify(`Recebimentos do Tiny: ${p.criadas} ${pl(p.criadas, "conta recebida entrou", "contas recebidas entraram")}${p.baixadas ? `, ${p.baixadas} baixadas` : ""}`);
+        ["contas_receber", "extrato_lancamentos", "pedidos"].forEach((tb) => qc.invalidateQueries({ queryKey: [tb] }));
       }
     } catch (x) {
       if (ativo.current) setErro((x as Error).message);
@@ -211,6 +261,53 @@ export function ImportarTiny() {
             </p>
           )}
           <Button type="button" variant="secondary" disabled={rodando} onClick={() => { ativo.current = true; trazerDatas(); }}>Trazer a data de cadastro do Tiny</Button>
+        </div>
+      )}
+
+      {info?.configurado && (
+        <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
+          <p className="mb-2 text-slate-600">
+            <b>Recebimentos do Tiny:</b> as contas a receber já pagas no Tiny (desde 2025) entram como recebidas, ligadas à venda e ao
+            cliente. Aí a conciliação do extrato acha o Pix ou o depósito de cada uma — inclusive o sinal e o saldo das máquinas — e mostra em
+            “Com sugestão” para aprovar. Pode rodar de novo: nada é duplicado, e venda que já tem conta no ERP fica como está.
+          </p>
+          {recebidas && (
+            <div className="mb-2 rounded-lg bg-slate-50 p-3 text-slate-700">
+              <p>
+                {recebidas.fim ? "Pronto: " : `Página ${recebidas.pagina ?? recebidas.paginas} de ${recebidas.paginas}: `}
+                {n(recebidas.lidas)} contas lidas, <b>{n(recebidas.criadas)} entraram como recebidas</b> ({n(recebidas.comVenda)} ligadas a uma venda)
+                {recebidas.baixadas ? `, ${n(recebidas.baixadas)} que estavam em aberto foram baixadas` : ""}.
+              </p>
+              {!!(recebidas.jaNaVenda || recebidas.jaExistiam || recebidas.ignoradas) && (
+                <p className="text-xs text-slate-500">
+                  Ficaram como estavam: {n(recebidas.jaNaVenda)} de vendas que já têm conta no ERP, {n(recebidas.jaExistiam)} que já tinham vindo do
+                  Tiny e {n(recebidas.ignoradas)} sem valor ou data.
+                </p>
+              )}
+              {!!recebidas.semData && (
+                <p className="text-xs text-amber-700">
+                  {n(recebidas.semData)} {pl(recebidas.semData, "veio", "vieram")} sem a data do pagamento: valeu a do vencimento.
+                  {recebidas.campos && ` Campos que o Tiny mandou: ${recebidas.campos.join(", ")}.`}
+                </p>
+              )}
+              {!!recebidas.erros.length && (
+                <details className="text-xs text-red-700">
+                  <summary className="cursor-pointer">{recebidas.erros.length} {pl(recebidas.erros.length, "conta", "contas")} com erro (as demais seguiram)</summary>
+                  <ul className="mt-1 list-disc pl-5">{recebidas.erros.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                </details>
+              )}
+            </div>
+          )}
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label="Conta sem venda ligada entra na unidade" className="w-64">
+              <select className="input" value={unidade} onChange={(ev) => setUnidade(ev.target.value)} disabled={rodando}>
+                {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </Field>
+            <Button type="button" variant="secondary" disabled={rodando || !unidade} onClick={() => { ativo.current = true; trazerRecebidas(); }}>
+              Buscar recebimentos do Tiny
+            </Button>
+          </div>
         </div>
       )}
     </Card>

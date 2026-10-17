@@ -226,3 +226,31 @@ export function contaParaItem(c: any) {
     valor: num(c?.valor), saldo: c?.saldo == null || txt(c.saldo) === "" ? null : num(c.saldo),
   };
 }
+
+/** Número da venda citada no histórico da conta do Tiny ("Ref. ao pedido de venda nº 614", "Pedido 614"); null se não citar. */
+export function pedidoDoHistorico(h: unknown): string | null {
+  const m = txt(h).match(/pedido(?:\s+de\s+vendas?)?\s*(?:n[º°o]?\.?\s*)?#?\s*(\d{1,9})\b/i);
+  return m ? String(Number(m[1])) : null;
+}
+
+/**
+ * Data em que a conta foi paga no Tiny. O nome do campo não é o mesmo em todas as consultas (data_pagamento,
+ * data_liquidacao, data_baixa…): vale o primeiro com data. Null se não veio.
+ */
+export function dataPagamentoConta(c: any): string | null {
+  if (!c || typeof c !== "object") return null;
+  const chave = ["data_pagamento", "data_liquidacao", "data_baixa", "data_recebimento"].find((k) => dataIso(c[k]))
+    ?? Object.keys(c).find((k) => /^data_?(pag|liquid|baix|receb)/i.test(k) && dataIso(c[k]));
+  return chave ? dataIso(c[chave]) : null;
+}
+
+/** Conta a receber paga do Tiny (pesquisa + conta.receber.obter) -> item de importar_recebidas_tiny. */
+export function recebidaParaItem(c: any) {
+  const base = contaParaItem(c);
+  const informado = c?.valor_pago != null && txt(c.valor_pago) !== "" ? num(c.valor_pago) : null;
+  const pago = informado ?? (base.saldo != null && base.saldo < base.valor ? base.valor - base.saldo : base.valor);
+  return {
+    ...base, pago: Math.round(pago * 100) / 100, pagamento: dataPagamentoConta(c), pedido: pedidoDoHistorico(c?.historico),
+    cliente_externo: txt(c?.cliente?.id ?? c?.id_contato) || null,
+  };
+}
