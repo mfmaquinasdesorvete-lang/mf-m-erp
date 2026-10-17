@@ -282,29 +282,38 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           </label>
         )}
         {lista.map((p) => (
-          <div key={p.id} className="relative rounded-xl border border-slate-200 bg-surface shadow-card">
+          <div key={p.id} className={`relative rounded-xl border bg-surface shadow-card ${selecao.tem(p.id) ? "border-brand" : "border-slate-200"}`}>
           <input type="checkbox" className="absolute right-3 top-3 z-[1] h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
+          {/* celular: nº e etiquetas numa linha, o cliente na linha de baixo (até 2 linhas), a situação em fila e o valor à direita da data */}
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
-            className="flex w-full gap-3 rounded-xl p-4 pb-2 pr-10 text-left active:bg-slate-50">
+            className="flex w-full gap-3 rounded-xl p-3 pb-1.5 text-left active:bg-slate-50">
             <MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} />
             <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
-              <span className="min-w-0 flex-1 font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /></span>
-              <span className="flex shrink-0 flex-col items-end gap-1"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between gap-2 text-sm text-slate-500">
-              <span className="min-w-0">{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}</span>
-              <span className="num shrink-0 whitespace-nowrap text-base font-bold text-fg">{brl(p.valor_total)}</span>
-            </div>
-            {/* pagamento e envio em ícone, como no Tiny */}
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
-              {info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} compacto />}
-            </div>
-            <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 pr-8 text-sm">
+                <b className="text-fg">#{p.numero}</b><EtiquetaUnidade id={(p as any).unidade_id} />
+                {p.origem === "loja" && <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}
+                {p.via_portal && <SeloPortal />}
+                {p.numero_externo && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}
+              </div>
+              <div className="mt-0.5 line-clamp-2 pr-6 text-[15px] font-semibold leading-snug text-fg" title={p.cliente?.nome ?? undefined}>
+                {p.cliente?.nome ?? "—"}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} />
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}
+                <span className="num ml-auto whitespace-nowrap pl-1 text-base font-extrabold text-fg">{brl(p.valor_total)}</span>
+              </div>
+              <div className="mt-1 text-[13px] leading-snug text-slate-500">
+                {dataBR(p.created_at).replace(/\/(\d{2})(\d{2})$/, "/$2")} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}
+              </div>
+              {/* pagamento e envio em ícone, como no Tiny */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
+                {info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} compacto />}
+              </div>
+              {!!p.marcadores?.length && <div className="mt-1.5"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div>}
             </div>
           </button>
-          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+          <div className="flex items-center justify-between gap-2 px-2 pb-1.5">
             <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
             <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Abrir <ChevronRight size={16} /></button>
           </div>

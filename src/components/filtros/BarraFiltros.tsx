@@ -118,9 +118,9 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
   selecionados?: number; totalSelecionados?: number; acoes?: ReactNode; onLimparSelecao?: () => void;
 }) {
   return (
-    // celular: fica logo acima da barra de atalhos fixa do pé da tela
-    <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-surface/95 px-4 py-2 shadow-card backdrop-blur md:bottom-0"
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}>
+    // celular: fica logo acima da barra de atalhos fixa do pé da tela, numa faixa baixa (os números numa linha só,
+    // sem a dica das ações em lote) para não cobrir a lista
+    <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-slate-200 bg-surface/95 px-3 py-1.5 shadow-card backdrop-blur md:bottom-0 md:gap-y-2 md:px-4 md:py-2">
       {selecionados > 0 ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <b className="text-sm text-fg">{selecionados} {pl(selecionados, "selecionado", "selecionados")}</b>
@@ -130,11 +130,11 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
             <button type="button" onClick={onLimparSelecao} className="inline-flex items-center gap-1 px-1 text-xs font-semibold text-slate-600 hover:text-fg"><X size={13} aria-hidden /> Limpar seleção</button>
           )}
         </div>
-      ) : <span className="text-xs text-slate-500">Marque as linhas para as ações em lote.</span>}
-      <div className="ml-auto flex flex-wrap items-end justify-end gap-x-5 gap-y-1 text-right">
-        <div><div className="num text-base font-bold text-fg">{quantidade.toLocaleString("pt-BR")}</div><div className="text-[11px] text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
-        {total != null && <div><div className="num text-base font-bold text-fg">{brl(total)}</div><div className="text-[11px] text-slate-500">{rotuloTotal}</div></div>}
-        {extras?.map((x) => <div key={x.rotulo}><div className={`num text-base font-bold ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-[11px] text-slate-500">{x.rotulo}</div></div>)}
+      ) : <span className="hidden text-xs text-slate-500 md:inline">Marque as linhas para as ações em lote.</span>}
+      <div className="ml-auto flex w-full flex-wrap items-end justify-between gap-x-3 gap-y-1 text-right md:w-auto md:justify-end md:gap-x-5">
+        <div className="text-left md:text-right"><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-[11px] leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
+        {total != null && <div><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{brl(total)}</div><div className="text-[11px] leading-tight text-slate-500">{rotuloTotal}</div></div>}
+        {extras?.map((x) => <div key={x.rotulo}><div className={`num whitespace-nowrap text-sm font-bold leading-tight md:text-base ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-[11px] leading-tight text-slate-500">{x.rotulo}</div></div>)}
       </div>
     </div>
   );
