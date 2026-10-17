@@ -279,6 +279,8 @@ function RotasERP() {
     // "Início" escondido no perfil: abre o painel da área (financeiro → Painel do financeiro), senão a primeira tela que a pessoa vê
     : INICIO_DO_PAPEL[papel] && vis.ve(INICIO_DO_PAPEL[papel]!.tela, INICIO_DO_PAPEL[papel]!.to) ? INICIO_DO_PAPEL[papel]!.to
     : todosItens.find((i) => i.to !== "/" && vis.item(i))?.to ?? null;
+  // só em desenvolvimento: as varreduras de tela (Playwright) navegam por aqui, sem recarregar a demonstração
+  useEffect(() => { if (import.meta.env.DEV) (window as any).__ir = navigate; });
   useEffect(() => {
     if (inicioFeitoPara === user_id) return;
     inicioFeitoPara = user_id;

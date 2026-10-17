@@ -86,7 +86,8 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
             {!passos.length && !isLoading && <p className="mt-3 text-sm text-slate-500">Nada pendente. Anote a próxima pendência ou veja as ideias.</p>}
             <ol className="mt-3 space-y-2">
               {passos.map((i, k) => (
-                <li key={i.id} className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
+                // celular: os botões descem para baixo do texto (antes o texto ficava espremido numa coluna estreita)
+                <li key={i.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                   <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full bg-modulo-escuro text-sm font-extrabold text-white">{k + 1}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold leading-snug text-fg">{i.titulo}</p>
@@ -96,7 +97,7 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                       {i.prazo && <span className={`text-[11px] font-semibold ${atrasada(i, dia) ? "text-red-700" : "text-slate-500"}`}>prazo {dataCurta(i.prazo, dia)}</span>}
                     </div>
                   </div>
-                  <AcoesPendencia i={i} onEditar={() => setEditando({ tipo: "pendencia", item: i })} />
+                  <AcoesPendencia i={i} onEditar={() => setEditando({ tipo: "pendencia", item: i })} className="col-start-2 sm:col-start-auto" />
                 </li>
               ))}
             </ol>
@@ -170,13 +171,13 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
 }
 
 /** Botão do próximo passo da pendência e o resto no menu "⋯". */
-function AcoesPendencia({ i, onEditar }: { i: ItemProjeto; onEditar: () => void }) {
+function AcoesPendencia({ i, onEditar, className = "" }: { i: ItemProjeto; onEditar: () => void; className?: string }) {
   const mudar = useMudarSituacao();
   const principal = i.situacao === "aguardando" ? { r: "Retomar", ic: RotateCcw, s: "aberta" as const }
     : ativo(i) ? { r: "Concluir", ic: Check, s: "feita" as const }
     : { r: "Reabrir", ic: RotateCcw, s: "aberta" as const };
   return (
-    <div className="flex shrink-0 items-start gap-1.5">
+    <div className={`flex shrink-0 items-start gap-1.5 ${className}`}>
       <Button variant={principal.s === "feita" ? "primary" : "secondary"} className="!min-h-0 !px-2.5 !py-1.5 whitespace-nowrap" onClick={() => mudar(i, principal.s)}>
         <principal.ic size={15} /> {principal.r}
       </Button>
@@ -195,8 +196,8 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
   const [aberto, setAberto] = useState(false);
   const longo = (i.detalhe?.length ?? 0) > 160;
   return (
-    <li className={`flex gap-3 py-3 ${ativo(i) ? "" : "opacity-75"}`}>
-      <span className={`w-1 shrink-0 self-stretch rounded-full ${ativo(i) ? COR_FAIXA[i.prioridade] : "bg-slate-200"}`} title={`Prioridade ${ROTULO_PRIORIDADE[i.prioridade].toLowerCase()}`} aria-hidden />
+    <li className={`grid grid-cols-[4px_minmax(0,1fr)] gap-x-3 gap-y-2 py-3 sm:grid-cols-[4px_minmax(0,1fr)_auto] ${ativo(i) ? "" : "opacity-75"}`}>
+      <span className={`row-span-2 w-1 self-stretch rounded-full sm:row-span-1 ${ativo(i) ? COR_FAIXA[i.prioridade] : "bg-slate-200"}`} title={`Prioridade ${ROTULO_PRIORIDADE[i.prioridade].toLowerCase()}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
         {i.detalhe && (
@@ -215,7 +216,7 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
           {i.situacao === "feita" && i.concluido_em && <span className="text-[11px] text-emerald-700">feita em {dataCurta(i.concluido_em, dia)}</span>}
         </div>
       </div>
-      <AcoesPendencia i={i} onEditar={onEditar} />
+      <AcoesPendencia i={i} onEditar={onEditar} className="col-start-2 sm:col-start-auto" />
     </li>
   );
 }
