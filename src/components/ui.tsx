@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { useModulo } from "@/lib/modulo";
 
@@ -108,6 +108,13 @@ const coresCartao: Record<CorCartao, { caixa: string; icone: string; valor: stri
 };
 const caixaCartao = "relative min-w-0 overflow-hidden rounded-xl border shadow-card before:absolute before:inset-y-0 before:left-0 before:w-1";
 
+/**
+ * Para o .valor-fit: a letra diminui conforme o tamanho do texto, para o valor caber inteiro no cartão; número curto
+ * ("6", "12") fica no tamanho máximo. Texto que não é string/número usa o padrão do CSS.
+ */
+export const fitValor = (v: ReactNode): CSSProperties | undefined =>
+  typeof v === "string" || typeof v === "number" ? ({ "--valor-cq": `${(150 / Math.max(4, String(v).length)).toFixed(1)}cqi` } as CSSProperties) : undefined;
+
 /** Cartão de indicador compacto (fichas e janelas): rótulo, número em destaque e linha de apoio. */
 export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
   rotulo: string; valor: ReactNode; sub?: ReactNode; icon?: LucideIcon; cor?: CorCartao;
@@ -116,11 +123,11 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
   return (
     // o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda (no celular não fica espremido)
     <div className={`${caixaCartao} cartao-fit p-3 pl-4 ${c.caixa}`}>
-      <div className="flow-root">
+      <div className="flow-root text-sm leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-7 w-7 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
         <span className="text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
       </div>
-      <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`}>{valor}</div>
+      <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`} style={fitValor(valor)}>{valor}</div>
       {sub && <div className="text-[13px] leading-snug text-slate-600">{sub}</div>}
     </div>
   );
@@ -169,11 +176,11 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
     <Tag onClick={onClick}
       className={`${caixaCartao} cartao-fit block w-full p-3.5 pl-4 text-left sm:p-4 sm:pl-5 ${c.caixa}
         ${onClick ? "transition hover:shadow-pop hover:brightness-[1.03]" : ""}`}>
-      <span className="flow-root">
+      <span className="flow-root text-[13px] leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}
         <span className="text-[13px] font-semibold leading-tight text-slate-600">{label}</span>
       </span>
-      <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.25rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`}>{valor}</span>
+      <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.375rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`} style={fitValor(valor)}>{valor}</span>
       {sub && <span className="mt-0.5 block text-[13px] leading-snug text-slate-600">{sub}</span>}
     </Tag>
   );

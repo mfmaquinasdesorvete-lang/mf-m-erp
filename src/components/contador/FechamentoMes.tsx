@@ -62,7 +62,7 @@ export function Divergencias({ lista, unidadeId, comp, meuNome }: { lista: Diver
                     <span className="block text-sm font-semibold text-fg">{d.titulo}</span>
                     {d.detalhe && <span className="block text-xs text-slate-500">{d.detalhe}</span>}
                   </span>
-                  {d.valor !== null && <span className="num shrink-0 text-sm font-bold text-fg">{brl(d.valor)}</span>}
+                  {d.valor !== null && <span className="num shrink-0 whitespace-nowrap text-sm font-bold text-fg">{brl(d.valor)}</span>}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   <span className="text-xs text-slate-500">{AREA[d.area]} · resolve: <b>{RESP[d.responsavel]}</b></span>
@@ -155,7 +155,7 @@ export function ResultadoMes({ unidadeId, comp, contas }: { unidadeId: string; c
   ];
   const vazio = (x: typeof atual) => !x.receita && !x.custos && !x.despesas;
   const comparar = (v: number, x: typeof atual, f: (x: typeof atual) => number) =>
-    vazio(x) ? <span className="text-xs">sem lançamentos</span> : <>{brl(f(x))} <span className="text-xs">({pct(variacao(v, f(x)))})</span></>;
+    vazio(x) ? <span className="text-xs">sem lançamentos</span> : <><span className="whitespace-nowrap">{brl(f(x))}</span> <span className="whitespace-nowrap text-xs">({pct(variacao(v, f(x)))})</span></>;
   return (
     <Section title="Resultado do mês (gerencial)" actions={<Link to="/financeiro?aba=dre" className="text-sm font-semibold text-brand">DRE completo →</Link>}>
       <div className="-mx-4 overflow-x-auto sm:-mx-5 md:mx-0">
@@ -175,7 +175,7 @@ export function ResultadoMes({ unidadeId, comp, contas }: { unidadeId: string; c
               return (
                 <tr key={rot} className={resultado ? "font-bold" : ""}>
                   <th scope="row" className="py-2 pl-4 text-left font-semibold text-fg sm:pl-5 md:pl-0">{rot}</th>
-                  <td className={`num py-2 text-right ${resultado ? (v >= 0 ? "text-emerald-700" : "text-red-700") : "text-fg"}`}>{brl(v)}</td>
+                  <td className={`num whitespace-nowrap py-2 text-right ${resultado ? (v >= 0 ? "text-emerald-700" : "text-red-700") : "text-fg"}`}>{brl(v)}</td>
                   <td className="num py-2 text-right text-slate-600">{comparar(v, ant, f)}</td>
                   <td className="num py-2 pr-4 text-right text-slate-600 sm:pr-5 md:pr-0">{comparar(v, ano, f)}</td>
                 </tr>

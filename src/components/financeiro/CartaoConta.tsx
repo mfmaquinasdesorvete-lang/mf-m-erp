@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje } from "@/lib/format";
+import { fitValor } from "@/components/ui";
 
 const DIA = 86_400_000;
 
@@ -41,7 +42,7 @@ export function CartaoConta({ titulo, descricao, detalhe, unidadeId, valor, venc
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div className="cartao-fit min-w-0 rounded-xl bg-slate-50 px-3 py-2">
             <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Valor</span>
-            <span className="num valor-fit block font-bold text-fg [--valor-max:1.25rem]">{brl(valor)}</span>
+            <span className="num valor-fit block font-bold text-fg [--valor-max:1.25rem]" style={fitValor(brl(valor))}>{brl(valor)}</span>
           </div>
           <div className="min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-right">
             <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{pago ? "Paga em" : "Vencimento"}</span>
