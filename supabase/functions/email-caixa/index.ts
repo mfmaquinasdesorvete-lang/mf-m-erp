@@ -14,6 +14,7 @@ import { baixarAnexo, type Conta, enviarPelaConta, mxDoDominio, sincronizarConta
 import { explicarErroEmail, portaSmtpBloqueada, PROVEDORES, provedorPorDominio, provedorPorMx } from "../_shared/email-diagnostico.ts";
 import { importarXml } from "../_shared/nfe-recebidas.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
+import { senhaDoEmail } from "../_shared/email-senha.ts";
 
 /** Provedor do e-mail: pelos domínios gratuitos conhecidos ou pelo registro MX do domínio da empresa. */
 async function provedorDoEmail(email: string) {
@@ -33,7 +34,9 @@ Deno.serve(async (req) => {
       let q = db.from("email_contas").select("*").eq("ativo", true);
       if (id) q = q.eq("id", id);
       const { data } = await q;
-      return (data ?? []) as Conta[];
+      const lista = (data ?? []) as Conta[];
+      for (const c of lista) c.senha = await senhaDoEmail(db, c.id);
+      return lista;
     };
 
     // Diagnóstico de rede com os servidores de e-mail conhecidos (sem login): admin ou o agendamento do próprio banco
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
       };
       if (!campos.nome || !campos.email || !campos.imap_host) throw new HttpError(400, "preencha nome, e-mail e servidor IMAP");
       let senha: string | undefined = c.senha || undefined;
-      if (!senha && c.id) senha = (await db.from("email_contas").select("senha").eq("id", c.id).single()).data?.senha;
+      if (!senha && c.id) senha = (await senhaDoEmail(db, c.id)) || undefined;
       if (!senha) throw new HttpError(400, "informe a senha do e-mail");
       senha = senha.trim();
       const provedor = await provedorDoEmail(campos.email);

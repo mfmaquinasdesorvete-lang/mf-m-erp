@@ -3,6 +3,7 @@
 // Secrets do Resend: RESEND_API_KEY e EMAIL_REMETENTE (ex.: "MF Máquinas <avisos@mfmaquinas.com.br>",
 // com o domínio verificado no Resend).
 import nodemailer from "npm:nodemailer@6.9.16";
+import { senhaDoEmail } from "./email-senha.ts";
 import { adminClient } from "./supabase.ts";
 
 export type Email = {
@@ -18,10 +19,12 @@ export const resendConfigurado = () => !!(Deno.env.get("RESEND_API_KEY") && Deno
 
 /** Conta de e-mail do ERP que pode enviar (ativa e com SMTP); prefere a do comercial. */
 export async function contaSmtp() {
-  const { data } = await adminClient().from("email_contas").select("id, nome, email, smtp_host, smtp_porta, usuario, senha, papeis")
+  const db = adminClient();
+  const { data } = await db.from("email_contas").select("id, nome, email, smtp_host, smtp_porta, usuario, papeis")
     .eq("ativo", true).not("smtp_host", "is", null).order("created_at");
   const contas = (data ?? []).filter((c: any) => String(c.smtp_host ?? "").trim());
-  return contas.find((c: any) => (c.papeis ?? []).includes("vendas")) ?? contas[0] ?? null;
+  const conta: any = contas.find((c: any) => (c.papeis ?? []).includes("vendas")) ?? contas[0] ?? null;
+  return conta ? { ...conta, senha: await senhaDoEmail(db, conta.id) } : null;
 }
 
 /** Há algum meio de enviar (Resend ou conta SMTP)? */
