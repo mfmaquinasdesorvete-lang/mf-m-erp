@@ -1937,6 +1937,7 @@ class Query {
   delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
   neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
+  like(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   not(c: string, op: string, v: any) { this.filtros.push((r) => (op === "is" ? (r[c] ?? null) !== v : r[c] !== v)); return this; }

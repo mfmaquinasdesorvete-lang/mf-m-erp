@@ -42,6 +42,12 @@ Deno.serve(async (req) => {
     const db = adminClient();
     const token = tinyToken();
     const { data: atual } = await db.from("importacao_tiny_historico").select("*").eq("id", 1).maybeSingle();
+    // recusa do Tiny (token ou API bloqueada na conta) fica guardada para a tela mostrar o motivo sem precisar clicar
+    const registrarBloqueio = async (mensagem: string) => {
+      if (!atual) return;
+      await db.from("importacao_tiny_historico")
+        .update({ totais: { ...(atual.totais ?? {}), bloqueio: { mensagem, em: new Date().toISOString() } } }).eq("id", 1);
+    };
 
     if (acao === "status") return json({ ok: true, configurado: !!token, estado: atual });
     if (!token) throw new HttpError(400, "cadastre o token do Tiny no Supabase (Edge Functions → Secrets) com o nome TINY_API_TOKEN");
@@ -54,7 +60,10 @@ Deno.serve(async (req) => {
       try {
         conta = (await tiny("info.obter.php", {}, token, ritmo))?.conta ?? null;
       } catch (e) {
-        if (e instanceof TinyErro && e.fatal) throw new HttpError(400, motivoFatal(e));
+        if (e instanceof TinyErro && e.fatal) {
+          await registrarBloqueio(motivoFatal(e));
+          throw new HttpError(400, motivoFatal(e));
+        }
         if (!(e instanceof TinyErro)) throw e;
       }
       const estado = {
@@ -78,8 +87,10 @@ Deno.serve(async (req) => {
       e.erros = [...e.erros, { quando: new Date().toISOString(), etapa: e.etapa, mensagem: mensagem.slice(0, 300) }].slice(-50);
     };
     const proxima = () => { e.etapa = ETAPAS[ETAPAS.indexOf(e.etapa) + 1]; e.pagina = 1; e.indice = 0; };
+    let bloqueado = false;
     const salvar = async () => {
       e.totais.limite = ritmo.limite;
+      if (!bloqueado) delete e.totais.bloqueio; // o Tiny respondeu: a recusa anterior não vale mais
       await db.from("importacao_tiny_historico").update({
         etapa: e.etapa, pagina: e.pagina, indice: e.indice, totais: e.totais, erros: e.erros,
         atualizado_em: new Date(ritmo.ultima || Date.now()).toISOString(),
@@ -193,6 +204,8 @@ Deno.serve(async (req) => {
         aguardar = 60;
         await salvar();
       } else if (x instanceof TinyErro && x.fatal) {
+        bloqueado = true;
+        e.totais.bloqueio = { mensagem: motivoFatal(x), em: new Date().toISOString() };
         await salvar();
         throw new HttpError(400, motivoFatal(x));
       } else {
