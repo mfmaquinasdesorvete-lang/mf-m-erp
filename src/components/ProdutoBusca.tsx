@@ -8,7 +8,7 @@ const LIMITE = 30;
  * Campo de adicionar produto digitando: descrição, SKU, código de barras (serve o leitor), modelo, marca ou
  * código do fabricante. Escolheu, adiciona e o campo fica pronto para o próximo. Substitui a lista corrida.
  */
-export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null }>({ produtos, onEscolher, placeholder, detalhe, foto, className }: {
+export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null }>({ produtos, onEscolher, placeholder, detalhe, foto, className, listaAoFocar = true }: {
   produtos: T[];
   onEscolher: (p: T) => void;
   placeholder?: string;
@@ -17,6 +17,8 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
   /** Foto pequena ao lado de cada produto (endereço da imagem; vazio = sem foto). */
   foto?: (p: T) => string | null | undefined;
   className?: string;
+  /** Abrir a lista só de pôr o cursor no campo (false: abre ao digitar ou tocar; o PDV já começa com o cursor ali). */
+  listaAoFocar?: boolean;
 }) {
   const [consulta, setConsulta] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -46,7 +48,7 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
         role="combobox" aria-expanded={aberto} aria-autocomplete="list" autoComplete="off"
         placeholder={placeholder ?? "Adicionar item: nome, SKU ou código"}
         value={consulta}
-        onFocus={() => setAberto(true)}
+        onFocus={() => { if (listaAoFocar) setAberto(true); }}
         onClick={() => setAberto(true)}
         onChange={(e) => { setConsulta(e.target.value); setAberto(true); }}
         onBlur={() => setAberto(false)}

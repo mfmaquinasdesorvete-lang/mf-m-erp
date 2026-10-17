@@ -10,7 +10,7 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
-import { ATALHOS_CELULAR, RAPIDOS, grupoDaRota, grupos, itensForaDoMenu, painelDaArea, todosItens, useVisivel, type Item } from "@/lib/menu";
+import { ATALHOS_CELULAR, RAPIDOS, abreEmOutraAba, alvoDoLink, grupoDaRota, grupos, itensForaDoMenu, painelDaArea, todosItens, useVisivel, type Item } from "@/lib/menu";
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
@@ -40,7 +40,7 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
   return (
     <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
       {itens.map(({ to, label, cor, item: { icon: Icon } }) => (
-        <NavLink key={to} to={to} onClick={onIr} title={label}
+        <NavLink key={to} to={to} onClick={onIr} title={label} {...alvoDoLink(to)}
           className={({ isActive }) => `flex items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${to === "/pdv" ? "col-span-3 flex-row gap-2 text-sm" : "flex-col text-[11.5px]"} ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
           <Icon size={18} aria-hidden />
           <span>{label}</span>
@@ -119,6 +119,20 @@ export function Layout() {
   });
 
   useEffect(() => { setAberto(false); setBusca(""); }, [location.pathname]);
+  // PDV sempre em outra aba: também os links de dentro das telas (painéis, Sobre…) que apontam para ele
+  useEffect(() => {
+    const clique = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target === "_blank" || e.defaultPrevented || e.button !== 0) return;
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin || !abreEmOutraAba(url.pathname)) return;
+      e.preventDefault(); e.stopPropagation();
+      setAberto(false);
+      window.open(url.pathname + url.search, "_blank", "noopener");
+    };
+    document.addEventListener("click", clique, true);
+    return () => document.removeEventListener("click", clique, true);
+  }, []);
   useEffect(() => {
     if (!aberto) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
@@ -162,7 +176,8 @@ export function Layout() {
         <form className="px-3 pb-2 pt-2 md:pt-0" role="search" onSubmit={(e) => {
           e.preventDefault();
           const primeiro = todosItens.find((m) => vis.item(m) && combina(m, busca));
-          if (primeiro) navigate(primeiro.to);
+          if (primeiro && abreEmOutraAba(primeiro.to)) window.open(primeiro.to, "_blank", "noopener");
+          else if (primeiro) navigate(primeiro.to);
         }}>
           <label className="relative block">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nav-fraco" />
@@ -185,6 +200,7 @@ export function Layout() {
                 to={to}
                 end={to === "/"}
                 onClick={() => setAberto(false)}
+                {...alvoDoLink(to)}
                 className={({ isActive }) =>
                   `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[6px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
                     isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"
@@ -204,7 +220,7 @@ export function Layout() {
             if (!g.titulo) return (
               <div key={g.id} className={`mb-3 grid gap-1 ${itens.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                 {itens.length < 3 ? itens.map(link) : itens.map(({ to, curto, label, icon: Icon }) => (
-                  <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} title={label}
+                  <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} title={label} {...alvoDoLink(to)}
                     className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[12.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
                     {({ isActive }) => <><Icon size={18} className={isActive ? "text-modulo" : "text-nav-fraco"} />{curto}</>}
                   </NavLink>
@@ -251,7 +267,7 @@ export function Layout() {
             <section className="mb-2 rounded-xl border border-white/15 bg-white/[0.04] px-1.5 pb-2 pt-1">
               <h2 className="px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-nav-fraco">Outras telas</h2>
               {itensForaDoMenu.filter((m) => vis.item(m) && combina(m, busca)).map(({ to, label, icon: Icon }) => (
-                <NavLink key={to} to={to} onClick={() => setAberto(false)}
+                <NavLink key={to} to={to} onClick={() => setAberto(false)} {...alvoDoLink(to)}
                   className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
                   <Icon size={18} className="text-nav-fraco" /> {label}
                 </NavLink>
@@ -324,7 +340,7 @@ export function Layout() {
       <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-ink-line bg-ink/95 backdrop-blur md:hidden"
         style={{ gridTemplateColumns: `repeat(${atalhos.length + 1}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {atalhos.map(({ to, curto, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)}
+          <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} {...alvoDoLink(to)}
             className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? "text-modulo before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-b before:bg-modulo" : "text-nav-fraco"}`}>
             <Icon size={21} /> {curto}
           </NavLink>

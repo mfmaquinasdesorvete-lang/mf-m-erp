@@ -123,6 +123,11 @@ export const grupos: Grupo[] = [
   },
 ];
 
+/** Telas que abrem sempre em outra aba do navegador: o PDV é a tela do caixa, sem o ERP por trás. */
+export const abreEmOutraAba = (to: string) => to === "/pdv" || to.startsWith("/pdv?");
+/** target/rel dos links do menu: outra aba só nas telas acima. */
+export const alvoDoLink = (to: string) => (abreEmOutraAba(to) ? { target: "_blank", rel: "noopener" } : {});
+
 /**
  * Telas que saíram da lista do menu mas continuam com endereço (abertas por botões dentro das telas, pela engrenagem
  * de Configurações ou pela busca do menu). Ficam aqui para a busca, os atalhos e as permissões por perfil.

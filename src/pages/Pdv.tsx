@@ -1,13 +1,13 @@
-// PDV (erp.myfrost.ai/pdv): venda de balcão rápida, em tela própria (sem o menu do ERP) e só com as peças de
-// reposição (o catálogo). Bipa (ou digita) os produtos, escolhe como o cliente paga (dá para dividir:
+// PDV (erp.myfrost.ai/pdv): venda de balcão rápida, em tela própria (abre em outra aba, sem o menu do ERP e sem
+// botão de voltar) e só com as peças de reposição (o catálogo). Sem itens, mostra a tela de entrada: relógio, data,
+// caixa aberto, vendedor (F9), cliente (F8) e a busca do produto; bipar o primeiro produto abre a venda. Bipa (ou digita) os produtos, escolhe como o cliente paga (dá para dividir:
 // parte em dinheiro, parte no Pix…) e finaliza: pedido entregue, estoque da loja baixado, conta recebida e
 // comprovante de 80 mm. Tudo numa função do banco (pdv_finalizar): se faltar estoque ou os valores não fecharem,
 // nada é gravado. Link InfinitePay e "a prazo" deixam a conta em aberto (o link dá baixa sozinho quando pago).
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowLeft, Banknote, CalendarClock, Camera, CheckCircle2, CreditCard, FileText, ImageOff, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShieldCheck,
-  ShoppingCart, Split, Trash2, UserPlus, UserRound,
+  Banknote, CalendarClock, Camera, CheckCircle2, CreditCard, FileText, ImageOff, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShieldCheck,
+  ShoppingCart, Split, Trash2, UserPlus, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { ModuloContext } from "@/lib/modulo";
@@ -117,7 +117,12 @@ export default function Pdv() {
   const [aprovado, setAprovado] = useState<DescontoAprovado | null>(null);
   const [pedirAprovacao, setPedirAprovacao] = useState(false);
   const busca = useRef<HTMLDivElement>(null);
+  const campoCliente = useRef<HTMLDivElement>(null);
+  const campoVendedor = useRef<HTMLDivElement>(null);
   const pagar = useRef<HTMLDivElement>(null);
+  const vazio = itens.length === 0;
+  const [caixaAberto] = useState(horaDoCaixa);
+  const balcao = useBalcaoHoje();
   // o botão Finalizar está na tela? (em notebook baixo ou no celular ele fica lá embaixo: aí aparece a barra fixa com o total)
   const botaoFinal = useRef<HTMLDivElement>(null);
   const [finalVisivel, setFinalVisivel] = useState(true);
@@ -127,7 +132,13 @@ export default function Pdv() {
     const io = new IntersectionObserver(([e]) => setFinalVisivel(e.isIntersecting), { threshold: 0.6 });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [vazio]);
+  // leitor de código de barras pronto: no computador o cursor vai para a busca do produto ao abrir e ao começar a venda
+  useEffect(() => {
+    if (!window.matchMedia?.("(pointer: fine)").matches) return;
+    const t = window.setTimeout(() => busca.current?.querySelector("input")?.focus(), 30);
+    return () => window.clearTimeout(t);
+  }, [vazio]);
 
   useEffect(() => { if (!unidadeId && padrao) setUnidadeId(padrao); }, [padrao]); // eslint-disable-line react-hooks/exhaustive-deps
   // vendedor padrão: o do usuário que está no balcão
@@ -253,9 +264,19 @@ export default function Pdv() {
     }
   }
 
-  // F2 finaliza, de qualquer lugar da tela
+  // F2 finaliza, F8 vai para o cliente e F9 para o vendedor, de qualquer lugar da tela
   useEffect(() => {
-    const tecla = (e: KeyboardEvent) => { if (e.key === "F2" && !feito) { e.preventDefault(); finalizar(); } };
+    const tecla = (e: KeyboardEvent) => {
+      if (feito) return;
+      if (e.key === "F2") { e.preventDefault(); finalizar(); }
+      else if (e.key === "F8") { e.preventDefault(); const i = campoCliente.current?.querySelector("input"); i?.focus(); i?.select(); }
+      else if (e.key === "F9") {
+        e.preventDefault();
+        const s = campoVendedor.current?.querySelector("select") as (HTMLSelectElement & { showPicker?: () => void }) | null;
+        s?.focus();
+        try { s?.showPicker?.(); } catch { /* navegador sem a lista aberta pelo teclado: fica só o foco */ }
+      }
+    };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   });
@@ -298,12 +319,50 @@ export default function Pdv() {
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {})}>
           <Maximize2 size={18} aria-hidden />
         </button>
-        <Link to="/" className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-nav-texto hover:bg-white/10 hover:text-white">
-          <ArrowLeft size={16} aria-hidden /> <span className="hidden sm:inline">Voltar ao ERP</span><span className="sm:hidden">ERP</span>
-        </Link>
       </header>
       <main className="fundo-modulo mx-auto max-w-[1500px] px-3 pb-28 pt-4 sm:px-5 lg:pb-6">
 
+      {vazio ? (
+        // tela de entrada: o caixa parado, esperando o primeiro produto
+        <section className="relative mx-auto max-w-3xl rounded-3xl bg-gradient-to-br from-[#be185d] via-[#6d28d9] to-[#c2410c] px-5 py-7 text-white shadow-pop sm:mt-4 sm:px-10 sm:py-10" aria-label="Nova venda">
+          {/* manchas de cor recortadas numa camada própria: a lista de produtos pode passar da borda do cartão */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl" aria-hidden>
+            <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[#f472b6]/40 blur-3xl" />
+            <span className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-[#fb923c]/35 blur-3xl" />
+            <span className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#38bdf8]/25 blur-3xl" />
+          </div>
+          <div className="relative">
+            <Relogio caixa={caixaAberto} vendas={balcao.deHoje.length} total={balcao.total} />
+            <div className="mt-7 grid gap-3">
+              <CampoEntrada rotulo="Vendedor" tecla="F9" icone={UserRound}>
+                <div ref={campoVendedor}><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></div>
+              </CampoEntrada>
+              <CampoEntrada rotulo="Cliente" tecla="F8" icone={Users}>
+                <div ref={campoCliente} className="flex gap-2">
+                  <div className="min-w-0 flex-1">
+                    <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => escolherCliente(id || null)} placeholder="Consumidor final" onNovo={(t) => setCadastrar(t)} />
+                  </div>
+                  {clienteId
+                    ? <Button type="button" variant="secondary" title="Voltar para consumidor final" aria-label="Voltar para consumidor final" onClick={() => setClienteId(null)}><UserRound size={16} aria-hidden /></Button>
+                    : <Button type="button" variant="secondary" title="Cadastrar cliente na hora" onClick={() => setCadastrar("")}><UserPlus size={16} aria-hidden /><span className="hidden sm:inline">Novo</span></Button>}
+                </div>
+              </CampoEntrada>
+              <CampoEntrada rotulo="Produto" tecla="Enter" icone={ScanBarcode}>
+                <div ref={busca}>
+                  <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Bipe o código ou digite a peça" className="[&_input]:py-3.5 [&_input]:text-base" listaAoFocar={false}
+                    foto={(p) => urlFotoProduto((p as Produto & { foto_caminho?: string | null }).foto_caminho) || null}
+                    detalhe={(p) => <span className="num">{brl(precoPdv(p))} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
+                </div>
+              </CampoEntrada>
+            </div>
+            <p className="mt-5 hidden flex-wrap gap-x-5 gap-y-1 text-xs text-white/85 sm:flex">
+              {([["F8", "cliente"], ["F9", "vendedor"], ["F2", "finaliza a venda"]] as const).map(([k, t]) => (
+                <span key={k}><kbd className="mr-1 rounded-md bg-black/25 px-1.5 py-0.5 font-mono">{k}</kbd>{t}</span>
+              ))}
+            </p>
+          </div>
+        </section>
+      ) : (
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* itens */}
         <Card className="p-4">
@@ -320,13 +379,7 @@ export default function Pdv() {
             )}
           </div>
 
-          {!itens.length ? (
-            <div className="grid place-items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-12 text-center text-slate-500">
-              <ShoppingCart size={28} aria-hidden />
-              <p className="text-sm">Bipe o código de barras ou digite o nome do produto.<br />Enter adiciona; bipar de novo soma 1 na quantidade.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200" aria-label="Itens da venda">
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200" aria-label="Itens da venda">
               {itens.map((i, k) => {
                 const tem = saldo(i.produto_id);
                 return (
@@ -383,8 +436,8 @@ export default function Pdv() {
                   </li>
                 );
               })}
-            </ul>
-          )}
+          </ul>
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><ShoppingCart size={14} aria-hidden /> Enter adiciona; bipar de novo soma 1 na quantidade.</p>
           {temMaquina && !clienteId && (
             <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Máquina na venda: identifique o cliente para registrar a garantia e as preventivas no nome dele.</p>
           )}
@@ -393,8 +446,8 @@ export default function Pdv() {
         {/* cliente, total e pagamento */}
         <div ref={pagar} className="space-y-4 lg:sticky lg:top-4">
           <Card className="space-y-3 p-4">
-            <Field label="Cliente">
-              <div className="flex gap-2">
+            <Field label="Cliente (F8)">
+              <div ref={campoCliente} className="flex gap-2">
                 <div className="min-w-0 flex-1">
                   <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => escolherCliente(id || null)} placeholder="Consumidor final (sem identificar)"
                     onNovo={(t) => setCadastrar(t)} />
@@ -404,7 +457,7 @@ export default function Pdv() {
                   : <Button type="button" variant="secondary" title="Cadastrar cliente na hora" aria-label="Cadastrar cliente na hora" onClick={(e) => { e.preventDefault(); setCadastrar(""); }}><UserPlus size={16} aria-hidden /><span className="hidden sm:inline">Novo</span></Button>}
               </div>
             </Field>
-            <Field label="Vendedor"><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></Field>
+            <Field label="Vendedor (F9)"><div ref={campoVendedor}><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></div></Field>
             {tabelas.some((t) => t.ativo) && (
               <Field label="Tabela de preço">
                 <select className="input" value={tabelaId ?? ""} onChange={(e) => usarTabela(e.target.value || null)}>
@@ -521,8 +574,9 @@ export default function Pdv() {
           </Card>
         </div>
       </div>
+      )}
 
-      <VendasDeHoje />
+      <div className={vazio ? "mx-auto max-w-3xl" : ""}><VendasDeHoje /></div>
 
       {/* total e Finalizar sempre à vista quando o botão de baixo sai da tela (celular e notebook de tela baixa) */}
       {itens.length > 0 && !feito && !finalVisivel && (
@@ -589,13 +643,63 @@ export default function Pdv() {
   );
 }
 
-/** Vendas de balcão de hoje: quantas, quanto e por forma de pagamento (fecha o caixa do dia). */
-function VendasDeHoje() {
+/** Hora em que o caixa (esta tela) abriu hoje neste aparelho, guardada no navegador; os dias anteriores são apagados. */
+function horaDoCaixa(): string | null {
+  const dia = new Date().toLocaleDateString("sv-SE"), chave = `pdv:caixa:${dia}`;
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith("pdv:caixa:") && k !== chave) localStorage.removeItem(k);
+    const guardada = localStorage.getItem(chave);
+    if (guardada) return guardada;
+    const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    localStorage.setItem(chave, agora);
+    return agora;
+  } catch { return null; }
+}
+
+/** Relógio grande da tela de entrada, com a data, a abertura do caixa e o balcão de hoje. */
+function Relogio({ caixa, vendas, total }: { caixa: string | null; vendas: number; total: number }) {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => { const t = window.setInterval(() => setAgora(new Date()), 1000); return () => window.clearInterval(t); }, []);
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+      <time dateTime={agora.toISOString()} className="num text-7xl font-extralight leading-none tracking-tight sm:text-8xl">
+        {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+      </time>
+      <div className="space-y-0.5 text-sm text-white/90 sm:text-right sm:text-base">
+        <div className="first-letter:uppercase">{agora.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+        {caixa && <div>caixa aberto hoje às {caixa}</div>}
+        <div className="font-semibold text-white">{vendas ? `${vendas} ${vendas === 1 ? "venda" : "vendas"} hoje · ${brl(total)}` : "nenhuma venda hoje ainda"}</div>
+      </div>
+    </div>
+  );
+}
+
+/** Campo da tela de entrada: cartão translúcido com o nome, o ícone e a tecla de atalho. */
+function CampoEntrada({ rotulo, tecla, icone: I, children }: { rotulo: string; tecla: string; icone: LucideIcon; children: ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-white/15 p-3 ring-1 ring-white/25 backdrop-blur-sm sm:p-4">
+      <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold">
+        <span className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-white/25" aria-hidden><I size={15} /></span>{rotulo}</span>
+        <kbd className="hidden rounded-md bg-black/25 px-1.5 py-0.5 font-mono text-xs sm:inline-block">{tecla}</kbd>
+      </div>
+      <div className="text-fg">{children}</div>
+    </div>
+  );
+}
+
+/** Pedidos de balcão de hoje (não cancelados) e o total. */
+function useBalcaoHoje() {
   const { data: pedidos = [] } = useRows<{ id: string; numero: number; origem: string; status: string; valor_total: number; created_at: string; cliente_id: string }>("pedidos", { order: "created_at", ascending: false });
-  const { data: contas = [] } = useRows<{ pedido_id: string | null; forma_pagamento: string | null; valor: number; status: string; descricao: string }>("contas_receber");
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const dia = new Date().toLocaleDateString("sv-SE");
   const deHoje = pedidos.filter((p) => p.origem === "balcao" && p.status !== "cancelado" && new Date(p.created_at).toLocaleDateString("sv-SE") === dia);
+  return { deHoje, total: r2(deHoje.reduce((s, p) => s + Number(p.valor_total), 0)) };
+}
+
+/** Vendas de balcão de hoje: quantas, quanto e por forma de pagamento (fecha o caixa do dia). */
+function VendasDeHoje() {
+  const { deHoje, total } = useBalcaoHoje();
+  const { data: contas = [] } = useRows<{ pedido_id: string | null; forma_pagamento: string | null; valor: number; status: string; descricao: string }>("contas_receber");
+  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   if (!deHoje.length) return null;
   const ids = new Set(deHoje.map((p) => p.id));
   const porForma = new Map<string, number>();
@@ -604,7 +708,6 @@ function VendasDeHoje() {
       : c.forma_pagamento === "dinheiro" ? "Dinheiro" : c.forma_pagamento === "pix" ? "Pix" : c.forma_pagamento === "cartao" ? "Cartão" : c.forma_pagamento ?? "Outro";
     porForma.set(f, r2((porForma.get(f) ?? 0) + Number(c.valor)));
   }
-  const total = r2(deHoje.reduce((s, p) => s + Number(p.valor_total), 0));
   return (
     <Card className="mt-4 p-4">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">

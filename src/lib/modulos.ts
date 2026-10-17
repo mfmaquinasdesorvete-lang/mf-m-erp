@@ -16,7 +16,7 @@ export const SOBRE_AREAS: Record<string, string> = {
 
 /** Telas fora da lista do menu: por onde se chega nelas (além da busca do menu). */
 export const ONDE_ABRE: Record<string, string> = {
-  "/pdv": "Cartão rosa \"PDV\" no alto do menu",
+  "/pdv": "Cartão rosa \"PDV\" no alto do menu (abre em outra aba)",
   "/painel/maquinas": "Botão \"Painel das máquinas\" na tela Máquinas",
   "/painel/produtos": "Botão \"Painel dos produtos\" em Produtos e estoque",
   "/produtos/pecas": "Cartão \"Peças de reposição\" em Produtos e estoque",
@@ -75,7 +75,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/implantacao": "Plano da troca do Tiny: etapas, prazos, responsáveis e o uso do ERP.",
   "/funcionarios": "Funcionários: dados pessoais, contrato, salário, documentos e ligação com o usuário do ERP.",
   "/documentos": "Todos os anexos (pedidos, OS, clientes, contas, produtos) num lugar só.",
-  "/pdv": "Venda de balcão em tela própria, só com as peças de reposição: bipa ou digita o produto (com foto), escolhe o cliente (ou cadastra na hora) e o vendedor, e recebe em dinheiro com troco, Pix, cartão ou dividido. Desconto acima do limite pede a senha do administrador. Ao finalizar, a venda fica entregue, o estoque da loja baixa, a conta entra recebida e sai o comprovante de 80 mm; link InfinitePay e \"a prazo\" deixam a conta em aberto.",
+  "/pdv": "Venda de balcão em outra aba, sem o menu do ERP, só com as peças de reposição. Abre na tela de entrada colorida (relógio, data, caixa aberto, vendas de hoje, vendedor F9 e cliente F8); bipar o primeiro produto abre a venda: bipa ou digita o produto (com foto), escolhe o cliente (ou cadastra na hora) e o vendedor, e recebe em dinheiro com troco, Pix, cartão ou dividido. Desconto acima do limite pede a senha do administrador. Ao finalizar, a venda fica entregue, o estoque da loja baixa, a conta entra recebida e sai o comprovante de 80 mm; link InfinitePay e \"a prazo\" deixam a conta em aberto.",
   "/configuracoes": "Empresa e marca, unidades, recebimentos, NF-e, textos padrão, avisos, backup e as demais configurações.",
   "/importar": "Planilhas, XML, extratos e dados do Tiny e da My Frost, num lugar só.",
   "/usuarios": "Quem acessa o ERP: papel principal e adicionais (vendas, financeiro, técnico, contador, expedição, marketplaces, compras), unidade, função, contato e foto. Senha provisória com troca obrigatória no primeiro acesso, ligação com o cadastro de vendedor, o que cada papel pode fazer e o que cada perfil vê no menu.",
