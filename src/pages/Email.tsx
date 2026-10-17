@@ -209,13 +209,11 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
     } catch (err) { notifyError(err); } finally { setOcupado(null); }
   }
   async function extratoImportado(a: Anexo, r: { novas: number; repetidas: number; conciliadas: number; conta: string }) {
-    const outros = (e.extratos ?? []).filter((x) => x.indice !== a.indice);
-    const antes = situacao(a);
-    const extratos: ExtratoEmail[] = [...outros, {
-      ...antes, indice: a.indice, nome: a.nome, status: "importado", motivo: "importado por você", conta_id: r.conta,
-      conta: antes?.conta_id === r.conta ? antes.conta : null, novas: r.novas, repetidas: r.repetidas, conciliadas: r.conciliadas,
-    }];
-    await supabase.from("emails").update({ extratos }).eq("id", e.id);
+    // o servidor marca o anexo como importado (a coluna extratos não é gravada direto pela tela)
+    const { error } = await supabase.rpc("email_extrato_importado", {
+      p_email: e.id, p_indice: a.indice, p_nome: a.nome, p_conta: r.conta || null, p_novas: r.novas, p_repetidas: r.repetidas, p_conciliadas: r.conciliadas,
+    });
+    if (error) notifyError(error);
     qc.invalidateQueries({ queryKey: ["emails"] });
   }
   async function importar(a: Anexo) {

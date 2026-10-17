@@ -119,7 +119,7 @@ restritiva a mais. Documentos de funcionário só para o financeiro.
 | conciliacao_regras | financeiro, contador | financeiro | financeiro | — |
 | configuracoes | contador / equipe | admin | admin | admin |
 | contabilidade_contatos | financeiro, contador | financeiro | financeiro | — |
-| contador_mensagens | financeiro, contador | financeiro, contador, o próprio | financeiro, contador | — |
+| contador_mensagens | financeiro, contador | financeiro, contador, o próprio | financeiro, contador (só "resolvida") | — |
 | contagem_itens | financeiro, contador | — | financeiro | — |
 | contagens_estoque | financeiro, contador | — | — | — |
 | contas_bancarias | financeiro, contador | financeiro | financeiro | — |
@@ -236,6 +236,27 @@ restritiva a mais. Documentos de funcionário só para o financeiro.
 **Permissões gerais das tabelas** (migração `20261017173100_integridade_chaves_permissoes`): `anon` sem INSERT,
 UPDATE, DELETE, TRUNCATE, TRIGGER e REFERENCES; `authenticated` sem TRUNCATE, TRIGGER e REFERENCES. Vale também
 para as tabelas criadas depois.
+
+## Travas além das regras de linha (gatilhos e colunas)
+
+A regra de linha diz **quem** grava; estas travas dizem **o quê** e **quando** (migração
+`20261017195108_travas_documentos_encerrados` e anteriores). Funções do servidor (service role e `security definer`)
+não passam por elas.
+
+- **Pedido aprovado** (`trg_pedido_protegido`, `trg_pedido_itens_protegido`): itens e valores só mudam com o pedido em
+  orçamento ("Reabrir pedido"); vale para o pedido de onde o item sai e para onde vai.
+- **OS encerrada** (`trg_os_protegido`, `trg_os_itens_protegido`): concluída, entregue ou cancelada só muda fotos e
+  marcadores (e a entrega, de concluída para entregue, com quem retirou); peças não mudam. Concluir só pela
+  `concluir_os`; voltar só pela `reabrir_os`.
+- **Compras** (`trg_produto_compras`): no produto, só marcadores, estoque mínimo/máximo, prazo, compra mínima e
+  fornecedor padrão; cadastra sem preço e sem estoque.
+- **Marketplaces** (`trg_produto_marketplace`): no produto, só o cadastro do anúncio (título, descrições, fotos,
+  EAN, categoria, marca, modelo, medidas, embalagem, especificações, marcadores); NCM, CEST, CFOP, CST, IPI,
+  origem, SKU, preço, custo, estoque, tipo e ativo ficam com o financeiro.
+- **Teste do giga** (`trg_testes_giga_imutavel` + coluna): a tela só muda os marcadores; o resto é reteste ou anulação.
+- **Colunas liberadas para alterar** (o resto só pelo servidor): `emails` — lido, arquivado, cliente e fornecedor
+  (a marcação de extrato importado vai por `email_extrato_importado`); `contador_mensagens` — resolvida (autor,
+  nome e data vêm do servidor); `testes_giga` — marcadores.
 
 ## Funções do banco (security definer)
 
