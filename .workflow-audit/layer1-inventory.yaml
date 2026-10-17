@@ -1,0 +1,36 @@
+# Camada 1 — inventário dos pontos de entrada (ERP Line, React)
+# A ferramenta foi feita para SwiftUI; os padrões foram trocados pelos equivalentes do React:
+# Modal (≈ .sheet), navigate/Link (≈ NavigationLink), ?aba= + useAbaUrl (≈ TabView/selectedSection),
+# confirmar() (≈ .confirmationDialog), arrastar/hover (≈ swipeActions/contextMenu).
+audit_date: 2026-10-17
+source_root: src/
+arquivos_tsx: 268
+padroes:
+  rotas_app_tsx: 60
+  modais: { ocorrencias: 167, arquivos: 102 }
+  abrir_por_estado_set_true: { ocorrencias: 300, arquivos: 141 }
+  navigate: { ocorrencias: 139, arquivos: 44 }
+  link_navlink: { ocorrencias: 97, arquivos: 42 }
+  links_com_aba: { ocorrencias: 74, arquivos: 20 }
+  paginas_com_useAbaUrl: 19
+  confirmar: { ocorrencias: 66, arquivos: 48 }
+  window_confirm_alert_prompt: 0   # procurado, nenhum (o ERP usa confirmar())
+  window_ir: 0                     # procurado, nenhum fora do modo demonstração
+  delete_direto: { ocorrencias: 12, arquivos: 11 }
+  rpc: { ocorrencias: 211, arquivos: 111 }
+  functions_invoke: { ocorrencias: 2, arquivos: 2 }
+  onClick: { ocorrencias: 1583, arquivos: 237 }
+  arrastar_soltar: { ocorrencias: 6, arquivos: 2 }
+  duplo_clique_botao_direito: 0    # procurado, nenhum
+  so_no_hover_group_hover: { ocorrencias: 3, arquivos: 3 }
+  escondido_no_celular_hidden_sm_md: { ocorrencias: 48, arquivos: 25 }
+  menus_de_acoes: { ocorrencias: 10, arquivos: 7 }
+  notify: { ocorrencias: 451, arquivos: 142 }
+  notifyError: { ocorrencias: 393, arquivos: 154 }
+sinalizados_para_camada_2:
+  - "74 links com ?aba=: conferir contra a lista de abas válidas de cada tela"
+  - "navigate com state (contexto entre telas): conferir quem lê"
+  - "12 exclusões diretas (.delete()) e rpc de excluir/cancelar: conferir confirmação"
+  - "Modal: fechar com Esc/fundo com formulário preenchido"
+  - "2 quadros com arrastar e soltar: alternativa visível no celular"
+  - "3 ações só no hover e 25 arquivos com partes escondidas no celular"
