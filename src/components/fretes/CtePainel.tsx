@@ -80,9 +80,9 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-3">
-        <label className="block min-w-0 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
+        <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
           <input className="input" type="date" value={de} onChange={(e) => setDe(e.target.value)} /></label>
-        <label className="block min-w-0 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
+        <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
           <input className="input" type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></label>
         {transpComCte.length > 1 && (
           <label className="block min-w-[10rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Transportadora</span>
