@@ -5,7 +5,7 @@ import { Button, Field } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { rotuloCategoria, type CategoriaFin, type GrupoDre, type Rateio } from "@/lib/dre";
 
-export type Categoria = CategoriaFin & { id: string; ativo: boolean; ordem: number };
+export type Categoria = CategoriaFin & { id: string; ativo: boolean; ordem: number; comportamento?: "fixa" | "variavel" | null };
 export type CentroCusto = { id: string; nome: string; descricao: string | null; ativo: boolean };
 
 export const useCategorias = () => useRows<Categoria>("categorias_financeiras", { order: "ordem", ascending: true });

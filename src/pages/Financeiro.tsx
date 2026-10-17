@@ -151,6 +151,11 @@ export default function Financeiro() {
     ...receber.map((c) => ({ ...c, tipo: "receber" as const })),
     ...pagar.map((c) => ({ ...c, tipo: "pagar" as const })),
   ], [receber, pagar]);
+  // DRE: todas as unidades (ele mesmo separa SC, SP e o consolidado)
+  const paraDreTodas = useMemo<LancDre[]>(() => [
+    ...receberTodos.map((c) => ({ ...c, tipo: "receber" as const })),
+    ...pagarTodos.map((c) => ({ ...c, tipo: "pagar" as const })),
+  ], [receberTodos, pagarTodos]);
 
   return (
     <div>
@@ -166,7 +171,7 @@ export default function Financeiro() {
       {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
         : aba === "recibos" ? <Recibos />
         : aba === "fixas" && veContasPagar ? <ContasFixas />
-        : aba === "dre" && veContasPagar ? <DreComExtratos lancamentos={paraDre} />
+        : aba === "dre" && veContasPagar ? <DreComExtratos lancamentos={paraDreTodas} />
         : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
         <VisaoGeral receber={paraVisao.receber} pagar={veContasPagar ? paraVisao.pagar : []} vePagar={veContasPagar}

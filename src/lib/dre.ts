@@ -10,7 +10,7 @@ export type LancDre = {
   tipo: "receber" | "pagar"; categoria?: string | null; valor: number; valor_pago?: number | null; status: string;
   vencimento: string; data_pagamento?: string | null; competencia?: string | null; rateio?: Rateio | null;
   /** Linha do DRE já definida (lançamento do extrato do banco); senão vem do plano de contas pela categoria. */
-  grupo?: GrupoDre; origem?: "conta" | "extrato";
+  grupo?: GrupoDre; origem?: "conta" | "extrato" | "nota"; unidade_id?: string | null;
 };
 export type Regime = "competencia" | "caixa";
 export type LinhaDre = { chave: string; rotulo: string; valores: number[]; total: number; tipo: "grupo" | "resultado" | "info"; detalhes: { categoria: string; valores: number[]; total: number }[] };

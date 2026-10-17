@@ -1,6 +1,6 @@
 // Financeiro → Plano de contas: as categorias agrupadas pela linha do DRE em que entram (na ordem do resultado),
 // com quanto cada uma movimentou; avisa das categorias usadas nas contas que não estão no plano. Em "Editar":
-// mudar a linha do DRE, desativar/reativar e criar categoria. Ao lado, os centros de custo (fábrica, loja,
+// mudar a linha do DRE, fixa ou variável (margem de contribuição e ponto de equilíbrio), desativar/reativar e criar categoria. Ao lado, os centros de custo (fábrica, loja,
 // assistência…) usados para dividir os lançamentos.
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { AlertTriangle, Check, Pencil, Plus } from "lucide-react";
@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { mesesAte, norm, ORDEM_DRE, rotuloCategoria, type GrupoDre, type LancDre } from "@/lib/dre";
 import { GRUPOS, useCategorias, useCentros, type Categoria } from "./CategoriaRateio";
+import { comportamentoDe } from "@/lib/dreNotas";
 
 const COR_SINAL = { "+": "bg-emerald-100 text-emerald-800", "−": "bg-red-100 text-red-800", "±": "bg-amber-100 text-amber-800", fora: "bg-slate-100 text-slate-600" };
 const tipoDe = (l: LancDre) => (l.tipo === "receber" ? "receita" : "despesa");
@@ -82,6 +83,7 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
   const linhaCategoria = (c: Categoria, ambos: boolean) => (
     <LinhaCategoria key={c.id} c={c} ambos={ambos} editando={editando} uso={uso.get(`${c.tipo}|${norm(c.nome)}`)}
       onGrupo={(grupo) => salvarCategoria({ id: c.id, grupo }).then((ok) => ok && notify("Linha do DRE alterada"))}
+      onComportamento={(comportamento) => salvarCategoria({ id: c.id, comportamento }).then((ok) => ok && notify(comportamento ? `Marcada como ${comportamento === "fixa" ? "fixa" : "variável"}` : "Volta para a sugestão do ERP"))}
       onAtivo={(ativo) => salvarCategoria({ id: c.id, ativo }).then((ok) => ok && notify(ativo ? "Categoria reativada" : "Categoria desativada"))} />
   );
 
@@ -192,15 +194,24 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
 }
 
 /** Uma categoria: nome e movimento; em "Editar", a linha do DRE e ativa/desativada. */
-function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo }: {
+function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo, onComportamento }: {
   c: Categoria; ambos: boolean; editando: boolean; uso?: Uso; onGrupo: (g: GrupoDre) => void; onAtivo: (ativo: boolean) => void;
+  onComportamento: (v: "fixa" | "variavel" | null) => void;
 }) {
   const nome = rotuloCategoria(c.nome);
+  const despesa = c.tipo === "despesa" && !["investimento", "retirada", "transferencia"].includes(c.grupo);
+  const comp = comportamentoDe(c.grupo, c.nome, c.comportamento);
+  const chipComp = despesa && (
+    <span className={`ml-1.5 rounded px-1.5 py-0.5 text-[11px] font-semibold ${comp.valor === "fixa" ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-900"} ${comp.sugerido ? "opacity-90" : ""}`}
+      title={comp.sugerido ? "Sugestão do ERP (pelo grupo e pelo nome); troque em Editar" : "Marcada no plano de contas"}>
+      {comp.valor === "fixa" ? "fixa" : "variável"}{comp.sugerido ? "*" : ""}
+    </span>
+  );
   const etiqueta = ambos && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600">{c.tipo}</span>;
   if (!editando) {
     return (
       <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-90"}`}>
-        <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}</span>
+        <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}{chipComp}</span>
         <span className="shrink-0 text-right text-xs text-slate-500">
           {uso ? <><span className="num block font-semibold text-slate-700">{brl(uso.total)}</span>{uso.n} conta{uso.n > 1 ? "s" : ""}</> : "sem uso"}
         </span>
@@ -214,6 +225,14 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo }: {
         <select className="input min-w-0 flex-1 py-1.5 sm:w-60 sm:flex-none" value={c.grupo} aria-label={`Linha do DRE de ${nome}`} onChange={(e) => onGrupo(e.target.value as GrupoDre)}>
           {GRUPOS.filter((g) => g.tipo === c.tipo || g.tipo === "ambos").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
         </select>
+        {despesa && (
+          <select className="input w-36 shrink-0 py-1.5" value={c.comportamento ?? ""} aria-label={`Fixa ou variável: ${nome}`}
+            onChange={(e) => onComportamento((e.target.value || null) as "fixa" | "variavel" | null)}>
+            <option value="">Sugestão ({comportamentoDe(c.grupo, c.nome).valor === "fixa" ? "fixa" : "variável"})</option>
+            <option value="fixa">Fixa</option>
+            <option value="variavel">Variável</option>
+          </select>
+        )}
         <label className="flex shrink-0 items-center gap-1.5 text-xs text-slate-600">
           <input type="checkbox" className="h-4 w-4" checked={c.ativo} onChange={(e) => onAtivo(e.target.checked)} /> Ativa
         </label>
