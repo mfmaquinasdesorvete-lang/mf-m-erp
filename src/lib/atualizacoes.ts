@@ -205,6 +205,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Celular: a faixa do total no pé das listas (vendas, contas) ficou numa linha só e não cobre mais os pedidos; nos cartões de venda o nº fica numa linha, o cliente embaixo, a situação ao lado do valor e a data com o nº da NF sem cortar.",
       "Reabrir OS concluída sem querer (Assistência → abrir a OS → Reabrir OS): escolhe para onde volta (em reparo, aguardando peça…) e o motivo, que fica no histórico da OS; a cobrança em aberto é cancelada e as peças voltam ao estoque, e ao concluir de novo tudo é refeito e o cliente recebe o aviso de pronta. Não reabre com NFS-e emitida ou cobrança já recebida.",
       "Faturas para montar: os CT-e que a MF paga e ainda não estão em fatura, juntos por transportadora (e pelo nº da fatura quando vem no CT-e, com o vencimento); um toque monta a fatura e ela vai para Contas a pagar como Transportadoras, passando pela aprovação. O crédito de PIS/COFINS sobre os fretes no Analista fiscal já conta os CT-e da SEFAZ (confirmar com o contador).",
+      "Configurações → Cobrança automática: a régua de cobrança (o que sai por e-mail e WhatsApp, e quando: na criação, antes, no dia e depois do vencimento, no pagamento) e o WhatsApp oficial ficam junto das outras configurações; o financeiro e as vendas também abrem. Em Financeiro → Cobrança ficam a situação dos clientes, a lista do dia para mandar pelo WhatsApp e as respostas dos clientes, com o atalho para a régua.",
     ],
   },
 };

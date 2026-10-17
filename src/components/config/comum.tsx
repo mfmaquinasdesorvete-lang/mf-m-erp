@@ -4,14 +4,14 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BadgePercent, Bell, Landmark, Percent, Building2, Calculator, Database, FileText, FolderTree, HandCoins, Mail, Package, Palette, ShoppingBag, type LucideIcon,
+  ArrowLeft, BadgePercent, Bell, Landmark, Percent, Building2, Calculator, Database, FileText, FolderTree, HandCoins, Mail, MessageCircle, Package, Palette, ShoppingBag, type LucideIcon,
 } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 
-export type SecaoId = "empresa" | "unidades" | "recebimentos" | "bancos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "avisos" | "email" | "contador" | "dados" | "cadastros";
+export type SecaoId = "empresa" | "unidades" | "recebimentos" | "bancos" | "orcamentos" | "comissoes" | "descontos" | "pedidos" | "notas" | "catalogo" | "cobranca" | "avisos" | "email" | "contador" | "dados" | "cadastros";
 export type Secao = { id: SecaoId; titulo: string; resumo: string; icone: LucideIcon; cor: string; grupo: string };
 
 export const SECOES: Secao[] = [
@@ -25,6 +25,7 @@ export const SECOES: Secao[] = [
   { id: "catalogo", grupo: "Vendas", titulo: "Catálogo e vitrine", resumo: "Catálogo do WhatsApp, vitrine do site e loja virtual", icone: ShoppingBag, cor: "from-[#ec4899] to-[#be185d]" },
   { id: "pedidos", grupo: "Operação", titulo: "Pedidos e expedição", resumo: "O que acontece sozinho na venda, etiquetas e impressora Zebra", icone: Package, cor: "from-[#f97316] to-[#c2410c]" },
   { id: "notas", grupo: "Operação", titulo: "Notas fiscais", resumo: "NF-e geral, Focus NFe, notas de fornecedores e impostos", icone: FileText, cor: "from-[#06b6d4] to-[#0e7490]" },
+  { id: "cobranca", grupo: "Comunicação", titulo: "Cobrança automática", resumo: "Régua de cobrança por e-mail e WhatsApp (antes, no dia e depois do vencimento) e o WhatsApp oficial", icone: MessageCircle, cor: "from-[#22c55e] to-[#15803d]" },
   { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram da equipe e e-mails para os clientes", icone: Bell, cor: "from-[#eab308] to-[#a16207]" },
   { id: "email", grupo: "Comunicação", titulo: "Caixa de e-mail", resumo: "E-mail da empresa (IMAP/SMTP) para enviar e receber pelo ERP", icone: Mail, cor: "from-[#3b82f6] to-[#1d4ed8]" },
   { id: "contador", grupo: "Comunicação", titulo: "Contador", resumo: "Envio automático do fechamento do mês", icone: Calculator, cor: "from-[#8b5cf6] to-[#5b21b6]" },

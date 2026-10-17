@@ -98,7 +98,7 @@ export const AUTOMACOES: Record<string, { nome: string; texto: string; tela?: st
   "erp-openfinance": { nome: "Open Finance", texto: "Extratos dos bancos conectados, a cada 4 horas.", tela: "/conciliacao" },
   "erp-parcelamentos-avisos": { nome: "Parcelamentos de impostos", texto: "Avisa as parcelas perto de vencer ou atrasadas.", tela: "/parcelamentos" },
   "erp-produtos-sugestoes": { nome: "Correções de produtos", texto: "Sugere NCM, custo, marca e código de barras pelas notas e compras.", tela: "/estoque?aba=qualidade" },
-  "erp-regua-cobranca": { nome: "Régua de cobrança", texto: "Cobra as contas vencidas pelos canais da régua.", tela: "/financeiro?aba=cobranca" },
+  "erp-regua-cobranca": { nome: "Régua de cobrança", texto: "Cobra as contas vencidas pelos canais da régua.", tela: "/configuracoes/cobranca" },
   "erp-vigiar-sistema": { nome: "Vigia do sistema", texto: "Confere tudo isto de hora em hora e avisa o administrador do que parou." },
   "erp-whatsapp-enviar": { nome: "Envio de WhatsApp", texto: "Manda as mensagens da fila do WhatsApp.", tela: "/financeiro?aba=cobranca" },
 };

@@ -89,7 +89,7 @@ export function WhatsappOficial({ etapas }: { etapas: EtapaWa[] }) {
           <h2 className="flex items-center gap-2 font-bold"><ShieldCheck size={18} className="text-emerald-600" /> WhatsApp oficial (API da Meta)</h2>
           <p className="text-sm text-slate-600">
             {!st.configurado
-              ? "Com o número oficial da empresa, a régua sai sozinha pelo WhatsApp (com Pix), sem clique, e as respostas dos clientes chegam aqui."
+              ? "Com o número oficial da empresa, a régua sai sozinha pelo WhatsApp (com Pix), sem clique, e as respostas dos clientes chegam em Financeiro → Cobrança."
               : <>Número <b>{st.numero ?? st.numero_id}</b>{st.nome ? ` (${st.nome})` : ""}. {st.ativo
                   ? "Envio automático ligado: as etapas com modelo aprovado saem sozinhas às 8h (e na criação e no pagamento, na hora)."
                   : "Envio automático desligado: o WhatsApp da régua continua na lista do dia, para mandar com um toque."}</>}
@@ -133,8 +133,19 @@ export function WhatsappOficial({ etapas }: { etapas: EtapaWa[] }) {
         </div>
       )}
 
-      {st.configurado && <Mensagens />}
       {config && <ConfigWhatsapp st={st} onClose={() => setConfig(false)} onPronto={() => { refetch(); }} />}
+    </Card>
+  );
+}
+
+/** Respostas dos clientes e o que saiu pelo número oficial (Financeiro → Cobrança); some sem o WhatsApp oficial. */
+export function MensagensWhatsapp() {
+  const { data: st } = useStatusWhatsapp();
+  if (!st?.configurado) return null;
+  return (
+    <Card className="p-4">
+      <h2 className="flex items-center gap-2 font-bold"><ShieldCheck size={18} className="text-emerald-600" /> WhatsApp oficial: respostas e envios</h2>
+      <Mensagens />
     </Card>
   );
 }

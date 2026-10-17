@@ -14,6 +14,7 @@ import { ConfigCatalogo } from "@/components/config/Catalogo";
 import { ConfigAvisos, ConfigComissoes, ConfigContador, ConfigDados, ConfigEmail } from "@/components/config/Pequenas";
 import { ConfigCadastros } from "@/components/config/Cadastros";
 import { ConfigBancos } from "@/components/config/Bancos";
+import { ConfigCobranca } from "@/components/config/Cobranca";
 
 function ConfigUnidades() {
   return (
@@ -26,7 +27,7 @@ function ConfigUnidades() {
 
 const PAGINAS: Record<SecaoId, () => JSX.Element> = {
   empresa: ConfigEmpresa, unidades: ConfigUnidades, recebimentos: ConfigRecebimentos, bancos: ConfigBancos, orcamentos: ConfigOrcamentos, descontos: ConfigDescontos, comissoes: ConfigComissoes,
-  pedidos: ConfigPedidos, notas: ConfigNotas, catalogo: ConfigCatalogo, avisos: ConfigAvisos, email: ConfigEmail, contador: ConfigContador, dados: ConfigDados, cadastros: ConfigCadastros,
+  pedidos: ConfigPedidos, notas: ConfigNotas, catalogo: ConfigCatalogo, cobranca: ConfigCobranca, avisos: ConfigAvisos, email: ConfigEmail, contador: ConfigContador, dados: ConfigDados, cadastros: ConfigCadastros,
 };
 
 export default function Configuracoes({ secaoFixa }: { secaoFixa?: SecaoId }) {

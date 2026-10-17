@@ -105,6 +105,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },
   // extrato automático: quem cuida dos bancos também abre (o financeiro não abre as outras configurações)
   { path: "configuracoes/bancos", tela: "conciliacao", element: <Configuracoes secaoFixa="bancos" /> },
+  // régua de cobrança e WhatsApp oficial: quem cobra (financeiro e vendas) também abre
+  { path: "configuracoes/cobranca", tela: "financeiro", element: <Configuracoes secaoFixa="cobranca" /> },
   { path: "configuracoes/:secao", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "implantacao", tela: "implantacao", element: <Implantacao /> },

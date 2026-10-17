@@ -22,6 +22,7 @@ export function PainelConfig() {
     { select: "id, ativo, no_catalogo, foto_caminho, preco_venda", key: ["config"] });
   const { data: avisos = [] } = useRows<{ tipo: string; ativo: boolean }>("avisos_tipos", { select: "tipo, ativo", order: "tipo", key: ["config"] });
   const { data: regrasDesc = [] } = useRows<{ ativo: boolean }>("regras_desconto", { select: "ativo", order: "canal", key: ["config"] });
+  const { data: regua = [] } = useRows<{ ativo: boolean; canal_email: boolean; canal_whatsapp: boolean }>("regua_cobranca", { select: "ativo, canal_email, canal_whatsapp", order: "ordem", key: ["config"] });
   const { data: backups = [] } = useRows<{ status: string; created_at: string }>("backups_registro", { select: "status, created_at", order: "created_at", ascending: false, key: ["config"] });
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
 
@@ -45,6 +46,10 @@ export function PainelConfig() {
     catalogo: { texto: `${prontos} na vitrine${marcados.length - prontos ? ` · ${marcados.length - prontos} faltando foto ou preço` : ""}`, ok: marcados.length - prontos === 0 },
     pedidos: { texto: `NF-e automática ${cfg.nfe_automatica ? "ligada" : "desligada"} · etiqueta ${cfg.etiqueta_formato === "a4" ? "A4" : "10 x 15"}${imp.modelo ? ` · ${imp.modelo}` : ""}` },
     notas: { texto: `Presença do comprador: ${({ 1: "presencial", 2: "internet", 3: "teleatendimento", 9: "não presencial" } as Record<number, string>)[Number(cfg.presenca_comprador ?? 9)] ?? "—"}${cfg.entrada_automatica_estoque ? " · entrada automática das notas de compra" : ""}` },
+    cobranca: (() => {
+      const l = regua.filter((e) => e.ativo);
+      return l.length ? { texto: `${l.length} ${pl(l.length, "etapa ligada", "etapas ligadas")} · e-mail em ${l.filter((e) => e.canal_email).length} · WhatsApp em ${l.filter((e) => e.canal_whatsapp).length}` } : { texto: "Régua desligada: nenhum lembrete sai sozinho", ok: false };
+    })(),
     avisos: { texto: `${avisos.filter((a) => a.ativo).length} de ${avisos.length} avisos ligados` },
     email: { texto: cfg.avisos_email_ativo ? "E-mails automáticos para os clientes ligados" : "E-mails automáticos para os clientes desligados" },
     contador: cfg.contador_envio_auto ? { texto: `Fechamento enviado sozinho todo dia ${cfg.contador_envio_dia ?? 5}`, ok: !!cfg.contador_email } : { texto: "Envio automático desligado" },
