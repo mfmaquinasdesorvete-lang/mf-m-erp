@@ -80,12 +80,17 @@ export function notasParaDre(notas: NotaDre[], recebidas: DevolucaoRecebida[], p
 /** Compras de mercadoria e matéria-prima: no DRE pelas notas o CMV entra no lugar delas. */
 const COMPRA_MERCADORIA = /^fornecedores$|mat[eé]ria[- ]prima|mercadoria/;
 
-/** Contas e extratos que ficam no DRE pelas notas: sai o que as notas já contam (vendas, impostos sobre a venda, compras). */
+/**
+ * Contas e extratos que ficam no DRE pelas notas: sai o que as notas já contam — venda de produtos (categoria vendas,
+ * sem categoria ou recebimento solto no extrato), impostos sobre a venda e compras de mercadoria. A receita de
+ * serviços (assistência técnica, com NFS-e) continua vindo das contas a receber.
+ */
 export function contasSemNotas(lancs: LancDre[], categorias: CategoriaFin[]) {
   const mapa = new Map(categorias.map((c) => [`${c.tipo}|${norm(c.nome)}`, c.grupo]));
   return lancs.filter((l) => {
     const grupo = l.grupo ?? mapa.get(`${l.tipo === "receber" ? "receita" : "despesa"}|${norm(l.categoria)}`) ?? (l.tipo === "receber" ? "receita" : "despesa_operacional");
-    if (grupo === "receita" || grupo === "deducao") return false;
+    if (grupo === "deducao") return false;
+    if (grupo === "receita") return l.origem !== "extrato" && !!norm(l.categoria) && !/^vendas?\b/.test(norm(l.categoria));
     return !(grupo === "custo" && COMPRA_MERCADORIA.test(norm(l.categoria)));
   });
 }

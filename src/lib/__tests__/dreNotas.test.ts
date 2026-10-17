@@ -49,8 +49,10 @@ describe("DRE pelas notas", () => {
       { nome: "aluguel", tipo: "despesa", grupo: "despesa_operacional" },
     ];
     const l = (tipo: LancDre["tipo"], categoria: string): LancDre => ({ tipo, categoria, valor: 10, status: "aberto", vencimento: "2026-10-05" });
-    expect(contasSemNotas([l("receber", "vendas"), l("pagar", "impostos"), l("pagar", "fornecedores"), l("pagar", "frete"), l("pagar", "aluguel")], cats)
-      .map((x) => x.categoria)).toEqual(["frete", "aluguel"]);
+    const servico: LancDre = { ...l("receber", "assistência técnica"), grupo: "receita" };
+    const pixSolto: LancDre = { ...l("receber", "Pix recebido"), grupo: "receita", origem: "extrato" };
+    expect(contasSemNotas([l("receber", "vendas"), l("pagar", "impostos"), l("pagar", "fornecedores"), l("pagar", "frete"), l("pagar", "aluguel"), servico, pixSolto], cats)
+      .map((x) => x.categoria)).toEqual(["frete", "aluguel", "assistência técnica"]);
   });
 
   it("unidade: só os lançamentos dela", () => {
