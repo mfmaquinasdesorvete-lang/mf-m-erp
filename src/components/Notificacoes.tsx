@@ -1,10 +1,11 @@
 // Notificações na tela: pop-up na hora (pagamento recebido, pedido da loja, e-mail novo), o sino com o histórico
 // e os avisos entre usuários. Aviso normal aparece no canto; importante e urgente aparecem no meio da tela e pedem "Ciente"
-// (o urgente toca de novo até a pessoa confirmar). Quem mandou vê quem já deu ciente.
+// (o urgente toca de novo até a pessoa confirmar). Quem mandou vê quem já deu ciente. Aviso de uma pessoa pode ser
+// respondido: a resposta vai para quem participa da conversa, com a mesma escolha de urgência.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Bell, BellRing, Check, FileSignature, Mail, Megaphone, Send, ShoppingBag, Siren, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, Check, FileSignature, Mail, Megaphone, Reply, Send, ShoppingBag, Siren, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
@@ -15,6 +16,7 @@ export type Urgencia = "normal" | "importante" | "urgente";
 export type Notificacao = {
   id: number; tipo: string; titulo: string; texto: string | null; link: string | null; created_at: string;
   urgencia?: Urgencia; destinatarios?: string[]; papeis?: string[]; remetente_id?: string | null; remetente_nome?: string | null; exige_ciencia?: boolean;
+  conversa_id?: number | null; resposta_de?: number | null;
 };
 type Ciencia = { notificacao_id: number; user_id: string; ciente_em: string };
 
@@ -32,7 +34,7 @@ const NIVEL: Record<Urgencia, { rotulo: string; ajuda: string; icon: LucideIcon;
 };
 const estiloDe = (n: Notificacao) => n.remetente_id ? { icon: NIVEL[n.urgencia ?? "normal"].icon, cor: NIVEL[n.urgencia ?? "normal"].cor } : ESTILO[n.tipo] ?? ESTILO.outro;
 
-type Ctx = { lista: Notificacao[]; naoVistas: number; abrirPainel: () => void; novoAviso: () => void };
+type Ctx = { lista: Notificacao[]; naoVistas: number; abrirPainel: () => void; novoAviso: (para?: string[]) => void };
 const NotifCtx = createContext<Ctx>({ lista: [], naoVistas: 0, abrirPainel: () => {}, novoAviso: () => {} });
 export const useNotificacoes = () => useContext(NotifCtx);
 
@@ -69,7 +71,8 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const [popups, setPopups] = useState<Notificacao[]>([]);
   const [centro, setCentro] = useState<Notificacao[]>([]); // importantes e urgentes esperando "Ciente"
   const [painel, setPainel] = useState(false);
-  const [compor, setCompor] = useState(false);
+  const [compor, setCompor] = useState<string[] | null>(null); // aberto: para quem (vazio = escolher)
+  const [responderA, setResponderA] = useState<Notificacao | null>(null);
   const [som, setSom] = useState(somLigado);
   const vistos = useRef(new Set<number>());
   const pendentesVistos = useRef(false);
@@ -77,6 +80,9 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   // aviso para pessoas escolhidas só aparece para elas (o administrador vê no banco, mas não recebe o pop-up dos outros)
   const paraMim = (n: Notificacao) => !n.destinatarios?.length || n.destinatarios.includes(eu);
   const meu = (n: Notificacao) => !!eu && n.remetente_id === eu;
+  // aviso de uma pessoa (não do sistema) que não fui eu que mandei: dá para responder
+  const respondivel = (n: Notificacao) => !!n.remetente_id && !meu(n);
+  const responder = (n: Notificacao) => { setPopups((p) => p.filter((x) => x.id !== n.id)); setPainel(false); setResponderA(n); };
 
   const { data: todas = [] } = useQuery({
     queryKey: ["notificacoes"],
@@ -183,7 +189,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
 
   const atual = centro[0];
   return (
-    <NotifCtx.Provider value={{ lista, naoVistas, abrirPainel, novoAviso: () => setCompor(true) }}>
+    <NotifCtx.Provider value={{ lista, naoVistas, abrirPainel, novoAviso: (para) => setCompor(para ?? []) }}>
       {children}
 
       {/* Pop-ups do canto (normal) */}
@@ -202,7 +208,10 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                   <span className="block truncate text-sm font-bold leading-tight text-fg md:whitespace-normal md:text-[15px]">{n.titulo}</span>
                   {n.texto && <span className="mt-0.5 block truncate text-[13px] text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
                 </button>
-                {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 hidden text-sm font-bold text-brand hover:underline md:inline">Abrir →</button>}
+                <span className="flex flex-wrap gap-x-4">
+                  {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 hidden text-sm font-bold text-brand hover:underline md:inline">Abrir →</button>}
+                  {respondivel(n) && <button type="button" onClick={() => responder(n)} className="mt-1.5 inline-flex items-center gap-1 text-sm font-bold text-brand hover:underline md:mt-2"><Reply size={14} /> Responder</button>}
+                </span>
               </div>
               <button type="button" aria-label="Fechar" onClick={() => setPopups((p) => p.filter((x) => x.id !== n.id))} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
             </div>
@@ -232,6 +241,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-[15px] leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
                 <div className="flex flex-wrap justify-end gap-2">
                   {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>Abrir</Button>}
+                  {respondivel(atual) && <Button variant="secondary" onClick={() => { ciente(atual); setResponderA(atual); }}><Reply size={16} /> Responder</Button>}
                   <Button onClick={() => ciente(atual)} autoFocus><Check size={16} /> Ciente</Button>
                 </div>
                 {urgente && <p className="text-center text-xs text-slate-500">O som repete até você clicar em Ciente.</p>}
@@ -257,7 +267,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
               </span>
             </div>
-            <button type="button" onClick={() => { setPainel(false); setCompor(true); }}
+            <button type="button" onClick={() => { setPainel(false); setCompor([]); }}
               className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#6366f1] px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
               <Send size={16} /> Enviar aviso para a equipe
             </button>
@@ -273,9 +283,9 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                   const cientes = ciencias.filter((c) => c.notificacao_id === n.id);
                   const total = n.destinatarios?.length ?? 0;
                   return (
-                    <li key={n.id}>
-                      <button type="button" onClick={() => (n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n) ? setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]) : abrir(n))}
-                        className="flex w-full items-start gap-3 rounded-xl p-2 text-left hover:bg-slate-50">
+                    <li key={n.id} className="flex items-start gap-1">
+                      <button type="button" onClick={() => (n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n) ? setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]) : n.conversa_id && !n.link ? setResponderA(n) : abrir(n))}
+                        className="flex min-w-0 flex-1 items-start gap-3 rounded-xl p-2 text-left hover:bg-slate-50">
                         <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
                         <span className="min-w-0 flex-1">
                           {n.urgencia && n.urgencia !== "normal" && (
@@ -295,6 +305,10 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                           {!meu(n) && n.exige_ciencia && paraMim(n) && !jaCiente(n) && <span className="mt-0.5 block text-[11px] font-semibold text-red-600">Falta o seu ciente</span>}
                         </span>
                       </button>
+                      {(respondivel(n) || (meu(n) && n.conversa_id)) && (
+                        <button type="button" onClick={() => responder(n)} aria-label={`Responder: ${n.titulo}`} title={respondivel(n) ? "Responder" : "Ver a conversa"}
+                          className="mt-1.5 shrink-0 rounded-lg p-2 text-brand hover:bg-slate-100"><Reply size={16} /></button>
+                      )}
                     </li>
                   );
                 })}
@@ -304,13 +318,14 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {compor && <NovoAviso onClose={() => setCompor(false)} />}
+      {compor && <NovoAviso paraInicial={compor} onClose={() => setCompor(null)} />}
+      {responderA && <ResponderAviso aviso={responderA} onClose={() => setResponderA(null)} />}
     </NotifCtx.Provider>
   );
 }
 
 /** Escrever um aviso: para pessoas, para um perfil ou para todos, com o nível de urgência. */
-function NovoAviso({ onClose }: { onClose: () => void }) {
+function NovoAviso({ paraInicial = [], onClose }: { paraInicial?: string[]; onClose: () => void }) {
   const { user_id: eu } = usePerfil();
   const local = useLocation();
   const qc = useQueryClient();
@@ -319,7 +334,7 @@ function NovoAviso({ onClose }: { onClose: () => void }) {
     queryFn: async () => { const { data, error } = await supabase.rpc("usuarios_para_aviso"); if (error) throw error; return (data ?? []) as { user_id: string; nome: string; papel: string }[]; },
   });
   const [modo, setModo] = useState<"pessoas" | "perfil" | "todos">("pessoas");
-  const [pessoas, setPessoas] = useState<string[]>([]);
+  const [pessoas, setPessoas] = useState<string[]>(paraInicial);
   const [perfil, setPerfil] = useState("");
   const [urgencia, setUrgencia] = useState<Urgencia>("normal");
   const [titulo, setTitulo] = useState("");
@@ -404,6 +419,85 @@ function NovoAviso({ onClose }: { onClose: () => void }) {
           <Button disabled={enviando}><Send size={16} /> {enviando ? "Enviando…" : "Enviar"}</Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+/** Conversa de um aviso (a primeira mensagem e as respostas que eu posso ver) e a caixa para responder. */
+function ResponderAviso({ aviso, onClose }: { aviso: Notificacao; onClose: () => void }) {
+  const { user_id: eu } = usePerfil();
+  const qc = useQueryClient();
+  const raiz = aviso.conversa_id ?? aviso.id;
+  const { data: conversa = [aviso] } = useQuery({
+    queryKey: ["notificacoes", "conversa", raiz],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("notificacoes").select("*").or(`id.eq.${raiz},conversa_id.eq.${raiz}`).order("created_at").limit(100);
+      if (error) throw error;
+      return (data?.length ? data : [aviso]) as Notificacao[];
+    },
+  });
+  // responde à última mensagem de outra pessoa (assim a resposta chega a todos que já participaram)
+  const alvo = [...conversa].reverse().find((n) => n.remetente_id && n.remetente_id !== eu) ?? (aviso.remetente_id !== eu ? aviso : null);
+  const [texto, setTexto] = useState("");
+  const [urgencia, setUrgencia] = useState<Urgencia>("normal");
+  const [enviando, setEnviando] = useState(false);
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault();
+    if (!alvo) return;
+    setEnviando(true);
+    const { error } = await supabase.rpc("responder_aviso", { p_id: alvo.id, p_texto: texto, p_urgencia: urgencia });
+    setEnviando(false);
+    if (error) return notifyError(error);
+    notify(urgencia === "normal" ? "Resposta enviada" : `Resposta ${NIVEL[urgencia].rotulo.toLowerCase()} enviada: você vê no sino quem deu ciente`);
+    qc.invalidateQueries({ queryKey: ["notificacoes"] });
+    onClose();
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Conversa: ${aviso.titulo.replace(/^(Re: )+/, "")}`}>
+      <div className="space-y-4">
+        <ol className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
+          {conversa.map((n) => {
+            const minha = n.remetente_id === eu;
+            const nv = n.urgencia && n.urgencia !== "normal" ? NIVEL[n.urgencia] : null;
+            return (
+              <li key={n.id} className={`flex ${minha ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${minha ? "bg-brand-light" : "bg-slate-100"}`}>
+                  <div className="text-[11px] font-semibold text-slate-500">
+                    {minha ? "Você" : n.remetente_nome ?? "ERP"} · {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    {nv && <span className="ml-1 rounded-full px-1.5 py-px text-[10px] font-extrabold uppercase text-white" style={{ background: nv.cor }}>{nv.rotulo}</span>}
+                  </div>
+                  {!n.resposta_de && <div className="text-sm font-bold text-fg [overflow-wrap:anywhere]">{n.titulo}</div>}
+                  {n.texto && <p className="whitespace-pre-wrap text-sm text-fg [overflow-wrap:anywhere]">{n.texto}</p>}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        {alvo ? (
+          <form onSubmit={enviar} className="space-y-3">
+            <Field label={`Responder para ${alvo.remetente_nome ?? "quem mandou"}${(alvo.destinatarios?.length ?? 0) > 1 ? " e quem participa" : ""}`}>
+              <textarea className="input min-h-[80px]" value={texto} onChange={(e) => setTexto(e.target.value)} required maxLength={2000} autoFocus />
+            </Field>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Urgência">
+              {(Object.keys(NIVEL) as Urgencia[]).map((k) => (
+                <button key={k} type="button" aria-pressed={urgencia === k} onClick={() => { setUrgencia(k); tocar(k); }}
+                  className={`inline-flex items-center gap-1 rounded-full border-2 px-3 py-1 text-xs font-bold ${urgencia === k ? "" : "border-slate-200 text-slate-600"}`}
+                  style={urgencia === k ? { borderColor: NIVEL[k].cor, color: NIVEL[k].cor } : undefined}>
+                  {(() => { const I = NIVEL[k].icon; return <I size={14} />; })()} {NIVEL[k].rotulo}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
+              <Button disabled={enviando || !texto.trim()}><Send size={16} /> {enviando ? "Enviando…" : "Responder"}</Button>
+            </div>
+          </form>
+        ) : (
+          <p className="text-sm text-slate-500">Ainda ninguém respondeu este aviso.</p>
+        )}
+      </div>
     </Modal>
   );
 }

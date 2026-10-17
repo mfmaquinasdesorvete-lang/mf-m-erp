@@ -3324,6 +3324,20 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (pessoas ? p_para.includes(sessao?.user.id) : papel === "admin" || !n.papeis.length || n.papeis.includes(papel)) canais.forEach((f) => f(n));
     return { data: n.id, error: null };
   },
+  responder_aviso: ({ p_id, p_texto, p_urgencia = "normal" }) => {
+    if (!String(p_texto ?? "").trim()) return { data: null, error: { message: "Escreva a resposta" } };
+    const o = db.notificacoes.find((n: Row) => n.id === p_id && n.remetente_id);
+    if (!o) return { data: null, error: { message: "aviso não encontrado" } };
+    const euId = sessao?.user.id;
+    const para = [...new Set([...(o.destinatarios ?? []), o.remetente_id])].filter((x) => x && x !== euId);
+    if (!para.length) return { data: null, error: { message: "não há para quem responder" } };
+    const eu = db.usuarios_erp.find((u: Row) => u.user_id === euId);
+    const n = { id: ++seqNotif, tipo: "outro", titulo: `Re: ${String(o.titulo).replace(/^(Re: )+/, "")}`.slice(0, 140), texto: String(p_texto).trim(), link: o.link ?? null,
+      papeis: ["mensagem"], urgencia: p_urgencia, destinatarios: para, remetente_id: euId ?? null, remetente_nome: eu?.nome ?? null,
+      exige_ciencia: p_urgencia !== "normal", conversa_id: o.conversa_id ?? o.id, resposta_de: o.id, created_at: new Date().toISOString() };
+    db.notificacoes.unshift(n);
+    return { data: n.id, error: null };
+  },
   ciente_aviso: ({ p_id }) => {
     db.notificacoes_ciencia = db.notificacoes_ciencia ?? [];
     if (!db.notificacoes_ciencia.some((c: Row) => c.notificacao_id === p_id && c.user_id === sessao?.user.id))

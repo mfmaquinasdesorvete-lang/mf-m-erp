@@ -2,8 +2,9 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, Check, Copy, KeyRound, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
+import { useNotificacoes } from "@/components/Notificacoes";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -94,6 +95,7 @@ function ChipPapel({ p, extra }: { p: Papel; extra?: boolean }) {
 
 export default function Usuarios() {
   const eu = usePerfil();
+  const { novoAviso } = useNotificacoes();
   const { nome: nomeUnidade } = useUnidade();
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ["usuarios_erp", "admin"],
@@ -168,6 +170,7 @@ export default function Usuarios() {
                       </div>
                       <div className="flex gap-1">
                         {u.telefone && <a className="inline-flex items-center rounded-lg px-2 py-2 text-emerald-700 hover:bg-slate-100" href={whatsappLink(u.telefone, `Olá, ${u.nome.split(" ")[0]}!`)} target="_blank" rel="noreferrer" aria-label={`WhatsApp de ${u.nome}`} title="WhatsApp"><MessageCircle size={16} aria-hidden /></a>}
+                        {u.ativo && !souEu && <Button variant="ghost" className="!px-2" title="Mandar aviso" aria-label={`Mandar aviso para ${u.nome}`} onClick={() => novoAviso([u.user_id])}><Megaphone size={16} aria-hidden /></Button>}
                         <Button variant="ghost" className="!px-2" title="Definir senha provisória" aria-label={`Nova senha para ${u.nome}`} onClick={() => setSenhaDe(u)}><KeyRound size={16} aria-hidden /></Button>
                         <Button variant="secondary" onClick={() => setEditando(u)} aria-label={`Editar ${u.nome}`}><Pencil size={15} aria-hidden /> Editar</Button>
                       </div>
