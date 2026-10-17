@@ -233,9 +233,19 @@ restritiva a mais. Documentos de funcionário só para o financeiro.
 **Fechadas para a API** (RLS ligada e nenhuma regra: só o servidor): `aprovacao_tentativas`, `backups_config`,
 `ml_anuncios_envio`, `ml_oauth_estados`, `ml_sync_fila`, `nfe_recebida_itens_lidos`, `senhas_aprovacao`, `sync_estado`.
 
-**Permissões gerais das tabelas** (migração `20261017173100_integridade_chaves_permissoes`): `anon` sem INSERT,
-UPDATE, DELETE, TRUNCATE, TRIGGER e REFERENCES; `authenticated` sem TRUNCATE, TRIGGER e REFERENCES. Vale também
-para as tabelas criadas depois.
+**Permissões gerais das tabelas** (migrações `20261017173100_integridade_chaves_permissoes` e
+`20261017200511_anon_sem_leitura`): `anon` sem SELECT, INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER e REFERENCES (nem
+ler direto ele lê: só as funções das páginas públicas); `authenticated` sem TRUNCATE, TRIGGER e REFERENCES. Vale
+também para as tabelas criadas depois. Nenhuma regra de linha fica para "public": todas são de `authenticated`.
+
+**Unidades (matriz SC e filial SP)**: o acesso **não** é separado por unidade. Matriz e filial são a mesma empresa e
+a equipe trabalha nas duas; o seletor de unidade das telas filtra a visualização, não a permissão
+(`usuarios_erp.unidade_id` é só a unidade de partida da tela). Se um dia houver equipe só de uma unidade, a
+separação entra como regra a mais nas tabelas com `unidade_id`.
+
+**Contador**: um escritório para a empresa toda — lê as duas unidades (fiscal, financeiro, vendas e cadastros para
+o fechamento), não vê o painel pessoal nem documentos de funcionário, e grava só checklist, exceções, mensagens e
+documentos de "geral" e "fechamento".
 
 ## Travas além das regras de linha (gatilhos e colunas)
 
