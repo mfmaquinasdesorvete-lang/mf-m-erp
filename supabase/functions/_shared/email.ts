@@ -11,6 +11,9 @@ export type Email = {
   anexos?: { nome: string; base64: string }[];
 };
 
+/** "a@x.com, b@y.com" → ["a@x.com", "b@y.com"]: o campo de destino pode ter mais de um e-mail (vírgula ou ponto e vírgula). */
+export const destinatarios = (para: string) => para.split(/[;,]/).map((e) => e.trim()).filter(Boolean);
+
 export const resendConfigurado = () => !!(Deno.env.get("RESEND_API_KEY") && Deno.env.get("EMAIL_REMETENTE"));
 
 /** Conta de e-mail do ERP que pode enviar (ativa e com SMTP); prefere a do comercial. */
@@ -37,7 +40,7 @@ export async function enviarEmail(m: Email) {
   const t = nodemailer.createTransport({ host: conta.smtp_host, port: porta, secure: porta === 465, auth: { user: conta.usuario, pass: conta.senha } });
   try {
     const r = await t.sendMail({
-      from: `${conta.nome} <${conta.email}>`, to: m.para, subject: m.assunto, html: m.html, text: m.texto,
+      from: `${conta.nome} <${conta.email}>`, to: destinatarios(m.para).join(", "), subject: m.assunto, html: m.html, text: m.texto,
       replyTo: m.responderPara || undefined,
       headers: m.descadastro ? { "List-Unsubscribe": `<${m.descadastro}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined,
       attachments: m.anexos?.map((a) => ({ filename: a.nome, content: a.base64, encoding: "base64" })),
@@ -66,7 +69,7 @@ async function enviarResend(m: Email) {
     },
     body: JSON.stringify({
       from: de,
-      to: [m.para],
+      to: destinatarios(m.para),
       subject: m.assunto,
       html: m.html,
       text: m.texto,

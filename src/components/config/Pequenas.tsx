@@ -57,7 +57,7 @@ export function ConfigContador() {
         <Bloco titulo="Escritório de contabilidade" descricao={<>Para o contador entrar no ERP (só consulta), crie um usuário com o papel <b>Contador</b> em <Link to="/usuarios" className="font-semibold underline">Usuários</Link>.</>}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {input("contador_nome", "Nome do contador / escritório")}
-            {input("contador_email", "E-mail do contador", "", "email")}
+            {input("contador_email", "E-mail do contador (mais de um: separe por vírgula)", "", "email", { multiple: true })}
           </div>
         </Bloco>
         <Bloco titulo="Fechamento do mês">

@@ -68,6 +68,9 @@ export function buscarSetores(contatos: ContatoContabil[], termo: string) {
   });
 }
 
+/** E-mails do campo "e-mail do contador" (pode ter mais de um, separados por vírgula ou ponto e vírgula), em minúsculas. */
+export const emailsDaLista = (texto: string | null | undefined) => String(texto ?? "").split(/[;,]/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+
 /** Setor de quem recebe o pacote do mês (o e-mail do contador nas Configurações), se for de um contato. */
 export function setorDoEmail(contatos: ContatoContabil[], email: string | null | undefined) {
   const e = String(email ?? "").trim().toLowerCase();

@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { dataBR, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import {
-  ROTULO_SETOR, SETORES, buscarSetores, linkTelefone, linkWhatsApp, setorDoEmail,
+  ROTULO_SETOR, SETORES, buscarSetores, emailsDaLista, linkTelefone, linkWhatsApp, setorDoEmail,
   type ContatoContabil, type DadosEscritorio, type SetorContabil,
 } from "@/lib/contabilidade";
 
@@ -37,7 +37,7 @@ export function Contabilidade() {
   const [form, setForm] = useState<Form | null>(null);
   const grupos = useMemo(() => buscarSetores(contatos, busca), [contatos, busca]);
   const dados = (cfg?.contador_dados ?? {}) as DadosEscritorio;
-  const recebePacote = setorDoEmail(contatos, cfg?.contador_email);
+  const recebemPacote = emailsDaLista(cfg?.contador_email).map((e) => ({ email: e, setor: setorDoEmail(contatos, e)?.setor }));
   const desativados = contatos.filter((c) => !c.ativo);
 
   return (
@@ -53,10 +53,11 @@ export function Contabilidade() {
               {dados.instagram && <span>Instagram: {dados.instagram}</span>}
             </div>
             {dados.endereco && <p className="mt-1 text-sm text-slate-600">{dados.endereco}</p>}
-            {cfg?.contador_email && (
+            {recebemPacote.length > 0 && (
               <p className="mt-2 text-xs text-slate-600">
-                O pacote do fechamento vai para <b className="break-all">{cfg.contador_email.toLowerCase()}</b>
-                {recebePacote ? ` (${ROTULO_SETOR[recebePacote.setor]})` : ""}{cfg.contador_envio_auto ? `, todo dia ${cfg.contador_envio_dia}` : ""}. Muda em Configurações → Contador.
+                O pacote do fechamento vai para {recebemPacote.map((r, i) => (
+                  <span key={r.email}>{i > 0 ? (i === recebemPacote.length - 1 ? " e " : ", ") : ""}<b className="break-all">{r.email}</b>{r.setor ? ` (${ROTULO_SETOR[r.setor]})` : ""}</span>
+                ))}{cfg?.contador_envio_auto ? `, todo dia ${cfg.contador_envio_dia}` : ""}. Muda em Configurações → Contador.
               </p>
             )}
           </div>

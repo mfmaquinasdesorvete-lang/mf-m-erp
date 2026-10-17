@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarSetores, ehCelular, linkTelefone, linkWhatsApp, porSetor, setorDoEmail, type ContatoContabil } from "../contabilidade";
+import { buscarSetores, ehCelular, emailsDaLista, linkTelefone, linkWhatsApp, porSetor, setorDoEmail, type ContatoContabil } from "../contabilidade";
 
 const c = (id: string, setor: ContatoContabil["setor"], nome: string, email: string | null, whatsapp: string | null, x: Partial<ContatoContabil> = {}): ContatoContabil =>
   ({ id, setor, nome, email, whatsapp, observacao: null, ordem: Number(id), ativo: true, ...x });
@@ -38,5 +38,8 @@ describe("contatos da contabilidade", () => {
   it("setor de quem recebe o pacote do mês pelo e-mail (maiúsculas não importam)", () => {
     expect(setorDoEmail(LISTA, "FISCAL02@ESCRITORIO-EXEMPLO.COM.BR")?.setor).toBe("fiscal");
     expect(setorDoEmail(LISTA, "outro@x.com")).toBeNull();
+    // o campo pode ter mais de um e-mail (o pacote vai para todos)
+    expect(emailsDaLista("Financeiro@escritorio-exemplo.com.br, fiscal01@escritorio-exemplo.com.br;")).toEqual(["financeiro@escritorio-exemplo.com.br", "fiscal01@escritorio-exemplo.com.br"]);
+    expect(emailsDaLista(null)).toEqual([]);
   });
 });
