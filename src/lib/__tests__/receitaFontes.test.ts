@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cnaeFormatado, conciliarCliente, daBrasilApi, doCnpja, doCnpjWs } from "../../../supabase/functions/_shared/receita";
+import { cnaesDoTexto, cnaesEmTexto } from "../cnpj";
 
 // respostas de exemplo (inventadas), no formato de cada fonte
 const CNPJA = {
@@ -47,5 +48,27 @@ describe("fontes da Receita", () => {
       estabelecimento: { atividade_principal: { id: "2829199", descricao: "Fabricação de outras máquinas" }, data_inicio_atividade: "2022-07-01", inscricoes_estaduais: [] } })!;
     expect([w.simples?.optante, w.mei?.optante, w.cnae?.codigo, w.porte]).toEqual([false, false, "2829-1/99", "Demais"]);
     expect(cnaeFormatado("5611203")).toBe("5611-2/03");
+  });
+
+  it("atividades secundárias (CNAE) das três fontes; código 0 (sem secundária) fica de fora", () => {
+    const sec = [{ codigo: "3314-7/12", descricao: "Manutenção de máquinas" }, { codigo: "4661-3/00", descricao: "Comércio atacadista de máquinas" }];
+    expect(daBrasilApi({ razao_social: "X", cnaes_secundarios: [{ codigo: 3314712, descricao: "Manutenção de máquinas" },
+      { codigo: 4661300, descricao: "Comércio atacadista de máquinas" }] })!.cnaes_secundarios).toEqual(sec);
+    expect(daBrasilApi({ razao_social: "X", cnaes_secundarios: [{ codigo: 0, descricao: "" }] })!.cnaes_secundarios).toEqual([]);
+    expect(doCnpjWs({ razao_social: "Y", estabelecimento: { atividades_secundarias: [{ id: "3314712", descricao: "Manutenção de máquinas" },
+      { id: "4661300", descricao: "Comércio atacadista de máquinas" }] } })!.cnaes_secundarios).toEqual(sec);
+    expect(doCnpja({ ...CNPJA, sideActivities: [{ id: 3314712, text: "Manutenção de máquinas" }, { id: 4661300, text: "Comércio atacadista de máquinas" }] })!
+      .cnaes_secundarios).toEqual(sec);
+    expect(doCnpja(CNPJA)!.cnaes_secundarios).toEqual([]);
+  });
+
+  it("CNAEs secundários na tela da unidade: texto de uma linha por atividade e de volta", () => {
+    const lista = [{ codigo: "3314-7/12", descricao: "Manutenção de máquinas" }, { codigo: "4661-3/00", descricao: "Comércio atacadista" }];
+    expect(cnaesEmTexto(lista)).toBe("3314-7/12 Manutenção de máquinas\n4661-3/00 Comércio atacadista");
+    expect(cnaesDoTexto(cnaesEmTexto(lista))).toEqual(lista);
+    // sem máscara, com traço ou dois-pontos, linhas em branco
+    expect(cnaesDoTexto("3314712 - Manutenção de máquinas\n\n4661-3/00: Comércio atacadista\n")).toEqual(lista);
+    expect(cnaesDoTexto("Manutenção sem código")).toEqual([]);
+    expect(cnaesEmTexto(null)).toBe("");
   });
 });

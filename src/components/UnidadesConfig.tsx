@@ -1,12 +1,13 @@
-// Configurações → Unidades: matriz SC e filial SP (CNPJ, IE e endereço). Os impostos da nota ficam em
+// Configurações → Unidades: matriz SC e filial SP (CNPJ, IE, CNAE e endereço). Os impostos da nota ficam em
 // Notas fiscais → Configurações da NF-e.
-import { useState, type FormEvent } from "react";
-import { Building2, Pencil } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Building2, Pencil, Search } from "lucide-react";
 import { Badge, Button, Field, Modal } from "./ui";
 import { useSave } from "@/lib/data";
 import { docFormat } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
-import { buscarCnpj, inscricaoDoEstado, preencherVazios } from "@/lib/cnpj";
+import { buscarCnpj, cnaesDoTexto, cnaesEmTexto, inscricaoDoEstado, preencherVazios, type DadosCnpj } from "@/lib/cnpj";
+import { cnaeFormatado } from "../../supabase/functions/_shared/receita";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade, type Unidade } from "@/lib/unidade";
 
@@ -36,6 +37,12 @@ export function UnidadesConfig() {
               <div className="mt-2 text-xs text-slate-500">
                 ICMS interno {Number(u.icms_aliquota_interna)}% · PIS {Number(u.pis_aliquota)}% · COFINS {Number(u.cofins_aliquota)}% · {u.fabrica ? "fábrica" : "sem fábrica"} · {u.assistencia ? "assistência" : "sem assistência"}
               </div>
+              {u.cnae_principal
+                ? <div className="mt-1 text-xs text-slate-600">
+                    CNAE <b>{u.cnae_principal}</b> {u.cnae_principal_descricao}
+                    {!!u.cnaes_secundarios?.length && <span className="text-slate-500"> · +{u.cnaes_secundarios.length} secundário{u.cnaes_secundarios.length > 1 ? "s" : ""}</span>}
+                  </div>
+                : <div className="mt-1 text-xs font-semibold text-amber-700">CNAE não informado: Editar → Buscar na Receita.</div>}
               {pendente && <div className="mt-1 text-xs font-semibold text-amber-700">Falta CNPJ, IE ou endereço para emitir NF-e.</div>}
               <Button type="button" variant="secondary" className="mt-3" onClick={() => setEditando({ ...u })}><Pencil size={15} /> Editar</Button>
             </div>
@@ -53,6 +60,8 @@ export function UnidadesConfig() {
 
 function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => void }) {
   const [u, setU] = useState<Record<string, any>>(unidade);
+  const [secundarios, setSecundarios] = useState(() => cnaesEmTexto(unidade.cnaes_secundarios));
+  const [buscando, setBuscando] = useState(false);
   const save = useSave("unidades");
   const set = (k: string) => (e: { target: { value: string } }) => setU({ ...u, [k]: e.target.value });
   const chk = (k: string, label: string) => (
@@ -62,12 +71,40 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
     <Field label={label} className={cls}><input className="input" type={type} step={type === "number" ? "any" : undefined} value={u[k] ?? ""} onChange={set(k)} /></Field>
   );
 
+  // CNAE pela Receita: na hora de buscar (botão) troca o que está na tela; ao digitar o CNPJ só preenche o que está vazio
+  function aplicarCnae(d: DadosCnpj, trocar: boolean) {
+    if (!d.cnae) return false;
+    if (!trocar && u.cnae_principal) return false;
+    setU((x) => ({ ...x, cnae_principal: d.cnae!.codigo, cnae_principal_descricao: d.cnae!.descricao }));
+    setSecundarios(cnaesEmTexto(d.cnaes_secundarios));
+    return true;
+  }
+  async function buscarAtividades(trocar: boolean) {
+    if (!u.cnpj) return notifyError("Informe o CNPJ da unidade");
+    setBuscando(true);
+    try {
+      const d = await buscarCnpj(u.cnpj);
+      if (!d) return notifyError("A Receita não respondeu agora; tente de novo em um minuto ou digite o CNAE");
+      if (!d.cnae) return notifyError("A consulta não trouxe o CNAE; digite o código do cartão CNPJ");
+      if (aplicarCnae(d, trocar)) notify(`CNAE preenchido pela Receita Federal (${d.cnaes_secundarios?.length ?? 0} secundários). Confira e salve.`);
+    } finally { setBuscando(false); }
+  }
+  // unidade ainda sem CNAE: já busca ao abrir
+  useEffect(() => { if (!unidade.cnae_principal && unidade.cnpj) void buscarAtividades(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
       const { created_at: _c, ...row } = u;
       for (const k of NUMEROS) row[k] = Number(row[k] || 0);
       row.uf = row.uf?.toUpperCase();
+      const linhas = secundarios.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const lista = cnaesDoTexto(secundarios);
+      if (lista.length < linhas.length) throw new Error("CNAE secundário: cada linha começa pelo código (ex.: 3314-7/12 Manutenção de máquinas)");
+      if (row.cnae_principal && !/^\d{4}-\d\/\d{2}$/.test(cnaeFormatado(row.cnae_principal) ?? "")) throw new Error("CNAE principal: use os 7 números (ex.: 2829-1/99)");
+      row.cnae_principal = cnaeFormatado(row.cnae_principal) || null;
+      row.cnae_principal_descricao = String(row.cnae_principal_descricao ?? "").trim() || null;
+      row.cnaes_secundarios = lista;
       await save.mutateAsync(row);
       notify(`${u.nome} salva`);
       onClose();
@@ -83,9 +120,24 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
             {campo("serie_nfe", "Série da NF-e", "", "number")}
             {campo("razao_social", "Razão social", "sm:col-span-2")}
             <Field label="CNPJ (preenche o resto)"><input className="input" value={u.cnpj ?? ""} onChange={set("cnpj")}
-              onBlur={async () => { const d = await buscarCnpj(u.cnpj); if (d) { setU((x) => ({ ...x, ...preencherVazios(x, { ...d, inscricao_estadual: inscricaoDoEstado(d) }, { inscricao_estadual: "inscricao_estadual",  razao_social: "nome", logradouro: "logradouro", numero: "numero", complemento: "complemento", bairro: "bairro", municipio: "municipio", uf: "uf", cep: "cep", telefone: "telefone", email: "email" }) })); notify("Dados preenchidos pela Receita Federal"); } }} /></Field>
+              onBlur={async () => { const d = await buscarCnpj(u.cnpj); if (d) { setU((x) => ({ ...x, ...preencherVazios(x, { ...d, inscricao_estadual: inscricaoDoEstado(d) }, { inscricao_estadual: "inscricao_estadual",  razao_social: "nome", logradouro: "logradouro", numero: "numero", complemento: "complemento", bairro: "bairro", municipio: "municipio", uf: "uf", cep: "cep", telefone: "telefone", email: "email" }) })); aplicarCnae(d, false); notify("Dados preenchidos pela Receita Federal"); } }} /></Field>
             {campo("inscricao_estadual", "Inscrição estadual")}
             {campo("inscricao_municipal", "Inscrição municipal")}
+            <div className="rounded-lg border border-slate-200 p-3 sm:col-span-4">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-fg">Atividades (CNAE)</span>
+                <Button type="button" variant="secondary" disabled={buscando} onClick={() => void buscarAtividades(true)}>
+                  <Search size={15} /> {buscando ? "Buscando…" : "Buscar na Receita"}
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                {campo("cnae_principal", "CNAE principal")}
+                {campo("cnae_principal_descricao", "Descrição", "sm:col-span-3")}
+                <Field label="CNAEs secundários (um por linha: código e descrição)" className="sm:col-span-4">
+                  <textarea className="input min-h-[6rem]" value={secundarios} onChange={(e) => setSecundarios(e.target.value)} placeholder="3314-7/12 Manutenção e reparação de máquinas" />
+                </Field>
+              </div>
+            </div>
             <Field label="CEP"><input className="input" value={u.cep ?? ""} onChange={set("cep")}
               onBlur={async () => { const r = await buscarCep(u.cep); if (r) setU((x) => ({ ...x, ...r })); }} /></Field>
             {campo("logradouro", "Logradouro", "sm:col-span-2")}

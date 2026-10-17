@@ -1,4 +1,5 @@
 import { digitos } from "./format";
+import { atividades, cnaeFormatado, type Atividade } from "../../supabase/functions/_shared/receita";
 
 export type InscricaoEstadual = { numero: string; uf: string; ativa: boolean };
 export type DadosCnpj = {
@@ -6,7 +7,12 @@ export type DadosCnpj = {
   cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null;
   bairro: string | null; municipio: string | null; uf: string | null; situacao: string | null;
   inscricoes?: InscricaoEstadual[];
+  /** atividade principal e secundárias (CNAE), quando a fonte informa */
+  cnae?: Atividade | null; cnaes_secundarios?: Atividade[];
 };
+
+const atividade = (codigo: unknown, descricao: unknown): Atividade | null =>
+  /[1-9]/.test(digitos(String(codigo ?? ""))) ? { codigo: cnaeFormatado(codigo)!, descricao: String(descricao ?? "").trim() } : null;
 
 const cache = new Map<string, DadosCnpj | null>();
 
@@ -38,6 +44,7 @@ async function brasilApi(d: string): Promise<DadosCnpj | null> {
     logradouro: titulo([j.descricao_tipo_de_logradouro, j.logradouro].filter(Boolean).join(" ")) || null,
     numero: ou(j.numero), complemento: ou(j.complemento), bairro: j.bairro ? titulo(j.bairro) : null,
     municipio: j.municipio ? titulo(j.municipio) : null, uf: ou(j.uf), situacao: ou(j.descricao_situacao_cadastral),
+    cnae: atividade(j.cnae_fiscal, j.cnae_fiscal_descricao), cnaes_secundarios: atividades(j.cnaes_secundarios, "codigo", "descricao"),
   };
 }
 
@@ -53,6 +60,7 @@ async function cnpjWs(d: string): Promise<DadosCnpj | null> {
     numero: ou(e.numero), complemento: ou(e.complemento), bairro: e.bairro ? titulo(e.bairro) : null,
     municipio: e.cidade?.nome ? titulo(e.cidade.nome) : null, uf: ou(e.estado?.sigla), situacao: ou(e.situacao_cadastral)?.toUpperCase() ?? null,
     inscricoes: (e.inscricoes_estaduais ?? []).map((i: any) => ({ numero: digitos(i.inscricao_estadual), uf: i.estado?.sigla ?? "", ativa: i.ativo !== false })),
+    cnae: atividade(e.atividade_principal?.id, e.atividade_principal?.descricao), cnaes_secundarios: atividades(e.atividades_secundarias, "id", "descricao"),
   };
 }
 
@@ -67,6 +75,7 @@ async function cnpja(d: string): Promise<DadosCnpj | null> {
     logradouro: ou(a.street), numero: ou(a.number), complemento: ou(a.details), bairro: ou(a.district),
     municipio: ou(a.city), uf: ou(a.state), situacao: ou(j.status?.text)?.toUpperCase() ?? null,
     inscricoes: (j.registrations ?? []).map((i: any) => ({ numero: digitos(i.number), uf: i.state ?? "", ativa: i.enabled !== false })),
+    cnae: atividade(j.mainActivity?.id, j.mainActivity?.text), cnaes_secundarios: atividades(j.sideActivities, "id", "text"),
   };
 }
 
@@ -89,6 +98,19 @@ export async function buscarCnpj(cnpj: string | null | undefined): Promise<Dados
 export function inscricaoDoEstado(d: DadosCnpj, uf?: string | null) {
   const ativas = (d.inscricoes ?? []).filter((i) => i.ativa && i.numero);
   return (ativas.find((i) => i.uf === (uf ?? d.uf)) ?? ativas[0])?.numero ?? null;
+}
+
+/** CNAEs secundários como texto, um por linha ("3314-7/12 Manutenção de máquinas"), para editar na tela. */
+export function cnaesEmTexto(lista: Atividade[] | null | undefined) {
+  return (lista ?? []).map((a) => `${a.codigo} ${a.descricao}`.trim()).join("\n");
+}
+
+/** Lê o texto da tela de volta: cada linha começa pelo código (com ou sem máscara) e o resto é a descrição. */
+export function cnaesDoTexto(texto: string | null | undefined): Atividade[] {
+  return String(texto ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).flatMap((l) => {
+    const m = l.match(/^(\d{4}-?\d\/?\d{2})\s*[-–:]?\s*(.*)$/);
+    return m ? [{ codigo: cnaeFormatado(m[1])!, descricao: m[2].trim() }] : [];
+  });
 }
 
 /** Preenche só o que está vazio no cadastro (não apaga o que a pessoa já digitou). */

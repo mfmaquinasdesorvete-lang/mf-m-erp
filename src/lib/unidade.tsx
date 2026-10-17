@@ -10,6 +10,9 @@ export type Unidade = {
   razao_social: string | null; cnpj: string | null; inscricao_estadual: string | null; inscricao_municipal: string | null;
   logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null;
   municipio: string | null; uf: string | null; cep: string | null; telefone: string | null; whatsapp: string | null; email: string | null;
+  /** atividade principal e secundárias (CNAE), como no cartão CNPJ */
+  cnae_principal?: string | null; cnae_principal_descricao?: string | null;
+  cnaes_secundarios?: import("../../supabase/functions/_shared/receita").Atividade[] | null;
   instrucoes_pagamento: string | null; pix_chave?: string | null; pix_nome?: string | null; pix_cidade?: string | null;
   infinitepay_tag?: string | null; infinitepay_taxas?: import("./infinitepay").TaxasInfinitePay | null;
   serie_nfe: number; natureza_operacao: string; cfop_venda_producao: string; cfop_venda_revenda: string;

@@ -6,11 +6,15 @@
 export type Endereco = { cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null; uf: string | null };
 export type Inscricao = { numero: string; uf: string; ativa: boolean };
 export type Opcao = { optante: boolean; desde: string | null };
+/** Atividade econômica (CNAE) com a máscara da Receita: { codigo: "2829-1/99", descricao } */
+export type Atividade = { codigo: string; descricao: string };
 export type DadosReceita = {
   nome: string; fantasia: string | null; situacao: string | null; email: string | null; telefones: string[];
   endereco: Endereco; inscricoes: Inscricao[] | null; fonte: string; consultado_em?: string;
   /** Simples Nacional e MEI (optante e desde quando), atividade principal (CNAE), abertura e porte, quando a fonte informa */
-  simples?: Opcao | null; mei?: Opcao | null; cnae?: { codigo: string; descricao: string } | null; abertura?: string | null; porte?: string | null;
+  simples?: Opcao | null; mei?: Opcao | null; cnae?: Atividade | null; abertura?: string | null; porte?: string | null;
+  /** atividades secundárias (CNAE), como no cartão CNPJ */
+  cnaes_secundarios?: Atividade[];
 };
 export type ClienteReceita = {
   nome: string; nome_fantasia?: string | null; email?: string | null; telefone?: string | null; whatsapp?: string | null;
@@ -34,7 +38,11 @@ const opcao = (optante: unknown, desde: unknown): Opcao | null =>
   optante == null || optante === "" ? null : { optante: optante === true || /^(s|sim|true)$/i.test(String(optante)), desde: data(desde) };
 /** CNAE com a máscara: 5611203 → 5611-2/03 */
 export const cnaeFormatado = (c: unknown) => { const d = dig(c); return d.length === 7 ? `${d.slice(0, 4)}-${d[4]}/${d.slice(5)}` : d || null; };
-const cnae = (codigo: unknown, descricao: unknown) => (dig(codigo) ? { codigo: cnaeFormatado(codigo)!, descricao: String(descricao ?? "").trim() } : null);
+const cnae = (codigo: unknown, descricao: unknown): Atividade | null =>
+  (/[1-9]/.test(dig(codigo)) ? { codigo: cnaeFormatado(codigo)!, descricao: String(descricao ?? "").trim() } : null);
+/** Lista de atividades de cada fonte (campos do código e da descrição mudam); código vazio ou 0 fica de fora */
+export const atividades = (lista: unknown, cod: string, desc: string): Atividade[] =>
+  (Array.isArray(lista) ? lista.map((x) => cnae(x?.[cod], x?.[desc])).filter((x): x is Atividade => !!x) : []);
 /** Texto todo em maiúsculas vira "Título"; o que já vem com maiúsculas e minúsculas fica como está. */
 const capitalizar = (s: unknown) => { const t = ou(s); return t && t === t.toUpperCase() ? titulo(t) : t; };
 
@@ -62,6 +70,7 @@ export function daBrasilApi(j: any): DadosReceita | null {
     inscricoes: null, fonte: "BrasilAPI",
     simples: opcao(j.opcao_pelo_simples, j.data_opcao_pelo_simples), mei: opcao(j.opcao_pelo_mei, j.data_opcao_pelo_mei),
     cnae: cnae(j.cnae_fiscal, j.cnae_fiscal_descricao), abertura: data(j.data_inicio_atividade), porte: ou(j.porte),
+    cnaes_secundarios: atividades(j.cnaes_secundarios, "codigo", "descricao"),
   };
 }
 
@@ -83,6 +92,7 @@ export function doCnpjWs(j: any): DadosReceita | null {
     fonte: "CNPJ.ws",
     simples: opcao(j.simples?.simples, j.simples?.data_opcao_simples), mei: opcao(j.simples?.mei, j.simples?.data_opcao_mei),
     cnae: cnae(e.atividade_principal?.id, e.atividade_principal?.descricao), abertura: data(e.data_inicio_atividade), porte: ou(j.porte?.descricao),
+    cnaes_secundarios: atividades(e.atividades_secundarias, "id", "descricao"),
   };
 }
 
@@ -109,6 +119,7 @@ export function doCnpja(j: any): DadosReceita | null {
     fonte: "CNPJá",
     simples: opcao(j.company.simples?.optant, j.company.simples?.since), mei: opcao(j.company.simei?.optant, j.company.simei?.since),
     cnae: cnae(j.mainActivity?.id, j.mainActivity?.text), abertura: data(j.founded), porte: ou(j.company.size?.text),
+    cnaes_secundarios: atividades(j.sideActivities, "id", "text"),
   };
 }
 
