@@ -1187,6 +1187,9 @@ function bancosDemo(db: Db) {
     { id: "cb2", unidade_id: U_SC, nome: "Nubank SC", banco: "nubank", agencia: "0001", numero: "998877-1", tipo: "corrente", saldo_inicial: 6200, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45) },
     { id: "cb3", unidade_id: U_SC, nome: "InfinitePay SC", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 0, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45) },
     { id: "cb4", unidade_id: U_SP, nome: "Unicred SP", banco: "unicred", agencia: "0207", numero: "54321-0", tipo: "corrente", saldo_inicial: 15400, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45) },
+    // cartão de uma pessoa: os débitos viram o "Cartão Rafael" no Início (o real é o Cartão Fabiano)
+    { id: "cb5", unidade_id: U_SP, nome: "InfinitePay SP", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 3000, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45),
+      cartao_nome: "Cartão Rafael", cartao_responsavel: "u-fin" },
   ];
   // exceções de exemplo: boleto lançado duas vezes e um pagamento redondo sem documento
   db.contas_pagar.push(
@@ -1196,6 +1199,18 @@ function bancosDemo(db: Db) {
     { id: "cp8", descricao: "Adiantamento a fornecedor", categoria: "outros", valor: 10000, vencimento: dias(-20), status: "pago", data_pagamento: dias(-20), valor_pago: 10000, unidade_id: U_SC, created_at: quando(-21) },
   );
   db.extrato_lancamentos = [];
+  // gastos do cartão (hoje, ontem e no mês): padaria, posto, mercado, material, farmácia e um Pix
+  ([[0, -12.5, "PADARIA CENTRAL · mfmaquinas"], [0, -64, "MP *RESTAURANTE DO CENTRO · mfmaquinas"], [0, -180, "AUTO POSTO EXEMPLO · mfmaquinas"],
+    [0, -128.72, "ELETRO MATERIAIS EXEMPLO · mfmaquinas"], [-1, -73.08, "SUPERMERCADO EXEMPLO · mfmaquinas"], [-1, -22.9, "DROGARIA EXEMPLO · mfmaquinas"],
+    [-1, -350, "Pix PRESTADOR EXEMPLO · Enviado"], [-3, -95.4, "JIM.COM* ESPETARIA DO ZE · mfmaquinas"], [-5, -2000, "Pix MF MAQUINAS LTDA · Enviado"],
+    [-6, -210, "POSTO DA SERRA · mfmaquinas"], [-8, -45, "CASA DOS PARAFUSOS · mfmaquinas"]] as [number, number, string][])
+    .forEach(([d, v, desc], i) => db.extrato_lancamentos.push({ id: `cx${i + 1}`, conta_bancaria_id: "cb5", importacao_id: null, data: dias(d), valor: v, descricao: desc, documento: null,
+      identificador: `cx-${i + 1}`, status: "pendente", conta_receber_id: null, conta_pagar_id: null, baixou_conta: false, par_transferencia_id: null, observacao: null,
+      conciliado_em: null, created_at: quando(d) }));
+  db.cartao_gastos = [{ lancamento_id: "cx6", situacao: "pessoal", categoria: null, nota_numero: null, nfe_recebida_id: null, observacao: null, atualizado_em: quando(-1) }];
+  // a NF-e do material comprado no cartão já chegou da SEFAZ (casa pelo valor)
+  db.nfe_recebidas.push({ id: "nr-cartao", chave: "35261099888777000166550010000001231000001230", emitente_nome: "Eletro Materiais Exemplo Ltda", emitente_cnpj: "99888777000166",
+    valor_total: 128.72, data_emissao: quando(0), situacao: "autorizada", manifestacao: "ciencia", unidade_id: U_SP, processamento: "pendente", created_at: quando(0), itens: [] });
   db.openfinance_conexoes = [];
   db.inter_conexoes = [];
   db.compras_legado = [];
@@ -4138,6 +4153,39 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: null, error: null };
   },
   aprovar_cotacao_envio: ({ p_cotacao, p_cobrar_cliente = false }) => rpcs.aprovar_frete_envio({ p_cotacao, p_justificativa: null, p_cobrar_cliente }),
+  // cartão corporativo: o do responsável e, para o financeiro e o administrador, todos
+  cartoes_corporativos: () => ({ data: db.contas_bancarias.filter((c) => c.cartao_nome && c.ativo && (podeFinanceiro() || c.cartao_responsavel === sessao?.user.id)).map((c) => {
+    const u = db.unidades.find((x) => x.id === c.unidade_id);
+    const datas = db.extrato_lancamentos.filter((e) => e.conta_bancaria_id === c.id).map((e) => e.data).sort();
+    return { id: c.id, nome: c.nome, cartao_nome: c.cartao_nome, cartao_responsavel: c.cartao_responsavel, unidade_id: c.unidade_id, unidade_nome: u?.nome ?? null, unidade_cnpj: u?.cnpj ?? null, extrato_ate: datas[datas.length - 1] ?? null };
+  }), error: null }),
+  gastos_cartao: ({ p_conta, p_de }) => {
+    const c = db.contas_bancarias.find((x) => x.id === p_conta);
+    if (!c || !(podeFinanceiro() || c.cartao_responsavel === sessao?.user.id)) return erro("Sem acesso a este cartão");
+    return { data: db.extrato_lancamentos.filter((e) => e.conta_bancaria_id === p_conta && Number(e.valor) < 0 && e.data >= p_de && e.status !== "transferencia")
+      .sort((a, b) => (a.data < b.data ? 1 : -1)).map((e) => {
+        const g = (db.cartao_gastos ?? []).find((x: Row) => x.lancamento_id === e.id) ?? {};
+        return { id: e.id, data: e.data, valor: e.valor, descricao: e.descricao, identificador: e.identificador, status: e.status, conta_pagar_id: e.conta_pagar_id,
+          situacao: g.situacao ?? "pendente", categoria: g.categoria ?? null, nota_numero: g.nota_numero ?? null, nfe_recebida_id: g.nfe_recebida_id ?? null, observacao: g.observacao ?? null, atualizado_em: g.atualizado_em ?? null };
+      }), error: null };
+  },
+  notas_cartao: ({ p_conta }) => {
+    const c = db.contas_bancarias.find((x) => x.id === p_conta);
+    return { data: db.nfe_recebidas.filter((n) => n.unidade_id === c?.unidade_id).map((n) => ({ id: n.id, chave: n.chave, emitente_nome: n.emitente_nome, valor_total: n.valor_total, data_emissao: String(n.data_emissao).slice(0, 10) })), error: null };
+  },
+  marcar_gasto_cartao: ({ p_lancamento, p_situacao, p_categoria = null, p_nota = null, p_obs = null, p_nfe = null }) => {
+    const e = db.extrato_lancamentos.find((x) => x.id === p_lancamento && Number(x.valor) < 0);
+    if (!e) return erro("Lançamento não encontrado");
+    const c = db.contas_bancarias.find((x) => x.id === e.conta_bancaria_id);
+    if (!(podeFinanceiro() || c?.cartao_responsavel === sessao?.user.id)) return erro("Sem acesso a este cartão");
+    if (p_situacao === "sem_nota" && String(p_obs ?? "").trim().length < 3) return erro("Escreva por que não há nota");
+    db.cartao_gastos ??= [];
+    let g = db.cartao_gastos.find((x: Row) => x.lancamento_id === p_lancamento);
+    if (!g) { g = { lancamento_id: p_lancamento, categoria: null, nota_numero: null, nfe_recebida_id: null, observacao: null }; db.cartao_gastos.push(g); }
+    Object.assign(g, { situacao: p_situacao, categoria: p_categoria ?? g.categoria, nota_numero: String(p_nota ?? "").trim() || (p_situacao === "recebida" ? g.nota_numero : null),
+      nfe_recebida_id: p_nfe ?? (p_situacao === "recebida" ? g.nfe_recebida_id : null), observacao: String(p_obs ?? "").trim() || g.observacao, atualizado_em: new Date().toISOString() });
+    return { data: null, error: null };
+  },
   // agendamento da coleta: mesma regra do banco (frequência da transportadora no endereço; fora dela, só urgência)
   agendar_coleta: ({ p_envio, p_data, p_periodo, p_protocolo = null, p_urgente = false, p_obs = null }) => {
     const e = db.envios.find((x) => x.id === p_envio);

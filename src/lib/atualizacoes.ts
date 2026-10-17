@@ -190,6 +190,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Agendamento da coleta no envio (Fretes → envio → Execução), como no portal da Rodonaves: os próximos dias de coleta em botões (SEG 19/10…), período manhã (08h às 12h) ou tarde (13h às 18h), nº da coleta, coleta de urgência e o pedido pronto para o WhatsApp da transportadora. A frequência de coleta de cada transportadora em cada endereço da MF fica em Transportadoras → Coleta.",
       "Rodonaves pela API: \"Cotar na Rodonaves (API)\" nas cotações do envio registra o valor e o prazo; \"Testar conexão\" em Transportadoras → Rodonaves → API e internet. Usuário e senha só nos secrets do Supabase.",
       "Fluxo de pedidos com cabeçalho menor: título, busca, vendedor e NF-e automática numa linha e os canais numa faixa só.",
+      "Cartão Fabiano (Início e Painel do financeiro): os débitos da conta InfinitePay SP como cartão da pessoa — gasto de hoje, da semana e do mês por categoria (alimentação, combustível, mercado, material, veículo, compras online, farmácia, Pix), as compras que ainda precisam de nota com o CNPJ da empresa, a NF-e que já chegou da SEFAZ casada pelo valor e os botões Pedi a nota, Nota ok, Sem nota (com o motivo) e Pessoal, com a regra de cada gasto no Lucro Real.",
       "Notas de serviço feitas fora do ERP (Notas fiscais → NFS-e → Importar notas): as emitidas pela MF no Tiny, na prefeitura ou no Emissor Nacional e as recebidas de fornecedores (aba Recebidas), pelo XML, ZIP ou relatório do Tiny, com ISS e retenções de IR, INSS, PIS, COFINS e CSLL.",
     ],
   },

@@ -12,6 +12,7 @@ import {
 import { Section } from "@/components/ui";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import { Fluxo } from "@/components/financeiro/VisaoGeral";
+import { CartoesCorporativos } from "@/components/financeiro/CartaoCorporativo";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
   type Cartao, type ItemAtencao,
@@ -172,6 +173,7 @@ export default function PainelFinanceiroArea() {
             <Plus size={16} /> Conta a pagar
           </button>
         )} />
+      <CartoesCorporativos className="" />
 
       <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}

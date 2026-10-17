@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState, type CSSProperties } from "react";
 import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
+import { CartoesCorporativos } from "@/components/financeiro/CartaoCorporativo";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch, Plus,
@@ -82,6 +83,7 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+      <CartoesCorporativos />
       {atual === "financeiro" ? <PainelFinanceiro />
         : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>
         : <PainelGeral />}
