@@ -13,7 +13,12 @@ export type Backup = {
   ultimo: { em: string; status: string; detalhe: string | null; hostinger_em: string | null } | null;
 };
 export type Chamadas = { ok: number; erro: number; tempo_esgotado: number; desde: string | null; ultimo_erro: string | null };
-export type Saude = { agora: string; automacoes: Automacao[]; filas: Fila[]; backup: Backup; chamadas?: Chamadas; historico_linhas: number };
+/** Chave ou certificado com data para vencer: o nome, onde está e a data — nunca a chave em si. */
+export type Vencimento = {
+  id: string; origem: "cadastro" | "inter"; nome: string; tipo: TipoChave; onde: string | null; vence_em: string;
+  avisar_dias: number; como_renovar: string | null; dias: number;
+};
+export type Saude = { agora: string; automacoes: Automacao[]; filas: Fila[]; backup: Backup; chamadas?: Chamadas; vencimentos?: Vencimento[]; historico_linhas: number };
 
 export type SituacaoAuto = "ok" | "instavel" | "atrasada" | "falhou" | "aguardando" | "desligada";
 export const SITUACAO_AUTO: Record<SituacaoAuto, { nome: string; cor: string; ponto: string; grave: number }> = {
@@ -109,6 +114,28 @@ export const FILAS: Record<string, { nome: string; texto: string; tela: string; 
   sugestoes: { nome: "Sugestões de produtos", texto: "Correções de cadastro esperando aplicar ou ignorar.", tela: "/estoque?aba=qualidade" },
 };
 
+export type TipoChave = "certificado" | "chave" | "senha" | "dominio" | "outro";
+export const TIPOS_CHAVE: Record<TipoChave, string> = {
+  certificado: "Certificado digital", chave: "Chave de acesso (token)", senha: "Senha que expira", dominio: "Domínio ou site", outro: "Outro",
+};
+
+/** O que mais costuma parar o ERP quando vence: atalhos para cadastrar (a data a empresa preenche). */
+export const SUGESTOES_CHAVES: { nome: string; tipo: TipoChave; onde: string; como_renovar: string; avisar_dias: number }[] = [
+  { nome: "Certificado digital A1 · Matriz SC", tipo: "certificado", onde: "Focus NF-e (emissão das notas da matriz)", avisar_dias: 30,
+    como_renovar: "Comprar o A1 novo na certificadora e enviar o arquivo na Focus NF-e da matriz." },
+  { nome: "Certificado digital A1 · Filial SP", tipo: "certificado", onde: "Focus NF-e (emissão das notas da filial)", avisar_dias: 30,
+    como_renovar: "Comprar o A1 novo na certificadora e enviar o arquivo na Focus NF-e da filial." },
+  { nome: "Chave do Supabase no GitHub", tipo: "chave", onde: "GitHub → Settings → Secrets → SUPABASE_ACCESS_TOKEN (backup e funções)", avisar_dias: 15,
+    como_renovar: "Gerar outra chave no Supabase (Account → Access Tokens) e trocar o secret no GitHub." },
+  { nome: "Domínio e hospedagem do ERP", tipo: "dominio", onde: "Hostinger (domínio e hospedagem do site)", avisar_dias: 30,
+    como_renovar: "Renovar o domínio e a hospedagem na Hostinger." },
+];
+
+export type SituacaoVencimento = "vencido" | "urgente" | "perto" | "ok";
+/** Vencido, 3 dias ou menos (urgente), dentro do prazo de aviso (perto) ou em dia. */
+export const situacaoVencimento = (v: Pick<Vencimento, "dias" | "avisar_dias">): SituacaoVencimento =>
+  v.dias < 0 ? "vencido" : v.dias <= 3 ? "urgente" : v.dias <= v.avisar_dias ? "perto" : "ok";
+
 /** Dias (inteiros) entre duas datas. */
 export const diasDesde = (de: string, agora: Date | string) => Math.floor((new Date(agora).getTime() - new Date(de).getTime()) / 864e5);
 
@@ -139,6 +166,12 @@ export function resumoSaude(s: Saude, agora: Date | string): Resumo {
     if (sit === "falhou") graves.push(`Automação ${nome}: falhou na última rodada${a.ultimo_erro ? ` (${a.ultimo_erro.slice(0, 80)})` : ""}`);
     if (sit === "atrasada") graves.push(`Automação ${nome}: não roda desde ${new Date(a.ultima!).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
     if (sit === "instavel") leves.push(`Automação ${nome}: ${a.falhas_24h} falha(s) nas últimas 24 horas`);
+  }
+  for (const v of s.vencimentos ?? []) {
+    const sit = situacaoVencimento(v);
+    if (sit === "vencido") graves.push(`${v.nome}: venceu há ${-v.dias} ${v.dias === -1 ? "dia" : "dias"}`);
+    else if (sit === "urgente") graves.push(`${v.nome}: vence ${v.dias === 0 ? "hoje" : `em ${v.dias} ${v.dias === 1 ? "dia" : "dias"}`}`);
+    else if (sit === "perto") leves.push(`${v.nome}: vence em ${v.dias} dias`);
   }
   if (s.chamadas && s.chamadas.erro > 0) (s.chamadas.erro >= 3 ? graves : leves).push(`Funções do ERP: ${s.chamadas.erro} chamada(s) com erro nas últimas 6 horas`);
   for (const f of s.filas) {

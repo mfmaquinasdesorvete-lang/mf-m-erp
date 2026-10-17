@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  AUTOMACOES, ETAPAS, agendaEmPortugues, diagnosticoMonitor, etapasPreenchidas, intervaloCron, resumoSaude, situacaoAutomacao, situacaoBackup,
+  AUTOMACOES, ETAPAS, SUGESTOES_CHAVES, agendaEmPortugues, situacaoVencimento, diagnosticoMonitor, etapasPreenchidas, intervaloCron, resumoSaude, situacaoAutomacao, situacaoBackup,
   type Automacao, type Saude,
 } from "../monitor";
 
@@ -73,6 +73,23 @@ describe("monitor das automações", () => {
     expect(diagnosticoMonitor(s, agora).split("\n")[0]).toBe("1 de 3 automações em dia ou esperando a 1ª rodada.");
     const tudoBem: Saude = { ...s, automacoes: [s.automacoes[0]], filas: [], chamadas: { ...s.chamadas!, erro: 0 }, backup: { ultimo_ok: ha(60), falhas_seguidas: 0, ultimo: null } };
     expect(resumoSaude(tudoBem, agora)).toMatchObject({ nivel: "ok", problemas: [] });
+  });
+
+  it("chaves e certificados: vencido, urgente (3 dias), perto (no prazo de aviso) e em dia; entram no resumo", () => {
+    expect(situacaoVencimento({ dias: -1, avisar_dias: 15 })).toBe("vencido");
+    expect(situacaoVencimento({ dias: 3, avisar_dias: 15 })).toBe("urgente");
+    expect(situacaoVencimento({ dias: 15, avisar_dias: 15 })).toBe("perto");
+    expect(situacaoVencimento({ dias: 16, avisar_dias: 15 })).toBe("ok");
+    const v = (nome: string, dias: number) => ({ id: nome, origem: "cadastro" as const, nome, tipo: "chave" as const, onde: null, vence_em: "2026-10-20", avisar_dias: 15, como_renovar: null, dias });
+    const s: Saude = {
+      agora, historico_linhas: 0, automacoes: [], filas: [], backup: { ultimo_ok: ha(60), falhas_seguidas: 0, ultimo: null },
+      vencimentos: [v("Chave do Supabase", 2), v("Certificado SC", 10), v("Domínio", 90)],
+    };
+    const r = resumoSaude(s, agora);
+    expect(r.nivel).toBe("critico");
+    expect(r.problemas).toEqual(["Chave do Supabase: vence em 2 dias", "Certificado SC: vence em 10 dias"]);
+    // as sugestões nunca pedem a chave: só nome, onde e como renovar
+    for (const x of SUGESTOES_CHAVES) expect(`${x.nome} ${x.onde} ${x.como_renovar}`).not.toMatch(/sbp_|senha:/i);
   });
 
   it("registro em 6 etapas na ordem pedida e todas as automações do banco com nome em português", () => {

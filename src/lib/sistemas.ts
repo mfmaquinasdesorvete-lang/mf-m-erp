@@ -113,7 +113,8 @@ SISTEMAS.push({
       telas: [{ rotulo: "Registro", to: "/sobre?aba=monitor" }] },
     { nome: "Backup diário", situacao: "parcial", texto: "Banco e arquivos com teste de restauração todo dia. A cópia só é guardada com a chave de criptografia e o acesso ao Supabase em dia nos secrets do GitHub.",
       telas: [{ rotulo: "Monitor: backup", to: "/sobre?aba=monitor" }, { rotulo: "Configurações", to: "/configuracoes" }] },
-    { nome: "Prazos de chaves e certificados", situacao: "falta", texto: "Avisar antes de vencer o certificado digital, as chaves dos bancos e o acesso do GitHub ao Supabase (o backup parou por isso).", telas: [] },
+    { nome: "Prazos de chaves e certificados", situacao: "tem", texto: "Certificado digital, chave do Supabase no GitHub, domínio e certificado do Banco Inter com a data; o vigia avisa antes de vencer (urgente a 3 dias).",
+      telas: [{ rotulo: "Monitor: chaves", to: "/sobre?aba=monitor" }] },
     { nome: "Nova tentativa sozinha", situacao: "falta", texto: "Tentar de novo o que falhou por instabilidade (e-mail, NF-e) e só chamar alguém se continuar falhando.", telas: [] },
   ],
 });

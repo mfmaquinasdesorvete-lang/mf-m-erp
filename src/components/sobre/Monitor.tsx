@@ -1,5 +1,6 @@
-// Sobre → Monitor (só o administrador): a saúde do ERP de relance — o backup, as automações agendadas (rodou na hora?
-// falhou?), as respostas das funções, as filas que travam o trabalho — e o registro das execuções dos comandos.
+// Sobre → Monitor (só o administrador): a saúde do ERP de relance — o backup, as chaves e certificados que vencem, as
+// automações agendadas (rodou na hora? falhou?), as respostas das funções, as filas que travam o trabalho — e o
+// registro das execuções dos comandos.
 // O vigia (pg_cron erp-vigiar-sistema) confere o mesmo de hora em hora e avisa no sino; esta tela mostra o porquê.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -13,6 +14,7 @@ import {
   type Saude,
 } from "@/lib/monitor";
 import { ExecucaoModal, RegistroExecucoes, type InicialExecucao } from "./Execucoes";
+import { Chaves } from "./Chaves";
 
 const haQuanto = (iso: string | null, agora: string) => {
   if (!iso) return "nunca";
@@ -62,6 +64,8 @@ export function Monitor() {
           </div>
 
           <BackupCartao s={s} />
+
+          <Chaves lista={s.vencimentos ?? []} />
 
           <Card className="overflow-hidden">
             <div className="flex items-center gap-2 border-b border-slate-100 p-4">

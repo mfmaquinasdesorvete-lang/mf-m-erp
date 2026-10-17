@@ -175,6 +175,8 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Sobre → Monitor (só o administrador): o backup, cada automação agendada (em dia, atrasada, falhou), as respostas das funções e as filas que travam o trabalho, com o caminho para resolver. Um vigia confere tudo de hora em hora e avisa no sino; backup sem cópia guardada vira aviso urgente com ciência.",
       "Cada comando tem uma entrega clara e cada execução fica registrada em 6 etapas: entrada → diagnóstico → decisão → entrega → validação → próxima ação. Comandos novos: MONITOR (monitoramento contínuo), ANALYZE (gargalos, UX, desempenho, consistência, riscos e oportunidades) e INNOVATE (pesquisa, tendências, testes, MVP, validação, lançamento e melhoria).",
       "Sobre → Sistemas ganhou o sistema de monitoramento e automações e o motor de inovação.",
+      "Monitor → Chaves e certificados: o certificado digital de cada unidade, a chave do Supabase que o GitHub usa (backup e funções), o domínio e o certificado do Banco Inter com a data de vencimento; o vigia avisa no prazo escolhido e fica urgente a 3 dias. Guarda só o nome, onde está e a data, nunca a chave.",
+      "Segurança: a biblioteca de rotas das telas foi para a versão 7 (corrige um aviso de redirecionamento por link); nada muda no uso.",
     ],
   },
 };

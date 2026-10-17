@@ -1001,6 +1001,11 @@ function planoDemo(db: Db) {
   ];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
+  // chaves e certificados com data para vencer (exemplo; no sistema real: public.vencimentos_chaves, só o administrador)
+  db.vencimentos_chaves = [
+    { id: "vc1", nome: "Chave do Supabase no GitHub", tipo: "chave", onde: "GitHub → Settings → Secrets → SUPABASE_ACCESS_TOKEN (backup e funções)",
+      vence_em: quando(5).slice(0, 10), avisar_dias: 15, como_renovar: "Gerar outra chave no Supabase (Account → Access Tokens) e trocar o secret no GitHub.", situacao: "ativa" },
+  ];
   // registro das execuções dos comandos (exemplos; no sistema real: public.ecl_execucoes, só o administrador)
   db.ecl_execucoes = [
     { id: "ex1", comando: "MONITOR", alvo: "automacoes", origem: "monitor", situacao: "em_andamento", criado_em: quando(-0.1),
@@ -2010,6 +2015,9 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       ],
       backup: { ultimo_ok: null, falhas_seguidas: 3, ultimo: { em: ha(2 * 1440), status: "erro", detalhe: "O backup de hoje falhou no GitHub (exemplo)", hostinger_em: null } },
       chamadas: { ok: 96, erro: 0, tempo_esgotado: 0, desde: ha(360), ultimo_erro: null },
+      vencimentos: (db.vencimentos_chaves ?? []).filter((v: Row) => (v.situacao ?? "ativa") === "ativa")
+        .map((v: Row) => ({ ...v, origem: "cadastro", dias: Math.round((Date.parse(v.vence_em) - Date.parse(new Date().toISOString().slice(0, 10))) / 864e5) }))
+        .sort((a: Row, b: Row) => a.vence_em.localeCompare(b.vence_em)),
     } };
   },
   // no sistema real: public.gerar/aplicar/ignorar_sugestoes_produtos (Produtos → Qualidade do cadastro)
