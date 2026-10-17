@@ -39,9 +39,12 @@ export const useNotificacoes = () => useContext(NotifCtx);
 const CHAVE_SOM = "erp.avisos.som";
 const somLigado = () => { try { return localStorage.getItem(CHAVE_SOM) !== "off"; } catch { return true; } };
 
-/** Som de aviso sem arquivo de áudio: normal = dois toques; importante = três toques subindo; urgente = sirene curta. */
-function tocar(nivel: Urgencia = "normal") {
-  if (nivel !== "urgente" && !somLigado()) return; // urgente toca sempre
+/**
+ * Som de aviso sem arquivo de áudio: normal = dois toques; importante = três toques subindo; urgente = sirene curta.
+ * `sempre`: toca mesmo com o som dos avisos desligado (a tela que chama tem o seu próprio liga/desliga).
+ */
+export function tocar(nivel: Urgencia = "normal", sempre = false) {
+  if (nivel !== "urgente" && !sempre && !somLigado()) return; // urgente toca sempre
   try {
     const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
     const notas = nivel === "urgente" ? [988, 740, 988, 740, 988, 740] : nivel === "importante" ? [660, 880, 1175] : [880, 1320];

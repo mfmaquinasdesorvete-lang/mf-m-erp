@@ -89,6 +89,22 @@ export function serieMensal(vendas: Venda[], hoje: string, n = 12) {
 
 export type LinhaABC = { chave: string; rotulo: string; valor: number; quantidade: number; vezes: number; pct: number; acumulado: number; classe: "A" | "B" | "C" };
 
+/** Período da curva ABC (como no relatório do Tiny): últimos meses, este ano, o ano passado ou tudo. */
+export type JanelaABC = "3m" | "6m" | "12m" | "24m" | "ano" | "ano_passado" | "tudo";
+export const JANELAS_ABC: { v: JanelaABC; rotulo: string }[] = [
+  { v: "3m", rotulo: "últimos 3 meses" }, { v: "6m", rotulo: "últimos 6 meses" }, { v: "12m", rotulo: "últimos 12 meses" },
+  { v: "24m", rotulo: "últimos 24 meses" }, { v: "ano", rotulo: "este ano" }, { v: "ano_passado", rotulo: "o ano passado" }, { v: "tudo", rotulo: "todo o histórico" },
+];
+/** Datas (aaaa-mm-dd, inclusivas) da janela; sem "de" = desde o começo. */
+export function periodoABC(janela: JanelaABC, dia: string): { de: string | null; ate: string } {
+  const dias = { "3m": 91, "6m": 182, "12m": 365, "24m": 730 } as Record<string, number>;
+  if (dias[janela]) return { de: new Date(Date.parse(dia) - (dias[janela] - 1) * 864e5).toISOString().slice(0, 10), ate: dia };
+  const ano = Number(dia.slice(0, 4));
+  if (janela === "ano") return { de: `${ano}-01-01`, ate: dia };
+  if (janela === "ano_passado") return { de: `${ano - 1}-01-01`, ate: `${ano - 1}-12-31` };
+  return { de: null, ate: dia };
+}
+
 /** Curva ABC: A = itens que somam os primeiros 80% do valor, B = até 95%, C = o resto. */
 export function curvaABC(itens: { chave: string; rotulo: string; valor: number; quantidade?: number; vezes?: number }[]): LinhaABC[] {
   const total = itens.reduce((s, i) => s + i.valor, 0);

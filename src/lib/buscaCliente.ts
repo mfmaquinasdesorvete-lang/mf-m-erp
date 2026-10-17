@@ -5,7 +5,16 @@ import { digitos } from "./format";
 export type ClienteBuscavel = {
   id: string; codigo?: number | null; nome: string; nome_fantasia?: string | null; cpf_cnpj?: string | null;
   municipio?: string | null; uf?: string | null; email?: string | null; telefone?: string | null; whatsapp?: string | null;
+  telefone_adicional?: string | null;
 };
+
+/** Número digitado com o código do país (+55): sem ele, para achar quem foi gravado só com DDD e número. */
+export const semDDI = (d: string) => (d.length >= 12 && d.startsWith("55") ? d.slice(2) : d);
+/** DDD de um telefone (com ou sem +55); vazio se não der para saber. */
+export function dddDe(telefone: string | null | undefined) {
+  const d = semDDI(digitos(telefone).replace(/^0+/, ""));
+  return d.length >= 10 ? d.slice(0, 2) : "";
+}
 
 /** Minúsculas, sem acento e com espaços simples. */
 export const normalizar = (s: string | number | null | undefined) =>
@@ -13,7 +22,8 @@ export const normalizar = (s: string | number | null | undefined) =>
 
 const texto = (c: ClienteBuscavel) =>
   normalizar([c.codigo, c.nome, c.nome_fantasia, c.municipio, c.uf, c.email, c.cpf_cnpj].filter(Boolean).join(" "));
-const numeros = (c: ClienteBuscavel) => [c.cpf_cnpj, c.telefone, c.whatsapp].map(digitos).filter(Boolean);
+const numeros = (c: ClienteBuscavel) => [c.cpf_cnpj, c.telefone, c.whatsapp, c.telefone_adicional].map(digitos).filter(Boolean);
+const telefones = (c: ClienteBuscavel) => [c.telefone, c.whatsapp, c.telefone_adicional].map(digitos).filter(Boolean);
 
 /**
  * Nota de quanto o cliente combina com o que foi digitado (0 = não combina). Cada palavra precisa aparecer
@@ -23,7 +33,7 @@ export function notaCliente(c: ClienteBuscavel, consulta: string): number {
   const q = normalizar(consulta);
   if (!q) return 1;
   const d = digitos(consulta);
-  const soNumero = d.length >= 3 && /^[\d\s.\-/()]+$/.test(consulta.trim());
+  const soNumero = d.length >= 3 && /^[\d\s.\-/()+]+$/.test(consulta.trim());
   const docs = numeros(c);
   const doc = digitos(c.cpf_cnpj);
 
@@ -33,7 +43,7 @@ export function notaCliente(c: ClienteBuscavel, consulta: string): number {
     if (doc.startsWith(d)) return 70;
     // meio do CPF/CNPJ só com 8 números ou mais; telefone vale qualquer pedaço com 4 ou mais
     if (d.length >= 8 && doc.includes(d)) return 60;
-    if (d.length >= 4 && [c.telefone, c.whatsapp].some((n) => digitos(n).includes(d))) return 50;
+    if (d.length >= 4 && telefones(c).some((n) => n.includes(d) || n.includes(semDDI(d)))) return 50;
     return 0;
   }
   const t = texto(c);
@@ -67,6 +77,6 @@ export function combinaBusca(campos: unknown[], consulta: string): boolean {
   const valores = campos.map((v) => (Array.isArray(v) ? v.join(" ") : v == null ? "" : String(v)));
   const t = normalizar(valores.join(" "));
   const d = digitos(consulta);
-  if (d.length >= 3 && /^[\d\s.\-/()]+$/.test(consulta.trim()) && valores.some((v) => digitos(v).includes(d))) return true;
+  if (d.length >= 3 && /^[\d\s.\-/()+]+$/.test(consulta.trim()) && valores.some((v) => { const n = digitos(v); return n.includes(d) || n.includes(semDDI(d)); })) return true;
   return q.split(" ").every((p) => t.includes(p));
 }

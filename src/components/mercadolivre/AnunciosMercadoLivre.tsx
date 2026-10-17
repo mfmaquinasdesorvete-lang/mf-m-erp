@@ -2,7 +2,7 @@
 // (em dia, na fila, aguardando aprovação, erro…), exceções (não mandar estoque ou preço), aprovar preço travado,
 // ligar a um produto e buscar os anúncios da conta. No celular a tabela vira cartões.
 import { useMemo, useState, type ReactNode } from "react";
-import { Download, ExternalLink, Link2, Loader2, Search, Send } from "lucide-react";
+import { Download, ExternalLink, Link2, Loader2, Pause, Play, Search, Send } from "lucide-react";
 import { Button, Card, Modal, Table } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { confirmar } from "@/components/Dialogos";
@@ -12,7 +12,7 @@ import { pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import type { ProdutoBuscavel } from "@/lib/buscaProduto";
 import { corSituacao, linkAnuncio, nomeSituacao, reais, SITUACOES, textoResumoEnvio, type AnuncioComPlano, type ContaML, type Situacao } from "@/lib/mlAnuncios";
-import { aprovarPreco, buscarAnunciosML, ligarAnuncio, mudarExcecao, sincronizarAgora } from "@/lib/useMercadoLivre";
+import { aprovarPreco, buscarAnunciosML, ligarAnuncio, mudarExcecao, mudarSituacaoAnuncios, sincronizarAgora } from "@/lib/useMercadoLivre";
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const POR_PAGINA = 100;
@@ -95,6 +95,10 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
   const { tem } = usePerfil();
   const podeLigar = tem("vendas");
   const podeBuscar = tem("vendas", "financeiro", "marketplace");
+  const podePausar = !!conta && tem("financeiro", "marketplace");
+  // marcar vários anúncios (pelo MLB: as variações vão juntas) para pausar ou reativar de uma vez
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [situacaoML, setSituacaoML] = useState<"" | "active" | "paused">("");
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Situacao | "">("");
   const [limite, setLimite] = useState(POR_PAGINA);
@@ -112,9 +116,33 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
     const termo = sem(busca.trim());
     return anuncios
       .filter((a) => (!filtro || a.situacao === filtro)
+        && (!situacaoML || (situacaoML === "paused" ? a.status_ml === "paused" : a.status_ml !== "paused" && a.status_ml !== "closed"))
         && (!termo || [a.titulo, a.ml_item_id, a.variation_id, a.sku, a.produto, a.produto_sku].some((x) => sem(x).includes(termo))))
       .sort((x, y) => ORDEM.indexOf(x.situacao) - ORDEM.indexOf(y.situacao) || sem(x.titulo).localeCompare(sem(y.titulo)));
-  }, [anuncios, filtro, busca]);
+  }, [anuncios, filtro, busca, situacaoML]);
+  const visiveis = lista.slice(0, limite);
+  const todosMarcados = visiveis.length > 0 && visiveis.every((a) => marcados.has(a.ml_item_id));
+  const marcar = (id: string) => setMarcados((m) => { const n = new Set(m); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const marcarTodos = () => setMarcados(todosMarcados ? new Set() : new Set(visiveis.map((a) => a.ml_item_id)));
+
+  async function mudarSituacao(status: "paused" | "active") {
+    const ids = [...marcados];
+    const verbo = status === "paused" ? "Pausar" : "Reativar";
+    if (!ids.length || !(await confirmar(`${verbo} ${ids.length} ${pl(ids.length, "anúncio", "anúncios")} no Mercado Livre?`,
+      { titulo: `${verbo} anúncios`, ok: verbo }))) return;
+    setOcupado("situacao");
+    try {
+      for (let i = 0; i < ids.length; i += 200) {
+        const { resultado: r } = await mudarSituacaoAnuncios(ids.slice(i, i + 200), status);
+        const feito = status === "paused" ? pl(r.mudados, "pausado", "pausados") : pl(r.mudados, "reativado", "reativados");
+        notify(`${r.mudados} ${pl(r.mudados, "anúncio", "anúncios")} ${feito}${r.erros.length ? `. ${r.erros.length} não: ${r.erros.slice(0, 3).map((x) => `${x.id} (${x.erro})`).join("; ")}` : ""}.`, r.erros.length ? "erro" : undefined);
+      }
+      setMarcados(new Set());
+    } catch (e) { notifyError(e); } finally {
+      setOcupado(null);
+      invalidar("ml_anuncios");
+    }
+  }
 
   async function buscar() {
     setOcupado("buscar");
@@ -186,6 +214,9 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
           <input className="input pl-9" placeholder="Buscar: título, MLB, SKU ou produto" value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(POR_PAGINA); }} />
         </label>
+        <select className="input w-auto" aria-label="Situação no Mercado Livre" value={situacaoML} onChange={(e) => setSituacaoML(e.target.value as typeof situacaoML)}>
+          <option value="">Ativos e pausados</option><option value="active">Só ativos</option><option value="paused">Só pausados</option>
+        </select>
         {conta && podeBuscar && (
           <Button variant="secondary" onClick={buscar} disabled={ocupado === "buscar"} title="Traz os anúncios ativos e pausados da conta e liga pelo SKU">
             {ocupado === "buscar" ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Buscar anúncios
@@ -201,13 +232,23 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
         </Card>
       ) : (
         <>
+          {podePausar && marcados.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-modulo/30 bg-modulo/5 p-2.5 text-sm">
+              <b className="text-fg">{marcados.size} {pl(marcados.size, "anúncio marcado", "anúncios marcados")}</b>
+              <Button variant="secondary" disabled={ocupado === "situacao"} onClick={() => mudarSituacao("paused")}>{ocupado === "situacao" ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />} Pausar</Button>
+              <Button variant="secondary" disabled={ocupado === "situacao"} onClick={() => mudarSituacao("active")}><Play size={14} /> Reativar</Button>
+              <Button variant="ghost" onClick={() => setMarcados(new Set())}>Limpar</Button>
+            </div>
+          )}
           <Table empty={!carregando && !lista.length} head={<>
+            {podePausar && <th className="th w-8"><input type="checkbox" className="h-4 w-4" aria-label="Marcar todos os anúncios da tela" checked={todosMarcados} onChange={marcarTodos} /></th>}
             <th className="th">Anúncio</th><th className="th">Produto no ERP</th><th className="th">Estoque</th><th className="th">Preço</th><th className="th">Situação</th><th className="th" />
           </>}>
-            {lista.slice(0, limite).map((a) => {
+            {visiveis.map((a) => {
               const parado = ocupado === a.anuncio_id;
               return (
                 <tr key={a.anuncio_id}>
+                  {podePausar && <td className="td" data-label="Marcar"><input type="checkbox" className="h-4 w-4" aria-label={`Marcar ${a.titulo ?? a.ml_item_id}`} checked={marcados.has(a.ml_item_id)} onChange={() => marcar(a.ml_item_id)} /></td>}
                   <td className="td">
                     <a href={linkAnuncio(a.ml_item_id)} target="_blank" rel="noreferrer" className="font-semibold text-fg hover:text-brand hover:underline">
                       {a.titulo || a.ml_item_id} <ExternalLink size={12} className="inline" aria-label="abre no Mercado Livre" />

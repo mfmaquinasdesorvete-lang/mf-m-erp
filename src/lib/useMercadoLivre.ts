@@ -82,6 +82,10 @@ export async function sincronizarAgora(anuncios?: string[]) {
 }
 
 /** Traz os anúncios da conta (ativos e pausados) e liga pelo SKU igual ao do cadastro. */
+/** Pausa ou reativa vários anúncios no Mercado Livre (até 200 por vez). */
+export const mudarSituacaoAnuncios = (itens: string[], status: "paused" | "active") =>
+  callFunction<{ resultado: { mudados: number; erros: { id: string; erro: string }[] } }>("mercadolivre", { acao: "situacao_anuncios", itens, status });
+
 export const buscarAnunciosML = () =>
   callFunction<{ resultado: { anuncios: number; total: number; novos: number; ligados: number; sem_produto: number; mais: boolean } }>("mercadolivre", { acao: "buscar_anuncios" });
 

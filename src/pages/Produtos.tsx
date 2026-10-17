@@ -168,8 +168,21 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const [unificando, setUnificando] = useState<{ lista: Produto[]; fim: (mensagem: string) => void } | null>(null);
   const [definindoLinha, setDefinindoLinha] = useState<{ ids: string[]; fim: (mensagem: string) => void } | null>(null);
   const { data: linhas = [] } = useRows<LinhaProduto>("linhas_produto", { order: "nome", ascending: true });
+  // fornecedores de cada produto (como no Tiny): o padrão, os do cadastro de fornecimento e os das notas de entrada
+  const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor: { nome: string } | null }>(
+    "fornecimentos", { select: "produto_id, fornecedor:fornecedores(nome)", order: "produto_id" });
+  const fornecedoresDoProduto = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    const por = (id: string, nome?: string | null) => { if (!nome?.trim()) return; const s0 = m.get(id) ?? new Set<string>(); s0.add(nome.trim()); m.set(id, s0); };
+    for (const x of fornecimentos) por(x.produto_id, x.fornecedor?.nome);
+    for (const x of codigosForn) por(x.produto_id, x.fornecedor?.nome);
+    return m;
+  }, [fornecimentos, codigosForn]);
+  const nomeFornecedor = useMemo(() => new Map(fornecedoresTodos.map((f) => [f.id, f.nome])), [fornecedoresTodos]);
   const filtrosProduto = useMemo<FiltroCrud<Produto>[]>(() => [...FILTROS_PRODUTO,
-    { label: "Linha", valor: (r) => linhas.find((l) => l.id === r.linha_id)?.nome ?? null }], [linhas]);
+    { label: "Linha", valor: (r) => linhas.find((l) => l.id === r.linha_id)?.nome ?? null },
+    { label: "Fornecedor", valores: (r) => [r.fornecedor_padrao_id ? nomeFornecedor.get(r.fornecedor_padrao_id) : null, ...(fornecedoresDoProduto.get(r.id) ?? [])] }],
+  [linhas, fornecedoresDoProduto, nomeFornecedor]);
   const [kitAberto, setKitAberto] = useState<Produto | null>(null);
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });

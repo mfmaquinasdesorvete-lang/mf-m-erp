@@ -1,11 +1,12 @@
 // Separação e embalagem: a tela do estoque/expedição (pensada para tablet e celular no galpão).
 // Fila por etapa (separar → conferir → embalar → despachar), lista de separação somada por produto e local de vários
 // pedidos de uma vez, conferência com leitor, embalagem, etiquetas, DANFE e despacho. Os botões grandes fazem o próximo passo.
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   AlarmClock, Barcode, CheckSquare, ClipboardCheck, ExternalLink, FileWarning, Hourglass, ListChecks, PackageCheck, Printer, Search, Send,
-  Square, Timer, Truck, Users,
+  Square, Timer, Truck, Users, Volume2, VolumeX,
 } from "lucide-react";
+import { tocar } from "@/components/Notificacoes";
 import { Section } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, ListaAtencao, type Cartao, type ItemAtencao } from "@/components/painel/Painel";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
@@ -49,7 +50,7 @@ export default function PainelExpedicao() {
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
   const { data: pedidos = [], isLoading } = useRows<P>("pedidos", { select: SELECT, key: ["expedicao"] });
-  const { data: exps = [] } = useRows<Exp>("expedicoes", {});
+  const { data: exps = [], isLoading: carregandoExps } = useRows<Exp>("expedicoes", {});
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: transp = [] } = useRows<Transportadora>("transportadoras", { order: "nome", ascending: true });
@@ -62,11 +63,15 @@ export default function PainelExpedicao() {
   const [fora, setFora] = useState<Set<string>>(new Set()); // pedidos tirados da lista de separação
   const [lote, setLote] = useState(false);
 
-  // outras pessoas mexendo ao mesmo tempo: atualiza a cada 30 s
+  // outras pessoas mexendo e pedidos novos chegando: atualiza sozinha a cada 15 s
   useEffect(() => {
-    const t = setInterval(() => invalidar("pedidos", "expedicoes"), 30_000);
+    const t = setInterval(() => invalidar("pedidos", "expedicoes"), 15_000);
     return () => clearInterval(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // aviso sonoro de pedido novo para separar (liga/desliga neste aparelho)
+  const [somNovos, setSomNovosState] = useState(() => { try { return localStorage.getItem("erp.expedicao.som") !== "off"; } catch { return true; } });
+  const setSomNovos = (v: boolean) => { setSomNovosState(v); try { localStorage.setItem("erp.expedicao.som", v ? "on" : "off"); } catch { /* sem armazenamento */ } if (v) tocar("normal", true); };
+  const conhecidos = useRef<Set<string> | null>(null);
 
   const prod = useMemo(() => new Map(produtos.map((x) => [x.id, x])), [produtos]);
   const nomeTransp = (id: string | null | undefined) => (id ? transp.find((t) => t.id === id)?.nome ?? "transportadora" : "retira / entrega própria");
@@ -88,6 +93,18 @@ export default function PainelExpedicao() {
     const despachadosHoje = exps.filter((e) => porPedido.has(e.pedido_id) && (e.despachado_em ?? "").slice(0, 10) === dia);
     return { porEtapa, todasLinhas: linhas, despachadosHoje };
   }, [pedidos, exps, filtrar]);
+
+  // pedido que entrou agora em "Separar": toca o aviso e mostra quais são (na primeira carga só guarda os que já estavam)
+  useEffect(() => {
+    if (isLoading || carregandoExps) return;
+    const ids = porEtapa.separar.map((l) => l.e.id);
+    if (!conhecidos.current) { conhecidos.current = new Set(ids); return; }
+    const novos = porEtapa.separar.filter((l) => !conhecidos.current!.has(l.e.id));
+    ids.forEach((id) => conhecidos.current!.add(id));
+    if (!novos.length) return;
+    if (somNovos) tocar("importante", true);
+    notify(`${novos.length} ${pl(novos.length, "pedido novo", "pedidos novos")} para separar: ${novos.map((l) => `#${l.p.numero}`).join(", ")}`);
+  }, [porEtapa.separar, isLoading, carregandoExps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const termo = busca.trim().toLowerCase().replace(/^#/, "");
   const lista = porEtapa[etapa].filter((l) => !termo || `${l.p.numero} ${l.p.cliente?.nome ?? ""} ${l.p.cliente?.nome_fantasia ?? ""}`.toLowerCase().includes(termo));
@@ -196,11 +213,18 @@ export default function PainelExpedicao() {
     <div className="space-y-4 sm:space-y-5">
       <CabecalhoPainel icone={PackageCheck} area="Expedição" titulo="Separação e embalagem" resumo={resumo}
         acoes={(
+          <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setSomNovos(!somNovos)} aria-pressed={somNovos}
+            title={somNovos ? "Aviso sonoro de pedido novo para separar: ligado (toque para desligar)" : "Aviso sonoro de pedido novo para separar: desligado (toque para ligar)"}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-white/15 px-3 text-sm font-semibold text-white hover:bg-white/25">
+            {somNovos ? <Volume2 size={16} aria-hidden /> : <VolumeX size={16} aria-hidden />} {somNovos ? "Som ligado" : "Som desligado"}
+          </button>
           <form onSubmit={lerPedido} className="relative">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar pedido" placeholder="Nº do pedido ou cliente (Enter abre)"
               className="h-10 w-full rounded-xl border-0 bg-white pl-9 pr-3 text-sm text-slate-800 shadow placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/70 sm:w-72" />
           </form>
+          </div>
         )} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">

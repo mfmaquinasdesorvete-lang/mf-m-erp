@@ -2,7 +2,9 @@
 // curva ABC de produtos e clientes, clientes que pararam de comprar, tendências, metas de vendas e onde a operação está travando.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, Info, Receipt, TrendingUp, Users, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, FileDown, Info, Receipt, TrendingUp, Users, XCircle } from "lucide-react";
+import { baixarPlanilha } from "@/lib/exportar";
+import { notifyError } from "@/lib/notify";
 import { Button, PageHeader, Section, Stat, Tabs } from "@/components/ui";
 import { Area } from "@/components/Charts";
 import { FichaCliente } from "@/components/FichaCliente";
@@ -12,7 +14,7 @@ import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { ROTULO_SITUACAO } from "@/lib/fichaCliente";
 import {
   carteira, clientesCompradores, curvaABC, estoqueParado, gargalos, indicadores, produtosVendidos, resumoABC, serieMensal, tendencias, vendasDaEmpresa,
-  type Comparacao, type LinhaABC,
+  JANELAS_ABC, periodoABC, type Comparacao, type JanelaABC, type LinhaABC,
 } from "@/lib/gerencial";
 import type { Cliente } from "@/lib/types";
 import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
@@ -41,6 +43,7 @@ export default function Gerencial() {
   const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado", "metas"] as const);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [verTodos, setVerTodos] = useState(false);
+  const [janelaAbc, setJanelaAbc] = useState<JanelaABC>("12m");
   const dia = hoje();
 
   const { data: pedidos = [], isLoading: l1 } = useRows<any>("pedidos", { select: SELECT_PEDIDOS_VENDAS, key: ["gerencial"] });
@@ -55,17 +58,21 @@ export default function Gerencial() {
 
   const r = useMemo(() => {
     const vendas = vendasDaEmpresa(filtrar(pedidos), filtrar(notas), clientes);
-    const doze = vendas.filter((v) => v.data.slice(0, 10) > new Date(Date.parse(dia) - 365 * 864e5).toISOString().slice(0, 10));
     const parado = estoqueParado(produtos, vendas, dia);
     const cart = carteira(vendas, dia);
     return {
       vendas, k: indicadores(vendas, dia), serie: serieMensal(vendas, dia, 12),
-      abcProdutos: curvaABC(produtosVendidos(doze)), abcClientes: curvaABC(clientesCompradores(doze)),
       carteira: cart, tend: tendencias(vendas, dia), parado,
       gargalos: gargalos({ pedidos: filtrar(pedidos), expedicoes: filtrar(expedicoes), oss: filtrar(oss), compras: filtrar(compras), receber: filtrar(receber), pagar: filtrar(pagar), produtos, parado }, dia),
     };
   }, [pedidos, notas, clientes, expedicoes, oss, compras, receber, pagar, produtos, filtrar, dia]);
 
+  // curva ABC no período escolhido
+  const abc = useMemo(() => {
+    const { de, ate } = periodoABC(janelaAbc, dia);
+    const v = r.vendas.filter((x) => { const d = x.data.slice(0, 10); return (!de || d >= de) && d <= ate; });
+    return { produtos: curvaABC(produtosVendidos(v)), clientes: curvaABC(clientesCompradores(v)) };
+  }, [r.vendas, janelaAbc, dia]);
   const porId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
   const parados = r.carteira.filter((c) => c.situacao === "em_risco" || c.situacao === "inativo");
   const contagem = (s: string) => r.carteira.filter((c) => c.situacao === s).length;
@@ -127,7 +134,8 @@ export default function Gerencial() {
       {aba === "metas" && <PainelMetas />}
 
       {(aba === "abc_produtos" || aba === "abc_clientes") && (
-        <TabelaABC linhas={aba === "abc_produtos" ? r.abcProdutos : r.abcClientes} tipo={aba === "abc_produtos" ? "produto" : "cliente"} verTodos={verTodos} setVerTodos={setVerTodos}
+        <TabelaABC linhas={aba === "abc_produtos" ? abc.produtos : abc.clientes} tipo={aba === "abc_produtos" ? "produto" : "cliente"} verTodos={verTodos} setVerTodos={setVerTodos}
+          janela={janelaAbc} onJanela={setJanelaAbc}
           abrir={aba === "abc_clientes" ? (chave) => { const c = porId.get(chave); if (c) setFicha(c); } : undefined} />
       )}
 
@@ -205,13 +213,29 @@ export default function Gerencial() {
   );
 }
 
-function TabelaABC({ linhas, tipo, verTodos, setVerTodos, abrir }: {
+function TabelaABC({ linhas, tipo, verTodos, setVerTodos, abrir, janela, onJanela }: {
   linhas: LinhaABC[]; tipo: "produto" | "cliente"; verTodos: boolean; setVerTodos: (v: boolean) => void; abrir?: (chave: string) => void;
+  janela: JanelaABC; onJanela: (j: JanelaABC) => void;
 }) {
   const resumo = resumoABC(linhas);
+  const rotuloJanela = JANELAS_ABC.find((j) => j.v === janela)?.rotulo ?? "";
+  const exportar = () => baixarPlanilha(`curva-abc-${tipo === "produto" ? "produtos" : "clientes"}-${janela}`, [{
+    nome: "Curva ABC", linhas: linhas.map((l) => ({
+      Classe: l.classe, [tipo === "produto" ? "Produto" : "Cliente"]: l.rotulo, [tipo === "produto" ? "Quantidade" : "Compras"]: tipo === "produto" ? l.quantidade : l.vezes,
+      Vendido: l.valor, "% das vendas": l.pct, "% acumulado": l.acumulado,
+    })),
+  }]).catch(notifyError);
   const COR = { A: "bg-emerald-50 text-emerald-800", B: "bg-amber-50 text-amber-900", C: "bg-slate-100 text-slate-700" };
   return (
-    <Section title={`Curva ABC de ${tipo === "produto" ? "produtos" : "clientes"} · últimos 12 meses`}>
+    <Section title={`Curva ABC de ${tipo === "produto" ? "produtos" : "clientes"} · ${rotuloJanela}`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1.5 text-sm text-slate-600">Período
+          <select className="input h-9 w-auto" value={janela} onChange={(e) => onJanela(e.target.value as JanelaABC)}>
+            {JANELAS_ABC.map((j) => <option key={j.v} value={j.v}>{j.rotulo[0].toUpperCase() + j.rotulo.slice(1)}</option>)}
+          </select>
+        </label>
+        <Button variant="secondary" className="ml-auto" disabled={!linhas.length} onClick={exportar}><FileDown size={16} /> Exportar</Button>
+      </div>
       <div className="mb-4 grid gap-2 sm:grid-cols-3">
         {resumo.map((x) => (
           <div key={x.classe} className={`rounded-xl p-3 text-sm ${COR[x.classe]}`}>
@@ -224,7 +248,7 @@ function TabelaABC({ linhas, tipo, verTodos, setVerTodos, abrir }: {
         {tipo === "produto" ? "Classe A: nunca pode faltar no estoque. Classe C: avalie se vale manter, comprar sob encomenda ou montar kit."
           : "Classe A: atendimento prioritário e contato frequente. Classe C: campanhas e ofertas para crescer."}
       </p>
-      {!linhas.length ? <p className="text-sm text-slate-500">Sem vendas nos últimos 12 meses.</p> : (
+      {!linhas.length ? <p className="text-sm text-slate-500">Sem vendas em {rotuloJanela}.</p> : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-1.5">Classe</th><th>{tipo === "produto" ? "Produto" : "Cliente"}</th><th className="hidden text-right sm:table-cell">{tipo === "produto" ? "Quantidade" : "Compras"}</th><th className="text-right">Vendido</th><th className="hidden text-right sm:table-cell">% / acumulado</th>{abrir && <th />}</tr></thead>

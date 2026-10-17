@@ -1,3 +1,4 @@
+import { dddDe } from "@/lib/buscaCliente";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -95,6 +96,8 @@ const filtrosBase = (): FiltroCrud<Cliente>[] => [
     ],
   },
   { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
+  // DDD de qualquer telefone do cliente (o número inteiro, com ou sem +55, vai na busca)
+  { label: "DDD", valores: (r) => [r.whatsapp, r.telefone, (r as any).telefone_adicional].map(dddDe) },
   {
     label: "CRM", opcoes: [
       ...STATUS_CRM.map((x) => ({ label: x.label, teste: (r: Cliente) => r.status_crm === x.value })),

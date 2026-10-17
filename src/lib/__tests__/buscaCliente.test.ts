@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarClientes, combinaBusca } from "../buscaCliente";
+import { buscarClientes, combinaBusca, dddDe, notaCliente } from "../buscaCliente";
 
 describe("combinaBusca (listas)", () => {
   const campos = ["Sorveteria Gelato Nobre Ltda", "23.456.789/0001-95", "(16) 98888-7777"];
@@ -23,5 +23,20 @@ describe("buscarClientes (campo de cliente)", () => {
   it("acha pelo CNPJ formatado ou não", () => {
     expect(buscarClientes(lista, "34.567.890/0001-30").map((c) => c.id)).toEqual(["1"]);
     expect(buscarClientes(lista, "12345678000190").map((c) => c.id)).toEqual(["2"]);
+  });
+});
+
+describe("telefone com +55 e DDD", () => {
+  it("acha digitando com o código do país", () => {
+    expect(combinaBusca(["Cliente Teste", "(48) 99999-1234"], "+55 48 99999-1234")).toBe(true);
+    expect(combinaBusca(["Cliente Teste", "(48) 99999-1234"], "5548999991234")).toBe(true);
+    expect(notaCliente({ id: "1", nome: "Cliente Teste", telefone_adicional: "48 3333-4444" }, "+55 48 3333-4444")).toBe(50);
+  });
+  it("DDD de qualquer jeito de gravar", () => {
+    expect(dddDe("(48) 99999-1234")).toBe("48");
+    expect(dddDe("+55 11 98888-7777")).toBe("11");
+    expect(dddDe("048 3333-4444")).toBe("48");
+    expect(dddDe("99999-1234")).toBe("");
+    expect(dddDe(null)).toBe("");
   });
 });

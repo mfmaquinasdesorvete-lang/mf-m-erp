@@ -10,6 +10,8 @@
 // Fase 2 (estoque e preço nos anúncios):
 //  POST { acao: "anuncios" }                (financeiro, marketplaces ou agendamento de 5 min) → manda o que está na fila
 //  POST { acao: "buscar_anuncios" }         (vendas, financeiro ou marketplaces) → traz os anúncios da conta e liga pelo SKU
+//  POST { acao: "situacao_anuncios", itens: ["MLB…"], status: "paused" | "active" } (financeiro ou marketplaces) →
+//       pausa ou reativa vários anúncios de uma vez
 // Fase A (depois da venda):
 //  POST { acao: "pos_venda" }               (vendas, financeiro ou agendamento de 10 min) → manda as NF-e autorizadas e o
 //       rastreio dos envios por conta própria; a situação do envio (enviado, entregue…) chega junto com cada venda.
@@ -20,7 +22,7 @@ import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { enderecoSite } from "../_shared/site.ts";
 import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, pedirToken, situacaoEnvio } from "../_shared/mercadolivre.ts";
-import { buscarAnuncios, enviarAnuncios } from "./anuncios.ts";
+import { buscarAnuncios, enviarAnuncios, mudarSituacao } from "./anuncios.ts";
 import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
@@ -69,6 +71,11 @@ Deno.serve(async (req) => {
         if (!c) return json({ ok: true, resultado: { aviso: "nenhuma conta do Mercado Livre conectada" } });
         const token = await tokenValido(db, c as Conta);
         return json({ ok: true, resultado: { notas: await enviarNotas(db, token), rastreios: await enviarRastreios(db, token) } });
+      }
+      case "situacao_anuncios": {
+        await requireErpUser(req, ["financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await mudarSituacao(db, body.itens, body.status, await tokenValido(db, conta)) });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);

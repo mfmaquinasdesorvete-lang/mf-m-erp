@@ -45,7 +45,13 @@ export type Coluna<T> = { label: string; render: (row: T) => ReactNode; classNam
  */
 export type FiltroCrud<T> =
   | { label: string; opcoes: { label: string; teste: (row: T) => boolean }[] }
-  | { label: string; valor: (row: T) => string | null | undefined };
+  | { label: string; valor: (row: T) => string | null | undefined }
+  /** vários valores por linha (ex.: os fornecedores de um produto) */
+  | { label: string; valores: (row: T) => (string | null | undefined)[] };
+
+/** Os valores de um filtro "por coluna" numa linha (um só ou vários). */
+const valoresDaLinha = <T,>(f: FiltroCrud<T>, r: T): string[] =>
+  ("valor" in f ? [f.valor(r)] : "valores" in f ? f.valores(r) : []).map((v) => (v ?? "").trim()).filter(Boolean);
 export type OrdemCrud<T> = { label: string; comparar: (a: T, b: T) => number };
 
 const POR_VEZ = 200;
@@ -144,17 +150,16 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const invalidar = useInvalidate();
 
   // valores existentes para os filtros "por coluna" (ex.: cidades)
-  const valoresFiltro = useMemo(() => filtros.map((f) => "valor" in f
-    ? [...new Set(data.map((r) => (f.valor(r) ?? "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"))
-    : []), [data, filtros]);
+  const valoresFiltro = useMemo(() => filtros.map((f) => "opcoes" in f ? []
+    : [...new Set(data.flatMap((r) => valoresDaLinha(f, r)))].sort((a, b) => a.localeCompare(b, "pt-BR"))), [data, filtros]);
 
   const filtrados = useMemo(() => {
     let lista = busca.trim() ? data.filter((r) => combinaBusca(searchKeys.map((k) => r[k]), busca)) : data;
     filtros.forEach((f) => {
       const v = escolhas[f.label];
       if (!v) return;
-      if ("valor" in f) lista = lista.filter((r) => (f.valor(r) ?? "").trim() === v);
-      else { const op = f.opcoes.find((o) => o.label === v); if (op) lista = lista.filter(op.teste); }
+      if ("opcoes" in f) { const op = f.opcoes.find((o) => o.label === v); if (op) lista = lista.filter(op.teste); }
+      else lista = lista.filter((r) => valoresDaLinha(f, r).includes(v));
     });
     return ordens[ordem] ? [...lista].sort(ordens[ordem].comparar) : lista;
   }, [data, busca, searchKeys, filtros, escolhas, ordens, ordem]);
@@ -352,9 +357,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                   <select className={`input min-w-0 ${g === 0 ? "md:!w-auto md:max-w-[12rem]" : ""} ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
                     value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
                     <option value="">{celular || g === 1 ? "Todos" : `${f.label}: todos`}</option>
-                    {"valor" in f
-                      ? valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)
-                      : f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+                    {"opcoes" in f
+                      ? f.opcoes.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)
+                      : valoresFiltro[i].map((v) => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </label>
               );

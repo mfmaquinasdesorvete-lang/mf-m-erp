@@ -4,6 +4,7 @@
 //    Mudança de preço acima da trava não vai: fica esperando aprovação no ERP. Muitas chamadas (429): espera e tenta
 //    de novo (1, 2, 4 e 8 segundos); se continuar, para e o resto vai no próximo envio.
 //  buscarAnuncios: traz os anúncios da conta (ativos e pausados), com as variações, e liga pelo SKU igual ao do cadastro.
+//  mudarSituacao: pausa ou reativa vários anúncios de uma vez (PUT /items/{id} { status }), como no Tiny.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import {
@@ -217,4 +218,33 @@ export async function buscarAnuncios(db: SupabaseClient, conta: ContaEnvio, toke
     resumo.sem_produto = Number(d.sem_produto ?? 0);
   }
   return resumo;
+}
+
+// ---------------------------------------------------------------------
+// Pausar ou reativar anúncios em massa
+// ---------------------------------------------------------------------
+/** Até 200 anúncios por vez; cada um que o Mercado Livre recusar volta com o motivo, sem parar os outros. */
+export async function mudarSituacao(db: SupabaseClient, itens: unknown, status: unknown, token: string) {
+  if (status !== "paused" && status !== "active") throw new Error("situação inválida: use pausar ou reativar");
+  const ids = [...new Set((Array.isArray(itens) ? itens : []).map((x) => String(x ?? "").trim().toUpperCase()).filter((x) => /^[A-Z]{3}\d+$/.test(x)))];
+  if (!ids.length) throw new Error("escolha ao menos um anúncio");
+  if (ids.length > 200) throw new Error("no máximo 200 anúncios por vez");
+  const r = { mudados: 0, erros: [] as { id: string; erro: string }[] };
+  for (const id of ids) {
+    try {
+      await mandarSituacao(id, status, token);
+      const { data } = await db.from("ml_anuncios").select("id").eq("ml_item_id", id);
+      for (const a of data ?? []) await gravar(db, String((a as { id: string }).id), { status_ml: status });
+      r.mudados++;
+    } catch (e) {
+      if (e instanceof ErroML && e.status === 401) throw e; // acesso perdido: para tudo
+      r.erros.push({ id, erro: msg(e) });
+    }
+  }
+  return r;
+}
+
+async function mandarSituacao(id: string, status: "paused" | "active", token: string) {
+  await comEspera(() => chamarML(`/items/${id}`, token, { method: "PUT", body: JSON.stringify({ status }), cabecalhos: { "Content-Type": "application/json" } }));
+  await pausa(150);
 }
