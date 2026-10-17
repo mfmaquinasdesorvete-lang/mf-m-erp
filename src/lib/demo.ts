@@ -1654,12 +1654,13 @@ function origemPagarDemo(db: Db) {
     const env = (db.envios ?? []).find((e) => e.conta_pagar_id === c.id);
     const st = (db.nfse_importadas ?? []).find((n) => n.conta_pagar_id === c.id);
     const gn = (db.gnre_guias ?? []).find((g) => g.conta_pagar_id === c.id);
+    const dv = (db.notas_fiscais ?? []).find((n) => n.conta_pagar_id === c.id);
     const oc = /^PC (\d+)/.exec(c.documento ?? "")?.[1] ?? /^Pedido de compra #(\d+)/.exec(c.descricao ?? "")?.[1] ?? null;
     const obs = String(c.observacoes ?? "");
-    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : st ? "st" : gn ? "gnre" : oc ? "oc" : c.recorrente_id ? "fixa"
+    const origem = dv || nr?.finalidade === "devolucao" ? "dv" : nr ? "nf" : fat ? "cte" : env ? "frete" : st ? "st" : gn ? "gnre" : oc ? "oc" : c.recorrente_id ? "fixa"
       : obs.startsWith("Gerado pelo ERP a partir das comissões") ? "comissao" : obs.startsWith("Lançado a partir do extrato bancário") ? "extrato" : "outro";
     return {
-      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : st?.numero ?? gn?.nf_numero ?? null, oc_numero: oc,
+      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : st?.numero ?? gn?.nf_numero ?? dv?.numero ?? null, oc_numero: oc,
       envio_numero: env?.numero != null ? String(env.numero) : null, fatura_numero: fat?.numero != null ? String(fat.numero) : null,
       emissao_efetiva: c.emissao ?? (String(nr?.data_emissao ?? st?.data_emissao ?? c.created_at ?? "").slice(0, 10) || null),
     };
@@ -3355,6 +3356,21 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       vencimento: venc, conta_pagar_id: conta.id, situacao: "a_gerar", codigo_barras: null, observacao: "Lançada pelo financeiro", created_at: new Date().toISOString() };
     db.gnre_guias.unshift(g);
     return { data: g.id, error: null };
+  },
+  lancar_conta_devolucao: ({ p_nota = null, p_recebida = null, p_valor = null, p_vencimento = null, p_chave_pix = null }) => {
+    const n = p_nota ? db.notas_fiscais.find((x: Row) => x.id === p_nota) : (db.nfe_recebidas ?? []).find((x: Row) => x.id === p_recebida);
+    if (!n || n.finalidade !== "devolucao") return { data: null, error: { message: "Esta nota não é uma devolução de venda" } };
+    if (n.conta_pagar_id && db.contas_pagar.some((c: Row) => c.id === n.conta_pagar_id && c.status !== "cancelado")) return { data: null, error: { message: "Esta devolução já tem conta a pagar" } };
+    const valor = r2(Number(p_valor ?? n.valor_total));
+    if (!(valor > 0) || valor > Number(n.valor_total)) return { data: null, error: { message: "O reembolso não pode passar do valor da nota de devolução" } };
+    const num = p_nota ? n.numero : String(Number(String(n.chave ?? "").slice(25, 34)) || "?");
+    const nome = p_nota ? n.destinatario_nome : n.emitente_nome;
+    const conta = { id: uid(), descricao: `Devolução de venda – NF ${num}${nome ? ` – ${nome}` : ""}`, categoria: "devoluções de vendas", documento: `NF ${num} · devolução`,
+      valor, vencimento: p_vencimento ?? new Date().toISOString().slice(0, 10), status: "aberto", revisao: "em_revisao", lancamento: "manual", chave_pix: p_chave_pix,
+      unidade_id: n.unidade_id ?? null, created_at: new Date().toISOString(), rateio: [], marcadores: [], observacoes: "Reembolso ao cliente pela devolução de venda (demonstração)." };
+    db.contas_pagar.unshift(conta);
+    n.conta_pagar_id = conta.id;
+    return { data: conta.id, error: null };
   },
   gnre_informar_guia: ({ p_id, p_codigo }) => {
     const g = (db.gnre_guias ?? []).find((x: Row) => x.id === p_id);

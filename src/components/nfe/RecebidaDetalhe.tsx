@@ -15,6 +15,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
+import { ReembolsoDevolucao } from "./ReembolsoDevolucao";
 import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
 import { evolucaoRecebida } from "@/lib/evolucaoNota";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
@@ -171,6 +172,10 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             {ativa && fin && n.finalidade !== "devolucao" && <Button type="button" variant="secondary" onClick={() => setJanela("devolucao")}><Undo2 size={15} /> NF de devolução</Button>}
             {fin && !n.estoque_lancado && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
           </div>
+        )}
+        {n.finalidade === "devolucao" && ativa && (
+          <ReembolsoDevolucao tipo="recebida" id={n.id} numero={numeroDaChave(n.chave)} valor={Number(n.valor_total)} contaId={n.conta_pagar_id}
+            cliente={n.emitente_nome} podeFin={!leitura && fin} />
         )}
         <EvolucaoRecebida n={n} />
         <Historico tabela="nfe_recebidas" id={n.id} />

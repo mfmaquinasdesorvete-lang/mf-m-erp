@@ -16,6 +16,7 @@ import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
 import { DevolucaoModal } from "./DevolucaoModal";
 import { GnreNota } from "./GnreNota";
+import { ReembolsoDevolucao } from "./ReembolsoDevolucao";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { LinhaDoTempo, useEvolucaoEmitidas } from "./Evolucao";
 import { evolucaoEmitida } from "@/lib/evolucaoNota";
@@ -28,7 +29,7 @@ export type NotaEmitida = {
   origem?: "erp" | "importada"; destinatario_nome?: string | null; destinatario_doc?: string | null; ambiente?: "producao" | "homologacao";
   finalidade?: string; tipo_operacao?: string; payload?: any; resposta?: any; marcadores?: string[]; observacao_interna?: string | null;
   historico_envios?: { referencia: string; mensagem: string | null; em: string }[]; nota_referenciada_id?: string | null; chave_referenciada?: string | null;
-  estoque_lancado?: boolean; pedido_id?: string | null; unidade_id?: string | null;
+  estoque_lancado?: boolean; pedido_id?: string | null; unidade_id?: string | null; conta_pagar_id?: string | null; cliente_id?: string | null;
   /** nota direta (sem pedido): operação e itens, para lançar a conta a receber e baixar o estoque */
   operacao?: string | null; itens?: { produto_id: string; descricao: string; quantidade: number; valor_unitario: number }[] | null;
   pedido?: { numero: number; cliente?: { nome: string; nome_fantasia?: string | null } } | null;
@@ -133,6 +134,10 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
         <EvolucaoDaNota n={n} />
 
         {!importada && !teste && <GnreNota nota={n} podeFin={!!podeFin} />}
+        {!teste && n.finalidade === "devolucao" && n.tipo_operacao === "entrada" && n.status === "autorizada" && (
+          <ReembolsoDevolucao tipo="emitida" id={n.id} numero={n.numero} valor={Number(n.valor_total)} contaId={n.conta_pagar_id ?? null}
+            cliente={destinatario !== "—" ? destinatario : null} podeFin={!!podeFin} />
+        )}
 
         {(relacionadas.length > 0 || !!n.chave_referenciada) && (
           <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-900">
