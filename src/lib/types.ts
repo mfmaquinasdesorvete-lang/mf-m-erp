@@ -143,6 +143,8 @@ export type Config = {
   nfe_automatica?: boolean; link_pagamento_ao_aprovar?: boolean; vender_sem_estoque?: boolean; expedicao_apos?: "aprovacao" | "nfe";
   etiqueta_formato?: "10x15" | "a4";
   contador_nome?: string | null; contador_email?: string | null; contador_envio_auto?: boolean; contador_envio_dia?: number;
+  /** telefone, site, endereço e Instagram do escritório de contabilidade (Painel do contador → Contabilidade) */
+  contador_dados?: { razao?: string; telefone?: string; site?: string; instagram?: string; endereco?: string } | null;
   custos_pagamento?: { cartao_pct?: number; boleto_fixo?: number; pix_pct?: number; transferencia_pct?: number; dinheiro_pct?: number };
   logo_url?: string | null; icone_url?: string | null; cor_primaria?: string | null; cor_secundaria?: string | null;
   slogan?: string | null; site?: string | null; instagram?: string | null; pdf_cabecalho?: "escuro" | "claro" | "cor";

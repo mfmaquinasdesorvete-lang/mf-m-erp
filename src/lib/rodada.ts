@@ -49,6 +49,7 @@ export const RODADA_ATUAL: Rodada = {
     { pedido: "Aprovo: conciliação do extrato em lote", virou: "Bancos e conciliação → Por favorecido: lançar ou ignorar o grupo inteiro e lembrar a regra para o extrato novo", situacao: "feito" },
     { pedido: "Aprovo: aviso antes de vencer chaves e certificados", virou: "Monitor → Chaves e certificados, com o aviso do vigia no prazo de cada um", situacao: "feito" },
     { pedido: "Como faço? Colocar os 2 secrets no GitHub e rodar o backup", virou: "Secrets trocados e 1ª cópia guardada: 143 tabelas, 112 arquivos e o teste de restauração ok", situacao: "feito" },
+    { pedido: "Contatos com a contabilidade e dados (lista do escritório)", virou: "Painel do contador → Contabilidade: 35 contatos por setor, dados do escritório e os e-mails que chegarem de lá", situacao: "feito" },
     { pedido: "Pode publicar (17/10)", virou: "Site publicado com a conciliação por favorecido, Chaves e certificados e as rotas novas", situacao: "feito" },
     { pedido: "Aprovo: atualizar as bibliotecas xlsx e react-router", virou: "Rotas na versão 7 (feito); a planilha (xlsx) espera liberar o endereço cdn.sheetjs.com na rede do ambiente do Claude", situacao: "parcial" },
   ],

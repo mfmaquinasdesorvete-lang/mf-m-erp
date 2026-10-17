@@ -1462,7 +1462,18 @@ function comercialDemo(db: Db) {
         ipi_valor: maquina ? r2(v * 0.05) : 0, pis_valor: r2((v - icms) * 0.0165), cofins_valor: r2((v - icms) * 0.076) };
     }) };
   }
-  Object.assign(db.configuracoes[0], { contador_nome: "Escritório Contábil Exemplo", contador_email: "contador@escritorio.com.br", contador_envio_auto: true, contador_envio_dia: 5 });
+  Object.assign(db.configuracoes[0], { contador_nome: "Escritório Contábil Exemplo", contador_email: "financeiro@escritorio-exemplo.com.br", contador_envio_auto: true, contador_envio_dia: 5,
+    contador_dados: { razao: "Escritório Contábil Exemplo Ltda", telefone: "(19) 3000-1000", site: "www.escritorio-exemplo.com.br", instagram: "escritorioexemplo", endereco: "Rua Exemplo, 100 - Centro - Campinas - SP" } });
+  // contatos do escritório por setor (no sistema real: public.contabilidade_contatos; nomes só no banco)
+  db.contabilidade_contatos = ([
+    ["recepcao", "Ana Recepção", "atendimento", "(19) 9 1111-0001"], ["fiscal", "Bia Fiscal", "fiscal01", "(19) 9 1111-0002"], ["fiscal", "Caio Fiscal", "fiscal02", "(19) 3000-1002"],
+    ["pessoal", "Duda Pessoal", "pessoal01", "(19) 9 1111-0003"], ["contabil", "Edu Contábil", "contabil01", "(19) 3000-1003"], ["societario", "Fábio Societário", "societario01", "(19) 9 1111-0004"],
+    ["financeiro", "Gil Financeiro", "financeiro", "(19) 3000-1000"], ["certificado", "Hugo Certificado", "certificado", "(19) 9 1111-0005"], ["portador", "Ivo Portador", null, "(19) 9 1111-0006"],
+  ] as const).map(([setor, nome, usuario, whatsapp], i) => ({ id: `cc${i + 1}`, setor, nome, email: usuario ? `${usuario}@escritorio-exemplo.com.br` : null, whatsapp, observacao: null, ordem: i, ativo: true }));
+  db.emails.push({ id: "em-contab", conta_id: "ec1", uid: 98, de_nome: "Bia Fiscal", de_email: "fiscal01@escritorio-exemplo.com.br", para: "comercial@mfmaquinas.com.br",
+    assunto: "Guias de ICMS e IPI do mês", data: quando(-0.8), previa: "Seguem as guias para pagamento até o dia 10.", texto: "Seguem as guias para pagamento até o dia 10.", html: null,
+    anexos: [{ indice: 0, nome: "guia-icms.pdf", tipo: "application/pdf", tamanho: 52000, nfe: false }, { indice: 1, nome: "darf-ipi.pdf", tipo: "application/pdf", tamanho: 48000, nfe: false }],
+    lido: false, arquivado: false, cliente_id: null, fornecedor_id: null, respondido_em: null });
   const mesPassado = (() => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 7); })();
   db.fechamentos = [{ id: "fc1", unidade_id: U_SC, competencia: mesPassado, status: "enviado", enviado_em: quando(-2), arquivo_caminho: "demo.zip", created_at: quando(-2) }];
   db.contador_mensagens = [
@@ -1730,7 +1741,7 @@ const VIEWS: Record<string, () => Row[]> = {
 // Histórico de alterações (no sistema real: gatilho zz_auditoria do Postgres)
 const AUDITADAS = new Set(["contas_receber", "contas_pagar", "pedidos", "clientes", "fornecedores", "transportadoras", "produtos", "usuarios_erp",
   "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes",
-  "parcelamentos", "parcelamento_parcelas", "conciliacao_regras"]);
+  "parcelamentos", "parcelamento_parcelas", "conciliacao_regras", "contabilidade_contatos"]);
 const IGNORAR_AUD = new Set(["motivo_alteracao", "updated_at", "valor_produtos", "valor_pecas", "valor_total", "created_at"]);
 function registrarDemo(tabela: string, acao: string, antes: Row | null, depois: Row | null, motivo: string | null, origem: "usuario" | "sistema") {
   db.auditoria ??= [];
@@ -2901,6 +2912,16 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     atualizarDemo("extrato_lancamentos", a, { status: "transferencia", par_transferencia_id: b.id, conciliado_em: new Date().toISOString() });
     atualizarDemo("extrato_lancamentos", b, { status: "transferencia", par_transferencia_id: a.id, conciliado_em: new Date().toISOString() });
     return { data: null, error: null };
+  },
+  emails_da_contabilidade: ({ p_limite }) => {
+    const ativos = (db.contabilidade_contatos ?? []).filter((c) => c.ativo && c.email);
+    const dominios = new Set(ativos.map((c) => String(c.email).split("@")[1]?.toLowerCase()));
+    const linhas = db.emails.filter((e) => !e.arquivado).map((e) => {
+      const c = ativos.find((x) => String(x.email).toLowerCase() === String(e.de_email ?? "").toLowerCase());
+      if (!c && !dominios.has(String(e.de_email ?? "").split("@")[1]?.toLowerCase())) return null;
+      return { id: e.id, conta_id: e.conta_id, data: e.data, de_nome: e.de_nome, de_email: e.de_email, assunto: e.assunto, previa: e.previa, anexos: e.anexos, lido: e.lido, setor: c?.setor ?? "escritorio", contato: c?.nome ?? null };
+    }).filter(Boolean).sort((a, b) => String(b!.data).localeCompare(String(a!.data)));
+    return { data: linhas.slice(0, Number(p_limite) || 50), error: null };
   },
   conciliar_em_lote: ({ p_ids, p_acao, p_direcao, p_categoria, p_motivo, p_fornecedor, p_cliente, p_regra }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
