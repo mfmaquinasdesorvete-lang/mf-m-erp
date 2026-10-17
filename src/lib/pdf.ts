@@ -13,6 +13,7 @@ import {
 import logoPdf from "@/assets/logo-pdf.jpg";
 import { logoDaEmpresa } from "./marca";
 import { pl } from "@/lib/format";
+import { agruparPorTerceiro } from "./pagarTiny";
 
 const logoCache = new Map<string, Promise<string | null>>();
 /**
@@ -453,6 +454,8 @@ export async function pdfPedidoCompra(pc: {
 export async function pdfFinanceiro(r: {
   titulo: string; filtros: string; terceiro: string;
   linhas: { vencimento: string; descricao: string; terceiro: string; situacao: string; pagamento: string | null; valor: number; pago: number | null }[];
+  /** Agrupado por fornecedor/cliente (como no Tiny): o nome em cima de cada grupo, com o subtotal. */
+  agrupar?: boolean;
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
   cabecalho(doc, cfg, r.titulo.toUpperCase(), `${r.linhas.length} ${pl(r.linhas.length, "conta", "contas")}`, logo);
@@ -462,16 +465,30 @@ export async function pdfFinanceiro(r: {
 
   const soma = (f: (l: (typeof r.linhas)[number]) => boolean) => r.linhas.filter(f).reduce((s, l) => s + Number(l.valor), 0);
   const ROTULO: Record<string, string> = { aberto: "Em aberto", vencido: "Vencida", pago: "Paga", cancelado: "Cancelada" };
+  // agrupado: sem a coluna do fornecedor/cliente, que vira a linha de cima de cada grupo
+  const g = !!r.agrupar;
+  const linha = (l: (typeof r.linhas)[number]) => [dataBR(l.vencimento), l.descricao, ...(g ? [] : [l.terceiro]), ROTULO[l.situacao] ?? l.situacao,
+    l.pagamento ? dataBR(l.pagamento) : "", brl(l.pago ?? l.valor)];
+  const FUNDO_GRUPO: [number, number, number] = [226, 232, 240];
+  const body = g
+    ? agruparPorTerceiro(r.linhas, `Sem ${r.terceiro.toLowerCase()}`).flatMap((x) => {
+      const subtotal = x.linhas.filter((l) => l.situacao !== "cancelado").reduce((s, l) => s + Number(l.valor), 0);
+      return [[
+        { content: `${x.terceiro} · ${x.linhas.length} ${pl(x.linhas.length, "conta", "contas")}`, colSpan: 4, styles: { fontStyle: "bold" as const, fillColor: FUNDO_GRUPO } },
+        { content: brl(subtotal), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: FUNDO_GRUPO } },
+      ], ...x.linhas.map(linha)];
+    })
+    : r.linhas.map(linha);
+  const colSituacao = g ? 2 : 3;
   autoTable(doc, {
     startY: 41,
-    head: [["Vencimento", "Descrição", r.terceiro, "Situação", "Pago em", "Valor"]],
-    body: r.linhas.map((l) => [dataBR(l.vencimento), l.descricao, l.terceiro, ROTULO[l.situacao] ?? l.situacao,
-      l.pagamento ? dataBR(l.pagamento) : "", brl(l.pago ?? l.valor)]),
+    head: [["Vencimento", "Descrição", ...(g ? [] : [r.terceiro]), "Situação", "Pago em", "Valor"]],
+    body,
     styles: { font: "helvetica", fontSize: 8, cellPadding: 1.8, textColor: [30, 41, 59] },
     headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [246, 248, 251] },
-    columnStyles: { 0: { cellWidth: 20 }, 3: { cellWidth: 19 }, 4: { cellWidth: 19 }, 5: { halign: "right", cellWidth: 27 } },
-    didParseCell: (d: any) => { if (d.section === "body" && d.column.index === 3 && d.cell.raw === "Vencida") d.cell.styles.textColor = [200, 30, 30]; },
+    columnStyles: { 0: { cellWidth: 20 }, [colSituacao]: { cellWidth: 19 }, [colSituacao + 1]: { cellWidth: 19 }, [colSituacao + 2]: { halign: "right", cellWidth: 27 } },
+    didParseCell: (d: any) => { if (d.section === "body" && d.column.index === colSituacao && d.cell.raw === "Vencida") d.cell.styles.textColor = [200, 30, 30]; },
     margin: { left: 14, right: 14 },
   });
   let y = (doc as any).lastAutoTable.finalY + 7;

@@ -6,10 +6,12 @@ import { CalendarDays, Search, SlidersHorizontal, X } from "lucide-react";
 import { brl, hoje, pl } from "@/lib/format";
 import { ATALHOS, periodoDoAtalho, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 
-export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", periodo, onPeriodo, rotuloData = "Data", filtros, nFiltros = 0, onLimpar, direita }: {
+export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", periodo, onPeriodo, rotuloData = "Data", campoData, filtros, nFiltros = 0, onLimpar, direita }: {
   busca: string; onBusca: (v: string) => void; placeholder?: string;
   /** Período da coluna de data da lista (sem onPeriodo: sem o botão de período). */
   periodo?: Periodo; onPeriodo?: (p: Periodo) => void; rotuloData?: string;
+  /** Qual data o período usa (ex.: vencimento, emissão, pagamento), escolhida no painel do período. */
+  campoData?: CampoDataPeriodo;
   /** Outros filtros (selects, botões): ficam no painel do botão "Filtros". */
   filtros?: ReactNode; nFiltros?: number;
   /** Limpa tudo (busca, período e os outros filtros). */
@@ -47,7 +49,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
         )}
         {direita && <div className="ml-auto flex flex-wrap items-center gap-2">{direita}</div>}
       </div>
-      {painel === "periodo" && comPeriodo && <PainelPeriodo periodo={periodo!} onChange={onPeriodo!} rotulo={rotuloData} />}
+      {painel === "periodo" && comPeriodo && <PainelPeriodo periodo={periodo!} onChange={onPeriodo!} rotulo={rotuloData} campoData={campoData} />}
       {painel === "filtros" && filtros && (
         <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-2.5">{filtros}</div>
       )}
@@ -55,13 +57,21 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
   );
 }
 
-/** Atalhos (Hoje, 7 dias, Este mês, Mês passado, Este ano) e De/Até. */
-export function PainelPeriodo({ periodo, onChange, rotulo = "Data" }: { periodo: Periodo; onChange: (p: Periodo) => void; rotulo?: string }) {
+export type CampoDataPeriodo = { valor: string; opcoes: { v: string; rotulo: string }[]; onChange: (v: string) => void };
+
+/** Atalhos (Hoje, 7 dias, Este mês, Mês passado, Este ano) e De/Até; com `campoData`, também qual data vale. */
+export function PainelPeriodo({ periodo, onChange, rotulo = "Data", campoData }: { periodo: Periodo; onChange: (p: Periodo) => void; rotulo?: string; campoData?: CampoDataPeriodo }) {
   const dia = hoje();
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold text-slate-600">{rotulo}:</span>
+        {campoData ? (
+          <label className="flex items-center gap-1 text-xs font-semibold text-slate-600">Período por
+            <select className="input h-8 w-auto py-0 text-xs" value={campoData.valor} onChange={(e) => campoData.onChange(e.target.value)}>
+              {campoData.opcoes.map((o) => <option key={o.v} value={o.v}>{o.rotulo}</option>)}
+            </select>
+          </label>
+        ) : <span className="text-xs font-semibold text-slate-600">{rotulo}:</span>}
         {ATALHOS.map((a) => {
           const p = periodoDoAtalho(a.id, dia);
           const ativo = periodo.de === p.de && periodo.ate === p.ate;

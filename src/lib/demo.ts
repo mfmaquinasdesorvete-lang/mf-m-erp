@@ -511,6 +511,7 @@ function seed(): Db {
   aprovacaoDemo(db);
   fretesDemo(db);
   fichaDemo(db);
+  origemPagarDemo(db);
   return db;
 }
 
@@ -1645,7 +1646,26 @@ function historicoDemo(db: Db) {
 }
 
 // Totais calculados (no sistema real: triggers do Postgres)
+/** Visão contas_pagar_origem (demonstração): de onde veio cada conta a pagar, a mesma regra do banco resumida. */
+function origemPagarDemo(db: Db) {
+  db.contas_pagar_origem = (db.contas_pagar ?? []).map((c) => {
+    const nr = (db.nfe_recebidas ?? []).find((n) => (c.nfe_recebida_id ? n.id === c.nfe_recebida_id : n.conta_pagar_id === c.id));
+    const fat = (db.cte_faturas ?? []).find((f) => f.conta_pagar_id === c.id);
+    const env = (db.envios ?? []).find((e) => e.conta_pagar_id === c.id);
+    const oc = /^PC (\d+)/.exec(c.documento ?? "")?.[1] ?? /^Pedido de compra #(\d+)/.exec(c.descricao ?? "")?.[1] ?? null;
+    const obs = String(c.observacoes ?? "");
+    const origem = nr ? "nf" : fat ? "cte" : env ? "frete" : oc ? "oc" : c.recorrente_id ? "fixa"
+      : obs.startsWith("Gerado pelo ERP a partir das comissões") ? "comissao" : obs.startsWith("Lançado a partir do extrato bancário") ? "extrato" : "outro";
+    return {
+      id: c.id, origem, nf_numero: nr?.chave ? String(Number(String(nr.chave).slice(25, 34))) : null, oc_numero: oc,
+      envio_numero: env?.numero != null ? String(env.numero) : null, fatura_numero: fat?.numero != null ? String(fat.numero) : null,
+      emissao_efetiva: c.emissao ?? (String(nr?.data_emissao ?? c.created_at ?? "").slice(0, 10) || null),
+    };
+  });
+}
+
 function recalcular(db: Db) {
+  if (db.contas_pagar_origem) origemPagarDemo(db);
   for (const p of db.pedidos) {
     p.valor_produtos = r2(db.pedido_itens.filter((i) => i.pedido_id === p.id).reduce((s, i) => s + i.quantidade * i.valor_unitario, 0));
     p.valor_total = Math.max(r2(p.valor_produtos - Number(p.desconto || 0) + Number(p.frete || 0)), 0);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -45,6 +45,9 @@ import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
+import { useFormasPagamento } from "@/lib/formasPagamento";
+import { CAMPOS_DATA, competenciaDe, dataDaConta, MAX_VEZES, MODOS_COMPETENCIA, modoDaCompetencia, OCORRENCIAS, ORIGENS, rotuloOrigem, serieContas, termosOrigem,
+  type CampoData, type CodigoOrigem, type ModoCompetencia, type Ocorrencia, type OrigemConta } from "@/lib/pagarTiny";
 
 type Receber = {
   id: string; descricao: string; cliente_id: string | null; valor: number; vencimento: string; status: string;
@@ -60,12 +63,20 @@ type Pagar = ContaRevisao & {
   rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
   linha_digitavel?: string | null; boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null;
+  emissao?: string | null; forma_pagamento_id?: string | null; chave_pix?: string | null; created_at?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
+type Fornecedor = {
+  id: string; nome: string; nome_fantasia?: string | null; cnpj?: string | null; municipio?: string | null; uf?: string | null;
+  chave_pix?: string | null; bloqueado?: boolean; bloqueio_motivo?: string | null;
+};
 
 /** Mudou valor ou vencimento de uma conta já lançada: pede o motivo (fica no histórico). */
 const precisaMotivo = (orig: { valor: number; vencimento: string } | undefined, nova: { valor?: number; vencimento?: string }) =>
   !!orig && (Number(orig.valor) !== Number(nova.valor) || orig.vencimento !== nova.vencimento);
+
+/** "2026-10-01" → "10/2026" */
+const mesAno = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** Nome e descrição iguais (sem contar maiúsculas e espaços): o cartão mostra uma vez só. */
 const mesmoTexto = (a: string | null | undefined, b: string | null | undefined) => {
@@ -218,11 +229,11 @@ function useRelatorio(tipo: "receber" | "pagar", filtro: string, mes: string, ro
     atual ? nome(atual) : "todas as unidades",
   ].join(" · ");
 
-  async function imprimir(lista: LinhaRel[]) {
+  async function imprimir(lista: LinhaRel[], agrupar = false) {
     if (!cfg) return;
     try {
       setPdf(await pdfFinanceiro({
-        titulo, terceiro, filtros: filtros(),
+        titulo, terceiro, agrupar, filtros: [filtros(), agrupar && `agrupado por ${terceiro.toLowerCase()}`].filter(Boolean).join(" · "),
         linhas: lista.map((c) => ({ vencimento: c.vencimento, descricao: c.descricao, terceiro: c.terceiro, situacao: situacaoConta(c.status, c.vencimento),
           pagamento: c.data_pagamento, valor: Number(c.valor), pago: c.valor_pago == null ? null : Number(c.valor_pago) })),
       }, comUnidade(cfg, unidades.find((u) => u.id === atual))));
@@ -461,8 +472,15 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
   const aprov = useAprovarPagar(contas, tipoDe);
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
+  // como no Tiny: o período pode ser pelo vencimento, pela emissão, pelo pagamento ou pela competência
+  const [campoData, setCampoData] = useState<CampoData>("vencimento");
+  const rotuloCampo = CAMPOS_DATA.find((x) => x.v === campoData)?.rotulo ?? "Vencimento";
   const [categoria, setCategoria] = useState("");
   const [marcador, setMarcador] = useState("");
+  // de onde veio a conta (nota de fornecedor, ordem de compra, CT-e, frete, conta fixa, extrato…), com os números para a busca
+  const [origemF, setOrigemF] = useState<CodigoOrigem | "">("");
+  const { data: origensLista = [] } = useRows<OrigemConta>("contas_pagar_origem", { order: "id", ascending: true });
+  const origens = useMemo(() => new Map(origensLista.map((o) => [o.id, o])), [origensLista]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const { data: marcadores = [] } = useMarcadores();
   const [lotePagarHoje, setLotePagarHoje] = useState(false);
@@ -473,22 +491,42 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
   const [boleto, setBoleto] = useState<Pagar | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Pagar; acao: "cancelar" | "estornar" } | null>(null);
   const contaBanco = useNomeContaBancaria();
-  const { data: fornecedoresTodos = [] } = useRows<{ id: string; nome: string; cnpj?: string | null; bloqueado?: boolean; bloqueio_motivo?: string | null }>("fornecedores", { order: "nome", ascending: true });
+  const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const fornecedores = semUnificados(fornecedoresTodos);
-  const save = useSave("contas_pagar");
-  // "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
+  // a busca do fornecedor por nome, fantasia, CNPJ ou cidade (a "lupa" do Tiny), com o aviso de golpe no nome
+  const fornecedoresBusca = useMemo(() => fornecedores.map((f) => ({ ...f, nome: f.bloqueado ? `⛔ ${f.nome} (golpe: não pagar)` : f.nome, cpf_cnpj: f.cnpj ?? null })), [fornecedores]);
+  const { data: formasTodas = [] } = useFormasPagamento();
+  const formasPagar = formasTodas.filter((f) => f.ativo && f.uso !== "receber");
+  const nomeForma = (id: string | null | undefined) => (id ? formasTodas.find((f) => f.id === id)?.nome ?? null : null);
+  const save = useSave("contas_pagar", ["contas_pagar_origem"]);
+  const invalidar = useInvalidate();
+  // conta nova: uma só ou uma série (parcelada, semanal, mensal…); competência pelo vencimento, mês anterior, emissão ou escolhida
+  const [serie, setSerie] = useState<{ ocorrencia: Ocorrencia; vezes: number; modo: ModoCompetencia; mes: string; mexeu: boolean }>({ ocorrencia: "unica", vezes: 2, modo: "vencimento", mes: "", mexeu: false });
+  const abrirConta = (c: Partial<Pagar>) => {
+    setEditando(c);
+    setSerie({ ocorrencia: "unica", vezes: 2, modo: c.vencimento ? modoDaCompetencia(c.competencia, c.vencimento, c.emissao) : "vencimento", mes: (c.competencia ?? "").slice(0, 7), mexeu: false });
+  };
+  // a forma de pagamento da conta ou "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
   const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;
   useEffect(() => {
     if (!novaAoAbrir) return;
-    setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
+    abrirConta({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
     onNovaAberta?.();
   }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const termo = busca.trim().toLowerCase();
-  const filtradas = useMemo(() => contas.filter((c) =>
-    (!termo || [c.descricao, c.fornecedor?.nome, c.documento, c.categoria].some((t) => (t ?? "").toLowerCase().includes(termo)))
-    && noPeriodo(c.vencimento, periodo) && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))),
-  [contas, termo, periodo, categoria, marcador]);
+  // busca como no Tiny: nº do documento, fornecedor, histórico (descrição e observações), nº da NF de entrada e da OC
+  const filtradas = useMemo(() => contas.filter((c) => {
+    const o = origens.get(c.id);
+    return (!termo || [c.descricao, c.fornecedor?.nome, c.fornecedor?.cnpj, c.documento, c.categoria, c.observacoes, ...termosOrigem(o)].some((t) => (t ?? "").toLowerCase().includes(termo)))
+      && noPeriodo(dataDaConta(c, campoData, o), periodo) && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))
+      && (!origemF || (o?.origem ?? "outro") === origemF);
+  }), [contas, termo, periodo, campoData, categoria, marcador, origens, origemF]);
+  const origensUsadas = useMemo(() => {
+    const n = new Map<CodigoOrigem, number>();
+    for (const c of contas) { const k = origens.get(c.id)?.origem ?? "outro"; n.set(k, (n.get(k) ?? 0) + 1); }
+    return (Object.keys(ORIGENS) as CodigoOrigem[]).filter((k) => n.has(k)).map((k) => ({ k, n: n.get(k)! }));
+  }, [contas, origens]);
   // o resumo por tipo segue a busca e o período; o tipo escolhido filtra o quadro e a lista
   const resumoTipos = useMemo(() => resumoPorTipo(filtradas, tipoDe, hoje()), [filtradas, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
   const base = useMemo(() => (tipo ? filtradas.filter((c) => tipoDe(c) === tipo) : filtradas), [filtradas, tipo, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -504,13 +542,14 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
   const marcarTodas = () => setSel(todasMarcadas ? new Set() : new Set(abertasVisiveis.map((c) => c.id)));
   const somaDe = (l: Pagar[]) => l.reduce((s0, c) => s0 + Number(c.valor), 0);
   const rotuloVisao = VISOES_PAGAR.find((x) => x.v === visao)?.rotulo ?? "";
-  const rel = useRelatorio("pagar", "todos", "", [rotuloVisao, temPeriodo(periodo) ? `vencimento ${rotuloPeriodo(periodo, dia).toLowerCase()}` : "", termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
+  const rel = useRelatorio("pagar", "todos", "", [rotuloVisao, temPeriodo(periodo) ? `${rotuloCampo.toLowerCase()} ${rotuloPeriodo(periodo, dia).toLowerCase()}` : "",
+    origemF && `origem: ${ORIGENS[origemF].rotulo.toLowerCase()}`, termo && `busca "${busca.trim()}"`].filter(Boolean).join(" · "));
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
-  const novaConta = () => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
+  const novaConta = () => abrirConta({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
   const acoesDe = (c: Pagar) => (
-    <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => setEditando(c)}
+    <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => abrirConta(c)}
       onEstornar={() => setMotivo({ conta: c, acao: "estornar" })}
-      recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />} />
+      recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, nomeForma(c.forma_pagamento_id) ?? formaDaObs(c.observacoes))} />} />
   );
   const situacaoDe = (c: Pagar) => {
     const s = situacaoPagar(c, dia);
@@ -526,14 +565,40 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
     );
   };
 
+  // a série que a conta nova vai gerar (uma só quando a ocorrência é única)
+  const partes = editando && !editando.id && editando.valor && editando.vencimento
+    ? serieContas({ valor: Number(editando.valor), vencimento: editando.vencimento, descricao: editando.descricao ?? "", documento: editando.documento, emissao: editando.emissao },
+      serie.ocorrencia, serie.vezes, serie.modo, serie.mes)
+    : [];
+  // competência gravada: vazia segue o vencimento (como sempre foi); as outras escolhas gravam o mês
+  const competenciaGravar = (venc: string, recorrente: boolean) =>
+    serie.modo === "vencimento" && !recorrente ? null : competenciaDe(serie.modo, venc, editando?.emissao, serie.mes);
+
   async function salvar(e: FormEvent) {
     e.preventDefault();
     try {
-      const { fornecedor: _f, ...row } = editando as any;
+      const { fornecedor: _f, created_at: _c, ...row } = editando as any;
       if (!rateioOk(row.rateio)) return notify("Os centros de custo precisam somar 100%", "erro");
+      if (serie.modo === "outro" && !serie.mes) return notify("Escolha o mês de competência", "erro");
       if (!precisaMotivo(contas.find((c) => c.id === row.id), row)) delete row.motivo_alteracao;
-      await save.mutateAsync(limpar({ ...row, valor: Number(row.valor) }));
-      notify("Conta salva");
+      if (row.id) {
+        // conta já lançada: a competência só muda se a pessoa mexeu nela
+        if (serie.mexeu) row.competencia = competenciaGravar(row.vencimento, !!row.recorrente_id);
+        await save.mutateAsync(limpar({ ...row, valor: Number(row.valor) }));
+        notify("Conta salva");
+      } else if (partes.length > 1) {
+        // o boleto lido vale só para a primeira; as outras recebem o seu boleto depois
+        const semBoleto = { linha_digitavel: null, boleto_multa_pct: null, boleto_juros_mes_pct: null, boleto_juros_dia: null };
+        const linhas = partes.map((p, i) => limpar({ ...row, ...(i > 0 ? semBoleto : {}), valor: p.valor, vencimento: p.vencimento, descricao: p.descricao, documento: p.documento,
+          competencia: serie.modo === "vencimento" ? null : p.competencia }));
+        const { error } = await supabase.from("contas_pagar").insert(linhas);
+        if (error) throw error;
+        invalidar("contas_pagar", "contas_pagar_origem");
+        notify(`${linhas.length} contas lançadas`);
+      } else {
+        await save.mutateAsync(limpar({ ...row, valor: Number(row.valor), competencia: competenciaGravar(row.vencimento, false) }));
+        notify("Conta salva");
+      }
       setEditando(null);
     } catch (err) {
       notifyError(err);
@@ -549,10 +614,17 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
         if (modo === "lista") { setVisao("falta_aprovar"); setSel(new Set()); }
         else document.getElementById("coluna-aprovar")?.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
       })}
-      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, descrição ou documento…"
-        periodo={periodo} onPeriodo={setPeriodo} rotuloData="Vencimento"
-        nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0) + (tipo ? 1 : 0)}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, documento, histórico, nº da NF ou da OC…"
+        periodo={periodo} onPeriodo={setPeriodo} rotuloData={rotuloCampo}
+        campoData={{ valor: campoData, opcoes: CAMPOS_DATA, onChange: (v) => setCampoData(v as CampoData) }}
+        nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0) + (tipo ? 1 : 0) + (origemF ? 1 : 0)}
         filtros={<>
+          <label className="text-xs font-semibold text-slate-600">Origem
+            <select className="input mt-0.5 h-9 w-auto" value={origemF} onChange={(e) => setOrigemF(e.target.value as CodigoOrigem | "")}>
+              <option value="">Todas</option>
+              {origensUsadas.map(({ k, n }) => <option key={k} value={k}>{ORIGENS[k].rotulo} ({n})</option>)}
+            </select>
+          </label>
           <label className="text-xs font-semibold text-slate-600">Categoria
             <select className="input mt-0.5 h-9 w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
               <option value="">Todas</option>
@@ -561,7 +633,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
           </label>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} className="h-9" />
         </>}
-        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); setTipo(""); }}
+        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); setTipo(""); setOrigemF(""); }}
         direita={<>
           <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as contas em">
             {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
@@ -572,7 +644,9 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
             ))}
           </div>
           <Button variant="secondary" onClick={() => rel.imprimir(paraRel())} title="Imprimir a lista"><Printer size={16} /><span className="hidden lg:inline"> Imprimir</span></Button>
-          <Button variant="secondary" onClick={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "" }))} title="Exportar para Excel"><FileDown size={16} /><span className="hidden lg:inline"> Exportar</span></Button>
+          <Button variant="secondary" onClick={() => rel.imprimir(paraRel(), true)} title="Imprimir agrupado por fornecedor, com o total de cada um"><Users size={16} /><span className="hidden lg:inline"> Por fornecedor</span></Button>
+          <Button variant="secondary" onClick={() => rel.exportar(paraRel(), (c) => ({ Categoria: c.categoria, Documento: c.documento ?? "", Origem: rotuloOrigem(origens.get(c.id)) ?? "",
+            Emissão: celula(dataDaConta(c, "emissao", origens.get(c.id))), Competência: celula(dataDaConta(c, "competencia")) }))} title="Exportar para Excel"><FileDown size={16} /><span className="hidden lg:inline"> Exportar</span></Button>
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
         </>} />
       {podeDecidir && pagarHoje.length > 0 && (
@@ -599,7 +673,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
       <ListaContas vazia={lista.length === 0}>
         {lista.map((c) => (
           <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
-            detalhe={<><ChipTipo tipo={tipoDe(c)} className="mr-1" />{[c.categoria, c.documento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</>}
+            detalhe={<><ChipTipo tipo={tipoDe(c)} className="mr-1" /><ChipOrigem o={origens.get(c.id)} className="mr-1" />{[c.categoria, c.documento, nomeForma(c.forma_pagamento_id), c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</>}
             valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} marcado={sel.has(c.id)}
             marcar={podeDecidir && c.status === "aberto"
               ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
@@ -611,7 +685,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
       <div className="hidden md:block">
       <Table
         empty={lista.length === 0}
-        head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Fornecedor e descrição</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th text-right">Ação</th></>}
+        head={<>{podeDecidir && <th className="th w-8"><input type="checkbox" aria-label="Marcar todas em aberto" checked={todasMarcadas} onChange={marcarTodas} /></th>}<th className="th">Vencimento</th><th className="th">Fornecedor e descrição</th><th className="th">Origem</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th text-right">Ação</th></>}
       >
         {lista.map((c) => (
           <tr key={c.id} className={sel.has(c.id) ? "bg-brand/5" : undefined}>
@@ -623,8 +697,10 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
             <td className="td">
               <div className="flex flex-wrap items-center gap-x-1.5 font-semibold text-fg">{c.fornecedor?.nome || c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><ChipTipo tipo={tipoDe(c)} /></div>
               <div className="text-xs text-slate-500">{[!mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) && c.descricao, c.categoria, c.documento, c.linha_digitavel && "boleto",
+                nomeForma(c.forma_pagamento_id), c.chave_pix && `Pix ${c.chave_pix}`,
                 c.data_pagamento && c.conta_bancaria_id && `saiu de ${contaBanco(c.conta_bancaria_id)}`].filter(Boolean).join(" · ")}</div>
             </td>
+            <td className="td"><ChipOrigem o={origens.get(c.id)} /></td>
             <td className="td">{situacaoDe(c)}</td>
             <td className="td num whitespace-nowrap text-right font-semibold">{brl(c.valor)}</td>
             <td className="td">{acoesDe(c)}</td>
@@ -640,18 +716,70 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
           <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2"><CampoUnidade value={(editando as any).unidade_id} onChange={(v) => setEditando({ ...editando, unidade_id: v } as any)} label="Unidade que paga" /></div>
             <Field label="Descrição" className="sm:col-span-2"><input className="input" value={editando.descricao ?? ""} onChange={(e) => setEditando({ ...editando, descricao: e.target.value })} required /></Field>
-            <Field label="Fornecedor">
-              <select className="input" value={editando.fornecedor_id ?? ""} onChange={(e) => setEditando({ ...editando, fornecedor_id: e.target.value })}>
-                <option value="">—</option>
-                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.bloqueado ? `⛔ ${f.nome} (golpe: não pagar)` : f.nome}</option>)}
-              </select>
+            <Field label="Fornecedor" className="sm:col-span-2">
+              <ClienteBusca clientes={fornecedoresBusca} value={editando.fornecedor_id} placeholder="Buscar por nome, CNPJ ou cidade…"
+                onChange={(id) => setEditando((x) => {
+                  if (!x) return x;
+                  // a chave Pix vem do cadastro do fornecedor (troca junto se ainda era a do fornecedor anterior)
+                  const antes = fornecedores.find((f) => f.id === x.fornecedor_id)?.chave_pix ?? null;
+                  const nova = fornecedores.find((f) => f.id === id)?.chave_pix ?? null;
+                  const pix = !x.chave_pix || x.chave_pix === antes ? nova : x.chave_pix;
+                  return { ...x, fornecedor_id: id || null, chave_pix: pix };
+                })} />
             </Field>
             {fornecedores.find((f) => f.id === editando.fornecedor_id)?.bloqueado && (
               <div className="sm:col-span-2"><AvisoGolpe f={fornecedores.find((f) => f.id === editando.fornecedor_id)} /></div>
             )}
             <CampoCategoria tipo="despesa" value={editando.categoria} onChange={(v) => setEditando({ ...editando, categoria: v })} />
-            <Field label="Valor"><input className="input" type="number" step="0.01" min={0.01} value={editando.valor ?? ""} onChange={(e) => setEditando({ ...editando, valor: Number(e.target.value) })} required /></Field>
-            <Field label="Vencimento"><input className="input" type="date" value={editando.vencimento} onChange={(e) => setEditando({ ...editando, vencimento: e.target.value })} required /></Field>
+            <Field label={!editando.id && serie.ocorrencia === "parcelada" ? "Valor total (dividido nas parcelas)" : "Valor"}><input className="input" type="number" step="0.01" min={0.01} value={editando.valor ?? ""} onChange={(e) => setEditando({ ...editando, valor: Number(e.target.value) })} required /></Field>
+            <Field label={!editando.id && serie.ocorrencia !== "unica" ? "1º vencimento" : "Vencimento"}><input className="input" type="date" value={editando.vencimento} onChange={(e) => setEditando({ ...editando, vencimento: e.target.value })} required /></Field>
+            <Field label="Emissão"><input className="input" type="date" value={editando.emissao ?? ""} onChange={(e) => setEditando({ ...editando, emissao: e.target.value || null })} /></Field>
+            <Field label="Forma de pagamento">
+              <select className="input" value={editando.forma_pagamento_id ?? ""} onChange={(e) => setEditando({ ...editando, forma_pagamento_id: e.target.value || null })}>
+                <option value="">—</option>
+                {formasPagar.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                {editando.forma_pagamento_id && !formasPagar.some((f) => f.id === editando.forma_pagamento_id) && (
+                  <option value={editando.forma_pagamento_id}>{formasTodas.find((f) => f.id === editando.forma_pagamento_id)?.nome ?? "Forma desativada"}</option>
+                )}
+              </select>
+            </Field>
+            <Field label="Chave Pix de quem recebe" className="sm:col-span-2">
+              <input className="input" value={editando.chave_pix ?? ""} onChange={(e) => setEditando({ ...editando, chave_pix: e.target.value })} placeholder="CNPJ, e-mail, telefone ou chave aleatória" />
+            </Field>
+            <Field label="Competência (mês do DRE)">
+              <select className="input" value={serie.modo} onChange={(e) => setSerie({ ...serie, modo: e.target.value as ModoCompetencia, mexeu: true })}>
+                {MODOS_COMPETENCIA.map((m) => <option key={m.v} value={m.v}>{m.rotulo}</option>)}
+              </select>
+            </Field>
+            {serie.modo === "outro" ? (
+              <Field label="Mês de competência"><input className="input" type="month" value={serie.mes} onChange={(e) => setSerie({ ...serie, mes: e.target.value, mexeu: true })} required /></Field>
+            ) : (
+              <p className="self-end pb-2 text-xs text-slate-500">
+                {serie.modo === "emissao" && !editando.emissao ? "Sem a emissão, vale o mês do vencimento. " : ""}
+                {partes.length > 1 ? "A 1ª entra" : "Entra"} no DRE em <b className="text-fg">{editando.vencimento ? mesAno(competenciaDe(serie.modo, editando.vencimento, editando.emissao)) : "—"}</b>.
+              </p>
+            )}
+            {!editando.id && (
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 p-3 sm:col-span-2">
+                <Field label="Ocorrência">
+                  <select className="input" value={serie.ocorrencia} onChange={(e) => setSerie({ ...serie, ocorrencia: e.target.value as Ocorrencia })}>
+                    {OCORRENCIAS.map((o) => <option key={o.v} value={o.v}>{o.rotulo}</option>)}
+                  </select>
+                </Field>
+                {serie.ocorrencia !== "unica" && (
+                  <Field label={serie.ocorrencia === "parcelada" ? "Parcelas" : "Quantas vezes"}>
+                    <input className="input" type="number" min={2} max={MAX_VEZES} value={serie.vezes} onChange={(e) => setSerie({ ...serie, vezes: Number(e.target.value) })} required />
+                  </Field>
+                )}
+                {partes.length > 1 && (
+                  <p className="col-span-2 text-xs text-slate-600">
+                    Vai lançar <b className="text-fg">{partes.length} contas</b> de {dataBR(partes[0].vencimento)} a {dataBR(partes[partes.length - 1].vencimento)}
+                    {" "}· {partes[0].valor === partes[partes.length - 1].valor ? `${brl(partes[0].valor)} cada` : `${brl(partes[0].valor)} na 1ª e ${brl(partes[1].valor)} nas outras`}
+                    {serie.ocorrencia !== "parcelada" && ` · total ${brl(partes.reduce((t, x) => t + x.valor, 0))}`}. Cada uma passa pela aprovação como as outras.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="sm:col-span-2">
               <CampoBoleto key={editando.id ?? "nova"} linha={editando.linha_digitavel} contaId={editando.id}
                 encargos={{ boleto_multa_pct: editando.boleto_multa_pct, boleto_juros_mes_pct: editando.boleto_juros_mes_pct, boleto_juros_dia: editando.boleto_juros_dia }}
@@ -659,10 +787,13 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
                 onLido={(b) => setEditando((x) => (x ? { ...x, valor: b.valor ?? x.valor, vencimento: b.vencimento ?? x.vencimento } : x))}
                 onEncargos={(e) => setEditando((x) => (x ? { ...x, ...e } : x))} />
             </div>
-            <Field label="Documento (NF, recibo…)" className="sm:col-span-2"><input className="input" value={editando.documento ?? ""} onChange={(e) => setEditando({ ...editando, documento: e.target.value })} /></Field>
-            <Field label="Observações" className="sm:col-span-2"><textarea className="input" rows={2} value={editando.observacoes ?? ""} onChange={(e) => setEditando({ ...editando, observacoes: e.target.value })} /></Field>
+            <Field label="Nº do documento (NF, boleto, recibo…)" className="sm:col-span-2"><input className="input" value={editando.documento ?? ""} onChange={(e) => setEditando({ ...editando, documento: e.target.value })} /></Field>
+            <Field label="Histórico / observações" className="sm:col-span-2"><textarea className="input" rows={2} value={editando.observacoes ?? ""} onChange={(e) => setEditando({ ...editando, observacoes: e.target.value })} /></Field>
             <div className="sm:col-span-2"><CampoRateio value={editando.rateio} onChange={(v) => setEditando({ ...editando, rateio: v })} /></div>
             {editando.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Financeiro → Contas fixas).</p>}
+            {editando.id && origens.get(editando.id) && origens.get(editando.id)!.origem !== "outro" && (
+              <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 sm:col-span-2">Origem: <ChipOrigem o={origens.get(editando.id)} /> {ORIGENS[origens.get(editando.id)!.origem].rotulo}</p>
+            )}
             {precisaMotivo(contas.find((c) => c.id === editando.id), editando) && (
               <Field label="Motivo da alteração de valor/vencimento (fica no histórico)" className="sm:col-span-2">
                 <input className="input" value={editando.motivo_alteracao ?? ""} onChange={(e) => setEditando({ ...editando, motivo_alteracao: e.target.value })} required minLength={3} placeholder="Ex.: fornecedor enviou boleto corrigido" />
@@ -690,6 +821,13 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
       {aprov.modais}
     </>
   );
+}
+
+/** De onde veio a conta, como a coluna "Integrações" do Tiny: NF 1234, OC 56, Fatura 789, Envio 12, Fixa, Extrato… */
+function ChipOrigem({ o, className = "" }: { o: OrigemConta | undefined; className?: string }) {
+  if (!o || o.origem === "outro") return null;
+  const d = ORIGENS[o.origem];
+  return <span title={d.rotulo} className={`inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${d.cor} ${className}`}>{rotuloOrigem(o)}</span>;
 }
 
 /**
