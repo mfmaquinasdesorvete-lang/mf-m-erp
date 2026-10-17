@@ -6,13 +6,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowUpCircle, CalendarClock, CreditCard, FileWarning, Landmark, MessageCircle, PieChart, Plus, Scale,
+  AlertTriangle, ArrowDownCircle, ArrowUpCircle, CalendarClock, ClipboardCheck, CreditCard, FileWarning, Landmark, MessageCircle, PieChart, Plus, Scale,
   ShieldAlert, Wallet,
 } from "lucide-react";
 import { Section } from "@/components/ui";
 import { Colunas, Ranking, Rosca } from "@/components/Charts";
 import { Fluxo } from "@/components/financeiro/VisaoGeral";
 import { CartoesCorporativos } from "@/components/financeiro/CartaoCorporativo";
+import { ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
 import {
   AtalhosArea, baldes, CabecalhoPainel, CartaoPainel, dentro, FiltrosAtivos, frasePeriodo, intervalos, ListaAtencao, PERIODOS, usePeriodo, variacao,
   type Cartao, type ItemAtencao,
@@ -20,15 +21,18 @@ import {
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
+import { useConfig } from "@/lib/useConfig";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, somarDias, pl } from "@/lib/format";
 import { rotuloCategoria } from "@/lib/dre";
 import { aDecidir, type ContaDecisao } from "@/lib/programacao";
+import { quemPode, regrasDe, type ContaRevisao } from "@/lib/aprovacao";
+import { raizCnpj, resumoPorTipo, tipoPagar } from "@/lib/tiposPagar";
 import type { ContaFin } from "@/lib/financeiro";
 import { estabelecimento, ROTULO_TIPO, semRepetidos, tipoLancamento, transferenciasInternas } from "@/lib/extratoTipos";
 
 type Receber = ContaFin & { cliente_id?: string | null; cliente?: { nome: string; nome_fantasia?: string | null } | null };
-type Pagar = ContaFin & ContaDecisao & { fornecedor?: { nome: string } | null };
+type Pagar = ContaFin & ContaDecisao & { fornecedor?: { nome: string; cnpj?: string | null } | null };
 type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; identificador: string | null; status: string; conta_pagar_id: string | null };
 const CORES = ["var(--serie-2)", "var(--serie-1)", "var(--serie-3)", "var(--kpi-roxo)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--eixo-texto)"];
 const pagoValor = (c: ContaFin) => Number(c.valor_pago ?? c.valor ?? 0);
@@ -39,7 +43,7 @@ const diasEntre = (a: string, b: string) => Math.round((Date.parse(b + "T12:00:0
 
 export default function PainelFinanceiroArea() {
   const navigate = useNavigate();
-  const { pode, papel } = usePerfil();
+  const { pode, papel, tem, user_id } = usePerfil();
   const vePagar = pode("contas_pagar") || papel === "contador";
   const { filtrar } = useUnidade();
   // mesmos selects do painel financeiro da tela inicial: a lista carregada serve aos dois
@@ -51,6 +55,9 @@ export default function PainelFinanceiroArea() {
     queryKey: ["saldos_bancarios"],
     queryFn: async () => { const { data, error } = await supabase.rpc("saldos_bancarios"); if (error) throw error; return (data ?? []) as { conta_id: string; nome: string; unidade_id: string; saldo: number }[]; },
   });
+  // quanto tem para pagar por tipo (a transportadora pelo CNPJ do cadastro) e o que espera o seu ok
+  const { data: transportadoras = [] } = useRows<{ id: string; cnpj: string | null }>("transportadoras", { select: "id, cnpj", order: "nome", ascending: true, key: ["cnpj"] });
+  const { data: cfg } = useConfig();
   const [periodo, setPeriodo] = usePeriodo("financeiro");
   const [fCategoria, setFCategoria] = useState<string | null>(null);
   const per = PERIODOS.find((p) => p.id === periodo)!;
@@ -135,6 +142,12 @@ export default function PainelFinanceiroArea() {
     };
   }, [periodo, rec, pag, dia, fCategoria, mov, usaExtrato, saldos]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const aPagar = useMemo(() => {
+    const raizes = new Set(transportadoras.map((t) => raizCnpj(t.cnpj)).filter(Boolean));
+    const regras = regrasDe(cfg);
+    const minhaVez = tem("financeiro") ? pag.filter((c) => c.status === "aberto" && quemPode(c as unknown as ContaRevisao, { id: user_id, admin: papel === "admin" }, regras).pode) : [];
+    return { resumo: resumoPorTipo(pag, (c) => tipoPagar(c, raizes), dia), minhaVez };
+  }, [pag, transportadoras, cfg, dia, user_id, papel]); // eslint-disable-line react-hooks/exhaustive-deps
   const saldoBancos = saldos.reduce((s, x) => s + Number(x.saldo), 0);
   const extratoPendente = useMemo(() => { const ids = new Set(saldos.map((x) => x.conta_id)); return extrato.filter((l) => l.status === "pendente" && ids.has(l.conta_bancaria_id)).length; }, [extrato, saldos]);
   const notasLancar = filtrar(notasTodas).filter((n) => ["aguardando_vinculo", "revisao"].includes(n.processamento)).length;
@@ -153,6 +166,8 @@ export default function PainelFinanceiroArea() {
   ];
 
   const atencao: ItemAtencao[] = [
+    aPagar.minhaVez.length > 0 && { icone: ClipboardCheck, cor: "var(--kpi-roxo)", texto: `${aPagar.minhaVez.length} ${pl(aPagar.minhaVez.length, "conta", "contas")} a pagar esperando o seu ok: ${brl(aPagar.minhaVez.reduce((s, c) => s + Number(c.valor), 0))}`,
+      sub: "Aprovar ou não, em Contas a pagar", to: "/financeiro", state: { aba: "pagar" } },
     vePagar && k.pagVencidas.length > 0 && { icone: AlertTriangle, cor: "var(--kpi-rosa)", texto: `${k.pagVencidas.length} ${pl(k.pagVencidas.length, "conta", "contas")} a pagar ${pl(k.pagVencidas.length, "vencida", "vencidas")}: ${brl(k.pagVencidas.reduce((s, c) => s + Number(c.valor), 0))}`, to: "/financeiro", state: { aba: "pagar" } },
     vePagar && k.decidir.length > 0 && { icone: CalendarClock, cor: "var(--kpi-laranja)", texto: `${k.decidir.length} ${pl(k.decidir.length, "conta", "contas")} a pagar esperando decisão`, sub: "pagar, agendar ou não pagar", to: "/financeiro", state: { aba: "pagar" } },
     k.qtdVencidas > 0 && { icone: MessageCircle, cor: "var(--kpi-rosa)", texto: `${k.qtdVencidas} ${pl(k.qtdVencidas, "parcela", "parcelas")} ${pl(k.qtdVencidas, "vencida", "vencidas")} para cobrar: ${brl(k.vencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
@@ -178,6 +193,9 @@ export default function PainelFinanceiroArea() {
       <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
       </div>
+
+      {vePagar && <ResumoPagarTipos r={aPagar.resumo} className="" onTipo={(t) => navigate("/financeiro", { state: { aba: "pagar", tipo: t || undefined } })}
+        acoes={<span className="text-xs text-white/70">toque num tipo para ver as contas</span>} />}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title={`${periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"}${usaExtrato ? " · extratos" : ""}`} className="xl:col-span-3">

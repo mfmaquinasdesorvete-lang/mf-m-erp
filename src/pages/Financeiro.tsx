@@ -30,6 +30,10 @@ import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
 import { KanbanPagar } from "@/components/financeiro/KanbanPagar";
+import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
+import { ChipTipo, ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
+import { raizCnpj, resumoPorTipo, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
+import type { ContaRevisao } from "@/lib/aprovacao";
 import { aguardaAprovacao, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, situacaoPagar, VISOES_PAGAR, type Decisao, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
@@ -48,14 +52,14 @@ type Receber = {
   conta_bancaria_id?: string | null; motivo_alteracao?: string | null; cliente?: Cliente | null;
   categoria?: string; rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null;
 };
-type Pagar = {
+type Pagar = ContaRevisao & {
   id: string; descricao: string; fornecedor_id: string | null; categoria: string; documento: string | null;
   valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
-  observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null; fornecedor?: { nome: string; bloqueado?: boolean | null; bloqueio_motivo?: string | null } | null;
+  observacoes: string | null; conta_bancaria_id?: string | null; motivo_alteracao?: string | null;
+  fornecedor?: { nome: string; cnpj?: string | null; bloqueado?: boolean | null; bloqueio_motivo?: string | null } | null;
   rateio?: Rateio; competencia?: string | null; recorrente_id?: string | null; unidade_id?: string | null;
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
   linha_digitavel?: string | null; boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null;
-  revisao?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 
@@ -97,22 +101,24 @@ export default function Financeiro() {
   const location = useLocation();
   const navigate = useNavigate();
   const [novaAoAbrir, setNovaAoAbrir] = useState(false);
+  const [tipoInicial, setTipoInicial] = useState<TipoPagar | "">("");
   // vindo do Analista fiscal: contas a pagar só com as contas apontadas
   const [destaque, setDestaque] = useState<Destaque | null>(null);
   useEffect(() => {
-    const st = location.state as { aba?: typeof aba; nova?: boolean } | null;
+    const st = location.state as { aba?: typeof aba; nova?: boolean; tipo?: TipoPagar } | null;
     const d = lerDestaque(location.state);
     if (d) setDestaque(d);
     if (st?.aba) {
       const nova = st.aba === "pagar" && !veContasPagar ? "receber" : st.aba;
       setNovaAoAbrir(!!st.nova);
+      setTipoInicial(st.tipo ?? "");
       navigate({ pathname: location.pathname, search: buscaDaAba(nova, "visao") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();
   const { data: receberTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, bloqueado, bloqueio_motivo)" });
+  const { data: pagarTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
   const pagar = filtrar(pagarTodos);
 
   const resumo = useMemo(() => {
@@ -155,15 +161,15 @@ export default function Financeiro() {
           veSaldo={tem("financeiro", "contador")} podeBaixar={pode("editar_financeiro")} />
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {aba !== "pagar" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Indicador rotulo="A receber (aberto)" icon={ArrowDownCircle} cor="azul" valor={brl(resumo.aReceber)} />
             <Indicador rotulo="Recebimentos vencidos" icon={AlertTriangle} cor={resumo.vencidoReceber > 0 ? "vermelho" : "verde"} valor={brl(resumo.vencidoReceber)} />
             {veContasPagar && <Indicador rotulo="A pagar (aberto)" icon={ArrowUpCircle} cor="laranja" valor={brl(resumo.aPagar)} />}
             {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
               valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
-          </div>
+          </div>}
           {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)}
-            destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <ContasReceber contas={receber} />}
+            tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <ContasReceber contas={receber} />}
         </>
       )}
     </div>
@@ -431,8 +437,8 @@ function ContasReceber({ contas }: { contas: Receber[] }) {
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLimparDestaque }: {
-  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; destaque?: Destaque | null; onLimparDestaque?: () => void;
+function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque }: {
+  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void;
 }) {
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
@@ -440,9 +446,19 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const { data: cfgRecibo } = useConfig();
   // uma visão por vez (com a contagem de cada uma), busca, período do vencimento e filtros guardados num botão
   const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : "para_pagar");
-  // lista ou quadro (Kanban); a escolha fica guardada neste aparelho
-  const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:modo") === "quadro" && !destaque ? "quadro" : "lista"; } catch { return "lista"; } });
-  const setModo = (m: "lista" | "quadro") => { setModoState(m); setSel(new Set()); try { localStorage.setItem("erp:pagar:modo", m); } catch { /* sem armazenamento */ } };
+  // quadro (Kanban, o padrão) ou lista; a escolha fica guardada neste aparelho
+  const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:visual") === "lista" || destaque ? "lista" : "quadro"; } catch { return "quadro"; } });
+  const setModo = (m: "lista" | "quadro") => { setModoState(m); setSel(new Set()); try { localStorage.setItem("erp:pagar:visual", m); } catch { /* sem armazenamento */ } };
+  // tipo da conta (transportadora, fornecedor, folha…): a transportadora pelo CNPJ do cadastro de transportadoras
+  const [tipo, setTipo] = useState<TipoPagar | "">(tipoInicial);
+  useEffect(() => { if (tipoInicial) setTipo(tipoInicial); }, [tipoInicial]);
+  const { data: transportadoras = [] } = useRows<{ id: string; cnpj: string | null }>("transportadoras", { select: "id, cnpj", order: "nome", ascending: true, key: ["cnpj"] });
+  const tipos = useMemo(() => {
+    const raizes = new Set(transportadoras.map((t) => raizCnpj(t.cnpj)).filter(Boolean));
+    return new Map(contas.map((c) => [c.id, tipoPagar(c, raizes)]));
+  }, [contas, transportadoras]);
+  const tipoDe = (c: Pagar) => tipos.get(c.id) ?? "outros";
+  const aprov = useAprovarPagar(contas, tipoDe);
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
   const [categoria, setCategoria] = useState("");
@@ -469,10 +485,13 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const termo = busca.trim().toLowerCase();
-  const base = useMemo(() => contas.filter((c) =>
+  const filtradas = useMemo(() => contas.filter((c) =>
     (!termo || [c.descricao, c.fornecedor?.nome, c.documento, c.categoria].some((t) => (t ?? "").toLowerCase().includes(termo)))
     && noPeriodo(c.vencimento, periodo) && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))),
   [contas, termo, periodo, categoria, marcador]);
+  // o resumo por tipo segue a busca e o período; o tipo escolhido filtra o quadro e a lista
+  const resumoTipos = useMemo(() => resumoPorTipo(filtradas, tipoDe, hoje()), [filtradas, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const base = useMemo(() => (tipo ? filtradas.filter((c) => tipoDe(c) === tipo) : filtradas), [filtradas, tipo, tipos]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => base.filter((c) => naVisaoPagar(c, visao, dia)).sort((a, b) => visao === "pagas"
     ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))), [base, visao, dia]);
   const visoes = VISOES_PAGAR.map((x) => ({ value: x.v, label: x.rotulo, n: base.filter((c) => naVisaoPagar(c, x.v, dia)).length }));
@@ -489,7 +508,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
   const paraRel = () => lista.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? "" }));
   const novaConta = () => setEditando({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
   const acoesDe = (c: Pagar) => (
-    <AcoesPagar conta={c} podeDecidir={podeDecidir} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => setEditando(c)}
+    <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => setEditando(c)}
       onEstornar={() => setMotivo({ conta: c, acao: "estornar" })}
       recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, formaDaObs(c.observacoes))} />} />
   );
@@ -525,9 +544,14 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
     <>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={contas.length} onLimpar={onLimparDestaque} />}
       {rel.visor}
+      <ResumoPagarTipos r={resumoTipos} tipo={tipo} onTipo={(t) => { setTipo(t); setSel(new Set()); }} />
+      {aprov.faixa(() => {
+        if (modo === "lista") { setVisao("falta_aprovar"); setSel(new Set()); }
+        else document.getElementById("coluna-aprovar")?.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+      })}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, descrição ou documento…"
         periodo={periodo} onPeriodo={setPeriodo} rotuloData="Vencimento"
-        nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0)}
+        nFiltros={(categoria ? 1 : 0) + (marcador ? 1 : 0) + (tipo ? 1 : 0)}
         filtros={<>
           <label className="text-xs font-semibold text-slate-600">Categoria
             <select className="input mt-0.5 h-9 w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
@@ -537,10 +561,10 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
           </label>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} className="h-9" />
         </>}
-        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); }}
+        onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setCategoria(""); setMarcador(""); setTipo(""); }}
         direita={<>
           <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as contas em">
-            {([["lista", List, "Lista"], ["quadro", SquareKanban, "Quadro"]] as const).map(([m, Icone, rotulo]) => (
+            {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
               <button key={m} type="button" aria-pressed={modo === m} onClick={() => setModo(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por etapa até o pagamento" : "Lista com as visões"}
                 className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${modo === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
@@ -552,14 +576,19 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
         </>} />
       {podeDecidir && pagarHoje.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-          <Wallet size={18} className="shrink-0" aria-hidden />
-          <span className="mr-auto"><b>{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje</b> · <b className="num">{brl(somaDe(pagarHoje))}</b></span>
-          <Button type="button" variant="secondary" onClick={() => setLotePagarHoje(true)}><CheckCheck size={15} /> Registrar o pagamento de todas</Button>
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3.5 text-[#022c1e] shadow-card sm:p-4" style={{ background: "linear-gradient(135deg,#6ee7b7 0%,#34d399 50%,#10b981 100%)" }}>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/40"><Wallet size={22} aria-hidden /></span>
+          <span className="mr-auto min-w-0">
+            <span className="block text-base font-extrabold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
+            <span className="mt-0.5 block text-[13px] leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
+          </span>
+          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl bg-[#022c1e] px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
+            <CheckCheck size={16} aria-hidden /> Registrar o pagamento de todas
+          </button>
         </div>
       )}
       {modo === "quadro" ? (
-        <KanbanPagar contas={base} podeDecidir={podeDecidir} situacaoDe={situacaoDe} acoesDe={acoesDe} onRegistrar={(c) => setBaixa(c)} />
+        <KanbanPagar contas={base} podeDecidir={podeDecidir} situacaoDe={situacaoDe} acoesDe={acoesDe} onRegistrar={(c) => setBaixa(c)} tipoDe={tipoDe} />
       ) : <>
       <ChipsSituacao opcoes={visoes} valor={visao} onChange={(v) => { setVisao(v); setSel(new Set()); }} rotulo="Visão das contas" />
       {podeDecidir && abertasVisiveis.length > 0 && (
@@ -570,7 +599,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
       <ListaContas vazia={lista.length === 0}>
         {lista.map((c) => (
           <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
-            detalhe={[c.categoria, c.documento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}
+            detalhe={<><ChipTipo tipo={tipoDe(c)} className="mr-1" />{[c.categoria, c.documento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}</>}
             valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} marcado={sel.has(c.id)}
             marcar={podeDecidir && c.status === "aberto"
               ? <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" aria-label={`Marcar ${c.descricao}`} checked={sel.has(c.id)} onChange={() => marcar(c.id)} />
@@ -592,7 +621,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
               {c.status === "aberto" && c.pagar_em && c.pagar_em !== c.vencimento && c.decisao !== "nao_pagar" && <div className="text-xs text-slate-500">pagar {dataBR(c.pagar_em).slice(0, 5)}</div>}
             </td>
             <td className="td">
-              <div className="flex flex-wrap items-center gap-x-1.5 font-semibold text-fg">{c.fornecedor?.nome || c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /></div>
+              <div className="flex flex-wrap items-center gap-x-1.5 font-semibold text-fg">{c.fornecedor?.nome || c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><ChipTipo tipo={tipoDe(c)} /></div>
               <div className="text-xs text-slate-500">{[!mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) && c.descricao, c.categoria, c.documento, c.linha_digitavel && "boleto",
                 c.data_pagamento && c.conta_bancaria_id && `saiu de ${contaBanco(c.conta_bancaria_id)}`].filter(Boolean).join(" · ")}</div>
             </td>
@@ -658,6 +687,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
       {boleto && <ConferirBoletoModal conta={contas.find((x) => x.id === boleto.id) ?? boleto} podeEditar={podeDecidir} aprovada={!aguardaAprovacao(contas.find((x) => x.id === boleto.id) ?? boleto)} onClose={() => setBoleto(null)}
         onPagar={(valor, data) => { setBaixaCom({ valor, data }); setBaixa(contas.find((x) => x.id === boleto.id) ?? boleto); setBoleto(null); }} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
+      {aprov.modais}
     </>
   );
 }
@@ -666,8 +696,8 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, destaque, onLi
  * Ações de uma conta a pagar: um botão com o próximo passo (pagar, registrar o pagamento, aprovar, recibo…) e o resto
  * no menu "⋯" (agendar, não pagar, voltar a decidir, boleto, marcadores, editar, estornar).
  */
-function AcoesPagar({ conta: c, podeDecidir, onBaixa, onBoleto, onEditar, onEstornar, recibo }: {
-  conta: Pagar; podeDecidir: boolean; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void; recibo: ReactNode;
+function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, recibo }: {
+  conta: Pagar; podeDecidir: boolean; aprovar?: ReactNode; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void; recibo: ReactNode;
 }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "marcadores" | null>(null);
@@ -677,6 +707,8 @@ function AcoesPagar({ conta: c, podeDecidir, onBaixa, onBoleto, onEditar, onEsto
   const hojeDia = hoje();
   let principal: ReactNode;
   if (c.status === "pago") principal = recibo;
+  // falta aprovar: "Aprovar / Não" para quem aprova (ou o porquê de esperar)
+  else if (falta && aberta && !golpe && aprovar) principal = aprovar;
   else if (!podeMexer) principal = <Button variant="secondary" onClick={onEditar}><Eye size={15} /> Ver</Button>;
   else if (falta) principal = <Link to="/aprovacoes" title="A conta precisa ser aprovada antes de pagar" className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100">Aprovar</Link>;
   else if (c.decisao === "nao_pagar") principal = <Button variant="secondary" disabled={ocupado} onClick={() => programar([c.id], "limpar")} title="Volta para a decidir"><RotateCcw size={15} /> Retomar</Button>;

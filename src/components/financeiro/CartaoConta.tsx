@@ -39,12 +39,12 @@ export function CartaoConta({ titulo, descricao, detalhe, unidadeId, valor, venc
           </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="min-w-0 rounded-xl bg-slate-50 px-3 py-2">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Valor</span>
-            <span className="num block text-lg font-bold text-fg [overflow-wrap:anywhere]">{brl(valor)}</span>
+          <div className="cartao-fit min-w-0 rounded-xl bg-slate-50 px-3 py-2">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Valor</span>
+            <span className="num valor-fit block font-bold text-fg [--valor-max:1.25rem]">{brl(valor)}</span>
           </div>
           <div className="min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-right">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{pago ? "Paga em" : "Vencimento"}</span>
+            <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{pago ? "Paga em" : "Vencimento"}</span>
             <span className="num block text-lg font-bold text-fg">{dataBR(pago ? pagoEm! : vencimento)}</span>
             <span className={`block text-xs font-semibold ${p.cor}`}>{pago ? `vencia ${dataBR(vencimento)}` : p.texto}</span>
           </div>

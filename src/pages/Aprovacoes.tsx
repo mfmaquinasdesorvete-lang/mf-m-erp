@@ -39,7 +39,7 @@ export default function Aprovacoes() {
   const regras = regrasDe(cfg);
   const { filtrar } = useUnidade();
   // mesmos selects do Financeiro: a lista já carregada serve às duas telas
-  const { data: pagarT = [] } = useRows<ContaRevisao & { fornecedor?: { nome: string } | null }>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, bloqueado, bloqueio_motivo)" });
+  const { data: pagarT = [] } = useRows<ContaRevisao & { fornecedor?: { nome: string } | null }>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
   const { data: receberT = [] } = useRows<ContaRevisao & { cliente?: { nome: string; nome_fantasia?: string | null } | null }>("contas_receber", { select: "*, cliente:clientes(*)" });
   const { data: docs = [] } = useRows<{ entidade: string; entidade_id: string }>("documentos", { select: "entidade, entidade_id" });
   const { data: categorias = [] } = useRows<{ nome: string; tipo: string; ativo: boolean }>("categorias_financeiras", { order: "ordem", ascending: true });

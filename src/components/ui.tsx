@@ -114,13 +114,13 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
 }) {
   const c = coresCartao[cor];
   return (
-    <div className={`${caixaCartao} p-3 pl-4 ${c.caixa}`}>
+    <div className={`${caixaCartao} cartao-fit p-3 pl-4 ${c.caixa}`}>
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 text-[13px] font-semibold leading-tight text-slate-700">{rotulo}</span>
+        <span className="min-w-0 text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
         {Icon && <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
       </div>
-      <div className={`num mt-0.5 text-base font-bold [overflow-wrap:anywhere] sm:text-lg ${c.valor}`}>{valor}</div>
-      {sub && <div className="text-xs text-slate-600">{sub}</div>}
+      <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`}>{valor}</div>
+      {sub && <div className="text-[13px] leading-snug text-slate-600">{sub}</div>}
     </div>
   );
 }

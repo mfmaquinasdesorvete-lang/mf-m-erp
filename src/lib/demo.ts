@@ -96,6 +96,8 @@ function seed(): Db {
       { id: "f6", nome: "Distribuidora Frio Exemplo S.A.", nome_fantasia: "Frio Exemplo", cnpj: "55666777000282", telefone: "4830002000", municipio: "São José", uf: "SC", matriz_id: "f5", receita_situacao: "ATIVA" },
       { id: "f7", nome: "Distribuidora Frio Exemplo S.A.", nome_fantasia: "Frio Exemplo", cnpj: "55666777000363", telefone: "1130003000", municipio: "Osasco", uf: "SP", matriz_id: "f5", receita_situacao: "ATIVA" },
       { id: "f8", nome: "Frio Exemplo - São José/SC", cnpj: null, telefone: "4830002000", municipio: "São José", uf: "SC", matriz_id: "f5" },
+      // a mesma empresa das transportadoras (raiz do CNPJ igual): a fatura de frete lançada como "fornecedores" vira Transportadoras
+      { id: "f9", nome: "Rodonaves Transportes e Encomendas Ltda", cnpj: "44914992000138", municipio: "Ribeirão Preto", uf: "SP" },
     ],
     produtos: [
       { id: "p1", sku: "MF-SOFT-300", descricao: "Máquina de Sorvete Soft MF-300 (3 bicos)", tipo: "maquina", unidade: "UN", ncm: "84186990", origem: 0, peso_kg: 145, altura_cm: 150, largura_cm: 55, profundidade_cm: 80, preco_custo: 14800, preco_venda: 23900, garantia_meses: 12, estoque_atual: 4, estoque_minimo: 2, localizacao: "Galpão A", ativo: true, codigo_barras: null },
@@ -161,6 +163,15 @@ function seed(): Db {
       { id: "cp20", descricao: "Manutenção da empilhadeira", categoria: "manutenção", valor: 2240, vencimento: dias(3), status: "aberto", decisao: "nao_pagar", decisao_motivo: "Esperando boleto ou NF correta", decisao_por_nome: "Fabiano", decisao_em: quando(-2) },
       { id: "cp21", descricao: "Frete Braspress - NF 1290", categoria: "fretes", valor: 386.4, vencimento: dias(0), status: "aberto" },
       { id: "cp5", descricao: "DAS Simples Nacional", categoria: "impostos", valor: 3920, vencimento: dias(-12), status: "pago", data_pagamento: dias(-13), valor_pago: 3920 },
+      // esperando aprovação: o financeiro (2º revisor) faz a 1ª das lançadas pela administradora e a 2ª das que ela já revisou
+      { id: "cpa1", descricao: "Fatura de fretes 5521", fornecedor_id: "f9", categoria: "fornecedores", documento: "Fatura 5521", valor: 1280.5, vencimento: dias(3), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
+      { id: "cpa2", descricao: "NF 48390 - Refrigeração Andrade Ltda", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48390", valor: 2890, vencimento: dias(6), status: "aberto", revisao: "em_revisao",
+        lancamento: "manual", criado_por: "u-vendas", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" },
+      { id: "cpa3", descricao: "Salários de outubro", categoria: "folha", documento: "Folha 10/2026", valor: 4000, vencimento: dias(2), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
+      { id: "cpa4", descricao: "DARF IRPJ trimestral", categoria: "impostos", valor: 1750, vencimento: dias(-1), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
+      { id: "cpa5", descricao: "Honorários contábeis", categoria: "serviços profissionais", documento: "NFS-e 812", valor: 1500, vencimento: dias(9), status: "aberto", revisao: "aprovado", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-2) },
+      { id: "cpa6", descricao: "Internet fibra da fábrica", categoria: "energia/água/internet", valor: 189.9, vencimento: dias(4), status: "aberto", revisao: "devolvido",
+        revisao_comentario: "Falta anexar o boleto", lancamento: "manual", criado_por: "u-fin" },
     ],
     notas_fiscais: [
       { id: "nf1", pedido_id: "pd1", referencia: "pedido-101-1", status: "autorizada", numero: "1287", serie: "1", chave: "35261012345678000190550010000012871000012870", valor_total: 23728, mensagem: "Autorizado o uso da NF-e", created_at: quando(-33), marcadores: ["mk1", "mk2"],

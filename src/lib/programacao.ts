@@ -134,13 +134,33 @@ export function situacaoPagar(c: ContaLista, hoje: string): { texto: string; tom
 // coluna faz a ação que a coluna pede, com as mesmas travas da lista (aprovação, golpe, motivo do "não pagar").
 
 export type ColunaPagar = "decidir" | "aprovar" | "programadas" | "hoje" | "pagas" | "nao_pagar";
-export const COLUNAS_PAGAR: { id: ColunaPagar; rotulo: string; dica: string; cor: string }[] = [
-  { id: "decidir", rotulo: "A decidir", dica: "Ninguém escolheu ainda: pagar, agendar ou não pagar", cor: "#d97706" },
-  { id: "aprovar", rotulo: "Falta aprovar", dica: "Esperando a aprovação (Financeiro → Aprovações)", cor: "#7c3aed" },
-  { id: "programadas", rotulo: "Programadas", dica: "Aprovadas para um dia que ainda não chegou", cor: "#0284c7" },
-  { id: "hoje", rotulo: "Pagar hoje", dica: "O dia chegou: pagar e registrar o pagamento", cor: "#059669" },
-  { id: "pagas", rotulo: "Pagas", dica: "Pagamento registrado (últimos 30 dias)", cor: "#475569" },
-  { id: "nao_pagar", rotulo: "Não pagar", dica: "Seguradas com motivo, ou fornecedor marcado como golpe", cor: "#dc2626" },
+/**
+ * As colunas na ordem do caminho (passo 1 a 5; "não pagar" fica fora do caminho), com o que é e o que fazer. O cabeçalho
+ * e a aba têm cor forte (`fundo`, degradê) com a letra `tinta` (contraste conferido); `corpo` é o fundo claro da coluna,
+ * em classe inteira para o Tailwind gerar (muda com o tema).
+ */
+export const COLUNAS_PAGAR: {
+  id: ColunaPagar; passo: number | null; rotulo: string; dica: string; explica: string; fazer: string; cor: string;
+  fundo: string; tinta: string; corpo: string;
+}[] = [
+  { id: "aprovar", passo: 1, rotulo: "Falta aprovar", dica: "Esperando a aprovação (Financeiro → Aprovações)", cor: "#7c3aed",
+    explica: "Conta nova esperando o ok de quem aprova.", fazer: "Quem aprova toca em Aprovar ou Não.",
+    fundo: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 55%,#5b21b6 100%)", tinta: "#ffffff", corpo: "bg-purple-50/50" },
+  { id: "decidir", passo: 2, rotulo: "A decidir", dica: "Ninguém escolheu ainda: pagar, agendar ou não pagar", cor: "#f59e0b",
+    explica: "Aprovada, mas ninguém escolheu quando pagar.", fazer: "Escolha: pagar no vencimento, outro dia ou não pagar.",
+    fundo: "linear-gradient(135deg,#fde047 0%,#fbbf24 45%,#f59e0b 100%)", tinta: "#3b1d02", corpo: "bg-amber-50/50" },
+  { id: "programadas", passo: 3, rotulo: "Programadas", dica: "Aprovadas para um dia que ainda não chegou", cor: "#0ea5e9",
+    explica: "Aprovadas e com o dia do pagamento marcado.", fazer: "Nada a fazer até o dia (dá para mudar o dia).",
+    fundo: "linear-gradient(135deg,#67e8f9 0%,#38bdf8 50%,#0ea5e9 100%)", tinta: "#062c43", corpo: "bg-sky-50/50" },
+  { id: "hoje", passo: 4, rotulo: "Pagar hoje", dica: "O dia chegou: pagar e registrar o pagamento", cor: "#10b981",
+    explica: "O dia de pagar chegou (ou já passou).", fazer: "Pague no banco e toque em Registrar pagamento.",
+    fundo: "linear-gradient(135deg,#6ee7b7 0%,#34d399 45%,#10b981 100%)", tinta: "#022c1e", corpo: "bg-emerald-50/50" },
+  { id: "pagas", passo: 5, rotulo: "Pagas", dica: "Pagamento registrado (últimos 30 dias)", cor: "#475569",
+    explica: "Pagamento registrado nos últimos 30 dias.", fazer: "O recibo fica no cartão da conta.",
+    fundo: "linear-gradient(135deg,#64748b 0%,#475569 60%,#334155 100%)", tinta: "#ffffff", corpo: "bg-slate-50/80" },
+  { id: "nao_pagar", passo: null, rotulo: "Não pagar", dica: "Seguradas com motivo, ou fornecedor marcado como golpe", cor: "#e11d48",
+    explica: "Seguradas com motivo, ou fornecedor golpe.", fazer: "Toque em Retomar quando o motivo se resolver.",
+    fundo: "linear-gradient(135deg,#e11d48 0%,#be123c 55%,#9f1239 100%)", tinta: "#ffffff", corpo: "bg-red-50/50" },
 ];
 
 /** Em que coluna do quadro a conta fica; null = fora do quadro (cancelada). */
