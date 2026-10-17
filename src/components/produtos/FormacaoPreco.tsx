@@ -161,9 +161,9 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
                     </div>
                   </dl>
                   {podeAprovar && (
-                    <div className="mt-2 flex justify-end gap-2">
+                    <div className="mt-2 flex flex-wrap justify-end gap-2">
                       <Button variant="ghost" onClick={() => decidir([s.id], false)} disabled={ocupado}><X size={16} /> Manter o preço</Button>
-                      <Button onClick={() => decidir([s.id], true)} disabled={ocupado || !(novo > 0)}><Check size={16} /> Aprovar {novo > 0 ? brl(novo) : ""}</Button>
+                      <Button className="whitespace-nowrap" onClick={() => decidir([s.id], true)} disabled={ocupado || !(novo > 0)}><Check size={16} /> Aprovar {novo > 0 ? brl(novo) : ""}</Button>
                     </div>
                   )}
                 </li>

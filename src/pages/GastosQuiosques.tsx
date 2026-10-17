@@ -232,10 +232,10 @@ export default function GastosQuiosques() {
           <h2 className="mb-3 flex items-center gap-2 font-bold text-fg"><Store size={18} aria-hidden /> Lojas <span className="text-sm font-normal text-slate-500">· {periodo}</span></h2>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Loja</th><th className="py-1 pr-3 text-right">Notas</th><th className="py-1 pr-3 text-right">Total</th><th className="py-1 text-right">Última</th></tr></thead>
+              <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Loja</th><th className="hidden py-1 pr-3 text-right sm:table-cell">Notas</th><th className="py-1 pr-3 text-right">Total</th><th className="hidden py-1 text-right sm:table-cell">Última</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {porLoja.slice(0, 12).map((l) => (
-                  <tr key={l.nome + l.ultimo}><td className="py-1.5 pr-3">{l.nome}</td><td className="py-1.5 pr-3 text-right">{l.n}</td><td className="num whitespace-nowrap py-1.5 pr-3 text-right font-semibold">{brl(l.total)}</td><td className="whitespace-nowrap py-1.5 text-right">{dataBR(l.ultimo)}</td></tr>
+                  <tr key={l.nome + l.ultimo}><td className="py-1.5 pr-3">{l.nome}<span className="block text-xs text-slate-500 sm:hidden">{l.n} {pl(l.n, "nota", "notas")} · última {dataBR(l.ultimo)}</span></td><td className="hidden py-1.5 pr-3 text-right sm:table-cell">{l.n}</td><td className="num whitespace-nowrap py-1.5 pr-3 text-right font-semibold">{brl(l.total)}</td><td className="hidden whitespace-nowrap py-1.5 text-right sm:table-cell">{dataBR(l.ultimo)}</td></tr>
                 ))}
               </tbody>
             </table>

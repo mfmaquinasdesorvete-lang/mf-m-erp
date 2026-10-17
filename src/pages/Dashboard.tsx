@@ -387,12 +387,11 @@ function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: 
 
 function Mini({ icon: Icon, cor, label, valor, sub, onClick }: { icon: LucideIcon; cor: string; label: string; valor: number | string; sub?: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon size={19} /></span>
-      <span className="min-w-0">
-        <span className="num block text-xl font-bold leading-none text-fg">{valor}</span>
-        <span className="mt-1 block text-xs leading-tight text-slate-500">{label}{sub ? ` · ${sub}` : ""}</span>
-      </span>
+    // ícone e número na mesma linha; o nome embaixo na largura toda (ao lado do ícone ficava com 66 px no celular)
+    <button onClick={onClick} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon size={18} /></span>
+      <span className="num block truncate text-xl font-bold leading-none text-fg">{valor}</span>
+      <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{label}{sub ? ` · ${sub}` : ""}</span>
     </button>
   );
 }

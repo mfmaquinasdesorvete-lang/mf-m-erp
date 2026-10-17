@@ -102,11 +102,12 @@ function CartaoResumo({ cartao: c }: { cartao: Cartao }) {
       <div className="bg-gradient-to-br from-[#0f2a4a] via-[#16406e] to-[#0b7a75] p-4 text-white">
         <div className="flex flex-wrap items-start gap-3">
           <span className="grid h-10 w-14 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 shadow-inner" aria-hidden><CreditCard size={22} /></span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[10rem] flex-1">
             <h2 className="text-lg font-bold leading-tight">{c.cartao_nome}</h2>
-            <p className="text-xs text-white/75">{c.nome}{c.extrato_ate ? ` · extrato até ${dataBR(c.extrato_ate)}` : ""}</p>
+            <p className="text-[13px] text-white/80">{c.nome}{c.extrato_ate ? ` · extrato até ${dataBR(c.extrato_ate)}` : ""}</p>
           </div>
-          <div className="text-right">
+          {/* sem espaço, o total do mês desce para a linha de baixo (não espreme o nome do cartão) */}
+          <div className="ml-auto text-right">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Este mês</div>
             <div className="num text-xl font-bold">{brl(doMes.total)}</div>
           </div>

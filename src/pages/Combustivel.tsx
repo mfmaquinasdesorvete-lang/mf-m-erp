@@ -115,10 +115,10 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
           {!porPosto.length ? <p className="text-sm text-slate-500">Nada no período.</p> : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Posto</th><th className="py-1 pr-3 text-right">Vezes</th><th className="py-1 pr-3 text-right">Total</th><th className="py-1 text-right">Último</th></tr></thead>
+                <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Posto</th><th className="hidden py-1 pr-3 text-right sm:table-cell">Vezes</th><th className="py-1 pr-3 text-right">Total</th><th className="hidden py-1 text-right sm:table-cell">Último</th></tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {porPosto.slice(0, 15).map(([p, x]) => (
-                    <tr key={p}><td className="py-1.5 pr-3">{p}</td><td className="py-1.5 pr-3 text-right">{x.n}</td><td className="num whitespace-nowrap py-1.5 pr-3 text-right font-semibold">{brl(x.total)}</td><td className="whitespace-nowrap py-1.5 text-right">{dataBR(x.ultimo)}</td></tr>
+                    <tr key={p}><td className="py-1.5 pr-3">{p}<span className="block text-xs text-slate-500 sm:hidden">{x.n} {pl(x.n, "vez", "vezes")} · último {dataBR(x.ultimo)}</span></td><td className="hidden py-1.5 pr-3 text-right sm:table-cell">{x.n}</td><td className="num whitespace-nowrap py-1.5 pr-3 text-right font-semibold">{brl(x.total)}</td><td className="hidden whitespace-nowrap py-1.5 text-right sm:table-cell">{dataBR(x.ultimo)}</td></tr>
                   ))}
                 </tbody>
               </table>

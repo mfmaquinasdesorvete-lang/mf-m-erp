@@ -119,8 +119,8 @@ export default function Garantias() {
           const p = situacaoPreventiva(e.proxima_preventiva);
           return (
             <div key={e.id} className="rounded-xl border border-slate-200/80 bg-surface p-4 shadow-card">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
                   <div className="font-semibold text-fg">{e.descricao}</div>
                   <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}{e.usada ? " · usada" : ""}</div>
                 </div>

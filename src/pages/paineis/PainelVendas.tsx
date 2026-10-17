@@ -262,12 +262,11 @@ export default function PainelVendas() {
 
 function MiniNumero({ icone: Icone, rotulo, valor, sub }: { icone: typeof Plus; rotulo: string; valor: number | string; sub?: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-surface p-3 shadow-card">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><Icone size={19} /></span>
-      <span className="min-w-0">
-        <span className="num block text-xl font-bold leading-none text-fg">{valor}</span>
-        <span className="mt-1 block text-xs leading-tight text-slate-500">{rotulo}{sub ? ` · ${sub}` : ""}</span>
-      </span>
+    // ícone e número na mesma linha; o nome embaixo na largura toda (no celular não fica espremido)
+    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border border-slate-200/80 bg-surface p-3 shadow-card">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><Icone size={18} /></span>
+      <span className="num block truncate text-xl font-bold leading-none text-fg">{valor}</span>
+      <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{rotulo}{sub ? ` · ${sub}` : ""}</span>
     </div>
   );
 }

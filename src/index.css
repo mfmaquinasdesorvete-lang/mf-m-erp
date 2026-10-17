@@ -116,6 +116,9 @@ h1, h2, h3 { text-wrap: balance; }
 /* Valor em destaque que cabe no cartão: a letra acompanha a largura do cartão (.cartao-fit) e o número nunca quebra no
    meio (antes "R$ 19.5" ficava numa linha e "17,00" na outra no celular). Tamanho entre --valor-min e --valor-max. */
 .cartao-fit { container-type: inline-size; }
+/* Texto ao lado de botões numa linha que pode quebrar (flex-wrap): com "flex-1" puro o texto encolhia até virar
+   uma coluna de 40–80 px no celular; com no mínimo ~12rem, quando não cabe, os botões descem para a linha de baixo. */
+.flex-wrap > .min-w-0.flex-1:not([class*="basis-"]) { flex-basis: 12rem; }
 .valor-fit {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-size: clamp(var(--valor-min, .95rem), var(--valor-cq, 12cqi), var(--valor-max, 1.75rem));

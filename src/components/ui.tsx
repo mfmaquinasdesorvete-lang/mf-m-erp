@@ -114,10 +114,11 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
 }) {
   const c = coresCartao[cor];
   return (
+    // o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda (no celular não fica espremido)
     <div className={`${caixaCartao} cartao-fit p-3 pl-4 ${c.caixa}`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
-        {Icon && <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
+      <div className="flow-root">
+        {Icon && <span className={`float-right mb-1 ml-2 grid h-7 w-7 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
+        <span className="text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
       </div>
       <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`}>{valor}</div>
       {sub && <div className="text-[13px] leading-snug text-slate-600">{sub}</div>}
@@ -163,15 +164,17 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
   const Tag = onClick ? "button" : "div";
   const c = coresCartao[corDoTom[tom]];
   return (
+    // o ícone flutua no canto: o nome passa por baixo dele e número e explicação usam a largura toda (no celular,
+    // com o ícone ao lado, o texto ficava numa coluna de 70 px)
     <Tag onClick={onClick}
-      className={`${caixaCartao} flex w-full items-start gap-3 p-4 pl-5 text-left ${c.caixa}
+      className={`${caixaCartao} cartao-fit block w-full p-3.5 pl-4 text-left sm:p-4 sm:pl-5 ${c.caixa}
         ${onClick ? "transition hover:shadow-pop hover:brightness-[1.03]" : ""}`}>
-      {Icon && <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${c.icone}`}><Icon size={18} /></span>}
-      <span className="min-w-0">
-        <span className="block text-xs font-semibold text-slate-600">{label}</span>
-        <span className={`num mt-0.5 block text-xl font-bold tracking-tight ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`}>{valor}</span>
-        {sub && <span className="mt-0.5 block text-xs text-slate-600">{sub}</span>}
+      <span className="flow-root">
+        {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}
+        <span className="text-[13px] font-semibold leading-tight text-slate-600">{label}</span>
       </span>
+      <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.25rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`}>{valor}</span>
+      {sub && <span className="mt-0.5 block text-[13px] leading-snug text-slate-600">{sub}</span>}
     </Tag>
   );
 }

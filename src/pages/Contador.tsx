@@ -247,14 +247,14 @@ function TabelaCfop({ linhas, cab, titulo }: { linhas: (string | number)[][]; ca
                   {v}<span className="block text-xs font-normal text-slate-500">{nomeCfop(String(v))}</span>
                 </td>
               ) : (
-                <td key={i} data-label={cab[i]} className="num py-2 text-right md:whitespace-nowrap md:pl-3">{brl(Number(v))}</td>
+                <td key={i} data-label={cab[i]} className="num whitespace-nowrap py-2 text-right md:pl-3">{brl(Number(v))}</td>
               ))}
             </tr>
           ))}
         </tbody>
         {linhas.length > 1 && (
           <tfoot className="hidden border-t-2 border-slate-200 font-bold text-fg md:table-footer-group">
-            <tr><th scope="row" className="py-2 text-left">Total</th>{total.map((t, i) => <td key={i} className="num py-2 pl-3 text-right">{brl(t)}</td>)}</tr>
+            <tr><th scope="row" className="py-2 text-left">Total</th>{total.map((t, i) => <td key={i} className="num whitespace-nowrap py-2 pl-3 text-right">{brl(t)}</td>)}</tr>
           </tfoot>
         )}
       </table>

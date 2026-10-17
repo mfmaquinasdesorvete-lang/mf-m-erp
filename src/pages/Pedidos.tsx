@@ -288,13 +288,13 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             className="flex w-full gap-3 rounded-xl p-4 pb-2 pr-10 text-left active:bg-slate-50">
             <MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} />
             <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <span className="min-w-0 font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /></span>
+            <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+              <span className="min-w-0 flex-1 font-bold text-fg">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}{p.numero_externo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>} · {p.cliente?.nome}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /></span>
               <span className="flex shrink-0 flex-col items-end gap-1"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between text-sm text-slate-500">
-              <span>{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}</span>
-              <span className="num text-base font-bold text-fg">{brl(p.valor_total)}</span>
+            <div className="mt-1 flex items-center justify-between gap-2 text-sm text-slate-500">
+              <span className="min-w-0">{dataBR(p.created_at)} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}</span>
+              <span className="num shrink-0 whitespace-nowrap text-base font-bold text-fg">{brl(p.valor_total)}</span>
             </div>
             {/* pagamento e envio em ícone, como no Tiny */}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">

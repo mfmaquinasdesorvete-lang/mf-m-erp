@@ -182,9 +182,10 @@ export default function PainelNotas() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {situacoes.map((s) => (
             <button key={s.rotulo} type="button" onClick={() => navigate("/notas", { state: { aba: "emitidas", filtro: s.filtro } })}
-              className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${s.cor} 16%, transparent)`, color: s.cor }}><s.icone size={19} /></span>
-              <span className="min-w-0"><span className="num block text-xl font-bold leading-none text-fg">{s.n}</span><span className="mt-1 block text-xs text-slate-500">{s.rotulo}</span></span>
+              className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${s.cor} 16%, transparent)`, color: s.cor }}><s.icone size={18} /></span>
+              <span className="num block truncate text-xl font-bold leading-none text-fg">{s.n}</span>
+              <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{s.rotulo}</span>
             </button>
           ))}
         </div>

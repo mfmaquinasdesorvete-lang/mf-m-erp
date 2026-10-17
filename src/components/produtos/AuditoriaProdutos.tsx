@@ -152,7 +152,7 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
                       <td className="py-1"><div className="font-medium text-fg">{p.descricao}</div>
                         <div className="text-xs text-slate-500">{[p.foto_caminho && "com foto", p.no_catalogo && "no catálogo", p.id_externo && `Tiny ${p.id_externo}`].filter(Boolean).join(" · ")}</div></td>
                       <td className="py-1 text-xs">{p.sku || "—"}<div className="text-slate-500">{p.codigo_barras || ""}</div></td>
-                      <td className="num py-1 text-right">{brl(Number(p.preco_venda) || 0)}</td>
+                      <td className="num whitespace-nowrap py-1 text-right">{brl(Number(p.preco_venda) || 0)}</td>
                       <td className="num py-1 text-right">{Number(p.estoque_atual) || 0}</td>
                       <td className="num py-1 text-right">{uso.get(p.id) ?? 0}</td>
                       <td className="py-1 text-right"><button type="button" className="text-xs font-semibold text-brand hover:underline" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>

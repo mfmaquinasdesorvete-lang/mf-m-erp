@@ -150,9 +150,10 @@ export function CartaoPainel({ c, anterior }: { c: Cartao; anterior?: string }) 
     <Tag type={c.onClick ? "button" : undefined} onClick={c.onClick} title={c.titulo}
       className={`cartao-fit group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-surface p-3.5 text-left shadow-card transition sm:p-4 ${c.onClick ? "hover:-translate-y-0.5 hover:shadow-pop" : ""}`}>
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: c.cor }} aria-hidden />
-      <span className="flex items-start justify-between gap-2">
+      {/* o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda */}
+      <span className="flow-root">
+        <span className="float-right mb-1 ml-2 grid h-9 w-9 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c.cor} 16%, transparent)`, color: c.cor }}><c.icone size={18} /></span>
         <span className="text-sm font-semibold leading-tight text-slate-600">{c.rotulo}</span>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c.cor} 16%, transparent)`, color: c.cor }}><c.icone size={18} /></span>
       </span>
       <span className="num valor-fit mt-1 block font-extrabold leading-tight tracking-tight text-fg [--valor-max:1.75rem]" title={typeof c.valor === "string" ? c.valor : undefined}>{c.valor}</span>
       <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-snug text-slate-600">

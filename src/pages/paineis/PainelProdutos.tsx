@@ -216,7 +216,7 @@ export default function PainelProdutos() {
                     className={`rounded-xl border p-2.5 text-left transition ${classe === r.classe ? "border-modulo bg-modulo/10" : "border-slate-200 hover:border-slate-300"}`}>
                     <span className="flex items-center gap-1.5 text-sm font-extrabold text-fg"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COR_ABC[r.classe] }} />Classe {r.classe}</span>
                     <span className="num mt-0.5 block text-lg font-bold text-fg">{r.pctValor}%</span>
-                    <span className="block text-[11px] leading-tight text-slate-500">do faturamento com {r.itens} {pl(r.itens, "produto", "produtos")} ({r.pctItens}%)</span>
+                    <span className="block text-xs leading-snug text-slate-600">do faturamento · {r.itens} {pl(r.itens, "produto", "produtos")}</span>
                   </button>
                 ))}
               </div>
