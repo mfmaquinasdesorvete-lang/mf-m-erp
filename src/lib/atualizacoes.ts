@@ -164,6 +164,8 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Telas mais enxutas: título primeiro, só o botão principal à vista e o resto em \"Mais\", 2 filtros na linha da busca e os outros no botão \"Filtros\".",
       "Vendas mais coloridas: cada situação com a sua cor na lista e nos filtros, também a situação do Tiny.",
       "Sobre → Sistemas: o sistema financeiro, o de inteligência e a vitrine de capacidades do ERP, módulo a módulo, e a linguagem de comandos (ECL) com AUDIT, IMPROVE e VISUALIZE.",
+      "Painel pessoal (carteira no fim do menu, só o administrador): contas de banco, cartão e investimento separadas da empresa, saldo, para onde foi o dinheiro, próximos 30 dias e extrato OFX/CSV; fora do DRE, da conciliação e do contador.",
+      "Auditoria financeira: \"Recebimento sem origem\" agora lê a origem escrita na conta (\"pedido Tiny nº…\" que existe no ERP, nota fiscal ligada) e o recebido por conta de terceiros tem a sua própria exceção.",
       "Sobre → Rodada: a rodada de trabalho de relance — etapas até o site, números ao vivo, o que foi pedido e o que virou, o que falta de quem, escopo, suposições, conflitos, semáforo e riscos.",
       "Sobre → Módulos descreve também PDV, painel das máquinas, peças, componentes, formas de pagamento e usuários.",
     ],

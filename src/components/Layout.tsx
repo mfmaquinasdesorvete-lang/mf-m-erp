@@ -282,6 +282,8 @@ export function Layout() {
             {([
               // engrenagem: Configurações (e, dentro dela, usuários e formas de pagamento)
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
+              // carteira: painel pessoal do dono, separado da empresa (só o administrador)
+              ...(perfil.papel === "admin" ? [["Painel pessoal", Wallet, () => { setAberto(false); navigate("/pessoal"); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],

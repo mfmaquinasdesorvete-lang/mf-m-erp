@@ -172,6 +172,23 @@ function seed(): Db {
     ],
     nfe_cartas_correcao: [],
     nfe_inutilizacoes: [],
+    // painel pessoal do administrador (exemplos inventados; no sistema real: public.pessoal_contas e pessoal_lancamentos, só o dono lê)
+    pessoal_contas: [
+      { id: "pc1", nome: "Conta pessoal", tipo: "corrente", banco: "Banco Exemplo", cor: "sky", saldo_inicial: 4200, saldo_inicial_em: dias(-40), limite: null, ativa: true, ordem: 0 },
+      { id: "pc2", nome: "Cartão pessoal", tipo: "cartao", banco: "Cartão Exemplo", cor: "violet", saldo_inicial: 0, saldo_inicial_em: dias(-40), limite: 8000, ativa: true, ordem: 1 },
+      { id: "pc3", nome: "Reserva", tipo: "investimento", banco: "Corretora Exemplo", cor: "emerald", saldo_inicial: 15000, saldo_inicial_em: dias(-40), limite: null, ativa: true, ordem: 2 },
+    ],
+    pessoal_lancamentos: [
+      { id: "pl1", conta_id: "pc1", data: dias(-12), descricao: "Pró-labore", valor: 6000, categoria: "Salário e pró-labore", situacao: "realizado", anulado: false },
+      { id: "pl2", conta_id: "pc1", data: dias(-10), descricao: "Aluguel do apartamento", valor: -2200, categoria: "Casa", situacao: "realizado", anulado: false },
+      { id: "pl3", conta_id: "pc2", data: dias(-8), descricao: "Supermercado Exemplo", valor: -640.35, categoria: "Mercado", situacao: "realizado", anulado: false },
+      { id: "pl4", conta_id: "pc2", data: dias(-6), descricao: "Drogaria Exemplo", valor: -89.9, categoria: "Saúde", situacao: "realizado", anulado: false },
+      { id: "pl5", conta_id: "pc2", data: dias(-4), descricao: "Streaming de vídeo", valor: -55.9, categoria: "Assinaturas", situacao: "realizado", anulado: false },
+      { id: "pl6", conta_id: "pc1", data: dias(-3), descricao: "Posto de combustível", valor: -250, categoria: "Transporte", situacao: "realizado", anulado: false },
+      { id: "pl7", conta_id: "pc3", data: dias(-2), descricao: "Rendimento da reserva", valor: 128.4, categoria: "Investimentos", situacao: "realizado", anulado: false },
+      { id: "pl8", conta_id: "pc1", data: dias(5), descricao: "Escola", valor: -1350, categoria: "Educação", situacao: "previsto", anulado: false },
+      { id: "pl9", conta_id: "pc1", data: dias(9), descricao: "Fatura do cartão pessoal", valor: -786.15, categoria: "Cartão (fatura)", situacao: "previsto", anulado: false },
+    ],
     // data real em que virou cliente (no sistema real: a view public.clientes_desde)
     clientes_desde: [
       { cliente_id: "c1", desde: "2019-03-12", fonte: "compra_maquina" }, { cliente_id: "c2", desde: "2022-08-05", fonte: "my_frost" },

@@ -10,7 +10,7 @@ export type Excecao = {
 export type TipoExcecao =
   | "duplicidade" | "sem_documento" | "valor_redondo" | "alteracao" | "baixa_sem_extrato" | "extrato_pendente"
   | "pedido_cancelado" | "os_sem_cobranca" | "saldo_divergente" | "segregacao"
-  | "recebimento_sem_origem" | "recebido_a_menor" | "pagamento_fora_fluxo" | "cobranca_os_cancelada"
+  | "recebimento_sem_origem" | "recebido_terceiros" | "recebido_a_menor" | "pagamento_fora_fluxo" | "cobranca_os_cancelada"
   | "parcelas_divergentes" | "nfe_sem_lancamento" | "acesso_sem_uso" | "administradores" | "checklist"
   | "produto_duplicado" | "produto_sem_custo" | "estoque_negativo" | "alteracao_produto"
   | "pedido_sem_vendedor" | "entregue_sem_nfe" | "desconto_alto" | "alteracao_pedido";
@@ -26,7 +26,8 @@ export const TIPOS: Record<TipoExcecao, { rotulo: string; criterio: string }> = 
   os_sem_cobranca: { rotulo: "OS concluída sem cobrança", criterio: "OS concluída fora da garantia com valor zero, ou com valor e sem conta a receber." },
   saldo_divergente: { rotulo: "Saldo diferente do banco", criterio: "O saldo informado pelo banco no arquivo é diferente do saldo calculado com o saldo inicial e as linhas importadas." },
   segregacao: { rotulo: "Mesma pessoa lançou e pagou", criterio: "Conta a pagar criada e dada como paga pelo mesmo usuário (revisão independente recomendada)." },
-  recebimento_sem_origem: { rotulo: "Recebimento sem origem", criterio: "Conta a receber recebida sem pedido, sem OS, sem número de documento e sem anexo." },
+  recebimento_sem_origem: { rotulo: "Recebimento sem origem", criterio: "Conta a receber recebida sem pedido, OS, nota fiscal, número de documento ou anexo — e sem um pedido do ERP citado na descrição (ex.: \"pedido Tiny nº 580\")." },
+  recebido_terceiros: { rotulo: "Recebido por conta de terceiros", criterio: "Recebimento que a descrição diz ser de terceiros (ex.: licenciamento): fica fora da receita da MF até o contador decidir como tratar." },
   recebido_a_menor: { rotulo: "Recebido a menor", criterio: "Parcela recebida por valor menor que o lançado (desconto ou baixa parcial). No cartão só acima de 15%, por causa da taxa." },
   pagamento_fora_fluxo: { rotulo: "Pagamento fora do fluxo", criterio: "Conta a pagar de R$ 2.000 ou mais lançada e paga no mesmo dia, sem NF-e de fornecedor ligada." },
   cobranca_os_cancelada: { rotulo: "Cobrança de OS cancelada", criterio: "Conta a receber em aberto ligada a uma OS que foi cancelada." },
@@ -49,7 +50,7 @@ type Conta = {
   id: string; descricao: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   cliente_id?: string | null; forma_pagamento?: string | null;
   unidade_id?: string | null; conta_bancaria_id?: string | null; documento?: string | null; nfe_recebida_id?: string | null; fornecedor_id?: string | null;
-  categoria?: string; pedido_id?: string | null; os_id?: string | null; created_at?: string;
+  categoria?: string; pedido_id?: string | null; os_id?: string | null; nota_fiscal_id?: string | null; created_at?: string;
 };
 type Lanc = { id: string; conta_bancaria_id: string; data: string; valor: number; status: string; descricao: string | null; conta_receber_id: string | null; conta_pagar_id: string | null };
 type Auditoria = { id: number; tabela: string; registro_id: string | null; acao: string; usuario: string | null; usuario_nome: string | null; campos: string[] | null; antes: any; depois: any; motivo: string | null; origem: string; created_at: string };
@@ -60,6 +61,8 @@ export type DadosAuditoria = {
   receber: Conta[]; pagar: Conta[]; lancamentos: Lanc[]; bancos: Banco[]; importacoes: Importacao[]; auditoria: Auditoria[];
   documentos: { entidade: string; entidade_id: string | null }[];
   pedidos: { id: string; numero: number; status: string; valor_total?: number; valor_produtos?: number; desconto?: number; vendedor_id?: string | null; origem?: string | null;
+    /** nº do pedido no Tiny (histórico importado): a descrição das contas cita esse número */
+    numero_externo?: string | null;
     notas?: { status: string; ambiente?: string | null }[] }[];
   ordens: { id: string; numero: number; status: string; em_garantia: boolean; valor_total: number }[];
   fornecedores: { id: string; nome: string }[];
@@ -69,6 +72,18 @@ export type DadosAuditoria = {
   produtos?: Produto[];
   hoje: string;
 };
+
+/** Origem escrita na descrição da conta: "pedido Tiny nº 580" (um pedido que existe no ERP) ou "por conta de terceiros". */
+export function origemNoTexto(descricao: string | null | undefined, pedidos: { id: string; numero: number; numero_externo?: string | null }[]):
+  { tipo: "pedido"; pedido: { id: string; numero: number }; citado: string } | { tipo: "pedido_ausente"; citado: string } | { tipo: "terceiros" } | null {
+  const d = String(descricao ?? "");
+  if (/por conta de terceiros/i.test(d)) return { tipo: "terceiros" };
+  const m = d.match(/pedido\s+(tiny\s+)?n[ºo°.]?\s*(\d+)/i);
+  if (!m) return null;
+  const num = m[2];
+  const achados = m[1] ? pedidos.filter((p) => p.numero_externo === num) : pedidos.filter((p) => p.numero_externo === num || String(p.numero) === num);
+  return achados.length === 1 ? { tipo: "pedido", pedido: achados[0], citado: num } : { tipo: "pedido_ausente", citado: num };
+}
 
 const diasEntre = (a: string, b: string) => Math.abs(Date.parse(a.slice(0, 10)) - Date.parse(b.slice(0, 10))) / 864e5;
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -221,11 +236,24 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
   // 11. recebimento sem origem identificada
   const anexoReceber = new Set(d.documentos.filter((x) => x.entidade === "conta_receber").map((x) => x.entidade_id));
   for (const c of receber.filter((c) => c.status === "pago")) {
-    if (c.pedido_id || c.os_id || c.documento || anexoReceber.has(c.id)) continue;
+    if (c.pedido_id || c.os_id || c.nota_fiscal_id || c.documento || anexoReceber.has(c.id)) continue;
+    // a origem pode estar escrita na descrição (histórico do Tiny e da Olist): pedido citado que existe no ERP basta
+    const o = origemNoTexto(c.descricao, d.pedidos);
+    if (o?.tipo === "pedido") continue;
+    if (o?.tipo === "terceiros") {
+      out.push({
+        chave: `recebido_terceiros:${c.id}`, tipo: "recebido_terceiros", gravidade: "baixa", valor: Number(c.valor_pago ?? c.valor),
+        data: c.data_pagamento ?? c.vencimento, link: "/financeiro", titulo: c.descricao,
+        detalhe: `Recebido em ${br(c.data_pagamento ?? c.vencimento)} por conta de terceiros: a origem está identificada; falta o contador dizer como lançar (fora da receita da MF).`,
+      });
+      continue;
+    }
     out.push({
       chave: `recebimento_sem_origem:${c.id}`, tipo: "recebimento_sem_origem", gravidade: Number(c.valor) >= 1000 ? "media" : "baixa", valor: Number(c.valor_pago ?? c.valor),
       data: c.data_pagamento ?? c.vencimento, link: "/financeiro", titulo: c.descricao,
-      detalhe: `Recebido em ${br(c.data_pagamento ?? c.vencimento)} sem pedido, OS, documento ou anexo: de onde veio esse dinheiro?`,
+      detalhe: o?.tipo === "pedido_ausente"
+        ? `Recebido em ${br(c.data_pagamento ?? c.vencimento)}: a descrição cita o pedido nº ${o.citado}, que não está no ERP. Traga o pedido ou ligue a conta à venda certa.`
+        : `Recebido em ${br(c.data_pagamento ?? c.vencimento)} sem pedido, OS, nota, documento ou anexo: de onde veio esse dinheiro?`,
     });
   }
 

@@ -70,6 +70,7 @@ const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
+const Pessoal = lazy(() => import("@/pages/Pessoal"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
@@ -293,6 +294,8 @@ function RotasERP() {
         ))}
         {/* Sobre o ERP Line (módulos e atualizações): todos que entram no ERP abrem, pela versão no fim do menu */}
         <Route path="sobre" element={<Sobre />} />
+        {/* painel pessoal do dono: só o administrador abre (e o banco só mostra as linhas de quem criou) */}
+        {papel === "admin" && <Route path="pessoal" element={<Pessoal />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

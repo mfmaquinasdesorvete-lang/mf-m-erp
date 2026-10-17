@@ -16,7 +16,7 @@ export const CHECKLIST: SecaoChecklist[] = [
       { id: "r3", texto: "Alterações de vencimento, valor ou baixa têm usuário, data, motivo e aprovação?", alertas: ["alteracao"] },
       { id: "r4", texto: "Recebimentos estão conciliados com extrato, comprovante ou retorno bancário?", alertas: ["baixa_sem_extrato"] },
       { id: "r5", texto: "Estornos, descontos e baixas parciais estão documentados e autorizados?", alertas: ["recebido_a_menor", "alteracao"] },
-      { id: "r6", texto: "Há títulos vencidos, duplicados ou recebidos sem identificação da origem?", alertas: ["duplicidade", "recebimento_sem_origem"] },
+      { id: "r6", texto: "Há títulos vencidos, duplicados ou recebidos sem identificação da origem?", alertas: ["duplicidade", "recebimento_sem_origem", "recebido_terceiros"] },
       { id: "r7", texto: "Boletos ou cobranças cancelados deixaram de aparecer como a receber?", alertas: ["pedido_cancelado", "cobranca_os_cancelada"] },
     ],
   },
