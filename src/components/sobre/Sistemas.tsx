@@ -1,14 +1,18 @@
-// Sobre o ERP Line → Sistemas: o ERP visto como sistemas (finance-os, analytics-os), módulo a módulo, com o que já tem,
-// o que tem em parte e o que falta (e as telas onde está). No alto, a linha de comando do ECL, a linguagem de domínio
-// (DSL) da empresa: VERBO + alvo (AUDIT financeiro, IMPROVE produtos…). A caixa do comando é escura nos dois temas
-// (cores fixas: as "slate" do Tailwind se invertem no tema escuro).
+// Sobre o ERP Line → Sistemas: o ERP visto como sistemas (finance-os, analytics-os, ops-os, innovation-os), módulo a
+// módulo, com o que já tem, o que tem em parte e o que falta (e as telas onde está). No alto, a linha de comando do ECL,
+// a linguagem de domínio (DSL) da empresa: VERBO + alvo (AUDIT financeiro, MONITOR backup, ANALYZE erp…). Cada comando
+// mostra a entrega que se pode cobrar e o administrador registra a execução em 6 etapas (vai para Sobre → Monitor).
+// A caixa do comando é escura nos dois temas (cores fixas: as "slate" do Tailwind se invertem no tema escuro).
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, CircleDashed, CircleDot, Layers, Lightbulb, Terminal } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDashed, CircleDot, ClipboardPlus, Layers, Lightbulb, PackageCheck, Terminal } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
 import { pl } from "@/lib/format";
-import { ECL, interpretarEcl, SISTEMAS, SITUACOES, type Interpretacao, type Situacao } from "@/lib/sistemas";
+import { usePerfil } from "@/lib/auth";
+import { ETAPAS } from "@/lib/monitor";
+import { CICLO_INOVACAO, DIMENSOES_ANALISE, ECL, interpretarEcl, SISTEMAS, SITUACOES, type Interpretacao, type Situacao } from "@/lib/sistemas";
 import type { InicialItem } from "./ItemProjeto";
+import { ExecucaoModal, type InicialExecucao } from "./Execucoes";
 
 const SIT = Object.fromEntries(SITUACOES.map((s) => [s.id, s])) as Record<Situacao, (typeof SITUACOES)[number]>;
 
@@ -92,8 +96,10 @@ export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
 
 /** Enterprise Command Language: VERBO + alvo, e o ERP mostra onde fazer. */
 function LinhaDeComando() {
+  const ehAdmin = usePerfil().papel === "admin";
   const [texto, setTexto] = useState("");
   const [res, setRes] = useState<Interpretacao | null>(null);
+  const [execucao, setExecucao] = useState<InicialExecucao | null>(null);
   const rodar = (t: string) => { setTexto(t); setRes(interpretarEcl(t)); };
   const enviar = (e: FormEvent) => { e.preventDefault(); rodar(texto); };
 
@@ -101,7 +107,8 @@ function LinhaDeComando() {
     <Card className="overflow-hidden">
       <div className="bg-[#0f172a] p-4 text-[#f1f5f9] sm:p-5">
         <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#6ee7b7]"><Terminal size={14} aria-hidden /> Enterprise Command Language (ECL) <span className="rounded bg-[#34d399]/15 px-1.5 py-0.5 normal-case tracking-normal text-[#a7f3d0]">linguagem de domínio (DSL)</span></div>
-        <p className="mb-2 text-sm text-[#cbd5e1]">A linguagem da MF para mandar no ERP: um verbo e o alvo, como numa ordem, com as palavras da empresa. O ERP mostra onde aquilo é feito.</p>
+        <p className="mb-2 text-sm text-[#cbd5e1]">A linguagem da MF para mandar no ERP: um verbo e o alvo, como numa ordem, com as palavras da empresa. O ERP mostra onde aquilo é feito e a entrega de cada comando.</p>
+        <p className="mb-2 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#94a3b8]"><span className="text-[#64748b]">cada execução registra:</span> {ETAPAS.map((x) => x.nome.toLowerCase()).join(" → ")}</p>
         <p className="mb-3 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#94a3b8]">
           <span className="text-[#64748b]">gramática:</span> <span className="text-[#6ee7b7]">VERBO</span> <span className="text-[#7dd3fc]">alvo</span>
           <span className="text-[#64748b]"> · verbos:</span> {ECL.map((c) => c.verbo).join(" | ")}
@@ -118,12 +125,21 @@ function LinhaDeComando() {
             {res.ok ? (
               <>
                 <div className="mb-2 text-[#cbd5e1]"><b className="font-mono text-[#6ee7b7]">{res.comando.verbo}</b> · {res.comando.nome}{res.alvo ? ` · ${res.alvo}` : " · em todas as áreas"}</div>
+                <p className="mb-2 flex items-start gap-1.5 text-[#e2e8f0]"><PackageCheck size={16} className="mt-0.5 shrink-0 text-[#6ee7b7]" aria-hidden /><span><b className="text-[#a7f3d0]">Entrega:</b> {res.comando.entrega}</span></p>
+                {res.comando.verbo === "ANALYZE" && <Passos titulo="Os 6 pontos" itens={DIMENSOES_ANALISE.map((d) => ({ nome: d.nome, texto: d.pergunta }))} />}
+                {res.comando.verbo === "INNOVATE" && <Passos titulo="O ciclo" itens={CICLO_INOVACAO} />}
                 <div className="flex flex-wrap gap-2">
                   {res.destinos.map((d) => (
                     <Link key={d.to + d.rotulo} to={d.to} className="inline-flex items-center gap-1 rounded-lg bg-[#10b981]/15 px-3 py-1.5 font-semibold text-[#a7f3d0] ring-1 ring-[#34d399]/40 hover:bg-[#10b981]/25">
                       {d.rotulo} <ArrowRight size={14} aria-hidden />
                     </Link>
                   ))}
+                  {ehAdmin && (
+                    <button type="button" onClick={() => setExecucao({ comando: res.comando.verbo, alvo: res.alvo, situacao: "em_andamento", entrada: texto.trim() })}
+                      className="inline-flex items-center gap-1 rounded-lg bg-[#ffffff] px-3 py-1.5 font-semibold text-[#0f172a] hover:bg-[#e2e8f0]">
+                      <ClipboardPlus size={14} aria-hidden /> Registrar execução
+                    </button>
+                  )}
                 </div>
               </>
             ) : <span className="text-[#fcd34d]">{res.motivo}</span>}
@@ -135,6 +151,7 @@ function LinhaDeComando() {
           <li key={c.verbo} className="bg-surface p-4">
             <div className="flex flex-wrap items-baseline gap-2"><span className="font-mono text-base font-bold text-violet-700">{c.verbo}</span><span className="font-semibold text-fg">{c.nome}</span></div>
             <p className="mt-1 text-sm text-slate-600">{c.texto}</p>
+            <p className="mt-1 text-sm text-fg"><b>Entrega:</b> {c.entrega}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {c.alvos.map((a) => (
                 <button key={a.alvo} type="button" onClick={() => rodar(`${c.verbo} ${a.alvo}`)}
@@ -144,6 +161,23 @@ function LinhaDeComando() {
           </li>
         ))}
       </ul>
+      {execucao && <ExecucaoModal inicial={execucao} onClose={() => setExecucao(null)} />}
     </Card>
+  );
+}
+
+/** As etapas de um comando (os 6 pontos do ANALYZE, o ciclo do INNOVATE), numeradas, na caixa escura. */
+function Passos({ titulo, itens }: { titulo: string; itens: { nome: string; texto: string }[] }) {
+  return (
+    <div className="mb-3">
+      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#94a3b8]">{titulo}</div>
+      <ol className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {itens.map((x, i) => (
+          <li key={x.nome} className="rounded-md bg-[#1e293b] px-2.5 py-1.5 ring-1 ring-[#334155]">
+            <b className="text-[#7dd3fc]">{i + 1}. {x.nome}</b> <span className="text-xs text-[#cbd5e1]">{x.texto}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

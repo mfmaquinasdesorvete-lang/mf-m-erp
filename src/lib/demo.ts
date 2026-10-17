@@ -1001,6 +1001,19 @@ function planoDemo(db: Db) {
   ];
   for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
+  // registro das execuções dos comandos (exemplos; no sistema real: public.ecl_execucoes, só o administrador)
+  db.ecl_execucoes = [
+    { id: "ex1", comando: "MONITOR", alvo: "automacoes", origem: "monitor", situacao: "em_andamento", criado_em: quando(-0.1),
+      entrada: "Vigia automático (de hora em hora)", diagnostico: "Backup: nenhuma cópia guardada até hoje\n3 NF-e com erro há mais de 1 dia",
+      decisao: "Avisar o administrador no sino do ERP: backup como urgente e com ciência; o resto como importante.",
+      entrega: "2 aviso(s) novo(s) no sino do ERP", validacao: "A próxima rodada (daqui a 1 hora) confere de novo; o mesmo aviso não se repete por 20 horas.",
+      proxima_acao: "Backup: corrigir os secrets do GitHub e rodar o \"Backup diário\" de novo\nNotas fiscais: abrir as notas com erro e corrigir" },
+    { id: "ex2", comando: "ANALYZE", alvo: "erp", origem: "claude", situacao: "concluida", criado_em: quando(-0.2),
+      entrada: "ANALYZE erp: gargalos, UX, desempenho, consistência, riscos e oportunidades",
+      diagnostico: "Gargalos: extrato quase todo a conciliar.\nUX: telas sem erro e sem nada saindo da tela.\nDesempenho: abre rápido.\nConsistência: tipos e testes em dia.\nRiscos: backup sem cópia guardada.\nOportunidades: conciliação em lote.",
+      decisao: "Construir o Monitor com aviso urgente do backup; o resto entra na fila.", entrega: "Aba Monitor, vigia de hora em hora e este registro.",
+      validacao: "Testes automáticos e varredura das telas no computador e no celular.", proxima_acao: "Empresa: corrigir os secrets do backup no GitHub." },
+  ];
   // parcelamentos de impostos (exemplos inventados; no sistema real: public.parcelamentos e parcelamento_parcelas)
   {
     const mesAtras = (k: number) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - k); return { ano: d.getUTCFullYear(), mes: d.getUTCMonth() + 1 }; };
@@ -1975,6 +1988,30 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.saude_sistema (Sobre → Monitor; só o administrador)
+  saude_sistema: () => {
+    const ha = (min: number) => new Date(Date.now() - min * 60000).toISOString();
+    const auto = (nome: string, agenda: string, minAtras: number | null, x: Partial<Row> = {}) => ({ nome, agenda, ativo: true, ultima: minAtras == null ? null : ha(minAtras),
+      ultima_situacao: minAtras == null ? null : "succeeded", ultima_seg: 0.05, rodadas_24h: 0, falhas_24h: 0, falhas_7d: 0, ultimo_erro: null, ultimo_erro_em: null, ...x });
+    return { error: null, data: {
+      agora: new Date().toISOString(), historico_linhas: 34805,
+      automacoes: [
+        auto("erp-nfe-processar", "*/15 * * * *", 7, { rodadas_24h: 96 }), auto("erp-whatsapp-enviar", "* * * * *", 0, { rodadas_24h: 1440 }),
+        auto("erp-avisos-enviar", "* * * * *", 0, { rodadas_24h: 1440 }), auto("erp-email-caixa", "*/5 * * * *", 3, { rodadas_24h: 288 }),
+        auto("erp-inter", "23 */4 * * *", 130, { rodadas_24h: 6 }), auto("erp-openfinance", "17 */4 * * *", 136, { rodadas_24h: 6 }),
+        auto("erp-mercadolivre-anuncios", "*/5 * * * *", 3, { rodadas_24h: 288, falhas_24h: 2, falhas_7d: 2, ultimo_erro: "connection timeout", ultimo_erro_em: ha(300) }),
+        auto("erp-contas-fixas", "50 10 * * *", 960, { rodadas_24h: 1 }), auto("erp-regua-cobranca", "2 11 * * *", 948, { rodadas_24h: 1 }),
+        auto("erp-parcelamentos-avisos", "7 11 * * *", null), auto("erp-vigiar-sistema", "13 * * * *", 40, { rodadas_24h: 24 }),
+      ],
+      filas: [
+        { chave: "nfe_erro", qtd: 1, desde: ha(3 * 1440) }, { chave: "nfe_vinculo", qtd: 4, desde: ha(2 * 1440) },
+        { chave: "extrato", qtd: 120, total: 300, desde: ha(5 * 1440) }, { chave: "avisos", qtd: 0, desde: null },
+        { chave: "whatsapp", qtd: 1, desde: ha(3 * 1440) }, { chave: "mercadolivre", qtd: 0, desde: null }, { chave: "sugestoes", qtd: (db.produto_sugestoes ?? []).filter((x: Row) => x.situacao === "pendente").length, desde: ha(1440) },
+      ],
+      backup: { ultimo_ok: null, falhas_seguidas: 3, ultimo: { em: ha(2 * 1440), status: "erro", detalhe: "O backup de hoje falhou no GitHub (exemplo)", hostinger_em: null } },
+      chamadas: { ok: 96, erro: 0, tempo_esgotado: 0, desde: ha(360), ultimo_erro: null },
+    } };
+  },
   // no sistema real: public.gerar/aplicar/ignorar_sugestoes_produtos (Produtos → Qualidade do cadastro)
   gerar_sugestoes_produtos: () => ({ data: { novas: 0, vencidas: 0 }, error: null }),
   aplicar_sugestoes_produtos: ({ p_ids }) => {

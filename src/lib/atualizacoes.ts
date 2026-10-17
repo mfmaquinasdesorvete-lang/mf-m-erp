@@ -172,6 +172,9 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Créditos das compras: as notas de fornecedor do histórico do Tiny (só com o XML) ganharam a lista de itens; o Analista fiscal e o Painel do contador passam a mostrar os créditos de PIS/COFINS, ICMS e IPI das entradas, sem lançar estoque nem contas.",
       "Calendário fiscal: ICMS da filial SP pelo código de recolhimento (CPR) do CNAE, com a data de cada mês como na Agenda Tributária Paulista; prazos ainda não confirmados aparecem como \"a confirmar\". Transferência SC ↔ SP com PIS/COFINS CST 49, como o contador usa.",
       "Consulta de CNPJ pelo CNPJá: no cadastro e na conferência automática de clientes e fornecedores vêm, numa consulta só, a situação na Receita, a inscrição estadual de cada estado, Simples Nacional ou MEI, a atividade principal (CNAE), o porte e a data de abertura; a ficha mostra tudo no quadro da Receita.",
+      "Sobre → Monitor (só o administrador): o backup, cada automação agendada (em dia, atrasada, falhou), as respostas das funções e as filas que travam o trabalho, com o caminho para resolver. Um vigia confere tudo de hora em hora e avisa no sino; backup sem cópia guardada vira aviso urgente com ciência.",
+      "Cada comando tem uma entrega clara e cada execução fica registrada em 6 etapas: entrada → diagnóstico → decisão → entrega → validação → próxima ação. Comandos novos: MONITOR (monitoramento contínuo), ANALYZE (gargalos, UX, desempenho, consistência, riscos e oportunidades) e INNOVATE (pesquisa, tendências, testes, MVP, validação, lançamento e melhoria).",
+      "Sobre → Sistemas ganhou o sistema de monitoramento e automações e o motor de inovação.",
     ],
   },
 };

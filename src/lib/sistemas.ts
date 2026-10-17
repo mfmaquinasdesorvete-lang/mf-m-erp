@@ -1,5 +1,7 @@
-// Sobre → Sistemas: o ERP Line visto como sistemas (finance-os, analytics-os) e a linguagem de comandos da empresa (ECL).
-// Cada módulo diz se o ERP já tem, tem em parte ou ainda falta, e abre as telas onde está. Um sistema novo é só mais um item.
+// Sobre → Sistemas: o ERP Line visto como sistemas (finance-os, analytics-os, ops-os, innovation-os) e a linguagem de
+// comandos da empresa (ECL). Cada módulo diz se o ERP já tem, tem em parte ou ainda falta, e abre as telas onde está.
+// Um sistema novo é só mais um item. Cada comando tem uma entrega clara e cada execução fica registrada em 6 etapas
+// (entrada → diagnóstico → decisão → entrega → validação → próxima ação; ver src/lib/monitor.ts).
 
 export type Situacao = "tem" | "parcial" | "falta";
 export type Destino = { rotulo: string; to: string };
@@ -96,15 +98,84 @@ SISTEMAS.push({
   ],
 });
 
+/** ops-os: o ERP cuidando de si mesmo — as rotinas que rodam sozinhas, quem confere se rodaram e o que avisa quando param. */
+SISTEMAS.push({
+  id: "ops-os", nome: "Monitoramento e automações", cor: "from-[#0ea5e9] to-[#0369a1]",
+  texto: "As rotinas que rodam sozinhas (notas, bancos, e-mails, WhatsApp, Mercado Livre, Receita, backup), quem confere se rodaram e o aviso quando alguma para.",
+  modulos: [
+    { nome: "Automações agendadas", situacao: "tem", texto: "Notas de fornecedor, extratos, e-mails, WhatsApp, Mercado Livre, Receita, contas fixas, avisos e o pacote do contador rodam sozinhos.",
+      telas: [{ rotulo: "Monitor", to: "/sobre?aba=monitor" }] },
+    { nome: "Monitor de saúde", situacao: "tem", texto: "Cada automação com a última rodada, as falhas e o último erro; as respostas das funções; as filas que travam o trabalho; o backup.",
+      telas: [{ rotulo: "Monitor", to: "/sobre?aba=monitor" }] },
+    { nome: "Vigia com avisos", situacao: "tem", texto: "De hora em hora confere tudo e avisa o administrador no sino; backup parado é urgente e pede ciência; o mesmo aviso não se repete por 20 horas.",
+      telas: [{ rotulo: "Monitor", to: "/sobre?aba=monitor" }] },
+    { nome: "Registro das execuções", situacao: "tem", texto: "Cada comando fica anotado em 6 etapas: entrada, diagnóstico, decisão, entrega, validação e próxima ação.",
+      telas: [{ rotulo: "Registro", to: "/sobre?aba=monitor" }] },
+    { nome: "Backup diário", situacao: "parcial", texto: "Banco e arquivos com teste de restauração todo dia. A cópia só é guardada com a chave de criptografia e o acesso ao Supabase em dia nos secrets do GitHub.",
+      telas: [{ rotulo: "Monitor: backup", to: "/sobre?aba=monitor" }, { rotulo: "Configurações", to: "/configuracoes" }] },
+    { nome: "Prazos de chaves e certificados", situacao: "falta", texto: "Avisar antes de vencer o certificado digital, as chaves dos bancos e o acesso do GitHub ao Supabase (o backup parou por isso).", telas: [] },
+    { nome: "Nova tentativa sozinha", situacao: "falta", texto: "Tentar de novo o que falhou por instabilidade (e-mail, NF-e) e só chamar alguém se continuar falhando.", telas: [] },
+  ],
+});
+
+/** innovation-os: como uma ideia vira coisa pronta no ERP, sem pular etapa. */
+SISTEMAS.push({
+  id: "innovation-os", nome: "Motor de inovação", cor: "from-[#ec4899] to-[#9d174d]",
+  texto: "O caminho de uma ideia até virar tela no ERP: pesquisa, tendências, testes, MVP, validação, lançamento e melhoria.",
+  modulos: [
+    { nome: "Pesquisa", situacao: "tem", texto: "Ideias anotadas por todos, com impacto, esforço e votos; antes de construir, a regra (lei, Receita, SEFAZ) e o que o mercado usa.",
+      telas: [{ rotulo: "Ideias", to: "/sobre?aba=ideias" }] },
+    { nome: "Tendências", situacao: "tem", texto: "Mês a mês, curva ABC, clientes parados, ritmo de venda e o que mais volta para a assistência.",
+      telas: [{ rotulo: "Painel gerencial", to: "/gerencial" }, { rotulo: "Painel das máquinas", to: "/painel/maquinas" }] },
+    { nome: "Testes", situacao: "tem", texto: "Modo demonstração com dados de exemplo e centenas de testes automáticos rodando a cada mudança; nada vai ao ar sem passar.",
+      telas: [{ rotulo: "Atualizações", to: "/sobre?aba=atualizacoes" }] },
+    { nome: "MVP", situacao: "tem", texto: "Cada módulo nasce com o mínimo que resolve o problema e cresce com o uso (ex.: Parcelamentos, Monitor).",
+      telas: [{ rotulo: "Módulos", to: "/sobre?aba=modulos" }] },
+    { nome: "Validação", situacao: "parcial", texto: "A rodada mostra o pedido e o que virou, as suposições e os riscos. Falta medir o uso de cada tela depois do lançamento.",
+      telas: [{ rotulo: "Rodada", to: "/sobre?aba=rodada" }] },
+    { nome: "Lançamento", situacao: "tem", texto: "Vai ao ar só depois do \"pode publicar\", com a lista do que mudou em Atualizações.",
+      telas: [{ rotulo: "Atualizações", to: "/sobre?aba=atualizacoes" }] },
+    { nome: "Melhoria", situacao: "tem", texto: "IMPROVE e ANALYZE trazem melhorias com o motivo; o registro das execuções guarda a próxima ação de cada uma.",
+      telas: [{ rotulo: "Registro das execuções", to: "/sobre?aba=monitor" }] },
+  ],
+});
+
+/** ANALYZE: os 6 pontos de toda análise de um sistema existente. */
+export const DIMENSOES_ANALISE: { id: string; nome: string; pergunta: string }[] = [
+  { id: "gargalos", nome: "Gargalos", pergunta: "Onde o trabalho para ou se acumula (filas, aprovações, conciliação)?" },
+  { id: "ux", nome: "UX", pergunta: "As telas são fáceis no computador e no celular? Algo sai da tela ou confunde?" },
+  { id: "desempenho", nome: "Desempenho", pergunta: "Abre rápido? O que pesa no site e no banco?" },
+  { id: "consistencia", nome: "Consistência", pergunta: "Os números batem entre telas? Nomes, cores e regras iguais em todo lugar?" },
+  { id: "riscos", nome: "Riscos", pergunta: "O que pode parar, vazar ou dar multa (backup, segurança, prazos)?" },
+  { id: "oportunidades", nome: "Oportunidades", pergunta: "O que dá mais resultado com menos esforço agora?" },
+];
+
+/** INNOVATE: as etapas do motor de inovação, em ordem. */
+export const CICLO_INOVACAO: { id: string; nome: string; texto: string }[] = [
+  { id: "pesquisa", nome: "Pesquisa", texto: "O problema, quem sofre com ele e a regra que vale." },
+  { id: "tendencias", nome: "Tendências", texto: "O que os números e o mercado mostram." },
+  { id: "testes", nome: "Testes", texto: "Experimentar com dados de exemplo antes de mexer no real." },
+  { id: "mvp", nome: "MVP", texto: "O mínimo que resolve, no ar rápido." },
+  { id: "validacao", nome: "Validação", texto: "Medir se resolveu, com o número antes e depois." },
+  { id: "lancamento", nome: "Lançamento", texto: "Publicar com aprovação e contar o que mudou." },
+  { id: "melhoria", nome: "Melhoria", texto: "Ajustar pelo uso e voltar ao começo." },
+];
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Enterprise Command Language (ECL): a linguagem de domínio (DSL) da empresa. Gramática: VERBO + alvo, com as palavras
 // da MF (financeiro, fiscal, produtos…). O ERP mostra onde aquilo é feito.
 
-export type ComandoEcl = { verbo: string; nome: string; texto: string; alvos: { alvo: string; palavras: string[]; destinos: Destino[] }[] };
+export type ComandoEcl = {
+  verbo: string; nome: string; texto: string;
+  /** o que o comando entrega, sempre: o resultado que se pode cobrar */
+  entrega: string;
+  alvos: { alvo: string; palavras: string[]; destinos: Destino[] }[];
+};
 
 export const ECL: ComandoEcl[] = [
   {
     verbo: "AUDIT", nome: "Auditoria estruturada", texto: "Confere uma área com checklist e mostra o que está errado, por que importa e o que fazer.",
+    entrega: "A lista do que está errado, cada item com por que importa, o valor em risco, o que fazer e quem faz.",
     alvos: [
       { alvo: "financeiro", palavras: ["financeiro", "financas", "contas", "bancos", "caixa"], destinos: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Painel do contador", to: "/contador" }] },
       { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas", "nf", "tributos"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Painel fiscal", to: "/painel/notas" }] },
@@ -115,6 +186,7 @@ export const ECL: ComandoEcl[] = [
   },
   {
     verbo: "VISUALIZE", nome: "Mostra em página visual", texto: "Abre a página que mostra o assunto de relance: etapas, números, cores e o que falta.",
+    entrega: "A página visual aberta no assunto, pronta para mostrar à equipe.",
     alvos: [
       { alvo: "rodada", palavras: ["rodada", "plano", "trabalho", "pendencias"], destinos: [{ rotulo: "Rodada atual", to: "/sobre?aba=rodada" }] },
       { alvo: "sistemas", palavras: ["sistemas", "capacidades", "modulos", "erp"], destinos: [{ rotulo: "Sistemas e capacidades", to: "/sobre?aba=sistemas" }] },
@@ -124,11 +196,42 @@ export const ECL: ComandoEcl[] = [
   },
   {
     verbo: "IMPROVE", nome: "Propõe melhorias", texto: "Traz sugestões prontas para aplicar ou anotar, com o motivo de cada uma.",
+    entrega: "Sugestões prontas para aplicar ou anotar como ideia, cada uma com o motivo.",
     alvos: [
       { alvo: "produtos", palavras: ["produtos", "cadastro", "ncm", "custo", "pecas"], destinos: [{ rotulo: "Correções sugeridas", to: "/estoque?aba=qualidade" }] },
       { alvo: "impostos", palavras: ["impostos", "fiscal", "tributos", "economia"], destinos: [{ rotulo: "Estratégias do analista fiscal", to: "/analista-fiscal" }] },
       { alvo: "conciliacao", palavras: ["conciliacao", "bancos", "extrato"], destinos: [{ rotulo: "Sugestões da conciliação", to: "/conciliacao" }] },
       { alvo: "erp", palavras: ["erp", "telas", "menu", "sistema", "ideias"], destinos: [{ rotulo: "Ideias", to: "/sobre?aba=ideias" }] },
+    ],
+  },
+  {
+    verbo: "MONITOR", nome: "Monitoramento contínuo", texto: "Mostra se as automações rodaram na hora, se as funções responderam, as filas que travam o trabalho e o backup. O vigia confere sozinho de hora em hora.",
+    entrega: "O semáforo de cada automação, fila e do backup, com o que parou e o que fazer; aviso urgente quando o backup para.",
+    alvos: [
+      { alvo: "automacoes", palavras: ["automacoes", "automacao", "rotinas", "agendador", "cron", "tudo", "sistema"], destinos: [{ rotulo: "Monitor", to: "/sobre?aba=monitor" }] },
+      { alvo: "filas", palavras: ["filas", "fila", "pendencias", "travado"], destinos: [{ rotulo: "Monitor: filas", to: "/sobre?aba=monitor" }] },
+      { alvo: "backup", palavras: ["backup", "copia", "copias"], destinos: [{ rotulo: "Monitor: backup", to: "/sobre?aba=monitor" }, { rotulo: "Configurações do backup", to: "/configuracoes" }] },
+      { alvo: "integracoes", palavras: ["integracoes", "bancos", "funcoes", "mercado", "sefaz", "email"], destinos: [{ rotulo: "Monitor: funções", to: "/sobre?aba=monitor" }, { rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
+    ],
+  },
+  {
+    verbo: "ANALYZE", nome: "Analisa um sistema existente", texto: "Olha uma área inteira em 6 pontos: gargalos, UX, desempenho, consistência, riscos e oportunidades.",
+    entrega: "A análise em 6 pontos com números, cada ponto com o que fazer, registrada no Monitor (entrada → diagnóstico → decisão → entrega → validação → próxima ação).",
+    alvos: [
+      { alvo: "erp", palavras: ["erp", "sistema", "tudo", "geral"], destinos: [{ rotulo: "Registro das execuções", to: "/sobre?aba=monitor" }, { rotulo: "Sistemas", to: "/sobre?aba=sistemas" }] },
+      { alvo: "telas", palavras: ["telas", "ux", "menu", "uso"], destinos: [{ rotulo: "Auditoria do menu", to: "/sobre?aba=esquemas" }] },
+      { alvo: "financeiro", palavras: ["financeiro", "bancos", "contas", "caixa"], destinos: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
+      { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }] },
+      { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }] },
+    ],
+  },
+  {
+    verbo: "INNOVATE", nome: "Motor de inovação", texto: "Leva uma ideia pelo ciclo: pesquisa, tendências, testes, MVP, validação, lançamento e melhoria.",
+    entrega: "A ideia no ciclo com a etapa atual, o MVP (o mínimo que resolve) e como medir se deu certo.",
+    alvos: [
+      { alvo: "ideias", palavras: ["ideias", "ideia", "pesquisa"], destinos: [{ rotulo: "Ideias", to: "/sobre?aba=ideias" }] },
+      { alvo: "tendencias", palavras: ["tendencias", "mercado", "numeros"], destinos: [{ rotulo: "Painel gerencial", to: "/gerencial" }] },
+      { alvo: "lancamentos", palavras: ["lancamentos", "lancamento", "versoes", "mvp"], destinos: [{ rotulo: "Atualizações", to: "/sobre?aba=atualizacoes" }, { rotulo: "Rodada", to: "/sobre?aba=rodada" }] },
     ],
   },
 ];

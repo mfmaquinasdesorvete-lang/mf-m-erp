@@ -23,8 +23,8 @@ export type Rodada = {
 };
 
 export const RODADA_ATUAL: Rodada = {
-  titulo: "Cadastros consertados, quiosques e sistemas",
-  resumo: "Correções sugeridas nos produtos, cliente desde com a data real, aba Quiosques, telas enxutas, vendas coloridas e a página Sistemas com a linguagem de comandos (ECL).",
+  titulo: "Monitor, registro das execuções e motor de inovação",
+  resumo: "Cada comando com entrega clara e registro em 6 etapas, o Monitor das automações com o vigia de hora em hora, a análise do ERP em 6 pontos e o motor de inovação — depois dos cadastros consertados, quiosques, parcelamentos e CNPJá.",
   pedidos: [
     { pedido: "Consertar os cadastros automático e com inteligência", virou: "Correções sugeridas em Produtos → Qualidade, para aplicar ou ignorar", situacao: "feito" },
     { pedido: "Cadastro dos clientes com a data real", virou: "Cliente desde pela compra da máquina, 1ª venda, NF-e, proposta, My Frost ou OS", situacao: "feito" },
@@ -42,15 +42,20 @@ export const RODADA_ATUAL: Rodada = {
     { pedido: "capability-showcase com as capacidades do ERP", virou: "Vitrine de capacidades em Sobre → Sistemas", situacao: "feito" },
     { pedido: "Colocar o plano da rodada numa página do Sobre, tipo VISUALIZE", virou: "Sobre → Rodada e o comando VISUALIZE no ECL", situacao: "feito" },
     { pedido: "Pode publicar", virou: "Rodada publicada no site", situacao: "feito" },
+    { pedido: "Entregas claras para cada comando; cada execução registra entrada → diagnóstico → decisão → entrega → validação → próxima ação", virou: "Cada comando do ECL mostra a sua entrega e o administrador registra a execução nas 6 etapas (Sobre → Monitor → Registro)", situacao: "feito" },
+    { pedido: "Monitoramento contínuo e automações", virou: "Sobre → Monitor (automações, respostas das funções, filas e backup) e o vigia de hora em hora com aviso no sino; o backup parado já virou aviso urgente", situacao: "feito" },
+    { pedido: "Motor de inovação: pesquisa, tendências, testes, MVP, validação, lançamento, melhoria", virou: "Comando INNOVATE e o sistema innovation-os em Sobre → Sistemas, etapa por etapa, com onde cada uma está no ERP", situacao: "feito" },
+    { pedido: "Analisa um sistema existente: gargalos, UX, desempenho, consistência, riscos, oportunidades", virou: "Comando ANALYZE com os 6 pontos e a análise do ERP inteiro feita com números reais, registrada no Monitor", situacao: "feito" },
   ],
   faltas: [
-    { pergunta: "Pode publicar o módulo Parcelamentos?", bloqueia: "A tela no site (o banco e os avisos já estão prontos)", quem: "empresa" },
+    { pergunta: "Colocar no GitHub os secrets BACKUP_CHAVE (frase nova) e SUPABASE_ACCESS_TOKEN (chave nova) e rodar o Backup diário", bloqueia: "Qualquer cópia de segurança guardada (nenhuma foi guardada até hoje)", quem: "empresa" },
+    { pergunta: "Pode publicar o Monitor e o registro das execuções?", bloqueia: "A tela no site (o vigia e os avisos já estão rodando)", quem: "empresa" },
     { pergunta: "Relatório de todos os parcelamentos (federal, PGFN, SEFAZ SC e SP, prefeitura) com nº, parcelas e vencimentos", bloqueia: "Cadastrar os parcelamentos e os alertas de prazo", quem: "contador" },
     { pergunta: "Como lançar o imposto da MF pago por outra empresa ou por conta pessoal (mútuo, adiantamento, aporte)?", bloqueia: "A contabilidade dessas parcelas", quem: "contador" },
     { pergunta: "Os créditos das compras de 2025 e 2026 foram aproveitados na EFD? (planilha enviada)", bloqueia: "Recuperar créditos não aproveitados dentro de 5 anos", quem: "contador" },
     { pergunta: "CPR do ICMS da filial SP no CADESP (CNAE 2829-1/99) e dia do ISS de São José", bloqueia: "Tirar o \"a confirmar\" do calendário", quem: "contador" },
     { pergunta: "Cadastrar as 3 ou 4 contas pessoais no painel (sem senha, só o nome e o saldo)", bloqueia: "Saldos, entradas e saídas do painel Pessoal", quem: "empresa" },
-    { pergunta: "O ECL só leva até a tela ou também executa a ação?", bloqueia: "Comandos que fazem sozinhos e verbos novos", quem: "empresa" },
+    { pergunta: "O ECL só leva até a tela e registra, ou também executa a ação sozinho?", bloqueia: "Comandos que fazem sozinhos (hoje: levam à tela e registram as 6 etapas)", quem: "empresa" },
     { pergunta: "NCM das peças: confirmar as sugestões de confiança média e baixa", bloqueia: "Aplicar esses NCM nos produtos", quem: "contador" },
   ],
   jaPosso: [
@@ -79,7 +84,9 @@ export const RODADA_ATUAL: Rodada = {
     { texto: "O evento mais antigo é o \"cliente desde\"", risco: "medio", seErrada: "Data errada onde a importação veio errada", conferir: "Conferir 10 clientes com o Tiny" },
     { texto: "Pôr Exportar e Importar no \"Mais\" também no computador é a padronização pedida", risco: "baixo", seErrada: "Alguém não acha o Exportar", conferir: "Opinião de quem usa; volta fácil" },
     { texto: "Os 2 primeiros filtros de cada tela são os mais usados", risco: "medio", seErrada: "Um filtro importante fica escondido", conferir: "Revisão tela a tela (já posso fazer)" },
-    { texto: "O ECL só leva até a tela", risco: "baixo", seErrada: "Esperava que ele executasse", conferir: "Pergunta pendente" },
+    { texto: "O ECL leva até a tela e registra a execução; quem executa é a pessoa (ou o vigia, no MONITOR)", risco: "baixo", seErrada: "Esperava que ele executasse sozinho", conferir: "Pergunta pendente" },
+    { texto: "Avisar só o administrador pelo vigia (não o financeiro)", risco: "medio", seErrada: "O financeiro não fica sabendo do que parou", conferir: "Dizer quem mais deve receber os avisos" },
+    { texto: "Atrasada = passou de 2 vezes o intervalo sem rodar", risco: "baixo", seErrada: "Alarme cedo ou tarde demais", conferir: "Olhar o Monitor por uma semana" },
     { texto: "A situação \"tem / em parte / falta\" de cada módulo está certa", risco: "baixo", seErrada: "A página Sistemas engana", conferir: "Revisão da página" },
     { texto: "O tema escuro é o principal", risco: "baixo", seErrada: "Cores ruins no tema claro", conferir: "Trocar o tema no ERP e olhar" },
     { texto: "\"Contas pessoais\" são contas de banco, cartão ou investimento com entradas e saídas", risco: "medio", seErrada: "O painel não serve para o que você quer", conferir: "Você usa o painel e diz o que falta" },
@@ -106,5 +113,7 @@ export const RODADA_ATUAL: Rodada = {
     { risco: "Menu \"Mais\" fora do lugar", prevencao: "Posição calculada para ficar dentro da tela; não usar dentro de janelas sobrepostas" },
     { risco: "Demonstração diferente do real", prevencao: "Depois de publicar, testar as mesmas telas com os dados reais" },
     { risco: "Mensagem cortada ou nome sem definição", prevencao: "Nada é construído antes de confirmar" },
+    { risco: "Aviso demais e ninguém lê (o backup ficou 6 dias com aviso comum)", prevencao: "O mesmo aviso não se repete por 20 horas; só o backup é urgente e pede ciência" },
+    { risco: "Histórico do agendador crescendo sem fim", prevencao: "Contador de linhas no Monitor; limpeza (guardar 14 dias) pelo SQL Editor quando aprovar" },
   ],
 };

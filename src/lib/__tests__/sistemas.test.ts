@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ECL, interpretarEcl, SISTEMAS } from "../sistemas";
+import { CICLO_INOVACAO, DIMENSOES_ANALISE, ECL, interpretarEcl, SISTEMAS } from "../sistemas";
 
 describe("sistemas", () => {
   it("cada módulo tem situação e as telas começam por /", () => {
@@ -26,6 +26,20 @@ describe("sistemas", () => {
     expect(pa.ok && pa.destinos[0].to).toBe("/parcelamentos");
     const v = interpretarEcl("VISUALIZE rodada");
     expect(v.ok && v.destinos[0].to).toBe("/sobre?aba=rodada");
+  });
+
+  it("todo comando tem entrega; MONITOR, ANALYZE e INNOVATE levam ao Monitor e às telas certas", () => {
+    for (const c of ECL) expect(c.entrega.length).toBeGreaterThan(20);
+    const m = interpretarEcl("monitor backup");
+    expect(m.ok && m.destinos[0].to).toBe("/sobre?aba=monitor");
+    const a = interpretarEcl("ANALYZE erp");
+    expect(a.ok && a.comando.entrega).toMatch(/6 pontos/);
+    expect(DIMENSOES_ANALISE.map((d) => d.nome)).toEqual(["Gargalos", "UX", "Desempenho", "Consistência", "Riscos", "Oportunidades"]);
+    expect(CICLO_INOVACAO.map((d) => d.nome)).toEqual(["Pesquisa", "Tendências", "Testes", "MVP", "Validação", "Lançamento", "Melhoria"]);
+    const i = interpretarEcl("INNOVATE ideias");
+    expect(i.ok && i.destinos[0].to).toBe("/sobre?aba=ideias");
+    expect(SISTEMAS.find((s) => s.id === "innovation-os")?.modulos.map((x) => x.nome)).toEqual(CICLO_INOVACAO.map((d) => d.nome));
+    expect(SISTEMAS.find((s) => s.id === "ops-os")?.modulos.some((x) => x.nome === "Vigia com avisos" && x.situacao === "tem")).toBe(true);
   });
 
   it("explica o que deu errado", () => {
