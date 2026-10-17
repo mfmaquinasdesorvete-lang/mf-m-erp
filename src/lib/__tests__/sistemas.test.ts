@@ -10,6 +10,8 @@ describe("sistemas", () => {
     }
     expect(SISTEMAS.find((s) => s.id === "analytics-os")?.modulos.map((m) => m.nome))
       .toEqual(["KPIs", "Dashboards", "BI", "Previsões", "Alertas", "IA analítica", "Benchmarking", "Tendências"]);
+    // a vitrine só mostra o que o ERP já faz
+    expect(SISTEMAS.find((s) => s.id === "capability-showcase")?.modulos.every((m) => m.situacao === "tem")).toBe(true);
   });
 
   it("lê os comandos do ECL com ou sem alvo, em maiúscula ou minúscula", () => {
@@ -20,6 +22,8 @@ describe("sistemas", () => {
     expect(b.ok && b.alvo).toBe("produtos");
     const c = interpretarEcl("audit");
     expect(c.ok && c.destinos.length).toBe(ECL[0].alvos.flatMap((x) => x.destinos).length);
+    const v = interpretarEcl("VISUALIZE rodada");
+    expect(v.ok && v.destinos[0].to).toBe("/sobre?aba=rodada");
   });
 
   it("explica o que deu errado", () => {

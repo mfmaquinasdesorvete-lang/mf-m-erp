@@ -1,5 +1,5 @@
-// Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, os sistemas (finance-os, analytics-os e a
-// linguagem de comandos ECL), as versões dia a dia, esquemas para explicar à equipe (processos, fluxograma do menu com
+// Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, os sistemas (finance-os, analytics-os,
+// capability-showcase e a linguagem de comandos ECL), a rodada de trabalho em curso (VISUALIZE), as versões dia a dia, esquemas para explicar à equipe (processos, fluxograma do menu com
 // auditoria, cadeia de causas), as ideias e o handoff.
 // Cada aba começa pelos indicadores, depois os filtros e as ações.
 import { useMemo, useState } from "react";
@@ -17,13 +17,14 @@ import { Handoff } from "@/components/sobre/Handoff";
 import { Ideias } from "@/components/sobre/Ideias";
 import { Esquemas } from "@/components/sobre/Esquemas";
 import { Sistemas } from "@/components/sobre/Sistemas";
+import { Rodada } from "@/components/sobre/Rodada";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 
-const ABAS = ["modulos", "sistemas", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
+const ABAS = ["modulos", "sistemas", "rodada", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -31,24 +32,29 @@ const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 export default function Sobre() {
   const { tem } = usePerfil();
   const podeHandoff = tem("financeiro", "contador");
-  const [aba, setAba] = useAbaUrl<Aba>("modulos", podeHandoff ? ABAS : ABAS.filter((a) => a !== "handoff"));
+  // Rodada e Handoff falam de finanças e decisões da empresa: financeiro, contador e administrador
+  const [aba, setAba] = useAbaUrl<Aba>("modulos", podeHandoff ? ABAS : ABAS.filter((a) => a !== "handoff" && a !== "rodada"));
   const [ideia, setIdeia] = useState<InicialItem | null>(null);
+  const [pendencia, setPendencia] = useState<InicialItem | null>(null);
   return (
     <div>
       <PageHeader title="Sobre o ERP Line"
         subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. O que faz cada módulo, os sistemas, o que mudou, esquemas para a equipe, ideias e o handoff.` : "O que faz cada módulo, os sistemas, o que mudou, esquemas para a equipe, ideias e o handoff."}
         actions={<Button variant="secondary" onClick={() => setIdeia({})}><Lightbulb size={16} /> Anotar ideia</Button>} />
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
+        { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }] : []),
+        { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
         { value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "handoff" as const, label: "Handoff" }] : []),
       ]} />
       {aba === "modulos" && <Modulos onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
       {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
+      {aba === "rodada" && podeHandoff && <Rodada versao={VERSAO} onIdeia={setIdeia} onPendencia={setPendencia} />}
       {aba === "atualizacoes" && <Atualizacoes />}
       {aba === "esquemas" && <Esquemas />}
       {aba === "ideias" && <Ideias />}
       {aba === "handoff" && podeHandoff && <Handoff versao={VERSAO} onIrAba={setAba} />}
       {ideia && <ItemModal tipo="ideia" inicial={ideia} onClose={() => setIdeia(null)} />}
+      {pendencia && <ItemModal tipo="pendencia" inicial={pendencia} onClose={() => setPendencia(null)} />}
     </div>
   );
 }

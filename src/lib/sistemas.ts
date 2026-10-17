@@ -64,6 +64,38 @@ export const SISTEMAS: Sistema[] = [
   },
 ];
 
+/** capability-showcase: a vitrine do que o ERP Line já faz, para mostrar à equipe, a clientes e a parceiros. */
+SISTEMAS.push({
+  id: "capability-showcase", nome: "Vitrine de capacidades", cor: "from-[#0d9488] to-[#115e59]",
+  texto: "O que o ERP Line já faz pela MF, do orçamento à nota, da fábrica à assistência, com o banco e o contador conectados.",
+  modulos: [
+    { nome: "Notas do Lucro Real nas duas unidades", situacao: "tem", texto: "NF-e de venda, transferência SC ↔ SP, entrada e devolução; NFS-e da assistência; Reforma Tributária (IBS/CBS) já no XML.",
+      telas: [{ rotulo: "Notas fiscais", to: "/notas" }, { rotulo: "Painel fiscal", to: "/painel/notas" }] },
+    { nome: "Banco que entra sozinho", situacao: "tem", texto: "Extratos pelo Open Finance, Banco Inter, InfinitePay e OFX por e-mail, conciliados com sugestões e baixa automática do Pix.",
+      telas: [{ rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
+    { nome: "Do orçamento à entrega", situacao: "tem", texto: "Proposta aprovada pelo cliente online, pedido, nota automática, separação, embalagem, frete e rastreio num fluxo só.",
+      telas: [{ rotulo: "Fluxo de pedidos", to: "/fluxo" }, { rotulo: "Venda de Peças", to: "/pedidos" }] },
+    { nome: "Fábrica com ficha técnica", situacao: "tem", texto: "Ordens de produção, ficha técnica em vários níveis, custo pelas notas, peças que faltam e o teste do giga (REG-006).",
+      telas: [{ rotulo: "Produção", to: "/producao" }, { rotulo: "Painel da fábrica", to: "/painel/producao" }] },
+    { nome: "Assistência técnica", situacao: "tem", texto: "OS com a máquina e a garantia do cliente, NFS-e, técnicos parceiros por região e o histórico de consertos na ficha.",
+      telas: [{ rotulo: "Ordens de serviço", to: "/assistencia" }, { rotulo: "Garantias", to: "/garantias" }] },
+    { nome: "Venda em todo canal", situacao: "tem", texto: "Balcão (PDV), WhatsApp, loja, Mercado Livre com estoque e preço do ERP, feed do Google e representantes com portal.",
+      telas: [{ rotulo: "PDV", to: "/pdv" }, { rotulo: "Mercado Livre", to: "/mercado-livre" }, { rotulo: "Comissões", to: "/comissoes" }] },
+    { nome: "Cobrança automática", situacao: "tem", texto: "Régua de cobrança pelo WhatsApp oficial, Pix copia e cola, link de pagamento e página do cliente.",
+      telas: [{ rotulo: "Cobrança", to: "/financeiro?aba=cobranca" }] },
+    { nome: "Analista fiscal com IA", situacao: "tem", texto: "Auditoria das notas, apuração estimada e estratégias legais para pagar menos imposto, para o contador validar.",
+      telas: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }] },
+    { nome: "Cadastro que se conserta", situacao: "tem", texto: "Clientes conferidos na Receita, repetidos unificados sem perder nada e correções sugeridas nos produtos (NCM, custo, categoria).",
+      telas: [{ rotulo: "Clientes", to: "/clientes" }, { rotulo: "Correções de produtos", to: "/estoque?aba=qualidade" }] },
+    { nome: "Painéis para decidir", situacao: "tem", texto: "Um painel por área, metas por vendedor e região, margem de contribuição e curva ABC; tocar num número abre a lista.",
+      telas: [{ rotulo: "Painel gerencial", to: "/gerencial" }, { rotulo: "Margem", to: "/margem" }] },
+    { nome: "Contador conectado", situacao: "tem", texto: "Fechamento do mês com o pacote do contador, calendário de obrigações do Lucro Real e mês travado depois de conferido.",
+      telas: [{ rotulo: "Painel do contador", to: "/contador" }] },
+    { nome: "Controle e segurança", situacao: "tem", texto: "Perfil por função, pagamento só depois da aprovação, histórico de toda alteração e auditoria financeira com checklist.",
+      telas: [{ rotulo: "Aprovações", to: "/aprovacoes" }, { rotulo: "Auditoria financeira", to: "/auditoria" }] },
+  ],
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Enterprise Command Language (ECL): a linguagem de domínio (DSL) da empresa. Gramática: VERBO + alvo, com as palavras
 // da MF (financeiro, fiscal, produtos…). O ERP mostra onde aquilo é feito.
@@ -78,6 +110,15 @@ export const ECL: ComandoEcl[] = [
       { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas", "nf", "tributos"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Painel fiscal", to: "/painel/notas" }] },
       { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque", "pecas"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }, { rotulo: "Marketplace e anúncios", to: "/estoque?aba=auditoria" }] },
       { alvo: "menu", palavras: ["menu", "telas", "erp", "sistema"], destinos: [{ rotulo: "Auditoria do menu", to: "/sobre?aba=esquemas" }] },
+    ],
+  },
+  {
+    verbo: "VISUALIZE", nome: "Mostra em página visual", texto: "Abre a página que mostra o assunto de relance: etapas, números, cores e o que falta.",
+    alvos: [
+      { alvo: "rodada", palavras: ["rodada", "plano", "trabalho", "pendencias"], destinos: [{ rotulo: "Rodada atual", to: "/sobre?aba=rodada" }] },
+      { alvo: "sistemas", palavras: ["sistemas", "capacidades", "modulos", "erp"], destinos: [{ rotulo: "Sistemas e capacidades", to: "/sobre?aba=sistemas" }] },
+      { alvo: "processos", palavras: ["processos", "menu", "esquemas", "fluxo"], destinos: [{ rotulo: "Esquemas", to: "/sobre?aba=esquemas" }] },
+      { alvo: "financeiro", palavras: ["financeiro", "dinheiro", "caixa"], destinos: [{ rotulo: "Painel do financeiro", to: "/painel/financeiro" }] },
     ],
   },
   {
