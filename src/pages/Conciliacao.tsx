@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, Mail, Pencil, Plus, Receipt, Scale, Undo2, Zap } from "lucide-react";
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, List, Mail, Pencil, Plus, Receipt, Scale, Undo2, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoExtrato } from "@/lib/extrato";
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
+import { direcaoDe, emPedacos, regrasDasLinhas, textoRegra, type RegraConciliacao } from "@/lib/conciliacaoLote";
+import { PorFavorecido } from "@/components/financeiro/ConciliacaoLote";
 import type { ConexaoOF } from "@/components/financeiro/OpenFinance";
 import type { ConexaoInter } from "@/components/financeiro/Inter";
 import { AvisoContasRepetidas, ResumoExtrato } from "@/components/financeiro/ResumoExtrato";
@@ -60,6 +62,8 @@ export default function Conciliacao() {
   const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)" });
   // nomes do cadastro de funcionários: o Pix para eles aparece como "Funcionários" (quem não é do financeiro não lê o cadastro)
   const { data: funcionarios = [] } = useRows<{ id: string; nome: string }>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
+  // "este favorecido vai sempre para esta categoria": sugestão pronta para a linha sem conta nem transferência
+  const { data: regras = [] } = useRows<RegraConciliacao>("conciliacao_regras", { order: "rotulo", ascending: true });
 
   const [contaSel, setContaSel] = useState<string>("");
   const [situacao, setSituacao] = useState<string>("pendente");
@@ -69,13 +73,21 @@ export default function Conciliacao() {
   const [importar, setImportar] = useState(false);
   const [tratar, setTratar] = useState<Lancamento | null>(null);
   const [desfazer, setDesfazer] = useState<Lancamento | null>(null);
+  const [visao, setVisao] = useState<"linhas" | "favorecido">("linhas");
 
   const idsBancos = new Set(bancos.map((b) => b.id));
   const invalidate = useInvalidate();
   const [aprovando, setAprovando] = useState(false);
-  const { sugestoes, divergentes } = useMemo(() => sugerir(
-    lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id)), receber, pagar, new Map(contasTodas.map((b) => [b.id, b.unidade_id])),
-  ), [lancamentos, receber, pagar, contasTodas, bancos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { sugestoes, divergentes } = useMemo(() => {
+    const daqui = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id));
+    const r = sugerir(daqui, receber, pagar, new Map(contasTodas.map((b) => [b.id, b.unidade_id])));
+    // a regra do favorecido só entra onde não há conta nem transferência que combine
+    for (const [id, regra] of regrasDasLinhas(daqui.filter((l) => l.status === "pendente" && !r.sugestoes.has(l.id)), regras)) {
+      r.sugestoes.set(id, { tipo: "regra", regra, rotulo: `Regra: ${textoRegra(regra)}`, pontos: 50 });
+      r.divergentes.delete(id);
+    }
+    return r;
+  }, [lancamentos, receber, pagar, contasTodas, bancos, regras]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = lancamentos
     .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
     .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
@@ -86,20 +98,46 @@ export default function Conciliacao() {
   const doResumo = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && (!mes || l.data.startsWith(mes)));
   const repetidas = useMemo(() => contasRepetidas(lancamentos.filter((l) => contasTodas.some((b) => b.id === l.conta_bancaria_id && b.ativo))), [lancamentos, contasTodas]);
   const sugeridasNaLista = lista.filter((l) => l.status === "pendente" && sugestoes.has(l.id));
+  // por favorecido: as pendentes da conta, do mês e do tipo escolhidos; a que já tem conta ou transferência sugerida fica de fora
+  const pendentesFiltradas = lancamentos
+    .filter((l) => l.status === "pendente" && idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
+    .filter((l) => (!mes || l.data.startsWith(mes)) && (!tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo));
+  const paraLote = visao === "favorecido" ? pendentesFiltradas.filter((l) => sugestoes.get(l.id)?.tipo === undefined || sugestoes.get(l.id)?.tipo === "regra") : [];
+  const deFora = visao === "favorecido" ? pendentesFiltradas.length - paraLote.length : 0;
   const pendentesTotal = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente").length;
 
   async function aprovar(ids: string[]) {
     setAprovando(true);
     let ok = 0; const erros: string[] = [];
+    // regras: de uma vez no banco, por regra e sentido (a mesma função do lote por favorecido)
+    const porRegra = new Map<string, { regra: RegraConciliacao; ids: string[] }>();
     for (const id of ids) {
       const s = sugestoes.get(id) as Sugestao;
+      if (s.tipo === "regra") {
+        const l = lancamentos.find((x) => x.id === id);
+        if (!l || direcaoDe(l.valor) !== s.regra.direcao) continue;
+        const g = porRegra.get(s.regra.id) ?? { regra: s.regra, ids: [] };
+        g.ids.push(id); porRegra.set(s.regra.id, g);
+        continue;
+      }
       const { error } = s.tipo === "transferencia"
         ? await supabase.rpc("marcar_transferencia", { p_lanc: id, p_par: s.parId })
         : await supabase.rpc("conciliar_lancamento", { p_lanc: id, p_tipo: s.tipo, p_conta: s.contaId });
       if (error) erros.push(error.message); else ok++;
     }
+    for (const { regra: r, ids: doLote } of porRegra.values()) {
+      for (const pedaco of emPedacos(doLote)) {
+        const { data, error } = await supabase.rpc("conciliar_em_lote", {
+          p_ids: pedaco, p_acao: r.acao, p_direcao: r.direcao, p_categoria: r.categoria, p_motivo: r.motivo,
+          p_fornecedor: r.fornecedor_id, p_cliente: r.cliente_id, p_regra: r.id,
+        });
+        if (error) { erros.push(...pedaco.map(() => error.message)); continue; }
+        const res = data as { feitos: number; erros: { erro: string }[] };
+        ok += res.feitos; erros.push(...res.erros.map((e) => e.erro));
+      }
+    }
     setAprovando(false);
-    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "saldos_bancarios", "movimentos_realizados");
+    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "saldos_bancarios", "movimentos_realizados", "conciliacao_regras");
     if (ok) notify(`${ok} ${pl(ok, "lançamento", "lançamentos")} ${pl(ok, "conciliado", "conciliados")}`);
     if (erros.length) notify(`${erros.length} não foram: ${[...new Set(erros)].join("; ")}`, "erro");
   }
@@ -198,11 +236,17 @@ export default function Conciliacao() {
         onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} funcionarios={funcionarios} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
+        <div className="flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Como ver o extrato">
+          {([["linhas", "Linha a linha", List], ["favorecido", "Por favorecido", Users]] as const).map(([v, l, I]) => (
+            <button key={v} type="button" aria-pressed={visao === v} onClick={() => setVisao(v)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${visao === v ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}><I size={15} aria-hidden /> {l}</button>
+          ))}
+        </div>
+        {visao === "linhas" && <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
           <option value="pendente">Pendentes</option><option value="sugestao">Com sugestão ({[...sugestoes.keys()].length})</option>
           <option value="divergente">Divergentes ({divergentes.size})</option><option value="conciliado">Conciliados</option>
           <option value="transferencia">Transferências</option><option value="ignorado">Ignorados</option><option value="todos">Todos</option>
-        </select>
+        </select>}
         <select className="input w-auto" value={contaSel} onChange={(e) => setContaSel(e.target.value)} aria-label="Conta">
           <option value="">Todas as contas</option>
           {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
@@ -212,13 +256,15 @@ export default function Conciliacao() {
           {TIPOS_LANC.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
         </select>
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
-        {podeEditar && sugeridasNaLista.length > 0 && (
+        {podeEditar && visao === "linhas" && sugeridasNaLista.length > 0 && (
           <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
         )}
-        <span className="ml-auto text-sm text-slate-500">{lista.length} {pl(lista.length, "lançamento", "lançamentos")} · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>
+        {visao === "linhas" && <span className="ml-auto text-sm text-slate-500">{lista.length} {pl(lista.length, "lançamento", "lançamentos")} · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>}
       </div>
 
-      <Table empty={!lista.length}
+      {visao === "favorecido" ? (
+        <PorFavorecido linhas={paraLote} deFora={deFora} regras={regras} nomeConta={nomeConta} podeEditar={podeEditar} />
+      ) : <Table empty={!lista.length}
         head={<><th className="th">Data / conta</th><th className="th">Descrição no banco</th><th className="th">Situação</th><th className="th">Ligado a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((l) => (
           <tr key={l.id}>
@@ -240,7 +286,7 @@ export default function Conciliacao() {
             </td>
           </tr>
         ))}
-      </Table>
+      </Table>}
 
       {editConta && <ContaBancariaModal conta={editConta} onClose={() => setEditConta(null)} />}
       {importar && <ImportarModal bancos={bancos.filter((b) => b.ativo)} contaInicial={contaSel} onClose={() => setImportar(false)} />}

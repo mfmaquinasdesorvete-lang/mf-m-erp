@@ -1006,6 +1006,11 @@ function planoDemo(db: Db) {
     { id: "vc1", nome: "Chave do Supabase no GitHub", tipo: "chave", onde: "GitHub → Settings → Secrets → SUPABASE_ACCESS_TOKEN (backup e funções)",
       vence_em: quando(5).slice(0, 10), avisar_dias: 15, como_renovar: "Gerar outra chave no Supabase (Account → Access Tokens) e trocar o secret no GitHub.", situacao: "ativa" },
   ];
+  // regra do extrato por favorecido (no sistema real: public.conciliacao_regras): a tarifa da OLIST vira sugestão pronta
+  db.conciliacao_regras = [
+    { id: "rg1", chave: "OLIST SERVICOS DIGITAIS", direcao: "saida", rotulo: "OLIST SERVICOS DIGITAIS LTDA", acao: "lancar", categoria: "tarifas bancárias",
+      motivo: null, fornecedor_id: null, cliente_id: null, ativo: true, usos: 12, ultimo_uso: quando(-20), criado_em: quando(-40), atualizado_em: quando(-20) },
+  ];
   // registro das execuções dos comandos (exemplos; no sistema real: public.ecl_execucoes, só o administrador)
   db.ecl_execucoes = [
     { id: "ex1", comando: "MONITOR", alvo: "automacoes", origem: "monitor", situacao: "em_andamento", criado_em: quando(-0.1),
@@ -1298,6 +1303,9 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-15), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
   add("cb1", dias(-45), -3400, "Pix RAFAEL SOUZA LIMA · Enviado");
   add("cb2", dias(-14), -150, "DIEGO MARTINS · Transferência enviada pelo Pix");
+  // compras repetidas no cartão da maquininha: a conciliação "Por favorecido" junta e lança de uma vez
+  for (const [d, v] of [[-3, -38.5], [-10, -42], [-17, -35.9], [-24, -40.2], [-31, -37]] as const) add("cb3", dias(d), v, `PADARIA PAO EXEMPLO ${d === -17 ? "02" : "01"} · mfmaquinas`);
+  for (const [d, v] of [[-8, -64.9], [-38, -64.9]] as const) add("cb2", dias(d), v, "Transferência enviada por Boleto - INTERNET EXEMPLO TELECOM LTDA - 12345678000199 - Ref. CP-77");
   const ultima = (c: string) => db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).map((l) => l.data).sort().pop();
   const saldo = (c: string) => r2(Number(db.contas_bancarias.find((b) => b.id === c)!.saldo_inicial) + db.extrato_lancamentos.filter((l) => l.conta_bancaria_id === c).reduce((s, l) => s + Number(l.valor), 0));
   db.extrato_importacoes = ["cb1", "cb2", "cb3"].map((c, i) => ({
@@ -1722,7 +1730,7 @@ const VIEWS: Record<string, () => Row[]> = {
 // Histórico de alterações (no sistema real: gatilho zz_auditoria do Postgres)
 const AUDITADAS = new Set(["contas_receber", "contas_pagar", "pedidos", "clientes", "fornecedores", "transportadoras", "produtos", "usuarios_erp",
   "configuracoes", "unidades", "vendedores", "funcionarios", "comissoes", "contas_bancarias", "extrato_lancamentos", "auditoria_excecoes",
-  "parcelamentos", "parcelamento_parcelas"]);
+  "parcelamentos", "parcelamento_parcelas", "conciliacao_regras"]);
 const IGNORAR_AUD = new Set(["motivo_alteracao", "updated_at", "valor_produtos", "valor_pecas", "valor_total", "created_at"]);
 function registrarDemo(tabela: string, acao: string, antes: Row | null, depois: Row | null, motivo: string | null, origem: "usuario" | "sistema") {
   db.auditoria ??= [];
@@ -2894,7 +2902,27 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     atualizarDemo("extrato_lancamentos", b, { status: "transferencia", par_transferencia_id: a.id, conciliado_em: new Date().toISOString() });
     return { data: null, error: null };
   },
-  lancar_do_extrato: ({ p_lanc, p_categoria, p_descricao }) => {
+  conciliar_em_lote: ({ p_ids, p_acao, p_direcao, p_categoria, p_motivo, p_fornecedor, p_cliente, p_regra }) => {
+    if (!podeFinanceiro()) return erro("sem permissão para esta ação");
+    if (!["lancar", "ignorar"].includes(p_acao)) return erro("ação inválida: use lancar ou ignorar");
+    if ((p_ids ?? []).length > 300) return erro("no máximo 300 linhas por vez");
+    if (p_acao === "lancar" && !String(p_categoria ?? "").trim()) return erro("escolha a categoria");
+    if (p_acao === "ignorar" && String(p_motivo ?? "").trim().length < 3) return erro("informe o motivo");
+    let feitos = 0; const erros: { id: string; erro: string }[] = [];
+    for (const id of p_ids ?? []) {
+      const l = db.extrato_lancamentos.find((x) => x.id === id);
+      const problema = !l ? "linha do extrato não encontrada" : l.status !== "pendente" ? "esta linha do extrato já foi tratada"
+        : (p_direcao === "entrada") !== (l.valor > 0) ? (l.valor > 0 ? "é uma entrada, não uma saída" : "é uma saída, não uma entrada") : null;
+      const r = problema ? erro(problema) : p_acao === "lancar"
+        ? rpcs.lancar_do_extrato({ p_lanc: id, p_categoria, p_descricao: null, p_fornecedor, p_cliente })
+        : rpcs.ignorar_lancamento({ p_lanc: id, p_motivo: String(p_motivo).trim() });
+      if (r.error) erros.push({ id, erro: r.error.message }); else feitos++;
+    }
+    const regra = p_regra && feitos ? db.conciliacao_regras?.find((x) => x.id === p_regra) : null;
+    if (regra) Object.assign(regra, { usos: Number(regra.usos ?? 0) + feitos, ultimo_uso: new Date().toISOString() });
+    return { data: { feitos, erros }, error: null };
+  },
+  lancar_do_extrato: ({ p_lanc, p_categoria, p_descricao, p_fornecedor, p_cliente }) => {
     if (!podeFinanceiro()) return erro("sem permissão para esta ação");
     const l = db.extrato_lancamentos.find((x) => x.id === p_lanc);
     if (!l || l.status !== "pendente") return erro("esta linha do extrato já foi tratada");
@@ -2902,12 +2930,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const id = uid();
     const desc = String(p_descricao ?? "").trim() || l.descricao;
     if (l.valor < 0) {
-      db.contas_pagar.push({ id, descricao: desc, categoria: p_categoria ?? "outros", valor: -l.valor, vencimento: l.data, status: "pago", data_pagamento: l.data, valor_pago: -l.valor,
+      db.contas_pagar.push({ id, descricao: desc, categoria: p_categoria ?? "outros", fornecedor_id: p_fornecedor ?? null, valor: -l.valor, vencimento: l.data, status: "pago", data_pagamento: l.data, valor_pago: -l.valor,
         unidade_id: unid, conta_bancaria_id: l.conta_bancaria_id, observacoes: "Lançado a partir do extrato bancário", created_at: new Date().toISOString() });
       registrarDemo("contas_pagar", "insert", null, db.contas_pagar[db.contas_pagar.length - 1], null, "sistema");
       atualizarDemo("extrato_lancamentos", l, { status: "conciliado", conta_pagar_id: id, conciliado_em: new Date().toISOString() });
     } else {
-      db.contas_receber.push({ id, descricao: desc, valor: l.valor, vencimento: l.data, status: "pago", data_pagamento: l.data, valor_pago: l.valor, forma_pagamento: "transferencia",
+      db.contas_receber.push({ id, descricao: desc, categoria: p_categoria ?? "outras receitas", cliente_id: p_cliente ?? null, valor: l.valor, vencimento: l.data, status: "pago", data_pagamento: l.data, valor_pago: l.valor, forma_pagamento: "transferencia",
         unidade_id: unid, conta_bancaria_id: l.conta_bancaria_id, parcela: 1, total_parcelas: 1, created_at: new Date().toISOString() });
       registrarDemo("contas_receber", "insert", null, db.contas_receber[db.contas_receber.length - 1], null, "sistema");
       atualizarDemo("extrato_lancamentos", l, { status: "conciliado", conta_receber_id: id, conciliado_em: new Date().toISOString() });

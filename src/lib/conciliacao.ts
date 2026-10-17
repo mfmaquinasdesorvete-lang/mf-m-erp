@@ -1,6 +1,7 @@
 // Conciliação: sugestão de par para cada linha pendente do extrato (conta a receber/pagar com o mesmo valor,
 // data próxima e nome parecido, ou a outra ponta de uma transferência entre contas da empresa), para aprovar
 // de uma vez. Linha sem nenhum par possível fica como "divergente".
+import type { RegraConciliacao } from "./conciliacaoLote";
 
 export type LinhaExtrato = { id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; status: string; conta_receber_id?: string | null; conta_pagar_id?: string | null };
 export type ContaPar = {
@@ -9,7 +10,9 @@ export type ContaPar = {
 };
 export type Sugestao =
   | { tipo: "receber" | "pagar"; contaId: string; rotulo: string; pontos: number }
-  | { tipo: "transferencia"; parId: string; rotulo: string; pontos: number };
+  | { tipo: "transferencia"; parId: string; rotulo: string; pontos: number }
+  // regra do favorecido (conciliação em lote): vale só para a linha sem conta nem transferência que combine
+  | { tipo: "regra"; regra: RegraConciliacao; rotulo: string; pontos: number };
 
 export const palavras = (s: string) => new Set(s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3));
 const dias = (a: string, b: string) => Math.abs((Date.parse(a.slice(0, 10)) - Date.parse(b.slice(0, 10))) / 864e5);
@@ -54,7 +57,7 @@ export function sugerir(linhas: LinhaExtrato[], receber: ContaPar[], pagar: Cont
   const usadas = new Set<string>(), linhasUsadas = new Set<string>();
   const out = new Map<string, Sugestao>();
   for (const { linha, s } of validos) {
-    const alvo = s.tipo === "transferencia" ? s.parId : s.contaId;
+    const alvo = s.tipo === "transferencia" ? s.parId : s.tipo === "regra" ? s.regra.id + linha : s.contaId;
     if (linhasUsadas.has(linha) || usadas.has(alvo)) continue;
     out.set(linha, s);
     linhasUsadas.add(linha); usadas.add(alvo);

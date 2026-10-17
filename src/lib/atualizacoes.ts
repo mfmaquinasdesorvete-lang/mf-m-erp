@@ -177,6 +177,7 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Sobre → Sistemas ganhou o sistema de monitoramento e automações e o motor de inovação.",
       "Monitor → Chaves e certificados: o certificado digital de cada unidade, a chave do Supabase que o GitHub usa (backup e funções), o domínio e o certificado do Banco Inter com a data de vencimento; o vigia avisa no prazo escolhido e fica urgente a 3 dias. Guarda só o nome, onde está e a data, nunca a chave.",
       "Segurança: a biblioteca de rotas das telas foi para a versão 7 (corrige um aviso de redirecionamento por link); nada muda no uso.",
+      "Bancos e conciliação → Por favorecido: as linhas pendentes do extrato juntas por quem recebeu ou pagou (o posto, a loja, o fornecedor), para lançar como despesa ou receita numa categoria — ligada ao fornecedor ou cliente do cadastro — ou ignorar o grupo inteiro de uma vez. Marcando \"lembrar\", o extrato novo do mesmo favorecido já chega em \"Com sugestão\". Transferência entre as contas da empresa, sócio e empresa ligada aparecem com aviso.",
     ],
   },
 };
