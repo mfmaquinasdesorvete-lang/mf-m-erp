@@ -32,6 +32,11 @@ describe("percentualItem com linha", () => {
     expect(percentualItem(regras, "v1", "Máquinas", 10, herda)).toEqual({ pct: 4, origem: "categoria" });
     expect(percentualItem([], "v1", "Máquinas", 10, herda)).toEqual({ pct: 10, origem: "vendedor" });
   });
+
+  it("vendedor que desconsidera as linhas: vale a regra dele por categoria ou o % dele", () => {
+    expect(percentualItem(regras, "v1", "Máquinas", 10, fixa, 0, true)).toEqual({ pct: 10, origem: "vendedor" });
+    expect(percentualItem(regras, "v2", "Máquinas", 10, fixa, 0, true)).toEqual({ pct: 6, origem: "vendedor_categoria" });
+  });
 });
 
 describe("percentualPedido com desconto por item", () => {

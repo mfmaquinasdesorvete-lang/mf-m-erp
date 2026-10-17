@@ -26,6 +26,8 @@ type Usuario = {
   unidade_id: string | null; ativo: boolean; trocar_senha: boolean | null; created_at?: string; email: string; ultimo_acesso: string | null;
 };
 type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
+/** Ficha de funcionário (dados completos: documentos, endereço, banco e Pix, admissão) ligada ao login */
+type Funcionario = { id: string; nome: string; cargo: string | null; user_id: string | null; ativo: boolean; whatsapp: string | null; pix: string | null };
 
 const COR_PAPEL: Record<Papel, string> = {
   admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
@@ -98,6 +100,7 @@ export default function Usuarios() {
     queryFn: async () => (await callFunction<{ usuarios: Usuario[] }>("usuarios-admin", { acao: "listar" })).usuarios,
   });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
+  const { data: funcionarios = [] } = useRows<Funcionario>("funcionarios", { select: "id, nome, cargo, user_id, ativo, whatsapp, pix", order: "nome", ascending: true });
   const { data: fotos } = useFotos();
   const [aba, setAba] = useAbaUrl<"usuarios" | "permissoes">("usuarios", ["usuarios", "permissoes"] as const);
   const [busca, setBusca] = useState("");
@@ -177,14 +180,14 @@ export default function Usuarios() {
         </>
       )}
 
-      {editando && <UsuarioModal usuario={editando === "novo" ? null : editando} vendedores={vendedores} admins={admins} onClose={() => setEditando(null)} />}
+      {editando && <UsuarioModal usuario={editando === "novo" ? null : editando} vendedores={vendedores} funcionarios={funcionarios} admins={admins} onClose={() => setEditando(null)} />}
       {senhaDe && <SenhaModal usuario={senhaDe} onClose={() => setSenhaDe(null)} />}
     </div>
   );
 }
 
 /** Cadastro do usuário (novo ou edição). */
-function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuario | null; vendedores: Vendedor[]; admins: number; onClose: () => void }) {
+function UsuarioModal({ usuario, vendedores, funcionarios, admins, onClose }: { usuario: Usuario | null; vendedores: Vendedor[]; funcionarios: Funcionario[]; admins: number; onClose: () => void }) {
   const eu = usePerfil();
   const { unidades } = useUnidade();
   const invalidate = useInvalidate();
@@ -192,11 +195,13 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
   const { data: fotos } = useFotos();
   const foto = usuario ? fotos?.get(usuario.user_id) : undefined;
   const vendAtual = usuario ? vendedores.find((v) => v.user_id === usuario.user_id)?.id ?? "" : "";
+  const funcAtual = usuario ? funcionarios.find((x) => x.user_id === usuario.user_id)?.id ?? "" : "";
   const [f, setF] = useState({
     nome: usuario?.nome ?? "", email: usuario?.email ?? "", cargo: usuario?.cargo ?? "", telefone: usuario?.telefone ?? "",
     papel: (usuario?.papel ?? "vendas") as Papel, extras: (usuario?.papeis_extras ?? []) as Papel[], unidade_id: usuario?.unidade_id ?? "",
-    ativo: usuario?.ativo ?? true, vendedor_id: vendAtual, senha: usuario ? "" : gerarSenha(),
+    ativo: usuario?.ativo ?? true, vendedor_id: vendAtual, funcionario_id: funcAtual, senha: usuario ? "" : gerarSenha(),
   });
+  const ficha = funcionarios.find((x) => x.id === f.funcionario_id);
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<{ nome: string; email: string; senha: string; telefone: string; portal?: boolean } | null>(null);
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
@@ -235,6 +240,15 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
           if (error) throw error;
         }
         invalidate("vendedores");
+      }
+      // vínculo com a ficha de funcionário (CPF, endereço, banco e Pix ficam lá, não no login)
+      if (userId && f.funcionario_id !== funcAtual) {
+        if (funcAtual) await supabase.from("funcionarios").update({ user_id: null }).eq("id", funcAtual);
+        if (f.funcionario_id) {
+          const { error } = await supabase.from("funcionarios").update({ user_id: userId }).eq("id", f.funcionario_id);
+          if (error) throw error;
+        }
+        invalidate("funcionarios");
       }
       invalidate("usuarios_erp");
       if (!usuario) setCriado({ nome: f.nome, email: f.email.trim().toLowerCase(), senha: f.senha, telefone: f.telefone });
@@ -336,6 +350,15 @@ function UsuarioModal({ usuario, vendedores, admins, onClose }: { usuario: Usuar
                 <option value="">Todas as unidades</option>
                 {unidades.filter((u) => u.ativo).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </select>
+            </Field>
+          )}
+          {!representante && (
+            <Field label="Ficha de funcionário (documentos, endereço, banco e Pix)">
+              <select className="input" value={f.funcionario_id} onChange={(e) => set({ funcionario_id: e.target.value })}>
+                <option value="">Não vinculado</option>
+                {funcionarios.filter((x) => x.ativo && (!x.user_id || x.user_id === usuario?.user_id)).map((x) => <option key={x.id} value={x.id}>{x.nome}{x.cargo ? ` · ${x.cargo}` : ""}</option>)}
+              </select>
+              {ficha && <span className="mt-1 block text-xs text-slate-500">{[ficha.whatsapp && `WhatsApp ${ficha.whatsapp}`, ficha.pix ? "Pix cadastrado" : "sem Pix na ficha"].filter(Boolean).join(" · ")} · edite em Funcionários</span>}
             </Field>
           )}
           {vendeTambem && (

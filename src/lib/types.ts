@@ -165,6 +165,18 @@ export type Vendedor = {
   whatsapp: string | null; pix: string | null; ativo: boolean;
   /** tabela de preço do portal do representante (vazia = preço de venda) */
   portal_tabela_preco_id?: string | null;
+  nome_fantasia?: string | null; codigo?: string | null; tipo_pessoa?: "fisica" | "juridica" | null;
+  contribuinte?: "nao_informado" | "contribuinte" | "isento" | "nao_contribuinte" | null;
+  cep?: string | null; logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null;
+  municipio?: string | null; uf?: string | null; telefone?: string | null; unidade_id?: string | null; observacoes?: string | null;
+  /** de fora (não é funcionário) */
+  terceirizado?: boolean;
+  /** a comissão só é paga com a NF dele */
+  exige_nf?: boolean;
+  /** vendedor por recebimento: % liberado na aprovação do pedido (o resto no pagamento das parcelas) */
+  liberacao_faturamento_pct?: number | null;
+  /** a comissão não segue as linhas de produto */
+  ignorar_linhas?: boolean;
 };
 export type KitComponente = { id: string; kit_id: string; componente_id: string; quantidade: number; opcional: boolean; grupo: string | null; padrao: boolean };
 export type EscolhaKit = { componente_id: string; quantidade: number }[];

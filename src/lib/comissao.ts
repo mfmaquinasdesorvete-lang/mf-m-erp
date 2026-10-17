@@ -30,12 +30,14 @@ export function percentualLinha(linha: LinhaProduto | null | undefined, desconto
 
 /** % de um produto para um vendedor, e de onde veio. */
 export function percentualItem(regras: RegraComissao[], vendedorId: string | null | undefined, categoria: string | null | undefined, padrao: number,
-  linha?: LinhaProduto | null, desconto = 0): { pct: number; origem: OrigemPct } {
+  linha?: LinhaProduto | null, desconto = 0, semLinhas = false): { pct: number; origem: OrigemPct } {
   const ativas = regras.filter((r) => r.ativo);
   const cat = norm(categoria), m = mae(categoria);
   const acha = (vend: string | null, c: string) => c ? ativas.find((r) => (r.vendedor_id ?? null) === vend && norm(r.categoria) === c) : undefined;
   const r1 = vendedorId ? acha(vendedorId, cat) ?? acha(vendedorId, m) : undefined;
   if (r1) return { pct: Number(r1.percentual), origem: "vendedor_categoria" };
+  // vendedor fora das linhas de produto: vale o % dele (e as regras dele por categoria), como no banco
+  if (semLinhas) return { pct: Number(padrao) || 0, origem: "vendedor" };
   const pl = percentualLinha(linha, desconto);
   if (pl != null) return { pct: pl, origem: "linha" };
   const r2 = acha(null, cat) ?? acha(null, m);
@@ -60,7 +62,7 @@ export function descontoItem(valorUnitario: number, precoLista: number | null | 
 
 /** % efetivo do pedido (média pesada pelo valor dos itens) e o resumo por %. */
 export function percentualPedido(
-  regras: RegraComissao[], vendedor: { id: string; percentual: number } | null | undefined,
+  regras: RegraComissao[], vendedor: { id: string; percentual: number; ignorar_linhas?: boolean } | null | undefined,
   itens: ItemBase[], categoriaDe: (produtoId: string) => string | null | undefined, manual?: number | null, extras: ExtrasComissao = {},
 ): { pct: number; faixas: { pct: number; valor: number; categorias: string[] }[] } | null {
   if (!vendedor) return null;
@@ -75,7 +77,7 @@ export function percentualPedido(
     const cat = i.produto_id ? categoriaDe(i.produto_id) : null;
     const linha = i.produto_id ? extras.linhaDe?.(i.produto_id) : null;
     const desc = descontoItem(Number(i.valor_unitario), i.produto_id ? extras.precoListaDe?.(i.produto_id) : null, fator);
-    const { pct } = percentualItem(regras, vendedor.id, cat, vendedor.percentual, linha, desc);
+    const { pct } = percentualItem(regras, vendedor.id, cat, vendedor.percentual, linha, desc, !!vendedor.ignorar_linhas);
     soma += v; pesado += v * pct;
     const f = faixas.get(pct) ?? { valor: 0, categorias: new Set<string>() };
     f.valor += v;

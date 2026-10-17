@@ -18,6 +18,7 @@ import { pctTexto, percentualItem, type RegraComissao } from "@/lib/comissao";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { LinhasProduto } from "@/components/comissoes/LinhasProduto";
 import { ConvitePortal } from "@/components/comissoes/ConvitePortal";
+import { FormVendedor, textoQuando } from "@/components/comissoes/FormVendedor";
 import { ajusteTexto, type TabelaPreco } from "@/lib/tabelasPreco";
 
 type Comissao = {
@@ -195,21 +196,6 @@ function Vendedores() {
   const [editando, setEditando] = useState<Partial<Vendedor> | null>(null);
   const [convite, setConvite] = useState<Vendedor | null>(null);
   const vinculados = useMemo(() => new Set(vendedores.map((v) => v.user_id).filter((x): x is string => !!x)), [vendedores]);
-  const invalidar = useInvalidate();
-  const set = (k: keyof Vendedor) => (e: { target: { value: string } }) => setEditando((v) => ({ ...v, [k]: e.target.value }));
-
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
-    const v = editando!;
-    const row = { nome: v.nome, tipo: v.tipo ?? "vendedor", user_id: v.user_id || null, percentual: Number(String(v.percentual ?? 0).replace(",", ".")),
-      base: v.base ?? "recebimento", descontar_frete: v.descontar_frete ?? true, cpf_cnpj: v.cpf_cnpj || null, email: v.email || null,
-      whatsapp: v.whatsapp || null, pix: v.pix || null, ativo: v.ativo ?? true, portal_tabela_preco_id: v.portal_tabela_preco_id || null };
-    const { error } = v.id ? await supabase.from("vendedores").update(row).eq("id", v.id) : await supabase.from("vendedores").insert(row);
-    if (error) return notifyError(error);
-    notify("Salvo");
-    invalidar("vendedores");
-    setEditando(null);
-  }
 
   return (
     <>
@@ -217,7 +203,8 @@ function Vendedores() {
         <p className="max-w-2xl text-sm text-slate-600">
           {admin && <>Representante externo: use <b>Portal</b> para criar o login dele (vê só os próprios pedidos, clientes e comissões). </>}
           No pedido, escolha o vendedor: a comissão sai sozinha. <b>No recebimento</b>: cada parcela paga gera a comissão dela.
-          <b> No faturamento</b>: a comissão sai inteira quando o pedido é aprovado. Pedido cancelado cancela a comissão que ainda não foi paga.
+          <b> No faturamento</b>: a comissão sai inteira quando o pedido é aprovado. <b>Misto</b>: uma parte na aprovação e o resto no pagamento das parcelas.
+          Pedido cancelado cancela a comissão que ainda não foi paga. Terceirizado com "pagar só com a NF": a conta da comissão só é paga com o nº da NF dele.
         </p>
         <Button onClick={() => setEditando({ tipo: "vendedor", percentual: 3, base: "recebimento", descontar_frete: true, ativo: true })}><Plus size={16} /> Novo</Button>
       </div>
@@ -225,10 +212,12 @@ function Vendedores() {
         head={<><th className="th">Nome</th><th className="th">Tipo</th><th className="th text-right">Comissão</th><th className="th">Quando</th><th className="th">Login no ERP</th><th className="th" /></>}>
         {vendedores.map((v) => (
           <tr key={v.id} className={v.ativo ? "" : "opacity-90"}>
-            <td className="td font-semibold">{v.nome}<div className="text-xs font-normal text-slate-500">{[v.whatsapp, v.email].filter(Boolean).join(" · ")}</div></td>
-            <td className="td">{v.tipo === "representante" ? "Representante" : "Vendedor"}</td>
+            <td className="td font-semibold">{v.nome}<div className="text-xs font-normal text-slate-500">{[v.codigo && `cód. ${v.codigo}`, v.whatsapp || v.telefone, v.email, v.municipio && `${v.municipio}${v.uf ? `/${v.uf}` : ""}`].filter(Boolean).join(" · ")}</div></td>
+            <td className="td">{v.tipo === "representante" ? "Representante" : "Vendedor"}
+              {v.terceirizado && <span className="ml-1.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-800" title={v.exige_nf ? "Terceirizado: a comissão só é paga com a NF dele" : "Terceirizado"}>{v.exige_nf ? "TERCEIRIZADO · NF" : "TERCEIRIZADO"}</span>}
+              {!v.ativo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600">INATIVO</span>}</td>
             <td className="td num text-right">{Number(v.percentual).toLocaleString("pt-BR")}%</td>
-            <td className="td">{v.base === "faturamento" ? "no faturamento" : "no recebimento"}{v.descontar_frete ? " · sem frete" : ""}</td>
+            <td className="td">{textoQuando(v)}{v.descontar_frete ? " · sem frete" : ""}{v.ignorar_linhas ? " · sem linhas" : ""}</td>
             <td className="td">{usuarios.find((u) => u.user_id === v.user_id)?.nome ?? "—"}
               {usuarios.find((u) => u.user_id === v.user_id)?.papel === "representante" && <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Entra só no Portal do representante">PORTAL</span>}</td>
             <td className="td whitespace-nowrap text-right">
@@ -240,41 +229,7 @@ function Vendedores() {
           </tr>
         ))}
       </Table>
-      {editando && (
-        <Modal open onClose={() => setEditando(null)} title={editando.id ? "Editar vendedor" : "Novo vendedor ou representante"}>
-          <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <Field label="Nome" className="sm:col-span-2"><input className="input" value={editando.nome ?? ""} onChange={set("nome")} required /></Field>
-            <Field label="Tipo"><select className="input" value={editando.tipo} onChange={set("tipo")}><option value="vendedor">Vendedor</option><option value="representante">Representante</option></select></Field>
-            <Field label="Comissão (%)"><input className="input" inputMode="decimal" value={editando.percentual ?? ""} onChange={set("percentual")} required /></Field>
-            <Field label="Comissão sai" className="sm:col-span-2">
-              <select className="input" value={editando.base} onChange={set("base")}><option value="recebimento">Quando o cliente paga (parcela a parcela)</option><option value="faturamento">Quando o pedido é aprovado</option></select>
-            </Field>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm sm:col-span-2">
-              <input type="checkbox" className="h-5 w-5" checked={editando.descontar_frete ?? true} onChange={(e) => setEditando({ ...editando, descontar_frete: e.target.checked })} /> Não pagar comissão sobre o frete
-            </label>
-            <Field label="Login no ERP (vê as próprias comissões)" className="sm:col-span-2">
-              <select className="input" value={editando.user_id ?? ""} onChange={set("user_id")}>
-                <option value="">—</option>{usuarios.map((u) => <option key={u.user_id} value={u.user_id}>{u.nome}</option>)}
-              </select>
-            </Field>
-            <Field label="Tabela de preço no portal (representante)" className="sm:col-span-2">
-              <select className="input" value={editando.portal_tabela_preco_id ?? ""} onChange={set("portal_tabela_preco_id")}>
-                <option value="">Preço de venda</option>
-                {tabelas.filter((t) => t.ativo || t.id === editando.portal_tabela_preco_id).map((t) => <option key={t.id} value={t.id}>{t.nome} ({ajusteTexto(t.ajuste_percentual)})</option>)}
-              </select>
-            </Field>
-            <Field label="CPF/CNPJ" className="sm:col-span-2"><input className="input" value={editando.cpf_cnpj ?? ""} onChange={set("cpf_cnpj")} /></Field>
-            <Field label="WhatsApp" className="sm:col-span-2"><input className="input" value={editando.whatsapp ?? ""} onChange={set("whatsapp")} /></Field>
-            <Field label="E-mail" className="sm:col-span-2"><input className="input" type="email" value={editando.email ?? ""} onChange={set("email")} /></Field>
-            <Field label="Pix para pagamento" className="sm:col-span-3"><input className="input" value={editando.pix ?? ""} onChange={set("pix")} /></Field>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={editando.ativo ?? true} onChange={(e) => setEditando({ ...editando, ativo: e.target.checked })} /> Ativo</label>
-            <div className="flex justify-end gap-2 sm:col-span-4">
-              <Button type="button" variant="secondary" onClick={() => setEditando(null)}>Cancelar</Button>
-              <Button>Salvar</Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {editando && <FormVendedor inicial={editando} usuarios={usuarios} tabelas={tabelas} onClose={() => setEditando(null)} />}
       {convite && <ConvitePortal vendedor={convite} usuarios={usuarios} vinculados={vinculados} onClose={() => setConvite(null)} />}
     </>
   );

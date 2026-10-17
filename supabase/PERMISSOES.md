@@ -258,6 +258,9 @@ não passam por elas.
 - **OS encerrada** (`trg_os_protegido`, `trg_os_itens_protegido`): concluída, entregue ou cancelada só muda fotos e
   marcadores (e a entrega, de concluída para entregue, com quem retirou); peças não mudam. Concluir só pela
   `concluir_os`; voltar só pela `reabrir_os`.
+- **Comissão de terceirizado** (`trg_comissao_exige_nf`, `20261017211235_vendedores_completo`): a conta a pagar da
+  comissão de vendedor com "pagar só com a NF" não é paga pela tela (nem por `baixar_conta`) sem o nº da NF no
+  documento; no pagamento em lote ela fica de fora. A conciliação do extrato não é travada (o dinheiro já saiu).
 - **Compras** (`trg_produto_compras`): no produto, só marcadores, estoque mínimo/máximo, prazo, compra mínima e
   fornecedor padrão; cadastra sem preço e sem estoque.
 - **Marketplaces** (`trg_produto_marketplace`): no produto, só o cadastro do anúncio (título, descrições, fotos,
