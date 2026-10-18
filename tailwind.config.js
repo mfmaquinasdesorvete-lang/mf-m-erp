@@ -12,6 +12,7 @@ export default {
       colors: {
         surface: v("surface"),
         canvas: v("canvas"),
+        campo: v("campo"),
         fg: v("fg"),
         slate: escala("slate", [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
         emerald: escala("emerald", TONS),
@@ -25,7 +26,7 @@ export default {
         orange: escala("orange", TONS),
         modulo: { DEFAULT: v("modulo"), escuro: v("modulo-2"), texto: v("modulo-texto") },
         brand: { DEFAULT: v("brand"), dark: v("brand-dark"), light: v("brand-light"), fg: v("brand-fg"), ice: v("brand-nav") },
-        ink: { DEFAULT: "#071528", soft: "#0f2a4d", line: "#173459" },
+        ink: { DEFAULT: v("ink"), soft: v("ink-soft"), line: v("ink-line") },
         nav: { texto: "#c9d5e6", fraco: "#86a0c2", titulo: "#5a7499" },
         // fundos sólidos com letra branca: não mudam com o tema (no escuro a escala de cores se inverte)
         solido: { vermelho: "#dc2626", verde: "#047857", ambar: "#b45309", azul: "#1d4ed8", cinza: "#475569" },

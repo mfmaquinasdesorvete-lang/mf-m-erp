@@ -11,7 +11,8 @@ import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
-import { Badge, Button, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { Badge, Button, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
+import { osDoPedido } from "@/lib/osVideo";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
@@ -812,11 +813,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
 
   // OS a partir do pedido (como no Tiny): cliente, máquina e pedido já preenchidos na Assistência
   const abrirOS = () => {
-    const maquina = p.itens.find((i) => produtos.find((x) => x.id === i.produto_id)?.tipo === "maquina") ?? p.itens[0];
-    navigate("/assistencia", { state: { novaOS: {
-      cliente_id: p.cliente_id, pedido_id: p.id, produto_id: maquina?.produto_id ?? null, equipamento: maquina?.descricao ?? "",
-      numero_serie: maquina?.numero_serie ?? null, defeito_relatado: `Aberta pelo pedido de venda #${p.numero}: `, unidade_id: p.unidade_id ?? null,
-    } } });
+    // pedido só de peças: vídeo chamada para instalar a peça (a peça vai no defeito, não no equipamento)
+    navigate("/assistencia", { state: { novaOS: osDoPedido(p as any, (id) => produtos.find((x) => x.id === id)?.tipo === "maquina") } });
   };
 
   const mensagemWhats = () => {
@@ -1035,38 +1033,38 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
 
         <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
           {p.itens.length > 0 && (
-            <Button type="button" variant="ghost" onClick={gerarPdf}><FileDown size={16} /> PDF {p.status && p.status !== "orcamento" ? "do pedido" : "do orçamento"}</Button>
+            <Button type="button" tom="documento" onClick={gerarPdf}><FileDown size={16} /> PDF {p.status && p.status !== "orcamento" ? "do pedido" : "do orçamento"}</Button>
           )}
           {cliente?.whatsapp && p.itens.length > 0 && (
             <a href={whatsappLink(cliente.whatsapp, mensagemWhats())} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border border-green-600 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50">
+              className={`${CLASSE_BOTAO} ${TOM_ACAO.enviar}`}>
               <MessageCircle size={16} /> Enviar no WhatsApp
             </a>
           )}
           {podeEditar && p.id && p.status !== "cancelado" && !temNotaValida && (
-            <Button type="button" variant="secondary" onClick={cancelar} disabled={ocupado}><XCircle size={16} /> Cancelar pedido</Button>
+            <Button type="button" tom="perigo" onClick={cancelar} disabled={ocupado}><XCircle size={16} /> Cancelar pedido</Button>
           )}
           {podeEditar && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && !temNotaValida && !p.nf_outra_numero && (
-            <Button type="button" variant="secondary" onClick={() => setNfOutra(true)} disabled={ocupado}
+            <Button type="button" tom="fiscal" onClick={() => setNfOutra(true)} disabled={ocupado}
               title="A venda saiu com a nota de outra empresa (ex.: a empresa ligada emitiu): registrar a nota sem o ERP emitir NF-e">
               <FileCheck2 size={16} /> NF de outra empresa
             </Button>
           )}
           {pode("emitir_nfe") && (p.status === "aprovado" || p.status === "entregue") && !temNotaValida && !p.nf_outra_numero && (
-            <Button type="button" variant="secondary" onClick={() => emitirNfe()} disabled={ocupado}><FileText size={16} /> Emitir NF-e</Button>
+            <Button type="button" tom="fiscal" onClick={() => emitirNfe()} disabled={ocupado}><FileText size={16} /> Emitir NF-e</Button>
           )}
           {p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
-            <Button type="button" variant="secondary" title="Conferir, editar e imprimir as etiquetas de transporte e de volume"
+            <Button type="button" tom="logistica" title="Conferir, editar e imprimir as etiquetas de transporte e de volume"
               onClick={() => etiquetas.abrir({ tipo: "pedido", pedido_id: p.id! })}><Printer size={16} /> Etiquetas</Button>
           )}
           {podeEditar && (p.status === "aprovado" || p.status === "faturado") && (
-            <Button type="button" variant="secondary" onClick={entregar} disabled={ocupado}><Truck size={16} /> Marcar entregue</Button>
+            <Button type="button" tom="logistica" onClick={entregar} disabled={ocupado}><Truck size={16} /> Marcar entregue</Button>
           )}
           {pode("editar_os") && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
-            <Button type="button" variant="secondary" title="Abrir uma ordem de serviço (instalação, entrega técnica, garantia) ligada a este pedido" onClick={abrirOS}><Wrench size={16} /> Abrir OS</Button>
+            <Button type="button" tom="servico" title="Abrir uma ordem de serviço (instalação, entrega técnica, garantia) ligada a este pedido" onClick={abrirOS}><Wrench size={16} /> Abrir OS</Button>
           )}
           {ajustavel && !temNotaValida && (
-            <Button type="button" variant="secondary" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
+            <Button type="button" tom="desfazer" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
           )}
           {ajustavel && alterado && (
             <Button type="button" onClick={() => setAcaoMotivo("editar")} disabled={ocupado}><Pencil size={16} /> Salvar alterações</Button>

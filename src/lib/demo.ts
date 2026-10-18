@@ -1926,7 +1926,7 @@ const DEFAULTS: Record<string, () => Row> = {
   auditoria_checklist: () => ({ revisado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "Você", updated_at: new Date().toISOString() }),
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
   pedidos: () => ({ numero: ++numeroPedido, status: "orcamento", estoque_baixado: false, created_at: quando(0) }),
-  ordens_servico: () => ({ numero: ++numeroOS, status: "aberta", data_entrada: hojeISO(), estoque_baixado: false, created_at: quando(0) }),
+  ordens_servico: () => ({ numero: ++numeroOS, status: "aberta", atendimento: "oficina", data_entrada: hojeISO(), estoque_baixado: false, created_at: quando(0) }),
   contas_receber: () => ({ status: "aberto", parcela: 1, total_parcelas: 1, created_at: quando(0), revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null }),
   contas_pagar: () => ({ status: "aberto", categoria: "fornecedores", created_at: quando(0), revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null }),
   produtos: () => ({ estoque_atual: 0, ativo: true, origem: 0, unidade: "UN", created_at: quando(0) }),

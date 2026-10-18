@@ -28,6 +28,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
+import { pixCopiaECola } from "@/lib/cobranca";
+import { CONDICAO_REMOTA, EQUIPAMENTO_A_CONFIRMAR, deCampoHora, passoVideo, termoVideo, paraCampoHora, quandoAgendado, valorVideo } from "@/lib/osVideo";
 import { GarantiaCliente, naGarantia, type MaquinaCliente } from "@/components/assistencia/GarantiaCliente";
 
 const STATUS_EDITAVEIS = [
@@ -145,6 +147,7 @@ export default function Assistencia() {
             <td className="td">{o.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td">{o.equipamento}{o.numero_serie && <div className="text-xs text-slate-500">Série {o.numero_serie}</div>}</td>
             <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}
+              {o.atendimento === "video" && <span title="Atendimento por vídeo chamada" className="whitespace-nowrap rounded-full bg-purple-100 px-2 py-0.5 text-2xs font-semibold text-purple-800">vídeo{o.agendado_em ? ` ${quandoAgendado(o.agendado_em)}` : " (agendar)"}</span>}
               {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-800">faturada ✓</span>}</div></td>
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
@@ -243,6 +246,8 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
 
   async function gravar(): Promise<string> {
     const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, reaberturas: _r, ...cab } = o as any;
+    // vídeo chamada sem a máquina escolhida: grava "a confirmar" (o equipamento é obrigatório no banco)
+    if (cab.atendimento === "video" && !String(cab.equipamento ?? "").trim()) cab.equipamento = EQUIPAMENTO_A_CONFIRMAR;
     const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0), maquina_origem: origem });
     const { data, error } = dados.id
       ? await supabase.from("ordens_servico").update(dados).eq("id", dados.id).select("id, numero").single()
@@ -345,13 +350,38 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     }
   }
 
+  const video = o.atendimento === "video";
+  // vídeo chamada: mão de obra = horas × valor da hora técnica (zero na garantia)
+  function mudarAtendimento(a: "oficina" | "video") {
+    if (a === "oficina") return set({ atendimento: "oficina" });
+    const horas = Number(o.horas_tecnicas) || 1;
+    set({ atendimento: "video", horas_tecnicas: horas, valor_mao_obra: valorVideo(horas, taxaDiagnostico, !!o.em_garantia),
+      condicao_entrada: o.condicao_entrada || CONDICAO_REMOTA });
+  }
+  function mudarHoras(v: string) {
+    const horas = v === "" ? null : Number(v);
+    set({ horas_tecnicas: horas, valor_mao_obra: valorVideo(horas, taxaDiagnostico, !!o.em_garantia) });
+  }
+
+  // termo da vídeo chamada (aceite + Pix antes de agendar)
+  const unidadeOS = unidades.find((u) => u.id === (o as any).unidade_id) ?? padrao;
+  const valorVideoOS = valorVideo(o.horas_tecnicas, taxaDiagnostico, !!o.em_garantia);
+  const pixVideo = video && valorVideoOS > 0 && (unidadeOS as any)?.pix_chave
+    ? pixCopiaECola({ chave: (unidadeOS as any).pix_chave, nome: (unidadeOS as any).pix_nome || (unidadeOS as any).razao_social || (unidadeOS as any).nome || "",
+        cidade: (unidadeOS as any).pix_cidade || (unidadeOS as any).municipio || "", valor: valorVideoOS, txid: o.numero ? `OS${o.numero}` : "***" })
+    : null;
+  const termo = termoVideo({ numero: o.numero, horas: o.horas_tecnicas, valorHora: taxaDiagnostico, emGarantia: !!o.em_garantia,
+    nome: cliente?.nome.split(" ")[0], pix: pixVideo, outraEmpresa: origem || null });
+  const passo = passoVideo({ aceito: !!o.orcamento_aprovado_em, pago: !!o.video_pago_em, agendado: !!o.agendado_em, emGarantia: !!o.em_garantia });
+
   const mensagem = [
     `Olá ${cliente?.nome.split(" ")[0] ?? ""}! Atualização da sua OS #${o.numero ?? ""} na *MF Máquinas*:`,
     `Equipamento: ${o.equipamento ?? ""}`,
     `Status: ${(o.status ?? "").replace(/_/g, " ")}`,
     o.diagnostico ? `Diagnóstico: ${o.diagnostico}` : "",
     o.em_garantia ? "Serviço coberto pela garantia." : total ? `Valor: ${brl(total)}` : "",
-    o.previsao ? `Previsão: ${dataBR(o.previsao)}` : "",
+    video && o.agendado_em ? `Vídeo chamada agendada: ${quandoAgendado(o.agendado_em)}${o.horas_tecnicas ? ` (${String(o.horas_tecnicas).replace(".", ",")} h técnica)` : ""}` : "",
+    !video && o.previsao ? `Previsão: ${dataBR(o.previsao)}` : "",
     origem ? `A MF Máquinas é uma empresa diferente da ${origem} e responde pelo serviço e pelas peças desta OS.` : "",
   ].filter(Boolean).join("\n");
 
@@ -422,6 +452,58 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         )}
         {aba === "atendimento" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <div className="sm:col-span-4">
+              <span className="mb-1 block text-xs font-semibold text-slate-600">Tipo de atendimento</span>
+              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Tipo de atendimento">
+                {([["oficina", "Na oficina"], ["video", "Vídeo chamada (hora técnica)"]] as const).map(([v, l]) => (
+                  <button key={v} type="button" disabled={somenteLeitura} aria-pressed={(o.atendimento ?? "oficina") === v} onClick={() => mudarAtendimento(v)}
+                    className={`px-3 py-1.5 ${(o.atendimento ?? "oficina") === v ? (v === "video" ? "bg-purple-600 text-white" : "bg-slate-700 text-white") : "bg-surface text-slate-600 hover:bg-slate-50"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {video && (
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-purple-200 bg-purple-50 p-3 sm:col-span-4 sm:grid-cols-3">
+                <ol className="grid gap-2 text-sm sm:col-span-3 sm:grid-cols-3">
+                  <li className={`rounded-lg border p-2 ${passo > 1 ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-purple-300 bg-surface text-fg"}`}>
+                    <b>1. Termo aceito</b>
+                    <span className="block text-xs">{o.orcamento_aprovado_em ? `${o.orcamento_aprovado_por || "Cliente"} aceitou em ${dataBR(o.orcamento_aprovado_em.slice(0, 10))}` : "Mande o termo e espere o ACEITO."}</span>
+                    {!somenteLeitura && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {cliente?.whatsapp && <a href={whatsappLink(cliente.whatsapp, termo)} target="_blank" rel="noreferrer" className="rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">Mandar termo{pixVideo ? " + Pix" : ""}</a>}
+                        <button type="button" className="rounded-md border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold"
+                          onClick={() => navigator.clipboard.writeText(termo).then(() => notify("Termo copiado"), () => notify("Não deu para copiar", "erro"))}>Copiar termo</button>
+                        {!o.orcamento_aprovado_em && <button type="button" className="rounded-md border border-purple-300 bg-surface px-2 py-1 text-xs font-semibold text-purple-900"
+                          onClick={() => set({ orcamento_aprovado_em: new Date().toISOString(), orcamento_aprovado_por: o.orcamento_aprovado_por || "Cliente, ACEITO pelo WhatsApp" })}>Cliente aceitou</button>}
+                      </div>
+                    )}
+                  </li>
+                  <li className={`rounded-lg border p-2 ${o.em_garantia || o.video_pago_em ? "border-emerald-200 bg-emerald-50 text-emerald-900" : passo === 2 ? "border-purple-300 bg-surface text-fg" : "border-slate-200 bg-surface text-slate-500"}`}>
+                    <b>2. Pix pago</b>
+                    <span className="block text-xs">{o.em_garantia ? "Na garantia: sem cobrança." : o.video_pago_em ? `Pago em ${dataBR(o.video_pago_em.slice(0, 10))} (${brl(valorVideoOS)})` : pixVideo ? `${brl(valorVideoOS)} — o Pix vai junto com o termo.` : `${brl(valorVideoOS)} — cadastre a chave Pix da unidade para ir junto.`}</span>
+                    {!somenteLeitura && !o.em_garantia && (
+                      <button type="button" className="mt-1.5 rounded-md border border-purple-300 bg-surface px-2 py-1 text-xs font-semibold text-purple-900"
+                        onClick={() => set({ video_pago_em: o.video_pago_em ? null : new Date().toISOString() })}>{o.video_pago_em ? "Desfazer" : "Pix recebido"}</button>
+                    )}
+                  </li>
+                  <li className={`rounded-lg border p-2 ${o.agendado_em ? "border-emerald-200 bg-emerald-50 text-emerald-900" : passo === 3 ? "border-purple-300 bg-surface text-fg" : "border-slate-200 bg-surface text-slate-500"}`}>
+                    <b>3. Agendar</b>
+                    <span className="block text-xs">{o.agendado_em ? `Marcada para ${quandoAgendado(o.agendado_em)}` : passo < 3 ? "Depois do aceite e do Pix." : "Escolha o dia e a hora abaixo."}</span>
+                  </li>
+                </ol>
+                <Field label="Vídeo chamada agendada para">
+                  <input className="input" type="datetime-local" value={paraCampoHora(o.agendado_em)} disabled={somenteLeitura}
+                    onChange={(e) => set({ agendado_em: deCampoHora(e.target.value) })} />
+                </Field>
+                <Field label="Horas técnicas">
+                  <input className="input" type="number" min={0.5} step={0.5} inputMode="decimal" value={o.horas_tecnicas ?? ""} disabled={somenteLeitura}
+                    onChange={(e) => mudarHoras(e.target.value)} />
+                </Field>
+                <div className="text-sm text-purple-900 sm:self-end sm:pb-2">
+                  {o.em_garantia ? "Na garantia: sem cobrança da hora técnica." : <>Mão de obra: <b>{brl(valorVideo(o.horas_tecnicas, taxaDiagnostico))}</b> <span className="text-xs">({String(o.horas_tecnicas ?? 0).replace(".", ",")} h × {brl(taxaDiagnostico)})</span></>}
+                </div>
+                <p className="text-xs text-purple-900 sm:col-span-3">A máquina não vem à MF. Escolha a máquina do cliente abaixo, se souber; senão fica "a confirmar". O agendamento vai na mensagem do WhatsApp.</p>
+              </div>
+            )}
             <Field label="Cliente" className="sm:col-span-2">
               <ClienteBusca clientes={clientes} value={o.cliente_id} disabled={somenteLeitura} required onChange={(id) => set({ cliente_id: id, equipamento_id: null })} />
             </Field>
@@ -459,7 +541,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               </select>
             </Field>
             <Field label="Equipamento">
-              <input className="input" value={o.equipamento ?? ""} disabled={somenteLeitura} onChange={(e) => set({ equipamento: e.target.value })} required />
+              <input className="input" value={o.equipamento ?? ""} disabled={somenteLeitura} placeholder={video ? "A confirmar na vídeo chamada" : ""} onChange={(e) => set({ equipamento: e.target.value })} required={!video} />
             </Field>
             <Field label="Nº de série">
               <input className="input" value={o.numero_serie ?? ""} disabled={somenteLeitura} placeholder={origem ? 'Da plaqueta (ou "sem plaqueta")' : ""}
@@ -487,21 +569,21 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                 </select>
               </Field>
             )}
-            <Field label="Data de entrada">
+            <Field label={video ? "Data de abertura" : "Data de entrada"}>
               <input className="input" type="date" value={o.data_entrada ?? ""} disabled={somenteLeitura} onChange={(e) => set({ data_entrada: e.target.value })} />
             </Field>
-            <Field label="Previsão de entrega">
+            {!video && <Field label="Previsão de entrega">
               <input className="input" type="date" value={o.previsao ?? ""} disabled={somenteLeitura} onChange={(e) => set({ previsao: e.target.value })} />
-            </Field>
+            </Field>}
 
             <Field label="Defeito relatado pelo cliente" className="sm:col-span-4">
               <textarea className="input" rows={2} value={o.defeito_relatado ?? ""} disabled={somenteLeitura} onChange={(e) => set({ defeito_relatado: e.target.value })} required />
             </Field>
-            <Field label={`Condição de entrada${origem ? " (obrigatória)" : ""}`} className="sm:col-span-4">
+            {(!video || origem) && <Field label={`Condição de entrada${origem ? " (obrigatória)" : ""}`} className="sm:col-span-4">
               <textarea className="input" rows={2} value={o.condicao_entrada ?? ""} disabled={somenteLeitura}
                 placeholder="Como a máquina chegou: liga ou não, limpeza, riscos e amassados, peças faltando ou já trocadas por outros"
                 onChange={(e) => set({ condicao_entrada: e.target.value })} />
-            </Field>
+            </Field>}
             <Field label="Diagnóstico técnico" className="sm:col-span-2">
               <textarea className="input" rows={3} value={o.diagnostico ?? ""} disabled={somenteLeitura} onChange={(e) => set({ diagnostico: e.target.value })} />
             </Field>

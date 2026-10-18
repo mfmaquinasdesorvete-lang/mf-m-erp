@@ -13,13 +13,30 @@ const variants: Record<Variant, string> = {
   ghost: "text-slate-600 hover:bg-slate-100",
 };
 
+/**
+ * Cores padrão das ações (o mesmo tipo de ação tem a mesma cor em todo o ERP):
+ * enviar = verde (WhatsApp, e-mail) · fiscal = azul (NF-e, nota) · logistica = âmbar (etiqueta, entrega, frete) ·
+ * servico = roxo (OS, assistência) · documento = cinza (PDF, imprimir) · desfazer = laranja (reabrir, estornar) ·
+ * perigo = vermelho (cancelar, excluir). A ação principal da tela continua com o botão cheio (primary).
+ */
+export type TomAcao = "enviar" | "fiscal" | "logistica" | "servico" | "documento" | "desfazer" | "perigo";
+export const TOM_ACAO: Record<TomAcao, string> = {
+  enviar: "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm hover:bg-emerald-100",
+  fiscal: "border border-sky-200 bg-sky-50 text-sky-800 shadow-sm hover:bg-sky-100",
+  logistica: "border border-amber-200 bg-amber-50 text-amber-800 shadow-sm hover:bg-amber-100",
+  servico: "border border-purple-200 bg-purple-50 text-purple-800 shadow-sm hover:bg-purple-100",
+  documento: "border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50",
+  desfazer: "border border-orange-200 bg-orange-50 text-orange-800 shadow-sm hover:bg-orange-100",
+  perigo: "border border-red-200 bg-red-50 text-red-800 shadow-sm hover:bg-red-100",
+};
+export const CLASSE_BOTAO = "inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
+
 export function Button({
-  variant = "primary", className = "", ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+  variant = "primary", tom, className = "", ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; tom?: TomAcao }) {
   return (
     <button
-      className={`inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold sm:min-h-0
-        transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`${CLASSE_BOTAO} ${tom ? TOM_ACAO[tom] : variants[variant]} ${className}`}
       {...props}
     />
   );

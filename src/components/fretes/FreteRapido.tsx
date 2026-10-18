@@ -1,9 +1,10 @@
 // Frete no pedido, direto e rápido: escolhe como fica o frete (4 opções) e, se for cobrar do cliente,
-// cota com as transportadoras ali mesmo (WhatsApp com os dados prontos → digita o valor → "Usar").
+// cota com as transportadoras ali mesmo (WhatsApp com os dados prontos → digita o valor → "Usar"). Aparecem só as
+// poucas que atendem o destino do cliente; as outras ficam na busca "outra transportadora" (tela curta no celular e tablet).
 // O envio detalhado (volumes, coleta, rastreio, conferência) continua na aba "Frete e envio".
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, MessageCircle, Truck } from "lucide-react";
+import { Check, Copy, MessageCircle, Plus, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useRows, ler } from "@/lib/data";
 import { brl, whatsappLink, pl } from "@/lib/format";
@@ -11,6 +12,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Item, Produto, Transportadora } from "@/lib/types";
+import { sugerirTransportadoras } from "@/lib/freteSugestao";
 
 type Modo = "sem" | "cobrar" | "gratis" | "fob";
 const MODOS: { value: Modo; label: string; dica: string }[] = [
@@ -56,6 +58,11 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
   });
 
   const ativas = transportadoras.filter((t) => t.ativo && !t.matriz_id).sort((a, b) => Number(!!b.whatsapp) - Number(!!a.whatsapp) || a.nome.localeCompare(b.nome));
+  const [extras, setExtras] = useState<string[]>([]);
+  const sugeridas = useMemo(() => sugerirTransportadoras(ativas, cliente?.uf, cliente?.municipio,
+    [pedido.transportadora_id, ...salvas.map((c) => c.transportadora_id)].filter(Boolean) as string[]), [ativas, cliente?.uf, cliente?.municipio, pedido.transportadora_id, salvas]);
+  const naLista = [...sugeridas, ...extras.map((id) => ativas.find((t) => t.id === id)).filter((t): t is Transportadora => !!t && !sugeridas.includes(t))];
+  const outras = ativas.filter((t) => !naLista.includes(t));
   const nomeT = (id: string | null | undefined) => { const t = transportadoras.find((x) => x.id === id); return t ? (t.nome_fantasia?.trim() || t.nome) : ""; };
 
   // dados da carga para a transportadora
@@ -149,25 +156,50 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
             </div>
           )}
           <ul className="divide-y divide-slate-200">
-            {ativas.map((t) => {
+            {naLista.map((t) => {
               const v = precos[t.id] ?? { valor: "", prazo: "" };
               const zap = t.whatsapp || t.telefone;
+              const extra = extras.includes(t.id) && !sugeridas.includes(t);
               return (
-                <li key={t.id} className="flex flex-wrap items-center gap-2 py-1.5">
-                  <span className="min-w-0 flex-1 basis-40 font-medium">{t.nome_fantasia?.trim() || t.nome}{t.regioes ? <span className="block truncate text-xs font-normal text-slate-500">{t.regioes}</span> : null}</span>
-                  {zap ? <a className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" href={whatsappLink(zap, mensagem)} target="_blank" rel="noreferrer"><MessageCircle size={14} aria-hidden /> Pedir</a>
-                    : <span className="px-2 text-xs text-slate-400">sem WhatsApp</span>}
-                  <input className="input w-28 py-1 text-right" inputMode="decimal" placeholder="R$" aria-label={`Valor do frete na ${t.nome}`} value={v.valor}
-                    onChange={(e) => setPrecos((x) => ({ ...x, [t.id]: { ...v, valor: e.target.value.replace(/[^\d,.]/g, "") } }))} />
-                  <input className="input w-20 py-1" inputMode="numeric" placeholder="dias" aria-label={`Prazo da ${t.nome} em dias`} value={v.prazo}
-                    onChange={(e) => setPrecos((x) => ({ ...x, [t.id]: { ...v, prazo: e.target.value.replace(/\D/g, "").slice(0, 3) } }))} />
-                  <Button type="button" variant="secondary" className="!min-h-0 !py-1" disabled={!v.valor}
-                    onClick={() => usar(t.id, paraNum(v.valor), v.prazo ? Number(v.prazo) : null)}>Usar</Button>
+                <li key={t.id} className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1.5 py-2 sm:flex sm:flex-wrap">
+                  <span className="min-w-0 font-medium sm:flex-1 sm:basis-40">
+                    <span className="block truncate">{t.nome_fantasia?.trim() || t.nome}</span>
+                    {t.regioes ? <span className="block truncate text-xs font-normal text-slate-500">{t.regioes}</span> : null}
+                  </span>
+                  <span className="flex items-center justify-end gap-1">
+                    {zap ? <a className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" href={whatsappLink(zap, mensagem)} target="_blank" rel="noreferrer"><MessageCircle size={14} aria-hidden /> Pedir</a>
+                      : <span className="px-2 text-xs text-slate-400">sem WhatsApp</span>}
+                    {extra && <button type="button" aria-label={`Tirar ${t.nome} da lista`} className="rounded p-1 text-slate-400 hover:bg-slate-100" onClick={() => setExtras((x) => x.filter((id) => id !== t.id))}><X size={14} aria-hidden /></button>}
+                  </span>
+                  <span className="col-span-2 flex items-center gap-2">
+                    <input className="input w-28 py-1 text-right" inputMode="decimal" placeholder="R$" aria-label={`Valor do frete na ${t.nome}`} value={v.valor}
+                      onChange={(e) => setPrecos((x) => ({ ...x, [t.id]: { ...v, valor: e.target.value.replace(/[^\d,.]/g, "") } }))} />
+                    <input className="input w-20 py-1" inputMode="numeric" placeholder="dias" aria-label={`Prazo da ${t.nome} em dias`} value={v.prazo}
+                      onChange={(e) => setPrecos((x) => ({ ...x, [t.id]: { ...v, prazo: e.target.value.replace(/\D/g, "").slice(0, 3) } }))} />
+                    <Button type="button" variant="secondary" className="!min-h-0 !py-1" disabled={!v.valor}
+                      onClick={() => usar(t.id, paraNum(v.valor), v.prazo ? Number(v.prazo) : null)}>Usar</Button>
+                  </span>
                 </li>
               );
             })}
-            {!ativas.length && <li className="py-2 text-xs text-slate-500">Nenhuma transportadora cadastrada (Cadastros → Transportadoras). Digite o valor acima.</li>}
+            {!naLista.length && <li className="py-2 text-xs text-slate-500">{ativas.length ? "Nenhuma transportadora cadastrada atende este destino: escolha outra abaixo ou digite o valor acima." : "Nenhuma transportadora cadastrada (Cadastros → Transportadoras). Digite o valor acima."}</li>}
           </ul>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {outras.length > 0 && (
+              <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold text-slate-600">
+                <Plus size={14} className="shrink-0" aria-hidden />
+                <select className="input py-1 text-sm" value="" aria-label="Pôr outra transportadora na cotação"
+                  onChange={(e) => e.target.value && setExtras((x) => [...x, e.target.value])}>
+                  <option value="">Outra transportadora ({outras.length})…</option>
+                  {outras.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia?.trim() || t.nome}</option>)}
+                </select>
+              </label>
+            )}
+            <Button type="button" variant="ghost" className="!min-h-0 !py-1 text-xs"
+              onClick={() => navigator.clipboard.writeText(mensagem).then(() => notify("Mensagem da cotação copiada: cole no WhatsApp ou no e-mail"), () => notify("Não deu para copiar", "erro"))}>
+              <Copy size={14} aria-hidden /> Copiar a mensagem
+            </Button>
+          </div>
         </div>
       )}
     </div>

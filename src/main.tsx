@@ -15,9 +15,10 @@ import "@fontsource/poppins/600.css";
 import "@fontsource/poppins/700.css";
 import "@fontsource/great-vibes/latin-400.css";
 import "./index.css";
-import { aplicarDestaque, aplicarTema, lerDestaque, lerTema } from "./lib/tema";
+import { aplicarDestaque, aplicarFundo, aplicarTema, lerDestaque, lerFundo, lerTema } from "./lib/tema";
 
 // Tema escuro por padrão; a escolha fica salva no aparelho.
+aplicarFundo(lerFundo());
 aplicarTema(lerTema());
 aplicarDestaque(lerDestaque());
 

@@ -8,6 +8,10 @@
   --sombra: 0.05;
   --canvas: 244 246 249;
   --surface: 255 255 255;
+  /* campo de preencher (input/select): no claro é branco; no escuro fica um tom abaixo do cartão, para se destacar */
+  --campo: 255 255 255;
+  /* menu lateral: azul-marinho no claro e no escuro azul-marinho; no grafite, neutro */
+  --ink: 7 21 40; --ink-soft: 15 42 77; --ink-line: 23 52 89;
   --fg: 13 27 46;
   --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225; --slate-400: 96 111 133;
   --slate-500: 84 98 120; --slate-600: 71 85 105; --slate-700: 51 65 85; --slate-800: 30 41 59; --slate-900: 15 23 42;
@@ -27,13 +31,16 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --sombra: 0.35;
-  /* navy profundo (#0B1F3A nas superfícies) */
-  --canvas: 5 14 30;
-  --surface: 12 33 62;
-  --fg: 241 245 249;
+  /* grafite neutro (padrão): fundo, cartão e campo em tons diferentes; a cor fica só no que pede atenção.
+     O azul-marinho de antes continua em Aparência (data-fundo="marinho"). */
+  --canvas: 16 18 22;
+  --surface: 27 30 36;
+  --campo: 18 20 24;
+  --ink: 11 12 15; --ink-soft: 28 31 37; --ink-line: 42 46 54;
+  --fg: 236 238 241;
   /* escala invertida: 50 = superfície sutil, 900 = texto mais forte */
-  --slate-50: 14 38 70; --slate-100: 18 46 84; --slate-200: 27 58 99; --slate-300: 38 74 120; --slate-400: 136 158 192;
-  --slate-500: 145 163 192; --slate-600: 178 192 212; --slate-700: 205 215 229; --slate-800: 226 232 240; --slate-900: 241 245 249;
+  --slate-50: 34 38 45; --slate-100: 41 46 54; --slate-200: 54 60 70; --slate-300: 76 84 97; --slate-400: 150 158 171;
+  --slate-500: 162 170 182; --slate-600: 192 198 207; --slate-700: 212 216 223; --slate-800: 228 231 236; --slate-900: 243 244 246;
   --emerald-50: 9 48 49; --emerald-100: 12 62 60; --emerald-200: 18 90 80; --emerald-500: 16 185 129; --emerald-600: 52 211 153; --emerald-700: 110 231 183; --emerald-800: 167 243 208; --emerald-900: 209 250 229;
   --amber-50: 47 40 30; --amber-100: 64 52 32; --amber-200: 96 74 34; --amber-500: 245 158 11; --amber-600: 251 191 36; --amber-700: 252 211 77; --amber-800: 253 230 138; --amber-900: 254 243 199;
   --red-50: 52 26 46; --red-100: 70 30 52; --red-200: 104 38 62; --red-500: 239 68 68; --red-600: 248 113 113; --red-700: 252 165 165; --red-800: 254 202 202; --red-900: 254 226 226;
@@ -42,7 +49,19 @@
   --purple-50: 38 30 78; --purple-100: 50 36 98; --purple-200: 72 46 130; --purple-500: 168 85 247; --purple-600: 192 132 252; --purple-700: 216 180 254; --purple-800: 233 213 255; --purple-900: 243 232 255;
   --orange-50: 52 36 34; --orange-100: 70 44 36; --orange-200: 102 58 38; --orange-500: 249 115 22; --orange-600: 251 146 60; --orange-700: 253 186 116; --orange-800: 254 215 170; --orange-900: 255 237 213;
   --kpi-ciano: #00d4ff; --kpi-verde: #2ee59d; --kpi-laranja: #ff7a1a; --kpi-rosa: #ff4fa3; --kpi-roxo: #a78bfa; --kpi-azul: #5aa2ff;
-  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --grade: #18365e; --eixo: #2a4a75; --eixo-texto: #91a3c0; --hover: #10294a;
+  --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --grade: #2a2f37; --eixo: #3d444f; --eixo-texto: #a2aab6; --hover: #252930;
+}
+
+/* Fundo azul-marinho (o de antes), para quem escolher em Aparência */
+:root[data-theme="dark"][data-fundo="marinho"] {
+  --canvas: 5 14 30;
+  --surface: 12 33 62;
+  --campo: 7 22 44;
+  --ink: 7 21 40; --ink-soft: 15 42 77; --ink-line: 23 52 89;
+  --fg: 241 245 249;
+  --slate-50: 14 38 70; --slate-100: 18 46 84; --slate-200: 27 58 99; --slate-300: 38 74 120; --slate-400: 136 158 192;
+  --slate-500: 145 163 192; --slate-600: 178 192 212; --slate-700: 205 215 229; --slate-800: 226 232 240; --slate-900: 241 245 249;
+  --grade: #18365e; --eixo: #2a4a75; --eixo-texto: #91a3c0; --hover: #10294a;
 }
 
 /* Cor de destaque (escolhida em Aparência). --brand-nav é o tom usado no menu lateral navy. */
@@ -107,7 +126,7 @@ h1, h2, h3 { text-wrap: balance; }
   }
   /* 16px no celular evita o zoom automático do iPhone ao tocar no campo */
   .input {
-    @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
+    @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-campo px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
            placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20
            disabled:bg-slate-50 disabled:text-slate-500;
   }
@@ -132,7 +151,7 @@ h1, h2, h3 { text-wrap: balance; }
   font-size: clamp(var(--valor-min, .95rem), var(--valor-cq, 12cqi), var(--valor-max, 1.75rem));
 }
 :focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
-select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
+select option { background: rgb(var(--campo)); color: rgb(var(--fg)); }
 @keyframes entrar { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 

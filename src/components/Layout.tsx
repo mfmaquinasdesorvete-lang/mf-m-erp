@@ -13,7 +13,7 @@ import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
 import { ATALHOS_CELULAR, RAPIDOS, abreEmOutraAba, alvoDoLink, grupoDaRota, grupos, itensForaDoMenu, painelDaArea, todosItens, useVisivel, type Item } from "@/lib/menu";
 import { notify, notifyError } from "@/lib/notify";
-import { aplicarDestaque, aplicarTema, DESTAQUES, lerDestaque, lerTema, type Destaque, type Tema } from "@/lib/tema";
+import { aplicarDestaque, aplicarFundo, aplicarTema, DESTAQUES, lerDestaque, lerFundo, lerTema, type Destaque, type Fundo, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
 import { Button, Field, Modal } from "./ui";
 import { MeusAvisos } from "./Avisos";
@@ -418,10 +418,12 @@ export function AlterarSenha({ onClose }: { onClose: () => void }) {
 function Aparencia({ onClose }: { onClose: () => void }) {
   const [tema, setTema] = useState<Tema>(lerTema());
   const [cor, setCor] = useState<Destaque>(lerDestaque());
+  const [fundo, setFundo] = useState<Fundo>(lerFundo());
   // salva no perfil: a mesma aparência aparece em qualquer aparelho em que a pessoa entrar
   const salvar = (p: Record<string, string>) => { supabase.rpc("salvar_preferencias", { p }).then(() => null); };
   const escolherTema = (t: Tema) => { aplicarTema(t); setTema(t); salvar({ tema: t }); };
   const escolherCor = (d: Destaque) => { aplicarDestaque(d); setCor(d); salvar({ destaque: d }); };
+  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo: f }); };
 
   return (
     <Modal open onClose={onClose} title="Aparência">
@@ -437,6 +439,24 @@ function Aparencia({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </div>
+        {tema === "escuro" && (
+          <div>
+            <div className="mb-2 text-sm font-bold text-fg">Fundo do tema escuro</div>
+            <div className="grid grid-cols-2 gap-3">
+              {([["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
+                <button key={v} type="button" onClick={() => escolherFundo(v)}
+                  className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${fundo === v ? "border-brand" : "border-slate-200 hover:border-slate-300"}`}>
+                  <span className="relative flex">
+                    <span className="h-9 w-9 rounded-full ring-2 ring-white/20" style={{ background: c2 }} />
+                    <span className="-ml-3 h-9 w-9 rounded-full ring-2 ring-white/20" style={{ background: c1 }} />
+                  </span>
+                  <span className="flex-1 text-sm"><b className="block text-fg">{label}</b><span className="text-xs text-slate-500">{dica}</span></span>
+                  {fundo === v && <Check size={18} className="text-brand" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <div className="mb-2 text-sm font-bold text-fg">Cor de destaque</div>
           <div className="grid grid-cols-2 gap-3">
