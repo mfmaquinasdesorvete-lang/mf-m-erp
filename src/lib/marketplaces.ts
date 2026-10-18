@@ -25,7 +25,8 @@ const POR_NOME: [RegExp, Marketplace][] = [
   [/tik\s*tok|bytedance/, "tiktok"],
   [/shopee/, "shopee"],
   [/\bamazon\b(?!\s*(web|aws))|\bamzn\b/, "amazon"],
-  [/mercado\s*livre|mercadolivre|ebazar|\bmeli\b/, "mercado_livre"],
+  // o extrato do Mercado Pago às vezes escreve em espanhol: "Compra Mercado Libre"
+  [/mercado\s*li(?:vre|bre)|ebazar|\bmeli\b/, "mercado_livre"],
   [/aliexpress|shein|\btemu\b|magalu|magazine\s*luiza|americanas/, "outro"],
 ];
 
@@ -46,6 +47,7 @@ export function marketplaceDoExtrato(descricao: string | null | undefined, valor
   if (!(valor < 0)) return null;
   const d = sem(descricao);
   if (/^mp\s*\*/.test(d)) return null; // maquininha do Mercado Pago
+  if (/^debito por divida\b/.test(d)) return null; // o Mercado Pago cobrando faturas e reclamações das vendas no ML: é tarifa, não compra
   return peloNome(d) ?? (/\bpix\s+marketplace\b/.test(d) ? "outro" : null);
 }
 

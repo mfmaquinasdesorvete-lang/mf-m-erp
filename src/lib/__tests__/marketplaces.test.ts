@@ -31,6 +31,13 @@ describe("marketplaceDoExtrato", () => {
     expect(marketplaceDoExtrato("AMAZON WEB SERVICES · cartao", -300)).toBeNull();
     expect(marketplaceDoExtrato("AMAZON MARKETPLACE · cartao", -300)).toBe("amazon");
   });
+  it("extrato do Mercado Pago: compra em português ou espanhol; débito por dívida é tarifa", () => {
+    expect(marketplaceDoExtrato("Compra Mercado Libre", -249.95)).toBe("mercado_livre");
+    expect(marketplaceDoExtrato("Compra de Kit Broca 6mm Mercado Livre", -57.99)).toBe("mercado_livre");
+    expect(marketplaceDoExtrato("Débito por dívida Faturas vencidas do Mercado Livre", -409.06)).toBeNull();
+    expect(tipoLancamento("Débito por dívida Faturas vencidas do Mercado Livre", -409.06)).toBe("tarifa");
+    expect(tipoLancamento("Compra Mercado Libre", -90.99)).toBe("marketplace");
+  });
   it("vira um tipo próprio no resumo do extrato", () => {
     expect(tipoLancamento("Pix BYTEDANCE BRASIL TECNOLOGIA LTDA · Enviado", -98.75)).toBe("marketplace");
     expect(tipoLancamento("MP *RESTAURANTEEXEMPLO · cartao", -60)).toBe("outra_saida");

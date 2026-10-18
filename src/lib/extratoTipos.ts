@@ -35,7 +35,7 @@ const VEICULO = /\b(diesel|oficina|auto\s*center|autocenter|centro automotivo|au
 const PEDAGIO = /\b(auto\s*ban|autoban|sem\s*parar|conectcar|veloe|move\s*mais|pedagio|arteris|ecovias|ecopistas|rodoanel|via\s*oeste|viaoeste|concessionaria|rodovia\w*)\b/;
 const TARIFA = /\b(tarifa|taxa|iof|juros|encargos?|anuidade|mensalidade|multa)\b/;
 // tarifa com o nome escrito ("OLIST · Tarifa Pix recebido"): vem antes do Pix, senão contava como Pix enviado
-const TARIFA_ESCRITA = /\b(tarifas?|mdr|anuidade|cesta de servicos|pacote de servicos)\b/;
+const TARIFA_ESCRITA = /\b(tarifas?|mdr|anuidade|cesta de servicos|pacote de servicos|debito por divida)\b/;
 const VENDAS = /\b(vendas?|deposito infinitepay|antecipacao|recebiveis|maquininha|liquidacao|credito de vendas)\b/;
 
 // guias de imposto pelo nome de quem recebe ("restaurante da fazenda" não conta: precisa ser a secretaria)
