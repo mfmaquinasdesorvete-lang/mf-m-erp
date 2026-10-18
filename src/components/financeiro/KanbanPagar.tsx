@@ -1,9 +1,10 @@
-// Contas a pagar em quadro (Kanban): uma coluna por passo até o pagamento — 1 falta aprovar, 2 a decidir, 3 programadas,
-// 4 pagar hoje, 5 pagas (30 dias) — e "não pagar" à parte. Cada coluna tem a sua cor, diz o que é e o que fazer; no topo,
-// abas coloridas com quantas contas e quanto em cada passo (tocar leva à coluna). O cartão traz a cor do tipo da conta
-// (transportadora, fornecedor, folha…) e o prazo em palavras. No computador dá para arrastar a conta para outra coluna,
-// que faz a ação dela (pagar hoje, agendar, não pagar com motivo, voltar a decidir ou registrar o pagamento), com as
-// mesmas travas da lista; no celular, as colunas deslizam para o lado e cada cartão tem os mesmos botões da lista.
+// Contas a pagar em quadro (Kanban): uma coluna por passo, com o código de cores da equipe — 1 a decidir (laranja, a
+// aprovação vem junto), 2 programadas (azul), 2.1 pagar hoje (amarelo), 2.2 atrasadas (vermelho), 2.3 não pagar (roxo
+// escuro) e 3 pagas (verde, 30 dias). Cada coluna diz o que é e o que fazer; as abas coloridas dos passos (NavPassos)
+// ficam acima do quadro e da lista. O cartão traz a cor do tipo da conta (transportadora, fornecedor, folha…) e o prazo
+// em palavras. No computador dá para arrastar a conta para outra coluna, que faz a ação dela (pagar hoje, agendar, não
+// pagar com motivo, voltar a decidir ou registrar o pagamento), com as mesmas travas da lista; no celular, as colunas
+// deslizam para o lado e cada cartão tem os mesmos botões da lista.
 import { useState, type DragEvent, type ReactNode } from "react";
 import { GripVertical } from "lucide-react";
 import { ModalAgendar, ModalNaoPagar, useProgramar } from "@/components/financeiro/DecisaoPagamento";
@@ -11,7 +12,7 @@ import { ChipTipo } from "@/components/financeiro/ResumoPagar";
 import { EtiquetaUnidade } from "@/lib/unidade";
 import { brl, hoje, somarDias } from "@/lib/format";
 import { notify } from "@/lib/notify";
-import { COLUNAS_PAGAR, colunaPagar, diaDoPagamento, soltarNaColuna, type ColunaPagar, type ContaDecisao } from "@/lib/programacao";
+import { diaDoPagamento, PASSOS_PAGAR, passoPagar, soltarNaColuna, type ContaDecisao, type PassoPagar } from "@/lib/programacao";
 import { prazoPagar, TIPOS_PAGAR, type TipoPagar } from "@/lib/tiposPagar";
 
 type ContaQuadro = ContaDecisao & {
@@ -27,16 +28,16 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
   const desde = somarDias(-30);
   const { programar, ocupado } = useProgramar();
   const [arrastando, setArrastando] = useState<T | null>(null);
-  const [sobre, setSobre] = useState<ColunaPagar | null>(null);
+  const [sobre, setSobre] = useState<PassoPagar | null>(null);
   const [janela, setJanela] = useState<{ tipo: "agendar" | "nao_pagar"; conta: T } | null>(null);
 
-  const colunas = COLUNAS_PAGAR.map((col) => {
-    const lista = contas.filter((c) => colunaPagar(c, dia) === col.id && (col.id !== "pagas" || (c.data_pagamento ?? "") >= desde))
+  const colunas = PASSOS_PAGAR.map((col) => {
+    const lista = contas.filter((c) => passoPagar(c, dia) === col.id && (col.id !== "pagas" || (c.data_pagamento ?? "") >= desde))
       .sort((a, b) => (col.id === "pagas" ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))));
     return { ...col, lista, total: lista.reduce((s, c) => s + Number(c.valor), 0) };
   });
 
-  async function soltar(c: T, destino: ColunaPagar) {
+  async function soltar(c: T, destino: PassoPagar) {
     const r = soltarNaColuna(c, destino, dia);
     if (!r) return;
     if ("motivo" in r) return notify(r.motivo, "erro");
@@ -47,32 +48,16 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
     else onRegistrar(c);
   }
   const fim = () => { setArrastando(null); setSobre(null); };
-  const aceita = (col: ColunaPagar) => {
+  const aceita = (col: PassoPagar) => {
     if (!arrastando) return null;
     const r = soltarNaColuna(arrastando, col, dia);
     return r ? "acao" in r : null;
   };
-  const irPara = (id: ColunaPagar) => document.getElementById(`coluna-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
 
   return (
     <>
-      {/* abas coloridas: cada passo com quantas contas e quanto (tocar leva à coluna) */}
-      <nav aria-label="Passos até o pagamento" className="relative -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:grid md:grid-cols-3 md:px-0 xl:grid-cols-6">
-        {colunas.map((col) => (
-          <button key={col.id} type="button" onClick={() => irPara(col.id)} title={`${col.explica} ${col.fazer}`}
-            className={`flex min-w-[9.5rem] shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0 ${col.lista.length ? "" : "opacity-55"}`}
-            style={{ background: col.fundo, color: col.tinta }}>
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-extrabold" style={{ background: "rgba(255,255,255,.28)" }}>{col.passo ?? "×"}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold leading-tight">{col.rotulo}</span>
-              <span className="num block whitespace-nowrap text-[13px] font-semibold opacity-90">{col.lista.length} · {brl(col.total)}</span>
-            </span>
-          </button>
-        ))}
-      </nav>
-      <p className="mb-2 hidden text-[13px] text-slate-600 md:block">O caminho vai da esquerda para a direita. Arraste a conta para outra coluna para mudar o passo (pagar hoje, programar, não pagar, voltar a decidir ou registrar o pagamento).</p>
       {/* relative: o texto só para leitor de tela (sr-only) dos cartões fica preso aqui e não alarga a página no celular */}
-      <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das contas a pagar">
+      <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das contas a pagar" title="Arraste a conta para outra coluna para mudar a situação">
         {colunas.map((col) => {
           const ok = aceita(col.id);
           return (
@@ -83,15 +68,16 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
               className={`flex w-[86vw] max-w-[330px] shrink-0 snap-center scroll-ml-3 flex-col rounded-2xl border transition sm:w-[300px] ${col.corpo}
                 ${sobre === col.id && ok ? "border-emerald-400 ring-2 ring-emerald-300" : sobre === col.id && ok === false ? "border-red-300 ring-2 ring-red-200" : "border-slate-200"}
                 ${arrastando && ok === false ? "opacity-60" : ""}`}>
-              <header className="rounded-t-2xl px-3.5 py-3" style={{ background: col.fundo, color: col.tinta }}>
+              <header className="rounded-t-2xl px-3 py-2.5" style={{ background: col.fundo, color: col.tinta }} title={`${col.explica} ${col.fazer}`}>
                 <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-extrabold" style={{ background: "rgba(255,255,255,.28)" }} aria-hidden>{col.passo ?? "×"}</span>
-                  <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{col.passo ? `Passo ${col.passo} · ` : ""}{col.rotulo}</h3>
-                  <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-extrabold text-[#0d1b2e]">{col.lista.length}</span>
+                  <span className="grid h-6 min-w-[1.5rem] shrink-0 place-items-center rounded-full px-1 text-xs font-extrabold" style={{ background: "rgba(255,255,255,.3)" }} aria-hidden>{col.passo}</span>
+                  <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{col.rotulo}</h3>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[13px] font-extrabold text-[#0d1b2e]">{col.lista.length}</span>
                 </div>
-                <div className="num mt-1.5 whitespace-nowrap text-xl font-extrabold leading-tight">{brl(col.total)}</div>
-                <p className="mt-1 text-[13px] leading-snug opacity-90">{col.explica}</p>
-                <p className="mt-0.5 text-[13px] font-bold leading-snug">→ {col.fazer}</p>
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <span className="num whitespace-nowrap text-lg font-extrabold leading-tight">{brl(col.total)}</span>
+                  <span className="min-w-0 truncate text-xs font-semibold opacity-90">{col.fazer}</span>
+                </div>
               </header>
               <div className="flex min-h-[120px] flex-col gap-2 p-2">
                 {col.lista.map((c) => {
@@ -133,5 +119,36 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
       {janela?.tipo === "agendar" && <ModalAgendar contas={[janela.conta]} onClose={() => setJanela(null)} />}
       {janela?.tipo === "nao_pagar" && <ModalNaoPagar contas={[janela.conta]} onClose={() => setJanela(null)} />}
     </>
+  );
+}
+
+/** Leva o quadro até a coluna da situação. */
+export const irParaColuna = (id: PassoPagar) => document.getElementById(`coluna-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+
+export type ResumoPasso = (typeof PASSOS_PAGAR)[number] & { n: number; total: number };
+
+/**
+ * Abas coloridas das situações (1, 2, 2.1, 2.2, 2.3, 3) com quantas contas e quanto em cada uma. No quadro, tocar leva à
+ * coluna; na lista, mostra o passo (o escolhido fica com o contorno). `extras` vem embaixo (renegociadas, fixas, todas).
+ */
+export function NavPassos({ passos, ativo, onEscolher, extras }: { passos: ResumoPasso[]; ativo?: string | null; onEscolher: (id: PassoPagar) => void; extras?: ReactNode }) {
+  return (
+    <div className="mb-3">
+      <nav aria-label="Situações das contas" className="relative -mx-3 flex gap-2 overflow-x-auto px-3 py-1.5 md:mx-0 md:grid md:grid-cols-3 md:px-0 xl:grid-cols-6">
+        {passos.map((p) => {
+          const sel = ativo === p.id;
+          return (
+            <button key={p.id} type="button" onClick={() => onEscolher(p.id)} title={`${p.explica} ${p.fazer}`} aria-pressed={ativo == null ? undefined : sel}
+              className={`min-w-[8.5rem] shrink-0 rounded-xl px-2.5 py-1.5 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0
+                ${sel ? "ring-[3px] ring-fg ring-offset-2 ring-offset-surface" : ""} ${p.n || sel ? "" : "opacity-55"}`}
+              style={{ background: p.fundo, color: p.tinta }}>
+              <span className="block truncate text-sm font-bold leading-tight"><span className="mr-1 text-xs font-extrabold opacity-75">{p.passo}</span>{p.rotulo}</span>
+              <span className="num block whitespace-nowrap text-xs font-semibold opacity-90">{p.n} · {brl(p.total)}</span>
+            </button>
+          );
+        })}
+      </nav>
+      {extras && <div className="mt-2 flex flex-wrap gap-2">{extras}</div>}
+    </div>
   );
 }

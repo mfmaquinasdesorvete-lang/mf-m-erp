@@ -1,6 +1,6 @@
 // Contas a pagar: botões de decisão por conta (Pagar, Agendar, Não pagar), a etiqueta da decisão, a barra de
 // ações das contas marcadas e o pagamento em lote (uma conta bancária por unidade).
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { confirmar } from "@/components/Dialogos";
 import { Ban, CalendarClock, Check, CheckCheck, Wallet, X } from "lucide-react";
 import { BotaoAtalho, Button, COR_ATALHO, Field, Modal } from "@/components/ui";
@@ -257,7 +257,7 @@ export function PagarLoteModal({ contas, onClose, onPago }: { contas: Conta[]; o
 }
 
 /** Barra das contas marcadas: aprovar, agendar, não pagar, voltar a decidir, pagar em lote. */
-export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () => void }) {
+export function BarraLote({ contas, onLimpar, extra }: { contas: Conta[]; onLimpar: () => void; extra?: ReactNode }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "lote" | null>(null);
   if (!contas.length) return null;
@@ -278,6 +278,7 @@ export function BarraLote({ contas, onLimpar }: { contas: Conta[]; onLimpar: () 
       <Button type="button" variant="secondary" disabled={!idsPagar.length} onClick={() => setJanela("agendar")}><CalendarClock size={15} /> Agendar</Button>
       <Button type="button" variant="secondary" disabled={!ids.length} onClick={() => setJanela("nao_pagar")}><Ban size={15} /> Não pagar</Button>
       <Button type="button" variant="ghost" disabled={ocupado || !ids.length} onClick={async () => { if (await confirmar(`Desfazer a decisão de ${ids.length} ${pl(ids.length, "conta", "contas")}? Agendamentos e motivos de "não pagar" se perdem.`) && await programar(ids, "limpar")) onLimpar(); }} title="Tirar a decisão (volta para a decidir)"><X size={15} /> Desfazer</Button>
+      {extra}
       <Button type="button" disabled={!idsPagar.length} onClick={() => setJanela("lote")}><CheckCheck size={15} /> Pagamento em lote</Button>
       {janela === "agendar" && <ModalAgendar contas={aprovadas} onClose={() => { setJanela(null); onLimpar(); }} />}
       {janela === "nao_pagar" && <ModalNaoPagar contas={abertas} onClose={() => { setJanela(null); onLimpar(); }} />}

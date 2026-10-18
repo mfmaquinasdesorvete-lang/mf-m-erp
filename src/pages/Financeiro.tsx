@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -30,12 +30,13 @@ import { BotaoRecibo, Recibos, reciboDePagar, reciboDeReceber } from "@/componen
 import { pixDaConta } from "@/lib/cobranca";
 import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
-import { KanbanPagar } from "@/components/financeiro/KanbanPagar";
+import { irParaColuna, KanbanPagar, NavPassos, type ResumoPasso } from "@/components/financeiro/KanbanPagar";
+import { ChipRenegociada, HistoricoNegociacao, ModalRenegociar, PainelRenegociadas } from "@/components/financeiro/Renegociacao";
 import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
 import { ChipTipo, ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
 import { raizCnpj, resumoPorTipo, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
 import type { ContaRevisao } from "@/lib/aprovacao";
-import { aguardaAprovacao, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, situacaoPagar, VISOES_PAGAR, type Decisao, type VisaoPagar } from "@/lib/programacao";
+import { aguardaAprovacao, COR_RENEGOCIADA, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, PASSOS_PAGAR, passoPagar, situacaoPagar, VISOES_PAGAR, type Decisao, type PassoPagar, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
 import { noPeriodo, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { MenuAcoes } from "@/components/MenuAcoes";
@@ -66,6 +67,7 @@ type Pagar = ContaRevisao & {
   decisao?: Decisao | null; pagar_em?: string | null; decisao_motivo?: string | null; decisao_por_nome?: string | null; decisao_em?: string | null;
   linha_digitavel?: string | null; boleto_multa_pct?: number | null; boleto_juros_mes_pct?: number | null; boleto_juros_dia?: number | null;
   emissao?: string | null; forma_pagamento_id?: string | null; chave_pix?: string | null; created_at?: string | null;
+  negociacao_id?: string | null; negociacao_papel?: string | null;
 };
 type ContaBancaria = { id: string; nome: string; unidade_id: string; ativo: boolean };
 type Fornecedor = {
@@ -119,6 +121,13 @@ export default function Financeiro() {
   const [contaInicial, setContaInicial] = useState<Partial<Pagar> | null>(null);
   // vindo do Analista fiscal: contas a pagar só com as contas apontadas
   const [destaque, setDestaque] = useState<Destaque | null>(null);
+  // a aba "Contas fixas" agora é um extra de Contas a pagar (links antigos com ?aba=fixas vão para lá)
+  const [visaoInicial, setVisaoInicial] = useState<VisaoPagar | null>(null);
+  useEffect(() => {
+    if (aba !== "fixas") return;
+    setVisaoInicial("fixas");
+    setAba("pagar");
+  }, [aba]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const st = location.state as { aba?: typeof aba; nova?: boolean; tipo?: TipoPagar; inicial?: Partial<Pagar> } | null;
     const d = lerDestaque(location.state);
@@ -170,12 +179,10 @@ export default function Financeiro() {
         ...(veContasPagar ? [{ value: "pagar" as const, label: "Contas a pagar" }] : []),
         ...(veCobranca ? [{ value: "cobranca" as const, label: "Cobrança" }] : []),
         { value: "recibos" as const, label: "Recibos" },
-        ...(veContasPagar ? [{ value: "fixas" as const, label: "Contas fixas" },
-          { value: "dre" as const, label: "DRE" }, { value: "plano" as const, label: "Plano de contas" }] : []),
+        ...(veContasPagar ? [{ value: "dre" as const, label: "DRE" }, { value: "plano" as const, label: "Plano de contas" }] : []),
       ]} />
       {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
         : aba === "recibos" ? <Recibos />
-        : aba === "fixas" && veContasPagar ? <ContasFixas />
         : aba === "dre" && veContasPagar ? <DreComExtratos lancamentos={paraDreTodas} />
         : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
@@ -183,15 +190,16 @@ export default function Financeiro() {
           veSaldo={tem("financeiro", "contador")} podeBaixar={pode("editar_financeiro")} />
       ) : (
         <>
-          {aba !== "pagar" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {aba !== "pagar" && aba !== "fixas" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Indicador rotulo="A receber (aberto)" icon={ArrowDownCircle} cor="azul" valor={brl(resumo.aReceber)} />
             <Indicador rotulo="Recebimentos vencidos" icon={AlertTriangle} cor={resumo.vencidoReceber > 0 ? "vermelho" : "verde"} valor={brl(resumo.vencidoReceber)} />
             {veContasPagar && <Indicador rotulo="A pagar (aberto)" icon={ArrowUpCircle} cor="laranja" valor={brl(resumo.aPagar)} />}
             {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
               valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>}
-          {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} contaInicial={contaInicial} onNovaAberta={() => { setNovaAoAbrir(false); setContaInicial(null); }}
-            tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
+          {(aba === "pagar" || aba === "fixas") && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} contaInicial={contaInicial} onNovaAberta={() => { setNovaAoAbrir(false); setContaInicial(null); }}
+            tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar}
+            visaoInicial={visaoInicial} onVisaoAplicada={() => setVisaoInicial(null)} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
         </>
       )}
     </div>
@@ -450,7 +458,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
             </Field>
             <CampoCategoria tipo="receita" value={nova.categoria} onChange={(v) => setNova({ ...nova, categoria: v })} className="sm:col-span-2" />
             <div className="sm:col-span-2"><CampoRateio value={nova.rateio} disabled={somenteVer} onChange={(v) => setNova({ ...nova, rateio: v })} /></div>
-            {nova.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Financeiro → Contas fixas).</p>}
+            {nova.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Contas a pagar → Contas fixas).</p>}
             {precisaMotivo(contas.find((c) => c.id === nova.id), nova) && (
               <Field label="Motivo da alteração de valor/vencimento (fica no histórico)" className="sm:col-span-2">
                 <input className="input" value={nova.motivo_alteracao ?? ""} onChange={(e) => setNova({ ...nova, motivo_alteracao: e.target.value })} required minLength={3} placeholder="Ex.: cliente pediu prorrogação por e-mail" />
@@ -481,15 +489,22 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false }: {
+function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false, visaoInicial, onVisaoAplicada }: {
   contas: Pagar[]; novaAoAbrir?: boolean; contaInicial?: Partial<Pagar> | null; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void; carregando?: boolean;
+  visaoInicial?: VisaoPagar | null; onVisaoAplicada?: () => void;
 }) {
-  const { padrao, unidades } = useUnidade();
+  const { padrao, unidades, filtrar: filtrarUnidade } = useUnidade();
   const { pode } = usePerfil();
   const podeDecidir = pode("editar_financeiro");
   const { data: cfgRecibo } = useConfig();
   // uma visão por vez (com a contagem de cada uma), busca, período do vencimento e filtros guardados num botão
-  const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : "para_pagar");
+  // passos com o código de cores (1 a decidir … 3 pagas) e os extras: renegociadas, contas fixas e todas
+  const [visao, setVisao] = useState<VisaoPagar>(destaque ? "todas" : visaoInicial ?? "decidir");
+  useEffect(() => { if (visaoInicial) { setVisao(visaoInicial); onVisaoAplicada?.(); } }, [visaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+  const especial = visao === "renegociadas" || visao === "fixas";
+  // renegociação: o acordo (contas marcadas ou uma só) e o histórico da negociação
+  const [renegociar, setRenegociar] = useState<Pagar[] | null>(null);
+  const [negociacao, setNegociacao] = useState<string | null>(null);
   // quadro (Kanban, o padrão) ou lista; a escolha fica guardada neste aparelho
   const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:visual") === "lista" || destaque ? "lista" : "quadro"; } catch { return "quadro"; } });
   const setModo = (m: "lista" | "quadro") => { setModoState(m); setSel(new Set()); try { localStorage.setItem("erp:pagar:visual", m); } catch { /* sem armazenamento */ } };
@@ -567,6 +582,22 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const lista = useMemo(() => base.filter((c) => naVisaoPagar(c, visao, dia)).sort((a, b) => visao === "pagas"
     ? (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? "") : diaDoPagamento(a).localeCompare(diaDoPagamento(b))), [base, visao, dia]);
   const visoes = VISOES_PAGAR.map((x) => ({ value: x.v, label: x.rotulo, n: base.filter((c) => naVisaoPagar(c, x.v, dia)).length }));
+  // no quadro, "Pagas" mostra os últimos 30 dias (como a coluna)
+  const desde30 = somarDias(-30);
+  const passos: ResumoPasso[] = PASSOS_PAGAR.map((p) => {
+    const l = base.filter((c) => passoPagar(c, dia) === p.id && (modo === "lista" || p.id !== "pagas" || (c.data_pagamento ?? "") >= desde30));
+    return { ...p, n: l.length, total: l.reduce((s0, c) => s0 + Number(c.valor), 0) };
+  });
+  const escolherPasso = (id: PassoPagar) => {
+    setSel(new Set());
+    if (modo === "quadro") {
+      if (especial) { setVisao(id); setTimeout(() => irParaColuna(id), 80); } else irParaColuna(id);
+    } else setVisao(id);
+  };
+  const nVisao = (v: VisaoPagar) => visoes.find((x) => x.value === v)?.n ?? 0;
+  // renegociadas: quantos acordos em andamento (não quantas contas)
+  const { data: negociacoes = [] } = useRows<{ id: string; situacao: string; unidade_id: string | null }>("pagar_negociacoes", { order: "created_at", ascending: false });
+  const negAndamento = filtrarUnidade(negociacoes).filter((n) => n.situacao === "negociando" || n.situacao === "acordo").length;
   const categorias = [...new Set(contas.map((c) => c.categoria).filter(Boolean))].sort();
   const pagarHoje = paraPagarHoje(contas, dia);
   const marcadas = contas.filter((c) => sel.has(c.id));
@@ -582,7 +613,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const novaConta = () => abrirConta({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
   const acoesDe = (c: Pagar) => (
     <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => abrirConta(c)}
-      onEstornar={() => setMotivo({ conta: c, acao: "estornar" })}
+      onEstornar={() => setMotivo({ conta: c, acao: "estornar" })} onRenegociar={() => setRenegociar([c])} onNegociacao={() => c.negociacao_id && setNegociacao(c.negociacao_id)}
       recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, nomeForma(c.forma_pagamento_id) ?? formaDaObs(c.observacoes))} />} />
   );
   const situacaoDe = (c: Pagar) => {
@@ -592,6 +623,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
         <span className="flex flex-wrap items-center gap-1">
           <span title={s.sub ?? undefined} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${COR_TOM[s.tom]}`}>{s.texto}</span>
           {s.texto === "Falta aprovar" && <ChipRevisao conta={c as any} />}
+          {c.negociacao_id && <ChipRenegociada papel={c.negociacao_papel} onClick={() => setNegociacao(c.negociacao_id!)} />}
         </span>
         {s.sub && <div className={`mt-0.5 text-xs ${s.tom === "golpe" ? "text-red-700" : "text-slate-500"}`}>{s.sub}</div>}
         {((c as any).marcadores ?? []).length > 0 && <div className="mt-1"><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></div>}
@@ -647,10 +679,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={contas.length} onLimpar={onLimparDestaque} />}
       {rel.visor}
       <ResumoPagarTipos r={resumoTipos} tipo={tipo} onTipo={(t) => { setTipo(t); setSel(new Set()); }} />
-      {aprov.faixa(() => {
-        if (modo === "lista") { setVisao("falta_aprovar"); setSel(new Set()); }
-        else document.getElementById("coluna-aprovar")?.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
-      })}
+      {aprov.faixa(() => escolherPasso("decidir"))}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar fornecedor, documento, histórico, nº da NF ou da OC…"
         periodo={periodo} onPeriodo={setPeriodo} rotuloData={rotuloCampo}
         campoData={{ valor: campoData, opcoes: CAMPOS_DATA, onChange: (v) => setCampoData(v as CampoData) }}
@@ -674,7 +703,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
         direita={<>
           <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as contas em">
             {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
-              <button key={m} type="button" aria-pressed={modo === m} onClick={() => setModo(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por etapa até o pagamento" : "Lista com as visões"}
+              <button key={m} type="button" aria-pressed={modo === m} onClick={() => setModo(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por situação" : "Lista por situação"}
                 className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${modo === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
               </button>
@@ -687,21 +716,60 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
         </>} />
       {podeDecidir && pagarHoje.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3.5 text-[#022c1e] shadow-card sm:p-4" style={{ background: "linear-gradient(135deg,#6ee7b7 0%,#34d399 50%,#10b981 100%)" }}>
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3.5 shadow-card sm:p-4" style={{ background: PASSOS_PAGAR[2].fundo, color: PASSOS_PAGAR[2].tinta }}>
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/40"><Wallet size={22} aria-hidden /></span>
           <span className="mr-auto min-w-0">
             <span className="block text-base font-extrabold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
             <span className="mt-0.5 block text-[13px] leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
           </span>
-          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl bg-[#022c1e] px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
+          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl bg-[#422006] px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
             <CheckCheck size={16} aria-hidden /> Registrar o pagamento de todas
           </button>
         </div>
       )}
-      {modo === "quadro" ? (
+      <NavPassos passos={passos} ativo={modo === "lista" || especial ? visao : null} onEscolher={escolherPasso} extras={<>
+        <BotaoExtra ativo={visao === "renegociadas"} onClick={() => { setVisao(visao === "renegociadas" ? "decidir" : "renegociadas"); setSel(new Set()); }}
+          icone={Handshake} rotulo="Renegociadas" n={negAndamento} fundo={COR_RENEGOCIADA.fundo} tinta={COR_RENEGOCIADA.tinta}
+          dica="Contas renegociadas com o fornecedor: o acordo, as parcelas pagas e o histórico (áudios, prints e arquivos)" />
+        <BotaoExtra ativo={visao === "fixas"} onClick={() => { setVisao(visao === "fixas" ? "decidir" : "fixas"); setSel(new Set()); }}
+          icone={Repeat} rotulo="Contas fixas" n={nVisao("fixas")} fundo="linear-gradient(135deg,#e0e7ff 0%,#c7d2fe 100%)" tinta="#1e1b4b"
+          dica="Aluguel, salários, mensalidades: o ERP lança cada uma sozinho, com antecedência" />
+        {modo === "lista" && <BotaoExtra ativo={visao === "todas"} onClick={() => { setVisao("todas"); setSel(new Set()); }}
+          icone={Layers} rotulo="Todas" n={nVisao("todas")} fundo="linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%)" tinta="#0f172a" dica="Todas as contas (menos as canceladas)" />}
+      </>} />
+      {visao === "renegociadas" ? (
+        <PainelRenegociadas contas={contas} onAbrir={setNegociacao} />
+      ) : visao === "fixas" ? (
+        <div className="space-y-4">
+          <ContasFixas contas={contas} />
+          {lista.length > 0 && <h3 className="text-sm font-bold text-fg">Contas lançadas pelas fixas, em aberto ({lista.length})</h3>}
+          {lista.length > 0 && <ListaContas vazia={false}>
+            {lista.map((c) => (
+              <CartaoConta key={c.id} titulo={c.fornecedor?.nome || c.descricao} descricao={mesmoTexto(c.fornecedor?.nome || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
+                detalhe={<><ChipTipo tipo={tipoDe(c)} className="mr-1" />{[c.categoria, nomeForma(c.forma_pagamento_id)].filter(Boolean).join(" · ")}</>}
+                valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento} situacao={situacaoDe(c)}
+                acoes={<div className="col-span-full px-1.5">{acoesDe(c)}</div>} />
+            ))}
+          </ListaContas>}
+          {lista.length > 0 && <div className="hidden md:block"><Table head={<><th className="th">Vencimento</th><th className="th">Fornecedor e descrição</th><th className="th">Situação</th><th className="th text-right">Valor</th><th className="th text-right">Ação</th></>}>
+            {lista.map((c) => (
+              <tr key={c.id}>
+                <td className="td num whitespace-nowrap">{dataBR(c.vencimento)}</td>
+                <td className="td"><div className="font-semibold text-fg">{c.fornecedor?.nome || c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /></div><div className="text-xs text-slate-500">{c.descricao}</div></td>
+                <td className="td">{situacaoDe(c)}</td>
+                <td className="td num whitespace-nowrap text-right font-semibold">{brl(c.valor)}</td>
+                <td className="td">{acoesDe(c)}</td>
+              </tr>
+            ))}
+          </Table></div>}
+        </div>
+      ) : modo === "quadro" ? (
         <KanbanPagar contas={base} podeDecidir={podeDecidir} situacaoDe={situacaoDe} acoesDe={acoesDe} onRegistrar={(c) => setBaixa(c)} tipoDe={tipoDe} />
       ) : <>
-      <ChipsSituacao opcoes={visoes} valor={visao} onChange={(v) => { setVisao(v); setSel(new Set()); }} rotulo="Visão das contas" />
+      {(() => {
+        const p = PASSOS_PAGAR.find((x) => x.id === visao);
+        return p ? <p className="-mt-1 mb-3 text-[13px] text-slate-600"><b className="text-fg">{p.passo} · {p.rotulo}:</b> {p.explica} <b className="text-fg">→ {p.fazer}.</b></p> : null;
+      })()}
       {podeDecidir && abertasVisiveis.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">
           <input type="checkbox" className="h-5 w-5" checked={todasMarcadas} onChange={marcarTodas} /> Marcar todas em aberto ({abertasVisiveis.length})
@@ -827,7 +895,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
             <Field label="Nº do documento (NF, boleto, recibo…)" className="sm:col-span-2"><input className="input" value={editando.documento ?? ""} onChange={(e) => setEditando({ ...editando, documento: e.target.value })} /></Field>
             <Field label="Histórico / observações" className="sm:col-span-2"><textarea className="input" rows={2} value={editando.observacoes ?? ""} onChange={(e) => setEditando({ ...editando, observacoes: e.target.value })} /></Field>
             <div className="sm:col-span-2"><CampoRateio value={editando.rateio} onChange={(v) => setEditando({ ...editando, rateio: v })} /></div>
-            {editando.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Financeiro → Contas fixas).</p>}
+            {editando.recorrente_id && <p className="text-xs text-slate-500 sm:col-span-2">Lançada pela conta fixa (Contas a pagar → Contas fixas).</p>}
             {editando.id && origens.get(editando.id) && origens.get(editando.id)!.origem !== "outro" && (
               <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 sm:col-span-2">Origem: <ChipOrigem o={origens.get(editando.id)} /> {ORIGENS[origens.get(editando.id)!.origem].rotulo}</p>
             )}
@@ -849,7 +917,11 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
         )}
       </Modal>
 
-      {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())} />}
+      {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())}
+        extra={<Button type="button" variant="secondary" disabled={!marcadas.some((c) => c.status === "aberto" && !c.negociacao_id)} onClick={() => setRenegociar(marcadas)}
+          title="Juntar as contas marcadas num acordo com o fornecedor (parcelas novas) ou só registrar a negociação"><Handshake size={15} /> Renegociar</Button>} />}
+      {renegociar && <ModalRenegociar contas={renegociar} onClose={() => setRenegociar(null)} onFeito={(id) => { setSel(new Set()); setNegociacao(id); }} />}
+      {negociacao && <HistoricoNegociacao id={negociacao} contas={contas} onClose={() => setNegociacao(null)} />}
       {lotePagarHoje && <PagarLoteModal contas={pagarHoje} onClose={() => setLotePagarHoje(false)} />}
       {baixa && <BaixaModal conta={baixa} tabela="contas_pagar" valorInicial={baixaCom?.valor} dataInicial={baixaCom?.data} onClose={() => { setBaixa(null); setBaixaCom(null); }} />}
       {boleto && <ConferirBoletoModal conta={contas.find((x) => x.id === boleto.id) ?? boleto} podeEditar={podeDecidir} aprovada={!aguardaAprovacao(contas.find((x) => x.id === boleto.id) ?? boleto)} onClose={() => setBoleto(null)}
@@ -857,6 +929,18 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_pagar" onClose={() => setMotivo(null)} />}
       {aprov.modais}
     </>
+  );
+}
+
+/** Botão dos extras das contas a pagar (renegociadas, contas fixas, todas), com a cor de cada um. */
+function BotaoExtra({ ativo, onClick, icone: Icone, rotulo, n, fundo, tinta, dica }: {
+  ativo: boolean; onClick: () => void; icone: typeof Handshake; rotulo: string; n: number; fundo: string; tinta: string; dica: string;
+}) {
+  return (
+    <button type="button" aria-pressed={ativo} onClick={onClick} title={dica} style={{ background: fundo, color: tinta }}
+      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold shadow-card transition hover:-translate-y-0.5 ${ativo ? "ring-[3px] ring-fg ring-offset-2 ring-offset-surface" : ""}`}>
+      <Icone size={15} aria-hidden /> {rotulo} <span className="num rounded-full bg-white/60 px-1.5 text-xs">{n}</span>
+    </button>
   );
 }
 
@@ -871,8 +955,9 @@ function ChipOrigem({ o, className = "" }: { o: OrigemConta | undefined; classNa
  * Ações de uma conta a pagar: um botão com o próximo passo (pagar, registrar o pagamento, aprovar, recibo…) e o resto
  * no menu "⋯" (agendar, não pagar, voltar a decidir, boleto, marcadores, editar, estornar).
  */
-function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, recibo }: {
-  conta: Pagar; podeDecidir: boolean; aprovar?: ReactNode; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void; recibo: ReactNode;
+function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, onRenegociar, onNegociacao, recibo }: {
+  conta: Pagar; podeDecidir: boolean; aprovar?: ReactNode; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void;
+  onRenegociar: () => void; onNegociacao: () => void; recibo: ReactNode;
 }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "marcadores" | null>(null);
@@ -902,6 +987,8 @@ function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEdita
         podeMexer && !!c.decisao && c.decisao !== "nao_pagar" && { rotulo: "Voltar a decidir", icone: RotateCcw, onClick: () => programar([c.id], "limpar") },
         aberta && !golpe && !falta && !decidida && { rotulo: "Registrar pagamento", icone: Wallet, onClick: onBaixa },
         (aberta || !!c.linha_digitavel) && { rotulo: "Conferir boleto", icone: ScanBarcode, onClick: onBoleto },
+        podeMexer && !c.negociacao_id && { rotulo: "Renegociar…", icone: Handshake, onClick: onRenegociar },
+        !!c.negociacao_id && { rotulo: "Histórico da negociação", icone: Handshake, onClick: onNegociacao },
         { rotulo: "Marcadores", icone: Tags, onClick: () => setJanela("marcadores") },
         { rotulo: aberta ? "Editar" : "Ver detalhes", icone: aberta ? Pencil : Eye, onClick: onEditar },
         c.status === "pago" && { rotulo: "Estornar o pagamento", icone: Undo2, onClick: onEstornar, perigo: true },

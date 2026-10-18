@@ -548,6 +548,7 @@ function seed(): Db {
   fichaDemo(db);
   origemPagarDemo(db);
   scrumDemo(db);
+  renegociacaoDemo(db);
   return db;
 }
 
@@ -1467,6 +1468,28 @@ function bancosDemo(db: Db) {
 
 /** Vendedores, comissões, kit, propostas e layout da proposta (prévia). */
 /** Scrum das equipes (exemplos inventados; no sistema real: scrum_times, scrum_sprints, scrum_itens e scrum_daily) */
+// Renegociação de exemplo: duas contas do fornecedor trocadas por um acordo em 3 parcelas (1 paga), com o histórico
+function renegociacaoDemo(db: Db) {
+  const neg = "neg1";
+  const base = { fornecedor_id: "f2", categoria: "fornecedores", unidade_id: U_SC, rateio: [], negociacao_id: neg };
+  db.contas_pagar.push(
+    { id: "cpn1", ...base, descricao: "NF 9012 - Inox Paulista (tampas)", documento: "NF 9012", valor: 1850, vencimento: dias(-40), status: "cancelado", negociacao_papel: "original", revisao: "historico", created_at: quando(-60) },
+    { id: "cpn2", ...base, descricao: "NF 9077 - Inox Paulista (eixos)", documento: "NF 9077", valor: 1320, vencimento: dias(-25), status: "cancelado", negociacao_papel: "original", revisao: "historico", created_at: quando(-45) },
+    { id: "cpn3", ...base, descricao: "Acordo Inox Paulista · parcela 1/3", valor: 1000, vencimento: dias(-10), status: "pago", data_pagamento: dias(-10), valor_pago: 1000, negociacao_papel: "acordo", revisao: "aprovado", created_at: quando(-20) },
+    { id: "cpn4", ...base, descricao: "Acordo Inox Paulista · parcela 2/3", valor: 1000, vencimento: dias(20), status: "aberto", decisao: "agendado", pagar_em: dias(20), negociacao_papel: "acordo", revisao: "aprovado", created_at: quando(-20) },
+    { id: "cpn5", ...base, descricao: "Acordo Inox Paulista · parcela 3/3", valor: 1000, vencimento: dias(50), status: "aberto", negociacao_papel: "acordo", revisao: "aprovado", created_at: quando(-20) },
+  );
+  db.pagar_negociacoes = [
+    { id: neg, titulo: "Acordo Inox Paulista", fornecedor_id: "f2", unidade_id: U_SC, valor_original: 3170, valor_acordo: 3000, parcelas: 3, situacao: "acordo",
+      observacoes: "Tiraram os juros e R$ 170 de desconto para pagar em 3 vezes.", criado_nome: "Rafael Financeiro", created_at: quando(-20), atualizado_em: quando(-20) },
+  ];
+  db.pagar_negociacao_eventos = [
+    { id: "ne1", negociacao_id: neg, tipo: "nota", quando: dias(-24), texto: "Liguei para o financeiro do fornecedor: aceitam parcelar sem juros se a 1ª for paga em 10 dias.", arquivo_caminho: null, arquivo_nome: null, arquivo_tipo: null, criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-24) },
+    { id: "ne2", negociacao_id: neg, tipo: "print", quando: dias(-21), texto: "Proposta enviada pelo WhatsApp", arquivo_caminho: "conta_pagar/negociacao-neg1/print.jpg", arquivo_nome: "print-whatsapp.jpg", arquivo_tipo: "image/jpeg", criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-21) },
+    { id: "ne3", negociacao_id: neg, tipo: "acordo", quando: dias(-20), texto: "2 contas (R$ 3.170,00) trocada(s) por 3 parcelas de R$ 1.000,00.", arquivo_caminho: null, arquivo_nome: null, arquivo_tipo: null, criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-20) },
+  ];
+}
+
 function scrumDemo(db: Db) {
   const segunda = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); })();
   const desloca = (dia: string, n: number) => new Date(new Date(`${dia}T12:00:00Z`).getTime() + n * 864e5).toISOString().slice(0, 10);
@@ -1868,6 +1891,8 @@ const proximoCodigo = (t: string) => Math.max(0, ...(db[t] ?? []).map((r) => Num
 
 const DEFAULTS: Record<string, () => Row> = {
   scrum_comentarios: () => ({ user_id: sessao?.user.id ?? null, created_at: quando(0) }),
+  pagar_negociacao_eventos: () => ({ criado_por: sessao?.user.id ?? null, quando: hojeISO(), created_at: quando(0) }),
+  pagar_negociacoes: () => ({ situacao: "negociando", created_at: quando(0), atualizado_em: quando(0) }),
   scrum_itens: () => ({ status: "a_fazer", tipo: "historia", tarefas: [], cenarios: null, testes: [], prioridade: 1000, sprint_id: null, ideia_id: null, responsavel_id: null, concluido_em: null, created_by: sessao?.user.id ?? null, created_at: quando(0) }),
   scrum_sprints: () => ({ status: "planejada", pontos_planejados: null, pontos_feitos: null, created_at: quando(0) }),
   scrum_daily: () => ({ user_id: sessao?.user.id ?? null, dia: hojeISO(), impedimento_resolvido: false, created_at: quando(0) }),
@@ -2312,6 +2337,28 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.renegociar_contas_pagar (Contas a pagar → marcar → Renegociar)
+  renegociar_contas_pagar: ({ p_ids, p_titulo, p_trocar, p_valor, p_parcelas, p_primeiro, p_obs }) => {
+    const cs = db.contas_pagar.filter((c) => p_ids.includes(c.id) && c.status === "aberto" && !c.negociacao_id);
+    if (cs.length !== p_ids.length) return { data: null, error: { message: "Só entram contas em aberto e que não estejam em outra renegociação." } };
+    const id = uid(), total = cs.reduce((t, c) => t + Number(c.valor), 0), p = cs[0];
+    db.pagar_negociacoes = [...(db.pagar_negociacoes ?? []), { id, titulo: p_titulo, fornecedor_id: p.fornecedor_id ?? null, unidade_id: p.unidade_id ?? null, valor_original: total,
+      valor_acordo: p_trocar ? p_valor : null, parcelas: p_trocar ? p_parcelas : null, situacao: p_trocar ? "acordo" : "negociando", observacoes: p_obs, criado_nome: "Você (demonstração)", created_at: quando(0), atualizado_em: quando(0) }];
+    if (p_trocar) {
+      cs.forEach((c) => Object.assign(c, { negociacao_id: id, negociacao_papel: "original", status: "cancelado", motivo_alteracao: `Renegociada: ${p_titulo}` }));
+      const cada = Math.round((p_valor / p_parcelas) * 100) / 100;
+      for (let i = 1; i <= p_parcelas; i++) {
+        const d = new Date(`${p_primeiro}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + i - 1);
+        db.contas_pagar.push({ id: uid(), descricao: `${p_titulo} · parcela ${i}/${p_parcelas}`, fornecedor_id: p.fornecedor_id ?? null, unidade_id: p.unidade_id ?? null, categoria: p.categoria, rateio: p.rateio ?? [],
+          valor: i === p_parcelas ? Math.round((p_valor - cada * (p_parcelas - 1)) * 100) / 100 : cada, vencimento: d.toISOString().slice(0, 10), status: "aberto",
+          revisao: "em_revisao", negociacao_id: id, negociacao_papel: "acordo", created_at: quando(0) });
+      }
+    } else cs.forEach((c) => Object.assign(c, { negociacao_id: id, negociacao_papel: "acordo" }));
+    db.pagar_negociacao_eventos = [...(db.pagar_negociacao_eventos ?? []), { id: uid(), negociacao_id: id, tipo: "acordo", quando: hojeISO(),
+      texto: p_trocar ? `${cs.length} conta(s) trocada(s) por ${p_parcelas} parcela(s).` : `Negociação aberta para ${cs.length} conta(s).`, arquivo_caminho: null, arquivo_nome: null, arquivo_tipo: null,
+      criado_por: sessao?.user.id ?? null, criado_nome: "Você (demonstração)", created_at: quando(0) }];
+    return { data: id, error: null };
+  },
   // no sistema real: public.conciliar_vendas (Vendas → marcar → Conciliar). Aqui só a venda sem conta x entrada de mesmo valor.
   conciliar_vendas: ({ p_ids, p_aplicar = false, p_escolhidos = [] }) => {
     const vendas = db.pedidos.filter((p) => p_ids.includes(p.id) && ["aprovado", "faturado", "entregue"].includes(p.status) && Number(p.valor_total) > 0);
@@ -5515,6 +5562,7 @@ arquivos.set("demo/p3.jpg", fotoProduto("shake", "#f7f5f2"));
 arquivos.set("demo/p5.jpg", fotoProduto("kit", "#f5f7f9"));
 arquivos.set("demo/os1-a.jpg", fotoExemplo("Frente: painel ok", "#f1f5f9"));
 arquivos.set("demo/os1-b.jpg", fotoExemplo("Tampa trincada", "#fef3c7"));
+arquivos.set("conta_pagar/negociacao-neg1/print.jpg", fotoExemplo("Proposta: 3x R$ 1.000", "#ccfbf1"));
 
 export function criarClienteDemo() {
   return {

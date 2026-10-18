@@ -1,7 +1,9 @@
 // Recibos: de recebimento (a MF recebeu de um cliente) e de pagamento (a MF pagou alguém, que assina).
-// Saem das contas pagas (botão Recibo) ou avulsos. Numeração própria; emitido não muda, só é cancelado com motivo.
+// Saem das contas pagas (botão Recibo), da busca de conta paga ou avulsos. Numeração própria; emitido não muda: é
+// cancelado com motivo ou excluído pelo financeiro (o número não volta e a exclusão fica na auditoria). O histórico do
+// recibo junta a conta (datas, mudanças, comprovantes anexados), os outros recibos dela e a renegociação, se houver.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Ban, FileText, Plus, ReceiptText } from "lucide-react";
+import { Ban, FileText, History, Plus, ReceiptText, Search, Trash2 } from "lucide-react";
 import { BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Modal, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -16,7 +18,10 @@ import { valorPorExtenso } from "@/lib/extenso";
 import { pdfRecibo } from "@/lib/pdf";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
-import { pedirTexto } from "@/components/Dialogos";
+import { confirmar, pedirTexto } from "@/components/Dialogos";
+import { Anexos } from "@/components/Anexos";
+import { Historico } from "@/components/Historico";
+import { ChipRenegociada, HistoricoNegociacao } from "@/components/financeiro/Renegociacao";
 
 export type Recibo = {
   id: string; numero: number; tipo: "recebimento" | "pagamento"; unidade_id: string | null;
@@ -70,6 +75,49 @@ export function reciboDePagar(c: { id: string; descricao: string; valor: number;
   };
 }
 
+// as mesmas consultas da tela de contas (a lista já carregada é reaproveitada)
+const SELECT_PAGAR = "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)";
+const SELECT_RECEBER = "*, cliente:clientes(*)";
+type ContaPaga = {
+  id: string; descricao: string; valor: number; valor_pago: number | null; data_pagamento: string | null; vencimento: string; status: string;
+  unidade_id?: string | null; forma_pagamento?: string | null; negociacao_id?: string | null; negociacao_papel?: string | null; documento?: string | null;
+  fornecedor?: { nome: string; cnpj?: string | null } | null; cliente?: { nome: string; nome_fantasia?: string | null; cpf_cnpj?: string | null } | null;
+};
+const nomeTerceiro = (c: ContaPaga) => c.fornecedor?.nome ?? c.cliente?.nome_fantasia?.trim() ?? c.cliente?.nome ?? "";
+
+/** Busca uma conta já paga (a pagar ou a receber) para o recibo sair com os dados dela. */
+function BuscarContaPaga({ tipo, onEscolher }: { tipo: "recebimento" | "pagamento"; onEscolher: (c: ContaPaga) => void }) {
+  const { data: pagar = [] } = useRows<ContaPaga>("contas_pagar", { select: SELECT_PAGAR });
+  const { data: receber = [] } = useRows<ContaPaga>("contas_receber", { select: SELECT_RECEBER });
+  const { data: recibos = [] } = useRows<Recibo>("recibos", { order: "numero", ascending: false });
+  const [termo, setTermo] = useState("");
+  const t = termo.trim().toLowerCase();
+  const comRecibo = useMemo(() => new Set(recibos.filter((r) => !r.cancelado_em).map((r) => r.conta_pagar_id ?? r.conta_receber_id)), [recibos]);
+  const lista = (tipo === "pagamento" ? pagar : receber)
+    .filter((c) => c.status === "pago" && (!t || [c.descricao, nomeTerceiro(c), c.documento, brl(Number(c.valor_pago ?? c.valor)), dataBR(c.data_pagamento ?? "")].join(" ").toLowerCase().includes(t)))
+    .sort((a, b) => (b.data_pagamento ?? "").localeCompare(a.data_pagamento ?? ""))
+    .slice(0, 8);
+  return (
+    <div className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-2.5 sm:col-span-2">
+      <label className="flex items-center gap-2 text-xs font-bold text-slate-700"><Search size={14} aria-hidden /> Buscar a conta {tipo === "pagamento" ? "paga" : "recebida"}
+        <input className="input h-9 flex-1 font-normal" value={termo} onChange={(e) => setTermo(e.target.value)} placeholder={tipo === "pagamento" ? "Fornecedor, descrição, valor ou data" : "Cliente, descrição, valor ou data"} />
+      </label>
+      <ul className="mt-1.5 max-h-44 space-y-1 overflow-y-auto">
+        {lista.map((c) => (
+          <li key={c.id}>
+            <button type="button" onClick={() => onEscolher(c)} className="flex w-full items-center gap-2 rounded-lg bg-surface px-2.5 py-1.5 text-left text-[13px] hover:bg-cyan-100">
+              <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-fg">{nomeTerceiro(c) || c.descricao}</span><span className="block truncate text-xs text-slate-500">{c.descricao}</span></span>
+              <span className="shrink-0 text-right"><span className="num block font-semibold">{brl(Number(c.valor_pago ?? c.valor))}</span><span className="num block text-xs text-slate-500">{c.data_pagamento ? `pago ${dataBR(c.data_pagamento)}` : ""}</span></span>
+              {comRecibo.has(c.id) && <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 text-[11px] font-bold text-emerald-800" title="Esta conta já tem recibo">tem recibo</span>}
+            </button>
+          </li>
+        ))}
+        {!lista.length && <li className="px-1 py-2 text-xs text-slate-500">Nenhuma conta {tipo === "pagamento" ? "paga" : "recebida"} com esse texto.</li>}
+      </ul>
+    </div>
+  );
+}
+
 /** Emite (rascunho) ou mostra (recibo já emitido) o recibo. */
 export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; onClose: () => void }) {
   const { pode, tem } = usePerfil();
@@ -120,10 +168,21 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
     }
   }
 
+  // conta escolhida na busca: o recibo sai com os dados dela (quem pagou, quem recebeu, valor, data, referente)
+  function usarConta(c: ContaPaga) {
+    const u = unidades.find((x) => x.id === c.unidade_id) ?? unidades.find((x) => x.matriz);
+    const novo = r.tipo === "pagamento"
+      ? reciboDePagar(c, c.fornecedor ?? undefined, u, cfg, rotuloMeio(c.forma_pagamento))
+      : reciboDeReceber({ ...c, forma_pagamento: c.forma_pagamento ?? null, cliente: c.cliente ? { nome: c.cliente.nome, cpf_cnpj: c.cliente.cpf_cnpj } : null }, u, cfg);
+    setR((x) => ({ ...x, ...novo, observacoes: x.observacoes }));
+    notify("Dados da conta preenchidos: confira e emita");
+  }
+
   // emitente da unidade escolhida, para trocar quem paga/recebe quando muda o tipo
   function trocarTipo(tipo: "recebimento" | "pagamento") {
     if (tipo === r.tipo) return;
-    set({ tipo, pagador_nome: r.recebedor_nome, pagador_doc: r.recebedor_doc, recebedor_nome: r.pagador_nome, recebedor_doc: r.pagador_doc });
+    set({ tipo, pagador_nome: r.recebedor_nome, pagador_doc: r.recebedor_doc, recebedor_nome: r.pagador_nome, recebedor_doc: r.pagador_doc,
+      ...(rascunho.conta_pagar_id || rascunho.conta_receber_id ? {} : { conta_pagar_id: null, conta_receber_id: null }) });
   }
 
   if (pdf) return <PdfViewer blob={pdf.blob} nome={`recibo-${String(pdf.numero).padStart(6, "0")}.pdf`} titulo={`Recibo nº ${pdf.numero}`} onClose={onClose} />;
@@ -143,6 +202,8 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
               </button>
             ))}
           </div>
+          {podeEmitir && !rascunho.conta_pagar_id && !rascunho.conta_receber_id && <BuscarContaPaga tipo={r.tipo ?? "recebimento"} onEscolher={usarConta} />}
+          {(r.conta_pagar_id || r.conta_receber_id) && <p className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 sm:col-span-2">Ligado à conta {r.conta_pagar_id ? "a pagar" : "a receber"}: o recibo aparece no histórico dela.</p>}
           <Field label="Quem pagou"><input className="input" required minLength={2} value={r.pagador_nome ?? ""} onChange={(e) => set({ pagador_nome: e.target.value })} /></Field>
           <Field label="CPF/CNPJ de quem pagou"><input className="input" inputMode="numeric" value={docFormat(r.pagador_doc) || r.pagador_doc || ""} onChange={(e) => set({ pagador_doc: e.target.value })} /></Field>
           <Field label="Quem recebeu (assina)"><input className="input" required minLength={2} value={r.recebedor_nome ?? ""} onChange={(e) => set({ recebedor_nome: e.target.value })} /></Field>
@@ -172,6 +233,17 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
 export function Recibos() {
   const { pode, tem } = usePerfil();
   const podeEmitir = pode("editar_financeiro") || tem("vendas");
+  const podeExcluir = pode("editar_financeiro");
+  const [historico, setHistorico] = useState<Recibo | null>(null);
+  // a conta de cada recibo, para buscar pelo fornecedor/cliente e pela descrição dela
+  const { data: pagar = [] } = useRows<ContaPaga>("contas_pagar", { select: SELECT_PAGAR });
+  const { data: receber = [] } = useRows<ContaPaga>("contas_receber", { select: SELECT_RECEBER });
+  const contaDe = useMemo(() => {
+    const m = new Map<string, ContaPaga>();
+    for (const c of pagar) m.set(c.id, c);
+    for (const c of receber) m.set(c.id, c);
+    return (r: Recibo) => m.get(r.conta_pagar_id ?? r.conta_receber_id ?? "") ?? null;
+  }, [pagar, receber]);
   const { filtrar, padrao, unidades } = useUnidade();
   const { data: cfg } = useConfig();
   const invalidar = useInvalidate();
@@ -183,7 +255,8 @@ export function Recibos() {
   const termo = busca.trim().toLowerCase();
   const lista = useMemo(() => filtrar(todos).filter((r) =>
     (!tipo || r.tipo === tipo) && (!mes || r.data_pagamento.startsWith(mes))
-    && (!termo || [r.numero, r.pagador_nome, r.recebedor_nome, r.referente].join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar]);
+    && (!termo || [r.numero, r.pagador_nome, r.recebedor_nome, r.referente, contaDe(r)?.descricao, contaDe(r) && nomeTerceiro(contaDe(r)!), contaDe(r)?.documento]
+      .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe]);
   const total = lista.filter((r) => !r.cancelado_em).reduce((s, r) => s + Number(r.valor), 0);
 
   function novo() {
@@ -202,11 +275,20 @@ export function Recibos() {
     invalidar("recibos");
   }
 
+  async function excluir(r: Recibo) {
+    if (!(await confirmar(`Excluir o recibo nº ${r.numero}? O número não volta a ser usado e a exclusão fica registrada na auditoria (quem e quando).`, { perigo: true, ok: "Excluir" }))) return;
+    const { error } = await supabase.from("recibos").delete().eq("id", r.id);
+    if (error) return notifyError(error);
+    notify(`Recibo nº ${r.numero} excluído`);
+    invalidar("recibos", "auditoria");
+  }
+
   return (
     <div>
       {aberto && <ReciboModal rascunho={aberto} onClose={() => setAberto(null)} />}
+      {historico && <HistoricoRecibo recibo={historico} conta={contaDe(historico)} todos={todos} onClose={() => setHistorico(null)} onAbrir={(x) => { setHistorico(null); setAberto(x); }} />}
       <div className="mb-3 flex flex-wrap items-end gap-2">
-        <Field label="Buscar"><input className="input w-56" placeholder="Nº, nome ou referência" value={busca} onChange={(e) => setBusca(e.target.value)} /></Field>
+        <Field label="Buscar"><input className="input w-64 max-w-full" placeholder="Nº, nome, referência ou a conta" value={busca} onChange={(e) => setBusca(e.target.value)} /></Field>
         <Field label="Tipo">
           <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
             <option value="">Todos</option><option value="recebimento">Recebimento</option><option value="pagamento">Pagamento</option>
@@ -227,16 +309,71 @@ export function Recibos() {
               {r.cancelado_em && <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-800" title={r.cancelado_motivo ?? ""}>cancelado</span>}
             </td>
             <td className="td">{r.pagador_nome} <span className="text-slate-400">→</span> {r.recebedor_nome}</td>
-            <td className="td">{r.referente}{r.forma_pagamento && <div className="text-xs text-slate-500">{r.forma_pagamento}</div>}</td>
+            <td className="td">{r.referente}<div className="text-xs text-slate-500">{[r.forma_pagamento, (r.conta_pagar_id || r.conta_receber_id) && (contaDe(r) ? `conta: ${contaDe(r)!.descricao}` : "ligado a uma conta")].filter(Boolean).join(" · ")}</div></td>
             <td className="td text-right font-semibold">{brl(r.valor)}</td>
             <td className="td whitespace-nowrap text-right">
               <Button variant="secondary" onClick={() => setAberto(r)}><FileText size={15} /> PDF</Button>
-              {podeEmitir && !r.cancelado_em && <Button variant="ghost" className="!text-red-600" title="Cancelar recibo (informando o motivo)" onClick={() => cancelar(r)}><Ban size={15} /></Button>}
+              <Button variant="ghost" title="Histórico: a conta, as datas, os arquivos e os outros recibos" aria-label={`Histórico do recibo ${r.numero}`} onClick={() => setHistorico(r)}><History size={15} /></Button>
+              {podeEmitir && !r.cancelado_em && <Button variant="ghost" className="!text-red-600" title="Cancelar recibo (informando o motivo)" aria-label={`Cancelar o recibo ${r.numero}`} onClick={() => cancelar(r)}><Ban size={15} /></Button>}
+              {podeExcluir && <Button variant="ghost" className="!text-red-600" title="Excluir o recibo (o número não volta)" aria-label={`Excluir o recibo ${r.numero}`} onClick={() => excluir(r)}><Trash2 size={15} /></Button>}
             </td>
           </tr>
         ))}
       </Table>
     </div>
+  );
+}
+
+/** Histórico completo do recibo: quando foi emitido/cancelado, a conta (datas, mudanças e comprovantes), os outros recibos dela e a renegociação. */
+function HistoricoRecibo({ recibo: r, conta, todos, onClose, onAbrir }: { recibo: Recibo; conta: ContaPaga | null; todos: Recibo[]; onClose: () => void; onAbrir: (r: Recibo) => void }) {
+  const [negociacao, setNegociacao] = useState<string | null>(null);
+  const { data: pagar = [] } = useRows<ContaPaga>("contas_pagar", { select: SELECT_PAGAR });
+  const entidade = r.conta_pagar_id ? "conta_pagar" : "conta_receber";
+  const tabela = r.conta_pagar_id ? "contas_pagar" : "contas_receber";
+  const contaId = r.conta_pagar_id ?? r.conta_receber_id;
+  const outros = contaId ? todos.filter((x) => x.id !== r.id && (x.conta_pagar_id ?? x.conta_receber_id) === contaId) : [];
+  const datas = [
+    conta?.vencimento && { quando: conta.vencimento, texto: "Vencimento da conta" },
+    conta?.data_pagamento && { quando: conta.data_pagamento, texto: `${r.conta_pagar_id ? "Pago" : "Recebido"} · ${brl(Number(conta.valor_pago ?? conta.valor))}` },
+    { quando: r.data_pagamento, texto: "Data do pagamento no recibo" },
+    { quando: r.created_at.slice(0, 10), texto: `Recibo nº ${r.numero} emitido` },
+    r.cancelado_em && { quando: r.cancelado_em.slice(0, 10), texto: `Recibo cancelado${r.cancelado_motivo ? `: ${r.cancelado_motivo}` : ""}` },
+    ...outros.map((x) => ({ quando: x.created_at.slice(0, 10), texto: `Recibo nº ${x.numero} emitido${x.cancelado_em ? " (cancelado)" : ""}` })),
+  ].filter(Boolean) as { quando: string; texto: string }[];
+  datas.sort((a, b) => a.quando.localeCompare(b.quando));
+  return (
+    <>
+      <Modal open onClose={onClose} title={`Histórico do recibo nº ${r.numero}`} wide>
+        <div className="space-y-4 text-sm">
+          <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
+            <div><span className="text-xs font-semibold text-slate-500">Quem pagou → quem recebeu</span><div className="font-semibold text-fg">{r.pagador_nome} → {r.recebedor_nome}</div></div>
+            <div><span className="text-xs font-semibold text-slate-500">Valor</span><div className="num font-bold text-fg">{brl(r.valor)}</div></div>
+            <div className="sm:col-span-2"><span className="text-xs font-semibold text-slate-500">Referente a</span><div className="text-fg">{r.referente}</div></div>
+            {conta && <div className="flex flex-wrap items-center gap-2 sm:col-span-2"><span className="text-xs font-semibold text-slate-500">Conta {r.conta_pagar_id ? "a pagar" : "a receber"}:</span>
+              <span className="font-semibold text-fg">{conta.descricao}</span>
+              {conta.negociacao_id && <ChipRenegociada papel={conta.negociacao_papel} onClick={() => setNegociacao(conta.negociacao_id!)} />}</div>}
+            {!contaId && <p className="text-xs text-slate-500 sm:col-span-2">Recibo avulso (sem conta ligada).</p>}
+          </div>
+          <section aria-label="Datas">
+            <h3 className="mb-1.5 font-bold text-fg">Datas</h3>
+            <ol className="space-y-1">
+              {datas.map((d, i) => <li key={i} className="flex gap-3"><span className="num w-24 shrink-0 font-semibold text-fg">{dataBR(d.quando)}</span><span className="text-slate-700">{d.texto}</span></li>)}
+            </ol>
+          </section>
+          {outros.length > 0 && (
+            <section aria-label="Outros recibos da conta">
+              <h3 className="mb-1.5 font-bold text-fg">Outros recibos desta conta</h3>
+              <div className="flex flex-wrap gap-2">{outros.map((x) => <Button key={x.id} variant="secondary" onClick={() => onAbrir(x)}><FileText size={14} /> Nº {x.numero}{x.cancelado_em ? " (cancelado)" : ""}</Button>)}</div>
+            </section>
+          )}
+          {contaId && <Anexos entidade={entidade} id={contaId} titulo="Arquivos da conta (comprovante, boleto, nota)" />}
+          {contaId && <section aria-label="Mudanças na conta"><h3 className="mb-1 font-bold text-fg">Mudanças na conta</h3><Historico tabela={tabela} id={contaId} /></section>}
+          <section aria-label="Mudanças no recibo"><h3 className="mb-1 font-bold text-fg">Mudanças no recibo</h3><Historico tabela="recibos" id={r.id} /></section>
+          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => onAbrir(r)}><FileText size={15} /> Abrir o PDF</Button><Button onClick={onClose}>Fechar</Button></div>
+        </div>
+      </Modal>
+      {negociacao && <HistoricoNegociacao id={negociacao} contas={pagar as any} onClose={() => setNegociacao(null)} />}
+    </>
   );
 }
 

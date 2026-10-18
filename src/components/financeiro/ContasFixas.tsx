@@ -5,7 +5,7 @@ import { CalendarClock, Pencil, Plus, RefreshCw } from "lucide-react";
 import { Badge, Button, Field, Modal, Table } from "@/components/ui";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
-import { brl, dataBR, hoje, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl, somarDias } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -15,6 +15,7 @@ import type { Rateio } from "@/lib/dre";
 import type { Cliente } from "@/lib/types";
 import { useFormasPagamento } from "@/lib/formasPagamento";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { COR_TOM, situacaoPagar, type ContaDecisao } from "@/lib/programacao";
 
 type Fixa = {
   id: string; tipo: "pagar" | "receber"; descricao: string; fornecedor_id: string | null; cliente_id: string | null; categoria: string | null;
@@ -47,7 +48,11 @@ export function proximoVencimento(f: Pick<Fixa, "inicio" | "fim" | "dia_vencimen
   return null;
 }
 
-export function ContasFixas() {
+/**
+ * Lista das contas fixas. Dentro de Contas a pagar (`contas` = as contas a pagar), mostra também a situação da próxima
+ * conta de cada fixa: já lançada (com a cor do passo) ou quando o ERP vai lançar.
+ */
+export function ContasFixas({ contas }: { contas?: (ContaDecisao & { data_pagamento?: string | null })[] } = {}) {
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
   const { filtrar, padrao } = useUnidade();
@@ -109,7 +114,7 @@ export function ContasFixas() {
         {podeEditar && <Button onClick={() => setEditando({ tipo: "pagar", frequencia: "mensal", dia_vencimento: 10, forma_pagamento: "pix", forma_pagamento_id: formas.find((x) => x.meio === "pix" && x.ativo)?.id ?? null, inicio: dia, antecedencia_dias: 45, ativo: true, rateio: [], unidade_id: padrao, categoria: "aluguel" })}><Plus size={16} /> Nova conta fixa</Button>}
       </div>
       <Table empty={!fixas.length}
-        head={<><th className="th">Descrição</th><th className="th">Tipo</th><th className="th">Vencimento</th><th className="th">Próxima</th><th className="th text-right">Valor</th><th className="th" /></>}>
+        head={<><th className="th">Descrição</th><th className="th">Tipo</th><th className="th">Vencimento</th><th className="th">Próxima</th>{contas && <th className="th">Conta da próxima</th>}<th className="th text-right">Valor</th><th className="th" /></>}>
         {fixas.map((f) => {
           const prox = proximoVencimento(f, dia);
           return (
@@ -118,6 +123,16 @@ export function ContasFixas() {
               <td className="td"><span className={`rounded border px-1.5 py-px text-xs font-semibold ${f.tipo === "pagar" ? "border-red-300 bg-red-50 text-red-800" : "border-emerald-300 bg-emerald-50 text-emerald-800"}`}>{f.tipo === "pagar" ? "A pagar" : "A receber"}</span></td>
               <td className="td whitespace-nowrap">{rotuloDia(f.dia_vencimento)}, {FREQ[f.frequencia]?.rotulo}{f.fim && <div className="text-xs text-slate-500">até {dataBR(f.fim)}</div>}</td>
               <td className="td whitespace-nowrap">{f.ativo ? (prox ? dataBR(prox) : "encerrada") : <Badge value="desativada" />}</td>
+              {contas && <td className="td">{(() => {
+                if (!f.ativo || !prox || f.tipo !== "pagar") return null;
+                const c = contas.find((x) => x.recorrente_id === f.id && x.vencimento === prox && x.status !== "cancelado");
+                if (!c) {
+                  const lanca = somarDias(-Number(f.antecedencia_dias ?? 45), new Date(`${prox}T12:00:00Z`));
+                  return <span className="text-xs text-slate-500">{lanca > dia ? `o ERP lança em ${dataBR(lanca)}` : "ainda não lançada: toque em \"Lançar o que falta\""}</span>;
+                }
+                const st = situacaoPagar(c, dia);
+                return <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${COR_TOM[st.tom]}`}>{st.texto}</span>;
+              })()}</td>}
               <td className="td text-right font-semibold">{brl(f.valor)}</td>
               <td className="td text-right"><Button variant="secondary" onClick={() => setEditando({ ...f })}>{podeEditar ? <><Pencil size={15} /> Editar</> : "Ver"}</Button></td>
             </tr>
