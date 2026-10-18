@@ -241,6 +241,16 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Painel pessoal: Meu Pluggy (extrato automático, gratuito, uma vez por dia) em Mais → Meu Pluggy; abas Minhas empresas (os CNPJs em linha do tempo, matriz e filiais, situação, abertura, capital, quadro de sócios e o botão Conferir na Receita) e Meus endereços (onde você já morou, com as lembranças).",
     ],
   },
+  "2026-10-18": {
+    titulo: "Ficha técnica nas Máquinas e dados da empresa conferidos com a Receita",
+    itens: [
+      "Máquinas com abas novas: Ficha técnica (as peças de cada máquina por grupo, o custo e as etapas de produção, a mesma da Produção) e Manuais (os documentos de todas as máquinas num lugar só, com o que falta em cada uma: manual, manual elétrico e dicas de manutenção).",
+      "Arrastar para ordenar: os itens da ficha técnica, as etapas de produção e os manuais da máquina mudam de lugar pela alça de 6 pontinhos (mouse ou dedo, também no celular) ou pelas setas do teclado. Solto numa peça de outro grupo, o item passa para aquele grupo. A ordem fica gravada ao salvar a ficha.",
+      "Teste do giga → aba Manual do HG371: o passo a passo de programação do Gigateste, os limites do manual comparados com os do ERP e o botão para usar os valores do manual (só o administrador).",
+      "Configurações → Unidades → Editar → Conferir com a Receita: o ERP consulta a Receita pelo CNPJ e mostra, campo a campo, o que está diferente (razão social, IE, endereço, CNAE, telefone, e-mail) e a situação do CNPJ; você marca o que quer trocar e salva. O CNPJ passa a ser gravado só com os números.",
+      "NFS-e importadas: as notas de serviço da filial SP agora são reconhecidas como dela (o CNPJ da SP estava gravado com pontos e barra e a importação não achava a unidade).",
+    ],
+  },
 };
 
 export type Versao = { numero: string; dia: string; titulo: string; itens: string[]; mudancas: Mudanca[] };

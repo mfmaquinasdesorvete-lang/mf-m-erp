@@ -47,6 +47,8 @@ import { CampoNcm } from "@/components/produtos/SugerirNcm";
 import { EditorEspecificacoes, EditorEtapas, SUGESTOES_ESPEC, SUGESTOES_PECA, type Especificacao } from "@/components/produtos/EditoresMaquina";
 import { FichaProduto } from "@/components/produtos/FichaProduto";
 import { ModelosMaquinas } from "@/components/produtos/ModelosMaquinas";
+import { ManuaisMaquinas } from "@/components/produtos/ManuaisMaquinas";
+import { FichaTecnica } from "@/components/producao/FichaTecnica";
 import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 
 const tipos = [
@@ -148,7 +150,13 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const vis = useVisivel();
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
-  const [aba, setAba] = useAbaUrl<"produtos" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas">("produtos", ["produtos", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"] as const);
+  // Máquinas ganham as abas Ficha técnica e Manuais (?aba=ficha&maquina=<id> abre a ficha daquela máquina)
+  type AbaProdutos = "produtos" | "ficha" | "manuais" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas";
+  const abasValidas: readonly AbaProdutos[] = cadastroFixo === "maquinas"
+    ? ["produtos", "ficha", "manuais", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"]
+    : ["produtos", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"];
+  const [aba, setAba] = useAbaUrl<AbaProdutos>("produtos", abasValidas);
+  const [fichaDe, setFichaDe] = useState<string | undefined>(() => busca.get("maquina") ?? undefined);
   const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
@@ -355,7 +363,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     );
   };
   const abasProdutos = [
-    { value: "produtos" as const, label: "Produtos" },
+    { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
+    ...(ehMaquinas ? [{ value: "ficha" as const, label: "Ficha técnica" }, { value: "manuais" as const, label: "Manuais" }] : []),
     { value: "qualidade" as const, label: "Qualidade" },
     { value: "auditoria" as const, label: "Anúncios" },
     { value: "categorias" as const, label: "Categorias" },
@@ -375,7 +384,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       <div className="hidden md:block">
         <Tabs value={aba} onChange={(a) => { setAba(a); setEditarAgora(null); }} options={abasProdutos} />
       </div>
-      {aba === "tabelas" ? (
+      {aba === "ficha" ? (
+        <FichaTecnica inicial={fichaDe} />
+      ) : aba === "manuais" ? (
+        <ManuaisMaquinas produtos={produtosTodos} podeEditar={pode("editar_produtos") || tem("tecnico")} aoFicha={(id) => { setFichaDe(id); setAba("ficha"); }} />
+      ) : aba === "tabelas" ? (
         <TabelasPreco produtos={produtos} podeEditar={podeMover} />
       ) : aba === "precos" ? (
         <FormacaoPreco categorias={categorias} podeAprovar={podeMover} />

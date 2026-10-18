@@ -1,5 +1,5 @@
 // Teste do giga (registro de qualidade REG-006), na área das máquinas: lançamento rápido na bancada, painel,
-// registros (planilha e PDF no formato do papel) e os limites dos testes. Técnico e administrador lançam;
+// registros (planilha e PDF no formato do papel), os limites dos testes e o manual do equipamento (HG371). Técnico e administrador lançam;
 // o financeiro vê o painel e os registros. Tudo grava pelas funções do banco, com auditoria.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { LancarTeste, type Preenchido } from "@/components/testeGiga/LancarTeste
 import { PainelGiga } from "@/components/testeGiga/PainelGiga";
 import { RegistrosGiga } from "@/components/testeGiga/RegistrosGiga";
 import { ParametrosGiga } from "@/components/testeGiga/ParametrosGiga";
+import { ManualGiga } from "@/components/testeGiga/ManualGiga";
 import type { ContextoGiga, OpGiga } from "@/components/testeGiga/tipos";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { usePerfil } from "@/lib/auth";
@@ -19,7 +20,7 @@ import { diaBrasil, validos, type FiltroTestes, type TesteGiga } from "@/lib/tes
 import { MSG_SEM_BANCO, useParametrosGiga, useTestesGiga } from "@/lib/testeGigaDados";
 import type { Produto } from "@/lib/types";
 
-type Aba = "lancar" | "painel" | "registros" | "parametros";
+type Aba = "lancar" | "painel" | "registros" | "parametros" | "manual";
 const nomeDaMaquina = (p?: Produto | null) => p?.modelo?.trim() || p?.descricao || "Máquina";
 
 export default function TesteGiga() {
@@ -27,7 +28,7 @@ export default function TesteGiga() {
   const podeLancar = pode("lancar_teste_giga");
   const navigate = useNavigate();
   const location = useLocation();
-  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "parametros"] : ["painel", "registros", "parametros"];
+  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "parametros", "manual"] : ["painel", "registros", "parametros", "manual"];
   const [aba, setAba] = useAbaUrl<Aba>(podeLancar ? "lancar" : "painel", abas);
   const { data: cfg } = useConfig();
   const testesQ = useTestesGiga();
@@ -81,6 +82,7 @@ export default function TesteGiga() {
         { value: "painel" as const, label: "Painel" },
         { value: "registros" as const, label: `Registros${validos(testes).length ? ` (${validos(testes).length})` : ""}` },
         { value: "parametros" as const, label: "Parâmetros" },
+        { value: "manual" as const, label: "Manual do HG371" },
       ]} />
 
       {testesQ.data?.semBanco && (
@@ -94,6 +96,7 @@ export default function TesteGiga() {
         {aba === "registros" && <RegistrosGiga key={versaoReg} ctx={ctx} filtroInicial={filtroReg} onReteste={reteste} />}
         {aba === "parametros" && (parQ.isLoading ? <p className="py-8 text-center text-slate-500">Carregando…</p>
           : <ParametrosGiga ctx={ctx} admin={papel === "admin"} revisao={textoPadrao(cfg, "reg006_revisao")} />)}
+        {aba === "manual" && <ManualGiga ctx={ctx} admin={papel === "admin"} />}
       </>}
     </div>
   );

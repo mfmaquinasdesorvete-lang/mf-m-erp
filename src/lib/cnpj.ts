@@ -122,3 +122,63 @@ export function preencherVazios(row: Record<string, any>, dados: Partial<Record<
   }
   return out;
 }
+
+/** Um campo do cadastro da empresa comparado com a Receita. */
+export type ConferenciaCampo = {
+  campo: string; rotulo: string; erp: string; receita: string; igual: boolean;
+  /** já vem marcado para trocar: dado que vai na NF-e (endereço, IE, CNAE) ou campo vazio no ERP */
+  sugerir: boolean;
+};
+
+const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+/** Texto para comparar: sem acento, minúsculo, só letras e números (e "Rua" = "R."). */
+const textoComparavel = (v: unknown) => semAcento(String(v ?? "")).toLowerCase()
+  .replace(/\b(r|av|rod|al|trav|tv|est)\.?\s/g, (m) => ({ r: "rua ", av: "avenida ", rod: "rodovia ", al: "alameda ", trav: "travessa ", tv: "travessa ", est: "estrada " } as Record<string, string>)[m.replace(/\W/g, "")] ?? m)
+  .replace(/[^a-z0-9]/g, "");
+
+/**
+ * Compara o cadastro da unidade (Configurações → Unidades) com os dados públicos da Receita, campo a campo.
+ * Telefone, e-mail e complemento não vêm marcados para trocar (a empresa pode usar outro de propósito).
+ */
+export function conferirComReceita(row: Record<string, any>, d: DadosCnpj): ConferenciaCampo[] {
+  const ie = inscricaoDoEstado(d, row.uf);
+  const secErp = new Set(((row.cnaes_secundarios ?? []) as Atividade[]).map((a) => digitos(a.codigo)));
+  const secRec = d.cnaes_secundarios ?? [];
+  const faltam = secRec.filter((a) => !secErp.has(digitos(a.codigo)));
+  const sobram = [...secErp].filter((c) => !secRec.some((a) => digitos(a.codigo) === c));
+  const linhas: { campo: string; rotulo: string; erp: unknown; receita: unknown; como: "texto" | "numeros" | "email"; fiscal: boolean }[] = [
+    { campo: "razao_social", rotulo: "Razão social", erp: row.razao_social, receita: d.nome, como: "texto", fiscal: true },
+    { campo: "inscricao_estadual", rotulo: "Inscrição estadual", erp: row.inscricao_estadual, receita: ie, como: "numeros", fiscal: true },
+    { campo: "cep", rotulo: "CEP", erp: row.cep, receita: d.cep, como: "numeros", fiscal: true },
+    { campo: "logradouro", rotulo: "Logradouro", erp: row.logradouro, receita: d.logradouro, como: "texto", fiscal: true },
+    { campo: "numero", rotulo: "Número", erp: row.numero, receita: d.numero, como: "texto", fiscal: true },
+    { campo: "complemento", rotulo: "Complemento", erp: row.complemento, receita: d.complemento, como: "texto", fiscal: false },
+    { campo: "bairro", rotulo: "Bairro", erp: row.bairro, receita: d.bairro, como: "texto", fiscal: true },
+    { campo: "municipio", rotulo: "Município", erp: row.municipio, receita: d.municipio, como: "texto", fiscal: true },
+    { campo: "uf", rotulo: "UF", erp: row.uf, receita: d.uf, como: "texto", fiscal: true },
+    { campo: "telefone", rotulo: "Telefone", erp: row.telefone, receita: d.telefone, como: "numeros", fiscal: false },
+    { campo: "email", rotulo: "E-mail", erp: row.email, receita: d.email, como: "email", fiscal: false },
+    { campo: "cnae_principal", rotulo: "CNAE principal", erp: row.cnae_principal, receita: d.cnae ? `${d.cnae.codigo} ${d.cnae.descricao}`.trim() : null, como: "numeros", fiscal: true },
+  ];
+  const norm = (v: unknown, como: string) => como === "numeros" ? digitos(String(v ?? ""))
+    : como === "email" ? String(v ?? "").trim().toLowerCase() : textoComparavel(v);
+  const out: ConferenciaCampo[] = linhas
+    .filter((l) => l.receita != null && String(l.receita).trim() !== "")
+    .map((l) => {
+      const erp = String(l.erp ?? "").trim(), receita = String(l.receita ?? "").trim();
+      // CNAE: compara só os 7 números do código (a Receita manda o código e a descrição)
+      const a = l.campo === "cnae_principal" ? digitos(erp).slice(0, 7) : norm(erp, l.como);
+      const b = l.campo === "cnae_principal" ? digitos(d.cnae?.codigo).slice(0, 7) : norm(receita, l.como);
+      const igual = a === b;
+      return { campo: l.campo, rotulo: l.rotulo, erp, receita, igual, sugerir: !igual && (l.fiscal || !erp) };
+    });
+  if (secRec.length || secErp.size) {
+    out.push({
+      campo: "cnaes_secundarios", rotulo: "CNAEs secundários",
+      erp: `${secErp.size} no ERP${sobram.length ? ` (${sobram.length} que a Receita não tem)` : ""}`,
+      receita: `${secRec.length} na Receita${faltam.length ? `; faltam no ERP: ${faltam.map((a) => a.codigo).join(", ")}` : ""}`,
+      igual: !faltam.length && !sobram.length, sugerir: !!(faltam.length || sobram.length),
+    });
+  }
+  return out;
+}

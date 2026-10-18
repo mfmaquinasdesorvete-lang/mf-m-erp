@@ -1,12 +1,12 @@
 // Configurações → Unidades: matriz SC e filial SP (CNPJ, IE, CNAE e endereço). Os impostos da nota ficam em
 // Notas fiscais → Configurações da NF-e.
 import { useEffect, useState, type FormEvent } from "react";
-import { Building2, Pencil, Search } from "lucide-react";
+import { Building2, CheckCircle2, Landmark, Pencil, Search } from "lucide-react";
 import { Badge, Button, Field, Modal } from "./ui";
 import { useSave } from "@/lib/data";
-import { docFormat } from "@/lib/format";
+import { digitos, docFormat } from "@/lib/format";
 import { buscarCep } from "@/lib/cep";
-import { buscarCnpj, cnaesDoTexto, cnaesEmTexto, inscricaoDoEstado, preencherVazios, type DadosCnpj } from "@/lib/cnpj";
+import { buscarCnpj, cnaesDoTexto, cnaesEmTexto, conferirComReceita, inscricaoDoEstado, preencherVazios, type ConferenciaCampo, type DadosCnpj } from "@/lib/cnpj";
 import { cnaeFormatado } from "../../supabase/functions/_shared/receita";
 import { notify, notifyError } from "@/lib/notify";
 import { useUnidade, type Unidade } from "@/lib/unidade";
@@ -62,6 +62,8 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
   const [u, setU] = useState<Record<string, any>>(unidade);
   const [secundarios, setSecundarios] = useState(() => cnaesEmTexto(unidade.cnaes_secundarios));
   const [buscando, setBuscando] = useState(false);
+  const [conferencia, setConferencia] = useState<{ itens: ConferenciaCampo[]; dados: DadosCnpj } | null>(null);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const save = useSave("unidades");
   const set = (k: string) => (e: { target: { value: string } }) => setU({ ...u, [k]: e.target.value });
   const chk = (k: string, label: string) => (
@@ -89,6 +91,35 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
       if (aplicarCnae(d, trocar)) notify(`CNAE preenchido pela Receita Federal (${d.cnaes_secundarios?.length ?? 0} secundários). Confira e salve.`);
     } finally { setBuscando(false); }
   }
+  /** Dados da empresa: compara tudo com a Receita e mostra o que está diferente (nada muda sem a pessoa escolher). */
+  async function conferir() {
+    if (digitos(u.cnpj).length !== 14) return notifyError("Informe o CNPJ da unidade (14 números)");
+    setBuscando(true);
+    try {
+      const d = await buscarCnpj(u.cnpj);
+      if (!d) return notifyError("A Receita não respondeu agora; tente de novo em um minuto");
+      const linha = { ...u, cnaes_secundarios: cnaesDoTexto(secundarios) };
+      const itens = conferirComReceita(linha, d);
+      setConferencia({ itens, dados: d });
+      setMarcados(new Set(itens.filter((c) => c.sugerir).map((c) => c.campo)));
+    } finally { setBuscando(false); }
+  }
+  function usarMarcados() {
+    if (!conferencia) return;
+    const d = conferencia.dados;
+    const novo: Record<string, any> = {};
+    for (const campo of marcados) {
+      if (campo === "razao_social") novo.razao_social = d.nome;
+      else if (campo === "inscricao_estadual") novo.inscricao_estadual = inscricaoDoEstado(d, u.uf);
+      else if (campo === "cnae_principal" && d.cnae) { novo.cnae_principal = d.cnae.codigo; novo.cnae_principal_descricao = d.cnae.descricao; }
+      else if (campo === "cnaes_secundarios") setSecundarios(cnaesEmTexto(d.cnaes_secundarios));
+      else novo[campo] = (d as Record<string, unknown>)[campo] ?? null;
+    }
+    setU((x) => ({ ...x, ...novo }));
+    setConferencia(null);
+    notify(`${marcados.size} ${marcados.size === 1 ? "campo trocado" : "campos trocados"} pelo da Receita. Confira e clique em Salvar.`);
+  }
+
   // unidade ainda sem CNAE: já busca ao abrir
   useEffect(() => { if (!unidade.cnae_principal && unidade.cnpj) void buscarAtividades(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -97,6 +128,8 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
     try {
       const { created_at: _c, ...row } = u;
       for (const k of NUMEROS) row[k] = Number(row[k] || 0);
+      // CNPJ só com os números (a busca das notas e da Focus compara assim)
+      if (row.cnpj) row.cnpj = digitos(row.cnpj);
       row.uf = row.uf?.toUpperCase();
       const linhas = secundarios.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       const lista = cnaesDoTexto(secundarios);
@@ -114,6 +147,14 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
   return (
     <Modal open wide onClose={onClose} title={`Unidade: ${unidade.nome}`}>
       <form onSubmit={salvar}>
+          <section className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900" aria-label="Conferir com a Receita Federal">
+            <div className="flex flex-wrap items-center gap-2">
+              <Landmark size={18} className="shrink-0" aria-hidden />
+              <p className="min-w-0 flex-1 basis-60"><b>Dados da empresa.</b> O ERP consulta a Receita Federal pelo CNPJ e mostra, campo a campo, o que está diferente daqui. Nada muda sem você escolher.</p>
+              <Button type="button" variant="secondary" disabled={buscando} onClick={() => void conferir()}><Search size={15} /> {buscando ? "Consultando…" : "Conferir com a Receita"}</Button>
+            </div>
+            {conferencia && <ResultadoConferencia c={conferencia} marcados={marcados} setMarcados={setMarcados} onUsar={usarMarcados} onFechar={() => setConferencia(null)} />}
+          </section>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             {campo("nome", "Nome no ERP", "sm:col-span-2")}
             {campo("codigo", "Sigla")}
@@ -161,5 +202,41 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** O que a Receita tem x o que está no ERP: os diferentes com a caixinha para trocar; os iguais num resumo. */
+function ResultadoConferencia({ c, marcados, setMarcados, onUsar, onFechar }: {
+  c: { itens: ConferenciaCampo[]; dados: DadosCnpj }; marcados: Set<string>; setMarcados: (s: Set<string>) => void; onUsar: () => void; onFechar: () => void;
+}) {
+  const diferentes = c.itens.filter((x) => !x.igual), iguais = c.itens.filter((x) => x.igual);
+  const ativa = /ATIVA/i.test(c.dados.situacao ?? "");
+  const marcar = (campo: string, sim: boolean) => { const n = new Set(marcados); if (sim) n.add(campo); else n.delete(campo); setMarcados(n); };
+  return (
+    <div className="mt-3 space-y-3 rounded-lg bg-surface p-3 text-fg">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {c.dados.situacao && <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${ativa ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>Situação na Receita: {c.dados.situacao}</span>}
+        <span className="text-slate-600"><b className="text-emerald-700">{iguais.length} iguais</b> · <b className={diferentes.length ? "text-amber-700" : "text-emerald-700"}>{diferentes.length} diferentes</b></span>
+      </div>
+      {!ativa && c.dados.situacao && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-800">O CNPJ não está ativo na Receita: a NF-e é recusada. Fale com o contador.</p>}
+      {diferentes.length > 0 ? (
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          {diferentes.map((x) => (
+            <li key={x.campo} className="grid gap-1 px-3 py-2 sm:grid-cols-[auto_9rem_1fr_1fr] sm:items-start sm:gap-3">
+              <input type="checkbox" className="mt-1 h-4 w-4" checked={marcados.has(x.campo)} onChange={(e) => marcar(x.campo, e.target.checked)} aria-label={`Trocar ${x.rotulo} pelo da Receita`} />
+              <b className="text-sm">{x.rotulo}</b>
+              <span className="min-w-0 break-words text-sm"><span className="block text-[11px] font-semibold uppercase text-slate-500">No ERP</span>{x.erp || <i className="text-slate-400">vazio</i>}</span>
+              <span className="min-w-0 break-words text-sm"><span className="block text-[11px] font-semibold uppercase text-slate-500">Na Receita</span>{x.receita}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700"><CheckCircle2 size={16} aria-hidden /> Tudo igual à Receita.</p>}
+      {iguais.length > 0 && <p className="text-xs text-slate-500">Iguais: {iguais.map((x) => x.rotulo).join(", ")}.</p>}
+      <p className="text-xs text-slate-500">Telefone, e-mail e complemento vêm desmarcados: a empresa pode usar outros de propósito. Inscrição municipal e série da NF-e não estão na Receita.</p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onFechar}>Fechar</Button>
+        {diferentes.length > 0 && <Button type="button" disabled={!marcados.size} onClick={onUsar}>Usar os {marcados.size} marcados</Button>}
+      </div>
+    </div>
   );
 }

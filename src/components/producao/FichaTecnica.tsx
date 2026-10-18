@@ -8,9 +8,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, ChevronRight, Factory, Layers, ListOrdered, Plus, Search, Trash2, Truck } from "lucide-react";
 import { Button, Card, Field, Tabs } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
+import { AlcaArrastar, useArrastar } from "@/components/Arrastar";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
+import { moverNaLista, pelaOrdem } from "@/lib/arrastar";
 import { brl, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -23,7 +25,7 @@ import {
 } from "@/lib/fichaGrupos";
 import type { EtapaProducao, KitComponente, Produto } from "@/lib/types";
 
-type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number; grupo?: string | null };
+type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number; grupo?: string | null; ordem?: number | null };
 type Visao = "pecas" | "etapas";
 
 const qtd = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -41,12 +43,13 @@ const MODELO_TERCEIRO: EtapaProducao[] = [
   { nome: "Receber da injeção e conferir" }, { nome: "Acabamento (aqui na fábrica)" },
 ];
 
-export function FichaTecnica() {
+/** `inicial`: a máquina (ou peça) que abre primeiro, ex.: vindo do cartão da máquina. */
+export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
   const { pode } = usePerfil();
   const editavel = pode("editar_producao");
   const invalidate = useInvalidate();
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const { data: todas = [] } = useRows<LinhaFicha & { grupo?: string | null }>("produto_componentes", { select: "produto_id, componente_id, quantidade, grupo", order: "produto_id" });
+  const { data: todas = [] } = useRows<LinhaFicha & { grupo?: string | null; ordem?: number | null }>("produto_componentes", { select: "produto_id, componente_id, quantidade, grupo, ordem", order: "produto_id" });
   // kit na ficha (Chave Extratora, Mecânica…) sai pelas peças dele e entra no custo por elas
   const { data: kits = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const vale = (p: Produto) => p.ativo && !p.unificado_em;
@@ -55,7 +58,8 @@ export function FichaTecnica() {
   const fabricados = produtos.filter((p) => p.tipo !== "maquina" && (novos.includes(p.id) || (vale(p)
     && (temFicha(todas, p.id) || !!p.subconjunto_estocado || p.origem_producao === "fabricado" || p.origem_producao === "terceirizado"))));
   const [busca, setBusca] = useState("");
-  const [selId, setSelId] = useState<string>("");
+  const [selId, setSelId] = useState<string>(inicial ?? "");
+  useEffect(() => { if (inicial) setSelId(inicial); }, [inicial]);
   const item = produtos.find((p) => p.id === (selId || maquinas[0]?.id || fabricados[0]?.id));
   const { data: comps } = useQuery({
     queryKey: ["produto_componentes", item?.id],
@@ -63,7 +67,7 @@ export function FichaTecnica() {
     queryFn: async () => {
       const { data, error } = await supabase.from("produto_componentes").select("*").eq("produto_id", item!.id);
       if (error) throw error;
-      return data as Componente[];
+      return pelaOrdem(data as Componente[]);
     },
   });
   const [lista, setLista] = useState<Componente[]>([]);
@@ -92,10 +96,29 @@ export function FichaTecnica() {
   const nNiveis = item ? niveis(fichas, item.id) : 0;
 
   const mudarLista = (l: Componente[]) => { setLista(l); setMudou(true); };
+  // arrastar: solto em cima de uma peça de outro grupo, o item passa para aquele grupo; no título do grupo, vai para o começo dele
+  const arrastar = useArrastar(({ de, para, depois }) => {
+    const i = lista.findIndex((c) => c.componente_id === de);
+    if (i < 0) return;
+    const doGrupo = para.startsWith("grupo:") ? para.slice(6) : null;
+    const destino = doGrupo ? linhas.find((l) => l.grupo === doGrupo) : linhas.find((l) => l.c.componente_id === para);
+    const grupo = doGrupo ?? destino?.grupo;
+    if (!grupo) return;
+    const nova = grupo !== linhas[i].grupo ? lista.map((c, j) => (j === i ? { ...c, grupo } : c)) : lista;
+    mudarLista(destino ? moverNaLista(nova, i, destino.k, doGrupo ? false : depois) : nova);
+  }, (id, passo) => {
+    // setas do teclado: troca com a peça vizinha do mesmo grupo
+    const l = linhas.find((x) => x.c.componente_id === id);
+    if (!l) return;
+    const doGrupo = linhas.filter((x) => x.grupo === l.grupo);
+    const vizinha = doGrupo[doGrupo.findIndex((x) => x.k === l.k) + passo];
+    if (vizinha) mudarLista(moverNaLista(lista, l.k, vizinha.k, passo === 1));
+  });
   async function salvar() {
     try {
-      const ids = await sincronizarItens("produto_componentes", "produto_id", item!.id, lista,
-        (c) => ({ componente_id: c.componente_id, quantidade: c.quantidade, grupo: c.grupo ?? null }), { chaveNatural: "componente_id" });
+      // a ordem da tela (arrastada) vai junto
+      const ids = await sincronizarItens("produto_componentes", "produto_id", item!.id, lista.map((c, k) => ({ ...c, ordem: k })),
+        (c) => ({ componente_id: c.componente_id, quantidade: c.quantidade, grupo: c.grupo ?? null, ordem: c.ordem }), { chaveNatural: "componente_id" });
       setLista(lista.map((c, k) => ({ ...c, id: ids[k] || c.id })));
       setMudou(false);
       notify("Ficha técnica salva");
@@ -255,6 +278,8 @@ export function FichaTecnica() {
                 const fechado = fechados.has(g.id);
                 return (
                   <Card key={g.id} className={`border-l-4 ${g.borda} p-0`}>
+                    <div {...arrastar.linha(`grupo:${g.id}`)} className={`relative rounded-t-xl ${arrastar.arrastando && !doGrupo.some((l) => l.c.componente_id === arrastar.arrastando) ? "bg-slate-50" : ""}`}>
+                    {arrastar.marca(`grupo:${g.id}`)}
                     <button type="button" aria-expanded={!fechado}
                       onClick={() => setFechados((s) => { const n = new Set(s); if (n.has(g.id)) n.delete(g.id); else n.add(g.id); return n; })}
                       className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left">
@@ -265,6 +290,7 @@ export function FichaTecnica() {
                       </span>
                       <span className="text-sm"><b className="num text-fg">{brl(info.custo)}</b> <span className="text-slate-500">· {pct(info.pct)} do custo</span></span>
                     </button>
+                    </div>
                     {!fechado && (
                       <ul className="divide-y divide-slate-100 border-t border-slate-100 px-4" aria-label={`Peças do grupo ${g.nome}`}>
                         {doGrupo.map(({ c, k, peca, custoUn }) => {
@@ -273,8 +299,10 @@ export function FichaTecnica() {
                           const nome = peca?.descricao ?? "Peça";
                           const origem = ORIGENS.find((o) => o.id === peca?.origem_producao);
                           return (
-                            <li key={c.componente_id} className="py-2.5">
-                              <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[1fr_auto_auto_auto]">
+                            <li key={c.componente_id} {...arrastar.linha(c.componente_id)} className={`relative py-2.5 ${arrastar.apagada(c.componente_id) ? "opacity-40" : ""}`}>
+                              {arrastar.marca(c.componente_id)}
+                              <div className={`grid items-center gap-x-2 gap-y-1.5 ${editavel ? "grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto_auto]" : "grid-cols-[1fr_auto] sm:grid-cols-[1fr_auto_auto_auto]"}`}>
+                                {editavel && <span className="row-span-2 self-start sm:row-span-1 sm:self-center"><AlcaArrastar nome={nome} {...arrastar.alca(c.componente_id)} /></span>}
                                 <span className="min-w-0 text-sm text-fg">
                                   <span className="flex items-start gap-1">
                                     {sub && (
@@ -378,7 +406,8 @@ function Etapas({ produto, editavel, onSalvar }: { produto: Produto; editavel: b
   const [mudou, setMudou] = useState(false);
   const mudar = (l: EtapaProducao[]) => { setEtapas(l); setMudou(true); };
   const set = (i: number, p: Partial<EtapaProducao>) => mudar(etapas.map((e, j) => (j === i ? { ...e, ...p } : e)));
-  const mover = (i: number, d: -1 | 1) => { const l = [...etapas]; [l[i], l[i + d]] = [l[i + d], l[i]]; mudar(l); };
+  const mover = (i: number, d: -1 | 1) => { if (i + d < 0 || i + d >= etapas.length) return; const l = [...etapas]; [l[i], l[i + d]] = [l[i + d], l[i]]; mudar(l); };
+  const arrastar = useArrastar(({ de, para, depois }) => mudar(moverNaLista(etapas, Number(de), Number(para), depois)), (id, passo) => mover(Number(id), passo));
   const fora = etapas.filter((e) => e.externa);
   const dias = fora.reduce((s, e) => s + Number(e.dias ?? 0), 0);
   const modelo = produto.tipo === "maquina" ? MODELO_MAQUINA : MODELO_TERCEIRO;
@@ -398,8 +427,10 @@ function Etapas({ produto, editavel, onSalvar }: { produto: Produto; editavel: b
       )}
       <ol className="space-y-2">
         {etapas.map((e, i) => (
-          <li key={i} className={`rounded-xl border p-3 ${e.externa ? "border-orange-200 bg-orange-50" : "border-slate-200"}`}>
+          <li key={i} {...arrastar.linha(String(i))} className={`relative rounded-xl border p-3 ${e.externa ? "border-orange-200 bg-orange-50" : "border-slate-200"} ${arrastar.apagada(String(i)) ? "opacity-40" : ""}`}>
+            {arrastar.marca(String(i))}
             <div className="flex flex-wrap items-center gap-2">
+              {editavel && <AlcaArrastar nome={e.nome || `etapa ${i + 1}`} {...arrastar.alca(String(i))} />}
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${e.externa ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-700"}`} aria-hidden>{i + 1}</span>
               <label className="min-w-0 flex-1 basis-48">
                 <span className="sr-only">Etapa {i + 1}</span>
@@ -446,7 +477,7 @@ function SubArvore({ fichas, produtos, id, mult, nivel, caminho }: { fichas: Lin
   if (nivel > 12) return null;
   return (
     <ul className="ml-3 mt-1 space-y-1 border-l-2 border-slate-200 pl-3" aria-label="Peças do subconjunto">
-      {fichas.filter((f) => f.produto_id === id && !caminho.slice(0, -1).includes(f.componente_id)).map((f) => {
+      {pelaOrdem(fichas.filter((f) => f.produto_id === id && !caminho.slice(0, -1).includes(f.componente_id)) as (LinhaFicha & { ordem?: number | null })[]).map((f) => {
         const p = produtos.find((x) => x.id === f.componente_id);
         const sub = temFicha(fichas, f.componente_id);
         const q = mult * Number(f.quantidade);
