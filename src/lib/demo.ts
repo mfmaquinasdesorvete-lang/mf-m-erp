@@ -16,6 +16,7 @@ import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, t
 import { gerarLinhaBancaria } from "./boleto";
 import { analisarAprovacao, cargaComparavel, freteDivergente, totalCotacao, type CotacaoEnvio, type Envio } from "./fretes";
 import { gerarParcelas } from "./parcelamentos";
+import { totaisOc, type ItemOc } from "./ordemCompra";
 import { ultimoDiaUtil } from "./obrigacoes";
 import { conferirAgendamento, frequenciaDe, type FrequenciaColeta } from "./coleta";
 import { faltaParaCotarRte } from "../../supabase/functions/_shared/rodonaves";
@@ -1769,7 +1770,7 @@ function recalcular(db: Db) {
   }
   for (const i of [...db.pedido_itens, ...db.os_itens]) i.valor_total = r2(i.quantidade * i.valor_unitario);
   for (const pc of db.pedidos_compra ?? []) {
-    pc.valor_total = r2(db.pedido_compra_itens.filter((i) => i.pedido_compra_id === pc.id).reduce((s, i) => s + i.quantidade * i.custo_unitario, 0) + Number(pc.frete || 0));
+    pc.valor_total = totaisOc(db.pedido_compra_itens.filter((i) => i.pedido_compra_id === pc.id) as ItemOc[], pc).total;
   }
 }
 
@@ -4453,6 +4454,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
     if (!pc || ["recebido", "cancelado"].includes(pc.status)) return erro("pedido já finalizado");
     let valor = 0;
+    const primeira = !db.pedido_compra_itens.some((i) => i.pedido_compra_id === pc.id && i.quantidade_recebida > 0);
     for (const it of p_itens) {
       const item = db.pedido_compra_itens.find((i) => i.id === it.item_id);
       const q = Number(it.quantidade) || 0;
@@ -4461,13 +4463,27 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       movimentar(item.produto_id, "entrada", q, `Pedido de compra #${pc.numero}`, { unidade_id: pc.unidade_id });
       if (item.custo_unitario > 0) db.produtos.find((p) => p.id === item.produto_id)!.preco_custo = item.custo_unitario;
       item.quantidade_recebida += q;
-      valor += q * item.custo_unitario;
+      valor += totaisOc([{ custo_unitario: Number(item.custo_unitario), ipi_aliquota: item.ipi_aliquota, quantidade: q, icms_st_valor: Number(item.icms_st_valor || 0) * q / item.quantidade }], {}).total;
     }
     const completo = db.pedido_compra_itens.filter((i) => i.pedido_compra_id === pc.id).every((i) => i.quantidade_recebida >= i.quantidade);
     pc.status = completo ? "recebido" : "parcial";
     if (completo) pc.recebido_em = quando(0);
+    if (completo) valor += Number(pc.frete || 0) + Number(pc.outras_despesas || 0) - Number(pc.desconto || 0);
+    const base = { fornecedor_id: pc.fornecedor_id, unidade_id: pc.unidade_id, categoria: pc.categoria || "fornecedores", documento: `PC ${pc.numero}`, status: "aberto", forma_pagamento_id: pc.forma_pagamento_id ?? null };
     if (p_gerar_conta && valor > 0) {
-      db.contas_pagar.push({ id: uid(), descricao: `Pedido de compra #${pc.numero}`, fornecedor_id: pc.fornecedor_id, unidade_id: pc.unidade_id, categoria: "fornecedores", documento: `PC ${pc.numero}`, valor: r2(valor + (completo ? Number(pc.frete || 0) : 0)), vencimento: p_vencimento ?? dias(30), status: "aberto" });
+      const parc = (pc.parcelas ?? []) as { vencimento: string; valor: number }[];
+      if (parc.length && completo && primeira) {
+        // como no banco: uma conta por parcela, a última acerta os centavos
+        const soma = parc.reduce((t, x) => t + Number(x.valor || 0), 0);
+        let usado = 0;
+        parc.forEach((x, k) => {
+          const v = k === parc.length - 1 ? r2(valor - usado) : r2(soma > 0 ? valor * Number(x.valor || 0) / soma : valor / parc.length);
+          usado += v;
+          db.contas_pagar.push({ id: uid(), ...base, descricao: `Pedido de compra #${pc.numero} (${k + 1}/${parc.length})`, valor: v, vencimento: x.vencimento || p_vencimento || dias(30 * (k + 1)) });
+        });
+      } else {
+        db.contas_pagar.push({ id: uid(), ...base, descricao: `Pedido de compra #${pc.numero}`, valor: r2(valor), vencimento: p_vencimento ?? dias(30) });
+      }
     }
     return { data: pc.status, error: null };
   },

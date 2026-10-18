@@ -15,6 +15,7 @@ import logoPdf from "@/assets/logo-pdf.jpg";
 import { logoDaEmpresa } from "./marca";
 import { pl } from "@/lib/format";
 import { agruparPorTerceiro } from "./pagarTiny";
+import { nomeFretePorConta, type ParcelaOc, type TotaisOc } from "./ordemCompra";
 
 const logoCache = new Map<string, Promise<string | null>>();
 /**
@@ -432,8 +433,10 @@ export async function pdfOS(o: {
 // ---------------------------------------------------------------------
 export async function pdfPedidoCompra(pc: {
   numero?: number; status: string; fornecedor?: { nome: string; cnpj: string | null } | null;
-  itens: { descricao: string; quantidade: number; custo_unitario: number; unidade?: string }[];
+  itens: { descricao: string; quantidade: number; custo_unitario: number; unidade?: string; ipi_aliquota?: number | null; icms_st_valor?: number | null; informacoes?: string | null }[];
   frete: number; previsao_entrega?: string | null; condicao_pagamento?: string | null; observacoes?: string | null;
+  /** campos da OC como no Tiny */
+  data?: string | null; numero_fornecedor?: string | null; totais?: TotaisOc; parcelas?: ParcelaOc[]; frete_por_conta?: string | null; transportadora?: string | null;
 }, cfg: Config) {
   const { doc, autoTable, logo } = await novoDoc();
   const cotacao = pc.status === "cotacao";
@@ -446,31 +449,48 @@ export async function pdfPedidoCompra(pc: {
   doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42);
   doc.text(`${pc.fornecedor?.nome ?? "A definir"}${pc.fornecedor?.cnpj ? `  ·  CNPJ ${docFormat(pc.fornecedor.cnpj)}` : ""}`, 18, y + 10.5);
   doc.setFont("helvetica", "normal");
+  // data da OC e o nº do pedido/orçamento no fornecedor, à direita
+  const extra = [pc.data ? `Data ${dataBR(pc.data)}` : "", pc.numero_fornecedor ? `Seu nº ${pc.numero_fornecedor}` : ""].filter(Boolean).join("  ·  ");
+  if (extra) { doc.setFontSize(8.5); doc.setTextColor(...CINZA); doc.text(extra, w - 18, y + 5, { align: "right" }); doc.setTextColor(15, 23, 42); }
   y += 20;
 
+  // IPI e ICMS ST só aparecem quando algum item tem
+  const comIpi = pc.itens.some((i) => Number(i.ipi_aliquota) > 0), comSt = pc.itens.some((i) => Number(i.icms_st_valor) > 0);
+  const totalItem = (i: (typeof pc.itens)[number]) => i.quantidade * i.custo_unitario * (1 + Number(i.ipi_aliquota || 0) / 100) + Number(i.icms_st_valor || 0);
   autoTable(doc, {
     startY: y,
-    head: [cotacao ? ["Item", "Qtd", "Preço unitário", "Total"] : ["Item", "Qtd", "Custo unitário", "Total"]],
-    body: pc.itens.map((i) => [i.descricao, `${i.quantidade} ${i.unidade ?? ""}`.trim(),
-      cotacao && !i.custo_unitario ? "" : brl(i.custo_unitario), cotacao && !i.custo_unitario ? "" : brl(i.quantidade * i.custo_unitario)]),
+    head: [[ "Item", "Qtd", cotacao ? "Preço unitário" : "Custo unitário", ...(comIpi ? ["IPI %"] : []), ...(comSt ? ["ICMS ST"] : []), "Total"]],
+    body: pc.itens.map((i) => [i.informacoes ? `${i.descricao}\n${i.informacoes}` : i.descricao, `${i.quantidade} ${i.unidade ?? ""}`.trim(),
+      cotacao && !i.custo_unitario ? "" : brl(i.custo_unitario),
+      ...(comIpi ? [Number(i.ipi_aliquota) ? `${Number(i.ipi_aliquota).toLocaleString("pt-BR")}%` : ""] : []),
+      ...(comSt ? [Number(i.icms_st_valor) ? brl(Number(i.icms_st_valor)) : ""] : []),
+      cotacao && !i.custo_unitario ? "" : brl(totalItem(i))]),
     styles: { fontSize: 9, cellPadding: 2.5, textColor: [30, 41, 59], minCellHeight: cotacao ? 9 : 0 },
     headStyles: { fillColor: NAVY, textColor: 255 },
     alternateRowStyles: { fillColor: [246, 248, 251] },
-    columnStyles: { 1: { halign: "center", cellWidth: 22 }, 2: { halign: "right", cellWidth: 32 }, 3: { halign: "right", cellWidth: 32 } },
+    columnStyles: { 1: { halign: "center", cellWidth: 22 }, 2: { halign: "right", cellWidth: 30 }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
     margin: { left: 14, right: 14 },
   });
   y = (doc as any).lastAutoTable.finalY + 6;
-  if (y > 260) { doc.addPage(); y = 20; }
+  if (y > 250) { doc.addPage(); y = 20; }
   if (!cotacao) {
-    const total = pc.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0) + Number(pc.frete || 0);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-    doc.text(`Total${pc.frete ? ` (com frete de ${brl(pc.frete)})` : ""}: ${brl(total)}`, w - 14, y, { align: "right" });
+    const t = pc.totais ?? { produtos: pc.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0), ipi: 0, st: 0, frete: Number(pc.frete || 0), outras: 0, desconto: 0,
+      total: pc.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0) + Number(pc.frete || 0) };
+    const partes: [string, number][] = [["Produtos", t.produtos], ["IPI", t.ipi], ["ICMS ST", t.st], ["Frete", t.frete], ["Outras despesas", t.outras], ["Desconto", -t.desconto]];
+    doc.setFontSize(9); doc.setTextColor(...CINZA);
+    for (const [rotulo, v] of partes.filter(([r, v]) => r === "Produtos" || v)) {
+      doc.text(`${rotulo}: ${v < 0 ? "− " : ""}${brl(Math.abs(v))}`, w - 14, y, { align: "right" }); y += 4.5;
+    }
+    doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text(`Total da OC: ${brl(t.total)}`, w - 14, y + 1, { align: "right" });
     doc.setFont("helvetica", "normal");
-    y += 8;
+    y += 9;
   }
   if (cotacao) y = paragrafo(doc, "Pedimos", textoPadrao(cfg, "oc_cotacao"), y);
   if (pc.previsao_entrega) y = paragrafo(doc, "Entrega desejada", dataBR(pc.previsao_entrega), y);
   if (pc.condicao_pagamento) y = paragrafo(doc, "Condição de pagamento", pc.condicao_pagamento, y);
+  if (!cotacao && pc.parcelas?.length) y = paragrafo(doc, "Parcelas", pc.parcelas.map((x, k) => `${k + 1}ª ${dataBR(x.vencimento)}: ${brl(x.valor)}${x.observacao ? ` (${x.observacao})` : ""}`).join("   ·   "), y);
+  if (pc.transportadora || pc.frete_por_conta) y = paragrafo(doc, "Transporte", [pc.transportadora, nomeFretePorConta(pc.frete_por_conta)].filter(Boolean).join(" · "), y);
   if (pc.observacoes) y = paragrafo(doc, "Observações", pc.observacoes, y);
   if (textoPadrao(cfg, "oc_condicoes")) y = paragrafo(doc, "Condições de fornecimento", textoPadrao(cfg, "oc_condicoes"), y);
   paragrafo(doc, "Entregar em", [cfg.razao_social, cfg.endereco, cfg.municipio && `${cfg.municipio}/${cfg.uf ?? ""}`].filter(Boolean).join(" - "), y);

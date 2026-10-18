@@ -228,11 +228,19 @@ export type Necessidade = {
   /** subconjunto com estoque próprio: falta vira OP do subconjunto, não compra */
   subconjunto?: boolean;
 };
-export type ItemCompra = { id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number };
+export type ItemCompra = {
+  id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number;
+  /** IPI (%), ICMS ST (R$ da linha) e informações do item, como na OC do Tiny */
+  ipi_aliquota?: number | null; icms_st_valor?: number | null; informacoes?: string | null;
+};
 export type PedidoCompra = {
   /** marcadores coloridos (public.marcadores) */
   marcadores?: string[] | null;
   id: string; numero: number; fornecedor_id: string | null; ordem_producao_id: string | null; status: string; previsao_entrega: string | null;
   condicao_pagamento: string | null; frete: number; valor_total: number; observacoes: string | null; created_at: string;
   fornecedor?: Fornecedor | null; itens?: ItemCompra[];
+  /** campos da OC como no Tiny (vazios nas OC antigas) */
+  data?: string | null; numero_fornecedor?: string | null; categoria?: string | null; desconto?: number | null; outras_despesas?: number | null;
+  forma_pagamento_id?: string | null; parcelas?: { vencimento: string; valor: number; observacao?: string | null }[] | null;
+  transportadora_id?: string | null; frete_por_conta?: string | null; observacoes_internas?: string | null; unidade_id?: string | null;
 };

@@ -16,6 +16,8 @@ import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
 import { NotasDaOc } from "@/components/compras/NotasDaOc";
+import { DadosOc, ObservacoesOc, PagamentoOc, TotaisDaOc, TransporteOc } from "@/components/compras/CamposOc";
+import { totaisOc } from "@/lib/ordemCompra";
 import { Historico } from "@/components/Historico";
 import { usePerfil } from "@/lib/auth";
 import type { EtapaOp, Fornecedor, ItemCompra, Necessidade, OrdemProducao, PedidoCompra, Produto } from "@/lib/types";
@@ -572,10 +574,11 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
         </div>
       </div>
       <Table empty={!isLoading && !lista.length}
-        head={<><th className="th">Nº</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
+        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((p) => (
           <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
-            <td className="td font-bold text-fg">#{p.numero}</td>
+            <td className="td font-bold text-fg">#{p.numero}{p.numero_fornecedor && <span className="block text-xs font-normal text-slate-500">nº forn. {p.numero_fornecedor}</span>}</td>
+            <td className="td num whitespace-nowrap">{dataBR(p.data ?? p.created_at?.slice(0, 10))}</td>
             <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}
               <div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td text-slate-600">{(p.itens ?? []).slice(0, 2).map((i) => i.descricao).join(", ")}{(p.itens?.length ?? 0) > 2 ? ` +${p.itens!.length - 2}` : ""}</td>
@@ -606,6 +609,8 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const fornecedores = semUnificados(fornecedoresTodos);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  const { data: transportadoras = [] } = useRows<{ id: string; nome: string }>("transportadoras", { order: "nome", ascending: true });
+  const transportadoraNome = transportadoras.find((t) => t.id === p.transportadora_id)?.nome ?? null;
   const { data: cfg } = useConfig();
   const { unidades, padrao } = useUnidade();
   const invalidate = useInvalidate();
@@ -616,13 +621,16 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
   const destino = unidades.find((u) => u.id === unidadeId);
   // WhatsApp do fornecedor; sem ele, o celular do cadastro; sem nenhum, abre o WhatsApp para escolher o contato
   const foneWhats = fornecedor?.whatsapp || (String(fornecedor?.telefone ?? "").replace(/\D/g, "").length >= 10 ? fornecedor?.telefone : null);
-  const subtotal = p.itens.reduce((s, i) => s + i.quantidade * i.custo_unitario, 0);
+  const totais = totaisOc(p.itens, p);
   const set = (x: Partial<PedidoCompra> & { itens?: ItemCompra[] }) => setP((a) => ({ ...a, ...x }));
   const atualizarItem = (k: number, patch: Partial<ItemCompra>) => set({ itens: p.itens.map((i, j) => (j === k ? { ...i, ...patch } : i)) });
 
   async function gravar(status?: string) {
     const { itens, fornecedor: _f, numero: _n, valor_total: _v, created_at: _c, ...cab } = p as any;
-    const dados = limpar({ ...cab, unidade_id: cab.unidade_id ?? unidadeId ?? undefined, frete: Number(cab.frete || 0), ...(status ? { status, ...(status === "enviado" ? { enviado_em: new Date().toISOString() } : {}) } : {}) });
+    const dados = limpar({ ...cab, unidade_id: cab.unidade_id ?? unidadeId ?? undefined, data: cab.data ?? (cab.id ? undefined : hoje()),
+      frete: Number(cab.frete || 0), desconto: Number(cab.desconto || 0), outras_despesas: Number(cab.outras_despesas || 0),
+      parcelas: cab.parcelas?.length ? cab.parcelas.map((x: { vencimento: string; valor: number; observacao?: string | null }) => ({ vencimento: x.vencimento, valor: Number(x.valor || 0), observacao: x.observacao || null })) : null,
+      ...(status ? { status, ...(status === "enviado" ? { enviado_em: new Date().toISOString() } : {}) } : {}) });
     const { data, error } = dados.id
       ? await supabase.from("pedidos_compra").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("pedidos_compra").insert(dados).select("id, numero").single();
@@ -633,6 +641,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
       const ids = await sincronizarItens("pedido_compra_itens", "pedido_compra_id", data.id, itens as ItemCompra[], (i) => ({
         produto_id: i.produto_id, descricao: i.descricao, quantidade: i.quantidade,
         custo_unitario: i.custo_unitario, quantidade_recebida: i.quantidade_recebida ?? 0,
+        ipi_aliquota: Number(i.ipi_aliquota || 0), icms_st_valor: Number(i.icms_st_valor || 0), informacoes: i.informacoes || null,
       }), { preservar: ["quantidade_recebida"] });
       comId = (itens as ItemCompra[]).map((i, k) => ({ ...i, id: ids[k] || i.id }));
     }
@@ -660,9 +669,12 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
     "",
     ...p.itens.map((i) => `• ${i.quantidade}x ${i.descricao}${!cotacao && i.custo_unitario ? ` — ${brl(i.custo_unitario)} un.` : ""}`),
     "",
-    !cotacao ? `Total: ${brl(subtotal + Number(p.frete || 0))}` : "",
+    !cotacao ? `Total: ${brl(totais.total)}` : "",
+    p.numero_fornecedor ? `Seu pedido/orçamento: ${p.numero_fornecedor}` : "",
     p.previsao_entrega ? `Precisamos para: ${dataBR(p.previsao_entrega)}` : "",
     p.condicao_pagamento && !cotacao ? `Pagamento: ${p.condicao_pagamento}` : "",
+    ...(!cotacao && p.parcelas?.length ? p.parcelas.map((x, k) => `   ${k + 1}ª parcela ${dataBR(x.vencimento)}: ${brl(x.valor)}`) : []),
+    p.observacoes ? `Obs.: ${p.observacoes}` : "",
     ...(destino ? ["", `*Faturar e entregar para ${destino.nome}*`, ...dadosDestino(destino)] : []),
   ].filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !== "")).join("\n").trim();
 
@@ -671,7 +683,9 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
     try {
       setPdf(await pdfPedidoCompra({
         numero: p.numero, status: p.status ?? "cotacao", fornecedor, frete: Number(p.frete || 0), previsao_entrega: p.previsao_entrega,
-        condicao_pagamento: p.condicao_pagamento, observacoes: p.observacoes,
+        condicao_pagamento: p.condicao_pagamento, observacoes: p.observacoes, data: p.data ?? p.created_at?.slice(0, 10) ?? null,
+        numero_fornecedor: p.numero_fornecedor, totais, parcelas: p.parcelas ?? [], frete_por_conta: p.frete_por_conta,
+        transportadora: transportadoraNome,
         itens: p.itens.map((i) => ({ ...i, unidade: produtos.find((x) => x.id === i.produto_id)?.unidade })),
       }, comUnidade(cfg, unidades.find((u) => u.id === (p as any).unidade_id))));
     } catch (e) { notifyError(e); }
@@ -692,10 +706,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
           </Field>
           <div className="sm:col-span-2"><CampoUnidade label="Comprar para (recebe a mercadoria e a nota)" value={unidadeId} disabled={!editavel || p.status !== "cotacao" && !!p.id}
             onChange={(id) => set({ unidade_id: id } as Partial<PedidoCompra>)} /></div>
-          <Field label="Entrega desejada"><input className="input" type="date" value={p.previsao_entrega ?? ""} disabled={!editavel} onChange={(e) => set({ previsao_entrega: e.target.value })} /></Field>
-          <Field label="Frete (R$)"><input className="input" type="number" step="0.01" min={0} value={p.frete ?? 0} disabled={!editavel} onChange={(e) => set({ frete: Number(e.target.value) })} /></Field>
-          <Field label="Condição de pagamento" className="sm:col-span-2"><input className="input" placeholder="ex.: 28 dias boleto" value={p.condicao_pagamento ?? ""} disabled={!editavel} onChange={(e) => set({ condicao_pagamento: e.target.value })} /></Field>
-          <Field label="Observações" className="sm:col-span-2"><input className="input" value={p.observacoes ?? ""} disabled={!editavel} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
+          <DadosOc p={p} set={set} editavel={editavel} />
         </div>
         {p.fornecedor_id && (
           <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -709,13 +720,19 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="itens w-full text-sm md:min-w-[620px]" aria-label="Itens do pedido de compra">
             <thead className="bg-slate-50"><tr>
-              <th scope="col" className="th">Peça / insumo</th><th scope="col" className="th w-28 text-right">Qtd</th><th scope="col" className="th w-36 text-right">Custo unit.</th>
+              <th scope="col" className="th">Peça / insumo</th><th scope="col" className="th w-24 text-right">Qtd</th><th scope="col" className="th w-32 text-right">Custo unit.</th>
+              <th scope="col" className="th w-24 text-right">IPI %</th><th scope="col" className="th w-28 text-right">ICMS ST (R$)</th>
               <th scope="col" className="th w-32 text-right">Total</th>{p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <th scope="col" className="th text-right">Recebido</th>}<th className="th w-10"><span className="sr-only">Ações</span></th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {p.itens.map((i, k) => (
                 <tr key={k}>
-                  <td className="td it-largo font-medium text-fg">{i.descricao}</td>
+                  <td className="td it-largo font-medium text-fg">{i.descricao}
+                    {editavel
+                      ? <input className="input mt-1 py-1 text-xs font-normal" value={i.informacoes ?? ""} maxLength={300} placeholder="Informações do item (opcional)"
+                          aria-label={`Informações de ${i.descricao}`} onChange={(e) => atualizarItem(k, { informacoes: e.target.value || null })} />
+                      : i.informacoes && <span className="mt-0.5 block text-xs font-normal text-slate-500">{i.informacoes}</span>}
+                  </td>
                   <td className="td" data-label="Qtd">
                     <input className="input text-right" type="number" inputMode="decimal" min={0.001} step="any" value={i.quantidade} disabled={!editavel}
                       aria-label={`Quantidade de ${i.descricao}`} onChange={(e) => atualizarItem(k, { quantidade: Number(e.target.value) })} />
@@ -724,12 +741,20 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
                     <input className="input text-right" type="number" inputMode="decimal" min={0} step="0.01" value={i.custo_unitario} disabled={!editavel}
                       aria-label={`Custo unitário de ${i.descricao}`} onChange={(e) => atualizarItem(k, { custo_unitario: Number(e.target.value) })} />
                   </td>
-                  <td className="td it-total num text-right md:pt-5" data-label="Total">{brl(i.quantidade * i.custo_unitario)}</td>
+                  <td className="td" data-label="IPI %">
+                    <input className="input text-right" type="number" inputMode="decimal" min={0} max={100} step="0.01" value={i.ipi_aliquota ?? 0} disabled={!editavel}
+                      aria-label={`IPI de ${i.descricao} (%)`} onChange={(e) => atualizarItem(k, { ipi_aliquota: Math.min(100, Math.max(0, Number(e.target.value))) })} />
+                  </td>
+                  <td className="td" data-label="ICMS ST">
+                    <input className="input text-right" type="number" inputMode="decimal" min={0} step="0.01" value={i.icms_st_valor ?? 0} disabled={!editavel}
+                      aria-label={`ICMS ST de ${i.descricao} (R$)`} onChange={(e) => atualizarItem(k, { icms_st_valor: Math.max(0, Number(e.target.value)) })} />
+                  </td>
+                  <td className="td it-total num text-right md:pt-5" data-label="Total">{brl(totaisOc([i], {}).total)}</td>
                   {p.status && ["enviado", "parcial", "recebido"].includes(p.status) && <td className="td num text-right md:pt-5" data-label="Recebido">{Number(i.quantidade_recebida ?? 0)} / {i.quantidade}</td>}
                   <td className="td it-acao">{editavel && <Button type="button" variant="ghost" aria-label={`Remover ${i.descricao}`} onClick={() => set({ itens: p.itens.filter((_, j) => j !== k) })}><Trash2 size={16} aria-hidden /></Button>}</td>
                 </tr>
               ))}
-              {!p.itens.length && <tr><td colSpan={6} className="td py-6 text-center text-slate-500">Adicione as peças abaixo.</td></tr>}
+              {!p.itens.length && <tr><td colSpan={8} className="td py-6 text-center text-slate-500">Adicione as peças abaixo.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -739,7 +764,12 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
             onEscolher={(prod) => set({ itens: [...p.itens, { produto_id: prod.id, descricao: prod.descricao, quantidade: 1, custo_unitario: Number(prod.preco_custo) }] })}
             detalhe={(x) => [x.sku, `custo ${brl(x.preco_custo)}`, `estoque ${Number(x.estoque_atual)} (mín. ${Number(x.estoque_minimo)})`].filter(Boolean).join(" · ")} />
         )}
-        <div className="text-right text-sm text-slate-600">Itens {brl(subtotal)} · Frete {brl(p.frete)} · <span className="num text-lg font-bold text-fg">Total {brl(subtotal + Number(p.frete || 0))}</span></div>
+        <TotaisDaOc p={p} set={set} editavel={editavel} totais={totais} />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <PagamentoOc p={p} set={set} editavel={editavel} totais={totais} />
+          <TransporteOc p={p} set={set} editavel={editavel} />
+        </div>
+        <ObservacoesOc p={p} set={set} editavel={editavel} />
         {p.id && p.status && ["enviado", "parcial", "recebido"].includes(p.status) && (
           <NotasDaOc pedido={{ id: p.id, numero: Number(p.numero), status: p.status, itens: p.itens }} onBaixa={onClose} />
         )}
@@ -779,6 +809,10 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
   const [vencimento, setVencimento] = useState(somarDias(28));
   const [ocupado, setOcupado] = useState(false);
   const invalidate = useInvalidate();
+  // OC com parcelas, recebida inteira de uma vez: as contas saem pelas parcelas (receber_pedido_compra)
+  const primeira = !pc.itens.some((i) => Number(i.quantidade_recebida ?? 0) > 0);
+  const tudo = pc.itens.every((i) => (qtd[i.id!] ?? 0) >= i.quantidade - Number(i.quantidade_recebida ?? 0));
+  const pelasParcelas = primeira && tudo && !!pc.parcelas?.length;
 
   async function confirmar() {
     setOcupado(true);
@@ -816,7 +850,12 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
       </div>
       <Card className="mt-4 p-3">
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={gerarConta} onChange={(e) => setGerarConta(e.target.checked)} /> Lançar em contas a pagar</label>
-        {gerarConta && <Field label="Vencimento" className="mt-2 max-w-[200px]"><input className="input" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} /></Field>}
+        {gerarConta && pelasParcelas && (
+          <p className="mt-2 text-sm text-slate-700">
+            Lança <b>{pc.parcelas!.length} {pl(pc.parcelas!.length, "conta", "contas")}</b>, uma por parcela da OC ({pc.parcelas!.map((x) => dataBR(x.vencimento)).join(", ")}), com o IPI, o ICMS ST, o frete, as outras despesas e o desconto.
+          </p>
+        )}
+        {gerarConta && !pelasParcelas && <Field label="Vencimento" className="mt-2 max-w-[200px]"><input className="input" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} /></Field>}
         <p className="mt-2 text-xs text-slate-500">Se a nota do fornecedor chegar pela SEFAZ, prefira lançar a conta por ela (Notas fiscais), para não duplicar.</p>
       </Card>
       <div className="mt-4 flex justify-end gap-2">
