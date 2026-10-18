@@ -122,16 +122,23 @@ export function faixaAnterior(id: PeriodoId, mes: string, f: Faixa): Faixa {
   return { de: somarDiasPessoal(f.de, -n), ate: somarDiasPessoal(f.de, -1) };
 }
 
-/** Transferências entre as próprias contas e o pagamento da fatura não são entrada nem gasto. */
-const conta = (l: LancPessoal) => l.categoria !== "Transferências" && l.categoria !== "Cartão (fatura)";
+/** Categoria do lançamento: a escolhida ou, sem nenhuma (ex.: veio do Meu Pluggy), a do texto do extrato. */
+export const categoriaDoLanc = (l: Pick<LancPessoal, "categoria" | "descricao">) => l.categoria || categoriaDe(l.descricao);
+
+/**
+ * O que não é entrada nem gasto. Com `fora` (o painel manda: o dinheiro que só passou de uma conta sua para outra e,
+ * havendo conta de cartão no painel, o pagamento da fatura, que já está nas compras do cartão), só esses ficam de fora.
+ * Sem `fora`, vale a regra antiga pela categoria (Transferências e Cartão (fatura)).
+ */
+const conta = (l: LancPessoal, fora?: Set<string>) => (fora ? !fora.has(l.id) : categoriaDoLanc(l) !== "Transferências" && categoriaDoLanc(l) !== "Cartão (fatura)");
 
 /** Entradas, saídas, resultado, gastos por categoria e os maiores gastos do período. */
-export function resumoPeriodo(lancs: LancPessoal[], f: Faixa, hoje?: string) {
-  const doPeriodo = lancs.filter((l) => vale(l) && l.data >= f.de && l.data <= f.ate && conta(l));
+export function resumoPeriodo(lancs: LancPessoal[], f: Faixa, hoje?: string, fora?: Set<string>) {
+  const doPeriodo = lancs.filter((l) => vale(l) && l.data >= f.de && l.data <= f.ate && conta(l, fora));
   const entrou = Math.round(doPeriodo.filter((l) => l.valor > 0).reduce((t, l) => t + Number(l.valor), 0) * 100) / 100;
   const saiu = Math.round(-doPeriodo.filter((l) => l.valor < 0).reduce((t, l) => t + Number(l.valor), 0) * 100) / 100;
   const porCategoria = new Map<string, number>();
-  for (const l of doPeriodo) if (l.valor < 0) porCategoria.set(l.categoria ?? "Outros", (porCategoria.get(l.categoria ?? "Outros") ?? 0) - Number(l.valor));
+  for (const l of doPeriodo) if (l.valor < 0) porCategoria.set(categoriaDoLanc(l), (porCategoria.get(categoriaDoLanc(l)) ?? 0) - Number(l.valor));
   // média por dia: até hoje, se o período ainda não acabou
   const fimMedia = hoje && hoje < f.ate ? (hoje < f.de ? f.de : hoje) : f.ate;
   const dias = diasEntre(f.de, fimMedia) + 1;
@@ -144,10 +151,10 @@ export function resumoPeriodo(lancs: LancPessoal[], f: Faixa, hoje?: string) {
 }
 
 /** Entradas e saídas mês a mês: os `n` meses que terminam em `ateMes`. */
-export function serieMensal(lancs: LancPessoal[], ateMes: string, n = 12) {
+export function serieMensal(lancs: LancPessoal[], ateMes: string, n = 12, fora?: Set<string>) {
   return Array.from({ length: n }, (_, i) => {
     const mes = somarMesPessoal(ateMes, i - n + 1);
-    const r = resumoPeriodo(lancs, { de: `${mes}-01`, ate: fimDoMes(mes) });
+    const r = resumoPeriodo(lancs, { de: `${mes}-01`, ate: fimDoMes(mes) }, undefined, fora);
     return { mes, entrou: r.entrou, saiu: r.saiu };
   });
 }
@@ -174,7 +181,8 @@ export const ultimoLancamento = (lancs: LancPessoal[], contaId: string) =>
 
 /** A própria empresa no extrato pessoal: pela razão social (sem LTDA) ou pelo CNPJ que aparece na descrição. */
 export type Empresa = { nomes: string[]; documentos: string[] };
-const textoAlto = (s: unknown) => ` ${String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
+// o banco cola a data no nome ("MF MAQUINAS03 01"): letra e número viram palavras separadas
+const textoAlto = (s: unknown) => ` ${String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/([A-Z])(\d)/g, "$1 $2").replace(/[^A-Z0-9]+/g, " ").trim()} `;
 // palavras que sozinhas não identificam empresa nenhuma
 const GENERICAS = new Set(["DE", "DA", "DO", "DAS", "DOS", "E", "COMERCIO", "INDUSTRIA", "SERVICOS", "EMPRESA"]);
 export function daEmpresa(descricao: string | null | undefined, e: Empresa): boolean {
@@ -191,78 +199,3 @@ export function daEmpresa(descricao: string | null | undefined, e: Empresa): boo
 /** Entradas que vieram da empresa (Pix da MF para a pessoa) e ainda não estão como pró-labore. */
 export const recebidosDaEmpresa = (lancs: LancPessoal[], e: Empresa) =>
   lancs.filter((l) => !l.anulado && l.valor > 0 && daEmpresa(l.descricao, e));
-
-/**
- * Cards do painel pessoal: os gastos separados pelo tipo, pelo texto do extrato (cada lançamento entra no primeiro
- * tipo que combina). `aviso` marca o que vale mostrar ao contador (dinheiro pessoal que pagou coisa da empresa).
- */
-export type GrupoPessoalId = "veiculo" | "empresas" | "impostos" | "saude" | "seguros" | "cartoes" | "bancos" | "postos" | "delivery"
-  | "farmacia" | "mercado" | "online" | "assinaturas" | "casa" | "doacoes" | "tarifas";
-export const GRUPOS_PESSOAIS: { id: GrupoPessoalId; nome: string; dica: string; aviso?: string;
-  testa: (d: string, l: LancPessoal, e: Empresa) => boolean }[] = [
-  { id: "veiculo", nome: "Financiamento e consórcio", dica: "Parcela do carro (PAGTO FINANC VEIC), consórcio, leasing",
-    aviso: "Se o carro também serve à empresa, há caminhos dentro da lei (reembolso por km com controle ou o carro em nome da MF). Confirmar com o contador.",
-    testa: (d) => /financ|\bfin veic|\bcdc\b|consorcio|leasing|parcela (do )?(carro|veiculo)/.test(d) },
-  { id: "empresas", nome: "Pix para as empresas", dica: "Dinheiro seu que foi para a MF ou outra empresa sua",
-    aviso: "Registrar na empresa como aporte do sócio ou empréstimo (contrato de mútuo). Confirmar com o contador.",
-    testa: (_d, l, e) => l.valor < 0 && daEmpresa(l.descricao, e) },
-  { id: "impostos", nome: "Impostos", dica: "DARF, DAS, IPVA e licenciamento (Detran), IPTU, INSS, GNRE…",
-    aviso: "Imposto da MF pago daqui: lance na empresa (Contas a pagar, já pago) e anote como dinheiro do sócio. Confirmar com o contador.",
-    testa: (d) => /darf|\bdas (mei|simples|sn)\b|pgdas|simples nac|ipva|iptu|irpf|imposto|receita fed|\bgps\b|inss|fgts|\bdae\b|gnre|icms|tributo|licenciamento|detran|departamento estadual|transito|sefaz|secretaria|prefeitura/.test(d) },
-  { id: "saude", nome: "Plano de saúde", dica: "Unimed e outros planos",
-    testa: (d) => /unimed|\bamil\b|sulamerica saude|bradesco saude|hapvida|notredame|plano de saude|odontoprev/.test(d) },
-  { id: "seguros", nome: "Seguros e proteção", dica: "Seguro de vida, do carro, da casa, proteção familiar",
-    testa: (d) => /seguro|\bseg\b|protecao|premio aces|allianz|porto seguro|mapfre|tokio marine|sulamerica/.test(d) },
-  { id: "cartoes", nome: "Cartões (faturas)", dica: "Pagamento das faturas; o que foi comprado no cartão entra nos outros cards",
-    testa: (d, l) => l.categoria === "Cartão (fatura)" || /fatura|pagamento cartao|pgto cartao|pag cartao|pgto min|pagamento minimo/.test(d) },
-  { id: "bancos", nome: "Boletos de bancos", dica: "Fatura de cartão ou parcela paga por boleto do banco (Itaú, Pan, BV, Midway, Nubank…)",
-    testa: (d) => /(pag|pagto|pgto|pagamento) (de )?boleto (itau|banco|midway|nu pagamento|nubank|santander|bradesco|caixa|c6|bv|pan)/.test(d) },
-  { id: "postos", nome: "Postos e pedágio", dica: "Gasolina, etanol e tag de pedágio (ConectCar, Sem Parar)",
-    testa: (d) => /\bposto|combust|gasolina|etanol|shell|ipiranga|petrobras|br mania|conectcar|sem parar|veloe|pedagio/.test(d) },
-  { id: "delivery", nome: "iFood e delivery", dica: "iFood, Rappi, Zé Delivery…",
-    testa: (d) => /ifood|i food|rappi|ze delivery|uber ?eats|aiqfome|99 ?food/.test(d) },
-  { id: "farmacia", nome: "Farmácia", dica: "Remédios e drogarias",
-    testa: (d) => /farmacia|drogaria|\braia\b|rd saude|panvel|pague menos|drogasil|nissei/.test(d) },
-  { id: "mercado", nome: "Mercado", dica: "Supermercado, atacado, padaria, açougue",
-    testa: (d, l) => l.categoria === "Mercado" || /supermerc|atacad|mercado\b(?! ?(livre|pago))/.test(d) },
-  { id: "online", nome: "Compras pela internet", dica: "Mercado Livre, Shopee, TikTok, Amazon, cursos e apps",
-    aviso: "Se foi peça ou material para a MF, peça a nota no CNPJ da empresa e lance lá. Confirmar com o contador.",
-    testa: (d) => /mercado ?livre|mercado ?pago|marketp|shopee|shpp|amazon|magalu|shein|aliexpress|bytedance|tiktok|ebanx|kiwify|eduzz|hotmart/.test(d) },
-  { id: "assinaturas", nome: "Assinaturas", dica: "Streaming, nuvem, apps",
-    testa: (_d, l) => l.categoria === "Assinaturas" },
-  { id: "casa", nome: "Contas da casa", dica: "Luz, água, internet, celular, aluguel, condomínio",
-    testa: (d, l) => l.categoria === "Casa" || /\bclaro\b|unifique|\bvivo\b|\btim\b|telecom|celesc|aluguel|condominio/.test(d) },
-  { id: "doacoes", nome: "Doações", dica: "LBV, igreja, campanhas",
-    testa: (d) => /\blbv\b|doacao|dizimo|teleton|graacc|unicef/.test(d) },
-  { id: "tarifas", nome: "Tarifas e juros do banco", dica: "Juros do cheque especial, IOF e tarifas: dinheiro que dá para economizar",
-    testa: (d) => /tarifa|anuidade|\biof\b|juros|encargo|\bmora\b|cesta de servico|adiant depositante|adiantamento a depositante/.test(d) },
-];
-
-/** Em qual card o lançamento entra (o primeiro tipo que combina), ou null. */
-export function grupoDe(l: LancPessoal, e: Empresa): GrupoPessoalId | null {
-  if (l.valor >= 0) return null;
-  const d = ` ${sem(l.descricao)} `;
-  return GRUPOS_PESSOAIS.find((g) => g.testa(d, l, e))?.id ?? null;
-}
-
-/** Total, quantidade e o período anterior de cada card (só os que têm gasto num dos dois períodos). */
-export function gruposDoPeriodo(lancs: LancPessoal[], f: Faixa, ant: Faixa, e: Empresa) {
-  const soma = new Map<GrupoPessoalId, { total: number; qtd: number; anterior: number }>();
-  for (const l of lancs) {
-    if (!vale(l)) continue;
-    const agora = l.data >= f.de && l.data <= f.ate;
-    const antes = l.data >= ant.de && l.data <= ant.ate;
-    if (!agora && !antes) continue;
-    const g = grupoDe(l, e);
-    if (!g) continue;
-    const s = soma.get(g) ?? { total: 0, qtd: 0, anterior: 0 };
-    if (agora) { s.total -= Number(l.valor); s.qtd += 1; }
-    if (antes) s.anterior -= Number(l.valor);
-    soma.set(g, s);
-  }
-  const r2 = (v: number) => Math.round(v * 100) / 100;
-  return GRUPOS_PESSOAIS.filter((g) => soma.has(g.id)).map((g) => {
-    const s = soma.get(g.id)!;
-    return { ...g, total: r2(s.total), qtd: s.qtd, anterior: r2(s.anterior) };
-  });
-}

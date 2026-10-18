@@ -2,17 +2,26 @@
 // investimento —, separadas da empresa. Nada daqui entra no DRE, na conciliação, nos painéis da empresa nem no pacote
 // do contador; no banco, cada linha é de quem a criou e só essa pessoa lê. Nada é apagado: lançamento errado é anulado.
 // Período escolhido no alto (mês, 3/6/12 meses, ano, tudo ou datas livres), comparado com o período anterior.
-// Os cards separam os gastos por tipo (veículo, impostos, plano de saúde…); os em âmbar são para mostrar ao contador, e o
-// arquivo "Baixar para o contador" só sai quando o dono baixa (o contador não vê este painel).
+// Os cards separam os gastos por tipo (juros do limite, carro, impostos, cartões…) pelo texto do extrato e pelas regras do
+// dono (Regras dos cards: nomes de pessoas e empresas ficam só no banco); os em âmbar são para mostrar ao contador, e o
+// arquivo "Baixar para o contador" só sai quando o dono baixa (o contador não vê este painel). O mesmo extrato importado
+// duas vezes (PDF e OFX) aparece para anular as cópias; o Meu Pluggy traz o extrato sozinho. Abas: Minhas empresas e
+// Meus endereços.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowDownCircle, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Download, FileUp, Fuel,
-  HandHeart, HeartPulse, Home, Landmark, Lock, Pencil, Percent, PiggyBank, Pill, Plus, Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Undo2,
-  UtensilsCrossed, Wallet, X,
+  AlertTriangle, ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
+  Download, FileUp, Fuel, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
+  Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
-import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Stat } from "@/components/ui";
+import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Stat, Tabs } from "@/components/ui";
+import { confirmar } from "@/components/Dialogos";
+import { RegrasCards } from "@/components/pessoal/RegrasCards";
+import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
+import { MinhasEmpresas } from "@/components/pessoal/MinhasEmpresas";
+import { MeusEnderecos } from "@/components/pessoal/MeusEnderecos";
+import { useAbaUrl } from "@/lib/abaUrl";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -26,10 +35,14 @@ import { baixarPlanilha } from "@/lib/exportar";
 import { useUnidade } from "@/lib/unidade";
 import type { Parte } from "@/lib/partesRelacionadas";
 import {
-  CATEGORIAS, CORES_CONTA, GRUPOS_PESSOAIS, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo,
-  grupoDe, gruposDoPeriodo, proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal,
-  ultimoLancamento, type ContaPessoal, type Empresa, type Faixa, type GrupoPessoalId, type LancPessoal, type PeriodoId, type TipoConta,
+  CATEGORIAS, CORES_CONTA, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, categoriaDoLanc, daEmpresa, faixaAnterior, faixaDoPeriodo,
+  proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal,
+  ultimoLancamento, type ContaPessoal, type Empresa, type Faixa, type LancPessoal, type PeriodoId, type TipoConta,
 } from "@/lib/pessoal";
+import {
+  CARDS_PRONTOS, cardsDasRegras, cardsDoPeriodo, classificar, idDoCard, metasDasRegras, paresEntreContas, regraDo, repetidosDeArquivo, semRepetidos,
+  textoSugerido, type CardPessoal, type Classificacao, type GrupoPessoalId, type RegraPessoal,
+} from "@/lib/pessoalCards";
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const corDe = (c: string | undefined) => CORES_CONTA[c ?? ""] ?? CORES_CONTA.sky;
@@ -41,15 +54,22 @@ const diaLongo = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt
 const pct = (agora: number, antes: number) => (antes > 0 ? Math.round(((agora - antes) / antes) * 100) : null);
 const NA_EMPRESA = "Pago pela conta pessoal do sócio (dinheiro do sócio). Confirmar com o contador.";
 
-/** Ícone e cor de cada card de gasto (fundo forte, ícone branco: igual nos dois temas). */
+/** Ícone e cor de cada card (fundo forte, ícone branco: igual nos dois temas). */
 const VISUAL_GRUPO: Record<GrupoPessoalId, { icone: LucideIcon; cor: string }> = {
-  veiculo: { icone: Car, cor: "#0284c7" }, empresas: { icone: Building2, cor: "#7c3aed" }, impostos: { icone: Receipt, cor: "#b45309" },
+  juros_limite: { icone: Siren, cor: "#b91c1c" }, habitacao: { icone: House, cor: "#0e7490" }, veiculo: { icone: Car, cor: "#0284c7" },
+  emprestimos: { icone: HandCoins, cor: "#9333ea" }, empresas: { icone: Building2, cor: "#7c3aed" }, pagou_mf: { icone: Building2, cor: "#a16207" },
+  comissoes: { icone: Users, cor: "#4f46e5" }, impostos: { icone: Receipt, cor: "#b45309" }, protestos: { icone: Gavel, cor: "#57534e" },
   saude: { icone: HeartPulse, cor: "#047857" }, seguros: { icone: ShieldCheck, cor: "#1d4ed8" }, cartoes: { icone: CreditCard, cor: "#475569" },
-  bancos: { icone: Landmark, cor: "#334155" }, postos: { icone: Fuel, cor: "#c2410c" }, online: { icone: ShoppingBag, cor: "#a21caf" },
-  doacoes: { icone: HandHeart, cor: "#db2777" },
+  pedagio: { icone: Car, cor: "#ea580c" }, postos: { icone: Fuel, cor: "#c2410c" }, redes: { icone: Megaphone, cor: "#2563eb" },
+  mercadolivre: { icone: Package, cor: "#ca8a04" }, online: { icone: ShoppingBag, cor: "#a21caf" }, doacoes: { icone: HandHeart, cor: "#db2777" },
   delivery: { icone: UtensilsCrossed, cor: "#be185d" }, farmacia: { icone: Pill, cor: "#0f766e" }, mercado: { icone: ShoppingCart, cor: "#15803d" },
-  assinaturas: { icone: Repeat, cor: "#6d28d9" }, casa: { icone: Home, cor: "#0369a1" }, tarifas: { icone: Percent, cor: "#b91c1c" },
+  assinaturas: { icone: Repeat, cor: "#6d28d9" }, casa: { icone: Home, cor: "#0369a1" }, tarifas: { icone: Percent, cor: "#991b1b" },
+  entre_contas: { icone: ArrowLeftRight, cor: "#64748b" }, rendimentos: { icone: TrendingUp, cor: "#059669" },
 };
+const CORES_PROPRIOS = ["#0f766e", "#7c2d12", "#1e40af", "#86198f", "#3f6212", "#9f1239", "#155e75", "#713f12"];
+/** Card criado pela pessoa: ícone de etiqueta e uma cor fixa pelo nome. */
+const visualDo = (id: string) => VISUAL_GRUPO[id as GrupoPessoalId]
+  ?? { icone: Tag, cor: CORES_PROPRIOS[[...id].reduce((t, c) => t + c.charCodeAt(0), 0) % CORES_PROPRIOS.length] };
 
 /** "▲ 12% do período anterior", "igual ao período anterior" ou nada quando não há com o que comparar. */
 function comparado(agora: number, antes: number) {
@@ -64,18 +84,23 @@ export default function Pessoal() {
   const { data: contas = [], isLoading } = useRows<ContaPessoal>("pessoal_contas", { order: "ordem", ascending: true });
   const { data: lancs = [] } = useRows<LancPessoal>("pessoal_lancamentos", { order: "data", ascending: false });
   const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
+  const { data: regras = [] } = useRows<RegraPessoal>("pessoal_regras", { order: "ordem", ascending: true });
   const navigate = useNavigate();
+  const [aba, setAba] = useAbaUrl<"dinheiro" | "empresas" | "enderecos">("dinheiro", ["dinheiro", "empresas", "enderecos"]);
   const [periodo, setPeriodo] = useState<PeriodoId>("mes");
   const [mesEscolhido, setMes] = useState<string | null>(null);
   const [livre, setLivre] = useState<Faixa>({ de: `${hoje().slice(0, 7)}-01`, ate: hoje() });
   const [conta, setConta] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [grupo, setGrupo] = useState<GrupoPessoalId | "">("");
+  const [grupo, setGrupo] = useState("");
+  const [parte, setParte] = useState("");
   const [busca, setBusca] = useState("");
   const [editConta, setEditConta] = useState<Partial<ContaPessoal> | null>(null);
   const [editLanc, setEditLanc] = useState<Partial<LancPessoal> | null>(null);
   const [importar, setImportar] = useState(false);
   const [boleto, setBoleto] = useState(false);
+  const [regrasAbertas, setRegrasAbertas] = useState<Partial<RegraPessoal> | null | false>(false);
+  const [pluggy, setPluggy] = useState(false);
 
   // a própria empresa (razão social e CNPJ das unidades): o Pix dela para a sua conta é pró-labore ou retirada
   const empresa: Empresa = useMemo(() => ({
@@ -101,13 +126,27 @@ export default function Pessoal() {
   const mes = mesEscolhido ?? mesPadrao;
   useEffect(() => { if (periodo === "pers" && livre.de === `${hoje().slice(0, 7)}-01`) setLivre({ de: `${mes}-01`, ate: faixaDoPeriodo("mes", mes, [], hoje()).ate }); }, [periodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // dinheiro que só passou de uma conta sua para outra (pares de mesmo valor em até 2 dias) e a classificação de cada lançamento
+  const pares = useMemo(() => paresEntreContas(lancs, contas, (l) => {
+    const r = regraDo(l, regras);
+    return r ? idDoCard(r.card) !== "entre_contas" : daEmpresa(l.descricao, empresas);
+  }), [lancs, contas, regras, empresas]);
+  const ctx = useMemo(() => ({ empresas, regras, pares, bancos: Object.fromEntries(contas.map((c) => [c.id, c.banco ?? c.nome])) }), [empresas, regras, pares, contas]);
+  const classe = useMemo(() => new Map<string, Classificacao | null>(lancs.map((l) => [l.id, classificar(l, ctx)])), [lancs, ctx]);
+  // fora das entradas e saídas: o que só passou entre as suas contas e, se o cartão tem conta aqui, o pagamento da fatura
+  const temCartao = contas.some((c) => c.tipo === "cartao");
+  const fora = useMemo(() => new Set(lancs.filter((l) => classe.get(l.id)?.card === "entre_contas"
+    || (temCartao && categoriaDoLanc(l) === "Cartão (fatura)")).map((l) => l.id)), [lancs, classe, temCartao]);
+  // o mesmo extrato importado duas vezes (PDF e OFX): as cópias para anular
+  const repetidos = useMemo(() => repetidosDeArquivo(lancs), [lancs]);
+
   const daConta = useMemo(() => lancs.filter((l) => !conta || l.conta_id === conta), [lancs, conta]);
   const faixa = faixaDoPeriodo(periodo, mes, lancs, hoje(), livre);
   const anterior = faixaAnterior(periodo, mes, faixa);
   const passo = PERIODOS_PESSOAIS.find((p) => p.id === periodo)?.meses;
-  const resumo = useMemo(() => resumoPeriodo(daConta, faixa, hoje()), [daConta, faixa.de, faixa.ate]); // eslint-disable-line react-hooks/exhaustive-deps
-  const resumoAnt = useMemo(() => resumoPeriodo(daConta, anterior), [daConta, anterior.de, anterior.ate]); // eslint-disable-line react-hooks/exhaustive-deps
-  const serie = useMemo(() => serieMensal(daConta, faixa.ate.slice(0, 7) > hoje().slice(0, 7) ? hoje().slice(0, 7) : faixa.ate.slice(0, 7), 12), [daConta, faixa.ate]);
+  const resumo = useMemo(() => resumoPeriodo(daConta, faixa, hoje(), fora), [daConta, faixa.de, faixa.ate, fora]); // eslint-disable-line react-hooks/exhaustive-deps
+  const resumoAnt = useMemo(() => resumoPeriodo(daConta, anterior, undefined, fora), [daConta, anterior.de, anterior.ate, fora]); // eslint-disable-line react-hooks/exhaustive-deps
+  const serie = useMemo(() => serieMensal(daConta, faixa.ate.slice(0, 7) > hoje().slice(0, 7) ? hoje().slice(0, 7) : faixa.ate.slice(0, 7), 12, fora), [daConta, faixa.ate, fora]);
   const contasDoSaldo = conta ? contas.filter((c) => c.id === conta) : contas.filter((c) => c.ativa);
   const saldoNoTempo = useMemo(() => serieSaldo(contasDoSaldo, lancs, faixa, hoje()), [contasDoSaldo, lancs, faixa.de, faixa.ate]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,23 +162,38 @@ export default function Pessoal() {
   const daMFperiodo = daMF.filter((l) => l.situacao === "realizado" && l.data >= faixa.de && l.data <= faixa.ate).reduce((t, l) => t + Number(l.valor), 0);
   const daMFsemCategoria = daMF.filter((l) => l.categoria !== PRO_LABORE);
 
-  // cards por tipo de gasto
-  const grupos = useMemo(() => gruposDoPeriodo(daConta, faixa, anterior, empresas), [daConta, faixa.de, faixa.ate, anterior.de, anterior.ate, empresas]); // eslint-disable-line react-hooks/exhaustive-deps
-  const grupoDoLanc = useMemo(() => new Map(daConta.map((l) => [l.id, grupoDe(l, empresas)])), [daConta, empresas]);
-  const grupoSel = GRUPOS_PESSOAIS.find((g) => g.id === grupo);
-  function escolherGrupo(id: GrupoPessoalId) {
+  // cards por tipo (os prontos e os das suas regras); o de juros do limite soma também os 12 meses
+  const doze = { de: `${somarMesPessoal(faixa.ate.slice(0, 7), -11)}-01`, ate: faixa.ate };
+  const grupos = useMemo(() => cardsDoPeriodo(daConta, faixa, anterior, ctx, doze), [daConta, faixa.de, faixa.ate, anterior.de, anterior.ate, ctx]); // eslint-disable-line react-hooks/exhaustive-deps
+  const todosCards: CardPessoal[] = useMemo(() => [...CARDS_PRONTOS, ...cardsDasRegras(regras)], [regras]);
+  const metas = useMemo(() => metasDasRegras(lancs, regras), [lancs, regras]);
+  const grupoSel = grupos.find((g) => g.id === grupo) ?? todosCards.find((g) => g.id === grupo);
+  const cardDoLanc = (l: LancPessoal) => todosCards.find((c) => c.id === classe.get(l.id)?.card);
+  function escolherGrupo(id: string) {
     const novo = grupo === id ? "" : id;
     setGrupo(novo);
+    setParte("");
     if (novo) setTimeout(() => document.getElementById("lancamentos-pessoais")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
-  // imposto da MF pago daqui: abre Contas a pagar da empresa já preenchida, para conferir e salvar
-  const lancarNaMF = (l: LancPessoal) => navigate("/financeiro", { state: { aba: "pagar", nova: true, tipo: "imposto", inicial: {
-    descricao: l.descricao.slice(0, 200), valor: Math.abs(Number(l.valor)), vencimento: l.data, categoria: "impostos", observacoes: `${NA_EMPRESA} Pago em ${dataBR(l.data)}.`,
+  // gasto da MF pago daqui: abre Contas a pagar da empresa já preenchida, para conferir e salvar
+  const lancarNaMF = (l: LancPessoal, c: CardPessoal) => navigate("/financeiro", { state: { aba: "pagar", nova: true, tipo: c.naMF?.tipo ?? "outros", inicial: {
+    descricao: l.descricao.slice(0, 200), valor: Math.abs(Number(l.valor)), vencimento: l.data, categoria: c.naMF?.categoria ?? "outros", observacoes: `${NA_EMPRESA} Pago em ${dataBR(l.data)}.`,
   } } });
+  async function anularRepetidos() {
+    const total = repetidos.reduce((t, l) => t + Math.abs(Number(l.valor)), 0);
+    if (!(await confirmar(`Anular ${repetidos.length} ${pl(repetidos.length, "cópia", "cópias")} (${brl(total)})? Fica a linha do arquivo do banco (OFX); a do PDF vira anulada e dá para trazer de volta.`, { ok: "Anular as cópias" }))) return;
+    const ids = repetidos.map((l) => l.id);
+    for (let i = 0; i < ids.length; i += 100) {
+      const { error } = await supabase.from("pessoal_lancamentos").update({ anulado: true }).in("id", ids.slice(i, i + 100));
+      if (error) return notifyError(error);
+    }
+    notify(`${ids.length} ${pl(ids.length, "cópia anulada", "cópias anuladas")}`);
+    invalidar("pessoal_lancamentos");
+  }
 
-  const lista = daConta.filter((l) => l.data >= faixa.de && l.data <= faixa.ate && (!categoria || (l.categoria ?? "Outros") === categoria)
-    && (!grupo || grupoDoLanc.get(l.id) === grupo)
-    && (!busca.trim() || [l.descricao, l.categoria].some((x) => sem(x).includes(sem(busca.trim())))));
+  const lista = daConta.filter((l) => l.data >= faixa.de && l.data <= faixa.ate && (!categoria || categoriaDoLanc(l) === categoria)
+    && (!grupo || classe.get(l.id)?.card === grupo) && (!parte || classe.get(l.id)?.sub === parte)
+    && (!busca.trim() || [l.descricao, l.categoria, classe.get(l.id)?.sub].some((x) => sem(x).includes(sem(busca.trim())))));
   const porDia = useMemo(() => {
     const m = new Map<string, LancPessoal[]>();
     for (const l of lista.slice(0, 400)) m.set(l.data, [...(m.get(l.data) ?? []), l]);
@@ -172,12 +226,15 @@ export default function Pessoal() {
       Data: dataBR(l.data), Conta: nomeConta(l.conta_id)?.nome ?? "", Descrição: l.descricao, "Valor (R$)": Math.abs(Number(l.valor)), Tipo: tipo, Observação: obs,
     });
     const conferir = daConta.filter(noPeriodo).flatMap((l) => {
-      const g = GRUPOS_PESSOAIS.find((x) => x.id === grupoDoLanc.get(l.id));
-      return g?.aviso ? [linha(l, g.nome, g.aviso)] : [];
+      const g = cardDoLanc(l);
+      const sub = classe.get(l.id)?.sub;
+      return g?.aviso ? [linha(l, sub ? `${g.nome} · ${sub}` : g.nome, g.aviso)] : [];
     });
+    const impostos = grupos.find((g) => g.id === "impostos");
     try {
       await baixarPlanilha(`pessoal-para-o-contador-${faixa.de}-a-${faixa.ate}`, [
-        { nome: "Resumo por tipo", linhas: grupos.map((g) => ({ Tipo: g.nome, "Total no período (R$)": g.total, Lançamentos: g.qtd, "Período anterior (R$)": g.anterior, "Para o contador": g.aviso ?? "" })) },
+        { nome: "Resumo por tipo", linhas: grupos.filter((g) => !g.fora).map((g) => ({ Tipo: g.nome, "Saiu no período (R$)": g.saiu, "Entrou no período (R$)": g.entrou, Lançamentos: g.qtd, "Período anterior (R$)": g.anterior, "Para o contador": g.aviso ?? "" })) },
+        { nome: "Impostos por tipo", linhas: (impostos?.partes ?? []).map((p) => ({ Imposto: p.nome, "Total (R$)": p.total, Lançamentos: p.qtd })) },
         { nome: "Para conferir", linhas: conferir },
         { nome: "Da empresa para você", linhas: daMF.filter(noPeriodo).map((l) => linha(l, l.categoria ?? "", "Pró-labore, distribuição de lucros ou empréstimo? Confirmar com o contador.")) },
       ]);
@@ -197,6 +254,8 @@ export default function Pessoal() {
             <Button variant="secondary" onClick={() => setEditConta({ tipo: "corrente", cor: Object.keys(CORES_CONTA)[contas.length % 8], saldo_inicial: 0, saldo_inicial_em: hoje(), ativa: true, ordem: contas.length })}><Landmark size={16} /> Nova conta</Button>
             <Button variant="secondary" onClick={() => setImportar(true)} disabled={!ativas.length}><FileUp size={16} /> Importar extrato (OFX, CSV ou PDF)</Button>
             <Button variant="secondary" onClick={() => setBoleto(true)} disabled={!ativas.length}><Barcode size={16} /> Lançar boleto (DDA)</Button>
+            <Button variant="secondary" onClick={() => setPluggy(true)}><Plug size={16} /> Meu Pluggy (extrato automático)</Button>
+            <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={16} /> Regras dos cards</Button>
           </MaisAcoes>
           <Button onClick={() => setEditLanc({ conta_id: conta || ativas[0]?.id, data: hoje(), situacao: "realizado", valor: undefined })} disabled={!ativas.length}><Plus size={16} /> Lançar</Button>
         </>} />
@@ -206,7 +265,10 @@ export default function Pessoal() {
         <span>Só você vê este painel. Nada daqui entra no DRE, na conciliação, nos painéis da empresa nem no que vai para o contador. Não precisa de senha do banco: só o nome da conta e o saldo.</span>
       </div>
 
-      {!isLoading && !contas.length ? (
+      <Tabs value={aba} onChange={setAba} options={[{ value: "dinheiro", label: "Dinheiro" }, { value: "empresas", label: "Minhas empresas" }, { value: "enderecos", label: "Meus endereços" }]} />
+      {aba === "empresas" ? <MinhasEmpresas meusNomes={partes.filter((p) => p.tipo === "socio").flatMap((p) => [p.nome, ...(p.nomes_extrato ?? [])])} />
+      : aba === "enderecos" ? <MeusEnderecos />
+      : !isLoading && !contas.length ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#7c3aed] text-white"><Wallet size={28} aria-hidden /></span>
           <h2 className="text-lg font-bold text-fg">Cadastre as suas contas</h2>
@@ -255,11 +317,23 @@ export default function Pessoal() {
           </div>
         )}
 
+        {repetidos.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            <Copy size={18} className="shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <b>{repetidos.length} {pl(repetidos.length, "lançamento entrou", "lançamentos entraram")} duas vezes</b> ({brl(repetidos.reduce((t, l) => t + Math.abs(Number(l.valor)), 0))}): o mesmo extrato foi importado em PDF e em OFX
+              {(() => { const d = repetidos.map((l) => l.data).sort(); return !d.length ? "" : d[0] === d[d.length - 1] ? ` (em ${dataBR(d[0])})` : ` (${dataBR(d[0])} a ${dataBR(d[d.length - 1])})`; })()}.
+              <span className="block text-xs text-red-800">Enquanto não anular, os totais e os cards desses meses ficam em dobro.</span>
+            </span>
+            <Button variant="secondary" onClick={anularRepetidos}><Undo2 size={15} /> Anular as cópias</Button>
+          </div>
+        )}
+
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <Stat label={`Disponível nas contas · hoje ${dataBR(hoje()).slice(0, 5)}`} valor={brl(disponivel)} icon={Wallet} tom={disponivel < 0 ? "critico" : "bom"} sub={`${ativas.filter((c) => c.tipo !== "cartao").length} ${pl(ativas.filter((c) => c.tipo !== "cartao").length, "conta", "contas")}`} />
           <Stat label="Cartões (fatura em aberto)" valor={brl(-cartoes)} icon={CreditCard} tom={cartoes < 0 ? "atencao" : "neutro"} sub={`${ativas.filter((c) => c.tipo === "cartao").length} ${pl(ativas.filter((c) => c.tipo === "cartao").length, "cartão", "cartões")}`} />
           <Stat label="Da empresa para você · período" valor={brl(daMFperiodo)} icon={Building2} tom="info" sub="Pix e TED da MF nas suas contas (pró-labore ou lucros)" />
-          <Stat label="Entrou · período" valor={brl(resumo.entrou)} icon={ArrowUpCircle} tom="info" sub={comparado(resumo.entrou, resumoAnt.entrou) ?? "sem transferências entre as suas contas"} />
+          <Stat label="Entrou · período" valor={brl(resumo.entrou)} icon={ArrowUpCircle} tom="info" sub={comparado(resumo.entrou, resumoAnt.entrou) ?? "sem o que só passou entre as suas contas"} />
           <Stat label="Saiu · período" valor={brl(resumo.saiu)} icon={ArrowDownCircle} tom={resumo.saiu > resumo.entrou ? "atencao" : "neutro"}
             sub={[resumo.entrou ? `${Math.round((resumo.saiu / resumo.entrou) * 100)}% do que entrou` : null, comparado(resumo.saiu, resumoAnt.saiu)].filter(Boolean).join(" · ") || undefined} />
           <Stat label={resumo.resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={brl(resumo.resultado)} icon={PiggyBank} tom={resumo.resultado >= 0 ? "bom" : "critico"}
@@ -271,28 +345,44 @@ export default function Pessoal() {
           <div className="mb-3 flex flex-wrap items-start gap-2">
             <div className="mr-auto min-w-0">
               <h2 className="font-bold text-fg">Seus gastos por tipo</h2>
-              <p className="text-xs text-slate-500">Pelo texto do extrato · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
+              <p className="text-xs text-slate-500">Pelo texto do extrato e pelas suas regras · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
             </div>
+            <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={15} /> Regras ({regras.length})</Button>
             <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo}><Download size={15} /> Baixar para o contador</Button>
           </div>
           {!grupos.length ? <p className="text-sm text-slate-500">Nenhum gasto reconhecido no período (financiamento, impostos, plano de saúde, iFood, postos…).</p> : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
               {grupos.map((g) => {
-                const { icone: Icone, cor } = VISUAL_GRUPO[g.id];
+                const { icone: Icone, cor } = visualDo(g.id);
                 const v = pct(g.total, g.anterior);
+                const meta = metas.filter((m) => m.card === g.id);
+                const ambos = g.sentido === "ambos" && g.saiu > 0 && g.entrou > 0;
                 return (
                   <button key={g.id} type="button" onClick={() => escolherGrupo(g.id)} aria-pressed={grupo === g.id} title={g.dica}
-                    className={`flex min-w-0 flex-col rounded-2xl border p-3 text-left transition hover:shadow-card ${g.aviso ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-70"}`}>
+                    className={`flex min-w-0 flex-col rounded-2xl border p-3 text-left transition hover:shadow-card ${g.destaque ? "col-span-2 border-red-300 bg-red-50 sm:col-span-3 xl:col-span-4" : g.aviso ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-70"}`}>
                     <span className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-2">
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white" style={{ background: cor }}><Icone size={16} aria-hidden /></span>
-                      <span className="line-clamp-2 min-w-0 text-sm font-bold leading-tight text-fg">{g.nome}</span>
+                      <span className={`line-clamp-2 min-w-0 text-sm font-bold leading-tight ${g.destaque ? "text-red-800" : "text-fg"}`}>{g.nome}{g.destaque && <span className="ml-1 rounded bg-red-600 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-white">muito importante</span>}</span>
                     </span>
-                    <span className="num mt-2 text-lg font-bold text-fg">{brl(g.total)}</span>
+                    {ambos ? (
+                      <span className="mt-2 flex flex-col text-sm font-bold">
+                        <span className="num text-red-700">saiu {brl(g.saiu)}</span><span className="num text-emerald-700">entrou {brl(g.entrou)}</span>
+                      </span>
+                    ) : <span className={`num mt-2 text-lg font-bold ${g.destaque ? "text-red-700" : g.sentido === "entrada" || (g.sentido === "ambos" && g.entrou > 0) ? "text-emerald-700" : "text-fg"}`}>{brl(g.sentido === "ambos" ? g.saiu || g.entrou : g.total)}</span>}
+                    {g.destaque && g.doze != null && <span className="text-xs font-semibold text-red-700">{brl(g.doze)} em 12 meses</span>}
                     <span className="flex flex-wrap gap-x-2 text-[11px] text-slate-500">
                       <span>{g.qtd} {pl(g.qtd, "lançamento", "lançamentos")}</span>
                       {v != null ? <span className={v > 0 ? "font-semibold text-red-600" : v < 0 ? "font-semibold text-emerald-700" : ""} title={comparado(g.total, g.anterior)}>{v > 0 ? "▲" : v < 0 ? "▼" : "="} {Math.abs(v)}%</span>
                         : g.total > 0 && <span>novo no período</span>}
                     </span>
+                    {g.atraso > 0 && <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-red-700"><AlertTriangle size={12} aria-hidden /> {brl(g.atraso)} de multa e juros (pagas com atraso)</span>}
+                    {meta.map((m) => (
+                      <span key={m.regra.id} className="mt-1 block text-[11px] text-slate-600">
+                        {m.regra.rotulo ?? "Meta"}: {brl(m.pago)} de {brl(m.regra.meta_total)}{m.regra.parcelas ? ` · ${m.vezes} de ${m.regra.parcelas}` : ""}
+                        <span className="mt-0.5 block h-1.5 rounded-full bg-slate-200"><span className="block h-1.5 rounded-full bg-violet-600" style={{ width: `${m.pct}%` }} /></span>
+                      </span>
+                    ))}
+                    {g.observacoes.map((o) => <span key={o} className="mt-1 text-[11px] italic text-slate-600">{o}</span>)}
                     {g.aviso && <span className="mt-1 text-[11px] font-semibold text-amber-800">Mostrar ao contador</span>}
                   </button>
                 );
@@ -304,7 +394,7 @@ export default function Pessoal() {
         {/* as contas, cada uma com a sua cor */}
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {contas.map((c) => {
-            const r = resumoPeriodo(lancs.filter((l) => l.conta_id === c.id), faixa);
+            const r = resumoPeriodo(lancs.filter((l) => l.conta_id === c.id), faixa, undefined, fora);
             const saldo = saldos.get(c.id) ?? 0;
             const ultimo = ultimoLancamento(lancs, c.id);
             return (
@@ -396,7 +486,7 @@ export default function Pessoal() {
                 <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 font-semibold">Conta</th><th className="py-1 text-right font-semibold">Entrou</th><th className="py-1 text-right font-semibold">Saiu</th><th className="py-1 text-right font-semibold">Saldo hoje</th><th className="py-1 text-right font-semibold">Último</th></tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {contas.filter((c) => c.ativa).map((c) => {
-                    const r = resumoPeriodo(lancs.filter((l) => l.conta_id === c.id), faixa);
+                    const r = resumoPeriodo(lancs.filter((l) => l.conta_id === c.id), faixa, undefined, fora);
                     const s = saldos.get(c.id) ?? 0;
                     const u = ultimoLancamento(lancs, c.id);
                     return (
@@ -434,20 +524,35 @@ export default function Pessoal() {
         </div>
 
         <div id="lancamentos-pessoais" className="mb-2 flex scroll-mt-4 flex-wrap items-center gap-2">
-          <h2 className="mr-auto font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}{conta ? ` · ${nomeConta(conta)?.nome}` : ""}{categoria ? ` · ${categoria}` : ""}{grupoSel ? ` · ${grupoSel.nome}` : ""} · {lista.length}</span></h2>
+          <h2 className="mr-auto font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}{conta ? ` · ${nomeConta(conta)?.nome}` : ""}{categoria ? ` · ${categoria}` : ""}{grupoSel ? ` · ${grupoSel.nome}` : ""}{parte ? ` · ${parte}` : ""} · {lista.length}</span></h2>
           <label className="relative w-full sm:w-64">
             <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
             <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar lançamento" aria-label="Buscar lançamento" />
           </label>
-          {(conta || categoria || grupo) && <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); }}>Tirar os filtros</button>}
+          {(conta || categoria || grupo) && <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); setParte(""); }}>Tirar os filtros</button>}
         </div>
-        {grupoSel?.aviso && (
-          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            <span className="min-w-0 flex-1 basis-64"><b>{grupoSel.nome}:</b> {grupoSel.aviso}</span>
-            {grupoSel.id === "impostos" && <span className="text-xs">Use <b>Lançar na MF</b> em cada imposto que for da empresa.</span>}
+        {grupoSel && (grupoSel.aviso || grupoSel.nota) && (
+          <div className={`mb-2 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm ${grupoSel.aviso ? "border-amber-200 bg-amber-50 text-amber-900" : grupoSel.destaque ? "border-red-200 bg-red-50 text-red-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+            <span className="min-w-0 flex-1 basis-64"><b>{grupoSel.nome}:</b> {grupoSel.aviso ?? grupoSel.nota}{grupoSel.aviso && grupoSel.nota && <span className="block text-xs">{grupoSel.nota}</span>}</span>
+            {grupoSel.naMF && <span className="text-xs">Use <b>Lançar na MF</b> em cada lançamento que for da empresa.</span>}
             {grupoSel.id === "empresas" && <Link to="/partes-relacionadas" className="text-xs font-semibold text-brand hover:underline">Ver o lado da empresa em Entre contas e sócios →</Link>}
           </div>
         )}
+        {/* o card aberto separado por tipo (impostos), por banco (cartões) ou pelo nome das suas regras */}
+        {(() => {
+          const g = grupos.find((x) => x.id === grupo);
+          if (!g || g.partes.length < 2) return null;
+          return (
+            <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label={`${g.nome} por tipo`}>
+              {g.partes.map((pt) => (
+                <button key={pt.nome} type="button" aria-pressed={parte === pt.nome} onClick={() => setParte(parte === pt.nome ? "" : pt.nome)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${parte === pt.nome ? "border-brand bg-brand text-white" : pt.nome.includes("atraso") ? "border-red-200 bg-red-50 text-red-800" : "border-slate-200 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+                  {pt.nome} · {brl(pt.total)} <span className="font-normal opacity-80">({pt.qtd})</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <Card className="overflow-hidden">
           {!lista.length ? <p className="p-4 text-sm text-slate-500">Nenhum lançamento no período.</p> : (
             <div>
@@ -462,13 +567,17 @@ export default function Pessoal() {
                     <ul className="divide-y divide-slate-100">
                       {itens.map((l) => {
                         const c = nomeConta(l.conta_id);
+                        const cl = classe.get(l.id);
+                        const card = cardDoLanc(l);
+                        const atraso = cl?.card === "veiculo" && cl.sub?.includes("atraso");
                         return (
                           <li key={l.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm ${l.anulado ? "opacity-50" : ""}`}>
                             <span className="min-w-0 flex-1 basis-48">
                               <span className={`block truncate font-semibold text-fg ${l.anulado ? "line-through" : ""}`}>{l.descricao}</span>
                               <span className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                                 <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: corDe(c?.cor) }} aria-hidden />{c?.nome ?? "—"}</span>
-                                {l.categoria && <button type="button" className="rounded bg-slate-100 px-1.5 hover:bg-slate-200" onClick={() => setCategoria(l.categoria ?? "")}>{l.categoria}</button>}
+                                {card && <button type="button" className={`rounded px-1.5 font-semibold ${atraso || card.destaque ? "bg-red-100 text-red-800" : card.aviso ? "bg-amber-100 text-amber-800" : "bg-violet-50 text-violet-800"}`} onClick={() => escolherGrupo(card.id)}>{card.nome}{cl?.sub && cl.sub !== card.nome ? ` · ${cl.sub}` : ""}</button>}
+                                {(l.categoria || !card) && <button type="button" className="rounded bg-slate-100 px-1.5 hover:bg-slate-200" onClick={() => setCategoria(categoriaDoLanc(l))}>{categoriaDoLanc(l)}</button>}
                                 {l.valor > 0 && daEmpresa(l.descricao, empresa) && <span className="rounded bg-sky-100 px-1.5 text-sky-800">da empresa</span>}
                                 {l.situacao === "previsto" && <span className="rounded bg-amber-100 px-1.5 text-amber-800">previsto</span>}
                                 {l.anulado && <span className="rounded bg-slate-200 px-1.5">anulado</span>}
@@ -476,10 +585,13 @@ export default function Pessoal() {
                             </span>
                             <span className={`num shrink-0 font-bold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</span>
                             <span className="flex shrink-0 items-center gap-1">
-                              {grupoDoLanc.get(l.id) === "impostos" && !l.anulado && (
-                                <button type="button" onClick={() => lancarNaMF(l)} title="Imposto da MF pago daqui: abre Contas a pagar da empresa já preenchido"
+                              {card?.naMF && l.valor < 0 && !l.anulado && (
+                                <button type="button" onClick={() => lancarNaMF(l, card)} title="Gasto da MF pago daqui: abre Contas a pagar da empresa já preenchido"
                                   className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">Lançar na MF</button>
                               )}
+                              <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" title="Sempre colocar lançamentos como este num card"
+                                onClick={() => setRegrasAbertas({ texto: textoSugerido(l.descricao), sentido: l.valor < 0 ? "saida" : "entrada", ativa: true, da_empresa: false, card: cl?.card && !cl.card.startsWith("meu:") ? cl.card : undefined })}
+                                aria-label={`Criar uma regra para ${l.descricao}`}><Tag size={15} /></button>
                               <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => setEditLanc(l)} aria-label={`Editar ${l.descricao}`}><Pencil size={15} /></button>
                               <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => anular(l)}
                                 aria-label={l.anulado ? `Trazer de volta ${l.descricao}` : `Anular ${l.descricao}`} title={l.anulado ? "Trazer de volta" : "Anular (não conta no saldo)"}>{l.anulado ? <Undo2 size={15} /> : <span className="text-base leading-none">⊘</span>}</button>
@@ -499,8 +611,10 @@ export default function Pessoal() {
 
       {editConta && <ContaModal conta={editConta} onClose={() => setEditConta(null)} onGravar={async (c) => (await gravar("pessoal_contas", c, c.id ? "Conta alterada" : "Conta criada")) && setEditConta(null)} />}
       {editLanc && <LancModal lanc={editLanc} contas={ativas} onClose={() => setEditLanc(null)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, l.id ? "Lançamento alterado" : "Lançado")) && setEditLanc(null)} />}
-      {importar && <ImportarModal contas={ativas} empresa={empresa} onClose={() => setImportar(false)} onFeito={() => { invalidar("pessoal_lancamentos"); setImportar(false); }} />}
+      {importar && <ImportarModal contas={ativas} empresa={empresa} existentes={lancs} onClose={() => setImportar(false)} onFeito={() => { invalidar("pessoal_lancamentos"); setImportar(false); }} />}
       {boleto && <BoletoModal contas={ativas} onClose={() => setBoleto(false)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, "Boleto lançado como previsto")) && setBoleto(false)} />}
+      {regrasAbertas !== false && <RegrasCards regras={regras} lancs={lancs} inicial={regrasAbertas} onClose={() => setRegrasAbertas(false)} />}
+      {pluggy && <MeuPluggy contas={contas} ultimoDe={(id) => ultimoLancamento(lancs, id)} onClose={() => setPluggy(false)} />}
     </div>
   );
 }
@@ -637,7 +751,7 @@ function LancModal({ lanc, contas, onClose, onGravar }: { lanc: Partial<LancPess
   );
 }
 
-function ImportarModal({ contas, empresa, onClose, onFeito }: { contas: ContaPessoal[]; empresa: Empresa; onClose: () => void; onFeito: () => void }) {
+function ImportarModal({ contas, empresa, existentes, onClose, onFeito }: { contas: ContaPessoal[]; empresa: Empresa; existentes: LancPessoal[]; onClose: () => void; onFeito: () => void }) {
   const [conta, setConta] = useState(contas[0]?.id ?? "");
   const [linhas, setLinhas] = useState<{ data: string; valor: number; descricao: string; identificador: string }[] | null>(null);
   const [nome, setNome] = useState("");
@@ -662,11 +776,13 @@ function ImportarModal({ contas, empresa, onClose, onFeito }: { contas: ContaPes
   async function gravar() {
     if (!linhas?.length || !conta) return;
     setGravando(true);
-    const novas = linhas.map((x) => ({ conta_id: conta, data: x.data, descricao: x.descricao.slice(0, 200), valor: x.valor, categoria: x.valor > 0 && daEmpresa(x.descricao, empresa) ? PRO_LABORE : categoriaDe(x.descricao), situacao: "realizado", identificador: x.identificador.slice(0, 200) }));
-    const { error } = await supabase.from("pessoal_lancamentos").upsert(novas, { onConflict: "conta_id,identificador", ignoreDuplicates: true });
+    const lidas = linhas.map((x) => ({ conta_id: conta, data: x.data, descricao: x.descricao.slice(0, 200), valor: x.valor, categoria: x.valor > 0 && daEmpresa(x.descricao, empresa) ? PRO_LABORE : categoriaDe(x.descricao), situacao: "realizado", identificador: x.identificador.slice(0, 200) }));
+    // o mesmo lançamento que já entrou por outro arquivo (PDF x OFX) ou pelo Meu Pluggy não entra de novo
+    const { ficam: novas, fora } = semRepetidos(lidas, existentes.filter((l) => l.conta_id === conta));
+    const { error } = novas.length ? await supabase.from("pessoal_lancamentos").upsert(novas, { onConflict: "conta_id,identificador", ignoreDuplicates: true }) : { error: null };
     setGravando(false);
     if (error) return notifyError(error);
-    notify(`Extrato importado: ${novas.length} ${pl(novas.length, "linha lida", "linhas lidas")} (as que já existiam não entram de novo)`);
+    notify(`Extrato importado: ${lidas.length} ${pl(lidas.length, "linha lida", "linhas lidas")}${fora.length ? `, ${fora.length} já ${pl(fora.length, "estava", "estavam")} por outro arquivo` : ""} (as que já existiam não entram de novo)`);
     onFeito();
   }
   const entradas = (linhas ?? []).filter((x) => x.valor > 0).reduce((t, x) => t + x.valor, 0);

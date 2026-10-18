@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, grupoDe, gruposDoPeriodo, proximos, recebidosDaEmpresa, resumoMes, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
+  categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos, recebidosDaEmpresa, resumoMes, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
   type ContaPessoal, type LancPessoal,
 } from "../pessoal";
 
@@ -80,51 +80,11 @@ describe("painel pessoal", () => {
     expect(recebidosDaEmpresa(lancs, e).length).toBe(1);
   });
 
-  it("cards: cada saída entra no primeiro tipo que combina (e as entradas em nenhum)", () => {
-    const e = { nomes: ["EMPRESA EXEMPLO LTDA"], documentos: ["11222333000181"] };
-    const g = (descricao: string, x: Partial<LancPessoal> = {}) => grupoDe(l({ descricao, ...x }), e);
-    expect(g("PAGTO FINANC VEIC 12/48")).toBe("veiculo");
-    expect(g("PIX ENVIADO EMPRESA EXEMPLO")).toBe("empresas");
-    expect(g("PAGAMENTO DARF 0220")).toBe("impostos");
-    expect(g("PGTO DAS SIMPLES NACIONAL")).toBe("impostos");
-    expect(g("UNIMED EXEMPLO")).toBe("saude");
-    expect(g("PAGAMENTO FATURA CARTAO")).toBe("cartoes");
-    expect(g("AUTO POSTO EXEMPLO")).toBe("postos");
-    expect(g("IFOOD *RESTAURANTE")).toBe("delivery");
-    expect(g("DROGARIA EXEMPLO")).toBe("farmacia");
-    expect(g("TARIFA PACOTE DE SERVICOS")).toBe("tarifas");
-    expect(g("COMPRA NO SUPERMERCADO", { categoria: "Mercado" })).toBe("mercado");
-    // palavras comuns não confundem: "das" do pagamento das contas, "posto" dentro de imposto, "praia"
-    expect(g("PAGAMENTO DAS CONTAS DA CASA", { categoria: "Outros" })).toBeNull();
-    expect(g("PIX VIAGEM PRAIA", { categoria: "Lazer" })).toBeNull();
-    expect(g("IMPOSTO DE RENDA")).toBe("impostos");
-    expect(g("PIX RECEBIDO EMPRESA EXEMPLO", { valor: 500 })).toBeNull();
-    // jeitos como os bancos escrevem
-    expect(g("PAG BOLETO DEPARTAMENTO ESTADUAL DE TRANSITO")).toBe("impostos");
-    expect(g("PGTO PROTECAO FAMILIAR")).toBe("seguros");
-    expect(g("PAG BOLETO BANCO EXEMPLO")).toBe("bancos");
-    expect(g("PGTO MIN FATURA")).toBe("cartoes");
-    expect(g("PIX QRS CONECTCAR")).toBe("postos");
-    expect(g("COMPRA MERCADO LIVRE", { categoria: "Compras" })).toBe("online");
-    expect(g("JUROS LIMITE DA CONTA")).toBe("tarifas");
-    expect(g("ADIANT DEPOSITANTE")).toBe("tarifas");
-    expect(g("DEB AUTOR LBV")).toBe("doacoes");
-    expect(g("FIN VEIC 03/36")).toBe("veiculo");
-  });
-
   it("Pix por QR code com o nome cortado: as duas primeiras palavras da empresa bastam (se não forem genéricas)", () => {
     const e = { nomes: ["ALFA MAQUINAS DE TESTE LTDA", "COMERCIO DE BETA LTDA"], documentos: [] };
     expect(daEmpresa("PIX QRS ALFA MAQUINAS", e)).toBe(true);
     expect(daEmpresa("PIX QRS ALFA", e)).toBe(false);
     expect(daEmpresa("PIX QRS COMERCIO DE", e)).toBe(false);
-    expect(grupoDe(l({ descricao: "PIX QRS ALFA MAQUINAS", valor: -300 }), e)).toBe("empresas");
   });
 
-  it("cards do período: total, quantidade e o período anterior, sem anulados nem previstos", () => {
-    const e = { nomes: [], documentos: [] };
-    const lancs = [l({ descricao: "IFOOD", valor: -50 }), l({ descricao: "IFOOD", valor: -30.1 }), l({ descricao: "IFOOD", valor: -20, data: "2026-09-10" }),
-      l({ descricao: "IFOOD", valor: -99, anulado: true }), l({ descricao: "IFOOD", valor: -99, situacao: "previsto" }), l({ descricao: "UNIMED", valor: -400, data: "2026-09-05" })];
-    const r = gruposDoPeriodo(lancs, { de: "2026-10-01", ate: "2026-10-31" }, { de: "2026-09-01", ate: "2026-09-30" }, e);
-    expect(r.map((x) => [x.id, x.total, x.qtd, x.anterior])).toEqual([["saude", 0, 0, 400], ["delivery", 80.1, 2, 20]]);
-  });
 });

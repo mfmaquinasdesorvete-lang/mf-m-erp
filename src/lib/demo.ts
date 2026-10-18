@@ -211,6 +211,32 @@ function seed(): Db {
       { id: "pl15", conta_id: "pc1", data: dias(-9), descricao: "PIX ENVIADO GELADOS EXEMPLO", valor: -3000, categoria: "Transferências", situacao: "realizado", anulado: false },
       { id: "pl16", conta_id: "pc1", data: dias(-5), descricao: "TARIFA PACOTE DE SERVICOS", valor: -39.9, categoria: "Impostos e taxas", situacao: "realizado", anulado: false },
       { id: "pl17", conta_id: "pc1", data: dias(-36), descricao: "UNIMED EXEMPLO", valor: -980, categoria: "Saúde", situacao: "realizado", anulado: false },
+      { id: "pl18", conta_id: "pc1", data: dias(-13), descricao: "JUROS LIMITE DA CONTA", valor: -412.37, categoria: "Impostos e taxas", situacao: "realizado", anulado: false },
+      { id: "pl19", conta_id: "pc1", data: dias(-44), descricao: "JUROS LIMITE DA CONTA", valor: -388.1, categoria: "Impostos e taxas", situacao: "realizado", anulado: false },
+      { id: "pl20", conta_id: "pc1", data: dias(-15), descricao: "MULTA FINANC VEIC", valor: -77.54, categoria: "Transporte", situacao: "realizado", anulado: false },
+      { id: "pl21", conta_id: "pc1", data: dias(-8), descricao: "PIX QRS CONECTCAR", valor: -150, categoria: "Transporte", situacao: "realizado", anulado: false },
+      { id: "pl22", conta_id: "pc1", data: dias(-6), descricao: "PIX TRANSF FULANO EX06 10", valor: -1200, categoria: "Transferências", situacao: "realizado", anulado: false },
+      { id: "pl23", conta_id: "pc1", data: dias(-4), descricao: "PAG BOLETO TAB DE NOTAS", valor: -1476.88, categoria: "Outros", situacao: "realizado", anulado: false },
+      { id: "pl24", conta_id: "pc1", data: dias(-3), descricao: "PIX QRS FACEBOOK SE", valor: -250, categoria: "Transferências", situacao: "realizado", anulado: false },
+      { id: "pl25", conta_id: "pc1", data: dias(-2), descricao: "PAG BOLETO TELEFONIA EXEMPLO", valor: -189.9, categoria: "Casa", situacao: "realizado", anulado: false },
+      { id: "pl26", conta_id: "pc1", data: dias(-12), descricao: "DA OPERADORA BL IT 1234", valor: -317.17, categoria: "Casa", situacao: "realizado", anulado: false, identificador: "20261006001" },
+      { id: "pl27", conta_id: "pc1", data: dias(-12), descricao: "DA OPERADORA BL/IT 1234", valor: -317.17, categoria: "Casa", situacao: "realizado", anulado: false, identificador: "pdf:demo-1" },
+      { id: "pl28", conta_id: "pc1", data: dias(-1), descricao: "REND PAGO APLIC AUT MAIS", valor: 0.12, categoria: "Investimentos", situacao: "realizado", anulado: false },
+    ],
+    // regras dos cards do painel pessoal (no sistema real: public.pessoal_regras, só o dono lê)
+    pessoal_regras: [
+      { id: "pr1", texto: "transf fulano ex / fulano exemplo", card: "comissoes", rotulo: "Fulano Exemplo", sentido: "saida", da_empresa: false, observacao: null, meta_total: null, parcelas: null, ativa: true, ordem: 1 },
+      { id: "pr2", texto: "telefonia exemplo", card: "Telefones da fábrica", rotulo: null, sentido: "ambos", da_empresa: true, observacao: "Linhas da fábrica pagas pela conta pessoal", meta_total: null, parcelas: null, ativa: true, ordem: 2 },
+      { id: "pr3", texto: "pag boleto itau", card: "cartoes", rotulo: null, sentido: "saida", da_empresa: false, observacao: "Cartões do banco cancelados", meta_total: null, parcelas: null, ativa: true, ordem: 3 },
+    ],
+    pessoal_conexoes: [],
+    pessoal_enderecos: [
+      { id: "pe1", endereco: "Rua Exemplo, 100 – Centro – Cidade Exemplo/SC", lembranca: null, periodo: null, atual: true, ordem: 0 },
+      { id: "pe2", endereco: "Avenida Teste, 200 – Bairro Antigo – Cidade Exemplo/SC", lembranca: "Primeira casa e onde nasceu a primeira empresa", periodo: "2015 a 2019", atual: false, ordem: 1 },
+    ],
+    pessoal_empresas: [
+      { id: "pq1", cnpj: "11222333000181", razao_social: "EMPRESA EXEMPLO LTDA", nome_fantasia: "Exemplo", situacao: "ATIVA", data_situacao: "2020-03-10", abertura: "2020-03-10", natureza: "206-2 - Sociedade Empresária Limitada", porte: "Empresa de pequeno porte (EPP)", cnae: "2829-1/99 Fabricação de outras máquinas", municipio: "Cidade Exemplo", uf: "SC", capital_social: 100000, qualificacao: "Sócia-administradora", entrada: "2020-03-10", saida: null, lembranca: null, fonte: null, conferido_em: quando(-3), ordem: 0, socios: [{ nome: "ADMIN EXEMPLO", qualificacao: "Sócio-Administrador", entrada: "2020-03-10" }] },
+      { id: "pq2", cnpj: "11444777000161", razao_social: "LOJA TESTE LTDA", nome_fantasia: "Loja Teste", situacao: "BAIXADA", data_situacao: "2024-02-25", abertura: "2017-06-25", natureza: null, porte: null, cnae: null, municipio: "Cidade Exemplo", uf: "SC", capital_social: 50000, qualificacao: null, entrada: null, saida: null, lembranca: "A primeira loja", fonte: null, conferido_em: null, ordem: 1, socios: null },
     ],
     // data real em que virou cliente (no sistema real: a view public.clientes_desde)
     clientes_desde: [
@@ -5235,6 +5261,11 @@ const funcoes: Record<string, (b: any) => any> = {
       return { ok: true, situacao: "CANCELADO" };
     }
     return { ok: true };
+  },
+  // Meu Pluggy do painel pessoal: na prévia, sem a chave (mostra o passo a passo)
+  "pessoal-pluggy": (b) => {
+    if (b.acao === "status") return { configurado: false };
+    throw new Error("Falta a chave do Meu Pluggy: cadastre os secrets PLUGGY_PESSOAL_CLIENT_ID e PLUGGY_PESSOAL_CLIENT_SECRET no Supabase (Edge Functions → Secrets).");
   },
   openfinance: (b) => {
     // prévia: a "Pluggy" responde na hora; o banco de teste manda alguns lançamentos (um deles paga uma conta em aberto)
