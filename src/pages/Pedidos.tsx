@@ -57,8 +57,24 @@ import { NfOutraModal, NfOutraPainel, SeloNfOutra } from "@/components/vendas/Nf
 import { rotuloNfOutra } from "@/lib/nfOutra";
 
 /** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
-const resumoPulados = (p: { numero: number; motivo: string }[]) =>
-  p.slice(0, 6).map((x) => `#${x.numero} (${x.motivo})`).join("; ") + (p.length > 6 ? ` e mais ${p.length - 6}` : "");
+/** Vendas que não foram excluídas, agrupadas pelo motivo em português claro: "3 já faturadas (#36, #429, #550)…" */
+const SITUACAO_PULADO: Record<string, [string, string]> = {
+  aprovado: ["já aprovada", "já aprovadas"], faturado: ["já faturada (com nota)", "já faturadas (com nota)"], entregue: ["já entregue", "já entregues"],
+};
+const resumoPulados = (p: { numero: number; motivo: string }[]) => {
+  const grupos = new Map<string, number[]>();
+  for (const x of p) {
+    const st = x.motivo.match(/^venda (\w+):/)?.[1];
+    const chave = st && SITUACAO_PULADO[st] ? st : x.motivo;
+    grupos.set(chave, [...(grupos.get(chave) ?? []), x.numero]);
+  }
+  const partes = [...grupos].map(([k, nums]) => {
+    const nome = SITUACAO_PULADO[k] ? SITUACAO_PULADO[k]![nums.length > 1 ? 1 : 0] : k;
+    return `${nums.length} ${nome} (${nums.slice(0, 5).map((n) => `#${n}`).join(", ")}${nums.length > 5 ? ` e mais ${nums.length - 5}` : ""})`;
+  });
+  const precisaCancelar = [...grupos.keys()].some((k) => SITUACAO_PULADO[k]);
+  return `${partes.join("; ")}.${precisaCancelar ? " Para excluir, cancele a venda primeiro." : ""}`;
+};
 
 const STATUS = ["todos", "orcamento", "aprovado", "faturado", "entregue", "cancelado"] as const;
 const ROTULO_STATUS: Record<(typeof STATUS)[number], string> = {
@@ -248,7 +264,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       const { data, error } = await supabase.rpc("excluir_pedidos", { p_ids: selecionados.map((p) => p.id), p_motivo: motivo });
       if (error) throw error;
       const r = data as { excluidos: number; pulados: { numero: number; motivo: string }[] };
-      notify(`${r.excluidos} ${pl(r.excluidos, "pedido excluído", "pedidos excluídos")}.${r.pulados.length ? ` Ficaram ${r.pulados.length}: ${resumoPulados(r.pulados)}` : ""}`, r.pulados.length ? "erro" : undefined);
+      notify(`${r.excluidos} ${pl(r.excluidos, "pedido excluído", "pedidos excluídos")}.${r.pulados.length ? ` ${r.pulados.length} não ${pl(r.pulados.length, "foi excluído", "foram excluídos")}: ${resumoPulados(r.pulados)}` : ""}`, r.pulados.length ? "erro" : undefined);
       selecao.limpar();
       invalidate("pedidos", "auditoria");
     } catch (e) { notifyError(e); }

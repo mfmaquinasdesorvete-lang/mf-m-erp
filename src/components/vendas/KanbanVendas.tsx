@@ -6,7 +6,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { EtiquetaUnidade } from "@/lib/unidade";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR } from "@/lib/format";
 import type { Pedido } from "@/lib/types";
 
 export type ColunaVenda = "orcamento" | "aprovado" | "faturado" | "entregue" | "cancelado";
@@ -43,65 +43,44 @@ export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, 
   extras?: (v: T) => ReactNode;
 }) {
   const colunas = colunasDoQuadro(vendas);
-  const irPara = (id: ColunaVenda) => document.getElementById(`coluna-venda-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+  // quadro enxuto (gestão à vista): cabeçalho de uma linha, cartão com nº, cliente, valor e data — o resto fica na venda
   return (
-    <>
-      {/* abas coloridas: cada passo com quantas vendas e quanto (tocar leva à coluna) */}
-      <nav aria-label="Passos da venda" className="relative -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:grid md:grid-cols-5 md:px-0">
-        {colunas.map((col) => (
-          <button key={col.id} type="button" onClick={() => irPara(col.id)} title={`${col.explica} ${col.fazer}`}
-            className={`flex min-w-[9.5rem] shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0 ${col.n ? "" : "opacity-55"}`}
-            style={{ background: col.fundo, color: col.tinta }}>
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-bold" style={{ background: "rgba(255,255,255,.28)" }}>{col.passo ?? "×"}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold leading-tight">{col.rotulo}</span>
-              <span className="num block whitespace-nowrap text-xs font-semibold opacity-90">{col.n} · {brl(col.total)}</span>
-            </span>
-          </button>
-        ))}
-      </nav>
-      {/* relative: o texto só para leitor de tela (sr-only) dos cartões fica preso aqui e não alarga a página no celular */}
-      <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das vendas">
-        {colunas.map((col) => (
-          <section key={col.id} id={`coluna-venda-${col.id}`} aria-label={col.rotulo}
-            className={`flex w-[86vw] max-w-[330px] shrink-0 snap-center scroll-ml-3 flex-col rounded-2xl border border-slate-200 sm:w-[290px] ${col.corpo}`}>
-            <header className="rounded-t-2xl px-4 py-3" style={{ background: col.fundo, color: col.tinta }}>
-              <div className="flex items-center gap-2">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-bold" style={{ background: "rgba(255,255,255,.28)" }} aria-hidden>{col.passo ?? "×"}</span>
-                <h3 className="min-w-0 flex-1 truncate text-sm font-bold">{col.passo ? `Passo ${col.passo} · ` : ""}{col.rotulo}</h3>
-                <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-bold text-[#0d1b2e]">{col.n}</span>
-              </div>
-              <div className="num mt-1.5 whitespace-nowrap text-xl font-bold leading-tight">{brl(col.total)}</div>
-              <p className="mt-1 text-xs leading-snug opacity-90">{col.explica}</p>
-              <p className="mt-0.5 text-xs font-bold leading-snug">→ {col.fazer}</p>
-            </header>
-            <div className="flex min-h-[120px] flex-col gap-2 p-2">
-              {col.lista.map((v) => (
-                <button key={v.id} type="button" onClick={() => onAbrir(v)} style={{ borderLeftColor: col.cor }}
-                  className="rounded-xl border border-l-[5px] border-slate-200 bg-surface p-3 text-left shadow-card transition hover:shadow-pop active:bg-slate-50">
-                  <span className="flex items-center gap-1.5 text-sm">
-                    <b className="text-fg">#{v.numero}</b><EtiquetaUnidade id={(v as any).unidade_id} />
-                    {v.numero_externo && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600">TINY {v.numero_externo}</span>}
-                    <span className="ml-auto text-xs text-slate-500">{dataBR(v.created_at).replace(/\/(\d{2})(\d{2})$/, "/$2")}</span>
+    <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:snap-none md:px-0" aria-label="Quadro das vendas">
+      {colunas.map((col) => (
+        <section key={col.id} id={`coluna-venda-${col.id}`} aria-label={col.rotulo}
+          className="flex w-[80vw] max-w-[300px] shrink-0 snap-center scroll-ml-3 flex-col rounded-xl bg-slate-50 sm:w-[250px]">
+          <header className="flex items-center gap-2 px-3 pb-1 pt-2.5" title={`${col.explica} ${col.fazer}`}>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: col.cor }} aria-hidden />
+            <h3 className="min-w-0 flex-1 truncate text-sm font-bold text-fg">{col.rotulo}</h3>
+            <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-bold text-slate-600">{col.n}</span>
+          </header>
+          <p className="num px-3 pb-2 text-xs text-slate-500">{brl(col.total)}</p>
+          <div className="flex min-h-[80px] flex-col gap-1.5 px-2 pb-2">
+            {col.lista.map((v) => (
+              <button key={v.id} type="button" onClick={() => onAbrir(v)} style={{ borderLeftColor: col.cor }}
+                className="rounded-lg border border-l-[3px] border-slate-200 bg-surface px-2.5 py-2 text-left shadow-sm transition hover:shadow-card active:bg-slate-50">
+                <span className="block truncate text-sm font-semibold text-fg" title={v.cliente?.nome ?? undefined}>
+                  <span className="text-slate-500">#{v.numero}</span> {v.cliente?.nome ?? "—"}
+                </span>
+                <span className="mt-1 flex items-center gap-1.5">
+                  <EtiquetaUnidade id={(v as any).unidade_id} />
+                  {extras && <span className="flex min-w-0 items-center gap-1 overflow-hidden">{extras(v)}</span>}
+                  <span className="num ml-auto whitespace-nowrap text-sm font-bold text-fg">{brl(v.valor_total)}</span>
+                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-2xs font-bold text-white" style={{ background: col.cor }}>
+                    {dataBR(v.created_at).slice(0, 5)}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 block text-sm font-semibold leading-snug text-fg" title={v.cliente?.nome ?? undefined}>{v.cliente?.nome ?? "—"}</span>
-                  <span className="mt-1.5 flex items-baseline justify-between gap-2">
-                    <span className="text-xs text-slate-500">{(v.itens ?? []).length} {pl((v.itens ?? []).length, "item", "itens")}</span>
-                    <span className="num whitespace-nowrap text-lg font-bold text-fg">{brl(v.valor_total)}</span>
-                  </span>
-                  {extras && <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">{extras(v)}</span>}
-                </button>
-              ))}
-              {!col.n && <p className="px-1 py-6 text-center text-sm text-slate-500">Nada aqui</p>}
-              {col.fora > 0 && (
-                <button type="button" onClick={() => onVerNaLista(col.id)} className="inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-sm font-semibold text-brand hover:bg-white/60">
-                  Mais {col.fora} na lista <ChevronRight size={15} aria-hidden />
-                </button>
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
-    </>
+                </span>
+              </button>
+            ))}
+            {!col.n && <p className="px-1 py-4 text-center text-xs text-slate-500">Nada aqui</p>}
+            {col.fora > 0 && (
+              <button type="button" onClick={() => onVerNaLista(col.id)} className="inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-brand hover:bg-surface">
+                Mais {col.fora} na lista <ChevronRight size={14} aria-hidden />
+              </button>
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
