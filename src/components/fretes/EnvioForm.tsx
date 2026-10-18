@@ -304,6 +304,9 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
                   <select className="input" value={e.modalidade ?? "cif"} onChange={(x) => set({ modalidade: x.target.value, pagador: x.target.value === "fob" || x.target.value === "retira" ? "cliente" : x.target.value === "terceiros" ? "terceiro" : "empresa" })}>
                     {MODALIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
                   </select>
+                  {(e.modalidade ?? "cif") === "cif" && (
+                    <span className="mt-1 block text-xs text-slate-500">O normal da MF: a gente contrata com o nosso convênio (mais barato), paga a transportadora (boleto ou na hora) e o cliente paga o frete junto com a peça.</span>
+                  )}
                 </Field>
               </div>
             </Secao>

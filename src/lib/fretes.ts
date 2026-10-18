@@ -78,8 +78,8 @@ export const RESTRICOES: [string, string][] = [
 ];
 
 export const MODALIDADES: [string, string][] = [
-  ["cif", "CIF: a MF contrata e paga"],
-  ["fob", "FOB: o cliente contrata e paga"],
+  ["cif", "CIF: a MF contrata (cliente paga junto no pedido)"],
+  ["fob", "FOB: o cliente contrata direto (fica mais caro)"],
   ["terceiros", "Por conta de terceiros"],
   ["retira", "Cliente retira"],
   ["proprio", "Transporte próprio da MF"],
