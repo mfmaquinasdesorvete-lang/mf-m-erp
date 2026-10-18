@@ -2,10 +2,11 @@
 // o que já está prometido, o estoque virtual, as saídas do período, a cobertura em dias e quanto comprar.
 // Mínimo e máximo se mudam na própria linha (grava no produto ao sair do campo). Os marcados viram ordens de compra
 // em cotação, uma por fornecedor, na unidade escolhida. Imprimir e Excel levam a lista com os filtros aplicados.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, FileDown, Info, PackageX, Printer, Save, Scale, ShoppingCart, SlidersHorizontal, Sparkles, TrendingDown, X,
+  AlertTriangle, ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpFromLine, Banknote, Barcode, CalendarClock, CheckCircle2, ChevronsDown, ChevronsUp, CircleDollarSign,
+  FileDown, Hash, History, Info, Package, PackageCheck, PackageX, Printer, Ruler, Save, Scale, ShoppingCart, SlidersHorizontal, Sparkles, Timer, TrendingDown, Truck, X,
+  type LucideIcon,
 } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, Stat, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -56,6 +57,14 @@ const DICAS: Record<string, [string, string]> = {
   prazo: ["Prazo", "Dias que o fornecedor leva para entregar (cadastro do produto; sem ele, 15 dias)."],
   necessidade: ["Comprar", "Quanto comprar para chegar ao máximo (ou ao mínimo + 30 dias de saídas), descontando o que já está em cotação. Respeita a compra mínima. Dá para mudar antes de gerar a ordem."],
   valor: ["Valor estimado", "Quantidade a comprar × custo médio."],
+};
+
+/** Cabeçalho curto (ícone + palavra) para as colunas não ficarem largas; o nome inteiro e a explicação aparecem ao passar o mouse. */
+const CURTO: Partial<Record<string, [LucideIcon, string]>> = {
+  sku: [Hash, "SKU"], gtin: [Barcode, "EAN"], fornecedor: [Truck, "Forn."], unidade: [Ruler, "Un"], custo: [CircleDollarSign, "Custo"],
+  entradas: [ArrowDownToLine, "Entra"], saidasPrevistas: [ArrowUpFromLine, "Sai"], fisico: [Package, "Físico"], virtual: [PackageCheck, "Virtual"],
+  minimo: [ChevronsDown, "Mín"], maximo: [ChevronsUp, "Máx"], saidasPeriodo: [History, "Saídas"], consumo: [TrendingDown, "Média"],
+  cobertura: [CalendarClock, "Cobre"], prazo: [Timer, "Prazo"], necessidade: [ShoppingCart, "Comprar"], valor: [Banknote, "Valor"],
 };
 
 type Campo = "estoque_minimo" | "estoque_maximo";
@@ -322,17 +331,26 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
   }
 
   const ordenarPor = (chave: ChaveOrdem) => setOrdem((o) => (o.chave === chave ? { chave, asc: !o.asc } : { chave, asc: true }));
-  /** Cabeçalho que ordena ao tocar, com o ⓘ da coluna (função, não componente: o ⓘ aberto não fecha a cada tecla). */
+  /** Cabeçalho curto que ordena ao tocar; ao passar o mouse (ou focar), um aviso com o nome inteiro e como o número é calculado.
+   *  (função, não componente: o aviso aberto não fecha a cada tecla) */
   const th = (id: ChaveOrdem, direita = false, extra = "") => {
     const ativo = ordem.chave === id;
+    const nome = id === "saidasPeriodo" ? `Saídas (${periodo} dias)` : DICAS[id][0];
+    const curto = CURTO[id];
+    const Icone = curto?.[0];
     return (
-      <th className={`th ${direita ? "text-right" : ""} ${extra}`} aria-sort={ativo ? (ordem.asc ? "ascending" : "descending") : undefined}>
-        <span className={`inline-flex items-center gap-0.5 ${direita ? "justify-end" : ""}`}>
-          <button type="button" onClick={() => ordenarPor(id)} title="Ordenar por esta coluna" className={`inline-flex items-center gap-0.5 uppercase hover:text-fg ${ativo ? "text-fg" : ""}`}>
-            {id === "saidasPeriodo" ? `Saídas (${periodo} dias)` : DICAS[id][0]}
+      <th className={`th whitespace-nowrap ${direita ? "text-right" : ""} ${extra}`} aria-sort={ativo ? (ordem.asc ? "ascending" : "descending") : undefined}>
+        <span className={`group relative inline-flex items-center ${direita ? "justify-end" : ""}`}>
+          <button type="button" onClick={() => ordenarPor(id)} aria-label={`${nome}: ordenar por esta coluna`}
+            className={`inline-flex items-center gap-1 uppercase hover:text-fg ${ativo ? "text-fg" : ""}`}>
+            {Icone && <Icone size={14} aria-hidden className="shrink-0" />}
+            {curto ? (id === "saidasPeriodo" ? `${periodo}d` : curto[1]) : nome}
             {ativo && (ordem.asc ? <ArrowUp size={12} aria-hidden /> : <ArrowDown size={12} aria-hidden />)}
           </button>
-          <Dica rotulo={DICAS[id][0]} texto={DICAS[id][1]} />
+          <span role="tooltip" className={`pointer-events-none absolute top-full z-30 mt-1.5 hidden w-64 whitespace-normal rounded-lg border-l-4 border-amber-400 bg-surface p-2.5 text-left text-xs font-normal normal-case tracking-normal text-slate-700 shadow-card ring-1 ring-slate-200 group-hover:block group-focus-within:block ${direita ? "right-0" : "left-0"}`}>
+            <b className="mb-0.5 flex items-center gap-1 text-fg"><Info size={13} aria-hidden className="text-amber-500" />{nome}</b>
+            {DICAS[id][1]}
+          </span>
         </span>
       </th>
     );
@@ -626,46 +644,6 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
       )}
       {pdf && <PdfViewer blob={pdf} nome={`necessidades-de-compra-${dia}.pdf`} titulo="Necessidades de compra" onClose={() => setPdf(null)} />}
     </div>
-  );
-}
-
-/** ⓘ do cabeçalho: tocar abre a explicação (no computador também aparece ao passar o mouse). */
-function Dica({ texto, rotulo }: { texto: string; rotulo: string }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const botao = useRef<HTMLButtonElement>(null);
-  const caixa = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!pos) return;
-    const fechar = () => setPos(null);
-    const fora = (e: PointerEvent) => { if (!botao.current?.contains(e.target as Node) && !caixa.current?.contains(e.target as Node)) fechar(); };
-    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") fechar(); };
-    document.addEventListener("pointerdown", fora);
-    document.addEventListener("keydown", tecla);
-    window.addEventListener("scroll", fechar, true);
-    window.addEventListener("resize", fechar);
-    return () => {
-      document.removeEventListener("pointerdown", fora);
-      document.removeEventListener("keydown", tecla);
-      window.removeEventListener("scroll", fechar, true);
-      window.removeEventListener("resize", fechar);
-    };
-  }, [pos]);
-  return (
-    <>
-      <button ref={botao} type="button" aria-label={`O que é ${rotulo}`} aria-expanded={!!pos} title={texto}
-        onClick={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          setPos((p) => (p ? null : { x: Math.max(8, Math.min(r.left + r.width / 2 - 128, window.innerWidth - 264)), y: r.bottom + 6 }));
-        }}
-        className="inline-grid h-5 w-5 shrink-0 place-items-center rounded-full text-slate-400 hover:text-brand">
-        <Info size={13} aria-hidden />
-      </button>
-      {pos && createPortal(
-        <div ref={caixa} role="tooltip" style={{ left: pos.x, top: pos.y }}
-          className="fixed z-[60] w-64 rounded-lg border border-slate-200 bg-surface p-2.5 text-left text-xs font-normal normal-case tracking-normal text-slate-700 shadow-pop">
-          <b className="mb-0.5 block text-fg">{rotulo}</b>{texto}
-        </div>, document.body)}
-    </>
   );
 }
 

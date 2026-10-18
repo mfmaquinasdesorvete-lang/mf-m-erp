@@ -27,8 +27,6 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/", tela: "painel", label: "Início", curto: "Início", icon: LayoutDashboard, busca: "painel dashboard resumo" },
       { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
-      // em Gestão, seis perfis viam só "Documentos" (a área parecia vazia): no Início todos acham
-      { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
       // de todas as equipes: em Gestão, cinco perfis veriam a área só com ele
       { to: "/scrum", tela: "scrum", label: "Scrum das equipes", curto: "Scrum", icon: SquareKanban, busca: "scrum sprint backlog quadro kanban daily burndown velocidade retrospectiva retro revisão equipe time tarefas ágil pontos impedimento ideias erp line produção assistência vendas financeiro" },
     ],
@@ -138,6 +136,8 @@ export const itensForaDoMenu: Item[] = [
   // PDV: fica no cartão próprio do acesso rápido
   { to: "/pdv", tela: "pedidos", label: "PDV (venda de balcão)", curto: "PDV", icon: ScanBarcode, busca: "pdv balcão caixa venda rápida cupom comprovante troco leitor código de barras" },
   { to: "/configuracoes", tela: "configuracoes", label: "Configurações", curto: "Ajustes", icon: Settings, busca: "empresa marca logo cores unidades recebimentos pix taxas orçamento garantia comissão catálogo avisos telegram backup" },
+  // Documentos (anexos): uso mais pessoal, fica na engrenagem de Configurações e na busca do menu
+  { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos docs" },
   { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
   { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },

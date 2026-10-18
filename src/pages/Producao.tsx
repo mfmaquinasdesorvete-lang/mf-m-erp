@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, XCircle,
+  CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, Wrench, XCircle,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -77,14 +77,16 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
   }, [location.state, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const abas: { value: Aba; label: string }[] = area === "producao"
-    ? [{ value: "producao", label: "Ordens de produção" }, { value: "ficha", label: "Ficha técnica" }]
-    : verCompras ? [{ value: "compras", label: "Pedidos de compra" }, { value: "cotacoes", label: "Cotações" }, { value: "necessidades", label: "Necessidades de compra" }, { value: "reposicao", label: "Reposição de estoque" }] : [];
+    ? [{ value: "producao", label: "OP - Ordem de Produção" }, { value: "ficha", label: "Ficha técnica" }]
+    : verCompras ? [{ value: "compras", label: "OC - Ordem de Compras" }, { value: "cotacoes", label: "Cotação (mais de um fornecedor)" }, { value: "necessidades", label: "Necessidade de Compra" }, { value: "reposicao", label: "Reposição de Estoque (base 90 dias)" }] : [];
 
   return (
     <div>
       {area === "producao"
-        ? <PageHeader title="Produção" subtitle="Monte as máquinas: o quadro mostra cada ordem, o que está atrasado e as peças que faltam." />
-        : <PageHeader title="Compras" subtitle="Peça aos fornecedores com cotação, escolha se a compra vem para SC ou SP e mande pelo WhatsApp." />}
+        ? <PageHeader title="Produção" subtitle={aba === "ficha"
+            ? "Ficha técnica: as peças de cada máquina ou peça fabricada aqui, por grupo, com o custo, e as etapas de produção (dentro e fora)."
+            : "OP - Ordem de Produção: as máquinas e as peças da tornearia e mecânica (ex.: pá batedora) em ordens separadas; o quadro mostra cada ordem, o que está atrasado e as peças que faltam."} />
+        : <PageHeader title="Compras" subtitle={EXPLICA_COMPRAS[aba] ?? EXPLICA_COMPRAS.compras} />}
       {area === "compras" && !verCompras ? <Card className="p-4 text-sm text-slate-600">Seu perfil não faz compras.</Card> : <Tabs value={aba} onChange={setAba} options={abas} />}
       {aba === "producao" && <OrdensProducao irParaCompras={() => irPara("compras")} />}
       {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
@@ -99,6 +101,14 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
   );
 }
 
+/** O que cada aba de Compras faz (no alto da tela, abaixo do título). */
+const EXPLICA_COMPRAS: Partial<Record<Aba, string>> = {
+  compras: "OC - Ordem de Compras: o pedido ao fornecedor com os itens, o prazo de entrega, o frete, o pagamento e para qual unidade vem (SC ou SP). Mande pelo WhatsApp ou e-mail e acompanhe até a nota chegar e o estoque entrar.",
+  cotacoes: "Cotação com mais de um fornecedor: escolha os itens e os fornecedores, mande o pedido de preço (e-mail ou WhatsApp com link), cada um responde preço, prazo e frete pelo link, o ERP compara lado a lado e marca o melhor; a vencedora vira OC com um clique.",
+  necessidades: "Necessidade de Compra: o que precisa comprar para as OP e as vendas, olhando estoque, reservado, o que já está a caminho e o consumo; vermelho é o que está zerado ou acaba antes de chegar. Marque e gere a OC ou a cotação.",
+  reposicao: "Reposição de Estoque (base 90 dias): pelo consumo dos últimos 90 dias, o prazo do fornecedor e o estoque mínimo e máximo do cadastro, o quanto repor de cada item, já descontando o que está a caminho.",
+};
+
 /* ============================== Ordens de produção ============================== */
 
 function useNecessidade() {
@@ -110,7 +120,12 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: ordensTodos = [], isLoading } = useRows<OrdemProducao>("ordens_producao", { select: "*, produto:produtos(*)" });
-  const ordens = filtrar(ordensTodos);
+  // máquinas e peças da tornearia e mecânica (pá batedora, eixo, subconjunto) em ordens separadas
+  const [tipoOp, setTipoOp] = useAbaUrl<"maquinas" | "pecas">("maquinas", ["maquinas", "pecas"] as const, "op");
+  const daUnidade = filtrar(ordensTodos);
+  const ehMaquina = (o: OrdemProducao) => (o as any).produto?.tipo === "maquina";
+  const ordens = daUnidade.filter((o) => ehMaquina(o) === (tipoOp === "maquinas"));
+  const abertasDe = (maq: boolean) => daUnidade.filter((o) => ehMaquina(o) === maq && ["planejada", "em_producao"].includes(o.status)).length;
   const { data: necessidade = [] } = useNecessidade();
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
@@ -128,12 +143,21 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
 
   return (
     <>
+      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de ordem">
+        {([["maquinas", "Máquinas", true], ["pecas", "Peças da tornearia e mecânica", false]] as const).map(([v, r, maq]) => (
+          <button key={v} type="button" aria-pressed={tipoOp === v} onClick={() => setTipoOp(v)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${tipoOp === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            {maq ? <Factory size={15} aria-hidden /> : <Wrench size={15} aria-hidden />}{r}
+            <span className="num rounded-full bg-black/10 px-1.5 text-xs" title="Ordens abertas (planejadas e em produção)">{abertasDe(maq)}</span>
+          </button>
+        ))}
+      </div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={ClipboardList} tom="info" label="Planejadas" valor={ordens.filter((o) => o.status === "planejada").length} />
         <Stat icon={Factory} tom="atencao" label="Em produção" valor={ordens.filter((o) => o.status === "em_producao").length} />
         <Stat icon={PackageSearch} tom={abertas.some((o) => faltasPorOP.get(o.id)) ? "critico" : "bom"} label="Ordens com peça faltando"
           valor={abertas.filter((o) => faltasPorOP.get(o.id)).length} />
-        <Stat icon={PackageCheck} tom="bom" label="Máquinas montadas no mês"
+        <Stat icon={PackageCheck} tom="bom" label={tipoOp === "maquinas" ? "Máquinas montadas no mês" : "Peças prontas no mês"}
           valor={ordens.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(hoje().slice(0, 7))).reduce((s, o) => s + Number(o.quantidade), 0)} />
       </div>
 

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Flag, Lightbulb } from "lucide-react";
 import { Card, PageHeader, Tabs } from "@/components/ui";
 import { Backlog } from "@/components/scrum/Backlog";
+import { ComoUsar } from "@/components/scrum/ComoUsar";
 import { DailyScrum } from "@/components/scrum/DailyScrum";
 import { Equipe } from "@/components/scrum/Equipe";
 import { PainelScrum } from "@/components/scrum/PainelScrum";
@@ -43,6 +44,8 @@ export default function Scrum() {
   };
   const [janela, setJanela] = useState<{ item: ItemScrum | null; sprint?: string | null } | null>(null);
   const [diaDaily, setDiaDaily] = useState(hoje);
+  // o passo a passo vem aberto enquanto a equipe ainda não fechou nenhuma sprint (depois, fechado; dá para abrir)
+  const [guia, setGuia] = useState<boolean | null>(null);
 
   const doTime = useMemo(() => ({
     sprints: sprints.filter((s) => s.time_id === time?.id),
@@ -89,6 +92,8 @@ export default function Scrum() {
           )}
         </div>
       </Card>
+
+      <ComoUsar time={time} backlog={backlog} aberto={guia ?? (!ativa && doTime.sprints.every((s) => s.status !== "encerrada"))} onAberto={setGuia} irPara={(a) => ir({ aba: a })} />
 
       <Tabs value={aba} onChange={(a) => ir({ aba: a })} options={ABAS} />
 

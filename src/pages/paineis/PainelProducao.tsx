@@ -211,10 +211,10 @@ export default function PainelProducao() {
       <div className="space-y-3">
         <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
         <AtalhosArea itens={[
-          { rotulo: "Ordens de produção", icone: Factory, to: "/producao", aviso: k.opsComFalta, tela: "producao" },
+          { rotulo: "OP - Ordem de Produção", icone: Factory, to: "/producao", aviso: k.opsComFalta, tela: "producao" },
           ...(verCompras ? [
-            { rotulo: "Reposição de estoque", icone: Boxes, to: "/compras", state: { aba: "reposicao" }, aviso: k.abaixo.length },
-            { rotulo: "Pedidos de compra", icone: ShoppingBag, to: "/compras", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
+            { rotulo: "Reposição de Estoque (base 90 dias)", icone: Boxes, to: "/compras", state: { aba: "reposicao" }, aviso: k.abaixo.length },
+            { rotulo: "OC - Ordem de Compras", icone: ShoppingBag, to: "/compras", state: { aba: "compras" }, aviso: k.comprasAtrasadas.length },
           ] : []),
           { rotulo: "Ficha técnica", icone: Wrench, to: "/producao", state: { aba: "ficha" }, tela: "producao" },
           { rotulo: "Produtos e estoque", icone: Warehouse, to: "/estoque", tela: "estoque" },
