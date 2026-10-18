@@ -1201,7 +1201,7 @@ function bancosDemo(db: Db) {
     { id: "cb3", unidade_id: U_SC, nome: "InfinitePay SC", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 0, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45) },
     { id: "cb4", unidade_id: U_SP, nome: "Unicred SP", banco: "unicred", agencia: "0207", numero: "54321-0", tipo: "corrente", saldo_inicial: 15400, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45) },
     // cartão de uma pessoa: os débitos viram o "Cartão Rafael" no Início (o real é o Cartão Fabiano)
-    { id: "cb5", unidade_id: U_SP, nome: "InfinitePay SP", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 3000, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45),
+    { id: "cb5", unidade_id: U_SP, nome: "InfinitePay SP", etiqueta: "Vendas", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 3000, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45),
       cartao_nome: "Cartão Rafael", cartao_responsavel: "u-fin" },
 
     { id: "cb6", unidade_id: U_SC, nome: "Banco Inter SC", banco: "inter", agencia: "0001", numero: "1234567-8", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: inicio, ativo: true, created_at: quando(-10) },

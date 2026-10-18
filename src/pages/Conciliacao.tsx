@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, List, Mail, Pencil, Plus, Receipt, Scale, Undo2, Users, Zap } from "lucide-react";
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, List, Mail, Pencil, Plus, Receipt, Scale, Undo2, UserRound, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
@@ -24,6 +24,8 @@ export type ContaBancaria = {
   saldo_inicial: number; saldo_inicial_data: string; ativo: boolean;
   /** quem pode mandar o extrato (OFX) desta conta por e-mail: endereço ou domínio */
   extrato_remetentes?: string[];
+  /** selo no cartão da conta (ex.: de quem é a conta) */
+  etiqueta?: string | null;
 };
 type Lancamento = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null; documento: string | null;
@@ -51,9 +53,13 @@ export default function Conciliacao() {
   const navigate = useNavigate();
   const { pode } = usePerfil();
   const podeEditar = pode("editar_financeiro");
-  const { filtrar, padrao: unidadePadrao } = useUnidade();
+  const { filtrar, padrao: unidadePadrao, unidades, nome: nomeUnidade } = useUnidade();
   const { data: contasTodas = [] } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
   const bancos = filtrar(contasTodas);
+  // cartões separados por unidade (SC, depois SP), as inativas no fim de cada uma
+  const gruposBancos = [...new Set(bancos.map((b) => b.unidade_id))]
+    .sort((a, c) => (unidades.findIndex((u) => u.id === a) + 1 || 99) - (unidades.findIndex((u) => u.id === c) + 1 || 99))
+    .map((id) => ({ id, contas: bancos.filter((b) => b.unidade_id === id).sort((a, c) => Number(c.ativo) - Number(a.ativo)) }));
   const { data: lancamentos = [] } = useRows<Lancamento>("extrato_lancamentos", { order: "data", ascending: false });
   const { data: importacoes = [] } = useRows<Importacao>("extrato_importacoes");
   const { data: conexoes = [] } = useRows<ConexaoOF>("openfinance_conexoes");
@@ -197,40 +203,58 @@ export default function Conciliacao() {
 
       <AvisoContasRepetidas pares={repetidas} nome={nomeConta} onEditar={podeEditar ? (id) => setEditConta(contasTodas.find((b) => b.id === id) ?? null) : undefined} />
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {bancos.map((b) => {
-          const s = saldos[b.id];
-          const dif = Math.round((s.extrato - s.erp) * 100) / 100;
-          const difBanco = s.informado != null && s.extratoNaData != null ? Math.round((s.informado - s.extratoNaData) * 100) / 100 : 0;
-          return (
-            <button key={b.id} onClick={() => setContaSel(contaSel === b.id ? "" : b.id)}
-              className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${contaSel === b.id ? "border-brand ring-2 ring-brand/40" : "border-slate-200/80"} ${b.ativo ? "" : "opacity-60"}`}>
-              <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-3.5 text-white`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 font-bold"><Landmark size={15} className="shrink-0 opacity-80" /> <span className="truncate">{b.nome}</span></div>
-                    <div className="text-xs text-white/80">{BANCOS[b.banco] ?? b.banco}{b.numero ? ` · ${b.numero}` : ""}<EtiquetaUnidade id={b.unidade_id} /></div>
-                  </div>
-                  {podeEditar && <span role="button" tabIndex={0} aria-label={`Editar ${b.nome}`} onClick={(e) => { e.stopPropagation(); setEditConta(b); }}
-                    className="rounded-md p-1 text-white/80 hover:bg-white/20 hover:text-white"><Pencil size={14} /></span>}
-                </div>
-                <div className="num mt-2 text-2xl font-extrabold tracking-tight">{brl(s.extrato)}</div>
-                <div className="text-xs text-white/85">saldo pelo extrato · {s.openFinance ? "Open Finance" : s.inter ? "API do Inter" : "importado"}</div>
+      {gruposBancos.map((g) => {
+        const ativas = g.contas.filter((b) => b.ativo);
+        const total = Math.round(ativas.reduce((t, b) => t + saldos[b.id].extrato, 0) * 100) / 100;
+        return (
+          <section key={g.id} className="mb-5" aria-label={`Contas de ${nomeUnidade(g.id)}`}>
+            {unidades.length > 1 && (
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">
+                  {nomeUnidade(g.id)} <span className="font-semibold normal-case tracking-normal text-slate-500">· {ativas.length} {pl(ativas.length, "conta ativa", "contas ativas")}</span>
+                </h2>
+                <span className="num text-sm text-slate-600">Saldo pelo extrato: <b className="text-fg">{brl(total)}</b></span>
               </div>
-              <dl className="w-full flex-1 space-y-0.5 px-4 pb-3.5 pt-2.5 text-xs">
-                <div className="flex justify-between gap-2"><dt className="text-slate-500">Pelo ERP (baixas)</dt><dd>{brl(s.erp)}</dd></div>
-                <div className={`flex justify-between gap-2 ${dif ? "font-semibold text-amber-700" : "text-emerald-700"}`}><dt>Diferença</dt><dd>{dif ? brl(dif) : "nenhuma ✓"}</dd></div>
-                {s.informado != null && (
-                  <div className={`flex justify-between gap-2 ${difBanco ? "font-semibold text-red-600" : "text-slate-500"}`} title="Saldo que o próprio banco informou no arquivo">
-                    <dt>Banco em {dataBR(s.informadoData)}</dt><dd>{brl(s.informado)}{difBanco ? " ≠" : " ✓"}</dd>
+            )}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {g.contas.map((b) => {
+              const s = saldos[b.id];
+              const dif = Math.round((s.extrato - s.erp) * 100) / 100;
+              const difBanco = s.informado != null && s.extratoNaData != null ? Math.round((s.informado - s.extratoNaData) * 100) / 100 : 0;
+              return (
+                <button key={b.id} onClick={() => setContaSel(contaSel === b.id ? "" : b.id)}
+                  className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${contaSel === b.id ? "border-brand ring-2 ring-brand/40" : "border-slate-200/80"} ${b.ativo ? "" : "opacity-60"}`}>
+                  <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-3.5 text-white`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 font-bold"><Landmark size={15} className="shrink-0 opacity-80" /> <span className="truncate">{b.nome}</span></div>
+                        <div className="text-xs text-white/80">{BANCOS[b.banco] ?? b.banco}{b.numero ? ` · ${b.numero}` : ""}<EtiquetaUnidade id={b.unidade_id} />
+                          {b.etiqueta && <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-white/25 px-2 py-0.5 align-middle text-[11px] font-bold text-white ring-1 ring-white/50"><UserRound size={11} aria-hidden />{b.etiqueta}</span>}
+                        </div>
+                      </div>
+                      {podeEditar && <span role="button" tabIndex={0} aria-label={`Editar ${b.nome}`} onClick={(e) => { e.stopPropagation(); setEditConta(b); }}
+                        className="rounded-md p-1 text-white/80 hover:bg-white/20 hover:text-white"><Pencil size={14} /></span>}
+                    </div>
+                    <div className="num mt-2 text-2xl font-extrabold tracking-tight">{brl(s.extrato)}</div>
+                    <div className="text-xs text-white/85">saldo pelo extrato · {s.openFinance ? "Open Finance" : s.inter ? "API do Inter" : "importado"}</div>
                   </div>
-                )}
-                <div className="flex justify-between gap-2 text-slate-500"><dt>Pendentes</dt><dd className={s.pendentes ? "font-semibold text-amber-700" : ""}>{s.pendentes}</dd></div>
-              </dl>
-            </button>
-          );
-        })}
-      </div>
+                  <dl className="w-full flex-1 space-y-0.5 px-4 pb-3.5 pt-2.5 text-xs">
+                    <div className="flex justify-between gap-2"><dt className="text-slate-500">Pelo ERP (baixas)</dt><dd>{brl(s.erp)}</dd></div>
+                    <div className={`flex justify-between gap-2 ${dif ? "font-semibold text-amber-700" : "text-emerald-700"}`}><dt>Diferença</dt><dd>{dif ? brl(dif) : "nenhuma ✓"}</dd></div>
+                    {s.informado != null && (
+                      <div className={`flex justify-between gap-2 ${difBanco ? "font-semibold text-red-600" : "text-slate-500"}`} title="Saldo que o próprio banco informou no arquivo">
+                        <dt>Banco em {dataBR(s.informadoData)}</dt><dd>{brl(s.informado)}{difBanco ? " ≠" : " ✓"}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-2 text-slate-500"><dt>Pendentes</dt><dd className={s.pendentes ? "font-semibold text-amber-700" : ""}>{s.pendentes}</dd></div>
+                  </dl>
+                </button>
+              );
+            })}
+            </div>
+          </section>
+        );
+      })}
 
       <ResumoExtrato lancs={doResumo} titulo={contaSel ? nomeConta(contaSel) : "todas as contas"} mes={mes} tipo={tipo}
         onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} funcionarios={funcionarios} />
@@ -344,7 +368,7 @@ export function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBan
       const lista = [...new Set(remetentes.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))];
       const invalido = lista.find((x) => !/^(@?[a-z0-9.-]+\.[a-z]{2,}|[^@\s]+@[a-z0-9.-]+\.[a-z]{2,})$/.test(x));
       if (invalido) throw new Error(`"${invalido}" não é um e-mail nem um domínio (ex.: nubank.com.br)`);
-      await save.mutateAsync(limpar({ ...c, saldo_inicial: Number(c.saldo_inicial || 0), extrato_remetentes: lista }));
+      await save.mutateAsync(limpar({ ...c, saldo_inicial: Number(c.saldo_inicial || 0), extrato_remetentes: lista, etiqueta: c.etiqueta?.trim() || null }));
       notify("Conta salva");
       onClose();
     } catch (err) { notifyError(err); }
@@ -359,6 +383,9 @@ export function ContaBancariaModal({ conta, onClose }: { conta: Partial<ContaBan
           </select>
         </Field>
         <Field label="Nome (como aparece no ERP)"><input className="input" value={c.nome ?? ""} onChange={(e) => setC({ ...c, nome: e.target.value })} required placeholder="Ex.: Unicred SC" /></Field>
+        <Field label="Selo no cartão (opcional)" className="sm:col-span-2">
+          <input className="input" value={c.etiqueta ?? ""} maxLength={30} onChange={(e) => setC({ ...c, etiqueta: e.target.value })} placeholder="ex.: de quem é a conta" />
+        </Field>
         <Field label="Agência"><input className="input" value={c.agencia ?? ""} onChange={(e) => setC({ ...c, agencia: e.target.value })} /></Field>
         <Field label="Conta"><input className="input" value={c.numero ?? ""} onChange={(e) => setC({ ...c, numero: e.target.value })} placeholder="ajuda a reconhecer o arquivo OFX" /></Field>
         <Field label="Saldo inicial"><input className="input" type="number" step="0.01" value={c.saldo_inicial ?? 0} onChange={(e) => setC({ ...c, saldo_inicial: Number(e.target.value) })} /></Field>
