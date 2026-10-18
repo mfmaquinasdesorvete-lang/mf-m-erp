@@ -84,7 +84,7 @@ function useExcecoes() {
     filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]), key: ["excecoes"],
   });
   const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
-  const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, notas:notas_fiscais(status, ambiente)" });
+  const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, nf_outra_numero, notas:notas_fiscais(status, ambiente)" });
   const { data: recebidas = NENHUM } = useRows<any>("nfe_recebidas", { select: "id, chave, emitente_nome, valor_total, data_emissao, situacao, processamento, conta_pagar_id, estoque_lancado, unidade_id" });
   const { data: usuariosCad = NENHUM } = useRows<any>("usuarios_erp", { select: "user_id, nome, papel, ativo, created_at" });
   // o último acesso vem do login (função do banco: só administrador, financeiro e contador); sem ele a regra de acesso fica de fora

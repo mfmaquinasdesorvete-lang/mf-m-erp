@@ -6,7 +6,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
@@ -52,6 +52,8 @@ import {
 } from "@/lib/vendasLista";
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
 import { KanbanVendas } from "@/components/vendas/KanbanVendas";
+import { NfOutraModal, NfOutraPainel, SeloNfOutra } from "@/components/vendas/NfOutraEmpresa";
+import { rotuloNfOutra } from "@/lib/nfOutra";
 
 /** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
 const resumoPulados = (p: { numero: number; motivo: string }[]) =>
@@ -95,7 +97,7 @@ function exportarPedidos(lista: Pedido[], infoDe?: (id: string) => InfoVenda | u
       Desconto: Number(p.desconto ?? 0), Frete: Number(p.frete ?? 0), Total: Number(p.valor_total ?? 0),
       "Forma de pagamento": i?.meio?.rotulo ?? FORMAS.find((f) => f.value === p.forma_pagamento)?.label ?? p.forma_pagamento ?? "", Parcelas: p.parcelas,
       Pagamento: i?.pg ? ROTULO_PAGAMENTO[i.pg.situacao] : "", Recebido: i?.pg ? i.pg.recebido : "",
-      "Nota fiscal": i?.nf ?? "", "Forma de envio": i?.envio.rotulo ?? "", Rastreio: i?.envio.rastreio ?? "", Observações: p.observacoes ?? "",
+      "Nota fiscal": i?.nf ?? (rotuloNfOutra(p) ? `${rotuloNfOutra(p)} (outra empresa)` : ""), "Forma de envio": i?.envio.rotulo ?? "", Rastreio: i?.envio.rastreio ?? "", Observações: p.observacoes ?? "",
     };
   });
   const itens = lista.flatMap((p: any) => (p.itens ?? []).map((i: Item) => ({
@@ -316,6 +318,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           extras={(p) => <>
             {vePagamento && <span className="flex items-center gap-1.5"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} compacta /></span>}
             {info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} compacto />}
+            <SeloNfOutra p={p} />
           </>} />
       )}
 
@@ -392,7 +395,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}
             <td className="td whitespace-nowrap text-right font-medium">{brl(p.valor_total)}</td>
             <td className="td whitespace-nowrap">{info.get(p.id)?.nf ? <span className="num font-semibold text-fg" title="NF-e autorizada">{info.get(p.id)!.nf}</span>
-              : <NotaDaLista p={p} />}
+              : p.nf_outra_numero ? <SeloNfOutra p={p} /> : <NotaDaLista p={p} />}
               {info.get(p.id) && <div className="mt-1"><SinaisVenda s={info.get(p.id)!.sinais} /></div>}</td>
             <td className="td min-w-[7.5rem] max-w-[12rem]">{info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} />}</td>
             {/* marcadores e a seta de abrir na mesma coluna (a linha inteira abre a venda) */}
@@ -575,6 +578,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const [pdf, setPdf] = useState<Blob | null>(null);
   const [aba, setAba] = useState<"pedido" | "frete" | "auditoria">("pedido");
   const [acaoMotivo, setAcaoMotivo] = useState<"editar" | "reabrir" | null>(null);
+  // a venda saiu com a NF de outra empresa (ex.: empresa ligada): registrar a nota no pedido
+  const [nfOutra, setNfOutra] = useState(false);
   const invalidate = useInvalidate();
   const { pode, tem, user_id } = usePerfil();
   const podeEditar = pode("editar_pedidos");
@@ -615,6 +620,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (c && editavel && tabCliente && tabelaDe(tabCliente)?.ativo && tabCliente !== (p as any).tabela_preco_id) return usarTabela(tabCliente, true, patch as Partial<Pedido>);
     set(patch as Partial<Pedido>);
   }
+  // tabela de preço: novos itens entram com o preço dela; trocar a tabela reprecifica os itens do orçamento
+  // (antes da comissão prevista, que usa o preço da tabela na mesma montagem da tela)
+  const tabelaDe = (id: string | null | undefined) => tabelas.find((t) => t.id === id) ?? null;
   const subtotal = totalItens(p.itens);
   const pctDesc = subtotal > 0 ? Math.round((Number(p.desconto || 0) / subtotal) * 10000) / 100 : 0;
   const limiteDesc = maximoDesconto(regrasDesc, p.origem, p.forma_pagamento);
@@ -631,8 +639,6 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       descontoPedido: Number(p.desconto || 0),
     });
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
-  // tabela de preço: novos itens entram com o preço dela; trocar a tabela reprecifica os itens do orçamento
-  const tabelaDe = (id: string | null | undefined) => tabelas.find((t) => t.id === id) ?? null;
   const tabelaAtual = tabelaDe((p as any).tabela_preco_id);
   const precoDe = (prod: Produto, tabela = tabelaAtual) => precoNaTabela(tabela, prod, precosFixos).preco;
   function usarTabela(id: string | null, avisar = true, base: Partial<Pedido> = {}) {
@@ -856,6 +862,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return btoa(bin);
   }
+  // depois de registrar ou tirar a nota de outra empresa: o pedido de novo (situação e nota) e as telas que dependem dele
+  async function recarregarNfOutra() {
+    setNfOutra(false);
+    const { data } = await supabase.from("pedidos").select(SELECT).eq("id", p.id!).single();
+    if (data) setP((x) => ({ ...x, ...(data as any), itens: (data as any).itens ?? x.itens }));
+    invalidate("pedidos", "equipamentos", "expedicoes", "auditoria");
+  }
   async function recarregar() {
     invalidate("pedidos");
     const id = p.id ?? (await supabase.from("pedidos").select("id").eq("proposta_token", p.proposta_token ?? "").maybeSingle()).data?.id;
@@ -894,6 +907,10 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
               ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou emita uma NF de devolução."
               : <> Para mudar itens, valores ou pagamento, use <b>Reabrir pedido</b>: o estoque volta, as parcelas em aberto são canceladas e o pedido vira orçamento de novo.</>}
           </div>
+        )}
+
+        {aba === "pedido" && p.id && (
+          <NfOutraPainel p={p as any} podeEditar={podeEditar} onAlterar={() => setNfOutra(true)} onFeito={recarregarNfOutra} />
         )}
 
         {aba === "pedido" && notaCancelada && (
@@ -1029,7 +1046,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           {podeEditar && p.id && p.status !== "cancelado" && !temNotaValida && (
             <Button type="button" variant="secondary" onClick={cancelar} disabled={ocupado}><XCircle size={16} /> Cancelar pedido</Button>
           )}
-          {pode("emitir_nfe") && (p.status === "aprovado" || p.status === "entregue") && !temNotaValida && (
+          {podeEditar && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && !temNotaValida && !p.nf_outra_numero && (
+            <Button type="button" variant="secondary" onClick={() => setNfOutra(true)} disabled={ocupado}
+              title="A venda saiu com a nota de outra empresa (ex.: a empresa ligada emitiu): registrar a nota sem o ERP emitir NF-e">
+              <FileCheck2 size={16} /> NF de outra empresa
+            </Button>
+          )}
+          {pode("emitir_nfe") && (p.status === "aprovado" || p.status === "entregue") && !temNotaValida && !p.nf_outra_numero && (
             <Button type="button" variant="secondary" onClick={() => emitirNfe()} disabled={ocupado}><FileText size={16} /> Emitir NF-e</Button>
           )}
           {p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
@@ -1054,6 +1077,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           )}
         </div>
       </form>
+      {nfOutra && p.id && <NfOutraModal p={p as any} onClose={() => setNfOutra(false)} onFeito={recarregarNfOutra} />}
       {pendencias && (
         <Modal open onClose={() => setPendencias(null)} title="Conferência fiscal antes de emitir">
           <ul className="space-y-1.5 text-sm">

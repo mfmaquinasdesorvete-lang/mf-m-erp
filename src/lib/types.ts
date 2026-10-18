@@ -104,6 +104,9 @@ export type Pedido = {
   motivo_rejeicao?: string | null; motivo_rejeicao_texto?: string | null; concorrente?: string | null;
   /** desconto acima do máximo aprovado com a senha de um administrador (só o banco grava) */
   desconto_aprovado_pct?: number | null; desconto_aprovado_por?: string | null; desconto_aprovado_em?: string | null;
+  /** NF da venda emitida por outra empresa (ex.: empresa ligada); gravada por registrar_nf_outra_empresa */
+  nf_outra_empresa?: string | null; nf_outra_cnpj?: string | null; nf_outra_numero?: string | null; nf_outra_data?: string | null;
+  nf_outra_chave?: string | null; nf_outra_valor?: number | null; nf_outra_motivo?: string | null;
 };
 
 export type OrdemServico = {

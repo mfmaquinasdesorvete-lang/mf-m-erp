@@ -242,7 +242,7 @@ export const DESTAQUES: Record<string, Destaque> = {
     ],
   },
   "2026-10-18": {
-    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny, carteira dos licenciados My Frost e dados da empresa conferidos com a Receita",
+    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny, carteira dos licenciados My Frost, Módulos em cartões, Voltar no alto de cada tela e NF de outra empresa no pedido",
     itens: [
       "Máquinas com abas novas: Ficha técnica (as peças de cada máquina por grupo, o custo e as etapas de produção, a mesma da Produção) e Manuais (os documentos de todas as máquinas num lugar só, com o que falta em cada uma: manual, manual elétrico e dicas de manutenção).",
       "Arrastar para ordenar: os itens da ficha técnica, as etapas de produção e os manuais da máquina mudam de lugar pela alça de 6 pontinhos (mouse ou dedo, também no celular) ou pelas setas do teclado. Solto numa peça de outro grupo, o item passa para aquele grupo. A ordem fica gravada ao salvar a ficha.",
@@ -251,6 +251,10 @@ export const DESTAQUES: Record<string, Destaque> = {
       "NFS-e importadas: as notas de serviço da filial SP agora são reconhecidas como dela (o CNPJ da SP estava gravado com pontos e barra e a importação não achava a unidade).",
       "Licenciados My Frost (sorvete no fim do menu, só o administrador): carteira da My Frost Sorveterias com as lojas licenciadas e o que cada uma pagou (licença, mensalidade, royalties…), no estilo do painel pessoal. \"Para conferir\" traz as entradas altas dos extratos pessoais e as vendas altas no cartão das InfinitePay: ligue cada uma à loja (dá para dividir uma venda entre duas lojas), crie a loja a partir da entrada ou marque \"não é de loja\". Fora da MF, do DRE e do contador.",
       "Compras → OC - Ordem de Compra com os campos do Tiny: data da OC, nº no fornecedor, categoria, IPI % e ICMS ST por item, informações do item, frete, outras despesas e desconto com o total da OC, forma de pagamento com as parcelas (geradas pela condição, ex.: 30/60/90, e editáveis), transportadora, frete por conta de e observações internas. Os campos novos vão no PDF e no WhatsApp; ao receber a OC inteira, cada parcela vira uma conta a pagar com o seu vencimento.",
+      "Sobre o ERP → Módulos em cartões: cada tela tem um cartão com ícone, etiquetas, o que ela é, o destaque e \"Saiba mais\", que abre a lista de tudo o que ela faz, parte por parte (abas, botões, relatórios e avisos). Dá para buscar por qualquer parte, ver só as telas que você abre, filtrar por área e abrir ou fechar todos os cartões.",
+      "Voltar e trilha no alto de cada tela: o botão \"← Voltar\" leva à tela anterior (ou à área, se você entrou pelo link) e a trilha mostra onde você está (Início › área › tela); clique no Início ou na área para ir até lá.",
+      "Vendas → pedido → \"NF de outra empresa\": para a venda que saiu com a nota de outra empresa (ex.: a empresa ligada emitiu porque a unidade não tinha como emitir). Cole a chave de acesso e o CNPJ e o nº vêm sozinhos; o pedido sai de \"falta a nota\", vai para Entregues (ou Faturados) e a máquina entra na ficha do cliente com a data da nota (garantia e preventiva contadas dela). O selo \"NF 123 · Empresa\" aparece na lista e no quadro, a Auditoria não acusa mais \"entregue sem NF-e\" e o Analista fiscal mostra estes pedidos para conferir com o contador.",
+      "Mercado Livre → Conectar: a conexão passa a usar a proteção PKCE que o Mercado Livre agora exige (corrige o erro \"code_verifier is a required parameter\"). Basta clicar em Conectar de novo.",
     ],
   },
 };

@@ -7,6 +7,8 @@ export type Conferencia = { id: string; titulo: string; nivel: NivelConferencia;
 
 export type PedidoAuditado = {
   status: string; valor_total: number; desconto: number; frete: number; vendedor_id?: string | null; origem?: string | null;
+  /** NF da venda emitida por outra empresa (empresa ligada) */
+  nf_outra_numero?: string | null; nf_outra_empresa?: string | null; nf_outra_data?: string | null;
   itens: { produto_id: string; descricao: string; quantidade: number; valor_unitario: number }[];
 };
 export type DadosPedido = {
@@ -96,6 +98,9 @@ export function conferirVenda(p: PedidoAuditado, d: DadosPedido): Conferencia[] 
     add("nfe", "NF-e", Math.abs(v - total) <= 0.05 ? "ok" : "alerta", `NF ${autorizada.numero ?? ""} autorizada${Math.abs(v - total) <= 0.05 ? " no valor do pedido." : ` de ${brl(v)} (pedido de ${brl(total)}).`}`);
   } else if (pendente) {
     add("nfe", "NF-e", "info", "NF-e em processamento na SEFAZ.");
+  } else if (p.nf_outra_numero) {
+    const dia = p.nf_outra_data ? ` em ${p.nf_outra_data.split("-").reverse().join("/")}` : "";
+    add("nfe", "NF-e", "alerta", `NF ${p.nf_outra_numero} emitida por ${p.nf_outra_empresa ?? "outra empresa"}${dia}, fora do ERP. A receita e os impostos são de quem emitiu a nota: confirmar com o contador.`);
   } else {
     const saiuSemNota = ["faturado", "entregue"].includes(p.status);
     add("nfe", "NF-e", saiuSemNota ? "erro" : "alerta",

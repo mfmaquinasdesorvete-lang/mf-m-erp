@@ -4427,6 +4427,30 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: null, error: null };
   },
+  // NF da venda emitida por outra empresa (no sistema real: public.registrar_nf_outra_empresa)
+  registrar_nf_outra_empresa: ({ p_pedido, p_dados, p_entregue }) => {
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!p) return erro("pedido não encontrado");
+    if (!["aprovado", "faturado", "entregue"].includes(p.status)) return erro("só dá para registrar a nota em pedido aprovado, faturado ou entregue");
+    if (db.notas_fiscais.some((n) => n.pedido_id === p.id && n.status === "autorizada" && n.ambiente !== "homologacao")) return erro("o pedido já tem NF-e autorizada emitida pelo ERP");
+    const antes = { ...p };
+    const num = String(p_dados?.numero ?? "").trim();
+    if (!num) {
+      Object.assign(p, { nf_outra_empresa: null, nf_outra_cnpj: null, nf_outra_numero: null, nf_outra_data: null, nf_outra_chave: null, nf_outra_valor: null, nf_outra_motivo: null });
+      registrarDemo("pedidos", "update", antes, p, "NF de outra empresa retirada", "usuario");
+      return { data: p.status, error: null };
+    }
+    if (!String(p_dados.empresa ?? "").trim() || !p_dados.data) return erro("informe a empresa que emitiu e a data da nota");
+    if (p_dados.data > dias(0)) return erro("a data da nota não pode ser depois de hoje");
+    Object.assign(p, {
+      nf_outra_empresa: String(p_dados.empresa).trim(), nf_outra_cnpj: String(p_dados.cnpj ?? "").replace(/\D/g, "") || null, nf_outra_numero: num, nf_outra_data: p_dados.data,
+      nf_outra_chave: String(p_dados.chave ?? "").replace(/\D/g, "") || null, nf_outra_valor: p_dados.valor === "" || p_dados.valor == null ? null : Number(p_dados.valor),
+      nf_outra_motivo: String(p_dados.motivo ?? "").trim() || null,
+      status: p_entregue ? "entregue" : p.status === "aprovado" ? "faturado" : p.status,
+    });
+    registrarDemo("pedidos", "update", antes, p, `NF nº ${num} de ${p.nf_outra_empresa}`, "usuario");
+    return { data: p.status, error: null };
+  },
   reabrir_pedido: ({ p_pedido, p_motivo }) => {
     const p = db.pedidos.find((x) => x.id === p_pedido);
     if (!p) return erro("pedido não encontrado");

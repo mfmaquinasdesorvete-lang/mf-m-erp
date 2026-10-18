@@ -1,6 +1,6 @@
 // Ocorrências do pedido de venda (como no Tiny): anotações com data, hora e quem escreveu — combinado com o cliente,
 // pedido de troca, atraso, ligação feita… Excluir só quando Configurações → Pedidos permitir (fica na auditoria).
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquareText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -24,9 +24,8 @@ export function OcorrenciasVenda({ pedidoId, podeExcluir }: { pedidoId: string; 
     queryFn: async () => ((await ler(supabase.from("pedido_ocorrencias").select("*").eq("pedido_id", pedidoId).order("created_at", { ascending: false }))) ?? []) as Ocorrencia[],
   });
 
-  async function incluir(e: FormEvent) {
-    e.preventDefault();
-    if (texto.trim().length < 2) return;
+  async function incluir() {
+    if (gravando || texto.trim().length < 2) return;
     setGravando(true);
     const { error } = await supabase.from("pedido_ocorrencias").insert({ pedido_id: pedidoId, texto: texto.trim() });
     setGravando(false);
@@ -51,10 +50,12 @@ export function OcorrenciasVenda({ pedidoId, podeExcluir }: { pedidoId: string; 
         {lista.length > 0 && <span className="text-xs text-slate-500">{lista.length}</span>}
       </div>
       {escreve && (
-        <form onSubmit={incluir} className="mb-2 flex gap-2">
-          <input className="input" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={2000} placeholder="Ex.: cliente pediu para entregar à tarde" aria-label="Nova ocorrência" />
-          <Button disabled={gravando || texto.trim().length < 2}>Incluir</Button>
-        </form>
+        // sem <form>: fica dentro do formulário do pedido, e o Enter aqui não pode salvar o pedido
+        <div className="mb-2 flex gap-2">
+          <input className="input" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={2000} placeholder="Ex.: cliente pediu para entregar à tarde" aria-label="Nova ocorrência"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); incluir(); } }} />
+          <Button type="button" onClick={incluir} disabled={gravando || texto.trim().length < 2}>Incluir</Button>
+        </div>
       )}
       {lista.length ? (
         <ul className="space-y-1.5">

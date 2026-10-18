@@ -34,22 +34,38 @@ export async function chamarML<T = any>(caminho: string, token: string | null, i
 export type Tokens = { access_token: string; refresh_token: string; expires_in: number; user_id: number };
 
 /** Troca o código do "Conectar" (ou o refresh token) por um token novo. O refresh token só vale uma vez. */
-export function pedirToken(p: { client_id: string; client_secret: string } & ({ code: string; redirect_uri: string } | { refresh_token: string })) {
+export function pedirToken(p: { client_id: string; client_secret: string } & ({ code: string; redirect_uri: string; code_verifier?: string } | { refresh_token: string })) {
   const form = new URLSearchParams({ client_id: p.client_id, client_secret: p.client_secret });
-  if ("code" in p) { form.set("grant_type", "authorization_code"); form.set("code", p.code); form.set("redirect_uri", p.redirect_uri); }
+  if ("code" in p) {
+    form.set("grant_type", "authorization_code"); form.set("code", p.code); form.set("redirect_uri", p.redirect_uri);
+    // PKCE: o segredo de uso único criado no "Conectar" (o app com PKCE ligado recusa a troca sem ele)
+    if (p.code_verifier) form.set("code_verifier", p.code_verifier);
+  }
   else { form.set("grant_type", "refresh_token"); form.set("refresh_token", p.refresh_token); }
   return chamarML<Tokens>("/oauth/token", null, {
     method: "POST", body: form, cabecalhos: { "Content-Type": "application/x-www-form-urlencoded" },
   });
 }
 
-export function linkAutorizacao(clientId: string, redirectUri: string, estado: string) {
+export function linkAutorizacao(clientId: string, redirectUri: string, estado: string, desafio?: string) {
   const u = new URL(AUTORIZAR_ML);
   u.searchParams.set("response_type", "code");
   u.searchParams.set("client_id", clientId);
   u.searchParams.set("redirect_uri", redirectUri);
   u.searchParams.set("state", estado);
+  if (desafio) { u.searchParams.set("code_challenge", desafio); u.searchParams.set("code_challenge_method", "S256"); }
   return u.toString();
+}
+
+const base64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+/** PKCE: segredo de uso único (fica no servidor) e o desafio que vai no link (SHA-256 do segredo, em base64url). */
+export async function parPkce(): Promise<{ verificador: string; desafio: string }> {
+  const verificador = base64url(crypto.getRandomValues(new Uint8Array(48)));
+  return { verificador, desafio: await desafioPkce(verificador) };
+}
+export async function desafioPkce(verificador: string): Promise<string> {
+  return base64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verificador))));
 }
 
 /** Tudo o que a importação precisa de uma venda (o que não vier fica de fora sem travar a venda). */

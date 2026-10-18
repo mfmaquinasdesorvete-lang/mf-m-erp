@@ -34,7 +34,11 @@ export type UnidadeF = {
   transf_cbenef?: string | null;
 };
 export type ProdutoF = { id: string; descricao: string; tipo?: string | null; ncm?: string | null; ipi_aliquota?: number | null; ativo?: boolean | null; vendavel?: boolean | null; kit?: boolean | null };
-export type PedidoF = { id: string; numero?: number | null; status: string; created_at: string; valor_total?: number | null; unidade_id?: string | null };
+export type PedidoF = {
+  id: string; numero?: number | null; status: string; created_at: string; valor_total?: number | null; unidade_id?: string | null;
+  /** NF da venda emitida por outra empresa (empresa ligada) */
+  nf_outra_numero?: string | null; nf_outra_empresa?: string | null; nf_outra_data?: string | null;
+};
 
 export type Impostos = { icms: number; ipi: number; pis: number; cofins: number; difal: number; fcp: number; ibs: number; cbs: number };
 const ZERO: Impostos = { icms: 0, ipi: 0, pis: 0, cofins: 0, difal: 0, fcp: 0, ibs: 0, cbs: 0 };
@@ -329,13 +333,24 @@ export function analisar(ctx: ContextoFiscal) {
 
   // venda entregue ou faturada sem NF-e autorizada nos últimos 90 dias
   const comNota = new Set(ctx.saidas.filter((n) => n.status === "autorizada" && n.pedido_id).map((n) => n.pedido_id));
-  const semNota = ctx.pedidos.filter((p) => ["faturado", "entregue"].includes(p.status) && diasEntre(p.created_at, ctx.hoje) <= 90 && !comNota.has(p.id));
+  const semNota = ctx.pedidos.filter((p) => ["faturado", "entregue"].includes(p.status) && diasEntre(p.created_at, ctx.hoje) <= 90 && !comNota.has(p.id) && !p.nf_outra_numero);
   if (semNota.length) add({
     id: "venda_sem_nota", nivel: "alerta", titulo: `${semNota.length} ${pl(semNota.length, "venda", "vendas")} ${pl(semNota.length, "entregue", "entregues")} ou ${pl(semNota.length, "faturada", "faturadas")} sem NF-e no ERP`,
     detalhe: `Pedidos ${semNota.slice(0, 6).map((p) => `#${p.numero ?? "?"}`).join(", ")}${semNota.length > 6 ? "…" : ""}. Se a nota foi emitida fora do ERP, importe o XML; se não foi, é risco fiscal.`,
     acao: "Emitir a NF-e pelo pedido ou importar o XML da nota emitida em outro sistema.", quem: "Você", link: "/pedidos",
     estado: comDestaque(semNota.map((p) => p.id), "vendas entregues ou faturadas sem NF-e"),
     valor: r2(semNota.reduce((s, p) => s + Number(p.valor_total ?? 0), 0)),
+  });
+
+  // venda da MF faturada com a NF de outra empresa (empresa ligada): a receita e o imposto são de quem emitiu a nota
+  const outraEmpresa = ctx.pedidos.filter((p) => p.nf_outra_numero && !comNota.has(p.id));
+  if (outraEmpresa.length) add({
+    id: "nf_outra_empresa", nivel: "alerta", titulo: `${outraEmpresa.length} ${pl(outraEmpresa.length, "venda faturada", "vendas faturadas")} com a NF de outra empresa`,
+    detalhe: `Pedidos ${outraEmpresa.slice(0, 6).map((p) => `#${p.numero ?? "?"} (NF ${p.nf_outra_numero}${p.nf_outra_empresa ? ` de ${p.nf_outra_empresa}` : ""})`).join(", ")}${outraEmpresa.length > 6 ? "…" : ""}. `
+      + "A receita e os impostos são de quem emitiu a nota; o pedido fica no ERP para o histórico do cliente e da máquina. Confirmar com o contador como acertar entre as empresas.",
+    acao: "Mostrar ao contador a lista desses pedidos com o número das notas.", quem: "Contador", link: "/pedidos",
+    estado: comDestaque(outraEmpresa.map((p) => p.id), "vendas faturadas com a NF de outra empresa"),
+    valor: r2(outraEmpresa.reduce((s, p) => s + Number(p.valor_total ?? 0), 0)),
   });
 
   // mesma regra do Compliance fiscal: nota importada por XML ou ignorada não precisa de manifestação

@@ -42,7 +42,7 @@ export default function AnalistaFiscal() {
   const { data: pagarT = [] } = useRows<ContaPagarF>("contas_pagar", { select: "id, descricao, categoria, valor, valor_pago, status, vencimento, competencia, unidade_id" });
   const { data: receberT = [] } = useRows<ContaReceberF>("contas_receber", { select: "categoria, valor, valor_pago, status, vencimento, data_pagamento, competencia, unidade_id" });
   const { data: produtos = [] } = useRows<ProdutoF>("produtos", { select: "id, descricao, tipo, ncm, ipi_aliquota, ativo, vendavel, kit" });
-  const { data: pedidosT = [] } = useRows<PedidoF>("pedidos", { select: "id, numero, status, created_at, valor_total, unidade_id" });
+  const { data: pedidosT = [] } = useRows<PedidoF>("pedidos", { select: "id, numero, status, created_at, valor_total, unidade_id, nf_outra_numero, nf_outra_empresa, nf_outra_data" });
   const { data: categorias = [] } = useCategorias();
   const notas = filtrar(notasT), entradas = filtrar(entradasT), pagar = filtrar(pagarT), receber = filtrar(receberT), pedidos = filtrar(pedidosT);
   const unids = atual ? unidades.filter((u) => u.id === atual) : unidades;

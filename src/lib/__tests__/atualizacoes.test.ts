@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { agruparHistorico, dataHoraBR, DESTAQUES, diaHoraBrasilia, numeroVersao, versoesDoHistorico } from "../atualizacoes";
 import { SOBRE_AREAS, SOBRE_TELAS } from "../modulos";
+import { DETALHE_TELAS } from "../modulosDetalhe";
 import menu from "../menu.ts?raw";
 
 const linha = (hash: string, iso: string, texto: string) => `${hash}\x1f${iso}\x1f${texto}\x1e\n`;
@@ -46,5 +47,16 @@ describe("página Módulos", () => {
     expect(rotas.length).toBeGreaterThan(40);
     expect(rotas.filter((r) => !SOBRE_TELAS[r])).toEqual([]);
     expect(areas.filter((a) => !SOBRE_AREAS[a])).toEqual([]);
+  });
+  it("cada tela tem o cartão completo em Módulos (tags, destaque e todas as partes)", () => {
+    const telas = Object.keys(SOBRE_TELAS);
+    expect(telas.filter((t) => !DETALHE_TELAS[t])).toEqual([]);
+    for (const [t, d] of Object.entries(DETALHE_TELAS)) {
+      expect(d.tags.length, t).toBeGreaterThanOrEqual(2);
+      expect(d.destaque.length, t).toBeLessThanOrEqual(80);
+      expect(d.partes.length, t).toBeGreaterThanOrEqual(6);
+      // repositório público: sem CPF, CNPJ ou e-mail nos textos
+      expect([d.destaque, ...d.partes].join(" "), t).not.toMatch(/\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}|@[a-z0-9-]+\./i);
+    }
   });
 });

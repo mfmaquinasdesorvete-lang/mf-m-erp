@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { caminhoNotaML, idDoRecurso, linkAutorizacao, normalizarPedido, prepararXmlNfe, siglaUF, situacaoEnvio } from "../../../supabase/functions/_shared/mercadolivre";
+import { caminhoNotaML, desafioPkce, idDoRecurso, linkAutorizacao, parPkce, normalizarPedido, prepararXmlNfe, siglaUF, situacaoEnvio } from "../../../supabase/functions/_shared/mercadolivre";
 
 // venda como a API do Mercado Livre devolve (só os campos que o ERP usa)
 const order = {
@@ -75,6 +75,16 @@ describe("Mercado Livre: venda no formato do ERP", () => {
     expect(u.hostname).toBe("auth.mercadolivre.com.br");
     expect(u.searchParams.get("redirect_uri")).toBe("https://erp.exemplo.com.br/mercado-livre/retorno");
     expect(u.searchParams.get("state")).toBe("abc");
+    expect(u.searchParams.get("code_challenge")).toBeNull();
+  });
+  it("PKCE: desafio S256 do segredo (exemplo da RFC 7636) e no link", async () => {
+    expect(await desafioPkce("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")).toBe("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+    const { verificador, desafio } = await parPkce();
+    expect(verificador).toMatch(/^[A-Za-z0-9_-]{43,128}$/);
+    expect(desafio).toBe(await desafioPkce(verificador));
+    const u = new URL(linkAutorizacao("123", "https://erp.exemplo.com.br/mercado-livre/retorno", "abc", desafio));
+    expect(u.searchParams.get("code_challenge")).toBe(desafio);
+    expect(u.searchParams.get("code_challenge_method")).toBe("S256");
   });
 });
 

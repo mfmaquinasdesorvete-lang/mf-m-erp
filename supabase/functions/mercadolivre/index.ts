@@ -21,7 +21,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { enderecoSite } from "../_shared/site.ts";
-import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, pedirToken, situacaoEnvio } from "../_shared/mercadolivre.ts";
+import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, parPkce, pedirToken, situacaoEnvio } from "../_shared/mercadolivre.ts";
 import { buscarAnuncios, enviarAnuncios, mudarSituacao } from "./anuncios.ts";
 import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 
@@ -248,10 +248,12 @@ async function autorizar(db: SupabaseClient, userId: string) {
   const s = await segredos(db);
   if (!s.ml_client_id || !s.ml_client_secret) throw new HttpError(400, "informe antes o Client ID e o Client Secret do app");
   const estado = crypto.randomUUID();
+  // PKCE: o segredo fica guardado aqui com o estado; só o desafio vai no link
+  const { verificador, desafio } = await parPkce();
   await db.from("ml_oauth_estados").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString());
-  const { error } = await db.from("ml_oauth_estados").insert({ estado, criado_por: userId });
+  const { error } = await db.from("ml_oauth_estados").insert({ estado, criado_por: userId, verificador });
   if (error) throw new Error(error.message);
-  return { url: linkAutorizacao(s.ml_client_id, await enderecoRetorno(db), estado) };
+  return { url: linkAutorizacao(s.ml_client_id, await enderecoRetorno(db), estado, desafio) };
 }
 
 async function conectar(db: SupabaseClient, userId: string, b: Record<string, unknown>) {
@@ -265,7 +267,7 @@ async function conectar(db: SupabaseClient, userId: string, b: Record<string, un
   }
   const s = await segredos(db);
   if (!s.ml_client_id || !s.ml_client_secret) throw new HttpError(400, "informe antes o Client ID e o Client Secret do app");
-  const t = await pedirToken({ client_id: s.ml_client_id, client_secret: s.ml_client_secret, code, redirect_uri: await enderecoRetorno(db) });
+  const t = await pedirToken({ client_id: s.ml_client_id, client_secret: s.ml_client_secret, code, redirect_uri: await enderecoRetorno(db), code_verifier: est.verificador ?? undefined });
   const eu = await chamarML<{ id: number; nickname: string }>("/users/me", t.access_token);
   await guardar(db, "ml_access_token", t.access_token);
   await guardar(db, "ml_refresh_token", t.refresh_token);

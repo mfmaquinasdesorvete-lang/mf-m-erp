@@ -63,6 +63,8 @@ export type DadosAuditoria = {
   pedidos: { id: string; numero: number; status: string; valor_total?: number; valor_produtos?: number; desconto?: number; vendedor_id?: string | null; origem?: string | null;
     /** nº do pedido no Tiny (histórico importado): a descrição das contas cita esse número */
     numero_externo?: string | null;
+    /** NF da venda emitida por outra empresa (empresa ligada): não é "sem NF-e" */
+    nf_outra_numero?: string | null;
     notas?: { status: string; ambiente?: string | null }[] }[];
   ordens: { id: string; numero: number; status: string; em_garantia: boolean; valor_total: number }[];
   fornecedores: { id: string; nome: string }[];
@@ -368,7 +370,7 @@ export function calcularExcecoes(d: DadosAuditoria): Excecao[] {
       chave: `pedido_sem_vendedor:${p.id}`, tipo: "pedido_sem_vendedor", gravidade: "baixa", valor: Number(p.valor_total ?? 0), link: "/pedidos",
       titulo: `Pedido #${p.numero} sem vendedor`, detalhe: "Abra o pedido e escolha o vendedor (fica registrado com o motivo).",
     });
-    if (p.status !== "aprovado" && p.notas && !p.notas.some((n) => n.status === "autorizada" && n.ambiente !== "homologacao")) out.push({
+    if (p.status !== "aprovado" && p.notas && !p.nf_outra_numero && !p.notas.some((n) => n.status === "autorizada" && n.ambiente !== "homologacao")) out.push({
       chave: `entregue_sem_nfe:${p.id}`, tipo: "entregue_sem_nfe", gravidade: "alta", valor: Number(p.valor_total ?? 0), link: "/pedidos",
       titulo: `Pedido #${p.numero} ${p.status} sem NF-e`, detalhe: p.notas.some((n) => n.ambiente === "homologacao")
         ? "Só tem nota de teste (homologação, sem valor fiscal). Emita a NF-e de produção." : "Mercadoria saiu sem nota fiscal: emita a NF-e.",

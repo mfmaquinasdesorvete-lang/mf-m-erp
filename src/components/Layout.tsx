@@ -21,6 +21,7 @@ import { ResultadosBusca } from "./BuscaGeral";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
+import { Trilha } from "@/components/Trilha";
 
 // versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
@@ -345,6 +346,8 @@ export function Layout() {
               Use <b>Sair</b> para trocar de perfil.</span><span className="sm:hidden"> Nada é salvo.</span>
             </div>
           )}
+          {/* trilha: Voltar e onde a pessoa está (Início › área › tela) */}
+          <Trilha />
           <ErroTela key={location.pathname}><Outlet /></ErroTela>
         </div>
         </ModuloContext.Provider>
