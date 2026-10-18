@@ -23,10 +23,10 @@ const coresDe = (cor: string) => {
 // texto na cor da área, puxado para a cor do texto da tela: fica legível no tema claro e no escuro
 const tinta = (hex: string) => `color-mix(in srgb, ${hex} 72%, currentColor)`;
 
-/** Telas só do administrador, fora do menu: pela carteira e pelo sorvete no fim do menu. */
+/** Telas só do administrador, fora do menu: pela carteira e pelo botão rosa do sorvete no fim do menu. */
 const SO_ADMIN: Item[] = [
   { to: "/pessoal", tela: "painel", label: "Painel pessoal", curto: "Pessoal", icon: Wallet },
-  { to: "/licenciados", tela: "painel", label: "Licenciados My Frost", curto: "Licenc.", icon: IceCreamCone },
+  { to: "/licenciados", tela: "painel", label: "My Frost Sorveterias", curto: "My Frost", icon: IceCreamCone },
 ];
 
 type Bloco = { id: string; titulo: string; texto: string; cor: string; Icone: typeof LayoutGrid; itens: Item[] };

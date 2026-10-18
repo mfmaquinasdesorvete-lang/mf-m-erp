@@ -1397,11 +1397,31 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-6), -2500, "Pix MF MAQUINAS LTDA · Enviado");
   add("cb2", dias(-6), 2500, "Transferência recebida pelo Pix - MF MAQUINAS LTDA");
   // carteira dos licenciados My Frost (nomes inventados; no sistema real: public.licenciados_lojas e licenciados_pagamentos, só o dono lê)
-  const lojaDemo = { cidade: "Cidade Exemplo", responsavel: null, documento: null, telefone: null, cliente_id: null, observacoes: null };
+  const lojaDemo = { cidade: "Cidade Exemplo", responsavel: null, documento: null, telefone: null, cliente_id: null, observacoes: null, email: null, email_institucional: null,
+    contrato_assinado_em: null, contrato_vence_em: null, contrato_obs: null };
   db.licenciados_lojas = [
-    { ...lojaDemo, id: "lj1", nome: "My Frost Centro Exemplo", uf: "SC", nomes_extrato: ["BELTRAN"], situacao: "ativa", inicio: dias(-200), valor_combinado: 40000, mensalidade: 1500, cor: "rosa", ordem: 0 },
-    { ...lojaDemo, id: "lj2", nome: "My Frost Praia Teste", cidade: "Praia Teste", uf: "SP", nomes_extrato: [], situacao: "implantacao", inicio: dias(-40), valor_combinado: 35000, mensalidade: null, cor: "turquesa", ordem: 1 },
+    { ...lojaDemo, id: "lj1", nome: "My Frost Centro Exemplo", uf: "SC", nomes_extrato: ["BELTRAN"], situacao: "ativa", inicio: dias(-200), valor_combinado: 40000, mensalidade: 1500, cor: "rosa", ordem: 0,
+      modelo: "quiosque", endereco: "Rua Exemplo, 100 - Anexo ao Mercado Exemplo - Centro", cep: "88000000", responsavel: "Licenciado Exemplo", telefone: "(48) 90000-0000",
+      email_institucional: "centro@exemplo.com.br", contrato: "assinado", contrato_assinado_em: dias(-210), contrato_vence_em: dias(1250) },
+    { ...lojaDemo, id: "lj2", nome: "My Frost Praia Teste", cidade: "Praia Teste", uf: "SP", nomes_extrato: [], situacao: "implantacao", inicio: dias(-40), valor_combinado: 35000, mensalidade: null, cor: "turquesa", ordem: 1,
+      modelo: "loja", endereco: null, cep: null, contrato: "negociando" },
+    { ...lojaDemo, id: "lj3", nome: "My Frost Bairro Modelo", cidade: "Bairro Modelo", uf: "MG", nomes_extrato: [], situacao: "fechando", inicio: dias(-320), valor_combinado: null, mensalidade: null, cor: "laranja", ordem: 2,
+      modelo: "loja_cafeteria", endereco: "Avenida Teste, 200 - Loja 5", cep: null, contrato: "sem", observacoes: "Vai fechar: combinar a devolução das máquinas." },
   ];
+  db.licenciados_maquinas = [
+    { id: "lm1", loja_id: "lj1", descricao: "Máquina de sorvete soft 2 sabores", numero_serie: "EX-001", data_compra: dias(-205), valor: 18000, situacao: "na_loja", observacao: null },
+    { id: "lm2", loja_id: "lj1", descricao: "Máquina de açaí", numero_serie: null, data_compra: dias(-205), valor: 9000, situacao: "manutencao", observacao: "Na assistência" },
+    { id: "lm3", loja_id: "lj3", descricao: "Máquina de sorvete expresso", numero_serie: "EX-014", data_compra: dias(-330), valor: 21000, situacao: "na_loja", observacao: null },
+  ];
+  const custoDemo = { observacao: null, anulado: false };
+  db.licenciados_custos = [
+    { ...custoDemo, id: "lc1", loja_id: "lj1", data: dias(-206), categoria: "maquinas", descricao: "2 máquinas", valor: 27000 },
+    { ...custoDemo, id: "lc2", loja_id: "lj1", data: dias(-204), categoria: "moveis", descricao: "Quiosque 3×5 m", valor: 12500 },
+    { ...custoDemo, id: "lc3", loja_id: "lj1", data: dias(-202), categoria: "inauguracao", descricao: "Campanha de abertura", valor: 1800 },
+    { ...custoDemo, id: "lc4", loja_id: "lj2", data: dias(-30), categoria: "montagem", descricao: "Viagem da equipe de montagem", valor: 2400 },
+    { ...custoDemo, id: "lc5", loja_id: "lj2", data: dias(-28), categoria: "insumos", descricao: "Bases e caldas iniciais", valor: 3200, anulado: true },
+  ];
+  db.licenciados_arquivos = [];
   const pagDemo = { taxa: 0, observacao: null, descartado: false, anulado: false };
   db.licenciados_pagamentos = [
     { ...pagDemo, id: "lp1", loja_id: "lj1", data: dias(-150), valor: 20000, tipo: "licenca", forma: "pix", origem: "manual", origem_id: null, onde: "Conta pessoal", descricao: "Entrada da licença" },
@@ -1893,6 +1913,9 @@ const DEFAULTS: Record<string, () => Row> = {
   scrum_comentarios: () => ({ user_id: sessao?.user.id ?? null, created_at: quando(0) }),
   pagar_negociacao_eventos: () => ({ criado_por: sessao?.user.id ?? null, quando: hojeISO(), created_at: quando(0) }),
   pagar_negociacoes: () => ({ situacao: "negociando", created_at: quando(0), atualizado_em: quando(0) }),
+  licenciados_arquivos: () => ({ criado_em: new Date().toISOString() }),
+  licenciados_custos: () => ({ anulado: false, created_at: quando(0) }),
+  licenciados_maquinas: () => ({ situacao: "na_loja", created_at: quando(0) }),
   scrum_itens: () => ({ status: "a_fazer", tipo: "historia", tarefas: [], cenarios: null, testes: [], prioridade: 1000, sprint_id: null, ideia_id: null, responsavel_id: null, concluido_em: null, created_by: sessao?.user.id ?? null, created_at: quando(0) }),
   scrum_sprints: () => ({ status: "planejada", pontos_planejados: null, pontos_feitos: null, created_at: quando(0) }),
   scrum_daily: () => ({ user_id: sessao?.user.id ?? null, dia: hojeISO(), impedimento_resolvido: false, created_at: quando(0) }),

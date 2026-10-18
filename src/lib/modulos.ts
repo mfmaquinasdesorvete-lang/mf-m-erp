@@ -87,7 +87,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/painel/produtos": "Produtos mais vendidos, curva ABC, parados, margem e o que vai faltar.",
   "/produtos/pecas": "Peças de reposição: o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.",
   "/pessoal": "Painel pessoal do dono (só o administrador): contas pessoais de banco, cartão e investimento, gastos por tipo, extrato automático e o que mostrar ao contador, separados da empresa.",
-  "/licenciados": "Carteira da My Frost Sorveterias (só o administrador): as lojas licenciadas e o que cada uma pagou, pelas entradas dos extratos pessoais e do cartão, fora da MF e do contador.",
+  "/licenciados": "My Frost Sorveterias (só o administrador, pelo botão rosa no fim do menu): as unidades licenciadas com endereço, contrato e arquivos, máquinas com a data da compra, quanto custou montar e o que cada uma pagou, fora da MF e do contador.",
   "/produtos/componentes": "Componentes de produção: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta \"também vende\".",
 };
 

@@ -1,13 +1,15 @@
-// Carteira My Frost Sorveterias · Licenciados (pelo sorvete no fim do menu, só para o administrador): as lojas
-// licenciadas e o que cada uma pagou, como o painel pessoal. MF ≠ My Frost: nada daqui entra no DRE, na conciliação,
-// nos painéis da MF nem no que vai para o contador; no banco, cada linha é de quem a criou e só essa pessoa lê.
+// My Frost Sorveterias (pelo botão rosa do sorvete no fim do menu, só para o administrador): as unidades licenciadas
+// (endereço, contrato e arquivos, máquinas, custos de montar) e o que cada uma pagou, como o painel pessoal. MF ≠ My Frost:
+// nada daqui entra no DRE, na conciliação, nos painéis da MF nem no que vai para o contador; no banco, cada linha é de quem
+// a criou e só essa pessoa lê.
 // "Para conferir" traz as entradas altas dos extratos pessoais e as vendas altas no cartão das InfinitePay: a pessoa
 // liga cada uma à loja (dá para dividir uma entrada entre duas lojas) ou marca "não é de loja". Nada é apagado:
 // pagamento errado é anulado; loja que saiu fica como encerrada.
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Search, Store, Undo2, Wallet, X } from "lucide-react";
-import { Button, Card, Field, MaisAcoes, Modal, PageHeader } from "@/components/ui";
+import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
+import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
 import { confirmar } from "@/components/Dialogos";
 import { Colunas, Ranking } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -21,9 +23,11 @@ import type { Parte } from "@/lib/partesRelacionadas";
 import type { ContaPessoal, Empresa, LancPessoal } from "@/lib/pessoal";
 import { paresEntreContas } from "@/lib/pessoalCards";
 import {
-  CORES_LOJA, FORMAS_PAGAMENTO, PERIODOS_LIC, SITUACOES_LOJA, TIPOS_PAGAMENTO, corDaLoja, deEmpresaOuSocio, entradasCartao, entradasPessoais, faixaLic, nomeForma,
-  nomeSituacao, nomeTipo, nomesComTermo, resumoLojas, serieMensalLojas, sugestoes, valePagamento,
-  type ContaBancaria, type ExtratoLinha, type Loja, type PagamentoLoja, type PeriodoLic, type ReceberCartao, type Sugestao, type TipoPagamento,
+  CONTRATOS, CORES_LOJA, FORMAS_PAGAMENTO, MODELOS_LOJA, PERIODOS_LIC, SITUACOES_LOJA, SITUACOES_MAQUINA, TIPOS_PAGAMENTO, cepBR, corDaLoja, deEmpresaOuSocio,
+  entradasCartao, entradasPessoais, faixaLic, nomeCategoria, nomeContrato, nomeForma, nomeModelo, nomeSituacao, nomeTipo, nomesComTermo, resumoLojas,
+  serieMensalLojas, sugestoes, valePagamento,
+  type ArquivoLoja, type ContaBancaria, type CustoLoja, type ExtratoLinha, type Loja, type MaquinaLoja, type PagamentoLoja, type PeriodoLic,
+  type ReceberCartao, type Sugestao, type TipoPagamento,
 } from "@/lib/licenciados";
 
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -34,12 +38,16 @@ const NENHUM = "00000000-0000-0000-0000-000000000000";
 // rosa e turquesa da marca My Frost (fundo forte, letra branca: iguais nos dois temas)
 const ROSA = "#c2185b", ROSA_ESCURO = "#6d0d33", TURQUESA = "#67e8e2";
 const nomeProprio = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+type Aba = "unidades" | "custos" | "maquinas" | "pagamentos";
 
 export default function Licenciados() {
   const invalidar = useInvalidate();
   const { unidades } = useUnidade();
   const { data: lojas = [], isLoading } = useRows<Loja>("licenciados_lojas", { order: "ordem", ascending: true });
   const { data: pagamentos = [] } = useRows<PagamentoLoja>("licenciados_pagamentos", { order: "data", ascending: false });
+  const { data: maquinas = [] } = useRows<MaquinaLoja>("licenciados_maquinas", { order: "data_compra", ascending: false });
+  const { data: custos = [] } = useRows<CustoLoja>("licenciados_custos", { order: "data", ascending: false });
+  const { data: arquivos = [] } = useRows<ArquivoLoja>("licenciados_arquivos", { order: "criado_em", ascending: false });
   const { data: contasPessoais = [] } = useRows<ContaPessoal>("pessoal_contas", { order: "ordem", ascending: true });
   const { data: lancs = [] } = useRows<LancPessoal>("pessoal_lancamentos", { order: "data", ascending: false });
   const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
@@ -56,6 +64,8 @@ export default function Licenciados() {
     key: ["licenciados-extrato", idsInfinite.join()],
   });
 
+  const [aba, setAba] = useState<Aba>("unidades");
+  const [ficha, setFicha] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState<PeriodoLic>("12m");
   const [lojaSel, setLojaSel] = useState("");
   const [minimo, setMinimo] = useState(1000);
@@ -89,7 +99,12 @@ export default function Licenciados() {
   const noPeriodo = validos.filter((p) => p.data >= faixa.de && p.data <= faixa.ate && (!lojaSel || p.loja_id === lojaSel));
   const total = r2(noPeriodo.reduce((t, p) => t + Number(p.valor), 0));
   const taxas = r2(noPeriodo.reduce((t, p) => t + Number(p.taxa), 0));
-  const ativas = lojas.filter((l) => l.situacao === "ativa" || l.situacao === "implantacao").length;
+  const ativas = lojas.filter((l) => l.situacao === "ativa" || l.situacao === "implantacao" || l.situacao === "fechando").length;
+  const custoTotal = r2(custos.filter((c) => !c.anulado).reduce((t, c) => t + Number(c.valor), 0));
+  const maquinasNaLoja = maquinas.filter((m) => m.situacao === "na_loja" || m.situacao === "manutencao").length;
+  const dados = { lojas, custos, maquinas, pagamentos, arquivos };
+  const lojaFicha = ficha ? lojas.find((l) => l.id === ficha) : undefined;
+  const novaLoja = (): Partial<Loja> => ({ situacao: "ativa", modelo: "quiosque", contrato: "sem", cor: Object.keys(CORES_LOJA)[lojas.length % 8], nomes_extrato: [] });
   const ateMes = faixa.ate > hoje() ? hoje().slice(0, 7) : faixa.ate.slice(0, 7);
   const serie = useMemo(() => serieMensalLojas(lojaSel ? pagamentos.filter((p) => p.loja_id === lojaSel) : pagamentos, ateMes, 12), [pagamentos, lojaSel, ateMes]);
   const nomeLoja = (id: string | null) => lojas.find((l) => l.id === id);
@@ -140,7 +155,7 @@ export default function Licenciados() {
     const r = id ? await supabase.from("licenciados_lojas").update(resto).eq("id", id as string).select("id").single()
       : await supabase.from("licenciados_lojas").insert({ ...resto, ordem: lojas.length }).select("id").single();
     if (r.error) return notifyError(r.error);
-    notify(id ? "Loja alterada" : "Loja cadastrada");
+    notify(id ? "Unidade alterada" : "Unidade cadastrada");
     invalidar("licenciados_lojas");
     setEditLoja(null);
     if (depois && r.data?.id) await ligar(depois, r.data.id as string, "licenca");
@@ -161,11 +176,22 @@ export default function Licenciados() {
   }
   async function baixar() {
     try {
-      await baixarPlanilha(`licenciados-my-frost-${hoje()}`, [
-        { nome: "Lojas", linhas: ordenadas.map((r) => ({
-          Loja: r.loja.nome, Cidade: r.loja.cidade ?? "", UF: r.loja.uf ?? "", Situação: nomeSituacao(r.loja.situacao), Início: r.loja.inicio ? dataBR(r.loja.inicio) : "",
+      await baixarPlanilha(`my-frost-sorveterias-${hoje()}`, [
+        { nome: "Unidades", linhas: ordenadas.map((r) => ({
+          Unidade: r.loja.nome, Modelo: nomeModelo(r.loja.modelo) ?? "", Endereço: r.loja.endereco ?? "", Cidade: r.loja.cidade ?? "", UF: r.loja.uf ?? "", CEP: cepBR(r.loja.cep),
+          Situação: nomeSituacao(r.loja.situacao), Abertura: r.loja.inicio ? dataBR(r.loja.inicio) : "", Responsável: r.loja.responsavel ?? "", Telefone: r.loja.telefone ?? "",
+          "E-mail": r.loja.email ?? "", "E-mail My Frost": r.loja.email_institucional ?? "", Contrato: nomeContrato(r.loja.contrato),
+          "Contrato assinado em": r.loja.contrato_assinado_em ? dataBR(r.loja.contrato_assinado_em) : "", "Contrato vence em": r.loja.contrato_vence_em ? dataBR(r.loja.contrato_vence_em) : "",
+          "Custo de montar (R$)": r2(custos.filter((c) => c.loja_id === r.loja.id && !c.anulado).reduce((t, c) => t + Number(c.valor), 0)),
           "Combinado (R$)": r.loja.valor_combinado ?? "", "Pago (R$)": r.total, "Falta (R$)": r.falta ?? "", "Taxas (R$)": r.taxas, Pagamentos: r.qtd,
           "Último pagamento": r.ultimo ? dataBR(r.ultimo) : "",
+        })) },
+        { nome: "Máquinas", linhas: maquinas.map((m) => ({
+          Unidade: nomeLoja(m.loja_id)?.nome ?? "", Máquina: m.descricao, "Nº de série": m.numero_serie ?? "", "Data da compra": m.data_compra ? dataBR(m.data_compra) : "",
+          "Valor (R$)": m.valor ?? "", Situação: SITUACOES_MAQUINA.find((s) => s.id === m.situacao)?.nome ?? m.situacao, Observação: m.observacao ?? "",
+        })) },
+        { nome: "Custos de montar", linhas: custos.filter((c) => !c.anulado).map((c) => ({
+          Data: dataBR(c.data), Unidade: nomeLoja(c.loja_id)?.nome ?? "", Tipo: nomeCategoria(c.categoria), Descrição: c.descricao ?? "", "Valor (R$)": Number(c.valor), Observação: c.observacao ?? "",
         })) },
         { nome: "Pagamentos", linhas: validos.map((p) => ({
           Data: dataBR(p.data), Loja: nomeLoja(p.loja_id)?.nome ?? "", Tipo: nomeTipo(p.tipo), Forma: nomeForma(p.forma), Onde: p.onde ?? "",
@@ -178,19 +204,19 @@ export default function Licenciados() {
   const sugestoesVistas = verTodas ? lista : lista.slice(0, 12);
   return (
     <div>
-      <PageHeader title="Licenciados My Frost" subtitle="As lojas licenciadas da My Frost Sorveterias e o que cada uma pagou"
+      <PageHeader title="My Frost Sorveterias" subtitle="As unidades licenciadas: endereços, contratos, máquinas, custos de montar e o que cada uma pagou"
         actions={<>
           <MaisAcoes>
             <Button variant="secondary" onClick={() => setEditPag({ data: hoje(), tipo: "licenca", forma: "pix", origem: "manual", loja_id: lojaSel || lojas[0]?.id })} disabled={!lojas.length}><Plus size={16} /> Lançar pagamento</Button>
             <Button variant="secondary" onClick={baixar} disabled={!lojas.length}><Download size={16} /> Baixar planilha</Button>
             <Link to="/pessoal" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"><Wallet size={16} /> Painel pessoal</Link>
           </MaisAcoes>
-          <Button onClick={() => setEditLoja({ loja: { situacao: "ativa", cor: Object.keys(CORES_LOJA)[lojas.length % 8], nomes_extrato: [] } })}><Store size={16} /> Nova loja</Button>
+          <Button onClick={() => setEditLoja({ loja: novaLoja() })}><Store size={16} /> Nova unidade</Button>
         </>} />
 
       <div className="mb-4 flex items-start gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-900">
         <Lock size={16} className="mt-0.5 shrink-0" aria-hidden />
-        <span>Só você vê esta carteira. MF ≠ My Frost: nada daqui entra no DRE, na conciliação, nos painéis da MF nem no que vai para o contador.
+        <span>Só você vê esta tela e os arquivos dela. MF ≠ My Frost: nada daqui entra no DRE, na conciliação, nos painéis da MF nem no que vai para o contador.
           O que caiu na InfinitePay da MF continua lá como "recebido por conta de terceiros" (acerto entre as empresas: confirmar com o contador).</span>
       </div>
 
@@ -200,7 +226,7 @@ export default function Licenciados() {
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15"><IceCreamCone size={30} aria-hidden /></span>
           <div className="min-w-0 flex-1">
             <div className="text-xl font-bold leading-tight sm:text-2xl">My Frost <span style={{ color: TURQUESA }}>Sorveterias</span></div>
-            <div className="text-sm opacity-90">Licenciados · {lojaSel ? nomeLoja(lojaSel)?.nome : "todas as lojas"}</div>
+            <div className="text-sm opacity-90">{ativas} {pl(ativas, "unidade funcionando", "unidades funcionando")}{lojaSel ? ` · ${nomeLoja(lojaSel)?.nome}` : ""}</div>
           </div>
           <div className="text-right">
             <div className="num text-3xl font-bold">{brl(total)}</div>
@@ -208,7 +234,7 @@ export default function Licenciados() {
           </div>
         </div>
         <div className="grid grid-cols-2 border-t border-white/20 text-sm sm:grid-cols-4">
-          {[["Lojas ativas", String(ativas)], ["Pagamentos", String(noPeriodo.length)], ["Taxas do cartão", brl(taxas)], ["Líquido", brl(r2(total - taxas))]].map(([r, v], i) => (
+          {[["Custo de montar", brl(custoTotal)], ["Máquinas nas lojas", String(maquinasNaLoja)], ["Taxas do cartão", brl(taxas)], ["Líquido recebido", brl(r2(total - taxas))]].map(([r, v], i) => (
             <div key={r} className={`px-4 py-2.5 ${i % 2 ? "border-l border-white/20" : ""} ${i >= 2 ? "border-t border-white/20 sm:border-t-0" : ""} ${i === 2 ? "sm:border-l" : ""}`}>
               <div className="text-xs opacity-80">{r}</div><div className="num font-bold">{v}</div>
             </div>
@@ -216,6 +242,16 @@ export default function Licenciados() {
         </div>
       </div>
 
+      <Tabs<Aba> value={aba} onChange={setAba} options={[
+        { value: "unidades", label: `Unidades · ${lojas.length}` }, { value: "custos", label: "Custos de montar" },
+        { value: "maquinas", label: `Máquinas · ${maquinas.length}` }, { value: "pagamentos", label: lista.length ? `Pagamentos · ${lista.length} para conferir` : "Pagamentos" },
+      ]} />
+
+      {aba === "unidades" && (isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : <UnidadesLista dados={dados} onAbrir={(l) => setFicha(l.id)} onNova={() => setEditLoja({ loja: novaLoja() })} />)}
+      {aba === "custos" && <CustosAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
+      {aba === "maquinas" && <MaquinasAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
+
+      {aba === "pagamentos" && <>
       <Card className="mb-4 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Período">
@@ -244,7 +280,7 @@ export default function Licenciados() {
         {!lista.length ? <p className="text-sm text-slate-500">Nada para conferir: todas as entradas a partir de {brl(minimo)} já estão ligadas a uma loja ou marcadas como "não é de loja".</p> : (
           <ul className="divide-y divide-slate-100">
             {sugestoesVistas.map((s) => <LinhaSugestao key={`${s.origem}:${s.origem_id}`} s={s} lojas={lojas} onLigar={ligar} onNaoE={naoELoja}
-              onNova={() => setEditLoja({ loja: { nome: s.nome ? nomeProprio(s.nome) : "", nomes_extrato: s.nome ? [s.nome] : [], situacao: "ativa", cor: Object.keys(CORES_LOJA)[lojas.length % 8] }, depois: s })} />)}
+              onNova={() => setEditLoja({ loja: { ...novaLoja(), nome: s.nome ? nomeProprio(s.nome) : "", nomes_extrato: s.nome ? [s.nome] : [] }, depois: s })} />)}
           </ul>
         )}
         {lista.length > 12 && <button type="button" className="mt-2 text-sm font-semibold text-brand hover:underline" onClick={() => setVerTodas(!verTodas)}>{verTodas ? "Mostrar menos" : `Ver as ${lista.length}`}</button>}
@@ -273,9 +309,9 @@ export default function Licenciados() {
       {!isLoading && !lojas.length ? (
         <Card className="mb-4 flex flex-col items-center gap-3 p-8 text-center">
           <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: ROSA }}><Store size={28} aria-hidden /></span>
-          <h2 className="text-lg font-bold text-fg">Cadastre as lojas licenciadas</h2>
+          <h2 className="text-lg font-bold text-fg">Cadastre as unidades licenciadas</h2>
           <p className="max-w-md text-sm text-slate-600">O nome da loja, a cidade e como o nome aparece no extrato. Ou use "Nova loja" numa entrada de "Para conferir": a loja já nasce com o pagamento.</p>
-          <Button onClick={() => setEditLoja({ loja: { situacao: "ativa", cor: "rosa", nomes_extrato: [] } })}><Plus size={16} /> Primeira loja</Button>
+          <Button onClick={() => setEditLoja({ loja: { ...novaLoja(), cor: "rosa" } })}><Plus size={16} /> Primeira unidade</Button>
         </Card>
       ) : (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -306,7 +342,7 @@ export default function Licenciados() {
                 </button>
                 <div className="flex border-t border-white/20 text-xs font-semibold">
                   <button type="button" className="flex-1 py-2 hover:bg-white/10" onClick={() => setEditPag({ data: hoje(), tipo: r.loja.mensalidade ? "mensalidade" : "licenca", forma: "pix", origem: "manual", loja_id: r.loja.id, valor: r.loja.mensalidade ?? undefined })}>Lançar</button>
-                  <button type="button" className="flex-1 border-l border-white/20 py-2 hover:bg-white/10" onClick={() => setEditLoja({ loja: r.loja })}>Editar</button>
+                  <button type="button" className="flex-1 border-l border-white/20 py-2 hover:bg-white/10" onClick={() => setFicha(r.loja.id)}>Ficha</button>
                 </div>
               </div>
             );
@@ -362,7 +398,9 @@ export default function Licenciados() {
           </ul>
         )}
       </Card>
+      </>}
 
+      {lojaFicha && <FichaUnidade loja={lojaFicha} dados={dados} onClose={() => setFicha(null)} onEditar={() => setEditLoja({ loja: lojaFicha })} />}
       {editLoja && <LojaModal loja={editLoja.loja} comPagamento={!!editLoja.depois} onClose={() => setEditLoja(null)} onGravar={(l) => gravarLoja(l, editLoja.depois)} />}
       {editPag && <PagamentoModal pag={editPag} lojas={lojas} onClose={() => setEditPag(null)} onGravar={gravarPag} />}
     </div>
@@ -411,43 +449,70 @@ function LinhaSugestao({ s, lojas, onLigar, onNaoE, onNova }: {
 function LojaModal({ loja, comPagamento, onClose, onGravar }: { loja: Partial<Loja>; comPagamento: boolean; onClose: () => void; onGravar: (l: Record<string, unknown>) => void }) {
   const [l, setL] = useState({
     ...loja, nomes_txt: (loja.nomes_extrato ?? []).join(", "), combinado_txt: loja.valor_combinado != null ? String(loja.valor_combinado).replace(".", ",") : "",
-    mensalidade_txt: loja.mensalidade != null ? String(loja.mensalidade).replace(".", ",") : "",
+    mensalidade_txt: loja.mensalidade != null ? String(loja.mensalidade).replace(".", ",") : "", cep_txt: cepBR(loja.cep),
   });
   const set = (k: string, v: unknown) => setL((x) => ({ ...x, [k]: v }));
+  const txt = (v: unknown) => String(v ?? "").trim() || null;
   const enviar = (e: FormEvent) => {
     e.preventDefault();
     const doc = String(l.documento ?? "").replace(/\D/g, "");
     if (doc && doc.length !== 11 && doc.length !== 14) return notifyError(new Error("CPF com 11 números ou CNPJ com 14."));
+    const cep = l.cep_txt.replace(/\D/g, "");
+    if (cep && cep.length !== 8) return notifyError(new Error("O CEP tem 8 números."));
+    if (l.contrato_assinado_em && l.contrato_vence_em && l.contrato_vence_em < l.contrato_assinado_em) return notifyError(new Error("O contrato vence antes de ser assinado: confira as datas."));
     onGravar({
-      id: loja.id, nome: String(l.nome ?? "").trim(), cidade: String(l.cidade ?? "").trim() || null, uf: String(l.uf ?? "").trim().toUpperCase() || null,
-      responsavel: String(l.responsavel ?? "").trim() || null, documento: doc || null, telefone: String(l.telefone ?? "").trim() || null,
+      id: loja.id, nome: String(l.nome ?? "").trim(), modelo: l.modelo || null, endereco: txt(l.endereco), cep: cep || null,
+      cidade: txt(l.cidade), uf: String(l.uf ?? "").trim().toUpperCase() || null,
+      responsavel: txt(l.responsavel), documento: doc || null, telefone: txt(l.telefone), email: txt(l.email), email_institucional: txt(l.email_institucional),
       nomes_extrato: [...new Set(l.nomes_txt.split(",").map((x) => x.trim()).filter((x) => x.length >= 3))].slice(0, 20),
       situacao: l.situacao ?? "ativa", inicio: l.inicio || null, valor_combinado: numeroBR(l.combinado_txt), mensalidade: numeroBR(l.mensalidade_txt),
-      cor: l.cor ?? "rosa", observacoes: String(l.observacoes ?? "").trim() || null,
+      contrato: l.contrato ?? "sem", contrato_assinado_em: l.contrato_assinado_em || null, contrato_vence_em: l.contrato_vence_em || null, contrato_obs: txt(l.contrato_obs),
+      cor: l.cor ?? "rosa", observacoes: txt(l.observacoes),
     });
   };
   return (
-    <Modal open onClose={onClose} title={loja.id ? "Editar loja" : "Nova loja licenciada"}>
-      <form onSubmit={enviar} className="space-y-3">
-        {comPagamento && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">Ao salvar, a entrada que você escolheu fica ligada a esta loja como licença.</p>}
+    <Modal open onClose={onClose} title={loja.id ? "Editar unidade" : "Nova unidade My Frost"}>
+      <form onSubmit={enviar} className="space-y-4">
+        {comPagamento && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">Ao salvar, a entrada que você escolheu fica ligada a esta unidade como licença.</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Nome da loja" className="sm:col-span-2"><input className="input" value={l.nome ?? ""} onChange={(e) => set("nome", e.target.value)} required minLength={2} maxLength={120} placeholder="Ex.: My Frost Centro" autoFocus /></Field>
-          <Field label="Cidade"><input className="input" value={l.cidade ?? ""} onChange={(e) => set("cidade", e.target.value)} maxLength={80} /></Field>
-          <Field label="UF"><input className="input uppercase" value={l.uf ?? ""} onChange={(e) => set("uf", e.target.value.replace(/[^a-z]/gi, "").slice(0, 2))} maxLength={2} pattern="[A-Za-z]{2}" placeholder="SC" /></Field>
-          <Field label="Responsável"><input className="input" value={l.responsavel ?? ""} onChange={(e) => set("responsavel", e.target.value)} maxLength={120} /></Field>
-          <Field label="CPF ou CNPJ (só números)"><input className="input" inputMode="numeric" value={l.documento ?? ""} onChange={(e) => set("documento", e.target.value)} maxLength={18} /></Field>
-          <Field label="Telefone"><input className="input" inputMode="tel" value={l.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} maxLength={30} /></Field>
+          <Field label="Nome da unidade" className="sm:col-span-2"><input className="input" value={l.nome ?? ""} onChange={(e) => set("nome", e.target.value)} required minLength={2} maxLength={120} placeholder="Ex.: My Frost Centro" autoFocus /></Field>
+          <Field label="Modelo">
+            <select className="input" value={l.modelo ?? ""} onChange={(e) => set("modelo", e.target.value)}><option value="">Não informado</option>{MODELOS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}</select>
+          </Field>
           <Field label="Situação">
             <select className="input" value={l.situacao ?? "ativa"} onChange={(e) => set("situacao", e.target.value)}>{SITUACOES_LOJA.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}</select>
           </Field>
-          <Field label="Início da licença"><input className="input" type="date" value={l.inicio ?? ""} onChange={(e) => set("inicio", e.target.value)} /></Field>
+          <Field label="Endereço da loja" className="sm:col-span-2"><input className="input" value={l.endereco ?? ""} onChange={(e) => set("endereco", e.target.value)} maxLength={300} placeholder="Rua, número, complemento e bairro" /></Field>
+          <Field label="Cidade"><input className="input" value={l.cidade ?? ""} onChange={(e) => set("cidade", e.target.value)} maxLength={80} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="UF"><input className="input uppercase" value={l.uf ?? ""} onChange={(e) => set("uf", e.target.value.replace(/[^a-z]/gi, "").slice(0, 2))} maxLength={2} pattern="[A-Za-z]{2}" placeholder="SP" /></Field>
+            <Field label="CEP"><input className="input" inputMode="numeric" value={l.cep_txt} onChange={(e) => set("cep_txt", e.target.value)} maxLength={9} placeholder="00000-000" /></Field>
+          </div>
+          <Field label="Data de abertura"><input className="input" type="date" value={l.inicio ?? ""} onChange={(e) => set("inicio", e.target.value)} /></Field>
+          <Field label="Responsável"><input className="input" value={l.responsavel ?? ""} onChange={(e) => set("responsavel", e.target.value)} maxLength={120} /></Field>
+          <Field label="CPF ou CNPJ (só números)"><input className="input" inputMode="numeric" value={l.documento ?? ""} onChange={(e) => set("documento", e.target.value)} maxLength={18} /></Field>
+          <Field label="Telefone"><input className="input" inputMode="tel" value={l.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} maxLength={60} /></Field>
+          <Field label="E-mail"><input className="input" type="email" value={l.email ?? ""} onChange={(e) => set("email", e.target.value)} maxLength={160} /></Field>
+          <Field label="E-mail da My Frost"><input className="input" type="email" value={l.email_institucional ?? ""} onChange={(e) => set("email_institucional", e.target.value)} maxLength={160} /></Field>
+        </div>
+        <fieldset className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+          <legend className="px-1 text-sm font-bold text-fg">Contrato</legend>
+          <Field label="Situação do contrato">
+            <select className="input" value={l.contrato ?? "sem"} onChange={(e) => set("contrato", e.target.value)}>{CONTRATOS.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Assinado em"><input className="input" type="date" value={l.contrato_assinado_em ?? ""} onChange={(e) => set("contrato_assinado_em", e.target.value)} /></Field>
+            <Field label="Vence em"><input className="input" type="date" value={l.contrato_vence_em ?? ""} onChange={(e) => set("contrato_vence_em", e.target.value)} /></Field>
+          </div>
           <Field label="Valor combinado da licença (R$)"><input className="input" inputMode="decimal" value={l.combinado_txt} onChange={(e) => set("combinado_txt", e.target.value)} placeholder="opcional" /></Field>
           <Field label="Mensalidade (R$)"><input className="input" inputMode="decimal" value={l.mensalidade_txt} onChange={(e) => set("mensalidade_txt", e.target.value)} placeholder="opcional" /></Field>
-          <Field label="Como aparece no extrato (separe por vírgula)" className="sm:col-span-2">
-            <input className="input" value={l.nomes_txt} onChange={(e) => set("nomes_txt", e.target.value)} placeholder="Ex.: o nome cortado do Pix no Itaú" />
-          </Field>
-        </div>
-        <p className="text-xs text-slate-500">O Itaú corta o nome de quem mandou o Pix em 7 letras. Com esse texto aqui, as próximas entradas já chegam com a loja escolhida.</p>
+          <Field label="Observação do contrato" className="sm:col-span-2"><input className="input" value={l.contrato_obs ?? ""} onChange={(e) => set("contrato_obs", e.target.value)} maxLength={1000} placeholder="Ex.: o que foi combinado, multa, renovação" /></Field>
+          <p className="text-xs text-slate-500 sm:col-span-2">O contrato assinado (PDF ou foto) vai na ficha da unidade, em "Anexar arquivo".</p>
+        </fieldset>
+        <Field label="Como aparece no extrato (separe por vírgula)">
+          <input className="input" value={l.nomes_txt} onChange={(e) => set("nomes_txt", e.target.value)} placeholder="Ex.: o nome cortado do Pix no Itaú" />
+        </Field>
+        <p className="-mt-2 text-xs text-slate-500">O Itaú corta o nome de quem mandou o Pix em 7 letras. Com esse texto aqui, as próximas entradas já chegam com a unidade escolhida.</p>
         <Field label="Cor">
           <div className="flex flex-wrap gap-2">
             {Object.entries(CORES_LOJA).map(([nome, hex]) => (

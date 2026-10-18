@@ -276,6 +276,13 @@ export function Layout() {
               </section>
             );
           })}
+          {/* My Frost Sorveterias (as unidades licenciadas): botão rosinha no fim do menu, só para o administrador */}
+          {perfil.papel === "admin" && (!busca.trim() || semAcento("my frost sorveterias licenciados unidades lojas quiosques sorvete").includes(semAcento(busca.trim()))) && (
+            <NavLink to="/licenciados" onClick={() => setAberto(false)}
+              className={({ isActive }) => `mt-3 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#fbcfe8] to-[#f9a8d4] px-2 py-2.5 text-sm font-bold text-[#831843] shadow-sm transition hover:brightness-105 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : ""}`}>
+              <IceCreamCone size={19} aria-hidden /> My Frost Sorveterias
+            </NavLink>
+          )}
           {/* telas que não estão na lista (Configurações, Usuários, painéis de máquinas e produtos…) aparecem na busca */}
           {busca.trim() && itensForaDoMenu.some((m) => vis.item(m) && combina(m, busca)) && (
             <section className="mb-2 rounded-xl border border-white/15 bg-white/[0.04] px-1.5 pb-2 pt-1">
@@ -314,8 +321,6 @@ export function Layout() {
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
               // carteira: painel pessoal do dono, separado da empresa (só o administrador)
               ...(perfil.papel === "admin" ? [["Painel pessoal", Wallet, () => { setAberto(false); navigate("/pessoal"); }] as const] : []),
-              // sorvete: carteira dos licenciados My Frost Sorveterias (lojas e pagamentos), também só o administrador
-              ...(perfil.papel === "admin" ? [["Licenciados My Frost", IceCreamCone, () => { setAberto(false); navigate("/licenciados"); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],

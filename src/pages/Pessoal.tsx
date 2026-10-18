@@ -256,7 +256,7 @@ export default function Pessoal() {
             <Button variant="secondary" onClick={() => setBoleto(true)} disabled={!ativas.length}><Barcode size={16} /> Lançar boleto (DDA)</Button>
             <Button variant="secondary" onClick={() => setPluggy(true)}><Plug size={16} /> Meu Pluggy (extrato automático)</Button>
             <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={16} /> Regras dos cards</Button>
-            <Button variant="secondary" onClick={() => navigate("/licenciados")}><IceCreamCone size={16} /> Licenciados My Frost (lojas e pagamentos)</Button>
+            <Button variant="secondary" onClick={() => navigate("/licenciados")}><IceCreamCone size={16} /> My Frost Sorveterias (unidades)</Button>
           </MaisAcoes>
           <Button onClick={() => setEditLanc({ conta_id: conta || ativas[0]?.id, data: hoje(), situacao: "realizado", valor: undefined })} disabled={!ativas.length}><Plus size={16} /> Lançar</Button>
         </>} />

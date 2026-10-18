@@ -4,12 +4,70 @@
 // altas no cartão das InfinitePay (sugestões que a pessoa confere e liga à loja) ou são lançados à mão.
 import { daEmpresa, type ContaPessoal, type Empresa, type LancPessoal } from "./pessoal";
 
-export type SituacaoLoja = "negociando" | "implantacao" | "ativa" | "pausada" | "encerrada";
+export type SituacaoLoja = "negociando" | "implantacao" | "ativa" | "fechando" | "pausada" | "encerrada";
+export type ModeloLoja = "quiosque" | "loja" | "loja_cafeteria";
+export type SituacaoContrato = "sem" | "negociando" | "assinado" | "rescindido";
 export type Loja = {
   id: string; nome: string; cidade: string | null; uf: string | null; responsavel: string | null; documento: string | null; telefone: string | null;
   nomes_extrato: string[] | null; cliente_id: string | null; situacao: SituacaoLoja; inicio: string | null; valor_combinado: number | null;
   mensalidade: number | null; cor: string | null; observacoes: string | null; ordem: number;
+  /** ficha da unidade (My Frost Sorveterias): modelo, endereço, contato e contrato */
+  modelo?: ModeloLoja | null; endereco?: string | null; cep?: string | null; email?: string | null; email_institucional?: string | null;
+  contrato?: SituacaoContrato | null; contrato_assinado_em?: string | null; contrato_vence_em?: string | null; contrato_obs?: string | null;
 };
+export type CategoriaCusto = "maquinas" | "insumos" | "pdv" | "moveis" | "montagem" | "suporte" | "uniformes" | "comunicacao" | "inauguracao" | "frete" | "viagem" | "outros";
+export type CustoLoja = { id: string; loja_id: string; data: string; categoria: CategoriaCusto; descricao: string | null; valor: number; observacao: string | null; anulado: boolean };
+export type SituacaoMaquina = "na_loja" | "manutencao" | "devolvida" | "baixada";
+export type MaquinaLoja = { id: string; loja_id: string; descricao: string; numero_serie: string | null; data_compra: string | null; valor: number | null; situacao: SituacaoMaquina; observacao: string | null };
+export type ArquivoLoja = { id: string; loja_id: string; tipo: "contrato" | "ficha" | "documento" | "foto" | "outro"; nome: string; caminho: string; tamanho: number | null; mime: string | null; criado_em: string };
+
+export const MODELOS_LOJA: { id: ModeloLoja; nome: string }[] = [{ id: "quiosque", nome: "Quiosque" }, { id: "loja", nome: "Loja" }, { id: "loja_cafeteria", nome: "Loja com cafeteria" }];
+export const CONTRATOS: { id: SituacaoContrato; nome: string; cor: string }[] = [
+  { id: "sem", nome: "Sem contrato", cor: "#b91c1c" }, { id: "negociando", nome: "Contrato em conversa", cor: "#b45309" },
+  { id: "assinado", nome: "Contrato assinado", cor: "#047857" }, { id: "rescindido", nome: "Contrato encerrado", cor: "#475569" },
+];
+/** O que a My Frost entrega para montar a unidade (a lista "por Nós" do material das unidades) + frete, viagem e outros. */
+export const CATEGORIAS_CUSTO: { id: CategoriaCusto; nome: string }[] = [
+  { id: "maquinas", nome: "Máquinas" }, { id: "moveis", nome: "Móveis / quiosque" }, { id: "insumos", nome: "Insumos (bases e caldas)" },
+  { id: "pdv", nome: "Sistema PDV e CMV" }, { id: "montagem", nome: "Montagem e implantação" }, { id: "uniformes", nome: "Uniformes" },
+  { id: "comunicacao", nome: "Comunicação (cardápio e PDV)" }, { id: "inauguracao", nome: "Inauguração" }, { id: "suporte", nome: "Suporte" },
+  { id: "frete", nome: "Frete" }, { id: "viagem", nome: "Viagem" }, { id: "outros", nome: "Outros" },
+];
+export const SITUACOES_MAQUINA: { id: SituacaoMaquina; nome: string }[] = [
+  { id: "na_loja", nome: "Na loja" }, { id: "manutencao", nome: "Em manutenção" }, { id: "devolvida", nome: "Devolvida" }, { id: "baixada", nome: "Baixada" },
+];
+export const nomeModelo = (m: string | null | undefined) => MODELOS_LOJA.find((x) => x.id === m)?.nome ?? null;
+export const nomeContrato = (c: string | null | undefined) => CONTRATOS.find((x) => x.id === (c ?? "sem"))?.nome ?? "Sem contrato";
+export const nomeCategoria = (c: string) => CATEGORIAS_CUSTO.find((x) => x.id === c)?.nome ?? c;
+
+/** "13184420" → "13184-420" */
+export const cepBR = (c: string | null | undefined) => (c && /^\d{8}$/.test(c) ? `${c.slice(0, 5)}-${c.slice(5)}` : c ?? "");
+/** Endereço completo numa linha (rua, cidade/UF e CEP) e o link do mapa. */
+export function enderecoCompleto(l: Pick<Loja, "endereco" | "cidade" | "uf" | "cep">) {
+  return [l.endereco, [l.cidade, l.uf].filter(Boolean).join("/"), l.cep && `CEP ${cepBR(l.cep)}`].filter(Boolean).join(" – ");
+}
+export const linkMapa = (l: Pick<Loja, "endereco" | "cidade" | "uf" | "cep">) =>
+  l.endereco ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoCompleto(l))}` : null;
+
+/** O que falta na ficha da unidade (para completar). */
+export function faltaNaFicha(l: Loja): string[] {
+  return [
+    !l.endereco && "endereço", !l.documento && "CPF/CNPJ", !l.telefone && "telefone", !l.inicio && "data de abertura",
+    (l.contrato ?? "sem") === "sem" && "contrato",
+  ].filter(Boolean) as string[];
+}
+
+/** Custos de montar, máquinas e recebido de uma unidade: quanto investiu, quanto voltou e o saldo. */
+export function resumoUnidade(lojaId: string, custos: CustoLoja[], maquinas: MaquinaLoja[], pagamentos: PagamentoLoja[]) {
+  const c = custos.filter((x) => x.loja_id === lojaId && !x.anulado);
+  const m = maquinas.filter((x) => x.loja_id === lojaId);
+  const p = pagamentos.filter((x) => x.loja_id === lojaId && valePagamento(x));
+  const custo = Math.round(c.reduce((t, x) => t + Number(x.valor), 0) * 100) / 100;
+  const recebido = Math.round(p.reduce((t, x) => t + Number(x.valor) - Number(x.taxa ?? 0), 0) * 100) / 100;
+  const porCategoria = CATEGORIAS_CUSTO.map((k) => ({ ...k, valor: Math.round(c.filter((x) => x.categoria === k.id).reduce((t, x) => t + Number(x.valor), 0) * 100) / 100 }))
+    .filter((k) => k.valor > 0);
+  return { custo, recebido, saldo: Math.round((recebido - custo) * 100) / 100, maquinas: m.filter((x) => x.situacao === "na_loja" || x.situacao === "manutencao").length, porCategoria };
+}
 export type TipoPagamento = "licenca" | "mensalidade" | "royalties" | "maquina" | "insumos" | "marketing" | "outro";
 export type FormaPagamento = "pix" | "cartao" | "ted" | "boleto" | "dinheiro" | "outro";
 export type OrigemPagamento = "manual" | "pessoal" | "infinitepay";
@@ -21,7 +79,8 @@ export type PagamentoLoja = {
 
 export const SITUACOES_LOJA: { id: SituacaoLoja; nome: string; cor: string }[] = [
   { id: "negociando", nome: "Negociando", cor: "#b45309" }, { id: "implantacao", nome: "Em implantação", cor: "#0284c7" },
-  { id: "ativa", nome: "Ativa", cor: "#047857" }, { id: "pausada", nome: "Pausada", cor: "#7c3aed" }, { id: "encerrada", nome: "Encerrada", cor: "#475569" },
+  { id: "ativa", nome: "Ativa", cor: "#047857" }, { id: "fechando", nome: "Vai fechar", cor: "#c2410c" }, { id: "pausada", nome: "Pausada", cor: "#7c3aed" },
+  { id: "encerrada", nome: "Encerrada", cor: "#475569" },
 ];
 export const TIPOS_PAGAMENTO: { id: TipoPagamento; nome: string }[] = [
   { id: "licenca", nome: "Licença" }, { id: "mensalidade", nome: "Mensalidade" }, { id: "royalties", nome: "Royalties" },
