@@ -7,25 +7,37 @@ import { useInvalidate } from "@/lib/data";
 import { brl, dataBR, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { resumoTaxas, type TaxasInfinitePay } from "@/lib/infinitepay";
+import { useConfig } from "@/lib/useConfig";
 
-/** Link de pagamento da InfinitePay (Pix ou cartão) ligado a uma conta a receber. */
+/** Link de pagamento ligado a uma conta a receber: InfinitePay (Pix ou cartão) ou Checkout do Mercado Pago (cartão). */
 export type CobrancaLink = {
   id: string; conta_receber_id: string | null; pedido_id?: string | null; status: "aberto" | "pago" | "descartado" | "erro"; url: string | null; valor: number;
   handle: string; metodo: string | null; parcelas: number | null; recibo_url: string | null; pago_em: string | null; erro: string | null; created_at: string;
-  taxa_percentual?: number | null; taxa_valor?: number | null;
+  taxa_percentual?: number | null; taxa_valor?: number | null; provedor?: string | null;
 };
+export type ProvedorLink = "infinitepay" | "mercadopago";
+export const nomeProvedor = (p?: string | null) => (p === "mercadopago" ? "Mercado Pago" : "InfinitePay");
+
+/** Configurações → Recebimentos manda o cartão para o Checkout do Mercado Pago. */
+export function useCartaoNoMP() {
+  const { data: cfg } = useConfig();
+  return cfg?.link_cartao_provedor === "mercadopago";
+}
 type Conta = { id: string; descricao: string; valor: number; vencimento: string; status: string; cliente?: { nome: string; whatsapp?: string | null } | null };
 
 export const comoPagou = (l: Pick<CobrancaLink, "metodo" | "parcelas">) =>
-  (l.metodo ?? "").toLowerCase() === "pix" ? "Pix" : `cartão${(l.parcelas ?? 1) > 1 ? ` em ${l.parcelas}x` : ""}`;
+  ["pix", "bank_transfer"].includes((l.metodo ?? "").toLowerCase()) ? "Pix" : `cartão${(l.parcelas ?? 1) > 1 ? ` em ${l.parcelas}x` : ""}`;
+
+/** Como o cliente paga pelo link: o do Mercado Pago é só cartão. */
+export const meiosDoLink = (provedor?: string | null) => (provedor === "mercadopago" ? "no cartão (em até 12x)" : "por Pix ou cartão (em até 12x)");
 
 /** Mensagem do WhatsApp com o link. */
-export function mensagemLink(c: Conta, url: string) {
+export function mensagemLink(c: Conta, url: string, provedor?: string | null) {
   return [
     `Olá ${c.cliente?.nome.split(" ")[0] ?? ""}! Segue o link para pagamento da *MF Máquinas*:`,
     c.descricao,
     `Valor: ${brl(c.valor)} · Vencimento: ${dataBR(c.vencimento)}`,
-    `\nPague por Pix ou cartão (em até 12x):\n${url}`,
+    `\nPague ${meiosDoLink(provedor)}:\n${url}`,
   ].join("\n");
 }
 
@@ -46,9 +58,10 @@ export function SituacaoLink({ links }: { links: CobrancaLink[] }) {
 /** Taxa do link já pago, como ficou no financeiro. */
 function TaxaDoLink({ l }: { l: CobrancaLink }) {
   if (l.taxa_valor != null && Number(l.taxa_valor) > 0) {
-    return <p className="mt-1">Taxa da InfinitePay (paga pela MF): <b>{brl(l.taxa_valor)}</b> ({String(l.taxa_percentual).replace(".", ",")}%), lançada em contas a pagar como tarifa bancária.</p>;
+    return <p className="mt-1">Taxa do {nomeProvedor(l.provedor)} (paga pela MF): <b>{brl(l.taxa_valor)}</b>{l.taxa_percentual != null && ` (${String(l.taxa_percentual).replace(".", ",")}%)`}, lançada em contas a pagar como tarifa bancária.</p>;
   }
   if (l.taxa_valor != null) return <p className="mt-1">Sem taxa neste pagamento.</p>;
+  if (l.provedor === "mercadopago") return <p className="mt-1 text-amber-800">O Mercado Pago não informou a taxa: lance-a à mão em contas a pagar.</p>;
   return <p className="mt-1 text-amber-800">Taxa não cadastrada para este meio: preencha as taxas em Configurações → Unidades e lance esta à mão em contas a pagar.</p>;
 }
 
@@ -59,11 +72,12 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
   const desatualizado = aberto && Number(aberto.valor) !== Number(conta.valor);
   const pago = links.find((l) => l.status === "pago");
   const comErro = links.find((l) => l.status === "erro");
+  const cartaoNoMP = useCartaoNoMP();
 
-  async function gerar() {
+  async function gerar(provedor?: ProvedorLink) {
     setGerando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("infinitepay", { body: { acao: "criar", conta_id: conta.id } });
+      const { data, error } = await supabase.functions.invoke("infinitepay", { body: { acao: "criar", conta_id: conta.id, provedor } });
       if (error || data?.error) throw new Error(data?.error ?? (await lerErro(error)));
       notify(data.reaproveitado ? "O link desta conta continua valendo" : "Link de pagamento criado");
       invalidar("cobrancas_link");
@@ -83,7 +97,7 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
   const copiar = (t: string) => navigator.clipboard.writeText(t).then(() => notify("Link copiado"));
 
   return (
-    <Modal open onClose={onClose} title="Link de pagamento (InfinitePay)">
+    <Modal open onClose={onClose} title="Link de pagamento">
       <div className="space-y-4 text-sm">
         <div>
           <div className="font-semibold text-fg">{conta.descricao}</div>
@@ -107,16 +121,16 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
             </div>
             <div className="flex flex-wrap gap-2">
               {conta.cliente?.whatsapp && (
-                <a href={whatsappLink(conta.cliente.whatsapp, mensagemLink(conta, aberto.url!))} target="_blank" rel="noreferrer"
+                <a href={whatsappLink(conta.cliente.whatsapp, mensagemLink(conta, aberto.url!, aberto.provedor))} target="_blank" rel="noreferrer"
                   className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 sm:min-h-0">
                   <MessageCircle size={15} /> Mandar no WhatsApp
                 </a>
               )}
-              <Button type="button" variant="secondary" onClick={() => copiar(mensagemLink(conta, aberto.url!))}><Copy size={15} /> Copiar mensagem</Button>
+              <Button type="button" variant="secondary" onClick={() => copiar(mensagemLink(conta, aberto.url!, aberto.provedor))}><Copy size={15} /> Copiar mensagem</Button>
               <a href={aberto.url!} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2 py-2 text-sm text-brand hover:underline"><ExternalLink size={14} /> Abrir</a>
             </div>
             <p className="text-xs text-slate-500">
-              Criado em {new Date(aberto.created_at).toLocaleString("pt-BR")} na conta <b>${aberto.handle}</b>. Quando o cliente pagar, a conta é baixada sozinha e aparece o recibo.
+              Criado em {new Date(aberto.created_at).toLocaleString("pt-BR")} {aberto.provedor === "mercadopago" ? <>no <b>Mercado Pago</b> (cartão)</> : <>na conta <b>${aberto.handle}</b></>}. Quando o cliente pagar, a conta é baixada sozinha{aberto.provedor === "mercadopago" ? " e a taxa cobrada entra em contas a pagar" : " e aparece o recibo"}.
             </p>
             {desatualizado && <p className="text-xs font-semibold text-amber-700">O valor da conta mudou depois do link ({brl(aberto.valor)}). Gere de novo antes de mandar.</p>}
           </div>
@@ -128,13 +142,22 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
           <div className="flex flex-wrap items-center justify-between gap-2">
             {aberto
               ? <button type="button" className="text-xs text-slate-500 hover:underline" onClick={() => descartar(aberto.id)}>Tirar este link da conta</button>
-              : <span className="text-xs text-slate-500">O cliente escolhe Pix ou cartão (em até 12x) na página da InfinitePay.
-                  {resumoTaxas(taxas) ? <> Taxa paga pela MF: {resumoTaxas(taxas)}.</> : " A taxa é paga pela MF."}</span>}
-            {(!aberto || desatualizado) && (
-              <Button type="button" disabled={gerando} onClick={gerar}>
+              : <span className="text-xs text-slate-500">{cartaoNoMP
+                  ? "Cartão (até 12x) pelo Checkout do Mercado Pago; Pix pela InfinitePay."
+                  : "O cliente escolhe Pix ou cartão (em até 12x) na página da InfinitePay."}
+                  {!cartaoNoMP && (resumoTaxas(taxas) ? <> Taxa paga pela MF: {resumoTaxas(taxas)}.</> : " A taxa é paga pela MF.")}</span>}
+            {(!aberto || desatualizado) && (cartaoNoMP ? (
+              <span className="flex flex-wrap gap-2">
+                <Button type="button" disabled={gerando} onClick={() => gerar("mercadopago")}>
+                  {gerando ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} Link do cartão (Mercado Pago)
+                </Button>
+                <Button type="button" variant="secondary" disabled={gerando} onClick={() => gerar("infinitepay")}>Link Pix (InfinitePay)</Button>
+              </span>
+            ) : (
+              <Button type="button" disabled={gerando} onClick={() => gerar()}>
                 {gerando ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} {aberto ? "Gerar de novo" : "Gerar link"}
               </Button>
-            )}
+            ))}
           </div>
         )}
       </div>

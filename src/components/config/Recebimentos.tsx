@@ -1,15 +1,20 @@
 // Configurações → Recebimentos e taxas: as contas de cada unidade (Pix, banco, InfinitePay e as taxas do plano),
 // separadas do cadastro da unidade, e as regras de cobrança e custos dos meios de pagamento da empresa.
 import { useState, type FormEvent } from "react";
-import { CheckCircle2, CircleAlert, Landmark, Link2, QrCode } from "lucide-react";
+import { CheckCircle2, CircleAlert, CreditCard, Landmark, Link2, Loader2, QrCode } from "lucide-react";
 import { Button, Card, Field } from "@/components/ui";
+import { callFunction } from "@/lib/supabase";
 import { useSave } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { normalizarTaxas } from "@/lib/infinitepay";
 import { useUnidade, type Unidade } from "@/lib/unidade";
 import { BotaoSalvar, Bloco, CabecalhoSecao, campo, secaoPorId, useCfgPagina } from "./comum";
 
-const CHAVES = ["dias_vencimento_boleto", "multa_percentual", "juros_percentual_mes", "custos_pagamento"];
+const CHAVES = ["dias_vencimento_boleto", "multa_percentual", "juros_percentual_mes", "custos_pagamento", "link_cartao_provedor"];
+const PROVEDORES = [
+  { id: "infinitepay", nome: "InfinitePay", texto: "Pix e cartão no mesmo link, pela InfiniteTag de cada unidade." },
+  { id: "mercadopago", nome: "Mercado Pago (Checkout)", texto: "Só cartão, em até 12x, e recebe na hora. O Pix continua pela InfinitePay. A taxa real de cada venda entra sozinha em contas a pagar." },
+] as const;
 const num = (v: unknown) => (v === "" || v == null ? null : Number(String(v).replace(",", ".")));
 
 export function ConfigRecebimentos() {
@@ -43,6 +48,20 @@ export function ConfigRecebimentos() {
             {input("multa_percentual", "Multa por atraso (%)", "", "number")}
             {input("juros_percentual_mes", "Juros ao mês (%)", "", "number")}
           </div>
+        </Bloco>
+        <Bloco titulo="Link de pagamento no cartão" descricao="Quem gera o link quando a venda é no cartão (no pedido e na conta a receber). Dá para escolher o outro no próprio botão.">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Link de pagamento no cartão">
+            {PROVEDORES.map((o) => {
+              const marcado = (cfg.link_cartao_provedor ?? "infinitepay") === o.id;
+              return (
+                <label key={o.id} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 ${marcado ? "border-brand ring-2 ring-brand/30" : "border-slate-200"}`}>
+                  <input type="radio" name="link_cartao_provedor" className="mt-1" checked={marcado} onChange={() => mudar({ link_cartao_provedor: o.id })} />
+                  <span className="min-w-0"><b className="text-fg">{o.nome}</b><span className="block text-xs text-slate-500">{o.texto}</span></span>
+                </label>
+              );
+            })}
+          </div>
+          <ChaveMercadoPago />
         </Bloco>
         <Bloco titulo="Custos dos meios de pagamento (margem de contribuição)" descricao="Quanto cada forma de pagamento custa para a MF, para o cálculo da margem de cada venda. As taxas reais da InfinitePay ficam nas contas das unidades, acima.">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -160,5 +179,37 @@ function FormContas({ u: inicial, onFeito }: { u: Record<string, any>; onFeito: 
         <Button disabled={save.isPending}>Salvar {String(u.nome ?? "")}</Button>
       </div>
     </form>
+  );
+}
+
+type StatusMP = { unidades: { unidade_id: string; codigo: string; secret: string | null; conta: string | null; erro: string | null }[] };
+
+/** Confere a chave do Mercado Pago de cada unidade: mostra o nome do secret e a conta dele, nunca a chave. */
+function ChaveMercadoPago() {
+  const [r, setR] = useState<StatusMP | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  async function conferir() {
+    setOcupado(true);
+    try { setR(await callFunction<StatusMP>("infinitepay", { acao: "mp_status" })); } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+  return (
+    <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">
+      <p className="flex items-start gap-1.5 text-slate-600"><CreditCard size={15} className="mt-0.5 shrink-0" aria-hidden />
+        <span>A chave do Mercado Pago (Access Token de produção, em Mercado Pago → Suas integrações → Credenciais de produção) fica nos secrets do Supabase:
+          <b> MERCADOPAGO_ACCESS_TOKEN</b> (matriz) e, se a filial tiver outra conta, <b>MERCADOPAGO_ACCESS_TOKEN_SP</b>. Não precisa colar a chave aqui.</span></p>
+      <Button type="button" variant="secondary" className="mt-2" disabled={ocupado} onClick={conferir}>
+        {ocupado ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Conferir a chave do Mercado Pago
+      </Button>
+      {r && (
+        <ul className="mt-2 space-y-1">
+          {r.unidades.map((u) => (
+            <li key={u.unidade_id} className={`flex items-start gap-1.5 ${u.erro ? "text-amber-800" : "text-emerald-700"}`}>
+              {u.erro ? <CircleAlert size={15} className="mt-0.5 shrink-0" aria-hidden /> : <CheckCircle2 size={15} className="mt-0.5 shrink-0" aria-hidden />}
+              <span><b>{u.codigo}:</b> {u.erro ?? `conta ${u.conta} (secret ${u.secret})`}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

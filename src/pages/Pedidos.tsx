@@ -734,7 +734,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
     if (precisaAprovarDesc && limiteDesc) {
       return notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
     }
-    const comLink = verPagamento && temInfinitePay && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
+    // link na aprovação: InfinitePay ou, na venda no cartão com o Mercado Pago escolhido em Recebimentos, o Checkout dele
+    const cartaoNoMP = cfg?.link_cartao_provedor === "mercadopago" && p.forma_pagamento === "cartao";
+    const comLink = verPagamento && (temInfinitePay || cartaoNoMP) && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
     // a mensagem final só fala da NF-e quando ela foi mesmo enviada (falha ou bloqueio já aparece em vermelho)
     let nfeEnviada = false;
     return executar(async () => {

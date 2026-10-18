@@ -5095,7 +5095,7 @@ const funcoes: Record<string, (b: any) => any> = {
       const c = db.contas_receber.find((x) => x.id === id);
       if (!c) throw new Error("conta não encontrada");
       if (c.status !== "aberto") throw new Error("esta conta não está em aberto");
-      return { contaId: c.id, pedidoId: null as string | null, unidadeId: c.unidade_id, descricao: c.descricao, valor: Number(c.valor) };
+      return { contaId: c.id, pedidoId: null as string | null, unidadeId: c.unidade_id, descricao: c.descricao, valor: Number(c.valor), forma: c.forma_pagamento as string | null };
     };
     const alvoPedido = (id: string) => {
       const p = db.pedidos.find((x) => x.id === id);
@@ -5104,8 +5104,9 @@ const funcoes: Record<string, (b: any) => any> = {
       const abertas = db.contas_receber.filter((x) => x.pedido_id === p.id && x.status === "aberto");
       if (!abertas.length) throw new Error("Este pedido não tem parcela em aberto: já está pago.");
       return { contaId: abertas.length === 1 ? abertas[0].id : null, pedidoId: p.id, unidadeId: p.unidade_id,
-        descricao: `Pedido #${p.numero}${abertas.length > 1 ? ` (${abertas.length} parcelas)` : ""}`, valor: r2(abertas.reduce((s, x) => s + Number(x.valor), 0)) };
+        descricao: `Pedido #${p.numero}${abertas.length > 1 ? ` (${abertas.length} parcelas)` : ""}`, valor: r2(abertas.reduce((s, x) => s + Number(x.valor), 0)), forma: p.forma_pagamento as string | null };
     };
+    if (b.acao === "mp_status") return { unidades: db.unidades.map((u) => ({ unidade_id: u.id, codigo: u.codigo, secret: "MERCADOPAGO_ACCESS_TOKEN", conta: "CONTA_EXEMPLO", erro: null })) };
     let a: ReturnType<typeof alvoConta>;
     if (b.acao === "criar") a = alvoConta(b.conta_id);
     else if (b.acao === "criar_pedido") a = alvoPedido(b.pedido_id);
@@ -5121,17 +5122,22 @@ const funcoes: Record<string, (b: any) => any> = {
       a = alvoConta(c.id);
     } else return { ok: true };
     const u = db.unidades.find((x) => x.id === a.unidadeId) ?? db.unidades.find((x) => x.matriz);
-    if (!u?.infinitepay_tag) throw new Error(`Cadastre a InfiniteTag da ${u?.nome ?? "unidade"} em Configurações → Unidades.`);
+    if (!u) throw new Error("unidade não encontrada");
+    // cartão pelo Checkout do Mercado Pago quando a configuração manda (ou o botão pede)
+    const provedor = b.provedor === "mercadopago" || b.provedor === "infinitepay" ? b.provedor
+      : a.forma === "cartao" && db.configuracoes[0]?.link_cartao_provedor === "mercadopago" ? "mercadopago" : "infinitepay";
+    if (provedor === "infinitepay" && !u.infinitepay_tag) throw new Error(`Cadastre a InfiniteTag da ${u.nome} em Configurações → Unidades.`);
+    const handle = provedor === "mercadopago" ? `mercadopago:${u.codigo}` : u.infinitepay_tag;
     if (!db.cobrancas_link) db.cobrancas_link = [];
     const doAlvo = (l: Row) => l.status === "aberto" && (a.pedidoId ? l.pedido_id === a.pedidoId || (a.contaId && l.conta_receber_id === a.contaId) : l.conta_receber_id === a.contaId);
-    const igual = db.cobrancas_link.find((l) => doAlvo(l) && Number(l.valor) === a.valor && (l.conta_receber_id ?? null) === a.contaId);
-    if (igual) return { id: igual.id, url: igual.url, reaproveitado: true };
+    const igual = db.cobrancas_link.find((l) => doAlvo(l) && l.handle === handle && Number(l.valor) === a.valor && (l.conta_receber_id ?? null) === a.contaId);
+    if (igual) return { id: igual.id, url: igual.url, reaproveitado: true, provedor };
     for (const l of db.cobrancas_link) if (doAlvo(l)) l.status = "descartado";
-    const l: Row = { id: uid(), conta_receber_id: a.contaId, pedido_id: a.pedidoId, unidade_id: u.id, handle: u.infinitepay_tag, descricao: a.descricao, valor: a.valor, status: "aberto",
-      url: `https://checkout.infinitepay.io/${u.infinitepay_tag}?demo=${uid().slice(0, 8)}`, created_at: new Date().toISOString(),
-      metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
+    const l: Row = { id: uid(), conta_receber_id: a.contaId, pedido_id: a.pedidoId, unidade_id: u.id, provedor, handle, descricao: a.descricao, valor: a.valor, status: "aberto",
+      url: provedor === "mercadopago" ? `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=demo-${uid().slice(0, 8)}` : `https://checkout.infinitepay.io/${u.infinitepay_tag}?demo=${uid().slice(0, 8)}`,
+      created_at: new Date().toISOString(), metodo: null, parcelas: null, recibo_url: null, pago_em: null, erro: null };
     db.cobrancas_link.push(l);
-    return { id: l.id, url: l.url, reaproveitado: false };
+    return { id: l.id, url: l.url, reaproveitado: false, provedor };
   },
   whatsapp: (b) => {
     const cfg = db.configuracoes[0];

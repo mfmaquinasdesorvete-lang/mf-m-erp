@@ -364,7 +364,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                 )}
                 {c.status === "aberto" && (
                   <BotaoAtalho icon={Link2} label={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "Link enviado" : "Link"} cor={COR_ATALHO.azul}
-                    title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)} />
+                    title="Link de pagamento (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)} />
                 )}
                 {temBoleto(c) && (c.status === "aberto" || (boletosDa.get(c.id)?.length ?? 0) > 0) && (
                   <BotaoAtalho icon={Barcode} label={boletosDa.get(c.id)?.some(boletoAberto) ? "Boleto emitido" : "Boleto"} cor={COR_ATALHO.laranja}
@@ -404,7 +404,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                       className="inline-flex items-center rounded-md px-2 py-2 text-green-700 hover:bg-green-50"><MessageCircle size={16} /></a>
                   )}
                   {c.status === "aberto" && (
-                    <Button variant="ghost" title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)}
+                    <Button variant="ghost" title="Link de pagamento (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)}
                       className={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "!text-sky-700" : ""}><Link2 size={15} /></Button>
                   )}
                   {temBoleto(c) && (c.status === "aberto" || (boletosDa.get(c.id)?.length ?? 0) > 0) && (
