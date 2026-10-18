@@ -6,7 +6,7 @@
 // nada é gravado. Link InfinitePay e "a prazo" deixam a conta em aberto (o link dá baixa sozinho quando pago).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  Banknote, CalendarClock, Camera, CheckCircle2, CreditCard, FileText, ImageOff, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShieldCheck,
+  Banknote, CalendarClock, Camera, CheckCircle2, Copy, CreditCard, FileText, ImageOff, Link2, Maximize2, Minus, Plus, Printer, QrCode, ScanBarcode, ShieldCheck,
   ShoppingCart, Split, Trash2, UserPlus, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
@@ -27,6 +27,9 @@ import { useConfig } from "@/lib/useConfig";
 import { useUnidade } from "@/lib/unidade";
 import { useFormasPagamento } from "@/lib/formasPagamento";
 import { comUnidade, pdfCupom } from "@/lib/pdf";
+import qrcode from "qrcode-generator";
+import { pixCopiaECola } from "@/lib/cobranca";
+import { FRASES_PDV, outraFrase } from "@/lib/frasesPdv";
 import { imprimirPdf } from "@/lib/imprimir";
 import type { Cliente, Produto } from "@/lib/types";
 import { enviarFotoProduto, urlFotoProduto } from "@/lib/catalogo";
@@ -315,6 +318,7 @@ export default function Pdv() {
             {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
           </select>
         )}
+        <span className="assinatura shrink-0 text-base text-white/85 sm:text-lg" title="Sopro Divino">Sopro Divino</span>
         <button type="button" className="hidden rounded-lg p-2 text-nav-texto hover:bg-white/10 hover:text-white sm:block" title="Tela cheia" aria-label="Tela cheia"
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {})}>
           <Maximize2 size={18} aria-hidden />
@@ -333,6 +337,7 @@ export default function Pdv() {
           </div>
           <div className="relative">
             <Relogio caixa={caixaAberto} vendas={balcao.deHoje.length} total={balcao.total} />
+            <FraseDoDia />
             <div className="mt-7 grid gap-3">
               <CampoEntrada rotulo="Vendedor" tecla="F9" icone={UserRound}>
                 <div ref={campoVendedor}><VendedorSelect value={vendedorId} onChange={(id) => setVendedorId(id)} /></div>
@@ -538,6 +543,7 @@ export default function Pdv() {
                       </label>
                     )}
                     {p.meio === "link" && <p className="mt-1 text-xs text-slate-500">Depois de finalizar, gere o link ou o QR para o cliente pagar.</p>}
+                    {p.meio === "pix" && p.valor > 0 && <PixBalcao unidade={unidades.find((u) => u.id === unidadeId)} valor={r2(p.valor)} />}
                   </li>
                 ))}
               </ul>
@@ -729,3 +735,54 @@ function VendasDeHoje() {
   );
 }
 
+/** Frase da tela de entrada: sorteada ao abrir e trocada a cada minuto (toque troca na hora). */
+function FraseDoDia() {
+  const [i, setI] = useState(() => outraFrase(-1));
+  useEffect(() => { const t = window.setInterval(() => setI((x) => outraFrase(x)), 60_000); return () => window.clearInterval(t); }, []);
+  const f = FRASES_PDV[i];
+  return (
+    <button type="button" onClick={() => setI((x) => outraFrase(x))} title="Outra frase"
+      className="mt-5 block w-full rounded-xl bg-black/15 px-4 py-3 text-left ring-1 ring-white/15 transition hover:bg-black/25">
+      <span className="block text-base italic leading-snug sm:text-lg">“{f.texto}”</span>
+      <span className="mt-1 block text-xs text-white/75">— {f.autor}</span>
+    </button>
+  );
+}
+
+/** QR do Pix da loja com o valor desta forma de pagamento. Abre grande na tela, com o agradecimento, assim que o Pix é
+ *  escolhido: o cliente lê no app do banco, quem vende confere o Pix chegar e finaliza. A chave é a da loja (Configurações → Unidades). */
+function PixBalcao({ unidade, valor }: { unidade?: { pix_chave?: string | null; pix_nome?: string | null; pix_cidade?: string | null; razao_social?: string | null; nome?: string; municipio?: string | null } | null; valor: number }) {
+  const [aberto, setAberto] = useState(true);
+  const codigo = useMemo(() => (unidade?.pix_chave?.trim()
+    ? pixCopiaECola({ chave: unidade.pix_chave, nome: unidade.pix_nome || unidade.razao_social || unidade.nome || "", cidade: unidade.pix_cidade || unidade.municipio || "", valor, txid: "BALCAO" })
+    : null), [unidade, valor]);
+  const svg = useMemo(() => {
+    if (!codigo) return null;
+    const q = qrcode(0, "M"); q.addData(codigo); q.make();
+    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  }, [codigo]);
+  if (!codigo) return <p className="mt-1 text-xs font-semibold text-amber-700">Sem chave Pix nesta loja: cadastre em Configurações → Unidades para o QR aparecer aqui.</p>;
+  const copiar = () => navigator.clipboard.writeText(codigo).then(() => notify("Pix copia e cola copiado"), () => notify("Não deu para copiar", "erro"));
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button type="button" className="!min-h-0 !py-1.5 text-xs" onClick={() => setAberto(true)}><QrCode size={14} aria-hidden /> Mostrar QR do Pix</Button>
+        <Button type="button" variant="secondary" className="!min-h-0 !py-1.5 text-xs" onClick={copiar}><Copy size={13} aria-hidden /> Copia e cola</Button>
+      </div>
+      <Modal open={aberto} onClose={() => setAberto(false)} title="Pague com Pix">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
+          <p className="num text-3xl font-bold text-fg">{brl(valor)}</p>
+          <div className="aspect-square w-full max-w-[17rem] rounded-xl bg-white p-2 ring-1 ring-slate-200" role="img" aria-label={`QR do Pix de ${brl(valor)}`}
+            dangerouslySetInnerHTML={{ __html: svg ?? "" }} />
+          <p className="text-sm text-slate-600">Abra o app do seu banco, escolha <b>Pix → Ler QR code</b> e aponte para a tela.</p>
+          <p className="assinatura text-3xl text-modulo-texto">Obrigado pela preferência!</p>
+          <p className="text-xs text-slate-500">Volte sempre. Quem vende: confira o Pix chegar antes de finalizar.</p>
+          <div className="flex w-full flex-wrap justify-center gap-2">
+            <Button type="button" variant="secondary" onClick={copiar}><Copy size={15} aria-hidden /> Copia e cola</Button>
+            <Button type="button" onClick={() => setAberto(false)}>Fechar</Button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}

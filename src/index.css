@@ -190,3 +190,6 @@ select option { background: rgb(var(--surface)); color: rgb(var(--fg)); }
   /* letra de campo menor que 16px faz o iPhone dar zoom ao tocar e a página fica maior que a tela */
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), select, textarea { font-size: 16px !important; }
 }
+
+/* assinatura "Sopro Divino" (desde 2009): letra cursiva, no alto à direita do ERP e do PDV */
+.assinatura { font-family: "Great Vibes", cursive; font-weight: 400; letter-spacing: 0.01em; line-height: 1; }
