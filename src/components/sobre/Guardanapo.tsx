@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ClipboardCopy, Download, Link2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { notify, notifyError } from "@/lib/notify";
-import { COR_QUEM, PROCESSOS, ROTULO_QUEM, posicoes, quebrar, textoProcesso, type Processo, type Quem } from "@/lib/esquemas";
+import { AREAS_ESQUEMA, COR_QUEM, PROCESSOS, ROTULO_QUEM, posicoes, quebrar, textoProcesso, type Processo, type Quem } from "@/lib/esquemas";
 import { todosItens } from "@/lib/menu";
 
 const FONTE = `"Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", "Patrick Hand", cursive`;
@@ -90,13 +90,24 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Processo">
-          {PROCESSOS.map((x) => (
-            <button key={x.id} type="button" aria-pressed={x.id === p.id} onClick={() => onProcesso(x.id)}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${x.id === p.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-              {x.nome}
-            </button>
-          ))}
+        <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Processo">
+          {AREAS_ESQUEMA.map((a) => {
+            const lista = PROCESSOS.filter((x) => x.area === a.id);
+            if (!lista.length) return null;
+            return (
+              <div key={a.id} className="min-w-0 rounded-xl border border-slate-200 p-2.5">
+                <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">{a.nome} · {lista.length}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {lista.map((x) => (
+                    <button key={x.id} type="button" aria-pressed={x.id === p.id} onClick={() => onProcesso(x.id)} title={x.resumo}
+                      className={`rounded-full px-3 py-1 text-[13px] font-semibold transition ${x.id === p.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      {x.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => copiar(textoProcesso(p, nomeTela), "Passos copiados")}><ClipboardCopy size={16} /> Copiar texto</Button>
@@ -110,6 +121,16 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
       <p className="text-xs text-slate-500">Toque num passo para abrir a tela do ERP onde ele acontece. A imagem baixada serve para mandar no WhatsApp ou imprimir.</p>
     </div>
   );
+}
+
+/** Só o desenho de um processo (sem os botões), para mostrar dentro de outras telas. */
+export function EsquemaProcesso({ id }: { id: string }) {
+  const p = PROCESSOS.find((x) => x.id === id);
+  const [ref, largura] = useLargura<HTMLDivElement>();
+  const svg = useRef<SVGSVGElement>(null);
+  if (!p) return null;
+  const colunas = largura < 560 ? 1 : largura < 860 ? 2 : largura < 1120 ? 3 : 4;
+  return <div ref={ref} className="min-w-0"><Desenho p={p} colunas={colunas} svgRef={svg} /></div>;
 }
 
 function Desenho({ p, colunas, svgRef }: { p: Processo; colunas: number; svgRef: React.RefObject<SVGSVGElement> }) {

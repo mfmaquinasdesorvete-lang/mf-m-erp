@@ -1,14 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { PROCESSOS, posicoes, quebrar, textoProcesso } from "../esquemas";
+import { AREAS_ESQUEMA, PROCESSOS, posicoes, quebrar, textoProcesso } from "../esquemas";
 import { SOBRE_TELAS } from "../modulos";
 
 describe("esquemas dos processos", () => {
   it("toda tela citada existe no ERP (ou é uma aba do Sobre)", () => {
     for (const p of PROCESSOS) for (const s of p.passos) {
       if (!s.tela) continue;
-      expect(s.tela in SOBRE_TELAS || /^\/sobre\?aba=(ideias|handoff|atualizacoes|modulos)$/.test(s.tela), `${p.id}: ${s.tela}`).toBe(true);
+      expect(s.tela.split("?")[0] in SOBRE_TELAS || /^\/sobre\?aba=(ideias|handoff|atualizacoes|modulos)$/.test(s.tela), `${p.id}: ${s.tela}`).toBe(true);
     }
     expect(new Set(PROCESSOS.map((p) => p.id)).size).toBe(PROCESSOS.length);
+  });
+
+  it("cada área tem esquemas e cada esquema cabe no desenho", () => {
+    for (const a of AREAS_ESQUEMA) expect(PROCESSOS.some((p) => p.area === a.id), a.nome).toBe(true);
+    expect(PROCESSOS.length).toBeGreaterThanOrEqual(15);
+    for (const p of PROCESSOS) {
+      expect(p.passos.length, p.id).toBeGreaterThanOrEqual(4);
+      for (const s of p.passos) {
+        expect(quebrar(s.titulo, 17).length, `${p.id}: ${s.titulo}`).toBeLessThanOrEqual(2);
+        expect((s.nota ?? "").length, `${p.id}: ${s.nota}`).toBeLessThanOrEqual(30);
+      }
+    }
   });
 
   it("zigue-zague: a segunda linha volta da direita para a esquerda", () => {

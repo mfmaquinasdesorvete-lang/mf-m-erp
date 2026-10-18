@@ -1,7 +1,7 @@
 // Notas fiscais: carta de correção, inutilização de numeração e regras de tributação.
 import { useState, type FormEvent } from "react";
 import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
-import { Badge, Button, Field, Modal, Table } from "./ui";
+import { Badge, Button, Field, Modal } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -11,6 +11,8 @@ import { CST_IBS_CBS, CST_ICMS, CST_IPI, CST_PIS_COFINS, type Codigo } from "@/l
 import { SelectCodigo } from "./ConfigNfe";
 import type { RegraTributaria } from "../../supabase/functions/_shared/nfe-impostos";
 import { confirmar } from "@/components/Dialogos";
+import { lerReducoes, textoReducoes, type ModeloRegra } from "@/lib/regrasTributacao";
+import { CartaoRegra, ComoFuncionaRegras, GlossarioFiscal, ModelosRegra, TesteVenda } from "@/components/fiscal/RegrasPainel";
 
 type Carta = { id: string; nota_id: string; sequencia: number | null; correcao: string; status: string; mensagem: string | null; pdf_url: string | null; created_at: string };
 
@@ -140,40 +142,13 @@ const OPCOES = {
   tipo_produto: [["", "Qualquer"], ["maquina", "Máquina"], ["peca", "Peça"], ["acessorio", "Acessório"], ["insumo", "Insumo"]],
   origem_mercadoria: [["", "Qualquer"], ["nacional", "Nacional"], ["importada", "Importada"]],
 } as const;
-const rotulo = (k: keyof typeof OPCOES, v: unknown) => OPCOES[k].find(([x]) => x === (v ?? ""))?.[1];
-
-function resumoCondicao(r: Regra, nomeUn: (id: string) => string) {
-  const p = [
-    r.unidade_id && nomeUn(r.unidade_id), r.operacao && rotulo("operacao", r.operacao), r.destino && rotulo("destino", r.destino),
-    r.tipo_cliente && rotulo("tipo_cliente", r.tipo_cliente), r.tipo_produto && rotulo("tipo_produto", r.tipo_produto),
-    r.origem_mercadoria && rotulo("origem_mercadoria", r.origem_mercadoria), r.ncm_prefixo && `NCM ${r.ncm_prefixo}…`, r.cfop && `CFOP ${r.cfop}`,
-    r.ufs_destino?.length && `para ${r.ufs_destino.join(", ")}`,
-  ].filter(Boolean);
-  return p.length ? p.join(" · ") : "Todas as operações";
-}
-function resumoResultado(r: Regra) {
-  const p = [
-    r.cfop_saida && `CFOP ${r.cfop_saida}`,
-    (r.icms_cst || r.icms_aliquota != null || r.icms_reducao_base != null) && `ICMS ${[r.icms_cst && `CST ${r.icms_cst}`, r.icms_aliquota != null && `${r.icms_aliquota}%`, r.icms_reducao_base != null && `redução ${r.icms_reducao_base}%`].filter(Boolean).join(" ")}`,
-    r.difal != null && (r.difal ? "com DIFAL" : "sem DIFAL"),
-    (r.ipi_cst || r.ipi_aliquota != null) && `IPI ${[r.ipi_cst && `CST ${r.ipi_cst}`, r.ipi_aliquota != null && `${r.ipi_aliquota}%`].filter(Boolean).join(" ")}`,
-    (r.pis_cst || r.pis_aliquota != null) && `PIS ${[r.pis_cst, r.pis_aliquota != null && `${r.pis_aliquota}%`].filter(Boolean).join(" ")}`,
-    (r.cofins_cst || r.cofins_aliquota != null) && `COFINS ${[r.cofins_cst, r.cofins_aliquota != null && `${r.cofins_aliquota}%`].filter(Boolean).join(" ")}`,
-    (r.ibs_cbs_cst || r.ibs_cbs_class_trib) && `IBS/CBS ${[r.ibs_cbs_cst && `CST ${r.ibs_cbs_cst}`, r.ibs_cbs_class_trib].filter(Boolean).join(" ")}`,
-    r.icms_reducao_por_aliquota && Object.keys(r.icms_reducao_por_aliquota).length > 0 && `redução ${textoReducoes(r.icms_reducao_por_aliquota)}`,
-    r.codigo_beneficio && `cBenef ${r.codigo_beneficio}`,
-    r.icms_desonerar && `ICMS desonerado (motivo ${r.icms_motivo_desoneracao || "9"}${r.icms_abater_desonerado ? ", abatido do total" : ""})`,
-    r.ipi_destacar === false && "sem destacar IPI",
-    r.observacao_nfe && "observação na nota",
-  ].filter(Boolean);
-  return p.length ? p.join(" · ") : "—";
-}
 
 export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
   const { data: regras = [], isLoading } = useRows<Regra>("regras_tributacao", { order: "prioridade", ascending: true });
-  const { nome } = useUnidade();
+  const { nome, unidades } = useUnidade();
   const [editando, setEditando] = useState<Regra | null>(null);
   const invalidar = useInvalidate();
+  const ativas = regras.filter((r) => r.ativo !== false).length;
 
   async function remover(r: Regra) {
     if (!(await confirmar(`Apagar a regra "${r.nome}"?`))) return;
@@ -181,52 +156,42 @@ export function RegrasTributacao({ podeEditar }: { podeEditar: boolean }) {
     if (error) return notifyError(error);
     invalidar("regras_tributacao");
   }
+  // modelo pronto: abre o formulário preenchido (a unidade pela UF do modelo); só grava ao salvar
+  function usarModelo(m: ModeloRegra) {
+    const { reducoes, uf, ...resto } = m.regra;
+    const unidade = uf ? unidades.find((u) => String((u as { uf?: string }).uf ?? "").toUpperCase() === uf)?.id ?? null : null;
+    setEditando({ ativo: true, prioridade: 100, ...resto, nome: resto.nome ?? m.titulo, unidade_id: unidade, icms_reducao_por_aliquota: reducoes ? lerReducoes(reducoes) : null } as Regra);
+  }
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-3xl text-sm text-slate-600">
           Sem regra, cada nota usa o padrão da unidade (aba Configurações da NF-e). Uma regra troca só o que você preencher,
-          para as notas que combinam com as condições. Vale a primeira regra que combinar, pela ordem de prioridade.
+          para as notas que combinam com as condições. Vale a primeira regra que combinar, pela ordem.
           <b> Confira cada regra com o contador e teste em homologação.</b>
         </p>
         {podeEditar && <Button onClick={() => setEditando({ nome: "", prioridade: 100, ativo: true })}><Plus size={16} /> Nova regra</Button>}
       </div>
-      <Table empty={!isLoading && !regras.length}
-        head={<><th className="th w-16">Ordem</th><th className="th">Regra</th><th className="th">Quando</th><th className="th">Aplica</th><th className="th" /></>}>
-        {regras.map((r) => (
-          <tr key={r.id} className={r.ativo === false ? "opacity-90" : ""}>
-            <td className="td num">{r.prioridade}</td>
-            <td className="td"><div className="font-semibold">{r.nome}</div>{r.ativo === false && <Badge value="inativo" />}</td>
-            <td className="td text-sm">{resumoCondicao(r, nome)}</td>
-            <td className="td text-sm">{resumoResultado(r)}</td>
-            <td className="td whitespace-nowrap text-right">
-              {podeEditar && <>
-                <Button variant="secondary" onClick={() => setEditando(r)}><Pencil size={15} /> Editar</Button>
-                <Button variant="ghost" className="!text-red-600" aria-label="Apagar" onClick={() => remover(r)}><Trash2 size={15} /></Button>
-              </>}
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <ComoFuncionaRegras />
+      <section aria-label="Regras cadastradas">
+        <h3 className="mb-2 text-base font-bold text-fg">Suas regras <span className="text-sm font-normal text-slate-500">· {ativas} {ativas === 1 ? "ativa" : "ativas"}{regras.length > ativas ? ` de ${regras.length}` : ""}, na ordem em que o ERP confere</span></h3>
+        {!isLoading && !regras.length && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Nenhuma regra ainda: todas as notas saem com o padrão da unidade. Comece por um dos modelos prontos abaixo.</p>}
+        <ul className="grid gap-3">
+          {regras.map((r) => (
+            <CartaoRegra key={r.id} r={r} nomeUnidade={nome} podeEditar={podeEditar} onEditar={() => setEditando(r)} onApagar={() => remover(r)} />
+          ))}
+        </ul>
+      </section>
+      <TesteVenda regras={regras} />
+      <ModelosRegra existentes={regras.map((r) => r.nome)} podeEditar={podeEditar} onUsar={usarModelo} />
+      <GlossarioFiscal />
       {editando && <RegraModal regra={editando} onClose={() => setEditando(null)} />}
     </div>
   );
 }
 
 const NUM = ["icms_aliquota", "icms_reducao_base", "ipi_aliquota", "pis_aliquota", "cofins_aliquota"] as const;
-
-/** Redução por alíquota em texto: { "17": 48.23, "12": 26.66 } ⇄ "17%=48,23 · 12%=26,66". */
-const textoReducoes = (m: Record<string, number | string> | null | undefined) =>
-  Object.entries(m ?? {}).sort((a, b) => Number(b[0]) - Number(a[0])).map(([a, r]) => `${a}%=${String(r).replace(".", ",")}`).join(" · ");
-function lerReducoes(t: string): Record<string, number> | null {
-  const m: Record<string, number> = {};
-  for (const parte of String(t ?? "").split(/[;·\n]+/)) {
-    const [a, r] = parte.split("=").map((x) => Number(String(x ?? "").replace("%", "").replace(",", ".").trim()));
-    if (a > 0 && r >= 0 && r < 100) m[String(a)] = r;
-  }
-  return Object.keys(m).length ? m : null;
-}
 
 /** motDesICMS mais usados (motivo da desoneração do ICMS). */
 const MOTIVOS_DESONERACAO: [string, string][] = [

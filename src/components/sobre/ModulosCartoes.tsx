@@ -12,6 +12,7 @@ import { DETALHE_TELAS } from "@/lib/modulosDetalhe";
 import { auditarMenu } from "@/lib/auditoriaMenu";
 import { pl } from "@/lib/format";
 import type { InicialItem } from "@/components/sobre/ItemProjeto";
+import { PaginasPorLink } from "./PaginasPorLink";
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 /** As duas cores do degradê da área ("from-[#10b981] to-[#059669]"). */
@@ -55,7 +56,6 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
   const nVe = todas.filter((i) => vis.item(i)).length;
   const nPartes = todas.reduce((s, i) => s + (DETALHE_TELAS[i.to]?.partes.length ?? 0), 0);
   const achados = useMemo(() => auditarMenu(grupos, itensForaDoMenu, SOBRE_TELAS, grupoDaRota).filter((a) => a.gravidade !== "info").length, []);
-  const links = PAGINAS_POR_LINK.filter((p) => !area && (!termo || semAcento(`${p.nome} ${p.texto}`).includes(termo)));
   const alternar = (to: string) => setAbertos((s) => { const n = new Set(s); if (n.has(to)) n.delete(to); else n.add(to); return n; });
   const aberto = (to: string) => tudoAberto || abertos.has(to) || (!!termo && termo.length >= 3);
 
@@ -91,7 +91,7 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
         ))}
       </div>
 
-      {!blocos.length && !links.length && <p className="text-sm text-slate-500">Nenhuma tela {termo ? `com "${busca.trim()}"` : "com esses filtros"}.</p>}
+      {!blocos.length && <p className="text-sm text-slate-500">Nenhuma tela {termo ? `com "${busca.trim()}"` : "com esses filtros"}.</p>}
 
       {blocos.map(({ id, titulo, texto, cor, Icone, itens }) => {
         const { clara, escura } = coresDe(cor);
@@ -114,25 +114,7 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
         );
       })}
 
-      {links.length > 0 && (
-        <Card className="min-w-0 p-4 sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#0ea5e9] to-[#0e7490] text-white shadow-sm" aria-hidden><ExternalLink size={19} /></span>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-fg">Páginas por link</h2>
-              <p className="text-sm text-slate-600">Abertas sem entrar no ERP, pelo link que o ERP manda a clientes, fornecedores e representantes.</p>
-            </div>
-          </div>
-          <ul className="mt-3 grid gap-x-6 divide-y divide-slate-100 md:grid-cols-2 md:divide-y-0">
-            {links.map((p) => (
-              <li key={p.caminho} className="py-2.5">
-                <span className="text-sm font-semibold text-fg">{p.nome}</span> <code className="text-xs text-slate-500">{p.caminho}</code>
-                <p className="text-[13px] leading-snug text-slate-600">{p.texto}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      {!area && <PaginasPorLink filtro={(p) => !termo || semAcento(`${p.nome} ${p.texto} ${p.quem} ${p.onde}`).includes(termo)} />}
     </div>
   );
 }

@@ -16,8 +16,10 @@ export type Rodada = {
   jaPosso: string[];
   decisoes: { grupo: string; itens: string[] }[];
   escopo: { entrou: string[]; mantido: string[]; autorizado: string[]; naoAutorizado: string[] };
-  suposicoes: { texto: string; risco: Risco; seErrada: string; conferir: string }[];
-  conflitos: { a: string; b: string; escolha: string }[];
+  /** tela: onde conferir agora (vira o link "Conferir agora") */
+  suposicoes: { texto: string; risco: Risco; seErrada: string; conferir: string; tela?: string }[];
+  /** a × b: os dois pedidos que se chocam; explica: o choque em palavras simples; paraVoce: o que muda no dia a dia */
+  conflitos: { a: string; b: string; escolha: string; explica?: string; paraVoce?: string; decidido?: boolean; tela?: string }[];
   semaforo: { continuar: string[]; corrigir: string[]; parar: string[] };
   riscos: { risco: string; prevencao: string }[];
 };
@@ -87,10 +89,10 @@ export const RODADA_ATUAL: Rodada = {
   suposicoes: [
     { texto: "O favorecido é o nome antes do \" · \" ou depois de \"Transferência … - \" na descrição do banco, sem números (loja 01 e loja 02 juntas)", risco: "medio", seErrada: "Dois favorecidos diferentes no mesmo grupo", conferir: "Abrir as linhas do grupo (seta) antes de lançar" },
     { texto: "Linha com conta ou transferência sugerida fica fora do lote", risco: "baixo", seErrada: "Grupo menor que o esperado", conferir: "Aprovar antes em \"Com sugestão\"" },
-    { texto: "As notas com o marcador Quiosques são todas de quiosque", risco: "alto", seErrada: "O total da aba fica errado", conferir: "O financeiro passa os olhos na lista da aba" },
-    { texto: "Ferragens, cola, frete e impostos dessas notas também são custo do quiosque", risco: "medio", seErrada: "Total maior que o real", conferir: "A aba mostra cada grupo separado: confirmar" },
+    { texto: "As notas com o marcador Quiosques são todas de quiosque", risco: "alto", seErrada: "O total da aba fica errado", conferir: "O financeiro passa os olhos na lista da aba e tira o marcador da nota que não for de quiosque", tela: "/gastos?aba=quiosques" },
+    { texto: "Ferragens, cola, frete e impostos dessas notas também são custo do quiosque", risco: "medio", seErrada: "Total maior que o real", conferir: "A aba mostra cada grupo separado: confirmar", tela: "/gastos?aba=quiosques" },
     { texto: "O pagamento no extrato é achado pelas duas primeiras palavras do nome da loja", risco: "medio", seErrada: "Pagamento faltando ou de outra obra", conferir: "Revisar os \"sem nota ligada\" depois de publicar" },
-    { texto: "O evento mais antigo é o \"cliente desde\"", risco: "medio", seErrada: "Data errada onde a importação veio errada", conferir: "Conferir 10 clientes com o Tiny" },
+    { texto: "O evento mais antigo é o \"cliente desde\"", risco: "medio", seErrada: "Data errada onde a importação veio errada", conferir: "Conferir 10 clientes com o Tiny", tela: "/clientes" },
     { texto: "Pôr Exportar e Importar no \"Mais\" também no computador é a padronização pedida", risco: "baixo", seErrada: "Alguém não acha o Exportar", conferir: "Opinião de quem usa; volta fácil" },
     { texto: "Os 2 primeiros filtros de cada tela são os mais usados", risco: "medio", seErrada: "Um filtro importante fica escondido", conferir: "Revisão tela a tela (já posso fazer)" },
     { texto: "O ECL leva até a tela e registra a execução; quem executa é a pessoa (ou o vigia, no MONITOR)", risco: "baixo", seErrada: "Esperava que ele executasse sozinho", conferir: "Pergunta pendente" },
@@ -101,13 +103,34 @@ export const RODADA_ATUAL: Rodada = {
     { texto: "\"Contas pessoais\" são contas de banco, cartão ou investimento com entradas e saídas", risco: "medio", seErrada: "O painel não serve para o que você quer", conferir: "Você usa o painel e diz o que falta" },
   ],
   conflitos: [
-    { a: "Mais colorido", b: "Menus menores", escolha: "A cor vai para a informação (selos e filtros); o tamanho sai das ações (\"Mais\")" },
-    { a: "Consertar sozinho", b: "Não mudar dados sem confirmar e o risco fiscal do NCM", escolha: "O ERP só sugere e uma pessoa aplica; NCM sem confiança alta pede o contador" },
-    { a: "Contas pessoais junto", b: "Lucro Real, DRE e contador", escolha: "Painel Pessoal à parte: só o dono vê, fora do DRE, da conciliação e do contador (decidido)" },
-    { a: "Código público", b: "Dados da empresa", escolha: "Sugestões carregadas direto no banco, fora do código; esta página lê os números do banco" },
-    { a: "Banco só com acréscimos", b: "Mudar funções", escolha: "Funções e views são substituídas sem apagar nada" },
-    { a: "Separar o gasto dos quiosques", b: "DRE", escolha: "A aba só mostra: a classificação do DRE não muda e o licenciamento segue com o contador" },
-    { a: "Abas curtas", b: "Textos que citam \"Qualidade do cadastro\"", escolha: "Alinhar os textos ao nome novo" },
+    { a: "Mais colorido", b: "Menus menores", decidido: true,
+      explica: "Você pediu telas mais coloridas e, ao mesmo tempo, menus e botões que ocupem menos espaço. Cor em tudo deixaria as telas pesadas e confusas.",
+      escolha: "A cor foi para a informação (selos de situação, filtros e números) e as ações pouco usadas foram para o botão \"Mais\".",
+      paraVoce: "Você vê a situação pela cor num olhar; o que se usa pouco está no \"Mais\" de cada tela." },
+    { a: "Consertar sozinho", b: "Não mudar dados sem confirmar e o risco fiscal do NCM", decidido: true, tela: "/estoque?aba=qualidade",
+      explica: "Você pediu que o ERP consertasse os cadastros sozinho, mas também que nada mude sem o seu ok. E um NCM errado muda o imposto de todas as notas daquele produto.",
+      escolha: "O ERP sugere a correção, com o grau de certeza, e uma pessoa aplica; NCM com pouca certeza vai para o contador conferir.",
+      paraVoce: "As sugestões ficam em Produtos → Qualidade: você aplica ou ignora, uma a uma ou em lote." },
+    { a: "Contas pessoais junto", b: "Lucro Real, DRE e contador", decidido: true,
+      explica: "Ver as contas pessoais dentro do ERP ajuda no dia a dia, mas misturar com as da empresa bagunça o DRE, a conciliação e o que vai para o contador (Lucro Real).",
+      escolha: "Painel pessoal à parte: só você vê, fora do DRE, da conciliação e do contador.",
+      paraVoce: "Pela carteira no fim do menu. Nada dele aparece para a equipe nem para o contador." },
+    { a: "Código público", b: "Dados da empresa", decidido: true,
+      explica: "O código do ERP fica num repositório público no GitHub. Números, nomes e dados da empresa não podem ir para lá.",
+      escolha: "Os dados ficam só no banco do ERP e as telas leem do banco na hora; no código vão só textos genéricos.",
+      paraVoce: "Ninguém de fora vê os dados da MF olhando o código." },
+    { a: "Banco só com acréscimos", b: "Mudar funções", decidido: true,
+      explica: "Para nunca perder nada, o combinado é só acrescentar no banco, sem apagar. Mas às vezes uma regra do banco (uma função) precisa mudar.",
+      escolha: "A função é trocada pela versão nova sem apagar nenhuma tabela nem dado, e testada antes numa transação desfeita.",
+      paraVoce: "As melhorias entram sem risco de sumir informação." },
+    { a: "Separar o gasto dos quiosques", b: "DRE", decidido: true, tela: "/gastos?aba=quiosques",
+      explica: "Você quis ver o gasto com os quiosques (MDF, tinta, ferragens) separado, mas mudar a classificação contábil mexe no DRE e no que o contador recebe.",
+      escolha: "A aba Quiosques só mostra os gastos separados: a classificação no DRE não muda e o licenciamento segue com o contador.",
+      paraVoce: "Você enxerga quanto foi para os quiosques sem mexer na contabilidade." },
+    { a: "Abas curtas", b: "Textos que citam \"Qualidade do cadastro\"", decidido: true,
+      explica: "Os nomes das abas ficaram mais curtos (ex.: \"Qualidade\"), mas alguns textos ainda falavam o nome antigo.",
+      escolha: "Os textos foram ajustados para o nome novo.",
+      paraVoce: "Ninguém procura uma aba com um nome que não existe mais." },
   ],
   semaforo: {
     continuar: ["Verificação de tipos e testes passando; build sem erro", "Telas sem erro na demonstração, no computador e no celular", "Nada saindo da tela", "\"Pode publicar\" dado"],

@@ -242,7 +242,7 @@ export const DESTAQUES: Record<string, Destaque> = {
     ],
   },
   "2026-10-18": {
-    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny, carteira dos licenciados My Frost, Módulos em cartões, Voltar no alto de cada tela e NF de outra empresa no pedido",
+    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny, carteira dos licenciados My Frost, Módulos em cartões, Voltar no alto de cada tela, NF de outra empresa no pedido, regras de tributação explicadas e 15 esquemas novos",
     itens: [
       "Máquinas com abas novas: Ficha técnica (as peças de cada máquina por grupo, o custo e as etapas de produção, a mesma da Produção) e Manuais (os documentos de todas as máquinas num lugar só, com o que falta em cada uma: manual, manual elétrico e dicas de manutenção).",
       "Arrastar para ordenar: os itens da ficha técnica, as etapas de produção e os manuais da máquina mudam de lugar pela alça de 6 pontinhos (mouse ou dedo, também no celular) ou pelas setas do teclado. Solto numa peça de outro grupo, o item passa para aquele grupo. A ordem fica gravada ao salvar a ficha.",
@@ -255,6 +255,10 @@ export const DESTAQUES: Record<string, Destaque> = {
       "Voltar e trilha no alto de cada tela: o botão \"← Voltar\" leva à tela anterior (ou à área, se você entrou pelo link) e a trilha mostra onde você está (Início › área › tela); clique no Início ou na área para ir até lá.",
       "Vendas → pedido → \"NF de outra empresa\": para a venda que saiu com a nota de outra empresa (ex.: a empresa ligada emitiu porque a unidade não tinha como emitir). Cole a chave de acesso e o CNPJ e o nº vêm sozinhos; o pedido sai de \"falta a nota\", vai para Entregues (ou Faturados) e a máquina entra na ficha do cliente com a data da nota (garantia e preventiva contadas dela). O selo \"NF 123 · Empresa\" aparece na lista e no quadro, a Auditoria não acusa mais \"entregue sem NF-e\" e o Analista fiscal mostra estes pedidos para conferir com o contador.",
       "Mercado Livre → Conectar: a conexão passa a usar a proteção PKCE que o Mercado Livre agora exige (corrige o erro \"code_verifier is a required parameter\"). Basta clicar em Conectar de novo.",
+      "Notas fiscais → Regras de tributação mais claras: \"Como funciona\" em 3 passos (e em desenho), cada regra em cartão dizendo em português quando vale e o que muda na nota, com um exemplo em reais (base, ICMS, carga e ICMS desonerado), o teste \"E se eu vender…\" (escolha unidade, estado, cliente com ou sem IE, produto, NCM e valor e veja a regra que vale, o ICMS, a carga e o DIFAL estimado), 6 modelos prontos com a base legal (máquinas SC e SP com redução, peças importadas 4%, DIFAL, transferência SC → SP e remessa para conserto) e \"Entenda os termos\" com 12 explicações. Tudo para conferir com o contador.",
+      "Sobre → Módulos → Páginas por link: cada página (proposta, página do cliente, ficha cadastral, máquina, cotação, vitrine e portal) diz quem recebe e onde a equipe gera o link, com \"Abrir um exemplo\" (abre um link de verdade) e \"Ir para onde se gera\". Aberta por alguém da equipe logado, a página não conta mais como \"o cliente viu\" (proposta, cotação e ficha).",
+      "Sobre → Esquemas: 15 esquemas novos no estilo rascunho, separados por área — proposta pelo link, venda de máquina, venda com NF de outra empresa, venda no Mercado Livre, venda de balcão, cobrança, conta a pagar, extrato conciliado, fechamento do mês, como a nota pega o imposto, nota do fornecedor, transferência SC → SP, produção de uma máquina, garantia e preventiva e novo usuário no ERP. Cada passo abre a tela; dá para baixar a imagem ou copiar o texto.",
+      "Sobre → Rodada → Conflitos em linguagem simples: o que se chocava, o que escolhemos e o que muda para você, com o selo \"resolvido\" e o link para a tela. Nas Suposições, \"Conferir agora\" leva direto à tela (ex.: a aba Quiosques).",
     ],
   },
 };

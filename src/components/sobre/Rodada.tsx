@@ -3,6 +3,7 @@
 // suposições, conflitos, o semáforo de seguir/corrigir/parar e os riscos com a prevenção. O texto vem de lib/rodada.ts;
 // os números da empresa vêm do banco (o repositório é público).
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AlertTriangle, ArrowDown, ArrowRight, Ban, CheckCircle2, CircleDashed, CircleDot, Code2, Database, FlaskConical, Globe, Hammer,
   HelpCircle, Lock, MessageSquare, OctagonX, ShieldCheck, Sparkles, Users, Wrench,
@@ -208,7 +209,8 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
             <li key={s.texto} className={`grid gap-2 rounded-xl border border-l-4 border-slate-200 bg-surface p-3 md:grid-cols-[2fr_1.4fr_1.4fr] ${RISCO[s.risco].borda}`}>
               <div className="min-w-0"><span className={`mb-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${RISCO[s.risco].chip}`}>{RISCO[s.risco].nome}</span><div className="text-sm font-semibold text-fg">{s.texto}</div></div>
               <div className="min-w-0 text-sm"><div className="text-[11px] font-bold uppercase text-red-700">Se estiver errada</div><div className="text-slate-700">{s.seErrada}</div></div>
-              <div className="min-w-0 text-sm"><div className="text-[11px] font-bold uppercase text-emerald-700">Como conferir</div><div className="text-slate-700">{s.conferir}</div></div>
+              <div className="min-w-0 text-sm"><div className="text-[11px] font-bold uppercase text-emerald-700">Como conferir</div><div className="text-slate-700">{s.conferir}</div>
+                {s.tela && <Link to={s.tela} className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">Conferir agora <ArrowRight size={14} aria-hidden /></Link>}</div>
             </li>
           ))}
         </ul>
@@ -216,16 +218,24 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
 
       {/* conflitos */}
       <section>
-        <Titulo id="conflitos" Icone={AlertTriangle} sub="pedidos que se chocam e a escolha que resolve">Conflitos</Titulo>
+        <Titulo id="conflitos" Icone={AlertTriangle} sub="quando dois pedidos não cabem juntos: o que se chocava, o que escolhemos e o que muda para você">Conflitos</Titulo>
+        <p className="mb-3 max-w-3xl text-sm text-slate-600">
+          Às vezes dois pedidos puxam para lados opostos (ex.: mais cor × menus menores). Cada cartão mostra os dois lados, por que não dava para
+          fazer os dois do jeito pedido e a solução que atende os dois. Não concorda com uma escolha? Use "Anotar ideia" no alto da página.
+        </p>
         <div className="grid gap-3 md:grid-cols-2">
           {R.conflitos.map((c) => (
-            <Card key={c.a + c.b} className="p-4">
+            <Card key={c.a + c.b} className="flex min-w-0 flex-col gap-2.5 p-4">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <span className="rounded-lg bg-sky-100 px-2.5 py-1 text-sky-800">{c.a}</span>
                 <span className="text-slate-400" aria-label="contra">⟷</span>
                 <span className="rounded-lg bg-orange-100 px-2.5 py-1 text-orange-800">{c.b}</span>
+                {c.decidido && <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">resolvido</span>}
               </div>
-              <div className="mt-2 flex gap-2 text-sm text-fg"><ArrowRight size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span><b>Escolha:</b> {c.escolha}</span></div>
+              {c.explica && <p className="text-[13.5px] leading-snug text-slate-700"><b className="text-fg">O que se chocava:</b> {c.explica}</p>}
+              <div className="flex gap-2 text-[13.5px] leading-snug text-fg"><ArrowRight size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span><b>O que escolhemos:</b> {c.escolha}</span></div>
+              {c.paraVoce && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] leading-snug text-emerald-900"><b>Para você:</b> {c.paraVoce}</p>}
+              {c.tela && <Link to={c.tela} className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">Ver na tela <ArrowRight size={14} aria-hidden /></Link>}
             </Card>
           ))}
         </div>

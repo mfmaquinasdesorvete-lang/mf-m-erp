@@ -91,13 +91,33 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/produtos/componentes": "Componentes de produção: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta \"também vende\".",
 };
 
+/** Exemplo real que dá para abrir de dentro do ERP (o código do link vem do banco; aberto pela equipe não conta como visto). */
+export type ExemploLink = "proposta" | "cliente" | "ficha" | "maquina" | "cotacao";
+
 /** Páginas abertas por link, sem entrar no ERP (clientes, fornecedores e representantes). */
-export const PAGINAS_POR_LINK: { caminho: string; nome: string; texto: string }[] = [
-  { caminho: "/proposta/…", nome: "Proposta comercial", texto: "O cliente vê a proposta e aprova ou recusa (com o motivo)." },
-  { caminho: "/cliente/…", nome: "Página do cliente", texto: "Contas em aberto, Pix e segunda via: o link que vai na régua de cobrança." },
-  { caminho: "/ficha/…", nome: "Ficha cadastral", texto: "O cliente confere, corrige e assina a ficha." },
-  { caminho: "/maquina/…", nome: "Máquina do cliente", texto: "Manuais, dicas, garantia e o botão da assistência." },
-  { caminho: "/cotacao/…", nome: "Cotação do fornecedor", texto: "O fornecedor informa preços, prazo e condições." },
-  { caminho: "/loja", nome: "Vitrine de peças", texto: "Catálogo com cadastro e carrinho (o link dos produtos no WhatsApp)." },
-  { caminho: "/portal", nome: "Portal do representante", texto: "O representante vê os próprios pedidos, orçamentos, carteira e comissões." },
+export const PAGINAS_POR_LINK: {
+  caminho: string; nome: string; texto: string;
+  /** quem recebe o link e quando */
+  quem: string;
+  /** onde a equipe gera ou manda o link (o caminho na tela) */
+  onde: string;
+  /** tela do ERP onde se gera o link */
+  tela: string;
+  /** página que abre direto (sem código) ou o tipo de exemplo real */
+  abre?: string; exemplo?: ExemploLink;
+}[] = [
+  { caminho: "/proposta/…", nome: "Proposta comercial", texto: "O cliente vê a proposta com fotos, garantia e condições e aprova ou recusa (com o motivo). Ao aprovar, o pedido já fica aprovado no ERP.",
+    quem: "O cliente, quando a proposta é enviada", onde: "Vendas → abrir o orçamento → Proposta comercial → Enviar por e-mail, Link no WhatsApp ou Copiar link", tela: "/pedidos", exemplo: "proposta" },
+  { caminho: "/cliente/…", nome: "Página do cliente", texto: "Contas em aberto, Pix copia e cola e segunda via do boleto: o link que vai na régua de cobrança e nas mensagens de cobrança.",
+    quem: "O cliente com conta a receber", onde: "Clientes → abrir o cliente → Ver como o cliente vê (ou a cobrança no Financeiro, que já leva o link)", tela: "/clientes", exemplo: "cliente" },
+  { caminho: "/ficha/…", nome: "Ficha cadastral", texto: "O cliente confere os dados, corrige o que mudou e assina a ficha; o ERP guarda a assinatura com data, hora e o comprovante.",
+    quem: "O cliente que precisa assinar ou atualizar o cadastro", onde: "Clientes → abrir o cliente → Assinatura da ficha → WhatsApp, E-mail ou Copiar", tela: "/clientes", exemplo: "ficha" },
+  { caminho: "/maquina/…", nome: "Máquina do cliente", texto: "Manuais, dicas de manutenção, garantia e o botão para chamar a assistência, da máquina que o cliente comprou.",
+    quem: "O dono da máquina, depois da venda", onde: "Clientes → abrir o cliente → Assistência → máquina → Copiar link (ou Máquinas → ficha do modelo)", tela: "/clientes", exemplo: "maquina" },
+  { caminho: "/cotacao/…", nome: "Cotação do fornecedor", texto: "O fornecedor informa preço, prazo, frete e condições de cada item; a resposta cai na comparação da cotação no ERP.",
+    quem: "O fornecedor convidado para cotar", onde: "Compras → Cotações → abrir a cotação → copiar o link de cada fornecedor", tela: "/compras", exemplo: "cotacao" },
+  { caminho: "/loja", nome: "Vitrine de peças", texto: "Catálogo das peças com preço e foto, cadastro do cliente e carrinho (é o link dos produtos no catálogo do WhatsApp).",
+    quem: "Qualquer pessoa", onde: "Configurações → Catálogo do WhatsApp e Google Shopping → Abrir a vitrine", tela: "/configuracoes/catalogo", abre: "/loja" },
+  { caminho: "/portal", nome: "Portal do representante", texto: "O representante entra com o login dele e vê só os próprios pedidos, orçamentos, carteira de clientes e comissões.",
+    quem: "O representante externo, com login próprio", onde: "Comissões → Vendedores e representantes → botão Portal no representante (cria o login dele; só ele entra no portal, o seu login abre o ERP)", tela: "/comissoes" },
 ];
