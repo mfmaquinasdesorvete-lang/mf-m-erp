@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { achatar, celulasDa, ordenarLinhas, sentidoNatural, temInterativo, textoDoNo, valorDaCelula } from "@/lib/ordenarColunas";
 import { useModulo } from "@/lib/modulo";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
@@ -410,8 +411,40 @@ export function RolagemLateral({ children, className = "", caixa = "" }: { child
  * (data-label) e o CSS (.tabela em index.css) empilha "rótulo: valor".
  * A coluna sem título é a das ações (botões ocupam a linha toda no celular).
  */
-export function Table({ head, children, empty }: { head: ReactNode; children: ReactNode; empty?: boolean }) {
+/**
+ * Tabela das listas. Clicar no título da coluna ordena (setinhas como no Tiny): texto de A a Z, número, valor e data
+ * do maior para o menor; o segundo clique inverte e o terceiro volta à ordem da tela. A ordem vale para todas as linhas
+ * que a tela mandar; com `limite`, ordena todas e mostra só as primeiras (o "Mostrar mais" continua igual).
+ * Coluna sem texto, com botão/caixinha no título, com `aria-sort` próprio ou `data-sem-ordem` não ordena.
+ */
+export function Table({ head, children, empty, limite }: { head: ReactNode; children: ReactNode; empty?: boolean; limite?: number }) {
   const ref = useRef<HTMLTableElement>(null);
+  const [ordem, setOrdem] = useState<{ col: number; crescente: boolean } | null>(null);
+  const titulos = achatar(head).filter((t) => isValidElement(t)) as ReactElement<Record<string, unknown> & { children?: ReactNode }>[];
+  const linhas = achatar(children);
+  // só ordena quando dá para ler as células de todas as linhas (linha feita por componente próprio fica como está)
+  const legivel = linhas.length > 1 && linhas.every((u) => celulasDa(u));
+  const ordenavel = (t: (typeof titulos)[number], i: number) => legivel && t.type === "th" && t.props["aria-sort"] === undefined
+    && t.props["data-sem-ordem"] === undefined && !!textoDoNo(t.props.children).trim() && !temInterativo(t.props.children)
+    && linhas.some((u) => valorDaCelula(u, i));
+  const clicar = (i: number) => setOrdem((o) => {
+    const natural = sentidoNatural(linhas, i);
+    if (o?.col !== i) return { col: i, crescente: natural };
+    return o.crescente === natural ? { col: i, crescente: !natural } : null;
+  });
+  const ativa = ordem && ordem.col < titulos.length && ordenavel(titulos[ordem.col], ordem.col) ? ordem : null;
+  const ordenadas = ativa ? ordenarLinhas(linhas, ativa.col, ativa.crescente) : linhas;
+  const mostradas = limite != null ? ordenadas.slice(0, limite) : ordenadas;
+  const cabecalho = titulos.map((t, i) => {
+    if (!ordenavel(t, i)) return t;
+    const esta = ativa?.col === i;
+    const Icone = !esta ? ArrowUpDown : ativa.crescente ? ArrowUp : ArrowDown;
+    return cloneElement(t, { "aria-sort": esta ? (ativa.crescente ? "ascending" : "descending") : "none" } as Record<string, unknown>,
+      <button type="button" onClick={() => clicar(i)} title={esta ? "Clique para inverter a ordem" : "Ordenar por esta coluna"}
+        className={`inline-flex items-center gap-1 text-inherit hover:text-fg ${esta ? "text-fg" : ""}`}>
+        {t.props.children}<Icone size={12} className={esta ? "" : "opacity-50"} aria-hidden />
+      </button>);
+  });
   useLayoutEffect(() => {
     const t = ref.current;
     if (!t) return;
@@ -432,8 +465,8 @@ export function Table({ head, children, empty }: { head: ReactNode; children: Re
     <Card className="tabela-caixa overflow-hidden">
       <RolagemLateral>
         <table ref={ref} className="tabela w-full divide-y divide-slate-100 md:min-w-[720px]">
-          <thead className="bg-slate-50/80"><tr>{head}</tr></thead>
-          <tbody className="divide-y divide-slate-100">{children}</tbody>
+          <thead className="bg-slate-50/80"><tr>{cabecalho}</tr></thead>
+          <tbody className="divide-y divide-slate-100">{mostradas}</tbody>
         </table>
       </RolagemLateral>
       {empty && <p className="p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}

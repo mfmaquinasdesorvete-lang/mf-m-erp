@@ -60,7 +60,7 @@ function useBusca<T>(lista: T[], texto: (x: T) => string) {
       <Button variant="secondary" onClick={() => setLimite(limite + POR_VEZ)}>Mostrar mais</Button>
     </div>
   );
-  return { visiveis: filtrada.slice(0, limite), filtrada, total: filtrada.length, campo, mais };
+  return { filtrada, limite, total: filtrada.length, campo, mais };
 }
 
 function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string }) {
@@ -200,8 +200,8 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
     .filter((n) => passaFiltro({ data: n.created_at, numero: n.numero, valor: n.valor_total, uf: n.payload?.uf_destinatario }, filtros.f));
-  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
-  const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
+  const { filtrada, limite, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
   // uma nota só em destaque (ex.: vinda da busca do menu): já abre
   const [destaqueAberto, setDestaqueAberto] = useState<string | null>(null);
@@ -269,10 +269,11 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
+            limite={limite}
             empty={!isLoading && daAba.length === 0}
             head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
-            {visiveis.map((n) => {
+            {filtrada.map((n) => {
               const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
               const nome = transf ? `Transferência #${transf.numero}` : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? n.payload?.nome_destinatario ?? "—";
               const fantasia = n.pedido?.cliente?.nome_fantasia;
@@ -333,8 +334,8 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
     .filter((n) => passaMarketplace(marketplaceDe.get(n.id), mkt))
     .filter((n) => passaFiltro({ data: n.data_emissao, numero: numeroDaChave(n.chave), valor: n.valor_total }, filtros.f));
-  const { visiveis, filtrada, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
-  const { sel, setSel, alternar, caixaTodos } = useSelecao(visiveis.map((n) => n.id));
+  const { filtrada, limite, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+  const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -403,10 +404,11 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
           <Table
+            limite={limite}
             empty={!isLoading && daAba.length === 0}
             head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
-            {visiveis.map((n) => (
+            {filtrada.map((n) => (
               <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
                 {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${numeroDaChave(n.chave)}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
                 <td className="td font-semibold">{numeroDaChave(n.chave)}</td>

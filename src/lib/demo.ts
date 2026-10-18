@@ -32,7 +32,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const U_SC = "un-sc", U_SP = "un-sp"; // matriz e filial da demonstração
 
 export const USUARIOS_DEMO = [
-  { user_id: "u-admin", nome: "Elem Olmedo", papel: "admin", email: "admin@mfmaquinas.com.br" },
+  { user_id: "u-admin", nome: "Admin Exemplo", papel: "admin", email: "admin@exemplo.com.br" },
   { user_id: "u-vendas", nome: "Carla Vendas", papel: "vendas", email: "vendas@mfmaquinas.com.br" },
   { user_id: "u-fin", nome: "Rafael Financeiro", papel: "financeiro", email: "financeiro@mfmaquinas.com.br" },
   { user_id: "u-tec", nome: "Diego Técnico", papel: "tecnico", email: "assistencia@mfmaquinas.com.br" },
@@ -166,10 +166,10 @@ function seed(): Db {
       // esperando aprovação: o financeiro (2º revisor) faz a 1ª das lançadas pela administradora e a 2ª das que ela já revisou
       { id: "cpa1", descricao: "Fatura de fretes 5521", fornecedor_id: "f9", categoria: "fornecedores", documento: "Fatura 5521", valor: 1280.5, vencimento: dias(3), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
       { id: "cpa2", descricao: "NF 48390 - Refrigeração Andrade Ltda", fornecedor_id: "f1", categoria: "fornecedores", documento: "NF 48390", valor: 2890, vencimento: dias(6), status: "aberto", revisao: "em_revisao",
-        lancamento: "manual", criado_por: "u-vendas", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" },
+        lancamento: "manual", criado_por: "u-vendas", revisao1_por: "u-admin", revisao1_nome: "Admin Exemplo", revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" },
       { id: "cpa3", descricao: "Salários de outubro", categoria: "folha", documento: "Folha 10/2026", valor: 4000, vencimento: dias(2), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
       { id: "cpa4", descricao: "DARF IRPJ trimestral", categoria: "impostos", valor: 1750, vencimento: dias(-1), status: "aberto", revisao: "em_revisao", lancamento: "manual", criado_por: "u-admin" },
-      { id: "cpa5", descricao: "Honorários contábeis", categoria: "serviços profissionais", documento: "NFS-e 812", valor: 1500, vencimento: dias(9), status: "aberto", revisao: "aprovado", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-2) },
+      { id: "cpa5", descricao: "Honorários contábeis", categoria: "serviços profissionais", documento: "NFS-e 812", valor: 1500, vencimento: dias(9), status: "aberto", revisao: "aprovado", revisao1_nome: "Admin Exemplo", revisao1_em: quando(-2) },
       { id: "cpa6", descricao: "Internet fibra da fábrica", categoria: "energia/água/internet", valor: 189.9, vencimento: dias(4), status: "aberto", revisao: "devolvido",
         revisao_comentario: "Falta anexar o boleto", lancamento: "manual", criado_por: "u-fin" },
     ],
@@ -182,7 +182,7 @@ function seed(): Db {
         mensagem: "Rejeição 233: IE do destinatário não cadastrada", destinatario_nome: "Açaí & Cia Franca ME",
         payload: { natureza_operacao: "Venda de mercadoria", nome_destinatario: "Açaí & Cia Franca ME", cnpj_destinatario: "44555666000177", indicador_inscricao_estadual_destinatario: 1, inscricao_estadual_destinatario: "123", uf_destinatario: "SP", municipio_destinatario: "Franca", cep_destinatario: "14400000", logradouro_destinatario: "Rua X", numero_destinatario: "10", bairro_destinatario: "Centro",
           items: [{ numero_item: 1, codigo_produto: "MF-150", descricao: "Máquina MF-150", cfop: "6101", codigo_ncm: "84186990", quantidade_comercial: 1, valor_unitario_comercial: 3590, valor_bruto: 3590 }] } },
-      { id: "nfh", pedido_id: null, referencia: "pedido-1-teste", status: "autorizada", numero: "431", serie: "1", chave: "42261011222333000181550010000004311000004310", valor_total: 30, ambiente: "homologacao", created_at: quando(-1), destinatario_nome: "Elem Cilene", mensagem: "Autorizado o uso da NF-e" },
+      { id: "nfh", pedido_id: null, referencia: "pedido-1-teste", status: "autorizada", numero: "431", serie: "1", chave: "42261011222333000181550010000004311000004310", valor_total: 30, ambiente: "homologacao", created_at: quando(-1), destinatario_nome: "Cliente Teste", mensagem: "Autorizado o uso da NF-e" },
       { id: "nf2", pedido_id: "pd2", referencia: "pedido-102-1", status: "autorizada", numero: "1301", serie: "1", chave: "35261012345678000190550010000013011000013010", valor_total: 29000, mensagem: "Autorizado o uso da NF-e", created_at: quando(-5) },
     ],
     nfe_cartas_correcao: [],
@@ -899,23 +899,23 @@ function aprovacaoDemo(db: Db) {
   // boletos com a linha digitável (Conferir boleto): aluguel vencido (multa e juros) e o boleto do golpe
   conta("cp3", { linha_digitavel: gerarLinhaBancaria("756", dias(-2), 6500, "1434200001234567800001018"), boleto_multa_pct: 2, boleto_juros_mes_pct: 1 });
   conta("cpg1", { linha_digitavel: gerarLinhaBancaria("237", dias(6), 389.9, "3381090000045678901234000") });
-  conta("cp4", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", documento: "Fatura 10/2026", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo",
+  conta("cp4", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", documento: "Fatura 10/2026", revisao1_por: "u-admin", revisao1_nome: "Admin Exemplo",
     revisao1_em: quando(-1), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00" });
   conta("cp20", { revisao: "devolvido", lancamento: "manual", criado_por: "u-fin", revisao_comentario: "Falta anexar a nota da manutenção" });
   conta("cp21", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin", categoria: "frete", documento: "CT-e 1290" });
   conta("cpg1", { revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
-  conta("cp5", { revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-14),
+  conta("cp5", { revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Admin Exemplo", revisao1_em: quando(-14),
     revisao2_por: "u-fin", revisao2_nome: "Rafael Financeiro", revisao2_em: quando(-14), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00", documento: "Guia DAS 09/2026" });
   db.contas_pagar.push({ id: "cp30", descricao: "Material de escritório", categoria: "outros", documento: "NFC-e 552", valor: 184.5, vencimento: dias(4), status: "aberto",
     created_at: quando(-1), revisao: "em_revisao", lancamento: "manual", criado_por: "u-fin" });
   // boleto vencido de conta já aprovada: dá para conferir os juros e pagar (Conferir boleto)
   db.contas_pagar.push({ id: "cp31", descricao: "Caixas de papelão - Embalagens Sul", categoria: "fornecedores", documento: "NF 7781", valor: 1840, vencimento: dias(-3), status: "aberto",
-    created_at: quando(-6), revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Elem Olmedo", revisao1_em: quando(-5),
+    created_at: quando(-6), revisao: "aprovado", lancamento: "manual", criado_por: "u-fin", revisao1_por: "u-admin", revisao1_nome: "Admin Exemplo", revisao1_em: quando(-5),
     revisao2_por: "u-fin", revisao2_nome: "Rafael Financeiro", revisao2_em: quando(-5), exige_2a: true, motivo_2a: "valor a partir de R$ 300,00",
     linha_digitavel: gerarLinhaBancaria("136", dias(-3), 1840, "0070120004433221100009871"), boleto_multa_pct: 2, boleto_juros_mes_pct: 1 });
   db.revisoes_contas = [
-    { id: "rv1", tabela: "contas_pagar", conta_id: "cp4", acao: "aprovou", etapa: "1ª revisão", comentario: null, usuario_nome: "Elem Olmedo", created_at: quando(-1) },
-    { id: "rv2", tabela: "contas_pagar", conta_id: "cp20", acao: "devolveu", etapa: "1ª revisão", comentario: "Falta anexar a nota da manutenção", usuario_nome: "Elem Olmedo", created_at: quando(-1) },
+    { id: "rv1", tabela: "contas_pagar", conta_id: "cp4", acao: "aprovou", etapa: "1ª revisão", comentario: null, usuario_nome: "Admin Exemplo", created_at: quando(-1) },
+    { id: "rv2", tabela: "contas_pagar", conta_id: "cp20", acao: "devolveu", etapa: "1ª revisão", comentario: "Falta anexar a nota da manutenção", usuario_nome: "Admin Exemplo", created_at: quando(-1) },
   ];
 }
 
@@ -1794,7 +1794,7 @@ db.implantacao_etapas ??= ([
   [4, 1, "Desligar o Tiny", "Baixar o histórico final do Tiny e cancelar a assinatura.", 57, "Administrador", null, false],
 ] as const).map(([fase, ordem, titulo, detalhe, dias, responsavel, indicador, feito]) => ({
   id: uid(), fase, ordem, titulo, detalhe, prazo: quando(dias).slice(0, 10), responsavel, indicador, observacao: null,
-  feito_em: feito ? quando(-1) : null, feito_nome: feito ? "Elem Olmedo" : null, created_at: quando(-2),
+  feito_em: feito ? quando(-1) : null, feito_nome: feito ? "Admin Exemplo" : null, created_at: quando(-2),
 }));
 let numeroPedido = 108;
 let numeroOS = 53;

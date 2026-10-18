@@ -443,6 +443,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       )}
       <div className={props.cartaoCelular ? "hidden md:block" : ""}>
       <Table
+        limite={limite}
         empty={!isLoading && filtrados.length === 0 && !avisoBusca}
         head={<>
           {selecionavel && (
@@ -455,7 +456,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           <th className="th" />
         </>}
       >
-        {filtrados.slice(0, limite).map((row) => (
+        {filtrados.map((row) => (
           <tr key={row.id} className={`hover:bg-slate-50 ${sel.has(row.id) ? "bg-brand-light/40" : ""}`}>
             {selecionavel && (
               <td className="td sel w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
