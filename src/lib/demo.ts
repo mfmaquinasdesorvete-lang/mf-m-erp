@@ -1282,6 +1282,9 @@ function bancosDemo(db: Db) {
   });
   add("cb1", dias(-9), -39.9, "TARIFA PACOTE DE SERVICOS");
   add("cb1", dias(-1), 7909.33, "PIX RECEBIDO SORVETERIA GELATO NOBRE LTDA");
+  // Pix de vendas sem conta a receber (Vendas → marcar → Conciliar acha o par)
+  add("cb1", dias(0), 1754, "PIX RECEBIDO LANCHONETE PONTO DOCE");
+  add("cb1", dias(-1), 2329, "TRANSFERENCIA RECEBIDA PELO PIX");
   add("cb1", dias(-3), -5000, "TED MESMA TITULARIDADE - NU PAGAMENTOS");
   add("cb2", dias(-3), 5000, "Transferência recebida - MF MAQUINAS LTDA");
   add("cb2", dias(-6), -189, "Pagamento de boleto - Google Ads");
@@ -2241,6 +2244,38 @@ function pdvConsumidorDemo() {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.conciliar_vendas (Vendas → marcar → Conciliar). Aqui só a venda sem conta x entrada de mesmo valor.
+  conciliar_vendas: ({ p_ids, p_aplicar = false, p_escolhidos = [] }) => {
+    const vendas = db.pedidos.filter((p) => p_ids.includes(p.id) && ["aprovado", "faturado", "entregue"].includes(p.status) && Number(p.valor_total) > 0);
+    const semConta = vendas.filter((p) => !db.contas_receber.some((c) => c.pedido_id === p.id && c.status !== "cancelado"));
+    const contaDe = (l: Row) => db.contas_bancarias.find((b) => b.id === l.conta_bancaria_id);
+    // de 10 dias antes a 60 dias depois da venda
+    const perto = (p: Row, data: string) => { const d = (Date.parse(data) - Date.parse(String(p.aprovado_em ?? p.created_at).slice(0, 10))) / 864e5; return d >= -10 && d <= 60; };
+    const cand = semConta.map((p) => ({ p, ls: db.extrato_lancamentos.filter((l) => l.status === "pendente" && Number(l.valor) === Number(p.valor_total)
+      && contaDe(l)?.unidade_id === p.unidade_id && perto(p, l.data)) }));
+    const usos = (id: string) => cand.filter((c) => c.ls.some((l) => l.id === id)).length;
+    const pares = cand.filter((c) => c.ls.length === 1 && usos(c.ls[0].id) === 1).map(({ p, ls: [l] }) => {
+      const cl = db.clientes.find((x) => x.id === p.cliente_id);
+      const nome = String(cl?.nome ?? "").split(/\s+/).find((t) => t.length >= 4)?.toUpperCase() ?? "§";
+      return { lanc: l.id, numero: p.numero, cliente: cl?.nome ?? null, valor: Number(l.valor), data: l.data, banco: contaDe(l)?.nome ?? null,
+        descricao: l.descricao, tipo: "nova", nome_confere: String(l.descricao).toUpperCase().includes(nome), centavos: Number(l.valor) % 1 !== 0, pedido: p };
+    });
+    let conciliadas = 0;
+    if (p_aplicar) for (const x of pares.filter((x) => p_escolhidos.includes(x.lanc))) {
+      const id = uid();
+      db.contas_receber.push({ id, descricao: `Pedido #${x.numero} - parcela 1/1`, cliente_id: x.pedido.cliente_id, pedido_id: x.pedido.id, parcela: 1, total_parcelas: 1,
+        valor: x.valor, vencimento: x.data, status: "pago", data_pagamento: x.data, valor_pago: x.valor, unidade_id: x.pedido.unidade_id, revisao: "historico" });
+      if (!vincularDemo(db.extrato_lancamentos.find((l) => l.id === x.lanc)!, "receber", id)) conciliadas++;
+    }
+    const comPar = new Set(pares.map((x) => x.pedido.id));
+    return { error: null, data: {
+      vendas: vendas.length, ja: vendas.length - semConta.length, pares: pares.map(({ pedido: _p, ...x }) => x),
+      duvida: cand.filter((c) => c.ls.length > 0 && !comPar.has(c.p.id)).map((c) => c.p.numero),
+      sem_par: cand.filter((c) => c.ls.length === 0).map((c) => c.p.numero),
+      pulados: db.pedidos.filter((p) => p_ids.includes(p.id) && !vendas.includes(p)).map((p) => ({ numero: p.numero, motivo: p.status === "orcamento" ? "orçamento: aprove a venda antes" : "venda cancelada" })),
+      aplicado: p_aplicar, conciliadas, contas_criadas: conciliadas, erros: [],
+    } };
+  },
   // no sistema real: public.saude_sistema (Sobre → Monitor; só o administrador)
   saude_sistema: () => {
     const ha = (min: number) => new Date(Date.now() - min * 60000).toISOString();

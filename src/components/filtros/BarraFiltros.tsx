@@ -132,11 +132,13 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
   return (
     // celular: fica logo acima da barra de atalhos fixa do pé da tela, numa faixa baixa (os números numa linha só,
     // sem a dica das ações em lote) para não cobrir a lista
-    <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-slate-200 bg-surface/95 px-3 py-1.5 shadow-card backdrop-blur md:bottom-0 md:gap-y-2 md:px-4 md:py-2">
+    // com linhas marcadas a faixa ganha a cor do sistema e as ações em lote aparecem como botões cheios, bem à vista
+    <div className={`sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border px-3 py-1.5 shadow-card backdrop-blur md:bottom-0 md:gap-y-2 md:px-4 md:py-2 ${selecionados > 0 && acoes ? "border-brand bg-surface ring-2 ring-brand/40" : "border-slate-200 bg-surface/95"}`}>
       {selecionados > 0 ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <b className="text-sm text-fg">{selecionados} {pl(selecionados, "selecionado", "selecionados")}</b>
-          {totalSelecionados != null && <span className="num text-sm text-slate-600">{brl(totalSelecionados)}</span>}
+        <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Ações em lote">
+          <span className="rounded-full bg-brand px-2.5 py-1 text-sm font-bold text-brand-fg">{selecionados} {pl(selecionados, "selecionado", "selecionados")}</span>
+          {totalSelecionados != null && <span className="num text-sm font-semibold text-fg">{brl(totalSelecionados)}</span>}
+          {acoes && <span className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:inline">Ações em lote:</span>}
           {acoes}
           {onLimparSelecao && (
             <button type="button" onClick={onLimparSelecao} className="inline-flex items-center gap-1 px-1 text-xs font-semibold text-slate-600 hover:text-fg"><X size={13} aria-hidden /> Limpar seleção</button>

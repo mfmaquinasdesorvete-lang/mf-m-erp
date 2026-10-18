@@ -6,7 +6,8 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, FileDown, FileText, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
@@ -142,6 +143,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const selecao = useSelecao();
   const [marcandoLote, setMarcandoLote] = useState(false);
   const [lancando, setLancando] = useState(false);
+  const [conciliando, setConciliando] = useState(false);
   // Máquinas: só as vendas para os licenciados da My Frost Sorveterias (etiqueta do cadastro do cliente)
   const [soLicenciados, setSoLicenciados] = useState(false);
   const { data: marcadores = [] } = useMarcadores();
@@ -390,7 +392,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}
             <td className="td whitespace-nowrap text-right font-medium">{brl(p.valor_total)}</td>
             <td className="td whitespace-nowrap">{info.get(p.id)?.nf ? <span className="num font-semibold text-fg" title="NF-e autorizada">{info.get(p.id)!.nf}</span>
-              : <Badge value={p.notas?.find((n) => n.status !== "erro" && n.status !== "autorizada")?.status ?? null} />}
+              : <NotaDaLista p={p} />}
               {info.get(p.id) && <div className="mt-1"><SinaisVenda s={info.get(p.id)!.sinais} /></div>}</td>
             <td className="td min-w-[7.5rem] max-w-[12rem]">{info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} />}</td>
             {/* marcadores e a seta de abrir na mesma coluna (a linha inteira abre a venda) */}
@@ -408,22 +410,25 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         extras={vePagamento ? [{ valor: recebidoLista, rotulo: "recebido", cor: "text-emerald-700" }, { valor: aReceberLista, rotulo: "a receber", cor: "text-sky-700" }].filter((x) => x.valor > 0) : undefined}
         selecionados={selecionados.length} totalSelecionados={somar(selecionados, (p) => p.valor_total)} onLimparSelecao={selecao.limpar}
         acoes={<>
-          <Button variant="ghost" onClick={() => setMarcandoLote(true)}>Marcadores</Button>
-          <Button variant="ghost" onClick={() => exportarPedidos(selecionados, infoDe)}><FileDown size={15} /> Exportar</Button>
-          {tem("financeiro") && <Button variant="ghost" onClick={() => setLancando(true)}><Receipt size={15} /> Lançar contas</Button>}
-          {pode("editar_pedidos") && tem("vendas", "financeiro") && <Button variant="ghost" className="!text-red-600" onClick={excluirSelecionados}><Trash2 size={15} /> Excluir</Button>}
+          {tem("financeiro") && <Button title="Procura no extrato do banco o Pix ou depósito de cada venda marcada e concilia (como no Tiny)"
+            onClick={() => selecionados.length > 500 ? notify("Marque no máximo 500 vendas por vez", "erro") : setConciliando(true)}><Landmark size={15} /> Conciliar</Button>}
+          {tem("financeiro") && <Button variant="secondary" onClick={() => setLancando(true)}><Receipt size={15} className="text-sky-600" /> Lançar contas</Button>}
+          <Button variant="secondary" onClick={() => setMarcandoLote(true)}><Tags size={15} className="text-violet-600" /> Marcadores</Button>
+          <Button variant="secondary" onClick={() => exportarPedidos(selecionados, infoDe)}><FileDown size={15} className="text-emerald-600" /> Exportar</Button>
+          {pode("editar_pedidos") && tem("vendas", "financeiro") && <Button variant="secondary" className="!text-red-600" onClick={excluirSelecionados}><Trash2 size={15} /> Excluir</Button>}
         </>} />
       </>}
 
       {marcandoLote && <AplicarMarcadores tabela="pedidos" notas={selecionados} nome={["venda", "vendas"]} onClose={() => setMarcandoLote(false)} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
+      {conciliando && <ConciliarVendas ids={selecionados.map((p) => p.id)} onClose={(ok) => { setConciliando(false); if (ok) selecao.limpar(); }} />}
       {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
     </div>
   );
 }
 
 const ORDEM_PAGAMENTO: SituacaoPagamento[] = ["recebido", "a_receber", "parcial", "vencido", "sem_conta"];
-const CHIP_PAGAMENTO: Record<SituacaoPagamento, string> = { recebido: "Recebidas", a_receber: "A receber", parcial: "Recebidas em parte", vencido: "Vencidas", sem_conta: "Sem conta" };
+const CHIP_PAGAMENTO: Record<SituacaoPagamento, string> = { recebido: "Recebidas", a_receber: "A receber", parcial: "Recebidas em parte", vencido: "Vencidas", sem_conta: "Sem conta a receber" };
 
 /** Filtro pelo pagamento (pelas contas a receber), com a contagem: o que já foi pago e o que não foi. */
 function ChipsPagamento({ valor, onChange, lista, info }: {
@@ -439,7 +444,7 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
         const ativo = valor === s;
         return (
           <button key={s} type="button" aria-pressed={ativo} onClick={() => onChange(ativo ? "" : s)}
-            title={s === "sem_conta" ? "Vendas sem conta a receber no ERP (as do Tiny vieram sem as contas)" : undefined}
+            title={s === "sem_conta" ? "A venda não tem conta a receber (parcela) lançada no financeiro, então o ERP não sabe se foi paga. As do Tiny vieram sem as contas: marque e use Conciliar (acha o Pix no extrato) ou Lançar contas." : undefined}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${ativo ? "ring-2 ring-brand " : ""}${COR_PAGAMENTO[s]}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />{CHIP_PAGAMENTO[s]} <span className="num opacity-80">{qtd}</span>
           </button>
@@ -475,6 +480,20 @@ const corTiny = (s: string) => {
 /** Situação que o pedido tinha no Tiny (histórico importado). */
 function SituacaoTiny({ s }: { s: string }) {
   return <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${corTiny(s)}`} title="Situação do pedido no Tiny">Tiny: {s}</span>;
+}
+
+/** Coluna NF da lista sem nota autorizada. Nota cancelada mostra o número e, se a venda segue aprovada, "emitir de novo"
+ *  (antes aparecia só "cancelada", que parecia o pedido cancelado). */
+function NotaDaLista({ p }: { p: PedidoLista }) {
+  const nota = p.notas?.find((n) => n.status !== "erro" && n.status !== "autorizada");
+  if (nota?.status !== "cancelada") return <Badge value={nota?.status ?? null} />;
+  const refaturar = (p.status === "aprovado" || p.status === "entregue") && !p.notas?.some((n) => n.ambiente !== "homologacao" && ["autorizada", "processando", "contingencia"].includes(n.status));
+  return (
+    <span className="inline-flex flex-col items-start gap-0.5" title="Só a NF-e foi cancelada: a venda continua valendo">
+      <Badge value="cancelada" />
+      <span className="text-[11px] text-slate-500">{nota.numero ? `NF ${nota.numero}` : "NF-e"}{refaturar && <b className="text-amber-700"> · emitir de novo</b>}</span>
+    </span>
+  );
 }
 
 /** Lança as contas a receber das vendas marcadas que ainda não têm conta (valor e parcelas da venda, não os da NF). */
@@ -844,6 +863,9 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   }
 
   const temNotaValida = p.notas?.some((n) => n.ambiente !== "homologacao" && (n.status === "autorizada" || n.status === "processando"));
+  // NF-e cancelada com a venda ainda aprovada: o pedido não se perdeu, só falta faturar de novo
+  const notaCancelada = !temNotaValida && (p.status === "aprovado" || p.status === "entregue")
+    ? p.notas?.filter((n) => n.ambiente !== "homologacao" && n.status === "cancelada").slice(-1)[0] : undefined;
 
   return (
     <Modal open onClose={onClose} title={p.id ? `Pedido #${p.numero}` : "Novo pedido"} wide>
@@ -869,6 +891,13 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
             {temNotaValida
               ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou emita uma NF de devolução."
               : <> Para mudar itens, valores ou pagamento, use <b>Reabrir pedido</b>: o estoque volta, as parcelas em aberto são canceladas e o pedido vira orçamento de novo.</>}
+          </div>
+        )}
+
+        {aba === "pedido" && notaCancelada && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            A NF-e {notaCancelada.numero ?? ""} foi cancelada, mas a venda continua valendo: o pedido, as parcelas e a baixa do estoque ficaram como estavam.
+            {pode("emitir_nfe") ? <> Para faturar de novo, confira os dados e clique em <b>Emitir NF-e</b> (a nota sai com número novo).</> : " Para faturar de novo, peça a quem emite notas para clicar em Emitir NF-e."}
           </div>
         )}
 

@@ -32,7 +32,7 @@ export function pagamentoDaVenda(p: { status: string }, contas: ContaVenda[], ho
   if (p.status === "orcamento" || p.status === "cancelado") return null;
   const total = contas.reduce((s, c) => s + num(c.valor), 0);
   const recebido = contas.reduce((s, c) => s + (c.status === "pago" ? num(c.valor_pago ?? c.valor) : num(c.valor_pago)), 0);
-  if (!contas.length) return { situacao: "sem_conta", texto: "Sem conta", recebido: 0, total: 0 };
+  if (!contas.length) return { situacao: "sem_conta", texto: "Sem conta a receber", recebido: 0, total: 0 };
   const abertas = contas.filter((c) => c.status !== "pago").sort((a, b) => a.vencimento.localeCompare(b.vencimento));
   if (!abertas.length) {
     const ultima = contas.map((c) => c.data_pagamento ?? "").sort().pop();

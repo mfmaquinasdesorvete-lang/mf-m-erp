@@ -35,9 +35,10 @@ const MODELO_MAQUINA: EtapaProducao[] = [
   { nome: "Montar a refrigeração" }, { nome: "Montar a parte elétrica" }, { nome: "Montar a mecânica e o cilindro" },
   { nome: "Vácuo, carga de gás e teste" }, { nome: "Acabamento, limpeza e embalagem" },
 ];
+// peça com etapa fora (ex.: pá batedora): tornearia aqui → injeção terceirizada em outro estado → acabamento aqui
 const MODELO_TERCEIRO: EtapaProducao[] = [
-  { nome: "Preparar o eixo" }, { nome: "Enviar para a injeção", externa: true, quem: "empresa de injeção", dias: 7 },
-  { nome: "Receber da injeção e conferir" }, { nome: "Acabamento" },
+  { nome: "Tornearia (aqui na fábrica)" }, { nome: "Injeção (terceirizada)", externa: true, quem: "empresa de injeção", dias: 15 },
+  { nome: "Receber da injeção e conferir" }, { nome: "Acabamento (aqui na fábrica)" },
 ];
 
 export function FichaTecnica() {
