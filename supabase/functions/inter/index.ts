@@ -4,27 +4,52 @@
 //       Com conexao_id: troca só o que vier preenchido (ex.: certificado novo quando o antigo vence).
 //  POST { acao: "sincronizar", conexao_id? }   (financeiro ou agendamento) → lançamentos novos e saldo
 //  POST { acao: "desligar", conexao_id }       (admin) → para de buscar e esquece as credenciais
+//  Boleto com Pix (boletos.ts): boletos_ligar / boletos_desligar (admin), boleto_emitir, boleto_atualizar, boleto_pdf
+//       (financeiro ou vendas), boleto_cancelar (financeiro) e o aviso do Inter (lista de cobranças, sem login).
 // Deploy com --no-verify-jwt: o agendamento não manda login de usuário; o resto confere aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { type ChavesInter, clienteInter, conferirCertificado, ErroInter, hojeSP, linhasInter, somarDias } from "../_shared/inter.ts";
+import { atualizarBoleto, avisoBoletos, cancelarBoleto, conferirAbertos, desligarBoletos, emitirBoleto, ligarBoletos, pdfBoleto } from "./boletos.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Conexao = {
   id: string; conta_bancaria_id: string; conta_corrente: string | null; status: string; desde: string;
-  sincronizado_em: string | null; certificado_validade: string | null;
+  sincronizado_em: string | null; certificado_validade: string | null; boletos?: boolean;
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "use POST" }, 405);
   const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") return json({ error: "corpo inválido" }, 400);
   const db = adminClient();
+  // aviso do Inter sobre boletos (pago, cancelado, expirado): lista de cobranças, sem login; o ERP confere cada uma no Inter
+  if (Array.isArray(body)) {
+    try { return json(await avisoBoletos(db, body, chaves)); } catch (e) { return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 200); }
+  }
+  if (!body || typeof body !== "object") return json({ error: "corpo inválido" }, 400);
   try {
+    if (body.acao === "boletos_ligar" || body.acao === "boletos_desligar") {
+      await requireErpUser(req, []);
+      const id = String(body.conexao_id ?? "");
+      return json(body.acao === "boletos_ligar" ? await ligarBoletos(db, id, chaves) : await desligarBoletos(db, id, chaves));
+    }
+    if (body.acao === "boleto_emitir") {
+      const { userId } = await requireErpUser(req, ["financeiro", "vendas"]);
+      return json(await emitirBoleto(db, body, userId, chaves));
+    }
+    if (body.acao === "boleto_atualizar" || body.acao === "boleto_pdf") {
+      await requireErpUser(req, ["financeiro", "vendas"]);
+      const id = String(body.id ?? "");
+      return json(body.acao === "boleto_pdf" ? await pdfBoleto(db, id, chaves) : await atualizarBoleto(db, id, chaves));
+    }
+    if (body.acao === "boleto_cancelar") {
+      await requireErpUser(req, ["financeiro"]);
+      return json(await cancelarBoleto(db, String(body.id ?? ""), String(body.motivo ?? ""), chaves));
+    }
     if (body.acao === "ligar") {
       await requireErpUser(req, []);
       return json(await ligar(db, body));
@@ -40,7 +65,13 @@ Deno.serve(async (req) => {
       if (body.conexao_id) q = q.eq("id", String(body.conexao_id));
       const { data: lista } = await q;
       const resultado: Record<string, unknown> = {};
-      for (const c of (lista ?? []) as Conexao[]) resultado[c.id] = await sincronizar(db, c, agendamento);
+      for (const c of (lista ?? []) as Conexao[]) {
+        resultado[c.id] = await sincronizar(db, c, agendamento);
+        // boletos em aberto conferidos no Inter (rede de segurança do aviso automático)
+        if (c.boletos) {
+          try { (resultado[c.id] as Record<string, unknown>).boletos = await conferirAbertos(db, c.id, chaves); } catch { /* fica para a próxima */ }
+        }
+      }
       return json({ ok: true, resultado });
     }
     return json({ error: "ação inválida" }, 400);

@@ -1203,6 +1203,8 @@ function bancosDemo(db: Db) {
     // cartão de uma pessoa: os débitos viram o "Cartão Rafael" no Início (o real é o Cartão Fabiano)
     { id: "cb5", unidade_id: U_SP, nome: "InfinitePay SP", banco: "infinitepay", agencia: null, numero: null, tipo: "pagamentos", saldo_inicial: 3000, saldo_inicial_data: inicio, ativo: true, created_at: quando(-45),
       cartao_nome: "Cartão Rafael", cartao_responsavel: "u-fin" },
+
+    { id: "cb6", unidade_id: U_SC, nome: "Banco Inter SC", banco: "inter", agencia: "0001", numero: "1234567-8", tipo: "corrente", saldo_inicial: 0, saldo_inicial_data: inicio, ativo: true, created_at: quando(-10) },
   ];
   // exceções de exemplo: boleto lançado duas vezes e um pagamento redondo sem documento
   db.contas_pagar.push(
@@ -1225,7 +1227,14 @@ function bancosDemo(db: Db) {
   db.nfe_recebidas.push({ id: "nr-cartao", chave: "35261099888777000166550010000001231000001230", emitente_nome: "Eletro Materiais Exemplo Ltda", emitente_cnpj: "99888777000166",
     valor_total: 128.72, data_emissao: quando(0), situacao: "autorizada", manifestacao: "ciencia", unidade_id: U_SP, processamento: "pendente", created_at: quando(0), itens: [] });
   db.openfinance_conexoes = [];
-  db.inter_conexoes = [];
+  // Banco Inter SC ligado pela API, com o boleto com Pix (prévia: um boleto em aberto na conta r9)
+  db.inter_conexoes = [{ id: "ix1", conta_bancaria_id: "cb6", conta_corrente: null, status: "ativa", erro: null, desde: dias(-10), sincronizado_em: quando(0), ultimas_novas: 0,
+    saldo: 15230.4, saldo_em: quando(0), certificado_validade: quando(300), boletos: true, boletos_erro: null, boletos_webhook_em: quando(-1),
+    boleto_multa_pct: 2, boleto_juros_mes_pct: 1, boleto_dias_baixa: 30, boleto_mensagem: "Não receber após 30 dias do vencimento", created_at: quando(-10) }];
+  db.boletos_inter = [{ id: "bi1", conta_receber_id: "r9", conexao_id: "ix1", unidade_id: U_SC, codigo_solicitacao: "demo-bi1", seu_numero: "R9", valor: 1890, vencimento: dias(0),
+    situacao: "A_RECEBER", situacao_data: dias(-1), nosso_numero: "00012345678", linha_digitavel: "07790001161234567890123456789012398760000189000",
+    codigo_barras: "07798987600001890000001112345678901234567890", pix_copia_cola: "00020101021226870014br.gov.bcb.pix2565pix.exemplo.com/qr/v2/cobv/demo520400005303986540518905802BR5913MF MAQUINAS6013FLORIANOPOLIS62070503***6304ABCD",
+    txid: "demo", valor_recebido: null, origem_recebimento: null, baixa_em: null, motivo_cancelamento: null, erro: null, criado_nome: "Rafael Financeiro", created_at: quando(-1), atualizado_em: quando(-1) }];
   db.compras_legado = [];
   // descontos: máximo por tipo de venda; na prévia o administrador aprova com a senha 123456
   db.regras_desconto = [
@@ -3407,6 +3416,15 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: g.id, error: null };
   },
   custos_anteriores_produtos: () => ({ data: [], error: null }),
+  unidades_com_boleto_inter: () => ({ data: [...new Set((db.inter_conexoes ?? []).filter((c: Row) => c.boletos && c.status !== "desligada")
+    .map((c: Row) => db.contas_bancarias.find((cb: Row) => cb.id === c.conta_bancaria_id)?.unidade_id).filter(Boolean))], error: null }),
+  inter_regras_boleto: ({ p_conexao, p_multa, p_juros, p_dias, p_mensagem }) => {
+    const c = (db.inter_conexoes ?? []).find((x: Row) => x.id === p_conexao);
+    if (!c) return { data: null, error: { message: "Conta do Inter não encontrada." } };
+    if (p_multa < 0 || p_multa > 2) return { data: null, error: { message: "Multa entre 0 e 2% (limite do Código de Defesa do Consumidor)." } };
+    Object.assign(c, { boleto_multa_pct: p_multa, boleto_juros_mes_pct: p_juros, boleto_dias_baixa: p_dias, boleto_mensagem: p_mensagem || null });
+    return { data: null, error: null };
+  },
   scrum_iniciar_sprint: ({ p_sprint }) => {
     const s = (db.scrum_sprints ?? []).find((x: Row) => x.id === p_sprint && x.status === "planejada");
     if (!s) return { data: null, error: { message: "Só uma sprint planejada pode ser iniciada." } };
@@ -5135,6 +5153,38 @@ const funcoes: Record<string, (b: any) => any> = {
       return { ok: true, resultado };
     }
     if (b.acao === "desligar") { const c = db.inter_conexoes.find((x) => x.id === b.conexao_id); if (c) c.status = "desligada"; return { ok: true }; }
+    if (b.acao === "boletos_ligar" || b.acao === "boletos_desligar") {
+      const c = db.inter_conexoes.find((x) => x.id === b.conexao_id);
+      if (c) Object.assign(c, { boletos: b.acao === "boletos_ligar", boletos_erro: null, boletos_webhook_em: b.acao === "boletos_ligar" ? new Date().toISOString() : null });
+      return { ok: true, aviso: null };
+    }
+    if (!db.boletos_inter) db.boletos_inter = [];
+    if (b.acao === "boleto_emitir") {
+      const conta = db.contas_receber.find((x) => x.id === b.conta_id);
+      if (!conta || conta.status !== "aberto") throw new Error("Só conta em aberto recebe boleto.");
+      if (db.boletos_inter.some((x) => x.conta_receber_id === conta.id && ["EM_PROCESSAMENTO", "A_RECEBER", "ATRASADO", "PROTESTO"].includes(x.situacao))) throw new Error("Esta conta já tem um boleto em aberto: cancele o anterior para emitir outro.");
+      const cx = db.inter_conexoes.find((x) => x.boletos && db.contas_bancarias.find((cb) => cb.id === x.conta_bancaria_id)?.unidade_id === conta.unidade_id);
+      if (!cx) throw new Error("A unidade desta conta não tem conta do Inter com boletos ligados (Bancos e conciliação → Banco Inter → Ligar boletos).");
+      const centavos = String(Math.round(Number(conta.valor) * 100)).padStart(10, "0");
+      const boleto = { id: uid(), conta_receber_id: conta.id, conexao_id: cx.id, unidade_id: conta.unidade_id, codigo_solicitacao: `demo-${uid()}`, seu_numero: conta.id.slice(0, 12),
+        valor: Number(conta.valor), vencimento: b.vencimento || conta.vencimento, situacao: "A_RECEBER", situacao_data: hojeISO(), nosso_numero: String(Date.now()).slice(-11),
+        linha_digitavel: `0779000116${String(Date.now()).slice(-10)}12345678901234567890`.slice(0, 32) + "9" + "8760" + centavos, codigo_barras: null,
+        pix_copia_cola: `00020101021226870014br.gov.bcb.pix2565pix.exemplo.com/qr/v2/cobv/${uid()}5204000053039865802BR5913MF MAQUINAS6304ABCD`, txid: uid(),
+        valor_recebido: null, origem_recebimento: null, baixa_em: null, motivo_cancelamento: null, erro: null, criado_nome: "Você", created_at: new Date().toISOString(), atualizado_em: new Date().toISOString() };
+      db.boletos_inter.unshift(boleto);
+      return { ok: true, boleto };
+    }
+    const bol = db.boletos_inter.find((x) => x.id === b.id);
+    if (b.acao === "boleto_atualizar") return { ok: true, resultado: bol?.situacao ?? "", boleto: bol };
+    if (b.acao === "boleto_pdf") {
+      // PDF de uma página só com o texto, para a prévia
+      const pdf = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj 4 0 obj<</Length 60>>stream\nBT /F1 18 Tf 60 780 Td (Boleto com Pix - previa) Tj ET\nendstream endobj 5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+      return { pdf: btoa(pdf) };
+    }
+    if (b.acao === "boleto_cancelar") {
+      if (bol) Object.assign(bol, { situacao: "CANCELADO", motivo_cancelamento: b.motivo, atualizado_em: new Date().toISOString() });
+      return { ok: true, situacao: "CANCELADO" };
+    }
     return { ok: true };
   },
   openfinance: (b) => {

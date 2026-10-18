@@ -37,16 +37,23 @@ export function conferirCertificado(cert: string, key: string) {
 }
 
 /** Mensagem em português para cada recusa do Inter. */
-function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta") {
-  const det = texto(corpo.title ?? corpo.detail ?? corpo.message ?? corpo.error_description ?? corpo.error).slice(0, 200);
+function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta", boleto = false) {
+  const violacoes = Array.isArray(corpo.violacoes)
+    ? (corpo.violacoes as Record<string, unknown>[]).map((v) => [texto(v.propriedade), texto(v.razao)].filter(Boolean).join(": ")).filter(Boolean).join("; ")
+    : "";
+  const det = [texto(corpo.title ?? corpo.detail ?? corpo.message ?? corpo.error_description ?? corpo.error), violacoes].filter(Boolean).join(" — ").slice(0, 300);
+  const permissao = boleto
+    ? 'O app do Inter não tem a permissão de boletos: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Emitir e cancelar boletos" e "Consultar boletos".'
+    : 'O app do Inter não tem a permissão de extrato: edite o app no Internet Banking e marque "Consultar extrato e saldo".';
   if (etapa === "token" && (status === 400 || status === 401)) {
+    if (/scope|escopo/i.test(det)) return `${permissao} ${det}`.trim();
     if (/invalid_client|client/i.test(det) || status === 401) return `O Inter recusou o Client ID ou o Client Secret (confira no app, no Internet Banking do Inter). ${det}`.trim();
-    if (/scope/i.test(det)) return `O app do Inter não tem a permissão de extrato: edite o app no Internet Banking e marque "Consultar extrato e saldo". ${det}`.trim();
     return `O Inter recusou o pedido de acesso (${status}). ${det}`.trim();
   }
-  if (status === 403) return `O app do Inter não tem permissão para esta consulta (marque "Consultar extrato e saldo" no app). ${det}`.trim();
-  if (status === 404) return `O Inter não achou a conta: se o app enxerga mais de uma conta, informe o número da conta corrente. ${det}`.trim();
+  if (status === 403) return `${permissao} ${det}`.trim();
+  if (status === 404) return boleto ? `O Inter não achou o boleto. ${det}`.trim() : `O Inter não achou a conta: se o app enxerga mais de uma conta, informe o número da conta corrente. ${det}`.trim();
   if (status === 429) return "O Inter limita as consultas por minuto: tente de novo daqui a 1 minuto.";
+  if (status === 400 && boleto) return `O Inter recusou o boleto: ${det || "confira o cadastro do cliente e o vencimento"}.`;
   return `O Inter respondeu ${status}. ${det}`.trim();
 }
 
@@ -66,7 +73,9 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
   } catch (e) {
     throw new ErroInter(400, `O certificado ou a chave não puderam ser usados: ${String((e as Error).message).slice(0, 120)}`);
   }
-  let token: string | null = null;
+  // um acesso por grupo de permissões (extrato; boletos), guardado durante a chamada da função
+  const tokens = new Map<string, string>();
+  const ehBoleto = (escopo: string) => escopo.includes("boleto");
 
   async function chamar(url: string, init: RequestInit): Promise<Response> {
     try {
@@ -82,19 +91,23 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
       body: new URLSearchParams({ client_id: ch.client_id, client_secret: ch.client_secret, grant_type: "client_credentials", scope: escopo }),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token"));
-    token = String(j.access_token);
+    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token", ehBoleto(escopo)));
+    tokens.set(escopo, String(j.access_token));
   }
 
-  async function get<T>(caminho: string): Promise<T> {
-    if (!token) await entrar();
-    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  /** Chamada à API com o acesso do grupo de permissões (entra sozinho na primeira vez). */
+  async function pedir<T>(metodo: string, caminho: string, corpo?: unknown, escopo = ESCOPO_EXTRATO): Promise<T> {
+    if (!tokens.has(escopo)) await entrar(escopo);
+    const headers: Record<string, string> = { Authorization: `Bearer ${tokens.get(escopo)}` };
     if (texto(contaCorrente)) headers["x-conta-corrente"] = texto(contaCorrente).replace(/\D/g, "");
-    const r = await chamar(`${BASE}${caminho}`, { headers });
+    if (corpo !== undefined) headers["Content-Type"] = "application/json";
+    const r = await chamar(`${BASE}${caminho}`, { method: metodo, headers, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+    if (r.status === 202 || r.status === 204) return {} as T;
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta"));
+    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta", ehBoleto(escopo)));
     return j as T;
   }
+  const get = <T>(caminho: string) => pedir<T>("GET", caminho);
 
   /** Saldo disponível agora. */
   async function saldo() {
@@ -119,7 +132,7 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
     return todas;
   }
 
-  return { entrar, saldo, extrato, fechar: () => { try { client.close(); } catch { /* já fechado */ } } };
+  return { entrar, pedir, saldo, extrato, fechar: () => { try { client.close(); } catch { /* já fechado */ } } };
 }
 
 export const somarDias = (data: string, n: number) => new Date(new Date(`${data}T12:00:00Z`).getTime() + n * 864e5).toISOString().slice(0, 10);

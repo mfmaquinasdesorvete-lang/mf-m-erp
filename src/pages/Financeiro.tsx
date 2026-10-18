@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Link2, List, MessageCircle, Pencil, Plus, Printer, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -10,6 +10,7 @@ import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, situacaoConta, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 import type { Cliente } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
@@ -43,6 +44,7 @@ import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { CampoBoleto, ConferirBoletoModal } from "@/components/financeiro/Boleto";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/components/financeiro/LinkPagamento";
+import { BoletoInterModal, SituacaoBoleto, boletoAberto, type BoletoInter } from "@/components/financeiro/BoletoInter";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { useFormasPagamento } from "@/lib/formasPagamento";
@@ -270,6 +272,19 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
   const [baixa, setBaixa] = useState<{ conta: Receber; tabela: "contas_receber" } | null>(null);
   const [motivo, setMotivo] = useState<{ conta: Receber; acao: "cancelar" | "estornar" } | null>(null);
   const [linkDe, setLinkDe] = useState<Receber | null>(null);
+  const [boletoDe, setBoletoDe] = useState<Receber | null>(null);
+  const { data: boletos = [] } = useRows<BoletoInter>("boletos_inter");
+  const boletosDa = useMemo(() => {
+    const m = new Map<string, BoletoInter[]>();
+    for (const b of boletos) if (b.conta_receber_id) m.set(b.conta_receber_id, [...(m.get(b.conta_receber_id) ?? []), b]);
+    return m;
+  }, [boletos]);
+  // unidades com conta do Inter que emite boleto (o botão Boleto só aparece nelas)
+  const { data: unidadesBoleto = [] } = useQuery({
+    queryKey: ["inter_conexoes", "unidades_boleto"], staleTime: 300_000,
+    queryFn: async () => ((await supabase.rpc("unidades_com_boleto_inter")).data ?? []) as string[],
+  });
+  const temBoleto = (c: Receber) => unidadesBoleto.includes(c.unidade_id ?? "") || (boletosDa.get(c.id)?.length ?? 0) > 0;
   const { data: marcadores = [] } = useMarcadores();
   const { data: links = [] } = useRows<CobrancaLink>("cobrancas_link");
   const linksDa = useMemo(() => {
@@ -336,7 +351,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
           const nomeCliente = c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null;
           return (
             <CartaoConta key={c.id} titulo={nomeCliente || c.descricao} descricao={mesmoTexto(nomeCliente || c.descricao, c.descricao) ? null : c.descricao} unidadeId={(c as any).unidade_id}
-              detalhe={<>{[c.forma_pagamento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}<SituacaoLink links={links} /></>}
+              detalhe={<>{[c.forma_pagamento, c.conta_bancaria_id && contaBanco(c.conta_bancaria_id)].filter(Boolean).join(" · ")}<SituacaoLink links={links} /><SituacaoBoleto boletos={boletosDa.get(c.id) ?? []} /></>}
               valor={c.valor} vencimento={c.vencimento} status={c.status} pagoEm={c.data_pagamento}
               situacao={<>{s !== "aberto" && <Badge value={s} />}<ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></>}
               acoes={<>
@@ -347,6 +362,10 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                 {c.status === "aberto" && (
                   <BotaoAtalho icon={Link2} label={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "Link enviado" : "Link"} cor={COR_ATALHO.azul}
                     title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)} />
+                )}
+                {temBoleto(c) && (c.status === "aberto" || (boletosDa.get(c.id)?.length ?? 0) > 0) && (
+                  <BotaoAtalho icon={Barcode} label={boletosDa.get(c.id)?.some(boletoAberto) ? "Boleto emitido" : "Boleto"} cor={COR_ATALHO.laranja}
+                    title="Boleto com Pix do Banco Inter (baixa sozinha quando o cliente paga)" onClick={() => setBoletoDe(c)} />
                 )}
                 {c.status === "aberto" && pagamentoDe(c) && <BotaoAtalho icon={Copy} label="Copiar" cor={COR_ATALHO.cinza} title="Copiar dados para pagamento" onClick={() => copiar(pagamentoDe(c), "Dados para pagamento")} />}
                 {podeEditar && c.status === "aberto" && <BotaoAtalho icon={Wallet} label="Baixa" cor={COR_ATALHO.laranja} title="Registrar o recebimento" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })} />}
@@ -369,7 +388,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
           return (
             <tr key={c.id}>
               <td className="td whitespace-nowrap">{dataBR(c.vencimento)}</td>
-              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={[...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])]} /></div></td>
+              <td className="td">{c.descricao}<EtiquetaUnidade id={(c as any).unidade_id} /><div className="text-xs text-slate-500">{c.forma_pagamento}{c.data_pagamento && ` · pago em ${dataBR(c.data_pagamento)}`}{c.conta_bancaria_id && ` · ${contaBanco(c.conta_bancaria_id)}`}<SituacaoLink links={[...(linksDa.get(c.id) ?? []), ...(((c as any).pedido_id && linksPedido.get((c as any).pedido_id)) || [])]} /><SituacaoBoleto boletos={boletosDa.get(c.id) ?? []} /></div></td>
               <td className="td">{c.cliente?.nome ?? "—"}</td>
               <td className="td"><span className="flex flex-wrap items-center gap-1"><Badge value={s} /><ChipRevisao conta={c as any} /><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></span></td>
               <td className="td text-right font-medium">{brl(c.valor)}</td>
@@ -384,6 +403,10 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                   {c.status === "aberto" && (
                     <Button variant="ghost" title="Link de pagamento InfinitePay (Pix ou cartão em até 12x)" onClick={() => setLinkDe(c)}
                       className={linksDa.get(c.id)?.some((l) => l.status === "aberto") ? "!text-sky-700" : ""}><Link2 size={15} /></Button>
+                  )}
+                  {temBoleto(c) && (c.status === "aberto" || (boletosDa.get(c.id)?.length ?? 0) > 0) && (
+                    <Button variant="ghost" title="Boleto com Pix do Banco Inter" onClick={() => setBoletoDe(c)}
+                      className={boletosDa.get(c.id)?.some(boletoAberto) ? "!text-orange-700" : ""}><Barcode size={15} /></Button>
                   )}
                   {podeEditar && c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })}>Baixar</Button>}
                   {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
@@ -447,6 +470,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
       {baixa && <BaixaModal conta={baixa.conta} tabela={baixa.tabela} onClose={() => setBaixa(null)} />}
       {linkDe && <LinkPagamentoModal conta={contas.find((x) => x.id === linkDe.id) ?? linkDe} links={linksDa.get(linkDe.id) ?? []}
         taxas={(unidades.find((u) => u.id === linkDe.unidade_id) ?? unidades.find((u) => u.matriz))?.infinitepay_taxas} onClose={() => setLinkDe(null)} />}
+      {boletoDe && <BoletoInterModal conta={contas.find((x) => x.id === boletoDe.id) ?? boletoDe} boletos={boletosDa.get(boletoDe.id) ?? []} onClose={() => setBoletoDe(null)} />}
       {motivo && <MotivoModal conta={motivo.conta} acao={motivo.acao} tabela="contas_receber" onClose={() => setMotivo(null)} />}
     </>
   );

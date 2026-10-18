@@ -3,18 +3,21 @@
 // As credenciais vão direto para a função inter, que confere no Inter e guarda no cofre: o navegador não lê de volta.
 import { useState, type FormEvent } from "react";
 import { unzipSync, strFromU8 } from "fflate";
-import { AlertTriangle, CheckCircle2, KeyRound, Landmark, Loader2, RefreshCw, Unplug } from "lucide-react";
+import { AlertTriangle, Barcode, CheckCircle2, KeyRound, Landmark, Loader2, Plus, RefreshCw, Settings2, Unplug } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { callFunction } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { confirmar } from "@/components/Dialogos";
 
 export type ConexaoInter = {
   id: string; conta_bancaria_id: string; conta_corrente: string | null; status: "ativa" | "erro" | "desligada"; erro: string | null;
   desde: string; sincronizado_em: string | null; ultimas_novas: number; saldo: number | null; saldo_em: string | null; certificado_validade: string | null;
+  /** boleto com Pix ligado nesta conta (app do Inter com a permissão de boletos) */
+  boletos?: boolean; boletos_erro?: string | null; boletos_webhook_em?: string | null;
+  boleto_multa_pct?: number; boleto_juros_mes_pct?: number; boleto_dias_baixa?: number; boleto_mensagem?: string | null;
 };
 type ContaErp = { id: string; nome: string; banco: string; ativo: boolean; saldo_inicial_data: string };
 type Resultado = { novas?: number; conciliadas?: number; saldo?: number | null; erro?: string };
@@ -29,7 +32,7 @@ const ha = (iso: string | null) => {
 };
 const diasAte = (iso: string | null) => (iso ? Math.floor((new Date(iso).getTime() - Date.now()) / 864e5) : null);
 
-export function InterPainel({ contas }: { contas: ContaErp[] }) {
+export function InterPainel({ contas, onNovaConta }: { contas: ContaErp[]; onNovaConta?: () => void }) {
   const { tem } = usePerfil();
   const admin = tem();
   const invalidar = useInvalidate();
@@ -37,6 +40,7 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
   const conexoes = todas.filter((c) => c.status !== "desligada" && contas.some((b) => b.id === c.conta_bancaria_id));
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [form, setForm] = useState<{ conexao?: ConexaoInter } | null>(null);
+  const [regras, setRegras] = useState<ConexaoInter | null>(null);
   const nomeErp = (id: string) => contas.find((b) => b.id === id)?.nome ?? "—";
 
   async function atualizar(c: ConexaoInter) {
@@ -63,7 +67,21 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
     }
   }
 
+  async function boletos(c: ConexaoInter, ligar: boolean) {
+    if (!ligar && !(await confirmar(`Desligar os boletos de ${nomeErp(c.conta_bancaria_id)}? Os boletos já emitidos continuam valendo no Inter; o ERP para de emitir e de receber os avisos de pagamento desta conta.`))) return;
+    setOcupado(c.id);
+    try {
+      const r = await callFunction<{ aviso?: string | null }>("inter", { acao: ligar ? "boletos_ligar" : "boletos_desligar", conexao_id: c.id });
+      if (r.aviso) notify(r.aviso, "erro");
+      else notify(ligar ? "Boletos ligados: emita pela conta a receber (botão Boleto)" : "Boletos desligados nesta conta");
+    } catch (e) { notifyError(e); } finally {
+      setOcupado(null);
+      invalidar("inter_conexoes");
+    }
+  }
+
   const livres = contas.filter((b) => b.ativo && b.banco !== "caixa" && !conexoes.some((c) => c.conta_bancaria_id === b.id));
+  const semContaInter = !contas.some((b) => b.ativo && b.banco === "inter");
   return (
     <Card className="mb-5 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -71,9 +89,13 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
           <h2 className="flex items-center gap-1.5 font-semibold text-fg"><Landmark size={17} className="text-orange-600" /> Banco Inter (API)</h2>
           <p className="text-sm text-slate-500">
             Extrato e saldo direto do Inter, de 4 em 4 horas, sem arquivo e sem Open Finance. O que tiver par certo já é conciliado.
+            Com a permissão de boletos no app, o ERP também emite boleto com Pix nas contas a receber e dá baixa sozinho quando o cliente paga.
           </p>
         </div>
-        {admin && <Button onClick={() => setForm({})} disabled={!livres.length}><KeyRound size={16} /> Ligar conta do Inter</Button>}
+        <div className="flex flex-wrap gap-2">
+          {onNovaConta && semContaInter && <Button variant="secondary" onClick={onNovaConta}><Plus size={16} /> Cadastrar conta do Inter</Button>}
+          {admin && <Button onClick={() => setForm({})} disabled={!livres.length}><KeyRound size={16} /> Ligar conta do Inter</Button>}
+        </div>
       </div>
       {!admin && !conexoes.length && <p className="mt-2 text-sm text-slate-500">O administrador liga a conta com as credenciais do app do Inter.</p>}
 
@@ -101,6 +123,25 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
                   {c.saldo != null && <div>Saldo disponível: <b className="num">{brl(c.saldo)}</b>{c.saldo_em ? ` (${ha(c.saldo_em)})` : ""}</div>}
                   {c.certificado_validade && <div>Certificado até {dataBR(c.certificado_validade)}</div>}
                 </div>
+                <div className="w-full rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:order-last">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="flex items-center gap-1 font-semibold text-fg"><Barcode size={14} aria-hidden /> Boleto com Pix:</span>
+                    {c.boletos
+                      ? <span className="font-semibold text-emerald-700">ligado · multa {Number(c.boleto_multa_pct ?? 0).toLocaleString("pt-BR")}% · juros {Number(c.boleto_juros_mes_pct ?? 0).toLocaleString("pt-BR")}% ao mês · o Inter cancela {c.boleto_dias_baixa ?? 30} dias após o vencimento</span>
+                      : <span>desligado</span>}
+                    {c.boletos && <span>{c.boletos_webhook_em ? "aviso de pagamento automático cadastrado" : "conferido a cada atualização do extrato"}</span>}
+                    {admin && (
+                      <span className="ml-auto flex flex-wrap gap-1">
+                        {c.boletos && <Button variant="ghost" className="!min-h-0 !py-1" onClick={() => setRegras(c)}><Settings2 size={14} /> Regras</Button>}
+                        <Button variant={c.boletos ? "ghost" : "secondary"} className="!min-h-0 !py-1" disabled={ocupado === c.id} onClick={() => boletos(c, !c.boletos)}>
+                          {c.boletos ? "Desligar boletos" : "Ligar boletos"}
+                        </Button>
+                      </span>
+                    )}
+                  </div>
+                  {c.boletos_erro && <div className="mt-1 flex items-start gap-1 font-semibold text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" /> {c.boletos_erro}</div>}
+                  {!c.boletos && <div className="mt-1">No app do Inter, marque também "Emitir e cancelar boletos" e "Consultar boletos" e toque em Ligar boletos.</div>}
+                </div>
                 <div className="flex flex-wrap gap-1">
                   <Button variant="secondary" disabled={ocupado === c.id} onClick={() => atualizar(c)}>
                     {ocupado === c.id ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Atualizar agora
@@ -114,7 +155,8 @@ export function InterPainel({ contas }: { contas: ContaErp[] }) {
         </ul>
       )}
 
-      {form && <LigarInter contas={form.conexao ? contas.filter((b) => b.id === form.conexao!.conta_bancaria_id) : livres} conexao={form.conexao}
+      {regras && <RegrasBoleto conexao={regras} nome={nomeErp(regras.conta_bancaria_id)} onClose={() => setRegras(null)} />}
+      {form && <LigarInter contas={form.conexao ? contas.filter((b) => b.id === form.conexao!.conta_bancaria_id) : livres} conexao={form.conexao} onNovaConta={onNovaConta}
         onClose={() => setForm(null)} onPronto={() => { setForm(null); invalidar("inter_conexoes", "extrato_lancamentos", "contas_receber", "contas_pagar"); }} />}
     </Card>
   );
@@ -137,7 +179,7 @@ async function lerArquivos(arquivos: FileList): Promise<{ cert?: string; key?: s
   return out;
 }
 
-function LigarInter({ contas, conexao, onClose, onPronto }: { contas: ContaErp[]; conexao?: ConexaoInter; onClose: () => void; onPronto: () => void }) {
+function LigarInter({ contas, conexao, onClose, onPronto, onNovaConta }: { contas: ContaErp[]; conexao?: ConexaoInter; onClose: () => void; onPronto: () => void; onNovaConta?: () => void }) {
   const [conta, setConta] = useState(conexao?.conta_bancaria_id ?? (contas.find((b) => b.banco === "inter") ?? contas[0])?.id ?? "");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -176,7 +218,7 @@ function LigarInter({ contas, conexao, onClose, onPronto }: { contas: ContaErp[]
       <form onSubmit={enviar} className="space-y-3 text-sm">
         {!troca && (
           <ol className="list-decimal space-y-1 rounded-lg bg-slate-50 p-3 pl-7 text-slate-600">
-            <li>No Internet Banking do Inter (empresa): <b>Soluções para sua empresa → Nova integração</b>, com a permissão de <b>extrato e saldo</b>.</li>
+            <li>No Internet Banking do Inter (empresa): <b>Soluções para sua empresa → Nova integração</b>, com as permissões de <b>extrato e saldo</b> e, para emitir boletos, <b>emitir e cancelar boletos</b> e <b>consultar boletos</b>.</li>
             <li>Baixe o <b>zip</b> com o certificado e a chave e copie o <b>Client ID</b> e o <b>Client Secret</b>.</li>
             <li>Escolha aqui a conta do ERP, cole as duas chaves e envie o zip. O ERP confere no Inter antes de guardar.</li>
           </ol>
@@ -187,7 +229,11 @@ function LigarInter({ contas, conexao, onClose, onPronto }: { contas: ContaErp[]
             {contas.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
           </select>
         </Field>
-        {!contas.length && <p className="text-amber-800">Cadastre primeiro a conta (botão "Nova conta", banco "Banco Inter") com a unidade certa (SC ou SP).</p>}
+        {!contas.length && (
+          <p className="text-amber-800">Cadastre primeiro a conta (banco "Banco Inter") com a unidade certa (SC ou SP).
+            {onNovaConta && <> <button type="button" className="font-semibold underline" onClick={() => { onClose(); onNovaConta(); }}>Cadastrar agora</button></>}
+          </p>
+        )}
         <Field label={`Client ID${troca ? " (deixe em branco para manter)" : ""}`}>
           <input className="input" value={clientId} onChange={(e) => setClientId(e.target.value)} autoComplete="off" spellCheck={false} required={!troca} />
         </Field>
@@ -215,6 +261,47 @@ function LigarInter({ contas, conexao, onClose, onPronto }: { contas: ContaErp[]
           <Button disabled={ocupado || !conta || faltaArquivo || (troca && arquivos != null && (!arquivos.cert || !arquivos.key))}>
             {ocupado ? <><Loader2 size={16} className="animate-spin" /> Conferindo no Inter…</> : troca ? "Salvar" : "Ligar"}
           </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/** Regras do boleto da conta (administrador): multa, juros ao mês, dias para o Inter cancelar e mensagem no boleto. */
+function RegrasBoleto({ conexao, nome, onClose }: { conexao: ConexaoInter; nome: string; onClose: () => void }) {
+  const invalidar = useInvalidate();
+  const [multa, setMulta] = useState(String(conexao.boleto_multa_pct ?? 2));
+  const [juros, setJuros] = useState(String(conexao.boleto_juros_mes_pct ?? 1));
+  const [dias, setDias] = useState(String(conexao.boleto_dias_baixa ?? 30));
+  const [mensagem, setMensagem] = useState(conexao.boleto_mensagem ?? "");
+  const [ocupado, setOcupado] = useState(false);
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setOcupado(true);
+    const { error } = await supabase.rpc("inter_regras_boleto", {
+      p_conexao: conexao.id, p_multa: Number(multa.replace(",", ".")), p_juros: Number(juros.replace(",", ".")), p_dias: Number(dias), p_mensagem: mensagem,
+    });
+    setOcupado(false);
+    if (error) return notifyError(error);
+    invalidar("inter_conexoes");
+    notify("Regras do boleto salvas: valem para os próximos boletos");
+    onClose();
+  }
+  return (
+    <Modal open onClose={onClose} title={`Regras do boleto · ${nome}`}>
+      <form onSubmit={salvar} className="space-y-3 text-sm">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="Multa por atraso (%)"><input className="input" inputMode="decimal" value={multa} onChange={(e) => setMulta(e.target.value)} required /></Field>
+          <Field label="Juros ao mês (%)"><input className="input" inputMode="decimal" value={juros} onChange={(e) => setJuros(e.target.value)} required /></Field>
+          <Field label="Cancelar após o vencimento (dias)"><input className="input" type="number" min={0} max={60} value={dias} onChange={(e) => setDias(e.target.value)} required /></Field>
+        </div>
+        <p className="text-xs text-slate-500">Multa até 2% (Código de Defesa do Consumidor) e juros de 1% ao mês são o usual; confirmar com o contador. Depois do prazo o Inter cancela o boleto não pago e a conta continua em aberto no ERP.</p>
+        <Field label="Mensagem no boleto (até 4 linhas; a descrição da conta vai na primeira)">
+          <textarea className="input min-h-[80px]" value={mensagem} maxLength={300} onChange={(e) => setMensagem(e.target.value)} placeholder="Ex.: Não receber após 30 dias do vencimento" />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar"}</Button>
         </div>
       </form>
     </Modal>
