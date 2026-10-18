@@ -12,6 +12,7 @@ import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
+import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
 
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -74,6 +75,7 @@ const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
+const AppFinanceiro = lazy(() => import("@/pages/AppFinanceiro"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "scrum", tela: "scrum", element: <Scrum /> },
@@ -289,6 +291,11 @@ function RotasERP() {
   useEffect(() => {
     if (inicioFeitoPara === user_id) return;
     inicioFeitoPara = user_id;
+    // no celular, quem cuida do financeiro abre direto no app (saldos e aprovar); a escolha fica no aparelho
+    let escolha: string | null = null;
+    try { escolha = localStorage.getItem(CHAVE_APP); } catch { /* sem armazenamento */ }
+    if (location.pathname === "/" && vis.ve("financeiro", "/financeiro") && abrirNoApp(escolha, window.innerWidth, papel === "financeiro"))
+    { navigate("/app", { replace: true }); return; }
     const casa = INICIO_DO_PAPEL[papel];
     if (casa && location.pathname === "/" && vis.ve(casa.tela, casa.to)) navigate(casa.to, { replace: true });
   }, [user_id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -296,6 +303,8 @@ function RotasERP() {
     <Routes>
       {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
       {vis.ve("pedidos", "/pdv") && <Route path="pdv" element={<Pdv />} />}
+      {/* app do financeiro no celular (saldos e aprovar), sem o menu do ERP */}
+      {vis.ve("financeiro", "/financeiro") && <Route path="app" element={<AppFinanceiro />} />}
       <Route element={<Layout />}>
         <Route index element={inicio ? <Navigate to={inicio} replace /> : <Dashboard />} />
         {ROTAS.filter((r) => vis.ve(r.tela, `/${r.path}`)).map((r) => (
