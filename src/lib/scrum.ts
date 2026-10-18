@@ -14,11 +14,22 @@ export type Sprint = {
   pontos_planejados: number | null; pontos_feitos: number | null; revisao: string | null;
   retro_bom: string | null; retro_melhorar: string | null; retro_acoes: string | null; encerrada_em: string | null;
 };
+/** Tarefa da lista do item */
+export type Tarefa = { texto: string; feito: boolean };
+/** Caso de teste do item: ok = true passou, false falhou, null ainda não testado */
+export type CasoTeste = { nome: string; passos: string[]; esperado: string[]; ok: boolean | null };
 export type ItemScrum = {
   id: string; time_id: string; sprint_id: string | null; tipo: TipoItem; titulo: string; descricao: string | null;
   criterio_aceite: string | null; pontos: number | null; prioridade: number; status: StatusItem; responsavel_id: string | null;
   ideia_id: string | null; created_by: string | null; concluido_em: string | null; created_at: string;
+  /** lista de tarefas, cenários (Dado/Quando/Então) e casos de teste — o assistente do item ajuda a montar */
+  tarefas?: Tarefa[]; cenarios?: string | null; testes?: CasoTeste[];
 };
+export type ComentarioScrum = { id: string; item_id: string; user_id: string; texto: string; created_at: string };
+
+/** Tarefas feitas / total (null sem lista) */
+export const progressoTarefas = (i: Pick<ItemScrum, "tarefas">) =>
+  i.tarefas?.length ? { feitas: i.tarefas.filter((t) => t.feito).length, total: i.tarefas.length } : null;
 export type Daily = {
   id: string; sprint_id: string; user_id: string; nome: string | null; dia: string;
   fiz: string | null; vou_fazer: string | null; impedimentos: string | null; impedimento_resolvido: boolean;

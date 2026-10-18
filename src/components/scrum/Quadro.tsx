@@ -8,7 +8,7 @@ import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { COLUNAS, somaPontos, type ItemScrum, type Sprint, type StatusItem, type TimeScrum } from "@/lib/scrum";
-import { Avatar, ChipTipo, Pontos, primeiroNome, type Pessoa } from "./comum";
+import { Avatar, ChipTarefas, ChipTipo, Pontos, primeiroNome, type Pessoa } from "./comum";
 
 const COR_COLUNA: Record<StatusItem, string> = { a_fazer: "#64748b", fazendo: "#0284c7", revisao: "#d97706", feito: "#059669" };
 
@@ -72,6 +72,7 @@ export function Quadro({ time, sprint, itens, pessoas, onAbrir, onNovo }: {
                       <span className="mt-2 flex flex-wrap items-center gap-1.5">
                         <ChipTipo tipo={i.tipo} />
                         <Pontos pontos={i.pontos} />
+                        <ChipTarefas item={i} />
                         {i.ideia_id && <Lightbulb size={13} className="text-amber-600" aria-label="Veio das Ideias" />}
                         <span className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-slate-500">
                           {i.responsavel_id && <>{primeiroNome(pessoas, i.responsavel_id)} <Avatar nome={primeiroNome(pessoas, i.responsavel_id)} cor={time.cor} tamanho={20} /></>}

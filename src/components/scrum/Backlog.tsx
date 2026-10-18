@@ -13,7 +13,7 @@ import {
   FIBONACCI, ROTULO_STATUS, moverNoBacklog, ordenarBacklog, prioridadeNoFim, somaPontos, sprintsParaBacklog,
   type ItemScrum, type Sprint, type TimeScrum, type TipoItem,
 } from "@/lib/scrum";
-import { Avatar, ChipTipo, Pontos, primeiroNome, type Pessoa } from "./comum";
+import { Avatar, ChipTarefas, ChipTipo, Pontos, primeiroNome, type Pessoa } from "./comum";
 
 export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
   time: TimeScrum; itens: ItemScrum[]; destino: Sprint | null; media: number | null; pessoas: Pessoa[];
@@ -98,6 +98,7 @@ export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
                   <span className="mt-1 flex flex-wrap items-center gap-1.5">
                     <ChipTipo tipo={i.tipo} />
                     <Pontos pontos={i.pontos} />
+                    <ChipTarefas item={i} />
                     {i.status !== "a_fazer" && <span className="text-[11px] font-semibold text-sky-700">{ROTULO_STATUS[i.status]} (veio de sprint anterior)</span>}
                     {i.ideia_id && <span className="flex items-center gap-0.5 text-[11px] font-semibold text-amber-700"><Lightbulb size={12} aria-hidden /> Ideia</span>}
                     {i.responsavel_id && <span className="flex items-center gap-1 text-[11px] text-slate-500"><Avatar nome={primeiroNome(pessoas, i.responsavel_id)} cor={time.cor} tamanho={18} />{primeiroNome(pessoas, i.responsavel_id)}</span>}

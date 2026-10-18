@@ -13,7 +13,8 @@ import { Equipe } from "@/components/scrum/Equipe";
 import { PainelScrum } from "@/components/scrum/PainelScrum";
 import { Quadro } from "@/components/scrum/Quadro";
 import { Sprints } from "@/components/scrum/Sprints";
-import { Barra, ItemModal, pct, useScrum } from "@/components/scrum/comum";
+import { Barra, pct, useScrum } from "@/components/scrum/comum";
+import { ItemModal } from "@/components/scrum/ItemModal";
 import { usePerfil } from "@/lib/auth";
 import { ler } from "@/lib/data";
 import { dataBR, pl } from "@/lib/format";
@@ -108,7 +109,11 @@ export default function Scrum() {
       {aba === "painel" && <PainelScrum time={time} sprints={doTime.sprints} ativa={ativa} itensAtiva={itensAtiva} backlog={backlog} impedimentos={impedimentos} pessoas={pessoas} hoje={hoje} />}
       {aba === "equipe" && <Equipe time={time} pessoas={escolhas} />}
 
-      {janela && <ItemModal time={time} item={janela.item} sprintInicial={janela.sprint} sprints={doTime.sprints} itensDoTime={doTime.itens} pessoas={escolhas} onClose={() => setJanela(null)} />}
+      {janela && (
+        <ItemModal key={janela.item?.id ?? "novo"} time={times.find((t) => t.id === janela.item?.time_id) ?? time} item={janela.item} sprintInicial={janela.sprint}
+          sprints={sprints} itensDoTime={doTime.itens} todosItens={itens} times={times} pessoas={escolhas} todasPessoas={pessoas}
+          onClose={() => setJanela(null)} onAbrir={(i) => setJanela({ item: i })} />
+      )}
     </div>
   );
 }

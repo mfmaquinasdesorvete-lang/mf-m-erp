@@ -1487,11 +1487,12 @@ function scrumDemo(db: Db) {
     sprint({ id: "ss5", time_id: "st4", numero: 1, objetivo: "Propostas respondidas em até 24 h", inicio: desloca(segunda, -7), fim: desloca(segunda, 6), status: "ativa", pontos_planejados: 13 }),
   ];
   const feito = (dias: number) => new Date(new Date(`${segunda}T15:00:00Z`).getTime() + dias * 864e5).toISOString();
-  const it = (x: Row) => ({ tipo: "historia", descricao: null, criterio_aceite: null, pontos: 3, prioridade: 10, status: "a_fazer", responsavel_id: null, ideia_id: null, created_by: "u-admin", concluido_em: null, created_at: quando(-10), ...x });
+  const it = (x: Row) => ({ tipo: "historia", descricao: null, criterio_aceite: null, tarefas: [], cenarios: null, testes: [], pontos: 3, prioridade: 10, status: "a_fazer", responsavel_id: null, ideia_id: null, created_by: "u-admin", concluido_em: null, created_at: quando(-10), ...x });
   db.scrum_itens = [
     it({ id: "si1", time_id: "st1", sprint_id: "ss4", titulo: "Fotos da máquina na OS pelo celular", pontos: 5, status: "feito", responsavel_id: "u-fin", concluido_em: feito(0), criterio_aceite: "A foto aparece na OS e no PDF" }),
     it({ id: "si2", time_id: "st1", sprint_id: "ss4", titulo: "Assinatura do cliente na tela", pontos: 5, status: "revisao", responsavel_id: "u-admin" }),
-    it({ id: "si3", time_id: "st1", sprint_id: "ss4", titulo: "Checklist da preventiva", tipo: "tarefa", pontos: 3, status: "fazendo", responsavel_id: "u-fin" }),
+    it({ id: "si3", time_id: "st1", sprint_id: "ss4", titulo: "Checklist da preventiva", tipo: "tarefa", pontos: 3, status: "fazendo", responsavel_id: "u-fin",
+      tarefas: [{ texto: "Pegar o modelo do checklist com a fábrica", feito: true }, { texto: "Montar os itens na OS", feito: true }, { texto: "Testar no celular", feito: false }] }),
     it({ id: "si4", time_id: "st1", sprint_id: "ss4", titulo: "OS abre sem internet e envia depois", pontos: 8, status: "a_fazer" }),
     it({ id: "si5", time_id: "st1", sprint_id: "ss4", titulo: "Erro ao anexar foto grande no iPhone", tipo: "bug", pontos: 0, status: "feito", responsavel_id: "u-fin", concluido_em: feito(1) }),
     it({ id: "si6", time_id: "st1", sprint_id: null, titulo: "Avisar o cliente quando a máquina sair do conserto", tipo: "melhoria", pontos: 2, prioridade: 10, ideia_id: "pj9" }),
@@ -1504,6 +1505,12 @@ function scrumDemo(db: Db) {
   for (const [sp, n] of [["ss1", 5], ["ss2", 4], ["ss3", 5]] as const) {
     for (let k = 0; k < n; k++) db.scrum_itens.push(it({ id: `${sp}-${k}`, time_id: "st1", sprint_id: sp, titulo: `Entrega ${k + 1} da sprint`, pontos: 3, status: "feito", concluido_em: quando(-20) }));
   }
+  db.scrum_comentarios = [
+    { id: "sc1", item_id: "si2", user_id: "u-admin", texto: "Vamos usar a assinatura com o dedo na própria tela. Falta o texto do termo de entrega.", created_at: quando(-3) },
+    { id: "sc2", item_id: "si2", user_id: "u-fin", texto: "Precisa guardar a assinatura no PDF da OS também?", created_at: quando(-2) },
+    { id: "sc3", item_id: "si2", user_id: "u-admin", texto: "Sim, combinado: vai no PDF. Vou testar no iPhone amanhã.", created_at: quando(-1) },
+    { id: "sc4", item_id: "si2", user_id: "u-fin", texto: "E se o cliente não estiver na hora, quem assina?", created_at: quando(0) },
+  ];
   db.scrum_daily = [
     { id: "sd1", sprint_id: "ss4", user_id: "u-fin", nome: "Rafael Financeiro", dia: hojeISO(), fiz: "Fotos na OS e o erro do iPhone", vou_fazer: "Checklist da preventiva", impedimentos: "Falta o modelo do checklist da fábrica", impedimento_resolvido: false, created_at: quando(0) },
   ];
@@ -1860,7 +1867,8 @@ let numeroTransf = 2;
 const proximoCodigo = (t: string) => Math.max(0, ...(db[t] ?? []).map((r) => Number(r.codigo) || 0)) + 1;
 
 const DEFAULTS: Record<string, () => Row> = {
-  scrum_itens: () => ({ status: "a_fazer", tipo: "historia", prioridade: 1000, sprint_id: null, ideia_id: null, responsavel_id: null, concluido_em: null, created_by: sessao?.user.id ?? null, created_at: quando(0) }),
+  scrum_comentarios: () => ({ user_id: sessao?.user.id ?? null, created_at: quando(0) }),
+  scrum_itens: () => ({ status: "a_fazer", tipo: "historia", tarefas: [], cenarios: null, testes: [], prioridade: 1000, sprint_id: null, ideia_id: null, responsavel_id: null, concluido_em: null, created_by: sessao?.user.id ?? null, created_at: quando(0) }),
   scrum_sprints: () => ({ status: "planejada", pontos_planejados: null, pontos_feitos: null, created_at: quando(0) }),
   scrum_daily: () => ({ user_id: sessao?.user.id ?? null, dia: hojeISO(), impedimento_resolvido: false, created_at: quando(0) }),
   etiquetas_envio: () => ({ impressoes: 0, editados: [], dados: {}, atualizado_em: new Date().toISOString() }),
