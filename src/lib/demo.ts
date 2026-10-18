@@ -20,6 +20,8 @@ import { totaisOc, type ItemOc } from "./ordemCompra";
 import { ultimoDiaUtil } from "./obrigacoes";
 import { conferirAgendamento, frequenciaDe, type FrequenciaColeta } from "./coleta";
 import { faltaParaCotarRte } from "../../supabase/functions/_shared/rodonaves";
+import { normalizarSugestao } from "../../supabase/functions/_shared/ia-produto";
+import { sugestaoLocal } from "./autoFill";
 
 type Row = Record<string, any>;
 type Db = Record<string, Row[]>;
@@ -5170,6 +5172,24 @@ const funcoes: Record<string, (b: any) => any> = {
   },
   // na prévia as fotos continuam pelo link (não há armazenamento)
   "produtos-fotos": () => ({ copiadas: 0, falharam: 0, restantes: 0 }),
+  // na prévia não há IA: simula a resposta com as regras do ERP + o que uma foto/PDF traria (marca, voltagem)
+  "ia-produto": (b) => {
+    if (b.acao === "situacao") return { configurada: true };
+    const cats = (db.categorias_produto ?? []).filter((c) => c.ativo).map((c) => c.nome as string);
+    const base = sugestaoLocal({ id: "demo", ...b.produto } as any, db.produtos as any, 3);
+    const comArquivo = !!(b.imagem || b.documento || b.foto_caminho);
+    return {
+      sugestao: normalizarSugestao({
+        ...base,
+        palavras_chave: [...base.palavras_chave, "peça original", "reposição"],
+        marca: b.produto.marca ?? (comArquivo ? "Marca Exemplo" : null),
+        especificacoes: comArquivo ? [{ nome: "Voltagem", valor: "220 V" }, { nome: "Material", valor: "Aço inox" }] : base.especificacoes,
+        conferir: [...base.conferir.filter((c) => !/marca/.test(c)), ...(comArquivo ? ["confira a voltagem lida na etiqueta da foto"] : [])],
+        confianca: { categoria: base.confianca.categoria, marca_modelo: comArquivo ? "media" : "baixa", especificacoes: comArquivo ? "media" : "baixa" },
+      }, cats),
+      modelo: "simulação da prévia", foto_usada: !!(b.imagem || b.foto_caminho), documento_usado: !!b.documento,
+    };
+  },
   "nfe-recebidas-sync": (b) => {
     if (b.acao === "sincronizar_ctes") return { ok: true, novos: 0, atualizados: 0, completos: 0, avisos: [] };
     if (b.acao === "importar_xmls") {

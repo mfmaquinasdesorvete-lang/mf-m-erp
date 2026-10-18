@@ -42,6 +42,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { useVisivel } from "@/lib/menu";
 import { UnificarProdutosLista } from "@/components/produtos/UnificarProdutosLista";
 import { DocumentosMaquina, GaleriaProduto } from "@/components/produtos/GaleriaProduto";
+import { AssistenteIA } from "@/components/produtos/AssistenteIA";
 import { DesenhoMedidas } from "@/components/produtos/DesenhoMedidas";
 import { CampoNcm } from "@/components/produtos/SugerirNcm";
 import { EditorEspecificacoes, EditorEtapas, SUGESTOES_ESPEC, SUGESTOES_PECA, type Especificacao } from "@/components/produtos/EditoresMaquina";
@@ -673,6 +674,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           },
           { name: "descricao_catalogo", label: "Texto de venda (o cliente lê no WhatsApp)", type: "textarea", span: 4 },
           { name: "secao_anuncio", label: "Anúncio (marketplace e Google)", type: "secao", ajuda: "Para Mercado Livre, Shopee, Amazon e loja virtual. O que ficar vazio é preenchido no padrão ao salvar (peças, acessórios e máquinas)." },
+          {
+            name: "assistente_ia", label: "Assistente de IA", type: "custom", span: 4,
+            render: (_v, _s, row, setCampo) => <AssistenteIA row={row} setCampo={setCampo} produtos={produtosTodos} garantiaPadrao={Number(cfgProd?.garantia_meses_padrao) || 3} />,
+          },
           {
             name: "anuncio_nota", label: "Pronto para anunciar?", type: "custom", span: 4,
             render: (_v, _s, row) => {
