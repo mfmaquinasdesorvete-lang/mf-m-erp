@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle, ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
-  Download, FileUp, Fuel, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
+  Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
   Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
@@ -256,6 +256,7 @@ export default function Pessoal() {
             <Button variant="secondary" onClick={() => setBoleto(true)} disabled={!ativas.length}><Barcode size={16} /> Lançar boleto (DDA)</Button>
             <Button variant="secondary" onClick={() => setPluggy(true)}><Plug size={16} /> Meu Pluggy (extrato automático)</Button>
             <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={16} /> Regras dos cards</Button>
+            <Button variant="secondary" onClick={() => navigate("/licenciados")}><IceCreamCone size={16} /> Licenciados My Frost (lojas e pagamentos)</Button>
           </MaisAcoes>
           <Button onClick={() => setEditLanc({ conta_id: conta || ativas[0]?.id, data: hoje(), situacao: "realizado", valor: undefined })} disabled={!ativas.length}><Plus size={16} /> Lançar</Button>
         </>} />

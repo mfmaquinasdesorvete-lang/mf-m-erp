@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
-  Truck, UserCog, Users, Wallet, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
+  Truck, UserCog, Users, Wallet, IceCreamCone, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -313,6 +313,8 @@ export function Layout() {
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
               // carteira: painel pessoal do dono, separado da empresa (só o administrador)
               ...(perfil.papel === "admin" ? [["Painel pessoal", Wallet, () => { setAberto(false); navigate("/pessoal"); }] as const] : []),
+              // sorvete: carteira dos licenciados My Frost Sorveterias (lojas e pagamentos), também só o administrador
+              ...(perfil.papel === "admin" ? [["Licenciados My Frost", IceCreamCone, () => { setAberto(false); navigate("/licenciados"); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],

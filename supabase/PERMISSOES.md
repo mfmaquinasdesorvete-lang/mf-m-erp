@@ -162,6 +162,8 @@ restritiva a mais. Documentos de funcionário só para o financeiro.
 | importacao_tiny_historico | admin | — | — | — |
 | inter_conexoes | financeiro, contador | — | — | — |
 | kit_componentes | equipe / financeiro | financeiro | financeiro | financeiro |
+| licenciados_lojas | o próprio | o próprio | o próprio | — |
+| licenciados_pagamentos | o próprio | o próprio | o próprio | — |
 | linhas_produto | equipe | financeiro | financeiro | — |
 | loja_clientes | equipe, o próprio | — | — | — |
 | marcadores | equipe, contador | compras / marketplace / vendas, financeiro | compras / marketplace / vendas, financeiro | — |

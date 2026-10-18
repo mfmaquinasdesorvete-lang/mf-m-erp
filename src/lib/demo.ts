@@ -1395,6 +1395,31 @@ function bancosDemo(db: Db) {
   add("cb1", dias(-9), 3000, "Pix Sócia Exemplo da Silva · Recebido");
   add("cb1", dias(-6), -2500, "Pix MF MAQUINAS LTDA · Enviado");
   add("cb2", dias(-6), 2500, "Transferência recebida pelo Pix - MF MAQUINAS LTDA");
+  // carteira dos licenciados My Frost (nomes inventados; no sistema real: public.licenciados_lojas e licenciados_pagamentos, só o dono lê)
+  const lojaDemo = { cidade: "Cidade Exemplo", responsavel: null, documento: null, telefone: null, cliente_id: null, observacoes: null };
+  db.licenciados_lojas = [
+    { ...lojaDemo, id: "lj1", nome: "My Frost Centro Exemplo", uf: "SC", nomes_extrato: ["BELTRAN"], situacao: "ativa", inicio: dias(-200), valor_combinado: 40000, mensalidade: 1500, cor: "rosa", ordem: 0 },
+    { ...lojaDemo, id: "lj2", nome: "My Frost Praia Teste", cidade: "Praia Teste", uf: "SP", nomes_extrato: [], situacao: "implantacao", inicio: dias(-40), valor_combinado: 35000, mensalidade: null, cor: "turquesa", ordem: 1 },
+  ];
+  const pagDemo = { taxa: 0, observacao: null, descartado: false, anulado: false };
+  db.licenciados_pagamentos = [
+    { ...pagDemo, id: "lp1", loja_id: "lj1", data: dias(-150), valor: 20000, tipo: "licenca", forma: "pix", origem: "manual", origem_id: null, onde: "Conta pessoal", descricao: "Entrada da licença" },
+    { ...pagDemo, id: "lp2", loja_id: "lj1", data: dias(-35), valor: 1500, tipo: "mensalidade", forma: "pix", origem: "pessoal", origem_id: "pl29", onde: "Conta pessoal", descricao: "PIX TRANSF BELTRAN13 09" },
+    { ...pagDemo, id: "lp3", loja_id: "lj2", data: dias(-38), valor: 10000, tipo: "licenca", forma: "pix", origem: "manual", origem_id: null, onde: "Conta pessoal", descricao: "Sinal da licença" },
+  ];
+  const lancDemo = { conta_id: "pc1", categoria: "Transferências", situacao: "realizado", anulado: false };
+  db.pessoal_lancamentos.push(
+    { ...lancDemo, id: "pl29", data: dias(-35), descricao: "PIX TRANSF BELTRAN13 09", valor: 1500 },
+    { ...lancDemo, id: "pl30", data: dias(-7), descricao: "PIX TRANSF BELTRAN11 10", valor: 10000 },
+    { ...lancDemo, id: "pl31", data: dias(-16), descricao: "Transferência recebida pelo Pix - SORVETERIA TESTE LTDA - 11.444.777/0001-61 - BANCO EXEMPLO (0001) Agência: 1", valor: 5000 },
+    { ...lancDemo, id: "pl32", data: dias(-20), descricao: "DESBLO PIX RECEBIDO 28/09", valor: 5000 },
+  );
+  db.contas_receber.push({ id: "rlic1", descricao: "Licenciamento My Frost Sorveterias — recebido pela InfinitePay SP por conta de terceiros · InfiniteTap (ABC123)",
+    cliente_id: null, pedido_id: null, parcela: 1, total_parcelas: 1, valor: 20000, vencimento: dias(-25), status: "pago", forma_pagamento: "cartao", data_pagamento: dias(-24),
+    valor_pago: 20000, conta_bancaria_id: "cb5", categoria: "recebido por conta de terceiros", unidade_id: U_SP, created_at: quando(-24) });
+  db.extrato_lancamentos.push({ id: "xlic1", conta_bancaria_id: "cb5", importacao_id: null, data: dias(-24), valor: 17788, descricao: "Vendas · Depósito InfinitePay", documento: null,
+    identificador: "xlic1", status: "conciliado", conta_receber_id: "rlic1", conta_pagar_id: null, baixou_conta: true, par_transferencia_id: null,
+    observacao: "Recebido por conta de terceiros (licenciamento My Frost Sorveterias): venda InfinitePay R$ 20.000,00 − taxa R$ 2.212,00", conciliado_em: quando(-24), created_at: quando(-24) });
   // tela Impostos, tarifas e funcionários (nomes inventados; "Rafael Souza Lima" e "Diego Martins" estão no cadastro de funcionários)
   add("cb1", dias(-20), -1843.27, "Pix SECRETARIA DE ESTADO DA FAZENDA · Enviado");
   add("cb1", dias(-25), -2310.5, "DARF - RECEITA FEDERAL · Pagamento efetuado");

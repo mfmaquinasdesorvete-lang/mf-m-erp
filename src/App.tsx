@@ -72,6 +72,7 @@ const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
+const Licenciados = lazy(() => import("@/pages/Licenciados"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
@@ -304,6 +305,8 @@ function RotasERP() {
         <Route path="sobre" element={<Sobre />} />
         {/* painel pessoal do dono: só o administrador abre (e o banco só mostra as linhas de quem criou) */}
         {papel === "admin" && <Route path="pessoal" element={<Pessoal />} />}
+        {/* carteira dos licenciados My Frost Sorveterias: também só o administrador (e só o dono lê as linhas) */}
+        {papel === "admin" && <Route path="licenciados" element={<Licenciados />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

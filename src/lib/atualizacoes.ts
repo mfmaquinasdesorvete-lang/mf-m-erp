@@ -242,13 +242,14 @@ export const DESTAQUES: Record<string, Destaque> = {
     ],
   },
   "2026-10-18": {
-    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny e dados da empresa conferidos com a Receita",
+    titulo: "Ficha técnica nas Máquinas, OC com os campos do Tiny, carteira dos licenciados My Frost e dados da empresa conferidos com a Receita",
     itens: [
       "Máquinas com abas novas: Ficha técnica (as peças de cada máquina por grupo, o custo e as etapas de produção, a mesma da Produção) e Manuais (os documentos de todas as máquinas num lugar só, com o que falta em cada uma: manual, manual elétrico e dicas de manutenção).",
       "Arrastar para ordenar: os itens da ficha técnica, as etapas de produção e os manuais da máquina mudam de lugar pela alça de 6 pontinhos (mouse ou dedo, também no celular) ou pelas setas do teclado. Solto numa peça de outro grupo, o item passa para aquele grupo. A ordem fica gravada ao salvar a ficha.",
       "Teste do giga → aba Manual do HG371: o passo a passo de programação do Gigateste, os limites do manual comparados com os do ERP e o botão para usar os valores do manual (só o administrador).",
       "Configurações → Unidades → Editar → Conferir com a Receita: o ERP consulta a Receita pelo CNPJ e mostra, campo a campo, o que está diferente (razão social, IE, endereço, CNAE, telefone, e-mail) e a situação do CNPJ; você marca o que quer trocar e salva. O CNPJ passa a ser gravado só com os números.",
       "NFS-e importadas: as notas de serviço da filial SP agora são reconhecidas como dela (o CNPJ da SP estava gravado com pontos e barra e a importação não achava a unidade).",
+      "Licenciados My Frost (sorvete no fim do menu, só o administrador): carteira da My Frost Sorveterias com as lojas licenciadas e o que cada uma pagou (licença, mensalidade, royalties…), no estilo do painel pessoal. \"Para conferir\" traz as entradas altas dos extratos pessoais e as vendas altas no cartão das InfinitePay: ligue cada uma à loja (dá para dividir uma venda entre duas lojas), crie a loja a partir da entrada ou marque \"não é de loja\". Fora da MF, do DRE e do contador.",
       "Compras → OC - Ordem de Compra com os campos do Tiny: data da OC, nº no fornecedor, categoria, IPI % e ICMS ST por item, informações do item, frete, outras despesas e desconto com o total da OC, forma de pagamento com as parcelas (geradas pela condição, ex.: 30/60/90, e editáveis), transportadora, frete por conta de e observações internas. Os campos novos vão no PDF e no WhatsApp; ao receber a OC inteira, cada parcela vira uma conta a pagar com o seu vencimento.",
     ],
   },
