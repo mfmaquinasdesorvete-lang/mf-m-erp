@@ -203,6 +203,14 @@ function seed(): Db {
       { id: "pl7", conta_id: "pc3", data: dias(-2), descricao: "Rendimento da reserva", valor: 128.4, categoria: "Investimentos", situacao: "realizado", anulado: false },
       { id: "pl8", conta_id: "pc1", data: dias(5), descricao: "Escola", valor: -1350, categoria: "Educação", situacao: "previsto", anulado: false },
       { id: "pl9", conta_id: "pc1", data: dias(9), descricao: "Fatura do cartão pessoal", valor: -786.15, categoria: "Cartão (fatura)", situacao: "previsto", anulado: false },
+      { id: "pl10", conta_id: "pc1", data: dias(-15), descricao: "PAGTO FINANC VEIC 08/48", valor: -1890.45, categoria: "Transporte", situacao: "realizado", anulado: false },
+      { id: "pl11", conta_id: "pc2", data: dias(-7), descricao: "IFOOD *RESTAURANTE EXEMPLO", valor: -78.9, categoria: "Lazer", situacao: "realizado", anulado: false },
+      { id: "pl12", conta_id: "pc2", data: dias(-1), descricao: "IFOOD *LANCHES EXEMPLO", valor: -45.5, categoria: "Lazer", situacao: "realizado", anulado: false },
+      { id: "pl13", conta_id: "pc1", data: dias(-11), descricao: "PAGAMENTO DARF 2089", valor: -1320, categoria: "Impostos e taxas", situacao: "realizado", anulado: false },
+      { id: "pl14", conta_id: "pc1", data: dias(-14), descricao: "UNIMED EXEMPLO", valor: -980, categoria: "Saúde", situacao: "realizado", anulado: false },
+      { id: "pl15", conta_id: "pc1", data: dias(-9), descricao: "PIX ENVIADO GELADOS EXEMPLO", valor: -3000, categoria: "Transferências", situacao: "realizado", anulado: false },
+      { id: "pl16", conta_id: "pc1", data: dias(-5), descricao: "TARIFA PACOTE DE SERVICOS", valor: -39.9, categoria: "Impostos e taxas", situacao: "realizado", anulado: false },
+      { id: "pl17", conta_id: "pc1", data: dias(-36), descricao: "UNIMED EXEMPLO", valor: -980, categoria: "Saúde", situacao: "realizado", anulado: false },
     ],
     // data real em que virou cliente (no sistema real: a view public.clientes_desde)
     clientes_desde: [

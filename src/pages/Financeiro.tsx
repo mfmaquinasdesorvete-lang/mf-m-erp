@@ -115,10 +115,12 @@ export default function Financeiro() {
   const navigate = useNavigate();
   const [novaAoAbrir, setNovaAoAbrir] = useState(false);
   const [tipoInicial, setTipoInicial] = useState<TipoPagar | "">("");
+  // vindo do painel pessoal ("Lançar na MF"): a conta nova já preenchida, para conferir e salvar
+  const [contaInicial, setContaInicial] = useState<Partial<Pagar> | null>(null);
   // vindo do Analista fiscal: contas a pagar só com as contas apontadas
   const [destaque, setDestaque] = useState<Destaque | null>(null);
   useEffect(() => {
-    const st = location.state as { aba?: typeof aba; nova?: boolean; tipo?: TipoPagar } | null;
+    const st = location.state as { aba?: typeof aba; nova?: boolean; tipo?: TipoPagar; inicial?: Partial<Pagar> } | null;
     const d = lerDestaque(location.state);
     if (d) setDestaque(d);
     if (st?.aba) {
@@ -126,6 +128,7 @@ export default function Financeiro() {
       const nova = (st.aba === "pagar" && !veContasPagar) || (st.aba === "cobranca" && !veCobranca) ? "receber" : st.aba;
       setNovaAoAbrir(!!st.nova);
       setTipoInicial(st.tipo ?? "");
+      setContaInicial(st.inicial ?? null);
       navigate({ pathname: location.pathname, search: buscaDaAba(nova, "visao") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -187,7 +190,7 @@ export default function Financeiro() {
             {veContasPagar && <Indicador rotulo="A pagar nos próximos 7 dias" icon={CalendarClock} cor={resumo.vencidoPagar > 0 ? "vermelho" : "ambar"}
               valor={brl(resumo.pagar7dias)} sub={resumo.vencidoPagar ? `${brl(resumo.vencidoPagar)} vencido` : undefined} />}
           </div>}
-          {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} onNovaAberta={() => setNovaAoAbrir(false)}
+          {aba === "pagar" && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} contaInicial={contaInicial} onNovaAberta={() => { setNovaAoAbrir(false); setContaInicial(null); }}
             tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
         </>
       )}
@@ -478,8 +481,8 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false }: {
-  contas: Pagar[]; novaAoAbrir?: boolean; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void; carregando?: boolean;
+function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false }: {
+  contas: Pagar[]; novaAoAbrir?: boolean; contaInicial?: Partial<Pagar> | null; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void; carregando?: boolean;
 }) {
   const { padrao, unidades } = useUnidade();
   const { pode } = usePerfil();
@@ -541,7 +544,7 @@ function ContasPagar({ contas, novaAoAbrir = false, onNovaAberta, tipoInicial = 
   const formaDaObs = (obs: string | null) => /pagar por ([^·]+)/.exec(obs ?? "")?.[1]?.trim() ?? null;
   useEffect(() => {
     if (!novaAoAbrir) return;
-    abrirConta({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [] } as any);
+    abrirConta({ categoria: "fornecedores", vencimento: hoje(), descricao: "", unidade_id: padrao, rateio: [], ...contaInicial } as any);
     onNovaAberta?.();
   }, [novaAoAbrir]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -2,10 +2,15 @@
 // investimento —, separadas da empresa. Nada daqui entra no DRE, na conciliação, nos painéis da empresa nem no pacote
 // do contador; no banco, cada linha é de quem a criou e só essa pessoa lê. Nada é apagado: lançamento errado é anulado.
 // Período escolhido no alto (mês, 3/6/12 meses, ano, tudo ou datas livres), comparado com o período anterior.
+// Os cards separam os gastos por tipo (veículo, impostos, plano de saúde…); os em âmbar são para mostrar ao contador, e o
+// arquivo "Baixar para o contador" só sai quando o dono baixa (o contador não vê este painel).
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowDownCircle, ArrowUpCircle, Barcode, Building2, CalendarClock, ChevronLeft, ChevronRight, CreditCard, Check, FileUp, Landmark, Lock,
-  Pencil, PiggyBank, Plus, Search, Undo2, Wallet, X,
+  ArrowDownCircle, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Download, FileUp, Fuel,
+  HandHeart, HeartPulse, Home, Landmark, Lock, Pencil, Percent, PiggyBank, Pill, Plus, Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Undo2,
+  UtensilsCrossed, Wallet, X,
+  type LucideIcon,
 } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Stat } from "@/components/ui";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
@@ -17,11 +22,13 @@ import { lerExtrato } from "@/lib/extrato";
 import { lerExtratoPdf } from "@/lib/extratoPdf";
 import { lerBoleto } from "@/lib/boleto";
 import { numeroBR } from "@/lib/fichaCadastral";
+import { baixarPlanilha } from "@/lib/exportar";
 import { useUnidade } from "@/lib/unidade";
+import type { Parte } from "@/lib/partesRelacionadas";
 import {
-  CATEGORIAS, CORES_CONTA, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos,
-  recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal, ultimoLancamento,
-  type ContaPessoal, type Empresa, type Faixa, type LancPessoal, type PeriodoId, type TipoConta,
+  CATEGORIAS, CORES_CONTA, GRUPOS_PESSOAIS, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo,
+  grupoDe, gruposDoPeriodo, proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal,
+  ultimoLancamento, type ContaPessoal, type Empresa, type Faixa, type GrupoPessoalId, type LancPessoal, type PeriodoId, type TipoConta,
 } from "@/lib/pessoal";
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -32,6 +39,17 @@ const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "s
 const mesCurto = (ym: string) => `${MESES_CURTOS[Number(ym.slice(5, 7)) - 1]}/${ym.slice(2, 4)}`;
 const diaLongo = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "long", year: "numeric" });
 const pct = (agora: number, antes: number) => (antes > 0 ? Math.round(((agora - antes) / antes) * 100) : null);
+const NA_EMPRESA = "Pago pela conta pessoal do sócio (dinheiro do sócio). Confirmar com o contador.";
+
+/** Ícone e cor de cada card de gasto (fundo forte, ícone branco: igual nos dois temas). */
+const VISUAL_GRUPO: Record<GrupoPessoalId, { icone: LucideIcon; cor: string }> = {
+  veiculo: { icone: Car, cor: "#0284c7" }, empresas: { icone: Building2, cor: "#7c3aed" }, impostos: { icone: Receipt, cor: "#b45309" },
+  saude: { icone: HeartPulse, cor: "#047857" }, seguros: { icone: ShieldCheck, cor: "#1d4ed8" }, cartoes: { icone: CreditCard, cor: "#475569" },
+  bancos: { icone: Landmark, cor: "#334155" }, postos: { icone: Fuel, cor: "#c2410c" }, online: { icone: ShoppingBag, cor: "#a21caf" },
+  doacoes: { icone: HandHeart, cor: "#db2777" },
+  delivery: { icone: UtensilsCrossed, cor: "#be185d" }, farmacia: { icone: Pill, cor: "#0f766e" }, mercado: { icone: ShoppingCart, cor: "#15803d" },
+  assinaturas: { icone: Repeat, cor: "#6d28d9" }, casa: { icone: Home, cor: "#0369a1" }, tarifas: { icone: Percent, cor: "#b91c1c" },
+};
 
 /** "▲ 12% do período anterior", "igual ao período anterior" ou nada quando não há com o que comparar. */
 function comparado(agora: number, antes: number) {
@@ -45,11 +63,14 @@ export default function Pessoal() {
   const { unidades } = useUnidade();
   const { data: contas = [], isLoading } = useRows<ContaPessoal>("pessoal_contas", { order: "ordem", ascending: true });
   const { data: lancs = [] } = useRows<LancPessoal>("pessoal_lancamentos", { order: "data", ascending: false });
+  const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
+  const navigate = useNavigate();
   const [periodo, setPeriodo] = useState<PeriodoId>("mes");
   const [mesEscolhido, setMes] = useState<string | null>(null);
   const [livre, setLivre] = useState<Faixa>({ de: `${hoje().slice(0, 7)}-01`, ate: hoje() });
   const [conta, setConta] = useState("");
   const [categoria, setCategoria] = useState("");
+  const [grupo, setGrupo] = useState<GrupoPessoalId | "">("");
   const [busca, setBusca] = useState("");
   const [editConta, setEditConta] = useState<Partial<ContaPessoal> | null>(null);
   const [editLanc, setEditLanc] = useState<Partial<LancPessoal> | null>(null);
@@ -61,6 +82,14 @@ export default function Pessoal() {
     nomes: [...new Set(unidades.map((u) => u.razao_social ?? "").filter(Boolean))],
     documentos: unidades.map((u) => String(u.cnpj ?? "").replace(/\D/g, "")).filter((d) => d.length === 14),
   }), [unidades]);
+  // para o card "Pix para as empresas": a MF e as empresas ligadas (cadastradas em Entre contas e sócios)
+  const empresas: Empresa = useMemo(() => {
+    const ligadas = partes.filter((p) => p.tipo === "empresa" && p.ativo !== false);
+    return {
+      nomes: [...empresa.nomes, ...ligadas.flatMap((p) => [p.nome, ...(p.nomes_extrato ?? [])])],
+      documentos: [...empresa.documentos, ...ligadas.flatMap((p) => (p.documentos ?? []).map((d) => String(d).replace(/\D/g, "")))],
+    };
+  }, [empresa, partes]);
 
   // começa no mês atual; sem lançamento nele, no último mês com movimento (o extrato pode estar atrasado)
   const mesPadrao = useMemo(() => {
@@ -94,7 +123,22 @@ export default function Pessoal() {
   const daMFperiodo = daMF.filter((l) => l.situacao === "realizado" && l.data >= faixa.de && l.data <= faixa.ate).reduce((t, l) => t + Number(l.valor), 0);
   const daMFsemCategoria = daMF.filter((l) => l.categoria !== PRO_LABORE);
 
+  // cards por tipo de gasto
+  const grupos = useMemo(() => gruposDoPeriodo(daConta, faixa, anterior, empresas), [daConta, faixa.de, faixa.ate, anterior.de, anterior.ate, empresas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const grupoDoLanc = useMemo(() => new Map(daConta.map((l) => [l.id, grupoDe(l, empresas)])), [daConta, empresas]);
+  const grupoSel = GRUPOS_PESSOAIS.find((g) => g.id === grupo);
+  function escolherGrupo(id: GrupoPessoalId) {
+    const novo = grupo === id ? "" : id;
+    setGrupo(novo);
+    if (novo) setTimeout(() => document.getElementById("lancamentos-pessoais")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+  // imposto da MF pago daqui: abre Contas a pagar da empresa já preenchida, para conferir e salvar
+  const lancarNaMF = (l: LancPessoal) => navigate("/financeiro", { state: { aba: "pagar", nova: true, tipo: "imposto", inicial: {
+    descricao: l.descricao.slice(0, 200), valor: Math.abs(Number(l.valor)), vencimento: l.data, categoria: "impostos", observacoes: `${NA_EMPRESA} Pago em ${dataBR(l.data)}.`,
+  } } });
+
   const lista = daConta.filter((l) => l.data >= faixa.de && l.data <= faixa.ate && (!categoria || (l.categoria ?? "Outros") === categoria)
+    && (!grupo || grupoDoLanc.get(l.id) === grupo)
     && (!busca.trim() || [l.descricao, l.categoria].some((x) => sem(x).includes(sem(busca.trim())))));
   const porDia = useMemo(() => {
     const m = new Map<string, LancPessoal[]>();
@@ -119,6 +163,25 @@ export default function Pessoal() {
     if (error) return notifyError(error);
     notify(`${ids.length} ${pl(ids.length, "entrada da empresa ficou", "entradas da empresa ficaram")} como pró-labore`);
     invalidar("pessoal_lancamentos");
+  }
+
+  // planilha para mostrar ao contador: o resumo dos cards, o que precisa de decisão dele e o que veio da empresa
+  async function baixarContador() {
+    const noPeriodo = (l: LancPessoal) => !l.anulado && l.situacao === "realizado" && l.data >= faixa.de && l.data <= faixa.ate;
+    const linha = (l: LancPessoal, tipo: string, obs: string) => ({
+      Data: dataBR(l.data), Conta: nomeConta(l.conta_id)?.nome ?? "", Descrição: l.descricao, "Valor (R$)": Math.abs(Number(l.valor)), Tipo: tipo, Observação: obs,
+    });
+    const conferir = daConta.filter(noPeriodo).flatMap((l) => {
+      const g = GRUPOS_PESSOAIS.find((x) => x.id === grupoDoLanc.get(l.id));
+      return g?.aviso ? [linha(l, g.nome, g.aviso)] : [];
+    });
+    try {
+      await baixarPlanilha(`pessoal-para-o-contador-${faixa.de}-a-${faixa.ate}`, [
+        { nome: "Resumo por tipo", linhas: grupos.map((g) => ({ Tipo: g.nome, "Total no período (R$)": g.total, Lançamentos: g.qtd, "Período anterior (R$)": g.anterior, "Para o contador": g.aviso ?? "" })) },
+        { nome: "Para conferir", linhas: conferir },
+        { nome: "Da empresa para você", linhas: daMF.filter(noPeriodo).map((l) => linha(l, l.categoria ?? "", "Pró-labore, distribuição de lucros ou empréstimo? Confirmar com o contador.")) },
+      ]);
+    } catch (e) { notifyError(e); }
   }
 
   const rotuloPeriodo = periodo === "mes" ? nomeMes(mes) : periodo === "ano" ? mes.slice(0, 4)
@@ -202,6 +265,41 @@ export default function Pessoal() {
           <Stat label={resumo.resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={brl(resumo.resultado)} icon={PiggyBank} tom={resumo.resultado >= 0 ? "bom" : "critico"}
             sub={`gasto médio de ${brl(resumo.mediaDia)} por dia · ${resumo.quantidade} ${pl(resumo.quantidade, "lançamento", "lançamentos")}`} />
         </div>
+
+        {/* gastos por tipo: um card para cada; toque abre os lançamentos dele */}
+        <Card className="mb-4 p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-start gap-2">
+            <div className="mr-auto min-w-0">
+              <h2 className="font-bold text-fg">Seus gastos por tipo</h2>
+              <p className="text-xs text-slate-500">Pelo texto do extrato · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
+            </div>
+            <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo}><Download size={15} /> Baixar para o contador</Button>
+          </div>
+          {!grupos.length ? <p className="text-sm text-slate-500">Nenhum gasto reconhecido no período (financiamento, impostos, plano de saúde, iFood, postos…).</p> : (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+              {grupos.map((g) => {
+                const { icone: Icone, cor } = VISUAL_GRUPO[g.id];
+                const v = pct(g.total, g.anterior);
+                return (
+                  <button key={g.id} type="button" onClick={() => escolherGrupo(g.id)} aria-pressed={grupo === g.id} title={g.dica}
+                    className={`flex min-w-0 flex-col rounded-2xl border p-3 text-left transition hover:shadow-card ${g.aviso ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-70"}`}>
+                    <span className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-2">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white" style={{ background: cor }}><Icone size={16} aria-hidden /></span>
+                      <span className="line-clamp-2 min-w-0 text-sm font-bold leading-tight text-fg">{g.nome}</span>
+                    </span>
+                    <span className="num mt-2 text-lg font-bold text-fg">{brl(g.total)}</span>
+                    <span className="flex flex-wrap gap-x-2 text-[11px] text-slate-500">
+                      <span>{g.qtd} {pl(g.qtd, "lançamento", "lançamentos")}</span>
+                      {v != null ? <span className={v > 0 ? "font-semibold text-red-600" : v < 0 ? "font-semibold text-emerald-700" : ""} title={comparado(g.total, g.anterior)}>{v > 0 ? "▲" : v < 0 ? "▼" : "="} {Math.abs(v)}%</span>
+                        : g.total > 0 && <span>novo no período</span>}
+                    </span>
+                    {g.aviso && <span className="mt-1 text-[11px] font-semibold text-amber-800">Mostrar ao contador</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Card>
 
         {/* as contas, cada uma com a sua cor */}
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -335,14 +433,21 @@ export default function Pessoal() {
           </Card>
         </div>
 
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h2 className="mr-auto font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}{conta ? ` · ${nomeConta(conta)?.nome}` : ""}{categoria ? ` · ${categoria}` : ""} · {lista.length}</span></h2>
+        <div id="lancamentos-pessoais" className="mb-2 flex scroll-mt-4 flex-wrap items-center gap-2">
+          <h2 className="mr-auto font-bold text-fg">Lançamentos <span className="text-sm font-normal text-slate-500">· {rotuloPeriodo}{conta ? ` · ${nomeConta(conta)?.nome}` : ""}{categoria ? ` · ${categoria}` : ""}{grupoSel ? ` · ${grupoSel.nome}` : ""} · {lista.length}</span></h2>
           <label className="relative w-full sm:w-64">
             <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
             <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar lançamento" aria-label="Buscar lançamento" />
           </label>
-          {(conta || categoria) && <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setConta(""); setCategoria(""); }}>Tirar os filtros</button>}
+          {(conta || categoria || grupo) && <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); }}>Tirar os filtros</button>}
         </div>
+        {grupoSel?.aviso && (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="min-w-0 flex-1 basis-64"><b>{grupoSel.nome}:</b> {grupoSel.aviso}</span>
+            {grupoSel.id === "impostos" && <span className="text-xs">Use <b>Lançar na MF</b> em cada imposto que for da empresa.</span>}
+            {grupoSel.id === "empresas" && <Link to="/partes-relacionadas" className="text-xs font-semibold text-brand hover:underline">Ver o lado da empresa em Entre contas e sócios →</Link>}
+          </div>
+        )}
         <Card className="overflow-hidden">
           {!lista.length ? <p className="p-4 text-sm text-slate-500">Nenhum lançamento no período.</p> : (
             <div>
@@ -370,7 +475,11 @@ export default function Pessoal() {
                               </span>
                             </span>
                             <span className={`num shrink-0 font-bold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</span>
-                            <span className="flex shrink-0 gap-1">
+                            <span className="flex shrink-0 items-center gap-1">
+                              {grupoDoLanc.get(l.id) === "impostos" && !l.anulado && (
+                                <button type="button" onClick={() => lancarNaMF(l)} title="Imposto da MF pago daqui: abre Contas a pagar da empresa já preenchido"
+                                  className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">Lançar na MF</button>
+                              )}
                               <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => setEditLanc(l)} aria-label={`Editar ${l.descricao}`}><Pencil size={15} /></button>
                               <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => anular(l)}
                                 aria-label={l.anulado ? `Trazer de volta ${l.descricao}` : `Anular ${l.descricao}`} title={l.anulado ? "Trazer de volta" : "Anular (não conta no saldo)"}>{l.anulado ? <Undo2 size={15} /> : <span className="text-base leading-none">⊘</span>}</button>
