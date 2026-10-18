@@ -28,19 +28,22 @@ const SITUACAO_OS: Record<string, string> = { aberta: "Recebida", em_diagnostico
 const SITUACAO_PEDIDO: Record<string, string> = { aprovado: "Em separação", faturado: "Faturado", entregue: "Entregue" };
 
 export default function AreaCliente() {
-  const token = useLocation().pathname.split("/")[2] ?? "";
+  const codigo = decodeURIComponent(useLocation().pathname.split("/")[2] ?? "");
+  // link antigo: o código comprido (uuid); link novo: nome-do-cliente-código
+  const antigo = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(codigo);
   const { data: a, isLoading } = useQuery({
-    queryKey: ["area_cliente", token],
+    queryKey: ["area_cliente", codigo],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("area_cliente", { p_token: token });
+      const { data, error } = antigo ? await supabase.rpc("area_cliente", { p_token: codigo }) : await supabase.rpc("area_cliente_link", { p_link: codigo });
       if (error) throw error;
-      return data as Area | null;
+      return data as (Area & { token?: string }) | null;
     },
     retry: false,
   });
   const [escolhida, setAba] = useState<Aba | null>(null);
   if (isLoading) return <Tela><p className="py-24 text-center text-slate-500">Carregando…</p></Tela>;
   if (!a) return <Tela><p className="py-24 text-center text-slate-600">Link não encontrado. Peça um link novo para a MF Máquinas.</p></Tela>;
+  const token = antigo ? codigo : a.token ?? "";
   const dia = hoje();
   const total = a.abertas.reduce((s, c) => s + Number(c.valor), 0);
   const zap = a.empresa.whatsapp || a.empresa.telefone;

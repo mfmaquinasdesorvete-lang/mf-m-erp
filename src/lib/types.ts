@@ -5,7 +5,7 @@ export type Cliente = {
   inscricao_estadual: string | null; contribuinte_icms: number; email: string | null;
   telefone: string | null; whatsapp: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
-  uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null; portal_token?: string;
+  uf: string | null; observacoes: string | null; avisos_email?: boolean; created_at?: string; preferencias?: string | null; portal_token?: string; portal_link?: string | null;
   /** cadastrado pelo representante no portal: falta a empresa conferir */
   portal_conferir?: boolean;
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;

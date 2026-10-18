@@ -48,7 +48,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
     return preencherMensagem(e.mensagem, {
       cliente: c.cliente?.nome_fantasia?.trim() || c.cliente?.nome, descricao: c.descricao, valor, vencimento: c.vencimento,
       dias_atraso: Math.max(0, Math.round((Date.parse(dia) - Date.parse(c.vencimento)) / 864e5)), empresa: cfg?.nome_fantasia || cfg?.razao_social,
-      link: c.cliente?.portal_token ? `${base}/cliente/${c.cliente.portal_token}` : null,
+      link: c.cliente?.portal_token ? `${base}/cliente/${c.cliente.portal_link || c.cliente.portal_token}` : null,
       pix: c.status === "aberto" ? pixDaConta(u, valor, c.id) : null, pagamento: c.status === "aberto" ? u?.instrucoes_pagamento : null,
     });
   };

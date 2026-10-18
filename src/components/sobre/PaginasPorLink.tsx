@@ -24,7 +24,7 @@ async function tokenDoExemplo(tipo: ExemploLink): Promise<string | null> {
     return (data ?? []) as Record<string, any>[];
   };
   if (tipo === "proposta") return (await um("pedidos", "proposta_token", (q) => q.not("proposta_status", "is", null), "proposta_enviada_em"))[0]?.proposta_token ?? null;
-  if (tipo === "cliente") return (await um("clientes", "portal_token", (q) => q))[0]?.portal_token ?? null;
+  if (tipo === "cliente") { const c = (await um("clientes", "portal_token, portal_link", (q) => q))[0]; return c?.portal_link ?? c?.portal_token ?? null; }
   if (tipo === "ficha") return (await um("clientes_assinaturas", "token", (q) => q.eq("canal", "link"), "created_at"))[0]?.token ?? null;
   if (tipo === "maquina") return (await um("equipamentos", "token", (q) => q, "data_venda"))[0]?.token ?? null;
   // cotação: só as que já foram enviadas (rascunho não abre para o fornecedor)

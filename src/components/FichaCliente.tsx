@@ -144,11 +144,11 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           {c.portal_token && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
-                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_link || c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
                 <Link2 size={15} /> Link do cliente
               </Button>
-              <a href={`/cliente/${c.portal_token}`} target="_blank" rel="noreferrer" className="whitespace-nowrap text-sm font-semibold text-brand hover:underline"
-                onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_token}`); } }}>Ver como o cliente vê</a>
+              <a href={`/cliente/${c.portal_link || c.portal_token}`} target="_blank" rel="noreferrer" className="whitespace-nowrap text-sm font-semibold text-brand hover:underline"
+                onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_link || c.portal_token}`); } }}>Ver como o cliente vê</a>
             </div>
           )}
         </div>

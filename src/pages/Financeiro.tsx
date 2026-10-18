@@ -329,7 +329,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
       `Valor: ${brl(c.valor)} · Vencimento: ${dataBR(c.vencimento)}`,
       pix ? `\n*Pix copia e cola:*\n${pix}` : "",
       pagamentoDe(c) ? `\n*Como pagar:*\n${pagamentoDe(c)}` : "",
-      c.cliente?.portal_token ? `\nSuas contas e a segunda via: ${window.location.origin}/cliente/${c.cliente.portal_token}` : "",
+      c.cliente?.portal_token ? `\nSuas contas e a segunda via: ${window.location.origin}/cliente/${c.cliente.portal_link || c.cliente.portal_token}` : "",
     ].filter(Boolean).join("\n");
   };
 

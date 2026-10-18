@@ -1114,6 +1114,7 @@ function planoDemo(db: Db) {
     });
   }
   db.clientes.forEach((c, i) => { c.portal_token ??= `demo-portal-${i + 1}`; });
+  db.clientes.forEach((c, i) => { c.portal_link ??= `${slugPortal(c.nome_fantasia || c.nome)}-demo${i + 1}`; });
   // categorias dos produtos (como no Tiny)
   const cats = ["As Máquinas My Frost", "Chave Extratora - Portelo", "Peças de Reposição", "Peças Eletrica - My Frost", "Peças Mecânica - My Frost",
     "Peças Refrigeração - My Frost", "Vedantes/ Orings My Frost", "As Extrutura Máquinas", "As Extrutura Máquinas > Cilindros", "Batedor de Milk"];
@@ -2361,6 +2362,11 @@ function pdvConsumidorDemo() {
   return c.id;
 }
 
+/** Parte do link da página do cliente com o nome (como gerar_portal_link do banco, sem o sorteio). */
+function slugPortal(nome: string | null | undefined) {
+  return String(nome ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "cliente";
+}
+
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
   // no sistema real: public.renegociar_contas_pagar (Contas a pagar → marcar → Renegociar)
   renegociar_contas_pagar: ({ p_ids, p_titulo, p_trocar, p_valor, p_parcelas, p_primeiro, p_obs }) => {
@@ -3063,6 +3069,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       db.contatos_cliente.push({ id: uid(), cliente_id: c.cliente_id, tipo: "cobranca", canal: p_canal ?? "whatsapp", resultado: `Régua de cobrança (${e.nome}): ${c.descricao} · ${reaisDemo(Number(c.valor))}`, created_at: new Date().toISOString() });
     }
     return { data: null, error: null };
+  },
+  area_cliente_link: ({ p_link }) => {
+    const c = db.clientes.find((x) => x.portal_link === String(p_link).toLowerCase());
+    if (!c) return { data: null, error: null };
+    const r = rpcs.area_cliente({ p_token: c.portal_token });
+    return { data: r.data ? { ...r.data, token: c.portal_token } : null, error: null };
   },
   area_cliente: ({ p_token }) => {
     const c = db.clientes.find((x) => x.portal_token === p_token);
