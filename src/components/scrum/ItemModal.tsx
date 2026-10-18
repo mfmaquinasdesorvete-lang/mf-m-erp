@@ -1,6 +1,6 @@
 // Janela do item do Scrum (novo ou para editar): título, tipo, pontos, responsável, onde fica, descrição, critério de
-// aceite, tarefas, cenários, casos de teste e a conversa da equipe. O assistente preenche e monta rascunhos; nada
-// grava até o Salvar (só o comentário, que grava na hora).
+// aceite, tarefas, cenários, casos de teste e a conversa da equipe. O assistente preenche e monta rascunhos e o Fluxo
+// BDD encadeia conversa → critérios → cenários → duplicidade → testes; nada grava até o Salvar (só o comentário).
 import { useState, type FormEvent, type ReactNode } from "react";
 import { BadgeCheck, ChevronDown, FileText, FlaskConical, ListChecks, Sparkles, Trash2, Undo2, Wand2, Workflow } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/scrum";
 import { Comentarios, ListaTarefas, ListaTestes, Parecidos, resumoTestes } from "./AssistenteItem";
 import { EscolhaPontos, type Pessoa } from "./comum";
+import { FluxoBdd } from "./FluxoBdd";
 
 type Rascunho = {
   titulo: string; tipo: TipoItem; pontos: number | null; responsavel_id: string; descricao: string; criterio_aceite: string;
@@ -158,6 +159,12 @@ export function ItemModal({ time, item, sprintInicial, sprints, itensDoTime, tod
               </button>
             ))}
           </div>
+          <FluxoBdd r={r} item={item} todosItens={todosItens} pessoas={todasPessoas} onAbrir={onAbrir}
+            onAplicar={(f, linhas) => {
+              setAviso({ linhas, antes: r });
+              setR({ ...r, criterio_aceite: f.criterio_aceite, cenarios: f.cenarios, testes: f.testes });
+              setAberto((x) => ({ ...x, cenarios: true, testes: true }));
+            }} />
           {aviso && (
             <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface p-2 text-xs text-slate-700" role="status">
               <ul className="min-w-0 flex-1 space-y-0.5">{aviso.linhas.map((l, k) => <li key={k}>{l}</li>)}</ul>
