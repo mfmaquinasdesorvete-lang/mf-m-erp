@@ -1,0 +1,166 @@
+// Cenários BDD das regras que o ERP Line já segue na MF (conferidas no código e no banco). Vão para o backlog do
+// Scrum com um toque (Scrum → Como usar), já com critério de aceite, cenários e casos de teste, para a equipe
+// testar cada regra de ponta a ponta. Linguagem de quem usa, um comportamento por cenário.
+import type { TipoItem } from "./scrum";
+
+export type RegraMf = { titulo: string; tipo: TipoItem; pontos: number; tela: string; criterio: string; cenarios: string };
+
+const f = (nome: string, como: string, quero: string, para: string, cenarios: string[]) =>
+  ["# language: pt", `Funcionalidade: ${nome}`, `  Como ${como}`, `  Quero ${quero}`, `  Para ${para}`, "", ...cenarios].join("\n");
+
+export const REGRAS_MF: RegraMf[] = [
+  {
+    titulo: "Conta a pagar só é paga depois de aprovada", tipo: "historia", pontos: 3, tela: "Financeiro → Contas a pagar",
+    criterio: "- Conta sem aprovação não pode ser marcada como paga\n- Depois de aprovada, o pagamento é registrado normalmente\n- A mensagem diz o que falta (a aprovação)",
+    cenarios: f("Pagamento só depois da aprovação", "financeiro", "registrar só pagamentos aprovados", "não pagar nada que ninguém conferiu", [
+      "  Cenário: Conta ainda sem aprovação",
+      "    Dado que existe uma conta a pagar que ainda não foi aprovada",
+      "    Quando tento registrar o pagamento",
+      "    Então o ERP não deixa pagar",
+      "    E aparece que o pagamento só pode ser registrado depois da aprovação",
+      "",
+      "  Cenário: Conta aprovada",
+      "    Dado que a conta foi aprovada em Aprovações",
+      "    Quando registro o pagamento",
+      "    Então a conta fica paga com a data e a conta do banco",
+    ]),
+  },
+  {
+    titulo: "Fornecedor marcado como golpe não recebe pagamento", tipo: "historia", pontos: 2, tela: "Fornecedores → cadastro",
+    criterio: "- Conta de fornecedor marcado como golpe não pode ser aprovada nem agendada\n- Marcar como golpe exige o motivo\n- Só o administrador tira o bloqueio",
+    cenarios: f("Bloqueio de fornecedor golpe", "financeiro", "que o ERP trave contas de fornecedores golpistas", "não pagar boleto falso", [
+      "  Cenário: Conta de fornecedor golpe",
+      "    Dado que o fornecedor está marcado como golpe",
+      "    Quando tento aprovar ou agendar uma conta dele",
+      "    Então o ERP recusa",
+      "    E mostra que o fornecedor está marcado como golpe",
+      "",
+      "  Cenário: Marcar sem motivo",
+      "    Quando marco um fornecedor como golpe sem escrever o motivo",
+      "    Então o ERP pede o motivo do bloqueio",
+      "",
+      "  Cenário: Tirar o bloqueio",
+      "    Dado que entrei com um perfil que não é administrador",
+      "    Quando tento tirar o bloqueio",
+      "    Então o ERP diz que só o administrador tira o bloqueio",
+    ]),
+  },
+  {
+    titulo: "Desconto acima do limite pede a senha do administrador", tipo: "historia", pontos: 3, tela: "PDV e Vendas",
+    criterio: "- Até o máximo da regra do canal e do pagamento, o desconto entra direto\n- Acima do máximo, só com a senha de um administrador\n- A regra mais específica (canal + pagamento) vale antes da geral",
+    cenarios: f("Limite de desconto", "vendedor", "dar desconto dentro da regra", "não vender abaixo do combinado", [
+      "  Cenário: Desconto dentro do limite",
+      "    Dado que a regra do balcão no Pix é de no máximo 5%",
+      "    Quando dou 5% de desconto numa venda no Pix",
+      "    Então a venda segue sem senha",
+      "",
+      "  Cenário: Desconto acima do limite",
+      "    Dado que a regra do balcão no Pix é de no máximo 5%",
+      "    Quando dou 8% de desconto",
+      "    Então o ERP pede a senha de um administrador",
+      "    E sem a senha a venda não é finalizada",
+      "",
+      "  Cenário: Regra mais específica vale primeiro",
+      "    Dado que todas as vendas têm limite de 10% e o balcão no Pix tem limite de 5%",
+      "    Quando vendo no balcão no Pix",
+      "    Então o limite usado é 5%",
+    ]),
+  },
+  {
+    titulo: "PDV não vende peça sem estoque na loja", tipo: "historia", pontos: 3, tela: "PDV",
+    criterio: "- Se faltar peça no estoque da loja, a venda não é finalizada e diz qual peça falta\n- Com estoque, a venda fica entregue, o estoque baixa e a conta entra recebida\n- Nada fica gravado pela metade",
+    cenarios: f("Estoque no PDV", "vendedor do balcão", "finalizar só o que tem na loja", "o estoque bater com a prateleira", [
+      "  Cenário: Falta peça na loja",
+      "    Dado que a loja tem 1 unidade da peça",
+      "    Quando tento finalizar uma venda de 2 unidades",
+      "    Então o ERP não finaliza",
+      "    E mostra que as peças são insuficientes no estoque desta unidade",
+      "",
+      "  Cenário: Venda com estoque",
+      "    Dado que a loja tem a peça em estoque",
+      "    Quando finalizo a venda no Pix",
+      "    Então a venda fica entregue",
+      "    E o estoque da loja baixa",
+      "    E a conta entra como recebida",
+    ]),
+  },
+  {
+    titulo: "Pix do balcão abre o QR grande com o valor certo", tipo: "historia", pontos: 2, tela: "PDV",
+    criterio: "- Ao escolher Pix, o QR abre grande com o valor e o agradecimento\n- O QR usa a chave Pix da loja\n- Loja sem chave mostra onde cadastrar",
+    cenarios: f("QR do Pix no balcão", "vendedor do balcão", "mostrar o QR do Pix ao cliente", "receber sem digitar chave", [
+      "  Cenário: Loja com chave Pix",
+      "    Dado que a loja tem chave Pix cadastrada",
+      "    Quando escolho Pix para R$ 45,00",
+      "    Então abre o QR grande com R$ 45,00",
+      "    E aparece \"Obrigado pela preferência!\"",
+      "",
+      "  Cenário: Loja sem chave Pix",
+      "    Dado que a loja não tem chave Pix",
+      "    Quando escolho Pix",
+      "    Então aparece que é preciso cadastrar a chave em Configurações → Unidades",
+    ]),
+  },
+  {
+    titulo: "Mês fechado pelo contador não muda", tipo: "historia", pontos: 3, tela: "Painel do contador",
+    criterio: "- Pagamento de mês fechado não pode ser alterado\n- A mensagem manda pedir ao administrador para reabrir\n- Só o administrador reabre um mês fechado",
+    cenarios: f("Mês fechado", "contador", "que o mês fechado fique como entreguei", "os números da contabilidade não mudarem depois", [
+      "  Cenário: Mudar pagamento de mês fechado",
+      "    Dado que o contador fechou setembro",
+      "    Quando tento mudar um pagamento de setembro",
+      "    Então o ERP não deixa",
+      "    E diz para pedir ao administrador para reabrir",
+      "",
+      "  Cenário: Reabrir o mês",
+      "    Dado que entrei com um perfil que não é administrador",
+      "    Quando tento reabrir setembro",
+      "    Então o ERP diz que só o administrador reabre um mês fechado",
+    ]),
+  },
+  {
+    titulo: "Página do cliente só abre com o link secreto", tipo: "historia", pontos: 2, tela: "Página do cliente",
+    criterio: "- O link tem o nome do cliente e um código sorteado no fim\n- Só o nome, ou CNPJ/CPF, não abre nada\n- O link antigo continua abrindo",
+    cenarios: f("Link da página do cliente", "cliente da MF", "ver minhas contas, máquinas e compras", "pagar e pedir assistência sem ligar", [
+      "  Cenário: Link certo",
+      "    Quando abro o link com o nome e o código sorteado",
+      "    Então vejo minhas contas, máquinas, manutenções e compras",
+      "",
+      "  Cenário: Link adivinhado",
+      "    Quando abro um link só com o nome ou com o CNPJ",
+      "    Então aparece \"Link não encontrado\"",
+      "    E nenhum dado aparece",
+      "",
+      "  Cenário: Link antigo",
+      "    Dado que recebi o link antigo, com o código comprido",
+      "    Quando abro o link",
+      "    Então a página abre normalmente",
+    ]),
+  },
+  {
+    titulo: "Diagnóstico por vídeo fora da garantia tem taxa", tipo: "historia", pontos: 2, tela: "Assistência (OS)",
+    criterio: "- Máquina na garantia: a OS mostra que está na garantia\n- Fora da garantia: a OS avisa a taxa do diagnóstico por vídeo (R$ 150, ou o valor configurado) e lança na mão de obra com um toque\n- A garantia vem da data de compra da máquina",
+    cenarios: f("Taxa do diagnóstico por vídeo", "técnico", "saber na hora se cobra o diagnóstico", "não esquecer de cobrar nem cobrar errado", [
+      "  Cenário: Máquina na garantia",
+      "    Dado que a máquina do cliente está na garantia",
+      "    Quando abro a OS",
+      "    Então a OS mostra que a máquina está na garantia",
+      "",
+      "  Cenário: Máquina fora da garantia",
+      "    Dado que a garantia da máquina já venceu",
+      "    Quando abro a OS",
+      "    Então aparece que o diagnóstico por vídeo chamada é R$ 150,00",
+      "    E com um toque a taxa entra na mão de obra da OS",
+    ]),
+  },
+];
+
+/** Boas práticas de BDD, em palavras simples (Scrum → Como usar) */
+export const BOAS_PRATICAS_BDD: { titulo: string; texto: string; exemplo?: string }[] = [
+  { titulo: "Comece pela conversa", texto: "Antes de escrever, quem pede, quem faz e quem testa combinam a regra com um exemplo real. O que ficar combinado vai nos comentários do item.", exemplo: "\"Combinamos que acima de 5% no Pix pede senha\"" },
+  { titulo: "Escreva como quem usa fala", texto: "Nada de nome de tela técnica ou de banco. Quem lê precisa entender sem explicação.", exemplo: "\"Quando dou 8% de desconto\" — e não \"Quando o campo desconto_pct recebe 8\"" },
+  { titulo: "Um cenário, um comportamento", texto: "Cada cenário testa uma coisa só. Caminho certo, erro e exceção ficam em cenários separados." },
+  { titulo: "Dado, Quando, Então", texto: "Dado = a situação antes. Quando = a ação (uma só). Então = o resultado que dá para ver. \"E\" continua a linha de cima." },
+  { titulo: "Use exemplos concretos", texto: "Valores e quantidades de verdade deixam o cenário testável.", exemplo: "\"a loja tem 1 unidade\", \"R$ 45,00\", \"5%\"" },
+  { titulo: "Diga o que acontece, não como clica", texto: "O cenário descreve o resultado. Os cliques mudam; a regra fica.", exemplo: "\"Então a venda fica entregue\" — e não \"Então clico em OK e depois em Fechar\"" },
+  { titulo: "Não repita cenário", texto: "Antes de criar, o Fluxo BDD mostra cenários parecidos em outros itens. Reaproveite ou ajuste." },
+  { titulo: "Todo cenário vira teste", texto: "Os casos de teste saem dos cenários. Marque passou ou falhou; o teste automático fica pendente até ser programado, para nunca passar sem testar." },
+];

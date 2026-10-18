@@ -1,5 +1,6 @@
 // Scrum para quem nunca usou: o passo a passo em palavras simples (cada passo abre a aba certa) e exemplos prontos
-// da equipe aberta, que vão para o backlog com um toque (um por um ou todos).
+// da equipe aberta, que vão para o backlog com um toque (um por um ou todos); embaixo, as boas práticas de BDD e as
+// regras da MF já escritas em cenários.
 import { useState } from "react";
 import { ChevronDown, ChevronUp, GraduationCap, ListPlus, Plus } from "lucide-react";
 import { Button, Card } from "@/components/ui";
@@ -8,6 +9,7 @@ import { pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { prioridadeNoFim, ROTULO_TIPO, type ItemScrum, type TimeScrum, type TipoItem } from "@/lib/scrum";
+import { BddMf } from "./BddMf";
 
 type Aba = "quadro" | "backlog" | "sprints" | "daily" | "painel" | "equipe";
 type Exemplo = { titulo: string; tipo: TipoItem; pontos: number; criterio: string };
@@ -70,8 +72,8 @@ const EXEMPLOS: Record<string, { objetivo: string; itens: Exemplo[] }> = {
   ] },
 };
 
-export function ComoUsar({ time, backlog, aberto, onAberto, irPara }: {
-  time: TimeScrum; backlog: ItemScrum[]; aberto: boolean; onAberto: (v: boolean) => void; irPara: (aba: Aba) => void;
+export function ComoUsar({ time, backlog, todos, aberto, onAberto, irPara }: {
+  time: TimeScrum; backlog: ItemScrum[]; todos: ItemScrum[]; aberto: boolean; onAberto: (v: boolean) => void; irPara: (aba: Aba) => void;
 }) {
   const invalidar = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
@@ -98,7 +100,7 @@ export function ComoUsar({ time, backlog, aberto, onAberto, irPara }: {
         <span className="flex-1 text-sm font-bold text-fg">Como usar o Scrum (passo a passo com exemplos)</span>
         {aberto ? <ChevronUp size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
       </button>
-      {aberto && (
+      {aberto && (<>
         <div className="mt-3 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
           <ol className="space-y-2">
             {PASSOS.map((p) => (
@@ -136,7 +138,8 @@ export function ComoUsar({ time, backlog, aberto, onAberto, irPara }: {
             <p className="mt-2 text-2xs text-slate-500">Depois é só mudar o texto e os pontos para o jeito da equipe.</p>
           </div>
         </div>
-      )}
+        <BddMf time={time} backlog={backlog} todos={todos} />
+      </>)}
     </Card>
   );
 }

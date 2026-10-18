@@ -94,7 +94,7 @@ export default function Scrum() {
         </div>
       </Card>
 
-      <ComoUsar time={time} backlog={backlog} aberto={guia ?? (!ativa && doTime.sprints.every((s) => s.status !== "encerrada"))} onAberto={setGuia} irPara={(a) => ir({ aba: a })} />
+      <ComoUsar time={time} backlog={backlog} todos={itens} aberto={guia ?? (!ativa && doTime.sprints.every((s) => s.status !== "encerrada"))} onAberto={setGuia} irPara={(a) => ir({ aba: a })} />
 
       <Tabs value={aba} onChange={(a) => ir({ aba: a })} options={ABAS} />
 
