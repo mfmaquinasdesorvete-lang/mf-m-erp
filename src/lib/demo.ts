@@ -512,6 +512,7 @@ function seed(): Db {
   fretesDemo(db);
   fichaDemo(db);
   origemPagarDemo(db);
+  scrumDemo(db);
   return db;
 }
 
@@ -1393,6 +1394,49 @@ function bancosDemo(db: Db) {
 }
 
 /** Vendedores, comissões, kit, propostas e layout da proposta (prévia). */
+/** Scrum das equipes (exemplos inventados; no sistema real: scrum_times, scrum_sprints, scrum_itens e scrum_daily) */
+function scrumDemo(db: Db) {
+  const segunda = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); })();
+  const desloca = (dia: string, n: number) => new Date(new Date(`${dia}T12:00:00Z`).getTime() + n * 864e5).toISOString().slice(0, 10);
+  const inicio = desloca(segunda, -7);
+  db.scrum_times = [
+    { id: "st1", nome: "ERP Line", cor: "#6366f1", descricao: "Melhorias do sistema; as Ideias do Sobre o ERP Line viram itens do backlog.", sprint_dias: 7, membros: ["u-admin", "u-fin"], dono_produto: "u-admin", scrum_master: "u-fin", ordem: 1, ativo: true },
+    { id: "st2", nome: "Produção", cor: "#f97316", descricao: "Fábrica, montagem das máquinas, compras de peças e estoque.", sprint_dias: 14, membros: ["u-tec"], dono_produto: null, scrum_master: null, ordem: 2, ativo: true },
+    { id: "st3", nome: "Assistência", cor: "#14b8a6", descricao: "Ordens de serviço, garantias, preventivas e técnicos parceiros.", sprint_dias: 14, membros: ["u-tec"], dono_produto: null, scrum_master: null, ordem: 3, ativo: true },
+    { id: "st4", nome: "Vendas", cor: "#10b981", descricao: "Vendas de peças e máquinas, propostas, marketplaces e metas.", sprint_dias: 14, membros: ["u-vendas", "u-mkt"], dono_produto: null, scrum_master: null, ordem: 4, ativo: true },
+    { id: "st5", nome: "Financeiro", cor: "#f59e0b", descricao: "Contas, conciliação, cobrança, fechamento com o contador e fiscal.", sprint_dias: 14, membros: ["u-fin"], dono_produto: null, scrum_master: null, ordem: 5, ativo: true },
+  ];
+  const sprint = (x: Row) => ({ objetivo: null, pontos_planejados: null, pontos_feitos: null, revisao: null, retro_bom: null, retro_melhorar: null, retro_acoes: null, encerrada_em: null, created_at: quando(-30), ...x });
+  db.scrum_sprints = [
+    sprint({ id: "ss1", time_id: "st1", numero: 1, inicio: desloca(inicio, -21), fim: desloca(inicio, -15), status: "encerrada", pontos_planejados: 18, pontos_feitos: 13, revisao: "• Filtro por período nas notas\n• Aviso de vencimento das chaves", retro_bom: "Entregas pequenas todo dia", retro_melhorar: "Itens grandes demais", retro_acoes: "Dividir tudo acima de 8 pontos" }),
+    sprint({ id: "ss2", time_id: "st1", numero: 2, inicio: desloca(inicio, -14), fim: desloca(inicio, -8), status: "encerrada", pontos_planejados: 16, pontos_feitos: 15 }),
+    sprint({ id: "ss3", time_id: "st1", numero: 3, inicio: desloca(inicio, -7), fim: desloca(inicio, -1), status: "encerrada", pontos_planejados: 20, pontos_feitos: 17 }),
+    sprint({ id: "ss4", time_id: "st1", numero: 4, objetivo: "Técnicos registram a OS inteira pelo celular", inicio: segunda, fim: desloca(segunda, 6), status: "ativa", pontos_planejados: 21 }),
+    sprint({ id: "ss5", time_id: "st4", numero: 1, objetivo: "Propostas respondidas em até 24 h", inicio: desloca(segunda, -7), fim: desloca(segunda, 6), status: "ativa", pontos_planejados: 13 }),
+  ];
+  const feito = (dias: number) => new Date(new Date(`${segunda}T15:00:00Z`).getTime() + dias * 864e5).toISOString();
+  const it = (x: Row) => ({ tipo: "historia", descricao: null, criterio_aceite: null, pontos: 3, prioridade: 10, status: "a_fazer", responsavel_id: null, ideia_id: null, created_by: "u-admin", concluido_em: null, created_at: quando(-10), ...x });
+  db.scrum_itens = [
+    it({ id: "si1", time_id: "st1", sprint_id: "ss4", titulo: "Fotos da máquina na OS pelo celular", pontos: 5, status: "feito", responsavel_id: "u-fin", concluido_em: feito(0), criterio_aceite: "A foto aparece na OS e no PDF" }),
+    it({ id: "si2", time_id: "st1", sprint_id: "ss4", titulo: "Assinatura do cliente na tela", pontos: 5, status: "revisao", responsavel_id: "u-admin" }),
+    it({ id: "si3", time_id: "st1", sprint_id: "ss4", titulo: "Checklist da preventiva", tipo: "tarefa", pontos: 3, status: "fazendo", responsavel_id: "u-fin" }),
+    it({ id: "si4", time_id: "st1", sprint_id: "ss4", titulo: "OS abre sem internet e envia depois", pontos: 8, status: "a_fazer" }),
+    it({ id: "si5", time_id: "st1", sprint_id: "ss4", titulo: "Erro ao anexar foto grande no iPhone", tipo: "bug", pontos: 0, status: "feito", responsavel_id: "u-fin", concluido_em: feito(1) }),
+    it({ id: "si6", time_id: "st1", sprint_id: null, titulo: "Avisar o cliente quando a máquina sair do conserto", tipo: "melhoria", pontos: 2, prioridade: 10, ideia_id: "pj9" }),
+    it({ id: "si7", time_id: "st1", sprint_id: null, titulo: "Relatório de giro do estoque", pontos: 5, prioridade: 20 }),
+    it({ id: "si8", time_id: "st1", sprint_id: null, titulo: "Importar extrato do Mercado Pago", tipo: "tarefa", pontos: null, prioridade: 30 }),
+    it({ id: "si9", time_id: "st4", sprint_id: "ss5", titulo: "Modelo de proposta para açaí", pontos: 5, status: "feito", responsavel_id: "u-vendas", concluido_em: feito(-4) }),
+    it({ id: "si10", time_id: "st4", sprint_id: "ss5", titulo: "Ligar para propostas paradas há 7 dias", tipo: "tarefa", pontos: 3, status: "fazendo", responsavel_id: "u-vendas" }),
+    it({ id: "si11", time_id: "st4", sprint_id: "ss5", titulo: "Fotos novas dos anúncios", pontos: 5, status: "a_fazer", responsavel_id: "u-mkt" }),
+  ];
+  for (const [sp, n] of [["ss1", 5], ["ss2", 4], ["ss3", 5]] as const) {
+    for (let k = 0; k < n; k++) db.scrum_itens.push(it({ id: `${sp}-${k}`, time_id: "st1", sprint_id: sp, titulo: `Entrega ${k + 1} da sprint`, pontos: 3, status: "feito", concluido_em: quando(-20) }));
+  }
+  db.scrum_daily = [
+    { id: "sd1", sprint_id: "ss4", user_id: "u-fin", nome: "Rafael Financeiro", dia: hojeISO(), fiz: "Fotos na OS e o erro do iPhone", vou_fazer: "Checklist da preventiva", impedimentos: "Falta o modelo do checklist da fábrica", impedimento_resolvido: false, created_at: quando(0) },
+  ];
+}
+
 function comercialDemo(db: Db) {
   Object.assign(db.configuracoes[0], {
     proposta_titulo: "Proposta comercial", proposta_cor: "#0EA5E9", proposta_fotos: true,
@@ -1744,6 +1788,9 @@ let numeroTransf = 2;
 const proximoCodigo = (t: string) => Math.max(0, ...(db[t] ?? []).map((r) => Number(r.codigo) || 0)) + 1;
 
 const DEFAULTS: Record<string, () => Row> = {
+  scrum_itens: () => ({ status: "a_fazer", tipo: "historia", prioridade: 1000, sprint_id: null, ideia_id: null, responsavel_id: null, concluido_em: null, created_by: sessao?.user.id ?? null, created_at: quando(0) }),
+  scrum_sprints: () => ({ status: "planejada", pontos_planejados: null, pontos_feitos: null, created_at: quando(0) }),
+  scrum_daily: () => ({ user_id: sessao?.user.id ?? null, dia: hojeISO(), impedimento_resolvido: false, created_at: quando(0) }),
   etiquetas_envio: () => ({ impressoes: 0, editados: [], dados: {}, atualizado_em: new Date().toISOString() }),
   auditoria_checklist: () => ({ revisado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "Você", updated_at: new Date().toISOString() }),
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
@@ -2041,6 +2088,8 @@ class Query {
         if (this.tabela === "envios") calcularEnvioDemo(r);
         if (this.tabela === "envio_ocorrencias") { r.atualizado_em = new Date().toISOString(); if (r.status === "resolvida") r.resolvida_em ??= r.atualizado_em; }
         if (this.tabela === "fornecimentos" && this.payload.preferido === true) preferidoDemo(r);
+        // no sistema real: gatilho trg_scrum_item
+        if (this.tabela === "scrum_itens") r.concluido_em = r.status === "feito" ? (antes === "feito" ? r.concluido_em : new Date().toISOString()) : null;
         if (this.tabela === "pedidos" && this.payload.forma_pagamento_id) {
           const f = db.formas_pagamento?.find((x) => x.id === this.payload.forma_pagamento_id);
           if (f && ["boleto", "pix", "cartao", "dinheiro", "transferencia"].includes(f.meio)) r.forma_pagamento = f.meio;
@@ -3358,6 +3407,26 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: g.id, error: null };
   },
   custos_anteriores_produtos: () => ({ data: [], error: null }),
+  scrum_iniciar_sprint: ({ p_sprint }) => {
+    const s = (db.scrum_sprints ?? []).find((x: Row) => x.id === p_sprint && x.status === "planejada");
+    if (!s) return { data: null, error: { message: "Só uma sprint planejada pode ser iniciada." } };
+    if (db.scrum_sprints.some((x: Row) => x.time_id === s.time_id && x.status === "ativa")) return { data: null, error: { message: "A equipe já tem uma sprint em andamento: encerre-a antes." } };
+    Object.assign(s, { status: "ativa", pontos_planejados: (db.scrum_itens ?? []).filter((i: Row) => i.sprint_id === s.id).reduce((t: number, i: Row) => t + (i.pontos ?? 0), 0) });
+    return { data: null, error: null };
+  },
+  scrum_encerrar_sprint: ({ p_sprint, p_revisao = null, p_bom = null, p_melhorar = null, p_acoes = null }) => {
+    const s = (db.scrum_sprints ?? []).find((x: Row) => x.id === p_sprint && x.status === "ativa");
+    if (!s) return { data: null, error: { message: "Só a sprint em andamento pode ser encerrada." } };
+    const itens = (db.scrum_itens ?? []).filter((i: Row) => i.sprint_id === s.id);
+    const txt = (v: unknown) => String(v ?? "").trim() || null;
+    Object.assign(s, { status: "encerrada", encerrada_em: new Date().toISOString(), revisao: txt(p_revisao), retro_bom: txt(p_bom), retro_melhorar: txt(p_melhorar), retro_acoes: txt(p_acoes),
+      pontos_feitos: itens.filter((i: Row) => i.status === "feito").reduce((t: number, i: Row) => t + (i.pontos ?? 0), 0) });
+    const voltam = itens.filter((i: Row) => i.status !== "feito").sort((a: Row, b: Row) => a.prioridade - b.prioridade || String(a.created_at).localeCompare(String(b.created_at)));
+    const backlog = (db.scrum_itens ?? []).filter((i: Row) => i.time_id === s.time_id && !i.sprint_id).map((i: Row) => Number(i.prioridade));
+    const topo = backlog.length ? Math.min(...backlog) : 1000;
+    voltam.forEach((i: Row, k: number) => Object.assign(i, { sprint_id: null, status: i.status === "revisao" ? "fazendo" : i.status, prioridade: topo - 10 * (voltam.length - k) }));
+    return { data: voltam.length, error: null };
+  },
   lancar_conta_devolucao: ({ p_nota = null, p_recebida = null, p_valor = null, p_vencimento = null, p_chave_pix = null }) => {
     const n = p_nota ? db.notas_fiscais.find((x: Row) => x.id === p_nota) : (db.nfe_recebidas ?? []).find((x: Row) => x.id === p_recebida);
     if (!n || n.finalidade !== "devolucao") return { data: null, error: { message: "Esta nota não é uma devolução de venda" } };

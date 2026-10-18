@@ -1,7 +1,7 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
-  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, Store, Target, Truck,
+  Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
 } from "lucide-react";
 import { usePerfil } from "./auth";
@@ -29,6 +29,8 @@ export const grupos: Grupo[] = [
       { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
       // em Gestão, seis perfis viam só "Documentos" (a área parecia vazia): no Início todos acham
       { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos" },
+      // de todas as equipes: em Gestão, cinco perfis veriam a área só com ele
+      { to: "/scrum", tela: "scrum", label: "Scrum das equipes", curto: "Scrum", icon: SquareKanban, busca: "scrum sprint backlog quadro kanban daily burndown velocidade retrospectiva retro revisão equipe time tarefas ágil pontos impedimento ideias erp line produção assistência vendas financeiro" },
     ],
   },
   {

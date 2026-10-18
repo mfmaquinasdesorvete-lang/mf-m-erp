@@ -72,8 +72,10 @@ const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
+const Scrum = lazy(() => import("@/pages/Scrum"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
+  { path: "scrum", tela: "scrum", element: <Scrum /> },
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
   { path: "vendas-maquinas", tela: "pedidos", element: <Pedidos area="maquinas" /> },
   { path: "mercado-livre", tela: "mercadolivre", element: <MercadoLivre /> },

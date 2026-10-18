@@ -20,7 +20,7 @@ export const rotuloPapel = (p: string | null | undefined) => PAPEIS.find((x) => 
 export type Tela =
   | "painel" | "pedidos" | "assistencia" | "estoque" | "financeiro" | "notas"
   | "clientes" | "fornecedores" | "configuracoes" | "usuarios" | "garantias" | "relatorios" | "producao" | "email" | "comissoes" | "documentos" | "fluxo" | "margem" | "contador" | "conciliacao" | "auditoria" | "fretes" | "funcionarios"
-  | "expedicao" | "implantacao" | "importar" | "mercadolivre" | "metas" | "testegiga";
+  | "expedicao" | "implantacao" | "importar" | "mercadolivre" | "metas" | "testegiga" | "scrum";
 
 /** Nome de cada tela na tabela de permissões (na ordem em que aparecem). */
 export const TELAS_ROTULO: Record<Tela, string> = {
@@ -29,22 +29,23 @@ export const TELAS_ROTULO: Record<Tela, string> = {
   funcionarios: "Funcionários (RH)", assistencia: "Assistência técnica", garantias: "Garantias", financeiro: "Financeiro", conciliacao: "Conciliação bancária", margem: "Margem",
   relatorios: "Relatórios", notas: "Notas fiscais", contador: "Contador e fechamento", auditoria: "Auditoria", documentos: "Documentos",
   email: "E-mail", configuracoes: "Configurações", usuarios: "Usuários", implantacao: "Troca do Tiny (implantação)", importar: "Importar dados",
+  scrum: "Scrum das equipes",
 };
 
-/** Telas que cada papel vê (admin vê todas). */
+/** Telas que cada papel vê (admin vê todas). O Scrum das equipes é de todos da empresa (não do contador nem do representante). */
 const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // metas: o vendedor vê só a própria (o banco filtra); administrador e financeiro veem e cadastram todas
-  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores"],
+  vendas: ["painel", "fluxo", "expedicao", "fretes", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "estoque", "financeiro", "notas", "clientes", "fornecedores", "scrum"],
   // teste do giga (REG-006): o técnico lança; o financeiro só vê o painel e a lista
-  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "testegiga", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios"],
+  financeiro: ["painel", "implantacao", "importar", "contador", "conciliacao", "auditoria", "fluxo", "expedicao", "fretes", "margem", "email", "comissoes", "metas", "documentos", "pedidos", "mercadolivre", "assistencia", "garantias", "producao", "testegiga", "estoque", "financeiro", "notas", "relatorios", "clientes", "fornecedores", "funcionarios", "scrum"],
   contador: ["contador", "notas", "financeiro", "conciliacao", "auditoria", "documentos"],
-  tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "testegiga", "estoque", "clientes"],
-  expedicao: ["expedicao", "fluxo", "documentos"],
+  tecnico: ["painel", "documentos", "assistencia", "garantias", "producao", "testegiga", "estoque", "clientes", "scrum"],
+  expedicao: ["expedicao", "fluxo", "documentos", "scrum"],
   // só os cadastros dos produtos (lista, qualidade, marketplace e anúncios, categorias, tabelas de preço para consulta)
   // e os anúncios do Mercado Livre (o que vai de estoque e preço, exceções e aprovar preço travado)
-  marketplace: ["estoque", "documentos", "mercadolivre"],
+  marketplace: ["estoque", "documentos", "mercadolivre", "scrum"],
   // área de Compras (OC, cotações, necessidades, reposição), notas de fornecedor, fornecedores, produtos e estoque
-  compras: ["producao", "notas", "fornecedores", "estoque", "documentos"],
+  compras: ["producao", "notas", "fornecedores", "estoque", "documentos", "scrum"],
   // externo: nenhuma tela do ERP; só o portal (/portal), que lê e grava pelas funções portal_* do banco
   representante: [],
 };
