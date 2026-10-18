@@ -28,6 +28,9 @@ import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { niveis, temFicha, type LinhaFicha } from "@/lib/estrutura";
 import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nfe/Marcadores";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
+import { CartaoEtapa, QuadroEtapas, diasDesde } from "@/components/quadro/QuadroEtapas";
+import { ETAPAS_OC, ETAPAS_OP, situacaoOC, situacaoOP } from "@/lib/quadros";
+import { Columns3, FolderOpen, List as ListaIcone, PackageOpen, Play as Iniciar, ShoppingCart } from "lucide-react";
 import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
@@ -154,14 +157,14 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
           </button>
         ))}
       </div>
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {vista === "lista" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={ClipboardList} tom="info" label="Planejadas" valor={ordens.filter((o) => o.status === "planejada").length} />
         <Stat icon={Factory} tom="atencao" label="Em produção" valor={ordens.filter((o) => o.status === "em_producao").length} />
         <Stat icon={PackageSearch} tom={abertas.some((o) => faltasPorOP.get(o.id)) ? "critico" : "bom"} label="Ordens com peça faltando"
           valor={abertas.filter((o) => faltasPorOP.get(o.id)).length} />
         <Stat icon={PackageCheck} tom="bom" label={tipoOp === "maquinas" ? "Máquinas montadas no mês" : "Peças prontas no mês"}
           valor={ordens.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(hoje().slice(0, 7))).reduce((s, o) => s + Number(o.quantidade), 0)} />
-      </div>
+      </div>}
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -181,7 +184,7 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
         </div>
       </div>
 
-      {vista === "quadro" ? <QuadroProducao ordens={ordens} faltas={faltasPorOP} marcadores={marcadores} carregando={isLoading} aoAbrir={setAberta} /> :
+      {vista === "quadro" ? <QuadroProducao ordens={ordens} faltas={faltasPorOP} marcadores={marcadores} carregando={isLoading} aoAbrir={setAberta} irParaCompras={irParaCompras} /> :
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">OP</th><th className="th">Produto</th><th className="th text-right">Qtd</th><th className="th">Situação</th><th className="th">Peças</th><th className="th">Previsão</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((o) => {
@@ -226,58 +229,44 @@ function dadosDestino(u: { razao_social: string | null; cnpj: string | null; ins
   ].filter(Boolean);
 }
 
-/** Quadro da produção: cada ordem num cartão, nas colunas Planejadas → Em produção → Prontas no mês. */
-function QuadroProducao({ ordens, faltas, marcadores, carregando, aoAbrir }: {
+/** Quadro da produção no jeito do Fluxo de pedidos: Planejadas → Em produção → Prontas no mês, com o que pede ação e o botão do próximo passo. */
+function QuadroProducao({ ordens, faltas, marcadores, carregando, aoAbrir, irParaCompras }: {
   ordens: OrdemProducao[]; faltas: Map<string, number>; marcadores: Parameters<typeof ChipsMarcadores>[0]["todos"]; carregando: boolean;
-  aoAbrir: (o: OrdemProducao) => void;
+  aoAbrir: (o: OrdemProducao) => void; irParaCompras: () => void;
 }) {
+  const { pode } = usePerfil();
+  const invalidar = useInvalidate();
+  const [movendo, setMovendo] = useState<string | null>(null);
   const dia = hoje();
-  const mes = dia.slice(0, 7);
-  const porPrevisao = (a: OrdemProducao, b: OrdemProducao) => (a.previsao ?? "9999").localeCompare(b.previsao ?? "9999");
-  const colunas = [
-    { id: "planejada", titulo: "Planejadas", cor: "border-t-sky-500", lista: ordens.filter((o) => o.status === "planejada").sort(porPrevisao) },
-    { id: "em_producao", titulo: "Em produção", cor: "border-t-amber-500", lista: ordens.filter((o) => o.status === "em_producao").sort(porPrevisao) },
-    { id: "concluida", titulo: "Prontas no mês", cor: "border-t-emerald-500",
-      lista: ordens.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(mes)).sort((a, b) => (b.concluida_em ?? "").localeCompare(a.concluida_em ?? "")) },
-  ];
-  if (carregando) return <p className="py-6 text-center text-sm text-slate-500">Carregando…</p>;
+  const itens = useMemo(() => ordens.flatMap((o) => {
+    const s = situacaoOP(o, faltas.get(o.id) ?? 0, dia);
+    return s ? [{ id: o.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, o, s }] : [];
+  }), [ordens, faltas, dia]);
+  async function iniciar(o: OrdemProducao) {
+    setMovendo(o.id);
+    const { error } = await supabase.from("ordens_producao").update({ status: "em_producao" }).eq("id", o.id);
+    setMovendo(null);
+    if (error) return notifyError(error);
+    notify(`OP #${o.numero}: produção iniciada`);
+    invalidar("ordens_producao");
+  }
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3" aria-label="Quadro da produção">
-      {colunas.map((c) => (
-        <section key={c.id} aria-label={c.titulo} className={`min-w-0 rounded-2xl border border-t-4 border-slate-200 bg-slate-50/60 p-2 ${c.cor}`}>
-          <h3 className="flex items-center justify-between px-1 pb-2 text-sm font-bold text-fg">{c.titulo} <span className="num rounded-full bg-surface px-2 py-0.5 text-xs text-slate-600 ring-1 ring-slate-200">{c.lista.length}</span></h3>
-          {!c.lista.length && <p className="px-1 pb-2 text-sm text-slate-500">Nenhuma.</p>}
-          <ul className="space-y-2">
-            {c.lista.map((o) => {
-              const f = faltas.get(o.id) ?? 0;
-              const aberta = c.id !== "concluida";
-              const atraso = aberta && o.previsao && o.previsao < dia ? Math.round((Date.parse(dia) - Date.parse(o.previsao)) / 864e5) : 0;
-              return (
-                <li key={o.id}>
-                  <button type="button" onClick={() => aoAbrir(o)}
-                    className={`w-full rounded-xl border bg-surface p-2.5 text-left shadow-sm transition hover:border-brand hover:shadow-pop ${atraso ? "border-red-300" : "border-slate-200"}`}>
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="min-w-0 text-sm font-bold text-fg [overflow-wrap:anywhere]">{Number(o.quantidade)}× {o.produto?.descricao ?? "Produto"}</span>
-                      <span className="shrink-0 text-xs font-semibold text-slate-500">OP #{o.numero}</span>
-                    </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-1 text-2xs">
-                      {aberta && (f
-                        ? <span className="rounded-full bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">faltam {f} {pl(f, "peça", "peças")}</span>
-                        : <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">peças ok</span>)}
-                      {aberta && o.previsao && <span className={`rounded-full px-1.5 py-0.5 font-semibold ${atraso ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700"}`}>
-                        {atraso ? `atrasada ${atraso} ${pl(atraso, "dia", "dias")}` : `para ${dataBR(o.previsao)}`}</span>}
-                      {!aberta && o.concluida_em && <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">pronta em {dataBR(o.concluida_em)}</span>}
-                      {o.responsavel && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-700">{o.responsavel}</span>}
-                    </span>
-                    {(o.marcadores ?? []).length > 0 && <span className="mt-1 block"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></span>}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </div>
+    <QuadroEtapas etapas={ETAPAS_OP} itens={itens} carregando={carregando} nome={["ordem", "ordens"]} mostrarValor={false}
+      cartao={({ o, s }) => {
+        const botao = !pode("editar_producao") ? null
+          : s.acao === "iniciar" ? { rotulo: "Começar a produzir", icon: Iniciar, ocupado: movendo === o.id, onClick: () => void iniciar(o) }
+          : s.acao === "comprar" ? { rotulo: "Comprar o que falta", icon: ShoppingCart, onClick: irParaCompras }
+          : { rotulo: s.etapa === "concluida" ? "Abrir OP" : "Abrir e concluir", icon: FolderOpen, secundario: s.etapa === "concluida", onClick: () => aoAbrir(o) };
+        return (
+          <CartaoEtapa key={o.id} cor={ETAPAS_OP.find((e) => e.id === s.etapa)!.cor}
+            titulo={<>{Number(o.quantidade)}× {o.produto?.descricao ?? "Produto"}</>} subtitulo={<>OP #{o.numero}{o.previsao ? ` · para ${dataBR(o.previsao)}` : ""}</>}
+            dias={diasDesde(s.desde)} nivel={s.nivel} alerta={s.alerta} proximo={s.proximo} onAbrir={() => aoAbrir(o)} botao={botao}
+            etiquetas={<>
+              {o.responsavel && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">{o.responsavel}</span>}
+              {(o.marcadores ?? []).length > 0 && <ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno />}
+            </>} />
+        );
+      }} />
   );
 }
 
@@ -554,25 +543,58 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
   }, [abrirNovo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lista = pcs.filter((p) => mostrarTodos || !["recebido", "cancelado"].includes(p.status));
+  // quadro por etapas (como o Fluxo de pedidos) ou a lista; a escolha fica no aparelho
+  const [modo, setModoState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem("erp.oc.modo") === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
+  const setModo = (m: "quadro" | "lista") => { setModoState(m); try { localStorage.setItem("erp.oc.modo", m); } catch { /* sem armazenamento */ } };
+  const noQuadro = useMemo(() => pcs.flatMap((p) => {
+    const s = situacaoOC(p, hoje());
+    return s ? [{ id: p.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: Number(p.valor_total || 0), p, s }] : [];
+  }), [pcs]);
+  const abrirOC = (p: PedidoCompra) => setAberto({ ...p, itens: p.itens ?? [] });
   const atrasados = pcs.filter((p) => ["enviado", "parcial"].includes(p.status) && p.previsao_entrega && p.previsao_entrega < hoje()).length;
 
   return (
     <>
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {modo === "lista" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={ClipboardList} tom="info" label="Em cotação" valor={pcs.filter((p) => p.status === "cotacao").length} sub="aguardando preço do fornecedor" />
         <Stat icon={Truck} tom="atencao" label="A caminho" valor={pcs.filter((p) => ["enviado", "parcial"].includes(p.status)).length} />
         <Stat icon={PackageSearch} tom={atrasados ? "critico" : "neutro"} label="Entrega atrasada" valor={atrasados} />
         <Stat icon={ShoppingBag} label="Em aberto (R$)" valor={brl(pcs.filter((p) => ["enviado", "parcial"].includes(p.status)).reduce((s, p) => s + Number(p.valor_total), 0))} />
-      </div>
+      </div>}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" checked={mostrarTodos} onChange={(e) => setMostrarTodos(e.target.checked)} /> Mostrar recebidos e cancelados
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Como ver as compras">
+            {([["quadro", "Quadro", Columns3], ["lista", "Lista", ListaIcone]] as const).map(([v, r, I]) => (
+              <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold ${modo === v ? "bg-brand text-brand-fg" : "text-slate-600 hover:bg-slate-100"}`}><I size={15} /> {r}</button>
+            ))}
+          </div>
+          {modo === "lista" && <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" checked={mostrarTodos} onChange={(e) => setMostrarTodos(e.target.checked)} /> Mostrar recebidos e cancelados
+          </label>}
+        </div>
         <div className="flex flex-wrap gap-2">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
           {pode("editar_producao") && <Button onClick={() => setAberto(novaOC())}><Plus size={16} /> Novo pedido de compra</Button>}
         </div>
       </div>
+      {modo === "quadro" ? (
+        <QuadroEtapas etapas={ETAPAS_OC} itens={noQuadro} carregando={isLoading} nome={["ordem de compra", "ordens de compra"]}
+          cartao={({ p, s }) => (
+            <CartaoEtapa key={p.id} cor={ETAPAS_OC.find((e) => e.id === s.etapa)!.cor}
+              titulo={<>#{p.numero} · {p.fornecedor?.nome ?? "fornecedor a definir"}</>}
+              subtitulo={(p.itens ?? []).slice(0, 2).map((i) => i.descricao).join(", ") + ((p.itens?.length ?? 0) > 2 ? ` +${p.itens!.length - 2}` : "")}
+              valor={Number(p.valor_total || 0)} dias={diasDesde(s.desde)} nivel={s.nivel} alerta={s.alerta} proximo={s.proximo}
+              etiquetas={<>
+                <EtiquetaUnidade id={(p as any).unidade_id} />
+                {p.previsao_entrega && s.etapa !== "recebido" && s.etapa !== "cotacao" && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">chega {dataBR(p.previsao_entrega)}</span>}
+                {(p.marcadores ?? []).length > 0 && <ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno />}
+              </>}
+              onAbrir={() => abrirOC(p)}
+              botao={{ rotulo: s.acao === "receber" ? "Abrir e dar entrada" : s.etapa === "recebido" ? "Abrir OC" : "Abrir e confirmar", icon: s.acao === "receber" ? PackageOpen : FolderOpen,
+                secundario: s.etapa === "recebido", onClick: () => abrirOC(p) }} />
+          )} />
+      ) : (
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((p) => (
@@ -593,6 +615,7 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
           </tr>
         ))}
       </Table>
+      )}
       {aberto && <PCModal inicial={aberto} onClose={() => setAberto(null)} />}
       {verExcluidas && <DocumentosExcluidos tabela="pedidos_compra" onClose={() => setVerExcluidas(false)} />}
     </>

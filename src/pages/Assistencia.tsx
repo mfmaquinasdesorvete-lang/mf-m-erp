@@ -30,6 +30,9 @@ import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 import { pixCopiaECola } from "@/lib/cobranca";
 import { CONDICAO_REMOTA, EQUIPAMENTO_A_CONFIRMAR, deCampoHora, passoVideo, termoVideo, paraCampoHora, quandoAgendado, valorVideo } from "@/lib/osVideo";
+import { CartaoEtapa, QuadroEtapas, diasDesde } from "@/components/quadro/QuadroEtapas";
+import { ETAPAS_OS, proximoStatus, situacaoOS, type AcaoOS, type SituacaoOS } from "@/lib/quadroOS";
+import { Columns3, List, PackageOpen, Send, Stethoscope, ThumbsUp, FolderOpen } from "lucide-react";
 import { GarantiaCliente, naGarantia, type MaquinaCliente } from "@/components/assistencia/GarantiaCliente";
 
 const STATUS_EDITAVEIS = [
@@ -74,6 +77,11 @@ export default function Assistencia() {
   const { data: marcadores = [] } = useMarcadores();
   const [aberta, setAberta] = useState<OS | null>(null);
   const [verExcluidas, setVerExcluidas] = useState(false);
+  // quadro por etapas (como o Fluxo de pedidos) ou a lista de sempre; a escolha fica no aparelho
+  const [modo, setModoState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem("erp.os.modo") === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
+  const setModo = (m: "quadro" | "lista") => { setModoState(m); try { localStorage.setItem("erp.os.modo", m); } catch { /* sem armazenamento */ } };
+  const invalidarOS = useInvalidate();
+  const [movendo, setMovendo] = useState<string | null>(null);
 
   // "Abrir OS" vindo da tela de garantias já traz cliente e máquina preenchidos
   useEffect(() => {
@@ -98,6 +106,53 @@ export default function Assistencia() {
     (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
   ), [ordens, mostrarFinalizadas, busca, marcador]);
 
+  // quadro: cada OS (com a busca e o marcador) na etapa, com o próximo passo
+  const noQuadro = useMemo(() => {
+    const dia = hoje();
+    return ordens.filter((o) => (!marcador || !!o.marcadores?.includes(marcador)) &&
+      (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())))
+      .flatMap((o) => { const s = situacaoOS(o, dia); return s ? [{ id: o.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: o.em_garantia ? 0 : Number(o.valor_total || 0), o, s }] : []; });
+  }, [ordens, busca, marcador]);
+  const abrirOS = (o: OSX) => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] });
+  async function avancar(o: OSX, acao: AcaoOS) {
+    const status = proximoStatus(acao);
+    if (!status) return abrirOS(o);
+    setMovendo(o.id);
+    const extra = acao === "aprovado" ? { orcamento_aprovado_em: o.orcamento_aprovado_em ?? new Date().toISOString(), orcamento_aprovado_por: o.orcamento_aprovado_por || "Cliente (pelo quadro)" } : {};
+    const { error } = await supabase.from("ordens_servico").update({ status, ...extra }).eq("id", o.id);
+    setMovendo(null);
+    if (error) return notifyError(error);
+    notify(`OS #${o.numero}: ${STATUS_EDITAVEIS.find((x) => x.value === status)?.label.toLowerCase() ?? status}`);
+    invalidarOS("ordens_servico");
+  }
+  const BOTAO_OS: Record<AcaoOS, { rotulo: string; icon: typeof Send; secundario?: boolean }> = {
+    diagnosticar: { rotulo: "Começar diagnóstico", icon: Stethoscope }, orcamento: { rotulo: "Orçamento enviado", icon: Send },
+    aprovado: { rotulo: "Cliente aprovou", icon: ThumbsUp }, peca_chegou: { rotulo: "Peça chegou", icon: PackageOpen },
+    concluir: { rotulo: "Abrir e concluir", icon: FolderOpen }, entregar: { rotulo: "Abrir e entregar", icon: FolderOpen },
+    agendar: { rotulo: "Agendar", icon: FolderOpen }, abrir: { rotulo: "Abrir OS", icon: FolderOpen, secundario: true },
+  };
+  const cartaoOS = ({ o, s }: { o: OSX; s: SituacaoOS }) => {
+    const b = BOTAO_OS[s.acao];
+    const zap = o.cliente?.whatsapp && (s.etapa === "aprovacao" || s.etapa === "pronta")
+      ? whatsappLink(o.cliente.whatsapp, s.etapa === "pronta"
+        ? `Olá ${o.cliente.nome.split(" ")[0]}! Sua OS #${o.numero} (${o.equipamento}) está pronta para retirar na MF Máquinas.`
+        : `Olá ${o.cliente.nome.split(" ")[0]}! Conseguiu ver o orçamento da OS #${o.numero} (${o.equipamento})? Fico à disposição.`) : null;
+    return (
+      <CartaoEtapa key={o.id} cor={ETAPAS_OS.find((e) => e.id === s.etapa)!.cor}
+        titulo={<>#{o.numero} · {o.cliente?.nome ?? "—"}</>} subtitulo={o.equipamento}
+        valor={o.em_garantia ? null : Number(o.valor_total || 0)} dias={diasDesde(s.desde)} nivel={s.nivel} alerta={s.alerta} proximo={s.proximo}
+        etiquetas={<>
+          <EtiquetaUnidade id={(o as any).unidade_id} />
+          {o.em_garantia && <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-2xs font-bold text-emerald-700">garantia</span>}
+          {o.atendimento === "video" && <span className="rounded-md bg-purple-50 px-1.5 py-0.5 text-2xs font-bold text-purple-700">vídeo{o.agendado_em ? ` ${quandoAgendado(o.agendado_em)}` : ""}</span>}
+          {o.tecnico && <span className="truncate rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">{o.tecnico.split(" ")[0]}</span>}
+        </>}
+        onAbrir={() => abrirOS(o)}
+        botao={pode("editar_os") ? { rotulo: b.rotulo, icon: b.icon, secundario: b.secundario, ocupado: movendo === o.id, onClick: () => void avancar(o, s.acao) } : null}
+        extra={zap ? <a href={zap} target="_blank" rel="noreferrer" title="Mandar mensagem no WhatsApp" className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-2 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50"><MessageCircle size={14} /> WhatsApp</a> : null} />
+    );
+  };
+
   const abertas = ordens.filter((o) => !["concluida", "entregue", "cancelada"].includes(o.status));
   const atrasadas = abertas.filter((o) => o.previsao && o.previsao < hoje()).length;
 
@@ -118,12 +173,13 @@ export default function Assistencia() {
         </>}
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* no quadro, os blocos das etapas já mostram os números */}
+      {modo === "lista" && <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={Wrench} tom="info" label="Em andamento" valor={abertas.length} />
         <Stat icon={PackageCheck} tom="bom" label="Prontas para retirar" valor={ordens.filter((o) => o.status === "concluida").length} />
         <Stat icon={ShieldCheck} label="Em garantia (abertas)" valor={abertas.filter((o) => o.em_garantia).length} />
         <Stat icon={ClipboardCheck} tom={atrasadas ? "critico" : "neutro"} label="Previsão estourada" valor={atrasadas} />
-      </div>
+      </div>}
 
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-sm">
@@ -131,11 +187,22 @@ export default function Assistencia() {
           <input className="input pl-9" placeholder="Buscar nº, cliente, equipamento, série…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
         <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" checked={mostrarFinalizadas} onChange={(e) => setMostrarFinalizadas(e.target.checked)} /> Mostrar entregues e canceladas
-        </label>
+        {modo === "lista" && (
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" checked={mostrarFinalizadas} onChange={(e) => setMostrarFinalizadas(e.target.checked)} /> Mostrar entregues e canceladas
+          </label>
+        )}
+        <div className="ml-auto inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
+          {([["quadro", "Quadro", Columns3], ["lista", "Lista", List]] as const).map(([v, l, I]) => (
+            <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
+          ))}
+        </div>
       </div>
 
+      {modo === "quadro" ? (
+        <QuadroEtapas etapas={ETAPAS_OS} itens={noQuadro} carregando={isLoading} nome={["OS", "OS"]} cartao={cartaoOS} />
+      ) : (
       <Table
         empty={!isLoading && lista.length === 0}
         head={<><th className="th">OS</th><th className="th">Entrada</th><th className="th">Cliente</th><th className="th">Equipamento</th><th className="th">Situação</th><th className="th">Previsão</th><th className="th text-right">Valor</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
@@ -161,6 +228,7 @@ export default function Assistencia() {
           </tr>
         ))}
       </Table>
+      )}
 
       {aberta && <OSModal os={aberta} onClose={() => setAberta(null)} />}
       {verExcluidas && <DocumentosExcluidos tabela="ordens_servico" onClose={() => setVerExcluidas(false)} />}
