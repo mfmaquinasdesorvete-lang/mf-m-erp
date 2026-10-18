@@ -53,6 +53,7 @@ const CONFERE = /exigir_papel|tem_(?:algum_)?papel|is_erp_\w+|e_contador|pode_\w
 /** Páginas públicas: o visitante (anon) chama pelo token do link */
 const PUBLICAS: Record<string, string> = {
   area_cliente: "área do cliente pelo token",
+  area_cliente_link: "área do cliente pelo link com o nome (parte sorteada no fim)",
   cotacao_publica: "fornecedor abre a cotação pelo token",
   cotacao_responder: "fornecedor responde a cotação pelo token",
   cotacao_recusar: "fornecedor recusa a cotação pelo token",
