@@ -3080,6 +3080,21 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       }),
       pagas: db.contas_receber.filter((r) => r.cliente_id === c.id && r.status === "pago").sort((a, b) => String(b.data_pagamento).localeCompare(a.data_pagamento)).slice(0, 10)
         .map((r) => ({ descricao: r.descricao, valor: r.valor_pago ?? r.valor, data_pagamento: r.data_pagamento })),
+      maquinas: db.equipamentos.filter((e) => e.cliente_id === c.id).map((e) => {
+        const p: Row = db.produtos.find((x) => x.id === e.produto_id) ?? {};
+        return { token: e.token ?? e.id, descricao: p.descricao ?? e.descricao, modelo: p.modelo, numero_serie: e.numero_serie, data_venda: e.data_venda,
+          garantia_ate: e.garantia_ate, proxima_preventiva: e.proxima_preventiva, usada: e.usada, foto: p.foto_caminho,
+          manuais: (db.produtos_midia ?? []).filter((m: Row) => m.produto_id === p.id && m.ativo !== false && ["manual", "eletrico", "dicas"].includes(m.tipo)).length };
+      }),
+      manutencoes: db.ordens_servico.filter((o) => o.cliente_id === c.id && !o.excluida_em && o.status !== "cancelada")
+        .sort((a, b) => String(b.data_entrada).localeCompare(String(a.data_entrada))).slice(0, 20)
+        .map((o) => ({ numero: o.numero, equipamento: o.equipamento, numero_serie: o.numero_serie, status: o.status, data_entrada: o.data_entrada, previsao: o.previsao,
+          concluida_em: o.concluida_em?.slice(0, 10), entregue_em: o.entregue_em?.slice(0, 10), em_garantia: o.em_garantia, defeito: o.defeito_relatado, solucao: o.solucao, valor: o.valor_total })),
+      compras: db.pedidos.filter((pe) => pe.cliente_id === c.id && !pe.excluida_em && ["aprovado", "faturado", "entregue"].includes(pe.status))
+        .sort((a, b) => String(b.aprovado_em ?? b.created_at).localeCompare(String(a.aprovado_em ?? a.created_at))).slice(0, 30)
+        .map((pe) => ({ numero: pe.numero, data: String(pe.aprovado_em ?? pe.created_at).slice(0, 10), status: pe.status, valor: pe.valor_total, rastreio: pe.codigo_rastreio || undefined,
+          enviado_em: pe.enviado_em?.slice(0, 10), transportadora: db.transportadoras?.find((t: Row) => t.id === pe.transportadora_id)?.nome,
+          itens: db.pedido_itens.filter((i) => i.pedido_id === pe.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade })) })),
     }, error: null };
   },
   gerar_recorrentes: () => (podeFinanceiro() ? { data: gerarRecorrentesDemo(db), error: null } : erro("sem permissão para esta ação")),
