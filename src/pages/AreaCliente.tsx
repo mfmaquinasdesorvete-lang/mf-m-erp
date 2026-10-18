@@ -40,15 +40,15 @@ export default function AreaCliente() {
         <header className="flex items-center gap-4 bg-[#0B1F3A] px-6 py-5 text-white">
           <img src={logo} alt="" className="h-12 w-12 rounded-xl bg-white/10" />
           <div className="min-w-0 flex-1">
-            <div className="text-lg font-extrabold">{a.empresa.nome}</div>
+            <div className="text-lg font-bold">{a.empresa.nome}</div>
             <div className="text-sm opacity-90">Contas de {a.cliente}</div>
           </div>
         </header>
-        <div className="space-y-5 px-5 py-6 text-[15px] text-slate-800">
+        <div className="space-y-5 px-5 py-6 text-sm text-slate-800">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <div className="text-sm text-slate-500">Em aberto</div>
-              <div className="text-3xl font-extrabold text-slate-900">{brl(total)}</div>
+              <div className="text-3xl font-bold text-slate-900">{brl(total)}</div>
               <div className="text-sm text-slate-500">{a.abertas.length ? `${a.abertas.length} ${pl(a.abertas.length, "conta", "contas")}` : "Nada em aberto. Obrigado!"}</div>
             </div>
             <div className="flex gap-2 print:hidden">
@@ -108,7 +108,7 @@ function Conta({ c, dia, token }: { c: Aberta; dia: string; token: string }) {
           <div className="font-semibold text-slate-900">{c.descricao}</div>
           <div className={`text-sm ${vencida ? "font-semibold text-red-700" : "text-slate-600"}`}>{vencida ? `Venceu em ${dataBR(c.vencimento)}` : c.vencimento === dia ? "Vence hoje" : `Vence em ${dataBR(c.vencimento)}`}</div>
         </div>
-        <div className="text-xl font-extrabold text-slate-900">{brl(c.valor)}</div>
+        <div className="text-xl font-bold text-slate-900">{brl(c.valor)}</div>
       </div>
       {pix ? (
         <div className="mt-3 grid items-center gap-4 sm:grid-cols-[150px_1fr]">

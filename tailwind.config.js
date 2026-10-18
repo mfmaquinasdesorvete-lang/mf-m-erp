@@ -32,8 +32,12 @@ export default {
       },
       borderColor: { DEFAULT: v("slate-200") },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans Variable"', '"Plus Jakarta Sans"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        sans: ['"DM Sans Variable"', '"DM Sans"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        // títulos, números grandes, botões, abas e menu (design system: Poppins + DM Sans)
+        display: ["Poppins", '"DM Sans Variable"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
       },
+      // escala de letra (design system): 2xs 11px (etiquetas e chips), xs, sm, base, lg, xl, 2xl e 3xl — sem tamanhos soltos
+      fontSize: { "2xs": "11px" },
       boxShadow: {
         card: "0 1px 2px rgb(0 0 0 / var(--sombra)), 0 1px 1px rgb(0 0 0 / calc(var(--sombra) * 0.6))",
         pop: "0 16px 40px -10px rgb(0 0 0 / calc(var(--sombra) * 6))",

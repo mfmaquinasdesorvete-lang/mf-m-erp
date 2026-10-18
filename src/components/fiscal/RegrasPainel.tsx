@@ -28,7 +28,7 @@ export function ComoFuncionaRegras() {
         ].map(([n, t, d]) => (
           <li key={n} className="flex gap-3 rounded-xl bg-slate-50 p-3">
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-modulo-escuro text-sm font-bold text-white" aria-hidden>{n}</span>
-            <span className="min-w-0"><span className="block text-sm font-bold text-fg">{t}</span><span className="block text-[13px] leading-snug text-slate-600">{d}</span></span>
+            <span className="min-w-0"><span className="block text-sm font-bold text-fg">{t}</span><span className="block text-xs leading-snug text-slate-600">{d}</span></span>
           </li>
         ))}
       </ol>
@@ -54,7 +54,7 @@ export function GlossarioFiscal() {
         {GLOSSARIO.map((g) => (
           <div key={g.termo} className="min-w-0">
             <dt className="text-sm font-bold text-fg">{g.termo}</dt>
-            <dd className="text-[13px] leading-snug text-slate-600">{g.texto}</dd>
+            <dd className="text-xs leading-snug text-slate-600">{g.texto}</dd>
           </div>
         ))}
       </dl>
@@ -75,7 +75,7 @@ export function CartaoRegra({ r, nomeUnidade, podeEditar, onEditar, onApagar }: 
         <span className="grid h-10 min-w-10 shrink-0 place-items-center rounded-xl bg-modulo/15 px-2 text-sm font-bold text-modulo-escuro" title="Ordem: a menor vale primeiro">{r.prioridade}</span>
         <div className="min-w-0 flex-1 basis-60">
           <h3 className="text-base font-bold leading-snug text-fg">{r.nome} {r.ativo === false && <Badge value="inativo" />}</h3>
-          <p className="mt-0.5 text-[13px] text-slate-600"><b className="text-slate-700">Quando vale:</b> {quandoVale(r, nomeUnidade)}</p>
+          <p className="mt-0.5 text-xs text-slate-600"><b className="text-slate-700">Quando vale:</b> {quandoVale(r, nomeUnidade)}</p>
         </div>
         {podeEditar && (
           <span className="flex shrink-0 gap-1">
@@ -84,7 +84,7 @@ export function CartaoRegra({ r, nomeUnidade, podeEditar, onEditar, onApagar }: 
           </span>
         )}
       </div>
-      <ul className="mt-3 space-y-1 text-[13.5px] leading-snug text-fg">
+      <ul className="mt-3 space-y-1 text-xs leading-snug text-fg">
         {(aberta ? muda : muda.slice(0, 3)).map((t) => <li key={t} className="flex gap-2"><FileCheck2 size={15} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span>{t}</span></li>)}
       </ul>
       {(muda.length > 3 || exemplo.length > 0) && (
@@ -95,7 +95,7 @@ export function CartaoRegra({ r, nomeUnidade, podeEditar, onEditar, onApagar }: 
       {aberta && exemplo.length > 0 && (
         <div className="mt-3 min-w-0 overflow-x-auto rounded-xl bg-slate-50 p-3">
           <p className="mb-2 text-xs font-semibold text-slate-600">Exemplo: venda de {brl(10000)} (a alíquota depende do estado do cliente)</p>
-          <table className="w-full min-w-[30rem] text-right text-[13px]">
+          <table className="w-full min-w-[30rem] text-right text-xs">
             <thead className="text-xs text-slate-500"><tr><th className="py-1 text-left font-semibold">Alíquota</th><th className="font-semibold">Redução</th><th className="font-semibold">Base</th><th className="font-semibold">ICMS</th><th className="font-semibold">Sem a regra</th><th className="font-semibold">Carga</th></tr></thead>
             <tbody>
               {exemplo.map((x) => (
@@ -144,7 +144,7 @@ export function TesteVenda({ regras }: { regras: (RegraTributaria & { id?: strin
           <div className={`rounded-xl p-3 text-sm ${res.regra ? "bg-emerald-50 text-emerald-900" : "bg-slate-100 text-slate-700"}`}>
             <div className="text-xs font-bold uppercase tracking-wide">Regra que vale</div>
             <div className="mt-0.5 text-base font-bold">{res.regra ? res.regra.nome : "Nenhuma: vale o padrão da unidade"}</div>
-            <div className="mt-1 text-[13px]">{res.interestadual ? "Venda para outro estado" : "Venda dentro do estado"} · CST {res.cst}{res.cbenef ? ` · cBenef ${res.cbenef}` : ""}{!res.ipiDestacado ? " · sem IPI destacado" : ""}</div>
+            <div className="mt-1 text-xs">{res.interestadual ? "Venda para outro estado" : "Venda dentro do estado"} · CST {res.cst}{res.cbenef ? ` · cBenef ${res.cbenef}` : ""}{!res.ipiDestacado ? " · sem IPI destacado" : ""}</div>
           </div>
           <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
             {[
@@ -153,10 +153,10 @@ export function TesteVenda({ regras }: { regras: (RegraTributaria & { id?: strin
               ...(res.desonerado ? [["ICMS desonerado", brl(res.desonerado)]] : []),
               ...(res.difal != null ? [["DIFAL estimado (guia)", brl(res.difal)]] : []),
             ].map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-slate-200 p-2"><dt className="text-[11px] font-semibold uppercase text-slate-500">{k}</dt><dd className="font-bold text-fg">{v}</dd></div>
+              <div key={k} className="rounded-lg border border-slate-200 p-2"><dt className="text-2xs font-semibold uppercase text-slate-500">{k}</dt><dd className="font-bold text-fg">{v}</dd></div>
             ))}
           </dl>
-          {res.avisos.length > 0 && <ul className="space-y-1 rounded-xl bg-amber-50 p-3 text-[13px] text-amber-900 lg:col-span-2">{res.avisos.map((a) => <li key={a}>• {a}</li>)}</ul>}
+          {res.avisos.length > 0 && <ul className="space-y-1 rounded-xl bg-amber-50 p-3 text-xs text-amber-900 lg:col-span-2">{res.avisos.map((a) => <li key={a}>• {a}</li>)}</ul>}
           <p className="text-xs text-slate-500 lg:col-span-2">Estimativa do ICMS do item. A nota de verdade usa também o cadastro do produto (NCM, origem, IPI) e as Configurações da NF-e. Confirmar com o contador.</p>
         </div>
       )}
@@ -175,9 +175,9 @@ export function ModelosRegra({ existentes, podeEditar, onUsar }: { existentes: s
           const ja = existentes.some((n) => n.trim().toLowerCase() === String(m.regra.nome ?? "").trim().toLowerCase());
           return (
             <li key={m.id} className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-slate-200 p-3">
-              <div className="flex items-start gap-2"><span className="min-w-0 flex-1 text-sm font-bold text-fg">{m.titulo}</span>{ja && <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">já cadastrada</span>}</div>
-              <p className="text-[13px] leading-snug text-slate-600">{m.paraQue}</p>
-              <p className="text-[12px] leading-snug text-slate-500"><b>Base legal:</b> {m.base}</p>
+              <div className="flex items-start gap-2"><span className="min-w-0 flex-1 text-sm font-bold text-fg">{m.titulo}</span>{ja && <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800">já cadastrada</span>}</div>
+              <p className="text-xs leading-snug text-slate-600">{m.paraQue}</p>
+              <p className="text-xs leading-snug text-slate-500"><b>Base legal:</b> {m.base}</p>
               {podeEditar && <div className="mt-auto pt-1"><Button type="button" variant="secondary" onClick={() => onUsar(m)}>{ja ? "Usar de novo" : "Usar este modelo"}</Button></div>}
             </li>
           );

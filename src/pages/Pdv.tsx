@@ -324,9 +324,9 @@ export default function Pdv() {
 
       {vazio ? (
         // tela de entrada: o caixa parado, esperando o primeiro produto
-        <section className="relative mx-auto max-w-3xl rounded-3xl bg-gradient-to-br from-[#be185d] via-[#6d28d9] to-[#c2410c] px-5 py-7 text-white shadow-pop sm:mt-4 sm:px-10 sm:py-10" aria-label="Nova venda">
+        <section className="relative mx-auto max-w-3xl rounded-2xl bg-gradient-to-br from-[#be185d] via-[#6d28d9] to-[#c2410c] px-5 py-7 text-white shadow-pop sm:mt-4 sm:px-10 sm:py-10" aria-label="Nova venda">
           {/* manchas de cor recortadas numa camada própria: a lista de produtos pode passar da borda do cartão */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl" aria-hidden>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
             <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[#f472b6]/40 blur-3xl" />
             <span className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-[#fb923c]/35 blur-3xl" />
             <span className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#38bdf8]/25 blur-3xl" />
@@ -349,7 +349,7 @@ export default function Pdv() {
               </CampoEntrada>
               <CampoEntrada rotulo="Produto" tecla="Enter" icone={ScanBarcode}>
                 <div ref={busca}>
-                  <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Bipe o código ou digite a peça" className="[&_input]:py-3.5 [&_input]:text-base" listaAoFocar={false}
+                  <ProdutoBusca produtos={vendaveis} onEscolher={adicionar} placeholder="Bipe o código ou digite a peça" className="[&_input]:py-4 [&_input]:text-base" listaAoFocar={false}
                     foto={(p) => urlFotoProduto((p as Produto & { foto_caminho?: string | null }).foto_caminho) || null}
                     detalhe={(p) => <span className="num">{brl(precoPdv(p))} · estoque {saldo(p.id).toLocaleString("pt-BR")} {p.unidade}</span>} />
                 </div>
@@ -388,7 +388,7 @@ export default function Pdv() {
                       {i.foto ? (
                         <img src={urlFotoProduto(i.foto)} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 bg-white object-contain" />
                       ) : pode("editar_produtos") ? (
-                        <label className={`flex h-14 w-14 shrink-0 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-[10px] font-semibold text-slate-500 hover:border-brand hover:text-brand ${enviandoFoto === i.produto_id ? "pointer-events-none opacity-60" : ""}`}
+                        <label className={`flex h-14 w-14 shrink-0 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 text-2xs font-semibold text-slate-500 hover:border-brand hover:text-brand ${enviandoFoto === i.produto_id ? "pointer-events-none opacity-60" : ""}`}
                           title="Pôr foto da peça (fica no cadastro do produto)">
                           <Camera size={18} aria-hidden /> {enviandoFoto === i.produto_id ? "Enviando" : "Pôr foto"}
                           <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Foto de ${i.descricao}`}
@@ -490,7 +490,7 @@ export default function Pdv() {
               ) : (
                 <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700"><ShieldCheck size={14} aria-hidden /> Desconto aprovado por {aprovado?.aprovado_por} (até {pctTexto(aprovado?.percentual ?? 0)})</p>
               ))}
-              <div className="flex items-baseline justify-between border-t border-slate-200 pt-2"><dt className="text-base font-bold">Total</dt><dd className="text-2xl font-extrabold">{brl(total)}</dd></div>
+              <div className="flex items-baseline justify-between border-t border-slate-200 pt-2"><dt className="text-base font-bold">Total</dt><dd className="text-2xl font-bold">{brl(total)}</dd></div>
             </dl>
           </Card>
 
@@ -581,7 +581,7 @@ export default function Pdv() {
       {/* total e Finalizar sempre à vista quando o botão de baixo sai da tela (celular e notebook de tela baixa) */}
       {itens.length > 0 && !feito && !finalVisivel && (
         <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-slate-200 bg-surface px-4 py-2.5 shadow-pop lg:inset-x-auto lg:bottom-4 lg:right-5 lg:w-[380px] lg:rounded-xl lg:border">
-          <div className="flex-1"><div className="text-xs text-slate-500">{itens.length} {itens.length === 1 ? "item" : "itens"}</div><div className="num text-lg font-extrabold">{brl(total)}</div></div>
+          <div className="flex-1"><div className="text-xs text-slate-500">{itens.length} {itens.length === 1 ? "item" : "itens"}</div><div className="num text-lg font-bold">{brl(total)}</div></div>
           <Button type="button" onClick={() => (pronto ? finalizar() : pagar.current?.scrollIntoView({ behavior: "smooth" }))} disabled={enviando}>
             {pronto ? "Finalizar" : "Cobrar"}
           </Button>
@@ -604,7 +604,7 @@ export default function Pdv() {
             <div className="rounded-xl bg-emerald-50 p-4 text-center text-emerald-900">
               <CheckCircle2 className="mx-auto mb-1" size={28} aria-hidden />
               <div className="text-sm">Total</div>
-              <div className="num text-3xl font-extrabold">{brl(feito.total)}</div>
+              <div className="num text-3xl font-bold">{brl(feito.total)}</div>
               {feito.troco > 0 && <div className="mt-2 text-lg font-bold">Troco: {brl(feito.troco)}</div>}
             </div>
             <ul className="space-y-1 text-sm">

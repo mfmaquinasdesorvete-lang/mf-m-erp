@@ -154,7 +154,7 @@ export function ImportarNfse({ onClose }: { onClose: () => void }) {
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Notas de serviço importadas">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={22} /> Pronto.</p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             <li>{resultado.novas} {resultado.novas === 1 ? "nota nova" : "notas novas"}</li>
@@ -172,7 +172,7 @@ export function ImportarNfse({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Importar notas de serviço (NFS-e)" wide>
       {!itens ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             Traga as notas de serviço feitas fora do ERP: as que a MF emitiu (no Tiny, no portal da prefeitura ou no Emissor Nacional)
             e as que fornecedores emitiram para a MF (contador, advogado, manutenção…). Serve o <b>XML</b> da nota (prefeitura ou
             NFS-e Nacional), um <b>ZIP</b> com vários XMLs ou o relatório do Tiny (<b>Notas fiscais de serviço → Relatório → Excel</b>).

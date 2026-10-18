@@ -174,7 +174,7 @@ function PagarModal({ comissoes, nome, onClose }: { comissoes: Comissao[]; nome:
   return (
     <Modal open onClose={() => onClose(false)} title={`Pagar comissões · ${nome}`}>
       <form onSubmit={gerar} className="space-y-3">
-        <p className="text-[15px]">{comissoes.length} {pl(comissoes.length, "comissão", "comissões")}, total <b className="num">{brl(total)}</b>. Vai virar uma conta no <b>contas a pagar</b> (categoria comissões).</p>
+        <p className="text-sm">{comissoes.length} {pl(comissoes.length, "comissão", "comissões")}, total <b className="num">{brl(total)}</b>. Vai virar uma conta no <b>contas a pagar</b> (categoria comissões).</p>
         <Field label="Vencimento"><input type="date" className="input" value={venc} onChange={(e) => setVenc(e.target.value)} required /></Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={() => onClose(false)}>Cancelar</Button>
@@ -214,12 +214,12 @@ function Vendedores() {
           <tr key={v.id} className={v.ativo ? "" : "opacity-90"}>
             <td className="td font-semibold">{v.nome}<div className="text-xs font-normal text-slate-500">{[v.codigo && `cód. ${v.codigo}`, v.whatsapp || v.telefone, v.email, v.municipio && `${v.municipio}${v.uf ? `/${v.uf}` : ""}`].filter(Boolean).join(" · ")}</div></td>
             <td className="td">{v.tipo === "representante" ? "Representante" : "Vendedor"}
-              {v.terceirizado && <span className="ml-1.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-800" title={v.exige_nf ? "Terceirizado: a comissão só é paga com a NF dele" : "Terceirizado"}>{v.exige_nf ? "TERCEIRIZADO · NF" : "TERCEIRIZADO"}</span>}
-              {!v.ativo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600">INATIVO</span>}</td>
+              {v.terceirizado && <span className="ml-1.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-2xs font-bold text-amber-800" title={v.exige_nf ? "Terceirizado: a comissão só é paga com a NF dele" : "Terceirizado"}>{v.exige_nf ? "TERCEIRIZADO · NF" : "TERCEIRIZADO"}</span>}
+              {!v.ativo && <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600">INATIVO</span>}</td>
             <td className="td num text-right">{Number(v.percentual).toLocaleString("pt-BR")}%</td>
             <td className="td">{textoQuando(v)}{v.descontar_frete ? " · sem frete" : ""}{v.ignorar_linhas ? " · sem linhas" : ""}</td>
             <td className="td">{usuarios.find((u) => u.user_id === v.user_id)?.nome ?? "—"}
-              {usuarios.find((u) => u.user_id === v.user_id)?.papel === "representante" && <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Entra só no Portal do representante">PORTAL</span>}</td>
+              {usuarios.find((u) => u.user_id === v.user_id)?.papel === "representante" && <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-2xs font-bold text-teal-800" title="Entra só no Portal do representante">PORTAL</span>}</td>
             <td className="td whitespace-nowrap text-right">
               {admin && v.ativo && !v.user_id && (
                 <Button variant="ghost" className="mr-1" title="Criar ou ligar o login do representante no portal" onClick={() => setConvite(v)}><Send size={15} aria-hidden /> Portal</Button>

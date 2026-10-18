@@ -88,13 +88,13 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
               {passos.map((i, k) => (
                 // celular: os botões descem para baixo do texto (antes o texto ficava espremido numa coluna estreita)
                 <li key={i.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-                  <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full bg-modulo-escuro text-sm font-extrabold text-white">{k + 1}</span>
+                  <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full bg-modulo-escuro text-sm font-bold text-white">{k + 1}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold leading-snug text-fg">{i.titulo}</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {i.responsavel && <ChipResponsavel r={i.responsavel} />}<ChipPrioridade p={i.prioridade} />
                       {i.situacao === "andamento" && <ChipSituacao i={i} />}
-                      {i.prazo && <span className={`text-[11px] font-semibold ${atrasada(i, dia) ? "text-red-700" : "text-slate-500"}`}>prazo {dataCurta(i.prazo, dia)}</span>}
+                      {i.prazo && <span className={`text-2xs font-semibold ${atrasada(i, dia) ? "text-red-700" : "text-slate-500"}`}>prazo {dataCurta(i.prazo, dia)}</span>}
                     </div>
                   </div>
                   <AcoesPendencia i={i} onEditar={() => setEditando({ tipo: "pendencia", item: i })} className="col-start-2 sm:col-start-auto" />
@@ -201,7 +201,7 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
       <div className="min-w-0 flex-1">
         <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
         {i.detalhe && (
-          <p className={`mt-0.5 whitespace-pre-line text-[13px] leading-snug text-slate-600 ${aberto || !longo ? "" : "line-clamp-2"}`}>
+          <p className={`mt-0.5 whitespace-pre-line text-xs leading-snug text-slate-600 ${aberto || !longo ? "" : "line-clamp-2"}`}>
             {i.detalhe}
           </p>
         )}
@@ -211,9 +211,9 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
           {mostrarQuem && i.responsavel && <ChipResponsavel r={i.responsavel} />}
           <ChipPrioridade p={i.prioridade} />
           <ChipArea area={i.area} />
-          {i.prazo && <span className={`text-[11px] font-semibold ${atrasada(i, dia) ? "text-red-700" : "text-slate-500"}`}>{atrasada(i, dia) ? "atrasada · " : ""}prazo {dataCurta(i.prazo, dia)}</span>}
-          {i.motivo && <span className="text-[11px] text-slate-600">{i.situacao === "aguardando" ? "aguardando: " : "motivo: "}{i.motivo}</span>}
-          {i.situacao === "feita" && i.concluido_em && <span className="text-[11px] text-emerald-700">feita em {dataCurta(i.concluido_em, dia)}</span>}
+          {i.prazo && <span className={`text-2xs font-semibold ${atrasada(i, dia) ? "text-red-700" : "text-slate-500"}`}>{atrasada(i, dia) ? "atrasada · " : ""}prazo {dataCurta(i.prazo, dia)}</span>}
+          {i.motivo && <span className="text-2xs text-slate-600">{i.situacao === "aguardando" ? "aguardando: " : "motivo: "}{i.motivo}</span>}
+          {i.situacao === "feita" && i.concluido_em && <span className="text-2xs text-emerald-700">feita em {dataCurta(i.concluido_em, dia)}</span>}
         </div>
       </div>
       <AcoesPendencia i={i} onEditar={onEditar} className="col-start-2 sm:col-start-auto" />
@@ -230,8 +230,8 @@ function Decisoes({ decisoes, dia, onEditar }: { decisoes: ItemProjeto[]; dia: s
       <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${i.situacao === "feita" ? "text-emerald-600" : "text-slate-400"}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
-        {i.detalhe && <p className="text-[13px] leading-snug text-slate-600">{i.detalhe}</p>}
-        <p className="mt-0.5 text-[11px] text-slate-500">{rotuloAreaCurta(i.area)} · {dataCurta(i.created_at, dia)}{i.motivo ? ` · revogada: ${i.motivo}` : ""}</p>
+        {i.detalhe && <p className="text-xs leading-snug text-slate-600">{i.detalhe}</p>}
+        <p className="mt-0.5 text-2xs text-slate-500">{rotuloAreaCurta(i.area)} · {dataCurta(i.created_at, dia)}{i.motivo ? ` · revogada: ${i.motivo}` : ""}</p>
       </div>
       <MenuAcoes itens={[
         { rotulo: "Editar", icone: Pencil, onClick: () => onEditar(i) },
@@ -264,14 +264,14 @@ function ComoFunciona({ onIrAba }: { onIrAba: (aba: "modulos" | "atualizacoes" |
     <Card className="p-4 sm:p-5">
       <h2 className="text-base font-bold text-fg">Como o ERP funciona</h2>
       <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">As peças</h3>
-      <ul className="mt-1 space-y-1 text-[13px] leading-snug text-slate-700">
+      <ul className="mt-1 space-y-1 text-xs leading-snug text-slate-700">
         <li><b>Telas</b>: abrem no navegador do computador e do celular.</li>
         <li><b>Banco e regras</b>: Supabase guarda os dados, as permissões de cada perfil e as funções do servidor (NF-e, bancos, e-mail).</li>
         <li><b>Site</b>: publicado na Hostinger.</li>
         <li><b>Código</b>: no GitHub. É público: nada da empresa vai no código; senhas só pelas telas ou pelos segredos do Supabase.</li>
       </ul>
       <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Uma mudança até chegar ao ar</h3>
-      <ol className="mt-1 list-decimal space-y-1 pl-5 text-[13px] leading-snug text-slate-700">
+      <ol className="mt-1 list-decimal space-y-1 pl-5 text-xs leading-snug text-slate-700">
         <li>O pedido vira pendência aqui (ou ideia, se ainda for só ideia).</li>
         <li>É feita e testada no código, com testes automáticos.</li>
         <li>Mudança no banco só por acréscimo, anotada no registro de migrações.</li>
@@ -279,7 +279,7 @@ function ComoFunciona({ onIrAba }: { onIrAba: (aba: "modulos" | "atualizacoes" |
         <li>A versão nova aparece em <button type="button" className={link} onClick={() => onIrAba("atualizacoes")}>Atualizações</button>.</li>
       </ol>
       <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Onde olhar</h3>
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
         <button type="button" className={link} onClick={() => onIrAba("modulos")}>Módulos</button>
         <button type="button" className={link} onClick={() => onIrAba("ideias")}>Ideias</button>
         <Link to="/auditoria" className={link}>Auditoria</Link>

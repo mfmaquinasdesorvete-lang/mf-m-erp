@@ -467,7 +467,7 @@ function Credenciais({ nome, email, senha, telefone, portal, onClose }: { nome: 
       <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="secondary" onClick={copiar}>{copiado ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />} {copiado ? "Copiado" : "Copiar"}</Button>
         {telefone.replace(/\D/g, "").length >= 10 && (
-          <a className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-3.5 py-2 text-sm font-semibold text-white sm:min-h-0" href={whatsappLink(telefone, texto)} target="_blank" rel="noreferrer">
+          <a className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-4 py-2 text-sm font-semibold text-white sm:min-h-0" href={whatsappLink(telefone, texto)} target="_blank" rel="noreferrer">
             <MessageCircle size={15} aria-hidden /> Enviar pelo WhatsApp
           </a>
         )}
@@ -546,7 +546,7 @@ function MatrizPermissoes() {
                   return (
                     <td key={p.value} className="td text-center">
                       {editavel && seus.length > 1 && (
-                        <button type="button" onClick={() => area(p.value, g.itens, !todosVisiveis)} className="text-[11px] font-semibold text-brand hover:underline">
+                        <button type="button" onClick={() => area(p.value, g.itens, !todosVisiveis)} className="text-2xs font-semibold text-brand hover:underline">
                           {todosVisiveis ? "esconder área" : "mostrar área"}
                         </button>
                       )}

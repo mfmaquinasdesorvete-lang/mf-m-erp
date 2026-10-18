@@ -147,7 +147,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
       <button key={m.id} type="button" onClick={() => setSelId(m.id)} aria-current={m.id === item?.id ? "true" : undefined}
         className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${m.id === item?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
         <span className="min-w-0">{m.descricao}</span>
-        <span className={`shrink-0 rounded px-1.5 text-[11px] ${n ? "bg-slate-100 text-slate-600" : "bg-amber-100 font-semibold text-amber-800"}`}>
+        <span className={`shrink-0 rounded px-1.5 text-2xs ${n ? "bg-slate-100 text-slate-600" : "bg-amber-100 font-semibold text-amber-800"}`}>
           {n ? `${n} ${pl(n, "item", "itens")}` : "sem ficha"}
         </span>
       </button>

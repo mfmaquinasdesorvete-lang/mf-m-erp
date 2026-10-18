@@ -716,11 +716,11 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
           <Button onClick={novaConta}><Plus size={16} /> Nova conta</Button>
         </>} />
       {podeDecidir && pagarHoje.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3.5 shadow-card sm:p-4" style={{ background: PASSOS_PAGAR[2].fundo, color: PASSOS_PAGAR[2].tinta }}>
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-4 shadow-card sm:p-4" style={{ background: PASSOS_PAGAR[2].fundo, color: PASSOS_PAGAR[2].tinta }}>
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/40"><Wallet size={22} aria-hidden /></span>
           <span className="mr-auto min-w-0">
-            <span className="block text-base font-extrabold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
-            <span className="mt-0.5 block text-[13px] leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
+            <span className="block text-base font-bold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
+            <span className="mt-0.5 block text-xs leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
           </span>
           <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl bg-[#422006] px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
             <CheckCheck size={16} aria-hidden /> Registrar o pagamento de todas
@@ -768,7 +768,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       ) : <>
       {(() => {
         const p = PASSOS_PAGAR.find((x) => x.id === visao);
-        return p ? <p className="-mt-1 mb-3 text-[13px] text-slate-600"><b className="text-fg">{p.passo} · {p.rotulo}:</b> {p.explica} <b className="text-fg">→ {p.fazer}.</b></p> : null;
+        return p ? <p className="-mt-1 mb-3 text-xs text-slate-600"><b className="text-fg">{p.passo} · {p.rotulo}:</b> {p.explica} <b className="text-fg">→ {p.fazer}.</b></p> : null;
       })()}
       {podeDecidir && abertasVisiveis.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 md:hidden">

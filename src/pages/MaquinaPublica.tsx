@@ -44,7 +44,7 @@ export default function MaquinaPublica() {
           <img src={logo} alt="" className="h-10 w-10 rounded-xl" />
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wider text-sky-200">{data.empresa.nome}</div>
-            <h1 className="truncate text-lg font-extrabold">{data.cliente ? `Olá, ${data.cliente}! Esta é a sua máquina` : "Sua máquina"}</h1>
+            <h1 className="truncate text-lg font-bold">{data.cliente ? `Olá, ${data.cliente}! Esta é a sua máquina` : "Sua máquina"}</h1>
           </div>
         </div>
       </header>
@@ -52,7 +52,7 @@ export default function MaquinaPublica() {
         <section className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
           {m.foto && <img src={urlFotoProduto(m.foto)} alt="" className="h-40 w-full rounded-xl object-contain sm:w-40" />}
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-extrabold text-slate-900">{m.descricao}</h2>
+            <h2 className="text-xl font-bold text-slate-900">{m.descricao}</h2>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
               {m.numero_serie && <><dt className="text-slate-500">Nº de série</dt><dd className="font-semibold">{m.numero_serie}</dd></>}
               {m.data_venda && <><dt className="text-slate-500">Comprada em</dt><dd className="font-semibold">{dataBR(m.data_venda)}</dd></>}

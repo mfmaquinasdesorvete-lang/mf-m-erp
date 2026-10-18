@@ -100,9 +100,9 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur" aria-hidden><Icone size={24} /></span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">Painel · {area}</p>
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-[28px]">{titulo}</h1>
-            {resumo && <p className="mt-1 max-w-2xl text-[15px] leading-snug text-white/90">{resumo}</p>}
+            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/75">Painel · {area}</p>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">{titulo}</h1>
+            {resumo && <p className="mt-1 max-w-2xl text-sm leading-snug text-white/90">{resumo}</p>}
           </div>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
@@ -111,7 +111,7 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
             <div role="tablist" aria-label="Período" className="grid grid-cols-5 gap-0.5 rounded-xl bg-black/15 p-1 ring-1 ring-white/15 backdrop-blur sm:inline-grid">
               {PERIODOS.map((p) => (
                 <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => onPeriodo(p.id)}
-                  className={`min-h-[36px] whitespace-nowrap rounded-lg px-2.5 text-[13px] font-bold transition sm:px-3 ${periodo === p.id ? "bg-white text-modulo-texto shadow" : "text-white/85 hover:bg-white/10 hover:text-white"}`}>
+                  className={`min-h-[36px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition sm:px-3 ${periodo === p.id ? "bg-white text-modulo-texto shadow" : "text-white/85 hover:bg-white/10 hover:text-white"}`}>
                   {p.rotulo}
                 </button>
               ))}
@@ -149,15 +149,15 @@ export function CartaoPainel({ c, anterior }: { c: Cartao; anterior?: string }) 
   const Tag = c.onClick ? "button" : "div";
   return (
     <Tag type={c.onClick ? "button" : undefined} onClick={c.onClick} title={c.titulo}
-      className={`cartao-fit group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-surface p-3.5 text-left shadow-card transition sm:p-4 ${c.onClick ? "hover:-translate-y-0.5 hover:shadow-pop" : ""}`}>
+      className={`cartao-fit group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-surface p-4 text-left shadow-card transition sm:p-4 ${c.onClick ? "hover:-translate-y-0.5 hover:shadow-pop" : ""}`}>
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: c.cor }} aria-hidden />
       {/* o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda */}
       <span className="flow-root text-sm leading-tight">
         <span className="float-right mb-1 ml-2 grid h-9 w-9 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c.cor} 16%, transparent)`, color: c.cor }}><c.icone size={18} /></span>
         <span className="text-sm font-semibold leading-tight text-slate-600">{c.rotulo}</span>
       </span>
-      <span className="num valor-fit mt-1 block font-extrabold leading-tight tracking-tight text-fg [--valor-max:1.75rem]" title={typeof c.valor === "string" ? c.valor : undefined} style={fitValor(c.valor)}>{c.valor}</span>
-      <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-snug text-slate-600">
+      <span className="num valor-fit mt-1 block font-bold leading-tight tracking-tight text-fg [--valor-max:1.75rem]" title={typeof c.valor === "string" ? c.valor : undefined} style={fitValor(c.valor)}>{c.valor}</span>
+      <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-snug text-slate-600">
         {c.delta !== undefined && (
           c.delta === null
             ? <span className="font-semibold text-emerald-600">novo</span>
@@ -239,7 +239,7 @@ export function ListaAtencao({ itens, vazio = "Tudo em dia por aqui." }: { itens
           <Link to={a.to} state={a.state} className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-slate-200 hover:bg-slate-50">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${a.cor} 16%, transparent)`, color: a.cor }}><a.icone size={18} /></span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] leading-snug text-slate-700">{a.texto}</span>
+              <span className="block text-sm leading-snug text-slate-700">{a.texto}</span>
               {a.sub && <span className="block truncate text-xs text-slate-500">{a.sub}</span>}
             </span>
             <ArrowRight size={16} className="shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-modulo-texto" />
@@ -266,9 +266,9 @@ export function AtalhosArea({ itens: todos, colunas = "grid-cols-3 sm:grid-cols-
           className="group flex flex-col items-center gap-1.5 rounded-xl p-1.5 text-center transition hover:bg-slate-50">
           <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-modulo/15 text-modulo-texto ring-1 ring-modulo/25 transition group-hover:scale-105">
             <a.icone size={22} />
-            {!!a.aviso && <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>}
+            {!!a.aviso && <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-2xs font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>}
           </span>
-          <span className="text-xs font-semibold leading-tight text-slate-700 sm:text-[13px]">{a.rotulo}</span>
+          <span className="text-xs font-semibold leading-tight text-slate-700 sm:text-xs">{a.rotulo}</span>
         </button>
       ))}
     </div>

@@ -157,7 +157,7 @@ function Grade({ mes, hoje, porDia }: { mes: string; hoje: string; porDia: Map<s
   const celulas = [...Array(primeiro).fill(null), ...Array.from({ length: dias }, (_, i) => iso(a, m, i + 1))];
   return (
     <Card className="hidden p-3 md:block">
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-2xs font-bold uppercase tracking-wide text-slate-500">
         {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => <div key={d}>{d}</div>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
@@ -168,12 +168,12 @@ function Grade({ mes, hoje, porDia }: { mes: string; hoje: string; porDia: Map<s
             <>
               <span className={`self-start text-xs font-bold ${dia === hoje ? "rounded-full bg-amber-500 px-1.5 text-white" : "text-slate-600"}`}>{Number(dia.slice(8))}</span>
               {itens.slice(0, 3).map((o) => (
-                <span key={o.id} className="flex min-w-0 items-center gap-1 text-left text-[11px] leading-tight text-fg">
+                <span key={o.id} className="flex min-w-0 items-center gap-1 text-left text-2xs leading-tight text-fg">
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${PONTO[o.situacao]}`} aria-hidden />
                   <span className="truncate">{o.regra.nome}{o.unidade ? ` ${o.unidade.codigo ?? ""}` : ""}</span>
                 </span>
               ))}
-              {itens.length > 3 && <span className="text-[11px] font-semibold text-slate-500">+{itens.length - 3}</span>}
+              {itens.length > 3 && <span className="text-2xs font-semibold text-slate-500">+{itens.length - 3}</span>}
             </>
           );
           return itens.length ? (
@@ -206,10 +206,10 @@ function Linha({ o, pode, onFeito }: { o: ItemCalendario; pode: boolean; onFeito
       <div className="min-w-0 flex-1 basis-60">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-semibold text-fg">{o.regra.nome}</span>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600">{o.unidade ? `${o.unidade.codigo ?? o.unidade.nome}` : "Empresa"}</span>
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600">{o.unidade ? `${o.unidade.codigo ?? o.unidade.nome}` : "Empresa"}</span>
           <span className="text-xs text-slate-500">competência {rotuloCompetencia(o.competencia)}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR[o.situacao]}`}>{ROTULO_SITUACAO[o.situacao]}</span>
-          {o.regra.conferir && <span className="rounded-full border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">confirmar com o contador</span>}
+          <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR[o.situacao]}`}>{ROTULO_SITUACAO[o.situacao]}</span>
+          {o.regra.conferir && <span className="rounded-full border border-violet-200 px-2 py-0.5 text-2xs font-semibold text-violet-700">confirmar com o contador</span>}
         </div>
         {r && r.situacao !== "pendente" && (
           <p className="mt-0.5 text-xs text-slate-600">
@@ -390,7 +390,7 @@ export function ProximasObrigacoes() {
             <li key={o.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5 text-sm">
               <span className="num w-20 shrink-0 font-semibold text-slate-600">{o.vencimento ? dataBR(o.vencimento).slice(0, 5) : "—"}</span>
               <span className="min-w-0 flex-1 truncate text-fg">{o.regra.nome}{o.unidade ? ` · ${o.unidade.codigo ?? o.unidade.nome}` : ""} <span className="text-xs text-slate-500">({rotuloCompetencia(o.competencia)})</span></span>
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR[o.situacao]}`}>{ROTULO_SITUACAO[o.situacao]}</span>
+              <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR[o.situacao]}`}>{ROTULO_SITUACAO[o.situacao]}</span>
             </li>
           ))}
           {itens.length > 8 && <li className="py-1.5 text-xs text-slate-500">e mais {itens.length - 8} no calendário</li>}

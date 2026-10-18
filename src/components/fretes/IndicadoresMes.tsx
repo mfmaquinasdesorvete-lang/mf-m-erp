@@ -19,12 +19,12 @@ function Variacao({ m }: { m: Metricas }) {
   return (
     <span className={ruim ? "font-semibold text-red-700" : m.variacaoReais < -0.005 ? "text-emerald-700" : ""}>
       {m.variacaoReais > 0 ? "+" : ""}{brl(m.variacaoReais)} <span className="text-xs">({m.variacaoPct != null && m.variacaoPct > 0 ? "+" : ""}{pct(m.variacaoPct)})</span>
-      {m.divergentes > 0 && <span className="block text-[11px] text-red-700">{m.divergentes} {pl(m.divergentes, "divergente", "divergentes")}</span>}
+      {m.divergentes > 0 && <span className="block text-2xs text-red-700">{m.divergentes} {pl(m.divergentes, "divergente", "divergentes")}</span>}
     </span>
   );
 }
 
-const sub = "block text-[11px] font-normal text-slate-500";
+const sub = "block text-2xs font-normal text-slate-500";
 
 // cabeçalhos quebram linha para a tabela caber sem rolar
 const Th = ({ children }: { children: ReactNode }) => <th className="th !whitespace-normal">{children}</th>;

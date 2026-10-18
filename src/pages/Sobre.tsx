@@ -99,7 +99,7 @@ function Atualizacoes() {
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden><Sparkles size={21} /></span>
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wider text-modulo-texto">Versão em uso</p>
-          <p className="num text-2xl font-extrabold text-fg">{VERSAO?.numero ?? "prévia"}</p>
+          <p className="num text-2xl font-bold text-fg">{VERSAO?.numero ?? "prévia"}</p>
           {VERSAO && <p className="text-sm text-slate-600">de {VERSAO.quando} · código <code className="text-xs">{VERSAO.hash}</code></p>}
         </div>
         <p className="min-w-0 max-w-xl flex-1 basis-64 text-sm text-slate-600">
@@ -137,7 +137,7 @@ function Atualizacoes() {
               <span className={`absolute -left-[23px] top-5 h-3 w-3 rounded-full sm:-left-[31px] ${i === 0 ? "bg-modulo" : "bg-slate-300"}`} aria-hidden />
               <Card className="min-w-0 p-4 sm:p-5">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className={`num rounded-lg px-2 py-0.5 text-sm font-extrabold ${i === 0 ? "bg-modulo-escuro text-white" : "bg-slate-100 text-fg"}`}>{v.numero}</span>
+                  <span className={`num rounded-lg px-2 py-0.5 text-sm font-bold ${i === 0 ? "bg-modulo-escuro text-white" : "bg-slate-100 text-fg"}`}>{v.numero}</span>
                   <span className="text-sm font-semibold capitalize text-slate-600">{diaPorExtenso(v.dia)}</span>
                   {i === 0 && VERSAO && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">em uso</span>}
                   <button type="button" onClick={() => copiarDia(versoes[i])} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-fg" title="Copiar as novidades do dia para mandar à equipe">
@@ -157,7 +157,7 @@ function Atualizacoes() {
                     </summary>
                     <ol className="mt-2 space-y-1.5">
                       {[...v.mudancas].reverse().map((m) => (
-                        <li key={m.hash} className="flex gap-2.5 text-[13px] leading-snug">
+                        <li key={m.hash} className="flex gap-2.5 text-xs leading-snug">
                           <span className="num shrink-0 text-slate-500">{m.hora}</span>
                           <span className="min-w-0 text-slate-700">{m.texto}</span>
                         </li>

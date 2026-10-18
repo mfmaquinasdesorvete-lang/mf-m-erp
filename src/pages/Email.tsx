@@ -116,7 +116,7 @@ export default function Email() {
         <div className="flex gap-1 overflow-x-auto">
           {([["todos", "Todos"], ["nao_lidos", `Não lidos${naoLidos ? ` (${naoLidos})` : ""}`], ["clientes", "De clientes"], ["nfe", "Com NF-e"], ["extratos", "Extratos"]] as const).map(([v, r]) => (
             <button key={v} type="button" onClick={() => setFiltro(v)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 bg-surface text-slate-600"}`}>{r}</button>
+              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 bg-surface text-slate-600"}`}>{r}</button>
           ))}
         </div>
         <div className="relative ml-auto w-full sm:w-64">
@@ -136,7 +136,7 @@ export default function Email() {
                 <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${e.lido ? "bg-transparent" : "bg-brand"}`} aria-label={e.lido ? undefined : "não lido"} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className={`truncate text-[15px] ${e.lido ? "font-medium text-slate-700" : "font-bold text-fg"}`}>{e.de_nome || e.de_email}</span>
+                    <span className={`truncate text-sm ${e.lido ? "font-medium text-slate-700" : "font-bold text-fg"}`}>{e.de_nome || e.de_email}</span>
                     <span className="shrink-0 text-xs text-slate-500">{quando(e.data)}</span>
                   </span>
                   <span className={`block truncate text-sm ${e.lido ? "text-slate-600" : "font-semibold text-fg"}`}>{e.assunto}</span>
@@ -173,7 +173,7 @@ const rotuloExtrato = (e: EmailMsg) => {
 
 function Etiqueta({ icon: Icon, texto, destaque }: { icon: typeof User; texto: string; destaque?: boolean }) {
   return (
-    <span className={`inline-flex max-w-[180px] items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${destaque ? "bg-purple-50 text-purple-700" : "bg-slate-100 text-slate-600"}`}>
+    <span className={`inline-flex max-w-[180px] items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-2xs font-semibold ${destaque ? "bg-purple-50 text-purple-700" : "bg-slate-100 text-slate-600"}`}>
       <Icon size={11} className="shrink-0" /> <span className="truncate">{texto}</span>
     </span>
   );
@@ -308,7 +308,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
           <iframe title="Conteúdo do e-mail" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={`<base target="_blank"><style>body{font-family:system-ui,sans-serif;font-size:15px;color:#1e293b;margin:0;word-wrap:break-word}img{max-width:100%;height:auto}</style>${e.html}`}
             className="h-[60vh] w-full rounded-xl border border-slate-100 bg-white" />
         ) : (
-          <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-relaxed text-slate-700">{e.texto || "(sem texto)"}</pre>
+          <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-700">{e.texto || "(sem texto)"}</pre>
         )}
       </div>
     </article>

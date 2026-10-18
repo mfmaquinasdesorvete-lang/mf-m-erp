@@ -148,18 +148,18 @@ export function ItemModal({ time, item, sprintInicial, sprints, itensDoTime, tod
         <Parecidos titulo={r.titulo} item={item} itens={todosItens} times={times} sprints={sprints} onAbrir={onAbrir} />
 
         <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-2.5">
-          <p className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-indigo-900"><Sparkles size={14} aria-hidden /> Assistente
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-indigo-900"><Sparkles size={14} aria-hidden /> Assistente
             <span className="font-normal text-indigo-800">— rascunhos pelo título e pelo histórico das equipes; confira antes de salvar</span></p>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Assistente do item">
             {ACOES.map(({ id, rotulo, dica, Icone }) => (
               <button key={id} type="button" onClick={() => usar(id)} title={dica} aria-label={`${rotulo}: ${dica}`}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-surface px-2.5 text-[13px] font-semibold text-indigo-900 transition hover:bg-indigo-100">
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-surface px-2.5 text-xs font-semibold text-indigo-900 transition hover:bg-indigo-100">
                 <Icone size={15} aria-hidden /> {rotulo}
               </button>
             ))}
           </div>
           {aviso && (
-            <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface p-2 text-[13px] text-slate-700" role="status">
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface p-2 text-xs text-slate-700" role="status">
               <ul className="min-w-0 flex-1 space-y-0.5">{aviso.linhas.map((l, k) => <li key={k}>{l}</li>)}</ul>
               <button type="button" onClick={() => { setR(aviso.antes); setAviso(null); }} className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-indigo-800 hover:bg-indigo-100">
                 <Undo2 size={13} aria-hidden /> Desfazer
@@ -213,7 +213,7 @@ export function ItemModal({ time, item, sprintInicial, sprints, itensDoTime, tod
         {secao("tarefas", <>Tarefas {r.tarefas.length > 0 && <span className="num font-semibold text-slate-500">· {feitas}/{r.tarefas.length} feitas</span>}</>,
           <ListaTarefas tarefas={r.tarefas} onChange={(tarefas) => setR({ ...r, tarefas })} />)}
         {secao("cenarios", <>Cenários (Dado / Quando / Então) {r.cenarios.trim() && <span className="font-semibold text-slate-500">· {(r.cenarios.match(/Cen[áa]rio\s*:/gi) ?? []).length}</span>}</>,
-          <textarea className="input min-h-[180px] font-mono text-[13px]" aria-label="Cenários" value={r.cenarios} spellCheck={false}
+          <textarea className="input min-h-[180px] font-mono text-xs" aria-label="Cenários" value={r.cenarios} spellCheck={false}
             placeholder={"Cenário: Caminho principal\n  Dado que …\n  Quando …\n  Então …"} onChange={(e) => setR({ ...r, cenarios: e.target.value })} />)}
         {secao("testes", <>Casos de teste <span className="font-semibold text-slate-500">· {resumoTestes(r.testes)}</span></>,
           <ListaTestes testes={r.testes} onChange={(testes) => setR({ ...r, testes })} />)}

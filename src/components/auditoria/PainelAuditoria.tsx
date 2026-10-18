@@ -285,7 +285,7 @@ function BarrasPorDia({ dias, hoje, onDia }: { dias: { dia: string; total: numbe
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+      <div className="mt-1 flex justify-between text-2xs text-slate-500">
         <span>{diaMes(dias[0].dia)}</span><span>{diaMes(dias[Math.floor(dias.length / 2)].dia)}</span><span>hoje</span>
       </div>
     </div>

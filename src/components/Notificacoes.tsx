@@ -205,8 +205,8 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 {/* no celular a linha toda é o botão de abrir; no computador fica o "Abrir →" */}
                 <button type="button" disabled={!n.link} onClick={() => abrir(n)} className="block w-full min-w-0 text-left disabled:cursor-default md:pointer-events-none">
                   {n.remetente_nome && <span className="block text-xs font-semibold text-slate-500">De {n.remetente_nome}</span>}
-                  <span className="block truncate text-sm font-bold leading-tight text-fg md:whitespace-normal md:text-[15px]">{n.titulo}</span>
-                  {n.texto && <span className="mt-0.5 block truncate text-[13px] text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
+                  <span className="block truncate text-sm font-bold leading-tight text-fg md:whitespace-normal md:text-sm">{n.titulo}</span>
+                  {n.texto && <span className="mt-0.5 block truncate text-xs text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
                 </button>
                 <span className="flex flex-wrap gap-x-4">
                   {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 hidden text-sm font-bold text-brand hover:underline md:inline">Abrir →</button>}
@@ -228,17 +228,17 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             <div className="relative w-full max-w-md">
             {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
             {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
-            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-3xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : "ring-2 ring-amber-400/60"}`}>
+            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-2xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : "ring-2 ring-amber-400/60"}`}>
               <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-extrabold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
                   {centro.length > 1 && <span className="text-xs font-semibold text-white/85">1 de {centro.length}</span>}
                 </div>
-                <h2 id="aviso-titulo" className="mt-3 text-xl font-extrabold leading-tight [overflow-wrap:anywhere]">{atual.titulo}</h2>
+                <h2 id="aviso-titulo" className="mt-3 text-xl font-bold leading-tight [overflow-wrap:anywhere]">{atual.titulo}</h2>
                 <p className="mt-1 text-sm text-white/85">{atual.remetente_nome ? `De ${atual.remetente_nome} · ` : ""}{new Date(atual.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
               </div>
               <div className="space-y-4 p-5">
-                {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-[15px] leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
+                {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-sm leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
                 <div className="flex flex-wrap justify-end gap-2">
                   {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>Abrir</Button>}
                   {respondivel(atual) && <Button variant="secondary" onClick={() => { ciente(atual); setResponderA(atual); }}><Reply size={16} /> Responder</Button>}
@@ -289,20 +289,20 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                         <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
                         <span className="min-w-0 flex-1">
                           {n.urgencia && n.urgencia !== "normal" && (
-                            <span className="mb-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white" style={{ background: NIVEL[n.urgencia].cor }}>{NIVEL[n.urgencia].rotulo}</span>
+                            <span className="mb-0.5 inline-block rounded-full px-2 py-0.5 text-2xs font-bold uppercase tracking-wider text-white" style={{ background: NIVEL[n.urgencia].cor }}>{NIVEL[n.urgencia].rotulo}</span>
                           )}
                           <span className={`block text-sm leading-tight ${n.created_at > vistasEm && !meu(n) ? "font-bold text-fg" : "font-semibold text-slate-700"}`}>{n.titulo}</span>
                           {n.texto && <span className="block truncate text-xs text-slate-500">{n.texto}</span>}
-                          <span className="block text-[11px] text-slate-400">
+                          <span className="block text-2xs text-slate-400">
                             {meu(n) ? "Você enviou" : n.remetente_nome ? `De ${n.remetente_nome}` : ""}{(meu(n) || n.remetente_nome) ? " · " : ""}
                             {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
                           </span>
                           {meu(n) && n.exige_ciencia && (
-                            <span className={`mt-0.5 block text-[11px] font-semibold ${total && cientes.length >= total ? "text-emerald-600" : "text-amber-600"}`}>
+                            <span className={`mt-0.5 block text-2xs font-semibold ${total && cientes.length >= total ? "text-emerald-600" : "text-amber-600"}`}>
                               ✓ {cientes.length}{total ? ` de ${total}` : ""} {cientes.length === 1 ? "ciente" : "cientes"}
                             </span>
                           )}
-                          {!meu(n) && n.exige_ciencia && paraMim(n) && !jaCiente(n) && <span className="mt-0.5 block text-[11px] font-semibold text-red-600">Falta o seu ciente</span>}
+                          {!meu(n) && n.exige_ciencia && paraMim(n) && !jaCiente(n) && <span className="mt-0.5 block text-2xs font-semibold text-red-600">Falta o seu ciente</span>}
                         </span>
                       </button>
                       {(respondivel(n) || (meu(n) && n.conversa_id)) && (
@@ -464,9 +464,9 @@ function ResponderAviso({ aviso, onClose }: { aviso: Notificacao; onClose: () =>
             return (
               <li key={n.id} className={`flex ${minha ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${minha ? "bg-brand-light" : "bg-slate-100"}`}>
-                  <div className="text-[11px] font-semibold text-slate-500">
+                  <div className="text-2xs font-semibold text-slate-500">
                     {minha ? "Você" : n.remetente_nome ?? "ERP"} · {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                    {nv && <span className="ml-1 rounded-full px-1.5 py-px text-[10px] font-extrabold uppercase text-white" style={{ background: nv.cor }}>{nv.rotulo}</span>}
+                    {nv && <span className="ml-1 rounded-full px-1.5 py-px text-2xs font-bold uppercase text-white" style={{ background: nv.cor }}>{nv.rotulo}</span>}
                   </div>
                   {!n.resposta_de && <div className="text-sm font-bold text-fg [overflow-wrap:anywhere]">{n.titulo}</div>}
                   {n.texto && <p className="whitespace-pre-wrap text-sm text-fg [overflow-wrap:anywhere]">{n.texto}</p>}
@@ -509,7 +509,7 @@ export function Sino({ claro }: { claro?: boolean }) {
     <button type="button" onClick={abrirPainel} aria-label={naoVistas ? `${naoVistas} notificações novas` : "Notificações"}
       className={`relative rounded-xl p-2 ${claro ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"}`}>
       <Bell size={21} />
-      {naoVistas > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-[11px] font-bold text-white">{naoVistas > 9 ? "9+" : naoVistas}</span>}
+      {naoVistas > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-2xs font-bold text-white">{naoVistas > 9 ? "9+" : naoVistas}</span>}
     </button>
   );
 }

@@ -405,7 +405,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           <div className="flex flex-1 flex-col items-center px-4 py-8 text-center sm:px-8">
             <button type="button" onClick={onClose} className="self-end rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar"><X size={20} /></button>
             <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15"><CircleCheck size={36} /></span>
-            <h2 className="mt-3 text-balance text-xl font-extrabold text-fg sm:text-2xl">{nomeTopo} está cadastrado</h2>
+            <h2 className="mt-3 text-balance text-xl font-bold text-fg sm:text-2xl">{nomeTopo} está cadastrado</h2>
             <p className="mt-1 text-sm text-slate-500">{c.codigo ? `Cliente nº ${c.codigo} · ` : ""}ficha {pct}% completa</p>
             <div className="mt-6 grid w-full max-w-xl gap-2 text-left sm:grid-cols-2">
               {([
@@ -431,8 +431,8 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           <div className="bg-gradient-to-br from-ink via-ink-soft to-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-200">Novo cliente · passo {n + 1} de {PASSOS.length}</div>
-                <h2 className="text-balance text-lg font-extrabold leading-tight sm:text-xl">{PASSOS[n].pergunta}</h2>
+                <div className="text-2xs font-semibold uppercase tracking-wider text-sky-200">Novo cliente · passo {n + 1} de {PASSOS.length}</div>
+                <h2 className="text-balance text-lg font-bold leading-tight sm:text-xl">{PASSOS[n].pergunta}</h2>
                 <p className="mt-0.5 text-sm text-white/70">{PASSOS[n].dica}</p>
               </div>
               <button type="button" onClick={fechar} className="rounded-lg p-2 text-white/80 hover:bg-white/10" aria-label="Fechar"><X size={20} /></button>
@@ -443,7 +443,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   <button type="button" disabled={k > liberado} onClick={() => irPara(k)} aria-current={k === n ? "step" : undefined}
                     title={k > liberado ? "Termine o passo anterior" : p.titulo} className="w-full text-left disabled:cursor-not-allowed">
                     <span className={`block h-1.5 rounded-full transition ${k < n ? "bg-emerald-400" : k === n ? "bg-sky-400" : "bg-white/15"}`} />
-                    <span className={`mt-1.5 hidden items-center gap-1 text-[11px] font-semibold sm:flex ${k === n ? "text-white" : "text-white/60"}`}>
+                    <span className={`mt-1.5 hidden items-center gap-1 text-2xs font-semibold sm:flex ${k === n ? "text-white" : "text-white/60"}`}>
                       {k < n ? <Check size={12} className="text-emerald-300" /> : <span>{k + 1}.</span>} {p.titulo}
                     </span>
                   </button>
@@ -662,16 +662,16 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
         {/* topo: quem é + quanto falta */}
         <div className="bg-gradient-to-br from-ink via-ink-soft to-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
           <div className="flex items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-emerald-500 text-lg font-extrabold shadow-lg sm:h-14 sm:w-14">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-emerald-500 text-lg font-bold shadow-lg sm:h-14 sm:w-14">
               {c.id || nomeTopo ? iniciais(nomeTopo) : <UserRound size={24} />}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-200">{c.id ? `Cliente${c.codigo ? ` nº ${c.codigo}` : ""}` : "Novo cliente"}</div>
-              <h2 className="truncate text-lg font-extrabold leading-tight sm:text-xl">{nomeTopo || "Cadastro de cliente"}</h2>
+              <div className="text-2xs font-semibold uppercase tracking-wider text-sky-200">{c.id ? `Cliente${c.codigo ? ` nº ${c.codigo}` : ""}` : "Novo cliente"}</div>
+              <h2 className="truncate text-lg font-bold leading-tight sm:text-xl">{nomeTopo || "Cadastro de cliente"}</h2>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold">{pj ? "Pessoa jurídica" : "Pessoa física"}</span>
-                {crm && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${crm.cor}`}>{crm.label}</span>}
-                {assinado && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[11px] font-semibold"><BadgeCheck size={12} /> ficha assinada</span>}
+                <span className="rounded-full bg-white/15 px-2 py-0.5 text-2xs font-semibold">{pj ? "Pessoa jurídica" : "Pessoa física"}</span>
+                {crm && <span className={`rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label}</span>}
+                {assinado && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-2xs font-semibold"><BadgeCheck size={12} /> ficha assinada</span>}
                 <EtiquetasCliente c={c as any} tipos={tipos} />
               </div>
             </div>
@@ -696,7 +696,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {pend.map((p) => (
                   <button key={p.item} type="button" onClick={() => setAba(p.aba)}
-                    className="rounded-full border border-white/20 px-2 py-0.5 text-[11px] font-medium text-white/90 transition hover:bg-white/15">+ {p.item}</button>
+                    className="rounded-full border border-white/20 px-2 py-0.5 text-2xs font-medium text-white/90 transition hover:bg-white/15">+ {p.item}</button>
                 ))}
               </div>
             )}
@@ -713,7 +713,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 <button key={a.id} type="button" onClick={() => setAba(a.id)} aria-current={ativa ? "page" : undefined}
                   className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition ${ativa ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
                   <a.Icon size={16} /> {a.label}
-                  {n > 0 && <span className={`grid h-4 min-w-[1rem] place-items-center rounded-full px-1 text-[10px] font-bold ${ativa ? "bg-white/25" : "bg-amber-100 text-amber-800"}`}>{n}</span>}
+                  {n > 0 && <span className={`grid h-4 min-w-[1rem] place-items-center rounded-full px-1 text-2xs font-bold ${ativa ? "bg-white/25" : "bg-amber-100 text-amber-800"}`}>{n}</span>}
                 </button>
               );
             })}
@@ -927,7 +927,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   <div className="input flex flex-col justify-center bg-slate-50 leading-tight text-slate-700"
                     title={desde && desde.fonte !== "cadastro" && c.created_at ? `No ERP desde ${dataBR(c.created_at)}` : undefined}>
                     <span className="font-semibold">{desde ? dataBR(desde.desde) : c.created_at ? dataBR(c.created_at) : "hoje"}</span>
-                    {desde && <span className="text-[11px] text-slate-500">{FONTE_DESDE[desde.fonte] ?? desde.fonte}</span>}
+                    {desde && <span className="text-2xs text-slate-500">{FONTE_DESDE[desde.fonte] ?? desde.fonte}</span>}
                   </div>
                 </Field>
               </div>

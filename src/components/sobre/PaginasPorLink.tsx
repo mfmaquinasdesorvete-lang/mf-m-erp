@@ -79,10 +79,10 @@ export function PaginasPorLink({ filtro }: { filtro: (p: (typeof PAGINAS_POR_LIN
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-800" aria-hidden><Icone size={17} /></span>
                 <div className="min-w-0">
                   <span className="text-sm font-bold text-fg">{p.nome}</span> <code className="break-all text-xs text-slate-500">{p.caminho}</code>
-                  <p className="text-[13px] leading-snug text-slate-600">{p.texto}</p>
+                  <p className="text-xs leading-snug text-slate-600">{p.texto}</p>
                 </div>
               </div>
-              <dl className="grid gap-1 text-[12.5px] leading-snug">
+              <dl className="grid gap-1 text-xs leading-snug">
                 <div className="flex gap-1.5"><dt className="shrink-0 font-semibold text-slate-700">Quem recebe:</dt><dd className="min-w-0 text-slate-600">{p.quem}</dd></div>
                 <div className="flex gap-1.5"><dt className="shrink-0 font-semibold text-slate-700"><MapPin size={12} className="mr-0.5 inline" aria-hidden />Onde se gera:</dt><dd className="min-w-0 text-slate-600">{p.onde}</dd></div>
               </dl>

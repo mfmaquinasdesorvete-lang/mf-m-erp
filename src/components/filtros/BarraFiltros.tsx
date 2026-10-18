@@ -33,8 +33,11 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           <input className="input h-10 pl-9" type="search" placeholder={placeholder} aria-label={placeholder} value={busca} onChange={(e) => onBusca(e.target.value)} />
         </div>
         {comPeriodo && (
-          <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} className={botao(ativoPeriodo, painel === "periodo")}>
-            <CalendarDays size={16} aria-hidden /> <span className="max-w-[13rem] truncate">{rotuloData}: {rotuloPeriodo(periodo!, hoje())}</span>
+          // no celular, sem período escolhido, só o nome da data: o botão Filtros cabe na mesma linha
+          <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} title={`${rotuloData}: ${rotuloPeriodo(periodo!, hoje())}`}
+            className={`${botao(ativoPeriodo, painel === "periodo")} min-w-0 !shrink`}>
+            <CalendarDays size={16} className="shrink-0" aria-hidden />
+            <span className="max-w-[13rem] truncate">{rotuloData}{ativoPeriodo ? `: ${rotuloPeriodo(periodo!, hoje())}` : <span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span>}</span>
           </button>
         )}
         {filtros && (
@@ -146,9 +149,9 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
         </div>
       ) : dica ? <span className="hidden text-xs text-slate-500 md:inline">{dica}</span> : null}
       <div className="ml-auto flex w-full flex-wrap items-end justify-between gap-x-3 gap-y-1 text-right md:w-auto md:justify-end md:gap-x-5">
-        <div className="text-left md:text-right"><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-[11px] leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
-        {total != null && <div><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{brl(total)}</div><div className="text-[11px] leading-tight text-slate-500">{rotuloTotal}</div></div>}
-        {extras?.map((x) => <div key={x.rotulo}><div className={`num whitespace-nowrap text-sm font-bold leading-tight md:text-base ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-[11px] leading-tight text-slate-500">{x.rotulo}</div></div>)}
+        <div className="text-left md:text-right"><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-2xs leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
+        {total != null && <div><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{brl(total)}</div><div className="text-2xs leading-tight text-slate-500">{rotuloTotal}</div></div>}
+        {extras?.map((x) => <div key={x.rotulo}><div className={`num whitespace-nowrap text-sm font-bold leading-tight md:text-base ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-2xs leading-tight text-slate-500">{x.rotulo}</div></div>)}
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ const COR_SENTIDO: Record<Sentido, string> = {
   outro: "bg-slate-100 text-slate-700",
 };
 export function SeloSentido({ s }: { s: Sentido }) {
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${COR_SENTIDO[s]}`} title={SENTIDOS[s].dica}>{SENTIDOS[s].rotulo}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${COR_SENTIDO[s]}`} title={SENTIDOS[s].dica}>{SENTIDOS[s].rotulo}</span>;
 }
 
 type SituacaoSefaz = { em?: string; novos?: number; atualizados?: number; completos?: number; erro?: string | null; pendentes_xml?: number; da_sefaz?: number };
@@ -87,16 +87,16 @@ function FaturasParaMontar({ grupos, porId, onMontar }: {
   if (!grupos.length) return null;
   return (
     <Section title="Faturas para montar">
-      <p className="mb-2 text-[13px] text-slate-600">CT-e que a MF paga e ainda não estão em fatura. Quando a fatura da transportadora chegar, confira e toque em
+      <p className="mb-2 text-xs text-slate-600">CT-e que a MF paga e ainda não estão em fatura. Quando a fatura da transportadora chegar, confira e toque em
         Montar: ela vai para Contas a pagar (tipo Transportadoras) e passa pela aprovação.</p>
       <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {grupos.map((g) => (
           <li key={g.chave} className="flex flex-col gap-2 rounded-xl border border-l-[5px] border-slate-200 border-l-cyan-500 bg-surface p-3">
             <span className="flex flex-wrap items-baseline justify-between gap-x-2">
               <b className="min-w-0 flex-1 truncate">{nomeTransportadora(g.transportadora_id ? porId.get(g.transportadora_id) : null)}</b>
-              <span className="num whitespace-nowrap text-lg font-extrabold">{brl(g.total)}</span>
+              <span className="num whitespace-nowrap text-lg font-bold">{brl(g.total)}</span>
             </span>
-            <span className="text-[13px] text-slate-600">
+            <span className="text-xs text-slate-600">
               {g.qtd} CT-e de {dataBR(g.desde)}{g.ate !== g.desde ? ` a ${dataBR(g.ate)}` : ""}{g.daSefaz ? ` · ${g.daSefaz} da SEFAZ` : ""}
               {g.fatura && <> · fatura nº <b>{g.fatura}</b> informada no CT-e</>}{g.vencimento && <> · vence {dataBR(g.vencimento)}</>}
             </span>
@@ -198,7 +198,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
           sub={atrasados ? `${atrasados} com atraso · média de ${String(resumo.atrasoMedio).replace(".", ",")} dia(s) — toque para ver` : "nenhum atraso no período"}
           onClick={() => setSoAtraso(!soAtraso)} />
       </div>
-      {resumo.cancelados > 0 && <p className="text-[13px] text-slate-600">{resumo.cancelados} CT-e {resumo.cancelados === 1 ? "cancelado fica" : "cancelados ficam"} na lista, mas fora das contas e das faturas.</p>}
+      {resumo.cancelados > 0 && <p className="text-xs text-slate-600">{resumo.cancelados} CT-e {resumo.cancelados === 1 ? "cancelado fica" : "cancelados ficam"} na lista, mas fora das contas e das faturas.</p>}
 
       {podeFaturar && <FaturasParaMontar grupos={sugeridas} porId={porId} onMontar={(g) => setFatura({ ids: g.ids, numero: g.fatura, vencimento: g.vencimento })} />}
 
@@ -263,9 +263,9 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
               <tr key={c.id} className={marcados.has(c.id) && faturavel(c) ? "bg-brand/5" : ""}>
                 {podeFaturar && <td className="td">{faturavel(c) && <input type="checkbox" aria-label={`Marcar CT-e ${c.numero}`} checked={marcados.has(c.id)} onChange={() => marcar(c.id)} />}</td>}
                 <td className="td"><span className={`font-semibold ${valido(c) ? "" : "line-through"}`}>{c.numero}</span>
-                  {c.chave && <span title="CT-e conferido na SEFAZ (chave de acesso)" className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-800"><BadgeCheck size={11} aria-hidden />SEFAZ</span>}
+                  {c.chave && <span title="CT-e conferido na SEFAZ (chave de acesso)" className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 text-2xs font-bold text-emerald-800"><BadgeCheck size={11} aria-hidden />SEFAZ</span>}
                   <span className="block text-xs text-slate-500">{dataBR(c.emissao)}</span><SeloSentido s={c.sentido} />
-                  {!valido(c) && <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800">{c.situacao}</span>}</td>
+                  {!valido(c) && <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-2xs font-semibold text-red-800">{c.situacao}</span>}</td>
                 <td className="td min-w-[14rem] text-sm"><span className="block">{c.remetente_nome ?? "—"}</span>
                   <span className="block text-slate-600">→ {c.destinatario_nome ?? "—"}</span>
                   <span className="block text-xs text-slate-500">{[c.ag_origem, c.ag_destino].filter(Boolean).join(" → ")}{c.volumes ? ` · ${c.volumes} vol.` : ""}{c.peso ? ` · ${String(c.peso).replace(".", ",")} ${c.peso_tipo === "M3" ? "m³" : "kg"}` : ""}</span></td>

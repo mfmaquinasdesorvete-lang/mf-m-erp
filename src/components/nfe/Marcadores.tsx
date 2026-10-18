@@ -21,7 +21,7 @@ export function useMarcadores() {
 export function ChipMarcador({ m, pequeno }: { m: Marcador; pequeno?: boolean }) {
   const Icone = iconeDe(m.icone);
   return (
-    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full ring-1 ring-inset ${corDe(m.cor).chip} ${pequeno ? "px-1.5 py-0 text-[11px]" : "px-2 py-0.5 text-xs"} font-semibold`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full ring-1 ring-inset ${corDe(m.cor).chip} ${pequeno ? "px-1.5 py-0 text-2xs" : "px-2 py-0.5 text-xs"} font-semibold`}>
       <Icone size={pequeno ? 11 : 12} aria-hidden /> {m.nome}
     </span>
   );

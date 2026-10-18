@@ -60,7 +60,7 @@ export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: Maqui
     <div className="mt-0.5 flex flex-wrap gap-1">
       {soCadastro && (
         <span title={`Comprou máquina em ${mesAnoCompra(compra)} (data do cadastro do cliente; modelo não informado)`}
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-300 bg-surface px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-300 bg-surface px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
           <Snowflake size={11} aria-hidden /> Máquina · {mesAnoCompra(compra)}
         </span>
       )}
@@ -70,12 +70,12 @@ export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: Maqui
         const titulo = [m.descricao, m.origem ? `vendida pela ${m.origem}` : "vendida pela MF", m.data_venda ? `em ${dataBR(m.data_venda)}` : "data não informada", m.usada ? "máquina usada" : ""]
           .filter(Boolean).join(" · ");
         return (
-          <span key={m.id} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[11px] font-semibold ${corMaquina(r)}`}>
+          <span key={m.id} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-2xs font-semibold ${corMaquina(r)}`}>
             <Snowflake size={11} aria-hidden /> {r}{m.usada ? " usada" : ""}{quando ? ` · ${quando}` : ""}
           </span>
         );
       })}
-      {resto > 0 && <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
+      {resto > 0 && <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
     </div>
   );
 }

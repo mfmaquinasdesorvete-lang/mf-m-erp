@@ -138,15 +138,15 @@ export default function FichaPublica() {
     }
   }
 
-  const input = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-[16px] text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15";
+  const input = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15";
 
   return (
     <Tela>
       <Cartao empresa={f.empresa.nome}>
         {/* boas-vindas + passos */}
         <div className="px-5 pt-5 sm:px-7">
-          <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">{primeiro ? `Olá, ${primeiro}!` : "Olá!"}</h1>
-          <p className="mt-1 text-[15px] text-slate-600">Confira os seus dados e assine a ficha cadastral. Leva 1 minuto.</p>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{primeiro ? `Olá, ${primeiro}!` : "Olá!"}</h1>
+          <p className="mt-1 text-sm text-slate-600">Confira os seus dados e assine a ficha cadastral. Leva 1 minuto.</p>
           <ol className="mt-5 grid grid-cols-3" aria-label="Passos">
             {PASSOS.map((p, i) => (
               <li key={p.titulo} className="flex flex-col items-center gap-1.5 text-center" aria-current={i === passo ? "step" : undefined}>
@@ -215,7 +215,7 @@ export default function FichaPublica() {
           )}
 
           {passo === 2 && (<>
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-[14px] leading-relaxed text-slate-700">
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-sm leading-relaxed text-slate-700">
               <div className="mb-1.5 flex items-center gap-1.5 text-sm font-bold text-slate-900"><ShieldCheck size={16} className="text-sky-600" /> Declaração</div>
               {f.termo}
             </div>
@@ -233,7 +233,7 @@ export default function FichaPublica() {
               <span className="mb-1.5 block text-sm font-semibold text-slate-700">Sua assinatura</span>
               <Assinatura valor={png} onChange={setPng} />
             </div>
-            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-3 text-[15px] text-slate-700">
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-3 text-sm text-slate-700">
               <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-sky-600" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
               Li a declaração e confirmo que os meus dados estão corretos.
             </label>
@@ -288,8 +288,8 @@ function Concluido({ nome, quando, hash, comprovante, acao }: { nome: string; qu
   return (
     <div className="px-5 py-10 text-center sm:px-7">
       <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-solido-verde text-white shadow-lg ring-8 ring-emerald-100"><BadgeCheck size={34} /></span>
-      <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Ficha assinada!</h1>
-      <p className="mt-1 text-[15px] text-slate-600">
+      <h1 className="mt-5 text-2xl font-bold text-slate-900">Ficha assinada!</h1>
+      <p className="mt-1 text-sm text-slate-600">
         Obrigado{nome ? `, ${nome.split(" ")[0]}` : ""}. Assinada em {quando ? new Date(quando).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}.
       </p>
       {hash && (
@@ -322,11 +322,11 @@ function Aviso({ titulo, texto, acao }: { titulo: string; texto: string; acao?: 
 
 function Cartao({ empresa, children }: { empresa: string; children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
       <header className="flex items-center gap-3 bg-gradient-to-r from-[#071528] to-[#0f2a4d] px-5 py-4 text-white sm:px-7">
         <img src={logo} alt="" className="h-11 w-11 rounded-xl bg-white/10" />
         <div className="min-w-0">
-          <div className="truncate text-lg font-extrabold">{empresa}</div>
+          <div className="truncate text-lg font-bold">{empresa}</div>
           <div className="text-xs text-sky-200">Ficha cadastral</div>
         </div>
       </header>

@@ -172,9 +172,9 @@ function DetalheTabela({ tabela, produtos, fixos, podeEditar, onVoltar, onEditar
             return (
               <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
                 <span className="min-w-0 flex-1 basis-56 text-sm"><b className="font-semibold">{p.descricao}</b><span className="block text-xs text-slate-500">{[p.sku, p.categoria].filter(Boolean).join(" · ")}</span></span>
-                <span className="w-28 text-right text-sm text-slate-600"><span className="block text-[11px]">venda</span>{brl(p.preco_venda)}</span>
-                <span className="w-28 text-right"><span className="block text-[11px] text-slate-500">{tabela.nome}</span><b className={r.fixo ? "text-modulo-texto" : ""}>{brl(r.preco)}</b></span>
-                <label className="w-32 text-right text-[11px] text-slate-500">preço fixo
+                <span className="w-28 text-right text-sm text-slate-600"><span className="block text-2xs">venda</span>{brl(p.preco_venda)}</span>
+                <span className="w-28 text-right"><span className="block text-2xs text-slate-500">{tabela.nome}</span><b className={r.fixo ? "text-modulo-texto" : ""}>{brl(r.preco)}</b></span>
+                <label className="w-32 text-right text-2xs text-slate-500">preço fixo
                   <input className="input mt-0.5 py-1 text-right" inputMode="decimal" disabled={!podeEditar} aria-label={`Preço fixo de ${p.descricao} em ${tabela.nome}`}
                     placeholder={auto.toFixed(2).replace(".", ",")} value={valor}
                     onChange={(e) => setRascunho((x) => ({ ...x, [p.id]: e.target.value.replace(/[^\d,.]/g, "").slice(0, 12) }))}

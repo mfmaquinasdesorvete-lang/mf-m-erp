@@ -245,8 +245,8 @@ export default function Fretes() {
                 <tr key={e.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ id: e.id })}>
                   <td className="td" data-label="Envio">
                     <div className="font-semibold">#{e.numero}{p ? <span className="font-normal text-slate-500"> · pedido #{p.numero}</span> : ""}</div>
-                    <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_ENVIO[e.status].cor}`}>{STATUS_ENVIO[e.status].rotulo}</span>
-                    {abertas > 0 && <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-800"><AlertTriangle size={11} /> {abertas}</span>}
+                    <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-2xs font-bold ${STATUS_ENVIO[e.status].cor}`}>{STATUS_ENVIO[e.status].rotulo}</span>
+                    {abertas > 0 && <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-2xs font-bold text-red-800"><AlertTriangle size={11} /> {abertas}</span>}
                   </td>
                   <td className="td" data-label="Destino">
                     <div>{p?.cliente?.nome_fantasia || p?.cliente?.nome || "—"}</div>
@@ -272,8 +272,8 @@ export default function Fretes() {
                     {e.valor_aprovado != null && <div className="font-semibold">{brl(e.valor_aprovado)}</div>}
                     {e.valor_final != null && <div className={`text-xs ${acima || divergente ? "font-bold text-red-700" : "text-slate-500"}`}>final {brl(e.valor_final)}</div>}
                     {divergente && (e.conferido_em
-                      ? <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-800"><BadgeCheck size={11} /> conferido</span>
-                      : <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-800"><AlertTriangle size={11} /> divergente</span>)}
+                      ? <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-bold text-emerald-800"><BadgeCheck size={11} /> conferido</span>
+                      : <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-2xs font-bold text-red-800"><AlertTriangle size={11} /> divergente</span>)}
                   </td>
                   <td className="td text-right" onClick={(x) => x.stopPropagation()}>
                     {indicador === "sem_baixa" && podeEditar && p && <Button variant="secondary" onClick={() => darBaixa(e)}><PackageCheck size={15} /> Dar baixa</Button>}

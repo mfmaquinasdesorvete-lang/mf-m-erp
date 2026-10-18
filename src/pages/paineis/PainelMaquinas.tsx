@@ -230,7 +230,7 @@ export default function PainelMaquinas() {
                     <span className="col-span-4 min-w-0 md:col-span-1">
                       <span className="block truncate text-sm font-semibold text-fg">{m.nome}</span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.cor}`}>{s.texto}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${s.cor}`}>{s.texto}</span>
                         {m.ultima ? `última venda ${dataBR(m.ultima)}` : "nunca vendida"}
                       </span>
                     </span>
@@ -296,8 +296,8 @@ export default function PainelMaquinas() {
 function Numero({ rotulo, valor, texto, alerta, className = "" }: { rotulo: string; valor?: number; texto?: string; alerta?: boolean; className?: string }) {
   return (
     <span className={`min-w-0 text-left md:text-right ${className}`}>
-      <span className="block whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-slate-500">{rotulo}</span>
-      <span className={`num block whitespace-nowrap text-sm font-bold md:text-[15px] ${alerta ? "text-red-600" : "text-fg"}`}>{texto ?? (valor ?? 0).toLocaleString("pt-BR")}</span>
+      <span className="block whitespace-nowrap text-2xs font-semibold uppercase tracking-wide text-slate-500">{rotulo}</span>
+      <span className={`num block whitespace-nowrap text-sm font-bold md:text-sm ${alerta ? "text-red-600" : "text-fg"}`}>{texto ?? (valor ?? 0).toLocaleString("pt-BR")}</span>
     </span>
   );
 }

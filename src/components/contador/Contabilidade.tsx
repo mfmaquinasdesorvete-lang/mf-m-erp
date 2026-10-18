@@ -139,7 +139,7 @@ export function Contabilidade() {
             {emails.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
                 <span className="w-20 shrink-0 text-xs text-slate-500">{dataBR(e.data)}</span>
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">{ROTULO_SETOR[e.setor] ?? e.setor}</span>
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-2xs font-semibold text-sky-800">{ROTULO_SETOR[e.setor] ?? e.setor}</span>
                 <div className="min-w-0 flex-1 basis-56">
                   <div className={`truncate text-sm ${e.lido ? "text-slate-700" : "font-bold text-fg"}`}>{e.assunto || "(sem assunto)"}</div>
                   <div className="truncate text-xs text-slate-500">{e.contato ?? e.de_nome ?? e.de_email}</div>

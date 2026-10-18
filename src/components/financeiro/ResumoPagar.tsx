@@ -50,9 +50,9 @@ function Anel({ r, tipo, onTipo }: { r: ResumoPagar; tipo?: TipoPagar | ""; onTi
       </svg>
       {/* centro: o total (a letra acompanha o tamanho do anel) */}
       <div className="cartao-fit absolute inset-[19%] flex flex-col items-center justify-center text-center">
-        <span className="max-w-full truncate text-[11px] font-bold uppercase tracking-[.14em] text-white/75">{daVez ? TIPOS_PAGAR[daVez.tipo].rotulo : "Para pagar"}</span>
-        <span className="num valor-fit w-full font-extrabold leading-tight text-white [--valor-cq:14cqi] [--valor-max:2.1rem]">{brl(daVez ? daVez.total : r.total)}</span>
-        <span className="text-[13px] font-semibold text-[#5eead4]">{daVez ? `${daVez.n} ${pl(daVez.n, "conta", "contas")}` : `${r.n} ${pl(r.n, "conta", "contas")} em aberto`}</span>
+        <span className="max-w-full truncate text-2xs font-bold uppercase tracking-[.14em] text-white/75">{daVez ? TIPOS_PAGAR[daVez.tipo].rotulo : "Para pagar"}</span>
+        <span className="num valor-fit w-full font-bold leading-tight text-white [--valor-cq:14cqi] [--valor-max:2.1rem]">{brl(daVez ? daVez.total : r.total)}</span>
+        <span className="text-xs font-semibold text-[#5eead4]">{daVez ? `${daVez.n} ${pl(daVez.n, "conta", "contas")}` : `${r.n} ${pl(r.n, "conta", "contas")} em aberto`}</span>
       </div>
     </div>
   );
@@ -65,8 +65,8 @@ function Situacao({ icone: Icone, rotulo, valor, sub, de, ate, aceso }: { icone:
     <div className={`cartao-fit grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-2xl border p-2.5 lg:gap-x-2.5
       ${aceso ? "border-white/15 bg-white/[.08]" : "border-white/[.06] bg-white/[.03]"}`}>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white lg:row-span-3 lg:h-10 lg:w-10" style={ladrilho(de, ate)}><Icone size={17} aria-hidden /></span>
-      <span className="min-w-0 text-[11px] font-bold uppercase leading-tight tracking-wide text-white/80">{rotulo}</span>
-      <span className="num valor-fit col-span-2 block font-extrabold leading-tight text-white [--valor-cq:14cqi] [--valor-max:1.35rem] lg:col-span-1 lg:col-start-2 lg:[--valor-cq:10cqi]">{brl(valor)}</span>
+      <span className="min-w-0 text-2xs font-bold uppercase leading-tight tracking-wide text-white/80">{rotulo}</span>
+      <span className="num valor-fit col-span-2 block font-bold leading-tight text-white [--valor-cq:14cqi] [--valor-max:1.35rem] lg:col-span-1 lg:col-start-2 lg:[--valor-cq:10cqi]">{brl(valor)}</span>
       <span className="col-span-2 block truncate text-xs text-white/75 lg:col-span-1 lg:col-start-2">{sub}</span>
     </div>
   );
@@ -78,9 +78,9 @@ export function ResumoPagarTipos({ r, tipo, onTipo, className = "mb-4", acoes }:
   if (!r.n && !r.nSeguradas) return null;
   return (
     <section aria-label="Quanto tem para pagar"
-      className={`relative overflow-hidden rounded-3xl border border-[#1d3b66] bg-[radial-gradient(120%_90%_at_50%_0%,#123463_0%,#0a1f3d_45%,#06132a_100%)] p-4 text-white shadow-pop sm:p-5 ${className}`}>
+      className={`relative overflow-hidden rounded-2xl border border-[#1d3b66] bg-[radial-gradient(120%_90%_at_50%_0%,#123463_0%,#0a1f3d_45%,#06132a_100%)] p-4 text-white shadow-pop sm:p-5 ${className}`}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="text-base font-extrabold uppercase tracking-[.12em] sm:text-lg">
+        <h2 className="text-base font-bold uppercase tracking-[.12em] sm:text-lg">
           Quanto tem <span className="bg-gradient-to-r from-[#fb7185] to-[#fbbf24] bg-clip-text text-transparent">para pagar</span>
         </h2>
         {acoes}
@@ -115,7 +115,7 @@ export function ResumoPagarTipos({ r, tipo, onTipo, className = "mb-4", acoes }:
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="min-w-0 truncate text-sm font-bold text-white">{t.rotulo}</span>
-                      <span className="num shrink-0 whitespace-nowrap text-[15px] font-extrabold text-white">{brl(l.total)}</span>
+                      <span className="num shrink-0 whitespace-nowrap text-sm font-bold text-white">{brl(l.total)}</span>
                     </span>
                     <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
                       <span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: t.neon, boxShadow: `0 0 8px ${t.cor}` }} />

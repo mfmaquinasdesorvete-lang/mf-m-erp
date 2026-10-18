@@ -7,8 +7,12 @@ import { ErroTela } from "./components/ErroTela";
 import { Dialogos } from "./components/Dialogos";
 import { notifyLeitura } from "./lib/notify";
 import { DEMO } from "./lib/supabase";
-// fonte servida pelo próprio site (sem depender do Google Fonts)
-import "@fontsource-variable/plus-jakarta-sans";
+// fontes servidas pelo próprio site (sem depender do Google Fonts): DM Sans no texto e Poppins nos títulos,
+// números grandes, botões, abas e menu
+import "@fontsource-variable/dm-sans";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/poppins/700.css";
 import "./index.css";
 import { aplicarDestaque, aplicarTema, lerDestaque, lerTema } from "./lib/tema";
 

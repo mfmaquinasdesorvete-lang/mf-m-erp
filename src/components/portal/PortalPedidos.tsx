@@ -17,7 +17,7 @@ const FILTROS: { value: FiltroPedidos; label: string }[] = [
   { value: "cancelado", label: "Cancelados" },
 ];
 
-export const SeloPortal = () => <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700" title="Enviado por você no portal">PORTAL</span>;
+export const SeloPortal = () => <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-2xs font-bold text-emerald-700" title="Enviado por você no portal">PORTAL</span>;
 
 export function PortalPedidos() {
   const { data: lista = [], isLoading, error } = usePortal<PedidoPortal[]>("portal_pedidos");
@@ -127,7 +127,7 @@ export function PortalPedido() {
           {ETAPAS.map((s, i) => (
             <li key={s} className="text-center">
               <span className={`mx-auto block h-1.5 rounded-full ${i < etapa ? "bg-brand" : "bg-slate-200"}`} aria-hidden />
-              <span className={`mt-1 block text-[11px] font-semibold ${i < etapa ? "text-fg" : "text-slate-400"}`}>{ROTULO_SITUACAO[s]}{i === etapa - 1 ? " ✓" : ""}</span>
+              <span className={`mt-1 block text-2xs font-semibold ${i < etapa ? "text-fg" : "text-slate-400"}`}>{ROTULO_SITUACAO[s]}{i === etapa - 1 ? " ✓" : ""}</span>
             </li>
           ))}
         </ol>

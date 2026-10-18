@@ -74,7 +74,7 @@ export function ResultadosBusca({ termo, onIr }: { termo: string; onIr: () => vo
             className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-white/5">
             <Icone size={18} className="mt-0.5 shrink-0 text-nav-fraco" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px] font-medium text-white">{a.titulo}</span>
+              <span className="block truncate text-sm font-medium text-white">{a.titulo}</span>
               <span className="block truncate text-xs text-nav-fraco">
                 {d.rotulo}{a.sub ? ` · ${legivel(a.sub)}` : ""}{a.valor != null ? ` · ${brl(a.valor)}` : ""}
               </span>

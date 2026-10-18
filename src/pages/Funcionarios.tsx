@@ -195,7 +195,7 @@ export default function Funcionarios() {
         cartaoCelular={(f, abrir) => (
           <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-bold text-fg">{f.nome}</span>
+              <span className="text-sm font-bold text-fg">{f.nome}</span>
               <Badge value={f.situacao} />
             </span>
             <span className="block text-sm text-slate-600">{[f.cargo, f.setor, f.unidade_id && codigo(f.unidade_id)].filter(Boolean).join(" · ") || "—"}</span>

@@ -28,8 +28,8 @@ export function SeloSituacao({ s }: { s: string | null }) {
 }
 export function SeloEmpresa({ e }: { e: EmpresaProposta }) {
   return e === "mf"
-    ? <span className="whitespace-nowrap rounded-md bg-sky-100 px-1.5 py-0.5 text-[11px] font-bold text-sky-800">MF</span>
-    : <span className="whitespace-nowrap rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-800" title="Empresa anterior: proposta sem valores">MY FROST</span>;
+    ? <span className="whitespace-nowrap rounded-md bg-sky-100 px-1.5 py-0.5 text-2xs font-bold text-sky-800">MF</span>
+    : <span className="whitespace-nowrap rounded-md bg-amber-100 px-1.5 py-0.5 text-2xs font-bold text-amber-800" title="Empresa anterior: proposta sem valores">MY FROST</span>;
 }
 const resumoItens = (p: PropostaTiny) => p.itens.map((i) => `${Number(i.quantidade) !== 1 ? `${Number(i.quantidade).toLocaleString("pt-BR")} × ` : ""}${i.descricao}`).join(" · ");
 
@@ -93,7 +93,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   const alternar = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const todosMarcados = lista.length > 0 && lista.every((p) => sel.has(p.id));
 
-  const chip = (ativo: boolean) => `shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`;
+  const chip = (ativo: boolean) => `shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`;
   const ProxContato = ({ p }: { p: PropostaTiny }) => {
     if (!p.proximo_contato) return <span className="text-slate-400">—</span>;
     const c = contatoDaProposta(p, dia);
@@ -124,7 +124,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
           ))}
           <button type="button" aria-pressed={soLicenciados} onClick={() => { setSoLicenciados((v) => !v); setSel(new Set()); }}
             title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
             Licenciados <span className="num ml-1 opacity-90">{todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && ehLicenciado(p.cliente)).length}</span>
           </button>
         </div>
@@ -264,7 +264,7 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
   const comProduto = p.itens.filter((i) => i.produto_id);
   return (
     <Modal open onClose={onClose} title={`Proposta ${p.numero ?? ""} do Tiny · ${mf ? "MF" : "My Frost"}`} wide>
-      <div className="space-y-4 text-[15px] [overflow-wrap:anywhere]">
+      <div className="space-y-4 text-sm [overflow-wrap:anywhere]">
         <div className="flex flex-wrap items-center gap-2">
           <SeloSituacao s={p.situacao} />
           <span className="text-slate-600">{dataBR(p.data)}{p.vendedor ? ` · ${p.vendedor}` : ""}</span>

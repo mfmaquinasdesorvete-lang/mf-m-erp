@@ -188,7 +188,7 @@ function Auditoria({ achados, abrir }: { achados: Achado[]; abrir: (to: string, 
                   <p className="mt-0.5 text-sm text-slate-600">{x.detalhe}</p>
                   {x.acao && (
                     <div className="mt-2 rounded-xl bg-slate-50 p-3 text-sm">
-                      <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-500">O que fazer{x.quem ? ` · ${x.quem}` : ""}</span>
+                      <span className="block text-2xs font-bold uppercase tracking-wide text-slate-500">O que fazer{x.quem ? ` · ${x.quem}` : ""}</span>
                       <span className="text-slate-700">{x.acao}</span>
                     </div>
                   )}
@@ -255,7 +255,7 @@ function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosD
       </p>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {m.ap.linhas.map((l) => (
-          <li key={l.imposto} className="rounded-2xl border border-slate-200 bg-surface p-3.5 shadow-card">
+          <li key={l.imposto} className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
             <p className="font-bold text-fg">{l.imposto}</p>
             <dl className="num mt-1 space-y-0.5 text-sm">
               <div className="flex justify-between gap-2"><dt className="text-slate-600">Débito (vendas)</dt><dd className="whitespace-nowrap">{brl(l.debito)}</dd></div>
@@ -265,7 +265,7 @@ function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosD
                 <dd className={`whitespace-nowrap ${l.saldo < 0 ? "text-emerald-700" : "text-fg"}`}>{brl(Math.abs(l.saldo))}</dd>
               </div>
             </dl>
-            {l.nota && <p className="mt-1 text-[11px] text-slate-500">{l.nota}</p>}
+            {l.nota && <p className="mt-1 text-2xs text-slate-500">{l.nota}</p>}
           </li>
         ))}
       </ul>
@@ -293,7 +293,7 @@ function Regime({ a }: { a: ReturnType<typeof analisar> }) {
   const r = a.regimes;
   const col = (nome: string, v: typeof r.real, melhor: boolean) => (
     <div className={`rounded-2xl border p-4 shadow-card ${melhor ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-surface"}`}>
-      <p className="flex items-center justify-between gap-2 font-bold text-fg">{nome}{melhor && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] text-white">mais barato</span>}</p>
+      <p className="flex items-center justify-between gap-2 font-bold text-fg">{nome}{melhor && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-2xs text-white">mais barato</span>}</p>
       <dl className="num mt-2 space-y-1 text-sm">
         <div className="flex justify-between gap-2"><dt className="text-slate-600">IRPJ</dt><dd>{brl(v.irpj)}</dd></div>
         <div className="flex justify-between gap-2"><dt className="text-slate-600">CSLL</dt><dd>{brl(v.csll)}</dd></div>

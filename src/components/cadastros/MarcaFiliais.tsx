@@ -154,7 +154,7 @@ export function FiliaisDaMarca<T extends CadastroBase>({ marca, filiais, rede = 
               {todas.map((f) => (
                 <tr key={f.id}>
                   <td className="px-3 py-2"><button type="button" onClick={() => onAbrir(f)} className="text-left font-semibold text-fg hover:text-brand hover:underline">{local(f) || nomeCurto(f)}</button>
-                    {f.id === marca.id && <span className="ml-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800">marca</span>}
+                    {f.id === marca.id && <span className="ml-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800">marca</span>}
                     <span className="block text-xs text-slate-500 [overflow-wrap:anywhere]">{nomeCurto(f)}</span></td>
                   <td className="whitespace-nowrap px-3 py-2">{docFormat(f.cnpj) || <span className="text-amber-700">sem CNPJ</span>}</td>
                   <td className="px-3 py-2 text-xs">{f.telefone ? formatarTelefone(f.telefone) : "—"}{f.email && <span className="block break-all text-slate-500">{f.email}</span>}</td>

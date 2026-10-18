@@ -74,7 +74,7 @@ export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
           <Button type="button" variant="secondary" onClick={() => onAbrir(null)}>Com detalhes</Button>
           {ehErpLine && <Button type="button" variant="secondary" onClick={() => setIdeias(true)}><Lightbulb size={16} aria-hidden /> Trazer das Ideias</Button>}
         </form>
-        <p className="mt-2 text-[13px] text-slate-600">
+        <p className="mt-2 text-xs text-slate-600">
           <b className="num">{lista.length}</b> {pl(lista.length, "item", "itens")} · <b className="num">{total}</b> pontos
           {previsao != null && <> · cerca de <b className="num">{previsao}</b> {pl(previsao, "sprint", "sprints")} na velocidade de agora ({media} pts por sprint)</>}
           {semPontos > 0 && <span className="text-amber-700"> · {semPontos} sem pontos: estime na reunião de refinamento</span>}
@@ -88,7 +88,7 @@ export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
           {lista.map((i, k) => (
             <li key={i.id}>
               <Card className="flex items-center gap-2 p-2.5 sm:gap-3 sm:p-3">
-                <span className="num w-7 shrink-0 text-center text-sm font-extrabold text-slate-400">{k + 1}</span>
+                <span className="num w-7 shrink-0 text-center text-sm font-bold text-slate-400">{k + 1}</span>
                 <div className="flex shrink-0 flex-col">
                   <button type="button" onClick={() => mover(i.id, -1)} disabled={k === 0} aria-label="Subir prioridade" className="rounded p-0.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp size={15} /></button>
                   <button type="button" onClick={() => mover(i.id, 1)} disabled={k === lista.length - 1} aria-label="Descer prioridade" className="rounded p-0.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown size={15} /></button>
@@ -99,9 +99,9 @@ export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
                     <ChipTipo tipo={i.tipo} />
                     <Pontos pontos={i.pontos} />
                     <ChipTarefas item={i} />
-                    {i.status !== "a_fazer" && <span className="text-[11px] font-semibold text-sky-700">{ROTULO_STATUS[i.status]} (veio de sprint anterior)</span>}
-                    {i.ideia_id && <span className="flex items-center gap-0.5 text-[11px] font-semibold text-amber-700"><Lightbulb size={12} aria-hidden /> Ideia</span>}
-                    {i.responsavel_id && <span className="flex items-center gap-1 text-[11px] text-slate-500"><Avatar nome={primeiroNome(pessoas, i.responsavel_id)} cor={time.cor} tamanho={18} />{primeiroNome(pessoas, i.responsavel_id)}</span>}
+                    {i.status !== "a_fazer" && <span className="text-2xs font-semibold text-sky-700">{ROTULO_STATUS[i.status]} (veio de sprint anterior)</span>}
+                    {i.ideia_id && <span className="flex items-center gap-0.5 text-2xs font-semibold text-amber-700"><Lightbulb size={12} aria-hidden /> Ideia</span>}
+                    {i.responsavel_id && <span className="flex items-center gap-1 text-2xs text-slate-500"><Avatar nome={primeiroNome(pessoas, i.responsavel_id)} cor={time.cor} tamanho={18} />{primeiroNome(pessoas, i.responsavel_id)}</span>}
                   </span>
                 </button>
                 <Button type="button" variant="secondary" className="shrink-0" onClick={() => paraSprint(i)} title={destino ? `Mandar para a sprint ${destino.numero}` : "Crie a próxima sprint"}>

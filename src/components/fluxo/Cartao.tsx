@@ -38,7 +38,7 @@ export function mensagemCobranca(p: PedidoFluxo) {
 }
 
 const Etiqueta = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <span className={`inline-flex max-w-full items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${className}`}>{children}</span>
+  <span className={`inline-flex max-w-full items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-2xs font-semibold ${className}`}>{children}</span>
 );
 
 export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onEtiquetas }: {
@@ -80,7 +80,7 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
 
       <div className="flex flex-wrap items-center justify-between gap-x-2">
         <span className="whitespace-nowrap text-sm font-bold text-fg">#{p.numero}<EtiquetaUnidade id={p.unidade_id} /></span>
-        <span className="num whitespace-nowrap text-sm font-bold text-fg lg:text-[13px]">{brl(p.valor_total)}</span>
+        <span className="num whitespace-nowrap text-sm font-bold text-fg lg:text-xs">{brl(p.valor_total)}</span>
       </div>
       <div className="truncate text-sm text-slate-600" title={p.cliente?.nome}>{p.cliente?.nome ?? "—"}</div>
 
@@ -95,15 +95,15 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
           <Clock size={12} className="shrink-0" /> {s.tempo}
         </span>
         {s.motivo && (
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${s.nivel === 2 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800"}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-bold ${s.nivel === 2 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800"}`}>
             <AlertTriangle size={11} className="shrink-0" /> {s.motivo}
           </span>
         )}
       </div>
 
       <div className="mt-2 border-t border-slate-100 pt-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{s.acao ? "Próximo passo" : "Situação"}</p>
-        <p className="text-[13px] font-medium leading-snug text-fg">{s.passo}</p>
+        <p className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{s.acao ? "Próximo passo" : "Situação"}</p>
+        <p className="text-xs font-medium leading-snug text-fg">{s.passo}</p>
         {s.detalhe && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500" title={s.detalhe}>{s.detalhe}</p>}
         {(botao || onEtiquetas) && (
           <div className="mt-2 flex items-center gap-1.5">

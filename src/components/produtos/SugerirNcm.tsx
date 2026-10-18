@@ -42,14 +42,14 @@ export function CampoNcm({ valor, onChange, produtoId, disabled }: { valor: stri
                   <button type="button" onClick={() => { onChange(s.ncm); setLista(null); }}
                     className={`w-full rounded-lg border px-2.5 py-1.5 text-left text-xs transition hover:border-brand ${s.ncm === valor ? "border-brand bg-brand/5" : "border-slate-200"}`}>
                     <span className="num font-bold text-fg">{ncmFmt(s.ncm)}</span>
-                    <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${s.pontos >= 100 ? "bg-emerald-100 text-emerald-800" : s.pontos >= 40 ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>
+                    <span className={`ml-2 rounded-full px-1.5 py-0.5 text-2xs font-semibold ${s.pontos >= 100 ? "bg-emerald-100 text-emerald-800" : s.pontos >= 40 ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>
                       {s.pontos >= 100 ? "forte" : s.pontos >= 40 ? "provável" : "fraco"}
                     </span>
                     <span className="block text-slate-500">{s.fonte}{s.detalhe ? ` · ${s.detalhe}` : ""}</span>
                   </button>
                 </li>
               ))}
-              <li className="text-[11px] text-slate-500">Escolha um e confirme com o contador antes de emitir a nota.</li>
+              <li className="text-2xs text-slate-500">Escolha um e confirme com o contador antes de emitir a nota.</li>
             </ul>
           )
       )}

@@ -77,7 +77,7 @@ export default function Dashboard() {
         <div className="mb-4 inline-flex max-w-full rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="O que ver no início">
           {opcoes.map((v) => (
             <button key={v} type="button" role="tab" aria-selected={atual === v} onClick={() => escolher(v)}
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition sm:px-3.5 ${atual === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
+              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition sm:px-4 ${atual === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
               {opcoes.length > 2 ? <><span className="sm:hidden">{VISOES[v][1]}</span><span className="hidden sm:inline">{VISOES[v][0]}</span></> : VISOES[v][0]}
             </button>
           ))}
@@ -243,7 +243,7 @@ function PainelGeral() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">{saudacao}, {nome.split(" ")[0]} 👋</h1>
-          <p className="mt-0.5 text-[15px] text-slate-500">
+          <p className="mt-0.5 text-sm text-slate-500">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
             {" · "}{carregando ? "conferindo…" : atencao.length ? <span className="font-semibold text-red-600">{atencao.length} {pl(atencao.length, "assunto", "assuntos")} pedem atenção</span> : "tudo em dia"}
           </p>
@@ -275,10 +275,10 @@ function PainelGeral() {
                 style={{ background: `color-mix(in srgb, ${a.cor} 18%, transparent)`, color: a.cor, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${a.cor} 35%, transparent)` }}>
                 <a.icon size={24} />
                 {!!a.aviso && (
-                  <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>
+                  <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-2xs font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>
                 )}
               </span>
-              <span className="text-xs font-semibold leading-tight text-slate-700 sm:text-[13px]">{a.label}</span>
+              <span className="text-xs font-semibold leading-tight text-slate-700 sm:text-xs">{a.label}</span>
             </button>
           ))}
         </div>
@@ -319,7 +319,7 @@ function PainelGeral() {
                 <li key={a.texto}>
                   <Link to={a.to} state={a.state} className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-slate-200 hover:bg-slate-50">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${a.cor} 16%, transparent)`, color: a.cor }}><a.icon size={18} /></span>
-                    <span className="flex-1 text-[15px] leading-snug text-slate-700">{a.texto}</span>
+                    <span className="flex-1 text-sm leading-snug text-slate-700">{a.texto}</span>
                     <ArrowRight size={16} className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand" />
                   </Link>
                 </li>
@@ -363,16 +363,16 @@ function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: 
   const subiu = (c.delta ?? 0) >= 0;
   return (
     <button onClick={onClick} style={estilo}
-      className="group relative flex min-h-[132px] flex-col overflow-hidden rounded-2xl border p-3.5 text-left transition hover:-translate-y-0.5 sm:p-5">
+      className="group relative flex min-h-[132px] flex-col overflow-hidden rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 sm:p-5">
       <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-25 blur-2xl" style={{ background: c.cor }} aria-hidden />
       <span className="flex items-start justify-between gap-2">
-        <span className="text-[13px] font-semibold leading-tight text-slate-600 sm:text-sm">{c.label}</span>
+        <span className="text-xs font-semibold leading-tight text-slate-600 sm:text-sm">{c.label}</span>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11"
           style={{ background: `color-mix(in srgb, ${c.cor} 22%, transparent)`, color: c.cor }}>
           <c.icon size={20} />
         </span>
       </span>
-      <span className="num mt-auto block pt-2 text-[22px] font-extrabold leading-none tracking-tight text-fg sm:text-[28px]">{c.valor}</span>
+      <span className="num mt-auto block pt-2 text-xl font-bold leading-none tracking-tight text-fg sm:text-2xl">{c.valor}</span>
       <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
         {c.delta !== undefined && (
           c.delta === null
@@ -393,7 +393,7 @@ function Mini({ icon: Icon, cor, label, valor, sub, onClick }: { icon: LucideIco
     <button onClick={onClick} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon size={18} /></span>
       <span className="num block truncate text-xl font-bold leading-none text-fg">{valor}</span>
-      <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{label}{sub ? ` · ${sub}` : ""}</span>
+      <span className="col-span-2 block text-xs leading-snug text-slate-600">{label}{sub ? ` · ${sub}` : ""}</span>
     </button>
   );
 }

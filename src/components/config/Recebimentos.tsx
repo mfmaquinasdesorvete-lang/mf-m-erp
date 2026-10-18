@@ -125,7 +125,7 @@ function FormContas({ u: inicial, onFeito }: { u: Record<string, any>; onFeito: 
     };
     return (
       <label key={label} className="block">
-        <span className="mb-1 block text-[11px] font-semibold text-slate-500">{label}</span>
+        <span className="mb-1 block text-2xs font-semibold text-slate-500">{label}</span>
         <input className="input text-right" inputMode="decimal" placeholder="—" value={valor ?? ""} onChange={(e) => mudar(e.target.value)} aria-label={`Taxa ${label}`} />
       </label>
     );

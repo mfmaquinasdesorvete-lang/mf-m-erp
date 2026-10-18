@@ -51,7 +51,7 @@ export function KitComponentesModal({ kit, podeEditar, onClose }: { kit: Produto
               <tr key={c.id}>
                 <td className="td">{prod(c.componente_id)?.descricao}
                   <div className="text-xs text-slate-500">{ehKitAberto(c.componente_id, todos)
-                    ? <><span className="mr-1 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">KIT</span>sai pelas peças dele · dá para montar {estoqueKit(c.componente_id, todos, saldo)}</>
+                    ? <><span className="mr-1 rounded bg-violet-100 px-1.5 py-0.5 text-2xs font-bold text-violet-700">KIT</span>sai pelas peças dele · dá para montar {estoqueKit(c.componente_id, todos, saldo)}</>
                     : `estoque ${saldo(c.componente_id)}`}</div></td>
                 <td className="td"><input className="input text-right" type="number" min={0.001} step="any" defaultValue={c.quantidade} disabled={!podeEditar}
                   onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== Number(c.quantidade) && atualizar(c, { quantidade: Number(e.target.value) })} /></td>

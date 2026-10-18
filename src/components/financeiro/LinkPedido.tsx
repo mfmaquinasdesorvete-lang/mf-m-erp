@@ -117,7 +117,7 @@ export function PagamentoPedido({ pedido, cliente, gerarAgora }: {
           <div className="flex flex-wrap gap-2">
             {cliente?.whatsapp && (
               <a href={whatsappLink(cliente.whatsapp, msg)} target="_blank" rel="noreferrer"
-                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-3.5 py-2 text-sm font-semibold text-white hover:opacity-90 sm:min-h-0">
+                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-4 py-2 text-sm font-semibold text-white hover:opacity-90 sm:min-h-0">
                 <MessageCircle size={15} /> Mandar no WhatsApp
               </a>
             )}

@@ -202,12 +202,12 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo, onComportam
   const despesa = c.tipo === "despesa" && !["investimento", "retirada", "transferencia"].includes(c.grupo);
   const comp = comportamentoDe(c.grupo, c.nome, c.comportamento);
   const chipComp = despesa && (
-    <span className={`ml-1.5 rounded px-1.5 py-0.5 text-[11px] font-semibold ${comp.valor === "fixa" ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-900"} ${comp.sugerido ? "opacity-90" : ""}`}
+    <span className={`ml-1.5 rounded px-1.5 py-0.5 text-2xs font-semibold ${comp.valor === "fixa" ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-900"} ${comp.sugerido ? "opacity-90" : ""}`}
       title={comp.sugerido ? "Sugestão do ERP (pelo grupo e pelo nome); troque em Editar" : "Marcada no plano de contas"}>
       {comp.valor === "fixa" ? "fixa" : "variável"}{comp.sugerido ? "*" : ""}
     </span>
   );
-  const etiqueta = ambos && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600">{c.tipo}</span>;
+  const etiqueta = ambos && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-normal text-slate-600">{c.tipo}</span>;
   if (!editando) {
     return (
       <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-90"}`}>

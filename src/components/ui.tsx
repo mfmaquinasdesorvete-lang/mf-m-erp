@@ -18,7 +18,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   return (
     <button
-      className={`inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold sm:min-h-0
+      className={`inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold sm:min-h-0
         transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
       {...props}
     />
@@ -67,7 +67,7 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
           </span>
         )}
         <div className="min-w-0">
-          {modulo?.titulo && modulo.titulo !== title && <p className="text-[11px] font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
+          {modulo?.titulo && modulo.titulo !== title && <p className="text-2xs font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
           <h1 className="text-xl font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
           {/* no celular a explicação fica em 2 linhas (tocar mostra tudo): antes empurrava a tela 4 ou 5 linhas para baixo */}
           {subtitle && <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
@@ -129,7 +129,7 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
         <span className="text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
       </div>
       <div className={`num valor-fit mt-0.5 font-bold [--valor-max:1.375rem] ${c.valor}`} style={fitValor(valor)}>{valor}</div>
-      {sub && <div className="text-[13px] leading-snug text-slate-600">{sub}</div>}
+      {sub && <div className="text-xs leading-snug text-slate-600">{sub}</div>}
     </div>
   );
 }
@@ -155,7 +155,7 @@ export function BotaoAtalho({ icon: Icon, label, cor, corAtiva, ativo, onClick, 
     <span className="grid h-11 w-11 place-items-center rounded-2xl transition group-hover:scale-105 group-active:scale-95" style={estilo}>
       <Icon size={20} aria-hidden />
     </span>
-    <span className="max-w-full text-[11px] font-semibold leading-tight text-slate-700">{label}</span>
+    <span className="max-w-full text-2xs font-semibold leading-tight text-slate-700">{label}</span>
   </>);
   const cls = "group flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-1 text-center transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50";
   if (href) return <a href={href} target="_blank" rel="noreferrer" title={title} className={cls}>{corpo}</a>;
@@ -175,14 +175,14 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
     // o ícone flutua no canto: o nome passa por baixo dele e número e explicação usam a largura toda (no celular,
     // com o ícone ao lado, o texto ficava numa coluna de 70 px)
     <Tag onClick={onClick}
-      className={`${caixaCartao} cartao-fit block w-full p-3.5 pl-4 text-left sm:p-4 sm:pl-5 ${c.caixa}
+      className={`${caixaCartao} cartao-fit block w-full p-4 pl-4 text-left sm:p-4 sm:pl-5 ${c.caixa}
         ${onClick ? "transition hover:shadow-pop hover:brightness-[1.03]" : ""}`}>
-      <span className="flow-root text-[13px] leading-tight">
+      <span className="flow-root text-xs leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}
-        <span className="text-[13px] font-semibold leading-tight text-slate-600">{label}</span>
+        <span className="text-xs font-semibold leading-tight text-slate-600">{label}</span>
       </span>
       <span className={`num valor-fit mt-1 block font-bold tracking-tight [--valor-max:1.375rem] ${tom === "bom" || tom === "info" ? "text-fg" : c.valor}`} style={fitValor(valor)}>{valor}</span>
-      {sub && <span className="mt-0.5 block text-[13px] leading-snug text-slate-600">{sub}</span>}
+      {sub && <span className="mt-0.5 block text-xs leading-snug text-slate-600">{sub}</span>}
     </Tag>
   );
 }
@@ -505,7 +505,7 @@ export function Tabs<T extends string>({
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
+          className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
             value === o.value ? "bg-modulo-escuro text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
           }`}
         >

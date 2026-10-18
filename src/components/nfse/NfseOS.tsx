@@ -36,7 +36,7 @@ export function useNfsesDaOS(osId: string | undefined) {
 export function ChipNfse({ n }: { n: Pick<Nfse, "status" | "ambiente" | "numero"> }) {
   const s = SITUACAO_NFSE[n.status];
   return (
-    <span title={s.ajuda} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.cor}`}>
+    <span title={s.ajuda} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${s.cor}`}>
       NFS-e {n.numero ? `nº ${n.numero} · ` : ""}{s.label.toLowerCase()}
       {n.ambiente === "homologacao" && <FlaskConical size={11} aria-label="teste" />}
     </span>
@@ -116,7 +116,7 @@ export function NfseOS({ os, telefone }: { os: OSResumo; telefone?: string | nul
         <div className={`rounded-xl border p-4 ${atual.status === "autorizada" ? "border-emerald-200 bg-emerald-50" : atual.status === "rejeitada" ? "border-red-200 bg-red-50" : atual.status === "incerto" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-surface"}`}>
           <div className="flex flex-wrap items-center gap-2">
             <ChipNfse n={atual} />
-            {atual.ambiente === "homologacao" && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">teste: sem valor fiscal</span>}
+            {atual.ambiente === "homologacao" && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800">teste: sem valor fiscal</span>}
             <span className="text-xs text-slate-500">ref. {atual.referencia}</span>
           </div>
           <p className="mt-2 text-sm text-slate-700">{SITUACAO_NFSE[atual.status].ajuda}</p>
@@ -167,10 +167,10 @@ export function NfseOS({ os, telefone }: { os: OSResumo; telefone?: string | nul
         <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/50 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="font-bold">Conferir antes de enviar</h4>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${previa.ambiente === "producao" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+            <span className={`rounded-full px-2 py-0.5 text-2xs font-semibold ${previa.ambiente === "producao" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
               {previa.ambiente === "producao" ? "produção" : "teste (homologação)"}
             </span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">{previa.padrao === "nacional" ? "NFS-e Nacional" : "NFS-e municipal"}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-700">{previa.padrao === "nacional" ? "NFS-e Nacional" : "NFS-e municipal"}</span>
           </div>
           {previa.pendencias.length > 0 && (
             <ul className="space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">

@@ -260,7 +260,7 @@ function QuadroProducao({ ordens, faltas, marcadores, carregando, aoAbrir }: {
                       <span className="min-w-0 text-sm font-bold text-fg [overflow-wrap:anywhere]">{Number(o.quantidade)}× {o.produto?.descricao ?? "Produto"}</span>
                       <span className="shrink-0 text-xs font-semibold text-slate-500">OP #{o.numero}</span>
                     </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+                    <span className="mt-1 flex flex-wrap items-center gap-1 text-2xs">
                       {aberta && (f
                         ? <span className="rounded-full bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">faltam {f} {pl(f, "peça", "peças")}</span>
                         : <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">peças ok</span>)}
@@ -505,7 +505,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
                       <input type="checkbox" className="h-5 w-5 shrink-0 accent-emerald-600" checked={!!e.feita} disabled={!podeEditar} onChange={() => marcarEtapa(i)} />
                       <span className="num w-5 shrink-0 text-xs font-bold text-slate-400">{i + 1}</span>
                       <span className={`min-w-0 flex-1 font-medium ${e.feita ? "text-slate-500 line-through" : "text-fg"}`}>{e.nome}</span>
-                      {e.feita && (e.por || e.em) && <span className="shrink-0 text-right text-[11px] text-slate-500">{e.por ?? ""}{e.em ? ` · ${dataBR(e.em.slice(0, 10))}` : ""}</span>}
+                      {e.feita && (e.por || e.em) && <span className="shrink-0 text-right text-2xs text-slate-500">{e.por ?? ""}{e.em ? ` · ${dataBR(e.em.slice(0, 10))}` : ""}</span>}
                     </label>
                   </li>
                 ))}

@@ -228,9 +228,9 @@ function CartaoParcelamento({ p, parcelas, dia, unidade, aberto, onAbrir, onParc
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <div><dt className="text-xs text-slate-500">Saldo em aberto</dt><dd className="num font-bold text-fg">{brl(r.saldo)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Parcela</dt><dd className="num font-bold text-fg">{valorParcela != null ? brl(valorParcela) : "—"}{p.corrige_selic && <span className="block text-[11px] font-normal text-slate-500">+ Selic</span>}</dd></div>
-          <div><dt className="text-xs text-slate-500">Próxima</dt><dd className="font-bold text-fg">{r.proxima ? dataBR(r.proxima.vencimento) : "—"}{r.proxima && <span className="block text-[11px] font-normal text-slate-500">{quando(dia, r.proxima.vencimento)}</span>}</dd></div>
-          <div><dt className="text-xs text-slate-500">Termina em</dt><dd className="font-bold text-fg">{r.fim ? dataBR(r.fim) : "—"}<span className="block text-[11px] font-normal text-slate-500">faltam {r.abertas}</span></dd></div>
+          <div><dt className="text-xs text-slate-500">Parcela</dt><dd className="num font-bold text-fg">{valorParcela != null ? brl(valorParcela) : "—"}{p.corrige_selic && <span className="block text-2xs font-normal text-slate-500">+ Selic</span>}</dd></div>
+          <div><dt className="text-xs text-slate-500">Próxima</dt><dd className="font-bold text-fg">{r.proxima ? dataBR(r.proxima.vencimento) : "—"}{r.proxima && <span className="block text-2xs font-normal text-slate-500">{quando(dia, r.proxima.vencimento)}</span>}</dd></div>
+          <div><dt className="text-xs text-slate-500">Termina em</dt><dd className="font-bold text-fg">{r.fim ? dataBR(r.fim) : "—"}<span className="block text-2xs font-normal text-slate-500">faltam {r.abertas}</span></dd></div>
         </dl>
         {r.atrasadas.length > 0 && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
@@ -248,12 +248,12 @@ function CartaoParcelamento({ p, parcelas, dia, unidade, aberto, onAbrir, onParc
                 <button key={x.id} type="button" role="listitem" onClick={() => onParcela(x)}
                   title={`Parcela ${x.numero} · ${dataBR(x.vencimento)} · ${ROTULO_PARCELA[s]}${x.pago_por ? ` · ${PAGO_POR[x.pago_por].nome}` : ""}`}
                   aria-label={`Parcela ${x.numero}, ${dataBR(x.vencimento)}, ${ROTULO_PARCELA[s]}`}
-                  className={`num grid h-7 min-w-7 place-items-center rounded-md px-1 text-[11px] font-bold text-white hover:opacity-80 ${s === "anulada" ? "line-through opacity-60" : ""}`}
+                  className={`num grid h-7 min-w-7 place-items-center rounded-md px-1 text-2xs font-bold text-white hover:opacity-80 ${s === "anulada" ? "line-through opacity-60" : ""}`}
                   style={{ background: x.situacao === "pago" && x.pago_por && PAGO_POR[x.pago_por].terceiro ? PAGO_POR[x.pago_por].cor : COR_PARCELA[s] }}>{x.numero}</button>
               );
             })}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-2xs text-slate-500">
             {(["paga", "atrasada", "vence_logo", "a_vencer"] as const).map((s) => <span key={s} className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_PARCELA[s] }} aria-hidden />{ROTULO_PARCELA[s]}</span>)}
             <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: PAGO_POR.outra_empresa.cor }} aria-hidden />Paga por outra empresa</span>
             <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: PAGO_POR.pessoal.cor }} aria-hidden />Paga por conta pessoal</span>
@@ -280,7 +280,7 @@ function CartaoParcelamento({ p, parcelas, dia, unidade, aberto, onAbrir, onParc
                       <td className="px-3 py-2 text-xs text-slate-600">
                         {x.situacao === "pago" && <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           <span className="whitespace-nowrap">{dataBR(x.pago_em)}</span><span className="num whitespace-nowrap">{brl(x.valor_pago ?? x.valor)}</span>
-                          {x.pago_por && <span className="whitespace-nowrap rounded px-1.5 text-[11px] font-semibold text-white" style={{ background: PAGO_POR[x.pago_por].cor }} title={x.pago_por_nome ?? PAGO_POR[x.pago_por].nome}>{PAGO_POR[x.pago_por].curto}</span>}
+                          {x.pago_por && <span className="whitespace-nowrap rounded px-1.5 text-2xs font-semibold text-white" style={{ background: PAGO_POR[x.pago_por].cor }} title={x.pago_por_nome ?? PAGO_POR[x.pago_por].nome}>{PAGO_POR[x.pago_por].curto}</span>}
                         </span>}
                       </td>
                       <td className="px-3 py-2 text-right"><button type="button" className="whitespace-nowrap text-xs font-semibold text-brand hover:underline" onClick={() => onParcela(x)}>{podeGravar && x.situacao === "a_pagar" ? "Pagar" : "Abrir"}</button></td>

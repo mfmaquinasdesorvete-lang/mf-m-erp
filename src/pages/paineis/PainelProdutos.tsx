@@ -169,7 +169,7 @@ export default function PainelProdutos() {
       <div role="tablist" aria-label="Tipo de produto" className="flex gap-1.5 overflow-x-auto pb-1">
         {TIPOS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tipo === t.id} onClick={() => { setTipo(t.id); setFCategoria(null); }}
-            className={`min-h-[40px] shrink-0 whitespace-nowrap rounded-xl px-3.5 text-sm font-bold transition ${tipo === t.id ? "bg-modulo text-white shadow" : "border border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            className={`min-h-[40px] shrink-0 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition ${tipo === t.id ? "bg-modulo text-white shadow" : "border border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
             {t.rotulo}
           </button>
         ))}
@@ -214,7 +214,7 @@ export default function PainelProdutos() {
                 {k.resumoAbc.map((r) => (
                   <button key={r.classe} type="button" role="tab" aria-selected={classe === r.classe} onClick={() => setClasse(r.classe)}
                     className={`rounded-xl border p-2.5 text-left transition ${classe === r.classe ? "border-modulo bg-modulo/10" : "border-slate-200 hover:border-slate-300"}`}>
-                    <span className="flex items-center gap-1.5 text-sm font-extrabold text-fg"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COR_ABC[r.classe] }} />Classe {r.classe}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-bold text-fg"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COR_ABC[r.classe] }} />Classe {r.classe}</span>
                     <span className="num mt-0.5 block text-lg font-bold text-fg">{r.pctValor}%</span>
                     <span className="block text-xs leading-snug text-slate-600">do faturamento · {r.itens} {pl(r.itens, "produto", "produtos")}</span>
                   </button>

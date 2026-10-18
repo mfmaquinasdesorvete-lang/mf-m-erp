@@ -57,11 +57,11 @@ export function ManuaisMaquinas({ produtos, podeEditar, aoFicha }: { produtos: P
               <div className="flex items-start gap-3">
                 <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
                   {m.foto_caminho ? <img src={urlFotoProduto(m.foto_caminho)} alt="" loading="lazy" className="h-full w-full object-contain p-1" />
-                    : <span className="text-[10px] text-slate-400">sem foto</span>}
+                    : <span className="text-2xs text-slate-400">sem foto</span>}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="line-clamp-2 font-bold leading-snug text-fg" title={m.descricao}>{m.modelo?.trim() || m.descricao}</h3>
-                  <ul className="mt-1 flex flex-wrap gap-1 text-[11px]" aria-label="Documentos essenciais">
+                  <ul className="mt-1 flex flex-wrap gap-1 text-2xs" aria-label="Documentos essenciais">
                     {ESSENCIAIS.map((t) => (
                       <li key={t} className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold ${tem(m.id, t) ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                         {tem(m.id, t) ? <CheckCircle2 size={11} aria-hidden /> : <CircleDashed size={11} aria-hidden />}

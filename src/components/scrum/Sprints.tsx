@@ -50,7 +50,7 @@ export function Sprints({ time, sprints, itens, media, onAbrir }: {
         <Button type="button" onClick={() => setNova(true)} disabled={temPlanejada} title={temPlanejada ? "Já existe uma sprint planejada" : undefined}>
           <CalendarRange size={16} aria-hidden /> Planejar próxima sprint
         </Button>
-        <p className="text-[13px] text-slate-600">
+        <p className="text-xs text-slate-600">
           Sprint de {time.sprint_dias === 7 ? "1 semana" : "2 semanas"}{media != null && <> · velocidade média <b className="num">{media}</b> pts</>}
           {temPlanejada && " · já existe uma sprint planejada: mande itens do backlog para ela."}
         </p>
@@ -69,9 +69,9 @@ export function Sprints({ time, sprints, itens, media, onAbrir }: {
               <div className="min-w-0">
                 <h3 className="flex flex-wrap items-center gap-2 text-base font-bold text-fg">
                   Sprint {s.numero}
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.status === "ativa" ? "bg-sky-100 text-sky-800" : s.status === "planejada" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{ROTULO_SPRINT[s.status]}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${s.status === "ativa" ? "bg-sky-100 text-sky-800" : s.status === "planejada" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{ROTULO_SPRINT[s.status]}</span>
                 </h3>
-                <p className="text-[13px] text-slate-600">{dataBR(s.inicio)} a {dataBR(s.fim)} · {diasDaSprint(s.inicio, s.fim).length} dias úteis</p>
+                <p className="text-xs text-slate-600">{dataBR(s.inicio)} a {dataBR(s.fim)} · {diasDaSprint(s.inicio, s.fim).length} dias úteis</p>
                 {s.objetivo && <p className="mt-1 flex items-start gap-1 text-sm text-fg"><Flag size={14} className="mt-0.5 shrink-0 text-modulo-texto" aria-hidden />{s.objetivo}</p>}
               </div>
               <div className="flex flex-wrap gap-2">

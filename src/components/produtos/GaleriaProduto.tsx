@@ -72,8 +72,8 @@ export function GaleriaProduto({ produtoId, podeEditar, fotoPrincipal, aoEscolhe
                         <Play size={28} className="relative drop-shadow" aria-hidden />
                       </span>}
                 </button>
-                {principal && <span className="absolute left-1 top-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">principal</span>}
-                {m.tipo === "video" && m.duracao_seg != null && <span className="num absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[10px] text-white">{m.duracao_seg}s</span>}
+                {principal && <span className="absolute left-1 top-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-2xs font-bold text-amber-950">principal</span>}
+                {m.tipo === "video" && m.duracao_seg != null && <span className="num absolute bottom-1 right-1 rounded bg-black/70 px-1 text-2xs text-white">{m.duracao_seg}s</span>}
                 {podeEditar && (
                   <span className="absolute right-1 top-1 flex gap-1 opacity-100 transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
                     {m.tipo === "foto" && aoEscolherPrincipal && !principal && (

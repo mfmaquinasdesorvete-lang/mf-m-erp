@@ -54,16 +54,16 @@ export default function PropostaPublica() {
         <header className="flex flex-wrap items-center gap-4 px-6 py-5 text-white" style={{ background: cor }}>
           <img src={logo} alt="" className="h-14 w-14 rounded-xl bg-white/10" />
           <div className="min-w-0 flex-1">
-            <div className="text-xl font-extrabold">{p.empresa.nome}</div>
+            <div className="text-xl font-bold">{p.empresa.nome}</div>
             <div className="text-xs opacity-90">{[p.empresa.razao_social, p.empresa.cnpj && `CNPJ ${cnpjFmt(p.empresa.cnpj)}`].filter(Boolean).join(" · ")}</div>
           </div>
           <div className="text-right">
             <div className="text-sm font-semibold uppercase tracking-wide opacity-90">{p.layout.titulo}</div>
-            <div className="text-2xl font-extrabold">nº {p.numero}</div>
+            <div className="text-2xl font-bold">nº {p.numero}</div>
           </div>
         </header>
 
-        <div className="space-y-6 px-6 py-6 text-[15px] text-slate-800">
+        <div className="space-y-6 px-6 py-6 text-sm text-slate-800">
           <div className="flex flex-wrap justify-between gap-3 text-sm">
             <div><div className="text-xs font-semibold uppercase text-slate-500">Para</div><div className="text-lg font-bold text-slate-900">{p.cliente}</div></div>
             <div className="text-right">
@@ -103,7 +103,7 @@ export default function PropostaPublica() {
             <Linha r="Produtos" v={brl(p.subtotal)} />
             {Number(p.desconto) > 0 && <Linha r="Desconto" v={`- ${brl(p.desconto)}`} />}
             {Number(p.frete) > 0 && <Linha r="Frete" v={brl(p.frete)} />}
-            <div className="flex justify-between border-t-2 pt-2 text-xl font-extrabold text-slate-900" style={{ borderColor: cor }}><span>Total</span><span>{brl(p.total)}</span></div>
+            <div className="flex justify-between border-t-2 pt-2 text-xl font-bold text-slate-900" style={{ borderColor: cor }}><span>Total</span><span>{brl(p.total)}</span></div>
             <div className="text-right text-slate-600">{FORMAS[p.forma_pagamento] ?? p.forma_pagamento}{p.parcelas > 1 ? ` em ${p.parcelas}x de ${brl(p.total / p.parcelas)}` : " à vista"}</div>
           </div>
 
@@ -192,7 +192,7 @@ function PagarAgora({ token, cor, pagamento }: { token: string; cor: string; pag
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 p-4 print:hidden" style={{ borderColor: cor }}>
       <div>
         <div className="text-sm text-slate-600">{pagamento.pago > 0 ? "Falta pagar" : "Valor a pagar"}</div>
-        <div className="text-2xl font-extrabold text-slate-900">{brl(pagamento.em_aberto)}</div>
+        <div className="text-2xl font-bold text-slate-900">{brl(pagamento.em_aberto)}</div>
         <div className="text-sm text-slate-600">Pix ou cartão em até 12x, na página segura da InfinitePay.</div>
       </div>
       <button type="button" onClick={pagar} disabled={abrindo} className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl px-6 text-lg font-bold text-white disabled:opacity-70 sm:w-auto" style={{ background: cor }}>
@@ -223,17 +223,17 @@ function Responder({ token, aprovar, cor, total, pagarDepois, onClose, onFeito }
         {!aprovar && (
           <>
             <label className="block text-sm font-semibold">Motivo
-              <select className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[15px]" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+              <select className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
                 {Object.entries(MOTIVOS).filter(([k]) => k !== "sem_resposta").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </label>
             <label className="block text-sm font-semibold">Comentário (opcional)
-              <textarea className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[15px]" rows={3} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: o frete ficou alto para a minha cidade" />
+              <textarea className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" rows={3} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: o frete ficou alto para a minha cidade" />
             </label>
           </>
         )}
         <label className="block text-sm font-semibold">Seu nome
-          <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[15px]" value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={120} autoFocus />
+          <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={120} autoFocus />
         </label>
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 font-semibold text-slate-600">Voltar</button>

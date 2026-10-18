@@ -237,7 +237,7 @@ function Conversa({ msgs, onEnviada }: { msgs: Mensagem[]; onEnviada: () => void
         {msgs.slice(-12).map((m) => (
           <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1.5 ${m.direcao === "entrada" ? "bg-slate-100 text-fg" : "ml-auto bg-emerald-50 text-emerald-900"}`}>
             <p className="whitespace-pre-line break-words">{m.texto ?? m.modelo}</p>
-            <p className="text-right text-[10px] opacity-70">{quando(m.created_at)}{m.direcao === "saida" ? ` · ${SIT[m.status]?.r ?? m.status}` : ""}</p>
+            <p className="text-right text-2xs opacity-70">{quando(m.created_at)}{m.direcao === "saida" ? ` · ${SIT[m.status]?.r ?? m.status}` : ""}</p>
           </div>
         ))}
       </div>

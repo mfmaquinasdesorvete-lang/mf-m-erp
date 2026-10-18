@@ -69,7 +69,7 @@ export function Dialogos() {
   return (
     <Modal open onClose={() => fechar(false)} title={atual.titulo}>
       <form onSubmit={enviar} className="space-y-4">
-        <p className="whitespace-pre-line text-[15px] leading-relaxed text-fg">{atual.texto}</p>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-fg">{atual.texto}</p>
         {atual.tipo === "texto" && (
           <div>
             <textarea ref={campo} className="input" rows={3} value={valor} onChange={(e) => setValor(e.target.value)} aria-label={atual.texto}

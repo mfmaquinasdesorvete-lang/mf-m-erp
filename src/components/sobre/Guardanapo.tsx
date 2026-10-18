@@ -96,11 +96,11 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
             if (!lista.length) return null;
             return (
               <div key={a.id} className="min-w-0 rounded-xl border border-slate-200 p-2.5">
-                <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">{a.nome} · {lista.length}</div>
+                <div className="mb-1.5 text-2xs font-bold uppercase tracking-wider text-slate-500">{a.nome} · {lista.length}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {lista.map((x) => (
                     <button key={x.id} type="button" aria-pressed={x.id === p.id} onClick={() => onProcesso(x.id)} title={x.resumo}
-                      className={`rounded-full px-3 py-1 text-[13px] font-semibold transition ${x.id === p.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${x.id === p.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                       {x.nome}
                     </button>
                   ))}

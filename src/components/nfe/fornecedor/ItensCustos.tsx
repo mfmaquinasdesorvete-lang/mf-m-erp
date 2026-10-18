@@ -185,7 +185,7 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
           </p>
           <p className="text-xs text-slate-600">{qtd(i.quantidade)} {i.unidade} × {r4(i.valor_unitario)} = <b>{brl(i.valor_produto)}</b></p>
         </div>
-        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">item {i.numero}</span>
+        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">item {i.numero}</span>
       </div>
 
       {/* Produto do ERP */}
@@ -231,15 +231,15 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
           {/* Custo atual × nota */}
           <dl className="mt-2 grid grid-cols-3 gap-2 text-xs sm:text-sm">
             <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 [overflow-wrap:anywhere]">
-              <dt className="text-[11px] font-semibold uppercase text-slate-500">Custo atual</dt>
+              <dt className="text-2xs font-semibold uppercase text-slate-500">Custo atual</dt>
               <dd className="font-bold tabular-nums">{Number(p.preco_custo) > 0 ? brl(p.preco_custo) : "sem custo"}</dd>
             </div>
             <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 [overflow-wrap:anywhere]">
-              <dt className="text-[11px] font-semibold uppercase text-slate-500">Pela nota</dt>
+              <dt className="text-2xs font-semibold uppercase text-slate-500">Pela nota</dt>
               <dd className="font-bold tabular-nums">{r4(conta.custo_unitario)}</dd>
             </div>
             <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 [overflow-wrap:anywhere]">
-              <dt className="text-[11px] font-semibold uppercase text-slate-500">Variação</dt>
+              <dt className="text-2xs font-semibold uppercase text-slate-500">Variação</dt>
               <dd className={`flex items-center gap-0.5 font-bold tabular-nums ${variacao == null ? "" : variacao > 0 ? "text-red-600" : variacao < 0 ? "text-emerald-700" : ""}`}>
                 {variacao != null && variacao > 0 && <ArrowUp size={13} aria-hidden />}{variacao != null && variacao < 0 && <ArrowDown size={13} aria-hidden />}{pct(variacao)}
               </dd>

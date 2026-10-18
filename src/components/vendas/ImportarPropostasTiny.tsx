@@ -119,7 +119,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Propostas do Tiny importadas">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={22} /> Pronto.</p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             <li>{resultado.novas} propostas novas{resultado.atualizadas ? ` e ${resultado.atualizadas} atualizadas` : ""}</li>
@@ -152,7 +152,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Importar propostas do Tiny" wide>
       {!leitura || !resumo ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             No Tiny, em <b>Vendas → Propostas comerciais</b>, marque todas as propostas (de todos os períodos e situações) e use <b>Exportar</b>.
             Pode escolher vários arquivos de uma vez (.xls, .xlsx ou .csv). O backup da My Frost também serve (aba Propostas).
             Nada é gravado antes da sua confirmação na próxima tela.

@@ -67,7 +67,7 @@ export function GnreNota({ nota: n, podeFin }: { nota: NotaGnre; podeFin: boolea
         <Landmark size={16} className="text-rose-700" aria-hidden />
         <b className="text-fg">GNRE para {uf || "outro estado"}</b>
         <span className="font-semibold text-fg">{brl(guia?.valor_total ?? v.total)}</span>
-        {sit && <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${sit.cor}`}>{sit.rotulo}</span>}
+        {sit && <span className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${sit.cor}`}>{sit.rotulo}</span>}
         {guia && <span className="text-xs text-slate-600">vence {dataBR(guia.vencimento)}</span>}
       </div>
       <p className="mt-1 text-xs text-slate-600">{partes}. {sit ? sit.dica : "Ainda sem conta a pagar lançada para esta guia."} Regra do imposto: confirmar com o contador.</p>

@@ -160,15 +160,15 @@ function LinhaIdeia({ i, dia, meu, votei, admin, podePendencia, onEditar, onVira
       </button>
       <div className="min-w-0 flex-1">
         <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
-        {i.detalhe && <p className="mt-0.5 whitespace-pre-line text-[13px] leading-snug text-slate-600">{i.detalhe}</p>}
+        {i.detalhe && <p className="mt-0.5 whitespace-pre-line text-xs leading-snug text-slate-600">{i.detalhe}</p>}
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <ChipSituacao i={i} />
-          {ganhoRapido(i) && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800"><Zap size={11} aria-hidden /> ganho rápido</span>}
+          {ganhoRapido(i) && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800"><Zap size={11} aria-hidden /> ganho rápido</span>}
           <ChipPrioridade p={i.prioridade} rotulo="impacto" />
-          {i.esforco && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">esforço {ROTULO_ESFORCO[i.esforco].toLowerCase()}</span>}
+          {i.esforco && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-bold text-slate-600">esforço {ROTULO_ESFORCO[i.esforco].toLowerCase()}</span>}
           <ChipArea area={i.area} />
-          <span className="text-[11px] text-slate-500">{i.criado_nome ? `por ${i.criado_nome} · ` : ""}{dataCurta(i.created_at, dia)}</span>
-          {i.motivo && <span className="text-[11px] text-slate-600">motivo: {i.motivo}</span>}
+          <span className="text-2xs text-slate-500">{i.criado_nome ? `por ${i.criado_nome} · ` : ""}{dataCurta(i.created_at, dia)}</span>
+          {i.motivo && <span className="text-2xs text-slate-600">motivo: {i.motivo}</span>}
         </div>
       </div>
       <div className="flex shrink-0 items-start gap-1.5">

@@ -59,7 +59,7 @@ export function UnificarProdutosLista({ produtos, onFim }: { produtos: Produto[]
                 <input type="radio" name="principal-produto" className="mt-1 h-4 w-4" checked={principal === p.id} disabled={inativo} onChange={() => setPrincipal(p.id)} />
                 <span className="min-w-0 flex-1">
                   <span className="font-semibold text-fg">{p.descricao}</span>
-                  {inativo && <span className="ml-2 rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">inativo</span>}
+                  {inativo && <span className="ml-2 rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}
                   <span className="block text-xs text-slate-500">
                     {[p.sku ? `SKU ${p.sku}` : "sem SKU", Number(p.preco_custo) > 0 ? `custo ${brl(Number(p.preco_custo))}` : "sem custo",
                       Number(p.preco_venda) > 0 ? `venda ${brl(Number(p.preco_venda))}` : null, `estoque ${Number(p.estoque_atual ?? 0)}`,

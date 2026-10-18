@@ -118,7 +118,7 @@ export default function Implantacao() {
         subtitle="O plano por fases, quem faz e até quando. Os números abaixo são medidos no próprio ERP e atualizam sozinhos."
         actions={<>
           {/* o que vem do Tiny (planilhas, XML, contas) entra por aqui */}
-          {vis.ve("importar", "/importar") && <Link to="/importar" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><Upload size={16} aria-hidden /> Importar dados</Link>}
+          {vis.ve("importar", "/importar") && <Link to="/importar" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><Upload size={16} aria-hidden /> Importar dados</Link>}
           {admin && <Button variant={editando ? "primary" : "secondary"} onClick={() => setEditando(!editando)}>{editando ? "Pronto" : "Mudar prazos e responsáveis"}</Button>}
         </>} />
 

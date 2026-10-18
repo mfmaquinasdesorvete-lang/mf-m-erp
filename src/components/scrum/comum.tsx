@@ -34,14 +34,14 @@ const COR_TIPO: Record<TipoItem, string> = {
   melhoria: "bg-violet-100 text-violet-800 ring-violet-200",
 };
 export function ChipTipo({ tipo }: { tipo: TipoItem }) {
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${COR_TIPO[tipo]}`}>{ROTULO_TIPO[tipo]}</span>;
+  return <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ring-1 ring-inset ${COR_TIPO[tipo]}`}>{ROTULO_TIPO[tipo]}</span>;
 }
 
 /** Pontos do item (vazio = ainda sem estimativa) */
 export function Pontos({ pontos }: { pontos: number | null }) {
   return pontos == null
-    ? <span className="rounded-full border border-dashed border-amber-400 px-1.5 text-[11px] font-bold text-amber-700" title="Sem estimativa de pontos">? pts</span>
-    : <span className="num rounded-full bg-[#334155] px-2 py-0.5 text-[11px] font-bold text-white ring-1 ring-inset ring-white/20" title={`${pontos} pontos de esforço`}>{pontos} pts</span>;
+    ? <span className="rounded-full border border-dashed border-amber-400 px-1.5 text-2xs font-bold text-amber-700" title="Sem estimativa de pontos">? pts</span>
+    : <span className="num rounded-full bg-[#334155] px-2 py-0.5 text-2xs font-bold text-white ring-1 ring-inset ring-white/20" title={`${pontos} pontos de esforço`}>{pontos} pts</span>;
 }
 
 /** Tarefas feitas / total do item (nada sem lista); verde quando todas estão feitas */
@@ -49,7 +49,7 @@ export function ChipTarefas({ item }: { item: Pick<ItemScrum, "tarefas"> }) {
   const p = progressoTarefas(item);
   if (!p) return null;
   return (
-    <span className={`num flex items-center gap-0.5 text-[11px] font-semibold ${p.feitas === p.total ? "text-emerald-700" : "text-slate-500"}`} title={`${p.feitas} de ${p.total} tarefas feitas`}>
+    <span className={`num flex items-center gap-0.5 text-2xs font-semibold ${p.feitas === p.total ? "text-emerald-700" : "text-slate-500"}`} title={`${p.feitas} de ${p.total} tarefas feitas`}>
       <ListChecks size={12} aria-hidden />{p.feitas}/{p.total}
     </span>
   );
@@ -57,7 +57,7 @@ export function ChipTarefas({ item }: { item: Pick<ItemScrum, "tarefas"> }) {
 
 export function Avatar({ nome, cor, tamanho = 24 }: { nome: string | null | undefined; cor?: string; tamanho?: number }) {
   return (
-    <span className="grid shrink-0 place-items-center rounded-full text-[10px] font-extrabold text-white" title={nome ?? ""}
+    <span className="grid shrink-0 place-items-center rounded-full text-2xs font-bold text-white" title={nome ?? ""}
       style={{ width: tamanho, height: tamanho, background: cor ?? "#64748b" }} aria-hidden>{iniciais(nome)}</span>
   );
 }

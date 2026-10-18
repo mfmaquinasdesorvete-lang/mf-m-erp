@@ -64,7 +64,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
       <div className="grid grid-cols-3 gap-2 sm:max-w-xl">
         {([["Em dia", sit.em_dia, "border-emerald-300 bg-emerald-50 text-emerald-800"], ["A vencer (7 dias)", sit.a_vencer, "border-amber-300 bg-amber-50 text-amber-900"],
           ["Atrasados", sit.atrasado, "border-red-300 bg-red-50 text-red-800"]] as const).map(([r, n, cor]) => (
-          <div key={r} className={`rounded-lg border px-3 py-2 ${cor}`}><div className="text-xs font-semibold">{r}</div><div className="text-xl font-bold">{n}</div><div className="text-[11px] opacity-80">{pl(n, "cliente", "clientes")}</div></div>
+          <div key={r} className={`rounded-lg border px-3 py-2 ${cor}`}><div className="text-xs font-semibold">{r}</div><div className="text-xl font-bold">{n}</div><div className="text-2xs opacity-80">{pl(n, "cliente", "clientes")}</div></div>
         ))}
       </div>
 

@@ -335,7 +335,7 @@ export function Rosca({ fatias, total: rotuloTotal = "Total", formatar = brl, on
         </svg>
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{foco ? foco.rotulo : rotuloTotal}</div>
+            <div className="text-2xs font-medium uppercase tracking-wide text-slate-500">{foco ? foco.rotulo : rotuloTotal}</div>
             <div className="num text-lg font-bold leading-tight text-fg">{compacto(foco ? foco.valor : soma)}</div>
           </div>
         </div>

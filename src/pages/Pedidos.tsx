@@ -84,7 +84,7 @@ type InfoVenda = { contas: ContaVenda[]; pg: Pagamento | null; meio: ReturnType<
 
 /** Orçamento enviado pelo representante no Portal do representante. */
 const SeloPortal = () => (
-  <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-bold text-teal-800" title="Orçamento enviado pelo representante no portal">PORTAL</span>
+  <span className="ml-1.5 rounded-md bg-teal-50 px-1.5 py-0.5 text-2xs font-bold text-teal-800" title="Orçamento enviado pelo representante no portal">PORTAL</span>
 );
 
 function exportarPedidos(lista: Pedido[], infoDe?: (id: string) => InfoVenda | undefined) {
@@ -341,18 +341,18 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 pr-8 text-sm">
                 <b className="text-fg">#{p.numero}</b><EtiquetaUnidade id={(p as any).unidade_id} />
-                {p.origem === "loja" && <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}
+                {p.origem === "loja" && <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-2xs font-bold text-sky-700">LOJA</span>}
                 {p.via_portal && <SeloPortal />}
-                {p.numero_externo && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}
+                {p.numero_externo && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}
               </div>
-              <div className="mt-0.5 line-clamp-2 pr-6 text-[15px] font-semibold leading-snug text-fg" title={p.cliente?.nome ?? undefined}>
+              <div className="mt-0.5 line-clamp-2 pr-6 text-sm font-semibold leading-snug text-fg" title={p.cliente?.nome ?? undefined}>
                 {p.cliente?.nome ?? "—"}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}
-                <span className="num ml-auto whitespace-nowrap pl-1 text-base font-extrabold text-fg">{brl(p.valor_total)}</span>
+                <span className="num ml-auto whitespace-nowrap pl-1 text-base font-bold text-fg">{brl(p.valor_total)}</span>
               </div>
-              <div className="mt-1 text-[13px] leading-snug text-slate-500">
+              <div className="mt-1 text-xs leading-snug text-slate-500">
                 {dataBR(p.created_at).replace(/\/(\d{2})(\d{2})$/, "/$2")} · {(p.itens ?? []).length} {(p.itens ?? []).length === 1 ? "item" : "itens"}{opsDe(p.id).map((o) => ` · OP #${o.numero}`).join("")}{info.get(p.id)?.nf && ` · NF ${info.get(p.id)!.nf}`}
               </div>
               {/* pagamento e envio em ícone, como no Tiny */}
@@ -385,11 +385,11 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
             <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} /></td>
             <td className="td w-12 py-1.5 pr-0"><MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} descricao={(p.itens ?? []).map((x) => x.descricao).join(" · ")} /></td>
-            <td className="td whitespace-nowrap font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}
-              {p.numero_externo && <div><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span></div>}
+            <td className="td whitespace-nowrap font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-2xs font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}
+              {p.numero_externo && <div><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span></div>}
               <div className="text-xs font-normal text-slate-500">{dataBR(p.created_at)}</div>
-              {info.get(p.id)?.oc && <div className="text-[11px] font-normal text-slate-500" title="Nº do pedido do cliente (ordem de compra ou pedido da loja), como veio do Tiny">Ped. {info.get(p.id)!.oc}</div>}</td>
-            <td className="td">{p.cliente?.nome}{p.cliente?.uf && <span className="ml-1.5 rounded bg-slate-100 px-1 py-px text-[11px] font-bold text-slate-600" title="Estado do cliente">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
+              {info.get(p.id)?.oc && <div className="text-2xs font-normal text-slate-500" title="Nº do pedido do cliente (ordem de compra ou pedido da loja), como veio do Tiny">Ped. {info.get(p.id)!.oc}</div>}</td>
+            <td className="td">{p.cliente?.nome}{p.cliente?.uf && <span className="ml-1.5 rounded bg-slate-100 px-1 py-px text-2xs font-bold text-slate-600" title="Estado do cliente">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
             {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}
@@ -482,7 +482,7 @@ const corTiny = (s: string) => {
 
 /** Situação que o pedido tinha no Tiny (histórico importado). */
 function SituacaoTiny({ s }: { s: string }) {
-  return <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${corTiny(s)}`} title="Situação do pedido no Tiny">Tiny: {s}</span>;
+  return <span className={`inline-block rounded px-1.5 py-0.5 text-2xs font-semibold ring-1 ring-inset ${corTiny(s)}`} title="Situação do pedido no Tiny">Tiny: {s}</span>;
 }
 
 /** Coluna NF da lista sem nota autorizada. Nota cancelada mostra o número e, se a venda segue aprovada, "emitir de novo"
@@ -494,7 +494,7 @@ function NotaDaLista({ p }: { p: PedidoLista }) {
   return (
     <span className="inline-flex flex-col items-start gap-0.5" title="Só a NF-e foi cancelada: a venda continua valendo">
       <Badge value="cancelada" />
-      <span className="text-[11px] text-slate-500">{nota.numero ? `NF ${nota.numero}` : "NF-e"}{refaturar && <b className="text-amber-700"> · emitir de novo</b>}</span>
+      <span className="text-2xs text-slate-500">{nota.numero ? `NF ${nota.numero}` : "NF-e"}{refaturar && <b className="text-amber-700"> · emitir de novo</b>}</span>
     </span>
   );
 }

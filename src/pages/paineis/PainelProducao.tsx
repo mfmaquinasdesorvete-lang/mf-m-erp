@@ -121,7 +121,7 @@ export default function PainelProducao() {
       <CabecalhoPainel icone={Factory} area="Produção e estoque" titulo="Como está a fábrica" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo}
         acoes={pode("editar_producao") && (
           <button type="button" onClick={() => navigate("/compras", { state: { aba: "compras", novaCompra: true } })}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-3.5 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
             <Plus size={16} /> Pedir peças
           </button>
         )} />

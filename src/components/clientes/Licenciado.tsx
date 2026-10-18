@@ -13,7 +13,7 @@ export function tagsComLicenciado(tags: string[] | null | undefined, marcar: boo
 export function SeloLicenciado({ cliente }: { cliente?: { tags?: string[] | null } | null }) {
   if (!ehLicenciado(cliente)) return null;
   return (
-    <span title="Licenciado My Frost Sorveterias" className="ml-1.5 inline-block whitespace-nowrap rounded-md bg-purple-100 px-1.5 py-0.5 align-middle text-[11px] font-bold text-purple-800">
+    <span title="Licenciado My Frost Sorveterias" className="ml-1.5 inline-block whitespace-nowrap rounded-md bg-purple-100 px-1.5 py-0.5 align-middle text-2xs font-bold text-purple-800">
       LICENCIADO
     </span>
   );

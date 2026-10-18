@@ -188,7 +188,7 @@ export default function Clientes() {
       podeExcluir={papel === "admin"}
       plural="clientes"
       extraActions={<>
-        <Link to="/painel/cadastros" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><LayoutDashboard size={16} /> Painel dos clientes</Link>
+        <Link to="/painel/cadastros" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><LayoutDashboard size={16} /> Painel dos clientes</Link>
         {podeArrumar && <Button variant="secondary" onClick={() => setArrumar(true)} title="WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores na lista"><Wrench size={16} /> Arrumar cadastro</Button>}
         {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
         {papel === "admin" && <Button variant="secondary" onClick={() => setMyFrost(true)} title="Clientes, máquinas e peças da My Frost Máquinas (empresa anterior), do backup do Tiny"><Archive size={16} /> Base da My Frost</Button>}
@@ -270,7 +270,7 @@ export default function Clientes() {
         return (
           <button type="button" onClick={() => setFicha(r)}
             title={temHistorico ? "Ficha 360: compras, financeiro, assistência e atendimentos deste cliente" : "Ficha 360: este cliente ainda não tem compras, contas nem atendimentos"}
-            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[13px] font-semibold transition ${temHistorico
+            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold transition ${temHistorico
               ? "bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-sm hover:brightness-110"
               : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
             <IdCard size={15} /> Ficha 360
@@ -286,11 +286,11 @@ export default function Clientes() {
             return (<>
               <NomeCadastro r={r} />
               <div className="mt-0.5 flex flex-wrap gap-1">
-                {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
-                {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
-                {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
+                {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
+                {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
+                {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}
                 {r.portal_conferir && (
-                  <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                  <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900">
                     do portal: conferir
                     {pode("editar_clientes") && (
                       <button type="button" className="ml-0.5 rounded underline hover:no-underline" title="Dados conferidos: tirar a marca"

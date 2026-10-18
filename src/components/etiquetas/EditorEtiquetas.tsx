@@ -171,7 +171,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
         {rotulo}
         {editados.has(caminho) && (
           <button type="button" title="Voltar ao que está no ERP" onClick={() => voltarCampo(caminho)}
-            className="ml-auto inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800 hover:bg-amber-200">
+            className="ml-auto inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 text-2xs font-bold text-amber-800 hover:bg-amber-200">
             editado <RotateCcw size={10} />
           </button>
         )}
@@ -257,7 +257,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
             <span className="text-xs text-slate-500">
               {m.imprimir === "transporte" ? "endereçamento, uma por volume" : m.imprimir === "volume" ? "identificação de cada volume (nº, conteúdo, peso)" : "transporte + volume de cada caixa"}
             </span>
-            {c.salva?.impressa_em && <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">impressa {c.salva.impressoes}× · última em {dataBR(c.salva.impressa_em)}</span>}
+            {c.salva?.impressa_em && <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">impressa {c.salva.impressoes}× · última em {dataBR(c.salva.impressa_em)}</span>}
           </div>
 
           {(falta.length > 0 || alertas.length > 0) && (
@@ -336,16 +336,16 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
               <Button type="button" variant="secondary" className="!py-1" onClick={() => setVolumes([...d.volumes, volumeVazio()])}><Plus size={14} /> Volume</Button>
               {d.volumes.length > 1 && <Button type="button" variant="ghost" className="!py-1" onClick={repetirPrimeiro}>Repetir o 1º em todos</Button>}
               {d.volumes.length > 1 && d.peso_total_kg && <Button type="button" variant="ghost" className="!py-1" onClick={dividirPeso}>Dividir o peso total</Button>}
-              {editados.has("volumes") && <button type="button" onClick={() => voltarCampo("volumes")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800"><RotateCcw size={11} /> volumes como no ERP</button>}
+              {editados.has("volumes") && <button type="button" onClick={() => voltarCampo("volumes")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-1 text-2xs font-bold text-amber-800"><RotateCcw size={11} /> volumes como no ERP</button>}
               <label className="ml-auto flex items-center gap-1.5 text-xs text-slate-600">
                 Peso total (kg)
                 <span className="w-24"><Numero rotulo="Peso total" valor={d.peso_total_kg} onChange={(n) => set("peso_total_kg", n)} /></span>
               </label>
             </div>
-            {somaPesos > 0 && <p className="mt-1 text-right text-[11px] text-slate-500">soma dos volumes: {somaPesos.toLocaleString("pt-BR")} kg</p>}
+            {somaPesos > 0 && <p className="mt-1 text-right text-2xs text-slate-500">soma dos volumes: {somaPesos.toLocaleString("pt-BR")} kg</p>}
           </Grupo>
 
-          <Grupo titulo="Avisos de manuseio" extra={editados.has("avisos") ? <button type="button" onClick={() => voltarCampo("avisos")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800"><RotateCcw size={11} /> como no ERP</button> : undefined}>
+          <Grupo titulo="Avisos de manuseio" extra={editados.has("avisos") ? <button type="button" onClick={() => voltarCampo("avisos")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-2xs font-bold text-amber-800"><RotateCcw size={11} /> como no ERP</button> : undefined}>
             <div className="flex flex-wrap gap-2">
               {AVISOS.map((a) => {
                 const on = d.avisos.includes(a.id);
@@ -375,7 +375,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
           <section className="rounded-xl border border-slate-200">
             <button type="button" onClick={() => setVerModelo(!verModelo)} className="flex w-full items-center gap-2 p-3 text-left text-sm font-bold text-fg">
               <Settings2 size={16} /> Modelo das etiquetas <span className="font-normal text-slate-500">(formato, o que aparece, avisos padrão; vale para todas)</span>
-              {modeloMudou && <span className="ml-auto rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800">alterado</span>}
+              {modeloMudou && <span className="ml-auto rounded bg-amber-100 px-1.5 text-2xs font-bold text-amber-800">alterado</span>}
             </button>
             {verModelo && (
               <div className="space-y-3 border-t border-slate-100 p-3">
@@ -444,7 +444,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
             : url
               ? <iframe title="Pré-visualização da etiqueta" src={`${url}#toolbar=0&navpanes=0&view=Fit`} className="h-[480px] w-full rounded-xl border border-slate-200 bg-slate-100" />
               : <div className="flex h-[480px] items-center justify-center rounded-xl border border-slate-200 text-xs text-slate-400">gerando…</div>}
-          <p className="mt-1.5 text-[11px] text-slate-500">
+          <p className="mt-1.5 text-2xs text-slate-500">
             {m.imprimir === "ambas" ? "Transporte e volume" : m.imprimir === "volume" ? `Volume (${m.formato_volume === "a4" ? "A4" : m.formato_volume.replace("x", " × ")} cm)` : `Transporte (${m.formato_transporte === "a4" ? "A4" : "10 × 15 cm"})`}.
             {editados.size > 0 ? ` ${editados.size} ${pl(editados.size, "campo", "campos")} ${pl(editados.size, "editado", "editados")} à mão.` : " Tudo como está no ERP."}
           </p>

@@ -20,7 +20,7 @@ export function SeloTesteGiga({ s, mostrarSem = true }: { s: SituacaoNs | null |
   if (selo.tom === "sem" && !mostrarSem) return null;
   const Icone = ICONE[selo.tom];
   return (
-    <span title={selo.detalhe} className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${COR[selo.tom]}`}>
+    <span title={selo.detalhe} className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-semibold ${COR[selo.tom]}`}>
       <Icone size={12} aria-hidden className="shrink-0" /><span className="truncate">{selo.texto}</span>
       <span className="sr-only">. {selo.detalhe}</span>
     </span>

@@ -184,7 +184,7 @@ export default function PainelFinanceiroArea() {
       <CabecalhoPainel icone={Wallet} area="Financeiro" titulo="Como está o dinheiro" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo}
         acoes={vePagar && pode("editar_financeiro") && (
           <button type="button" onClick={() => navigate("/financeiro", { state: { aba: "pagar", nova: true } })}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-3.5 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
             <Plus size={16} /> Conta a pagar
           </button>
         )} />
@@ -204,8 +204,8 @@ export default function PainelFinanceiroArea() {
         </Section>
         <Section title="Próximos 7 dias" className="xl:col-span-2">
           <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="cartao-fit min-w-0 rounded-xl bg-emerald-50 p-2.5"><span className="block text-[13px] font-semibold text-emerald-800">Vai entrar</span><span className="num valor-fit block font-bold text-emerald-700 [--valor-max:1.125rem]">+ {brl(k.entra7)}</span></div>
-            {vePagar && <div className="cartao-fit min-w-0 rounded-xl bg-orange-50 p-2.5"><span className="block text-[13px] font-semibold text-orange-800">Vai sair</span><span className="num valor-fit block font-bold text-orange-700 [--valor-max:1.125rem]">− {brl(k.sai7)}</span></div>}
+            <div className="cartao-fit min-w-0 rounded-xl bg-emerald-50 p-2.5"><span className="block text-xs font-semibold text-emerald-800">Vai entrar</span><span className="num valor-fit block font-bold text-emerald-700 [--valor-max:1.125rem]">+ {brl(k.entra7)}</span></div>
+            {vePagar && <div className="cartao-fit min-w-0 rounded-xl bg-orange-50 p-2.5"><span className="block text-xs font-semibold text-orange-800">Vai sair</span><span className="num valor-fit block font-bold text-orange-700 [--valor-max:1.125rem]">− {brl(k.sai7)}</span></div>}
           </div>
           <Colunas dados={vePagar ? k.proximos : k.proximos.map((s) => ({ ...s, valores: [s.valores[0]] }))} altura={190} vazio="Nada vence nos próximos 7 dias."
             series={vePagar ? [{ nome: "A receber", cor: "var(--serie-3)" }, { nome: "A pagar", cor: "var(--serie-2)" }] : [{ nome: "A receber", cor: "var(--serie-3)" }]} />

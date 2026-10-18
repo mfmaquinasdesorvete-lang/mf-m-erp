@@ -91,11 +91,11 @@ export function DailyScrum({ time, sprint, dailies, pessoas, dia, onDia }: {
             <span className="text-xs text-slate-500">{doDia.length} {pl(doDia.length, "resposta", "respostas")}</span>
           </div>
           {faltam.length > 0 && (
-            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Falta {pl(faltam.length, "responder", "responderem")}: {faltam.map((id) => nomeDe(pessoas, id).split(" ")[0]).join(", ")}
             </p>
           )}
-          {!time.membros.length && <p className="mb-3 text-[13px] text-slate-500">A equipe ainda não tem membros: o administrador escolhe na aba Equipe.</p>}
+          {!time.membros.length && <p className="mb-3 text-xs text-slate-500">A equipe ainda não tem membros: o administrador escolhe na aba Equipe.</p>}
           {!doDia.length ? <p className="text-sm text-slate-500">Ninguém respondeu neste dia.</p> : (
             <ul className="space-y-3">
               {doDia.map((d) => (

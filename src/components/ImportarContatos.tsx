@@ -61,7 +61,7 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Importação concluída">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={22} /> Cadastros importados.</p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             {resultado.clientes > 0 && <li>{resultado.clientes} clientes novos</li>}
@@ -85,7 +85,7 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
     <Modal open onClose={onClose} title={`Importar ${ROTULO[tipo]}`} wide>
       {!leitura ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             Escolha uma planilha do Excel (.xlsx, .xls) ou .csv com os {ROTULO[tipo]}. Serve a exportação do Tiny
             (<b>Cadastros → Clientes e Fornecedores → ⋯ → Exportar</b>), de outro sistema ou a do botão <b>Exportar</b> daqui.
             As colunas são reconhecidas pelo nome: nome ou razão social, fantasia, CPF/CNPJ, inscrição estadual, e-mail, telefone, celular,

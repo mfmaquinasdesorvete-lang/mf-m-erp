@@ -240,8 +240,8 @@ export default function PainelExpedicao() {
             <button key={x.id} type="button" role="tab" aria-selected={ativo} onClick={() => setEtapa(x.id)}
               className={`flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 text-left transition ${ativo ? "border-modulo bg-modulo text-white shadow-card" : "border-slate-200 bg-surface text-fg hover:border-modulo/50"}`}>
               <x.icone size={22} className={ativo ? "text-white" : "text-modulo-texto"} aria-hidden />
-              <span className="flex-1 text-[15px] font-bold">{x.titulo}</span>
-              <span className={`num grid h-8 min-w-[32px] place-items-center rounded-full px-2 text-sm font-extrabold ${ativo ? "bg-white/20" : "bg-slate-100 text-slate-700"}`}>{porEtapa[x.id].length}</span>
+              <span className="flex-1 text-sm font-bold">{x.titulo}</span>
+              <span className={`num grid h-8 min-w-[32px] place-items-center rounded-full px-2 text-sm font-bold ${ativo ? "bg-white/20" : "bg-slate-100 text-slate-700"}`}>{porEtapa[x.id].length}</span>
             </button>
           );
         })}
@@ -274,7 +274,7 @@ export default function PainelExpedicao() {
                         </button>
                       )}
                       <button type="button" onClick={() => podeExpedir && setAberta({ p: l.p, e: l.e })} className="min-w-0 flex-1 text-left">
-                        <span className="block text-lg font-extrabold leading-tight text-fg">#{l.p.numero} · {l.p.cliente?.nome_fantasia || l.p.cliente?.nome}</span>
+                        <span className="block text-lg font-bold leading-tight text-fg">#{l.p.numero} · {l.p.cliente?.nome_fantasia || l.p.cliente?.nome}</span>
                         <span className="mt-0.5 block text-sm text-slate-600">
                           {l.p.cliente?.municipio ? `${l.p.cliente.municipio}/${l.p.cliente.uf ?? ""} · ` : ""}{itens.length} {pl(itens.length, "item", "itens")}, {unidades.toLocaleString("pt-BR")} un. · {nomeTransp(l.e.transportadora_id ?? l.p.transportadora_id)}
                         </span>
@@ -306,7 +306,7 @@ export default function PainelExpedicao() {
                       {podeExpedir && (
                         <button type="button" disabled={acoes.ocupado === l.p.id || lote || (etapa === "despachar" && !l.nota)} onClick={() => agir(l)}
                           title={etapa === "despachar" && !l.nota ? "Precisa da NF-e autorizada" : undefined}
-                          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-modulo px-4 text-[15px] font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
+                          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
                           <atual.icone size={18} aria-hidden /> {acoes.ocupado === l.p.id ? "Salvando…" : atual.botao}
                         </button>
                       )}
@@ -336,13 +336,13 @@ export default function PainelExpedicao() {
                           <span className="block truncate text-sm font-semibold text-fg">{x.descricao}</span>
                           <span className="block truncate text-xs text-slate-500">{x.sku ? `${x.sku} · ` : ""}{[...x.pedidos].map((n) => `#${n}`).join(" ")}</span>
                         </span>
-                        <span className="num shrink-0 text-lg font-extrabold text-fg">{x.qtd.toLocaleString("pt-BR")}</span>
+                        <span className="num shrink-0 text-lg font-bold text-fg">{x.qtd.toLocaleString("pt-BR")}</span>
                       </li>
                     ))}
                   </ul>
                   {podeExpedir && (
                     <button type="button" disabled={lote || !aSeparar.length} onClick={comecarTodos}
-                      className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-modulo px-4 text-[15px] font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
+                      className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-modulo px-4 text-sm font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50">
                       <ListChecks size={18} /> {lote ? "Salvando…" : `Começar a separar ${aSeparar.length === 1 ? "o pedido" : `os ${aSeparar.length} pedidos`}`}
                     </button>
                   )}

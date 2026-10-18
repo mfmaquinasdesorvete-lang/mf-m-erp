@@ -40,7 +40,7 @@ export function Quadro({ time, sprint, itens, pessoas, onAbrir, onNovo }: {
         <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
           <input type="checkbox" checked={meus} onChange={(e) => setMeus(e.target.checked)} /> Só os meus
         </label>
-        <p className="hidden text-[13px] text-slate-500 md:block">Arraste o cartão para mudar a coluna. Quem puxa para "Fazendo" um item sem dono vira o responsável.</p>
+        <p className="hidden text-xs text-slate-500 md:block">Arraste o cartão para mudar a coluna. Quem puxa para "Fazendo" um item sem dono vira o responsável.</p>
       </div>
       <div className="relative -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-3 md:mx-0 md:grid md:snap-none md:grid-cols-4 md:overflow-visible md:px-0" aria-label={`Quadro da sprint ${sprint.numero}`}>
         {COLUNAS.map((col, k) => {
@@ -53,9 +53,9 @@ export function Quadro({ time, sprint, itens, pessoas, onAbrir, onNovo }: {
               className={`flex w-[82vw] max-w-[320px] shrink-0 snap-center flex-col rounded-2xl border bg-slate-50 transition md:w-auto md:max-w-none
                 ${sobre === col.id ? "border-emerald-400 ring-2 ring-emerald-300" : "border-slate-200"}`}>
               <header className="flex items-center gap-2 rounded-t-2xl px-3 py-2.5 text-white" style={{ background: COR_COLUNA[col.id] }} title={col.dica}>
-                <h3 className="min-w-0 flex-1 truncate text-sm font-extrabold">{col.titulo}</h3>
+                <h3 className="min-w-0 flex-1 truncate text-sm font-bold">{col.titulo}</h3>
                 <span className="num text-xs font-bold opacity-90">{somaPontos(lista)} pts</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-extrabold text-[#0d1b2e]">{lista.length}</span>
+                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-[#0d1b2e]">{lista.length}</span>
               </header>
               <div className="flex min-h-[140px] flex-col gap-2 p-2">
                 {lista.map((i) => (
@@ -74,7 +74,7 @@ export function Quadro({ time, sprint, itens, pessoas, onAbrir, onNovo }: {
                         <Pontos pontos={i.pontos} />
                         <ChipTarefas item={i} />
                         {i.ideia_id && <Lightbulb size={13} className="text-amber-600" aria-label="Veio das Ideias" />}
-                        <span className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                        <span className="ml-auto flex items-center gap-1 text-2xs font-semibold text-slate-500">
                           {i.responsavel_id && <>{primeiroNome(pessoas, i.responsavel_id)} <Avatar nome={primeiroNome(pessoas, i.responsavel_id)} cor={time.cor} tamanho={20} /></>}
                         </span>
                       </span>

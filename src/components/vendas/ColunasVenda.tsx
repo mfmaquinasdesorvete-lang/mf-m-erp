@@ -48,7 +48,7 @@ export function EtiquetaPagamento({ pg, compacta = false }: { pg: Pagamento | nu
       <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold ${COR_PAGAMENTO[pg.situacao]}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />{pg.texto}
       </span>
-      {!compacta && pg.sub && <span className="mt-0.5 whitespace-nowrap text-[11px] text-slate-500">{pg.sub}</span>}
+      {!compacta && pg.sub && <span className="mt-0.5 whitespace-nowrap text-2xs text-slate-500">{pg.sub}</span>}
       <span className="sr-only">{ROTULO_PAGAMENTO[pg.situacao]}</span>
     </span>
   );
@@ -71,9 +71,9 @@ export function IconeEnvio({ envio, compacto = false }: { envio: Envio; compacto
       <span className="min-w-0 leading-tight">
         <span className={`block text-xs font-semibold ${apagado ? "text-slate-400" : "text-fg"}`}>{envio.rotulo}</span>
         {!compacto && envio.rastreio && (envio.link
-          ? <a href={envio.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="num block break-all text-[11px] font-medium text-brand underline-offset-2 hover:underline" title="Abrir o rastreio">{envio.rastreio}</a>
-          : <span className="num block break-all text-[11px] text-slate-500" title="Código de rastreio">{envio.rastreio}</span>)}
-        {!compacto && envio.andamento && <span className={`block text-[11px] ${envio.entregue ? "font-semibold text-emerald-700" : "text-slate-500"}`}>{envio.andamento}</span>}
+          ? <a href={envio.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="num block break-all text-2xs font-medium text-brand underline-offset-2 hover:underline" title="Abrir o rastreio">{envio.rastreio}</a>
+          : <span className="num block break-all text-2xs text-slate-500" title="Código de rastreio">{envio.rastreio}</span>)}
+        {!compacto && envio.andamento && <span className={`block text-2xs ${envio.entregue ? "font-semibold text-emerald-700" : "text-slate-500"}`}>{envio.andamento}</span>}
       </span>
     </span>
   );
@@ -90,7 +90,7 @@ export function SinaisVenda({ s }: { s: { estoque: boolean; contas: boolean; nfe
   return (
     <span className="inline-flex gap-0.5">
       {itens.map(([l, ok, dica]) => (
-        <span key={l} title={dica} className={`grid h-5 w-5 place-items-center rounded text-[10px] font-bold ${ok ? "bg-emerald-600 text-white" : "border border-slate-200 text-slate-300"}`}>
+        <span key={l} title={dica} className={`grid h-5 w-5 place-items-center rounded text-2xs font-bold ${ok ? "bg-emerald-600 text-white" : "border border-slate-200 text-slate-300"}`}>
           {l}<span className="sr-only">: {dica}</span>
         </span>
       ))}
@@ -105,7 +105,7 @@ export function MiniaturaVenda({ url, nItens, descricao }: { url: string | null;
       {url
         ? <img src={url} alt="" loading="lazy" className="h-10 w-10 rounded-md border border-slate-200 bg-white object-contain" />
         : <span className="grid h-10 w-10 place-items-center rounded-md border border-slate-200 bg-slate-50 text-slate-300"><Package size={18} aria-hidden /></span>}
-      {nItens > 1 && <span className="num absolute -bottom-1 -right-1 rounded-full bg-slate-700 px-1 text-[10px] font-bold leading-4 text-white">+{nItens - 1}</span>}
+      {nItens > 1 && <span className="num absolute -bottom-1 -right-1 rounded-full bg-slate-700 px-1 text-2xs font-bold leading-4 text-white">+{nItens - 1}</span>}
     </span>
   );
 }

@@ -71,7 +71,7 @@ export function PessoasContato({ pessoas, onChange, disabled }: { pessoas: Pesso
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-fg">
                 {p.nome}
-                {p.setor && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">{p.setor}</span>}
+                {p.setor && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-2xs font-semibold text-sky-700">{p.setor}</span>}
               </div>
               <div className="flex flex-wrap gap-x-3 text-xs text-slate-500">
                 {p.email && <a href={`mailto:${p.email}`} className="inline-flex items-center gap-1 hover:underline"><Mail size={12} /> {p.email}</a>}

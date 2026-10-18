@@ -225,8 +225,8 @@ function ResultadoConferencia({ c, marcados, setMarcados, onUsar, onFechar }: {
             <li key={x.campo} className="grid gap-1 px-3 py-2 sm:grid-cols-[auto_9rem_1fr_1fr] sm:items-start sm:gap-3">
               <input type="checkbox" className="mt-1 h-4 w-4" checked={marcados.has(x.campo)} onChange={(e) => marcar(x.campo, e.target.checked)} aria-label={`Trocar ${x.rotulo} pelo da Receita`} />
               <b className="text-sm">{x.rotulo}</b>
-              <span className="min-w-0 break-words text-sm"><span className="block text-[11px] font-semibold uppercase text-slate-500">No ERP</span>{x.erp || <i className="text-slate-400">vazio</i>}</span>
-              <span className="min-w-0 break-words text-sm"><span className="block text-[11px] font-semibold uppercase text-slate-500">Na Receita</span>{x.receita}</span>
+              <span className="min-w-0 break-words text-sm"><span className="block text-2xs font-semibold uppercase text-slate-500">No ERP</span>{x.erp || <i className="text-slate-400">vazio</i>}</span>
+              <span className="min-w-0 break-words text-sm"><span className="block text-2xs font-semibold uppercase text-slate-500">Na Receita</span>{x.receita}</span>
             </li>
           ))}
         </ul>

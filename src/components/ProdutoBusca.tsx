@@ -80,7 +80,7 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
                       : <span className="h-10 w-10 shrink-0 rounded-md border border-dashed border-slate-200" aria-hidden />)}
                     <div className="min-w-0">
                       <div className="text-sm text-fg">
-                        {p.kit && <span className="mr-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">KIT</span>}
+                        {p.kit && <span className="mr-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-2xs font-bold text-violet-700">KIT</span>}
                         {p.descricao}
                       </div>
                       {extra && <div className="text-xs text-slate-500">{extra}</div>}

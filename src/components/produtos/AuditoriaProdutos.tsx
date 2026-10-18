@@ -312,7 +312,7 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
                 <td className="p-2"><div className="font-medium text-fg">{p.descricao}</div>
                   <div className="text-xs text-slate-500">{p.titulo_anuncio ? <>“{p.titulo_anuncio}” · {p.titulo_anuncio.length}/60</> : "sem título de anúncio"}</div></td>
                 <td className="p-2"><div className="flex flex-wrap gap-1">{a.pendencias.map((x) => (
-                  <span key={x.id} title={x.texto} className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${x.automatica ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>{ROTULO_PEND[x.id] ?? x.id}</span>
+                  <span key={x.id} title={x.texto} className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${x.automatica ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>{ROTULO_PEND[x.id] ?? x.id}</span>
                 ))}{!a.pendencias.length && <span className="text-xs font-semibold text-emerald-700">tudo certo</span>}</div></td>
                 <td className="p-2 text-right"><button type="button" className="text-xs font-semibold text-brand hover:underline" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>
               </tr>

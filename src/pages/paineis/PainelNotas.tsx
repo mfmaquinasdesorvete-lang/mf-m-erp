@@ -153,7 +153,7 @@ export default function PainelNotas() {
       <CabecalhoPainel icone={FileText} area="Notas fiscais" titulo="Como estão as notas" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo}
         acoes={pode("emitir_nfe") && (
           <button type="button" onClick={() => navigate("/notas", { state: { emitir: true } })}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-3.5 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
             <Plus size={16} /> Emitir NF-e
           </button>
         )} />
@@ -185,7 +185,7 @@ export default function PainelNotas() {
               className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${s.cor} 16%, transparent)`, color: s.cor }}><s.icone size={18} /></span>
               <span className="num block truncate text-xl font-bold leading-none text-fg">{s.n}</span>
-              <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{s.rotulo}</span>
+              <span className="col-span-2 block text-xs leading-snug text-slate-600">{s.rotulo}</span>
             </button>
           ))}
         </div>

@@ -90,6 +90,14 @@ html { font-size: 17px; }
 .grid > * { min-width: 0; }
 body { @apply bg-canvas font-sans text-slate-800 antialiased; }
 h1, h2, h3 { text-wrap: balance; }
+/* Fontes do design system: Poppins nos títulos, números grandes, botões, abas e menu; DM Sans no texto e nos campos.
+   Parágrafo dentro de botão (cartão que é botão) continua na fonte do texto. */
+@layer base {
+  h1, h2, h3, h4, button, [role="tab"], nav a, .th, .font-display, .valor-fit,
+  .num.text-lg, .num.text-xl, .num.text-2xl, .num.text-3xl { font-family: theme("fontFamily.display"); }
+  h1, h2, h3, h4, button, [role="tab"], nav a { letter-spacing: -0.01em; }
+  button p, button .font-normal { font-family: theme("fontFamily.sans"); letter-spacing: normal; }
+}
 
 @layer components {
   /* janelas: a linha Cancelar/Salvar do fim do formulário fica presa no pé da tela quando a janela é mais alta que a tela

@@ -205,7 +205,7 @@ function LinhaConta({ l, eu, regras, podeAgir, marcavel, marcada, onMarcar, onAc
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-            <button type="button" onClick={onAbrir} className="min-w-0 truncate text-left text-[15px] font-semibold text-fg hover:underline">{l.terceiro || c.descricao}</button>
+            <button type="button" onClick={onAbrir} className="min-w-0 truncate text-left text-sm font-semibold text-fg hover:underline">{l.terceiro || c.descricao}</button>
             <span className="num shrink-0 text-base font-bold text-fg">{brl(Number(c.valor))}</span>
           </div>
           <p className="truncate text-sm text-slate-600">{l.terceiro && c.descricao !== l.terceiro ? c.descricao : ""}</p>
@@ -216,19 +216,19 @@ function LinhaConta({ l, eu, regras, podeAgir, marcavel, marcada, onMarcar, onAc
             {c.lancamento ? ` · ${c.lancamento === "automatico" ? "lançamento automático" : c.lancamento === "importado" ? "importada" : "lançada à mão"}` : ""}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span title={e.dica} className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR_TOM[e.tom]}`}>{e.texto}</span>
+            <span title={e.dica} className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_TOM[e.tom]}`}>{e.texto}</span>
             {pend.map((p) => (
-              <span key={p} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+              <span key={p} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
                 <AlertTriangle size={11} aria-hidden /> {ROTULO_PENDENCIA[p]}
               </span>
             ))}
             {(c.motivo_2a || vai2a) && (
-              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800 ring-1 ring-inset ring-indigo-200">
+              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-2xs font-semibold text-indigo-800 ring-1 ring-inset ring-indigo-200">
                 2ª revisão: {c.motivo_2a ?? (Number(c.valor) >= regras.alcada ? `valor a partir de ${brl(regras.alcada)}` : "exceção")}
               </span>
             )}
-            {c.revisao1_nome && <span className="text-[11px] text-slate-500">1ª: {c.revisao1_nome}{c.revisao1_em ? ` em ${dataBR(c.revisao1_em.slice(0, 10))}` : ""}</span>}
-            {c.revisao2_nome && <span className="text-[11px] text-slate-500">· 2ª: {c.revisao2_nome}</span>}
+            {c.revisao1_nome && <span className="text-2xs text-slate-500">1ª: {c.revisao1_nome}{c.revisao1_em ? ` em ${dataBR(c.revisao1_em.slice(0, 10))}` : ""}</span>}
+            {c.revisao2_nome && <span className="text-2xs text-slate-500">· 2ª: {c.revisao2_nome}</span>}
           </div>
           {c.revisao_comentario && (c.revisao === "devolvido" || c.revisao === "rejeitado" || c.revisao === "em_revisao") && (
             <p className={`mt-2 rounded-lg px-2.5 py-1.5 text-sm ${c.revisao === "devolvido" ? "bg-orange-50 text-orange-900" : "bg-slate-50 text-slate-700"}`}>“{c.revisao_comentario}”</p>

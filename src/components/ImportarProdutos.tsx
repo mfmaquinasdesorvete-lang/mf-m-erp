@@ -59,7 +59,7 @@ export function ImportarProdutos({ onClose }: { onClose: () => void }) {
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Importação concluída">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={22} /> {resultado.criados} produtos novos, {resultado.atualizados} atualizados.</p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             {resultado.fornecedores_criados > 0 && <li>{resultado.fornecedores_criados} fornecedores cadastrados (complete CNPJ e WhatsApp em Fornecedores).</li>}
@@ -85,7 +85,7 @@ export function ImportarProdutos({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Importar produtos do Tiny / Olist" wide>
       {!leitura ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             No Tiny, vá em <b>Cadastros → Produtos → ⋯ → Exportar planilha</b> e escolha o arquivo aqui. Entram descrição, SKU, NCM, CEST,
             origem, preços, estoque, mínimo e máximo, localização, EAN, marca, categoria, garantia, peso e medidas, foto, texto de venda e
             fornecedor (com o código dele, para as notas de compra já entrarem ligadas).

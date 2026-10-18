@@ -27,12 +27,12 @@ export function CartaoConta({ titulo, descricao, detalhe, unidadeId, valor, venc
   const pago = status === "pago" && !!pagoEm;
   return (
     <li className={`overflow-hidden rounded-2xl border border-l-4 border-slate-200 bg-surface shadow-card ${p.faixa} ${marcado ? "ring-2 ring-brand" : ""}`}>
-      <div className="p-3.5">
+      <div className="p-4">
         <div className="flex items-start gap-3">
           {marcar}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 break-words text-[15px] font-bold leading-snug text-fg">{titulo}</p>
+              <p className="min-w-0 break-words text-sm font-bold leading-snug text-fg">{titulo}</p>
               <EtiquetaUnidade id={unidadeId} />
             </div>
             {descricao && <p className="mt-0.5 break-words text-sm text-slate-600">{descricao}</p>}

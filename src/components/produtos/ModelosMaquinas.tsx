@@ -39,12 +39,12 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
             className="group flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-surface p-2 text-left shadow-sm transition hover:border-brand hover:shadow-pop">
             <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
               {p.foto_caminho ? <img src={urlFotoProduto(p.foto_caminho)} alt="" loading="lazy" className="h-full w-full object-contain p-1" />
-                : <span className="text-[10px] text-slate-400">sem foto</span>}
+                : <span className="text-2xs text-slate-400">sem foto</span>}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="truncate text-sm font-bold text-fg" title={p.descricao}>{p.modelo?.trim() || p.descricao}</span>
               <span className="num text-sm font-semibold text-brand">{Number(p.preco_venda) > 0 ? brl(Number(p.preco_venda)) : "sem preço"}</span>
-              <span className="flex flex-wrap gap-1 text-[11px]">
+              <span className="flex flex-wrap gap-1 text-2xs">
                 <span className={`rounded-full px-1.5 py-0.5 font-semibold ${Number(p.estoque_atual) > 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
                   {Number(p.estoque_atual) > 0 ? `${Number(p.estoque_atual)} em estoque` : "sem estoque"}
                 </span>

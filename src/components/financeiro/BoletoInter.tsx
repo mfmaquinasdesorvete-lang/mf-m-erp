@@ -116,7 +116,7 @@ export function BoletoInterModal({ conta, boletos, onClose }: { conta: Conta; bo
                   <div>
                     <span className="mb-1 block text-xs font-semibold text-slate-600">Linha digitável</span>
                     <div className="flex items-start gap-2">
-                      <code className="num min-w-0 flex-1 break-all rounded-lg bg-slate-50 px-2 py-1.5 text-[13px] text-fg">{formatarLinha(atual.linha_digitavel)}</code>
+                      <code className="num min-w-0 flex-1 break-all rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-fg">{formatarLinha(atual.linha_digitavel)}</code>
                       <Button type="button" variant="secondary" onClick={() => copiar(atual.linha_digitavel!, "Linha digitável")}><Copy size={15} /> Copiar</Button>
                     </div>
                   </div>
@@ -125,7 +125,7 @@ export function BoletoInterModal({ conta, boletos, onClose }: { conta: Conta; bo
                   <div>
                     <span className="mb-1 block text-xs font-semibold text-slate-600">Pix copia e cola do boleto</span>
                     <div className="flex items-start gap-2">
-                      <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-50 px-2 py-1.5 text-[12px] text-fg" title={atual.pix_copia_cola}>{atual.pix_copia_cola}</code>
+                      <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-fg" title={atual.pix_copia_cola}>{atual.pix_copia_cola}</code>
                       <Button type="button" variant="secondary" onClick={() => copiar(atual.pix_copia_cola!, "Pix copia e cola")}><Copy size={15} /> Copiar</Button>
                     </div>
                   </div>
@@ -136,7 +136,7 @@ export function BoletoInterModal({ conta, boletos, onClose }: { conta: Conta; bo
                   </Button>
                   {conta.cliente?.whatsapp && atual.linha_digitavel && (
                     <a href={whatsappLink(conta.cliente.whatsapp, mensagem(atual))} target="_blank" rel="noreferrer"
-                      className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 sm:min-h-0"><MessageCircle size={15} /> Enviar no WhatsApp</a>
+                      className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 sm:min-h-0"><MessageCircle size={15} /> Enviar no WhatsApp</a>
                   )}
                   <Button type="button" variant="ghost" disabled={!!ocupado} onClick={() => atualizar(atual)}>
                     {ocupado === "atualizar" ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Atualizar

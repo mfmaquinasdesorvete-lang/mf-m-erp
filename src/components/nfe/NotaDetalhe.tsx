@@ -107,9 +107,9 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${sit.cor}`}><sit.Icone size={18} aria-hidden /> {sit.rotulo}</span>
-          {teste && <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800"><FlaskConical size={12} /> teste · sem valor fiscal</span>}
-          {n.finalidade === "devolucao" && <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={12} /> devolução {n.tipo_operacao === "entrada" ? "de venda (entrada)" : "de compra (saída)"}</span>}
-          {importada && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">importada do sistema anterior</span>}
+          {teste && <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800"><FlaskConical size={12} /> teste · sem valor fiscal</span>}
+          {n.finalidade === "devolucao" && <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={12} /> devolução {n.tipo_operacao === "entrada" ? "de venda (entrada)" : "de compra (saída)"}</span>}
+          {importada && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">importada do sistema anterior</span>}
           <ChipsMarcadores ids={n.marcadores} todos={marcadores} />
           {!leitura && <Button type="button" variant="ghost" onClick={() => setJanela("marcadores")}><Tags size={15} /> Marcadores</Button>}
         </div>

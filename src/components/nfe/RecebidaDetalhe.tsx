@@ -98,7 +98,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${sit.cor}`}><sit.Icone size={18} aria-hidden /> {sit.rotulo}</span>
-          {n.finalidade === "devolucao" && <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={12} /> devolução de cliente</span>}
+          {n.finalidade === "devolucao" && <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={12} /> devolução de cliente</span>}
           {n.estoque_lancado && <span className="text-xs font-semibold text-emerald-700">estoque lançado</span>}
           {n.conta_pagar_id && <span className="text-xs font-semibold text-emerald-700">contas a pagar lançadas</span>}
           <ChipsMarcadores ids={n.marcadores} todos={marcadores} />

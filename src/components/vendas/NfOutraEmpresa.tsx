@@ -24,7 +24,7 @@ export function SeloNfOutra({ p }: { p: Pick<Pedido, "nf_outra_numero" | "nf_out
   const rotulo = rotuloNfOutra(p);
   if (!rotulo) return null;
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-800"
+    <span className="inline-flex items-center gap-1 rounded-md bg-violet-100 px-1.5 py-0.5 text-2xs font-bold text-violet-800"
       title={`NF emitida por ${p.nf_outra_empresa ?? "outra empresa"}${p.nf_outra_data ? ` em ${dataBR(p.nf_outra_data)}` : ""} (fora do ERP)`}>
       <FileCheck2 size={12} aria-hidden /> {rotulo}
     </span>

@@ -131,7 +131,7 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
       <div className="flex items-start justify-between gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: `${clara}26`, color: tinta(escura) }} aria-hidden><Icon size={22} /></span>
         {d?.tags.length ? (
-          <span className="min-w-0 rounded-full border px-2.5 py-1 text-right text-[10.5px] font-bold uppercase leading-tight tracking-wider"
+          <span className="min-w-0 rounded-full border px-2.5 py-1 text-right text-2xs font-bold uppercase leading-tight tracking-wider"
             style={{ color: tinta(escura), borderColor: `${clara}66`, background: `${clara}14` }}>{d.tags.join(" · ")}</span>
         ) : null}
       </div>
@@ -139,7 +139,7 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
         {pode ? <Link to={item.to} className="hover:underline">{item.label}</Link> : <span className="inline-flex items-center gap-1.5">{item.label} <Lock size={14} className="text-slate-400" aria-label="sem acesso no seu perfil" /></span>}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{SOBRE_TELAS[item.to] ?? "—"}</p>
-      {d?.destaque && <p className="mt-3 text-[13px] font-semibold" style={{ color: tinta(escura) }}>{d.destaque}</p>}
+      {d?.destaque && <p className="mt-3 text-xs font-semibold" style={{ color: tinta(escura) }}>{d.destaque}</p>}
 
       {aberto && d && (
         <div id={idPartes} className="mt-4 border-t border-slate-200 pt-3">
@@ -148,7 +148,7 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
             {d.partes.map((t) => {
               const k = t.indexOf(":");
               return (
-                <li key={t} className="flex gap-2 text-[13px] leading-snug text-slate-700">
+                <li key={t} className="flex gap-2 text-xs leading-snug text-slate-700">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: clara }} aria-hidden />
                   <span className="min-w-0">{k > 0 && k < 60 ? <><b className="text-fg">{t.slice(0, k)}:</b>{t.slice(k + 1)}</> : t}</span>
                 </li>

@@ -23,7 +23,7 @@ const nome = (c: ContaAprovar) => c.fornecedor?.nome || c.descricao;
 const soma = (l: { valor: number }[]) => l.reduce((s, c) => s + Number(c.valor), 0);
 
 /** Botão verde grande (Aprovar) e vermelho de contorno (Não); "!" para valer também dentro do rodapé compacto do quadro. */
-const BTN = "inline-flex !min-h-[40px] items-center justify-center gap-1.5 rounded-lg !px-3.5 !py-2 !text-sm font-bold transition disabled:opacity-50";
+const BTN = "inline-flex !min-h-[40px] items-center justify-center gap-1.5 rounded-lg !px-4 !py-2 !text-sm font-bold transition disabled:opacity-50";
 
 export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c: T) => TipoPagar) {
   const eu = usePerfil();
@@ -102,11 +102,11 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
   function faixa(onVer: () => void): ReactNode {
     if (!minhaVez.length) return null;
     return (
-      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3.5 text-white shadow-pop sm:p-4" style={{ background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 50%,#4c1d95 100%)" }}>
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-4 text-white shadow-pop sm:p-4" style={{ background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 50%,#4c1d95 100%)" }}>
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20"><ClipboardCheck size={22} aria-hidden /></span>
         <span className="mr-auto min-w-0">
-          <span className="block text-base font-extrabold leading-tight">Sua vez de aprovar: {minhaVez.length} {pl(minhaVez.length, "conta", "contas")} · <span className="num whitespace-nowrap">{brl(soma(minhaVez))}</span></span>
-          <span className="mt-0.5 block text-[13px] leading-snug text-white/85">Em cada conta: <b>Aprovar</b> libera para pagar; <b>Não</b> devolve para corrigir ou cancela, com o motivo.</span>
+          <span className="block text-base font-bold leading-tight">Sua vez de aprovar: {minhaVez.length} {pl(minhaVez.length, "conta", "contas")} · <span className="num whitespace-nowrap">{brl(soma(minhaVez))}</span></span>
+          <span className="mt-0.5 block text-xs leading-snug text-white/85">Em cada conta: <b>Aprovar</b> libera para pagar; <b>Não</b> devolve para corrigir ou cancela, com o motivo.</span>
         </span>
         <span className="flex w-full flex-wrap gap-2 sm:w-auto">
           <button type="button" onClick={onVer} className="inline-flex min-h-[42px] flex-1 items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-[#4c1d95] hover:bg-white/90 sm:flex-none">Ver uma a uma</button>

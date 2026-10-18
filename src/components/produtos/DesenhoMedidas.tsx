@@ -45,7 +45,7 @@ export function DesenhoMedidas({ largura, altura, profundidade, peso, embalagem,
         <text x={x0 + w + dx + 8} y={y0 - dy + 12} fill={kg ? "#fde68a" : "#fca5a5"} fontSize="12" fontWeight="800">{kg ? `${fmt(kg, 3)} kg` : "peso ?"}</text>
       </svg>
       {!compacto && (
-        <figcaption className="px-1 pt-1 text-center text-[11px] text-sky-100/90">
+        <figcaption className="px-1 pt-1 text-center text-2xs text-sky-100/90">
           {embalagem ? `Embalagem: ${embalagem}` : "Sem embalagem padrão"}{L && A && P ? ` · ${fmt((L * A * P) / 1_000_000, 4)} m³` : ""}
           {falta.length > 0 && <span className="block font-semibold text-amber-300">Falta {falta.join(", ")} (o frete do marketplace precisa)</span>}
         </figcaption>

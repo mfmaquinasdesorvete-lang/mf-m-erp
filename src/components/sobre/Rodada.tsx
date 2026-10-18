@@ -142,7 +142,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
               <li key={f.pergunta} className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-sm font-bold text-fg">{f.pergunta}</span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${f.quem === "contador" ? "bg-purple-100 text-purple-800" : "bg-sky-100 text-sky-800"}`}>{f.quem === "contador" ? "Contador" : "Você"}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${f.quem === "contador" ? "bg-purple-100 text-purple-800" : "bg-sky-100 text-sky-800"}`}>{f.quem === "contador" ? "Contador" : "Você"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-slate-600"><Lock size={12} aria-hidden /> Segura: {f.bloqueia}</div>
                 <button type="button" onClick={() => onPendencia({ titulo: f.pergunta.slice(0, 160), detalhe: `Segura: ${f.bloqueia}`, responsavel: f.quem, prioridade: "alta", area: "geral" })}
@@ -207,9 +207,9 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
         <ul className="space-y-2">
           {suposicoes.map((s) => (
             <li key={s.texto} className={`grid gap-2 rounded-xl border border-l-4 border-slate-200 bg-surface p-3 md:grid-cols-[2fr_1.4fr_1.4fr] ${RISCO[s.risco].borda}`}>
-              <div className="min-w-0"><span className={`mb-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${RISCO[s.risco].chip}`}>{RISCO[s.risco].nome}</span><div className="text-sm font-semibold text-fg">{s.texto}</div></div>
-              <div className="min-w-0 text-sm"><div className="text-[11px] font-bold uppercase text-red-700">Se estiver errada</div><div className="text-slate-700">{s.seErrada}</div></div>
-              <div className="min-w-0 text-sm"><div className="text-[11px] font-bold uppercase text-emerald-700">Como conferir</div><div className="text-slate-700">{s.conferir}</div>
+              <div className="min-w-0"><span className={`mb-1 inline-block rounded-full px-2 py-0.5 text-2xs font-semibold ring-1 ring-inset ${RISCO[s.risco].chip}`}>{RISCO[s.risco].nome}</span><div className="text-sm font-semibold text-fg">{s.texto}</div></div>
+              <div className="min-w-0 text-sm"><div className="text-2xs font-bold uppercase text-red-700">Se estiver errada</div><div className="text-slate-700">{s.seErrada}</div></div>
+              <div className="min-w-0 text-sm"><div className="text-2xs font-bold uppercase text-emerald-700">Como conferir</div><div className="text-slate-700">{s.conferir}</div>
                 {s.tela && <Link to={s.tela} className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">Conferir agora <ArrowRight size={14} aria-hidden /></Link>}</div>
             </li>
           ))}
@@ -230,11 +230,11 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
                 <span className="rounded-lg bg-sky-100 px-2.5 py-1 text-sky-800">{c.a}</span>
                 <span className="text-slate-400" aria-label="contra">⟷</span>
                 <span className="rounded-lg bg-orange-100 px-2.5 py-1 text-orange-800">{c.b}</span>
-                {c.decidido && <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">resolvido</span>}
+                {c.decidido && <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800">resolvido</span>}
               </div>
-              {c.explica && <p className="text-[13.5px] leading-snug text-slate-700"><b className="text-fg">O que se chocava:</b> {c.explica}</p>}
-              <div className="flex gap-2 text-[13.5px] leading-snug text-fg"><ArrowRight size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span><b>O que escolhemos:</b> {c.escolha}</span></div>
-              {c.paraVoce && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] leading-snug text-emerald-900"><b>Para você:</b> {c.paraVoce}</p>}
+              {c.explica && <p className="text-xs leading-snug text-slate-700"><b className="text-fg">O que se chocava:</b> {c.explica}</p>}
+              <div className="flex gap-2 text-xs leading-snug text-fg"><ArrowRight size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span><b>O que escolhemos:</b> {c.escolha}</span></div>
+              {c.paraVoce && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs leading-snug text-emerald-900"><b>Para você:</b> {c.paraVoce}</p>}
               {c.tela && <Link to={c.tela} className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">Ver na tela <ArrowRight size={14} aria-hidden /></Link>}
             </Card>
           ))}

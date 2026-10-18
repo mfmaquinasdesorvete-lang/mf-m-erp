@@ -375,7 +375,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
       aria-label={`Quantidade a comprar de ${l.produto.descricao}`} onChange={(e) => setQtd({ ...qtd, [l.produto.id]: e.target.value })} />
   ) : <span className="num font-semibold">{l.necessidade ? fmt(l.necessidade) : "—"}</span>);
   const selos = (l: LinhaNecessidade) => (
-    <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] font-semibold">
+    <span className="mt-0.5 flex flex-wrap items-center gap-1 text-2xs font-semibold">
       {l.motivo && <span className={`inline-flex items-center gap-1 ${l.critico ? "text-red-600" : "text-amber-700"}`}>{l.critico && <AlertTriangle size={12} aria-hidden />}{MOTIVO[l.motivo]}{l.critico && l.motivo !== "zerado" && l.motivo !== "negativo" ? " · acaba antes de chegar" : ""}</span>}
       {l.acao === "produzir" && <span className="rounded-full bg-purple-100 px-1.5 text-purple-800">fazer OP</span>}
       {l.acao === "nao_compra" && <span className="rounded-full bg-slate-100 px-1.5 text-slate-600">fora de linha</span>}
@@ -389,9 +389,9 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
   const corVirtual = (l: LinhaNecessidade) => (l.virtual < 0 ? "text-red-600" : l.minimo > 0 && l.virtual < l.minimo ? "text-amber-700" : "text-fg");
   const corCobertura = (l: LinhaNecessidade) => (l.coberturaDias !== null && l.coberturaDias < l.prazo ? "font-semibold text-red-600" : "");
   const notaOutras = (l: LinhaNecessidade) => (l.emOutras > 0 && l.necessidade > 0
-    ? <span className="block text-[11px] text-sky-700">outra unidade tem {fmt(l.emOutras)}: dá para transferir</span> : null);
+    ? <span className="block text-2xs text-sky-700">outra unidade tem {fmt(l.emOutras)}: dá para transferir</span> : null);
   const fornecedorTexto = (l: LinhaNecessidade) => (l.fornecedor_id
-    ? <>{nomeForn(l.fornecedor_id)}{l.fornecedorVinculo && <span className="block text-[11px] text-slate-500">ligado (sem padrão)</span>}</>
+    ? <>{nomeForn(l.fornecedor_id)}{l.fornecedorVinculo && <span className="block text-2xs text-slate-500">ligado (sem padrão)</span>}</>
     : <span className="text-amber-700">sem fornecedor</span>);
 
   const lista = visiveis.slice(0, limite);
@@ -548,18 +548,18 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
                   <td className="td whitespace-nowrap text-xs text-slate-600">{p.codigo_barras || "—"}</td>
                   <td className="td max-w-[12rem] text-xs">{fornecedorTexto(l)}</td>
                   <td className="td text-xs text-slate-600">{p.unidade}</td>
-                  <td className="td num whitespace-nowrap text-right">{brl(l.custo)}<span className="block text-[11px] text-slate-500">{l.origemCusto === "compras" ? "compras 12 meses" : "cadastro"}</span></td>
+                  <td className="td num whitespace-nowrap text-right">{brl(l.custo)}<span className="block text-2xs text-slate-500">{l.origemCusto === "compras" ? "compras 12 meses" : "cadastro"}</span></td>
                   <td className="td num text-right">{botaoNumero(l, l.entradas, "text-emerald-700", "entradas")}
-                    {l.emCotacao > 0 && <button type="button" onClick={() => setDetalhe(l)} className="block w-full text-right text-[11px] text-purple-700 hover:underline">+{fmt(l.emCotacao)} em cotação</button>}</td>
+                    {l.emCotacao > 0 && <button type="button" onClick={() => setDetalhe(l)} className="block w-full text-right text-2xs text-purple-700 hover:underline">+{fmt(l.emCotacao)} em cotação</button>}</td>
                   <td className="td num text-right">{botaoNumero(l, l.saidasPrevistas, "text-sky-700", "saídas")}</td>
                   <td className={`td num text-right ${l.fisico < 0 ? "font-semibold text-red-600" : ""}`}>{fmt(l.fisico)}</td>
                   <td className={`td num text-right font-bold ${corVirtual(l)}`}>{fmt(l.virtual)}</td>
                   <td className="td text-right">{campoMinMax(l, "estoque_minimo")}</td>
                   <td className="td text-right">{campoMinMax(l, "estoque_maximo")}</td>
                   <td className="td num text-right">{fmt(l.saidasPeriodo)}</td>
-                  <td className="td num whitespace-nowrap text-right">{fmt(l.consumoMes, 1)}/mês<span className="block text-[11px] text-slate-500">{fmt(l.consumoDia)}/dia</span></td>
+                  <td className="td num whitespace-nowrap text-right">{fmt(l.consumoMes, 1)}/mês<span className="block text-2xs text-slate-500">{fmt(l.consumoDia)}/dia</span></td>
                   <td className={`td num whitespace-nowrap text-right ${corCobertura(l)}`}>{l.coberturaDias === null ? "—" : `${l.coberturaDias} ${pl(l.coberturaDias, "dia", "dias")}`}</td>
-                  <td className="td num whitespace-nowrap text-right">{l.prazo} d{l.prazoPadrao && <span className="block text-[11px] text-slate-500">padrão</span>}</td>
+                  <td className="td num whitespace-nowrap text-right">{l.prazo} d{l.prazoPadrao && <span className="block text-2xs text-slate-500">padrão</span>}</td>
                   <td className="td text-right">{campoQtd(l)}{notaOutras(l)}</td>
                   <td className="td num whitespace-nowrap text-right font-semibold">{quant(l) && l.acao === "comprar" ? brl(quant(l) * l.custo) : "—"}</td>
                 </tr>
@@ -579,7 +579,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
             {lista.map((l) => {
               const p = l.produto;
               const item = (rotulo: string, valor: ReactNode, cor = "") => (
-                <div className="min-w-0"><dt className="text-[11px] text-slate-500">{rotulo}</dt><dd className={`num font-semibold ${cor}`}>{valor}</dd></div>
+                <div className="min-w-0"><dt className="text-2xs text-slate-500">{rotulo}</dt><dd className={`num font-semibold ${cor}`}>{valor}</dd></div>
               );
               return (
                 <li key={p.id} className={`relative rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(p.id) ? "border-brand bg-brand-light/40" : l.critico ? "border-slate-200 border-l-red-500" : "border-slate-200 border-l-modulo"}`}>

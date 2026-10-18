@@ -171,7 +171,7 @@ export function EditarMetas({ mes, unidadeId, referencia, onClose }: {
 function Lista({ children }: { children: ReactNode }) {
   return (
     <div>
-      <div className="hidden gap-2 border-b border-slate-100 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[minmax(0,1.5fr)_8.5rem_5.5rem_6rem_minmax(0,1.3fr)]">
+      <div className="hidden gap-2 border-b border-slate-100 pb-1.5 pt-1 text-2xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[minmax(0,1.5fr)_8.5rem_5.5rem_6rem_minmax(0,1.3fr)]">
         <span>Quem</span><span>Meta (R$)</span><span>Máquinas</span><span>Margem mín. %</span><span>Observação</span>
       </div>
       <ul className="divide-y divide-slate-100">{children}</ul>
@@ -183,7 +183,7 @@ function LinhaMeta({ alvo, campos, alterada, destaque, referencia, mesAnterior, 
   alvo: Alvo; campos: Campos; alterada: boolean; destaque: boolean; referencia?: number; mesAnterior: string;
   onChange: (campo: keyof Campos, v: string) => void;
 }) {
-  const rotulo = (t: string) => <span className="mb-1 block text-[11px] font-semibold text-slate-500 md:sr-only">{t}</span>;
+  const rotulo = (t: string) => <span className="mb-1 block text-2xs font-semibold text-slate-500 md:sr-only">{t}</span>;
   const numero = (campo: keyof Campos, max: number) => (e: { target: { value: string } }) => onChange(campo, e.target.value.replace(/[^\d,.-]/g, "").slice(0, max));
   return (
     <li className={`grid grid-cols-4 gap-2 py-2.5 md:grid-cols-[minmax(0,1.5fr)_8.5rem_5.5rem_6rem_minmax(0,1.3fr)] md:items-center ${alterada ? "bg-amber-50/60" : ""}`}>

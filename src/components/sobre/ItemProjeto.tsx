@@ -66,7 +66,7 @@ const COR_SITUACAO: Partial<Record<SituacaoItem, string>> = {
   avaliando: "bg-blue-100 text-blue-800", planejada: "bg-violet-100 text-violet-800", feita: "bg-emerald-100 text-emerald-800",
   descartada: "bg-slate-100 text-slate-500 line-through",
 };
-const chip = "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold";
+const chip = "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-bold";
 
 export const ChipPrioridade = ({ p, rotulo = "" }: { p: Prioridade; rotulo?: string }) =>
   <span className={`${chip} ${COR_PRIORIDADE[p]}`} title={`${rotulo || "Prioridade"}: ${ROTULO_PRIORIDADE[p].toLowerCase()}`}>{rotulo ? `${rotulo} ` : ""}{ROTULO_PRIORIDADE[p].toLowerCase()}</span>;

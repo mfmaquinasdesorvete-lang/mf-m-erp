@@ -133,7 +133,7 @@ export function ComoUsar({ time, backlog, aberto, onAberto, irPara }: {
                 <ListPlus size={16} aria-hidden /> Pôr {faltam.length === ex.itens.length ? "todos" : `os ${faltam.length} que faltam`} no backlog
               </Button>
             )}
-            <p className="mt-2 text-[11px] text-slate-500">Depois é só mudar o texto e os pontos para o jeito da equipe.</p>
+            <p className="mt-2 text-2xs text-slate-500">Depois é só mudar o texto e os pontos para o jeito da equipe.</p>
           </div>
         </div>
       )}

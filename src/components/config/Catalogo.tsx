@@ -38,7 +38,7 @@ export function ConfigCatalogo() {
         <Indicador rotulo="Sem foto" valor={semFoto} icon={ImageOff} cor={semFoto ? "laranja" : "neutro"} sub="dos marcados" />
       </div>
       <div className="mb-5 flex flex-wrap gap-2 text-sm">
-        <Link to="/loja" className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 font-semibold text-brand-fg"><Store size={15} /> Abrir a vitrine</Link>
+        <Link to="/loja" className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 font-semibold text-brand-fg"><Store size={15} /> Abrir a vitrine</Link>
         <Link to="/produtos/pecas" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50"><PackageSearch size={15} /> Peças e acessórios</Link>
         <Link to="/produtos/maquinas" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50"><PackageSearch size={15} /> Máquinas</Link>
         <span className="self-center text-xs text-slate-500">No cadastro do produto: foto, preço e <b>Mostrar no catálogo</b>.</span>
@@ -54,7 +54,7 @@ export function ConfigCatalogo() {
           <div className="mb-3 flex flex-wrap gap-2">
             {[["todos", "Todos"], ...tipos.map((t) => [t, TIPO[t]])].map(([v, r]) => (
               <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 text-slate-600"}`}>{r}</button>
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 text-slate-600"}`}>{r}</button>
             ))}
           </div>
         )}

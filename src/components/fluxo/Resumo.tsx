@@ -19,17 +19,17 @@ export function BlocosEtapas({ resumo, etapa, onEtapa }: {
             title={`${c.titulo}: ${c.frase}${r.alertas ? ` ${r.alertas} pedem ação agora.` : ""}`}
             className={`relative flex min-w-0 flex-col rounded-xl border bg-surface p-2 text-left shadow-card transition hover:-translate-y-0.5 hover:border-brand/60 sm:p-3 ${
               ativo ? "border-brand ring-2 ring-brand/40" : "border-slate-200"}`}>
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold leading-tight text-slate-600 sm:pr-5 sm:text-xs">
+            <span className="flex items-center gap-1.5 text-2xs font-semibold leading-tight text-slate-600 sm:pr-5 sm:text-xs">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.cor }} />
               <span className="truncate">{c.curto}</span>
             </span>
-            <span className={`num mt-1.5 text-2xl font-extrabold leading-none ${r.qtd ? "text-fg" : "text-slate-400"}`}>{r.qtd}</span>
-            <span className="num mt-1 truncate text-[11px] text-slate-500">{brl(r.valor)}</span>
+            <span className={`num mt-1.5 text-2xl font-bold leading-none ${r.qtd ? "text-fg" : "text-slate-400"}`}>{r.qtd}</span>
+            <span className="num mt-1 truncate text-2xs text-slate-500">{brl(r.valor)}</span>
             {r.alertas > 0 && (
               <>
-                <span className={`num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-[11px] font-bold text-white ring-2 ring-[rgb(var(--canvas))] sm:right-2 sm:top-2 sm:ring-0 ${r.nivel === 2 ? "bg-solido-vermelho" : "bg-solido-ambar"}`}
+                <span className={`num absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-2xs font-bold text-white ring-2 ring-[rgb(var(--canvas))] sm:right-2 sm:top-2 sm:ring-0 ${r.nivel === 2 ? "bg-solido-vermelho" : "bg-solido-ambar"}`}
                   aria-label={`${r.alertas} pedem ação`}>{r.alertas}</span>
-                <span className={`mt-1.5 hidden text-[11px] font-bold lg:block ${r.nivel === 2 ? "text-red-600" : "text-amber-700"}`}>
+                <span className={`mt-1.5 hidden text-2xs font-bold lg:block ${r.nivel === 2 ? "text-red-600" : "text-amber-700"}`}>
                   {r.alertas === 1 ? "1 pede ação" : `${r.alertas} pedem ação`}
                 </span>
               </>

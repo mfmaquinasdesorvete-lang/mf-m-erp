@@ -384,7 +384,7 @@ function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: str
         <ul className="divide-y divide-slate-100">
           {lista.map((c) => (
             <li key={`${c.tipo}-${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${c.tipo === "pagar" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{c.tipo === "pagar" ? "Pagamento" : "Recebimento"}</span>
+              <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${c.tipo === "pagar" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{c.tipo === "pagar" ? "Pagamento" : "Recebimento"}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-fg">{c.terceiro || c.descricao}</span>
                 <span className="block truncate text-xs text-slate-500">{c.terceiro ? `${c.descricao} · ` : ""}{c.categoria ?? "sem categoria"} · em {dataBR(c.data_pagamento)}</span>

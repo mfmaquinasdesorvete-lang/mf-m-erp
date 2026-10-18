@@ -70,15 +70,15 @@ function Burndown({ time, sprint, itens, hoje }: { time: TimeScrum; sprint: Spri
         {[0, 0.5, 1].map((f) => (
           <g key={f}>
             <line x1={E} x2={W - D} y1={y(max * f)} y2={y(max * f)} className="stroke-slate-200" strokeWidth={1} />
-            <text x={E - 6} y={y(max * f) + 4} textAnchor="end" className="fill-slate-500 text-[11px]">{Math.round(max * f)}</text>
+            <text x={E - 6} y={y(max * f) + 4} textAnchor="end" className="fill-slate-500 text-2xs">{Math.round(max * f)}</text>
           </g>
         ))}
-        {marcas.map((i) => <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-500 text-[11px]">{diaMes(b.dias[i]!)}</text>)}
+        {marcas.map((i) => <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-500 text-2xs">{diaMes(b.dias[i]!)}</text>)}
         <polyline points={b.ideal.map((v, i) => `${x(i)},${y(v)}`).join(" ")} fill="none" className="stroke-slate-400" strokeWidth={2} strokeDasharray="6 5" />
         {reais.length > 0 && <polyline points={reais.map((p) => p.join(",")).join(" ")} fill="none" stroke={time.cor} strokeWidth={3} strokeLinejoin="round" />}
         {reais.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r={3.5} fill={time.cor} />)}
       </svg>
-      <p className="mt-1 flex gap-4 text-[11px] text-slate-500"><span>╌ ideal</span><span style={{ color: time.cor }}>━ real</span><span>Abaixo da linha ideal = adiantada.</span></p>
+      <p className="mt-1 flex gap-4 text-2xs text-slate-500"><span>╌ ideal</span><span style={{ color: time.cor }}>━ real</span><span>Abaixo da linha ideal = adiantada.</span></p>
     </Card>
   );
 }
@@ -99,20 +99,20 @@ function Velocidade({ time, historico, media }: { time: TimeScrum; historico: Sp
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`Velocidade das últimas ${historico.length} sprints`}>
         <line x1={E} x2={W - 12} y1={y(0)} y2={y(0)} className="stroke-slate-300" />
-        <text x={E - 6} y={y(max) + 4} textAnchor="end" className="fill-slate-500 text-[11px]">{max}</text>
+        <text x={E - 6} y={y(max) + 4} textAnchor="end" className="fill-slate-500 text-2xs">{max}</text>
         {historico.map((s, i) => {
           const x0 = E + i * largura + largura * 0.15, w = largura * 0.33;
           return (
             <g key={s.id}>
               <rect x={x0} y={y(s.pontos_planejados ?? 0)} width={w} height={y(0) - y(s.pontos_planejados ?? 0)} rx={3} className="fill-slate-300" />
               <rect x={x0 + w + 2} y={y(s.pontos_feitos ?? 0)} width={w} height={y(0) - y(s.pontos_feitos ?? 0)} rx={3} fill={time.cor} />
-              <text x={x0 + w} y={H - 8} textAnchor="middle" className="fill-slate-500 text-[11px]">S{s.numero}</text>
+              <text x={x0 + w} y={H - 8} textAnchor="middle" className="fill-slate-500 text-2xs">S{s.numero}</text>
             </g>
           );
         })}
         {media != null && <line x1={E} x2={W - 12} y1={y(media)} y2={y(media)} stroke={time.cor} strokeDasharray="4 4" strokeWidth={1.5} />}
       </svg>
-      <p className="mt-1 flex gap-4 text-[11px] text-slate-500"><span>▮ planejado</span><span style={{ color: time.cor }}>▮ feito</span><span>╌ média</span></p>
+      <p className="mt-1 flex gap-4 text-2xs text-slate-500"><span>▮ planejado</span><span style={{ color: time.cor }}>▮ feito</span><span>╌ média</span></p>
     </Card>
   );
 }

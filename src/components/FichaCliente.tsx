@@ -592,9 +592,9 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
     <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 [overflow-wrap:anywhere]">
       <b className="text-fg">{t.nome}</b> <SeloDrFrost t={t} />
       <span className="text-xs text-slate-500">{t.tipo === "interno" ? "da equipe" : t.drfrost ? "parceiro" : "contato"}{t.municipio ? ` · ${t.municipio}/${t.uf ?? ""}` : ""}</span>
-      {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
-      {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">na cidade</span>
-        : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">no estado</span> : null}
+      {t.atendimentos > 0 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-2xs font-semibold text-violet-800">já atendeu {t.atendimentos}×{t.ultimo ? ` · ${dataBR(t.ultimo)}` : ""}</span>}
+      {t.na_cidade ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-800">na cidade</span>
+        : t.no_estado ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-2xs font-semibold text-sky-800">no estado</span> : null}
       <span className="ml-auto flex items-center gap-1.5">
         {acao}
         {(t.whatsapp || t.telefone) && (
@@ -619,7 +619,7 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
             {(ligado || naCidade.length > 0) ? (
               <ul className="space-y-1.5">
                 {ligado && linha(ligado, <>
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">técnico do cliente</span>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800">técnico do cliente</span>
                   {podeLigar && <button type="button" disabled={gravando} onClick={() => ligar(null)} className="text-xs text-slate-500 underline hover:text-red-700 disabled:opacity-50">tirar</button>}
                 </>)}
                 {naCidade.map((t) => linha(t, botaoLigar(t)))}

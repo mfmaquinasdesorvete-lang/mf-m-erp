@@ -90,7 +90,7 @@ export function useUnidade() {
 export function EtiquetaUnidade({ id }: { id: string | null | undefined }) {
   const { codigo, unidades } = useUnidade();
   if (unidades.length < 2 || !id) return null;
-  return <span className="ml-1.5 inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 align-middle text-[11px] font-bold tracking-wide text-slate-600">{codigo(id)}</span>;
+  return <span className="ml-1.5 inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 align-middle text-2xs font-bold tracking-wide text-slate-600">{codigo(id)}</span>;
 }
 
 /** Campo "Unidade" para formulários de criação. */

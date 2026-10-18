@@ -363,7 +363,7 @@ export default function Pessoal() {
                     className={`flex min-w-0 flex-col rounded-2xl border p-3 text-left transition hover:shadow-card ${g.destaque ? "col-span-2 border-red-300 bg-red-50 sm:col-span-3 xl:col-span-4" : g.aviso ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-70"}`}>
                     <span className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-2">
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white" style={{ background: cor }}><Icone size={16} aria-hidden /></span>
-                      <span className={`line-clamp-2 min-w-0 text-sm font-bold leading-tight ${g.destaque ? "text-red-800" : "text-fg"}`}>{g.nome}{g.destaque && <span className="ml-1 rounded bg-red-600 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-white">muito importante</span>}</span>
+                      <span className={`line-clamp-2 min-w-0 text-sm font-bold leading-tight ${g.destaque ? "text-red-800" : "text-fg"}`}>{g.nome}{g.destaque && <span className="ml-1 rounded bg-red-600 px-1.5 py-0.5 align-middle text-2xs font-bold uppercase text-white">muito importante</span>}</span>
                     </span>
                     {ambos ? (
                       <span className="mt-2 flex flex-col text-sm font-bold">
@@ -371,20 +371,20 @@ export default function Pessoal() {
                       </span>
                     ) : <span className={`num mt-2 text-lg font-bold ${g.destaque ? "text-red-700" : g.sentido === "entrada" || (g.sentido === "ambos" && g.entrou > 0) ? "text-emerald-700" : "text-fg"}`}>{brl(g.sentido === "ambos" ? g.saiu || g.entrou : g.total)}</span>}
                     {g.destaque && g.doze != null && <span className="text-xs font-semibold text-red-700">{brl(g.doze)} em 12 meses</span>}
-                    <span className="flex flex-wrap gap-x-2 text-[11px] text-slate-500">
+                    <span className="flex flex-wrap gap-x-2 text-2xs text-slate-500">
                       <span>{g.qtd} {pl(g.qtd, "lançamento", "lançamentos")}</span>
                       {v != null ? <span className={v > 0 ? "font-semibold text-red-600" : v < 0 ? "font-semibold text-emerald-700" : ""} title={comparado(g.total, g.anterior)}>{v > 0 ? "▲" : v < 0 ? "▼" : "="} {Math.abs(v)}%</span>
                         : g.total > 0 && <span>novo no período</span>}
                     </span>
-                    {g.atraso > 0 && <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-red-700"><AlertTriangle size={12} aria-hidden /> {brl(g.atraso)} de multa e juros (pagas com atraso)</span>}
+                    {g.atraso > 0 && <span className="mt-1 inline-flex items-center gap-1 text-2xs font-bold text-red-700"><AlertTriangle size={12} aria-hidden /> {brl(g.atraso)} de multa e juros (pagas com atraso)</span>}
                     {meta.map((m) => (
-                      <span key={m.regra.id} className="mt-1 block text-[11px] text-slate-600">
+                      <span key={m.regra.id} className="mt-1 block text-2xs text-slate-600">
                         {m.regra.rotulo ?? "Meta"}: {brl(m.pago)} de {brl(m.regra.meta_total)}{m.regra.parcelas ? ` · ${m.vezes} de ${m.regra.parcelas}` : ""}
                         <span className="mt-0.5 block h-1.5 rounded-full bg-slate-200"><span className="block h-1.5 rounded-full bg-violet-600" style={{ width: `${m.pct}%` }} /></span>
                       </span>
                     ))}
-                    {g.observacoes.map((o) => <span key={o} className="mt-1 text-[11px] italic text-slate-600">{o}</span>)}
-                    {g.aviso && <span className="mt-1 text-[11px] font-semibold text-amber-800">Mostrar ao contador</span>}
+                    {g.observacoes.map((o) => <span key={o} className="mt-1 text-2xs italic text-slate-600">{o}</span>)}
+                    {g.aviso && <span className="mt-1 text-2xs font-semibold text-amber-800">Mostrar ao contador</span>}
                   </button>
                 );
               })}
@@ -412,7 +412,7 @@ export default function Pessoal() {
                   <div className="num mt-3 text-2xl font-bold">{brl(c.tipo === "cartao" ? -saldo : saldo)}</div>
                   <div className="text-xs opacity-80">{c.tipo === "cartao" ? `fatura em aberto${c.limite ? ` · limite ${brl(c.limite)}` : ""}` : "saldo de hoje"}</div>
                   <div className="mt-2 flex flex-wrap gap-x-3 text-xs"><span>▲ {brl(r.entrou)}</span><span>▼ {brl(r.saiu)}</span><span className="opacity-80">no período</span></div>
-                  <div className="mt-1 text-[11px] opacity-80">{ultimo ? `último lançamento em ${dataBR(ultimo)}` : "sem lançamentos"} · saldo inicial em {dataBR(c.saldo_inicial_em)}</div>
+                  <div className="mt-1 text-2xs opacity-80">{ultimo ? `último lançamento em ${dataBR(ultimo)}` : "sem lançamentos"} · saldo inicial em {dataBR(c.saldo_inicial_em)}</div>
                 </button>
                 <div className="flex border-t border-white/20 text-xs font-semibold">
                   <button type="button" className="flex-1 py-2 hover:bg-white/10" onClick={() => setEditLanc({ conta_id: c.id, data: hoje(), situacao: "realizado" })}>Lançar</button>
@@ -460,7 +460,7 @@ export default function Pessoal() {
                         <button type="button" onClick={() => setCategoria(categoria === c.nome ? "" : c.nome)} aria-pressed={categoria === c.nome} className="block w-full text-left">
                           <div className="flex justify-between gap-2 text-sm"><span className="font-semibold text-fg">{c.nome}</span><span className="num">{brl(c.valor)}</span></div>
                           <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full" style={{ width: `${Math.max(2, (c.valor / Math.max(1, resumo.categorias[0].valor)) * 100)}%`, background: CORES_BARRA[i % CORES_BARRA.length] }} /></div>
-                          <div className="mt-0.5 flex justify-between text-[11px] text-slate-500">
+                          <div className="mt-0.5 flex justify-between text-2xs text-slate-500">
                             <span>{Math.round((c.valor / Math.max(1, totalCat)) * 100)}% do que saiu</span>
                             <span>{v == null ? (ant === 0 ? "novo no período" : "") : `${v > 0 ? "▲" : v < 0 ? "▼" : ""} ${Math.abs(v)}% do anterior`}</span>
                           </div>

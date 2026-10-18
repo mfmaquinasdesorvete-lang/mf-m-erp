@@ -8,7 +8,7 @@ export function SeloGolpe({ f, className = "" }: { f?: ComBloqueio | null; class
   if (!f?.bloqueado) return null;
   return (
     <span title={f.bloqueio_motivo ?? "Fornecedor bloqueado: não pagar"}
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-solido-vermelho px-1.5 py-0.5 text-[11px] font-bold text-white ${className}`}>
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-solido-vermelho px-1.5 py-0.5 text-2xs font-bold text-white ${className}`}>
       <Ban size={11} aria-hidden /> Golpe · não pagar
     </span>
   );

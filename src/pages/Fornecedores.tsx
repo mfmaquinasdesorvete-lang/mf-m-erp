@@ -202,7 +202,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           rowActions={(r) => digitos(r.cnpj).length === 14 && (
             <button type="button" onClick={() => setReceita(r)}
               title={r.receita_em ? "O que a Receita diz deste fornecedor (e os dois endereços, se forem diferentes)" : "Conferir este CNPJ na Receita agora"}
-              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[13px] font-semibold transition ${r.receita_em
+              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold transition ${r.receita_em
                 ? "bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-sm hover:brightness-110"
                 : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
               <Building2 size={15} /> Receita

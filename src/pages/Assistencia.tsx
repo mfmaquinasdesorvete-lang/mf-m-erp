@@ -145,7 +145,7 @@ export default function Assistencia() {
             <td className="td">{o.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td">{o.equipamento}{o.numero_serie && <div className="text-xs text-slate-500">Série {o.numero_serie}</div>}</td>
             <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}
-              {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">faturada ✓</span>}</div></td>
+              {o.faturada_em && <span title="NFS-e autorizada: OS faturada" className="whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-800">faturada ✓</span>}</div></td>
             <td className={`td num ${o.previsao && o.previsao < hoje() && !["concluida", "entregue", "cancelada"].includes(o.status) ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
             <td className="td num text-right">{o.em_garantia ? <span className="text-slate-500">garantia</span> : brl(o.valor_total)}</td>
             <td className="td" onClick={(e) => e.stopPropagation()}>
@@ -388,7 +388,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                   {maquinaNaGarantia ? <ShieldCheck size={20} /> : <ShieldOff size={20} />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-bold leading-snug text-fg sm:text-base">
+                  <div className="text-sm font-bold leading-snug text-fg sm:text-base">
                     {o.equipamento}{o.numero_serie && <span className="font-medium text-slate-500"> · série {o.numero_serie}</span>}
                   </div>
                   <div className="mt-1"><Badge value={equip ? garantia : maquinaNaGarantia ? "em_garantia" : "fora_garantia"} /></div>
@@ -412,7 +412,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         <Tabs value={aba} onChange={setAba} options={abas} />
 
         {aba === "atendimento" && !!o.reaberturas?.length && (
-          <ul className="mb-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-900">
+          <ul className="mb-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
             {o.reaberturas.map((r, i) => (
               <li key={i} className="flex gap-1.5"><RotateCcw size={14} className="mt-0.5 shrink-0" aria-hidden />
                 <span>Reaberta em {new Date(r.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -668,7 +668,7 @@ function ReabrirOS({ numero, cobrada, comPecas, ocupado, onClose, onConfirmar }:
       <div className="space-y-3 text-sm">
         <p>A OS volta para o conserto como se não tivesse sido concluída.{comPecas ? " As peças voltam para o estoque." : ""}
           {cobrada ? " A cobrança em aberto desta OS é cancelada." : ""} Ao concluir de novo, {comPecas || cobrada ? "isso é feito outra vez e " : ""}o cliente recebe o aviso de pronta.</p>
-        <p className="rounded-lg bg-amber-50 p-2 text-[13px] text-amber-900">Se o cliente tem e-mail, ele já pode ter recebido o aviso de "máquina pronta": avise que ainda está em conserto.</p>
+        <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">Se o cliente tem e-mail, ele já pode ter recebido o aviso de "máquina pronta": avise que ainda está em conserto.</p>
         <Field label="Volta para">
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUS_EDITAVEIS.filter((s) => s.value !== "cancelada").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -702,7 +702,7 @@ function FotosOS({ fotos, podeEditar, ocupado, onEnviar, onRemover }: {
             {urls[f.caminho]
               ? <a href={urls[f.caminho]} target="_blank" rel="noreferrer"><img src={urls[f.caminho]} alt="Foto do equipamento" className="aspect-square w-full object-cover" /></a>
               : <div className="aspect-square w-full animate-pulse bg-slate-100" />}
-            <figcaption className="px-2 py-1 text-[11px] text-slate-500">{new Date(f.criado_em).toLocaleString("pt-BR")}</figcaption>
+            <figcaption className="px-2 py-1 text-2xs text-slate-500">{new Date(f.criado_em).toLocaleString("pt-BR")}</figcaption>
             {podeEditar && (
               <button type="button" onClick={() => onRemover(f.caminho)} aria-label="Remover foto"
                 className="absolute right-1.5 top-1.5 rounded-lg bg-surface/90 p-1.5 text-red-600 shadow transition focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">

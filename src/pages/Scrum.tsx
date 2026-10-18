@@ -81,7 +81,7 @@ export default function Scrum() {
 
       <Card className="mb-4 p-3 sm:p-4" >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-fg"><span className="h-3 w-3 rounded-full" style={{ background: time.cor }} aria-hidden />{time.nome}</h2>
+          <h2 className="flex items-center gap-2 text-lg font-bold text-fg"><span className="h-3 w-3 rounded-full" style={{ background: time.cor }} aria-hidden />{time.nome}</h2>
           {ativa ? (
             <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 text-sm text-slate-600">
               <span className="font-semibold text-fg">Sprint {ativa.numero}</span>
@@ -123,8 +123,8 @@ function SemSprint({ planejada, onSprints, onBacklog }: { planejada: Sprint | nu
     <Card className="p-8 text-center">
       <p className="text-sm text-slate-600">{planejada ? `A sprint ${planejada.numero} está planejada: inicie quando os itens estiverem nela.` : "Nenhuma sprint em andamento."}</p>
       <div className="mt-3 flex flex-wrap justify-center gap-2">
-        <button type="button" onClick={onSprints} className="rounded-lg bg-modulo-escuro px-3.5 py-2 text-sm font-semibold text-white">{planejada ? "Abrir a sprint" : "Planejar a sprint"}</button>
-        <button type="button" onClick={onBacklog} className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700">Ver o backlog</button>
+        <button type="button" onClick={onSprints} className="rounded-lg bg-modulo-escuro px-4 py-2 text-sm font-semibold text-white">{planejada ? "Abrir a sprint" : "Planejar a sprint"}</button>
+        <button type="button" onClick={onBacklog} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Ver o backlog</button>
       </div>
     </Card>
   );
@@ -145,8 +145,8 @@ function CartaoEquipe({ time, ativo, eu, sprints, itens, hoje, onClick }: {
       style={ativo ? { borderColor: time.cor, boxShadow: `0 0 0 2px ${time.cor}` } : undefined}>
       <span className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: time.cor }} aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-fg">{time.nome}</span>
-        {eu && <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-bold text-slate-600">minha</span>}
+        <span className="min-w-0 flex-1 truncate text-sm font-bold text-fg">{time.nome}</span>
+        {eu && <span className="rounded-full bg-slate-100 px-1.5 text-2xs font-bold text-slate-600">minha</span>}
       </span>
       {r && s ? (
         <>
@@ -155,10 +155,10 @@ function CartaoEquipe({ time, ativo, eu, sprints, itens, hoje, onClick }: {
             <span className={`font-bold ${COR_RITMO[r.situacao]}`}>{TEXTO_RITMO[r.situacao]}</span>
           </span>
           <Barra valor={r.progresso} cor={time.cor} rotulo={`Sprint ${s.numero} de ${time.nome}`} />
-          <span className="num text-[11px] text-slate-500">{r.feito}/{r.total} pts · {pct(r.progresso)} · {diasRestantes(s, hoje)} d úteis</span>
+          <span className="num text-2xs text-slate-500">{r.feito}/{r.total} pts · {pct(r.progresso)} · {diasRestantes(s, hoje)} d úteis</span>
         </>
       ) : <span className="text-xs text-slate-500">sem sprint em andamento</span>}
-      <span className="flex items-center gap-2 text-[11px] text-slate-500">
+      <span className="flex items-center gap-2 text-2xs text-slate-500">
         <span>backlog: {backlog}</span>
         {ideias > 0 && <span className="flex items-center gap-0.5 text-amber-700"><Lightbulb size={11} aria-hidden />{ideias}</span>}
       </span>

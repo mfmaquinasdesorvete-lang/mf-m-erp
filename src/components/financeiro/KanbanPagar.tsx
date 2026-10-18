@@ -70,12 +70,12 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
                 ${arrastando && ok === false ? "opacity-60" : ""}`}>
               <header className="rounded-t-2xl px-3 py-2.5" style={{ background: col.fundo, color: col.tinta }} title={`${col.explica} ${col.fazer}`}>
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 min-w-[1.5rem] shrink-0 place-items-center rounded-full px-1 text-xs font-extrabold" style={{ background: "rgba(255,255,255,.3)" }} aria-hidden>{col.passo}</span>
-                  <h3 className="min-w-0 flex-1 truncate text-[15px] font-extrabold">{col.rotulo}</h3>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[13px] font-extrabold text-[#0d1b2e]">{col.lista.length}</span>
+                  <span className="grid h-6 min-w-[1.5rem] shrink-0 place-items-center rounded-full px-1 text-xs font-bold" style={{ background: "rgba(255,255,255,.3)" }} aria-hidden>{col.passo}</span>
+                  <h3 className="min-w-0 flex-1 truncate text-sm font-bold">{col.rotulo}</h3>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-[#0d1b2e]">{col.lista.length}</span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-2">
-                  <span className="num whitespace-nowrap text-lg font-extrabold leading-tight">{brl(col.total)}</span>
+                  <span className="num whitespace-nowrap text-lg font-bold leading-tight">{brl(col.total)}</span>
                   <span className="min-w-0 truncate text-xs font-semibold opacity-90">{col.fazer}</span>
                 </div>
               </header>
@@ -94,18 +94,18 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
                       <div className="flex items-start gap-1.5">
                         {movel && <GripVertical size={14} className="mt-0.5 hidden shrink-0 text-slate-400 md:block" aria-hidden />}
                         <div className="min-w-0 flex-1">
-                          <div className="line-clamp-2 text-[15px] font-bold leading-snug text-fg" title={titulo}>{titulo}</div>
-                          {titulo !== c.descricao && <div className="line-clamp-1 text-[13px] text-slate-600" title={c.descricao}>{c.descricao}</div>}
+                          <div className="line-clamp-2 text-sm font-bold leading-snug text-fg" title={titulo}>{titulo}</div>
+                          {titulo !== c.descricao && <div className="line-clamp-1 text-xs text-slate-600" title={c.descricao}>{c.descricao}</div>}
                         </div>
                         <EtiquetaUnidade id={c.unidade_id} />
                       </div>
                       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2">
-                        <span className="num whitespace-nowrap text-lg font-extrabold text-fg">{brl(c.valor)}</span>
-                        <span className={`num whitespace-nowrap text-[13px] ${COR_PRAZO[prazo.tom]}`}>{prazo.texto}</span>
+                        <span className="num whitespace-nowrap text-lg font-bold text-fg">{brl(c.valor)}</span>
+                        <span className={`num whitespace-nowrap text-xs ${COR_PRAZO[prazo.tom]}`}>{prazo.texto}</span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1"><ChipTipo tipo={tipo} /></div>
                       <div className="mt-1.5">{situacaoDe(c)}</div>
-                      <div className="mt-2 border-t border-slate-100 pt-2 [&_a]:px-2.5 [&_a]:py-1.5 [&_a]:text-xs [&_button]:min-h-0 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-[13px]">{acoesDe(c)}</div>
+                      <div className="mt-2 border-t border-slate-100 pt-2 [&_a]:px-2.5 [&_a]:py-1.5 [&_a]:text-xs [&_button]:min-h-0 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs">{acoesDe(c)}</div>
                     </article>
                   );
                 })}
@@ -142,7 +142,7 @@ export function NavPassos({ passos, ativo, onEscolher, extras }: { passos: Resum
               className={`min-w-[8.5rem] shrink-0 rounded-xl px-2.5 py-1.5 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0
                 ${sel ? "ring-[3px] ring-fg ring-offset-2 ring-offset-surface" : ""} ${p.n || sel ? "" : "opacity-55"}`}
               style={{ background: p.fundo, color: p.tinta }}>
-              <span className="block truncate text-sm font-bold leading-tight"><span className="mr-1 text-xs font-extrabold opacity-75">{p.passo}</span>{p.rotulo}</span>
+              <span className="block truncate text-sm font-bold leading-tight"><span className="mr-1 text-xs font-bold opacity-75">{p.passo}</span>{p.rotulo}</span>
               <span className="num block whitespace-nowrap text-xs font-semibold opacity-90">{p.n} · {brl(p.total)}</span>
             </button>
           );

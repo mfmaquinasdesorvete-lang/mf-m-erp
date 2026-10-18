@@ -56,7 +56,7 @@ export function Divergencias({ lista, unidadeId, comp, meuNome }: { lista: Diver
               <li key={d.id} className="py-3">
                 <div className="flex items-start gap-x-3">
                   <span className="min-w-0 flex-1">
-                    <span className={`mb-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${d.bloqueia ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-600"}`}>
+                    <span className={`mb-1 inline-block rounded-full px-2 py-0.5 text-2xs font-bold ${d.bloqueia ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-600"}`}>
                       {d.bloqueia ? "impede fechar" : "conferir"}
                     </span>
                     <span className="block text-sm font-semibold text-fg">{d.titulo}</span>

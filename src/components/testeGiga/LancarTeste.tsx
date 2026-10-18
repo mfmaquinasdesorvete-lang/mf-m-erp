@@ -198,7 +198,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
                 {sugestoesNs.map((s) => (
                   <button key={`${s.op.id}-${s.ns}`} type="button" onClick={() => escolherNs(s.ns, s.op)} aria-pressed={ns === s.ns}
                     className={`num inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${ns === s.ns ? "border-transparent bg-modulo-escuro text-white" : "border-slate-300 bg-surface text-fg hover:bg-slate-50"}`}>
-                    {s.ns} <span className={`text-[11px] font-normal ${ns === s.ns ? "text-white/80" : "text-slate-500"}`}>OP #{s.op.numero}{s.h?.length ? " · reteste" : ""}</span>
+                    {s.ns} <span className={`text-2xs font-normal ${ns === s.ns ? "text-white/80" : "text-slate-500"}`}>OP #{s.op.numero}{s.h?.length ? " · reteste" : ""}</span>
                   </button>
                 ))}
               </div>
@@ -340,7 +340,7 @@ function Escolha({ rotulo, valor, onChange, sugestao, auto, children }: {
     <fieldset className="rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:p-4">
       <legend className="sr-only">{rotulo}</legend>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="text-[15px] font-bold text-fg" aria-hidden>{rotulo}</span>
+        <span className="text-sm font-bold text-fg" aria-hidden>{rotulo}</span>
         {sugestao?.sugestao && (
           <span className={`text-xs font-semibold ${sugestao.sugestao === "aprovado" ? "text-emerald-700" : "text-red-700"}`}>
             {auto ? "Marcado pela medida" : "Sugestão pelo limite"}: {sugestao.sugestao} ({sugestao.motivo})
@@ -384,8 +384,8 @@ function Medida({ rotulo, unidade, valor, onChange, limite }: { rotulo: string; 
           aria-invalid={invalido} onChange={(e) => onChange(e.target.value)} />
         <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">{unidade}</span>
       </span>
-      {invalido ? <span className="mt-0.5 block text-[11px] font-semibold text-red-600">número inválido</span>
-        : limite && <span className="mt-0.5 block truncate text-[11px] text-slate-500">{limite}</span>}
+      {invalido ? <span className="mt-0.5 block text-2xs font-semibold text-red-600">número inválido</span>
+        : limite && <span className="mt-0.5 block truncate text-2xs text-slate-500">{limite}</span>}
     </label>
   );
 }

@@ -43,7 +43,7 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
     <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
       {itens.map(({ to, label, cor, item: { icon: Icon } }) => (
         <NavLink key={to} to={to} onClick={onIr} title={label} {...alvoDoLink(to)}
-          className={({ isActive }) => `flex items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${to === "/pdv" ? "col-span-3 flex-row gap-2 text-sm" : "flex-col text-[11.5px]"} ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
+          className={({ isActive }) => `flex items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${to === "/pdv" ? "col-span-3 flex-row gap-2 text-sm" : "flex-col text-2xs"} ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
           <Icon size={18} aria-hidden />
           <span>{label}</span>
         </NavLink>
@@ -60,8 +60,8 @@ function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
       <img src={logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl ring-1 ring-white/10`} />
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
       <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
-        <span className="block text-lg font-extrabold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
-        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-[11px] font-semibold uppercase tracking-[0.16em] text-nav-fraco`}>MF Máquinas</span>
+        <span className="block text-lg font-bold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
+        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-[0.16em] text-nav-fraco`}>MF Máquinas</span>
       </span>
     </Link>
   );
@@ -216,7 +216,7 @@ export function Layout() {
                 onClick={() => setAberto(false)}
                 {...alvoDoLink(to)}
                 className={({ isActive }) =>
-                  `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[6px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
+                  `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[6px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
                     isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"
                   }`
                 }
@@ -235,7 +235,7 @@ export function Layout() {
               <div key={g.id} className={`mb-3 grid gap-1 ${itens.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                 {itens.length < 3 ? itens.map(link) : itens.map(({ to, curto, label, icon: Icon }) => (
                   <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} title={label} {...alvoDoLink(to)}
-                    className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[12.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
+                    className={({ isActive }) => `flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-xs font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
                     {({ isActive }) => <><Icon size={18} className={isActive ? "text-modulo" : "text-nav-fraco"} />{curto}</>}
                   </NavLink>
                 ))}
@@ -262,12 +262,12 @@ export function Layout() {
                     }}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/5 2xl:gap-2.5">
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${g.cor} text-white shadow-sm`}><Icone size={16} /></span>
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-white">{g.titulo}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{g.titulo}</span>
                     <ChevronDown size={16} className={`shrink-0 text-nav-fraco transition ${aberta ? "rotate-180" : ""}`} />
                   </button>
                   {acao && (
                     <button type="button" title={acao.dica} onClick={() => { setAberto(false); navigate(acao.to, { state: acao.state }); }}
-                      className={`shrink-0 whitespace-nowrap rounded-lg bg-gradient-to-br ${g.cor} px-2 py-1 text-[11px] font-bold text-white shadow-sm hover:brightness-110`}>
+                      className={`shrink-0 whitespace-nowrap rounded-lg bg-gradient-to-br ${g.cor} px-2 py-1 text-2xs font-bold text-white shadow-sm hover:brightness-110`}>
                       + {acao.label}
                     </button>
                   )}
@@ -282,7 +282,7 @@ export function Layout() {
               <h2 className="px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-nav-fraco">Outras telas</h2>
               {itensForaDoMenu.filter((m) => vis.item(m) && combina(m, busca)).map(({ to, label, icon: Icon }) => (
                 <NavLink key={to} to={to} onClick={() => setAberto(false)} {...alvoDoLink(to)}
-                  className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
+                  className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"}`}>
                   <Icon size={18} className="text-nav-fraco" /> {label}
                 </NavLink>
               ))}
@@ -328,7 +328,7 @@ export function Layout() {
             ))}
           </div>
           {/* versão em uso, com data e hora: abre as atualizações dia a dia; "Sobre" explica cada tela */}
-          <div className="mt-1 flex items-center justify-between gap-2 px-1 text-[11px] leading-tight text-nav-fraco">
+          <div className="mt-1 flex items-center justify-between gap-2 px-1 text-2xs leading-tight text-nav-fraco">
             <Link to="/sobre?aba=atualizacoes" onClick={() => setAberto(false)} title="Ver as atualizações dia a dia" className="min-w-0 truncate hover:text-white">
               ERP Line {VERSAO ? <>v{VERSAO.numero} · {VERSAO.quando}</> : "· prévia"}
             </Link>
@@ -359,11 +359,11 @@ export function Layout() {
         style={{ gridTemplateColumns: `repeat(${atalhos.length + 1}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {atalhos.map(({ to, curto, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} {...alvoDoLink(to)}
-            className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? "text-modulo before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-b before:bg-modulo" : "text-nav-fraco"}`}>
+            className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${isActive ? "text-modulo before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-b before:bg-modulo" : "text-nav-fraco"}`}>
             <Icon size={21} /> {curto}
           </NavLink>
         ))}
-        <button onClick={() => setAberto(!aberto)} aria-expanded={aberto} className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${aberto ? "text-brand-ice" : "text-nav-fraco"}`}>
+        <button onClick={() => setAberto(!aberto)} aria-expanded={aberto} className={`flex flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${aberto ? "text-brand-ice" : "text-nav-fraco"}`}>
           <Menu size={21} /> Mais
         </button>
       </nav>

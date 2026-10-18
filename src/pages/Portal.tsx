@@ -41,7 +41,7 @@ export default function Portal() {
           <Link to="/portal" className="flex min-w-0 items-center gap-2.5" aria-label="Portal do representante: início">
             <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl ring-1 ring-white/10" />
             <span className="min-w-0 leading-tight">
-              <span className="block truncate text-[15px] font-extrabold text-white">Portal do representante</span>
+              <span className="block truncate text-sm font-bold text-white">Portal do representante</span>
               <span className="block truncate text-xs text-nav-fraco">{nome} · MF Máquinas</span>
             </span>
           </Link>
@@ -93,7 +93,7 @@ export default function Portal() {
         <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-line bg-ink/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} aria-label="Portal">
           {MENU.map(({ to, label, icon: Icon, end, destaque }) => (
             <NavLink key={to} to={to} end={end}
-              className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${isActive ? "text-brand-ice" : "text-nav-fraco"}`}>
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-2xs font-semibold ${isActive ? "text-brand-ice" : "text-nav-fraco"}`}>
               {destaque
                 ? <span className="-mt-4 grid h-11 w-11 place-items-center rounded-full bg-brand text-brand-fg shadow-pop ring-4 ring-ink"><Icon size={22} aria-hidden /></span>
                 : <Icon size={21} aria-hidden />}

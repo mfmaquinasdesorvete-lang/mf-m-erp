@@ -382,7 +382,7 @@ function Grafico({ meses, receitas, lucros, temDados, foco, onFoco }: {
               </>
             ) : <span className="h-0.5 w-5 rounded bg-slate-200" />}
           </span>
-          <span className={`text-[11px] font-semibold ${k === foco ? "text-modulo-texto" : "text-slate-500"}`}>{rotuloMes(m)}</span>
+          <span className={`text-2xs font-semibold ${k === foco ? "text-modulo-texto" : "text-slate-500"}`}>{rotuloMes(m)}</span>
         </button>
       ))}
     </div>
@@ -408,7 +408,7 @@ function LinhaMes({ l, i, receita, aberto, alternar }: { l: LinhaDre; i: number;
         ) : <span className={`min-w-0 flex-1 text-sm ${forte ? "font-bold" : "pl-5"} ${final ? "text-base" : ""}`}>{l.rotulo}</span>}
         <span className="shrink-0 text-right">
           <span className={`num block whitespace-nowrap ${forte ? "font-bold" : "font-semibold"} ${final ? `text-base ${corLucro(v)}` : ""}`}>{v ? valor(v) : "—"}</span>
-          {av !== null && <span className="block text-[11px] text-slate-500">{pct(av)} da receita</span>}
+          {av !== null && <span className="block text-2xs text-slate-500">{pct(av)} da receita</span>}
         </span>
       </div>
       {aberto && dets.length > 0 && (
@@ -463,7 +463,7 @@ function QuadroContribuicao({ c, i, mes }: { c: Contribuicao; i: number; mes: st
               <div className="h-2 rounded-full bg-sky-400" style={{ width: `${(rec / max) * 100}%` }} />
               <div className="h-2 rounded-full bg-amber-400" style={{ width: `${(pe / max) * 100}%` }} />
             </div>
-            <p className="mt-1 flex gap-3 text-[11px] text-slate-500"><span className="text-sky-700">▬ receita</span><span className="text-amber-700">▬ ponto de equilíbrio</span></p>
+            <p className="mt-1 flex gap-3 text-2xs text-slate-500"><span className="text-sky-700">▬ receita</span><span className="text-amber-700">▬ ponto de equilíbrio</span></p>
           </>
         )}
       </div>
@@ -479,7 +479,7 @@ function QuadroContribuicao({ c, i, mes }: { c: Contribuicao; i: number; mes: st
           ))}
         </div>
       )}
-      <p className="mt-2 text-[11px] text-slate-500">* sugestão do ERP. Trocar fixa ou variável em <Link to="/financeiro?aba=plano" className="font-semibold text-brand underline">Plano de contas → Editar</Link>.</p>
+      <p className="mt-2 text-2xs text-slate-500">* sugestão do ERP. Trocar fixa ou variável em <Link to="/financeiro?aba=plano" className="font-semibold text-brand underline">Plano de contas → Editar</Link>.</p>
     </Card>
   );
 }
@@ -517,7 +517,7 @@ function QuadroUnidades({ lista, i, mes, semUnidade }: { lista: PorUnidade[]; i:
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">Consolidado sem as transferências entre as unidades.{semUnidade > 0 && ` ${semUnidade} ${pl(semUnidade, "lançamento sem unidade entra", "lançamentos sem unidade entram")} só no consolidado.`}</p>
+      <p className="mt-2 text-2xs text-slate-500">Consolidado sem as transferências entre as unidades.{semUnidade > 0 && ` ${semUnidade} ${pl(semUnidade, "lançamento sem unidade entra", "lançamentos sem unidade entram")} só no consolidado.`}</p>
     </Card>
   );
 }
@@ -596,7 +596,7 @@ function QuadroTaxas({ taxas, i, mes, receita }: { taxas: ReturnType<typeof taxa
           <li className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 font-bold"><span>Total</span><span className="num whitespace-nowrap">{brl(total)}{receita > 0 && <span className="ml-1 text-xs font-semibold text-slate-500">{pct(total / receita)}</span>}</span></li>
         </ul>
       )}
-      <p className="mt-2 text-[11px] text-slate-500">Canal pela conta do banco do extrato, pelo fornecedor ou pela descrição. Vale negociar a taxa quando o volume do canal cresce.</p>
+      <p className="mt-2 text-2xs text-slate-500">Canal pela conta do banco do extrato, pelo fornecedor ou pela descrição. Vale negociar a taxa quando o volume do canal cresce.</p>
     </Card>
   );
 }

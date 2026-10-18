@@ -461,7 +461,7 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
 function Secao({ n, titulo, children }: { n: number; titulo: string; children: ReactNode }) {
   return (
     <section className="min-w-0 rounded-xl border border-slate-200 p-3">
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-[11px] text-brand-fg">{n}</span>{titulo}</h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-2xs text-brand-fg">{n}</span>{titulo}</h3>
       {children}
     </section>
   );
@@ -472,7 +472,7 @@ function Valor({ rotulo, valor, sub, tom }: { rotulo: string; valor: number | nu
     <div className={`rounded-lg border p-2 ${tom === "ruim" ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
       <div className="text-xs text-slate-500">{rotulo}</div>
       <div className={`num font-bold ${tom === "ruim" ? "text-red-700" : "text-fg"}`}>{valor != null ? brl(valor) : "—"}</div>
-      {sub && <div className="truncate text-[11px] text-slate-500" title={sub}>{sub}</div>}
+      {sub && <div className="truncate text-2xs text-slate-500" title={sub}>{sub}</div>}
     </div>
   );
 }
@@ -626,7 +626,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
 
   return (
     <section>
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 place-items-center rounded-full bg-brand text-[11px] text-brand-fg">7</span>Cotações e decisão</h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 place-items-center rounded-full bg-brand text-2xs text-brand-fg">7</span>Cotações e decisão</h3>
       {podeEditar && (
         <div className="mb-3 rounded-xl bg-slate-50 p-3">
           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -668,15 +668,15 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
                 <div className="min-w-[14rem] flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 font-semibold text-fg">
                     {nome(c)}
-                    <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-800">{rotuloServico(c.tipo_servico)}</span>
-                    {barata?.id === c.id && ativas.length > 1 && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">menor preço válido</span>}
-                    {vencida && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">vencida</span>}
+                    <span className="rounded-full bg-purple-50 px-2 py-0.5 text-2xs font-semibold text-purple-800">{rotuloServico(c.tipo_servico)}</span>
+                    {barata?.id === c.id && ativas.length > 1 && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800">menor preço válido</span>}
+                    {vencida && <span className="rounded-full bg-red-100 px-2 py-0.5 text-2xs font-bold text-red-800">vencida</span>}
                   </div>
                   <div className="text-xs text-slate-500">
                     {c.prazo_dias != null ? `${c.prazo_dias} ${pl(c.prazo_dias, "dia", "dias")} úteis` : "prazo não informado"}{c.validade ? ` · válida até ${dataBR(c.validade)}` : " · sem validade"}
                     {c.tabela_versao ? ` · tabela ${c.tabela_versao}` : ""}{c.observacoes ? ` · ${c.observacoes}` : ""}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
+                  <div className="mt-1 flex flex-wrap gap-1 text-2xs">
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">frete {brl(c.valor)}</span>
                     {(c.adicionais ?? []).map((a, k) => (
                       <span key={k} title={a.previsto === false ? `Não previsto: ${a.justificativa ?? ""}` : a.descricao ?? undefined}
@@ -851,7 +851,7 @@ function Ocorrencias({ envioId, podeEditar, abrirNova, nomeUsuario }: { envioId:
 
   return (
     <section ref={ref}>
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 place-items-center rounded-full bg-brand text-[11px] text-brand-fg">10</span>Ocorrências</h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><span className="grid h-5 w-5 place-items-center rounded-full bg-brand text-2xs text-brand-fg">10</span>Ocorrências</h3>
       <div className="space-y-2">
         {lista.map((o) => {
           const ed = editando[o.id];

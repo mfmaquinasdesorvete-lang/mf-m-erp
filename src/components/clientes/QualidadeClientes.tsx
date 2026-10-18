@@ -40,7 +40,7 @@ export function EtiquetasCliente({ c, tipos }: { c: ComEtiquetas; tipos?: TipoCo
   return (
     <div className="mt-0.5 flex flex-wrap gap-1">
       {itens.map(({ Icon, texto, cor, titulo }) => (
-        <span key={texto} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${cor}`}>
+        <span key={texto} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-2xs font-semibold ${cor}`}>
           <Icon size={11} aria-hidden /> {texto}
         </span>
       ))}

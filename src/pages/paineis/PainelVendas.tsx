@@ -153,7 +153,7 @@ export default function PainelVendas() {
       <CabecalhoPainel icone={ShoppingCart} area="Vendas" titulo="Como estão as vendas" resumo={resumo} periodo={periodo} onPeriodo={setPeriodo}
         acoes={pode("editar_pedidos") && (
           <button type="button" onClick={() => navigate("/pedidos", { state: { novo: true } })}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-3.5 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-bold text-modulo-texto shadow hover:bg-white/90">
             <Plus size={16} /> Novo orçamento
           </button>
         )} />
@@ -266,7 +266,7 @@ function MiniNumero({ icone: Icone, rotulo, valor, sub }: { icone: typeof Plus; 
     <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border border-slate-200/80 bg-surface p-3 shadow-card">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><Icone size={18} /></span>
       <span className="num block truncate text-xl font-bold leading-none text-fg">{valor}</span>
-      <span className="col-span-2 block text-[13px] leading-snug text-slate-600">{rotulo}{sub ? ` · ${sub}` : ""}</span>
+      <span className="col-span-2 block text-xs leading-snug text-slate-600">{rotulo}{sub ? ` · ${sub}` : ""}</span>
     </div>
   );
 }

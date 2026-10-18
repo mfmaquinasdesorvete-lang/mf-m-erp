@@ -42,7 +42,7 @@ export function Parecidos({ titulo, item, itens, times, sprints, onAbrir }: {
   }, [texto, itens, times, sprints, projeto, item?.id]);
   if (!lista.length) return null;
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[13px] text-amber-900" role="status">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900" role="status">
       <p className="mb-1 flex items-center gap-1.5 font-bold"><Sparkles size={14} aria-hidden /> Parecido com o que já existe — confira antes de criar outro</p>
       <ul className="space-y-1">
         {lista.map((p) => {
@@ -55,7 +55,7 @@ export function Parecidos({ titulo, item, itens, times, sprints, onAbrir }: {
                 {doScrum && onAbrir
                   ? <button type="button" className="text-left font-semibold underline decoration-amber-400 underline-offset-2" onClick={() => onAbrir(doScrum)}>{p.titulo}</button>
                   : <span className="line-clamp-2 font-semibold">{p.titulo}</span>}
-                <span className="block text-[11px] text-amber-800">{p.detalhe} · {Math.round(p.score * 100)}% parecido</span>
+                <span className="block text-2xs text-amber-800">{p.detalhe} · {Math.round(p.score * 100)}% parecido</span>
               </span>
             </li>
           );
@@ -118,13 +118,13 @@ export function ListaTestes({ testes, onChange }: { testes: CasoTeste[]; onChang
             <button type="button" aria-label={`Tirar o caso ${t.nome}`} onClick={() => onChange(testes.filter((_, j) => j !== k))}
               className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-700"><X size={14} /></button>
           </div>
-          <div className="mt-1.5 grid gap-2 text-[13px] sm:grid-cols-2">
+          <div className="mt-1.5 grid gap-2 text-xs sm:grid-cols-2">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Passos</p>
+              <p className="text-2xs font-bold uppercase tracking-wide text-slate-500">Passos</p>
               <ol className="list-decimal pl-5 text-slate-700">{t.passos.map((p, j) => <li key={j}>{p}</li>)}</ol>
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Resultado esperado</p>
+              <p className="text-2xs font-bold uppercase tracking-wide text-slate-500">Resultado esperado</p>
               <ul className="list-disc pl-5 text-slate-700">{t.esperado.map((p, j) => <li key={j}>{p}</li>)}</ul>
             </div>
           </div>
@@ -175,7 +175,7 @@ export function Comentarios({ item, pessoas }: { item: ItemScrum; pessoas: Pesso
         <div>
           <Button type="button" variant="secondary" onClick={() => setResumo((v) => !v)} aria-expanded={resumo}><Sparkles size={15} aria-hidden /> {resumo ? "Fechar o resumo" : "Resumir a conversa"}</Button>
           {resumo && (
-            <div className="mt-2 space-y-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 text-[13px] text-slate-800">
+            <div className="mt-2 space-y-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 text-xs text-slate-800">
               <p><b>{r.total} {pl(r.total, "comentário", "comentários")}</b> de {r.pessoas.map((p) => `${p.nome.split(" ")[0]} (${p.n})`).join(", ")}{r.de && r.ate ? `, de ${dataBR(r.de.slice(0, 10))} a ${dataBR(r.ate.slice(0, 10))}` : ""}.</p>
               <BlocoResumo titulo="Decidido" itens={r.decisoes} cor="text-emerald-800" />
               <BlocoResumo titulo="Travado ou faltando" itens={r.pendencias} cor="text-red-800" />
@@ -190,7 +190,7 @@ export function Comentarios({ item, pessoas }: { item: ItemScrum; pessoas: Pesso
         <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
           {lista.map((c) => (
             <li key={c.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-              <p className="flex items-center gap-2 text-[11px] text-slate-500">
+              <p className="flex items-center gap-2 text-2xs text-slate-500">
                 <b className="text-slate-700">{nomeDe(pessoas, c.user_id)}</b> {dataHoraBR(c.created_at)}
                 {(c.user_id === user_id || papel === "admin") && (
                   <button type="button" onClick={() => apagar(c)} aria-label="Apagar o comentário" className="ml-auto rounded p-0.5 text-slate-400 hover:text-red-700"><Trash2 size={13} /></button>
@@ -207,7 +207,7 @@ export function Comentarios({ item, pessoas }: { item: ItemScrum; pessoas: Pesso
           onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); enviar(); } }} />
         <Button type="button" onClick={() => enviar()} disabled={!texto.trim() || enviando} aria-label="Enviar comentário"><Send size={15} aria-hidden /><span className="hidden sm:inline">Enviar</span></Button>
       </div>
-      <p className="flex items-center gap-1 text-[11px] text-slate-500"><MessageSquare size={11} aria-hidden /> O comentário grava na hora; não precisa do Salvar.</p>
+      <p className="flex items-center gap-1 text-2xs text-slate-500"><MessageSquare size={11} aria-hidden /> O comentário grava na hora; não precisa do Salvar.</p>
     </div>
   );
 }
@@ -216,7 +216,7 @@ function BlocoResumo({ titulo, itens, cor }: { titulo: string; itens: string[]; 
   if (!itens.length) return null;
   return (
     <div>
-      <p className={`text-[11px] font-extrabold uppercase tracking-wide ${cor}`}>{titulo}</p>
+      <p className={`text-2xs font-bold uppercase tracking-wide ${cor}`}>{titulo}</p>
       <ul className="list-disc pl-5">{itens.map((x, k) => <li key={k}>{x}</li>)}</ul>
     </div>
   );

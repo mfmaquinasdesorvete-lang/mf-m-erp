@@ -28,7 +28,7 @@ export function Esquemas() {
           <button key={o.v} type="button" aria-pressed={tipo === o.v} onClick={() => setTipo(o.v)}
             className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${tipo === o.v ? "border-modulo bg-modulo/10 ring-1 ring-modulo" : "border-slate-200 bg-surface hover:border-slate-300"}`}>
             <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${tipo === o.v ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600"}`}><o.I size={18} aria-hidden /></span>
-            <span className="min-w-0"><span className="block text-sm font-bold text-fg">{o.l}</span><span className="block text-[12px] leading-snug text-slate-600">{o.d}</span></span>
+            <span className="min-w-0"><span className="block text-sm font-bold text-fg">{o.l}</span><span className="block text-xs leading-snug text-slate-600">{o.d}</span></span>
           </button>
         ))}
       </div>

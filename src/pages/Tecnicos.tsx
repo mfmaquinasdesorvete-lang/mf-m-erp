@@ -152,7 +152,7 @@ export default function Tecnicos() {
           <div>
             <div className="flex flex-wrap items-center gap-1 font-medium">{t.nome} <SeloDrFrost t={t} />
               {t.drfrost_url && <a href={t.drfrost_url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline" title="Abrir o anúncio no site Dr. Frost" aria-label="Abrir o anúncio no site Dr. Frost"><ExternalLink size={13} /></a>}
-              {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">inativo</span>}</div>
+              {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</div>
             <div className="text-xs text-slate-500">{[t.nome_fantasia, t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ")}</div>
           </div>
         ) },
@@ -162,7 +162,7 @@ export default function Tecnicos() {
       ]}
       cartaoCelular={(t, abrir) => (
         <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
-          <span className="flex flex-wrap items-center gap-1 text-[15px] font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
+          <span className="flex flex-wrap items-center gap-1 text-sm font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
           <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"} · atende {textoRegiao(t)}</span>
         </button>
       )}

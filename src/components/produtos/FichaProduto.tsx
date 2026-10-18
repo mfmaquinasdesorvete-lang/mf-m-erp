@@ -66,7 +66,7 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar }: { produ
 function Dado({ rotulo, valor, num }: { rotulo: string; valor: ReactNode; num?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{rotulo}</dt>
+      <dt className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{rotulo}</dt>
       <dd className={`truncate text-sm font-semibold text-fg ${num ? "num" : ""}`}>{valor === null || valor === undefined || valor === "" ? <span className="font-normal text-slate-400">—</span> : valor}</dd>
     </div>
   );
@@ -159,8 +159,8 @@ function AbaAnuncios({ p }: { p: ProdutoFicha }) {
                   <span className="mt-1 block"><SituacaoChip s={a.situacao} /></span>
                   {detalheSituacao(a) && <span className={`mt-0.5 block text-xs ${a.situacao === "erro" ? "text-red-700" : "text-slate-500"}`}>{detalheSituacao(a)}</span>}
                 </div>
-                <div className="min-w-0"><span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estoque</span><CelulaEstoque a={a} /></div>
-                <div className="min-w-0"><span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Preço</span><CelulaPreco a={a} /></div>
+                <div className="min-w-0"><span className="block text-2xs font-semibold uppercase tracking-wide text-slate-500">Estoque</span><CelulaEstoque a={a} /></div>
+                <div className="min-w-0"><span className="block text-2xs font-semibold uppercase tracking-wide text-slate-500">Preço</span><CelulaPreco a={a} /></div>
               </li>
             ))}
           </ul>
@@ -225,7 +225,7 @@ function AbaCustos({ p }: { p: ProdutoFicha }) {
           <tr key={i}>
             <td className="td whitespace-nowrap">{dataBR(String(l.data).slice(0, 10))}</td>
             <td className="td">
-              <span className={`mr-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${l.evento === "compra" ? "bg-sky-100 text-sky-800" : l.evento === "cadastro" ? "bg-slate-100 text-slate-700" : "bg-violet-100 text-violet-800"}`}>
+              <span className={`mr-1 rounded-full px-2 py-0.5 text-2xs font-semibold ${l.evento === "compra" ? "bg-sky-100 text-sky-800" : l.evento === "cadastro" ? "bg-slate-100 text-slate-700" : "bg-violet-100 text-violet-800"}`}>
                 {l.evento === "compra" ? "compra" : l.evento === "cadastro" ? "cadastro" : "mudança"}
               </span>
               <span className="text-xs text-slate-600">{l.detalhe ?? ""}{l.usuario ? ` · ${l.usuario}` : ""}</span>
@@ -246,9 +246,9 @@ function AbaCustos({ p }: { p: ProdutoFicha }) {
 function Cartao({ rotulo, valor, ajuda }: { rotulo: string; valor: string; ajuda?: string }) {
   return (
     <div className="rounded-xl border border-slate-200 p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{rotulo}</div>
+      <div className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{rotulo}</div>
       <div className="num text-base font-bold text-fg">{valor}</div>
-      {ajuda && <div className="text-[11px] text-slate-500">{ajuda}</div>}
+      {ajuda && <div className="text-2xs text-slate-500">{ajuda}</div>}
     </div>
   );
 }
@@ -376,7 +376,7 @@ function AbaAssistencia({ p }: { p: ProdutoFicha }) {
               <td className="td whitespace-nowrap">{dataBR(o.data_entrada)}</td>
               <td className="td">{o.cliente?.nome_fantasia || o.cliente?.nome || "—"}{o.numero_serie ? <span className="num block text-xs text-slate-500">série {o.numero_serie}</span> : null}</td>
               <td className="td text-xs">{o.defeito_relatado ?? ""}</td>
-              <td className="td">{o.status.replace(/_/g, " ")}{o.em_garantia && <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">garantia</span>}</td>
+              <td className="td">{o.status.replace(/_/g, " ")}{o.em_garantia && <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800">garantia</span>}</td>
             </tr>
           ))}
         </Table>

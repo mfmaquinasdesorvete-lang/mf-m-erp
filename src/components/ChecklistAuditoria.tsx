@@ -102,7 +102,7 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
                 return (
                   <li key={i.id} className="border-t border-slate-100 py-3 first:border-t-0">
                     <div className="flex flex-wrap items-start gap-2">
-                      <p className="min-w-0 flex-1 basis-64 text-[15px] text-fg">{i.texto}</p>
+                      <p className="min-w-0 flex-1 basis-64 text-sm text-fg">{i.texto}</p>
                       <div className="flex flex-wrap gap-1" role="group" aria-label="Situação">
                         {SITUACOES.map((o) => (
                           <button key={o.valor} type="button" disabled={!podeEditar} aria-pressed={r?.situacao === o.valor}

@@ -102,7 +102,7 @@ export default function Loja() {
             </Link>
             <Link to="/loja/carrinho" className="relative inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-sm font-bold text-brand-fg" aria-label="Carrinho">
               <ShoppingCart size={19} /> <span className="hidden sm:inline">Carrinho</span>
-              {qtdCarrinho > 0 && <span className="num grid h-5 min-w-[20px] place-items-center rounded-full bg-white px-1 text-[11px] font-bold text-ink">{qtdCarrinho}</span>}
+              {qtdCarrinho > 0 && <span className="num grid h-5 min-w-[20px] place-items-center rounded-full bg-white px-1 text-2xs font-bold text-ink">{qtdCarrinho}</span>}
             </Link>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function Loja() {
           <>
             <section className="mb-6">
               <h1 className="text-2xl font-bold sm:text-3xl">Loja</h1>
-              {empresa?.texto && <p className="mt-1 max-w-2xl text-[16px] text-slate-600">{empresa.texto}</p>}
+              {empresa?.texto && <p className="mt-1 max-w-2xl text-base text-slate-600">{empresa.texto}</p>}
             </section>
             {filtros.length > 2 && (
               <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -143,8 +143,8 @@ export default function Loja() {
                     <Link to={`/loja/${p.id}`}><Foto p={p} /></Link>
                     <div className="flex flex-1 flex-col p-3 sm:p-4">
                       <Disponivel p={p} />
-                      <Link to={`/loja/${p.id}`} className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-snug hover:underline">{p.nome}</Link>
-                      <div className="num mt-auto pt-2 text-lg font-extrabold">{brl(p.preco)}</div>
+                      <Link to={`/loja/${p.id}`} className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug hover:underline">{p.nome}</Link>
+                      <div className="num mt-auto pt-2 text-lg font-bold">{brl(p.preco)}</div>
                       {p.disponibilidade !== "out of stock" && (
                         <button type="button" onClick={() => { carrinho.adicionar(p.id); notify("Adicionado ao carrinho"); }}
                           className="mt-2 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-brand px-3 text-sm font-bold text-brand hover:bg-brand-light">
@@ -194,13 +194,13 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
           <Disponivel p={p} />
           <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{p.nome}</h1>
           {p.sku && <div className="mt-1 text-sm text-slate-500">Código {p.sku}</div>}
-          <div className="num mt-4 text-3xl font-extrabold">{brl(p.preco)}</div>
+          <div className="num mt-4 text-3xl font-bold">{brl(p.preco)}</div>
           {p.disponibilidade === "available for order" && p.prazo_dias ? (
             <p className="mt-2 text-sm font-semibold text-sky-700">
               Sob encomenda: envio previsto até {dataBR(somarDias(p.prazo_dias))} (em até {p.prazo_dias} dias)
             </p>
           ) : null}
-          <p className="mt-4 whitespace-pre-line text-[16px] leading-relaxed text-slate-700">{p.descricao?.trim() || p.nome}</p>
+          <p className="mt-4 whitespace-pre-line text-base leading-relaxed text-slate-700">{p.descricao?.trim() || p.nome}</p>
           {p.tipo === "maquina" && p.garantia_meses ? (
             <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-emerald-700"><ShieldCheck size={18} /> Garantia de {p.garantia_meses} meses e assistência técnica própria</p>
           ) : null}
@@ -268,7 +268,7 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
       <div className="mx-auto max-w-lg py-10 text-center">
         <CheckCircle2 size={56} className="mx-auto text-emerald-600" />
         <h1 className="mt-3 text-2xl font-bold">Pedido #{feito.numero} recebido!</h1>
-        <p className="mt-2 text-[16px] text-slate-600">Total dos produtos: <b className="num text-fg">{brl(feito.total)}</b>. Nossa equipe vai confirmar o frete e a forma de pagamento com você pelo WhatsApp.</p>
+        <p className="mt-2 text-base text-slate-600">Total dos produtos: <b className="num text-fg">{brl(feito.total)}</b>. Nossa equipe vai confirmar o frete e a forma de pagamento com você pelo WhatsApp.</p>
         <div className="mt-6 flex flex-col gap-2">
           {dados.empresa.whatsapp && (
             <a href={whatsappLink(dados.empresa.whatsapp, `Olá! Acabei de fazer o pedido #${feito.numero} pelo site.`)} target="_blank" rel="noreferrer"
@@ -306,7 +306,7 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
             <textarea className="input" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
           </label>
           <div className="mt-4 rounded-2xl border border-slate-200 bg-surface p-4">
-            <div className="flex items-baseline justify-between"><span className="text-slate-600">Produtos</span><span className="num text-2xl font-extrabold">{brl(total)}</span></div>
+            <div className="flex items-baseline justify-between"><span className="text-slate-600">Produtos</span><span className="num text-2xl font-bold">{brl(total)}</span></div>
             <p className="mt-1 text-sm text-slate-500">Frete e forma de pagamento são combinados com a nossa equipe depois do pedido.</p>
             {sessao && cadastro.data === null && <p className="mt-2 text-sm font-semibold text-amber-700">Falta completar o seu cadastro (CPF/CNPJ e endereço).</p>}
             <button type="button" disabled={enviando} onClick={finalizar}

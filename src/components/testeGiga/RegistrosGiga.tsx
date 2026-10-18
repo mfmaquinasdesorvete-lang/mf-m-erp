@@ -31,7 +31,7 @@ function Res({ r, medidas }: { r: Resultado; medidas?: string }) {
       <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm">
         {r === "aprovado" ? <CheckCircle2 size={14} aria-hidden /> : <XCircle size={14} aria-hidden />}{r === "aprovado" ? "Aprovado" : "Reprovado"}
       </span>
-      {medidas && <span className="num whitespace-nowrap text-[11px] font-normal text-slate-500">{medidas}</span>}
+      {medidas && <span className="num whitespace-nowrap text-2xs font-normal text-slate-500">{medidas}</span>}
     </span>
   );
 }
@@ -135,7 +135,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
               </span>
               <span className="mt-2 grid grid-cols-3 gap-1 text-xs">
                 {([["Funcional", t.funcional], ["Aterram.", t.aterramento], ["Tensão", t.tensao]] as const).map(([rotulo, r]) => (
-                  <span key={rotulo} className="min-w-0"><span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400">{rotulo}</span><Res r={r} /></span>
+                  <span key={rotulo} className="min-w-0"><span className="block text-2xs font-semibold uppercase tracking-wide text-slate-400">{rotulo}</span><Res r={r} /></span>
                 ))}
               </span>
               <span className="mt-1.5 block text-xs text-slate-500">{dataHoraBR(t.testado_em)} · {t.operador_nome}</span>
@@ -165,7 +165,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
               <td className="td"><Res r={t.funcional} /></td>
               <td className="td"><Res r={t.aterramento} medidas={medidasAterramento(t)} /></td>
               <td className="td"><Res r={t.tensao} medidas={medidasTensao(t)} /></td>
-              <td className="td"><SeloResultado t={t} />{!!t.divergencias?.length && <span className="mt-1 block text-[11px] font-semibold text-amber-700">fora do limite</span>}</td>
+              <td className="td"><SeloResultado t={t} />{!!t.divergencias?.length && <span className="mt-1 block text-2xs font-semibold text-amber-700">fora do limite</span>}</td>
             </tr>
           ))}
         </Table>

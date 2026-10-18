@@ -93,9 +93,9 @@ export function PorFavorecido({ linhas, deFora, regras, nomeConta, podeEditar }:
                 <div className="min-w-0 flex-1 basis-60">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="break-words font-semibold text-fg">{g.rotulo}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${g.direcao === "saida" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>{g.direcao === "saida" ? "saída" : "entrada"}</span>
-                    {regra && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">regra: {textoRegra(regra)}</span>}
-                    {lig && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900" title={AVISO_LIGACAO[lig].texto}>{AVISO_LIGACAO[lig].selo}</span>}
+                    <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${g.direcao === "saida" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>{g.direcao === "saida" ? "saída" : "entrada"}</span>
+                    {regra && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-2xs font-semibold text-sky-800">regra: {textoRegra(regra)}</span>}
+                    {lig && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-900" title={AVISO_LIGACAO[lig].texto}>{AVISO_LIGACAO[lig].selo}</span>}
                   </div>
                   <div className="text-xs text-slate-600">
                     {g.qtd} {pl(g.qtd, "linha", "linhas")} · {contas.join(", ")} · {g.primeira === g.ultima ? dataBR(g.primeira) : `${dataBR(g.primeira)} a ${dataBR(g.ultima)}`}

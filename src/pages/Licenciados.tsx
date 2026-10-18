@@ -199,7 +199,7 @@ export default function Licenciados() {
         <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15"><IceCreamCone size={30} aria-hidden /></span>
           <div className="min-w-0 flex-1">
-            <div className="text-xl font-extrabold leading-tight sm:text-2xl">My Frost <span style={{ color: TURQUESA }}>Sorveterias</span></div>
+            <div className="text-xl font-bold leading-tight sm:text-2xl">My Frost <span style={{ color: TURQUESA }}>Sorveterias</span></div>
             <div className="text-sm opacity-90">Licenciados · {lojaSel ? nomeLoja(lojaSel)?.nome : "todas as lojas"}</div>
           </div>
           <div className="text-right">
@@ -291,18 +291,18 @@ export default function Licenciados() {
                       <div className="line-clamp-2 break-words text-base font-bold leading-tight">{r.loja.nome}</div>
                       <div className="truncate text-xs opacity-80">{[r.loja.cidade, r.loja.uf].filter(Boolean).join("/") || "cidade não informada"}</div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold" title={sit?.nome}>{sit?.nome}</span>
+                    <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-2xs font-bold" title={sit?.nome}>{sit?.nome}</span>
                   </div>
                   <div className="num mt-3 text-2xl font-bold">{brl(r.total)}</div>
                   <div className="text-xs opacity-80">pago desde o começo · {r.qtd} {pl(r.qtd, "pagamento", "pagamentos")}</div>
                   {r.pct != null && (
-                    <div className="mt-2 text-[11px]">
+                    <div className="mt-2 text-2xs">
                       <div className="flex justify-between"><span>{r.pct}% de {brl(r.loja.valor_combinado)}</span><span>{r.falta ? `falta ${brl(r.falta)}` : "quitado"}</span></div>
                       <span className="mt-0.5 block h-1.5 rounded-full bg-white/25"><span className="block h-1.5 rounded-full bg-white" style={{ width: `${r.pct}%` }} /></span>
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-x-3 text-xs"><span>{brl(r.noPeriodo)} no período</span>{r.taxas > 0 && <span className="opacity-80">taxas {brl(r.taxas)}</span>}</div>
-                  <div className="mt-1 text-[11px] opacity-80">{r.ultimo ? `último em ${dataBR(r.ultimo)}${r.diasSemPagar != null && r.diasSemPagar > 45 && r.loja.situacao === "ativa" ? ` · ${r.diasSemPagar} dias sem pagar` : ""}` : "sem pagamentos"}</div>
+                  <div className="mt-1 text-2xs opacity-80">{r.ultimo ? `último em ${dataBR(r.ultimo)}${r.diasSemPagar != null && r.diasSemPagar > 45 && r.loja.situacao === "ativa" ? ` · ${r.diasSemPagar} dias sem pagar` : ""}` : "sem pagamentos"}</div>
                 </button>
                 <div className="flex border-t border-white/20 text-xs font-semibold">
                   <button type="button" className="flex-1 py-2 hover:bg-white/10" onClick={() => setEditPag({ data: hoje(), tipo: r.loja.mensalidade ? "mensalidade" : "licenca", forma: "pix", origem: "manual", loja_id: r.loja.id, valor: r.loja.mensalidade ?? undefined })}>Lançar</button>
@@ -350,7 +350,7 @@ export default function Licenciados() {
                   </span>
                   <span className="text-right">
                     <span className="num block font-bold text-emerald-700">{brl(p.valor)}</span>
-                    {Number(p.taxa) > 0 && <span className="num block text-[11px] text-slate-500">taxa {brl(p.taxa)}</span>}
+                    {Number(p.taxa) > 0 && <span className="num block text-2xs text-slate-500">taxa {brl(p.taxa)}</span>}
                   </span>
                   <span className="flex shrink-0 gap-1">
                     <button type="button" className="rounded p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Editar pagamento" title="Editar" onClick={() => setEditPag(p)}><Pencil size={15} /></button>
@@ -380,14 +380,14 @@ function LinhaSugestao({ s, lojas, onLigar, onNaoE, onNova }: {
     <li className="py-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="w-20 shrink-0 text-xs font-semibold text-slate-500">{dataBR(s.data)}</span>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${s.origem === "infinitepay" ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-bold ${s.origem === "infinitepay" ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
           {s.origem === "infinitepay" ? `Cartão · ${s.onde}` : s.onde}
         </span>
         <span className="min-w-0 flex-1 basis-48 truncate text-fg" title={s.descricao}>{s.nome || s.descricao}</span>
         <span className="text-right">
           <span className="num block font-bold text-emerald-700">{brl(s.resta)}</span>
-          {s.resta < s.valor && <span className="block text-[11px] text-slate-500">resta de {brl(s.valor)}</span>}
-          {s.taxaResta > 0 && <span className="num block text-[11px] text-slate-500">taxa {brl(s.taxaResta)}</span>}
+          {s.resta < s.valor && <span className="block text-2xs text-slate-500">resta de {brl(s.valor)}</span>}
+          {s.taxaResta > 0 && <span className="num block text-2xs text-slate-500">taxa {brl(s.taxaResta)}</span>}
         </span>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:pl-[5.75rem]">

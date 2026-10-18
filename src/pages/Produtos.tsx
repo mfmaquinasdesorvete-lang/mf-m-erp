@@ -275,9 +275,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const NOME_CADASTRO: Record<string, string> = { maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção", servico: "Serviço" };
   /** Selos do produto (inativo, produção, catálogo…) — iguais na tabela e no cartão do celular. */
   const selos = (r: Produto) => (<>
-    {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
-    {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[11px] font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
-    {(r.ativo === false || r.fora_de_linha) && <span className="mr-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
+    {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
+    {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-2xs font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
+    {(r.ativo === false || r.fora_de_linha) && <span className="mr-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
     {r.no_catalogo && (pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })
       ? <span className="text-xs font-semibold text-amber-700">catálogo: {pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })}</span>
       : <span className="text-xs font-semibold text-emerald-700">no catálogo ✓</span>)}
@@ -315,14 +315,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           <span className="min-w-0 flex-1">
             <span className="block font-semibold leading-snug text-fg [overflow-wrap:anywhere]">
               {r.descricao}{" "}
-              <span className={`inline-block whitespace-nowrap rounded px-1 align-middle text-[10px] font-medium leading-4 ${ncm.length === 8 ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-600"}`}>
+              <span className={`inline-block whitespace-nowrap rounded px-1 align-middle text-2xs font-medium leading-4 ${ncm.length === 8 ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-600"}`}>
                 {ncm ? `NCM ${ncm}` : "sem NCM"}
               </span>
             </span>
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
               {[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
-            {r.vendavel !== false && <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}</span>}
+            {r.vendavel !== false && <span className="mt-1 block text-2xs font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}</span>}
           </span>
         </button>
         {r.vendavel === false && (
@@ -339,24 +339,24 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         )}
         <dl className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-[11px] font-semibold uppercase text-slate-500">Custo</dt>
+            <dt className="text-2xs font-semibold uppercase text-slate-500">Custo</dt>
             <dd className={`text-sm font-bold tabular-nums ${c ? "" : "text-amber-600"}`}>{c ? brl(c) : "sem custo"}</dd>
-            {r.kit && c > 0 && <dd className="text-[11px] text-slate-500">pelos componentes</dd>}
+            {r.kit && c > 0 && <dd className="text-2xs text-slate-500">pelos componentes</dd>}
           </div>
           <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-[11px] font-semibold uppercase text-slate-500">Venda</dt>
+            <dt className="text-2xs font-semibold uppercase text-slate-500">Venda</dt>
             <dd className="text-sm font-bold tabular-nums">{brl(r.preco_venda)}</dd>
-            {m !== null && <dd className={`text-[11px] ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</dd>}
+            {m !== null && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</dd>}
           </div>
           <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-[11px] font-semibold uppercase text-slate-500">Estoque</dt>
+            <dt className="text-2xs font-semibold uppercase text-slate-500">Estoque</dt>
             <dd className={`text-sm font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
-            {e.detalhe && <dd className="text-[11px] text-slate-500">{e.detalhe}</dd>}
+            {e.detalhe && <dd className="text-2xs text-slate-500">{e.detalhe}</dd>}
           </div>
           <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-[11px] font-semibold uppercase text-slate-500">Vendidos 3 meses</dt>
+            <dt className="text-2xs font-semibold uppercase text-slate-500">Vendidos 3 meses</dt>
             <dd className="text-sm font-bold tabular-nums">{v ? `${v.quantidade} ${r.unidade ?? ""}`.trim() : "0"}</dd>
-            <dd className="text-[11px] text-slate-500">{v ? `em ${v.vendas} venda${v.vendas > 1 ? "s" : ""}` : "nenhuma venda"}</dd>
+            <dd className="text-2xs text-slate-500">{v ? `em ${v.vendas} venda${v.vendas > 1 ? "s" : ""}` : "nenhuma venda"}</dd>
           </div>
         </dl>
       </div>
@@ -755,7 +755,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                   <div className="font-medium">{r.descricao}</div>
                   <div className="text-xs text-slate-500">{[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
                   {r.vendavel === false && (
-                    <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Não aparece no pedido">
+                    <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Não aparece no pedido">
                       <AlertTriangle size={12} /> não vende
                     </span>
                   )}

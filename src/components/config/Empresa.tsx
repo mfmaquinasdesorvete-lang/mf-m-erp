@@ -92,12 +92,12 @@ function PreviaPdf({ cfg, nome }: { cfg: Record<string, any>; nome: string }) {
         {cfg.logo_url ? <img src={cfg.logo_url} alt="" className="h-11 w-11 object-contain" /> : <span className="h-11 w-11 rounded bg-amber-500" />}
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{nome}</div>
-          <div className="truncate text-[10px] opacity-80">{[cfg.razao_social, cfg.cnpj && `CNPJ ${docFormat(cfg.cnpj)}`].filter(Boolean).join(" · ")}</div>
-          <div className="truncate text-[10px] opacity-80">{[cfg.endereco, cfg.municipio && `${cfg.municipio}/${cfg.uf ?? ""}`].filter(Boolean).join(" - ")}</div>
+          <div className="truncate text-2xs opacity-80">{[cfg.razao_social, cfg.cnpj && `CNPJ ${docFormat(cfg.cnpj)}`].filter(Boolean).join(" · ")}</div>
+          <div className="truncate text-2xs opacity-80">{[cfg.endereco, cfg.municipio && `${cfg.municipio}/${cfg.uf ?? ""}`].filter(Boolean).join(" - ")}</div>
         </div>
         <div className="text-right">
           <div className="text-xs font-bold">PROPOSTA COMERCIAL</div>
-          <div className="text-[10px] opacity-80">Nº 123</div>
+          <div className="text-2xs opacity-80">Nº 123</div>
         </div>
       </div>
       <div className="space-y-1.5 p-3"><div className="h-2 w-2/3 rounded bg-slate-200" /><div className="h-2 w-1/2 rounded bg-slate-100" /><div className="h-2 w-3/4 rounded bg-slate-100" /></div>
@@ -139,7 +139,7 @@ function EnviarImagem({ rotulo, dica, url, nome, quadrado, onUrl }: { rotulo: st
   return (
     <div className="flex items-center gap-3">
       <div className={`grid shrink-0 place-items-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-[repeating-conic-gradient(#e2e8f0_0_25%,transparent_0_50%)] bg-[length:16px_16px] ${quadrado ? "h-16 w-16" : "h-16 w-28"}`}>
-        {url ? <img src={url} alt={rotulo} className="max-h-full max-w-full object-contain" /> : <span className="text-[11px] text-slate-400">sem {rotulo.toLowerCase().split(" ")[0]}</span>}
+        {url ? <img src={url} alt={rotulo} className="max-h-full max-w-full object-contain" /> : <span className="text-2xs text-slate-400">sem {rotulo.toLowerCase().split(" ")[0]}</span>}
       </div>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-fg">{rotulo}</div>

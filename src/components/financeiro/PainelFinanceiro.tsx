@@ -232,7 +232,7 @@ export function PainelFinanceiro() {
           { rotulo: "Contas da semana", icone: CalendarDays, onClick: () => navigate("/financeiro", { state: { aba: "visao" } }) },
         ].map(({ rotulo, icone: Icone, onClick }) => (
           <button key={rotulo} type="button" onClick={onClick}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-surface px-3.5 py-2 text-sm font-semibold text-fg shadow-card hover:border-brand/40">
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-fg shadow-card hover:border-brand/40">
             <Icone size={15} className="text-brand" /> {rotulo}
           </button>
         ))}
@@ -318,7 +318,7 @@ function Tile({ icone: Icone, cor, titulo, valor, sub, alerta, onClick }: {
 }) {
   return (
     <button type="button" onClick={onClick}
-      className={`flex min-w-0 flex-col rounded-2xl border bg-surface p-3.5 text-left shadow-card transition active:scale-[0.98] ${alerta ? "border-red-200" : "border-slate-200"}`}>
+      className={`flex min-w-0 flex-col rounded-2xl border bg-surface p-4 text-left shadow-card transition active:scale-[0.98] ${alerta ? "border-red-200" : "border-slate-200"}`}>
       <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-600"><Icone size={17} className={cor} /> {titulo}</span>
       <span className={`num mt-1 truncate text-[clamp(1.05rem,4.6vw,1.5rem)] font-bold ${alerta ? "text-red-700" : "text-fg"}`}>{brl(valor)}</span>
       <span className="truncate text-xs text-slate-500">{sub}</span>

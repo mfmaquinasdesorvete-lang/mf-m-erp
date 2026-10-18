@@ -53,7 +53,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Kits do Tiny">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={20} aria-hidden /> {resultado.kits} {pl(resultado.kits, "kit", "kits")} com {resultado.componentes} {pl(resultado.componentes, "componente", "componentes")} gravados.</p>
           {resultado.ja_tinham.length > 0 && <p className="text-sm text-slate-600">Já tinham componentes (ficaram como estavam): {resultado.ja_tinham.join(", ")}.</p>}
           <p className="text-sm text-slate-600">Ao vender um kit, o estoque sai das peças dele. Kit dentro de kit (ex.: Mecânica Dupla) sai pelas peças do kit de dentro.
@@ -67,7 +67,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
   const aGravar = planos.filter((k) => marcados.has(k.tinyId) && marcavel(k));
   return (
     <Modal open onClose={onClose} title="Kits do Tiny (composição)" wide>
-      <div className="space-y-4 text-[15px]">
+      <div className="space-y-4 text-sm">
         <p className="text-sm text-slate-600">
           No Tiny: <b>Produtos → Kits e fabricados → Exportar composição</b>. Pode escolher várias planilhas de uma vez.
           Cada componente é achado pelo código do Tiny, depois pelo SKU e por último pela descrição. Nada é apagado:
@@ -100,7 +100,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
                     <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-fg">{k.produto?.descricao ?? k.descricaoTiny}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.cor}`} title={s.ajuda}>{s.rotulo}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${s.cor}`} title={s.ajuda}>{s.rotulo}</span>
                       </div>
                       <p className="text-xs text-slate-500">
                         {k.produto?.sku ? `${k.produto.sku} · ` : ""}{k.itens.length} {pl(k.itens.length, "componente", "componentes")}{k.faltando.length ? ` · ${k.faltando.length} fora do cadastro` : ""}

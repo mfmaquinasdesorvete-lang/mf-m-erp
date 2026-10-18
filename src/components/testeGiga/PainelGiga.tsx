@@ -69,7 +69,7 @@ export function PainelGiga({ ctx, onReteste, onVerRegistros }: {
         <div role="tablist" aria-label="Período" className="grid w-full grid-cols-5 gap-0.5 rounded-xl border border-slate-200 bg-surface p-1 shadow-card sm:inline-grid sm:w-auto">
           {PERIODOS.map((p) => (
             <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
-              className={`min-h-[36px] whitespace-nowrap rounded-lg px-2.5 text-[13px] font-bold transition sm:px-3 ${periodo === p.id ? "bg-modulo-escuro text-white shadow" : "text-slate-600 hover:bg-slate-100"}`}>
+              className={`min-h-[36px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition sm:px-3 ${periodo === p.id ? "bg-modulo-escuro text-white shadow" : "text-slate-600 hover:bg-slate-100"}`}>
               {p.rotulo}
             </button>
           ))}

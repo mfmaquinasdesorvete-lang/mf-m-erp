@@ -72,8 +72,8 @@ export function ModalRenegociar({ contas, onClose, onFeito }: { contas: Conta[];
     <Modal open onClose={onClose} title="Renegociar contas">
       <form onSubmit={salvar} className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-xl p-3 sm:col-span-2" style={{ background: COR_RENEGOCIADA.fundo, color: COR_RENEGOCIADA.tinta }}>
-          <div className="font-extrabold">{validas.length} {pl(validas.length, "conta", "contas")} · <span className="num">{brl(total)}</span></div>
-          <ul className="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-[13px]">
+          <div className="font-bold">{validas.length} {pl(validas.length, "conta", "contas")} · <span className="num">{brl(total)}</span></div>
+          <ul className="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs">
             {validas.map((c) => <li key={c.id} className="flex justify-between gap-2"><span className="min-w-0 truncate">{dataBR(c.vencimento)} · {c.fornecedor?.nome || c.descricao}</span><span className="num shrink-0 font-semibold">{brl(c.valor)}</span></li>)}
           </ul>
           {fornecedores.length > 1 && <p className="mt-1 text-xs font-semibold">Contas de {fornecedores.length} fornecedores: o acordo fica no nome do fornecedor da conta mais antiga.</p>}
@@ -99,7 +99,7 @@ export function ModalRenegociar({ contas, onClose, onFeito }: { contas: Conta[];
           </p>
           {previa.length > 0 && (
             <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 sm:col-span-2">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-xs">
                 <tbody>{previa.map((p) => <tr key={p.n} className="border-b border-slate-100 last:border-0"><td className="px-3 py-1">{p.n}/{previa.length}</td><td className="num px-3 py-1">{dataBR(p.vencimento)}</td><td className="num px-3 py-1 text-right font-semibold">{brl(p.valor)}</td></tr>)}</tbody>
               </table>
             </div>
@@ -119,16 +119,16 @@ export function ModalRenegociar({ contas, onClose, onFeito }: { contas: Conta[];
 /* ------------------------------ Andamento (barra das parcelas) ------------------------------ */
 
 function BarraAndamento({ a }: { a: ReturnType<typeof andamento> }) {
-  if (!a.total) return <p className="text-[13px] opacity-90">Sem parcelas ainda.</p>;
+  if (!a.total) return <p className="text-xs opacity-90">Sem parcelas ainda.</p>;
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2 text-[13px] font-semibold">
+      <div className="flex items-baseline justify-between gap-2 text-xs font-semibold">
         <span>{a.pagas} de {a.total} {pl(a.total, "parcela paga", "parcelas pagas")}</span><span className="num">{a.pct}%</span>
       </div>
       <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-white/50" role="progressbar" aria-valuenow={a.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Parcelas pagas">
         <div className="h-full rounded-full bg-[#042f2e]" style={{ width: `${a.pct}%` }} />
       </div>
-      <div className="num mt-1 flex flex-wrap justify-between gap-x-3 text-[13px]"><span>Pago {brl(a.valorPago)}</span><span>Falta {brl(a.falta)}</span></div>
+      <div className="num mt-1 flex flex-wrap justify-between gap-x-3 text-xs"><span>Pago {brl(a.valorPago)}</span><span>Falta {brl(a.falta)}</span></div>
     </div>
   );
 }
@@ -177,22 +177,22 @@ export function PainelRenegociadas({ contas, onAbrir, rodape }: { contas: Conta[
           const forn = fornecedores.find((f) => f.id === n.fornecedor_id)?.nome;
           return (
             <article key={n.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
-              <button type="button" onClick={() => onAbrir(n.id)} className="block w-full p-3.5 text-left hover:brightness-105" style={{ background: COR_RENEGOCIADA.fundo, color: COR_RENEGOCIADA.tinta }}
+              <button type="button" onClick={() => onAbrir(n.id)} className="block w-full p-4 text-left hover:brightness-105" style={{ background: COR_RENEGOCIADA.fundo, color: COR_RENEGOCIADA.tinta }}
                 title="Abrir o histórico da negociação">
                 <div className="flex items-start gap-2">
                   <Handshake size={18} className="mt-0.5 shrink-0" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-[15px] font-extrabold leading-snug">{n.titulo}</div>
-                    {forn && <div className="truncate text-[13px] font-semibold opacity-90">{forn}</div>}
+                    <div className="line-clamp-2 text-sm font-bold leading-snug">{n.titulo}</div>
+                    {forn && <div className="truncate text-xs font-semibold opacity-90">{forn}</div>}
                   </div>
                   <EtiquetaUnidade id={n.unidade_id} />
                 </div>
-                <div className="num mt-2 text-[13px]">
+                <div className="num mt-2 text-xs">
                   Contas <b>{brl(n.valor_original)}</b>{n.valor_acordo != null && <> → acordo <b>{brl(n.valor_acordo)}</b>{n.parcelas ? ` em ${n.parcelas}x` : ""}</>}
                 </div>
                 <div className="mt-2"><BarraAndamento a={a} /></div>
               </button>
-              <div className="flex flex-wrap items-center gap-2 p-3 text-[13px]">
+              <div className="flex flex-wrap items-center gap-2 p-3 text-xs">
                 <span title={s.dica} className={`rounded-full px-2 py-0.5 text-xs font-bold ${s.chip}`}>{s.rotulo}</span>
                 {a.proxima && <span className="text-slate-600">Próxima: <b className="num text-fg">{dataBR(a.proxima.vencimento)}</b> · <span className="num">{brl(a.proxima.valor)}</span></span>}
                 <Button variant="secondary" className="ml-auto" onClick={() => onAbrir(n.id)}><StickyNote size={15} /> Histórico</Button>
@@ -338,8 +338,8 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
             <div className="flex flex-wrap items-start gap-2">
               <Handshake size={22} className="shrink-0" aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="text-lg font-extrabold leading-tight">{n.titulo}</div>
-                <div className="text-[13px] font-semibold opacity-90">{[forn, n.criado_nome && `aberta por ${n.criado_nome}`, `em ${dataBR(n.created_at.slice(0, 10))}`].filter(Boolean).join(" · ")}</div>
+                <div className="text-lg font-bold leading-tight">{n.titulo}</div>
+                <div className="text-xs font-semibold opacity-90">{[forn, n.criado_nome && `aberta por ${n.criado_nome}`, `em ${dataBR(n.created_at.slice(0, 10))}`].filter(Boolean).join(" · ")}</div>
               </div>
               {podeEditar ? (
                 <label className="flex w-full flex-col text-xs font-bold sm:w-auto">Situação
@@ -349,12 +349,12 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
                 </label>
               ) : <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${SITUACOES_NEGOCIACAO[n.situacao].chip}`}>{SITUACOES_NEGOCIACAO[n.situacao].rotulo}</span>}
             </div>
-            <div className="num mt-2 text-[13px]">Contas <b>{brl(n.valor_original)}</b>{n.valor_acordo != null && <> → acordo <b>{brl(n.valor_acordo)}</b>{n.parcelas ? ` em ${n.parcelas}x` : ""}</>}</div>
+            <div className="num mt-2 text-xs">Contas <b>{brl(n.valor_original)}</b>{n.valor_acordo != null && <> → acordo <b>{brl(n.valor_acordo)}</b>{n.parcelas ? ` em ${n.parcelas}x` : ""}</>}</div>
             <div className="mt-2 max-w-md"><BarraAndamento a={a} /></div>
             {a.quitada && n.situacao !== "quitada" && podeEditar && (
               <button type="button" onClick={() => mudarSituacao("quitada")} className="mt-2 rounded-lg bg-[#042f2e] px-3 py-1.5 text-xs font-bold text-white hover:brightness-125">Todas pagas: marcar como quitada</button>
             )}
-            {n.observacoes && <p className="mt-2 whitespace-pre-line rounded-lg bg-white/50 p-2 text-[13px]">{n.observacoes}</p>}
+            {n.observacoes && <p className="mt-2 whitespace-pre-line rounded-lg bg-white/50 p-2 text-xs">{n.observacoes}</p>}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

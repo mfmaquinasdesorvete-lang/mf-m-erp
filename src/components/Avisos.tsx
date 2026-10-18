@@ -64,7 +64,7 @@ export function PreviaAviso({ tipo, nome, papel, empresa }: { tipo: string; nome
   return (
     <div className="rounded-2xl bg-[#0e1621] p-4">
       {/* conteúdo vem dos modelos com os valores já escapados */}
-      <div className="max-w-[340px] rounded-2xl rounded-bl-md bg-[#182533] px-3.5 py-2.5 text-[15px] leading-snug text-[#f5f5f5] [&_a]:text-[#6ab3f3] [&_b]:font-bold"
+      <div className="max-w-[340px] rounded-2xl rounded-bl-md bg-[#182533] px-4 py-2.5 text-sm leading-snug text-[#f5f5f5] [&_a]:text-[#6ab3f3] [&_b]:font-bold"
         dangerouslySetInnerHTML={{ __html: html }} />
       <div className="mt-1.5 pl-1 text-xs text-[#6d7f8f]">Robô MF Máquinas · Telegram</div>
     </div>
@@ -171,7 +171,7 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
               <li key={t.tipo} className="p-3">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-semibold text-fg">{t.titulo}</div>
+                    <div className="text-sm font-semibold text-fg">{t.titulo}</div>
                     <div className="text-sm text-slate-500">{t.ativo ? t.descricao : "Desligado pelo administrador"}</div>
                     <button type="button" onClick={() => setPrevia(previa === t.tipo ? null : t.tipo)} className="mt-1 text-xs font-semibold text-brand hover:underline">
                       {previa === t.tipo ? "Fechar exemplo" : "Ver exemplo"}
@@ -264,10 +264,10 @@ export function AvisosConfig() {
       {ts.map((t) => (
         <li key={t.tipo} className="flex items-center gap-3 p-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold text-fg">{t.titulo}</div>
+            <div className="text-sm font-semibold text-fg">{t.titulo}</div>
             <div className="text-sm text-slate-500">{t.descricao}</div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              {publico === "equipe" && t.papeis.map((p) => <span key={p} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{PAPEL_ROTULO[p]}</span>)}
+              {publico === "equipe" && t.papeis.map((p) => <span key={p} className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">{PAPEL_ROTULO[p]}</span>)}
               <button type="button" onClick={() => setPrevia(t)} className="text-xs font-semibold text-brand hover:underline">Ver exemplo</button>
             </div>
           </div>

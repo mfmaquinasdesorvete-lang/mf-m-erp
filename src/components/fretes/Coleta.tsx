@@ -90,12 +90,12 @@ export function AgendarColeta({ envio, transportadoras, podeAgendar, pendente, n
                   title={d.disponivel ? undefined : d.motivo} onClick={() => setData(d.data)}
                   className={`grid min-w-[4.25rem] place-items-center rounded-xl border px-3 py-2 text-center transition ${data === d.data
                     ? "border-brand bg-brand text-brand-fg shadow-sm" : d.disponivel ? "border-slate-300 bg-surface text-fg hover:border-brand/60" : "cursor-not-allowed border-dashed border-slate-200 text-slate-400"}`}>
-                  <span className="text-[11px] font-semibold tracking-wide">{d.sigla}</span>
+                  <span className="text-2xs font-semibold tracking-wide">{d.sigla}</span>
                   <span className="text-base font-bold leading-tight">{d.dia}</span>
-                  {!d.disponivel && <span className="text-[10px] leading-tight">{d.motivo === "não coleta" ? "não coleta" : "feriado"}</span>}
+                  {!d.disponivel && <span className="text-2xs leading-tight">{d.motivo === "não coleta" ? "não coleta" : "feriado"}</span>}
                 </button>
               ))}
-              <label className="grid min-w-[8rem] content-center rounded-xl border border-slate-300 bg-surface px-2 py-1 text-[11px] font-semibold text-slate-500">
+              <label className="grid min-w-[8rem] content-center rounded-xl border border-slate-300 bg-surface px-2 py-1 text-2xs font-semibold text-slate-500">
                 Outra data
                 <input type="date" className="bg-transparent text-sm text-fg outline-none" min={dia} value={dias.some((d) => d.data === data) ? "" : data} onChange={(x) => setData(x.target.value)} />
               </label>

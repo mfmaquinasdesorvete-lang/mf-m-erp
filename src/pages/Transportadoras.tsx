@@ -171,7 +171,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
   ];
   return (
     <li className={`rounded-2xl border bg-surface shadow-card ${t.ativo ? "border-slate-200" : "border-dashed border-slate-300 opacity-75"}`}>
-      <div className="flex flex-wrap items-start gap-3 p-3.5">
+      <div className="flex flex-wrap items-start gap-3 p-4">
         <button type="button" onClick={onAlternar} aria-expanded={aberta} aria-label={aberta ? "Fechar" : "Abrir"}
           className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
           {aberta ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
@@ -183,12 +183,12 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
           </button>
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <Chip>{TIPOS[t.tipo ?? "transportadora"]}</Chip>
-            <span title={api.dica} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${COR_API[t.api ?? "desconhecido"]}`}>
+            <span title={api.dica} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold ${COR_API[t.api ?? "desconhecido"]}`}>
               <Plug size={11} aria-hidden /> {api.rotulo}{(t.api === "sim" || t.api === "parcial") && t.api_recursos?.length ? `: ${t.api_recursos.slice(0, 3).map((r) => RECURSOS[r] ?? r).join(", ")}` : ""}
             </span>
-            {aConferir(t) && <span title="Dados encontrados na internet: confira antes de usar" className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">a conferir</span>}
+            {aConferir(t) && <span title="Dados encontrados na internet: confira antes de usar" className="rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">a conferir</span>}
             {!t.ativo && <Chip>inativa</Chip>}
-            {!temContato(m) && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">sem contato</span>}
+            {!temContato(m) && <span className="rounded-full bg-red-50 px-2 py-0.5 text-2xs font-semibold text-red-700">sem contato</span>}
           </div>
           <div className="mt-1 text-xs text-slate-500">
             {[m.filiais.length ? `${m.filiais.length} filial(is)` : [t.municipio, t.uf].filter(Boolean).join("/"), ufs.length > 1 && ufs.join(", "),
@@ -207,7 +207,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
       </div>
 
       {aberta && (
-        <div className="border-t border-slate-100 px-3.5 pb-3.5 pt-2.5">
+        <div className="border-t border-slate-100 px-4 pb-4 pt-2.5">
           <div className="mb-2.5 flex flex-wrap gap-1" role="tablist">
             {abas.map((a) => (
               <button key={a.v} type="button" role="tab" aria-selected={aba === a.v} onClick={() => setAba(a.v)}
@@ -232,7 +232,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
   );
 }
 
-const Chip = ({ children }: { children: ReactNode }) => <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">{children}</span>;
+const Chip = ({ children }: { children: ReactNode }) => <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-700">{children}</span>;
 const Vazio = ({ children }: { children: ReactNode }) => <p className="py-2 text-sm text-slate-500">{children}</p>;
 
 function Filiais({ m, podeEditar, onEditar, onNova, onAgrupar, onUnificar, onSeparar }: {
@@ -322,7 +322,7 @@ function Rede({ m, itens, podeEditar, onCadastrar }: { m: Marca; itens: (Unidade
               <span className="font-semibold text-fg">{u.nome || [u.municipio, u.uf].filter(Boolean).join("/")}</span>
               <span className="block text-xs text-slate-500">{[[u.municipio, u.uf].filter(Boolean).join("/"), u.cnpj && docFormat(u.cnpj), u.telefone, u.email, u.endereco].filter(Boolean).join(" · ")}</span>
             </span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${u.origem?.startsWith("internet") ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-700"}`}>{u.origem ?? "—"}</span>
+            <span className={`rounded-full px-2 py-0.5 text-2xs font-semibold ${u.origem?.startsWith("internet") ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-700"}`}>{u.origem ?? "—"}</span>
             {u.cadastrada ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={14} /> já cadastrada</span>
               : podeEditar && <Button type="button" variant="secondary" className="!min-h-0 !py-1 text-xs" onClick={() => onCadastrar(u)}><Plus size={14} /> Cadastrar como filial</Button>}
           </li>

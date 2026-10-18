@@ -16,7 +16,7 @@ function LoginDemo() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4">
       <Card className="w-full max-w-md p-6">
-        <div className="mb-5 flex flex-col items-center text-center"><img src={logo} alt="" className="mb-3 h-20 w-20 rounded-2xl shadow-pop" /><span className="block text-2xl font-extrabold tracking-tight text-fg">ERP <span className="text-brand">Line</span></span><span className="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">MF Máquinas</span></div>
+        <div className="mb-5 flex flex-col items-center text-center"><img src={logo} alt="" className="mb-3 h-20 w-20 rounded-2xl shadow-pop" /><span className="block text-2xl font-bold tracking-tight text-fg">ERP <span className="text-brand">Line</span></span><span className="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">MF Máquinas</span></div>
         <p className="mb-5 text-sm text-slate-600">
           Prévia com dados de exemplo. Escolha um perfil para ver as telas que cada pessoa da equipe enxerga.
         </p>
@@ -48,7 +48,7 @@ function Marca({ sub }: { sub: string }) {
     <>
       <div className="mb-5 flex flex-col items-center text-center">
         <img src={logo} alt="" className="mb-3 h-20 w-20 rounded-2xl shadow-pop" />
-        <h1 className="text-2xl font-extrabold tracking-tight text-fg">ERP <span className="text-brand">Line</span></h1>
+        <h1 className="text-2xl font-bold tracking-tight text-fg">ERP <span className="text-brand">Line</span></h1>
         <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">MF Máquinas</span>
       </div>
       <p className="mb-6 text-sm text-slate-600">{sub}</p>

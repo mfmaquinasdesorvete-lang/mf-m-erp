@@ -137,7 +137,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
                   </div>
                   <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                     <div className="rounded-lg bg-slate-50 px-2 py-1.5">
-                      <dt className="text-[11px] font-semibold uppercase text-slate-500">Custo</dt>
+                      <dt className="text-2xs font-semibold uppercase text-slate-500">Custo</dt>
                       <dd className="font-bold tabular-nums">
                         {s.custo_anterior != null && <span className="mr-1 text-xs font-normal text-slate-400 line-through">{brl(s.custo_anterior)}</span>}
                         <span className={subiu ? "text-red-600" : desceu ? "text-emerald-700" : ""}>{brl(s.custo_novo)}</span>
@@ -145,18 +145,18 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
                       </dd>
                     </div>
                     <div className="rounded-lg bg-slate-50 px-2 py-1.5">
-                      <dt className="text-[11px] font-semibold uppercase text-slate-500">Preço hoje</dt>
+                      <dt className="text-2xs font-semibold uppercase text-slate-500">Preço hoje</dt>
                       <dd className="font-bold tabular-nums">{Number(s.preco_atual) > 0 ? brl(s.preco_atual) : "sem preço"}</dd>
-                      <dd className={`text-[11px] ${margemAtual != null && margemAtual < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {pct(margemAtual)}</dd>
+                      <dd className={`text-2xs ${margemAtual != null && margemAtual < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {pct(margemAtual)}</dd>
                     </div>
                     <div className="col-span-2 rounded-lg bg-amber-50 px-2 py-1.5">
-                      <dt className="text-[11px] font-semibold uppercase text-amber-800">Preço novo (margem desejada {pct(s.margem_alvo)})</dt>
+                      <dt className="text-2xs font-semibold uppercase text-amber-800">Preço novo (margem desejada {pct(s.margem_alvo)})</dt>
                       <dd className="flex items-center gap-2">
                         <span className="text-xs text-slate-500">R$</span>
                         <input className="input h-9 w-28 py-1 font-bold tabular-nums" inputMode="decimal" aria-label="Preço novo"
                           disabled={!podeAprovar} value={precos[s.id] ?? String(Number(s.preco_sugerido).toFixed(2)).replace(".", ",")}
                           onChange={(e) => setPrecos((p) => ({ ...p, [s.id]: e.target.value }))} />
-                        <span className="text-[11px] text-slate-600">margem {pct(margemNova)}</span>
+                        <span className="text-2xs text-slate-600">margem {pct(margemNova)}</span>
                       </dd>
                     </div>
                   </dl>

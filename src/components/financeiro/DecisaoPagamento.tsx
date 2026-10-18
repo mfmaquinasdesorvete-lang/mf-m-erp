@@ -45,7 +45,7 @@ export function useProgramar() {
 export function ChipDecisao({ conta, hoje = hojeISO() }: { conta: ContaDecisao; hoje?: string }) {
   const r = rotuloDecisao(conta, hoje);
   if (!r) return null;
-  return <span title={r.dica} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${COR_TOM[r.tom]}`}>{r.texto}</span>;
+  return <span title={r.dica} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${COR_TOM[r.tom]}`}>{r.texto}</span>;
 }
 
 /**

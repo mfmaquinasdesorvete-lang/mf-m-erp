@@ -425,7 +425,7 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
                                   <span>
                                     <span className="num block font-semibold">{brl(r!.preco_unitario)}</span>
                                     <span className="num block text-xs text-slate-500">{brl(Number(r!.preco_unitario) * Number(i.quantidade))}{r!.prazo_dias != null ? ` · ${r!.prazo_dias}d` : ""}</span>
-                                    {melhor[i.id] === f.id && <span className="text-[11px] font-semibold text-emerald-700">menor preço</span>}
+                                    {melhor[i.id] === f.id && <span className="text-2xs font-semibold text-emerald-700">menor preço</span>}
                                   </span>
                                   {aberta && <input type="radio" className="mt-1 h-4 w-4" name={`esc-${i.id}`} checked={eh} aria-label={`Comprar ${i.descricao} de ${nomeForn(fornecedor(f))}`}
                                     onChange={() => setEscolha((e) => ({ ...e, [i.id]: f.id }))} />}
@@ -461,7 +461,7 @@ function CotacaoDetalhe({ id, podeEditar, onClose, aoGerarPedidos }: { id: strin
                             <label className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${escolhido(i.id) === f.id ? "bg-emerald-50" : ""}`}>
                               {aberta && ok && <input type="radio" className="h-4 w-4" name={`esc-m-${i.id}`} checked={escolhido(i.id) === f.id} onChange={() => setEscolha((e) => ({ ...e, [i.id]: f.id }))} />}
                               <span className="min-w-0 flex-1 truncate">{nomeForn(fornecedor(f))}</span>
-                              <span className="num text-right">{ok ? <>{brl(r!.preco_unitario)}{melhor[i.id] === f.id && <span className="ml-1 text-[11px] font-semibold text-emerald-700">menor</span>}</> : <span className="text-xs text-slate-500">{r && !r.disponivel ? "não tem" : "—"}</span>}</span>
+                              <span className="num text-right">{ok ? <>{brl(r!.preco_unitario)}{melhor[i.id] === f.id && <span className="ml-1 text-2xs font-semibold text-emerald-700">menor</span>}</> : <span className="text-xs text-slate-500">{r && !r.disponivel ? "não tem" : "—"}</span>}</span>
                             </label>
                           </li>
                         );

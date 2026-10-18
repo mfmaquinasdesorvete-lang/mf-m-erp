@@ -289,8 +289,8 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                   <td className="td text-right">{brl(n.valor_total)}</td>
                   <td className="td">
                     <IconeSituacao s={situacaoEmitida(n)} />
-                    {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
-                    {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
+                    {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
+                    {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
                   </td>
                   <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
@@ -417,7 +417,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
                 <td className="td text-right">{brl(n.valor_total)}</td>
                 <td className="td">
                   <IconeSituacao s={situacaoRecebida(n)} />
-                  {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
+                  {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                   {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
                 </td>
                 <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>

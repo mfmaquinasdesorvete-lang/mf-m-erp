@@ -99,7 +99,7 @@ export function Monitor() {
                       </details>
                     )}
                     <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                      <span className="font-mono text-[11px] text-slate-500">{a.nome}</span>
+                      <span className="font-mono text-2xs text-slate-500">{a.nome}</span>
                       {def?.tela && <Link to={def.tela} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:underline">Abrir <ArrowRight size={12} aria-hidden /></Link>}
                     </div>
                   </li>

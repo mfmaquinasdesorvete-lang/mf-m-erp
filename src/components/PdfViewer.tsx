@@ -36,7 +36,7 @@ export function PdfViewer({ blob, nome, titulo, onClose }: { blob: Blob; nome: s
 
   const baixar = (
     <a href={url} download={nome}
-      className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:bg-brand-dark sm:min-h-0">
+      className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:bg-brand-dark sm:min-h-0">
       <Download size={16} /> Baixar PDF
     </a>
   );

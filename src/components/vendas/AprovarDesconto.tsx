@@ -52,7 +52,7 @@ export function AprovarDesconto({ percentual, maximo, contexto, pedidoId, canal,
 
   return (
     <Modal open onClose={onClose} title="Aprovar desconto">
-      <form onSubmit={aprovar} className="space-y-4 text-[15px]">
+      <form onSubmit={aprovar} className="space-y-4 text-sm">
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           Desconto de <b>{pctTexto(percentual)}</b>: o máximo para {rotuloRegra(canal, forma)} é <b>{pctTexto(maximo)}</b>.
           Um administrador precisa aprovar com a senha de aprovação.

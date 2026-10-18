@@ -99,7 +99,7 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
                   </span>
                   <span className="shrink-0 text-right">
                     <span className="num block font-semibold text-fg">{brl(c.status === "pago" ? c.valor_pago ?? c.valor : c.valor)}</span>
-                    <span className={`mt-0.5 inline-block rounded border px-1.5 py-px text-[11px] font-semibold ${CHIP[s]}`}>{rotulo[s]}</span>
+                    <span className={`mt-0.5 inline-block rounded border px-1.5 py-px text-2xs font-semibold ${CHIP[s]}`}>{rotulo[s]}</span>
                   </span>
                 </Tag>
               </li>

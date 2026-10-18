@@ -58,7 +58,7 @@ export function ReembolsoDevolucao({ tipo, id, numero, valor, contaId, cliente, 
       <div className="flex flex-wrap items-center gap-2">
         <Undo2 size={16} className="text-purple-700" aria-hidden />
         <b className="text-fg">Devolução de venda: dinheiro do cliente</b>
-        {ativa && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800">
+        {ativa && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800">
           {conta.status === "pago" ? "reembolso pago" : conta.revisao === "aprovado" ? "reembolso aprovado" : "reembolso falta aprovar"} · {brl(conta.valor)} · vence {dataBR(conta.vencimento)}
         </span>}
       </div>

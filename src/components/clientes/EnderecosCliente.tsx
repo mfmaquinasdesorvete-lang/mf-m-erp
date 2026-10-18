@@ -83,7 +83,7 @@ export function EnderecosExtras({ lista, onChange, disabled }: { lista: Endereco
         <div key={i} className="rounded-xl border border-slate-200 p-3">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold text-fg">Endereço {i + 2}</span>
-            {e.origem && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-800">veio do {e.origem}</span>}
+            {e.origem && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-2xs font-semibold text-purple-800">veio do {e.origem}</span>}
             <div className="flex-1" />
             {textoEndereco(e) && (
               <a href={linkMapa(e)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-light">

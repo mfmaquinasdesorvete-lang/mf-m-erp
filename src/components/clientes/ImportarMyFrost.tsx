@@ -113,7 +113,7 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
   if (resultado) {
     return (
       <Modal open onClose={onClose} title="Base da My Frost importada">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 size={22} /> Pronto.</p>
           <ul className="list-disc space-y-1 pl-5 text-slate-700">
             <li>{resultado.novos} clientes novos (etiqueta "My Frost (histórico)")</li>
@@ -140,7 +140,7 @@ export function ImportarMyFrost({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Base da My Frost (empresa anterior)" wide>
       {!leitura || !resumo ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             Escolha o backup do Tiny da My Frost (a planilha com as abas <b>Contatos</b>, <b>Pedidos_venda_itens</b>, <b>Propostas</b> e <b>Produtos</b>).
             Nada é gravado antes da sua confirmação na próxima tela.
           </p>

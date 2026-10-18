@@ -71,7 +71,7 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
                   <td className="num px-3 py-2">{f.codigo_fornecedor || <span className="text-slate-400">—</span>}</td>
                   <td className="px-3 py-2 text-right">
                     {f.preco != null ? <span className={`num font-semibold ${Number(f.preco) === menor && lista.length > 1 ? "text-emerald-700" : ""}`}>{brl(f.preco)}</span> : <span className="text-xs text-slate-500">sem preço</span>}
-                    {f.preco_em && <span className="block text-[11px] text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
+                    {f.preco_em && <span className="block text-2xs text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
                   </td>
                   <td className="num px-3 py-2 text-right">{f.prazo_dias != null ? `${f.prazo_dias} dias` : "—"}</td>
                   <td className="num px-3 py-2">{f.ultima_compra_em ? dataBR(f.ultima_compra_em) : "—"}</td>
@@ -85,14 +85,14 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
           {lista.map((f) => (
             <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
               <span className="min-w-0 flex-1">
-                <b>{nome(f.fornecedor_id)}</b>{f.preferido && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">preferido</span>}
+                <b>{nome(f.fornecedor_id)}</b>{f.preferido && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">preferido</span>}
                 <span className="block text-xs text-slate-500">
                   {[f.codigo_fornecedor && `código ${f.codigo_fornecedor}`, f.prazo_dias != null && `${f.prazo_dias} dias`, f.ultima_compra_em && `última compra ${dataBR(f.ultima_compra_em)}`].filter(Boolean).join(" · ") || "sem detalhes"}
                 </span>
               </span>
               <span className="text-right">
                 {f.preco != null ? <span className={`num block font-semibold ${Number(f.preco) === menor && lista.length > 1 ? "text-emerald-700" : ""}`}>{brl(f.preco)}</span> : <span className="text-xs text-slate-500">sem preço</span>}
-                {f.preco_em && <span className="block text-[11px] text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
+                {f.preco_em && <span className="block text-2xs text-slate-500">{ORIGEM[f.preco_origem ?? ""] ?? ""} {dataBR(f.preco_em)}</span>}
               </span>
               {podeEditar && !f.preferido && (
                 <Button type="button" variant="ghost" className="!min-h-0 !px-2" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f)}><Star size={15} aria-hidden /></Button>

@@ -119,7 +119,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
             <div className="text-sm text-emerald-800">
               {quando(assinada.assinado_em)} · {assinada.canal === "presencial" ? "presencial" : "pelo link"}{assinada.ip ? ` · IP ${assinada.ip}` : ""}
             </div>
-            <div className="mt-1 flex items-center gap-1 truncate font-mono text-[11px] text-emerald-700" title={assinada.hash ?? ""}>
+            <div className="mt-1 flex items-center gap-1 truncate font-mono text-2xs text-emerald-700" title={assinada.hash ?? ""}>
               <Fingerprint size={12} className="shrink-0" /> {hashLegivel(assinada.hash).slice(0, 39)}…
             </div>
           </div>

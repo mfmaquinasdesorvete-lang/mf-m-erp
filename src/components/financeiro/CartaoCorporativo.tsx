@@ -104,11 +104,11 @@ function CartaoResumo({ cartao: c }: { cartao: Cartao }) {
           <span className="grid h-10 w-14 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 shadow-inner" aria-hidden><CreditCard size={22} /></span>
           <div className="min-w-[10rem] flex-1">
             <h2 className="text-lg font-bold leading-tight">{c.cartao_nome}</h2>
-            <p className="text-[13px] text-white/80">{c.nome}{c.extrato_ate ? ` · extrato até ${dataBR(c.extrato_ate)}` : ""}</p>
+            <p className="text-xs text-white/80">{c.nome}{c.extrato_ate ? ` · extrato até ${dataBR(c.extrato_ate)}` : ""}</p>
           </div>
           {/* sem espaço, o total do mês desce para a linha de baixo (não espreme o nome do cartão) */}
           <div className="ml-auto text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Este mês</div>
+            <div className="text-2xs font-semibold uppercase tracking-wide text-white/70">Este mês</div>
             <div className="num text-xl font-bold">{brl(doMes.total)}</div>
           </div>
         </div>
@@ -168,7 +168,7 @@ function BarrasCategoria({ linhas, total, ativa, onEscolher }: { linhas: ReturnT
             </span>
             <span className="hidden h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 sm:block"><span className={`block h-full rounded-full ${info.barra}`} style={{ width: `${pct}%` }} /></span>
             <span className="num shrink-0 text-right text-sm font-semibold text-fg sm:w-24">{brl(l.total)}</span>
-            <span className={`w-[4.5rem] shrink-0 text-right text-[11px] leading-tight sm:w-20 ${l.falta ? "font-semibold text-red-700" : "text-slate-400"}`}>{l.falta ? `${l.falta} sem nota` : `${l.n} ${pl(l.n, "compra", "compras")}`}</span>
+            <span className={`w-[4.5rem] shrink-0 text-right text-2xs leading-tight sm:w-20 ${l.falta ? "font-semibold text-red-700" : "text-slate-400"}`}>{l.falta ? `${l.falta} sem nota` : `${l.n} ${pl(l.n, "compra", "compras")}`}</span>
           </>
         );
         return (
@@ -285,9 +285,9 @@ function Numero({ rotulo, valor, sub, tom }: { rotulo: string; valor: string; su
   const cor = tom === "bom" ? "text-emerald-700" : tom === "medio" ? "text-amber-700" : tom === "ruim" ? "text-red-700" : "text-fg";
   return (
     <div className="rounded-xl border border-slate-200 p-2.5">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{rotulo}</div>
+      <div className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{rotulo}</div>
       <div className={`num text-lg font-bold ${cor}`}>{valor}</div>
-      {sub && <div className="text-[11px] leading-snug text-slate-500">{sub}</div>}
+      {sub && <div className="text-2xs leading-snug text-slate-500">{sub}</div>}
     </div>
   );
 }
@@ -309,10 +309,10 @@ function LinhaGasto({ g, cat, est, casada, aberto, onAbrir, onMarcar }: {
         <div className="min-w-0 flex-1 basis-40">
           <div className="truncate font-semibold text-fg" title={g.descricao ?? undefined}>{lojaDoGasto(g.descricao)}</div>
           <div className="mt-0.5 flex flex-wrap gap-1">
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${info.chip}`}>{info.rotulo}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTADO[est].chip}`}>{ESTADO[est].rotulo}</span>
-            {casada && !g.nfe_recebida_id && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">NF-e de {casada.emitente_nome ?? "fornecedor"} chegou</span>}
-            {g.nota_numero && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">nota {g.nota_numero}</span>}
+            <span className={`rounded-full px-2 py-0.5 text-2xs font-semibold ${info.chip}`}>{info.rotulo}</span>
+            <span className={`rounded-full px-2 py-0.5 text-2xs font-semibold ${ESTADO[est].chip}`}>{ESTADO[est].rotulo}</span>
+            {casada && !g.nfe_recebida_id && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-2xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">NF-e de {casada.emitente_nome ?? "fornecedor"} chegou</span>}
+            {g.nota_numero && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs text-slate-700">nota {g.nota_numero}</span>}
           </div>
         </div>
         <span className="num shrink-0 text-base font-bold text-fg">{brl(-Number(g.valor))}</span>

@@ -99,17 +99,17 @@ export function PrecosNota({ d, nota, podeEditar, podeAprovar }: { d: DadosNota;
 
               <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                 <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 [overflow-wrap:anywhere]">
-                  <dt className="text-[11px] font-semibold uppercase text-slate-500">Custo</dt>
+                  <dt className="text-2xs font-semibold uppercase text-slate-500">Custo</dt>
                   <dd className="tabular-nums"><span className="mr-1 text-xs text-slate-400 line-through">{Number(p.preco_custo) > 0 ? brl(p.preco_custo) : ""}</span>
                     <b>{r4(c.custo_unitario)}</b> <span className="text-xs text-slate-500">{pct(variacaoPct(Number(p.preco_custo), c.custo_unitario))}</span></dd>
                 </div>
                 <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 [overflow-wrap:anywhere]">
-                  <dt className="text-[11px] font-semibold uppercase text-slate-500">Preço hoje</dt>
+                  <dt className="text-2xs font-semibold uppercase text-slate-500">Preço hoje</dt>
                   <dd className="font-bold tabular-nums">{Number(p.preco_venda) > 0 ? brl(p.preco_venda) : "sem preço"}</dd>
-                  <dd className={`text-[11px] ${margemHoje != null && margemHoje < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem com o custo novo {pct(margemHoje)}</dd>
+                  <dd className={`text-2xs ${margemHoje != null && margemHoje < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem com o custo novo {pct(margemHoje)}</dd>
                 </div>
                 <div className="col-span-2 rounded-lg bg-amber-50 px-2 py-1.5">
-                  <dt className="text-[11px] font-semibold uppercase text-amber-800">Preço novo {pr?.fora_da_faixa && "· o de hoje está fora da faixa"}</dt>
+                  <dt className="text-2xs font-semibold uppercase text-amber-800">Preço novo {pr?.fora_da_faixa && "· o de hoje está fora da faixa"}</dt>
                   <dd className="mt-1 flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-1 text-xs text-slate-600">margem
                       <input className="input h-9 w-20 py-1 text-right tabular-nums" inputMode="decimal" disabled={!podeEditar} aria-label="Margem (%)"
@@ -121,7 +121,7 @@ export function PrecosNota({ d, nota, podeEditar, podeAprovar }: { d: DadosNota;
                         value={e.preco ?? (pr?.preco != null ? pr.preco.toFixed(2).replace(".", ",") : "")}
                         onChange={(ev) => d.mudarEscolha(l.item.numero, { preco: ev.target.value, margem: undefined })} />
                     </label>
-                    <span className="text-[11px] text-slate-600">markup {pr?.markup != null ? `${pr.markup.toLocaleString("pt-BR")}×` : "—"}</span>
+                    <span className="text-2xs text-slate-600">markup {pr?.markup != null ? `${pr.markup.toLocaleString("pt-BR")}×` : "—"}</span>
                   </dd>
                 </div>
               </dl>

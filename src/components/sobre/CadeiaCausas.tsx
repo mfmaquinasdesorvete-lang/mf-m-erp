@@ -75,9 +75,9 @@ export function CadeiaCausas() {
                   className={`w-full rounded-xl p-3 text-left transition ${atual?.id === c.id ? "bg-modulo/10 ring-1 ring-modulo" : "hover:bg-slate-50"}`}>
                   <span className="block text-sm font-bold leading-snug text-fg">{c.titulo}</span>
                   <span className="mt-1 flex flex-wrap gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR_SITUACAO[c.situacao]}`}>{ROTULO_SITUACAO_CADEIA[c.situacao]}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR_FORCA[forcaCadeia(c.elos)]}`}>{ROTULO_LIGACAO[forcaCadeia(c.elos)]}</span>
-                    <span className="text-[11px] text-slate-500">{c.elos.length} {pl(c.elos.length, "elo", "elos")}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_SITUACAO[c.situacao]}`}>{ROTULO_SITUACAO_CADEIA[c.situacao]}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_FORCA[forcaCadeia(c.elos)]}`}>{ROTULO_LIGACAO[forcaCadeia(c.elos)]}</span>
+                    <span className="text-2xs text-slate-500">{c.elos.length} {pl(c.elos.length, "elo", "elos")}</span>
                   </span>
                 </button>
               </li>
@@ -118,8 +118,8 @@ function Diagrama({ c, onEditar }: { c: Cadeia; onEditar: () => void }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-bold text-fg">{c.titulo}</h2>
-          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-500">
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR_SITUACAO[c.situacao]}`}>{ROTULO_SITUACAO_CADEIA[c.situacao]}</span>
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_SITUACAO[c.situacao]}`}>{ROTULO_SITUACAO_CADEIA[c.situacao]}</span>
             <ChipArea area={c.area} />
             {c.criado_nome && <span>por {c.criado_nome} · {dataCurta(c.created_at, dia)}</span>}
             {c.revisado_nome && <span>· revisada por {c.revisado_nome} em {dataCurta(c.revisado_em, dia)}</span>}
@@ -146,11 +146,11 @@ function Diagrama({ c, onEditar }: { c: Cadeia; onEditar: () => void }) {
               <div className="flex items-start gap-2">
                 <span className="num grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-white ring-1 ring-slate-300">{k + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <span className={`mr-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${e.tipo === "fato" ? "bg-ink text-white ring-1 ring-slate-300" : "bg-amber-400 text-amber-950"}`}>{ROTULO_TIPO[e.tipo]}</span>
+                  <span className={`mr-1.5 inline-block rounded px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide ${e.tipo === "fato" ? "bg-ink text-white ring-1 ring-slate-300" : "bg-amber-400 text-amber-950"}`}>{ROTULO_TIPO[e.tipo]}</span>
                   <span className="text-sm font-semibold leading-snug text-fg">{e.texto}</span>
                   {e.evidencia?.trim()
-                    ? <p className="mt-1 flex items-start gap-1 text-[12px] leading-snug text-slate-600"><Paperclip size={12} className="mt-0.5 shrink-0" aria-hidden /> <span><b>Evidência:</b> {e.evidencia}</span></p>
-                    : <p className="mt-1 text-[12px] font-semibold text-amber-800">Sem evidência ainda: confira antes de agir.</p>}
+                    ? <p className="mt-1 flex items-start gap-1 text-xs leading-snug text-slate-600"><Paperclip size={12} className="mt-0.5 shrink-0" aria-hidden /> <span><b>Evidência:</b> {e.evidencia}</span></p>
+                    : <p className="mt-1 text-xs font-semibold text-amber-800">Sem evidência ainda: confira antes de agir.</p>}
                 </div>
               </div>
             </div>
@@ -159,7 +159,7 @@ function Diagrama({ c, onEditar }: { c: Cadeia; onEditar: () => void }) {
         ))}
         <li className="flex justify-center">
           <div className="w-full max-w-xl rounded-xl bg-ink p-3 text-white shadow-card">
-            <span className="mr-1.5 inline-block rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide">Efeito</span>
+            <span className="mr-1.5 inline-block rounded bg-white/20 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide">Efeito</span>
             <span className="text-sm font-semibold">{c.efeito}</span>
           </div>
         </li>
@@ -169,7 +169,7 @@ function Diagrama({ c, onEditar }: { c: Cadeia; onEditar: () => void }) {
         <div className="rounded-xl border border-slate-200 p-3">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Força da explicação</p>
           <p className="mt-1"><span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${COR_FORCA[forca]}`}>{ROTULO_LIGACAO[forca]}</span></p>
-          <p className="mt-1 text-[12px] text-slate-600">Vale o elo mais fraco. {DICA_LIGACAO[forca]}</p>
+          <p className="mt-1 text-xs text-slate-600">Vale o elo mais fraco. {DICA_LIGACAO[forca]}</p>
         </div>
         <div className="rounded-xl border border-slate-200 p-3">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Conclusão</p>
@@ -177,7 +177,7 @@ function Diagrama({ c, onEditar }: { c: Cadeia; onEditar: () => void }) {
         </div>
       </div>
       {avisos.length > 0 && (
-        <ul className="mt-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-900">
+        <ul className="mt-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           {avisos.map((a) => <li key={a} className="flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden /> {a}</li>)}
         </ul>
       )}
@@ -192,7 +192,7 @@ function Ligacao({ l }: { l: Ligacao }) {
     <div className="flex items-center gap-2 py-1" title={DICA_LIGACAO[l]}>
       <span className={`h-8 border-l-[3px] ${traco}`} aria-hidden />
       {l !== "correlacao" ? <ArrowDown size={14} className={l === "comprovada" ? "text-slate-600" : "text-amber-600"} aria-hidden /> : <span className="text-slate-400" aria-hidden>≈</span>}
-      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${COR_FORCA[l]}`}>{ROTULO_LIGACAO[l]}</span>
+      <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_FORCA[l]}`}>{ROTULO_LIGACAO[l]}</span>
     </div>
   );
 }
@@ -227,7 +227,7 @@ function EditorCadeia({ cadeia, onClose, onSalva }: { cadeia: Cadeia | null; onC
   return (
     <Modal open wide onClose={onClose} title={cadeia ? "Editar cadeia de causas" : "Nova cadeia de causas"}>
       <form onSubmit={salvar} className="space-y-3">
-        <p className="rounded-lg bg-slate-50 p-3 text-[13px] text-slate-600">
+        <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
           Comece pela causa mais antiga e vá até o efeito. <b>Fato</b> é o que aconteceu e dá para mostrar onde (a evidência);
           <b> hipótese</b> é suspeita. A ligação só é <b>comprovada</b> entre dois fatos; quando as coisas só acontecem juntas, é <b>correlação</b>.
         </p>
@@ -259,12 +259,12 @@ function EditorCadeia({ cadeia, onClose, onSalva }: { cadeia: Cadeia | null; onC
               <input className="input mt-2" value={e.texto} onChange={(ev) => muda(k, { texto: ev.target.value })} maxLength={300} placeholder="O que aconteceu" aria-label={`Elo ${k + 1}: o que aconteceu`} />
               <input className="input mt-2" value={e.evidencia ?? ""} onChange={(ev) => muda(k, { evidencia: ev.target.value })} maxLength={500}
                 placeholder={e.tipo === "fato" ? "Evidência: onde se vê (tela, relatório, documento, data)" : "Evidência (se já tiver alguma)"} aria-label={`Elo ${k + 1}: evidência`} />
-              <label className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-slate-600">
+              <label className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                 <span className="font-semibold">Liga {k === elos.length - 1 ? "ao efeito" : `ao elo ${k + 2}`} como</span>
                 <select className="input h-9 w-auto" value={e.ligacao} onChange={(ev) => muda(k, { ligacao: ev.target.value as Ligacao })}>
                   {(["comprovada", "provavel", "correlacao"] as Ligacao[]).map((l) => <option key={l} value={l}>{ROTULO_LIGACAO[l]}</option>)}
                 </select>
-                <span className="text-[12px] text-slate-500">{DICA_LIGACAO[e.ligacao]}</span>
+                <span className="text-xs text-slate-500">{DICA_LIGACAO[e.ligacao]}</span>
               </label>
             </li>
           ))}
@@ -273,8 +273,8 @@ function EditorCadeia({ cadeia, onClose, onSalva }: { cadeia: Cadeia | null; onC
         <Field label="Conclusão (o que está provado, o que não está e o que fazer)">
           <textarea className="input min-h-[80px]" value={conclusao} onChange={(e) => setConclusao(e.target.value)} maxLength={1500} />
         </Field>
-        {problema && <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-[13px] font-semibold text-red-700">Para salvar: {problema}.</p>}
-        {!problema && avisos.length > 0 && <ul className="space-y-0.5 text-[12px] text-amber-800">{avisos.map((a) => <li key={a}>• {a}</li>)}</ul>}
+        {problema && <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs font-semibold text-red-700">Para salvar: {problema}.</p>}
+        {!problema && avisos.length > 0 && <ul className="space-y-0.5 text-xs text-amber-800">{avisos.map((a) => <li key={a}>• {a}</li>)}</ul>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !!problema || titulo.trim().length < 3 || efeito.trim().length < 3}>{salvando ? "Salvando…" : "Salvar (vai para revisão)"}</Button>

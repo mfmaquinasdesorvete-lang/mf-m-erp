@@ -99,7 +99,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
     const processadas = conta((r) => !!r.processamento && r.processamento !== "ignorada");
     return (
       <Modal open onClose={onClose} title="Importação concluída">
-        <div className="space-y-3 text-[15px]">
+        <div className="space-y-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-emerald-700">
             <CheckCircle2 size={22} /> {conta((r) => r.situacao === "importada")} {pl(conta((r) => r.situacao === "importada"), "nota nova", "notas novas")} na lista.
           </p>
@@ -130,7 +130,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
     <Modal open onClose={ocupado === "importar" ? () => undefined : onClose} title={t.titulo}>
       {!arquivos ? (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">{t.explica}</p>
+          <p className="text-sm text-slate-700">{t.explica}</p>
           {tipo === "recebidas" && desde && (
             <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
               Notas emitidas antes de <b>{dataBR(desde)}</b> (início do ERP) entram como histórico: ficam na lista e no pacote do contador,
@@ -146,7 +146,7 @@ export function ImportarXmlNotas({ tipo, onClose }: { tipo: TipoImportacao; onCl
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-[15px] text-slate-700">
+          <p className="text-sm text-slate-700">
             {arquivos.length ? <>Encontrados <b>{notas}</b> XML de nota{eventos ? <> e <b>{eventos}</b> de evento (cancelamento)</> : null}.</> : "Nenhum XML encontrado nos arquivos."}
           </p>
           {ocupado === "importar" && (

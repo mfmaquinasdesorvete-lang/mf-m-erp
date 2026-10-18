@@ -224,21 +224,21 @@ export default function Conciliacao() {
               return (
                 <button key={b.id} onClick={() => setContaSel(contaSel === b.id ? "" : b.id)}
                   className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${contaSel === b.id ? "border-brand ring-2 ring-brand/40" : "border-slate-200/80"} ${b.ativo ? "" : "opacity-60"}`}>
-                  <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-3.5 text-white`}>
+                  <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-4 text-white`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 font-bold"><Landmark size={15} className="shrink-0 opacity-80" /> <span className="truncate">{b.nome}</span></div>
                         <div className="text-xs text-white/80">{BANCOS[b.banco] ?? b.banco}{b.numero ? ` · ${b.numero}` : ""}<EtiquetaUnidade id={b.unidade_id} />
-                          {b.etiqueta && <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-white/25 px-2 py-0.5 align-middle text-[11px] font-bold text-white ring-1 ring-white/50"><UserRound size={11} aria-hidden />{b.etiqueta}</span>}
+                          {b.etiqueta && <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-white/25 px-2 py-0.5 align-middle text-2xs font-bold text-white ring-1 ring-white/50"><UserRound size={11} aria-hidden />{b.etiqueta}</span>}
                         </div>
                       </div>
                       {podeEditar && <span role="button" tabIndex={0} aria-label={`Editar ${b.nome}`} onClick={(e) => { e.stopPropagation(); setEditConta(b); }}
                         className="rounded-md p-1 text-white/80 hover:bg-white/20 hover:text-white"><Pencil size={14} /></span>}
                     </div>
-                    <div className="num mt-2 text-2xl font-extrabold tracking-tight">{brl(s.extrato)}</div>
+                    <div className="num mt-2 text-2xl font-bold tracking-tight">{brl(s.extrato)}</div>
                     <div className="text-xs text-white/85">saldo pelo extrato · {s.openFinance ? "Open Finance" : s.inter ? "API do Inter" : "importado"}</div>
                   </div>
-                  <dl className="w-full flex-1 space-y-0.5 px-4 pb-3.5 pt-2.5 text-xs">
+                  <dl className="w-full flex-1 space-y-0.5 px-4 pb-4 pt-2.5 text-xs">
                     <div className="flex justify-between gap-2"><dt className="text-slate-500">Pelo ERP (baixas)</dt><dd>{brl(s.erp)}</dd></div>
                     <div className={`flex justify-between gap-2 ${dif ? "font-semibold text-amber-700" : "text-emerald-700"}`}><dt>Diferença</dt><dd>{dif ? brl(dif) : "nenhuma ✓"}</dd></div>
                     {s.informado != null && (
@@ -672,7 +672,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
             {candidatas.map(({ c, valor, ref, pontos }) => (
               <li key={c.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-fg">{c.descricao}{pontos >= 100 && <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">mesmo valor</span>}</div>
+                  <div className="text-sm font-medium text-fg">{c.descricao}{pontos >= 100 && <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-2xs font-bold text-emerald-700">mesmo valor</span>}</div>
                   <div className="text-xs text-slate-500">{c.cliente?.nome ?? c.fornecedor?.nome ?? "—"} · {c.status === "pago" ? `baixada em ${dataBR(ref)}` : `vence ${dataBR(ref)}`}</div>
                 </div>
                 <div className="text-sm font-semibold">{brl(valor)}</div>
