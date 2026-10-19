@@ -1041,6 +1041,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Atalho: My Frost Sorveterias, as unidades licenciadas e o que cada uma pagou.",
     ],
   },
+  "/tudo-do-cliente": {
+    tags: ["CLIENTES", "BUSCA", "HISTÓRICO"],
+    destaque: "Tudo de um cliente numa página só, a partir do CNPJ, CPF ou nome.",
+    partes: [
+      "Busca: CNPJ ou CPF (com ou sem pontos) ou parte do nome; aparecem os clientes e fornecedores que batem e você confirma em \"Ver tudo\".",
+      "Números: vendido nos pedidos, notas emitidas, o que entrou no banco e o que falta receber.",
+      "Junta: vendas e orçamentos, propostas do Tiny, notas emitidas (e NFS-e e notas antigas da My Frost), contas a receber e a pagar, recibos, OS, máquinas e CT-e.",
+      "Extrato: acha os Pix e boletos pelo nome e também pelo documento que o banco mostra mascarado (***733820001**).",
+      "Ficha 360°: abre a ficha completa do cliente sem sair da tela.",
+      "Fornecedor: buscando um fornecedor, aparecem as notas recebidas dele, as contas a pagar e os pagamentos no extrato.",
+    ],
+  },
   "/licenciados": {
     tags: ["MY FROST", "UNIDADES", "LICENÇAS"],
     destaque: "Unidades, contratos, máquinas, custo de montar e o que pagaram.",

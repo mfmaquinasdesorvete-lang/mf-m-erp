@@ -4,7 +4,7 @@
 // altas no cartão das InfinitePay (sugestões que a pessoa confere e liga à loja) ou são lançados à mão.
 import { daEmpresa, type ContaPessoal, type Empresa, type LancPessoal } from "./pessoal";
 
-export type SituacaoLoja = "negociando" | "implantacao" | "ativa" | "fechando" | "pausada" | "encerrada";
+export type SituacaoLoja = "negociando" | "implantacao" | "ativa" | "fechando" | "pausada" | "encerrada" | "mudou";
 export type ModeloLoja = "quiosque" | "loja" | "loja_cafeteria";
 export type SituacaoContrato = "sem" | "negociando" | "assinado" | "rescindido";
 export type Loja = {
@@ -78,9 +78,9 @@ export type PagamentoLoja = {
 };
 
 export const SITUACOES_LOJA: { id: SituacaoLoja; nome: string; cor: string }[] = [
-  { id: "negociando", nome: "Negociando", cor: "#b45309" }, { id: "implantacao", nome: "Em implantação", cor: "#0284c7" },
-  { id: "ativa", nome: "Ativa", cor: "#047857" }, { id: "fechando", nome: "Vai fechar", cor: "#c2410c" }, { id: "pausada", nome: "Pausada", cor: "#7c3aed" },
-  { id: "encerrada", nome: "Encerrada", cor: "#475569" },
+  { id: "negociando", nome: "Negociando", cor: "#b45309" }, { id: "implantacao", nome: "Vai abrir", cor: "#0284c7" },
+  { id: "ativa", nome: "Ativa", cor: "#047857" }, { id: "fechando", nome: "Vai fechar / vamos tirar", cor: "#c2410c" }, { id: "pausada", nome: "Pausada", cor: "#7c3aed" },
+  { id: "encerrada", nome: "Fechada", cor: "#475569" }, { id: "mudou", nome: "Trocou de lugar", cor: "#0f766e" },
 ];
 export const TIPOS_PAGAMENTO: { id: TipoPagamento; nome: string }[] = [
   { id: "licenca", nome: "Licença" }, { id: "mensalidade", nome: "Mensalidade" }, { id: "royalties", nome: "Royalties" },
@@ -284,4 +284,17 @@ export function nomesComTermo(nomes: string[] | null | undefined, termo: string)
   const atual = nomes ?? [];
   if (t.replace(/\W/g, "").length < 3 || atual.some((n) => textoAlto(n) === textoAlto(t))) return atual;
   return [...atual, t].slice(0, 20);
+}
+
+/** Filtros das unidades: Ativa · Vai abrir · Vai fechar · Fechada · Trocou de lugar · Todas. */
+export type FiltroLoja = "ativa" | "abrir" | "fechando" | "encerrada" | "mudou" | "todas";
+export const FILTROS_LOJA: { id: FiltroLoja; nome: string }[] = [
+  { id: "ativa", nome: "Ativa" }, { id: "abrir", nome: "Vai abrir" }, { id: "fechando", nome: "Vai fechar / vamos tirar" },
+  { id: "encerrada", nome: "Fechada" }, { id: "mudou", nome: "Trocou de lugar" }, { id: "todas", nome: "Todas" },
+];
+export function noFiltroLoja(s: SituacaoLoja, f: FiltroLoja): boolean {
+  if (f === "todas") return true;
+  if (f === "ativa") return s === "ativa" || s === "pausada";
+  if (f === "abrir") return s === "negociando" || s === "implantacao";
+  return s === f;
 }

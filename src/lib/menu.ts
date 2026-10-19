@@ -3,6 +3,7 @@ import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
+  ScanSearch,
 } from "lucide-react";
 import { usePerfil } from "./auth";
 import { useConfig } from "./useConfig";
@@ -49,6 +50,7 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/cadastros", tela: "clientes", label: "Painel dos clientes", curto: "Painel", icon: LayoutDashboard, busca: "painel dos cadastros clientes novos sumidos qualidade dashboard indicadores" },
       { to: "/clientes", tela: "clientes", label: "Clientes", curto: "Clientes", icon: Users, busca: "cadastro contato cpf cnpj painel dos cadastros base" },
+      { to: "/tudo-do-cliente", tela: "clientes", label: "Tudo do cliente", curto: "Tudo", icon: ScanSearch, busca: "buscar cnpj cpf histórico completo vendas notas extrato boleto pagamentos dossiê cliente 360" },
       { to: "/tecnicos", tela: "assistencia", label: "Técnicos", curto: "Técnicos", icon: UserCog, busca: "técnico parceiro assistência região cidade estado atende quem atendeu" },
       { to: "/fornecedores", tela: "fornecedores", label: "Fornecedores", curto: "Fornec.", icon: Store, busca: "fornecedor peças compra cotação" },
       { to: "/produtos/servicos", tela: "estoque", label: "Serviços", curto: "Serviços", icon: Wrench, busca: "serviço carga de gás limpeza lavagem troca de compressor reparo mecânica mão de obra visita" },

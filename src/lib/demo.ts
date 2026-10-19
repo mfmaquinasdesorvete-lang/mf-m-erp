@@ -2140,6 +2140,17 @@ class Query {
   neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
   like(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
+  /** "col.ilike.%x%,col.eq.y,col.is.null": basta um bater (como no PostgREST). */
+  or(expr: string) {
+    const testes = expr.split(",").map((p) => {
+      const [c, op, ...resto] = p.split("."); const v = resto.join(".");
+      if (op === "is") return (r: Row) => (r[c] ?? null) === null;
+      if (op === "eq") return (r: Row) => String(r[c] ?? "") === v;
+      const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", op === "ilike" ? "i" : "");
+      return (r: Row) => rx.test(String(r[c] ?? ""));
+    });
+    this.filtros.push((r) => testes.some((t) => t(r))); return this;
+  }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   not(c: string, op: string, v: any) { this.filtros.push((r) => (op === "is" ? (r[c] ?? null) !== v : r[c] !== v)); return this; }
   lt(c: string, v: any) { this.filtros.push((r) => r[c] < v); return this; }

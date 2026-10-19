@@ -38,6 +38,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/mercado-livre": "Conta do Mercado Livre ligada ao ERP: as vendas pagas entram sozinhas e o estoque e o preço do ERP vão para os anúncios.",
   "/comissoes": "Comissões de vendedores e representantes: % por vendedor, por categoria e por linha de produtos, calculadas item a item.",
   "/metas": "Metas de vendas por vendedor, estado e região, com projeção do mês e ranking.",
+  "/tudo-do-cliente": "Busca pelo CNPJ, CPF ou nome, confirma quem é e junta numa página só tudo do cliente: vendas, propostas, notas, contas, extrato dos bancos, recibos, OS, máquinas e fretes.",
   "/clientes": "Cadastro dos clientes: o novo é passo a passo (Receita, contato, endereço, venda e revisão); o completo tem até 3 endereços, WhatsApp, máquinas compradas, técnico ligado e a Ficha 360°.",
   "/tecnicos": "Técnicos parceiros por cidade e região, para indicar a quem precisa de assistência.",
   "/fornecedores": "Fornecedores conferidos na Receita, com filiais, produtos que vendem, cotações e últimas compras.",

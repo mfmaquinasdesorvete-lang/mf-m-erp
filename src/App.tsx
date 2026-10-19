@@ -76,6 +76,7 @@ const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
+const TudoDoCliente = lazy(() => import("@/pages/TudoDoCliente"));
 const PainelLicencas = lazy(() => import("@/pages/paineis/PainelLicencas"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
 const AppFinanceiro = lazy(() => import("@/pages/AppFinanceiro"));
@@ -108,6 +109,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "aprovacoes", tela: "financeiro", element: <Aprovacoes /> },
   { path: "notas", tela: "notas", element: <NotasFiscais /> },
   { path: "clientes", tela: "clientes", element: <Clientes /> },
+  { path: "tudo-do-cliente", tela: "clientes", element: <TudoDoCliente /> },
   { path: "fornecedores", tela: "fornecedores", element: <Fornecedores tipo="fornecedores" /> },
   { path: "transportadoras", tela: "fornecedores", element: <Transportadoras /> },
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },

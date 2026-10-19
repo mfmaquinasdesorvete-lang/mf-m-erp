@@ -14,7 +14,7 @@ import { numeroBR } from "@/lib/fichaCadastral";
 import { usePerfil } from "@/lib/auth";
 import {
   CATEGORIAS_CUSTO, CONTRATOS, SITUACOES_LOJA, SITUACOES_MAQUINA, corDaLoja, enderecoCompleto, faltaNaFicha, linkMapa, nomeCategoria,
-  nomeModelo, nomeTipo, resumoUnidade, valePagamento,
+  nomeModelo, nomeTipo, resumoUnidade, valePagamento, FILTROS_LOJA, noFiltroLoja, type FiltroLoja,
   type ArquivoLoja, type CustoLoja, type Loja, type MaquinaLoja, type PagamentoLoja, type SituacaoLoja,
 } from "@/lib/licenciados";
 
@@ -24,7 +24,6 @@ const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,
 const docBR = (d: string | null) => !d ? "" : d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
 
 type Dados = { lojas: Loja[]; custos: CustoLoja[]; maquinas: MaquinaLoja[]; pagamentos: PagamentoLoja[]; arquivos: ArquivoLoja[] };
-type FiltroSit = "andamento" | "fechando" | "encerrada" | "todas";
 
 function ChipContrato({ l }: { l: Loja }) {
   const c = CONTRATOS.find((x) => x.id === (l.contrato ?? "sem"))!;
@@ -34,17 +33,17 @@ function ChipContrato({ l }: { l: Loja }) {
 
 /** Cartões das unidades, com filtro por situação e busca. */
 export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbrir: (l: Loja) => void; onNova: () => void }) {
-  const [filtro, setFiltro] = useState<FiltroSit>("andamento");
+  const [filtro, setFiltro] = useState<FiltroLoja>("ativa");
   const [busca, setBusca] = useState("");
-  const naFiltro = (s: SituacaoLoja, f: FiltroSit) => f === "todas" || (f === "andamento" ? !["fechando", "encerrada"].includes(s) : s === f);
+  const naFiltro = noFiltroLoja;
   const t = sem(busca.trim());
   const lista = dados.lojas.filter((l) => naFiltro(l.situacao, filtro) && (!t || sem([l.nome, l.cidade, l.uf, l.responsavel, l.endereco, l.documento].join(" ")).includes(t)));
-  const n = (f: FiltroSit) => dados.lojas.filter((l) => naFiltro(l.situacao, f)).length;
+  const n = (f: FiltroLoja) => dados.lojas.filter((l) => naFiltro(l.situacao, f)).length;
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Situação das unidades">
-          {([["andamento", "Funcionando"], ["fechando", "Vai fechar"], ["encerrada", "Encerradas"], ["todas", "Todas"]] as const).map(([f, r]) => (
+          {FILTROS_LOJA.map(({ id: f, nome: r }) => (
             <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
               className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${filtro === f ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}>{r} <span className="num opacity-70">{n(f)}</span></button>
           ))}
@@ -63,7 +62,7 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
           const falta = faltaNaFicha(l);
           return (
             <button key={l.id} type="button" onClick={() => onAbrir(l)}
-              className={`overflow-hidden rounded-2xl border border-slate-200 bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" ? "opacity-70" : ""}`}>
+              className={`overflow-hidden rounded-2xl border border-slate-200 bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-70" : ""}`}>
               <div className="p-3.5 text-white" style={{ background: `linear-gradient(135deg, ${corDaLoja(l.cor)}, #0f172a)` }}>
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
