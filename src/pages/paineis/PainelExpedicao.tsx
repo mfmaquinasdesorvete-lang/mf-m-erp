@@ -211,6 +211,7 @@ export default function PainelExpedicao() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {acoes.modalNfe}
       <CabecalhoPainel icone={PackageCheck} area="Expedição" titulo="Separação e embalagem" resumo={resumo}
         acoes={(
           <div className="flex flex-wrap items-center gap-2">

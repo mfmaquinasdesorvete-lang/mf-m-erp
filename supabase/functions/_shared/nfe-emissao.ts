@@ -10,6 +10,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 import { pendenciaCbenef } from "./nfe-conferencia.ts";
 import { pendenciasTransferencia } from "./nfe-transferencia.ts";
+import { type AjustesNfe, aplicarAjustes } from "./nfe-ajustes.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -68,8 +69,8 @@ export const observacoes = (usadas: Set<RegraTributaria>) =>
   [...usadas].map((r) => r.observacao_nfe).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" ");
 
 
-/** NF-e de venda de um pedido aprovado. */
-export async function emitirPedido(db: any, pedidoId: string) {
+/** NF-e de venda de um pedido aprovado (com os ajustes da conferência, se houver). */
+export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesNfe | null) {
   const [{ data: cfg }, { data: pedido }, { data: ufsLista }] = await Promise.all([
     db.from("configuracoes").select("*").eq("id", 1).single(),
     db.from("pedidos")
@@ -79,6 +80,9 @@ export async function emitirPedido(db: any, pedidoId: string) {
     db.from("icms_uf").select("*"),
   ]);
   if (!pedido) throw new HttpError(404, "pedido não encontrado");
+  try { pedido.itens = aplicarAjustes(pedido.itens, ajustes); } catch (e) { throw new HttpError(400, (e as Error).message); }
+  if (ajustes?.desconto != null) { if (!(Number(ajustes.desconto) >= 0)) throw new HttpError(400, "desconto inválido"); pedido.desconto = Number(ajustes.desconto); }
+  if (ajustes?.frete != null) { if (!(Number(ajustes.frete) >= 0)) throw new HttpError(400, "frete inválido"); pedido.frete = Number(ajustes.frete); }
   if (!["aprovado", "entregue"].includes(pedido.status)) {
     throw new HttpError(400, "só é possível emitir NF-e de pedidos aprovados");
   }
@@ -141,13 +145,16 @@ export async function emitirPedido(db: any, pedidoId: string) {
     telefone_destinatario: onlyDigits(c.telefone || c.whatsapp) || undefined,
     email_destinatario: c.email || undefined,
     modalidade_frete: pedido.modalidade_frete,
-    informacoes_adicionais_contribuinte: [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), u.informacoes_complementares].filter(Boolean).join(" - "),
+    informacoes_adicionais_contribuinte: (ajustes?.informacoes != null
+      ? [ajustes.informacoes.trim(), observacoes(usadas)]
+      : [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), u.informacoes_complementares]).filter(Boolean).join(" - "),
     items,
   };
+  const valorNota = r2(pedido.itens.reduce((t: number, i: any) => t + Number(i.valor_total), 0) - Number(pedido.desconto || 0) + Number(pedido.frete || 0));
 
   // Cada tentativa usa uma referência nova, para poder reenviar após erro de validação.
   const referencia = `pedido-${pedido.numero}-${(existentes?.length ?? 0) + 1}`;
-  return await emitir(db, referencia, payload, { pedido_id: pedidoId, unidade_id: u.id, valor_total: pedido.valor_total });
+  return await emitir(db, referencia, payload, { pedido_id: pedidoId, unidade_id: u.id, valor_total: ajustes ? valorNota : pedido.valor_total });
 }
 
 

@@ -32,6 +32,7 @@ import { VendedorSelect } from "@/components/VendedorSelect";
 import { MotivoAcao } from "@/components/MotivoAcao";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
+import { ConferirNfe } from "@/components/nfe/ConferirNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
 import { combinaBusca } from "@/lib/buscaCliente";
@@ -577,6 +578,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const { padrao, unidades } = useUnidade();
   const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
   const [pendencias, setPendencias] = useState<Pendencia[] | null>(null);
+  const [conferirNfe, setConferirNfe] = useState(false);
   const etiquetas = useEtiquetas();
   const [p, setP] = useState({ ...inicial, unidade_id: (inicial as any).unidade_id ?? padrao });
   const [ocupado, setOcupado] = useState(false);
@@ -821,10 +823,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       if (lista.length) return setPendencias(lista);
     }
     setPendencias(null);
-    executar(async () => {
-      if (!(await confirmarSeTeste())) throw new Error("Emissão cancelada: ambiente de teste");
-      await callFunction("nfe-emitir", { pedido_id: p.id });
-    }, "NF-e enviada para a SEFAZ. Acompanhe em Notas fiscais.");
+    // a nota não vai direto: abre a conferência (itens, valores, desconto, frete e texto) e só emite no botão de lá
+    setConferirNfe(true);
   };
 
   // OS a partir do pedido (como no Tiny): cliente, máquina e pedido já preenchidos na Assistência
@@ -1092,6 +1092,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         </div>
       </form>
       {nfOutra && p.id && <NfOutraModal p={p as any} onClose={() => setNfOutra(false)} onFeito={recarregarNfOutra} />}
+      {conferirNfe && p.id && <ConferirNfe pedidoId={p.id} onClose={() => setConferirNfe(false)} onEmitida={() => invalidate("pedidos", "notas_fiscais")} />}
       {pendencias && (
         <Modal open onClose={() => setPendencias(null)} title="Conferência fiscal antes de emitir">
           <ul className="space-y-1.5 text-sm">

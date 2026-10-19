@@ -4,8 +4,8 @@ import { useState, type FormEvent } from "react";
 import { Barcode, CheckCircle2, ClipboardCheck, ExternalLink, FileText, PackageCheck, Printer, Send, Truck } from "lucide-react";
 import { Badge, Button, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { callFunction, supabase } from "@/lib/supabase";
-import { confirmarSeTeste } from "@/lib/ambienteNfe";
+import { supabase } from "@/lib/supabase";
+import { ConferirNfe } from "@/components/nfe/ConferirNfe";
 import { notify, notifyError } from "@/lib/notify";
 import { dataBR, pl } from "@/lib/format";
 import { pecasDoKit } from "@/lib/kits";
@@ -30,16 +30,14 @@ export function useAcoesExpedicao() {
     invalidar("expedicoes", "pedidos");
     return true;
   }
+  // a nota não vai direto para a SEFAZ: abre a conferência (itens, valores, desconto, frete e texto) e só emite de lá
+  const [conferindo, setConferindo] = useState<string | null>(null);
   async function emitirNota(pedidoId: string) {
-    // trava antes da pergunta de teste (ela consulta o servidor): dois cliques não emitem duas notas
-    if (ocupado) return false;
-    setOcupado(pedidoId);
-    if (!(await confirmarSeTeste())) { setOcupado(null); return false; }
-    try { await callFunction("nfe-emitir", { pedido_id: pedidoId }); notify("NF-e enviada para a SEFAZ"); invalidar("pedidos", "notas_fiscais"); return true; }
-    catch (e) { notifyError(e); return false; }
-    finally { setOcupado(null); }
+    setConferindo(pedidoId);
+    return false;
   }
-  return { avancar, emitirNota, ocupado };
+  const modalNfe = conferindo ? <ConferirNfe pedidoId={conferindo} onClose={() => setConferindo(null)} onEmitida={() => invalidar("pedidos", "notas_fiscais")} /> : null;
+  return { avancar, emitirNota, ocupado, modalNfe };
 }
 
 /* ------------------------------ Expedição ------------------------------ */
@@ -82,6 +80,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
   const etiquetas = () => etiquetasImp.abrir({ tipo: "pedido", pedido_id: p.id, sobrepor: { volumes: Number(f.volumes) || 1, peso_kg: f.peso_kg, transportadora_id: f.transportadora_id || null, rastreio: f.codigo_rastreio || null } });
 
   return (
+    <>
     <Modal open onClose={onClose} title={`Expedição · pedido #${p.numero} · ${p.cliente?.nome ?? ""}`} wide>
       <ol className="mb-4 flex flex-wrap gap-1.5 text-xs font-semibold">
         {PASSOS.map((s, i) => (
@@ -166,5 +165,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
       {exp.status === "entregue" && <p className="text-sm text-emerald-700">Entregue em {dataBR(exp.entregue_em)}.</p>}
       {etiquetasImp.modal}
     </Modal>
+    {acoes.modalNfe}
+    </>
   );
 }

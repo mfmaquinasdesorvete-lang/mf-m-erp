@@ -174,6 +174,7 @@ export default function Fluxo() {
 
   return (
     <div className="space-y-3">
+      {acoes.modalNfe}
       {/* Cabeçalho compacto: título, busca, vendedor e a NF-e automática numa linha; os canais numa faixa só */}
       <div className="space-y-2">
         <PageHeader compacto title="Fluxo de pedidos" subtitle="Do orçamento à entrega, de todos os canais. Cada cartão mostra o próximo passo e o botão para fazê-lo."

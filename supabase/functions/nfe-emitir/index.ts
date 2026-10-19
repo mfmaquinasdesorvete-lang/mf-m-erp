@@ -1,5 +1,5 @@
 // Emite NF-e (modelo 55) via Focus NFe, pelo CNPJ da unidade (matriz SC ou filial SP).
-// POST { pedido_id }         -> venda do pedido aprovado
+// POST { pedido_id, ajustes? } -> venda do pedido aprovado (ajustes = itens/valores mudados na tela "Conferir a NF-e")
 // POST { transferencia_id }  -> transferência de mercadoria entre as unidades
 // POST { devolucao: { tipo: "emitida" | "recebida", id }, previa: true }            -> o que dá para devolver
 // POST { devolucao: { tipo, id }, itens: [{ numero, quantidade, cfop?, produto_id? }], motivo } -> NF-e de devolução
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     }
     await requireErpUser(req, ["vendas", "financeiro"]);
     if (!pedido_id) throw new HttpError(400, "pedido_id obrigatório");
-    return await emitirPedido(db, pedido_id);
+    return await emitirPedido(db, pedido_id, corpo.ajustes ?? null);
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     return json({ error: (e as Error).message }, status);
