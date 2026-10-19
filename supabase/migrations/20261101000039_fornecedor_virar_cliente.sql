@@ -10,13 +10,13 @@ create or replace function public.fornecedores_virar_cliente(p_ids uuid[], p_man
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   r record; v_cli uuid; v_doc text; k int;
-  n_novo int := 0; n_volta int := 0; n_anexos int := 0; n_mantidos int := 0; v_ultimo uuid;
+  n_novo int default 0; n_volta int default 0; n_anexos int default 0; n_mantidos int default 0; v_ultimo uuid;
 begin
   perform public.exigir_papel('vendas', 'financeiro');
   perform set_config('erp.acao_usuario', 'on', true);
   for r in select f.* from fornecedores f where f.id = any (coalesce(p_ids, '{}')) order by f.nome for update loop
-    v_doc := nullif(regexp_replace(coalesce(r.cnpj, ''), '\D', '', 'g'), '');
-    v_cli := null;
+    v_doc = nullif(regexp_replace(coalesce(r.cnpj, ''), '\D', '', 'g'), '');
+    v_cli = null;
     -- já foi cliente e virou fornecedor: desarquiva aquele cadastro (volta com o histórico)
     if v_doc is not null then
       select c.id into v_cli from clientes c
@@ -35,28 +35,28 @@ begin
         logradouro = coalesce(nullif(c.logradouro, ''), r.logradouro), numero = coalesce(nullif(c.numero, ''), r.numero),
         bairro = coalesce(nullif(c.bairro, ''), r.bairro)
        where c.id = v_cli;
-      n_volta := n_volta + 1;
+      n_volta = n_volta + 1;
     else
       insert into clientes (nome, nome_fantasia, cpf_cnpj, inscricao_estadual, email, telefone, whatsapp, cep, logradouro, numero, complemento,
                             bairro, municipio, uf, observacoes)
       values (r.nome, r.nome_fantasia, v_doc, r.inscricao_estadual, r.email, r.telefone, r.whatsapp, r.cep, r.logradouro, r.numero, r.complemento,
               r.bairro, r.municipio, r.uf, r.observacoes)
       returning id into v_cli;
-      n_novo := n_novo + 1;
+      n_novo = n_novo + 1;
     end if;
 
     if p_manter_fornecedor then
-      n_mantidos := n_mantidos + 1;
+      n_mantidos = n_mantidos + 1;
     else
       -- o fornecedor fica inativo (contas e notas antigas continuam ligadas a ele); os anexos vão para o cliente
       update documentos set entidade = 'cliente', entidade_id = v_cli where entidade = 'fornecedor' and entidade_id = r.id;
       get diagnostics k = row_count;
-      n_anexos := n_anexos + k;
+      n_anexos = n_anexos + k;
       update fornecedores set ativo = false,
         tags = array(select distinct t from unnest(coalesce(tags, '{}') || array['virou_cliente']) t order by t)
        where id = r.id;
     end if;
-    v_ultimo := v_cli;
+    v_ultimo = v_cli;
   end loop;
   return jsonb_build_object('criados', n_novo, 'voltaram', n_volta, 'mantidos', n_mantidos, 'anexos', n_anexos, 'cliente_id', v_ultimo);
 end $$;
