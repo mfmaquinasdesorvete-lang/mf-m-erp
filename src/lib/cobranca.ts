@@ -65,3 +65,52 @@ export function pixDaConta(u: PixUnidade | null | undefined, valor: number, cont
   if (!u?.pix_chave?.trim()) return null;
   return pixCopiaECola({ chave: u.pix_chave, nome: u.pix_nome || u.razao_social || u.nome || "", cidade: u.pix_cidade || u.municipio || "", valor, txid: `MF${contaId.replace(/-/g, "").slice(0, 20)}` });
 }
+
+/** Faixas de atraso do painel de cobrança (dias depois do vencimento). */
+export const FAIXAS_ATRASO = [
+  { rotulo: "1 a 15 dias", ate: 15 }, { rotulo: "16 a 30 dias", ate: 30 }, { rotulo: "31 a 60 dias", ate: 60 },
+  { rotulo: "61 a 90 dias", ate: 90 }, { rotulo: "Mais de 90 dias", ate: Infinity },
+] as const;
+
+/**
+ * Números do painel de cobrança: quanto está atrasado (por faixa e por cliente), quanto vence em 7 dias, quanto entrou
+ * no mês e nos últimos 6 meses, e a inadimplência (atrasado ÷ tudo o que venceu nos últimos 12 meses).
+ */
+export function resumoCobranca(contas: ContaCobranca[], hoje: string) {
+  const semana = somar(hoje, 7), mes = hoje.slice(0, 7), corte = somar(hoje, -365);
+  const dias = (d: string) => Math.round((Date.parse(hoje) - Date.parse(d.slice(0, 10))) / 864e5);
+  const faixas = FAIXAS_ATRASO.map((f) => ({ rotulo: f.rotulo, valor: 0, qtd: 0 }));
+  const porCliente = new Map<string, { valor: number; dias: number; contas: number }>();
+  const meses = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.parse(mes + "-15T12:00:00Z")); d.setUTCMonth(d.getUTCMonth() - (5 - i));
+    return { mes: d.toISOString().slice(0, 7), recebido: 0 };
+  });
+  let atrasado = 0, aVencer = 0, recebidoMes = 0, vencido12 = 0;
+  for (const c of contas) {
+    if (c.status === "cancelado") continue;
+    const valor = Number(c.valor) || 0;
+    if (c.status === "pago") {
+      const pago = Number(c.valor_pago ?? c.valor) || 0, quando = (c.data_pagamento ?? "").slice(0, 7);
+      if (quando === mes) recebidoMes += pago;
+      const m = meses.find((x) => x.mes === quando);
+      if (m) m.recebido += pago;
+    }
+    if (c.vencimento < hoje && c.vencimento >= corte) vencido12 += valor;
+    if (c.status !== "aberto") continue;
+    if (c.vencimento < hoje) {
+      const d = dias(c.vencimento);
+      atrasado += valor;
+      const f = FAIXAS_ATRASO.findIndex((x) => d <= x.ate);
+      faixas[f].valor += valor; faixas[f].qtd += 1;
+      if (c.cliente_id) {
+        const p = porCliente.get(c.cliente_id) ?? { valor: 0, dias: 0, contas: 0 };
+        porCliente.set(c.cliente_id, { valor: p.valor + valor, dias: Math.max(p.dias, d), contas: p.contas + 1 });
+      }
+    } else if (c.vencimento <= semana) aVencer += valor;
+  }
+  const devedores = [...porCliente.entries()].map(([cliente_id, v]) => ({ cliente_id, ...v })).sort((a, b) => b.valor - a.valor);
+  return {
+    atrasado, aVencer, recebidoMes, faixas, devedores, meses,
+    inadimplencia: vencido12 > 0 ? Math.round((atrasado / vencido12) * 1000) / 10 : 0,
+  };
+}

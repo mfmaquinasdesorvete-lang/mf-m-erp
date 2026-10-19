@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
 import { filaCobranca, pixDaConta, preencherMensagem, situacaoClientes, type ContaCobranca, type Envio, type Etapa } from "@/lib/cobranca";
 import type { Cliente } from "@/lib/types";
+import { PainelCobranca } from "@/components/financeiro/PainelCobranca";
 import { MensagensWhatsapp, useStatusWhatsapp, type EtapaWa } from "@/components/financeiro/WhatsappOficial";
 
 type ContaR = ContaCobranca & { cliente?: Cliente | null; forma_pagamento?: string };
@@ -61,12 +62,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-2 sm:max-w-xl">
-        {([["Em dia", sit.em_dia, "border-emerald-300 bg-emerald-50 text-emerald-800"], ["A vencer (7 dias)", sit.a_vencer, "border-amber-300 bg-amber-50 text-amber-900"],
-          ["Atrasados", sit.atrasado, "border-red-300 bg-red-50 text-red-800"]] as const).map(([r, n, cor]) => (
-          <div key={r} className={`rounded-lg border px-3 py-2 ${cor}`}><div className="text-xs font-semibold">{r}</div><div className="text-xl font-bold">{n}</div><div className="text-2xs opacity-80">{pl(n, "cliente", "clientes")}</div></div>
-        ))}
-      </div>
+      <PainelCobranca contas={contas} sit={sit} />
 
       <Card className="p-4">
         <h2 className="mb-1 flex items-center gap-2 font-bold"><MessageCircle size={18} className="text-emerald-600" /> Mandar hoje pelo WhatsApp ({fila.length})</h2>
