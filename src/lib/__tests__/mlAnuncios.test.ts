@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  anunciosDoItem, caminhoAnuncio, centavos, comPlano, configDaConta, estoqueDisponivel, linkAnuncio, planejarEnvio, precoAEnviar,
+  anunciosDoItem, quantidadeNoTitulo, caminhoAnuncio, centavos, comPlano, configDaConta, estoqueDisponivel, linkAnuncio, planejarEnvio, precoAEnviar,
   reais, situacaoAnuncio, textoResumoEnvio, travaPreco, type AnuncioCalculo, type ConfigEnvio, type LinhaAnuncio,
 } from "../mlAnuncios";
 import { erroPassageiro, esperaMinutos } from "../../../supabase/functions/_shared/ml-anuncios";
@@ -202,5 +202,19 @@ describe("tentativas e resumo", () => {
     expect(textoResumoEnvio({ enviados: 0, erros: 0 })).toBe("Nada para enviar");
     expect(textoResumoEnvio({ aviso: "nenhuma conta conectada" })).toBe("Nenhuma conta conectada");
     expect(textoResumoEnvio({ enviados: 1, parou: "limite" })).toBe("1 anúncio atualizado. Parou: limite");
+  });
+});
+
+describe("quantidadeNoTitulo", () => {
+  it("lê as unidades vendidas juntas no título do anúncio", () => {
+    expect(quantidadeNoTitulo("Sanfona Para Maquina De Sorvete Vai Na Pá Agitadora 4 Un")).toBe(4);
+    expect(quantidadeNoTitulo("Kit com 3 Anéis O-ring")).toBe(3);
+    expect(quantidadeNoTitulo("Pacote 10 peças vedação")).toBe(10);
+    expect(quantidadeNoTitulo("Borracha 2 unidades")).toBe(2);
+  });
+  it("sem quantidade (ou medidas) fica 1", () => {
+    expect(quantidadeNoTitulo("Máquina de sorvete 220v")).toBe(1);
+    expect(quantidadeNoTitulo("Correia 1 Un")).toBe(1);
+    expect(quantidadeNoTitulo(null)).toBe(1);
   });
 });

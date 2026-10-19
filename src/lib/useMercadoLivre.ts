@@ -69,6 +69,10 @@ export const aprovarPreco = (anuncioId: string, preco: number) => rpc("ml_aprova
 
 export const ligarAnuncio = (anuncioId: string, produtoId: string) => rpc<number>("ml_ligar_anuncio", { p_anuncio: anuncioId, p_produto: produtoId });
 
+/** Liga o anúncio ao produto; com quantidade > 1 (anúncio "4 Un") cria ou reaproveita o kit "N × produto" e liga ao kit. */
+export const ligarComKit = (anuncioId: string, produtoId: string, quantidade: number) =>
+  rpc<{ produto_id: string; importadas: number; kit_criado: boolean }>("ml_ligar_com_kit", { p_anuncio: anuncioId, p_produto: produtoId, p_quantidade: quantidade });
+
 /** "Sincronizar agora": põe os anúncios na fila (forçado) e já pede o envio. Se a função não responder, o agendamento manda. */
 export async function sincronizarAgora(anuncios?: string[]) {
   const n = await rpc<number>("ml_sincronizar_agora", anuncios?.length ? { p_anuncios: anuncios } : {});

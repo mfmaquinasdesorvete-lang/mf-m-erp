@@ -11,8 +11,8 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import type { ProdutoBuscavel } from "@/lib/buscaProduto";
-import { corSituacao, linkAnuncio, nomeSituacao, reais, SITUACOES, textoResumoEnvio, type AnuncioComPlano, type ContaML, type Situacao } from "@/lib/mlAnuncios";
-import { aprovarPreco, buscarAnunciosML, ligarAnuncio, mudarExcecao, mudarSituacaoAnuncios, sincronizarAgora } from "@/lib/useMercadoLivre";
+import { corSituacao, linkAnuncio, nomeSituacao, quantidadeNoTitulo, reais, SITUACOES, textoResumoEnvio, type AnuncioComPlano, type ContaML, type Situacao } from "@/lib/mlAnuncios";
+import { aprovarPreco, buscarAnunciosML, ligarComKit, mudarExcecao, mudarSituacaoAnuncios, sincronizarAgora } from "@/lib/useMercadoLivre";
 
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const POR_PAGINA = 100;
@@ -312,18 +312,23 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
 }
 
 type ProdutoLigar = ProdutoBuscavel & { kit: boolean | null; ativo: boolean };
+/** O que o "Ligar" precisa do anúncio (vem da lista de anúncios ou da venda parada). */
+export type AnuncioLigar = Pick<AnuncioComPlano, "anuncio_id" | "ml_item_id" | "variation_id" | "titulo" | "sku">;
 
-function LigarProduto({ anuncio, onClose, onPronto }: { anuncio: AnuncioComPlano; onClose: () => void; onPronto: () => void }) {
+export function LigarProduto({ anuncio, onClose, onPronto }: { anuncio: AnuncioLigar; onClose: () => void; onPronto: () => void }) {
   const { data: produtos = [], isLoading } = useRows<ProdutoLigar>("produtos", {
     select: "id, descricao, sku, codigo_barras, modelo, marca, codigo_fabricante, kit, ativo", order: "descricao", ascending: true,
   });
   const ativos = useMemo(() => produtos.filter((p) => p.ativo), [produtos]);
   const [ligando, setLigando] = useState(false);
+  const [qtd, setQtd] = useState(String(quantidadeNoTitulo(anuncio.titulo)));
+  const n = Math.max(1, Math.min(500, Math.round(Number(qtd)) || 1));
   async function escolher(p: ProdutoLigar) {
     setLigando(true);
     try {
-      const n = Number(await ligarAnuncio(anuncio.anuncio_id, p.id)) || 0;
-      notify(`Anúncio ligado a ${p.descricao}.${n ? ` ${n} ${pl(n, "venda pendente entrou", "vendas pendentes entraram")} no ERP.` : ""}`);
+      const r = await ligarComKit(anuncio.anuncio_id, p.id, n);
+      const k = Number(r?.importadas) || 0;
+      notify(`Anúncio ligado a ${n > 1 ? `${n} × ` : ""}${p.descricao}${r?.kit_criado ? " (kit)" : ""}.${k ? ` ${k} ${pl(k, "venda parada entrou", "vendas paradas entraram")} no ERP.` : ""}`);
       onPronto();
     } catch (e) { notifyError(e); setLigando(false); }
   }
@@ -331,8 +336,13 @@ function LigarProduto({ anuncio, onClose, onPronto }: { anuncio: AnuncioComPlano
     <Modal open onClose={onClose} title="Ligar o anúncio a um produto">
       <p className="mb-1 text-sm font-semibold text-fg">{anuncio.titulo ?? anuncio.ml_item_id}</p>
       <p className="num mb-3 text-xs text-slate-500">{anuncio.ml_item_id}{anuncio.variation_id ? ` · variação ${anuncio.variation_id}` : ""}{anuncio.sku ? ` · SKU no anúncio: ${anuncio.sku}` : ""}</p>
+      <label className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2 text-sm ring-1 ring-slate-200">
+        <span>Cada venda deste anúncio leva</span>
+        <input className="input num !w-20" inputMode="numeric" value={qtd} onChange={(e) => setQtd(e.target.value.replace(/\D/g, ""))} aria-label="Unidades por venda" />
+        <span>{n > 1 ? "unidades do produto: o ERP cria o kit e dá baixa certa no estoque." : "unidade do produto."}</span>
+      </label>
       {isLoading || ligando ? <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" /> {ligando ? "Ligando…" : "Carregando os produtos…"}</p>
-        : <ProdutoBusca produtos={ativos} onEscolher={escolher} placeholder="Produto do ERP: nome, SKU ou código…" />}
+        : <ProdutoBusca produtos={ativos} onEscolher={escolher} placeholder={n > 1 ? "Produto avulso (1 unidade): nome, SKU ou código…" : "Produto do ERP: nome, SKU ou código…"} />}
       <p className="mt-3 text-xs text-slate-500">Dica: com o mesmo SKU no cadastro do produto e no anúncio, o ERP liga sozinho ao buscar os anúncios. As vendas que esperavam por este anúncio entram na hora.</p>
     </Modal>
   );

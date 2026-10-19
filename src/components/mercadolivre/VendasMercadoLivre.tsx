@@ -3,7 +3,7 @@
 // função mercadolivre (ação pos_venda, a cada 10 minutos); a fila e as tentativas ficam no banco.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Send } from "lucide-react";
+import { Link2, Loader2, RotateCcw, Send } from "lucide-react";
 import { Button, Card, Table } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
@@ -12,7 +12,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import type { ContaML } from "@/lib/mlAnuncios";
 import { COR_TOM, pedeAtencao, situacaoNota, situacaoRastreio, textoEnvio, textoModo, textoResumoPosVenda, type Etiqueta, type VendaML } from "@/lib/mlPosVenda";
-import { quando } from "./AnunciosMercadoLivre";
+import { LigarProduto, quando, type AnuncioLigar } from "./AnunciosMercadoLivre";
 
 const COLUNAS = "id, ml_order_id, ml_pack_id, pedido_id, data_venda, comprador, total, logistica, situacao, pendencia, envio_status, envio_substatus, envio_modo, rastreio_ml, envio_atualizado_em, nota_enviada_em, nota_erro, nota_tentativas, rastreio_enviado_em, rastreio_erro, rastreio_tentativas, pedidos:pedidos(numero, codigo_rastreio)";
 const LIMITE = 300;
@@ -33,6 +33,7 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
   const invalidar = useInvalidate();
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [ligar, setLigar] = useState<AnuncioLigar | null>(null);
   const emiteErp = !!conta?.emitir_nfe;
 
   const vendas = useQuery({
@@ -79,6 +80,24 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
     if (error) return notifyError(error);
     notify("Voltou para a fila: vai na próxima rodada (até 10 minutos) ou agora, em \"Mandar agora\".");
     invalidar("ml_pedidos");
+  }
+
+  /** Venda parada por anúncio sem produto: acha o anúncio dela e abre o "Ligar" ali mesmo. */
+  async function ligarDaVenda(v: VendaML) {
+    setOcupado(v.id);
+    try {
+      const { data, error } = await supabase.from("ml_pedidos").select("dados").eq("id", v.id).single();
+      if (error) throw error;
+      const itens = ((data?.dados as { itens?: { item_id?: string; variation_id?: string | null }[] } | null)?.itens ?? []).filter((i) => i.item_id);
+      if (!itens.length) return notify("Não achei os itens desta venda. Use a aba Anúncios.", "erro");
+      const r = await supabase.from("ml_anuncios").select("id, ml_item_id, variation_id, titulo, sku, produto_id").in("ml_item_id", itens.map((i) => i.item_id!));
+      if (r.error) throw r.error;
+      const lista = (r.data ?? []) as { id: string; ml_item_id: string; variation_id: string; titulo: string | null; sku: string | null; produto_id: string | null }[];
+      const a = lista.find((x) => !x.produto_id && itens.some((i) => i.item_id === x.ml_item_id && (i.variation_id ?? "") === (x.variation_id ?? "")))
+        ?? lista.find((x) => !x.produto_id);
+      if (!a) { notify("Os anúncios desta venda já estão ligados: use \"Tentar de novo\"."); return; }
+      setLigar({ anuncio_id: a.id, ml_item_id: a.ml_item_id, variation_id: a.variation_id || null, titulo: a.titulo, sku: a.sku });
+    } catch (e) { notifyError(e); } finally { setOcupado(null); }
   }
 
   async function mudarEmissor(ligar: boolean) {
@@ -141,6 +160,11 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
                   <span className="num block text-xs text-slate-500">ML {v.ml_pack_id || v.ml_order_id} · {quando(v.data_venda)}{v.total != null ? ` · ${brl(v.total)}` : ""}</span>
                   {v.comprador && <span className="block max-w-[16rem] truncate text-xs text-slate-500">{v.comprador}</span>}
                   {(v.situacao === "pendente" || v.situacao === "erro") && <span className="mt-0.5 block max-w-[16rem] text-xs text-amber-800">{v.pendencia ?? "A venda não entrou no ERP"}</span>}
+                  {(v.situacao === "pendente" || v.situacao === "erro") && !v.pedido_id && /anúncio/i.test(v.pendencia ?? "") && (
+                    <Button type="button" className="mt-1 !min-h-0 !py-1 text-xs" disabled={ocupado === v.id} onClick={() => ligarDaVenda(v)}>
+                      {ocupado === v.id ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />} Ligar anúncio a um produto
+                    </Button>
+                  )}
                 </td>
                 <td className="td">
                   <Selo e={envio} />
@@ -161,6 +185,7 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
           })}
         </Table>
       )}
+      {ligar && <LigarProduto anuncio={ligar} onClose={() => setLigar(null)} onPronto={() => { setLigar(null); invalidar("ml_pedidos", "ml_anuncios", "pedidos", "produtos"); }} />}
       {lista.length >= LIMITE && <p className="text-xs text-slate-500">Mostrando as {LIMITE} vendas mais recentes.</p>}
     </div>
   );

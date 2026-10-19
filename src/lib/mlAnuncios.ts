@@ -64,3 +64,11 @@ export function textoResumoEnvio(r: { enviados?: number; em_dia?: number; aguard
   const texto = partes.length ? partes.join(" · ") : "Nada para enviar";
   return r.parou ? `${texto}. Parou: ${r.parou}` : texto;
 }
+
+/** Quantas unidades o anúncio vende juntas, pelo título ("4 Un", "Kit com 3", "c/ 10 peças", "Pacote 2"); 1 quando não diz. */
+export function quantidadeNoTitulo(titulo: string | null | undefined): number {
+  const t = String(titulo ?? "").toLowerCase();
+  const m = t.match(/(?:kit|pacote|pct|caixa|cx|jogo)\s*(?:com|c\/|de)?\s*(\d{1,3})\b/) ?? t.match(/\b(\d{1,3})\s*(?:un|und|unid|unidades?|p[cç]s|pe[cç]as|pares)\b/);
+  const n = m ? Number(m[1]) : 1;
+  return n >= 2 && n <= 500 ? n : 1;
+}
