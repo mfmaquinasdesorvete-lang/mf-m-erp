@@ -19,6 +19,7 @@
   "shortcuts": [
     { "name": "Vendas", "short_name": "Vendas", "description": "App de vendas: clientes, preço e estoque, pedidos", "url": "/app/vendas", "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }] },
     { "name": "Expedição", "short_name": "Expedição", "description": "Separar, conferir, embalar e despachar", "url": "/app/expedicao", "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }] },
+    { "name": "Assistência", "short_name": "Assistência", "description": "OS do técnico: foto, próximo passo e assinatura", "url": "/app/assistencia", "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }] },
     { "name": "Financeiro", "short_name": "Financeiro", "description": "Saldos e contas para aprovar", "url": "/app", "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }] }
   ]
 }
