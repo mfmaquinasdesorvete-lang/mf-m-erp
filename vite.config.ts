@@ -3,21 +3,22 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import path from "path";
 import { execFileSync } from "node:child_process";
-import { agruparHistorico, dataHoraBR, FORMATO_GIT, numeroVersao, type DiaHistorico, type InfoVersao } from "./src/lib/atualizacoes";
+import { agruparHistorico, contarAlteracoesTelas, dataHoraBR, FORMATO_GIT, FORMATO_GIT_ARQUIVOS, numeroVersao, type AlteracaoTela, type DiaHistorico, type InfoVersao } from "./src/lib/atualizacoes";
 
 // Versão e histórico do ERP (página Atualizações e rodapé do menu), lidos do git na hora de montar o site.
 // Sem git (cópia sem o histórico), o site sai sem número de versão e a página mostra só os destaques.
-function versaoDoGit(): { versao: InfoVersao | null; historico: DiaHistorico[] } {
+function versaoDoGit(): { versao: InfoVersao | null; historico: DiaHistorico[]; telas: AlteracaoTela[] } {
   try {
     const git = (...args: string[]) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
     const historico = agruparHistorico(git("log", "--no-merges", `--format=${FORMATO_GIT}`));
     const [hash, data] = git("log", "-1", "--format=%h%x1f%cI").trim().split("\x1f");
-    return { versao: historico.length && hash && data ? { numero: numeroVersao(historico), hash, data, quando: dataHoraBR(data) } : null, historico };
+    const telas = contarAlteracoesTelas(git("log", "--no-merges", `--format=${FORMATO_GIT_ARQUIVOS}`, "--name-only", "--", "src/pages"));
+    return { versao: historico.length && hash && data ? { numero: numeroVersao(historico), hash, data, quando: dataHoraBR(data) } : null, historico, telas };
   } catch {
-    return { versao: null, historico: [] };
+    return { versao: null, historico: [], telas: [] };
   }
 }
-const { versao, historico } = versaoDoGit();
+const { versao, historico, telas } = versaoDoGit();
 
 // `npm run build:demo` gera a prévia com dados de exemplo num único arquivo HTML.
 export default defineConfig(({ mode }) => ({
@@ -29,7 +30,7 @@ export default defineConfig(({ mode }) => ({
       { find: "@", replacement: path.resolve(__dirname, "./src") },
     ],
   },
-  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico) },
+  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas) },
   server: { port: 5174 },
   build: mode === "demo" ? { outDir: "dist-demo" } : undefined,
 }));

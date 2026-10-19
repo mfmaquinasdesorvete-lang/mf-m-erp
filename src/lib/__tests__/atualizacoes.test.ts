@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparHistorico, dataHoraBR, DESTAQUES, diaHoraBrasilia, numeroVersao, versoesDoHistorico } from "../atualizacoes";
+import { agruparHistorico, contarAlteracoesTelas, dataHoraBR, DESTAQUES, diaHoraBrasilia, nomeTela, numeroVersao, versoesDoHistorico } from "../atualizacoes";
 import { SOBRE_AREAS, SOBRE_TELAS } from "../modulos";
 import { DETALHE_TELAS } from "../modulosDetalhe";
 import menu from "../menu.ts?raw";
@@ -58,5 +58,20 @@ describe("página Módulos", () => {
       // repositório público: sem CPF, CNPJ ou e-mail nos textos
       expect([d.destaque, ...d.partes].join(" "), t).not.toMatch(/\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}|@[a-z0-9-]+\./i);
     }
+  });
+});
+
+describe("quantas vezes cada tela mudou", () => {
+  it("conta uma vez por mudança, da mais alterada, com a última data", () => {
+    const saida = "\x1e2026-10-18T10:00:00-03:00\n\nsrc/pages/Fornecedores.tsx\nsrc/pages/paineis/PainelCadastros.tsx\n" +
+      "\x1e2026-10-19T10:00:00-03:00\n\nsrc/pages/Fornecedores.tsx\nsrc/lib/x.ts\n";
+    expect(contarAlteracoesTelas(saida)).toEqual([
+      { arquivo: "Fornecedores.tsx", tela: "Fornecedores", vezes: 2, ultima: "2026-10-19" },
+      { arquivo: "paineis/PainelCadastros.tsx", tela: "Painel Cadastros", vezes: 1, ultima: "2026-10-18" },
+    ]);
+  });
+  it("nome da tela pelo arquivo", () => {
+    expect(nomeTela("NotasFiscais.tsx")).toBe("Notas Fiscais");
+    expect(contarAlteracoesTelas("")).toEqual([]);
   });
 });

@@ -81,6 +81,7 @@ export function erroAssinante(nome: string, cpf: string, cpfValido: (v: string) 
 export const ROTULOS_FICHA: Record<string, string> = {
   email: "E-mail", email_nfe: "E-mail para nota fiscal", telefone: "Telefone", whatsapp: "WhatsApp", data_nascimento: "Data de nascimento",
   cep: "CEP", logradouro: "Endereço", numero: "Número", complemento: "Complemento", bairro: "Bairro", municipio: "Cidade", uf: "UF",
+  instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok",
 };
 
 /** "15.000,50" → 15000.5; "1500" → 1500; vazio → null. */

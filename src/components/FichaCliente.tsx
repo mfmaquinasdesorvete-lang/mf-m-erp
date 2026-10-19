@@ -61,7 +61,7 @@ function useFicha(c: Cliente) {
       const doc = digitos(c.cpf_cnpj);
       const vazio = Promise.resolve({ data: [] as any[] });
       const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios, legado, propostasTiny, notasMyFrost] = await Promise.all([
-        supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, " +
+        supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, observacoes, origem, " +
           "itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(sku)), notas:notas_fiscais(id, numero, status, ambiente)")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
         supabase.from("notas_fiscais").select(NOTA).eq("cliente_id", c.id),
@@ -167,7 +167,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar a ficha: {(error as Error).message}</p>}
       {data && calc && (
         <>
-          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} />}
+          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} />}
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} notasMyFrost={data.notasMyFrost} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
@@ -183,7 +183,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 const corSituacao = (tom: "bom" | "ruim" | "atencao" | undefined, assunto: CorCartao): CorCartao =>
   tom === "ruim" ? "vermelho" : tom === "atencao" ? "ambar" : tom === "bom" ? "verde" : assunto;
 
-function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente> }) {
+function Resumo({ c, r, sugestoes, pedidos }: { c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente>; pedidos: any[] }) {
   const { pode } = usePerfil();
   const invalidate = useInvalidate();
   const [pref, setPref] = useState(c.preferencias ?? "");
@@ -245,9 +245,29 @@ function Resumo({ c, r, sugestoes }: { c: Cliente; r: ReturnType<typeof resumoCl
           <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700 [overflow-wrap:anywhere]">{c.observacoes || "—"}</p>
         </div>
       </div>
+      <ObsPedidos pedidos={pedidos} />
       {podeEditar && pref !== (c.preferencias ?? "") && (
         <Button type="button" onClick={salvar} disabled={salvando}><Save size={16} /> {salvando ? "Salvando…" : "Salvar preferências"}</Button>
       )}
+    </div>
+  );
+}
+
+/** O que foi escrito nos pedidos (MF e My Frost): vem para a ficha para ninguém precisar abrir pedido por pedido. */
+function ObsPedidos({ pedidos }: { pedidos: any[] }) {
+  const obs = pedidos.filter((p) => (p.observacoes ?? "").trim());
+  if (!obs.length) return null;
+  return (
+    <div>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Receipt size={16} className="text-indigo-500" /> Observações dos pedidos ({obs.length})</h3>
+      <ul className="max-h-72 space-y-1.5 overflow-y-auto">
+        {obs.map((p) => (
+          <li key={p.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm">
+            <span className="mb-0.5 block text-xs font-semibold text-slate-500">Pedido #{p.numero} · {dataBR(p.created_at)}{p.origem ? ` · ${p.origem}` : ""}</span>
+            <span className="whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{p.observacoes.trim()}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -280,3 +280,32 @@ export function versoesDoHistorico(historico: DiaHistorico[], destaques: Record<
   const dias = historico.length ? historico : Object.keys(destaques).sort().map((dia) => ({ dia, mudancas: [] as Mudanca[] }));
   return dias.map((d, i) => ({ numero: `1.${i + 1}`, dia: d.dia, titulo: destaques[d.dia]?.titulo ?? "", itens: destaques[d.dia]?.itens ?? [], mudancas: d.mudancas })).reverse();
 }
+
+/** Quantas vezes cada tela mudou: um item por arquivo de src/pages, com a última data (dia em Brasília). */
+export type AlteracaoTela = { arquivo: string; tela: string; vezes: number; ultima: string };
+
+/** Formato do `git log --name-only` lido na montagem: cada mudança começa com \x1e e a data ISO; depois, os arquivos. */
+export const FORMATO_GIT_ARQUIVOS = "%x1e%aI";
+
+/** "paineis/PainelCadastros.tsx" → "Painel Cadastros"; "NotasFiscais.tsx" → "Notas Fiscais". */
+export const nomeTela = (arquivo: string) =>
+  (arquivo.split("/").pop() ?? arquivo).replace(/\.tsx?$/, "").replace(/([a-zà-ú])([A-Z])/g, "$1 $2");
+
+/** Saída do `git log --no-merges --format=FORMATO_GIT_ARQUIVOS --name-only -- src/pages` → telas, da mais alterada. */
+export function contarAlteracoesTelas(saida: string): AlteracaoTela[] {
+  const telas = new Map<string, AlteracaoTela>();
+  for (const bloco of saida.split("\x1e")) {
+    const [iso, ...arquivos] = bloco.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!iso || Number.isNaN(Date.parse(iso))) continue;
+    const { dia } = diaHoraBrasilia(iso);
+    for (const a of new Set(arquivos)) {
+      if (!/^src\/pages\/.+\.tsx$/.test(a)) continue;
+      const arquivo = a.slice("src/pages/".length);
+      const t = telas.get(arquivo) ?? { arquivo, tela: nomeTela(arquivo), vezes: 0, ultima: dia };
+      t.vezes += 1;
+      if (dia > t.ultima) t.ultima = dia;
+      telas.set(arquivo, t);
+    }
+  }
+  return [...telas.values()].sort((a, b) => b.vezes - a.vezes || a.tela.localeCompare(b.tela));
+}

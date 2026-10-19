@@ -811,6 +811,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     <input className="input pl-9" value={c.website ?? ""} placeholder="www.empresa.com.br" disabled={!podeEditar} onChange={(e) => set("website", e.target.value)} />
                   </div>
                 </Field>
+                {campo("instagram", "Instagram", { span: 4, placeholder: "@sorveteria" })}
+                {campo("facebook", "Facebook", { span: 4, placeholder: "facebook.com/…" })}
+                {campo("tiktok", "TikTok", { span: 4, placeholder: "@…" })}
                 <label className="col-span-1 flex items-center gap-2 self-end rounded-xl border border-slate-200 px-3 py-2.5 text-sm sm:col-span-6">
                   <input type="checkbox" className="h-5 w-5" checked={c.avisos_email !== false} disabled={!podeEditar} onChange={(e) => set("avisos_email", e.target.checked)} />
                   Recebe avisos por e-mail (pedido, nota, entrega, garantia)

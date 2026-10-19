@@ -122,7 +122,7 @@ export default function Garantias() {
             <div key={e.id} className="rounded-xl border border-slate-200/80 bg-surface p-4 shadow-card">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-fg">{e.descricao}</div>
+                  <div className="flex flex-wrap items-center gap-1.5 font-semibold text-fg">{e.descricao} <SeloVoltagem v={e.voltagem} /></div>
                   <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}{e.usada ? " · usada" : ""}</div>
                 </div>
                 <Badge value={g} />
@@ -163,7 +163,7 @@ export default function Garantias() {
           return (
             <tr key={e.id} className="hover:bg-slate-50/70">
               <td className="td">
-                <div className="font-semibold text-fg">{e.descricao}</div>
+                <div className="flex flex-wrap items-center gap-1.5 font-semibold text-fg">{e.descricao} <SeloVoltagem v={e.voltagem} /></div>
                 <div className="text-xs text-slate-500">{e.numero_serie ? `Série ${e.numero_serie}` : "sem nº de série"} · {textoVenda(e)}{e.usada ? " · usada" : ""}</div>
               </td>
               <td className="td">{e.cliente?.nome}<div className="text-xs text-slate-500">{[e.cliente?.municipio, e.cliente?.uf].filter(Boolean).join("/")}</div></td>
@@ -270,6 +270,12 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
           </select>
         </Field>
         <Field label="Descrição"><input className="input" value={e.descricao ?? ""} onChange={(x) => set({ descricao: x.target.value })} required /></Field>
+        <Field label="Voltagem que o cliente comprou">
+          <select className="input" value={e.voltagem ?? ""} onChange={(x) => set({ voltagem: x.target.value || null })}>
+            <option value="">Não informada</option>
+            {VOLTAGENS.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </Field>
         <Field label="Nº de série">
           <input className="input" value={e.numero_serie ?? ""} onChange={(x) => set({ numero_serie: x.target.value })} />
           {/* regra da MF: bicos + mês/ano da NF + 3 últimos números da NF */}
@@ -411,4 +417,13 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
       )}
     </Modal>
   );
+}
+
+const VOLTAGENS = ["127V", "220V", "220V trifásica", "380V"];
+
+/** Etiqueta da voltagem: trifásica e 380V em laranja (pedem atenção na instalação). */
+function SeloVoltagem({ v }: { v?: string | null }) {
+  if (!v) return null;
+  const forte = /tri|380/i.test(v);
+  return <span className={`rounded-md px-1.5 py-0.5 text-2xs font-extrabold ${forte ? "bg-orange-600 text-white" : "bg-sky-600 text-white"}`} title="Voltagem que o cliente comprou">⚡ {v}</span>;
 }

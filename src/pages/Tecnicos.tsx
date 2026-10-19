@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { ExternalLink, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
+import { EnviarImagem } from "@/components/EnviarImagem";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button } from "@/components/ui";
 import { Contato } from "@/components/Contato";
@@ -12,7 +13,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
-import { pl } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 
 export type Tecnico = {
   id: string; nome: string; tipo: "interno" | "parceiro"; whatsapp: string | null; telefone: string | null; email: string | null;
@@ -21,8 +22,34 @@ export type Tecnico = {
   drfrost?: boolean; drfrost_id?: string | null; drfrost_url?: string | null; drfrost_desde?: string | null; drfrost_status?: string | null;
   nome_fantasia?: string | null; verificado?: boolean; destaque?: boolean; instagram?: string | null; facebook?: string | null;
   site?: string | null; youtube?: string | null; endereco?: string | null; servicos?: string[]; diferenciais?: string[];
-  area_atuacao?: string | null; apresentacao?: string | null;
+  area_atuacao?: string | null; apresentacao?: string | null; logo_url?: string | null;
 };
+
+/** Logo do cadastro; sem logo, as iniciais (azul quando é parceiro Dr. Frost). */
+function LogoTecnico({ t, tamanho = 40 }: { t: Tecnico; tamanho?: number }) {
+  const iniciais = (t.nome_fantasia || t.nome).split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  if (t.logo_url) return <img src={t.logo_url} alt="" className="shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-0.5" style={{ width: tamanho, height: tamanho }} />;
+  return (
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-xl text-xs font-extrabold ${t.drfrost ? "bg-sky-600 text-white" : t.tipo === "interno" ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}
+      style={{ width: tamanho, height: tamanho }}>{iniciais}</span>
+  );
+}
+
+/** Desde quando está com a gente: entrada no Dr. Frost ou data do cadastro. */
+const desde = (t: Tecnico) => (t.drfrost_desde || t.created_at || "").slice(0, 10);
+
+/** Estados inteiros em siglas bem visíveis + cidades em texto. */
+function Atende({ t }: { t: Tecnico }) {
+  const ufs = t.ufs ?? [];
+  const cidades = t.cidades ?? [];
+  if (!ufs.length && !cidades.length) return <span className="text-sm text-slate-500">{textoRegiao(t)}</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {ufs.map((u) => <span key={u} className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-xs font-extrabold tracking-wide text-white">{u}</span>)}
+      {cidades.length > 0 && <span className="text-xs text-slate-600">{cidades.slice(0, 3).join(", ")}{cidades.length > 3 ? ` +${cidades.length - 3}` : ""}</span>}
+    </div>
+  );
+}
 
 /** Lista separada por vírgula (serviços, diferenciais): digita livre e vira a lista ao sair do campo. */
 function CampoLista({ valor, onChange, placeholder }: { valor: string[] | null | undefined; onChange: (v: string[]) => void; placeholder?: string }) {
@@ -63,6 +90,8 @@ function EscolherUfs({ valor, onChange }: { valor: string[] | null | undefined; 
 
 const fields: CampoForm[] = [
   { name: "nome", label: "Nome", required: true, span: 2 },
+  { name: "logo_url", label: "Logo", type: "custom", span: 4,
+    render: (v, set) => <EnviarImagem rotulo="Logo" dica="Logo da empresa do técnico (ou a do anúncio Dr. Frost). Até 2 MB." url={v} nome="tecnico" pasta="tecnicos" onUrl={set} /> },
   { name: "tipo", label: "Tipo", type: "select", options: [{ value: "interno", label: "Da equipe (MF)" }, { value: "parceiro", label: "Parceiro (outra cidade)" }] },
   { name: "ativo", label: "Ativo", type: "checkbox" },
   { name: "whatsapp", label: "WhatsApp", mask: "whatsapp" },
@@ -149,21 +178,29 @@ export default function Tecnicos() {
       fields={fields}
       columns={[
         { label: "Técnico", render: (t) => (
-          <div>
+          <div className="flex items-center gap-2.5">
+          <LogoTecnico t={t} />
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1 font-medium">{t.nome} <SeloDrFrost t={t} />
               {t.drfrost_url && <a href={t.drfrost_url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline" title="Abrir o anúncio no site Dr. Frost" aria-label="Abrir o anúncio no site Dr. Frost"><ExternalLink size={13} /></a>}
               {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</div>
             <div className="text-xs text-slate-500">{[t.nome_fantasia, t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ")}</div>
+            {desde(t) && <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">desde {dataBR(desde(t))}</span>}
+          </div>
           </div>
         ) },
         { label: "Tipo", render: (t) => <Badge value={t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"} /> },
-        { label: "Atende", render: (t) => <span className="text-sm">{textoRegiao(t)}</span> },
+        { label: "Atende", render: (t) => <Atende t={t} /> },
         { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
       cartaoCelular={(t, abrir) => (
-        <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
-          <span className="flex flex-wrap items-center gap-1 text-sm font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
-          <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"} · atende {textoRegiao(t)}</span>
+        <button type="button" onClick={abrir} className="flex w-full items-start gap-2.5 pr-8 text-left">
+          <LogoTecnico t={t} tamanho={36} />
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-1 text-sm font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
+            <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"}{desde(t) ? ` · desde ${dataBR(desde(t))}` : ""}</span>
+            <span className="mt-1 block"><Atende t={t} /></span>
+          </span>
         </button>
       )}
     />

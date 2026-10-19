@@ -29,6 +29,7 @@ const PASSOS = [
 ];
 const CONTATO: [string, string, Mascara | undefined][] = [
   ["whatsapp", "Celular / WhatsApp", "whatsapp"], ["telefone", "Telefone", "telefone"], ["email", "E-mail", "email"], ["email_nfe", "E-mail para receber a nota fiscal", "email"],
+  ["instagram", "Instagram da empresa", undefined], ["facebook", "Facebook", undefined], ["tiktok", "TikTok", undefined],
 ];
 const ENDERECO: [string, string, string][] = [
   ["logradouro", "Endereço (rua, avenida)", "sm:col-span-4"], ["numero", "Número", "sm:col-span-2"], ["complemento", "Complemento", "sm:col-span-3"],
