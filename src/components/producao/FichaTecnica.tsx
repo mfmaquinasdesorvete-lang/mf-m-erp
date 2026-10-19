@@ -24,6 +24,7 @@ import {
   type GrupoFicha, type OrigemProducao,
 } from "@/lib/fichaGrupos";
 import type { EtapaProducao, KitComponente, Produto } from "@/lib/types";
+import { PainelFichas } from "@/components/producao/PainelFichas";
 
 type Componente = { id?: string; produto_id: string; componente_id: string; quantidade: number; grupo?: string | null; ordem?: number | null };
 type Visao = "pecas" | "etapas";
@@ -166,6 +167,9 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
   const ehMaquina = item?.tipo === "maquina";
 
   return (
+    <>
+    <PainelFichas maquinas={maquinas} fabricados={fabricados} produtos={produtos} fichas={todas} kits={kits}
+      onAbrir={(id) => { setSelId(id); setVisao("pecas"); document.getElementById("ficha-titulo")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
     <div className="grid gap-4 lg:grid-cols-3">
       <Field label="Máquina ou peça fabricada" className="lg:hidden">
         <select className="input" value={item?.id ?? ""} onChange={(e) => setSelId(e.target.value)}>
@@ -372,6 +376,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
         </div>
       )}
     </div>
+    </>
   );
 }
 
