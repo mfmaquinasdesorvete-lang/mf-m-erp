@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Produto } from "@/lib/types";
 import { useCategorias, useCentros } from "./CategoriaRateio";
+import { PainelDre } from "./PainelDre";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const MESES_LONGOS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -179,6 +180,8 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
               {notas.semCusto > 0 && <> {notas.semCusto} {pl(notas.semCusto, "item vendido está", "itens vendidos estão")} sem custo no cadastro: o CMV fica menor que o real.</>} Gerencial: a apuração oficial é do contador.</>}
         </p>
       )}
+
+      <PainelDre linhas={d.linhas} margem={d.margem} margemBruta={d.margemBruta} i={i} rotuloMes={rotuloMesLongo(mes)} />
 
       {/* grid-cols-1 e min-w-0: o gráfico de 12 meses rola dentro do cartão, sem alargar a tela do celular */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
