@@ -26,7 +26,7 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, digitos, whatsappLink } from "@/lib/format";
 import { erroCampo, type Mascara } from "@/lib/mascaras";
-import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
+import { buscarIe, completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import { useFormasPagamento } from "@/lib/formasPagamento";
 import { usePerfil } from "@/lib/auth";
 import {
@@ -185,6 +185,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
     if (nome === "cobranca_cep" && (forcar || digitos(valor).length === 8)) {
       return completarPorCep(valor, forcar).then((r) => r && { cobranca_logradouro: r.logradouro, cobranca_bairro: r.bairro, cobranca_municipio: r.municipio, cobranca_uf: r.uf });
     }
+    if (nome === "inscricao_estadual") return forcar ? buscarIe(row.cpf_cnpj, row.uf) : null;
     if (nome !== "cpf_cnpj") return null;
     const d = digitos(valor);
     if (d.length === 11) return Promise.resolve(row.tipo_pessoa === "PF" ? null : { tipo_pessoa: "PF" });
@@ -487,7 +488,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                       <option value={2}>Isento de inscrição</option>
                     </select>
                   </Field>
-                  {campo("inscricao_estadual", "Inscrição estadual", { span: 6 })}
+                  {campo("inscricao_estadual", "Inscrição estadual", { span: 6, buscar: true, ajuda: "Toque na lupa para buscar a IE pelo CNPJ" })}
                 </>)}
               </div>
             </>)}
@@ -753,7 +754,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     <option value={2}>Isento de inscrição</option>
                   </select>
                 </Field>
-                {campo("inscricao_estadual", "Inscrição estadual", { span: 4 })}
+                {campo("inscricao_estadual", "Inscrição estadual", { span: 4, buscar: true, ajuda: "Toque na lupa para buscar a IE pelo CNPJ" })}
                 {campo("inscricao_municipal", "Inscrição municipal", { span: 4 })}
               </div>
             </Secao>

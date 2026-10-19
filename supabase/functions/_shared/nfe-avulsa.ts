@@ -6,6 +6,7 @@ import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { configIbsCbs, emitir, exigirCbenef, exigirEmitente, itemBase, observacoes, ratear, regrasDa } from "./nfe-emissao.ts";
 import { chaveValida, operacaoNota } from "./nfe-operacoes.ts";
+import { problemaIeDestinatario } from "./nfe-ajustes.ts";
 import { itensEntrada, pendenciasEntrada } from "./nfe-entrada.ts";
 
 export type NotaAvulsa = {
@@ -70,6 +71,8 @@ export async function emitirAvulsa(db: any, n: NotaAvulsa) {
 
   const interestadual = c.uf.toUpperCase() !== u.uf.toUpperCase();
   const contribuinte = c.tipo_pessoa === "PJ" && Number(c.contribuinte_icms) === 1;
+  const problemaIe = problemaIeDestinatario(doc, c.inscricao_estadual, contribuinte);
+  if (problemaIe) throw new HttpError(400, `Antes de emitir: ${problemaIe}.`);
   const brutos = n.itens.map((i) => r2(Number(i.quantidade) * Number(i.valor_unitario)));
   const descontos = ratear(Number(n.desconto ?? 0), brutos);
   const fretes = ratear(Number(n.frete ?? 0), brutos);

@@ -46,3 +46,17 @@ export function aplicarAjustes(itens: any[], ajustes?: AjustesNfe | null) {
     return { ...i, descricao, quantidade, valor_unitario, valor_total: r2(quantidade * valor_unitario) };
   });
 }
+
+/**
+ * Confere a inscrição estadual do cliente antes de mandar a nota (cada envio recusado pela SEFAZ vira uma tentativa
+ * a mais). Devolve o problema em português ou null. `contribuinte` = indicador 1 no cadastro.
+ */
+export function problemaIeDestinatario(doc: string | null | undefined, ie: string | null | undefined, contribuinte: boolean) {
+  const d = String(doc ?? "").replace(/\D/g, "");
+  const i = String(ie ?? "").replace(/\D/g, "");
+  if (d.length !== 14) return null; // CPF: vai como não contribuinte
+  if (i && i === d) return "a inscrição estadual do cliente está com o próprio CNPJ. Toque em Buscar IE no cadastro do cliente (ou consulte o SINTEGRA do estado) e emita de novo";
+  if (contribuinte && !i) return "o cliente está como contribuinte do ICMS, mas sem inscrição estadual. Toque em Buscar IE no cadastro do cliente";
+  if (i && (i.length < 8 || i.length > 14)) return "a inscrição estadual do cliente parece incompleta. Confira no cadastro do cliente (Buscar IE)";
+  return null;
+}

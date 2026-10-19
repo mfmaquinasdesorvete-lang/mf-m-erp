@@ -10,7 +10,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 import { pendenciaCbenef } from "./nfe-conferencia.ts";
 import { pendenciasTransferencia } from "./nfe-transferencia.ts";
-import { type AjustesNfe, aplicarAjustes, conferirMotivo } from "./nfe-ajustes.ts";
+import { type AjustesNfe, aplicarAjustes, conferirMotivo, problemaIeDestinatario } from "./nfe-ajustes.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -110,6 +110,9 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
 
   const interestadual = c.uf.toUpperCase() !== u.uf.toUpperCase();
   const contribuinte = c.tipo_pessoa === "PJ" && Number(c.contribuinte_icms) === 1;
+  // IE errada é recusa certa da SEFAZ: avisa antes de gastar um envio
+  const problemaIe = problemaIeDestinatario(doc, c.inscricao_estadual, contribuinte);
+  if (problemaIe) throw new HttpError(400, `Antes de emitir: ${problemaIe}.`);
   const brutos = pedido.itens.map((i: any) => Number(i.valor_total));
   const ufs: AliquotasUf = Object.fromEntries((ufsLista ?? []).map((x: any) => [x.uf, x]));
   const descontos = ratear(Number(pedido.desconto), brutos);

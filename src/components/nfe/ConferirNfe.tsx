@@ -8,12 +8,12 @@ import { brl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
-import { MOTIVOS_NOTA_MENOR } from "../../../supabase/functions/_shared/nfe-ajustes";
+import { MOTIVOS_NOTA_MENOR, problemaIeDestinatario } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 type Item = { id: string; descricao: string; quantidade: number; valor_unitario: number; numero_serie?: string | null };
 type PedidoNfe = {
   id: string; numero: number; valor_total: number; desconto: number; frete: number; observacoes: string | null;
-  cliente?: { nome: string } | null; unidade?: { informacoes_complementares?: string | null } | null; itens: Item[];
+  cliente?: { nome: string; cpf_cnpj: string | null; inscricao_estadual: string | null; contribuinte_icms: number | null; tipo_pessoa: string | null } | null; unidade?: { informacoes_complementares?: string | null } | null; itens: Item[];
 };
 
 const num = (v: string) => Number(String(v).replace(/\./g, "").replace(",", ".")) || 0;
@@ -29,7 +29,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
-    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, cliente:clientes(nome), unidade:unidades(informacoes_complementares), " +
+    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, cliente:clientes(nome, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares), " +
       "itens:pedido_itens(id, descricao, quantidade, valor_unitario, numero_serie)").eq("id", pedidoId).single()
       .then(({ data, error }) => {
         if (error) return notifyError(error);
@@ -46,6 +46,8 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const mudou = !!p && Math.abs(total - Number(p.valor_total)) > 0.009;
   // nota menor que a venda: só nos casos que a lei permite, com o motivo registrado no pedido
   const menor = !!p && total < Number(p.valor_total) - 0.009;
+  // IE errada = recusa certa da SEFAZ: avisa aqui, antes de gastar um envio
+  const problemaIe = p?.cliente ? problemaIeDestinatario(p.cliente.cpf_cnpj, p.cliente.inscricao_estadual, p.cliente.tipo_pessoa === "PJ" && Number(p.cliente.contribuinte_icms) === 1) : null;
   const set = (k: number, campo: "descricao" | "quantidade" | "valor", v: string) => setItens((l) => l.map((x, j) => (j === k ? { ...x, [campo]: v } : x)));
 
   async function emitir() {
@@ -100,6 +102,12 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
           <Field label="Informações complementares (vão impressas na nota)">
             <textarea className="input min-h-[70px]" value={info} onChange={(e) => setInfo(e.target.value)} />
           </Field>
+          {problemaIe && (
+            <p className="flex gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
+              <span>Antes de emitir: {problemaIe}. Em Clientes, abra o cadastro e toque na lupa ao lado de Inscrição estadual.</span>
+            </p>
+          )}
           {menor && (
             <div className="space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
               <p>A NF-e precisa mostrar o valor real da venda. Nota abaixo do valor vendido só nos casos abaixo,
@@ -121,7 +129,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
           )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={emitir} disabled={enviando || (menor && !motivo)}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
+            <Button onClick={emitir} disabled={enviando || (menor && !motivo) || !!problemaIe}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
           </div>
         </div>
       )}

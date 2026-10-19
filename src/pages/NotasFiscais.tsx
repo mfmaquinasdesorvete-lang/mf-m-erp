@@ -179,7 +179,9 @@ export default function NotasFiscais() {
 function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
-  const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
+  // tentativas recusadas do mesmo pedido viram uma linha só (a mais recente, com o número de tentativas);
+  // se o pedido já tem nota autorizada/em processamento depois, as recusas antigas somem da lista
+  const data = useMemo(() => juntarTentativas(filtrar(dataTodos).filter((n) => !n.excluida_em)), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
   const { pode } = usePerfil();
   const podeFin = !leitura && pode("nfe_recebidas");
@@ -292,6 +294,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                     {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
                     {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
+                    {n.status === "erro" && (n as any)._tentativas > 1 && <div className="mt-0.5 text-2xs font-semibold text-rose-700">{(n as any)._tentativas} tentativas recusadas · corrija o cadastro antes de reenviar</div>}
                   </td>
                   <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
                   <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
@@ -435,4 +438,20 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {conferir && <ConferirItensNotas onClose={() => setConferir(false)} />}
     </>
   );
+}
+
+/** Junta as tentativas recusadas (status erro) do mesmo pedido numa linha: fica a mais recente, com `_tentativas`. */
+export function juntarTentativas<T extends { id: string; status: string; pedido_id?: string | null; created_at: string }>(notas: T[]): (T & { _tentativas?: number })[] {
+  const porPedido = new Map<string, T[]>();
+  for (const n of notas) if (n.pedido_id) porPedido.set(n.pedido_id, [...(porPedido.get(n.pedido_id) ?? []), n]);
+  const esconder = new Set<string>();
+  const tentativas = new Map<string, number>();
+  for (const lista of porPedido.values()) {
+    const erros = lista.filter((n) => n.status === "erro").sort((a, b) => b.created_at.localeCompare(a.created_at));
+    if (!erros.length) continue;
+    const boa = lista.some((n) => n.status !== "erro" && n.status !== "cancelada" && n.created_at > erros[0].created_at);
+    for (const e of (boa ? erros : erros.slice(1))) esconder.add(e.id);
+    if (!boa) tentativas.set(erros[0].id, erros.length);
+  }
+  return notas.filter((n) => !esconder.has(n.id)).map((n) => (tentativas.has(n.id) ? { ...n, _tentativas: tentativas.get(n.id) } : n));
 }
