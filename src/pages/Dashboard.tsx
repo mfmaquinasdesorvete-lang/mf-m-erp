@@ -83,7 +83,8 @@ export default function Dashboard() {
           ))}
         </div>
       )}
-      <CartoesCorporativos />
+      {/* cartão corporativo em destaque só na visão do financeiro */}
+      {atual === "financeiro" && <CartoesCorporativos />}
       {atual === "financeiro" ? <PainelFinanceiro />
         : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>
         : <PainelGeral />}

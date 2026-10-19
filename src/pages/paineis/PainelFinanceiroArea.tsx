@@ -188,14 +188,14 @@ export default function PainelFinanceiroArea() {
             <Plus size={16} /> Conta a pagar
           </button>
         )} />
-      <CartoesCorporativos className="" />
-
       <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${cartoes.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
       </div>
 
       {vePagar && <ResumoPagarTipos r={aPagar.resumo} className="" onTipo={(t) => navigate("/financeiro", { state: { aba: "pagar", tipo: t || undefined } })}
         acoes={<span className="text-xs text-white/70">toque num tipo para ver as contas</span>} />}
+      {/* cartões corporativos logo abaixo de "Quanto tem para pagar" (pedido de 19/10) */}
+      <CartoesCorporativos className="" />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title={`${periodo === "ano" ? "Entradas e saídas mês a mês" : periodo === "hoje" ? "Entradas e saídas dos últimos 7 dias" : "Entradas e saídas dia a dia"}${usaExtrato ? " · extratos" : ""}`} className="xl:col-span-3">
