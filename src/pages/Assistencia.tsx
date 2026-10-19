@@ -501,8 +501,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         })()}
 
         {origem && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            <b>Máquina vendida pela {origem} (outra empresa).</b> {aviso}
+          <div className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm text-red-900">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-solido-vermelho px-2 py-0.5 text-xs font-black uppercase tracking-wide text-white">Sem garantia da MF</span>
+              <b>Máquina vendida pela {origem}, que é outra empresa.</b>
+            </div>
+            <p className="mt-1">A MF Máquinas não dá garantia desta máquina. Respondemos só pelo serviço feito nesta OS e pelas peças que trocarmos. {aviso}</p>
             <div className="mt-1 text-xs">Para concluir: nº de série, condição de entrada, diagnóstico, serviço executado, peças e orçamento aprovado. Tudo sai no comprovante e no laudo.</div>
           </div>
         )}
@@ -619,7 +623,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-4 w-4" checked={!!origem} disabled={somenteLeitura || !!equip?.origem}
                   onChange={(e) => set({ maquina_origem: e.target.checked ? "My Frost" : null })} />
-                Máquina vendida por outra empresa (a MF responde só pelo serviço e pelas peças desta OS)
+                Máquina vendida por outra empresa: <b>sem garantia da MF</b> (a MF responde só pelo serviço e pelas peças desta OS)
               </label>
               {origem && !equip?.origem && (
                 <input className="input max-w-[220px] py-1.5" aria-label="Empresa que vendeu a máquina" value={o.maquina_origem ?? ""} disabled={somenteLeitura}

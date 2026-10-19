@@ -1,3 +1,4 @@
+import { bicosDoModelo, proximaPreventiva6m, serieMF } from "@/lib/serieMaquina";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -158,7 +159,6 @@ export default function Garantias() {
       >
         {lista.map((e) => {
           const g = situacaoGarantia(e.garantia_ate);
-          const p = situacaoPreventiva(e.proxima_preventiva);
           const d = e.garantia_ate ? diasAte(e.garantia_ate) : null;
           return (
             <tr key={e.id} className="hover:bg-slate-50/70">
@@ -168,18 +168,33 @@ export default function Garantias() {
               </td>
               <td className="td">{e.cliente?.nome}<div className="text-xs text-slate-500">{[e.cliente?.municipio, e.cliente?.uf].filter(Boolean).join("/")}</div></td>
               <td className="td">
-                <Badge value={g} />
+                {e.origem ? (
+                  // vendida por outra empresa: a MF não dá garantia da máquina (só do serviço e das peças que trocar)
+                  <span title={`Máquina vendida pela ${e.origem}. A MF Máquinas não dá garantia desta máquina: responde só pelo serviço e pelas peças que trocar.`}
+                    className="inline-flex flex-col rounded-lg border-2 border-red-400 bg-red-50 px-2 py-1 text-red-800">
+                    <span className="text-2xs font-black uppercase tracking-wide">Sem garantia da MF</span>
+                    <span className="text-2xs font-semibold">vendida pela {e.origem}</span>
+                  </span>
+                ) : g === "fora_garantia" ? (
+                  <span className="inline-flex rounded-md border border-slate-400 bg-slate-100 px-2 py-0.5 text-2xs font-black uppercase tracking-wide text-slate-700">Fora da garantia</span>
+                ) : <Badge value={g} />}
                 <div className="num mt-1 text-xs text-slate-500">
-                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} ${pl(d, "dia", "dias")}` : `venceu em ${dataBR(e.garantia_ate)}`) : e.origem ? "outra empresa: sem garantia da MF" : "sem garantia registrada"}
+                  {e.garantia_ate ? (d! >= 0 ? `até ${dataBR(e.garantia_ate)} · ${d} ${pl(d, "dia", "dias")}` : `venceu em ${dataBR(e.garantia_ate)}`) : e.origem ? "" : "sem garantia registrada"}
                 </div>
               </td>
               <td className="td">
-                {e.proxima_preventiva ? (
-                  <span className={`num font-semibold ${p === "atrasada" ? "text-red-600" : p === "proxima" ? "text-amber-700" : "text-slate-700"}`}>
-                    {dataBR(e.proxima_preventiva)}
-                  </span>
-                ) : "—"}
-                <div className="text-xs text-slate-500">{p === "atrasada" ? "atrasada" : p === "proxima" ? "nos próximos 30 dias" : p === "em_dia" ? "em dia" : ""}</div>
+                {(() => {
+                  // sem data marcada: de 6 em 6 meses a partir da compra (NF ou proposta)
+                  const prev = e.proxima_preventiva ?? proximaPreventiva6m(e.data_venda, hoje());
+                  const sp = situacaoPreventiva(prev);
+                  if (!prev) return "—";
+                  return (
+                    <span className={`inline-flex flex-col rounded-lg px-2 py-1 ${sp === "atrasada" ? "bg-red-100 text-red-800" : sp === "proxima" ? "bg-amber-100 text-amber-900" : "bg-emerald-50 text-emerald-800"}`}>
+                      <span className="num text-sm font-bold">{dataBR(prev)}</span>
+                      <span className="text-2xs font-semibold">{sp === "atrasada" ? "atrasada" : sp === "proxima" ? "nos próximos 30 dias" : "em dia"}{e.proxima_preventiva ? "" : " · 6 em 6 meses"}</span>
+                    </span>
+                  );
+                })()}
               </td>
               <td className="td">
                 <div className="flex items-center justify-end gap-1 whitespace-nowrap">
@@ -225,6 +240,7 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
     };
   }
 
+  const [nfSerie, setNfSerie] = useState("");
   async function salvar(ev: FormEvent) {
     ev.preventDefault();
     try {
@@ -254,7 +270,18 @@ function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>;
           </select>
         </Field>
         <Field label="Descrição"><input className="input" value={e.descricao ?? ""} onChange={(x) => set({ descricao: x.target.value })} required /></Field>
-        <Field label="Nº de série"><input className="input" value={e.numero_serie ?? ""} onChange={(x) => set({ numero_serie: x.target.value })} /></Field>
+        <Field label="Nº de série">
+          <input className="input" value={e.numero_serie ?? ""} onChange={(x) => set({ numero_serie: x.target.value })} />
+          {/* regra da MF: bicos + mês/ano da NF + 3 últimos números da NF */}
+          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            NF nº <input className="input !min-h-0 w-24 !py-1 text-xs" inputMode="numeric" value={nfSerie} onChange={(x) => setNfSerie(x.target.value)} aria-label="Número da NF da venda" />
+            {(() => {
+              const sug = serieMF(bicosDoModelo(e.descricao), e.data_venda, nfSerie);
+              return sug ? <button type="button" className="rounded-md bg-brand px-2 py-1 font-bold text-brand-fg" onClick={() => set({ numero_serie: sug })}>Usar {sug}</button>
+                : <span>{bicosDoModelo(e.descricao) ? "digite a NF para gerar" : "não sei os bicos pelo modelo"}</span>;
+            })()}
+          </span>
+        </Field>
         <Field label="Data da venda">
           <input className="input" type="date" value={e.data_venda ?? ""} onChange={(x) => set({ data_venda: x.target.value || null, ...sugerir(e.produto_id ?? null, x.target.value) })} required={!e.origem} />
         </Field>
