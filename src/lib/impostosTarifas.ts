@@ -82,3 +82,22 @@ export function porMesGasto(linhas: LinhaGasto[]) {
   }
   return [...m].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
 }
+
+/** "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido" -> "Tarifa PIX recebido": o tipo da cobrança, sem quem cobrou. */
+export const tipoDaDescricao = (d: string) => {
+  const partes = d.split(" · ").map((p) => p.trim()).filter(Boolean);
+  return (partes.length > 1 ? partes[partes.length - 1] : partes[0] ?? "Sem descrição").replace(/\s+/g, " ");
+};
+
+/** Quantas vezes cada tipo de cobrança foi paga, o total e o valor de cada uma (quando é sempre o mesmo). */
+export function porTipoGasto(linhas: Pick<LinhaGasto, "descricao" | "valor">[]) {
+  const m = new Map<string, { n: number; total: number; valores: Set<number> }>();
+  for (const l of linhas) {
+    const k = tipoDaDescricao(l.descricao);
+    const x = m.get(k) ?? { n: 0, total: 0, valores: new Set<number>() };
+    x.n++; x.total += l.valor; x.valores.add(Math.round(l.valor * 100) / 100);
+    m.set(k, x);
+  }
+  return [...m].map(([tipo, x]) => ({ tipo, n: x.n, total: x.total, unitario: x.valores.size === 1 ? [...x.valores][0] : null }))
+    .sort((a, b) => b.n - a.n || b.total - a.total);
+}

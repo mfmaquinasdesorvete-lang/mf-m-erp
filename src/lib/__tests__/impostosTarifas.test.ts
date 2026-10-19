@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linhasGasto, porMesGasto, totalPorGrupo, type ContaGasto, type LancGasto } from "../impostosTarifas";
+import { linhasGasto, porMesGasto, totalPorGrupo, porTipoGasto, type ContaGasto, type LancGasto } from "../impostosTarifas";
 
 const lanc = (id: string, data: string, valor: number, descricao: string, extra: Partial<LancGasto> = {}): LancGasto =>
   ({ id, conta_bancaria_id: "c1", data, valor, descricao, status: "pendente", identificador: id, ...extra });
@@ -43,5 +43,21 @@ describe("impostos, tarifas e funcionários", () => {
     const l = linhasGasto("impostos", lancs, contas, funcionarios);
     expect(totalPorGrupo(l).get("Estadual")).toEqual({ n: 1, total: 350.78, ultimo: "2026-07-17" });
     expect(porMesGasto(l)[0]).toEqual(["2026-07", { n: 1, total: 350.78 }]);
+  });
+});
+
+describe("porTipoGasto", () => {
+  it("conta quantas vezes cada tarifa foi paga e mostra o valor quando é sempre o mesmo", () => {
+    const r = porTipoGasto([
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido", valor: 0.5 },
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido", valor: 0.5 },
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa boleto emitido", valor: 1.99 },
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa boleto emitido", valor: 0.5 },
+      { descricao: "IOF", valor: 3 },
+    ]);
+    const de = (t: string) => r.find((x) => x.tipo === t);
+    expect(de("Tarifa PIX recebido")).toEqual({ tipo: "Tarifa PIX recebido", n: 2, total: 1, unitario: 0.5 });
+    expect(de("Tarifa boleto emitido")).toMatchObject({ n: 2, unitario: null });
+    expect(r[2]).toMatchObject({ tipo: "IOF", n: 1 });
   });
 });

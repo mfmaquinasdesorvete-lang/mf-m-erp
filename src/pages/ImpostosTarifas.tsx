@@ -11,7 +11,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { brl, dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ESFERAS } from "@/lib/extratoTipos";
-import { ABAS_GASTO, linhasGasto, porMesGasto, SEM_GRUPO, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
+import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, SEM_GRUPO, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
 
 type Conta = { id: string; nome: string; unidade_id: string; ativo: boolean };
 type Funcionario = { id: string; nome: string; apelido: string | null; ativo: boolean };
@@ -66,6 +66,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
   const lista = doPeriodo.filter((l) => !grupo || l.grupo === grupo);
   const total = lista.reduce((s, l) => s + l.valor, 0);
   const porGrupo = totalPorGrupo(doPeriodo);
+  const porTipo = porTipoGasto(lista);
   const porMes = porMesGasto(doFiltro.filter((l) => !grupo || l.grupo === grupo));
   const maiorMes = Math.max(1, ...porMes.map(([, x]) => x.total));
 
@@ -154,6 +155,24 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
           <h2 className="mb-1 font-bold text-fg">Total {grupo ? `· ${grupo}` : ""} <span className="text-sm font-normal text-slate-500">· {periodo}</span></h2>
           <p className="num text-2xl font-bold text-red-600">{brl(total)}</p>
           <p className="text-sm text-slate-500">{lista.length} {pl(lista.length, "pagamento", "pagamentos")}{lista.length ? ` · média de ${brl(total / lista.length)}` : ""}</p>
+          {porTipo.length > 1 && (
+            <div className="mt-4">
+              <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Por tipo de cobrança · quantas vezes</h3>
+              <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto text-sm">
+                {porTipo.slice(0, 30).map((t) => (
+                  <li key={t.tipo}>
+                    {/* tocar filtra a lista pelo tipo (busca na descrição) */}
+                    <button type="button" onClick={() => setBusca(t.tipo)} title={`Mostrar só "${t.tipo}"`}
+                      className="flex w-full items-center gap-2 py-1.5 text-left hover:bg-slate-50">
+                      <span className="min-w-0 flex-1 truncate text-fg">{t.tipo}</span>
+                      <span className="num shrink-0 rounded-full bg-slate-100 px-2 text-xs font-bold text-slate-700">{t.n}×{t.unitario != null ? ` ${brl(t.unitario)}` : ""}</span>
+                      <span className="num w-24 shrink-0 text-right font-semibold text-red-600">{brl(t.total)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
         <Card className="p-4">
           <h2 className="mb-3 font-bold text-fg">Mês a mês</h2>

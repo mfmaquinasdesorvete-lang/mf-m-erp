@@ -26,6 +26,9 @@ describe("tipoLancamento", () => {
     expect(tipoLancamento("Pagamento de imposto DARF", -900)).toBe("imposto");
     expect(ehCombustivel("Imposto")).toBe(false);
     expect(ehCombustivel("Comercial de Combustíveis Ltda")).toBe(true);
+    // nomes colados das maquininhas
+    for (const d of ["FininhoAutoPosto · cartao", "PostoAtlantica · cartao", "RODOPOSTO TURMALINA · cartao", "HL COMERCIO DE COMBUST · cartao"]) expect(ehCombustivel(d)).toBe(true);
+    expect(ehCombustivel("Pagamento de imposto federal")).toBe(false);
   });
   it("guias de imposto por esfera", () => {
     expect(esferaImposto("Pix SECRETARIA DE ESTADO DA FAZENDA · Enviado")).toBe("Estadual");

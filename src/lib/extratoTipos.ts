@@ -29,7 +29,8 @@ const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,
  * Posto de combustível pelo nome (no extrato, no fornecedor ou no emitente da nota). "Imposto" não conta, e "diesel"
  * sozinho também não: "MJ Diesel" é a oficina dos veículos (posto que vende diesel tem "posto" ou "combustíveis" no nome).
  */
-export const COMBUSTIVEL = /\b(auto\s*posto|postos?|combustive(l|is)|petrobras|ipiranga|shell|br\s*mania|raizen|ale\s+combust|gasolina|etanol|abastec\w*|graal)\b/;
+// nomes colados das maquininhas também contam: "FininhoAutoPosto", "PostoAtlantica", "RODOPOSTO", "COMERCIO DE COMBUST"
+export const COMBUSTIVEL = /\b(auto\s*posto|rodo\s*posto\w*|posto[a-z]*|combust\w*|petrobras|ipiranga|shell|br\s*mania|raizen|gasolina|etanol|abastec\w*|graal)\b|autoposto/;
 /** Oficina, peças e pneus dos veículos da empresa ("diesel" sem "posto" é mecânica diesel). */
 const VEICULO = /\b(diesel|oficina|auto\s*center|autocenter|centro automotivo|auto\s*pecas|autopecas|pneus?|pneumaticos|borracharia|funilaria|retifica|guincho|mecanica (diesel|automotiva|de veiculos))\b/;
 const PEDAGIO = /\b(auto\s*ban|autoban|sem\s*parar|conectcar|veloe|move\s*mais|pedagio|arteris|ecovias|ecopistas|rodoanel|via\s*oeste|viaoeste|concessionaria|rodovia\w*)\b/;
