@@ -13,8 +13,10 @@ export const ABAS_GASTO: { id: AbaGasto; rotulo: string; tipo: TipoLanc; categor
 
 export type LancGasto = {
   id: string; conta_bancaria_id: string; data: string; valor: number; descricao: string | null;
-  identificador?: string | null; status: string; conta_pagar_id?: string | null;
+  identificador?: string | null; status: string; conta_pagar_id?: string | null; conta_receber_id?: string | null;
 };
+/** Conta a receber ligada a um depósito: o valor da venda (bruto) para achar a taxa descontada no depósito. */
+export type RecebidaGasto = { id: string; valor: number; descricao?: string | null };
 export type ContaGasto = {
   id: string; descricao: string | null; categoria: string | null; valor: number; valor_pago?: number | null;
   data_pagamento?: string | null; vencimento: string; status: string; conta_bancaria_id?: string | null;
@@ -37,7 +39,7 @@ function grupoDe(aba: AbaGasto, textos: (string | null | undefined)[], funcionar
 }
 
 /** Linhas da aba (valor positivo = saiu da MF), mais novas primeiro. */
-export function linhasGasto(aba: AbaGasto, lancs: LancGasto[], contas: ContaGasto[], funcionarios: { nome: string }[] = []): LinhaGasto[] {
+export function linhasGasto(aba: AbaGasto, lancs: LancGasto[], contas: ContaGasto[], funcionarios: { nome: string }[] = [], recebidas: RecebidaGasto[] = []): LinhaGasto[] {
   const def = ABAS_GASTO.find((a) => a.id === aba)!;
   const porId = new Map(contas.map((c) => [c.id, c]));
   const ligadas = new Set(lancs.map((l) => l.conta_pagar_id).filter(Boolean) as string[]);
@@ -50,6 +52,20 @@ export function linhasGasto(aba: AbaGasto, lancs: LancGasto[], contas: ContaGast
     if (!daAba) continue;
     out.push({ id: l.id, data: l.data, valor: -v, descricao: l.descricao ?? "", conta_bancaria_id: l.conta_bancaria_id, fonte: "extrato",
       grupo: grupoDe(aba, [l.descricao, conta?.descricao], funcionarios), status: l.status });
+  }
+  // InfinitePay deposita a venda já sem a taxa (MDR + antecipação): a diferença entre a venda e o depósito é tarifa
+  if (aba === "tarifas" && recebidas.length) {
+    const vendas = new Map(recebidas.map((r) => [r.id, r]));
+    for (const l of semRepetidos(lancs)) {
+      const v = Number(l.valor);
+      const r = l.conta_receber_id ? vendas.get(l.conta_receber_id) : undefined;
+      if (!(v > 0) || !r || !/dep[óo]sito infinitepay/i.test(l.descricao ?? "")) continue;
+      const taxa = Math.round((Number(r.valor) - v) * 100) / 100;
+      if (!(taxa > 0)) continue;
+      out.push({ id: `taxa-${l.id}`, data: l.data, valor: taxa, conta_bancaria_id: l.conta_bancaria_id, fonte: "extrato", grupo: "InfinitePay", status: l.status,
+        descricao: `InfinitePay · Taxa da venda no cartão (${(taxa / Number(r.valor) * 100).toFixed(2).replace(".", ",")}%) descontada no depósito`
+          + (r.descricao ? ` · ${String(r.descricao).split(" · ")[0]}` : "") });
+    }
   }
   for (const c of contas) {
     if (c.status !== "pago" || ligadas.has(c.id)) continue;
@@ -86,7 +102,10 @@ export function porMesGasto(linhas: LinhaGasto[]) {
 /** "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido" -> "Tarifa PIX recebido": o tipo da cobrança, sem quem cobrou. */
 export const tipoDaDescricao = (d: string) => {
   const partes = d.split(" · ").map((p) => p.trim()).filter(Boolean);
-  return (partes.length > 1 ? partes[partes.length - 1] : partes[0] ?? "Sem descrição").replace(/\s+/g, " ");
+  const t = partes.length > 1 ? (/^infinitepay$/i.test(partes[0]) ? partes[1] : partes[partes.length - 1]) : partes[0] ?? "Sem descrição";
+  // sem o código da transação ("- Ref. 3ff1…") e o documento mascarado, que mudam a cada cobrança
+  return t.replace(/\s*[-–]?\s*Ref\.?\s*[:#]?\s*[\w-]{6,}.*$/i, "").replace(/\s*[-–]?\s*\*{2,}[\d*.\-/]*\s*/g, " ")
+    .replace(/\(\d+,\d+%\)/, "").replace(/\s+/g, " ").replace(/\s*[-–]\s*$/, "").trim() || "Sem descrição";
 };
 
 /** Quantas vezes cada tipo de cobrança foi paga, o total e o valor de cada uma (quando é sempre o mesmo). */

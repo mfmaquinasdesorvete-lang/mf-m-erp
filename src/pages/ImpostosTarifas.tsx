@@ -11,7 +11,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { brl, dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ESFERAS } from "@/lib/extratoTipos";
-import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, SEM_GRUPO, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
+import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, SEM_GRUPO, type RecebidaGasto, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
 
 type Conta = { id: string; nome: string; unidade_id: string; ativo: boolean };
 type Funcionario = { id: string; nome: string; apelido: string | null; ativo: boolean };
@@ -24,7 +24,7 @@ const GRUPOS_FIXOS: Record<AbaGasto, { id: string; sub: string; icone: LucideIco
   impostos: ESFERAS.map((e) => ({ id: e.id, sub: e.dica, icone: e.id === "Federal" ? Landmark : e.id === "Estadual" ? Building2 : e.id === "Municipal" ? MapPin : Car })),
   tarifas: [
     { id: "OLIST", sub: "Pix recebido, lembretes, boleto e taxa do cartão (Zoop)", icone: ShoppingCart },
-    { id: "InfinitePay", sub: "Tarifas cobradas à parte (a taxa da venda já vem descontada do depósito)", icone: CreditCard },
+    { id: "InfinitePay", sub: "Taxa da venda descontada no depósito (venda − depósito) e tarifas à parte", icone: CreditCard },
     { id: "Cartão", sub: "Outras maquininhas e antecipação", icone: CreditCard },
     { id: "Banco", sub: "Tarifas, juros, IOF e multas dos bancos", icone: Landmark },
   ],
@@ -41,6 +41,8 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
   const { data: lancamentos = [] } = useRows<LancGasto>("extrato_lancamentos", { order: "data", ascending: false });
   const { data: contasPagar = [] } = useRows<ContaGasto & { unidade_id: string | null }>("contas_pagar", {
     select: "id, descricao, categoria, valor, valor_pago, data_pagamento, vencimento, status, conta_bancaria_id, unidade_id", order: "vencimento", key: ["impostos-tarifas"] });
+  // vendas ligadas aos depósitos da InfinitePay: a taxa é a venda menos o depósito
+  const { data: recebidas = [] } = useRows<RecebidaGasto>("contas_receber", { select: "id, valor, descricao", order: "vencimento", key: ["impostos-tarifas"] });
   const { data: funcionariosTodos = [] } = useRows<Funcionario>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
   const funcionarios = funcionariosTodos.filter((f) => f.ativo !== false);
 
@@ -56,9 +58,9 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
   // todas as linhas da aba (todos os meses), já só das contas da unidade escolhida
   const todas = useMemo(() => {
     const lancs = lancamentos.filter((l) => idsContas.has(l.conta_bancaria_id));
-    return linhasGasto(aba, lancs, filtrar(contasPagar), funcionariosTodos)
+    return linhasGasto(aba, lancs, filtrar(contasPagar), funcionariosTodos, recebidas)
       .filter((l) => (l.fonte === "conta" ? !l.conta_bancaria_id || idsContas.has(l.conta_bancaria_id) : true));
-  }, [aba, lancamentos, contasPagar, funcionariosTodos, idsContas]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [aba, lancamentos, contasPagar, funcionariosTodos, idsContas, recebidas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const casa = (texto: string) => !busca.trim() || sem(texto).includes(sem(busca.trim()));
   const doFiltro = todas.filter((l) => (!conta || l.conta_bancaria_id === conta) && (casa(l.descricao) || casa(l.grupo)));
@@ -155,7 +157,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
           <h2 className="mb-1 font-bold text-fg">Total {grupo ? `· ${grupo}` : ""} <span className="text-sm font-normal text-slate-500">· {periodo}</span></h2>
           <p className="num text-2xl font-bold text-red-600">{brl(total)}</p>
           <p className="text-sm text-slate-500">{lista.length} {pl(lista.length, "pagamento", "pagamentos")}{lista.length ? ` · média de ${brl(total / lista.length)}` : ""}</p>
-          {porTipo.length > 1 && (
+          {aba === "tarifas" && porTipo.length > 1 && (
             <div className="mt-4">
               <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Por tipo de cobrança · quantas vezes</h3>
               <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto text-sm">

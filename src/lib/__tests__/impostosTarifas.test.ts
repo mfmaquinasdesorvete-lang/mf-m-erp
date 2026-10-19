@@ -61,3 +61,20 @@ describe("porTipoGasto", () => {
     expect(r[2]).toMatchObject({ tipo: "IOF", n: 1 });
   });
 });
+
+describe("tarifas da OLIST e taxa da InfinitePay", () => {
+  it("junta as tarifas da OLIST mesmo com o código Ref. diferente em cada uma", () => {
+    const r = porTipoGasto([
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido - Ref. 0141f1db-0eef-40d4-b04f-0aa31436ddd9", valor: 0.5 },
+      { descricao: "OLIST SERVICOS DIGITAIS LTDA · Tarifa PIX recebido - Ref. 022b6ffb-d741-4a18-b095-1a575a13ed93", valor: 0.5 },
+    ]);
+    expect(r).toEqual([{ tipo: "Tarifa PIX recebido", n: 2, total: 1, unitario: 0.5 }]);
+  });
+  it("a venda menos o depósito da InfinitePay entra como tarifa", () => {
+    const l = lanc("d1", "2026-09-11", 1433.07, "Vendas · Depósito InfinitePay", { conta_receber_id: "cr1", status: "conciliado" });
+    const linhas = linhasGasto("tarifas", [l], [], [], [{ id: "cr1", valor: 1526, descricao: "Venda no cartão InfinitePay SC · crédito 2x" }]);
+    expect(linhas).toHaveLength(1);
+    expect(linhas[0]).toMatchObject({ grupo: "InfinitePay", valor: 92.93 });
+    expect(porTipoGasto(linhas)[0].tipo).toBe("Taxa da venda no cartão descontada no depósito");
+  });
+});
