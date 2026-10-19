@@ -209,6 +209,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     partes: [
       "Tela própria: abre em outra aba, sem o menu do ERP, só com as peças de reposição e os acessórios que vendem.",
       "Tela de entrada colorida: relógio, data, hora em que o caixa abriu e as vendas de hoje com o total.",
+      "Caixa: abrir com operador e troco inicial; sangria, reforço e devolução; resumo por forma de recebimento; cupom de abertura, relatório de movimentação e fechamento com conferência (contado x esperado) e histórico.",
       "Vendedor (F9): já vem o vendedor do usuário que está no balcão; dá para trocar.",
       "Cliente (F8): consumidor final ou busca no cadastro; o botão Novo cadastra na hora (o CNPJ busca na Receita e o CEP completa).",
       "Produto: bipar com o leitor ou digitar nome ou código; mostra foto, preço e estoque da loja; o primeiro produto abre a venda.",

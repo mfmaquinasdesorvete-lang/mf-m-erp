@@ -1232,6 +1232,57 @@ export async function pdfCupom(c: CupomPdf, cfg: Config): Promise<Blob> {
 }
 const r2Cupom = (n: number) => Math.round(n * 100) / 100;
 
+// Bobina do caixa do PDV: cupom de abertura, relatório de movimentação e fechamento (mesma largura do cupom de venda).
+export type CaixaPdf = {
+  titulo: string; info: string[];
+  blocos: { titulo: string; linhas: { rotulo: string; valor: string; forte?: boolean }[] }[];
+  assinaturas?: string[];
+};
+
+export async function pdfCaixa(c: CaixaPdf, cfg: Config): Promise<Blob> {
+  const { jsPDF } = await import("jspdf");
+  const L = 80, M = 4, W = L - 2 * M;
+  const desenhar = (doc: InstanceType<typeof jsPDF>) => {
+    let y = M + 2;
+    const t = (s: string, x: number, opts?: Record<string, unknown>) => doc.text(textoPdf(s), x, y, opts as any);
+    const linhas = (s: string, tam: number, estilo: "normal" | "bold" = "normal", alinhar: "left" | "center" = "left") => {
+      doc.setFont("helvetica", estilo); doc.setFontSize(tam);
+      for (const l of doc.splitTextToSize(textoPdf(s), W) as string[]) { t(l, alinhar === "center" ? L / 2 : M, { align: alinhar }); y += tam * 0.42; }
+    };
+    const par = (esq: string, dir: string, tam = 8, estilo: "normal" | "bold" = "normal") => {
+      doc.setFont("helvetica", estilo); doc.setFontSize(tam);
+      t(esq, M); t(dir, L - M, { align: "right" }); y += tam * 0.45;
+    };
+    const tracejado = () => { y += 1; doc.setLineDashPattern([1, 1], 0); doc.setLineWidth(0.2); doc.line(M, y, L - M, y); doc.setLineDashPattern([], 0); y += 3.5; };
+
+    linhas(cfg.nome_fantasia || cfg.razao_social || "MF Máquinas", 11, "bold", "center");
+    if (cfg.cnpj) linhas(`CNPJ ${docFormat(cfg.cnpj)}`, 7, "normal", "center");
+    tracejado();
+    linhas(c.titulo, 10, "bold", "center");
+    linhas("Não é documento fiscal", 7, "normal", "center");
+    y += 1;
+    for (const i of c.info) linhas(i, 8);
+    for (const b of c.blocos) {
+      tracejado();
+      linhas(b.titulo, 8, "bold");
+      y += 0.5;
+      for (const l of b.linhas) par(l.rotulo, l.valor, l.forte ? 9 : 8, l.forte ? "bold" : "normal");
+    }
+    for (const a of c.assinaturas ?? []) {
+      y += 10;
+      doc.setLineWidth(0.2); doc.line(M + 6, y, L - M - 6, y); y += 3.5;
+      linhas(a, 7, "normal", "center");
+    }
+    tracejado();
+    linhas(`Impresso em ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`, 7, "normal", "center");
+    return y + M;
+  };
+  const altura = desenhar(new jsPDF({ compress: true, unit: "mm", format: [L, 2000] }));
+  const doc = new jsPDF({ compress: true, unit: "mm", format: [L, Math.max(altura, 60)] });
+  desenhar(doc);
+  return doc.output("blob");
+}
+
 // ---------------------------------------------------------------------
 // Registro de qualidade REG-006 · Teste do giga: as mesmas colunas do formulário de papel (folha deitada), com o
 // quadro de cabeçalho (empresa · TESTE DO GIGA · código, revisão e página) repetido em todas as folhas.

@@ -1416,6 +1416,8 @@ function bancosDemo(db: Db) {
     { id: "lm2", loja_id: "lj1", descricao: "Máquina de açaí", numero_serie: null, data_compra: dias(-205), valor: 9000, situacao: "manutencao", observacao: "Na assistência" },
     { id: "lm3", loja_id: "lj3", descricao: "Máquina de sorvete expresso", numero_serie: "EX-014", data_compra: dias(-330), valor: 21000, situacao: "na_loja", observacao: null },
   ];
+  db.pdv_caixas = [];
+  db.pdv_caixa_movimentos = [];
   const custoDemo = { observacao: null, anulado: false };
   db.licenciados_custos = [
     { ...custoDemo, id: "lc1", loja_id: "lj1", data: dias(-206), categoria: "maquinas", descricao: "2 máquinas", valor: 27000 },
@@ -1925,6 +1927,8 @@ const DEFAULTS: Record<string, () => Row> = {
   etiquetas_envio: () => ({ impressoes: 0, editados: [], dados: {}, atualizado_em: new Date().toISOString() }),
   auditoria_checklist: () => ({ revisado_nome: db.usuarios_erp.find((u) => u.user_id === sessao?.user.id)?.nome ?? "Você", updated_at: new Date().toISOString() }),
   transferencias: () => ({ numero: ++numeroTransf, status: "rascunho", created_at: quando(0) }),
+  pdv_caixas: () => ({ status: "aberto", aberto_em: new Date().toISOString(), aberto_por: sessao?.user.id ?? null, troco_inicial: 0, fechado_em: null, criado_em: new Date().toISOString() }),
+  pdv_caixa_movimentos: () => ({ forma: "dinheiro", criado_por: sessao?.user.id ?? null, criado_em: new Date().toISOString() }),
   pedidos: () => ({ numero: ++numeroPedido, status: "orcamento", estoque_baixado: false, created_at: quando(0) }),
   ordens_servico: () => ({ numero: ++numeroOS, status: "aberta", atendimento: "oficina", data_entrada: hojeISO(), estoque_baixado: false, created_at: quando(0) }),
   contas_receber: () => ({ status: "aberto", parcela: 1, total_parcelas: 1, created_at: quando(0), revisao: "em_revisao", lancamento: "manual", criado_por: sessao?.user.id ?? null }),

@@ -35,6 +35,7 @@ import type { Cliente, Produto } from "@/lib/types";
 import { enviarFotoProduto, urlFotoProduto } from "@/lib/catalogo";
 import { formaPdv, maximoDesconto, pctTexto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
 import { AprovarDesconto, type DescontoAprovado } from "@/components/vendas/AprovarDesconto";
+import { BotaoCaixa, CaixaPdv, useCaixaPdv } from "@/components/pdv/CaixaPdv";
 
 type Meio = "dinheiro" | "pix" | "cartao_credito" | "cartao_debito" | "link" | "prazo";
 type Linha = {
@@ -124,7 +125,15 @@ export default function Pdv() {
   const campoVendedor = useRef<HTMLDivElement>(null);
   const pagar = useRef<HTMLDivElement>(null);
   const vazio = itens.length === 0;
-  const [caixaAberto] = useState(horaDoCaixa);
+  // caixa da loja (troco inicial, sangrias, fechamento): ao entrar sem caixa aberto, pede para abrir uma vez
+  const caixa = useCaixaPdv(unidadeId);
+  const [telaCaixa, setTelaCaixa] = useState<null | "abrir" | "detalhes">(null);
+  const pediuCaixa = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!caixa.carregado || caixa.aberto || pediuCaixa.current === unidadeId) return;
+    pediuCaixa.current = unidadeId;
+    setTelaCaixa("abrir");
+  }, [caixa.carregado, caixa.aberto, unidadeId]);
   const balcao = useBalcaoHoje();
   // o botão Finalizar está na tela? (em notebook baixo ou no celular ele fica lá embaixo: aí aparece a barra fixa com o total)
   const botaoFinal = useRef<HTMLDivElement>(null);
@@ -234,6 +243,7 @@ export default function Pdv() {
 
   async function finalizar() {
     if (!pronto || enviando) return;
+    if (caixa.carregado && !caixa.aberto) { notify("Abra o caixa antes de vender", "erro"); setTelaCaixa("abrir"); return; }
     setEnviando(true);
     try {
       const { data, error } = await supabase.rpc("pdv_finalizar", {
@@ -257,7 +267,7 @@ export default function Pdv() {
           recebido_dinheiro: troco ? recebido : null, troco: troco || null, observacoes: obs || null,
         },
       });
-      invalidate("pedidos", "produtos", "estoque_unidade", "contas_receber", "clientes", "configuracoes", "aprovacoes_desconto");
+      invalidate("pedidos", "produtos", "estoque_unidade", "contas_receber", "clientes", "configuracoes", "aprovacoes_desconto", "pdv_caixas");
       setAprovado(null);
       notify(`Venda #${r.numero} concluída`);
     } catch (e) {
@@ -318,7 +328,8 @@ export default function Pdv() {
             {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
           </select>
         )}
-        <span className="assinatura shrink-0 text-base text-white/85 sm:text-lg" title="Sopro Divino">Sopro Divino</span>
+        <BotaoCaixa aberto={caixa.aberto} onClick={() => setTelaCaixa(caixa.aberto ? "detalhes" : "abrir")} />
+        <span className="assinatura hidden shrink-0 text-base text-white/85 sm:inline sm:text-lg" title="Sopro Divino">Sopro Divino</span>
         <button type="button" className="hidden rounded-lg p-2 text-nav-texto hover:bg-white/10 hover:text-white sm:block" title="Tela cheia" aria-label="Tela cheia"
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {})}>
           <Maximize2 size={18} aria-hidden />
@@ -336,7 +347,7 @@ export default function Pdv() {
             <span className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#38bdf8]/25 blur-3xl" />
           </div>
           <div className="relative">
-            <Relogio caixa={caixaAberto} vendas={balcao.deHoje.length} total={balcao.total} />
+            <Relogio caixa={caixa.aberto} vendas={balcao.deHoje.length} total={balcao.total} onCaixa={() => setTelaCaixa(caixa.aberto ? "detalhes" : "abrir")} />
             <FraseDoDia />
             <div className="mt-7 grid gap-3">
               <CampoEntrada rotulo="Vendedor" tecla="F9" icone={UserRound}>
@@ -594,6 +605,9 @@ export default function Pdv() {
         </div>
       )}
 
+      <CaixaPdv modo={telaCaixa} onClose={() => setTelaCaixa(null)} uso={caixa} unidadeId={unidadeId} operador={nomeUsuario || "Operador"}
+        loja={unidades.length > 1 && unidadeId ? nomeUnidade(unidadeId) : null} cfg={cfg ? comUnidade(cfg, unidades.find((u) => u.id === unidadeId)) : null} />
+
       {pedirAprovacao && limite && (
         <AprovarDesconto percentual={pctDesconto} maximo={limite.max} contexto="pdv" canal="balcao" forma={formaVenda}
           onClose={() => setPedirAprovacao(false)}
@@ -649,21 +663,8 @@ export default function Pdv() {
   );
 }
 
-/** Hora em que o caixa (esta tela) abriu hoje neste aparelho, guardada no navegador; os dias anteriores são apagados. */
-function horaDoCaixa(): string | null {
-  const dia = new Date().toLocaleDateString("sv-SE"), chave = `pdv:caixa:${dia}`;
-  try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith("pdv:caixa:") && k !== chave) localStorage.removeItem(k);
-    const guardada = localStorage.getItem(chave);
-    if (guardada) return guardada;
-    const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    localStorage.setItem(chave, agora);
-    return agora;
-  } catch { return null; }
-}
-
 /** Relógio grande da tela de entrada, com a data, a abertura do caixa e o balcão de hoje. */
-function Relogio({ caixa, vendas, total }: { caixa: string | null; vendas: number; total: number }) {
+function Relogio({ caixa, vendas, total, onCaixa }: { caixa: { aberto_em: string; aberto_por_nome: string | null } | null; vendas: number; total: number; onCaixa: () => void }) {
   const [agora, setAgora] = useState(() => new Date());
   useEffect(() => { const t = window.setInterval(() => setAgora(new Date()), 1000); return () => window.clearInterval(t); }, []);
   return (
@@ -673,7 +674,9 @@ function Relogio({ caixa, vendas, total }: { caixa: string | null; vendas: numbe
       </time>
       <div className="space-y-0.5 text-sm text-white/90 sm:text-right sm:text-base">
         <div className="first-letter:uppercase">{agora.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
-        {caixa && <div>caixa aberto hoje às {caixa}</div>}
+        <button type="button" onClick={onCaixa} className="underline-offset-2 hover:underline">
+          {caixa ? `caixa aberto ${new Date(caixa.aberto_em).toLocaleDateString("sv-SE") === new Date().toLocaleDateString("sv-SE") ? "hoje" : `em ${new Date(caixa.aberto_em).toLocaleDateString("pt-BR")}`} às ${new Date(caixa.aberto_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}${caixa.aberto_por_nome ? ` · ${caixa.aberto_por_nome}` : ""}` : "caixa fechado · abrir caixa"}
+        </button>
         <div className="font-semibold text-white">{vendas ? `${vendas} ${vendas === 1 ? "venda" : "vendas"} hoje · ${brl(total)}` : "nenhuma venda hoje ainda"}</div>
       </div>
     </div>
