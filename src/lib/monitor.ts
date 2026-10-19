@@ -76,6 +76,8 @@ export function situacaoAutomacao(a: Automacao, agora: Date | string): SituacaoA
   if (a.ultima_situacao === "failed") return "falhou";
   const atraso = (new Date(agora).getTime() - new Date(a.ultima).getTime()) / 60000;
   if (atraso > 2 * intervaloCron(a.agenda) + 5) return "atrasada";
+  // "job startup timeout" é o agendador do banco sem vaga naquele minuto: uma vez só, e já voltou a rodar, não é problema
+  if (a.falhas_24h === 1 && /startup timeout/i.test(a.ultimo_erro ?? "")) return "ok";
   if (a.falhas_24h > 0) return "instavel";
   return "ok";
 }

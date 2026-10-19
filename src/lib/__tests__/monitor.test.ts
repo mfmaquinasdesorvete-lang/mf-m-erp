@@ -41,6 +41,8 @@ describe("monitor das automações", () => {
     expect(situacaoAutomacao(auto("7 11 * * *", 16 * 60), agora)).toBe("ok");
     expect(situacaoAutomacao(auto("7 11 * * *", 50 * 60), agora)).toBe("atrasada");
     expect(situacaoAutomacao(auto("*/5 * * * *", 3, { falhas_24h: 2 }), agora)).toBe("instavel");
+    expect(situacaoAutomacao(auto("*/5 * * * *", 3, { falhas_24h: 1, ultimo_erro: "job startup timeout" }), agora)).toBe("ok");
+    expect(situacaoAutomacao(auto("*/5 * * * *", 3, { falhas_24h: 1, ultimo_erro: "erro 500" }), agora)).toBe("instavel");
     expect(situacaoAutomacao(auto("7 11 * * *", null), agora)).toBe("aguardando");
     expect(situacaoAutomacao(auto("* * * * *", 0, { ativo: false }), agora)).toBe("desligada");
   });
