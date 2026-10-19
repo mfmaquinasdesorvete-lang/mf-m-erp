@@ -7,7 +7,28 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export type AjustesNfe = {
   itens?: { id: string; descricao?: string; quantidade?: number; valor_unitario?: number }[];
   desconto?: number; frete?: number; informacoes?: string;
+  /** obrigatório quando a nota fica menor que o pedido (só os casos que a lei permite) */
+  motivo?: string;
 };
+
+/**
+ * Por que a nota pode sair menor que o pedido. A NF-e tem de mostrar o valor real da operação
+ * (Lei 8.137/1990, art. 1º): nota abaixo do valor da venda só nestes casos, e o motivo fica registrado no pedido.
+ */
+export const MOTIVOS_NOTA_MENOR: Record<string, string> = {
+  entrega_parcial: "Entrega parcial: o restante sai em outra NF-e deste pedido",
+  servico_nfse: "Parte do valor é serviço (instalação, assistência): vai em NFS-e",
+  desconto_real: "Desconto dado de verdade ao cliente (corrigir também o pedido e as parcelas)",
+  erro_pedido: "O pedido estava com valor errado (corrigir o pedido)",
+};
+
+/** Recusa nota menor que o pedido sem um dos motivos aceitos; devolve o texto do motivo (ou null). */
+export function conferirMotivo(valorNota: number, valorPedido: number, motivo?: string | null) {
+  if (valorNota >= r2(valorPedido) - 0.009) return null;
+  const texto = motivo ? MOTIVOS_NOTA_MENOR[motivo] : undefined;
+  if (!texto) throw new Error("a NF-e ficou menor que o pedido: escolha o motivo (entrega parcial, serviço em NFS-e, desconto real ou pedido errado)");
+  return texto;
+}
 
 /** Aplica os ajustes nos itens do pedido; recusa item de outro pedido e números inválidos. */
 export function aplicarAjustes(itens: any[], ajustes?: AjustesNfe | null) {

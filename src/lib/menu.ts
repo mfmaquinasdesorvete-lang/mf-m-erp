@@ -117,7 +117,6 @@ export const grupos: Grupo[] = [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
       { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
-      { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor" },
     ],
   },
@@ -139,6 +138,8 @@ export const itensForaDoMenu: Item[] = [
   // Documentos (anexos): uso mais pessoal, fica na engrenagem de Configurações e na busca do menu
   { to: "/documentos", tela: "documentos", label: "Documentos", curto: "Docs", icon: Paperclip, busca: "anexos arquivos docs" },
   { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
+  // Troca do Tiny: saiu de Gestão (pedido de 19/10) e fica na engrenagem de Configurações e na busca
+  { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
   { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
   { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },
@@ -152,7 +153,7 @@ export const itensForaDoMenu: Item[] = [
 // área (cor e menu aberto) das telas que não estão na lista do menu
 const AREA_FORA: [string, string][] = [
   ["/produtos/servicos", "cadastros"], ["/produtos/", "producao"], ["/pdv", "vendas"], ["/painel/maquinas", "producao"], ["/painel/produtos", "producao"],
-  ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"], ["/importar", "admin"],
+  ["/formas-pagamento", "financeiro"], ["/configuracoes", "admin"], ["/usuarios", "admin"], ["/importar", "admin"], ["/implantacao", "admin"],
 ];
 /** A tela que o nome da área abre no computador: a indicada em `painel` ou o item "/painel/…" da área. */
 export const painelDaArea = (g: { painel?: string; itens: { to: string }[] }) => g.painel ?? g.itens.find((i) => i.to.startsWith("/painel/"))?.to;

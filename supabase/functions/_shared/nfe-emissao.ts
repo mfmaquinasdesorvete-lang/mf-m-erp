@@ -10,7 +10,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
 import { codigoUnidade, focusProducao } from "./focusnfe.ts";
 import { pendenciaCbenef } from "./nfe-conferencia.ts";
 import { pendenciasTransferencia } from "./nfe-transferencia.ts";
-import { type AjustesNfe, aplicarAjustes } from "./nfe-ajustes.ts";
+import { type AjustesNfe, aplicarAjustes, conferirMotivo } from "./nfe-ajustes.ts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -151,6 +151,9 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
     items,
   };
   const valorNota = r2(pedido.itens.reduce((t: number, i: any) => t + Number(i.valor_total), 0) - Number(pedido.desconto || 0) + Number(pedido.frete || 0));
+  let motivo: string | null = null;
+  if (ajustes) { try { motivo = conferirMotivo(valorNota, Number(pedido.valor_total), ajustes.motivo); } catch (e) { throw new HttpError(400, (e as Error).message); } }
+  if (motivo) await db.from("pedido_ocorrencias").insert({ pedido_id: pedidoId, autor_nome: "Emissão de NF-e", texto: `NF-e de R$ ${valorNota.toFixed(2).replace(".", ",")} para pedido de R$ ${Number(pedido.valor_total).toFixed(2).replace(".", ",")}. Motivo: ${motivo}` });
 
   // Cada tentativa usa uma referência nova, para poder reenviar após erro de validação.
   const referencia = `pedido-${pedido.numero}-${(existentes?.length ?? 0) + 1}`;

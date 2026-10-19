@@ -8,6 +8,7 @@ import { brl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
+import { MOTIVOS_NOTA_MENOR } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 type Item = { id: string; descricao: string; quantidade: number; valor_unitario: number; numero_serie?: string | null };
 type PedidoNfe = {
@@ -25,6 +26,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const [frete, setFrete] = useState("0");
   const [info, setInfo] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
     supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, cliente:clientes(nome), unidade:unidades(informacoes_complementares), " +
@@ -42,17 +44,20 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
 
   const total = useMemo(() => r2(itens.reduce((s, i) => s + num(i.quantidade) * num(i.valor), 0) - num(desconto) + num(frete)), [itens, desconto, frete]);
   const mudou = !!p && Math.abs(total - Number(p.valor_total)) > 0.009;
+  // nota menor que a venda: só nos casos que a lei permite, com o motivo registrado no pedido
+  const menor = !!p && total < Number(p.valor_total) - 0.009;
   const set = (k: number, campo: "descricao" | "quantidade" | "valor", v: string) => setItens((l) => l.map((x, j) => (j === k ? { ...x, [campo]: v } : x)));
 
   async function emitir() {
     if (!p) return;
     if (itens.some((i) => !(num(i.quantidade) > 0) || num(i.valor) < 0 || !i.descricao.trim())) return notify("Confira os itens: descrição, quantidade maior que zero e valor", "erro");
+    if (menor && !motivo) return notify("A NF-e ficou menor que o pedido: escolha o motivo", "erro");
     setEnviando(true);
     try {
       if (!(await confirmarSeTeste())) return;
       const ajustes = {
         itens: itens.map((i) => ({ id: i.id, descricao: i.descricao.trim(), quantidade: num(i.quantidade), valor_unitario: num(i.valor) })),
-        desconto: num(desconto), frete: num(frete), informacoes: info,
+        desconto: num(desconto), frete: num(frete), informacoes: info, motivo: menor ? motivo : undefined,
       };
       await callFunction("nfe-emitir", { pedido_id: p.id, ajustes });
       notify("NF-e enviada para a SEFAZ. Acompanhe em Notas fiscais.");
@@ -95,6 +100,18 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
           <Field label="Informações complementares (vão impressas na nota)">
             <textarea className="input min-h-[70px]" value={info} onChange={(e) => setInfo(e.target.value)} />
           </Field>
+          {menor && (
+            <div className="space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+              <p>A NF-e precisa mostrar o valor real da venda. Nota abaixo do valor vendido só nos casos abaixo,
+                e o motivo fica registrado nas ocorrências do pedido. Fora disso é crime contra a ordem tributária (Lei 8.137/1990, art. 1º).</p>
+              <Field label="Motivo da nota menor que o pedido">
+                <select className="input" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+                  <option value="">Escolha…</option>
+                  {Object.entries(MOTIVOS_NOTA_MENOR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </Field>
+            </div>
+          )}
           {mudou && (
             <p className="flex gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
@@ -104,7 +121,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
           )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={emitir} disabled={enviando}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
+            <Button onClick={emitir} disabled={enviando || (menor && !motivo)}><FileText size={16} /> {enviando ? "Enviando…" : "Emitir NF-e"}</Button>
           </div>
         </div>
       )}

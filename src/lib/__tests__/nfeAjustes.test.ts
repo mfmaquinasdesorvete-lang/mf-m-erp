@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarAjustes } from "../../../supabase/functions/_shared/nfe-ajustes";
+import { aplicarAjustes, conferirMotivo } from "../../../supabase/functions/_shared/nfe-ajustes";
 
 const itens = [{ id: "a", descricao: "Peça A", quantidade: 2, valor_unitario: 10, valor_total: 20 }, { id: "b", descricao: "Peça B", quantidade: 1, valor_unitario: 5, valor_total: 5 }];
 
@@ -15,5 +15,19 @@ describe("conferir a NF-e antes de emitir", () => {
   it("recusa item de outro pedido e quantidade zero", () => {
     expect(() => aplicarAjustes(itens, { itens: [{ id: "x", quantidade: 1 }] })).toThrow(/não é deste pedido/);
     expect(() => aplicarAjustes(itens, { itens: [{ id: "a", quantidade: 0 }] })).toThrow(/quantidade/);
+  });
+});
+
+describe("conferirMotivo", () => {
+  it("nota igual ou maior que o pedido não pede motivo", () => {
+    expect(conferirMotivo(1000, 1000)).toBeNull();
+    expect(conferirMotivo(1100, 1000)).toBeNull();
+  });
+  it("nota menor que o pedido sem motivo aceito é recusada", () => {
+    expect(() => conferirMotivo(400, 4000)).toThrow(/menor que o pedido/);
+    expect(() => conferirMotivo(400, 4000, "cliente pediu")).toThrow(/menor que o pedido/);
+  });
+  it("nota menor com motivo aceito devolve o texto para registrar", () => {
+    expect(conferirMotivo(400, 4000, "entrega_parcial")).toMatch(/Entrega parcial/);
   });
 });

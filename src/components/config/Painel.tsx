@@ -1,6 +1,6 @@
 // Configurações → painel: cada assunto num cartão com a situação dele e, no topo, o que precisa de atenção.
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronRight, CircleAlert, CreditCard, Paperclip, Upload, UserCog } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleAlert, ClipboardCheck, CreditCard, Paperclip, Upload, UserCog } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
@@ -72,6 +72,7 @@ export function PainelConfig() {
   const outras = [
     { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-[#64748b] to-[#334155]" },
     { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "from-[#0ea5e9] to-[#2563eb]" },
+    { to: "/implantacao", tela: "implantacao" as const, titulo: "Troca do Tiny", resumo: "Etapas, prazos e uso do ERP na virada do Tiny para o ERP Line", icone: ClipboardCheck, cor: "from-[#14b8a6] to-[#0f766e]" },
     { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-[#f59e0b] to-[#b45309]" },
     // saiu do Início do menu (é mais de uso pessoal): fica aqui e na busca do menu
     { to: "/documentos", tela: "documentos" as const, titulo: "Documentos (Docs)", resumo: "Os anexos de pedidos, OS, clientes, fornecedores, contas e produtos num lugar só", icone: Paperclip, cor: "from-[#6366f1] to-[#4338ca]" },

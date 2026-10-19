@@ -14,6 +14,7 @@ import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { completarPorCep } from "@/lib/cadastro";
+import { EnviarImagem } from "@/components/EnviarImagem";
 
 export type Funcionario = {
   id: string; nome: string; apelido: string | null; cpf: string | null; rg: string | null; data_nascimento: string | null;
@@ -25,7 +26,7 @@ export type Funcionario = {
   cnh: string | null; cnh_categoria: string | null; cnh_validade: string | null;
   banco: string | null; agencia: string | null; conta: string | null; pix: string | null;
   beneficios: string | null; contato_emergencia: string | null; faz_assistencia: boolean;
-  user_id: string | null; vendedor_id: string | null; observacoes: string | null; ativo: boolean; created_at: string;
+  user_id: string | null; vendedor_id: string | null; observacoes: string | null; ativo: boolean; created_at: string; foto_url?: string | null;
 };
 
 const VINCULOS = [
@@ -41,6 +42,16 @@ const rotuloVinculo = (v: string) => VINCULOS.find((x) => x.value === v)?.label 
 /** Categoria da conta a pagar do salário (a mesma do plano de contas). */
 const categoriaDoVinculo = (v: string) => (v === "socio" ? "pró-labore" : v === "pj" || v === "autonomo" ? "serviços profissionais" : "folha");
 const nomeCurto = (f: Pick<Funcionario, "nome" | "apelido">) => f.apelido?.trim() || f.nome;
+
+/** Foto da pessoa (ou as iniciais, na cor do setor de quem faz assistência). */
+function FotoFuncionario({ f, tamanho = 40 }: { f: Pick<Funcionario, "nome" | "apelido" | "foto_url" | "faz_assistencia">; tamanho?: number }) {
+  if (f.foto_url) return <img src={f.foto_url} alt="" className="shrink-0 rounded-full border border-slate-200 bg-white object-cover" style={{ width: tamanho, height: tamanho }} />;
+  const iniciais = nomeCurto(f).split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+  return (
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full font-bold text-white ${f.faz_assistencia ? "bg-teal-600" : "bg-indigo-600"}`}
+      style={{ width: tamanho, height: tamanho, fontSize: tamanho * 0.38 }}>{iniciais || "?"}</span>
+  );
+}
 
 /** "2 anos e 3 meses" desde a admissão. */
 export function tempoDeCasa(admissao: string | null, ate = hoje()) {
@@ -94,6 +105,8 @@ export default function Funcionarios() {
 
   const opcoesUnidade = [{ value: "", label: "—" }, ...unidades.map((u) => ({ value: u.id, label: u.nome }))];
   const fields: CampoForm[] = [
+    { name: "foto_url", label: "Foto", type: "custom", span: 4,
+      render: (v, set) => <EnviarImagem rotulo="Foto" dica="Foto do rosto, de frente. Até 2 MB." url={v} nome="funcionario" pasta="funcionarios" quadrado onUrl={set} /> },
     { name: "nome", label: "Nome completo", required: true, span: 3 },
     { name: "apelido", label: "Como é chamado", span: 1 },
     { name: "cargo", label: "Cargo", placeholder: "Ex.: montador, técnico de campo, vendedora", span: 2 },
@@ -193,7 +206,9 @@ export default function Funcionarios() {
         exportExtra={(f) => ({ "Tempo de casa": tempoDeCasa(f.data_admissao) ?? "" })}
         fields={fields}
         cartaoCelular={(f, abrir) => (
-          <button type="button" onClick={abrir} className="block w-full pr-8 text-left">
+          <button type="button" onClick={abrir} className="flex w-full gap-3 pr-8 text-left">
+            <FotoFuncionario f={f} tamanho={44} />
+            <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-fg">{f.nome}</span>
               <Badge value={f.situacao} />
@@ -202,11 +217,13 @@ export default function Funcionarios() {
             <span className="mt-1 block text-xs text-slate-500">
               {rotuloVinculo(f.vinculo)}{f.data_admissao && ` · desde ${dataBR(f.data_admissao)} (${tempoDeCasa(f.data_admissao)})`}{f.faz_assistencia && " · técnico"}
             </span>
+            </span>
           </button>
         )}
         columns={[
-          { label: "Nome", render: (f) => <><span className="font-semibold text-fg">{f.nome}</span>{f.apelido && <span className="text-slate-500"> ({f.apelido})</span>}
-            <span className="block text-xs text-slate-500">{f.cargo ?? "—"}{f.faz_assistencia && " · técnico"}</span></> },
+          { label: "Nome", render: (f) => <span className="flex items-center gap-2.5"><FotoFuncionario f={f} tamanho={36} /><span className="min-w-0">
+            <span className="font-semibold text-fg">{f.nome}</span>{f.apelido && <span className="text-slate-500"> ({f.apelido})</span>}
+            <span className="block text-xs text-slate-500">{f.cargo ?? "—"}{f.faz_assistencia && " · técnico"}</span></span></span> },
           { label: "Setor", render: (f) => [f.setor, f.unidade_id && codigo(f.unidade_id)].filter(Boolean).join(" · ") || "—" },
           { label: "Vínculo", render: (f) => rotuloVinculo(f.vinculo) },
           { label: "Admissão", render: (f) => f.data_admissao ? <>{dataBR(f.data_admissao)}<span className="block text-xs text-slate-500">{tempoDeCasa(f.data_admissao)}</span></> : "—" },
