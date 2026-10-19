@@ -258,6 +258,19 @@ export function Recibos() {
     && (!termo || [r.numero, r.pagador_nome, r.recebedor_nome, r.referente, contaDe(r)?.descricao, contaDe(r) && nomeTerceiro(contaDe(r)!), contaDe(r)?.documento]
       .join(" ").toLowerCase().includes(termo))), [todos, tipo, mes, termo, filtrar, contaDe]);
   const total = lista.filter((r) => !r.cancelado_em).reduce((s, r) => s + Number(r.valor), 0);
+  const [lote, setLote] = useState<{ blob: Blob; n: number } | null>(null);
+  const [gerando, setGerando] = useState(false);
+
+  /** Os recibos da lista (sem os cancelados) num PDF só, um por página, para assinar digitalmente de uma vez. */
+  async function pdfLote() {
+    const validos = lista.filter((r) => !r.cancelado_em).slice().sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento) || a.numero - b.numero);
+    if (!validos.length) return notify("Nenhum recibo na lista", "erro");
+    setGerando(true);
+    try {
+      const blob = await pdfRecibo(validos.map((r) => ({ ...r, emitente: emitente(unidades.find((u) => u.id === r.unidade_id), cfg) })), 1);
+      setLote({ blob, n: validos.length });
+    } catch (e) { notifyError(e); } finally { setGerando(false); }
+  }
 
   function novo() {
     const u = unidades.find((x) => x.id === padrao) ?? unidades[0];
@@ -296,8 +309,11 @@ export function Recibos() {
         </Field>
         <Field label="Mês"><CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></Field>
         <p className="mb-2 ml-auto text-sm text-slate-600">{lista.length} {pl(lista.length, "recibo", "recibos")} · <b>{brl(total)}</b></p>
+        {lista.length > 1 && <Button variant="secondary" disabled={gerando} onClick={pdfLote} title="Um PDF com todos os recibos da lista, um por página, para assinar de uma vez">
+          <FileText size={16} /> {gerando ? "Gerando…" : `PDF em lote (${lista.filter((r) => !r.cancelado_em).length})`}</Button>}
         {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
       </div>
+      {lote && <PdfViewer blob={lote.blob} nome={`recibos-${lote.n}.pdf`} titulo={`${lote.n} recibos em um PDF`} onClose={() => setLote(null)} />}
       <Table empty={!lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem pagou → quem recebeu</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((r) => (
