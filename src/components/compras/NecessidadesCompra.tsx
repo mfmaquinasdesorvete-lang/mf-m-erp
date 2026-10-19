@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, Stat, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
+import { Ranking, Rosca } from "@/components/Charts";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra } from "@/lib/itens";
@@ -35,6 +36,7 @@ const TIPOS: Record<string, string> = { peca: "Peças de reposição", acessorio
 const MOTIVO: Record<Motivo, string> = {
   negativo: "estoque negativo", zerado: "sem estoque", pedidos: "para atender pedidos", abaixo_minimo: "abaixo do mínimo", ponto_reposicao: "no ponto de reposição",
 };
+const CORES_MOTIVO: Record<Motivo, string> = { negativo: "#7f1d1d", zerado: "#dc2626", pedidos: "#ea580c", abaixo_minimo: "#f59e0b", ponto_reposicao: "#0ea5e9" };
 const DOC: Record<TipoDoc, string> = { pedido: "Venda", op: "Peças da OP", os: "Peças da OS", compra: "Pedido de compra", cotacao: "Em cotação", producao: "Ordem de produção" };
 
 /** Uma frase por coluna: aparece no ⓘ do cabeçalho e no "Como cada número é calculado". */
@@ -406,6 +408,23 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
         <Stat icon={TrendingDown} label="Compra sugerida" valor={brl(precisam.reduce((s, l) => s + quant(l) * l.custo, 0))} sub="pelo custo médio" />
         <Stat icon={PackageX} tom={negativos.length ? "critico" : "neutro"} label="Estoque negativo" valor={negativos.length} sub="saiu mais do que entrou: confira" />
       </div>
+
+      {precisam.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <Card className="min-w-0 p-4">
+            <b className="mb-2 block text-sm">Por que precisa comprar</b>
+            <Rosca total="produtos" formatar={(v) => String(v)} fatias={(Object.keys(CORES_MOTIVO) as Motivo[])
+              .map((m) => ({ rotulo: MOTIVO[m], valor: precisam.filter((l) => l.motivo === m).length, cor: CORES_MOTIVO[m] })).filter((x) => x.valor > 0)} />
+          </Card>
+          <Card className="min-w-0 p-4">
+            <b className="mb-2 block text-sm">Compra sugerida por fornecedor</b>
+            <Ranking cor="var(--kpi-laranja)" vazio="Sem fornecedor ligado."
+              itens={[...precisam.reduce((m, l) => { const k = l.fornecedor_id ?? "-"; const x = m.get(k) ?? { valor: 0, n: 0 }; m.set(k, { valor: x.valor + quant(l) * l.custo, n: x.n + 1 }); return m; }, new Map<string, { valor: number; n: number }>())]
+                .sort((a, b) => b[1].valor - a[1].valor).slice(0, 8)
+                .map(([id, x]) => ({ rotulo: id === "-" ? "Sem fornecedor" : nomeForn(id), valor: x.valor, detalhe: `${x.n} ${pl(x.n, "produto", "produtos")}` }))} />
+          </Card>
+        </div>
+      )}
 
       {criadas && (
         <Card className="flex flex-wrap items-center gap-3 border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
