@@ -34,6 +34,7 @@ import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ConferirNfe } from "@/components/nfe/ConferirNfe";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { ClienteRapido } from "@/components/clientes/ClienteRapido";
 import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
 import { combinaBusca } from "@/lib/buscaCliente";
 import { pctTexto, percentualPedido, type LinhaProduto, type RegraComissao } from "@/lib/comissao";
@@ -582,7 +583,11 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const etiquetas = useEtiquetas();
   const [p, setP] = useState({ ...inicial, unidade_id: (inicial as any).unidade_id ?? padrao });
   const [ocupado, setOcupado] = useState(false);
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: clientesBanco = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  // cliente cadastrado agora (cadastro rápido): entra na lista antes de a busca do banco atualizar
+  const [novosClientes, setNovosClientes] = useState<Cliente[]>([]);
+  const [cadastrarCliente, setCadastrarCliente] = useState<string | null>(null);
+  const clientes = useMemo(() => (novosClientes.length ? [...novosClientes, ...clientesBanco.filter((c) => !novosClientes.some((n) => n.id === c.id))] : clientesBanco), [novosClientes, clientesBanco]);
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
   const navigate = useNavigate();
@@ -625,8 +630,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   }, [vendedores, p.id, p.vendedor_id, user_id]);
   const cliente = clientes.find((c) => c.id === p.cliente_id);
   // orçamento novo: vendedor e forma de pagamento padrão do cadastro do cliente
-  function escolherCliente(id: string) {
-    const c = clientes.find((x) => x.id === id);
+  function escolherCliente(id: string, novo?: Cliente) {
+    const c = novo ?? clientes.find((x) => x.id === id);
     const patch: Record<string, unknown> = { cliente_id: id };
     if (c && !p.id) {
       const v = c.vendedor_id && vendedores.find((x) => x.id === c.vendedor_id && x.ativo);
@@ -937,7 +942,11 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
         {aba === "pedido" && (<>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Field label="Cliente" className="sm:col-span-2">
-            <ClienteBusca clientes={clientes} value={p.cliente_id} disabled={!editavel} required onChange={(id) => escolherCliente(id)} />
+            <ClienteBusca clientes={clientes} value={p.cliente_id} disabled={!editavel} required onChange={(id) => escolherCliente(id)} onNovo={(t) => setCadastrarCliente(t)} />
+            {cadastrarCliente !== null && (
+              <ClienteRapido inicial={cadastrarCliente} clientes={clientes} onClose={() => setCadastrarCliente(null)}
+                onCriado={(c) => { setNovosClientes((l) => [c, ...l.filter((x) => x.id !== c.id)]); escolherCliente(c.id, c); setCadastrarCliente(null); invalidate("clientes"); }} />
+            )}
             {cliente && (cliente.condicao_pagamento || cliente.limite_credito != null || cliente.desconto_padrao) && (
               <span className="mt-1 block text-xs text-slate-500">
                 {[cliente.condicao_pagamento && `Condição: ${cliente.condicao_pagamento}`,

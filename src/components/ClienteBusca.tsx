@@ -31,6 +31,13 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
     [aberto, clientes, consulta]);
 
   useEffect(() => { setAtivo(0); }, [consulta]);
+  // CPF (11) ou CNPJ (14) completo e nenhum cliente com ele: vai direto para o cadastro rápido, já com o número
+  const docCompleto = !!consulta && /^[\d.\-/\s]+$/.test(consulta) && [11, 14].includes(consulta.replace(/\D/g, "").length);
+  useEffect(() => {
+    if (!onNovo || !aberto || !docCompleto || achados.length) return;
+    const t = setTimeout(() => { const v = (consulta ?? "").trim(); setConsulta(null); campo.current?.blur(); onNovo(v); }, 600);
+    return () => clearTimeout(t);
+  }, [onNovo, aberto, docCompleto, achados.length, consulta]);
   useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" }); }, [ativo]);
 
   const rotulo = escolhido ? `${rotuloCliente(escolhido)}${escolhido.cpf_cnpj ? ` · ${docFormat(escolhido.cpf_cnpj)}` : ""}` : "";
@@ -53,7 +60,11 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
           if (!aberto) return;
           if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((i) => Math.min(i + 1, achados.length - 1)); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((i) => Math.max(i - 1, 0)); }
-          else if (e.key === "Enter") { e.preventDefault(); if (achados[ativo]) escolher(achados[ativo]); }
+          else if (e.key === "Enter") {
+            e.preventDefault();
+            if (achados[ativo]) escolher(achados[ativo]);
+            else if (onNovo && consulta?.trim()) { const v = consulta.trim(); setConsulta(null); campo.current?.blur(); onNovo(v); }
+          }
           else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setConsulta(null); (e.target as HTMLInputElement).blur(); } // fecha só a lista, não a janela
         }}
       />
@@ -72,7 +83,10 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
           onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
           {achados.length === 0 ? (
             <p className="px-3 py-3 text-sm text-slate-500">
-              Nenhum cliente com “{consulta}”. Confira o número ou busque por parte do nome, da cidade ou do nome fantasia.
+              Nenhum cliente com “{consulta}”.{" "}
+              {onNovo
+                ? (docCompleto ? "Abrindo o cadastro com esse número…" : "Aperte Enter ou toque em Cadastrar cliente, logo abaixo.")
+                : "Confira o número ou busque por parte do nome, da cidade ou do nome fantasia."}
             </p>
           ) : (
             <ul ref={lista} role="listbox" className="max-h-72 overflow-y-auto py-1">
@@ -98,7 +112,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
           )}
           {onNovo && (
             <button type="button" onClick={(e) => { e.preventDefault(); const t = consulta ?? ""; setConsulta(null); campo.current?.blur(); onNovo(t.trim()); }}
-              className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2.5 text-left text-sm font-semibold text-brand hover:bg-brand-light">
+              className={`flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2.5 text-left text-sm font-semibold ${achados.length ? "text-brand hover:bg-brand-light" : "bg-brand text-brand-fg hover:opacity-90"}`}>
               <UserPlus size={16} aria-hidden /> Cadastrar cliente{consulta?.trim() ? ` “${consulta.trim()}”` : " novo"}
             </button>
           )}
