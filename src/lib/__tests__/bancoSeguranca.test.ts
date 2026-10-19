@@ -64,6 +64,7 @@ const PUBLICAS: Record<string, string> = {
   proposta_responder: "cliente aprova ou recusa a proposta pelo token",
   loja_dados: "vitrine da loja (produtos e preços públicos)",
   erp_sem_usuarios: "tela de login: diz só se o ERP ainda não tem usuário (primeira instalação)",
+  erp_interesse: "página /conheca: o visitante deixa o contato (só grava, com limite por hora)",
 };
 
 /** Ajudantes de leitura para quem está logado: devolvem um número, um nome ou um sim/não, sem dado sigiloso */
