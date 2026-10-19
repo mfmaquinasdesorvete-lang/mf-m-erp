@@ -38,7 +38,9 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
   nome: [string, string]; mostrarValor?: boolean;
 }) {
   const largo = useTelaLarga();
-  const [etapa, setEtapa] = useState<string | null>(null);
+  const [etapa, setEtapaState] = useState<string | null>(null);
+  // escolheu uma etapa no bloco: rola até a lista dela (senão ela abre lá embaixo, fora da vista)
+  const setEtapa = (e: string | null) => { setEtapaState(e); if (e) setTimeout(() => document.getElementById("quadro-lista")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); };
   const [soAcao, setSoAcao] = useState(false);
   const [alerta, setAlerta] = useState<string | null>(null);
 
@@ -131,6 +133,7 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
         })}
       </div>
 
+      <div id="quadro-lista" className="scroll-mt-20" />
       {carregando ? (
         <p className="py-10 text-center text-slate-500">Carregando…</p>
       ) : etapa ? (

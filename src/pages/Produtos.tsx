@@ -241,6 +241,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     todos: (r: Produto) => r.tipo !== "maquina",
   }), [naProducao]);
   const contagem = (c: Cadastro) => produtos.filter(doCadastro[c]).length;
+  const [verInativos, setVerInativos] = useState(false);
+  const inativos = produtos.filter((p) => doCadastro[cadastro](p) && p.ativo === false).length;
   const ehMaquinas = cadastro === "maquinas";
   const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
   const podeMover = pode("editar_produtos") && tem("financeiro");
@@ -278,6 +280,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const selos = (r: Produto) => (<>
     {cadastro === "componentes" && r.tipo !== "insumo" && <span className="mr-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800" title="Também é peça de reposição: o cliente compra">também vende</span>}
     {cadastro !== "componentes" && naProducao.has(r.id) && <span className="mr-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-2xs font-semibold text-orange-800" title="Vai na ficha técnica de alguma máquina">usada na produção</span>}
+    {(r.tipo === "insumo" || r.vendavel === false) && <span className="mr-1 inline-flex items-center rounded-md border border-amber-400 bg-amber-100 px-1.5 py-0.5 text-2xs font-black uppercase tracking-wide text-amber-900" title="Não aparece no pedido: só para a produção e a assistência">uso interno</span>}
     {(r.ativo === false || r.fora_de_linha) && <span className="mr-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{r.ativo === false ? "inativo" : "fora de linha"}</span>}
     {r.no_catalogo && (pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })
       ? <span className="text-xs font-semibold text-amber-700">catálogo: {pendenciaCatalogo({ foto: r.foto_caminho, preco: r.preco_venda })}</span>
@@ -398,7 +401,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
       ) : aba === "auditoria" ? (
         <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "qualidade" ? (
-        <QualidadeProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onCorrigir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
+        <QualidadeProdutos produtos={produtos} inicial={busca.get("problema")} podeEditar={pode("editar_produtos")} onCorrigir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "contagem" ? (
         <ContagemEstoque produtos={produtos} podeEditar={pode("movimentar_estoque")} />
       ) : <>
@@ -419,14 +422,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             </button>
           )}
           {baixos.length > 0 && (
-            <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <button type="button" onClick={() => navigate("/estoque?aba=qualidade&problema=abaixo_minimo")} title="Ver a lista dos itens no mínimo"
+              className="mb-3 flex w-full items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800 hover:border-amber-400">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
               <span>
                 <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
                 <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
                   {baixos.length > 6 && "…"}</span>
               </span>
-            </div>
+              <span className="ml-auto shrink-0 font-semibold underline">Ver</span>
+            </button>
           )}
 
           {!ehMaquinas && <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Cadastro de produtos">
@@ -452,7 +457,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         </>}
         anexos="produto"
         title={cadastro === "todos" ? "Produtos e estoque" : atualCad.titulo}
-        filtroBase={doCadastro[cadastro]}
+        // inativos só aparecem quando se pede (botão "Mostrar inativos")
+        filtroBase={(r: Produto) => doCadastro[cadastro](r) && (verInativos || r.ativo !== false)}
         readOnly={!pode("editar_produtos")}
         semNovo={!tem("financeiro")}
         table="produtos"
@@ -480,6 +486,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ] : []}
         exportExtra={(r) => ({ "Estoque total": Number(r.estoque_atual), ...Object.fromEntries(unidades.map((u) => [`Estoque ${u.codigo}`, saldo(r.id, u.id)])) })}
         extraActions={<>
+          {inativos > 0 && <Button variant="ghost" aria-pressed={verInativos} onClick={() => setVerInativos(!verInativos)}>{verInativos ? "Esconder inativos" : `Mostrar inativos (${inativos})`}</Button>}
           {/* os painéis saíram da lista do menu: ficam a um clique daqui */}
           {ehMaquinas ? <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
             : <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>}

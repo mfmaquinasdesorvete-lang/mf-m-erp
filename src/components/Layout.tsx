@@ -89,6 +89,8 @@ export function Layout() {
   const perfil = usePerfil();
   const vis = useVisivel();
   const location = useLocation();
+  // trocou de tela (ex.: tocou num aviso do painel): começa do alto, e não no meio da página de antes
+  useEffect(() => { window.scrollTo({ top: 0 }); document.querySelector("main")?.scrollTo?.({ top: 0 }); }, [location.pathname]);
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const navigate = useNavigate();

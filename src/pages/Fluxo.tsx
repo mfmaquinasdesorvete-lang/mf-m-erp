@@ -61,7 +61,8 @@ export default function Fluxo() {
   const [vendedorSel, setVendedorSel] = useState(""); // "" todos · "sem" sem vendedor · id
   const [minhas, setMinhasState] = useState(() => { try { return localStorage.getItem(CHAVE_MINHAS) === "1"; } catch { return false; } });
   const setMinhas = (v: boolean) => { setMinhasState(v); try { localStorage.setItem(CHAVE_MINHAS, v ? "1" : "0"); } catch { /* sem armazenamento */ } };
-  const [etapa, setEtapa] = useState<ColunaId | null>(null);
+  const [etapa, setEtapaState] = useState<ColunaId | null>(null);
+  const setEtapa = (e: ColunaId | null) => { setEtapaState(e); if (e) setTimeout(() => document.getElementById("fluxo-lista")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); };
   const [soAcao, setSoAcao] = useState(false);
   const [tipo, setTipo] = useState<TipoAlerta | null>(null);
   const [aberta, setAberta] = useState<{ p: P; e: Exp } | null>(null);
@@ -227,6 +228,7 @@ export default function Fluxo() {
         onSoAcao={(v) => { setSoAcao(v); setTipo(null); }}
         onTipo={(t) => { const igual = tipo === t; setTipo(igual ? null : t); setSoAcao(!igual); }} />
       <BlocosEtapas resumo={resumo} etapa={etapa} onEtapa={setEtapa} />
+      <div id="fluxo-lista" className="scroll-mt-20" />
 
       {isLoading ? (
         <p className="py-10 text-center text-slate-500">Carregando pedidos…</p>

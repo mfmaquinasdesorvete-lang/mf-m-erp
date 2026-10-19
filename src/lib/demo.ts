@@ -2912,6 +2912,21 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: { retirados, mantidos_com_etiqueta: mantidos, fornecedores_criados: 0 }, error: null };
   },
+  fornecedores_virar_cliente: ({ p_ids, p_manter_fornecedor }) => {
+    if (!temPapelDemo("vendas", "financeiro")) return erro("sem permissão para esta ação");
+    const r = { criados: 0, voltaram: 0, mantidos: 0, anexos: 0, cliente_id: null as string | null };
+    for (const id of p_ids ?? []) {
+      const f = db.fornecedores.find((x) => x.id === id);
+      if (!f) continue;
+      const c = { id: uid(), nome: f.nome, nome_fantasia: f.nome_fantasia ?? null, cpf_cnpj: f.cnpj ?? null, email: f.email ?? null, telefone: f.telefone ?? null,
+        whatsapp: f.whatsapp ?? null, municipio: f.municipio ?? null, uf: f.uf ?? null, tags: [], created_at: new Date().toISOString() };
+      db.clientes.push(c);
+      r.criados++;
+      if (p_manter_fornecedor) r.mantidos++; else { f.ativo = false; f.tags = [...new Set([...(f.tags ?? []), "virou_cliente"])]; }
+      r.cliente_id = c.id;
+    }
+    return { data: r, error: null };
+  },
   clientes_virar_fornecedor: ({ p_ids, p_manter_cliente }) => {
     if (!temPapelDemo("vendas", "financeiro")) return erro("sem permissão para esta ação");
     const r = { movidos: 0, mantidos: 0, fornecedores_criados: 0, anexos: 0, fornecedor_id: null as string | null };

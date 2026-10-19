@@ -1,7 +1,7 @@
 // Produtos e estoque → Qualidade do cadastro: revisão da base (duplicados, unidades, custo/preço, fornecedor,
 // localização, estoque negativo, itens parados e estoque mínimo). Corrigir abre o cadastro, que valida ao gravar.
 // No alto, as correções que o ERP já sabe fazer (NCM, custo, categoria, marca…), para aplicar com um toque.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { Button, Card } from "./ui";
 import { useRows } from "@/lib/data";
@@ -15,14 +15,20 @@ import type { Produto } from "@/lib/types";
 
 const COR = { alta: "bg-red-500", media: "bg-amber-500", baixa: "bg-slate-400" };
 
-export function QualidadeProdutos({ produtos, onCorrigir, podeEditar }: { produtos: Produto[]; onCorrigir: (p: Produto) => void; podeEditar: boolean }) {
+export function QualidadeProdutos({ produtos, onCorrigir, podeEditar, inicial }: { produtos: Produto[]; onCorrigir: (p: Produto) => void; podeEditar: boolean; inicial?: string | null }) {
   const { data: vinculos = [] } = useRows<{ produto_id: string }>("produto_fornecedor", { select: "produto_id", order: "produto_id" });
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
   const problemas = useMemo(() => avaliarCadastro(produtos, {
     comFornecedor: new Set(vinculos.map((v) => v.produto_id)), movimentos, hoje: hoje(),
   }), [produtos, vinculos, movimentos]);
   const comItens = problemas.filter((p) => p.itens.length);
-  const [aberto, setAberto] = useState<string | null>(null);
+  // vindo do painel ("Corrigir" de um problema): abre já naquele problema e rola até ele
+  const [aberto, setAberto] = useState<string | null>(inicial ?? null);
+  useEffect(() => {
+    if (!inicial) return;
+    const t = setTimeout(() => document.getElementById(`problema-${inicial}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    return () => clearTimeout(t);
+  }, [inicial, comItens.length]);
   const abertoAgora = aberto ?? comItens[0]?.id ?? null;
   const total = new Set(comItens.flatMap((p) => p.itens.map((i) => i.produto.id))).size;
   const ativos = produtos.filter((p) => p.ativo !== false).length;
@@ -56,7 +62,7 @@ export function QualidadeProdutos({ produtos, onCorrigir, podeEditar }: { produt
       {comItens.map((p) => {
         const expandido = abertoAgora === p.id;
         return (
-          <Card key={p.id} className="overflow-hidden">
+          <div key={p.id} id={`problema-${p.id}`} className="scroll-mt-24"><Card className="overflow-hidden">
             <button type="button" onClick={() => setAberto(expandido ? "" : p.id)} aria-expanded={expandido}
               className="flex w-full items-center gap-3 p-4 text-left hover:bg-slate-50">
               <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${COR[p.gravidade]}`} aria-label={`gravidade ${p.gravidade}`} />
@@ -79,7 +85,7 @@ export function QualidadeProdutos({ produtos, onCorrigir, podeEditar }: { produt
                 ))}
               </ul>
             )}
-          </Card>
+          </Card></div>
         );
       })}
     </div>

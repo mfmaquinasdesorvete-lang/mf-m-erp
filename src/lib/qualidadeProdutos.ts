@@ -107,6 +107,15 @@ export function avaliarCadastro(produtos: Produto[], opts: {
     ativos.filter((p) => Number(p.preco_venda) > 0 && Number(p.preco_custo) > Number(p.preco_venda))
       .map((produto) => ({ produto, detalhe: `custo ${fmt(produto.preco_custo)} · venda ${fmt(produto.preco_venda)}` })));
 
+  // frete e catálogo
+  add("sem_peso", "Sem peso (frete)", "Sem peso a cotação de frete sai errada.", "media",
+    fisicos.filter((p) => p.tipo !== "insumo" && !Number(p.peso_kg)).map((produto) => ({ produto })));
+  add("sem_foto", "Sem foto no catálogo", "Item no catálogo sem foto vende menos.", "baixa",
+    ativos.filter((p) => p.no_catalogo && !p.foto_caminho).map((produto) => ({ produto })));
+  add("abaixo_minimo", "No estoque mínimo ou abaixo", "Hora de comprar ou produzir antes de faltar.", "alta",
+    fisicos.filter((p) => Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo))
+      .map((produto) => ({ produto, detalhe: `tem ${Number(produto.estoque_atual)} · mínimo ${Number(produto.estoque_minimo)}` })));
+
   // fiscal, classificação e fornecedor
   add("sem_ncm", "Sem NCM válido", "Sem NCM de 8 dígitos a NF-e é rejeitada.", "alta",
     ativos.filter((p) => p.vendavel !== false && String(p.ncm ?? "").replace(/\D/g, "").length !== 8).map((produto) => ({ produto })));

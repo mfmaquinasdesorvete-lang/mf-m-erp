@@ -194,6 +194,8 @@ export type Fornecedor = Endereco & { marcadores?: string[] | null; id: string; 
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
   /** marca a que esta filial pertence (nulo = marca ou fornecedor avulso); unificado_em = cadastro repetido arquivado */
   matriz_id?: string | null; unificado_em?: string | null; unificado_quando?: string | null;
+  /** inativo some das sugestões; homologado = aprovado para fornecer (peças Inmetro) */
+  ativo?: boolean | null; homologado?: boolean | null; homologado_em?: string | null; homologado_obs?: string | null;
   site?: string | null; rede?: FilialRede[] | null; pesquisa_em?: string | null; pesquisa_fontes?: string[] | null;
   // golpe (boleto falso): as contas dele não podem ser pagas; quem/quando gravados pelo banco
   bloqueado?: boolean; bloqueio_motivo?: string | null; bloqueado_em?: string | null; bloqueado_por_nome?: string | null };

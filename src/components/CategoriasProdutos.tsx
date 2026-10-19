@@ -23,6 +23,7 @@ export function opcoesCategoria(categorias: Categoria[], produtos: Pick<Produto,
 }
 
 export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto[]; podeEditar: boolean }) {
+  const [vendo, setVendo] = useState<string | null>(null);
   const { data: categorias = [] } = useCategoriasProduto();
   const invalidar = useInvalidate();
   const [busca, setBusca] = useState("");
@@ -97,8 +98,11 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
                 </form>
               ) : (
                 <>
-                  <span className="min-w-0 flex-1 font-medium text-fg">{nivel ? c.nome.split(" > ").pop() : c.nome}</span>
-                  <span className={`whitespace-nowrap text-xs ${n ? "text-slate-600" : "text-slate-400"}`}>{n} {pl(n, "produto", "produtos")}</span>
+                  {/* tocar no nome mostra os produtos da categoria */}
+                  <button type="button" disabled={!n} onClick={() => setVendo(vendo === c.nome ? null : c.nome)} aria-expanded={vendo === c.nome}
+                    className="min-w-0 flex-1 text-left font-medium text-fg hover:text-modulo-texto disabled:hover:text-fg">{nivel ? c.nome.split(" > ").pop() : c.nome}</button>
+                  <button type="button" disabled={!n} onClick={() => setVendo(vendo === c.nome ? null : c.nome)}
+                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${n ? "bg-slate-100 font-semibold text-slate-700 hover:bg-slate-200" : "text-slate-400"}`}>{n} {pl(n, "produto", "produtos")}{n ? (vendo === c.nome ? " ▴" : " ▾") : ""}</button>
                   {podeEditar && <Button type="button" variant="ghost" title="Renomear (troca também nos produtos)" onClick={() => setEditando({ de: c.nome, para: c.nome })}><Pencil size={14} /></Button>}
                   {podeEditar && !n && (
                     <Button type="button" variant="ghost" className="!text-red-600" title="Tirar da lista (só sem produtos)" disabled={ocupado}
@@ -109,6 +113,13 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
                       })}><X size={14} /></Button>
                   )}
                 </>
+              )}
+              {vendo === c.nome && (
+                <ul className="mt-1 w-full space-y-0.5 rounded-lg bg-slate-50 p-2 text-xs">
+                  {produtos.filter((p) => p.categoria === c.nome).sort((x, y) => x.descricao.localeCompare(y.descricao, "pt-BR")).map((p) => (
+                    <li key={p.id} className="flex justify-between gap-2"><span className={`truncate ${p.ativo === false ? "text-slate-400 line-through" : "text-slate-700"}`}>{p.descricao}</span><span className="shrink-0 font-mono text-slate-500">{p.sku ?? ""}</span></li>
+                  ))}
+                </ul>
               )}
             </li>
           );

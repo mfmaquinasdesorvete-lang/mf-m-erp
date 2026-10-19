@@ -62,7 +62,7 @@ export default function PainelCadastros() {
     const sumidos = [...ultimaCompra.entries()].filter(([, d]) => d.slice(0, 10) < seisMeses).length;
 
     const porUf = new Map<string, number>();
-    for (const c of clientes) { const uf = c.uf || "Sem estado"; porUf.set(uf, (porUf.get(uf) ?? 0) + 1); }
+    for (const c of clientes) { const uf = c.uf || "Sem endereço"; porUf.set(uf, (porUf.get(uf) ?? 0) + 1); }
     const ufs = [...porUf.entries()].sort((a, b) => b[1] - a[1]);
     const principais = ufs.slice(0, 6);
     const outros = ufs.slice(6).reduce((s, [, n]) => s + n, 0);
@@ -81,17 +81,17 @@ export default function PainelCadastros() {
     const vendaveis = ativos.filter((p) => p.vendavel !== false && p.tipo !== "insumo");
     const fisicos = ativos.filter((p) => !p.kit);
     const problemas = [
-      { rotulo: "Sem NCM válido (NF-e é rejeitada)", lista: ativos.filter((p) => p.vendavel !== false && digitos(p.ncm).length !== 8) },
-      { rotulo: "Preço de venda abaixo do custo", lista: ativos.filter((p) => Number(p.preco_venda) > 0 && Number(p.preco_custo) > Number(p.preco_venda)) },
-      { rotulo: "Sem preço de venda", lista: vendaveis.filter((p) => !Number(p.preco_venda)) },
-      { rotulo: "Sem custo", lista: fisicos.filter((p) => !Number(p.preco_custo)) },
-      { rotulo: "Sem peso (frete)", lista: fisicos.filter((p) => p.tipo !== "insumo" && !Number(p.peso_kg)) },
-      { rotulo: "Sem foto no catálogo", lista: ativos.filter((p) => p.no_catalogo && !p.foto_caminho) },
+      { id: "sem_ncm", rotulo: "Sem NCM válido (NF-e é rejeitada)", lista: ativos.filter((p) => p.vendavel !== false && digitos(p.ncm).length !== 8) },
+      { id: "abaixo_custo", rotulo: "Preço de venda abaixo do custo", lista: ativos.filter((p) => Number(p.preco_venda) > 0 && Number(p.preco_custo) > Number(p.preco_venda)) },
+      { id: "preco_zerado", rotulo: "Sem preço de venda", lista: vendaveis.filter((p) => !Number(p.preco_venda)) },
+      { id: "custo_zerado", rotulo: "Sem custo", lista: fisicos.filter((p) => !Number(p.preco_custo)) },
+      { id: "sem_peso", rotulo: "Sem peso (frete)", lista: fisicos.filter((p) => p.tipo !== "insumo" && !Number(p.peso_kg)) },
+      { id: "sem_foto", rotulo: "Sem foto no catálogo", lista: ativos.filter((p) => p.no_catalogo && !p.foto_caminho) },
     ].filter((x) => x.lista.length);
 
     // pela data real; importado sem data fica depois, pelo código
     const quando = (c: Cliente) => { const d = desde.get(c.id); return desdeReal(d) ? d!.desde : ""; };
-    const recentes = clientes.filter((c) => !fUf || (c.uf || "Sem estado") === fUf || (fUf === "Outros" && !principais.some(([u]) => u === (c.uf || "Sem estado"))))
+    const recentes = clientes.filter((c) => !fUf || (c.uf || "Sem endereço") === fUf || (fUf === "Outros" && !principais.some(([u]) => u === (c.uf || "Sem endereço"))))
       .sort((a, b) => quando(b).localeCompare(quando(a)) || Number(b.codigo ?? 0) - Number(a.codigo ?? 0)).slice(0, 6)
       .map((c) => ({ c, d: desde.get(c.id) }));
 
@@ -188,10 +188,11 @@ export default function PainelCadastros() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title="Cadastro dos produtos: o que falta" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/estoque")} className="text-sm font-semibold text-modulo-texto hover:underline">Corrigir</button>}>
-          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={() => navigate("/estoque")}
+          actions={<button type="button" onClick={() => navigate("/estoque?aba=qualidade")} className="text-sm font-semibold text-modulo-texto hover:underline">Corrigir</button>}>
+          {/* tocar numa linha abre a Qualidade do cadastro já naquele problema */}
+          <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={(i) => navigate(`/estoque?aba=qualidade&problema=${k.problemas[i]?.id ?? ""}`)}
             itens={k.problemas.map((p) => ({ rotulo: p.rotulo, valor: p.lista.length, detalhe: p.lista.slice(0, 3).map((x) => x.descricao).join(" · ") + (p.lista.length > 3 ? "…" : "") }))} />
-          <p className="mt-2 text-xs text-slate-500">A lista completa, com o que corrigir em cada item, fica em Todos os produtos e estoque → Qualidade do cadastro.</p>
+          <p className="mt-2 text-xs text-slate-500">Toque numa linha para ver só aqueles itens e corrigir um por um.</p>
         </Section>
         <div className="space-y-3 xl:col-span-2">
           <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>

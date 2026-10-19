@@ -212,3 +212,46 @@ select option { background: rgb(var(--campo)); color: rgb(var(--fg)); }
 
 /* assinatura "Sopro Divino" (desde 2009): letra cursiva, no alto à direita do ERP e do PDV */
 .assinatura { font-family: "Great Vibes", cursive; font-weight: 400; letter-spacing: 0.01em; line-height: 1; }
+
+/* Tema escuro: famílias de cor que não estão nas variáveis do tema (violeta, verde-água, ciano, rosa, amarelo…).
+   Os tons claros viram um fundo translúcido e as letras escuras viram claras, para continuar legível. */
+:root[data-theme="dark"] .bg-violet-50, :root[data-theme="dark"] .from-violet-50 { background-color: rgb(139 92 246 / 0.1); }
+:root[data-theme="dark"] .bg-violet-100 { background-color: rgb(139 92 246 / 0.18); }
+:root[data-theme="dark"] .bg-violet-200 { background-color: rgb(139 92 246 / 0.26); }
+:root[data-theme="dark"] .border-violet-50, :root[data-theme="dark"] .border-violet-100, :root[data-theme="dark"] .border-violet-200, :root[data-theme="dark"] .border-violet-300 { border-color: rgb(139 92 246 / 0.35); }
+:root[data-theme="dark"] .text-violet-700, :root[data-theme="dark"] .text-violet-800, :root[data-theme="dark"] .text-violet-900 { color: rgb(196 181 253); }
+:root[data-theme="dark"] .bg-teal-50, :root[data-theme="dark"] .from-teal-50 { background-color: rgb(20 184 166 / 0.1); }
+:root[data-theme="dark"] .bg-teal-100 { background-color: rgb(20 184 166 / 0.18); }
+:root[data-theme="dark"] .bg-teal-200 { background-color: rgb(20 184 166 / 0.26); }
+:root[data-theme="dark"] .border-teal-50, :root[data-theme="dark"] .border-teal-100, :root[data-theme="dark"] .border-teal-200, :root[data-theme="dark"] .border-teal-300 { border-color: rgb(20 184 166 / 0.35); }
+:root[data-theme="dark"] .text-teal-700, :root[data-theme="dark"] .text-teal-800, :root[data-theme="dark"] .text-teal-900 { color: rgb(94 234 212); }
+:root[data-theme="dark"] .bg-cyan-50, :root[data-theme="dark"] .from-cyan-50 { background-color: rgb(6 182 212 / 0.1); }
+:root[data-theme="dark"] .bg-cyan-100 { background-color: rgb(6 182 212 / 0.18); }
+:root[data-theme="dark"] .bg-cyan-200 { background-color: rgb(6 182 212 / 0.26); }
+:root[data-theme="dark"] .border-cyan-50, :root[data-theme="dark"] .border-cyan-100, :root[data-theme="dark"] .border-cyan-200, :root[data-theme="dark"] .border-cyan-300 { border-color: rgb(6 182 212 / 0.35); }
+:root[data-theme="dark"] .text-cyan-700, :root[data-theme="dark"] .text-cyan-800, :root[data-theme="dark"] .text-cyan-900 { color: rgb(103 232 249); }
+:root[data-theme="dark"] .bg-pink-50, :root[data-theme="dark"] .from-pink-50 { background-color: rgb(236 72 153 / 0.1); }
+:root[data-theme="dark"] .bg-pink-100 { background-color: rgb(236 72 153 / 0.18); }
+:root[data-theme="dark"] .bg-pink-200 { background-color: rgb(236 72 153 / 0.26); }
+:root[data-theme="dark"] .border-pink-50, :root[data-theme="dark"] .border-pink-100, :root[data-theme="dark"] .border-pink-200, :root[data-theme="dark"] .border-pink-300 { border-color: rgb(236 72 153 / 0.35); }
+:root[data-theme="dark"] .text-pink-700, :root[data-theme="dark"] .text-pink-800, :root[data-theme="dark"] .text-pink-900 { color: rgb(249 168 212); }
+:root[data-theme="dark"] .bg-rose-50, :root[data-theme="dark"] .from-rose-50 { background-color: rgb(244 63 94 / 0.1); }
+:root[data-theme="dark"] .bg-rose-100 { background-color: rgb(244 63 94 / 0.18); }
+:root[data-theme="dark"] .bg-rose-200 { background-color: rgb(244 63 94 / 0.26); }
+:root[data-theme="dark"] .border-rose-50, :root[data-theme="dark"] .border-rose-100, :root[data-theme="dark"] .border-rose-200, :root[data-theme="dark"] .border-rose-300 { border-color: rgb(244 63 94 / 0.35); }
+:root[data-theme="dark"] .text-rose-700, :root[data-theme="dark"] .text-rose-800, :root[data-theme="dark"] .text-rose-900 { color: rgb(253 164 175); }
+:root[data-theme="dark"] .bg-yellow-50, :root[data-theme="dark"] .from-yellow-50 { background-color: rgb(234 179 8 / 0.1); }
+:root[data-theme="dark"] .bg-yellow-100 { background-color: rgb(234 179 8 / 0.18); }
+:root[data-theme="dark"] .bg-yellow-200 { background-color: rgb(234 179 8 / 0.26); }
+:root[data-theme="dark"] .border-yellow-50, :root[data-theme="dark"] .border-yellow-100, :root[data-theme="dark"] .border-yellow-200, :root[data-theme="dark"] .border-yellow-300 { border-color: rgb(234 179 8 / 0.35); }
+:root[data-theme="dark"] .text-yellow-700, :root[data-theme="dark"] .text-yellow-800, :root[data-theme="dark"] .text-yellow-900 { color: rgb(253 224 71); }
+:root[data-theme="dark"] .bg-lime-50, :root[data-theme="dark"] .from-lime-50 { background-color: rgb(132 204 22 / 0.1); }
+:root[data-theme="dark"] .bg-lime-100 { background-color: rgb(132 204 22 / 0.18); }
+:root[data-theme="dark"] .bg-lime-200 { background-color: rgb(132 204 22 / 0.26); }
+:root[data-theme="dark"] .border-lime-50, :root[data-theme="dark"] .border-lime-100, :root[data-theme="dark"] .border-lime-200, :root[data-theme="dark"] .border-lime-300 { border-color: rgb(132 204 22 / 0.35); }
+:root[data-theme="dark"] .text-lime-700, :root[data-theme="dark"] .text-lime-800, :root[data-theme="dark"] .text-lime-900 { color: rgb(190 242 100); }
+:root[data-theme="dark"] .bg-fuchsia-50, :root[data-theme="dark"] .from-fuchsia-50 { background-color: rgb(192 38 211 / 0.1); }
+:root[data-theme="dark"] .bg-fuchsia-100 { background-color: rgb(192 38 211 / 0.18); }
+:root[data-theme="dark"] .bg-fuchsia-200 { background-color: rgb(192 38 211 / 0.26); }
+:root[data-theme="dark"] .border-fuchsia-50, :root[data-theme="dark"] .border-fuchsia-100, :root[data-theme="dark"] .border-fuchsia-200, :root[data-theme="dark"] .border-fuchsia-300 { border-color: rgb(192 38 211 / 0.35); }
+:root[data-theme="dark"] .text-fuchsia-700, :root[data-theme="dark"] .text-fuchsia-800, :root[data-theme="dark"] .text-fuchsia-900 { color: rgb(240 171 252); }

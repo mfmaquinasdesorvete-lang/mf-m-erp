@@ -72,6 +72,8 @@ const FILTROS_FORN: FiltroCrud<Fornecedor>[] = [
   },
   { label: "WhatsApp", opcoes: [{ label: "Sem WhatsApp", teste: (r) => !r.whatsapp }, { label: "Com WhatsApp", teste: (r) => !!r.whatsapp }] },
   { label: "Golpe", opcoes: [{ label: "Bloqueados (golpe: não pagar)", teste: (r) => !!r.bloqueado }, { label: "Sem bloqueio", teste: (r) => !r.bloqueado }] },
+  { label: "Situação", opcoes: [{ label: "Ativos", teste: (r) => r.ativo !== false }, { label: "Inativos", teste: (r) => r.ativo === false }] },
+  { label: "Homologação", opcoes: [{ label: "Homologados", teste: (r) => !!r.homologado }, { label: "Não homologados", teste: (r) => !r.homologado }] },
   { label: "Atividade", opcoes: [{ label: "Postos de combustível", teste: (r) => ehPosto(r) }, { label: "Sem os postos", teste: (r) => !ehPosto(r) }] },
   filtroCadastradoEm<Fornecedor>(),
 ];
@@ -135,6 +137,18 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
   const nomeForn = (id: string | null | undefined) => { const f = fornTodos.find((x) => x.id === id); return f ? (f.nome_fantasia?.trim() || f.nome) : ""; };
   const baseForn = useCallback((r: Fornecedor) => !r.unificado_em && (mostrarFiliais || !r.matriz_id), [mostrarFiliais]);
   const baseTransp = useCallback((r: Transportadora) => !r.unificado_em, []);
+  // o que se compra de cada fornecedor: as categorias dos produtos ligados a ele (cadastro de fornecimento e códigos das notas)
+  const { data: forneceProd = [] } = useRows<{ produto_id: string; fornecedor_id: string }>("produto_fornecedor", { select: "produto_id, fornecedor_id", order: "produto_id", key: ["cat-forn"] });
+  const { data: prodCat = [] } = useRows<{ id: string; categoria: string | null }>("produtos", { select: "id, categoria", order: "id", key: ["cat-forn"] });
+  const categoriasDo = useMemo(() => {
+    const cat = new Map(prodCat.map((p) => [p.id, p.categoria?.trim()]));
+    const conta = new Map<string, Map<string, number>>();
+    for (const x of forneceProd) {
+      const c = cat.get(x.produto_id); if (!c) continue;
+      const m = conta.get(x.fornecedor_id) ?? new Map<string, number>(); m.set(c, (m.get(c) ?? 0) + 1); conta.set(x.fornecedor_id, m);
+    }
+    return new Map([...conta].map(([f, m]) => [f, [...m].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([c]) => c)]));
+  }, [forneceProd, prodCat]);
   const marcaAberta = filiaisDe ? fornTodos.find((f) => f.id === filiaisDe) : null;
 
   async function unificar(principal: string, outros: string[], motivo: string) {
@@ -189,6 +203,24 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           filtroBase={baseForn}
           editarAgora={abrirForn}
           acoesLote={pode("editar_fornecedores") ? [
+            { label: "Passar para clientes", executar: async (ids) => {
+              if (!(await confirmar(`Passar ${ids.length} ${pl(ids.length, "cadastro", "cadastros")} para Clientes? O fornecedor fica inativo (as contas e notas antigas continuam ligadas a ele) e os anexos vão para o cliente.`, { ok: "Passar para clientes" }))) return "Nada mudou";
+              const r = await rpc("fornecedores_virar_cliente", { p_ids: ids, p_manter_fornecedor: false }) as { criados: number; voltaram: number };
+              invalidar("fornecedores", "clientes");
+              return `Agora em Clientes: ${r.criados} ${pl(r.criados, "novo", "novos")}${r.voltaram ? ` e ${r.voltaram} que já eram clientes` : ""}`;
+            } },
+            { label: "Marcar homologado", executar: async (ids) => {
+              const { error } = await supabase.from("fornecedores").update({ homologado: true, homologado_em: new Date().toISOString().slice(0, 10) }).in("id", ids);
+              if (error) throw error; invalidar("fornecedores"); return `${ids.length} ${pl(ids.length, "homologado", "homologados")}`;
+            } },
+            { label: "Inativar", executar: async (ids) => {
+              const { error } = await supabase.from("fornecedores").update({ ativo: false }).in("id", ids);
+              if (error) throw error; invalidar("fornecedores"); return `${ids.length} ${pl(ids.length, "inativado", "inativados")}`;
+            } },
+            { label: "Ativar", executar: async (ids) => {
+              const { error } = await supabase.from("fornecedores").update({ ativo: true }).in("id", ids);
+              if (error) throw error; invalidar("fornecedores"); return `${ids.length} ${pl(ids.length, "ativado", "ativados")}`;
+            } },
             { label: "Unificar repetidos", executar: (ids) => ids.length < 2 ? Promise.resolve("Marque 2 ou mais cadastros repetidos para unificar")
               : new Promise<string>((fim) => setUnificando({ lista: fornTodos.filter((f) => ids.includes(f.id)), tabela: "fornecedores", fim })) },
             { label: "Agrupar como filiais de uma marca", executar: (ids) => ids.length < 2 ? Promise.resolve("Marque a matriz e as filiais (2 ou mais)")
@@ -216,7 +248,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           table="fornecedores"
           marcadores={["fornecedor", "fornecedores"]}
           order="nome"
-          defaults={{ nome: "" }}
+          defaults={{ nome: "", ativo: true }}
           searchKeys={["codigo", "nome", "nome_fantasia", "cnpj", "whatsapp", "telefone", "email", "municipio"]}
           beforeSave={(r) => ({ ...r, uf: r.uf?.toUpperCase(), bloqueio_motivo: r.bloqueado ? r.bloqueio_motivo : null })}
           onFieldChange={busca}
@@ -229,6 +261,11 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             { name: "chave_pix", label: "Chave Pix (para pagar)", placeholder: "CPF/CNPJ, e-mail, celular ou chave aleatória", span: 2 },
             ...endereco,
             { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
+            { name: "h", label: "Situação e homologação", type: "secao" },
+            { name: "ativo", label: "Ativo (aparece nas compras)", type: "checkbox", span: 2 },
+            { name: "homologado", label: "HOMOLOGADO (pode fornecer peças das máquinas certificadas pelo Inmetro)", type: "checkbox", span: 2 },
+            { name: "homologado_em", label: "Homologado em", type: "date", span: 1 },
+            { name: "homologado_obs", label: "Como foi homologado (certificado, laudo, visita…)", span: 3 },
             { name: "g", label: "Golpe / fraude", type: "secao" },
             { name: "bloqueado", label: "Bloqueio de pagamentos", type: "custom", span: 4,
               render: (_v, _s, row, setCampo) => <CampoBloqueio row={row} setCampo={setCampo} admin={papel === "admin"} /> },
@@ -241,7 +278,17 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
                   <Layers size={12} aria-hidden /> {filiaisPorMarca.get(r.id)!.length} {pl(filiaisPorMarca.get(r.id)!.length, "filial", "filiais")}</button>}
                 {r.matriz_id && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.matriz_id!); }}
                   className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">filial de {nomeForn(r.matriz_id)}</button>}</> } : c),
+            { label: "Compra o quê", render: (r) => {
+              const cats = categoriasDo.get(r.id) ?? [];
+              return cats.length ? <div className="flex max-w-[16rem] flex-wrap gap-1">{cats.map((c) => <span key={c} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{c}</span>)}</div>
+                : <span className="text-xs text-slate-400">—</span>;
+            } },
             { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
+            { label: "Situação", render: (r) => <div className="flex flex-col items-start gap-1">
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold ${r.ativo === false ? "text-slate-400" : "text-emerald-600"}`}>
+                <span className={`h-2 w-2 rounded-full ${r.ativo === false ? "bg-slate-400" : "bg-emerald-500"}`} aria-hidden />{r.ativo === false ? "inativo" : "ativo"}</span>
+              {r.homologado && <span title={r.homologado_obs || "Fornecedor homologado"} className="rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-2xs font-black tracking-wide text-emerald-800">HOMOLOGADO</span>}
+            </div> },
           ]}
         />
       ) : (

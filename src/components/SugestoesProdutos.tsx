@@ -73,7 +73,7 @@ export function SugestoesProdutos({ produtos, onAbrir, podeCorrigir }: { produto
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-sky-50 p-4">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-purple-50 p-4">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white"><Sparkles size={20} aria-hidden /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="font-bold text-fg">Correções sugeridas</div>

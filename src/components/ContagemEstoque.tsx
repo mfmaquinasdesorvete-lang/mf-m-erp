@@ -140,6 +140,23 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     notify(`Contagem concluída: ${(data as any)?.ajustes ?? 0} ${pl((data as any)?.ajustes ?? 0, "ajuste", "ajustes")} de saldo`);
     invalidar("contagens_estoque", "contagem_itens", "produtos", "estoque_unidade", "estoque_movimentos");
   }
+  // folha para contar no papel: abre numa janela própria já pronta para imprimir (ou salvar em PDF)
+  function imprimirFolha() {
+    const esc = (t: unknown) => String(t ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const linhas = itens.map((i) => { const p = prod(i.produto_id);
+      return `<tr><td>${esc(p?.localizacao ?? "")}</td><td><b>${esc(p?.descricao)}</b><br><small>${esc([p?.sku, p?.unidade].filter(Boolean).join(" · "))}</small></td><td class="q">${i.contado != null ? esc(i.contado) : ""}</td></tr>`; }).join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Contagem ${c.numero}</title><style>
+      body{font-family:Arial,sans-serif;margin:24px;color:#111} h1{font-size:18px;margin:0 0 4px} p{margin:0 0 12px;font-size:12px;color:#444}
+      table{width:100%;border-collapse:collapse;font-size:12px} th,td{border:1px solid #999;padding:6px;vertical-align:top} th{background:#eee;text-align:left}
+      td.q{width:110px;height:26px} small{color:#555} @page{margin:12mm}</style></head><body>
+      <h1>Contagem de estoque nº ${c.numero} · ${esc(nome(c.unidade_id))}</h1>
+      <p>${esc(c.escopo)} · ${itens.length} itens · Data: ____/____/______ · Quem contou: ______________________</p>
+      <table><thead><tr><th>Local</th><th>Produto</th><th>Contado</th></tr></thead><tbody>${linhas}</tbody></table>
+      <script>window.onload=function(){window.print()}<\/script></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return notify("O navegador bloqueou a janela de impressão: libere as janelas deste site e tente de novo", "erro");
+    w.document.open(); w.document.write(html); w.document.close();
+  }
   async function cancelar() {
     if (!(await confirmar("Cancelar esta contagem? Nenhum saldo é alterado."))) return;
     const { error } = await supabase.rpc("cancelar_contagem", { p_contagem: c.id });
@@ -155,7 +172,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
           <div className="font-semibold">Contagem nº {c.numero} · {nome(c.unidade_id)} <Badge value={c.status} /></div>
           <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{revelar ? ` · ${divergentes.length} ${pl(divergentes.length, "divergência", "divergências")}` : ""}</div>
         </div>
-        <Button variant="secondary" onClick={() => window.print()}><Printer size={16} /> Imprimir folha</Button>
+        <Button variant="secondary" onClick={imprimirFolha}><Printer size={16} /> Imprimir folha</Button>
         {c.status === "aberta" && <Button variant="secondary" onClick={() => setRevelar(!revelar)}>{revelar ? <><EyeOff size={16} /> Esconder saldo</> : <><Eye size={16} /> Ver divergências</>}</Button>}
         {editavel && <Button variant="ghost" className="!text-red-600" onClick={cancelar}>Cancelar contagem</Button>}
         {editavel && <Button onClick={concluir} disabled={ocupado || !contados}>{ocupado ? "Concluindo…" : "Concluir e ajustar saldos"}</Button>}
