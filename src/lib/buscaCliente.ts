@@ -16,6 +16,10 @@ export function dddDe(telefone: string | null | undefined) {
   return d.length >= 10 ? d.slice(0, 2) : "";
 }
 
+/** Tira o que vem junto ao copiar o número de outro lugar: "CNPJ:", "CPF nº" e caracteres invisíveis. */
+export const limparConsulta = (s: string) =>
+  s.replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").replace(/\b(cnpj|cpf)\b\s*(n[º°o.]\s*)?:?/gi, " ").trim();
+
 /** Minúsculas, sem acento e com espaços simples. */
 export const normalizar = (s: string | number | null | undefined) =>
   String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -29,7 +33,8 @@ const telefones = (c: ClienteBuscavel) => [c.telefone, c.whatsapp, c.telefone_ad
  * Nota de quanto o cliente combina com o que foi digitado (0 = não combina). Cada palavra precisa aparecer
  * em algum campo; números com 3 ou mais dígitos também valem para CPF/CNPJ e telefones sem pontuação.
  */
-export function notaCliente(c: ClienteBuscavel, consulta: string): number {
+export function notaCliente(c: ClienteBuscavel, consultaDigitada: string): number {
+  const consulta = limparConsulta(consultaDigitada);
   const q = normalizar(consulta);
   if (!q) return 1;
   const d = digitos(consulta);
@@ -41,8 +46,8 @@ export function notaCliente(c: ClienteBuscavel, consulta: string): number {
     if (doc && doc === d) return 100;
     if (c.codigo != null && String(c.codigo) === d) return 90;
     if (doc.startsWith(d)) return 70;
-    // meio do CPF/CNPJ só com 8 números ou mais; telefone vale qualquer pedaço com 4 ou mais
-    if (d.length >= 8 && doc.includes(d)) return 60;
+    // meio ou fim do CPF/CNPJ com 6 números ou mais (ex.: "0001-90"); telefone vale qualquer pedaço com 4 ou mais
+    if (d.length >= 6 && doc.includes(d)) return 60;
     if (d.length >= 4 && telefones(c).some((n) => n.includes(d) || n.includes(semDDI(d)))) return 50;
     return 0;
   }
@@ -58,7 +63,7 @@ export function notaCliente(c: ClienteBuscavel, consulta: string): number {
 
 /** Os que combinam, do mais parecido para o menos (empate: ordem alfabética). */
 export function buscarClientes<T extends ClienteBuscavel>(lista: T[], consulta: string, limite = 30): T[] {
-  if (!normalizar(consulta)) return lista.slice(0, limite);
+  if (!normalizar(limparConsulta(consulta))) return lista.slice(0, limite);
   return lista
     .map((c) => ({ c, n: notaCliente(c, consulta) }))
     .filter((x) => x.n > 0)

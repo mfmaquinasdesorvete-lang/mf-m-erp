@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, UserPlus, X } from "lucide-react";
+import { useIsFetching } from "@tanstack/react-query";
 import { docFormat, rotuloCliente } from "@/lib/format";
 import { buscarClientes, notaCliente, type ClienteBuscavel } from "@/lib/buscaCliente";
 
@@ -9,8 +10,10 @@ const LIMITE = 30;
  * Campo de escolher cliente digitando: nome, nome fantasia, CPF/CNPJ (com ou sem pontos), código, cidade ou
  * telefone. Substitui a lista corrida com todos os clientes.
  */
-export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onChange, disabled, required, placeholder, autoFocus, onNovo }: {
+export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: carregandoProp, value, onChange, disabled, required, placeholder, autoFocus, onNovo }: {
   clientes: T[];
+  /** a lista ainda está chegando do banco: avisa em vez de dizer "nenhum cliente" (e não abre o cadastro rápido) */
+  carregando?: boolean;
   value: string | null | undefined;
   onChange: (id: string, cliente: T | null) => void;
   disabled?: boolean;
@@ -20,6 +23,9 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
   /** "Cadastrar cliente" no fim da lista (com o que foi digitado), para o cadastro rápido de quem chama */
   onNovo?: (texto: string) => void;
 }) {
+  // lista vazia enquanto o ERP ainda busca dados: é carregamento, não "nenhum cliente"
+  const buscandoDados = useIsFetching() > 0;
+  const carregando = carregandoProp ?? (clientes.length === 0 && buscandoDados);
   const escolhido = useMemo(() => clientes.find((c) => c.id === value) ?? null, [clientes, value]);
   const [consulta, setConsulta] = useState<string | null>(null); // null = mostrando o escolhido
   const [ativo, setAtivo] = useState(0);
@@ -34,10 +40,10 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
   // CPF (11) ou CNPJ (14) completo e nenhum cliente com ele: vai direto para o cadastro rápido, já com o número
   const docCompleto = !!consulta && /^[\d.\-/\s]+$/.test(consulta) && [11, 14].includes(consulta.replace(/\D/g, "").length);
   useEffect(() => {
-    if (!onNovo || !aberto || !docCompleto || achados.length) return;
+    if (!onNovo || carregando || !aberto || !docCompleto || achados.length) return;
     const t = setTimeout(() => { const v = (consulta ?? "").trim(); setConsulta(null); campo.current?.blur(); onNovo(v); }, 600);
     return () => clearTimeout(t);
-  }, [onNovo, aberto, docCompleto, achados.length, consulta]);
+  }, [onNovo, carregando, aberto, docCompleto, achados.length, consulta]);
   useEffect(() => { lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" }); }, [ativo]);
 
   const rotulo = escolhido ? `${rotuloCliente(escolhido)}${escolhido.cpf_cnpj ? ` · ${docFormat(escolhido.cpf_cnpj)}` : ""}` : "";
@@ -81,7 +87,9 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, value, onCha
         // para o campo, que reabre a busca vazia e parece que o cliente não foi escolhido
         <div className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-pop"
           onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
-          {achados.length === 0 ? (
+          {achados.length === 0 && carregando ? (
+            <p className="px-3 py-3 text-sm text-slate-500">Carregando os clientes… a busca aparece em instantes.</p>
+          ) : achados.length === 0 ? (
             <p className="px-3 py-3 text-sm text-slate-500">
               Nenhum cliente com “{consulta}”.{" "}
               {onNovo

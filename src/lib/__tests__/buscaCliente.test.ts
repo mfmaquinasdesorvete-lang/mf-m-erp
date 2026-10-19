@@ -24,6 +24,14 @@ describe("buscarClientes (campo de cliente)", () => {
     expect(buscarClientes(lista, "34.567.890/0001-30").map((c) => c.id)).toEqual(["1"]);
     expect(buscarClientes(lista, "12345678000190").map((c) => c.id)).toEqual(["2"]);
   });
+  it("acha colando com \"CNPJ:\" na frente ou com caractere invisível", () => {
+    expect(buscarClientes(lista, "CNPJ: 34.567.890/0001-30").map((c) => c.id)).toEqual(["1"]);
+    expect(buscarClientes(lista, "CNPJ nº 12.345.678/0001-90").map((c) => c.id)).toEqual(["2"]);
+    expect(buscarClientes(lista, "\u200B34567890000130\uFEFF").map((c) => c.id)).toEqual(["1"]);
+  });
+  it("acha pelo fim do CNPJ (filial e dígitos)", () => {
+    expect(buscarClientes(lista, "0001-30").map((c) => c.id)).toEqual(["1"]);
+  });
 });
 
 describe("telefone com +55 e DDD", () => {

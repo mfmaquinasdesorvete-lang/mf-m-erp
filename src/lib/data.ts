@@ -9,13 +9,8 @@ export function useRows<T = any>(
   const { select = "*", order = "created_at", ascending = false, key = [], filtro } = opts;
   return useQuery({
     queryKey: [table, select, order, ascending, ...key],
-    queryFn: async () => {
-      const { data, error } = await aplicar(supabase.from(table).select(select), filtro).order(order, { ascending });
-      if (error) throw error;
-      // O Supabase devolve no máximo 1000 linhas por consulta: lista maior vem em páginas
-      if ((data?.length ?? 0) < PAGINA) return data as T[];
-      return (await todasAsPaginas(table, select, order, ascending, filtro)) as T[];
-    },
+    // O Supabase devolve no máximo 1000 linhas por consulta: lista maior vem em páginas (a 1ª já é a página 1)
+    queryFn: async () => (await todasAsPaginas(table, select, order, ascending, filtro)) as T[],
   });
 }
 

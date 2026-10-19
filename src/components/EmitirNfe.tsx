@@ -76,7 +76,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const { unidades, padrao } = useUnidade();
   const invalidar = useInvalidate();
   const ambiente = useAmbiente();
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: clientes = [], isLoading: carregandoClientes } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: ufsIcms = [] } = useRows<{ uf: string; aliquota_interna: number; fcp: number }>("icms_uf", { order: "uf", ascending: true });
   const { data: regras = [] } = useRows<RegraTributaria>("regras_tributacao", { order: "prioridade", ascending: true });
@@ -198,7 +198,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
           </p>
         )}
         <Field label={entrada ? "Quem manda (remetente)" : "Cliente (destinatário)"} className="sm:col-span-2">
-          <ClienteBusca clientes={clientes} value={clienteId} onChange={(id) => { setClienteId(id); setChaveRef(""); }} />
+          <ClienteBusca clientes={clientes} carregando={carregandoClientes} value={clienteId} onChange={(id) => { setClienteId(id); setChaveRef(""); }} />
         </Field>
         <Field label={op.exige_referencia ? "NF de remessa (obrigatória)" : "NF referenciada (opcional)"} className="sm:col-span-2">
           <div className="flex flex-col gap-2 sm:flex-row">
