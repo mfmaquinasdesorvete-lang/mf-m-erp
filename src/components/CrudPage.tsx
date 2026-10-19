@@ -67,6 +67,8 @@ type Props<T> = {
   defaults: Record<string, any>;
   order?: string;
   rowActions?: (row: T) => ReactNode;
+  /** Ações da linha sempre lado a lado (para ações só com ícone, que cabem na largura). */
+  acoesEmLinha?: boolean;
   extraActions?: ReactNode;
   /** Logo abaixo do título (avisos, atalhos): a tela começa sempre pelo título. */
   aposTitulo?: ReactNode;
@@ -464,7 +466,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             {columns.map((c, i) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}{i === 0 && marcadores && <div className="mt-1">{tags(row)}</div>}</td>)}
             <td className="td whitespace-nowrap text-right">
               {/* em tela estreita os botões ficam um embaixo do outro, para a tabela não passar da largura */}
-              <div className="flex flex-col items-end gap-1 2xl:flex-row 2xl:items-center 2xl:justify-end">
+              <div className={props.acoesEmLinha ? "flex items-center justify-end gap-1" : "flex flex-col items-end gap-1 2xl:flex-row 2xl:items-center 2xl:justify-end"}>
                 {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                 {rowActions?.(row)}
                 {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}

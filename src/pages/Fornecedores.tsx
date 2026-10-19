@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Building2, FileSpreadsheet, Layers, Wrench } from "lucide-react";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
@@ -10,7 +11,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { AgruparFiliais, FiliaisDaMarca, UnificarCadastros } from "@/components/cadastros/MarcaFiliais";
 import { confirmar } from "@/components/Dialogos";
 import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
-import { digitos, docFormat, pl } from "@/lib/format";
+import { brl, dataBR, digitos, docFormat, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
@@ -149,6 +150,17 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
     }
     return new Map([...conta].map(([f, m]) => [f, [...m].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([c]) => c)]));
   }, [forneceProd, prodCat]);
+  // o que se compra de cada um pelas notas recebidas (grupo do NCM dos itens), quanto e quando foi a última
+  const { data: compras = [] } = useQuery({
+    queryKey: ["fornecedores_compras"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fornecedores_compras");
+      if (error) throw error;
+      return (data ?? []) as { fornecedor_id: string; grupos: string[]; total: number; notas: number; ultima: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+  const comprasDo = useMemo(() => new Map(compras.map((c) => [c.fornecedor_id, c])), [compras]);
   const marcaAberta = filiaisDe ? fornTodos.find((f) => f.id === filiaisDe) : null;
 
   async function unificar(principal: string, outros: string[], motivo: string) {
@@ -198,6 +210,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
       {aba === "fornecedores" ? (
         <CrudPage<Fornecedor>
           anexos="fornecedor"
+          acoesEmLinha
           key="f"
           readOnly={!pode("editar_fornecedores")}
           filtroBase={baseForn}
@@ -234,10 +247,10 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           rowActions={(r) => digitos(r.cnpj).length === 14 && (
             <button type="button" onClick={() => setReceita(r)}
               title={r.receita_em ? "O que a Receita diz deste fornecedor (e os dois endereços, se forem diferentes)" : "Conferir este CNPJ na Receita agora"}
-              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold transition ${r.receita_em
+              aria-label="Receita" className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg p-1.5 text-xs font-semibold transition ${r.receita_em
                 ? "bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-sm hover:brightness-110"
                 : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
-              <Building2 size={15} /> Receita
+              <Building2 size={15} aria-hidden /><span className="sr-only">Receita</span>
             </button>
           )}
           filtros={filtrosForn}
@@ -271,17 +284,22 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
               render: (_v, _s, row, setCampo) => <CampoBloqueio row={row} setCampo={setCampo} admin={papel === "admin"} /> },
           ]}
           columns={[
-            ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").map((c) => c.label === "Nome"
-              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} />
+            ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").filter((c) => c.label !== "Cód." && c.label !== "CNPJ").map((c) => c.label === "Nome"
+              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />
+                <div className="mt-0.5 text-2xs text-slate-500">{[r.codigo != null ? `cód. ${r.codigo}` : null, docFormat(r.cnpj) || null].filter(Boolean).join(" · ")}</div>{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} />
                 {filiaisPorMarca.has(r.id) && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.id); }}
                   className="mt-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 hover:bg-sky-200">
                   <Layers size={12} aria-hidden /> {filiaisPorMarca.get(r.id)!.length} {pl(filiaisPorMarca.get(r.id)!.length, "filial", "filiais")}</button>}
                 {r.matriz_id && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.matriz_id!); }}
                   className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">filial de {nomeForn(r.matriz_id)}</button>}</> } : c),
             { label: "Compra o quê", render: (r) => {
-              const cats = categoriasDo.get(r.id) ?? [];
-              return cats.length ? <div className="flex max-w-[16rem] flex-wrap gap-1">{cats.map((c) => <span key={c} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{c}</span>)}</div>
-                : <span className="text-xs text-slate-400">—</span>;
+              const cp = comprasDo.get(r.id);
+              const cats = [...new Set([...(categoriasDo.get(r.id) ?? []), ...(cp?.grupos ?? [])])].slice(0, 2);
+              if (!cats.length && !cp) return <span className="text-xs text-slate-400">sem notas</span>;
+              return <div className="max-w-[15rem]">
+                {cats.length > 0 && <div className="flex flex-wrap gap-1">{cats.map((c) => <span key={c} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{c}</span>)}</div>}
+                {cp && <div className="mt-0.5 text-2xs text-slate-500">{brl(Number(cp.total))} em {cp.notas} {pl(Number(cp.notas), "nota", "notas")}{cp.ultima ? ` · última ${dataBR(cp.ultima)}` : ""}</div>}
+              </div>;
             } },
             { label: "Cidade", render: (r) => [r.municipio, r.uf].filter(Boolean).join("/") || "—" },
             { label: "Situação", render: (r) => <div className="flex flex-col items-start gap-1">
