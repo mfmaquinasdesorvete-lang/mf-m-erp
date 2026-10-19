@@ -16,6 +16,7 @@ import { useConfig } from "@/lib/useConfig";
 import { MEIOS } from "@/lib/formasPagamento";
 import { valorPorExtenso } from "@/lib/extenso";
 import { pdfRecibo } from "@/lib/pdf";
+import { referenteCurto } from "@/lib/reciboTexto";
 import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
@@ -315,7 +316,7 @@ export function Recibos() {
       </div>
       {lote && <PdfViewer blob={lote.blob} nome={`recibos-${lote.n}.pdf`} titulo={`${lote.n} recibos em um PDF`} onClose={() => setLote(null)} />}
       <Table empty={!lista.length}
-        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem pagou → quem recebeu</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>
+        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem recebeu / pagou</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>
         {lista.map((r) => (
           <tr key={r.id} className={r.cancelado_em ? "opacity-90" : ""}>
             <td className="td font-mono text-xs">{String(r.numero).padStart(6, "0")}</td>
@@ -324,11 +325,21 @@ export function Recibos() {
               <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.tipo === "recebimento" ? "bg-emerald-100 text-emerald-800" : "bg-orange-100 text-orange-800"}`}>{r.tipo === "recebimento" ? "recebimento" : "pagamento"}</span>
               {r.cancelado_em && <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-800" title={r.cancelado_motivo ?? ""}>cancelado</span>}
             </td>
-            <td className="td">{r.pagador_nome} <span className="text-slate-400">→</span> {r.recebedor_nome}</td>
-            <td className="td">{r.referente}<div className="text-xs text-slate-500">{[r.forma_pagamento, (r.conta_pagar_id || r.conta_receber_id) && (contaDe(r) ? `conta: ${contaDe(r)!.descricao}` : "ligado a uma conta")].filter(Boolean).join(" · ")}</div></td>
-            <td className="td text-right font-semibold">{brl(r.valor)}</td>
+            {/* a MF está sempre de um lado: mostra em destaque só a outra pessoa/empresa */}
+            <td className="td">
+              <div className="font-semibold text-fg">{r.tipo === "pagamento" ? r.recebedor_nome : r.pagador_nome}</div>
+              <div className="text-xs text-slate-500">{r.tipo === "pagamento" ? `pago por ${r.pagador_nome}` : `recebido por ${r.recebedor_nome}`}</div>
+            </td>
+            <td className="td max-w-md" title={[r.referente, contaDe(r) && `Conta: ${contaDe(r)!.descricao}`].filter(Boolean).join("\n")}>
+              <div className="line-clamp-2 break-words">{referenteCurto(r.referente, [r.recebedor_nome, r.pagador_nome], r.tipo)}</div>
+              <div className="mt-0.5 flex flex-wrap gap-1 text-2xs">
+                {r.forma_pagamento && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">{r.forma_pagamento}</span>}
+                {(r.conta_pagar_id || r.conta_receber_id) && <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 font-semibold text-cyan-800">ligado à conta</span>}
+              </div>
+            </td>
+            <td className="td whitespace-nowrap text-right font-semibold">{brl(r.valor)}</td>
             <td className="td whitespace-nowrap text-right">
-              <Button variant="secondary" onClick={() => setAberto(r)}><FileText size={15} /> PDF</Button>
+              <Button variant="secondary" className="!px-2" title="Abrir o PDF do recibo" aria-label={`PDF do recibo ${r.numero}`} onClick={() => setAberto(r)}><FileText size={15} /> PDF</Button>
               <Button variant="ghost" title="Histórico: a conta, as datas, os arquivos e os outros recibos" aria-label={`Histórico do recibo ${r.numero}`} onClick={() => setHistorico(r)}><History size={15} /></Button>
               {podeEmitir && !r.cancelado_em && <Button variant="ghost" className="!text-red-600" title="Cancelar recibo (informando o motivo)" aria-label={`Cancelar o recibo ${r.numero}`} onClick={() => cancelar(r)}><Ban size={15} /></Button>}
               {podeExcluir && <Button variant="ghost" className="!text-red-600" title="Excluir o recibo (o número não volta)" aria-label={`Excluir o recibo ${r.numero}`} onClick={() => excluir(r)}><Trash2 size={15} /></Button>}

@@ -7,6 +7,9 @@ import { brl, hoje, pl } from "@/lib/format";
 import { urlFotoProduto } from "@/lib/catalogo";
 import type { Produto } from "@/lib/types";
 
+/** "My Frost P 765 - Máquina de Sorvete…" vira "P 765" no gráfico. */
+const nomeCurto = (d: string) => d.replace(/^My Frost\s*/i, "").split(/\s[-–]\s/)[0].trim() || d;
+
 type Base = { produto_id: string | null; garantia_ate: string | null; descricao: string; origem: string | null };
 
 export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; aoAbrir: (p: Produto) => void }) {
@@ -29,8 +32,15 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
   const antigos = [...base.filter((e) => !e.produto_id).reduce((m, e) => m.set(e.descricao, (m.get(e.descricao) ?? 0) + 1), new Map<string, number>())]
     .sort((a, b) => b[1] - a[1]);
   if (!modelos.length && !antigos.length) return null;
+  // gráfico: todas as máquinas com clientes, por modelo (atuais e antigos da My Frost juntos)
+  const barras = [
+    ...modelos.map((p) => ({ nome: nomeCurto(p.modelo?.trim() || p.descricao), n: base.filter((e) => e.produto_id === p.id).length, antigo: false })),
+    ...antigos.map(([d, n]) => ({ nome: nomeCurto(d), n, antigo: true })),
+  ].filter((b) => b.n > 0).sort((a, b) => b.n - a.n);
   // cartões baixos (foto pequena ao lado do nome): os modelos cabem em poucas linhas e a lista logo abaixo aparece
   return (
+    <>
+    {barras.length > 0 && <GraficoModelos barras={barras} />}
     <section aria-label="Modelos de máquina" className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {modelos.map((p) => {
         const doModelo = base.filter((e) => e.produto_id === p.id);
@@ -72,6 +82,36 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
           </div>
         </div>
       )}
+    </section>
+    </>
+  );
+}
+
+/** Barras horizontais: quantas máquinas com clientes de cada modelo, do maior para o menor. */
+function GraficoModelos({ barras }: { barras: { nome: string; n: number; antigo: boolean }[] }) {
+  const total = barras.reduce((s, b) => s + b.n, 0);
+  const maior = barras[0]?.n || 1;
+  return (
+    <section aria-label="Máquinas com clientes por modelo" className="mb-4 rounded-xl border border-slate-200 bg-surface p-3 shadow-sm">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-bold text-fg">Máquinas com clientes por modelo</h2>
+        <p className="text-xs text-slate-500">
+          <b className="num text-base text-fg">{total.toLocaleString("pt-BR")}</b> máquinas · {barras.length} modelos
+          <span className="ml-2 inline-flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-brand" aria-hidden /> atuais</span>
+          <span className="ml-2 inline-flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-slate-400" aria-hidden /> antigos</span>
+        </p>
+      </div>
+      <ul className="grid gap-x-6 gap-y-1 lg:grid-cols-2">
+        {barras.map((b) => (
+          <li key={`${b.antigo}-${b.nome}`} className="grid grid-cols-[minmax(0,11rem)_1fr_auto] items-center gap-2 text-xs" title={`${b.nome}: ${b.n} (${Math.round((b.n / total) * 100)}%)`}>
+            <span className="truncate font-semibold text-fg">{b.nome}</span>
+            <span className="h-3 overflow-hidden rounded-full bg-slate-100">
+              <span className={`block h-full rounded-full ${b.antigo ? "bg-slate-400" : "bg-brand"}`} style={{ width: `${Math.max(2, (b.n / maior) * 100)}%` }} />
+            </span>
+            <span className="num w-16 text-right text-slate-600"><b className="text-fg">{b.n}</b> · {Math.round((b.n / total) * 100)}%</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
