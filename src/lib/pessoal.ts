@@ -51,6 +51,16 @@ export function categoriaDe(descricao: string | null | undefined): (typeof CATEG
 
 const vale = (l: LancPessoal) => !l.anulado && l.situacao === "realizado";
 
+/**
+ * Acertar pelo saldo do app do banco: "no fim do dia `data` o banco mostrava `valor`".
+ * Devolve o saldo inicial (e a data dele) que fazem o saldo da conta bater com o banco nesse dia.
+ */
+export function acertarSaldo(c: ContaPessoal, lancs: LancPessoal[], valor: number, data: string): { saldo_inicial: number; saldo_inicial_em: string } {
+  const em = data < c.saldo_inicial_em ? data : c.saldo_inicial_em;
+  const mov = lancs.filter((l) => l.conta_id === c.id && vale(l) && l.data >= em && l.data <= data).reduce((t, l) => t + Number(l.valor), 0);
+  return { saldo_inicial: Math.round((valor - mov) * 100) / 100, saldo_inicial_em: em };
+}
+
 /** Saldo da conta: o inicial mais o que foi realizado a partir da data do saldo inicial (até a data, se houver). */
 export function saldoConta(c: ContaPessoal, lancs: LancPessoal[], ate?: string): number {
   const s = lancs.filter((l) => l.conta_id === c.id && vale(l) && l.data >= c.saldo_inicial_em && (!ate || l.data <= ate))

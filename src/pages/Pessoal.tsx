@@ -36,7 +36,7 @@ import { useUnidade } from "@/lib/unidade";
 import type { Parte } from "@/lib/partesRelacionadas";
 import {
   CATEGORIAS, CORES_CONTA, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, categoriaDoLanc, daEmpresa, faixaAnterior, faixaDoPeriodo,
-  proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal,
+  acertarSaldo, proximos, recebidosDaEmpresa, resumoPeriodo, saldoConta, serieMensal, serieSaldo, somarDiasPessoal, somarMesPessoal,
   ultimoLancamento, type ContaPessoal, type Empresa, type Faixa, type LancPessoal, type PeriodoId, type TipoConta,
 } from "@/lib/pessoal";
 import {
@@ -610,7 +610,7 @@ export default function Pessoal() {
         </Card>
       </>}
 
-      {editConta && <ContaModal conta={editConta} onClose={() => setEditConta(null)} onGravar={async (c) => (await gravar("pessoal_contas", c, c.id ? "Conta alterada" : "Conta criada")) && setEditConta(null)} />}
+      {editConta && <ContaModal conta={editConta} lancs={lancs} onClose={() => setEditConta(null)} onGravar={async (c) => (await gravar("pessoal_contas", c, c.id ? "Conta alterada" : "Conta criada")) && setEditConta(null)} />}
       {editLanc && <LancModal lanc={editLanc} contas={ativas} onClose={() => setEditLanc(null)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, l.id ? "Lançamento alterado" : "Lançado")) && setEditLanc(null)} />}
       {importar && <ImportarModal contas={ativas} empresa={empresa} existentes={lancs} onClose={() => setImportar(false)} onFeito={() => { invalidar("pessoal_lancamentos"); setImportar(false); }} />}
       {boleto && <BoletoModal contas={ativas} onClose={() => setBoleto(false)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, "Boleto lançado como previsto")) && setBoleto(false)} />}
@@ -669,9 +669,17 @@ function BoletoModal({ contas, onClose, onGravar }: { contas: ContaPessoal[]; on
   );
 }
 
-function ContaModal({ conta, onClose, onGravar }: { conta: Partial<ContaPessoal>; onClose: () => void; onGravar: (c: Record<string, unknown>) => void }) {
+function ContaModal({ conta, lancs, onClose, onGravar }: { conta: Partial<ContaPessoal>; lancs: LancPessoal[]; onClose: () => void; onGravar: (c: Record<string, unknown>) => void }) {
   const [c, setC] = useState({ ...conta, saldo_txt: conta.saldo_inicial != null ? String(conta.saldo_inicial).replace(".", ",") : "0", limite_txt: conta.limite != null ? String(conta.limite).replace(".", ",") : "" });
   const set = (k: string, v: unknown) => setC((x) => ({ ...x, [k]: v }));
+  // acertar pelo saldo que o app do banco mostra no fim de um dia (refaz o saldo inicial)
+  const [banco, setBanco] = useState({ valor: "", data: (conta.id && ultimoLancamento(lancs, conta.id)) || hoje() });
+  const acertar = () => {
+    const v = numeroBR(banco.valor);
+    if (v == null || !conta.id) return notifyError(new Error("Informe o saldo que o banco mostra"));
+    const r = acertarSaldo({ ...(conta as ContaPessoal), saldo_inicial_em: c.saldo_inicial_em ?? hoje() }, lancs, v, banco.data);
+    setC((x) => ({ ...x, saldo_txt: String(r.saldo_inicial).replace(".", ","), saldo_inicial_em: r.saldo_inicial_em }));
+  };
   const enviar = (e: FormEvent) => {
     e.preventDefault();
     onGravar({
@@ -693,6 +701,18 @@ function ContaModal({ conta, onClose, onGravar }: { conta: Partial<ContaPessoal>
           <Field label="Saldo na data de"><input className="input" type="date" value={c.saldo_inicial_em ?? hoje()} onChange={(e) => set("saldo_inicial_em", e.target.value)} required /></Field>
           {c.tipo === "cartao" && <Field label="Limite do cartão (R$)"><input className="input" inputMode="decimal" value={c.limite_txt} onChange={(e) => set("limite_txt", e.target.value)} placeholder="opcional" /></Field>}
         </div>
+        <p className="text-xs text-slate-500">O saldo vale para o <b>começo</b> do dia escolhido: os lançamentos desse dia em diante entram na conta.</p>
+        {conta.id && c.tipo !== "cartao" && (
+          <div className="space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
+            <div className="text-sm font-semibold text-sky-900">Saldo não bate? Acerte pelo app do banco</div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <Field label="O banco mostra (R$)"><input className="input" inputMode="decimal" value={banco.valor} onChange={(e) => setBanco((b) => ({ ...b, valor: e.target.value }))} placeholder="0,00" /></Field>
+              <Field label="No fim do dia"><input className="input" type="date" value={banco.data} onChange={(e) => setBanco((b) => ({ ...b, data: e.target.value }))} /></Field>
+              <Button type="button" variant="secondary" onClick={acertar}>Acertar</Button>
+            </div>
+            <p className="text-xs text-sky-900">Refaz o saldo inicial para a conta bater com o banco nesse dia (com os lançamentos já importados). Depois toque em Salvar.</p>
+          </div>
+        )}
         {c.tipo === "cartao" && <p className="text-xs text-slate-500">No cartão, informe a fatura como número positivo; as compras entram como saída e o pagamento da fatura como entrada no cartão.</p>}
         <Field label="Cor">
           <div className="flex flex-wrap gap-2">

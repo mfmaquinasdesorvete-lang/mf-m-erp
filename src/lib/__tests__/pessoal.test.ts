@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos, recebidosDaEmpresa, resumoMes, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
+  acertarSaldo, categoriaDe, daEmpresa, faixaAnterior, faixaDoPeriodo, proximos, recebidosDaEmpresa, resumoMes, resumoPeriodo, saldoConta, serieMensal, serieSaldo, ultimoLancamento,
   type ContaPessoal, type LancPessoal,
 } from "../pessoal";
 
@@ -87,4 +87,16 @@ describe("painel pessoal", () => {
     expect(daEmpresa("PIX QRS COMERCIO DE", e)).toBe(false);
   });
 
+});
+
+describe("acertarSaldo", () => {
+  it("refaz o saldo inicial para bater com o banco no fim do dia", () => {
+    const lancs = [l({ data: "2026-10-05", valor: -200 }), l({ data: "2026-10-06", valor: 50 }), l({ data: "2026-10-09", valor: -30 })];
+    const r = acertarSaldo(conta, lancs, 900, "2026-10-06");
+    expect(r).toEqual({ saldo_inicial: 1050, saldo_inicial_em: "2026-10-01" });
+    expect(saldoConta({ ...conta, ...r }, lancs, "2026-10-06")).toBe(900);
+  });
+  it("data antes do saldo inicial: a data do saldo volta junto", () => {
+    expect(acertarSaldo(conta, [l({ data: "2026-09-20", valor: -10 })], 500, "2026-09-20")).toEqual({ saldo_inicial: 510, saldo_inicial_em: "2026-09-20" });
+  });
 });
