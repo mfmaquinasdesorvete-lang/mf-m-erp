@@ -76,6 +76,7 @@ const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
+const PainelLicencas = lazy(() => import("@/pages/paineis/PainelLicencas"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
 const AppFinanceiro = lazy(() => import("@/pages/AppFinanceiro"));
 
@@ -323,6 +324,7 @@ function RotasERP() {
         {papel === "admin" && <Route path="pessoal" element={<Pessoal />} />}
         {/* carteira dos licenciados My Frost Sorveterias: também só o administrador (e só o dono lê as linhas) */}
         {papel === "admin" && <Route path="licenciados" element={<Licenciados />} />}
+        {papel === "admin" && <Route path="painel/licencas" element={<PainelLicencas />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

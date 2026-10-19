@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlarmClock, BadgePercent, ClipboardList, FileWarning, HandCoins, Hourglass, PackageCheck, PackageSearch, Plus, Receipt,
-  IceCreamCone, ScanBarcode, ShoppingCart, Target, ThumbsDown, TrendingUp, Truck, Users, Workflow,
+  IceCreamCone, ScanBarcode, ShoppingCart, Store, Target, ThumbsDown, TrendingUp, Truck, Users, Workflow,
 } from "lucide-react";
 import { Badge, Section } from "@/components/ui";
 import { Area, Rosca, Ranking } from "@/components/Charts";
@@ -37,7 +37,7 @@ const soma = (l: Pedido[]) => l.reduce((s, p) => s + Number(p.valor_total ?? 0),
 
 export default function PainelVendas() {
   const navigate = useNavigate();
-  const { pode } = usePerfil();
+  const { pode, papel } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: todos = [], isLoading } = useRows<Pedido>("pedidos", { select: SELECT });
   const [periodo, setPeriodo] = usePeriodo("vendas");
@@ -242,6 +242,8 @@ export default function PainelVendas() {
           <AtalhosArea colunas="grid-cols-3" itens={[
             { rotulo: "Venda de Peças", icone: ShoppingCart, to: "/pedidos", aviso: k.abertos.length, tela: "pedidos" },
             { rotulo: "Venda de Máquinas", icone: IceCreamCone, to: "/vendas-maquinas", tela: "pedidos" },
+            // licenças da My Frost Sorveterias (outra empresa): painel separado, só o administrador
+            ...(papel === "admin" ? [{ rotulo: "Licenças My Frost", icone: Store, to: "/painel/licencas", tela: "pedidos" as const }] : []),
             { rotulo: "PDV", icone: ScanBarcode, to: "/pdv", tela: "pedidos" },
             { rotulo: "Fluxo de pedidos", icone: Workflow, to: "/fluxo", aviso: k.semNota.length + k.aEntregar.length, tela: "fluxo" },
             { rotulo: "Fretes e envios", icone: PackageSearch, to: "/fretes", tela: "fretes" },
