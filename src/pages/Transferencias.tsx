@@ -3,11 +3,13 @@
 // Antes de emitir, a conferência fiscal (cBenef, custo, cadastro) para o que a SEFAZ rejeitaria.
 // Com a NF-e autorizada, o destino dá a entrada ligada à nota: estoque + livro de entradas (CFOP de entrada e crédito do ICMS).
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, BookCheck, ExternalLink, FileText, Plus, Send, Trash2, Truck, X } from "lucide-react";
-import { Badge, Button, CelulaAbrir, Field, Modal, PageHeader, Table } from "@/components/ui";
+import { AlertTriangle, ArrowLeftRight, ArrowRight, BookCheck, ExternalLink, FilePen, FileText, PackageCheck, Plus, Send, Trash2, Truck, X } from "lucide-react";
+import { Badge, Button, CelulaAbrir, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
+import { Colunas, Ranking } from "@/components/Charts";
+import { CartaoPainel, type Cartao } from "@/components/painel/Painel";
 import { useInvalidate, useRows } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { confirmarSeTeste } from "@/lib/ambienteNfe";
@@ -56,6 +58,7 @@ export default function Transferencias() {
       <PageHeader title="Transferências SC ↔ SP" subtitle="Máquinas e peças que vão de uma unidade para a outra, com NF-e de transferência."
         actions={podeEditar && unidades.length > 1 && <Button onClick={nova}><Plus size={16} /> Nova transferência</Button>} />
       {unidades.length < 2 && <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Cadastre a segunda unidade em Configurações → Unidades.</p>}
+      {lista.length > 0 && <PainelTransf lista={visiveis} nome={nome} />}
       <Table empty={!isLoading && !visiveis.length}
         head={<><th className="th">Nº</th><th className="th">De → para</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">NF-e</th><th className="th">Data</th><th className="th" /></>}>
         {visiveis.map((t) => {
@@ -74,6 +77,45 @@ export default function Transferencias() {
         })}
       </Table>
       {aberta && <TransfModal inicial={aberta} todasNotas={notas} onClose={() => setAberta(null)} podeEditar={podeEditar} />}
+    </div>
+  );
+}
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const valorTransf = (t: Transf) => (t.itens ?? []).reduce((v, i) => v + Number(i.quantidade) * (Number(i.custo_unitario) || 0), 0);
+
+/** Painel do topo: o que está no caminho, o que falta enviar, quanto foi transferido no mês e mês a mês por sentido. */
+function PainelTransf({ lista, nome }: { lista: Transf[]; nome: (id: string | null | undefined) => string }) {
+  const validas = lista.filter((t) => t.status !== "cancelada");
+  const mes = hoje().slice(0, 7);
+  const transito = validas.filter((t) => t.status === "enviada");
+  const rascunhos = validas.filter((t) => t.status === "rascunho");
+  const doMes = validas.filter((t) => t.status !== "rascunho" && (t.enviada_em ?? t.created_at).startsWith(mes));
+  const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(Date.parse(mes + "-15T12:00:00Z")); d.setUTCMonth(d.getUTCMonth() - (5 - i)); return d.toISOString().slice(0, 7); });
+  const sentidos = [...new Set(validas.map((t) => `${t.origem_id}>${t.destino_id}`))].slice(0, 2);
+  const porItem = [...validas.filter((t) => t.status !== "rascunho").flatMap((t) => t.itens ?? [])
+    .reduce((m, i) => m.set(i.descricao, (m.get(i.descricao) ?? 0) + Number(i.quantidade)), new Map<string, number>())]
+    .sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const cartoes: Cartao[] = [
+    { id: "transito", rotulo: "Em trânsito", valor: transito.length, sub: transito.length ? `${brl(transito.reduce((v, t) => v + valorTransf(t), 0))} a caminho` : "nada na estrada", icone: Truck, cor: "var(--kpi-laranja)" },
+    { id: "rascunho", rotulo: "Falta enviar", valor: rascunhos.length, sub: "rascunhos sem NF-e", icone: FilePen, cor: "var(--kpi-roxo)" },
+    { id: "mes", rotulo: "Transferido no mês", valor: brl(doMes.reduce((v, t) => v + valorTransf(t), 0)), sub: `${doMes.length} ${doMes.length === 1 ? "transferência" : "transferências"} · pelo custo`, icone: ArrowLeftRight, cor: "var(--serie-1)" },
+    { id: "recebidas", rotulo: "Recebidas", valor: validas.filter((t) => t.status === "recebida").length, sub: "entrada lançada no destino", icone: PackageCheck, cor: "var(--kpi-verde)" },
+  ];
+  return (
+    <div className="mb-5 space-y-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}</div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <Section title="Transferido mês a mês (pelo custo)" className="min-w-0 xl:col-span-3">
+          <Colunas altura={220} vazio="Sem transferências nesses meses." dados={meses.map((m) => ({ rotulo: `${MESES[Number(m.slice(5, 7)) - 1]}/${m.slice(2, 4)}`,
+            valores: sentidos.map((sx) => validas.filter((t) => t.status !== "rascunho" && `${t.origem_id}>${t.destino_id}` === sx && (t.enviada_em ?? t.created_at).startsWith(m)).reduce((v, t) => v + valorTransf(t), 0)) }))}
+            series={sentidos.map((sx, i) => { const [a, b] = sx.split(">"); return { nome: `${nome(a)} → ${nome(b)}`, cor: i ? "var(--kpi-laranja)" : "var(--serie-1)" }; })} />
+        </Section>
+        <Section title="O que mais vai e volta" className="min-w-0 xl:col-span-2">
+          <Ranking cor="var(--kpi-roxo)" formatar={(v) => `${v.toLocaleString("pt-BR")} un.`} vazio="Nenhum item enviado ainda."
+            itens={porItem.map(([d, q]) => ({ rotulo: d, valor: q }))} />
+        </Section>
+      </div>
     </div>
   );
 }
