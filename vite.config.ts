@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import path from "path";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { contarCodigo, ehCodigo, linhasDoTexto, type TecnicaCodigo } from "./src/lib/codigoErp";
 import { agruparHistorico, contarAlteracoesTelas, dataHoraBR, FORMATO_GIT, FORMATO_GIT_ARQUIVOS, numeroVersao, type AlteracaoTela, type DiaHistorico, type InfoVersao } from "./src/lib/atualizacoes";
 
 // Versão e histórico do ERP (página Atualizações e rodapé do menu), lidos do git na hora de montar o site.
@@ -20,6 +22,19 @@ function versaoDoGit(): { versao: InfoVersao | null; historico: DiaHistorico[]; 
 }
 const { versao, historico, telas } = versaoDoGit();
 
+// Linhas de código por técnica (Sobre → Código), nos arquivos que estão no git.
+function codigoDoGit(): TecnicaCodigo[] {
+  try {
+    const lista = execFileSync("git", ["ls-files"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter((c) => c && ehCodigo(c));
+    return contarCodigo(lista.map((caminho) => {
+      try { return { caminho, linhas: linhasDoTexto(readFileSync(caminho, "utf8")) }; } catch { return { caminho, linhas: 0 }; }
+    }));
+  } catch {
+    return [];
+  }
+}
+const codigo = codigoDoGit();
+
 // `npm run build:demo` gera a prévia com dados de exemplo num único arquivo HTML.
 export default defineConfig(({ mode }) => ({
   plugins: [react(), ...(mode === "demo" ? [viteSingleFile()] : [])],
@@ -30,7 +45,7 @@ export default defineConfig(({ mode }) => ({
       { find: "@", replacement: path.resolve(__dirname, "./src") },
     ],
   },
-  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas) },
+  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas), __ERP_CODIGO__: JSON.stringify(codigo) },
   server: { port: 5174 },
   build: mode === "demo" ? { outDir: "dist-demo" } : undefined,
 }));

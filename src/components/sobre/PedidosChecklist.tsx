@@ -1,16 +1,13 @@
 // Pedidos ao ERP (Sobre o ERP Line → Pedidos): o checklist de tudo o que foi pedido em cada dia, com a situação de
-// cada item (feito, fazendo, na fila, precisa de você), quem conferiu e quantas vezes o item mudou. Embaixo, quantas
-// vezes cada tela foi alterada (contado no histórico do código na hora de montar o site).
+// cada item (feito, fazendo, na fila, precisa de você), quem conferiu e quantas vezes o item mudou. Quantas vezes cada
+// tela foi alterada ficou na aba própria (Sobre → Telas alteradas).
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock, History, ListChecks, Search, UserCheck, Hourglass } from "lucide-react";
+import { CheckCircle2, Clock, ListChecks, Search, UserCheck, Hourglass } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { dataBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
-import type { AlteracaoTela } from "@/lib/atualizacoes";
-
-const TELAS: AlteracaoTela[] = typeof __ERP_TELAS__ !== "undefined" ? __ERP_TELAS__ : [];
 
 type Situacao = "feito" | "fazendo" | "fila" | "voce";
 type ItemChecklist = {
@@ -34,7 +31,6 @@ export function PedidosChecklist() {
   const [dia, setDia] = useState("");
   const [situacao, setSituacao] = useState<Situacao | "">("");
   const [busca, setBusca] = useState("");
-  const [buscaTela, setBuscaTela] = useState("");
   const diaAtual = dia || dias[0] || "";
 
   const doDia = itens.filter((i) => i.pedido_em === diaAtual);
@@ -54,10 +50,6 @@ export function PedidosChecklist() {
       invalidar("pedidos_checklist");
     } catch (e) { notifyError(e); }
   }
-
-  const termoTela = semAcento(buscaTela.trim());
-  const telas = TELAS.filter((t) => !termoTela || semAcento(t.tela).includes(termoTela));
-  const totalAlteracoes = TELAS.reduce((s, t) => s + t.vezes, 0);
 
   return (
     <div className="space-y-5">
@@ -108,21 +100,6 @@ export function PedidosChecklist() {
         </Card>
       ))}
 
-      <Card className="p-4">
-        <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><History size={16} /> Quantas vezes cada tela foi alterada</h3>
-        {!TELAS.length ? <p className="text-sm text-slate-500">A contagem aparece no site publicado (vem do histórico do código).</p> : (<>
-          <p className="mb-2 text-sm text-slate-500">{TELAS.length} telas, {totalAlteracoes} alterações no total. Contado a cada versão publicada.</p>
-          <input className="input mb-2" value={buscaTela} onChange={(e) => setBuscaTela(e.target.value)} placeholder="Buscar tela" />
-          <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-            {telas.map((t) => (
-              <li key={t.arquivo} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-sm">
-                <span className="min-w-0 truncate" title={t.arquivo}>{t.tela}</span>
-                <span className="shrink-0 text-xs text-slate-500"><b className="text-fg">{t.vezes}</b>× · {dataBR(t.ultima)}</span>
-              </li>
-            ))}
-          </ul>
-        </>)}
-      </Card>
     </div>
   );
 }
