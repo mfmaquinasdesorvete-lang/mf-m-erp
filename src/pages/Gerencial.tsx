@@ -5,7 +5,8 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, FileDown, Info, Receipt, TrendingUp, Users, XCircle } from "lucide-react";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
-import { Button, PageHeader, Section, Stat, Tabs } from "@/components/ui";
+import { Button, PageHeader, Section, Tabs } from "@/components/ui";
+import { CartaoPainel, type Cartao } from "@/components/painel/Painel";
 import { Area } from "@/components/Charts";
 import { FichaCliente } from "@/components/FichaCliente";
 import { useRows } from "@/lib/data";
@@ -84,14 +85,18 @@ export default function Gerencial() {
         subtitle="Vendas do ERP e do sistema anterior (notas do Tiny) juntas, comparadas com o mês e o ano anteriores. Notas de teste, devoluções, remessas e transferências não entram." />
       {(l1 || l2) && <p className="mb-4 text-sm text-slate-500">Carregando as vendas…</p>}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={CalendarDays} tom="info" label={`Vendas do mês (até ${dataBR(dia).slice(0, 5)})`} valor={brl(r.k.mes.atual)}
-          sub={<><Variacao c={r.k.mes} base="vs mesmo período do mês passado" /><br /><Variacao c={r.k.mesAnoAnterior} base="vs o mesmo mês do ano passado" /></>} />
-        <Stat icon={TrendingUp} label={`Vendas no ano (${dia.slice(0, 4)})`} valor={brl(r.k.ano.atual)} sub={<Variacao c={r.k.ano} base="vs mesmo período do ano passado" />} />
-        <Stat icon={Receipt} label="Últimos 12 meses" valor={brl(r.k.doze.atual)}
-          sub={<><Variacao c={r.k.doze} base="vs 12 meses anteriores" /><br />{r.k.vendas.atual} vendas · ticket médio {brl(r.k.ticket.atual)}</>} />
-        <Stat icon={Users} label="Clientes que compraram (12 meses)" valor={r.k.clientes.atual}
-          sub={<><Variacao c={r.k.clientes} base="vs 12 meses anteriores" /><br />{r.k.novos.atual} {pl(r.k.novos.atual, "novo", "novos")} · {contagem("em_risco")} em risco · {contagem("inativo")} {pl(contagem("inativo"), "inativo", "inativos")}</>} />
+      <div className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {([
+          { id: "mes", rotulo: `Vendas do mês (até ${dataBR(dia).slice(0, 5)})`, valor: brl(r.k.mes.atual), delta: r.k.mes.variacao ?? undefined, icone: CalendarDays, cor: "var(--serie-1)",
+            sub: <>{r.k.mes.variacao == null ? "mês passado sem vendas para comparar" : "vs mesmo período do mês passado"}{r.k.mesAnoAnterior.variacao != null && <><br /><Variacao c={r.k.mesAnoAnterior} base="vs o mesmo mês do ano passado" /></>}</>, tendencia: r.serie.slice(-6).map((s) => s.atual) },
+          { id: "ano", rotulo: `Vendas no ano (${dia.slice(0, 4)})`, valor: brl(r.k.ano.atual), delta: r.k.ano.variacao ?? undefined, icone: TrendingUp, cor: "var(--kpi-verde)",
+            sub: r.k.ano.variacao == null ? "ano passado sem vendas para comparar" : "vs mesmo período do ano passado" },
+          { id: "doze", rotulo: "Últimos 12 meses", valor: brl(r.k.doze.atual), delta: r.k.doze.variacao ?? undefined, icone: Receipt, cor: "var(--kpi-roxo)",
+            sub: `${r.k.vendas.atual} ${pl(r.k.vendas.atual, "venda", "vendas")} · ticket médio ${brl(r.k.ticket.atual)}`, tendencia: r.serie.map((s) => s.atual) },
+          { id: "clientes", rotulo: "Clientes que compraram (12 meses)", valor: r.k.clientes.atual, delta: r.k.clientes.variacao ?? undefined, icone: Users, cor: "var(--kpi-laranja)",
+            sub: `${r.k.novos.atual} ${pl(r.k.novos.atual, "novo", "novos")} · ${contagem("em_risco")} em risco · ${contagem("inativo")} ${pl(contagem("inativo"), "inativo", "inativos")}`,
+            onClick: parados.length ? () => setAba("clientes") : undefined },
+        ] as Cartao[]).map((c) => <CartaoPainel key={c.id} c={c} />)}
       </div>
 
       <Section title="Onde a operação está travando" className="mb-5">
