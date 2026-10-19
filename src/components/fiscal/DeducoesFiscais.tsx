@@ -52,7 +52,7 @@ export function DeducoesFiscais() {
   const { data: ctes = [] } = useRows<{ mf_paga: boolean; sentido: string; valor: number; fatura_id: string | null; unidade_id: string | null; situacao: string | null; chave: string | null }>("ctes", {
     select: "mf_paga, sentido, valor, fatura_id, unidade_id, situacao, chave", order: "emissao", key: ["fiscal"],
   });
-  const { data: faturas = [] } = useRows<{ conta_pagar_id: string | null }>("cte_faturas", { select: "conta_pagar_id", order: "created_at", key: ["fiscal"] });
+  const { data: faturas = [] } = useRows<{ conta_pagar_id: string | null }>("cte_faturas", { select: "conta_pagar_id", order: "criado_em", key: ["fiscal"] });
   const { data: contas = [] } = useRows<{ id: string; descricao: string; categoria: string | null; fornecedor_id: string | null; valor: number; status: string; vencimento: string; unidade_id: string | null }>("contas_pagar", {
     select: "id, descricao, categoria, fornecedor_id, valor, status, vencimento, unidade_id", order: "vencimento", key: ["fiscal", inicio], filtro: (q) => q.gte("vencimento", inicio),
   });
