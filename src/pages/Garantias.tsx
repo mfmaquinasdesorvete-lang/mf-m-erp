@@ -220,7 +220,7 @@ export default function Garantias() {
   );
 }
 
-function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>; onClose: () => void }) {
+export function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipamento>; onClose: () => void }) {
   const [e, setE] = useState(inicial);
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });

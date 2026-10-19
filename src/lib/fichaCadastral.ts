@@ -9,7 +9,7 @@ export type ClienteFicha = {
   cobranca_diferente?: boolean | null; cobranca_cep?: string | null; cobranca_logradouro?: string | null; cobranca_municipio?: string | null;
 };
 
-export type Aba = "gerais" | "contato" | "endereco" | "complementares" | "anexos" | "observacoes" | "assinatura";
+export type Aba = "gerais" | "contato" | "endereco" | "complementares" | "anexos" | "observacoes" | "maquinas" | "assinatura";
 
 /** Itens do cadastro que contam para o "completo", com a aba onde se preenche. */
 export function pendenciasCadastro(c: ClienteFicha, assinado = false): { item: string; aba: Aba }[] {

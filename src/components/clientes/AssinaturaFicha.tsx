@@ -6,11 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BadgeCheck, Ban, CheckCircle2, Clock, Copy, Eye, FileDown, Fingerprint, Link2, Mail, MessageCircle, PenLine, ShieldCheck, Smartphone,
 } from "lucide-react";
-import { Button, Field } from "../ui";
+import { Button, Field, Modal } from "../ui";
 import { Assinatura } from "../Assinatura";
 import { PdfViewer } from "../PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
-import { DEMO, supabase } from "@/lib/supabase";
+import { callFunction, DEMO, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 import { whatsappLink, pl } from "@/lib/format";
@@ -40,6 +40,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
   const assinada = lista.find((a) => a.status === "assinado");
   const pendente = lista.find((a) => a.status === "pendente" && new Date(a.expira_em) > new Date());
   const [modo, setModo] = useState<"presencial" | null>(null);
+  const [email, setEmail] = useState<{ para: string; assunto: string; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [pdf, setPdf] = useState<Blob | null>(null);
   const empresa = cfg?.nome_fantasia || cfg?.razao_social || "MF Máquinas";
@@ -70,7 +71,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
 
   async function enviar(como: "copiar" | "whatsapp" | "email") {
     // abre a janela já (o navegador do celular bloqueia janela aberta depois de esperar a resposta)
-    const janela = como === "copiar" ? null : window.open("", "_blank");
+    const janela = como === "whatsapp" ? window.open("", "_blank") : null;
     const link = pendente ? linkFicha(pendente.token) : await gerarLink();
     if (!link) { janela?.close(); return; }
     const texto = mensagemFicha(nomeCliente, empresa, link);
@@ -78,8 +79,9 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
       try { await navigator.clipboard.writeText(link); notify("Link copiado: cole na conversa com o cliente"); } catch { (await pedirTexto("Copie o link:", link)); }
     } else if (como === "whatsapp") {
       if (janela) janela.location.href = whatsappLink(cliente.whatsapp ?? "", texto);
-    } else if (janela) {
-      janela.location.href = `mailto:${cliente.email ?? ""}?subject=${encodeURIComponent(`Ficha cadastral - ${empresa}`)}&body=${encodeURIComponent(texto)}`;
+    } else {
+      // e-mail sai pela caixa do ERP (Configurações → E-mail); sem caixa ligada, dá para abrir no programa de e-mail ou copiar
+      setEmail({ para: cliente.email ?? cliente.email_nfe ?? "", assunto: `Ficha cadastral - ${empresa}`, texto });
     }
   }
 
@@ -108,6 +110,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
 
   return (
     <div className="space-y-4">
+      {email && <EnviarEmail inicial={email} onClose={() => setEmail(null)} />}
       {pdf && <PdfViewer blob={pdf} nome={`ficha-cadastral-${cliente.codigo ?? ""}.pdf`} titulo="Ficha cadastral assinada" onClose={() => setPdf(null)} />}
 
       {/* situação atual */}
@@ -263,5 +266,45 @@ function AssinarPresencial({ cliente, salvarAntes, onCancelar, onAssinado }: {
         <Button type="button" disabled={ocupado || !termo} onClick={assinar}><CheckCircle2 size={16} /> {ocupado ? "Registrando…" : "Assinar ficha"}</Button>
       </div>
     </div>
+  );
+}
+
+/** Manda o link da ficha pela caixa de e-mail do ERP. Sem caixa ligada: abre no programa de e-mail do aparelho ou copia o texto. */
+function EnviarEmail({ inicial, onClose }: { inicial: { para: string; assunto: string; texto: string }; onClose: () => void }) {
+  const { data: caixas = [], isLoading } = useRows<{ id: string; nome: string; email: string }>("email_contas", { select: "id, nome, email", order: "nome", ascending: true });
+  const [m, setM] = useState(inicial);
+  const [conta, setConta] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const contaId = conta || caixas[0]?.id || "";
+  const mailto = `mailto:${m.para}?subject=${encodeURIComponent(m.assunto)}&body=${encodeURIComponent(m.texto)}`;
+  async function enviar() {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m.para.trim())) return notify("Digite o e-mail do cliente", "erro");
+    setEnviando(true);
+    try {
+      await callFunction("email-caixa", { acao: "enviar", conta_id: contaId, para: m.para.trim(), assunto: m.assunto, texto: m.texto });
+      notify(`E-mail enviado para ${m.para.trim()}`);
+      onClose();
+    } catch (e) { notifyError(e); } finally { setEnviando(false); }
+  }
+  async function copiar() {
+    try { await navigator.clipboard.writeText(m.texto); notify("Texto copiado: cole no seu e-mail"); } catch { await pedirTexto("Copie o texto:", m.texto); }
+  }
+  return (
+    <Modal open onClose={onClose} title="Enviar a ficha por e-mail">
+      <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); enviar(); }}>
+        <Field label="Para"><input className="input" type="email" value={m.para} onChange={(e) => setM({ ...m, para: e.target.value })} placeholder="email@cliente.com.br" autoFocus={!m.para} /></Field>
+        <Field label="Assunto"><input className="input" value={m.assunto} onChange={(e) => setM({ ...m, assunto: e.target.value })} /></Field>
+        <Field label="Mensagem"><textarea className="input" rows={6} value={m.texto} onChange={(e) => setM({ ...m, texto: e.target.value })} /></Field>
+        {caixas.length > 1 && (
+          <Field label="Enviar pela caixa"><select className="input" value={contaId} onChange={(e) => setConta(e.target.value)}>{caixas.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.email}</option>)}</select></Field>
+        )}
+        {!isLoading && !caixas.length && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Nenhuma caixa de e-mail ligada ao ERP (Configurações → E-mail). Use o seu programa de e-mail ou copie o texto.</p>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={copiar}><Copy size={15} /> Copiar texto</Button>
+          <a className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" href={mailto}><Mail size={15} /> Abrir no meu e-mail</a>
+          {caixas.length > 0 && <Button type="submit" disabled={enviando}><Mail size={15} /> {enviando ? "Enviando…" : "Enviar pelo ERP"}</Button>}
+        </div>
+      </form>
+    </Modal>
   );
 }

@@ -25,7 +25,7 @@ const CAMPOS: Record<Passo, [string, Mascara, string][]> = {
 };
 
 const PASSO_DA_ABA: Record<Aba, Passo> = {
-  gerais: "quem", contato: "contato", endereco: "endereco", complementares: "venda", anexos: "revisao", observacoes: "revisao", assinatura: "revisao",
+  gerais: "quem", contato: "contato", endereco: "endereco", complementares: "venda", anexos: "revisao", observacoes: "revisao", maquinas: "revisao", assinatura: "revisao",
 };
 
 type Cli = ClienteFicha & Record<string, unknown>;

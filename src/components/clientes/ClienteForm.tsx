@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CircleCheck, ClipboardList, Copy, Globe, HandCoins, IdCard, Landmark, LayoutList, Mail, MapPin, MapPinned,
-  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, X, type LucideIcon,
+  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, Wrench, X, type LucideIcon,
 } from "lucide-react";
 import { Button, Field, useFecharComEsc } from "../ui";
 import { CampoMascara } from "../CrudPage";
@@ -18,6 +18,7 @@ import { VendedorSelect } from "../VendedorSelect";
 import { EtiquetasCliente } from "./QualidadeClientes";
 import { PessoasContato, type PessoaEditada } from "./PessoasContato";
 import { AssinaturaFicha, useAssinaturasFicha } from "./AssinaturaFicha";
+import { MaquinasOsCliente } from "./MaquinasOsCliente";
 import { CategoriasContato, corTipo, useTiposContato } from "./TiposContato";
 import { AvisoUnificacao, EnderecosExtras, EtiquetaEndereco, limparEnderecos, MAX_ENDERECOS } from "./EnderecosCliente";
 import { CampoMesAno } from "./CampoMesAno";
@@ -47,6 +48,7 @@ const ABAS: { id: Aba; label: string; Icon: LucideIcon }[] = [
   { id: "complementares", label: "Complementares", Icon: BriefcaseBusiness },
   { id: "anexos", label: "Anexos", Icon: Paperclip },
   { id: "observacoes", label: "Observações", Icon: StickyNote },
+  { id: "maquinas", label: "Máquinas e OS", Icon: Wrench },
   { id: "assinatura", label: "Assinatura", Icon: PenLine },
 ];
 
@@ -971,6 +973,12 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("observacoes", "Observações", { span: 12, tipo: "textarea", linhas: 5 })}
                 {campo("preferencias", "Preferências (como gosta de ser atendido, forma de pagamento, linhas que trabalha)", { span: 12, tipo: "textarea", linhas: 4 })}
               </div>
+            </Secao>
+          )}
+
+          {aba === "maquinas" && (
+            <Secao icone={Wrench} titulo="Máquinas e ordens de serviço" sub="Ligue as máquinas a este cliente e abra a OS já preenchida" cor="sky">
+              <MaquinasOsCliente clienteId={(c.id as string) ?? null} salvarAntes={salvarAntes} podeEditar={podeEditar} />
             </Secao>
           )}
 
