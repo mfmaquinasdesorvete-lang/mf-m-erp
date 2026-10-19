@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, List, Mail, Pencil, Plus, Receipt, Scale, Undo2, UserRound, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
-import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Table } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
+import { Colunas, Ranking } from "@/components/Charts";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
 import { brl, dataBR, digitos, hoje, pl } from "@/lib/format";
@@ -338,13 +339,16 @@ function PainelBancos({ bancos, lancamentos, saldos, pendentes, sugestoes, diver
     const saiu = (m: string) => mov.filter((l) => l.data.startsWith(m) && l.valor < 0).reduce((t, l) => t - Number(l.valor), 0);
     return {
       entrou: entrou(mes), saiu: saiu(mes), dEntrou: variacao(entrou(mes), entrou(somarMesIso(mes, -1))), dSaiu: variacao(saiu(mes), saiu(somarMesIso(mes, -1))),
-      tendEntrou: meses.map(entrou), tendSaiu: meses.map(saiu),
+      tendEntrou: meses.map(entrou), tendSaiu: meses.map(saiu), meses,
     };
   }, [bancos, lancamentos]);
   const saldo = bancos.reduce((t, b) => t + Number(saldos[b.id]?.extrato ?? 0), 0);
   const resultado = k.entrou - k.saiu;
+  const porConta = bancos.map((b) => ({ rotulo: b.nome, valor: Number(saldos[b.id]?.extrato ?? 0) })).sort((a, b) => b.valor - a.valor);
+  const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
   return (
-    <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <div className="mb-5 space-y-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
       <CartaoPainel c={{ id: "saldo", rotulo: "Saldo nos bancos", valor: brl(saldo), icone: Landmark, cor: "var(--kpi-azul)", sub: `${bancos.length} ${pl(bancos.length, "conta ativa", "contas ativas")} · pelos extratos` }} />
       <CartaoPainel anterior="mês passado" c={{ id: "entrou", rotulo: "Entrou este mês", valor: brl(k.entrou), icone: ArrowDownCircle, cor: "var(--kpi-verde)", delta: k.dEntrou, tendencia: k.tendEntrou,
         sub: "sem as transferências entre as contas" }} />
@@ -352,6 +356,16 @@ function PainelBancos({ bancos, lancamentos, saldos, pendentes, sugestoes, diver
         sub: `resultado ${resultado >= 0 ? "+" : "−"} ${brl(Math.abs(resultado))}` }} />
       <CartaoPainel c={{ id: "pend", rotulo: "Para conciliar", valor: pendentes.toLocaleString("pt-BR"), icone: Scale, cor: "var(--kpi-roxo)", onClick: onPendentes,
         sub: pendentes ? `${sugestoes} com sugestão pronta · ${divergentes} sem par` : "tudo conciliado ✓" }} />
+    </div>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+      <Section title="Entrou × saiu nos últimos 6 meses" className="min-w-0 xl:col-span-3">
+        <Colunas altura={220} vazio="Sem extrato nesses meses." dados={k.meses.map((m, i) => ({ rotulo: `${MESES[Number(m.slice(5, 7)) - 1]}/${m.slice(2, 4)}`, valores: [k.tendEntrou[i], k.tendSaiu[i]] }))}
+          series={[{ nome: "Entrou", cor: "var(--kpi-verde)" }, { nome: "Saiu", cor: "var(--kpi-laranja)" }]} />
+      </Section>
+      <Section title="Saldo por conta" className="min-w-0 xl:col-span-2">
+        <Ranking cor="var(--kpi-azul)" vazio="Nenhuma conta ativa." itens={porConta.map((c) => ({ rotulo: c.rotulo, valor: Math.max(0, c.valor), detalhe: c.valor < 0 ? `⚠ saldo negativo: ${brl(c.valor)}` : undefined }))} />
+      </Section>
+    </div>
     </div>
   );
 }
