@@ -95,7 +95,7 @@ export const grupos: Grupo[] = [
       { to: "/aprovacoes", tela: "financeiro", label: "Aprovações", curto: "Aprovar", icon: BadgeCheck, busca: "aprovação revisão alçada segunda revisão devolver rejeitar pendência documento contador validar" },
       { to: "/conciliacao", tela: "conciliacao", label: "Bancos e conciliação", curto: "Bancos", icon: Landmark, busca: "extrato ofx caixa saldo pix recebidos infinitepay nubank inter cartão" },
       // combustível, marketplaces e impostos/tarifas/funcionários eram três telas: agora uma, com abas
-      { to: "/gastos", tela: "financeiro", label: "Gastos separados", curto: "Gastos", icon: Receipt, busca: "combustível posto gasolina diesel etanol abastecimento veículo carro marketplace mercado livre tiktok tik tok shop shopee amazon compras online internet loja imposto guia darf das simples icms difal dare gnre sefaz prefeitura iss detran ipva tarifa taxa cartão olist zoop infinitepay funcionário salário pagamento folha gasto quiosque quiosques mdf tinta marcenaria montagem" },
+      { to: "/gastos", tela: "financeiro", label: "Gastos separados", curto: "Gastos", icon: Receipt, busca: "combustível posto gasolina diesel etanol abastecimento veículo carro marketplace mercado livre tiktok tik tok shop shopee amazon compras online internet loja tarifa taxa cartão olist zoop infinitepay antecipação gasto" },
       { to: "/partes-relacionadas", tela: "financeiro", label: "Entre contas e sócios", curto: "Ligadas", icon: ArrowLeftRight, busca: "partes relacionadas empresas ligadas sócio socio empresa ligada transferência entre contas pix retirada aporte cpf cnpj" },
       { to: "/auditoria", tela: "auditoria", label: "Auditoria financeira", curto: "Auditoria", icon: ShieldAlert, busca: "checklist exceções histórico alterações" },
     ],
@@ -108,6 +108,7 @@ export const grupos: Grupo[] = [
       { to: "/notas", tela: "notas", label: "Notas fiscais", curto: "Notas", icon: FileText, busca: "nf nfe xml danfe sefaz tributação ibs cbs icms focus emitir emitida recebida fornecedor" },
       { to: "/contador", tela: "contador", label: "Painel do contador", curto: "Contador", icon: Calculator, busca: "fechamento contabilidade" },
       { to: "/analista-fiscal", tela: "contador", label: "Analista fiscal", curto: "Analista", icon: Scale, busca: "imposto economia auditoria fiscal lucro real presumido crédito pis cofins icms ipi irpj csll planejamento" },
+      { to: "/impostos-pagos", tela: "financeiro", label: "Impostos pagos", curto: "Impostos", icon: Landmark, busca: "imposto guia darf das icms difal dare gnre sefaz prefeitura iss detran ipva pago pagos esfera federal estadual municipal" },
       { to: "/parcelamentos", tela: "contador", label: "Parcelamentos de impostos", curto: "Parcelas", icon: CalendarClock, busca: "parcelamento parcela imposto dívida divida ativa pgfn receita federal e-cac regularize sefaz icms iss refis transação darf dae dare atrasada vencimento rescisão" },
     ],
   },
@@ -117,7 +118,7 @@ export const grupos: Grupo[] = [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
       { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
-      { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor" },
+      { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor pagamento pagamentos pix foto" },
     ],
   },
 ];

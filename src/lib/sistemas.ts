@@ -36,7 +36,7 @@ export const SISTEMAS: Sistema[] = [
       { nome: "Auditoria e fechamento", situacao: "tem", texto: "Checklist do mês, exceções, histórico de alterações, mês travado e o pacote do contador.",
         telas: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Painel do contador", to: "/contador" }] },
       { nome: "Impostos", situacao: "parcial", texto: "Analista fiscal (auditoria e economia legal), calendário do Lucro Real, guias pagas e parcelamentos com avisos de prazo e quem pagou. A apuração oficial continua com o contador.",
-        telas: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Parcelamentos", to: "/parcelamentos" }, { rotulo: "Impostos pagos", to: "/gastos?aba=impostos" }] },
+        telas: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Parcelamentos", to: "/parcelamentos" }, { rotulo: "Impostos pagos", to: "/impostos-pagos" }] },
       { nome: "Comissões", situacao: "tem", texto: "Por vendedor, categoria e linha de produto, ligadas às vendas e ao financeiro.",
         telas: [{ rotulo: "Comissões", to: "/comissoes" }] },
       { nome: "Orçamento (previsto x realizado)", situacao: "falta", texto: "Quanto se planeja gastar por categoria e centro de custo, comparado com o realizado mês a mês.", telas: [] },

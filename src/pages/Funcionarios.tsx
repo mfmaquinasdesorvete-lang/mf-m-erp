@@ -2,7 +2,7 @@
 // e a ligação com o usuário do ERP, o vendedor (comissões) e a assistência técnica (técnicos da OS).
 // Só admin e financeiro veem (salário, CPF e conta são dados sensíveis; o banco garante isso).
 // "Lançar salários" cria as contas a pagar do mês (uma por pessoa), sem repetir as que já foram lançadas.
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { CalendarClock, Cake, HandCoins, Users, Wallet } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button, CampoMes, Indicador, Modal } from "@/components/ui";
@@ -15,6 +15,11 @@ import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { completarPorCep } from "@/lib/cadastro";
 import { EnviarImagem } from "@/components/EnviarImagem";
+import { Tabs } from "@/components/ui";
+import { useAbaUrl } from "@/lib/abaUrl";
+
+// pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
+const ImpostosTarifas = lazy(() => import("./ImpostosTarifas"));
 
 export type Funcionario = {
   id: string; nome: string; apelido: string | null; cpf: string | null; rg: string | null; data_nascimento: string | null;
@@ -95,6 +100,7 @@ export default function Funcionarios() {
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: usuarios = [] } = useRows<{ user_id: string; nome: string; ativo: boolean }>("usuarios_erp", { select: "user_id, nome, ativo", order: "nome", ascending: true });
   const [lancar, setLancar] = useState(false);
+  const [aba, setAba] = useAbaUrl<"equipe" | "pagamentos">("equipe", ["equipe", "pagamentos"]);
 
   const equipe = ativos(lista);
   const mes = hoje().slice(5, 7);
@@ -168,8 +174,18 @@ export default function Funcionarios() {
     { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
   ];
 
+  const abas = <Tabs value={aba} onChange={setAba} options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pagamentos", label: "Pagamentos" }]} />;
+  if (aba === "pagamentos") return (
+    <div>
+      {abas}
+      <p className="-mt-2 mb-4 text-sm text-slate-500">Pagamentos aos funcionários em todas as contas, reconhecidos pelo nome do cadastro como aparece no Pix.</p>
+      <Suspense fallback={<div className="p-6 text-slate-500">Carregando…</div>}><ImpostosTarifas aba="funcionarios" /></Suspense>
+    </div>
+  );
+
   return (
     <div>
+      {abas}
       <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Indicador rotulo="Na equipe" icon={Users} cor="azul" valor={String(equipe.length)}
           sub={`${equipe.filter((f) => f.faz_assistencia).length} ${pl(equipe.filter((f) => f.faz_assistencia).length, "técnico", "técnicos")} · ${equipe.filter((f) => f.situacao === "ferias").length} em férias`} />

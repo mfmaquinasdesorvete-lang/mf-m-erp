@@ -55,6 +55,7 @@ const Margem = lazy(() => import("@/pages/Margem"));
 const Contador = lazy(() => import("@/pages/Contador"));
 const AnalistaFiscal = lazy(() => import("@/pages/AnalistaFiscal"));
 const Parcelamentos = lazy(() => import("@/pages/Parcelamentos"));
+const ImpostosPagos = lazy(() => import("@/pages/ImpostosPagos"));
 const Funcionarios = lazy(() => import("@/pages/Funcionarios"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
 const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
@@ -136,6 +137,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "documentos", tela: "documentos", element: <Documentos /> },
   { path: "conciliacao", tela: "conciliacao", element: <Conciliacao /> },
   { path: "gastos", tela: "financeiro", element: <GastosSeparados /> },
+  { path: "impostos-pagos", tela: "financeiro", element: <ImpostosPagos /> },
   // endereços antigos (links salvos e avisos): abrem a aba certa de Gastos separados
   { path: "combustivel", tela: "financeiro", element: <ParaGastos /> },
   { path: "compras-marketplace", tela: "financeiro", element: <ParaGastos aba="marketplaces" /> },

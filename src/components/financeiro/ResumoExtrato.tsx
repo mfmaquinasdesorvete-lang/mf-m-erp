@@ -41,7 +41,7 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes, funcion
         <p className="mt-2 text-xs text-slate-500">
           {r.combustivel.n > 0 && <><Link to="/gastos" className="font-semibold text-brand hover:underline">Ver gastos com combustível</Link> por mês e por posto. </>}
           {r.marketplace.n > 0 && <><Link to="/gastos?aba=marketplaces" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
-          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <><Link to="/gastos?aba=impostos" className="font-semibold text-brand hover:underline">Ver impostos, tarifas e funcionários</Link> de todas as contas juntas.</>}
+          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <>Ver de todas as contas juntas: <Link to="/impostos-pagos" className="font-semibold text-brand hover:underline">impostos</Link>, <Link to="/gastos?aba=tarifas" className="font-semibold text-brand hover:underline">tarifas</Link> e <Link to="/funcionarios?aba=pagamentos" className="font-semibold text-brand hover:underline">funcionários</Link>.</>}
         </p>
       )}
       {meses.length > 1 && (

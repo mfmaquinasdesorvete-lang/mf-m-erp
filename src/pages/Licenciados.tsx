@@ -5,7 +5,8 @@
 // "Para conferir" traz as entradas altas dos extratos pessoais e as vendas altas no cartão das InfinitePay: a pessoa
 // liga cada uma à loja (dá para dividir uma entrada entre duas lojas) ou marca "não é de loja". Nada é apagado:
 // pagamento errado é anulado; loja que saiu fica como encerrada.
-import { useMemo, useState, type FormEvent } from "react";
+import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
+import { useAbaUrl } from "@/lib/abaUrl";
 import { Link } from "react-router-dom";
 import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Search, Store, Undo2, Wallet, X } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
@@ -38,7 +39,9 @@ const NENHUM = "00000000-0000-0000-0000-000000000000";
 // rosa e turquesa da marca My Frost (fundo forte, letra branca: iguais nos dois temas)
 const ROSA = "#c2185b", ROSA_ESCURO = "#6d0d33", TURQUESA = "#67e8e2";
 const nomeProprio = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
-type Aba = "unidades" | "custos" | "maquinas" | "pagamentos";
+type Aba = "unidades" | "custos" | "maquinas" | "pagamentos" | "quiosques";
+// montagem dos quiosques (MDF, tinta, ferragens): era a aba Quiosques de Gastos separados, no Financeiro
+const GastosQuiosques = lazy(() => import("./GastosQuiosques"));
 
 export default function Licenciados() {
   const invalidar = useInvalidate();
@@ -64,7 +67,7 @@ export default function Licenciados() {
     key: ["licenciados-extrato", idsInfinite.join()],
   });
 
-  const [aba, setAba] = useState<Aba>("unidades");
+  const [aba, setAba] = useAbaUrl<Aba>("unidades", ["unidades", "custos", "maquinas", "pagamentos", "quiosques"]);
   const [ficha, setFicha] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState<PeriodoLic>("12m");
   const [lojaSel, setLojaSel] = useState("");
@@ -245,11 +248,18 @@ export default function Licenciados() {
       <Tabs<Aba> value={aba} onChange={setAba} options={[
         { value: "unidades", label: `Unidades · ${lojas.length}` }, { value: "custos", label: "Custos de montar" },
         { value: "maquinas", label: `Máquinas · ${maquinas.length}` }, { value: "pagamentos", label: lista.length ? `Pagamentos · ${lista.length} para conferir` : "Pagamentos" },
+        { value: "quiosques", label: "Quiosques" },
       ]} />
 
       {aba === "unidades" && (isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : <UnidadesLista dados={dados} onAbrir={(l) => setFicha(l.id)} onNova={() => setEditLoja({ loja: novaLoja() })} />)}
       {aba === "custos" && <CustosAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
       {aba === "maquinas" && <MaquinasAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
+      {aba === "quiosques" && (
+        <Suspense fallback={<p className="text-sm text-slate-500">Carregando…</p>}>
+          <p className="mb-3 text-sm text-slate-500">Montagem dos quiosques: MDF, fitas de borda, tinta e ferragens das notas com o marcador Quiosques, e os pagamentos dessas lojas nos extratos.</p>
+          <GastosQuiosques />
+        </Suspense>
+      )}
 
       {aba === "pagamentos" && <>
       <Card className="mb-4 p-3">
