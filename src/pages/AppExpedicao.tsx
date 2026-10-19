@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, ClipboardCheck, LayoutGrid, ListChecks, MoreHorizontal, PackageCheck, Search, Send, Timer } from "lucide-react";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
+import { InstalarApp } from "@/components/InstalarApp";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
@@ -194,6 +195,7 @@ export default function AppExpedicao() {
               <input type="checkbox" className="h-5 w-5 accent-[#38bdf8]" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP_EXPEDICAO, e.target.checked ? "1" : "0"); }} />
             </label>
+            <InstalarApp />
             <p className="px-1 text-xs text-[#8b93a7]">Etiquetas, DANFE e impressão da lista de separação ficam no ERP completo (impressora do galpão).</p>
             <button type="button" onClick={() => navigate("/expedicao")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-[#b8bfcd]">
               <LayoutGrid size={18} /> <span className="flex-1">Abrir o ERP completo</span>

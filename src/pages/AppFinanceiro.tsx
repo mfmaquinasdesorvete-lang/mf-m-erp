@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownCircle, ArrowUpCircle, Check, ClipboardCheck, Eye, EyeOff, Home, LayoutGrid, Undo2, Wallet } from "lucide-react";
 import { useInvalidate, useRows } from "@/lib/data";
+import { InstalarApp } from "@/components/InstalarApp";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
@@ -147,6 +148,7 @@ export default function AppFinanceiro() {
               <input type="checkbox" className="h-5 w-5 accent-[#22d3ee]" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP, e.target.checked ? "1" : "0"); }} />
             </label>
+            <div className="mt-3"><InstalarApp /></div>
           </>
         )}
 

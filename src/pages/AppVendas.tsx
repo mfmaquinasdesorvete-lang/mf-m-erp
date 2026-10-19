@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowDownRight, ArrowUpRight, ChevronRight, FileText, Home, LayoutGrid, MessageCircle, MoreHorizontal, Package, Phone, Plus, Search, ShoppingBag, Users,
 } from "lucide-react";
+import { InstalarApp } from "@/components/InstalarApp";
 import { useRows } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
@@ -225,9 +226,7 @@ export default function AppVendas() {
               <input type="checkbox" className="h-5 w-5 accent-[#10b981]" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP_VENDAS, e.target.checked ? "1" : "0"); }} />
             </label>
-            <p className="px-1 text-xs text-[#8b93a7]">
-              Dica: no navegador do celular, use “Adicionar à tela de início” para ter o ERP como um app, com ícone próprio.
-            </p>
+            <InstalarApp />
             <button type="button" onClick={() => navigate("/pedidos")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-[#b8bfcd]">
               <LayoutGrid size={18} /> <span className="flex-1">Abrir o ERP completo</span> <ChevronRight size={16} />
             </button>

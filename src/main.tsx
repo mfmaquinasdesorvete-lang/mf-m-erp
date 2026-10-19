@@ -7,6 +7,7 @@ import { ErroTela } from "./components/ErroTela";
 import { Dialogos } from "./components/Dialogos";
 import { notifyLeitura } from "./lib/notify";
 import { DEMO } from "./lib/supabase";
+import { guardarConviteInstalar } from "./components/InstalarApp";
 // fontes servidas pelo próprio site (sem depender do Google Fonts): DM Sans no texto e Poppins nos títulos,
 // números grandes, botões, abas e menu
 import "@fontsource-variable/dm-sans";
@@ -21,6 +22,13 @@ import { aplicarDestaque, aplicarFundo, aplicarTema, lerDestaque, lerFundo, lerT
 aplicarFundo(lerFundo());
 aplicarTema(lerTema());
 aplicarDestaque(lerDestaque());
+
+// App instalado pelo navegador: guarda o convite "Instalar" do Chrome e liga o service worker (só no site publicado;
+// ele não guarda dados, só a tela "Sem internet" e os arquivos com hash da versão).
+guardarConviteInstalar();
+if (import.meta.env.PROD && !DEMO && "serviceWorker" in navigator && location.hostname !== "localhost") {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => { /* sem app offline: o ERP funciona igual */ }); });
+}
 
 // Arquivo de uma versão que já saiu do servidor (aba aberta antes da atualização): mostra a faixa
 // "Nova versão do ERP" em vez de recarregar sozinho e perder o que está sendo digitado.
