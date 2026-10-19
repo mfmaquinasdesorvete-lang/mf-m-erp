@@ -68,6 +68,7 @@ const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
+const Conheca = lazy(() => import("@/pages/Conheca"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
@@ -200,6 +201,10 @@ export default function App() {
   }, [userId, tentativa]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Vitrine pública: abre sem login (é o link dos produtos no catálogo do WhatsApp)
+  // Apresentação do ERP Line para empresas e contadores (venda por indicação), sem login
+  if (pathname === "/conheca") {
+    return <Suspense fallback={<Carregando />}><Conheca /></Suspense>;
+  }
   // Proposta comercial: o cliente abre pelo link, sem login
   if (pathname.startsWith("/proposta/")) {
     return <><Toaster /><Suspense fallback={<Carregando />}><PropostaPublica /></Suspense></>;
