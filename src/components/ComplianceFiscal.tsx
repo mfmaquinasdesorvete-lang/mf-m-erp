@@ -1,8 +1,10 @@
 // Notas fiscais → Compliance fiscal: pendências que dão rejeição ou risco na fiscalização,
 // e o acompanhamento da reforma tributária (IBS/CBS).
-import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Landmark, ShieldAlert } from "lucide-react";
-import { Card, Section } from "./ui";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, ChevronDown, FileClock, Landmark, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Section } from "./ui";
+import { Ranking, Rosca } from "./Charts";
+import { CartaoPainel, type Cartao } from "./painel/Painel";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, pl } from "@/lib/format";
@@ -13,6 +15,8 @@ type Nota = { id: string; status: string; numero: string | null; serie: string |
 type Recebida = { id: string; emitente_nome: string; valor_total: number; data_emissao: string | null; manifestacao: string | null; situacao: string | null; origem: string | null; processamento: string | null };
 
 type Grupo = { titulo: string; itens: Pendencia[]; ok: string };
+const CORES = ["#dc2626", "var(--kpi-laranja)", "var(--kpi-roxo)", "var(--serie-1)", "var(--kpi-rosa)", "var(--kpi-ciano)", "var(--serie-3)", "var(--serie-2)", "#64748b"];
+const idGrupo = (t: string) => `compliance-${t.normalize("NFD").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
 
 export function ComplianceFiscal() {
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -58,25 +62,43 @@ export function ComplianceFiscal() {
 
   const erros = grupos.reduce((s, g) => s + g.itens.filter((i) => i.nivel === "erro").length, 0);
   const alertas = grupos.reduce((s, g) => s + g.itens.filter((i) => i.nivel === "alerta").length, 0);
+  const comPendencia = grupos.filter((g) => g.itens.length)
+    .map((g) => ({ g, e: g.itens.filter((i) => i.nivel === "erro").length }))
+    .sort((a, b) => b.e - a.e || b.g.itens.length - a.g.itens.length);
+  const manifestar = grupos.find((g) => g.titulo === "NF-e de fornecedores")?.itens.length ?? 0;
+  const [abrir, setAbrir] = useState<{ titulo: string; vez: number } | null>(null);
+  const irPara = (titulo: string) => {
+    setAbrir((a) => ({ titulo, vez: (a?.vez ?? 0) + 1 }));
+    document.getElementById(idGrupo(titulo))?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  const cartoes: Cartao[] = [
+    { id: "erros", rotulo: "Impedem a emissão", valor: erros, sub: erros ? "geram rejeição: corrigir já" : "nada bloqueando", icone: erros ? ShieldAlert : ShieldCheck, cor: erros ? "#dc2626" : "var(--kpi-verde)" },
+    { id: "alertas", rotulo: "Alertas para conferir", valor: alertas, sub: "risco na fiscalização", icone: AlertTriangle, cor: "var(--kpi-laranja)" },
+    { id: "emdia", rotulo: "Áreas em dia", valor: `${grupos.length - comPendencia.length} de ${grupos.length}`, sub: "unidades, produtos, clientes, notas…", icone: CheckCircle2, cor: "var(--kpi-verde)" },
+    { id: "manifestar", rotulo: "Notas de fornecedor", valor: manifestar, sub: manifestar ? "sem manifestação há mais de 30 dias" : "manifestações em dia", icone: FileClock, cor: manifestar ? "var(--kpi-roxo)" : "var(--kpi-verde)",
+      onClick: manifestar ? () => irPara("NF-e de fornecedores") : undefined },
+  ];
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="flex items-center gap-3 p-4">
-          <span className={`grid h-11 w-11 place-items-center rounded-xl ${erros ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{erros ? <ShieldAlert size={22} /> : <CheckCircle2 size={22} />}</span>
-          <div><div className="num text-2xl font-bold text-fg">{erros}</div><div className="text-sm text-slate-500">impedem a emissão ou geram rejeição</div></div>
-        </Card>
-        <Card className="flex items-center gap-3 p-4">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-700"><AlertTriangle size={22} /></span>
-          <div><div className="num text-2xl font-bold text-fg">{alertas}</div><div className="text-sm text-slate-500">alertas para conferir</div></div>
-        </Card>
-        <Card className="p-4 text-sm text-slate-600">
-          O ERP também faz esta conferência na hora de emitir cada nota: com erro, a emissão é bloqueada e mostra o que corrigir.
-        </Card>
-      </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{cartoes.map((c) => <CartaoPainel key={c.id} c={c} />)}</div>
+      {comPendencia.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+          <Section title="Pendências por área" className="min-w-0 xl:col-span-2">
+            <Rosca total="pendências" onClicar={(i) => irPara(comPendencia[i].g.titulo)} formatar={(v) => v.toLocaleString("pt-BR")}
+              fatias={comPendencia.map(({ g }, i) => ({ rotulo: g.titulo, valor: g.itens.length, cor: CORES[i % CORES.length] }))} />
+          </Section>
+          <Section title="Onde corrigir primeiro" className="min-w-0 xl:col-span-3">
+            <Ranking cor="#dc2626" formatar={(v) => v.toLocaleString("pt-BR")} onClicar={(i) => irPara(comPendencia[i].g.titulo)}
+              itens={comPendencia.map(({ g, e }) => ({ rotulo: g.titulo, valor: g.itens.length,
+                detalhe: [e && `${e} ${pl(e, "erro", "erros")}`, g.itens.length - e && `${g.itens.length - e} ${pl(g.itens.length - e, "alerta", "alertas")}`].filter(Boolean).join(" · ") }))} />
+          </Section>
+        </div>
+      )}
+      <p className="text-sm text-slate-500">O ERP também faz esta conferência na hora de emitir cada nota: com erro, a emissão é bloqueada e mostra o que corrigir.</p>
 
       <div className="space-y-2">
-        {grupos.map((g) => <GrupoPendencias key={g.titulo} g={g} />)}
+        {grupos.map((g) => <GrupoPendencias key={g.titulo} g={g} abrir={abrir?.titulo === g.titulo ? abrir.vez : 0} />)}
       </div>
 
       <Reforma notas={notas} />
@@ -84,13 +106,15 @@ export function ComplianceFiscal() {
   );
 }
 
-function GrupoPendencias({ g }: { g: Grupo }) {
+/** `abrir`: muda quando o painel pede para abrir este grupo (clique no ranking ou no cartão). */
+function GrupoPendencias({ g, abrir }: { g: Grupo; abrir: number }) {
   const [aberto, setAberto] = useState(g.itens.some((i) => i.nivel === "erro"));
+  useEffect(() => { if (abrir) setAberto(true); }, [abrir]);
   const e = g.itens.filter((i) => i.nivel === "erro").length;
   const a = g.itens.length - e;
   return (
-    <div className="rounded-xl border border-slate-200 bg-surface">
-      <button type="button" onClick={() => setAberto(!aberto)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+    <div id={idGrupo(g.titulo)} className="scroll-mt-24 rounded-xl border border-slate-200 bg-surface">
+      <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         {g.itens.length ? <AlertTriangle size={18} className={e ? "text-red-600" : "text-amber-600"} /> : <CheckCircle2 size={18} className="text-emerald-600" />}
         <span className="flex-1 font-semibold text-fg">{g.titulo}</span>
         <span className="text-sm text-slate-500">{g.itens.length ? [e && `${e} ${pl(e, "erro", "erros")}`, a && `${a} ${pl(a, "alerta", "alertas")}`].filter(Boolean).join(" · ") : g.ok}</span>
