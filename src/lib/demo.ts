@@ -1009,8 +1009,12 @@ function planoDemo(db: Db) {
     cat("aluguel", "despesa", "despesa_operacional", 43), cat("energia/água/internet", "despesa", "despesa_operacional", 44), cat("marketing", "despesa", "despesa_operacional", 45),
     cat("manutenção", "despesa", "despesa_operacional", 46), cat("sistemas e assinaturas", "despesa", "despesa_operacional", 47), cat("tarifas bancárias", "despesa", "despesa_financeira", 60),
     cat("juros e multas", "despesa", "despesa_financeira", 61), cat("outros", "despesa", "outros", 90), cat("investimentos", "despesa", "investimento", 95),
-    cat("distribuição de lucros", "despesa", "retirada", 96),
+    cat("distribuição de lucros", "despesa", "retirada", 96), cat("combustível", "despesa", "despesa_operacional", 60), cat("correios", "despesa", "custo", 31),
+    cat("adiantamento a funcionários", "despesa", "transferencia", 97),
   ];
+  // adiantamento pago a um funcionário, esperando a prestação de contas (Correios + combustível)
+  db.contas_pagar.push({ id: "cp-adi", descricao: "Adiantamento · envio nos Correios", fornecedor_id: null, categoria: "adiantamento a funcionários", documento: null, valor: 500,
+    valor_pago: 500, vencimento: dias(-1), data_pagamento: dias(-1), status: "pago", decisao: "pagar", revisao: "aprovado", unidade_id: U_SC, created_at: quando(-1), rateio: [] });
   db.centros_custo = [
     { id: "cc1", nome: "Fábrica", descricao: "Produção das máquinas", ativo: true, created_at: quando(-60) },
     { id: "cc2", nome: "Loja e vendas", descricao: null, ativo: true, created_at: quando(-60) },
@@ -1417,6 +1421,8 @@ function bancosDemo(db: Db) {
     { id: "lm3", loja_id: "lj3", descricao: "Máquina de sorvete expresso", numero_serie: "EX-014", data_compra: dias(-330), valor: 21000, situacao: "na_loja", observacao: null },
   ];
   db.pdv_caixas = [];
+  db.adiantamento_gastos = [];
+  db.adiantamento_prestacoes = [];
   db.pdv_caixa_movimentos = [];
   const custoDemo = { observacao: null, anulado: false };
   db.licenciados_custos = [

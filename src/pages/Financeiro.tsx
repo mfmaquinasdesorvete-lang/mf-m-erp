@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, ClipboardCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -32,6 +32,8 @@ import type { LancDre, Rateio } from "@/lib/dre";
 import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } from "@/components/financeiro/DecisaoPagamento";
 import { irParaColuna, KanbanPagar, NavPassos, type ResumoPasso } from "@/components/financeiro/KanbanPagar";
 import { ChipRenegociada, HistoricoNegociacao, ModalRenegociar, PainelRenegociadas } from "@/components/financeiro/Renegociacao";
+import { PrestarContas, SeloAdiantamento, useGastosAdiantamento } from "@/components/financeiro/Adiantamento";
+import { ehAdiantamento, gastosParaDre } from "@/lib/adiantamento";
 import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
 import { ChipTipo, ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
 import { raizCnpj, resumoPorTipo, tipoPagar, type TipoPagar } from "@/lib/tiposPagar";
@@ -161,15 +163,19 @@ export default function Financeiro() {
     receber: receber.map((c) => ({ ...c, terceiro: c.cliente ? c.cliente.nome_fantasia?.trim() || c.cliente.nome : null })),
     pagar: pagar.map((c) => ({ ...c, terceiro: c.fornecedor?.nome ?? null })),
   }), [receber, pagar]);
+  // adiantamento para funcionário: a conta fica fora do DRE (transferência) e entram os gastos da prestação de contas
+  const { data: gastosAdiant = [] } = useGastosAdiantamento();
   const paraDre = useMemo<LancDre[]>(() => [
     ...receber.map((c) => ({ ...c, tipo: "receber" as const })),
     ...pagar.map((c) => ({ ...c, tipo: "pagar" as const })),
-  ], [receber, pagar]);
+    ...gastosParaDre(gastosAdiant, pagar),
+  ], [receber, pagar, gastosAdiant]);
   // DRE: todas as unidades (ele mesmo separa SC, SP e o consolidado)
   const paraDreTodas = useMemo<LancDre[]>(() => [
     ...receberTodos.map((c) => ({ ...c, tipo: "receber" as const })),
     ...pagarTodos.map((c) => ({ ...c, tipo: "pagar" as const })),
-  ], [receberTodos, pagarTodos]);
+    ...gastosParaDre(gastosAdiant, pagarTodos),
+  ], [receberTodos, pagarTodos, gastosAdiant]);
 
   return (
     <div>
@@ -504,6 +510,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const especial = visao === "renegociadas" || visao === "fixas";
   // renegociação: o acordo (contas marcadas ou uma só) e o histórico da negociação
   const [renegociar, setRenegociar] = useState<Pagar[] | null>(null);
+  const [prestar, setPrestar] = useState<Pagar | null>(null);
   const [negociacao, setNegociacao] = useState<string | null>(null);
   // quadro (Kanban, o padrão) ou lista; a escolha fica guardada neste aparelho
   const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:visual") === "lista" || destaque ? "lista" : "quadro"; } catch { return "quadro"; } });
@@ -614,6 +621,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const acoesDe = (c: Pagar) => (
     <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => abrirConta(c)}
       onEstornar={() => setMotivo({ conta: c, acao: "estornar" })} onRenegociar={() => setRenegociar([c])} onNegociacao={() => c.negociacao_id && setNegociacao(c.negociacao_id)}
+      onPrestar={ehAdiantamento(c.categoria) ? () => setPrestar(c) : undefined}
       recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, nomeForma(c.forma_pagamento_id) ?? formaDaObs(c.observacoes))} />} />
   );
   const situacaoDe = (c: Pagar) => {
@@ -624,6 +632,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
           <span title={s.sub ?? undefined} className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${COR_TOM[s.tom]}`}>{s.texto}</span>
           {s.texto === "Falta aprovar" && <ChipRevisao conta={c as any} />}
           {c.negociacao_id && <ChipRenegociada papel={c.negociacao_papel} onClick={() => setNegociacao(c.negociacao_id!)} />}
+          <SeloAdiantamento conta={c} />
         </span>
         {s.sub && <div className={`mt-0.5 text-xs ${s.tom === "golpe" ? "text-red-700" : "text-slate-500"}`}>{s.sub}</div>}
         {((c as any).marcadores ?? []).length > 0 && <div className="mt-1"><ChipsMarcadores ids={(c as any).marcadores} todos={marcadores} pequeno /></div>}
@@ -920,6 +929,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())}
         extra={<Button type="button" variant="secondary" disabled={!marcadas.some((c) => c.status === "aberto" && !c.negociacao_id)} onClick={() => setRenegociar(marcadas)}
           title="Juntar as contas marcadas num acordo com o fornecedor (parcelas novas) ou só registrar a negociação"><Handshake size={15} /> Renegociar</Button>} />}
+      {prestar && <PrestarContas conta={prestar} onClose={() => setPrestar(null)} />}
       {renegociar && <ModalRenegociar contas={renegociar} onClose={() => setRenegociar(null)} onFeito={(id) => { setSel(new Set()); setNegociacao(id); }} />}
       {negociacao && <HistoricoNegociacao id={negociacao} contas={contas} onClose={() => setNegociacao(null)} />}
       {lotePagarHoje && <PagarLoteModal contas={pagarHoje} onClose={() => setLotePagarHoje(false)} />}
@@ -955,9 +965,9 @@ function ChipOrigem({ o, className = "" }: { o: OrigemConta | undefined; classNa
  * Ações de uma conta a pagar: um botão com o próximo passo (pagar, registrar o pagamento, aprovar, recibo…) e o resto
  * no menu "⋯" (agendar, não pagar, voltar a decidir, boleto, marcadores, editar, estornar).
  */
-function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, onRenegociar, onNegociacao, recibo }: {
+function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, onRenegociar, onNegociacao, onPrestar, recibo }: {
   conta: Pagar; podeDecidir: boolean; aprovar?: ReactNode; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void;
-  onRenegociar: () => void; onNegociacao: () => void; recibo: ReactNode;
+  onRenegociar: () => void; onNegociacao: () => void; onPrestar?: () => void; recibo: ReactNode;
 }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "marcadores" | null>(null);
@@ -966,7 +976,7 @@ function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEdita
   const podeMexer = podeDecidir && aberta && !golpe;
   const hojeDia = hoje();
   let principal: ReactNode;
-  if (c.status === "pago") principal = recibo;
+  if (c.status === "pago") principal = onPrestar ? <Button variant="secondary" className="whitespace-nowrap" onClick={onPrestar}><ClipboardCheck size={15} /> Prestar contas</Button> : recibo;
   // falta aprovar: "Aprovar / Não" para quem aprova (ou o porquê de esperar)
   else if (falta && aberta && !golpe && aprovar) principal = aprovar;
   else if (!podeMexer) principal = <Button variant="secondary" onClick={onEditar}><Eye size={15} /> Ver</Button>;
@@ -989,6 +999,7 @@ function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEdita
         (aberta || !!c.linha_digitavel) && { rotulo: "Conferir boleto", icone: ScanBarcode, onClick: onBoleto },
         podeMexer && !c.negociacao_id && { rotulo: "Renegociar…", icone: Handshake, onClick: onRenegociar },
         !!c.negociacao_id && { rotulo: "Histórico da negociação", icone: Handshake, onClick: onNegociacao },
+        !!onPrestar && { rotulo: "Prestar contas (adiantamento)", icone: ClipboardCheck, onClick: onPrestar },
         { rotulo: "Marcadores", icone: Tags, onClick: () => setJanela("marcadores") },
         { rotulo: aberta ? "Editar" : "Ver detalhes", icone: aberta ? Pencil : Eye, onClick: onEditar },
         c.status === "pago" && { rotulo: "Estornar o pagamento", icone: Undo2, onClick: onEstornar, perigo: true },
