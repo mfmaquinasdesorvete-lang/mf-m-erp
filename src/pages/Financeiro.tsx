@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, ClipboardCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Ban, Barcode, CalendarClock, Check, CheckCheck, ClipboardCheck, Copy, Eye, FileDown, Handshake, Layers, Link2, List, MessageCircle, Pencil, Plus, Printer, Repeat, RotateCcw, ScanBarcode, Send, SquareKanban, Tags, Undo2, Users, Wallet } from "lucide-react";
 import { Badge, BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Indicador, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { CartaoConta, ListaContas } from "@/components/financeiro/CartaoConta";
 import { limpar, useInvalidate, useRows, useSave, semUnificados } from "@/lib/data";
@@ -33,6 +33,7 @@ import { BarraLote, ModalAgendar, ModalNaoPagar, PagarLoteModal, useProgramar } 
 import { irParaColuna, KanbanPagar, NavPassos, type ResumoPasso } from "@/components/financeiro/KanbanPagar";
 import { ChipRenegociada, HistoricoNegociacao, ModalRenegociar, PainelRenegociadas } from "@/components/financeiro/Renegociacao";
 import { PrestarContas, SeloAdiantamento, useGastosAdiantamento } from "@/components/financeiro/Adiantamento";
+import { PagarPixInter } from "@/components/financeiro/PixInter";
 import { ehAdiantamento, gastosParaDre } from "@/lib/adiantamento";
 import { useAprovarPagar } from "@/components/financeiro/AprovarPagar";
 import { ChipTipo, ResumoPagarTipos } from "@/components/financeiro/ResumoPagar";
@@ -511,6 +512,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   // renegociação: o acordo (contas marcadas ou uma só) e o histórico da negociação
   const [renegociar, setRenegociar] = useState<Pagar[] | null>(null);
   const [prestar, setPrestar] = useState<Pagar | null>(null);
+  const [pixInter, setPixInter] = useState<Pagar | null>(null);
   const [negociacao, setNegociacao] = useState<string | null>(null);
   // quadro (Kanban, o padrão) ou lista; a escolha fica guardada neste aparelho
   const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp:pagar:visual") === "lista" || destaque ? "lista" : "quadro"; } catch { return "quadro"; } });
@@ -621,7 +623,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const acoesDe = (c: Pagar) => (
     <AcoesPagar conta={c} podeDecidir={podeDecidir} aprovar={aprov.botoes(c)} onBaixa={() => setBaixa(c)} onBoleto={() => setBoleto(c)} onEditar={() => abrirConta(c)}
       onEstornar={() => setMotivo({ conta: c, acao: "estornar" })} onRenegociar={() => setRenegociar([c])} onNegociacao={() => c.negociacao_id && setNegociacao(c.negociacao_id)}
-      onPrestar={ehAdiantamento(c.categoria) ? () => setPrestar(c) : undefined}
+      onPrestar={ehAdiantamento(c.categoria) ? () => setPrestar(c) : undefined} onPix={() => setPixInter(c)}
       recibo={<BotaoRecibo contaId={c.id} tipo="pagar" montar={() => reciboDePagar(c, fornecedores.find((f) => f.id === c.fornecedor_id), unidades.find((u) => u.id === c.unidade_id), cfgRecibo, nomeForma(c.forma_pagamento_id) ?? formaDaObs(c.observacoes))} />} />
   );
   const situacaoDe = (c: Pagar) => {
@@ -929,6 +931,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
       {podeDecidir && <BarraLote contas={marcadas} onLimpar={() => setSel(new Set())}
         extra={<Button type="button" variant="secondary" disabled={!marcadas.some((c) => c.status === "aberto" && !c.negociacao_id)} onClick={() => setRenegociar(marcadas)}
           title="Juntar as contas marcadas num acordo com o fornecedor (parcelas novas) ou só registrar a negociação"><Handshake size={15} /> Renegociar</Button>} />}
+      {pixInter && <PagarPixInter conta={pixInter as any} onClose={() => setPixInter(null)} />}
       {prestar && <PrestarContas conta={prestar} onClose={() => setPrestar(null)} />}
       {renegociar && <ModalRenegociar contas={renegociar} onClose={() => setRenegociar(null)} onFeito={(id) => { setSel(new Set()); setNegociacao(id); }} />}
       {negociacao && <HistoricoNegociacao id={negociacao} contas={contas} onClose={() => setNegociacao(null)} />}
@@ -965,9 +968,9 @@ function ChipOrigem({ o, className = "" }: { o: OrigemConta | undefined; classNa
  * Ações de uma conta a pagar: um botão com o próximo passo (pagar, registrar o pagamento, aprovar, recibo…) e o resto
  * no menu "⋯" (agendar, não pagar, voltar a decidir, boleto, marcadores, editar, estornar).
  */
-function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, onRenegociar, onNegociacao, onPrestar, recibo }: {
+function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEditar, onEstornar, onRenegociar, onNegociacao, onPrestar, onPix, recibo }: {
   conta: Pagar; podeDecidir: boolean; aprovar?: ReactNode; onBaixa: () => void; onBoleto: () => void; onEditar: () => void; onEstornar: () => void;
-  onRenegociar: () => void; onNegociacao: () => void; onPrestar?: () => void; recibo: ReactNode;
+  onRenegociar: () => void; onNegociacao: () => void; onPrestar?: () => void; onPix?: () => void; recibo: ReactNode;
 }) {
   const { programar, ocupado } = useProgramar();
   const [janela, setJanela] = useState<"agendar" | "nao_pagar" | "marcadores" | null>(null);
@@ -995,6 +998,7 @@ function AcoesPagar({ conta: c, podeDecidir, aprovar, onBaixa, onBoleto, onEdita
         podeMexer && !falta && { rotulo: c.decisao === "agendado" ? "Mudar o dia do pagamento" : "Agendar um dia…", icone: CalendarClock, onClick: () => setJanela("agendar") },
         podeMexer && c.decisao !== "nao_pagar" && { rotulo: "Não pagar…", icone: Ban, onClick: () => setJanela("nao_pagar") },
         podeMexer && !!c.decisao && c.decisao !== "nao_pagar" && { rotulo: "Voltar a decidir", icone: RotateCcw, onClick: () => programar([c.id], "limpar") },
+        podeMexer && !falta && !!onPix && { rotulo: "Pagar com Pix pelo Inter…", icone: Send, onClick: onPix },
         aberta && !golpe && !falta && !decidida && { rotulo: "Registrar pagamento", icone: Wallet, onClick: onBaixa },
         (aberta || !!c.linha_digitavel) && { rotulo: "Conferir boleto", icone: ScanBarcode, onClick: onBoleto },
         podeMexer && !c.negociacao_id && { rotulo: "Renegociar…", icone: Handshake, onClick: onRenegociar },

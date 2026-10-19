@@ -6,12 +6,14 @@
 //  POST { acao: "desligar", conexao_id }       (admin) → para de buscar e esquece as credenciais
 //  Boleto com Pix (boletos.ts): boletos_ligar / boletos_desligar (admin), boleto_emitir, boleto_atualizar, boleto_pdf
 //       (financeiro ou vendas), boleto_cancelar (financeiro) e o aviso do Inter (lista de cobranças, sem login).
+//  Pix de saída (pix.ts): pix_pagar { conta_id, conexao_id, chave } e pix_consultar { id } (financeiro).
 // Deploy com --no-verify-jwt: o agendamento não manda login de usuário; o resto confere aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { type ChavesInter, clienteInter, conferirCertificado, ErroInter, hojeSP, linhasInter, somarDias } from "../_shared/inter.ts";
+import { consultarPix, pagarPix } from "./pix.ts";
 import { atualizarBoleto, avisoBoletos, cancelarBoleto, conferirAbertos, desligarBoletos, emitirBoleto, ligarBoletos, pdfBoleto } from "./boletos.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,6 +51,14 @@ Deno.serve(async (req) => {
     if (body.acao === "boleto_cancelar") {
       await requireErpUser(req, ["financeiro"]);
       return json(await cancelarBoleto(db, String(body.id ?? ""), String(body.motivo ?? ""), chaves));
+    }
+    if (body.acao === "pix_pagar") {
+      const { userId } = await requireErpUser(req, ["financeiro"]);
+      return json(await pagarPix(req, db, body, userId, chaves));
+    }
+    if (body.acao === "pix_consultar") {
+      await requireErpUser(req, ["financeiro"]);
+      return json(await consultarPix(req, db, String(body.id ?? ""), chaves));
     }
     if (body.acao === "ligar") {
       await requireErpUser(req, []);

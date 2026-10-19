@@ -37,12 +37,14 @@ export function conferirCertificado(cert: string, key: string) {
 }
 
 /** Mensagem em português para cada recusa do Inter. */
-function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta", boleto = false) {
+function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta", boleto = false, pix = false) {
   const violacoes = Array.isArray(corpo.violacoes)
     ? (corpo.violacoes as Record<string, unknown>[]).map((v) => [texto(v.propriedade), texto(v.razao)].filter(Boolean).join(": ")).filter(Boolean).join("; ")
     : "";
   const det = [texto(corpo.title ?? corpo.detail ?? corpo.message ?? corpo.error_description ?? corpo.error), violacoes].filter(Boolean).join(" — ").slice(0, 300);
-  const permissao = boleto
+  const permissao = pix
+    ? 'O app do Inter não tem a permissão de pagar Pix: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Pagamento Pix" (e "Consultar pagamentos Pix").'
+    : boleto
     ? 'O app do Inter não tem a permissão de boletos: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Emitir e cancelar boletos" e "Consultar boletos".'
     : 'O app do Inter não tem a permissão de extrato: edite o app no Internet Banking e marque "Consultar extrato e saldo".';
   if (etapa === "token" && (status === 400 || status === 401)) {
@@ -53,6 +55,7 @@ function explicar(status: number, corpo: Record<string, unknown>, etapa: "token"
   if (status === 403) return `${permissao} ${det}`.trim();
   if (status === 404) return boleto ? `O Inter não achou o boleto. ${det}`.trim() : `O Inter não achou a conta: se o app enxerga mais de uma conta, informe o número da conta corrente. ${det}`.trim();
   if (status === 429) return "O Inter limita as consultas por minuto: tente de novo daqui a 1 minuto.";
+  if (status === 400 && pix) return `O Inter recusou o Pix: ${det || "confira a chave Pix, o valor e o saldo da conta"}.`;
   if (status === 400 && boleto) return `O Inter recusou o boleto: ${det || "confira o cadastro do cliente e o vencimento"}.`;
   return `O Inter respondeu ${status}. ${det}`.trim();
 }
@@ -76,6 +79,7 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
   // um acesso por grupo de permissões (extrato; boletos), guardado durante a chamada da função
   const tokens = new Map<string, string>();
   const ehBoleto = (escopo: string) => escopo.includes("boleto");
+  const ehPix = (escopo: string) => escopo.includes("pagamento-pix");
 
   async function chamar(url: string, init: RequestInit): Promise<Response> {
     try {
@@ -91,20 +95,20 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
       body: new URLSearchParams({ client_id: ch.client_id, client_secret: ch.client_secret, grant_type: "client_credentials", scope: escopo }),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token", ehBoleto(escopo)));
+    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token", ehBoleto(escopo), ehPix(escopo)));
     tokens.set(escopo, String(j.access_token));
   }
 
   /** Chamada à API com o acesso do grupo de permissões (entra sozinho na primeira vez). */
-  async function pedir<T>(metodo: string, caminho: string, corpo?: unknown, escopo = ESCOPO_EXTRATO): Promise<T> {
+  async function pedir<T>(metodo: string, caminho: string, corpo?: unknown, escopo = ESCOPO_EXTRATO, extras: Record<string, string> = {}): Promise<T> {
     if (!tokens.has(escopo)) await entrar(escopo);
-    const headers: Record<string, string> = { Authorization: `Bearer ${tokens.get(escopo)}` };
+    const headers: Record<string, string> = { ...extras, Authorization: `Bearer ${tokens.get(escopo)}` };
     if (texto(contaCorrente)) headers["x-conta-corrente"] = texto(contaCorrente).replace(/\D/g, "");
     if (corpo !== undefined) headers["Content-Type"] = "application/json";
     const r = await chamar(`${BASE}${caminho}`, { method: metodo, headers, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
     if (r.status === 202 || r.status === 204) return {} as T;
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta", ehBoleto(escopo)));
+    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta", ehBoleto(escopo), ehPix(escopo)));
     return j as T;
   }
   const get = <T>(caminho: string) => pedir<T>("GET", caminho);
