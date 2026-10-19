@@ -19,6 +19,7 @@ import { pecasDoKit } from "@/lib/kits";
 import { notify } from "@/lib/notify";
 import { hoje, pl } from "@/lib/format";
 import type { Exp, PedidoFluxo as P } from "@/lib/fluxo";
+import { desdeDe, tempo } from "@/lib/filaExpedicao";
 import type { KitComponente, Produto, Transportadora } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
 
@@ -34,14 +35,6 @@ const CHAVE_ETAPA = "erp.expedicao.etapa";
 
 type Linha = { p: P; e: Exp; desde: string; horas: number; nota: P["notas"][number] | undefined; processando: boolean };
 
-/** Desde quando o pedido está na etapa atual. */
-function desdeDe(e: Exp, p: P) {
-  if (e.status === "separando") return e.separando_em ?? e.created_at;
-  if (e.status === "conferido") return e.conferido_em ?? e.created_at;
-  if (e.status === "embalado") return e.embalado_em ?? e.created_at;
-  return p.aprovado_em ?? e.created_at;
-}
-const tempo = (horas: number) => (horas < 1 ? "agora há pouco" : horas < 24 ? `há ${Math.floor(horas)} h` : `há ${Math.floor(horas / 24)} ${pl(Math.floor(horas / 24), "dia", "dias")}`);
 const corTempo = (horas: number) => (horas >= 24 ? "text-red-600" : horas >= 8 ? "text-amber-600" : "text-slate-500");
 
 export default function PainelExpedicao() {

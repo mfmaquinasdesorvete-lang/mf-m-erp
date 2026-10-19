@@ -54,9 +54,12 @@ export function combina(texto: string, busca: string) {
 
 /** Abre o app de vendas ao entrar pelo celular? Escolha guardada no aparelho; sem escolha, abre para quem é de vendas. */
 export const CHAVE_APP_VENDAS = "mf-erp-abrir-app-vendas";
-export function abrirAppVendas(escolha: string | null, largura: number, papel: string) {
+export const abrirAppVendas = (escolha: string | null, largura: number, papel: string) => abrirAppCelular(escolha, largura, papel, "vendas");
+
+/** Regra de todos os apps de celular: tela larga nunca; escolha do aparelho vale; sem escolha, abre para o papel do app. */
+export function abrirAppCelular(escolha: string | null, largura: number, papel: string, papelDoApp: string) {
   if (largura >= 768) return false;
   if (escolha === "1") return true;
   if (escolha === "0") return false;
-  return papel === "vendas";
+  return papel === papelDoApp;
 }

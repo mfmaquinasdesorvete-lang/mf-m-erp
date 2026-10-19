@@ -13,7 +13,8 @@ import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
-import { abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
+import { abrirAppCelular, abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
+import { CHAVE_APP_EXPEDICAO } from "@/lib/appCelular";
 
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -82,6 +83,7 @@ const PainelLicencas = lazy(() => import("@/pages/paineis/PainelLicencas"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
 const AppFinanceiro = lazy(() => import("@/pages/AppFinanceiro"));
 const AppVendas = lazy(() => import("@/pages/AppVendas"));
+const AppExpedicao = lazy(() => import("@/pages/AppExpedicao"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "scrum", tela: "scrum", element: <Scrum /> },
@@ -313,6 +315,10 @@ function RotasERP() {
     try { escolhaVendas = localStorage.getItem(CHAVE_APP_VENDAS); } catch { /* sem armazenamento */ }
     if (location.pathname === "/" && vis.ve("pedidos", "/pedidos") && abrirAppVendas(escolhaVendas, window.innerWidth, papel))
     { navigate("/app/vendas", { replace: true }); return; }
+    let escolhaExp: string | null = null;
+    try { escolhaExp = localStorage.getItem(CHAVE_APP_EXPEDICAO); } catch { /* sem armazenamento */ }
+    if (["/", "/expedicao"].includes(location.pathname) && vis.ve("expedicao", "/expedicao") && abrirAppCelular(escolhaExp, window.innerWidth, papel, "expedicao"))
+    { navigate("/app/expedicao", { replace: true }); return; }
     const casa = INICIO_DO_PAPEL[papel];
     if (casa && location.pathname === "/" && vis.ve(casa.tela, casa.to)) navigate(casa.to, { replace: true });
   }, [user_id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -324,6 +330,8 @@ function RotasERP() {
       {vis.ve("financeiro", "/financeiro") && <Route path="app" element={<AppFinanceiro />} />}
       {/* app de vendas no celular (clientes, preço e estoque, pedidos), sem o menu do ERP */}
       {vis.ve("pedidos", "/pedidos") && <Route path="app/vendas" element={<AppVendas />} />}
+      {/* app da expedição no celular (separar, conferir, embalar, despachar), sem o menu do ERP */}
+      {vis.ve("expedicao", "/expedicao") && <Route path="app/expedicao" element={<AppExpedicao />} />}
       <Route element={<Layout />}>
         <Route index element={inicio ? <Navigate to={inicio} replace /> : <Dashboard />} />
         {ROTAS.filter((r) => vis.ve(r.tela, `/${r.path}`)).map((r) => (
