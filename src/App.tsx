@@ -14,7 +14,7 @@ import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
 import { abrirAppCelular, abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
-import { CHAVE_APP_ASSISTENCIA, CHAVE_APP_EXPEDICAO } from "@/lib/appCelular";
+import { CHAVE_APP_ASSISTENCIA, CHAVE_APP_EXPEDICAO, CHAVE_APP_PRODUCAO } from "@/lib/appCelular";
 
 // Cada tela é carregada sob demanda (site mais leve no primeiro acesso).
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -85,6 +85,7 @@ const AppFinanceiro = lazy(() => import("@/pages/AppFinanceiro"));
 const AppVendas = lazy(() => import("@/pages/AppVendas"));
 const AppExpedicao = lazy(() => import("@/pages/AppExpedicao"));
 const AppAssistencia = lazy(() => import("@/pages/AppAssistencia"));
+const AppProducao = lazy(() => import("@/pages/AppProducao"));
 
 const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "scrum", tela: "scrum", element: <Scrum /> },
@@ -324,6 +325,11 @@ function RotasERP() {
     try { escolhaAss = localStorage.getItem(CHAVE_APP_ASSISTENCIA); } catch { /* sem armazenamento */ }
     if (["/", "/painel/posvenda"].includes(location.pathname) && vis.ve("assistencia", "/assistencia") && abrirAppCelular(escolhaAss, window.innerWidth, papel, "tecnico"))
     { navigate("/app/assistencia", { replace: true }); return; }
+    // produção: não há papel próprio; abre no app só quem escolheu "abrir sempre aqui" no app da produção
+    let escolhaProd: string | null = null;
+    try { escolhaProd = localStorage.getItem(CHAVE_APP_PRODUCAO); } catch { /* sem armazenamento */ }
+    if (location.pathname === "/" && vis.ve("producao", "/producao") && escolhaProd === "1" && abrirAppCelular(escolhaProd, window.innerWidth, papel, "producao"))
+    { navigate("/app/producao", { replace: true }); return; }
     const casa = INICIO_DO_PAPEL[papel];
     if (casa && location.pathname === "/" && vis.ve(casa.tela, casa.to)) navigate(casa.to, { replace: true });
   }, [user_id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -339,6 +345,8 @@ function RotasERP() {
       {vis.ve("expedicao", "/expedicao") && <Route path="app/expedicao" element={<AppExpedicao />} />}
       {/* app da assistência no celular (OS do técnico, foto, próximo passo), sem o menu do ERP */}
       {vis.ve("assistencia", "/assistencia") && <Route path="app/assistencia" element={<AppAssistencia />} />}
+      {/* app da produção no celular (OPs abertas e etapas), sem o menu do ERP */}
+      {vis.ve("producao", "/producao") && <Route path="app/producao" element={<AppProducao />} />}
       <Route element={<Layout />}>
         <Route index element={inicio ? <Navigate to={inicio} replace /> : <Dashboard />} />
         {ROTAS.filter((r) => vis.ve(r.tela, `/${r.path}`)).map((r) => (

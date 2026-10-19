@@ -60,6 +60,8 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
   const verCompras = pode("editar_producao") || pode("receber_compras");
   const [aba, setAba] = useAbaUrl<Aba>(ABAS_DA_AREA[area][0], ABAS_DA_AREA[area]);
   const [novaCompra, setNovaCompra] = useState(false);
+  // OP pedida de fora (app da produção no celular: "Concluir"): abre a janela dela
+  const [abrirOp, setAbrirOp] = useState<string | null>(null);
   // aba da outra tela (link antigo "/producao?aba=compras", aviso de cotação respondida…): vai para a tela certa
   const irPara = (a: Aba) => {
     const outra = areaDaAba(a);
@@ -78,6 +80,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
       return;
     }
     if (st?.novaCompra) setNovaCompra(true);
+    if (st?.abrirOp) { setAbrirOp(st.abrirOp); if (aba !== "producao") setAba("producao"); }
     if (st) navigate({ pathname: location.pathname, search: st.aba ? buscaDaAba(st.aba, ABAS_DA_AREA[area][0]) : location.search }, { replace: true, state: null });
   }, [location.state, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -93,7 +96,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
             : "OP - Ordem de Produção: as máquinas e as peças da tornearia e mecânica (ex.: pá batedora) em ordens separadas; o quadro mostra cada ordem, o que está atrasado e as peças que faltam."} />
         : <PageHeader title="Compras" subtitle={EXPLICA_COMPRAS[aba] ?? EXPLICA_COMPRAS.compras} />}
       {area === "compras" && !verCompras ? <Card className="p-4 text-sm text-slate-600">Seu perfil não faz compras.</Card> : <Tabs value={aba} onChange={setAba} options={abas} />}
-      {aba === "producao" && <OrdensProducao irParaCompras={() => irPara("compras")} />}
+      {aba === "producao" && <OrdensProducao irParaCompras={() => irPara("compras")} abrirId={abrirOp} onAberta={() => setAbrirOp(null)} />}
       {aba === "reposicao" && verCompras && <Reposicao podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
         aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
       {aba === "necessidades" && verCompras && <NecessidadesCompra podeComprar={pode("editar_producao")} aoGerar={() => setAba("compras")}
@@ -120,7 +123,7 @@ function useNecessidade() {
   return useRows<Necessidade>("necessidade_producao", { order: "descricao", ascending: true });
 }
 
-function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
+function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: () => void; abrirId?: string | null; onAberta?: () => void }) {
   const { data: cfgTextos } = useConfig();
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
@@ -133,6 +136,12 @@ function OrdensProducao({ irParaCompras }: { irParaCompras: () => void }) {
   const abertasDe = (maq: boolean) => daUnidade.filter((o) => ehMaquina(o) === maq && ["planejada", "em_producao"].includes(o.status)).length;
   const { data: necessidade = [] } = useNecessidade();
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
+  useEffect(() => {
+    const o = abrirId ? ordensTodos.find((x) => x.id === abrirId) : undefined;
+    if (!o) return;
+    if (ehMaquina(o) !== (tipoOp === "maquinas")) setTipoOp(ehMaquina(o) ? "maquinas" : "pecas");
+    setAberta(o); onAberta?.();
+  }, [abrirId, ordensTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mostrarTodas, setMostrarTodas] = useState(false);
   const [verExcluidas, setVerExcluidas] = useState(false);
   const [vista, setVista] = useAbaUrl<"quadro" | "lista">("quadro", ["quadro", "lista"] as const, "ver");

@@ -14,3 +14,12 @@ export function ehDoTecnico(tecnico: string | null | undefined, nomeUsuario: str
   const primeiro = n.split(/\s+/)[0];
   return primeiro.length >= 3 && t.split(/[\s,/;]+/).includes(primeiro);
 }
+
+export const CHAVE_APP_PRODUCAO = "mf-erp-abrir-app-producao";
+
+/** Quantas etapas da OP estão feitas e qual é a próxima (a primeira que falta, na ordem da ficha). */
+export function progressoEtapas(etapas: { nome: string; feita: boolean }[]) {
+  const total = etapas.length;
+  const feitas = etapas.filter((e) => e.feita).length;
+  return { total, feitas, pct: total ? Math.round((feitas / total) * 100) : 0, proxima: etapas.find((e) => !e.feita)?.nome ?? null };
+}
