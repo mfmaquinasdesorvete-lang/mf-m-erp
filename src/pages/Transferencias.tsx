@@ -2,6 +2,8 @@
 // rascunho → enviada (sai do estoque da origem, emite NF-e) → recebida (entra no destino).
 // Antes de emitir, a conferência fiscal (cBenef, custo, cadastro) para o que a SEFAZ rejeitaria.
 // Com a NF-e autorizada, o destino dá a entrada ligada à nota: estoque + livro de entradas (CFOP de entrada e crédito do ICMS).
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeftRight, ArrowRight, BookCheck, ExternalLink, FilePen, FileText, PackageCheck, Plus, Send, Trash2, Truck, X } from "lucide-react";
 import { Badge, Button, CelulaAbrir, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
@@ -47,7 +49,10 @@ export default function Transferencias() {
   const [aberta, setAberta] = useState<Partial<Transf> | null>(null);
   const podeEditar = pode("editar_producao") || pode("movimentar_estoque");
 
-  const visiveis = atual ? lista.filter((t) => t.origem_id === atual || t.destino_id === atual) : lista;
+  const daUnidade = atual ? lista.filter((t) => t.origem_id === atual || t.destino_id === atual) : lista;
+  // a lista abre na semana; rascunho ou em trânsito de antes continua aparecendo (o painel de cima conta tudo)
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
+  const visiveis = daUnidade.filter((t) => noPeriodoOuPendente(t.enviada_em ?? t.created_at, periodo, ["rascunho", "enviada"].includes(t.status)));
   const nova = () => {
     const origem = atual ?? unidades.find((u) => u.matriz)?.id ?? unidades[0]?.id;
     setAberta({ origem_id: origem, destino_id: unidades.find((u) => u.id !== origem)?.id, status: "rascunho", itens: [] });
@@ -58,7 +63,8 @@ export default function Transferencias() {
       <PageHeader title="Transferências SC ↔ SP" subtitle="Máquinas e peças que vão de uma unidade para a outra, com NF-e de transferência."
         actions={podeEditar && unidades.length > 1 && <Button onClick={nova}><Plus size={16} /> Nova transferência</Button>} />
       {unidades.length < 2 && <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Cadastre a segunda unidade em Configurações → Unidades.</p>}
-      {lista.length > 0 && <PainelTransf lista={visiveis} nome={nome} />}
+      {lista.length > 0 && <PainelTransf lista={daUnidade} nome={nome} />}
+      <BarraFiltros periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" onLimpar={() => setPeriodo(SEM_PERIODO)} />
       <Table empty={!isLoading && !visiveis.length}
         head={<><th className="th">Nº</th><th className="th">De → para</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">NF-e</th><th className="th">Data</th><th className="th" /></>}>
         {visiveis.map((t) => {

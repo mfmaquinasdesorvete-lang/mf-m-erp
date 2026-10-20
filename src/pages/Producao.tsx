@@ -577,14 +577,17 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
     if (abrirNovo) { setAberto(novaOC()); onAberto(); }
   }, [abrirNovo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lista = pcs.filter((p) => mostrarTodos || !["recebido", "cancelado"].includes(p.status));
+  // abre na semana (pela data do pedido); compra ainda aberta de antes continua aparecendo
+  const [periodoOc, setPeriodoOc] = useState<Periodo>(() => semanaAtual(hoje()));
+  const naData = (p: PedidoCompra) => noPeriodoOuPendente(p.data ?? p.created_at, periodoOc, !["recebido", "cancelado"].includes(p.status));
+  const lista = pcs.filter((p) => (mostrarTodos || !["recebido", "cancelado"].includes(p.status)) && naData(p));
   // quadro por etapas (como o Fluxo de pedidos) ou a lista; a escolha fica no aparelho
   const [modo, setModoState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem("erp.oc.modo") === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
   const setModo = (m: "quadro" | "lista") => { setModoState(m); try { localStorage.setItem("erp.oc.modo", m); } catch { /* sem armazenamento */ } };
-  const noQuadro = useMemo(() => pcs.flatMap((p) => {
+  const noQuadro = useMemo(() => pcs.filter(naData).flatMap((p) => {
     const s = situacaoOC(p, hoje());
     return s ? [{ id: p.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: Number(p.valor_total || 0), p, s }] : [];
-  }), [pcs]);
+  }), [pcs, periodoOc]); // eslint-disable-line react-hooks/exhaustive-deps
   const abrirOC = (p: PedidoCompra) => setAberto({ ...p, itens: p.itens ?? [] });
   const atrasados = pcs.filter((p) => ["enviado", "parcial"].includes(p.status) && p.previsao_entrega && p.previsao_entrega < hoje()).length;
 
@@ -596,6 +599,7 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
         <Stat icon={PackageSearch} tom={atrasados ? "critico" : "neutro"} label="Entrega atrasada" valor={atrasados} />
         <Stat icon={ShoppingBag} label="Em aberto (R$)" valor={brl(pcs.filter((p) => ["enviado", "parcial"].includes(p.status)).reduce((s, p) => s + Number(p.valor_total), 0))} />
       </div>}
+      <BarraFiltros periodo={periodoOc} onPeriodo={setPeriodoOc} rotuloData="Data do pedido" onLimpar={() => setPeriodoOc(SEM_PERIODO)} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Como ver as compras">
