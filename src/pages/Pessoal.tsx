@@ -330,68 +330,6 @@ export default function Pessoal() {
           </div>
         )}
 
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <Stat label={`Disponível nas contas · hoje ${dataBR(hoje()).slice(0, 5)}`} valor={brl(disponivel)} icon={Wallet} tom={disponivel < 0 ? "critico" : "bom"} sub={`${ativas.filter((c) => c.tipo !== "cartao").length} ${pl(ativas.filter((c) => c.tipo !== "cartao").length, "conta", "contas")}`} />
-          <Stat label="Cartões (fatura em aberto)" valor={brl(-cartoes)} icon={CreditCard} tom={cartoes < 0 ? "atencao" : "neutro"} sub={`${ativas.filter((c) => c.tipo === "cartao").length} ${pl(ativas.filter((c) => c.tipo === "cartao").length, "cartão", "cartões")}`} />
-          <Stat label="Da empresa para você · período" valor={brl(daMFperiodo)} icon={Building2} tom="info" sub="Pix e TED da MF nas suas contas (pró-labore ou lucros)" />
-          <Stat label="Entrou · período" valor={brl(resumo.entrou)} icon={ArrowUpCircle} tom="info" sub={comparado(resumo.entrou, resumoAnt.entrou) ?? "sem o que só passou entre as suas contas"} />
-          <Stat label="Saiu · período" valor={brl(resumo.saiu)} icon={ArrowDownCircle} tom={resumo.saiu > resumo.entrou ? "atencao" : "neutro"}
-            sub={[resumo.entrou ? `${Math.round((resumo.saiu / resumo.entrou) * 100)}% do que entrou` : null, comparado(resumo.saiu, resumoAnt.saiu)].filter(Boolean).join(" · ") || undefined} />
-          <Stat label={resumo.resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={brl(resumo.resultado)} icon={PiggyBank} tom={resumo.resultado >= 0 ? "bom" : "critico"}
-            sub={`gasto médio de ${brl(resumo.mediaDia)} por dia · ${resumo.quantidade} ${pl(resumo.quantidade, "lançamento", "lançamentos")}`} />
-        </div>
-
-        {/* gastos por tipo: um card para cada; toque abre os lançamentos dele */}
-        <Card className="mb-4 p-3 sm:p-4">
-          <div className="mb-3 flex flex-wrap items-start gap-2">
-            <div className="mr-auto min-w-0">
-              <h2 className="font-bold text-fg">Seus gastos por tipo</h2>
-              <p className="text-xs text-slate-500">Pelo texto do extrato e pelas suas regras · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
-            </div>
-            <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={15} /> Regras ({regras.length})</Button>
-            <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo}><Download size={15} /> Baixar para o contador</Button>
-          </div>
-          {!grupos.length ? <p className="text-sm text-slate-500">Nenhum gasto reconhecido no período (financiamento, impostos, plano de saúde, iFood, postos…).</p> : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-              {grupos.map((g) => {
-                const { icone: Icone, cor } = visualDo(g.id);
-                const v = pct(g.total, g.anterior);
-                const meta = metas.filter((m) => m.card === g.id);
-                const ambos = g.sentido === "ambos" && g.saiu > 0 && g.entrou > 0;
-                return (
-                  <button key={g.id} type="button" onClick={() => escolherGrupo(g.id)} aria-pressed={grupo === g.id} title={g.dica}
-                    className={`flex min-w-0 flex-col rounded-2xl border p-3 text-left transition hover:shadow-card ${g.destaque ? "col-span-2 border-red-300 bg-red-50 sm:col-span-3 xl:col-span-4" : g.aviso ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-70"}`}>
-                    <span className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-2">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white" style={{ background: cor }}><Icone size={16} aria-hidden /></span>
-                      <span className={`line-clamp-2 min-w-0 text-sm font-bold leading-tight ${g.destaque ? "text-red-800" : "text-fg"}`}>{g.nome}{g.destaque && <span className="ml-1 rounded bg-red-600 px-1.5 py-0.5 align-middle text-2xs font-bold uppercase text-white">muito importante</span>}</span>
-                    </span>
-                    {ambos ? (
-                      <span className="mt-2 flex flex-col text-sm font-bold">
-                        <span className="num text-red-700">saiu {brl(g.saiu)}</span><span className="num text-emerald-700">entrou {brl(g.entrou)}</span>
-                      </span>
-                    ) : <span className={`num mt-2 text-lg font-bold ${g.destaque ? "text-red-700" : g.sentido === "entrada" || (g.sentido === "ambos" && g.entrou > 0) ? "text-emerald-700" : "text-fg"}`}>{brl(g.sentido === "ambos" ? g.saiu || g.entrou : g.total)}</span>}
-                    {g.destaque && g.doze != null && <span className="text-xs font-semibold text-red-700">{brl(g.doze)} em 12 meses</span>}
-                    <span className="flex flex-wrap gap-x-2 text-2xs text-slate-500">
-                      <span>{g.qtd} {pl(g.qtd, "lançamento", "lançamentos")}</span>
-                      {v != null ? <span className={v > 0 ? "font-semibold text-red-600" : v < 0 ? "font-semibold text-emerald-700" : ""} title={comparado(g.total, g.anterior)}>{v > 0 ? "▲" : v < 0 ? "▼" : "="} {Math.abs(v)}%</span>
-                        : g.total > 0 && <span>novo no período</span>}
-                    </span>
-                    {g.atraso > 0 && <span className="mt-1 inline-flex items-center gap-1 text-2xs font-bold text-red-700"><AlertTriangle size={12} aria-hidden /> {brl(g.atraso)} de multa e juros (pagas com atraso)</span>}
-                    {meta.map((m) => (
-                      <span key={m.regra.id} className="mt-1 block text-2xs text-slate-600">
-                        {m.regra.rotulo ?? "Meta"}: {brl(m.pago)} de {brl(m.regra.meta_total)}{m.regra.parcelas ? ` · ${m.vezes} de ${m.regra.parcelas}` : ""}
-                        <span className="mt-0.5 block h-1.5 rounded-full bg-slate-200"><span className="block h-1.5 rounded-full bg-violet-600" style={{ width: `${m.pct}%` }} /></span>
-                      </span>
-                    ))}
-                    {g.observacoes.map((o) => <span key={o} className="mt-1 text-2xs italic text-slate-600">{o}</span>)}
-                    {g.aviso && <span className="mt-1 text-2xs font-semibold text-amber-800">Mostrar ao contador</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-
         {/* as contas, cada uma com a sua cor */}
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {contas.map((c) => {
@@ -421,24 +359,6 @@ export default function Pessoal() {
               </div>
             );
           })}
-        </div>
-
-        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="min-w-0 p-4">
-            <h2 className="font-bold text-fg">Entradas e saídas mês a mês</h2>
-            <p className="mb-2 text-xs text-slate-500">12 meses até {nomeMes(serie[serie.length - 1].mes)}, sem transferências entre as suas contas</p>
-            <Colunas altura={230} vazio="Sem lançamentos nesses meses."
-              dados={serie.map((s) => ({ rotulo: mesCurto(s.mes), valores: [s.entrou, s.saiu] }))}
-              series={[{ nome: "Entrou", cor: "var(--serie-3)" }, { nome: "Saiu", cor: "var(--serie-2)" }]} />
-          </Card>
-          <Card className="min-w-0 p-4">
-            <h2 className="font-bold text-fg">Saldo {conta ? `de ${nomeConta(conta)?.nome}` : "das contas"} no período</h2>
-            <p className="mb-2 text-xs text-slate-500">{saldoNoTempo.length > 100 || (saldoNoTempo.length && saldoNoTempo.length < 20 && periodo !== "mes" && periodo !== "pers") ? "no fim de cada mês" : "dia a dia"}, sem os cartões{faixa.ate > hoje() ? ` · até hoje (${dataBR(hoje())})` : ""}</p>
-            {saldoNoTempo.length < 2 ? <p className="py-10 text-center text-sm text-slate-500">Sem saldo para mostrar neste período.</p> : (
-              <Area altura={230} series={[{ nome: "Saldo", cor: "var(--serie-1)" }]}
-                dados={saldoNoTempo.map((p) => ({ rotulo: saldoNoTempo.length > 40 && !p.dia.endsWith("-01") && p.dia !== saldoNoTempo[saldoNoTempo.length - 1].dia ? dataBR(p.dia).slice(0, 5) : dataBR(p.dia).slice(0, 5), valores: [p.saldo] }))} />
-            )}
-          </Card>
         </div>
 
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -476,6 +396,94 @@ export default function Pessoal() {
             <h2 className="mb-3 font-bold text-fg">Maiores gastos do período</h2>
             <Ranking vazio="Nenhuma saída no período."
               itens={resumo.maiores.map((l) => ({ rotulo: l.descricao, valor: -Number(l.valor), detalhe: `${dataBR(l.data)} · ${nomeConta(l.conta_id)?.nome ?? ""}${l.categoria ? ` · ${l.categoria}` : ""}` }))} />
+          </Card>
+        </div>
+
+        {/* gastos por tipo: um card para cada; toque abre os lançamentos dele */}
+        <Card className="mb-4 p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-start gap-2">
+            <div className="mr-auto min-w-0">
+              <h2 className="font-bold text-fg">Seus gastos por tipo</h2>
+              <p className="text-xs text-slate-500">Pelo texto do extrato e pelas suas regras · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
+            </div>
+            <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={15} /> Regras ({regras.length})</Button>
+            <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo}><Download size={15} /> Baixar para o contador</Button>
+          </div>
+          {!grupos.length ? <p className="text-sm text-slate-500">Nenhum gasto reconhecido no período (financiamento, impostos, plano de saúde, iFood, postos…).</p> : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {grupos.map((g) => {
+                const { icone: Icone, cor } = visualDo(g.id);
+                const v = pct(g.total, g.anterior);
+                const meta = metas.filter((m) => m.card === g.id);
+                const ambos = g.sentido === "ambos" && g.saiu > 0 && g.entrou > 0;
+                const entrada = g.sentido === "entrada" || (g.sentido === "ambos" && !g.saiu && g.entrou > 0);
+                const valor = g.sentido === "ambos" ? g.saiu || g.entrou : g.total;
+                const maior = Math.max(1, ...grupos.map((x) => (x.sentido === "ambos" ? x.saiu || x.entrou : x.total)));
+                return (
+                  <button key={g.id} type="button" onClick={() => escolherGrupo(g.id)} aria-pressed={grupo === g.id} title={g.dica}
+                    className={`group flex min-w-0 flex-col gap-2 rounded-2xl border p-3 text-left transition hover:-translate-y-px hover:shadow-card ${g.destaque ? "border-red-300 bg-red-50 sm:col-span-2 xl:col-span-3" : g.aviso ? "border-amber-300 bg-amber-50/70" : "border-slate-200 bg-surface"} ${grupo === g.id ? "ring-2 ring-brand" : ""} ${g.total ? "" : "opacity-60"}`}>
+                    <span className="flex items-center gap-3">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-sm" style={{ background: cor }}><Icone size={18} aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`line-clamp-2 block text-sm font-bold leading-tight ${g.destaque ? "text-red-800" : "text-fg"}`}>{g.nome}</span>
+                        <span className="flex flex-wrap items-center gap-x-2 text-2xs text-slate-500">
+                          <span>{g.qtd} {pl(g.qtd, "lançamento", "lançamentos")}</span>
+                          {v != null ? <span className={`rounded-full px-1.5 font-semibold ${v > 0 ? "bg-red-100 text-red-700" : v < 0 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100"}`} title={comparado(g.total, g.anterior)}>{v > 0 ? "▲" : v < 0 ? "▼" : "="} {Math.abs(v)}%</span>
+                            : g.total > 0 && <span>novo no período</span>}
+                          {g.destaque && <span className="rounded bg-red-600 px-1.5 font-bold uppercase text-white">muito importante</span>}
+                        </span>
+                      </span>
+                      {ambos ? (
+                        <span className="flex shrink-0 flex-col items-end text-sm font-bold">
+                          <span className="num text-red-700">−{brl(g.saiu)}</span><span className="num text-emerald-700">+{brl(g.entrou)}</span>
+                        </span>
+                      ) : <span className={`num shrink-0 text-base font-bold ${g.destaque ? "text-red-700" : entrada ? "text-emerald-700" : "text-fg"}`}>{brl(valor)}</span>}
+                    </span>
+                    {/* barra do tamanho do gasto perto do maior do período */}
+                    <span className="block h-1.5 overflow-hidden rounded-full bg-slate-100"><span className="block h-1.5 rounded-full" style={{ width: `${Math.max(3, (valor / maior) * 100)}%`, background: cor }} /></span>
+                    {g.destaque && g.doze != null && <span className="text-xs font-semibold text-red-700">{brl(g.doze)} em 12 meses</span>}
+                    {g.atraso > 0 && <span className="inline-flex items-center gap-1 text-2xs font-bold text-red-700"><AlertTriangle size={12} aria-hidden /> {brl(g.atraso)} de multa e juros (pagas com atraso)</span>}
+                    {meta.map((m) => (
+                      <span key={m.regra.id} className="block text-2xs text-slate-600">
+                        {m.regra.rotulo ?? "Meta"}: {brl(m.pago)} de {brl(m.regra.meta_total)}{m.regra.parcelas ? ` · ${m.vezes} de ${m.regra.parcelas}` : ""}
+                        <span className="mt-0.5 block h-1.5 rounded-full bg-slate-200"><span className="block h-1.5 rounded-full bg-violet-600" style={{ width: `${m.pct}%` }} /></span>
+                      </span>
+                    ))}
+                    {g.observacoes.map((o) => <span key={o} className="text-2xs italic text-slate-600">{o}</span>)}
+                    {g.aviso && <span className="text-2xs font-semibold text-amber-800">Mostrar ao contador</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Stat label={`Disponível nas contas · hoje ${dataBR(hoje()).slice(0, 5)}`} valor={brl(disponivel)} icon={Wallet} tom={disponivel < 0 ? "critico" : "bom"} sub={`${ativas.filter((c) => c.tipo !== "cartao").length} ${pl(ativas.filter((c) => c.tipo !== "cartao").length, "conta", "contas")}`} />
+          <Stat label="Cartões (fatura em aberto)" valor={brl(-cartoes)} icon={CreditCard} tom={cartoes < 0 ? "atencao" : "neutro"} sub={`${ativas.filter((c) => c.tipo === "cartao").length} ${pl(ativas.filter((c) => c.tipo === "cartao").length, "cartão", "cartões")}`} />
+          <Stat label="Da empresa para você · período" valor={brl(daMFperiodo)} icon={Building2} tom="info" sub="Pix e TED da MF nas suas contas (pró-labore ou lucros)" />
+          <Stat label="Entrou · período" valor={brl(resumo.entrou)} icon={ArrowUpCircle} tom="info" sub={comparado(resumo.entrou, resumoAnt.entrou) ?? "sem o que só passou entre as suas contas"} />
+          <Stat label="Saiu · período" valor={brl(resumo.saiu)} icon={ArrowDownCircle} tom={resumo.saiu > resumo.entrou ? "atencao" : "neutro"}
+            sub={[resumo.entrou ? `${Math.round((resumo.saiu / resumo.entrou) * 100)}% do que entrou` : null, comparado(resumo.saiu, resumoAnt.saiu)].filter(Boolean).join(" · ") || undefined} />
+          <Stat label={resumo.resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={brl(resumo.resultado)} icon={PiggyBank} tom={resumo.resultado >= 0 ? "bom" : "critico"}
+            sub={`gasto médio de ${brl(resumo.mediaDia)} por dia · ${resumo.quantidade} ${pl(resumo.quantidade, "lançamento", "lançamentos")}`} />
+        </div>
+
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card className="min-w-0 p-4">
+            <h2 className="font-bold text-fg">Entradas e saídas mês a mês</h2>
+            <p className="mb-2 text-xs text-slate-500">12 meses até {nomeMes(serie[serie.length - 1].mes)}, sem transferências entre as suas contas</p>
+            <Colunas altura={230} vazio="Sem lançamentos nesses meses."
+              dados={serie.map((s) => ({ rotulo: mesCurto(s.mes), valores: [s.entrou, s.saiu] }))}
+              series={[{ nome: "Entrou", cor: "var(--serie-3)" }, { nome: "Saiu", cor: "var(--serie-2)" }]} />
+          </Card>
+          <Card className="min-w-0 p-4">
+            <h2 className="font-bold text-fg">Saldo {conta ? `de ${nomeConta(conta)?.nome}` : "das contas"} no período</h2>
+            <p className="mb-2 text-xs text-slate-500">{saldoNoTempo.length > 100 || (saldoNoTempo.length && saldoNoTempo.length < 20 && periodo !== "mes" && periodo !== "pers") ? "no fim de cada mês" : "dia a dia"}, sem os cartões{faixa.ate > hoje() ? ` · até hoje (${dataBR(hoje())})` : ""}</p>
+            {saldoNoTempo.length < 2 ? <p className="py-10 text-center text-sm text-slate-500">Sem saldo para mostrar neste período.</p> : (
+              <Area altura={230} series={[{ nome: "Saldo", cor: "var(--serie-1)" }]}
+                dados={saldoNoTempo.map((p) => ({ rotulo: saldoNoTempo.length > 40 && !p.dia.endsWith("-01") && p.dia !== saldoNoTempo[saldoNoTempo.length - 1].dia ? dataBR(p.dia).slice(0, 5) : dataBR(p.dia).slice(0, 5), valores: [p.saldo] }))} />
+            )}
           </Card>
         </div>
 
