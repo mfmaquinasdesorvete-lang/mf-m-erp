@@ -2,7 +2,7 @@
 // (atualizar, reenviar, corrigir e reenviar a rejeitada, carta de correção, cancelar, devolução, excluir).
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, ExternalLink, FilePen, FlaskConical, Printer, RefreshCw, Send, Tags, Trash2, Undo2, Wrench } from "lucide-react";
+import { Copy, Download, ExternalLink, FilePen, FlaskConical, Printer, RefreshCw, Send, ShieldCheck, Tags, Trash2, Undo2, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { supabase, callFunction } from "@/lib/supabase";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
@@ -22,6 +22,7 @@ import { LinhaDoTempo, useEvolucaoEmitidas } from "./Evolucao";
 import { evolucaoEmitida } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 import { confirmar } from "@/components/Dialogos";
+import { ValidarNfe } from "./ValidarNfe";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -50,7 +51,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
   const { data: marcadores = [] } = useMarcadores();
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
-  const [janela, setJanela] = useState<"marcadores" | "carta" | "cancelar" | "excluir" | "devolucao" | "corrigir" | null>(null);
+  const [janela, setJanela] = useState<"marcadores" | "carta" | "cancelar" | "excluir" | "devolucao" | "corrigir" | "validar" | null>(null);
   const [obs, setObs] = useState(n.observacao_interna ?? "");
   const sit = situacaoEmitida(n);
   const p = n.payload ?? {};
@@ -194,6 +195,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           {n.danfe_url && <a href={n.danfe_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><ExternalLink size={15} /> DANFE</a>}
           {n.xml_url && <a href={n.xml_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-light"><Download size={15} /> XML</a>}
           {importada && <Button type="button" variant="ghost" onClick={() => baixarXmlImportado(n)}><Download size={15} /> XML</Button>}
+          {n.chave && (importada || n.xml_url) && <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>}
           {!leitura && n.status === "processando" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({}, "Situação atualizada")}><RefreshCw size={15} /> Atualizar</Button>}
           {podeFiscal && n.status === "contingencia" && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => acao({ acao: "reenviar" }, "Nota reenviada")}><Send size={15} /> Reenviar</Button>}
           {podeFiscal && n.status === "erro" && !importada && <Button type="button" variant="secondary" onClick={() => setJanela("corrigir")}><Wrench size={15} /> Corrigir e reenviar</Button>}
@@ -207,6 +209,12 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
       </div>
 
       {janela === "marcadores" && <AplicarMarcadores tabela="notas_fiscais" notas={[n]} onClose={() => setJanela(null)} />}
+      {janela === "validar" && <ValidarNfe situacaoErp={n.status === "cancelada" ? "cancelada" : null} onClose={() => setJanela(null)} obterXml={async () => {
+        if (importada) return (await supabase.from("notas_fiscais_xml").select("xml").eq("nota_id", n.id).maybeSingle()).data?.xml ?? null;
+        const r = await fetch(n.xml_url!);
+        if (!r.ok) throw new Error(`Não deu para baixar o XML da Focus (${r.status}).`);
+        return r.text();
+      }} />}
       {janela === "carta" && <CartaCorrecaoModal nota={n} onClose={() => setJanela(null)} />}
       {janela === "devolucao" && <DevolucaoModal origem={{ tipo: "emitida", id: n.id }} onClose={() => { setJanela(null); onClose(); }} />}
       {janela === "corrigir" && <CorrigirNota nota={n} onClose={(ok) => { setJanela(null); if (ok) onClose(); }} />}

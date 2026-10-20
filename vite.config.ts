@@ -47,5 +47,8 @@ export default defineConfig(({ mode }) => ({
   },
   define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas), __ERP_CODIGO__: JSON.stringify(codigo) },
   server: { port: 5174 },
+  // xmllint (validador de NF-e) abre um worker e um .wasm pelo próprio caminho: não pode ser pré-empacotado
+  optimizeDeps: { exclude: ["xmllint-wasm"] },
+  worker: { format: "es" },
   build: mode === "demo" ? { outDir: "dist-demo" } : undefined,
 }));

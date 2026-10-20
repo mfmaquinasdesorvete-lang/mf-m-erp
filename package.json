@@ -18,6 +18,7 @@
     "@fontsource/poppins": "^5.2.7",
     "@supabase/supabase-js": "^2.86.0",
     "@tanstack/react-query": "^5.83.0",
+    "@xmldom/xmldom": "^0.9.12",
     "fflate": "^0.8.3",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.1",
@@ -29,7 +30,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xmldsigjs": "^2.8.8",
+    "xmllint-wasm": "^5.3.0",
+    "xpath": "^0.0.34"
   },
   "devDependencies": {
     "@types/react": "^18.3.23",

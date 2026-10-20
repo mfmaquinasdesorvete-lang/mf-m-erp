@@ -4,7 +4,7 @@
 // produtos e ordem de compra (fornecedor/NotaFornecedorAbas).
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, PackagePlus, RefreshCw, Tags, Trash2, Undo2 } from "lucide-react";
+import { Copy, Download, PackagePlus, RefreshCw, ShieldCheck, Tags, Trash2, Undo2 } from "lucide-react";
 import { Button, Field, Modal, Tabs } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
@@ -19,6 +19,7 @@ import { ReembolsoDevolucao } from "./ReembolsoDevolucao";
 import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
 import { evolucaoRecebida } from "@/lib/evolucaoNota";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
+import { ValidarNfe } from "./ValidarNfe";
 import { usePerfil } from "@/lib/auth";
 import { ABAS_NOTA, NotaFornecedorAbas, type AbaNota } from "./fornecedor/NotaFornecedorAbas";
 
@@ -33,7 +34,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
   const { data: marcadores = [] } = useMarcadores();
   const invalidate = useInvalidate();
   const [ocupado, setOcupado] = useState(false);
-  const [janela, setJanela] = useState<"marcadores" | "devolucao" | "excluir" | null>(null);
+  const [janela, setJanela] = useState<"marcadores" | "devolucao" | "excluir" | "validar" | null>(null);
   const { tem } = usePerfil();
   // contas a pagar, NF de devolução e excluir ficam com o financeiro (o Compras trabalha a nota, o custo e a OC)
   const fin = tem("financeiro");
@@ -162,6 +163,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
         {!leitura && (
           <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
             <Button type="button" variant="ghost" disabled={ocupado} onClick={baixarXml}><Download size={15} /> XML</Button>
+            <Button type="button" variant="ghost" onClick={() => setJanela("validar")} title="Conferir o XML com as regras oficiais da SEFAZ"><ShieldCheck size={15} /> Validar</Button>
             {ativa && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento) && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "processar", nfe_id: n.id }, (r) => `Situação: ${String(r.processamento).replace(/_/g, " ")}`, true)}><RefreshCw size={15} /> Processar de novo</Button>
             )}
@@ -183,6 +185,12 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
       </div>
 
       {janela === "marcadores" && <AplicarMarcadores tabela="nfe_recebidas" notas={[n]} onClose={() => setJanela(null)} />}
+      {janela === "validar" && <ValidarNfe situacaoErp={n.situacao} onClose={() => setJanela(null)} obterXml={async () => {
+        // o XML guardado no ERP; se ainda não veio, pede à SEFAZ pela Focus (mesmo caminho do botão XML)
+        const { data } = await supabase.from("nfe_recebidas").select("xml").eq("id", n.id).maybeSingle();
+        if (data?.xml) return data.xml as string;
+        return ((await callFunction("nfe-recebidas-sync", { acao: "xml", chave: n.chave })) as { xml?: string })?.xml ?? null;
+      }} />}
       {janela === "devolucao" && <DevolucaoModal origem={{ tipo: "recebida", id: n.id }} onClose={() => { setJanela(null); onClose(); }} />}
       {janela === "excluir" && (
         <MotivoAcao titulo="Excluir nota de fornecedor" rotulo="Excluir" perigo onClose={() => setJanela(null)}

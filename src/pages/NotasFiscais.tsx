@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { Ban, CalendarClock, FileDown, FlaskConical, ListChecks, RefreshCw, Search, Send, Settings2, Tags, Undo2, Upload } from "lucide-react";
+import { Ban, CalendarClock, FileDown, FlaskConical, ListChecks, RefreshCw, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
@@ -24,6 +24,7 @@ import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe
 import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
 import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
+import { SeloValidacao, useValidacoes, ValidarNfe } from "@/components/nfe/ValidarNfe";
 import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebidas } from "@/components/nfe/Evolucao";
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
@@ -190,6 +191,8 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   // se o pedido já tem nota autorizada/em processamento depois, as recusas antigas somem da lista
   const data = useMemo(() => juntarTentativas(filtrar(dataTodos).filter((n) => !n.excluida_em)), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
+  const validacoes = useValidacoes();
+  const [validarXml, setValidarXml] = useState(false);
   const { pode } = usePerfil();
   const podeFin = !leitura && pode("nfe_recebidas");
   const [aba, setAba] = useState(() => (filtroInicial && ABAS_EMITIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
@@ -254,6 +257,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
         direita={<div className="flex flex-wrap gap-2">
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
           <MaisAcoes>
+            <Button variant="secondary" onClick={() => setValidarXml(true)} title="Conferir arquivos XML com as regras oficiais da SEFAZ"><ShieldCheck size={16} /> Validar XML</Button>
             <Button variant="secondary" onClick={() => exportarNotas(`notas-emitidas-${aba}`, filtrada.map((n) => ({
               Número: n.numero ?? "", Emissão: dataBR(n.created_at), Pedido: n.pedido?.numero ?? "",
               "Cliente / destinatário": (n as any).transferencia?.numero != null ? `Transferência #${(n as any).transferencia.numero}` : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? n.payload?.nome_destinatario ?? "",
@@ -300,6 +304,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                   <td className="td text-right">{brl(n.valor_total)}</td>
                   <td className="td">
                     <IconeSituacao s={situacaoEmitida(n)} />
+                    {n.chave && <div><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /></div>}
                     {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
                     {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
@@ -316,6 +321,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
         </>
       )}
       {janela === "emitir" && <EmitirNfeModal onClose={() => setJanela(null)} />}
+      {validarXml && <ValidarNfe onClose={() => setValidarXml(false)} />}
       {janela === "inutilizar" && <InutilizarModal onClose={() => setJanela(null)} />}
       {janela === "gerenciar" && <GerenciarMarcadores onClose={() => setJanela(null)} />}
       {janela === "marcadores" && <AplicarMarcadores tabela="notas_fiscais" notas={data.filter((n) => sel.has(n.id))} onClose={() => setJanela(null)} />}
@@ -329,6 +335,8 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const { data: dataTodos = [], isLoading } = useRows<Recebida & { excluida_em?: string | null }>("nfe_recebidas", { select: CAMPOS_RECEBIDA, order: "data_emissao" });
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
+  const validacoes = useValidacoes();
+  const [validarXml, setValidarXml] = useState(false);
   const [aba, setAba] = useState(() => (filtroInicial && ABAS_RECEBIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
   const [marcador, setMarcador] = useState("");
   const [etapa, setEtapa] = useState("");
@@ -381,6 +389,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
         <Button className="!min-h-0 !px-3 !py-2 text-sm" onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar<span className="hidden sm:inline"> notas</span> na SEFAZ</Button>
         <Button className="!min-h-0 !px-3 !py-2 text-sm" variant="secondary" onClick={() => setConferir(true)} title="Ligar os itens das notas aos produtos do ERP (cadastro e fornecedores)"><ListChecks size={16} /> Conferir itens<span className="hidden sm:inline"> das notas</span></Button>
         <MaisAcoes>
+        <Button variant="secondary" onClick={() => setValidarXml(true)} title="Conferir arquivos XML com as regras oficiais da SEFAZ"><ShieldCheck size={16} /> Validar XML</Button>
         <Button variant="secondary" onClick={() => exportarNotas(`notas-recebidas-${aba}`, filtrada.map((n) => ({
           Número: numeroDaChave(n.chave), Emissão: dataBR(n.data_emissao), Fornecedor: n.emitente_nome ?? "", CNPJ: docFormat(n.emitente_cnpj),
           Valor: Number(n.valor_total ?? 0), Situação: situacaoRecebida(n).rotulo, Chave: n.chave ?? "",
@@ -433,6 +442,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
                 <td className="td text-right">{brl(n.valor_total)}</td>
                 <td className="td">
                   <IconeSituacao s={situacaoRecebida(n)} />
+                  {n.chave && <div><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /></div>}
                   {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                   {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
                 </td>
@@ -449,6 +459,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {janela === "marcadores" && <AplicarMarcadores tabela={tabela} notas={data.filter((n) => sel.has(n.id))} onClose={() => setJanela(null)} />}
       {abertaAtual && <RecebidaDetalhe nota={abertaAtual} leitura={leitura} onClose={() => setAberta(null)} />}
       {conferir && <ConferirItensNotas onClose={() => setConferir(false)} />}
+      {validarXml && <ValidarNfe onClose={() => setValidarXml(false)} />}
     </>
   );
 }
