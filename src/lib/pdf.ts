@@ -15,6 +15,7 @@ import logoPdf from "@/assets/logo-pdf.jpg";
 import { logoDaEmpresa } from "./marca";
 import { pl } from "@/lib/format";
 import { agruparPorTerceiro } from "./pagarTiny";
+import type { PecaFicha } from "./fichaMontagem";
 import { nomeFretePorConta, type ParcelaOc, type TotaisOc } from "./ordemCompra";
 
 const logoCache = new Map<string, Promise<string | null>>();
@@ -424,6 +425,86 @@ export async function pdfOS(o: {
   doc.text(o.recebido_por ? `Cliente: ${o.recebido_por}` : "Assinatura do cliente", 14, y + 28);
   doc.text(cfg.nome_fantasia || cfg.razao_social, w - 14, y + 28, { align: "right" });
 
+  rodape(doc);
+  return doc.output("blob");
+}
+
+// ---------------------------------------------------------------------
+// Ficha de montagem da OP: uma folha por máquina, para o montador conferir as peças, marcar as etapas e assinar
+// ---------------------------------------------------------------------
+export async function pdfFichaMontagem(f: {
+  op: number | null | undefined; maquina: string; folhas: (string | null)[]; pecas: PecaFicha[]; etapas: string[];
+  cliente?: string | null; pedido?: number | null; previsao?: string | null; responsavel?: string | null;
+}, cfg: Config) {
+  const { doc, autoTable, logo } = await novoDoc();
+  const w = doc.internal.pageSize.getWidth();
+  const campo = (rotulo: string, x: number, y: number, larg: number) => {
+    doc.setFontSize(7.5); doc.setTextColor(...CINZA); doc.text(rotulo, x, y);
+    doc.setDrawColor(148, 163, 184); doc.line(x, y + 6, x + larg, y + 6);
+  };
+  f.folhas.forEach((serie, i) => {
+    if (i > 0) doc.addPage();
+    cabecalho(doc, cfg, "FICHA DE MONTAGEM", f.op ? `OP Nº ${f.op}` : "OP", logo);
+    autoTable(doc, {
+      startY: 36,
+      body: [
+        ["Máquina", f.maquina],
+        ["Nº de série", serie || "____________________  (anotar o da placa)"],
+        ["Folha", `máquina ${i + 1} de ${f.folhas.length}`],
+        ...(f.pedido ? [["Venda", `Pedido #${f.pedido}${f.cliente ? ` - ${f.cliente}` : ""}`]] : []),
+        ...(f.previsao ? [["Previsão", dataBR(f.previsao)]] : []),
+        ...(f.responsavel ? [["Responsável", f.responsavel]] : []),
+      ],
+      styles: { fontSize: 9.5, cellPadding: 1.6, textColor: [30, 41, 59] },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 34, textColor: [71, 85, 105] } },
+      theme: "plain",
+      margin: { left: 14, right: 14 },
+    });
+    let y = (doc as any).lastAutoTable.finalY + 4;
+    if (f.pecas.length) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Peça (ficha técnica)", "Código", "Qtd", "Conferido"]],
+        body: f.pecas.map((p) => [p.descricao, p.codigo ?? "", `${p.quantidade.toLocaleString("pt-BR")}${p.unidade ? ` ${p.unidade}` : ""}`, "[   ]"]),
+        styles: { fontSize: 8.5, cellPadding: 1.5 },
+        headStyles: { fillColor: NAVY, textColor: 255 },
+        columnStyles: { 1: { cellWidth: 28 }, 2: { cellWidth: 20, halign: "center" }, 3: { cellWidth: 22, halign: "center" } },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 5;
+    } else {
+      y = paragrafo(doc, "Peças", "Esta máquina ainda não tem ficha técnica cadastrada (Produção → Ficha técnica).", y);
+    }
+    autoTable(doc, {
+      startY: y,
+      head: [["Etapa de montagem", "Feito", "Por", "Data"]],
+      body: (f.etapas.length ? f.etapas : ["Montagem", "Teste no giga", "Limpeza e embalagem"]).map((e) => [e, "[   ]", "", ""]),
+      styles: { fontSize: 8.5, cellPadding: 2.2 },
+      headStyles: { fillColor: NAVY, textColor: 255 },
+      columnStyles: { 1: { cellWidth: 18, halign: "center" }, 2: { cellWidth: 42 }, 3: { cellWidth: 26 } },
+      margin: { left: 14, right: 14 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 7;
+    if (y > 235) { doc.addPage(); y = 20; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+    doc.text("Teste no giga", 14, y);
+    doc.setFont("helvetica", "normal");
+    y += 5;
+    const col = (w - 28 - 8) / 3;
+    campo("Data do teste", 14, y, col);
+    campo("Resultado (aprovada / reprovada)", 14 + col + 4, y, col);
+    campo("Lançado no ERP (Teste giga) por", 14 + 2 * (col + 4), y, col);
+    y += 12;
+    campo("Observações da montagem", 14, y, w - 28);
+    y += 9;
+    doc.setDrawColor(148, 163, 184); doc.line(14, y + 6, w - 14, y + 6);
+    y += 22;
+    doc.line(14, y, 84, y);
+    doc.line(w - 84, y, w - 14, y);
+    doc.setFontSize(8); doc.setTextColor(...CINZA);
+    doc.text("Montador (nome e assinatura)", 14, y + 4);
+    doc.text("Conferente / qualidade", w - 14, y + 4, { align: "right" });
+  });
   rodape(doc);
   return doc.output("blob");
 }

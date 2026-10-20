@@ -11,7 +11,8 @@ import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
-import { comUnidade, pdfPedidoCompra } from "@/lib/pdf";
+import { comUnidade, pdfFichaMontagem, pdfPedidoCompra } from "@/lib/pdf";
+import { folhasDaFicha, pecasDaFicha } from "@/lib/fichaMontagem";
 import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
@@ -295,6 +296,9 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor_id: string; ativo: boolean }>("fornecimentos", { select: "produto_id, fornecedor_id, ativo", order: "produto_id" });
   const { data: fichas = [] } = useRows<LinhaFicha>("produto_componentes", { select: "produto_id, componente_id, quantidade", order: "produto_id" });
   const invalidate = useInvalidate();
+  const { data: cfg } = useConfig();
+  const { unidades } = useUnidade();
+  const [fichaPdf, setFichaPdf] = useState<Blob | null>(null);
   const podeEditar = pode("editar_producao") && !["concluida", "cancelada"].includes(o.status ?? "");
   const nec = necessidade.filter((n) => n.ordem_id === o.id);
   // o que falta: peça comprada vira pedido de compra; subconjunto com estoque próprio vira OP dele
@@ -376,6 +380,20 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     const { error } = await supabase.rpc("concluir_producao", { p_ordem: o.id });
     if (error) throw error;
   }, "Produção concluída: peças baixadas e máquinas no estoque");
+
+  /** Ficha de montagem impressa: uma folha por máquina (nº de série), peças para conferir, etapas, giga e assinaturas. */
+  async function gerarFicha() {
+    if (!cfg || !o.produto_id) return;
+    try {
+      const venda = vendas.find((v) => v.id === o.pedido_id);
+      setFichaPdf(await pdfFichaMontagem({
+        op: o.numero, maquina: produtos.find((p) => p.id === o.produto_id)?.descricao ?? "",
+        folhas: folhasDaFicha(o.numeros_serie, o.quantidade), pecas: pecasDaFicha(fichas, produtos, o.produto_id),
+        etapas: etapas.length ? etapas.map((e) => e.nome) : etapasMaquina,
+        pedido: venda?.numero ?? null, cliente: venda?.cliente?.nome ?? null, previsao: o.previsao, responsavel: o.responsavel,
+      }, comUnidade(cfg, unidades.find((u) => u.id === (o as any).unidade_id))));
+    } catch (e) { notifyError(e); }
+  }
 
   /** Um pedido de compra (em cotação) por fornecedor padrão das peças que faltam. */
   const gerarCompras = () => executar(async () => {
@@ -521,12 +539,14 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
           {podeEditar && o.id && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => mudarStatus("cancelada", "Ordem cancelada")} disabled={ocupado}><XCircle size={16} /> Cancelar OP</Button>}
+          {o.id && ehMaquina && <Button type="button" variant="ghost" onClick={gerarFicha}><FileDown size={16} /> Ficha de montagem</Button>}
           <span className="flex-1" />
           {podeEditar && <Button variant="secondary" disabled={ocupado}>Salvar</Button>}
           {podeEditar && o.status === "planejada" && o.id && <Button type="button" variant="secondary" onClick={() => mudarStatus("em_producao", "Produção iniciada")} disabled={ocupado}><Play size={16} /> Iniciar produção</Button>}
           {podeEditar && o.id && <Button type="button" onClick={concluir} disabled={ocupado || !nec.length || nec.some((n) => Number(n.estoque_atual) < Number(n.necessario))}><CheckCircle2 size={16} /> Concluir produção</Button>}
         </div>
       </form>
+      {fichaPdf && <PdfViewer blob={fichaPdf} nome={`ficha-montagem-op-${o.numero ?? ""}.pdf`} titulo={`Ficha de montagem · OP #${o.numero}`} onClose={() => setFichaPdf(null)} />}
     </Modal>
   );
 }
