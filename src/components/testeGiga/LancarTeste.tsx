@@ -309,7 +309,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
         )}
       </div>
 
-      <div className="sticky bottom-20 z-10 flex items-center gap-2 rounded-2xl border border-slate-200 bg-surface/95 p-2.5 shadow-pop backdrop-blur md:bottom-4">
+      <div className="sticky bottom-24 z-10 flex items-center gap-2 rounded-2xl border border-slate-200 bg-surface/95 p-2.5 shadow-pop backdrop-blur md:bottom-4">
         <ResultadoGeral geral={geral} />
         <Button type="submit" className="min-h-[52px] shrink-0 whitespace-nowrap px-4 text-base sm:px-6" disabled={salvando || !!sit?.aprovado || outroModelo}>
           <Save size={18} /> {salvando ? "Salvando…" : "Salvar e próximo"}

@@ -64,6 +64,43 @@
   --grade: #18365e; --eixo: #2a4a75; --eixo-texto: #91a3c0; --hover: #10294a;
 }
 
+/* Fundo "App" (padrão no escuro): azul-noite com brilho violeta, cartões de vidro e cantos mais redondos,
+   no jeito dos aplicativos. Grafite e marinho continuam em Aparência. */
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) {
+  --sombra: 0.45;
+  --canvas: 10 11 26;
+  --surface: 23 25 48;
+  --campo: 15 16 34;
+  --ink: 9 10 22; --ink-soft: 26 28 54; --ink-line: 40 43 74;
+  --fg: 240 241 250;
+  --slate-50: 30 32 58; --slate-100: 37 40 68; --slate-200: 49 52 84; --slate-300: 70 74 110; --slate-400: 146 150 186;
+  --slate-500: 158 162 196; --slate-600: 190 193 220; --slate-700: 210 212 234; --slate-800: 228 229 244; --slate-900: 244 244 252;
+  --grade: #262a48; --eixo: #3a3f66; --eixo-texto: #9ea2c4; --hover: #1f2240;
+}
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) body {
+  background-color: rgb(var(--canvas));
+  background-image:
+    radial-gradient(900px 520px at 100% -10%, rgb(124 58 237 / 0.22), transparent 65%),
+    radial-gradient(800px 600px at -10% 110%, rgb(37 99 235 / 0.18), transparent 60%);
+  background-attachment: fixed;
+}
+/* cartão de vidro: borda clara fininha, brilho no alto e sombra funda (sem trocar o fundo de cartões coloridos) */
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .shadow-card {
+  border-color: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 10px 30px -12px rgb(0 0 0 / 0.6);
+}
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .rounded-xl { border-radius: 1rem; }
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .rounded-2xl { border-radius: 1.35rem; }
+@media (max-width: 767px) {
+  :root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .tabela.tabela > tbody > tr {
+    border-color: rgb(255 255 255 / 0.07) !important; border-left-color: rgb(var(--modulo)) !important;
+    border-radius: 18px; box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.6);
+  }
+}
+/* claro: cantos um pouco mais redondos e sombra mais macia, também com cara de app */
+:root:not([data-theme="dark"]) .rounded-2xl { border-radius: 1.25rem; }
+:root:not([data-theme="dark"]) .shadow-card { box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12); }
+
 /* Cor de destaque (escolhida em Aparência). --brand-nav é o tom usado no menu lateral navy. */
 :root, :root[data-accent="ciano"] { --brand: 6 116 148; --brand-dark: 5 98 126; --brand-light: 224 246 252; --brand-fg: 255 255 255; --brand-nav: 0 212 255; }
 :root[data-theme="dark"], :root[data-theme="dark"][data-accent="ciano"] { --brand: 0 212 255; --brand-dark: 77 225 255; --brand-light: 8 52 80; --brand-fg: 4 22 40; }

@@ -11,19 +11,22 @@ export function lerTema(): Tema {
 
 export function aplicarTema(t: Tema) {
   document.documentElement.dataset.theme = t === "escuro" ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "claro" ? "#f4f6f9" : lerFundo() === "marinho" ? "#061226" : "#101216");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "claro" ? "#f4f6f9" : { marinho: "#061226", grafite: "#101216", app: "#0a0b1a" }[lerFundo()]);
   try { localStorage.setItem(CHAVE, t); } catch { /* navegação privada: só não lembra a escolha */ }
 }
 
-/** Fundo do tema escuro: grafite neutro (padrão, mais fácil de ler) ou o azul-marinho de antes */
-export type Fundo = "grafite" | "marinho";
-const CHAVE_FUNDO = "mf-erp-fundo";
+/** Fundo do tema escuro: "app" (padrão: azul-noite com brilho e cartões de vidro, jeito de aplicativo),
+ *  grafite neutro ou o azul-marinho de antes. Chave nova: todo mundo começa no visual de aplicativo. */
+export type Fundo = "app" | "grafite" | "marinho";
+const CHAVE_FUNDO = "mf-erp-fundo2";
+const FUNDOS: Fundo[] = ["app", "grafite", "marinho"];
 
 export function lerFundo(): Fundo {
   try {
-    return localStorage.getItem(CHAVE_FUNDO) === "marinho" ? "marinho" : "grafite";
+    const v = localStorage.getItem(CHAVE_FUNDO) as Fundo | null;
+    return v && FUNDOS.includes(v) ? v : "app";
   } catch {
-    return "grafite";
+    return "app";
   }
 }
 
@@ -61,7 +64,9 @@ export function aplicarDestaque(d: Destaque) {
 
 /** Aplica a aparência salva no perfil do usuário (vale em qualquer aparelho). */
 export function aplicarPreferencias(p: { tema?: string; destaque?: string; fundo?: string } | null | undefined) {
-  if (p?.fundo === "grafite" || p?.fundo === "marinho") aplicarFundo(p.fundo);
+  // fundo2: a escolha feita depois do visual de aplicativo (o "fundo" antigo era sempre grafite por padrão)
+  const f = (p as { fundo2?: string } | null | undefined)?.fundo2;
+  if (f && FUNDOS.includes(f as Fundo)) aplicarFundo(f as Fundo);
   if (p?.tema === "claro" || p?.tema === "escuro") aplicarTema(p.tema);
   if (p?.destaque && DESTAQUES.some((d) => d.value === p.destaque)) aplicarDestaque(p.destaque as Destaque);
 }

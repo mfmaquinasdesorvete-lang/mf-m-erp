@@ -139,7 +139,7 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
     // celular: fica logo acima da barra de atalhos fixa do pé da tela, numa faixa baixa (os números numa linha só,
     // sem a dica das ações em lote) para não cobrir a lista
     // com linhas marcadas a faixa ganha a cor do sistema e as ações em lote aparecem como botões cheios, bem à vista
-    <div className={`sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border px-3 py-1.5 shadow-card backdrop-blur md:bottom-0 md:gap-y-2 md:px-4 md:py-2 ${selecionados > 0 && acoes ? "border-brand bg-surface ring-2 ring-brand/40" : "border-slate-200 bg-surface/95"}`}>
+    <div className={`sticky bottom-[calc(5.4rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border px-3 py-1.5 shadow-card backdrop-blur md:bottom-0 md:gap-y-2 md:px-4 md:py-2 ${selecionados > 0 && acoes ? "border-brand bg-surface ring-2 ring-brand/40" : "border-slate-200 bg-surface/95"}`}>
       {selecionados > 0 ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Ações em lote">
           <span className="rounded-full bg-brand px-2.5 py-1 text-sm font-bold text-brand-fg">{selecionados} {pl(selecionados, "selecionado", "selecionados")}</span>

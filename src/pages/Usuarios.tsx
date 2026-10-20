@@ -577,7 +577,7 @@ function MatrizPermissoes() {
         </table>
       </Card>
       {editavel && (
-        <div className="sticky bottom-20 z-10 flex flex-wrap items-center justify-end gap-2 md:bottom-4">
+        <div className="sticky bottom-24 z-10 flex flex-wrap items-center justify-end gap-2 md:bottom-4">
           {mudou && <span className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Alterações não salvas</span>}
           {mudou && <Button type="button" variant="secondary" onClick={() => setOculto(null)}>Desfazer</Button>}
           <Button type="button" disabled={!mudou || salvando} onClick={salvar}><Check size={16} /> {salvando ? "Salvando…" : "Salvar perfis"}</Button>

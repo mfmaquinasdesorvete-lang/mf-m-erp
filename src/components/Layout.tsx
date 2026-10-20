@@ -5,7 +5,7 @@ import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, IceCreamCone, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
-  Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard,
+  Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { descreverAparelho } from "@/lib/acessos";
@@ -92,6 +92,7 @@ export function Layout() {
   // trocou de tela (ex.: tocou num aviso do painel): começa do alto, e não no meio da página de antes
   useEffect(() => { window.scrollTo({ top: 0 }); document.querySelector("main")?.scrollTo?.({ top: 0 }); }, [location.pathname]);
   const [aberto, setAberto] = useState(false);
+  const [criar, setCriar] = useState(false);
   const [busca, setBusca] = useState("");
   const navigate = useNavigate();
   // menu maior que a tela (notebook 1366x768): mostra "mais opções" enquanto houver itens escondidos embaixo
@@ -174,10 +175,14 @@ export function Layout() {
     .map((to) => todosItens.find((i) => i.to === to)!)
     .filter((i) => i && vis.item(i));
 
+  // "+" da barra do celular: as ações diretas das áreas que a pessoa pode fazer
+  const acoesRapidas = grupos.flatMap((g) => g.acao && vis.ve(g.acao.tela, g.acao.to) && perfil.pode(g.acao.pode) ? [{ g, acao: g.acao }] : []);
+  const meioBarra = Math.ceil(atalhos.length / 2);
+
   return (
     <NotificacoesProvider>
     <div className="min-h-screen md:flex">
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-ink-line bg-ink px-4 py-2.5 md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-white/5 bg-ink/85 px-4 py-2.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top, 0px))" }}>
         <Marca compacta onIr={() => setAberto(false)} />
         <div className="ml-auto flex items-center gap-1"><SeletorUnidade compacto /><Sino /></div>
         <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} className="rounded-lg p-2 text-white hover:bg-white/10">
@@ -344,7 +349,7 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="fundo-modulo relative min-w-0 flex-1 px-4 pb-28 pt-5 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
+      <main className="fundo-modulo relative min-w-0 flex-1 px-4 pb-32 pt-5 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
         {/* assinatura das empresas desde 2009 */}
         <span className="assinatura pointer-events-none absolute right-4 top-1.5 hidden select-none text-xl text-modulo-texto/70 md:block 2xl:right-8" aria-hidden>Sopro Divino</span>
         <ModuloContext.Provider value={modulo}>
@@ -363,18 +368,50 @@ export function Layout() {
       </main>
       <AvisoVersao />
 
-      {/* Celular: atalhos fixos embaixo, ao alcance do polegar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-ink-line bg-ink/95 backdrop-blur md:hidden"
-        style={{ gridTemplateColumns: `repeat(${atalhos.length + 1}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        {atalhos.map(({ to, curto, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} onClick={() => setAberto(false)} {...alvoDoLink(to)}
-            className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${isActive ? "text-modulo before:absolute before:inset-x-5 before:top-0 before:h-0.5 before:rounded-b before:bg-modulo" : "text-nav-fraco"}`}>
-            <Icon size={21} /> {curto}
-          </NavLink>
+      {/* Celular: barra flutuante embaixo, ao alcance do polegar, com o "+" no meio (criar venda, OS, conta, NF-e…) */}
+      {criar && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setCriar(false)} />}
+      {criar && (
+        <div role="dialog" aria-label="Criar" className="fixed inset-x-3 z-50 rounded-3xl border border-white/10 bg-ink-soft/95 p-3 shadow-2xl backdrop-blur-xl md:hidden"
+          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))", animation: "entrar .18s ease-out" }}>
+          <p className="px-2 pb-2 pt-1 text-2xs font-semibold uppercase tracking-wider text-nav-fraco">Criar agora</p>
+          <div className="grid grid-cols-2 gap-2">
+            {acoesRapidas.map(({ g, acao }) => {
+              const Icone = g.icone ?? Boxes;
+              return (
+                <button key={g.id} type="button" onClick={() => { setCriar(false); setAberto(false); navigate(acao.to, { state: acao.state }); }}
+                  className="flex items-center gap-2.5 rounded-2xl bg-white/5 p-3 text-left text-white active:scale-[.98]">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${g.cor ?? "from-brand to-brand-dark"}`}><Icone size={18} /></span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold">{acao.label}</span><span className="block truncate text-2xs font-normal text-nav-fraco">{acao.dica}</span></span>
+                </button>
+              );
+            })}
+            <button type="button" onClick={() => { setCriar(false); setAberto(true); }}
+              className={`flex items-center gap-2.5 rounded-2xl bg-white/5 p-3 text-left text-white active:scale-[.98] ${acoesRapidas.length % 2 === 0 ? "col-span-2" : ""}`}>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10"><Menu size={18} /></span>
+              <span className="min-w-0"><span className="block text-sm font-semibold">Todas as telas</span><span className="block truncate text-2xs font-normal text-nav-fraco">abre o menu completo</span></span>
+            </button>
+          </div>
+        </div>
+      )}
+      <nav className="fixed inset-x-3 z-40 flex items-center rounded-[1.75rem] border border-white/10 bg-ink/85 px-1.5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.6)] backdrop-blur-xl md:hidden"
+        style={{ bottom: "calc(0.6rem + env(safe-area-inset-bottom, 0px))" }}>
+        {atalhos.map(({ to, curto, icon: Icon }, i) => (
+          <div key={to} className="flex min-w-0 flex-1" style={{ order: i < meioBarra ? 0 : 2 }}>
+            <NavLink to={to} end={to === "/"} onClick={() => { setAberto(false); setCriar(false); }} {...alvoDoLink(to)}
+              className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${isActive ? "text-white" : "text-nav-fraco"}`}>
+              {({ isActive }) => (<>
+                <span className={`grid h-8 w-12 place-items-center rounded-full transition ${isActive ? "bg-modulo/25 text-modulo" : ""}`}><Icon size={20} /></span>
+                <span className="max-w-full truncate">{curto}</span>
+              </>)}
+            </NavLink>
+          </div>
         ))}
-        <button onClick={() => setAberto(!aberto)} aria-expanded={aberto} className={`flex flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${aberto ? "text-brand-ice" : "text-nav-fraco"}`}>
-          <Menu size={21} /> Mais
-        </button>
+        <div className="flex shrink-0 justify-center px-1" style={{ order: 1 }}>
+          <button type="button" onClick={() => { setAberto(false); setCriar(!criar); }} aria-expanded={criar} aria-label={criar ? "Fechar" : "Criar"}
+            className="-mt-7 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#3b82f6] text-white shadow-[0_10px_25px_-5px_rgb(124_58_237/0.7)] ring-4 ring-canvas transition active:scale-95">
+            <Plus size={26} className={`transition ${criar ? "rotate-45" : ""}`} />
+          </button>
+        </div>
       </nav>
 
       {trocarSenha && <AlterarSenha onClose={() => setTrocarSenha(false)} />}
@@ -425,7 +462,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
   const salvar = (p: Record<string, string>) => { supabase.rpc("salvar_preferencias", { p }).then(() => null); };
   const escolherTema = (t: Tema) => { aplicarTema(t); setTema(t); salvar({ tema: t }); };
   const escolherCor = (d: Destaque) => { aplicarDestaque(d); setCor(d); salvar({ destaque: d }); };
-  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo: f }); };
+  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo2: f }); };
 
   return (
     <Modal open onClose={onClose} title="Aparência">
@@ -444,8 +481,8 @@ function Aparencia({ onClose }: { onClose: () => void }) {
         {tema === "escuro" && (
           <div>
             <div className="mb-2 text-sm font-bold text-fg">Fundo do tema escuro</div>
-            <div className="grid grid-cols-2 gap-3">
-              {([["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {([["app", "App", "azul-noite com brilho, jeito de aplicativo", "#191b33", "#0a0b1a"], ["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
                 <button key={v} type="button" onClick={() => escolherFundo(v)}
                   className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${fundo === v ? "border-brand" : "border-slate-200 hover:border-slate-300"}`}>
                   <span className="relative flex">
