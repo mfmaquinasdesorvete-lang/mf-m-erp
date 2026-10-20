@@ -23,6 +23,7 @@ import { evolucaoEmitida } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes";
 import { confirmar } from "@/components/Dialogos";
 import { ValidarNfe } from "./ValidarNfe";
+import { EventosNota, useEventosNfe } from "./PostosFiscais";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -59,6 +60,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
   const importada = n.origem === "importada";
   const teste = n.ambiente === "homologacao";
   const podeFiscal = !leitura && pode("emitir_nfe");
+  const eventosNfe = useEventosNfe();
   const podeFin = !leitura && pode("nfe_recebidas");
 
   const { data: relacionadas = [] } = useQuery({
@@ -205,6 +207,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
           {podeFin && podeExcluirEmitida(n) && <Button type="button" variant="ghost" className="!text-red-600" onClick={() => setJanela("excluir")}><Trash2 size={15} /> Excluir</Button>}
         </div>
 
+        {n.chave && ["autorizada", "cancelada"].includes(n.status) && <EventosNota chave={n.chave} notaId={importada ? undefined : n.id} eventos={eventosNfe.get(n.chave) ?? []} podeBuscar={!leitura} />}
         <Historico tabela="notas_fiscais" id={n.id} />
       </div>
 

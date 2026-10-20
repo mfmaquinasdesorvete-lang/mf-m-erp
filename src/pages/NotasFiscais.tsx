@@ -25,6 +25,7 @@ import { ConferirItensNotas } from "@/components/compras/ConferirItensNotas";
 import { Excluidas, useExcluidas } from "@/components/nfe/Excluidas";
 import { DiagnosticoNfe } from "@/components/nfe/DiagnosticoNfe";
 import { SeloValidacao, useValidacoes, ValidarNfe } from "@/components/nfe/ValidarNfe";
+import { IconePostos, useEventosNfe } from "@/components/nfe/PostosFiscais";
 import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebidas } from "@/components/nfe/Evolucao";
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
@@ -192,6 +193,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   const data = useMemo(() => juntarTentativas(filtrar(dataTodos).filter((n) => !n.excluida_em)), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
   const validacoes = useValidacoes();
+  const eventosNfe = useEventosNfe();
   const [validarXml, setValidarXml] = useState(false);
   const { pode } = usePerfil();
   const podeFin = !leitura && pode("nfe_recebidas");
@@ -304,7 +306,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                   <td className="td text-right">{brl(n.valor_total)}</td>
                   <td className="td">
                     <IconeSituacao s={situacaoEmitida(n)} />
-                    {n.chave && <div><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /></div>}
+                    {n.chave && <div className="flex flex-wrap gap-1"><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /><IconePostos eventos={eventosNfe.get(n.chave)} /></div>}
                     {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
                     {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
@@ -336,6 +338,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const data = useMemo(() => filtrar(dataTodos).filter((n) => !n.excluida_em), [dataTodos, filtrar]);
   const { data: marcadores = [] } = useMarcadores();
   const validacoes = useValidacoes();
+  const eventosNfe = useEventosNfe();
   const [validarXml, setValidarXml] = useState(false);
   const [aba, setAba] = useState(() => (filtroInicial && ABAS_RECEBIDAS.some((a) => a.valor === filtroInicial) ? filtroInicial : "todas"));
   const [marcador, setMarcador] = useState("");
@@ -442,7 +445,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
                 <td className="td text-right">{brl(n.valor_total)}</td>
                 <td className="td">
                   <IconeSituacao s={situacaoRecebida(n)} />
-                  {n.chave && <div><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /></div>}
+                  {n.chave && <div className="flex flex-wrap gap-1"><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /><IconePostos eventos={eventosNfe.get(n.chave)} /></div>}
                   {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                   {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
                 </td>

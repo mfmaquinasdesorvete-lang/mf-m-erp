@@ -20,6 +20,7 @@ import { LinhaDoTempo, useEvolucaoRecebidas } from "./Evolucao";
 import { evolucaoRecebida } from "@/lib/evolucaoNota";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { ValidarNfe } from "./ValidarNfe";
+import { EventosNota, useEventosNfe } from "./PostosFiscais";
 import { usePerfil } from "@/lib/auth";
 import { ABAS_NOTA, NotaFornecedorAbas, type AbaNota } from "./fornecedor/NotaFornecedorAbas";
 
@@ -38,6 +39,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
   const { tem } = usePerfil();
   // contas a pagar, NF de devolução e excluir ficam com o financeiro (o Compras trabalha a nota, o custo e a OC)
   const fin = tem("financeiro");
+  const eventosNfe = useEventosNfe();
   const [aba, setAba] = useState<AbaNota>("resumo");
   // as abas da nota completa só carregam (XML, produtos, OC) depois do primeiro clique, e não perdem o que foi feito
   const [abriuAbas, setAbriuAbas] = useState(false);
@@ -180,6 +182,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             cliente={n.emitente_nome} podeFin={!leitura && fin} />
         )}
         <EvolucaoRecebida n={n} />
+        {n.chave && <EventosNota chave={n.chave} eventos={eventosNfe.get(n.chave) ?? []} podeBuscar={!leitura} />}
         <Historico tabela="nfe_recebidas" id={n.id} />
         </>}
       </div>

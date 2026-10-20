@@ -6,6 +6,8 @@
 // POST { acao: "inutilizar", unidade_id, serie, numero_inicial, numero_final, justificativa }
 // POST { acao: "ambiente" }                                   -> "producao" ou "homologacao" (para avisar na tela)
 // POST { acao: "diagnostico" }                                -> confere ambiente, tokens na Focus, cadastro e numeração
+// POST { acao: "eventos", nota_id? , chave? }                  -> eventos da nota na SEFAZ (passagem por posto fiscal, MDF-e/CT-e,
+//                                                                 ciência/confirmação), pela consulta completa da Focus; guarda em nfe_eventos
 // POST { acao: "importar_xml", xmls: string[] }                -> NF-e emitidas em outro sistema (ex.: Tiny) e seus cancelamentos
 // POST { nota_id, acao: "reenviar_corrigida", alteracoes }      -> nota rejeitada: corrige natureza, informações, destinatário
 //                                                                 e NCM/CFOP/descrição dos itens e manda de novo (valores não mudam)
@@ -17,6 +19,7 @@ import { aplicarRetornoDoEnvio, enviarNfe } from "../_shared/nfe-envio.ts";
 import { importarXmlEmitida } from "../_shared/nfe-importar.ts";
 import { corrigirPayload } from "../_shared/nfe-correcao.ts";
 import { diagnosticoNfe } from "../_shared/nfe-diagnostico.ts";
+import { eventosNaResposta } from "../_shared/nfe-eventos.ts";
 
 const msgFocus = (b: any, padrao: string) =>
   [b.mensagem_sefaz || b.mensagem, ...(b.erros ?? []).map((e: any) => e.mensagem)].filter(Boolean).join(" | ") || padrao;
@@ -71,6 +74,32 @@ Deno.serve(async (req) => {
       }).select().single();
       if (!ok) throw new HttpError(422, data?.mensagem ?? "inutilização não aceita");
       return json({ ok: true, inutilizacao: data });
+    }
+
+    if (acao === "eventos") {
+      // nota emitida pela MF (pela referência na Focus) ou recebida de fornecedor (pela chave, na lista de recebidas)
+      let res: Response;
+      let chave: string | null = null;
+      if (nota_id) {
+        const { data: n } = await db.from("notas_fiscais").select("referencia, unidade_id, chave").eq("id", nota_id).single();
+        if (!n?.referencia) throw new HttpError(404, "nota não encontrada");
+        chave = n.chave;
+        res = await focus(`/v2/nfe/${encodeURIComponent(n.referencia)}?completa=1`, { signal: AbortSignal.timeout(25_000) }, await codigoUnidade(db, n.unidade_id));
+      } else {
+        chave = onlyDigits(String(corpo.chave ?? ""));
+        if (chave.length !== 44) throw new HttpError(400, "informe a nota ou a chave");
+        const { data: r } = await db.from("nfe_recebidas").select("unidade_id").eq("chave", chave).maybeSingle();
+        res = await focus(`/v2/nfes_recebidas/${chave}.json?completa=1`, { signal: AbortSignal.timeout(25_000) }, await codigoUnidade(db, r?.unidade_id ?? null), { recebidas: true });
+      }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new HttpError(502, msgFocus(body, `Focus NFe HTTP ${res.status}`));
+      const eventos = eventosNaResposta(body).filter((e) => !chave || e.chave === chave);
+      if (eventos.length) {
+        const { error } = await db.from("nfe_eventos").upsert(eventos.map((e) => ({ ...e, origem: "focus" })), { onConflict: "chave,tp_evento,n_seq" });
+        if (error) throw new HttpError(500, error.message);
+      }
+      // campos devolvidos pela Focus: ajudam a ver se ela entrega os eventos do fisco (passagem) para esta nota
+      return json({ ok: true, eventos: eventos.length, campos: Object.keys(body ?? {}) });
     }
 
     const { data: nota } = await db.from("notas_fiscais").select("*").eq("id", nota_id).single();

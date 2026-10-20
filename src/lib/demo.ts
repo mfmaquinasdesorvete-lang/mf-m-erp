@@ -176,6 +176,14 @@ function seed(): Db {
       { id: "cpa6", descricao: "Internet fibra da fábrica", categoria: "energia/água/internet", valor: 189.9, vencimento: dias(4), status: "aberto", revisao: "devolvido",
         revisao_comentario: "Falta anexar o boleto", lancamento: "manual", criado_por: "u-fin" },
     ],
+    // passagens por posto fiscal (exemplo): a NF 1291 saiu com MDF-e, passou por PR e SP e o cliente confirmou
+    nfe_eventos: [
+      { chave: "42260000000000000000000000000000000000000107", tp_evento: "610610", n_seq: 1, descricao: "MDF-e Autorizado", dh_evento: quando(-1), orgao: "SP", detalhe: "MDF-e nº 456", protocolo: null },
+      { chave: "42260000000000000000000000000000000000000107", tp_evento: "610500", n_seq: 1, descricao: "Registro de Passagem", dh_evento: quando(-1), orgao: "PR", detalhe: "Posto Fiscal de exemplo", protocolo: null },
+      { chave: "42260000000000000000000000000000000000000107", tp_evento: "610500", n_seq: 2, descricao: "Registro de Passagem", dh_evento: quando(0), orgao: "SC", detalhe: null, protocolo: null },
+      { chave: "42260000000000000000000000000000000000000107", tp_evento: "210200", n_seq: 1, descricao: "Confirmacao da Operacao", dh_evento: quando(0), orgao: "AN", detalhe: null, protocolo: null },
+      { chave: "42260000000000000000000000000000000000000108", tp_evento: "610500", n_seq: 1, descricao: "Registro de Passagem", dh_evento: quando(0), orgao: "PR", detalhe: null, protocolo: null },
+    ],
     notas_fiscais: [
       { id: "nf1", pedido_id: "pd1", referencia: "pedido-101-1", status: "autorizada", numero: "1287", serie: "1", chave: "35261012345678000190550010000012871000012870", valor_total: 23728, mensagem: "Autorizado o uso da NF-e", created_at: quando(-33), marcadores: ["mk1", "mk2"],
         payload: { natureza_operacao: "Venda de mercadoria", nome_destinatario: "Sorveteria Gelato Nobre Ltda", cnpj_destinatario: "12345678000190", uf_destinatario: "SP", municipio_destinatario: "Campinas",
