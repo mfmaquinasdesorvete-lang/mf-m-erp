@@ -24,6 +24,7 @@ import { operacaoNota } from "../../../supabase/functions/_shared/nfe-operacoes"
 import { confirmar } from "@/components/Dialogos";
 import { ValidarNfe } from "./ValidarNfe";
 import { EventosNota, useEventosNfe } from "./PostosFiscais";
+import { GuiaRejeicaoNota } from "./GuiaRejeicao";
 
 export type NotaEmitida = {
   id: string; referencia: string; status: string; numero: string | null; serie: string | null; chave: string | null; valor_total: number;
@@ -118,7 +119,7 @@ export function NotaDetalhe({ nota: n, leitura, onClose }: { nota: NotaEmitida; 
         </div>
 
         {n.status === "erro" && n.mensagem && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><b>Motivo da rejeição:</b> {n.mensagem}</div>
+          <GuiaRejeicaoNota mensagem={n.mensagem} />
         )}
 
         <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -305,7 +306,7 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
         <p className="text-sm text-slate-600">Esta tentativa não chegou a ser montada (faltava cadastro). Corrija o cadastro do cliente ou do produto e emita de novo pelo pedido.</p>
       ) : (
         <form onSubmit={enviar} className="space-y-4">
-          {nota.mensagem && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><b>Rejeição:</b> {nota.mensagem}</div>}
+          {nota.mensagem && <GuiaRejeicaoNota mensagem={nota.mensagem} rotulo="Rejeição" />}
           <p className="text-sm text-slate-600">Valores, quantidades e impostos não mudam aqui (vêm do pedido). Se o erro estiver no cadastro, corrija também em Clientes ou Produtos para as próximas notas.</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Natureza da operação" className="sm:col-span-3"><input className="input" maxLength={60} value={natureza} onChange={(e) => setNatureza(e.target.value)} /></Field>

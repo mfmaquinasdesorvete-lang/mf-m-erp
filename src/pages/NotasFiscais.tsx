@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { Ban, CalendarClock, FileDown, FlaskConical, ListChecks, RefreshCw, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
+import { Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
@@ -18,6 +18,8 @@ import { ConfigNfe } from "@/components/ConfigNfe";
 import { NfsePainel } from "@/components/nfse/NfsePainel";
 import { ImportarXmlNotas, type TipoImportacao } from "@/components/ImportarXmlNotas";
 import { ABAS_EMITIDAS, ABAS_RECEBIDAS, numeroDaChave, situacaoEmitida, situacaoRecebida, type Situacao } from "@/lib/notas";
+import { guiaRejeicao } from "@/lib/faturamento";
+import { PainelFaturamento } from "@/components/nfe/PainelFaturamento";
 import { AplicarMarcadores, ChipsMarcadores, GerenciarMarcadores, TituloMarcadores, useMarcadores, type TabelaNota } from "@/components/nfe/Marcadores";
 import { NotaDetalhe, type NotaEmitida } from "@/components/nfe/NotaDetalhe";
 import { RecebidaDetalhe, type Recebida } from "@/components/nfe/RecebidaDetalhe";
@@ -146,7 +148,7 @@ export default function NotasFiscais() {
   const contador = papel === "contador";
   // perfil Compras (sem vendas nem financeiro): só as notas de fornecedor
   const soRecebidas = !contador && !tem("vendas", "financeiro") && pode("nfe_recebidas");
-  const [aba, setAba] = useAbaUrl<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse">("emitidas", ["emitidas", "recebidas", "config", "regras", "compliance", "nfse"] as const);
+  const [aba, setAba] = useAbaUrl<"emitidas" | "recebidas" | "config" | "regras" | "compliance" | "nfse" | "faturamento">("emitidas", ["emitidas", "recebidas", "config", "regras", "compliance", "nfse", "faturamento"] as const);
   // "+ Emitir NF-e" do menu: abre a emissão
   const location = useLocation();
   const navigate = useNavigate();
@@ -178,8 +180,9 @@ export default function NotasFiscais() {
         { value: "config", label: "Configurações da NF-e" },
         { value: "regras", label: "Regras de tributação" },
         { value: "compliance", label: "Compliance fiscal" },
+        { value: "faturamento", label: "Faturamento" },
       ]} />
-      {aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
+      {aba === "faturamento" ? <PainelFaturamento /> : aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
       </>}
     </div>
   );
@@ -310,6 +313,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                     {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
                     {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                     {n.status === "erro" && n.mensagem && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.mensagem}</div>}
+                    {n.status === "erro" && guiaRejeicao(n.mensagem) && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900" title="Abra a nota para ver o passo a passo"><Lightbulb size={11} /> {guiaRejeicao(n.mensagem)!.titulo}</div>}
                     {n.status === "erro" && (n as any)._tentativas > 1 && <div className="mt-0.5 text-2xs font-semibold text-rose-700">{(n as any)._tentativas} tentativas recusadas · corrija o cadastro antes de reenviar</div>}
                   </td>
                   <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>

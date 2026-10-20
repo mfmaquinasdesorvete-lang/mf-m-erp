@@ -34,6 +34,7 @@ import { MotivoAcao } from "@/components/MotivoAcao";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ConferirNfe } from "@/components/nfe/ConferirNfe";
+import { EmitirLote } from "@/components/nfe/EmitirLote";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { ClienteRapido } from "@/components/clientes/ClienteRapido";
 import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
@@ -166,6 +167,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const selecao = useSelecao();
   const [marcandoLote, setMarcandoLote] = useState(false);
   const [lancando, setLancando] = useState(false);
+  const [emitindoLote, setEmitindoLote] = useState(false);
   const [conciliando, setConciliando] = useState(false);
   // Máquinas: só as vendas para os licenciados da My Frost Sorveterias (etiqueta do cadastro do cliente)
   const [soLicenciados, setSoLicenciados] = useState(false);
@@ -436,6 +438,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         acoes={<>
           {tem("financeiro") && <Button title="Procura no extrato do banco o Pix ou depósito de cada venda marcada e concilia (como no Tiny)"
             onClick={() => selecionados.length > 500 ? notify("Marque no máximo 500 vendas por vez", "erro") : setConciliando(true)}><Landmark size={15} /> Conciliar</Button>}
+          {tem("vendas", "financeiro") && <Button variant="secondary" title="Emite a NF-e das vendas marcadas que estão prontas (sem exceção), uma após a outra" onClick={() => setEmitindoLote(true)}><FileText size={15} className="text-brand" /> Emitir NF-e</Button>}
           {tem("financeiro") && <Button variant="secondary" onClick={() => setLancando(true)}><Receipt size={15} className="text-sky-600" /> Lançar contas</Button>}
           <Button variant="secondary" onClick={() => setMarcandoLote(true)}><Tags size={15} className="text-violet-600" /> Marcadores</Button>
           <Button variant="secondary" onClick={() => exportarPedidos(selecionados, infoDe)}><FileDown size={15} className="text-emerald-600" /> Exportar</Button>
@@ -444,6 +447,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       </>}
 
       {marcandoLote && <AplicarMarcadores tabela="pedidos" notas={selecionados} nome={["venda", "vendas"]} onClose={() => setMarcandoLote(false)} />}
+      {emitindoLote && <EmitirLote pedidos={selecionados as any} onClose={(ok) => { setEmitindoLote(false); if (ok) { selecao.limpar(); invalidate("pedidos", "notas_fiscais"); } }} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {conciliando && <ConciliarVendas ids={selecionados.map((p) => p.id)} onClose={(ok) => { setConciliando(false); if (ok) selecao.limpar(); }} />}
       {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
