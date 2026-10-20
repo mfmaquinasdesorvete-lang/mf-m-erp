@@ -4,11 +4,11 @@
 // notas desse item entrarem sozinhas no estoque. Esta tela não mexe no estoque.
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CheckCheck, Link2, Loader2, PackagePlus, Search, Undo2, X } from "lucide-react";
+import { Check, CheckCheck, Link2, Loader2, PackagePlus, Search, Sparkles, Undo2, X } from "lucide-react";
 import { Button, Field, Modal } from "../ui";
 import { ProdutoBusca } from "../ProdutoBusca";
 import { confirmar } from "../Dialogos";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -20,9 +20,14 @@ import {
   type ItemNota, type SituacaoItem, type TipoSemEstoque,
 } from "@/lib/itensNotas";
 import type { Produto } from "@/lib/types";
+import { LIMITE_ITENS, type ItemIA, type SugestaoItemIA } from "../../../supabase/functions/_shared/ia-itens";
 
 type Filtro = "pendentes" | "sugestao" | "ligados" | "sem_estoque" | "todos";
 type Acao = { item: ItemNota; acao: "produto" | TipoSemEstoque | "pendente"; produto_id?: string; fator?: number };
+type Criando = { item: ItemNota; nome?: string | null; tipo?: string | null };
+const ROTULO_IA: Record<SugestaoItemIA["decisao"], string> = {
+  ligar: "Ligar a", criar: "Criar o produto", consumo: "Uso e consumo", ativo: "Bem da empresa", servico: "Serviço", duvida: "Na dúvida",
+};
 const POR_VEZ = 40;
 const qtd = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
@@ -44,7 +49,9 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
   const [limite, setLimite] = useState(POR_VEZ);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [ocupado, setOcupado] = useState(false);
-  const [criando, setCriando] = useState<ItemNota | null>(null);
+  const [criando, setCriando] = useState<Criando | null>(null);
+  const [ia, setIa] = useState<Map<string, SugestaoItemIA>>(new Map());
+  const [iaOcupada, setIaOcupada] = useState(false);
   const desde = desdeDe(periodo);
 
   const { data: itens = [], isLoading, error } = useQuery({
@@ -92,6 +99,39 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
     if (!(await confirmar(`Ligar ${porCodigoBarras.length} ${pl(porCodigoBarras.length, "item", "itens")} ao produto com o mesmo código de barras?`))) return;
     gravar(porCodigoBarras.map((i) => ({ item: i, acao: "produto", produto_id: i.sugestao_id!, fator: 1 })), `${porCodigoBarras.length} ${pl(porCodigoBarras.length, "item ligado", "itens ligados")}`);
   }
+  // IA: os próximos itens a ligar (da lista na tela) vão com até 5 produtos parecidos cada; ela devolve uma decisão por item
+  const semIa = lista.filter((i) => { const s = situacaoItem(i); return (s === "pendente" || s === "sugestao") && !ia.has(chaveItem(i)); });
+  async function pedirIa() {
+    const lote = semIa.slice(0, LIMITE_ITENS);
+    if (!lote.length) return;
+    setIaOcupada(true);
+    try {
+      const itensIa: ItemIA[] = lote.map((i) => {
+        const cands = sugerirPorNome(i.descricao, produtos, 5).map((x) => x.produto);
+        const sug = i.sugestao_id ? porId.get(i.sugestao_id) : null;
+        if (sug && !cands.some((c) => c.id === sug.id)) cands.unshift(sug);
+        return {
+          chave: chaveItem(i), descricao: i.descricao ?? "", codigo: i.codigo, ncm: i.ncm, ean: i.ean, fornecedor: i.fornecedor, unidade: i.unidade,
+          ultimo_valor: i.ultimo_valor == null ? null : Number(i.ultimo_valor),
+          candidatos: cands.map((c) => ({ id: c.id, descricao: c.descricao, sku: c.sku, codigo_fabricante: c.codigo_fabricante, unidade: c.unidade })),
+        };
+      });
+      const r = await callFunction<{ itens: SugestaoItemIA[] }>("ia-produto", { acao: "itens", itens: itensIa });
+      setIa((m) => { const n = new Map(m); for (const x of r.itens) n.set(x.chave, x); return n; });
+      notify(`A IA olhou ${r.itens.length} ${pl(r.itens.length, "item", "itens")}: confira e aplique`);
+    } catch (e) { notifyError(e); } finally { setIaOcupada(false); }
+  }
+  const iaAlta = itens.filter((i) => {
+    const x = ia.get(chaveItem(i)); const s = situacaoItem(i);
+    return x && x.confianca === "alta" && (s === "pendente" || s === "sugestao") && x.decisao !== "criar" && x.decisao !== "duvida";
+  });
+  async function aplicarIaAlta() {
+    if (!(await confirmar(`Aplicar ${iaAlta.length} ${pl(iaAlta.length, "sugestão", "sugestões")} da IA com confiança alta?`))) return;
+    gravar(iaAlta.map((i) => { const x = ia.get(chaveItem(i))!; return x.decisao === "ligar"
+      ? { item: i, acao: "produto" as const, produto_id: x.produto_id!, fator: x.fator }
+      : { item: i, acao: x.decisao as TipoSemEstoque }; }), `${iaAlta.length} ${pl(iaAlta.length, "sugestão aplicada", "sugestões aplicadas")}`);
+  }
+
   function marcarSelecionados(tipo: TipoSemEstoque) {
     const escolhidos = itens.filter((i) => sel.has(chaveItem(i)) && !i.produto_id);
     gravar(escolhidos.map((i) => ({ item: i, acao: tipo })), `${escolhidos.length} ${pl(escolhidos.length, "item marcado", "itens marcados")} como ${NOME_SEM_ESTOQUE[tipo].toLowerCase()}`);
@@ -145,6 +185,18 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
           </button>
         ))}
       </div>
+      {semIa.length + iaAlta.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 p-2.5 text-sm text-violet-900">
+          <Sparkles size={16} className="shrink-0 text-violet-700" aria-hidden />
+          <span className="min-w-0 flex-1">A IA lê cada item e sugere: ligar a um produto, criar um novo ou marcar o que não é de estoque. Você confere e aplica.</span>
+          {semIa.length > 0 && (
+            <Button type="button" disabled={iaOcupada || ocupado} onClick={pedirIa}>
+              {iaOcupada ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} Sugestões da IA ({Math.min(semIa.length, LIMITE_ITENS)}{semIa.length > LIMITE_ITENS ? ` de ${semIa.length}` : ""})
+            </Button>
+          )}
+          {iaAlta.length > 0 && <Button type="button" variant="secondary" disabled={ocupado} onClick={aplicarIaAlta}><CheckCheck size={15} /> Aplicar as {iaAlta.length} de confiança alta</Button>}
+        </div>
+      )}
       {(porCodigoBarras.length > 0 || sel.size > 0) && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-sm">
           {sel.size > 0 ? (<>
@@ -166,23 +218,23 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
 
       <ul className="space-y-2" aria-label="Itens das notas">
         {visiveis.map((i) => (
-          <LinhaItem key={chaveItem(i)} item={i} produtos={produtos} porId={porId} ocupado={ocupado}
+          <LinhaItem key={chaveItem(i)} item={i} produtos={produtos} porId={porId} ocupado={ocupado} ia={ia.get(chaveItem(i))}
             selecionado={sel.has(chaveItem(i))} aoSelecionar={() => setSel((s) => { const n = new Set(s); const k = chaveItem(i); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
-            gravar={gravar} aoCriar={() => setCriando(i)} />
+            gravar={gravar} aoCriar={(nome, tipo) => setCriando({ item: i, nome, tipo })} />
         ))}
       </ul>
       {lista.length > limite && (
         <div className="mt-3 text-center"><Button type="button" variant="secondary" onClick={() => setLimite(limite + POR_VEZ)}>Mostrar mais ({lista.length - limite})</Button></div>
       )}
-      {criando && <CriarProdutoItem item={criando} produtos={produtosTodos} onClose={() => setCriando(null)}
-        onCriado={(id, fator) => { const it = criando; setCriando(null); gravar([{ item: it, acao: "produto", produto_id: id, fator }], "Produto criado e ligado"); }} />}
+      {criando && <CriarProdutoItem item={criando.item} nomeInicial={criando.nome} tipoInicial={criando.tipo} produtos={produtosTodos} onClose={() => setCriando(null)}
+        onCriado={(id, fator) => { const it = criando.item; setCriando(null); gravar([{ item: it, acao: "produto", produto_id: id, fator }], "Produto criado e ligado"); }} />}
     </Modal>
   );
 }
 
-function LinhaItem({ item: i, produtos, porId, ocupado, selecionado, aoSelecionar, gravar, aoCriar }: {
-  item: ItemNota; produtos: Produto[]; porId: Map<string, Produto>; ocupado: boolean; selecionado: boolean; aoSelecionar: () => void;
-  gravar: (a: Acao[], ok: string) => void; aoCriar: () => void;
+function LinhaItem({ item: i, produtos, porId, ocupado, ia, selecionado, aoSelecionar, gravar, aoCriar }: {
+  item: ItemNota; produtos: Produto[]; porId: Map<string, Produto>; ocupado: boolean; ia?: SugestaoItemIA; selecionado: boolean; aoSelecionar: () => void;
+  gravar: (a: Acao[], ok: string) => void; aoCriar: (nome?: string | null, tipo?: string | null) => void;
 }) {
   const s = situacaoItem(i);
   const [escolhido, setEscolhido] = useState<Produto | null>(null);
@@ -232,6 +284,12 @@ function LinhaItem({ item: i, produtos, porId, ocupado, selecionado, aoSeleciona
           </div>
         )}
         {aberto && (<>
+          {ia && <SugestaoIa ia={ia} produto={ia.produto_id ? porId.get(ia.produto_id) : undefined} ocupado={ocupado}
+            aplicar={() => {
+              if (ia.decisao === "ligar") { const p = porId.get(ia.produto_id!); if (p) gravar([{ item: i, acao: "produto", produto_id: p.id, fator: ia.fator }], `Ligado a ${p.descricao}`); }
+              else if (ia.decisao === "criar") aoCriar(ia.nome_novo, ia.tipo_novo);
+              else if (ia.decisao !== "duvida") gravar([{ item: i, acao: ia.decisao }], `Marcado como ${NOME_SEM_ESTOQUE[ia.decisao].toLowerCase()}`);
+            }} />}
           {sugestao && s === "sugestao" && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg bg-sky-50 px-2.5 py-1.5 text-sm text-sky-900">
               <span className="min-w-0 flex-1"><b>{sugestao.descricao}</b> <span className="text-xs">({i.sugestao_motivo})</span></span>
@@ -257,7 +315,7 @@ function LinhaItem({ item: i, produtos, porId, ocupado, selecionado, aoSeleciona
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <ProdutoBusca produtos={produtos} onEscolher={escolher} placeholder="Ligar a um produto (nome, SKU, código)…" className="min-w-0 flex-1 basis-56" />
-              {!i.produto_id && <Button type="button" variant="secondary" disabled={ocupado} onClick={aoCriar}><PackagePlus size={14} /> Criar produto</Button>}
+              {!i.produto_id && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => aoCriar()}><PackagePlus size={14} /> Criar produto</Button>}
               {!i.produto_id && (
                 <select className="input w-auto text-sm" value="" disabled={ocupado} aria-label="Não é de estoque"
                   onChange={(e) => { const t = e.target.value as TipoSemEstoque; if (t) gravar([{ item: i, acao: t }], `Marcado como ${NOME_SEM_ESTOQUE[t].toLowerCase()}`); }}>
@@ -275,16 +333,36 @@ function LinhaItem({ item: i, produtos, porId, ocupado, selecionado, aoSeleciona
   );
 }
 
+function SugestaoIa({ ia, produto, ocupado, aplicar }: { ia: SugestaoItemIA; produto?: Produto; ocupado: boolean; aplicar: () => void }) {
+  const cor = ia.confianca === "alta" ? "bg-emerald-100 text-emerald-800" : ia.confianca === "media" ? "bg-amber-100 text-amber-900" : "bg-slate-200 text-slate-700";
+  const alvo = ia.decisao === "ligar" ? produto?.descricao : ia.decisao === "criar" ? `"${ia.nome_novo}"` : null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-sm text-violet-900">
+      <Sparkles size={14} className="shrink-0 text-violet-700" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <b>IA: {ROTULO_IA[ia.decisao]}</b>{alvo && <> <b className="text-fg">{alvo}</b></>}{ia.decisao === "ligar" && ia.fator !== 1 && <> · fator {qtd(ia.fator)}</>}
+        {ia.motivo && <span className="block text-xs text-violet-800">{ia.motivo}</span>}
+      </span>
+      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cor}`}>confiança {ia.confianca === "media" ? "média" : ia.confianca}</span>
+      {ia.decisao !== "duvida" && (
+        <Button type="button" disabled={ocupado} onClick={aplicar}>{ia.decisao === "criar" ? <PackagePlus size={14} /> : <Check size={14} />} {ia.decisao === "criar" ? "Criar" : "Aplicar"}</Button>
+      )}
+    </div>
+  );
+}
+
 const TIPOS_NOVO = [
   { value: "insumo", label: "Componente de produção (uso interno)" },
   { value: "peca", label: "Peça de reposição (cliente compra)" },
   { value: "acessorio", label: "Acessório" },
 ];
 
-function CriarProdutoItem({ item: i, produtos, onClose, onCriado }: { item: ItemNota; produtos: Produto[]; onClose: () => void; onCriado: (id: string, fator: number) => void }) {
+function CriarProdutoItem({ item: i, nomeInicial, tipoInicial, produtos, onClose, onCriado }: {
+  item: ItemNota; nomeInicial?: string | null; tipoInicial?: string | null; produtos: Produto[]; onClose: () => void; onCriado: (id: string, fator: number) => void;
+}) {
   const eanLivre = i.ean && !produtos.some((p) => p.codigo_barras === i.ean) ? i.ean : "";
-  const [nome, setNome] = useState(() => nomePadrao(i.descricao ?? ""));
-  const [tipo, setTipo] = useState("insumo");
+  const [nome, setNome] = useState(() => nomePadrao(nomeInicial || i.descricao || ""));
+  const [tipo, setTipo] = useState(() => (TIPOS_NOVO.some((t) => t.value === tipoInicial) ? tipoInicial! : "insumo"));
   const [unidade, setUnidade] = useState(() => (unidadeDeEmbalagem(i.unidade) ? "UN" : unidadeDoErp(i.unidade)));
   const [fator, setFator] = useState("1");
   const [ncm, setNcm] = useState(String(i.ncm ?? "").replace(/\D/g, "").slice(0, 8));
@@ -327,7 +405,7 @@ function CriarProdutoItem({ item: i, produtos, onClose, onCriado }: { item: Item
         )}
         <Field label="NCM"><input className="input num" inputMode="numeric" value={ncm} onChange={(e) => setNcm(e.target.value.replace(/\D/g, "").slice(0, 8))} /></Field>
         <Field label="Código de barras (da nota)"><input className="input num" inputMode="numeric" value={codigoBarras} onChange={(e) => setCodigoBarras(e.target.value.replace(/\D/g, "").slice(0, 14))} placeholder={i.ean && !eanLivre ? "já usado por outro produto" : "sem código"} /></Field>
-        <div className="text-sm sm:col-span-2">Custo: <b className="num">{brl(custo)}</b> <span className="text-xs text-slate-500">(último preço da nota{f !== 1 ? ` ÷ ${qtd(f)}` : ""}); o preço de venda fica para a Formação de preço.</span></div>
+        <div className="text-sm sm:col-span-2">Custo: <b className="num">{brl(custo)}</b> <span className="text-xs text-slate-500">(último preço da nota{f !== 1 ? ` ÷ ${qtd(f)}` : ""}); {tipo === "insumo" ? "componente de produção: a venda fica igual ao custo." : "o preço de venda fica para a Formação de preço."}</span></div>
       </div>
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>

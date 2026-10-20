@@ -622,7 +622,14 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
           { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "Custo de compra = valor do item na NF do fornecedor (atualizado na entrada). Alterar custo ou preço já preenchido pede o motivo, que fica no histórico." },
           { name: "preco_custo", label: "Custo de compra", type: "number" },
-          { name: "preco_venda", label: "Preço de venda", type: "number" },
+          {
+            // componente de produção que não se vende: venda = custo (o banco também garante)
+            name: "preco_venda", label: "Preço de venda", type: "custom", span: 1,
+            render: (v, set, row) => row.tipo === "insumo" && !row.vendavel
+              ? <span className="text-sm text-slate-700"><b className="num">{brl(Number(row.preco_custo || 0))}</b> <span className="text-xs text-slate-500">· igual ao custo (componente de produção)</span></span>
+              : <input className="input num" type="number" step="0.01" min="0" inputMode="decimal" value={v ?? ""}
+                  onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))} />,
+          },
           { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
           { name: "margem_desejada", label: "Margem desejada (%) — vazio usa a da categoria ou do tipo", type: "number", span: 2 },
           {

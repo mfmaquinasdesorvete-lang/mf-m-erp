@@ -21,6 +21,7 @@ import { ultimoDiaUtil } from "./obrigacoes";
 import { conferirAgendamento, frequenciaDe, type FrequenciaColeta } from "./coleta";
 import { faltaParaCotarRte } from "../../supabase/functions/_shared/rodonaves";
 import { normalizarSugestao } from "../../supabase/functions/_shared/ia-produto";
+import { normalizarItens, type ItemIA } from "../../supabase/functions/_shared/ia-itens";
 import { sugestaoLocal } from "./autoFill";
 
 type Row = Record<string, any>;
@@ -5254,6 +5255,20 @@ const funcoes: Record<string, (b: any) => any> = {
   // na prévia não há IA: simula a resposta com as regras do ERP + o que uma foto/PDF traria (marca, voltagem)
   "ia-produto": (b) => {
     if (b.acao === "situacao") return { configurada: true };
+    // Conferir itens das notas: liga ao 1º candidato, marca uso e consumo pelo nome, senão sugere criar
+    if (b.acao === "itens") {
+      const itens = (b.itens ?? []) as ItemIA[];
+      return {
+        modelo: "simulação da prévia",
+        itens: normalizarItens({
+          itens: itens.map((i) => i.candidatos[0]
+            ? { chave: i.chave, decisao: "ligar", produto_id: i.candidatos[0].id, fator: 1, nome_novo: null, tipo_novo: null, motivo: "mesma peça pelo nome e pela medida", confianca: "media" }
+            : /limpeza|papel|caneta|luva|detergente|caf[eé]/i.test(i.descricao)
+              ? { chave: i.chave, decisao: "consumo", produto_id: null, fator: 1, nome_novo: null, tipo_novo: null, motivo: "material de uso e consumo", confianca: "alta" }
+              : { chave: i.chave, decisao: "criar", produto_id: null, fator: 1, nome_novo: i.descricao, tipo_novo: "insumo", motivo: "nenhum produto do ERP é igual", confianca: "baixa" }),
+        }, itens),
+      };
+    }
     const cats = (db.categorias_produto ?? []).filter((c) => c.ativo).map((c) => c.nome as string);
     const base = sugestaoLocal({ id: "demo", ...b.produto } as any, db.produtos as any, 3);
     const comArquivo = !!(b.imagem || b.documento || b.foto_caminho);
