@@ -5,9 +5,9 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, ClipboardCopy, FileDown, Lightbulb, Receipt, Scale, ShieldAlert, XCircle,
+  AlertTriangle, ArrowRight, BadgeCheck, Calculator, CalendarCheck, CheckCircle2, ClipboardCopy, FileDown, Lightbulb, ListChecks, Receipt, Scale, ShieldAlert, XCircle,
 } from "lucide-react";
-import { Button, CampoMes, Card, Indicador, PageHeader, Tabs } from "@/components/ui";
+import { Button, CampoMes, Card, Indicador, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
@@ -140,10 +140,23 @@ export default function AnalistaFiscal() {
         <Indicador rotulo={`Imposto de ${MESES[Number(mes.slice(5)) - 1]}`} icon={Receipt} cor="azul" valor={brl(doMes.ap.total)} sub="estimativa da apuração" />
       </div>
 
-      <Tabs value={aba} onChange={setAba} options={[
-        { value: "auditoria", label: "Conferência fiscal" }, { value: "deducoes", label: "Deduções (modo avançado)" }, { value: "economia", label: "Pagar menos imposto" }, { value: "apuracao", label: "Apuração do mês" },
-        { value: "regime", label: "Real x Presumido" }, { value: "rotina", label: "Rotina simples" },
-      ]} />
+      {/* fichas: cada assunto do analista com o número que importa; tocar abre o detalhe logo abaixo */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3" role="tablist" aria-label="Assuntos do analista fiscal">
+        {([
+          ["auditoria", "Conferência fiscal", ListChecks, a.resumo.problemas + a.resumo.alertas ? `${a.resumo.problemas + a.resumo.alertas} para ver` : "tudo certo", a.resumo.problemas ? "text-red-600" : a.resumo.alertas ? "text-amber-600" : "text-emerald-600"],
+          ["economia", "Pagar menos imposto", Lightbulb, a.resumo.economia ? `${brl(a.resumo.economia)}/ano` : `${a.resumo.oportunidades} ${pl(a.resumo.oportunidades, "ideia", "ideias")}`, "text-emerald-600"],
+          ["apuracao", "Apuração do mês", Receipt, brl(doMes.ap.total), "text-sky-600"],
+          ["regime", "Real x Presumido", Scale, a.regimes.real.total <= a.regimes.presumido.total ? "Real é melhor" : "Presumido é melhor", "text-violet-600"],
+          ["deducoes", "Deduções", Calculator, "modo avançado", "text-slate-600"],
+          ["rotina", "Rotina simples", CalendarCheck, "passo a passo", "text-slate-600"],
+        ] as [Aba, string, typeof Receipt, string, string][]).map(([id, titulo, Icone, numero, cor]) => (
+          <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
+            className={`rounded-2xl border p-3 text-left shadow-card transition hover:shadow-pop ${aba === id ? "border-modulo bg-modulo/10 ring-2 ring-modulo/40" : "border-slate-200 bg-surface"}`}>
+            <span className="flex items-center gap-2 text-sm font-semibold text-fg"><Icone size={16} className={cor} aria-hidden /> {titulo}</span>
+            <span className={`num mt-1 block text-lg font-bold ${cor}`}>{carregando ? "…" : numero}</span>
+          </button>
+        ))}
+      </div>
 
       {aba === "auditoria" && <Auditoria achados={a.achados} abrir={navigate} />}
       {aba === "deducoes" && <DeducoesFiscais />}
