@@ -30,7 +30,7 @@ import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebi
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
-import { CamposNota, camposEmUso, ResumoFiltradas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
+import { CamposNota, camposEmUso, CartoesNotas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente } from "@/lib/filtroLista";
 import { FILTRO_VAZIO, passaFiltro } from "@/lib/filtroNotas";
@@ -274,7 +274,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
         </div>} />
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={aba !== "excluidas"} />
+      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => ({ valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave }))} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -426,7 +426,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
         onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); setMkt(""); filtros.setF(FILTRO_VAZIO); }} />
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={aba !== "excluidas"} />
+      <CartoesNotas tipo="recebidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => ({ valor: Number(n.valor_total ?? 0), situacao: situacaoRecebida(n).chave }))} />
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>

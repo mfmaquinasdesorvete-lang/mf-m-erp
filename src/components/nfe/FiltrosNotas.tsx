@@ -4,13 +4,12 @@ import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { brl, hoje, pl } from "@/lib/format";
 import { ATALHOS, FILTRO_VAZIO, filtrosEmUso, periodoDoAtalho, type FiltroNota } from "@/lib/filtroNotas";
-import { semanaAtual } from "@/lib/filtroLista";
 
 const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
 
 export function useFiltrosNotas() {
-  // a lista abre na semana (segunda a domingo); "Limpar" volta para qualquer data
-  const [f, setF] = useState<FiltroNota>(() => ({ ...FILTRO_VAZIO, ...semanaAtual(hoje()) }));
+  // a lista abre no mês atual (as notas do mês); "Limpar" volta para qualquer data
+  const [f, setF] = useState<FiltroNota>(() => ({ ...FILTRO_VAZIO, ...periodoDoAtalho("mes", hoje()) }));
   const [aberto, setAberto] = useState(false);
   return { f, setF, aberto, setAberto };
 }
@@ -90,7 +89,36 @@ export function CamposNota({ f, onChange, comUf = false }: { f: FiltroNota; onCh
 export const camposEmUso = (f: FiltroNota) => [f.numDe || f.numAte, f.valorMin || f.valorMax, f.uf].filter(Boolean).length;
 
 /** "12 notas · R$ 45.000,00" do que ficou na lista. */
-export function ResumoFiltradas({ n, total, ativo }: { n: number; total: number; ativo: boolean }) {
+/** Cartões coloridos do que está na lista (o mês, ao abrir): quantas notas, o valor sem as canceladas, o ticket médio
+ *  e o que pede atenção (rejeitadas, na fila, processando). `situacao`: chave de situacaoEmitida/situacaoRecebida. */
+export function CartoesNotas({ notas, ativo, periodo, tipo }: {
+  notas: { valor: number; situacao: string }[]; ativo: boolean; periodo: { de?: string; ate?: string }; tipo: "emitidas" | "recebidas";
+}) {
   if (!ativo) return null;
-  return <p className="mb-2 text-sm text-slate-600"><b className="text-fg">{n}</b> {pl(n, "nota", "notas")} · total <b className="text-fg">{brl(total)}</b></p>;
+  const validas = notas.filter((x) => x.situacao !== "cancelada");
+  const total = validas.reduce((t, x) => t + x.valor, 0);
+  const canceladas = notas.length - validas.length;
+  const atencao = notas.filter((x) => ["erro", "denegada", "processando", "contingencia", "pendente", "aguardando_vinculo", "revisao"].includes(x.situacao)).length;
+  const quando = periodo.de && periodo.ate ? (periodo.de.slice(0, 7) === periodo.ate.slice(0, 7) && periodo.de.endsWith("-01") ? nomeDoMes(periodo.de) : `${dataCurta(periodo.de)} a ${dataCurta(periodo.ate)}`) : "todas as datas";
+  const cards: [string, string, string, string][] = [
+    [tipo === "emitidas" ? "Notas emitidas" : "Notas recebidas", String(notas.length), quando, "from-sky-500/15 to-sky-500/5 text-sky-700"],
+    ["Valor", brl(total), canceladas ? `sem ${canceladas} ${pl(canceladas, "cancelada", "canceladas")}` : "sem canceladas", "from-emerald-500/15 to-emerald-500/5 text-emerald-700"],
+    ["Ticket médio", validas.length ? brl(total / validas.length) : "—", `${validas.length} ${pl(validas.length, "nota válida", "notas válidas")}`, "from-violet-500/15 to-violet-500/5 text-violet-700"],
+    ["Pedem atenção", String(atencao), atencao ? (tipo === "emitidas" ? "rejeitadas, na fila ou processando" : "conferir ou vincular produto") : "tudo certo", atencao ? "from-red-500/15 to-red-500/5 text-red-700" : "from-slate-500/10 to-slate-500/5 text-slate-500"],
+  ];
+  return (
+    <div className="mb-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {cards.map(([rot, valor, sub, cor]) => (
+        <div key={rot} className={`rounded-2xl border border-slate-200 bg-gradient-to-br p-3 ${cor}`}>
+          <p className="text-2xs font-semibold uppercase opacity-80">{rot}</p>
+          <p className="num text-xl font-bold text-fg">{valor}</p>
+          <p className="truncate text-2xs opacity-80">{sub}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
+
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const nomeDoMes = (d: string) => `${MESES[Number(d.slice(5, 7)) - 1]} de ${d.slice(0, 4)}`;
+const dataCurta = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
