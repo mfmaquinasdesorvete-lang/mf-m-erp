@@ -17,6 +17,11 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: antfofmwrmkadiavjycg  # ELO ERP (São Paulo)
     steps:
+      - name: Só pela paineis-no-ar
+        if: github.ref_name != 'paineis-no-ar'
+        run: |
+          echo "::error::Escolha a branch paineis-no-ar em 'Use workflow from' (esta foi ${{ github.ref_name }}). Nada foi publicado."
+          exit 1
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
