@@ -11,6 +11,7 @@ import { baixarPlanilha } from "@/lib/exportar";
 import { avaliarCadastro, type Movimento } from "@/lib/qualidadeProdutos";
 import { usePerfil } from "@/lib/auth";
 import { SugestoesProdutos } from "./SugestoesProdutos";
+import { CustoSemNota } from "./produtos/CustoSemNota";
 import type { Produto } from "@/lib/types";
 
 const COR = { alta: "bg-red-500", media: "bg-amber-500", baixa: "bg-slate-400" };
@@ -44,6 +45,7 @@ export function QualidadeProdutos({ produtos, onCorrigir, podeEditar, inicial }:
   return (
     <div className="space-y-4">
       <SugestoesProdutos produtos={produtos} onAbrir={onCorrigir} podeCorrigir={podeEditar && tem("financeiro", "compras")} />
+      <CustoSemNota produtos={produtos} podeEditar={podeEditar && tem("financeiro", "compras")} />
       <Card className="flex flex-wrap items-center gap-4 p-4">
         <div className="min-w-[14rem] flex-1">
           <div className="text-sm font-semibold">Revisão da base de produtos</div>

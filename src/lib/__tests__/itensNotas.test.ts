@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { palavrasItem, situacaoItem, sugerirPorNome, unidadeDeEmbalagem, unidadeDoErp } from "../itensNotas";
+import { palavrasItem, situacaoItem, sugerirPorNome, sugestaoCusto, unidadeDeEmbalagem, unidadeDoErp, type ItemNota } from "../itensNotas";
 
 describe("situacaoItem", () => {
   it("ligado vence sem estoque e sugestão", () => {
@@ -50,5 +50,19 @@ describe("unidades", () => {
     expect(unidadeDoErp("XYZ")).toBe("UN");
     expect(unidadeDeEmbalagem("CX")).toBe(true);
     expect(unidadeDeEmbalagem("KG")).toBe(false);
+  });
+});
+
+describe("sugestão de custo", () => {
+  const item = (x: Partial<ItemNota>): ItemNota => ({ fornecedor_id: "f", fornecedor: "Frio", fornecedor_cnpj: null, codigo: "C1", descricao: "", ncm: null, ean: null, unidade: "PC", notas: 1, quantidade: 1, ultimo_valor: 100, ultima_data: "2026-01-01", primeira_data: null, produto_id: null, fator: 1, sem_estoque: null, sugestao_id: null, sugestao_motivo: null, ...x });
+  it("código do fabricante igual e fator", () => {
+    const s = sugestaoCusto({ id: "p", descricao: "Relé", codigo_fabricante: "ab12" }, [item({ codigo: "AB12", ultimo_valor: 120, fator: 12 })]);
+    expect(s).toMatchObject({ nota: 1, custo: 10 });
+  });
+  it("pela descrição, sem item de outro produto", () => {
+    const itens = [item({ codigo: "X", descricao: "VALV SOL DANF EVR 02 1/4S S/BOB", ultimo_valor: 171 }), item({ codigo: "Y", descricao: "VALV SOL DANF EVR 03 1/4S S/BOB", produto_id: "outro" })];
+    const s = sugestaoCusto({ id: "p", descricao: "Valv SOL Danf EVR 03 1/4S S/BOB - Compatível com Máquinas My Frost" }, itens);
+    expect(s?.item.codigo).toBe("X");
+    expect(sugestaoCusto({ id: "p", descricao: "Câmera Wi-Fi" }, itens)).toBeNull();
   });
 });

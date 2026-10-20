@@ -75,3 +75,18 @@ export const unidadeDoErp = (u: string | null | undefined) => UNIDADES_NOTA[Stri
 
 /** Unidade de embalagem (caixa, pacote, rolo…): aí costuma precisar de fator (ex.: caixa com 10). */
 export const unidadeDeEmbalagem = (u: string | null | undefined) => ["CX", "PCT", "FD", "RL", "JG", "KIT", "CJ"].includes(unidadeDoErp(u));
+
+/** Produto sem custo: o item de nota de fornecedor que mais parece ser ele (código do fabricante igual vale 1;
+ *  senão pela descrição). Itens já ligados a outro produto ficam de fora. Custo = último valor ÷ fator. */
+export function sugestaoCusto(
+  produto: { id: string; descricao: string; codigo_fabricante?: string | null },
+  itens: ItemNota[],
+): { item: ItemNota; nota: number; custo: number } | null {
+  const livres = itens.filter((i) => Number(i.ultimo_valor) > 0 && (!i.produto_id || i.produto_id === produto.id));
+  const cod = String(produto.codigo_fabricante ?? "").trim().toUpperCase();
+  const exato = cod ? livres.find((i) => i.codigo.trim().toUpperCase() === cod) : undefined;
+  const custo = (i: ItemNota) => Math.round((Number(i.ultimo_valor) / (Number(i.fator) || 1)) * 100) / 100;
+  if (exato) return { item: exato, nota: 1, custo: custo(exato) };
+  const [melhor] = sugerirPorNome(produto.descricao, livres.map((i) => ({ id: `${i.fornecedor_id}|${i.codigo}`, descricao: i.descricao ?? "", codigo_fabricante: i.codigo, i })), 1);
+  return melhor && melhor.nota >= 0.45 ? { item: melhor.produto.i, nota: melhor.nota, custo: custo(melhor.produto.i) } : null;
+}
