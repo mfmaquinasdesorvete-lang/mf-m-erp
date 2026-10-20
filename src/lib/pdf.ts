@@ -1447,3 +1447,84 @@ export async function pdfRegistroGiga(r: { codigo: string; titulo: string; revis
   }
   return doc.output("blob");
 }
+
+/** Declaração de conteúdo no modelo dos Correios (sem NF) e a etiqueta com destinatário e remetente.
+ *  Com nota fiscal sai só a etiqueta com o número da NF (a DANFE vai junto e substitui a declaração). */
+export async function pdfEnvioCorreios(d: import("./correios").Declaracao) {
+  const { TEXTO_DECLARACAO, cepFormatado, linhaEndereco, totaisDeclaracao } = await import("./correios");
+  const { doc, autoTable } = await novoDoc();
+  const w = doc.internal.pageSize.getWidth();
+  const docTxt = (x: string | null) => (x ? docFormat(x) : "");
+  const preto = () => doc.setTextColor(15, 23, 42);
+
+  if (!d.notaFiscal) {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15); preto();
+    doc.text("DECLARAÇÃO DE CONTEÚDO", w / 2, 16, { align: "center" });
+    // remetente e destinatário lado a lado
+    const caixa = (titulo: string, e: import("./correios").Endereco, x: number, larg: number) => {
+      doc.setDrawColor(100, 116, 139); doc.rect(x, 22, larg, 44);
+      doc.setFillColor(226, 232, 240); doc.rect(x, 22, larg, 6, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); preto(); doc.text(titulo, x + 2, 26.2);
+      const linhas: [string, string][] = [["NOME", e.nome], ["ENDEREÇO", linhaEndereco(e)], ["CIDADE / UF", [e.municipio, e.uf].filter(Boolean).join(" / ")],
+        ["CEP", cepFormatado(e.cep)], ["CPF/CNPJ", docTxt(e.doc)]];
+      let y = 32;
+      for (const [rot, val] of linhas) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(...CINZA); doc.text(rot, x + 2, y);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); preto();
+        const t = doc.splitTextToSize(val || "", larg - 4).slice(0, 2); doc.text(t, x + 2, y + 3.4);
+        y += t.length > 1 ? 10.5 : 7;
+      }
+    };
+    const larg = (w - 24 - 4) / 2;
+    caixa("REMETENTE", d.remetente, 12, larg);
+    caixa("DESTINATÁRIO", d.destinatario, 12 + larg + 4, larg);
+
+    const itens = d.itens.filter((i) => i.conteudo.trim());
+    const tot = totaisDeclaracao(itens);
+    autoTable(doc, {
+      startY: 72, margin: { left: 12, right: 12 },
+      head: [[{ content: "IDENTIFICAÇÃO DOS BENS", colSpan: 4, styles: { halign: "center" } }], ["ITEM", "CONTEÚDO", "QUANT.", "VALOR (R$)"]],
+      body: [...itens.map((i, k) => [String(k + 1), i.conteudo, String(i.quantidade), brl((Number(i.quantidade) || 0) * (Number(i.valor) || 0))]),
+        ...Array.from({ length: Math.max(0, 6 - itens.length) }, () => ["", "", "", ""])],
+      foot: [[{ content: "TOTAIS", colSpan: 2 }, String(tot.quantidade), brl(tot.valor)],
+        [{ content: "PESO TOTAL (kg)", colSpan: 2 }, { content: d.pesoKg ? String(d.pesoKg).replace(".", ",") : "", colSpan: 2 }]],
+      theme: "grid", styles: { fontSize: 8.5, cellPadding: 1.6, lineColor: [100, 116, 139], textColor: [15, 23, 42] },
+      headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: "bold" },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: 14, halign: "center" }, 2: { cellWidth: 22, halign: "center" }, 3: { cellWidth: 32, halign: "right" } },
+    });
+    let y = (doc as any).lastAutoTable.finalY + 6;
+    doc.setFillColor(226, 232, 240); doc.rect(12, y, w - 24, 6, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); preto(); doc.text("DECLARAÇÃO", w / 2, y + 4.2, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.3);
+    const texto = doc.splitTextToSize(TEXTO_DECLARACAO, w - 28);
+    doc.text(texto, 14, y + 11);
+    y += 12 + texto.length * 3.7 + 8;
+    doc.text(d.cidadeData, 14, y);
+    doc.line(w - 100, y + 12, w - 14, y + 12);
+    doc.setFontSize(7.5); doc.text("Assinatura do Declarante/Remetente", w - 57, y + 16, { align: "center" });
+    doc.setFontSize(7); doc.setTextColor(...CINZA);
+    doc.text(doc.splitTextToSize("OBSERVAÇÃO: Constitui crime contra a ordem tributária suprimir ou reduzir tributo, ou contribuição social e qualquer acessório (Lei 8.137/90, art. 1º, V).", w - 28), 14, y + 24);
+    doc.addPage();
+  }
+
+  // etiqueta: destinatário grande, remetente embaixo
+  const bloco = (titulo: string, e: import("./correios").Endereco, y: number, grande: boolean) => {
+    doc.setDrawColor(15, 23, 42); doc.setLineWidth(grande ? 0.6 : 0.3); doc.rect(12, y, w - 24, grande ? 62 : 42);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(grande ? 11 : 8); doc.setTextColor(...CINZA); doc.text(titulo, 17, y + 7);
+    preto(); doc.setFontSize(grande ? 17 : 11); doc.text(doc.splitTextToSize(e.nome, w - 34).slice(0, 2), 17, y + (grande ? 16 : 13));
+    doc.setFont("helvetica", "normal"); doc.setFontSize(grande ? 13 : 9.5);
+    const base = y + (grande ? 28 : 21), passo = grande ? 7 : 5;
+    doc.text(doc.splitTextToSize(linhaEndereco(e), w - 34).slice(0, 2), 17, base);
+    doc.text([e.municipio, e.uf].filter(Boolean).join(" / "), 17, base + passo * 1.6);
+    doc.setFont("helvetica", "bold"); doc.text(`CEP ${cepFormatado(e.cep)}`, 17, base + passo * 2.8);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(grande ? 10 : 8.5);
+    doc.text([e.telefone && `Tel. ${formatarTelefone(e.telefone)}`, e.doc && docTxt(e.doc)].filter(Boolean).join("   ·   "), 17, base + passo * 3.9);
+  };
+  bloco("DESTINATÁRIO", d.destinatario, 14, true);
+  bloco("REMETENTE", d.remetente, 82, false);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); preto();
+  doc.text(d.notaFiscal ? `Vai com a NF-e nº ${d.notaFiscal} (DANFE dentro do pacote)` : "Vai com a declaração de conteúdo (fora do pacote)", 12, 134);
+  doc.setLineDashPattern([2, 2], 0); doc.setDrawColor(...CINZA); doc.line(0, 142, w, 142); doc.setLineDashPattern([], 0);
+  return doc.output("blob");
+}

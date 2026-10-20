@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CircleCheck, ClipboardList, Copy, Globe, HandCoins, IdCard, Landmark, LayoutList, Mail, MapPin, MapPinned,
-  MessageCircle, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, Wrench, X, type LucideIcon,
+  MessageCircle, Package, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, Wrench, X, type LucideIcon,
 } from "lucide-react";
 import { Button, Field, useFecharComEsc } from "../ui";
 import { CampoMascara } from "../CrudPage";
@@ -37,6 +37,7 @@ import type { PessoaContato, Vendedor } from "@/lib/types";
 import { docParaConferir, errosDoPasso, faltasDoPasso, PASSOS, passoLiberado, resumoDoPasso } from "@/lib/onboardingCliente";
 import { confirmar } from "@/components/Dialogos";
 import { FONTE_DESDE, useClienteDesde } from "@/lib/clienteDesde";
+import { EnvioCorreios } from "./EnvioCorreios";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
 export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -120,6 +121,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const [gerirTipos, setGerirTipos] = useState(false);
   /** Desmarcou "Cliente": ao salvar, vai para Fornecedores e sai da lista de clientes. */
   const [deixaCliente, setDeixaCliente] = useState(false);
+  const [correios, setCorreios] = useState(false);
   const tagsAntes = useRef<string[]>(registro.tags ?? []);
   const { data: formas = [] } = useFormasPagamento();
   const { data: tabelasPreco = [] } = useRows<{ id: string; nome: string; ajuste_percentual: number; ativo: boolean }>("tabelas_preco", { order: "nome", ascending: true });
@@ -684,7 +686,12 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   className="hidden rounded-lg p-2 text-emerald-300 hover:bg-white/10 sm:block"><MessageCircle size={18} /></a>
               )}
               {c.email && <a href={`mailto:${c.email}`} title="Enviar e-mail" className="hidden rounded-lg p-2 text-sky-200 hover:bg-white/10 sm:block"><Mail size={18} /></a>}
+              {c.id && (
+                <button type="button" onClick={() => setCorreios(true)} title="Enviar pelos Correios" aria-label="Enviar pelos Correios"
+                  className="rounded-lg p-2 text-amber-200 hover:bg-white/10"><Package size={18} /></button>
+              )}
               <button type="button" onClick={fechar} className="rounded-lg p-2 text-white/80 hover:bg-white/10" aria-label="Fechar"><X size={20} /></button>
+              {correios && <EnvioCorreios cliente={{ ...c, nome: c.nome ?? nomeTopo } as never} onClose={() => setCorreios(false)} />}
             </div>
           </div>
           <div className="mt-4">
