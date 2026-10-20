@@ -4,11 +4,11 @@ import { ArrowDown, ArrowUp, Calculator, Check, RefreshCw, X } from "lucide-reac
 import { Button } from "@/components/ui";
 import { brl, pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import { useInvalidate } from "@/lib/data";
+import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
-import { configPreco, despesasPct, margemLiquida, precoSugerido, type ConfigPreco } from "@/lib/precificacao";
+import { configPreco, despesasPct, margemLiquida, MEIOS_PRECO, precoNoMeio, precoSugerido, type ConfigPreco } from "@/lib/precificacao";
 import type { Categoria } from "@/components/CategoriasProdutos";
 
 type Sugestao = {
@@ -197,7 +197,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
 }
 
 const TIPOS: [string, string][] = [["maquina", "Máquinas"], ["peca", "Peças de reposição"], ["acessorio", "Acessórios"]];
-const DESPESAS: [keyof ConfigPreco, string][] = [["impostos_pct", "Impostos sobre a venda"], ["taxa_pct", "Taxa do cartão / Pix"], ["comissao_pct", "Comissão"], ["frete_pct", "Frete por conta da MF"]];
+const DESPESAS: [keyof ConfigPreco, string][] = [["impostos_pct", "Impostos sobre a venda"], ["taxa_pct", "Taxa já embutida no preço"], ["comissao_pct", "Comissão"], ["frete_pct", "Frete por conta da MF"]];
 
 /** Regras: margem por tipo, despesas que saem do preço, arredondamento e tolerância. */
 function RegrasPreco({ cfg, podeEditar }: { cfg: ConfigPreco; podeEditar: boolean }) {
@@ -256,11 +256,75 @@ function RegrasPreco({ cfg, podeEditar }: { cfg: ConfigPreco; podeEditar: boolea
           </label>
         </div>
       </div>
+      <TaxasPorMeio form={form} setForm={setForm} podeEditar={podeEditar} />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p className="text-sm text-slate-600">Exemplo (peça): custo {brl(100)} → preço <b>{exemplo ? brl(exemplo) : "margem + despesas alta demais"}</b></p>
         {podeEditar && <Button onClick={salvar} disabled={!alterado || salvando}>Salvar regras</Button>}
       </div>
     </section>
+  );
+}
+
+/** Mediana da taxa real da InfinitePay (venda − depósito) nas vendas ligadas aos depósitos, para preencher o link. */
+function useTaxaInfinitePay() {
+  const { data: lancs = [] } = useRows<{ valor: number; descricao: string | null; conta_receber_id: string | null }>("extrato_lancamentos",
+    { select: "valor, descricao, conta_receber_id", order: "data", key: ["taxa-infinitepay"] });
+  const { data: vendas = [] } = useRows<{ id: string; valor: number }>("contas_receber", { select: "id, valor", order: "vencimento", key: ["taxa-infinitepay"] });
+  return useMemo(() => {
+    const valor = new Map(vendas.map((v) => [v.id, Number(v.valor)]));
+    const taxas = lancs.filter((l) => Number(l.valor) > 0 && l.conta_receber_id && /dep[óo]sito infinitepay/i.test(l.descricao ?? ""))
+      .map((l) => { const v = valor.get(l.conta_receber_id!) ?? 0; return v > Number(l.valor) ? (v - Number(l.valor)) / v * 100 : null; })
+      .filter((t): t is number => t != null).sort((a, b) => a - b);
+    return taxas.length ? { mediana: Math.round(taxas[Math.floor(taxas.length / 2)] * 100) / 100, n: taxas.length } : null;
+  }, [lancs, vendas]);
+}
+
+/** Taxa de cada forma de pagamento e quanto o preço fica em cada uma, para a MF receber o mesmo líquido. */
+function TaxasPorMeio({ form, setForm, podeEditar }: { form: ConfigPreco; setForm: (f: (c: ConfigPreco) => ConfigPreco) => void; podeEditar: boolean }) {
+  const medida = useTaxaInfinitePay();
+  const exemplos: [string, number | null][] = [
+    ["Peça (custo R$ 100)", precoSugerido(100, form.margens.peca ?? form.margem_padrao, form)],
+    ["Máquina (custo R$ 10.000)", precoSugerido(10000, form.margens.maquina ?? form.margem_padrao, form)],
+  ];
+  const pctTxt = (v: number) => `${String(v).replace(".", ",")}%`;
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-3">
+      <h3 className="text-sm font-semibold">Taxa por forma de pagamento</h3>
+      <p className="mb-2 text-xs text-slate-500">
+        Cada forma tem a sua taxa (a maquininha cobra uma, o link outra). O preço do cadastro já cobre a taxa embutida ({pctTxt(form.taxa_pct)});
+        nas formas com taxa maior, o preço sobe só o necessário para a MF receber o mesmo.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {MEIOS_PRECO.map((m) => (
+          <CampoPct key={m.id} rotulo={m.rotulo} valor={form.taxas_meio[m.id]} disabled={!podeEditar}
+            onValor={(v) => setForm((f) => ({ ...f, taxas_meio: { ...f.taxas_meio, [m.id]: v } }))} />
+        ))}
+      </div>
+      {medida && (
+        <p className="mt-2 text-xs text-slate-600">
+          Nos extratos, a InfinitePay descontou em média <b>{pctTxt(medida.mediana)}</b> por venda ({medida.n} {pl(medida.n, "venda", "vendas")}, já com parcelamento e antecipação).
+          {podeEditar && form.taxas_meio.link !== medida.mediana && (
+            <button type="button" className="ml-1 font-semibold text-brand underline" onClick={() => setForm((f) => ({ ...f, taxas_meio: { ...f.taxas_meio, link: medida.mediana } }))}>Usar no link</button>
+          )}
+        </p>
+      )}
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[30rem] text-sm">
+          <thead><tr className="text-left text-2xs uppercase text-slate-500">
+            <th className="py-1 pr-2 font-semibold">Exemplo</th>
+            {MEIOS_PRECO.map((m) => <th key={m.id} className="py-1 pr-2 text-right font-semibold">{m.rotulo.replace("Maquininha · ", "")}</th>)}
+          </tr></thead>
+          <tbody>
+            {exemplos.map(([rot, base]) => (
+              <tr key={rot} className="border-t border-slate-100">
+                <td className="py-1.5 pr-2 text-slate-600">{rot}</td>
+                {MEIOS_PRECO.map((m) => <td key={m.id} className="num py-1.5 pr-2 text-right font-semibold">{base ? brl(precoNoMeio(base, m.id, form)) : "—"}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRECO_PADRAO, configPreco, despesasPct, foraDaFaixa, margemAlvo, margemLiquida, precoSugerido, type ConfigPreco } from "../precificacao";
+import { PRECO_PADRAO, configPreco, despesasPct, foraDaFaixa, margemAlvo, margemLiquida, precoNoMeio, precoSugerido, type ConfigPreco } from "../precificacao";
 
 const cfg = (c: Partial<ConfigPreco> = {}): ConfigPreco => ({ ...PRECO_PADRAO, ...c });
 
@@ -94,5 +94,30 @@ describe("margemLiquida e foraDaFaixa", () => {
   it("acima do sugerido só sai da faixa com sugerir_reducao ligado", () => {
     expect(foraDaFaixa(210, 200, cfg({ sugerir_reducao: true }))).toBe(false);
     expect(foraDaFaixa(210.01, 200, cfg({ sugerir_reducao: true }))).toBe(true);
+  });
+});
+
+describe("precoNoMeio (taxa diferente na maquininha e no link)", () => {
+  const c = cfg({ taxa_pct: 0, taxas_meio: { pix: 0, debito: 1.5, credito: 3.5, parcelado: 9, link: 5 } });
+
+  it("Pix fica no preço do cadastro; cartão e link sobem para a MF receber o mesmo", () => {
+    expect(precoNoMeio(1000, "pix", c)).toBe(1000);
+    expect(precoNoMeio(1000, "link", c)).toBe(1052.64);          // 1000 / 0,95 = 1052,63… → para cima
+    expect(precoNoMeio(1000, "credito", c)).toBe(1036.27);
+    expect(precoNoMeio(1000, "link", c) * 0.95).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("taxa já embutida no preço: só cobra a diferença; menor que a embutida não dá desconto", () => {
+    const e = cfg({ taxa_pct: 3.5, taxas_meio: { pix: 0, debito: 1.5, credito: 3.5, parcelado: 9, link: 5 } });
+    expect(precoNoMeio(1000, "credito", e)).toBe(1000);
+    expect(precoNoMeio(1000, "pix", e)).toBe(1000);
+    expect(precoNoMeio(1000, "link", e)).toBe(1015.79);           // 1000 × 0,965 / 0,95
+  });
+
+  it("arredonda como o preço do cadastro e aceita configuração antiga sem as taxas", () => {
+    expect(precoNoMeio(1000, "link", { ...c, arredondar: "inteiro" })).toBe(1053);
+    expect(configPreco({ taxa_pct: 2 } as Partial<ConfigPreco>).taxas_meio).toEqual({ pix: 0, debito: 0, credito: 0, parcelado: 0, link: 0 });
+    expect(configPreco({ taxas_meio: { link: "4,5" as unknown as number } } as Partial<ConfigPreco>).taxas_meio.link).toBe(0);
+    expect(configPreco({ taxas_meio: { link: "4.5" as unknown as number } } as Partial<ConfigPreco>).taxas_meio.link).toBe(4.5);
   });
 });
