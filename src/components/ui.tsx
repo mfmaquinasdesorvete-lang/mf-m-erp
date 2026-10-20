@@ -76,7 +76,7 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
     );
   }
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
       <div className="flex min-w-0 items-center gap-3">
         {Icone && (
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden>
@@ -87,8 +87,8 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
           {modulo?.titulo && modulo.titulo !== title && <p className="text-2xs font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
           <h1 className="text-xl font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
           {/* no celular a explicação fica em 2 linhas (tocar mostra tudo): antes empurrava a tela 4 ou 5 linhas para baixo */}
-          {subtitle && <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
-            onClick={(e) => e.currentTarget.classList.toggle("line-clamp-2")}>{subtitle}</p>}
+          {subtitle && <p className="mt-0.5 line-clamp-1 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
+            onClick={(e) => e.currentTarget.classList.toggle("line-clamp-1")}>{subtitle}</p>}
         </div>
       </div>
       <div className="flex flex-wrap gap-2">{actions}</div>

@@ -44,18 +44,19 @@ export function Trilha() {
   // a primeira tela aberta (link, nova aba ou recarregar sem histórico) tem a chave "default": sem tela anterior no ERP
   const temAnterior = key !== "default";
   return (
-    <nav aria-label="Você está em" className="mb-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <nav aria-label="Você está em" className="mb-2 flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1 text-sm sm:mb-3 sm:flex-wrap">
       <button type="button" onClick={() => (temAnterior ? navigate(-1) : navigate(subir))}
         className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-surface px-2.5 py-1 font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
         <ChevronLeft size={16} aria-hidden /> Voltar
       </button>
-      <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-slate-500">
-        <li className="flex items-center">
+      {/* no celular a trilha fica numa linha só: Voltar + a área (o nome da tela já está no título logo abaixo) */}
+      <ol className="flex min-w-0 flex-nowrap items-center gap-x-1 gap-y-0.5 overflow-hidden text-slate-500 sm:flex-wrap">
+        <li className="hidden items-center sm:flex">
           <Link to="/" className="inline-flex items-center gap-1 rounded px-1 hover:text-fg hover:underline"><Home size={14} aria-hidden /> Início</Link>
         </li>
         {passos.map((p, i) => (
-          <li key={`${p.label}-${i}`} className="flex min-w-0 items-center gap-1">
-            <ChevronRight size={14} className="shrink-0 text-slate-400" aria-hidden />
+          <li key={`${p.label}-${i}`} className={`min-w-0 items-center gap-1 ${i === passos.length - 1 && passos.length > 1 ? "hidden sm:flex" : "flex"}`}>
+            <ChevronRight size={14} className={`shrink-0 text-slate-400 ${i === 0 ? "hidden sm:block" : ""}`} aria-hidden />
             {p.to && i < passos.length - 1
               ? <Link to={p.to} className="truncate rounded px-1 hover:text-fg hover:underline">{p.label}</Link>
               : <span aria-current={i === passos.length - 1 ? "page" : undefined} className="truncate px-1 font-semibold text-fg">{p.label}</span>}

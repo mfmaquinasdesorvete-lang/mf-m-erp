@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { SeloCidade } from "@/components/SeloCidade";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, RotateCcw, Search, ShieldCheck, ShieldOff, Trash2, Wrench,
+  Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, Wrench,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
@@ -75,6 +77,9 @@ export default function Assistencia() {
   const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
+  // abre na semana (pela entrada); OS ainda aberta de antes continua aparecendo
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
+  const naData = (o: OSX) => noPeriodoOuPendente((o as any).data_entrada ?? (o as any).created_at, periodo, !["entregue", "cancelada"].includes(o.status));
   const { data: marcadores = [] } = useMarcadores();
   const [aberta, setAberta] = useState<OS | null>(null);
   const [verExcluidas, setVerExcluidas] = useState(false);
@@ -103,17 +108,17 @@ export default function Assistencia() {
 
   const lista = useMemo(() => ordens.filter((o) =>
     (mostrarFinalizadas || !["entregue", "cancelada"].includes(o.status)) &&
-    (!marcador || !!o.marcadores?.includes(marcador)) &&
+    (!marcador || !!o.marcadores?.includes(marcador)) && naData(o) &&
     (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())),
-  ), [ordens, mostrarFinalizadas, busca, marcador]);
+  ), [ordens, mostrarFinalizadas, busca, marcador, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // quadro: cada OS (com a busca e o marcador) na etapa, com o próximo passo
   const noQuadro = useMemo(() => {
     const dia = hoje();
-    return ordens.filter((o) => (!marcador || !!o.marcadores?.includes(marcador)) &&
+    return ordens.filter((o) => (!marcador || !!o.marcadores?.includes(marcador)) && naData(o) &&
       (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())))
       .flatMap((o) => { const s = situacaoOS(o, dia); return s ? [{ id: o.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: o.em_garantia ? 0 : Number(o.valor_total || 0), o, s }] : []; });
-  }, [ordens, busca, marcador]);
+  }, [ordens, busca, marcador, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
   const abrirOS = (o: OSX) => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] });
   async function avancar(o: OSX, acao: AcaoOS) {
     const status = proximoStatus(acao);
@@ -182,24 +187,26 @@ export default function Assistencia() {
         <Stat icon={ClipboardCheck} tom={atrasadas ? "critico" : "neutro"} label="Previsão estourada" valor={atrasadas} />
       </div>}
 
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <div className="relative w-full max-w-sm">
-          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-          <input className="input pl-9" placeholder="Buscar nº, cliente, equipamento, série…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
-        {modo === "lista" && (
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={mostrarFinalizadas} onChange={(e) => setMostrarFinalizadas(e.target.checked)} /> Mostrar entregues e canceladas
-          </label>
-        )}
-        <div className="ml-auto inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
-          {([["quadro", "Quadro", Columns3], ["lista", "Lista", List]] as const).map(([v, l, I]) => (
-            <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
-          ))}
-        </div>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, equipamento, série…"
+        periodo={periodo} onPeriodo={setPeriodo} rotuloData="Entrada"
+        filtros={<>
+          <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+          {modo === "lista" && (
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" checked={mostrarFinalizadas} onChange={(e) => setMostrarFinalizadas(e.target.checked)} /> Mostrar entregues e canceladas
+            </label>
+          )}
+        </>}
+        nFiltros={(marcador ? 1 : 0) + (mostrarFinalizadas ? 1 : 0)}
+        onLimpar={() => { setBusca(""); setMarcador(""); setMostrarFinalizadas(false); setPeriodo(SEM_PERIODO); }}
+        direita={
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
+            {([["quadro", "Quadro", Columns3], ["lista", "Lista", List]] as const).map(([v, l, I]) => (
+              <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
+            ))}
+          </div>
+        } />
 
       {modo === "quadro" ? (
         <QuadroEtapas etapas={ETAPAS_OS} itens={noQuadro} carregando={isLoading} nome={["OS", "OS"]} cartao={cartaoOS} />

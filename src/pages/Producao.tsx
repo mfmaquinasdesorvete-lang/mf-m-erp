@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, Wrench, XCircle,
@@ -133,7 +135,10 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
   const [tipoOp, setTipoOp] = useAbaUrl<"maquinas" | "pecas">("maquinas", ["maquinas", "pecas"] as const, "op");
   const daUnidade = filtrar(ordensTodos);
   const ehMaquina = (o: OrdemProducao) => (o as any).produto?.tipo === "maquina";
-  const ordens = daUnidade.filter((o) => ehMaquina(o) === (tipoOp === "maquinas"));
+  // abre na semana; OP planejada ou em produção de antes continua aparecendo (concluída conta pela data em que ficou pronta)
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
+  const doTipo = daUnidade.filter((o) => ehMaquina(o) === (tipoOp === "maquinas"));
+  const ordens = doTipo.filter((o) => noPeriodoOuPendente(o.concluida_em ?? o.created_at, periodo, ["planejada", "em_producao"].includes(o.status)));
   const abertasDe = (maq: boolean) => daUnidade.filter((o) => ehMaquina(o) === maq && ["planejada", "em_producao"].includes(o.status)).length;
   const { data: necessidade = [] } = useNecessidade();
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
@@ -173,9 +178,10 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
         <Stat icon={PackageSearch} tom={abertas.some((o) => faltasPorOP.get(o.id)) ? "critico" : "bom"} label="Ordens com peça faltando"
           valor={abertas.filter((o) => faltasPorOP.get(o.id)).length} />
         <Stat icon={PackageCheck} tom="bom" label={tipoOp === "maquinas" ? "Máquinas montadas no mês" : "Peças prontas no mês"}
-          valor={ordens.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(hoje().slice(0, 7))).reduce((s, o) => s + Number(o.quantidade), 0)} />
+          valor={doTipo.filter((o) => o.status === "concluida" && (o.concluida_em ?? "").startsWith(hoje().slice(0, 7))).reduce((s, o) => s + Number(o.quantidade), 0)} />
       </div>}
 
+      <BarraFiltros periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" onLimpar={() => setPeriodo(SEM_PERIODO)} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Como ver as ordens">
