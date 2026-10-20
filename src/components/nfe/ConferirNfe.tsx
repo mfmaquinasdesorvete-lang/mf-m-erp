@@ -1,6 +1,7 @@
 // Conferir a NF-e antes de emitir: a nota não vai sozinha para a SEFAZ. Mostra os itens do pedido e deixa mudar a
 // descrição, a quantidade e o valor de cada um, o desconto, o frete e o texto da nota; só ao apertar "Emitir" ela é
 // enviada. Os ajustes valem só para a nota (o pedido e o financeiro não mudam: se o total ficar diferente, avisa).
+import { preencherTextoNfe } from "../../../supabase/functions/_shared/textoNfe";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, FileText } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
@@ -13,11 +14,16 @@ import { MOTIVOS_NOTA_MENOR, problemaIeDestinatario } from "../../../supabase/fu
 type Item = { id: string; descricao: string; quantidade: number; valor_unitario: number; numero_serie?: string | null };
 type PedidoNfe = {
   id: string; numero: number; valor_total: number; desconto: number; frete: number; observacoes: string | null;
-  cliente?: { nome: string; cpf_cnpj: string | null; inscricao_estadual: string | null; contribuinte_icms: number | null; tipo_pessoa: string | null } | null; unidade?: { informacoes_complementares?: string | null } | null; itens: Item[];
+  cliente?: { nome: string; nome_fantasia?: string | null; cpf_cnpj: string | null; inscricao_estadual: string | null; contribuinte_icms: number | null; tipo_pessoa: string | null } | null; unidade?: { informacoes_complementares?: string | null; telefone?: string | null; whatsapp?: string | null } | null; vendedor?: string | null; forma_pagamento?: string | null; itens: Item[];
 };
 
 const num = (v: string) => Number(String(v).replace(/\./g, "").replace(",", ".")) || 0;
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+const camposDoPedido = (p: PedidoNfe) => ({
+  pedido: p.numero, vendedor: p.vendedor, forma_pagamento: p.forma_pagamento,
+  telefone: p.unidade?.whatsapp || p.unidade?.telefone, cliente: p.cliente?.nome_fantasia || p.cliente?.nome,
+});
 
 export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string; onClose: () => void; onEmitida?: () => void }) {
   const [p, setP] = useState<PedidoNfe | null>(null);
@@ -29,7 +35,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
   const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
-    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, cliente:clientes(nome, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares), " +
+    supabase.from("pedidos").select("id, numero, valor_total, desconto, frete, observacoes, vendedor, forma_pagamento, cliente:clientes(nome, nome_fantasia, cpf_cnpj, inscricao_estadual, contribuinte_icms, tipo_pessoa), unidade:unidades(informacoes_complementares, telefone, whatsapp), " +
       "itens:pedido_itens(id, descricao, quantidade, valor_unitario, numero_serie)").eq("id", pedidoId).single()
       .then(({ data, error }) => {
         if (error) return notifyError(error);
@@ -38,7 +44,7 @@ export function ConferirNfe({ pedidoId, onClose, onEmitida }: { pedidoId: string
         setItens(d.itens.map((i) => ({ id: i.id, descricao: i.descricao, quantidade: String(i.quantidade), valor: String(i.valor_unitario).replace(".", ",") })));
         setDesconto(String(d.desconto ?? 0).replace(".", ","));
         setFrete(String(d.frete ?? 0).replace(".", ","));
-        setInfo([`Pedido #${d.numero}`, d.observacoes, d.unidade?.informacoes_complementares].filter(Boolean).join(" - "));
+        setInfo([`Pedido #${d.numero}`, d.observacoes, preencherTextoNfe(d.unidade?.informacoes_complementares, camposDoPedido(d))].filter(Boolean).join(" - "));
       });
   }, [pedidoId]);
 

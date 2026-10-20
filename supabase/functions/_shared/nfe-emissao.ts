@@ -4,6 +4,7 @@
 // ATENÇÃO: os impostos (lucro real) seguem as regras de _shared/nfe-impostos.ts e o cadastro
 // de cada unidade e produto. Valide com o contador e teste em homologação antes da produção.
 import { json } from "./cors.ts";
+import { preencherTextoNfe, type CamposNfe } from "./textoNfe.ts";
 import { HttpError, onlyDigits } from "./supabase.ts";
 import { type AliquotasUf, type ConfigIbsCbs, type ItemBase, itemDoCadastro, itensTransferencia, itensVenda, type RegraTributaria } from "./nfe-impostos.ts";
 import { aplicarRetornoDoEnvio, enviarNfe } from "./nfe-envio.ts";
@@ -68,6 +69,12 @@ export async function regrasDa(db: any, unidadeId: string): Promise<RegraTributa
 export const observacoes = (usadas: Set<RegraTributaria>) =>
   [...usadas].map((r) => r.observacao_nfe).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" ");
 
+
+/** Valores das chaves do texto padrão da nota ({pedido}, {vendedor}, {forma_pagamento}, {telefone}, {cliente}). */
+export const camposDoPedido = (p: any): CamposNfe => ({
+  pedido: p.numero, vendedor: p.vendedor, forma_pagamento: p.forma_pagamento,
+  telefone: p.unidade?.whatsapp || p.unidade?.telefone, cliente: p.cliente?.nome_fantasia || p.cliente?.nome,
+});
 
 /** NF-e de venda de um pedido aprovado (com os ajustes da conferência, se houver). */
 export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesNfe | null) {
@@ -150,7 +157,7 @@ export async function emitirPedido(db: any, pedidoId: string, ajustes?: AjustesN
     modalidade_frete: pedido.modalidade_frete,
     informacoes_adicionais_contribuinte: (ajustes?.informacoes != null
       ? [ajustes.informacoes.trim(), observacoes(usadas)]
-      : [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), u.informacoes_complementares]).filter(Boolean).join(" - "),
+      : [`Pedido #${pedido.numero}`, pedido.observacoes, observacoes(usadas), preencherTextoNfe(u.informacoes_complementares, camposDoPedido(pedido))]).filter(Boolean).join(" - "),
     items,
   };
   const valorNota = r2(pedido.itens.reduce((t: number, i: any) => t + Number(i.valor_total), 0) - Number(pedido.desconto || 0) + Number(pedido.frete || 0));
