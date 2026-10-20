@@ -5,7 +5,7 @@ import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { supabase } from "@/lib/supabase";
-import { Contato, NomeCadastro } from "@/components/Contato";
+import { CartaoCadastro, ComAvatar, Contato, ContatoBotoes, Iniciais, NomeCadastro } from "@/components/Contato";
 import { Button, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { AgruparFiliais, FiliaisDaMarca, UnificarCadastros } from "@/components/cadastros/MarcaFiliais";
@@ -285,13 +285,13 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           ]}
           columns={[
             ...colunas<Fornecedor>("Olá! Aqui é da MF Máquinas.").filter((c) => c.label !== "Cód." && c.label !== "CNPJ").map((c) => c.label === "Nome"
-              ? { ...c, render: (r: Fornecedor) => <><NomeCadastro r={r} />
+              ? { ...c, render: (r: Fornecedor) => <ComAvatar nome={r.nome_fantasia || r.nome}><NomeCadastro r={r} />
                 <div className="mt-0.5 text-2xs text-slate-500">{[r.codigo != null ? `cód. ${r.codigo}` : null, docFormat(r.cnpj) || null].filter(Boolean).join(" · ")}</div>{r.bloqueado && <div className="mt-0.5"><SeloGolpe f={r} /></div>}<EtiquetasCliente c={r} />
                 {filiaisPorMarca.has(r.id) && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.id); }}
                   className="mt-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800 hover:bg-sky-200">
                   <Layers size={12} aria-hidden /> {filiaisPorMarca.get(r.id)!.length} {pl(filiaisPorMarca.get(r.id)!.length, "filial", "filiais")}</button>}
                 {r.matriz_id && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.matriz_id!); }}
-                  className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">filial de {nomeForn(r.matriz_id)}</button>}</> } : c),
+                  className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">filial de {nomeForn(r.matriz_id)}</button>}</ComAvatar> } : c),
             { label: "Compra o quê", render: (r) => {
               const cp = comprasDo.get(r.id);
               const cats = [...new Set([...(categoriasDo.get(r.id) ?? []), ...(cp?.grupos ?? [])])].slice(0, 2);
@@ -308,6 +308,24 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
               {r.homologado && <span title={r.homologado_obs || "Fornecedor homologado"} className="rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-2xs font-black tracking-wide text-emerald-800">HOMOLOGADO</span>}
             </div> },
           ]}
+          cartaoCelular={(r, abrir) => {
+            const fantasia = r.nome_fantasia && r.nome_fantasia.trim().toLowerCase() !== r.nome.trim().toLowerCase() ? r.nome_fantasia : null;
+            const cats = [...new Set([...(categoriasDo.get(r.id) ?? []), ...(comprasDo.get(r.id)?.grupos ?? [])])].slice(0, 3);
+            return (
+              <CartaoCadastro onAbrir={abrir} avatar={<Iniciais nome={fantasia ?? r.nome} />} titulo={fantasia ?? r.nome}
+                subtitulo={fantasia ? r.nome : undefined}
+                meta={[[r.municipio, r.uf].filter(Boolean).join("/"), docFormat(r.cnpj), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
+                selos={<>
+                  {r.bloqueado && <SeloGolpe f={r} />}
+                  {r.ativo === false && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}
+                  {r.homologado && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800">homologado</span>}
+                  {cats.map((c) => <span key={c} className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-700">{c}</span>)}
+                  {filiaisPorMarca.has(r.id) && <button type="button" onClick={(e) => { e.stopPropagation(); setFiliaisDe(r.id); }}
+                    className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-2xs font-semibold text-sky-800"><Layers size={11} aria-hidden /> {filiaisPorMarca.get(r.id)!.length} {pl(filiaisPorMarca.get(r.id)!.length, "filial", "filiais")}</button>}
+                </>}
+                contato={<ContatoBotoes r={r} mensagem="Olá! Aqui é da MF Máquinas." />} />
+            );
+          }}
         />
       ) : (
         <CrudPage<Transportadora>

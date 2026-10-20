@@ -433,10 +433,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 {/* o cartão reserva o canto de cima à direita para a caixinha de seleção */}
                 {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
                 {marcadores && <div className="mt-1.5">{tags(row)}</div>}
-                <div className="mt-3 flex flex-wrap items-center justify-end gap-1 border-t border-slate-100 pt-2">
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
                   {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                   {rowActions?.(row)}
-                  {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+                  {!readOnly && <Button variant="secondary" className="!min-h-0 !px-3 !py-1.5 text-sm" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
                 </div>
               </li>
             ))}

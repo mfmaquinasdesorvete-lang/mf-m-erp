@@ -8,7 +8,7 @@ import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button } from "@/components/ui";
-import { Contato } from "@/components/Contato";
+import { CartaoCadastro, Contato, ContatoBotoes } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -194,14 +194,12 @@ export default function Tecnicos() {
         { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
       cartaoCelular={(t, abrir) => (
-        <button type="button" onClick={abrir} className="flex w-full items-start gap-2.5 pr-8 text-left">
-          <LogoTecnico t={t} tamanho={36} />
-          <span className="min-w-0">
-            <span className="flex flex-wrap items-center gap-1 text-sm font-bold text-fg">{t.nome} <SeloDrFrost t={t} /></span>
-            <span className="block text-xs text-slate-500">{t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato"}{desde(t) ? ` · desde ${dataBR(desde(t))}` : ""}</span>
-            <span className="mt-1 block"><Atende t={t} /></span>
-          </span>
-        </button>
+        <CartaoCadastro onAbrir={abrir} avatar={<LogoTecnico t={t} tamanho={40} />}
+          titulo={<span className="inline-flex flex-wrap items-center gap-1">{t.nome} <SeloDrFrost t={t} /></span>}
+          subtitulo={[t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato", desde(t) ? `desde ${dataBR(desde(t))}` : null].filter(Boolean).join(" · ")}
+          meta={[t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ") || undefined}
+          selos={<><Atende t={t} />{!t.ativo && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</>}
+          contato={<ContatoBotoes r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
       )}
     />
   );

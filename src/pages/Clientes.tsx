@@ -10,7 +10,7 @@ import { ImportarMyFrost } from "@/components/clientes/ImportarMyFrost";
 import { FichaCliente } from "@/components/FichaCliente";
 import { Button } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
-import { Contato, NomeCadastro } from "@/components/Contato";
+import { CartaoCadastro, ComAvatar, Contato, ContatoBotoes, Iniciais, NomeCadastro } from "@/components/Contato";
 import { digitos, docFormat, pl } from "@/lib/format";
 import type { Cliente } from "@/lib/types";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -282,7 +282,7 @@ export default function Clientes() {
           label: "Nome", render: (r) => {
             const crm = rotuloCrm(r.status_crm);
             const f = situacaoFicha.get(r.id);
-            return (<>
+            return (<ComAvatar nome={r.nome_fantasia || r.nome}>
               <NomeCadastro r={r} />
               <div className="mt-0.5 flex flex-wrap items-center gap-1">
                 {r.codigo != null && <span className="font-mono text-2xs text-slate-500">cód. {r.codigo}</span>}
@@ -305,13 +305,28 @@ export default function Clientes() {
               </div>
               <EtiquetasCliente c={r} tipos={tipos} />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
-            </>);
+            </ComAvatar>);
           },
         },
         // cidade embaixo do documento: uma coluna a menos para a lista caber no notebook
         { label: "CPF/CNPJ e cidade", render: (r) => <><span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span><div className="text-xs text-slate-500">{[r.municipio, r.uf].filter(Boolean).join("/")}</div></> },
         { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
+      cartaoCelular={(r, abrir) => {
+        const fantasia = r.nome_fantasia && r.nome_fantasia.trim().toLowerCase() !== r.nome.trim().toLowerCase() ? r.nome_fantasia : null;
+        const crm = rotuloCrm(r.status_crm);
+        return (
+          <CartaoCadastro onAbrir={abrir} avatar={<Iniciais nome={fantasia ?? r.nome} />} titulo={fantasia ?? r.nome}
+            subtitulo={fantasia ? r.nome : undefined}
+            meta={[[r.municipio, r.uf].filter(Boolean).join("/"), docFormat(r.cpf_cnpj), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
+            selos={<>
+              {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
+              <EtiquetasCliente c={r} tipos={tipos} />
+              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
+            </>}
+            contato={<ContatoBotoes r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
+        );
+      }}
     />
     </>
   );
