@@ -6,6 +6,7 @@ import { AlertTriangle, Info, Landmark, XCircle } from "lucide-react";
 import { Card, Tabs } from "@/components/ui";
 import { SaldoPrevisto } from "@/components/Charts";
 import { BaixaModal } from "./BaixaModal";
+import { TorreCaixa } from "./TorreCaixa";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { useUnidade } from "@/lib/unidade";
@@ -60,6 +61,7 @@ export function VisaoGeral({ receber, pagar, vePagar, veSaldo, podeBaixar }: {
         )}
       </Card>
       {veSaldo && <Fluxo receber={receber} pagar={pagar} dia={dia} />}
+      {vePagar && veSaldo && <TorreCaixa />}
     </div>
   );
 }
