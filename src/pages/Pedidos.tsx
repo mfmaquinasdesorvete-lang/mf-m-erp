@@ -48,7 +48,7 @@ import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
-import { noPeriodo, SEM_PERIODO, somar, type Periodo } from "@/lib/filtroLista";
+import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, somar, type Periodo } from "@/lib/filtroLista";
 import { urlFotoProduto } from "@/lib/catalogo";
 import {
   contasDaVenda, envioDaVenda, meioDaVenda, pagamentoDaVenda, ROTULO_PAGAMENTO, sinaisDaVenda,
@@ -159,7 +159,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const [filtro, setFiltro] = useState<(typeof STATUS)[number]>("todos");
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
-  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
+  // abre na semana; venda aprovada ou faturada de antes (ainda por entregar) continua aparecendo
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
   // situação do pedido no Tiny (os que vieram do histórico do Tiny guardam a situação de lá)
   const [situacaoTiny, setSituacaoTiny] = useState("");
   const selecao = useSelecao();
@@ -240,7 +241,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
     (!soLicenciados || ehLicenciado(p.cliente)) &&
     (!situacaoTiny || (situacaoTiny === "-" ? !p.situacao_origem : p.situacao_origem === situacaoTiny)) &&
     (!formaEnvio || info.get(p.id)?.envio?.rotulo === formaEnvio) &&
-    noPeriodo(p.created_at, periodo) &&
+    (!!destaque || noPeriodoOuPendente(p.created_at, periodo, p.status === "aprovado" || p.status === "faturado")) &&
     (!busca || combinaBusca([p.numero, p.numero_externo, info.get(p.id)?.oc, info.get(p.id)?.nf, p.codigo_rastreio, p.cliente?.codigo, p.cliente?.nome, p.cliente?.nome_fantasia, p.cliente?.cpf_cnpj, p.cliente?.municipio], busca)),
   ), [pedidos, busca, destaque, marcador, soLicenciados, situacaoTiny, formaEnvio, periodo, info]); // eslint-disable-line react-hooks/exhaustive-deps
   const doPagamento = (p: Pedido) => !pagamento || info.get(p.id)?.pg?.situacao === pagamento;

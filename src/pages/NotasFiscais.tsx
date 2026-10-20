@@ -28,8 +28,10 @@ import { LegendaEvolucao, TrilhaEvolucao, useEvolucaoEmitidas, useEvolucaoRecebi
 import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida, type Evolucao } from "@/lib/evolucaoNota";
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
-import { BotaoFiltros, PainelFiltros, ResumoFiltradas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
-import { filtrosEmUso, passaFiltro } from "@/lib/filtroNotas";
+import { CamposNota, camposEmUso, ResumoFiltradas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente } from "@/lib/filtroLista";
+import { FILTRO_VAZIO, passaFiltro } from "@/lib/filtroNotas";
 import { useComprasMarketplace } from "@/lib/comprasMarketplace";
 import { NOME_MARKETPLACE, OPCOES_FILTRO_MARKETPLACE, passaMarketplace } from "@/lib/marketplaces";
 
@@ -60,7 +62,8 @@ function useBusca<T>(lista: T[], texto: (x: T) => string) {
       <Button variant="secondary" onClick={() => setLimite(limite + POR_VEZ)}>Mostrar mais</Button>
     </div>
   );
-  return { filtrada, limite, total: filtrada.length, campo, mais };
+  const buscar = (v: string) => { setBusca(v); setLimite(POR_VEZ); };
+  return { filtrada, limite, total: filtrada.length, campo, mais, busca, buscar };
 }
 
 function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string }) {
@@ -112,6 +115,10 @@ function BarraSelecao({ n, onMarcadores, onLimpar }: { n: number; onMarcadores: 
     </div>
   );
 }
+
+// o que ainda pede ação continua na lista mesmo sendo de antes do período (a lista abre na semana)
+const pendenteEmitida = (n: NotaEmitida) => ABAS_EMITIDAS.find((a) => a.valor === "pendentes")!.filtro(n as any);
+const pendenteRecebida = (n: Recebida) => ABAS_RECEBIDAS.find((a) => a.valor === "pendentes")!.filtro(n as any);
 
 function FiltroEtapa({ valor, onChange, opcoes }: { valor: string; onChange: (v: string) => void; opcoes: { valor: string; rotulo: string }[] }) {
   return (
@@ -201,8 +208,9 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
   const filtros = useFiltrosNotas();
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_EMITIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
-    .filter((n) => passaFiltro({ data: n.created_at, numero: n.numero, valor: n.valor_total, uf: n.payload?.uf_destinatario }, filtros.f));
-  const { filtrada, limite, campo: campoBusca, mais } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+    .filter((n) => passaFiltro({ data: null, numero: n.numero, valor: n.valor_total, uf: n.payload?.uf_destinatario }, { ...filtros.f, de: "", ate: "" })
+      && noPeriodoOuPendente(n.created_at, filtros.f, pendenteEmitida(n)));
+  const { filtrada, limite, mais, busca, buscar } = useBusca(daAba, (n) => [n.numero, n.chave, n.pedido?.numero, n.pedido?.cliente?.nome, n.pedido?.cliente?.nome_fantasia, n.destinatario_nome, n.destinatario_doc, n.payload?.natureza_operacao, situacaoEmitida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
   const [aberta, setAberta] = useState<NotaEmitida | null>(null);
   // uma nota só em destaque (ex.: vinda da busca do menu): já abre
@@ -238,9 +246,12 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
-        <div className="flex flex-wrap gap-2">
+      <BarraFiltros busca={busca} onBusca={buscar} placeholder="Buscar nº, nome, CNPJ ou chave"
+        periodo={aba === "excluidas" ? undefined : filtros.f} onPeriodo={aba === "excluidas" ? undefined : (p) => filtros.setF({ ...filtros.f, ...p })} rotuloData="Emissão"
+        filtros={aba === "excluidas" ? undefined : <><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /><CamposNota f={filtros.f} onChange={filtros.setF} comUf /></>}
+        nFiltros={(marcador ? 1 : 0) + (etapa ? 1 : 0) + camposEmUso(filtros.f)}
+        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); filtros.setF(FILTRO_VAZIO); }}
+        direita={<div className="flex flex-wrap gap-2">
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
           <MaisAcoes>
             <Button variant="secondary" onClick={() => exportarNotas(`notas-emitidas-${aba}`, filtrada.map((n) => ({
@@ -254,12 +265,10 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
             {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
             {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
           </MaisAcoes>
-        </div>
-      </div>
-      {aba !== "excluidas" && (filtros.aberto || filtrosEmUso(filtros.f) > 0) && <PainelFiltros f={filtros.f} onChange={filtros.setF} comUf />}
+        </div>} />
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={filtrosEmUso(filtros.f) > 0} />
+      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={aba !== "excluidas"} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -336,8 +345,9 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
   const daAba = aba === "excluidas" ? [] : data.filter(ABAS_RECEBIDAS.find((a) => a.valor === aba)!.filtro).filter((n) => !destaque || destaque.ids.includes(n.id)).filter((n) => !marcador || (n.marcadores ?? []).includes(marcador))
     .filter((n) => !filtroEtapa || filtroEtapa.teste(evolucao.get(n.id)!))
     .filter((n) => passaMarketplace(marketplaceDe.get(n.id), mkt))
-    .filter((n) => passaFiltro({ data: n.data_emissao, numero: numeroDaChave(n.chave), valor: n.valor_total }, filtros.f));
-  const { filtrada, limite, campo: campoBusca, mais } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
+    .filter((n) => passaFiltro({ data: null, numero: numeroDaChave(n.chave), valor: n.valor_total }, { ...filtros.f, de: "", ate: "" })
+      && noPeriodoOuPendente(n.data_emissao, filtros.f, pendenteRecebida(n)));
+  const { filtrada, limite, mais, busca, buscar } = useBusca(daAba, (n) => [numeroDaChave(n.chave), n.chave, n.emitente_nome, n.emitente_cnpj, marketplaceDe.has(n.id) ? `marketplace ${NOME_MARKETPLACE[marketplaceDe.get(n.id)!]}` : "", n.processamento, situacaoRecebida(n).rotulo, ...(n.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome)].join(" "));
   const { sel, setSel, alternar, caixaTodos } = useSelecao(filtrada.map((n) => n.id));
   const [aberta, setAberta] = useState<Recebida | null>(null);
   const [janela, setJanela] = useState<"marcadores" | "gerenciar" | null>(null);
@@ -367,9 +377,9 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
 
   return (
     <>
-      {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-3">
-        <Button onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar notas na SEFAZ</Button>
-        <Button variant="secondary" onClick={() => setConferir(true)} title="Ligar os itens das notas aos produtos do ERP (cadastro e fornecedores)"><ListChecks size={16} /> Conferir itens das notas</Button>
+      {leitura ? <p className="mb-3 text-sm text-slate-500">Os XML das notas de fornecedores vão no pacote do fechamento (Painel do contador).</p> : <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Button className="!min-h-0 !px-3 !py-2 text-sm" onClick={sincronizar} disabled={buscando}><RefreshCw size={16} className={buscando ? "animate-spin" : ""} /> Buscar<span className="hidden sm:inline"> notas</span> na SEFAZ</Button>
+        <Button className="!min-h-0 !px-3 !py-2 text-sm" variant="secondary" onClick={() => setConferir(true)} title="Ligar os itens das notas aos produtos do ERP (cadastro e fornecedores)"><ListChecks size={16} /> Conferir itens<span className="hidden sm:inline"> das notas</span></Button>
         <MaisAcoes>
         <Button variant="secondary" onClick={() => exportarNotas(`notas-recebidas-${aba}`, filtrada.map((n) => ({
           Número: numeroDaChave(n.chave), Emissão: dataBR(n.data_emissao), Fornecedor: n.emitente_nome ?? "", CNPJ: docFormat(n.emitente_cnpj),
@@ -393,15 +403,18 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
           sozinho. Só pede ajuda quando um item ainda não tem produto vinculado.
         </p>
       </div>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">{aba !== "excluidas" && <>{campoBusca}<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} />
-        <select className="input col-span-2 min-w-0 sm:w-auto" value={mkt} onChange={(e) => setMkt(e.target.value)} aria-label="Compra em marketplace">
-          <option value="">Marketplace: todas</option>
-          {OPCOES_FILTRO_MARKETPLACE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
-        </select></div><BotaoFiltros f={filtros.f} aberto={filtros.aberto} onAbrir={() => filtros.setAberto(!filtros.aberto)} /></>}</div>
-      {aba !== "excluidas" && (filtros.aberto || filtrosEmUso(filtros.f) > 0) && <PainelFiltros f={filtros.f} onChange={filtros.setF} />}
+      <BarraFiltros busca={busca} onBusca={buscar} placeholder="Buscar nº, nome, CNPJ ou chave"
+        periodo={aba === "excluidas" ? undefined : filtros.f} onPeriodo={aba === "excluidas" ? undefined : (p) => filtros.setF({ ...filtros.f, ...p })} rotuloData="Emissão"
+        filtros={aba === "excluidas" ? undefined : <><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_RECEBIDAS} />
+          <select className="input min-w-0 sm:w-auto" value={mkt} onChange={(e) => setMkt(e.target.value)} aria-label="Compra em marketplace">
+            <option value="">Marketplace: todas</option>
+            {OPCOES_FILTRO_MARKETPLACE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+          </select><CamposNota f={filtros.f} onChange={filtros.setF} /></>}
+        nFiltros={(marcador ? 1 : 0) + (etapa ? 1 : 0) + (mkt ? 1 : 0) + camposEmUso(filtros.f)}
+        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); setMkt(""); filtros.setF(FILTRO_VAZIO); }} />
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={filtrosEmUso(filtros.f) > 0} />
+      <ResumoFiltradas n={filtrada.length} total={filtrada.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)} ativo={aba !== "excluidas"} />
       <div className="mb-2"><LegendaEvolucao tipo="recebidas" /></div>
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>

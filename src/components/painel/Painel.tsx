@@ -8,11 +8,11 @@ import { fitValor } from "@/components/ui";
 import { todosItens, useVisivel } from "@/lib/menu";
 import type { Tela } from "@/lib/permissoes";
 
-export type Periodo = "hoje" | "7d" | "30d" | "mes" | "ano";
+export type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes" | "ano";
 /** `anterior`: para "vs …" nos cartões · `comparado`: para frases ("32% a mais que no mês passado") */
 export const PERIODOS: { id: Periodo; rotulo: string; anterior: string; comparado: string }[] = [
   { id: "hoje", rotulo: "Hoje", anterior: "ontem", comparado: "ontem" },
-  { id: "7d", rotulo: "7 dias", anterior: "7 dias antes", comparado: "nos 7 dias anteriores" },
+  { id: "semana", rotulo: "Semana", anterior: "semana passada", comparado: "na semana passada" },
   { id: "30d", rotulo: "30 dias", anterior: "30 dias antes", comparado: "nos 30 dias anteriores" },
   { id: "mes", rotulo: "Mês", anterior: "mês passado", comparado: "no mês passado" },
   { id: "ano", rotulo: "Ano", anterior: "ano passado", comparado: "no ano passado" },
@@ -41,6 +41,12 @@ export function intervalos(p: Periodo): { atual: Faixa; anterior: Faixa } {
       ? `${iso(ant).slice(0, 8)}${String(Math.min(d.getUTCDate(), ultimoDia)).padStart(2, "0")}`
       : `${d.getUTCFullYear() - 1}${fim.slice(4)}`;
     return { atual: [ini, fim], anterior: [iso(ant), fimAnt === `${d.getUTCFullYear() - 1}-02-29` ? `${d.getUTCFullYear() - 1}-02-28` : fimAnt] };
+  }
+  if (p === "semana") {
+    // de segunda até hoje, comparada com os mesmos dias da semana passada
+    const ini = somarDias(-((d.getUTCDay() + 6) % 7));
+    const iniAnt = iso(new Date(utc(ini).getTime() - 7 * 864e5));
+    return { atual: [ini, fim], anterior: [iniAnt, somarDias(-7)] };
   }
   const n = p === "hoje" ? 1 : p === "7d" ? 7 : 30;
   return { atual: [somarDias(-(n - 1)), fim], anterior: [somarDias(-(2 * n - 1)), somarDias(-n)] };
@@ -79,8 +85,9 @@ export function baldes(p: Periodo): Balde[] {
 }
 
 /** Período lembrado por área (cada painel guarda o seu). */
-export function usePeriodo(area: string, padrao: Periodo = "mes") {
-  const chave = `erp.painel.${area}.periodo`;
+export function usePeriodo(area: string, padrao: Periodo = "semana") {
+  // os painéis abrem na semana (chave nova: quem tinha outro período guardado também volta para a semana)
+  const chave = `erp.painel.${area}.periodo2`;
   const [periodo, setPeriodo] = useState<Periodo>(() => {
     try { const v = localStorage.getItem(chave) as Periodo | null; return v && PERIODOS.some((p) => p.id === v) ? v : padrao; } catch { return padrao; }
   });

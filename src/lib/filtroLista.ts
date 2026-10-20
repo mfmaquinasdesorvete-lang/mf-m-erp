@@ -7,6 +7,8 @@ export { ATALHOS, periodoDoAtalho, type Atalho };
 export type Periodo = { de: string; ate: string };
 export const SEM_PERIODO: Periodo = { de: "", ate: "" };
 export const temPeriodo = (p: Periodo) => !!(p.de || p.ate);
+/** Período com que as listas abrem: a semana atual (segunda a domingo). */
+export const semanaAtual = (hoje: string): Periodo => periodoDoAtalho("semana", hoje);
 
 const FUSO = "America/Sao_Paulo";
 
@@ -28,6 +30,14 @@ export function noPeriodo(data: string | null | undefined, p: Periodo): boolean 
   if (p.de && dia < p.de) return false;
   if (p.ate && dia > p.ate) return false;
   return true;
+}
+
+/** Como noPeriodo, mas o que ainda está pendente e é de antes do período continua aparecendo
+ * (conta vencida em aberto, pedido antigo ainda não entregue): abrir na semana não esconde atraso. */
+export function noPeriodoOuPendente(data: string | null | undefined, p: Periodo, pendente: boolean): boolean {
+  if (noPeriodo(data, p)) return true;
+  const dia = diaLocal(data);
+  return pendente && !!p.de && (!dia || dia < p.de);
 }
 
 const br = (d: string) => d.split("-").reverse().join("/");

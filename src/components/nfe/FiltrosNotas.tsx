@@ -4,11 +4,13 @@ import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { brl, hoje, pl } from "@/lib/format";
 import { ATALHOS, FILTRO_VAZIO, filtrosEmUso, periodoDoAtalho, type FiltroNota } from "@/lib/filtroNotas";
+import { semanaAtual } from "@/lib/filtroLista";
 
 const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
 
 export function useFiltrosNotas() {
-  const [f, setF] = useState<FiltroNota>(FILTRO_VAZIO);
+  // a lista abre na semana (segunda a domingo); "Limpar" volta para qualquer data
+  const [f, setF] = useState<FiltroNota>(() => ({ ...FILTRO_VAZIO, ...semanaAtual(hoje()) }));
   const [aberto, setAberto] = useState(false);
   return { f, setF, aberto, setAberto };
 }
@@ -63,6 +65,29 @@ export function PainelFiltros({ f, onChange, comUf = false, rotuloData = "Emiss�
     </div>
   );
 }
+
+/** Número, valor e UF (a data fica no botão de período da barra de filtros). */
+export function CamposNota({ f, onChange, comUf = false }: { f: FiltroNota; onChange: (f: FiltroNota) => void; comUf?: boolean }) {
+  const set = (k: keyof FiltroNota) => (e: { target: { value: string } }) => onChange({ ...f, [k]: e.target.value });
+  const r = "text-xs font-semibold text-slate-600";
+  const c = "input mt-0.5 h-9 w-[7.5rem]";
+  return (
+    <>
+      <label className={r}>Nº de<input className={c} inputMode="numeric" value={f.numDe} onChange={set("numDe")} placeholder="Ex.: 431" /></label>
+      <label className={r}>Nº até<input className={c} inputMode="numeric" value={f.numAte} onChange={set("numAte")} /></label>
+      <label className={r}>Valor mín.<input className={c} inputMode="decimal" value={f.valorMin} onChange={set("valorMin")} placeholder="R$" /></label>
+      <label className={r}>Valor máx.<input className={c} inputMode="decimal" value={f.valorMax} onChange={set("valorMax")} placeholder="R$" /></label>
+      {comUf && (
+        <label className={r}>UF
+          <select className="input mt-0.5 h-9 w-[5.5rem]" value={f.uf} onChange={set("uf")}><option value="">Todas</option>{UFS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
+        </label>
+      )}
+    </>
+  );
+}
+
+/** Quantos dos campos de número, valor e UF estão em uso (a data conta à parte). */
+export const camposEmUso = (f: FiltroNota) => [f.numDe || f.numAte, f.valorMin || f.valorMax, f.uf].filter(Boolean).length;
 
 /** "12 notas · R$ 45.000,00" do que ficou na lista. */
 export function ResumoFiltradas({ n, total, ativo }: { n: number; total: number; ativo: boolean }) {

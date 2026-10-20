@@ -37,9 +37,9 @@ export function passaFiltro(n: DadosNota, f: FiltroNota): boolean {
 export const filtrosEmUso = (f: FiltroNota) =>
   [f.de || f.ate, f.numDe || f.numAte, f.valorMin || f.valorMax, f.uf].filter(Boolean).length;
 
-export type Atalho = "hoje" | "7d" | "mes" | "mes_passado" | "ano";
+export type Atalho = "hoje" | "semana" | "7d" | "mes" | "mes_passado" | "ano";
 export const ATALHOS: { id: Atalho; rotulo: string }[] = [
-  { id: "hoje", rotulo: "Hoje" }, { id: "7d", rotulo: "7 dias" }, { id: "mes", rotulo: "Este mês" },
+  { id: "hoje", rotulo: "Hoje" }, { id: "semana", rotulo: "Esta semana" }, { id: "7d", rotulo: "7 dias" }, { id: "mes", rotulo: "Este mês" },
   { id: "mes_passado", rotulo: "Mês passado" }, { id: "ano", rotulo: "Este ano" },
 ];
 
@@ -48,6 +48,12 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 export function periodoDoAtalho(a: Atalho, hoje: string): { de: string; ate: string } {
   const [y, m, d] = hoje.split("-").map(Number);
   if (a === "hoje") return { de: hoje, ate: hoje };
+  // semana de segunda a domingo (os vencimentos e entregas dos próximos dias da semana também entram)
+  if (a === "semana") {
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const seg = d - ((dow + 6) % 7);
+    return { de: iso(new Date(Date.UTC(y, m - 1, seg))), ate: iso(new Date(Date.UTC(y, m - 1, seg + 6))) };
+  }
   if (a === "7d") return { de: iso(new Date(Date.UTC(y, m - 1, d - 6))), ate: hoje };
   if (a === "mes") return { de: `${hoje.slice(0, 7)}-01`, ate: hoje };
   if (a === "mes_passado") return { de: iso(new Date(Date.UTC(y, m - 2, 1))), ate: iso(new Date(Date.UTC(y, m - 1, 0))) };

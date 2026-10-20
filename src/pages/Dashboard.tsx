@@ -21,10 +21,10 @@ const Fluxo = lazy(() => import("@/pages/Fluxo"));
 type Conta = { valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null };
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-type Periodo = "hoje" | "7d" | "30d" | "mes";
+type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes";
 const PERIODOS: { id: Periodo; rotulo: string; anterior: string }[] = [
   { id: "hoje", rotulo: "Hoje", anterior: "ontem" },
-  { id: "7d", rotulo: "7 dias", anterior: "7 dias antes" },
+  { id: "semana", rotulo: "Semana", anterior: "semana passada" },
   { id: "30d", rotulo: "30 dias", anterior: "30 dias antes" },
   { id: "mes", rotulo: "Mês", anterior: "mês passado" },
 ];
@@ -40,6 +40,12 @@ function intervalos(p: Periodo) {
     const diaAnt = Math.min(d.getUTCDate(), ultimoAnt);
     const iniAnt = ant.toISOString().slice(0, 10);
     return { atual: [ini, fim], anterior: [iniAnt, `${iniAnt.slice(0, 8)}${String(diaAnt).padStart(2, "0")}`] };
+  }
+  if (p === "semana") {
+    // de segunda até hoje, comparada com os mesmos dias da semana passada
+    const dow = new Date(fim + "T12:00:00Z").getUTCDay();
+    const ini = somarDias(-((dow + 6) % 7));
+    return { atual: [ini, fim], anterior: [somarDias(-((dow + 6) % 7) - 7), somarDias(-7)] };
   }
   const n = p === "hoje" ? 1 : p === "7d" ? 7 : 30;
   return { atual: [somarDias(-(n - 1)), fim], anterior: [somarDias(-(2 * n - 1)), somarDias(-n)] };
@@ -96,9 +102,10 @@ function PainelGeral() {
   const { nome, pode, podeVer } = usePerfil();
   const navigate = useNavigate();
   const [periodo, setPeriodo] = useState<Periodo>(() => {
-    try { return (localStorage.getItem("mf-erp-periodo") as Periodo) || "mes"; } catch { return "mes"; }
+    // a tela inicial abre na semana (chave nova: o período guardado antes não vale mais)
+    try { const v = localStorage.getItem("mf-erp-periodo2") as Periodo | null; return v && PERIODOS.some((p) => p.id === v) ? v : "semana"; } catch { return "semana"; }
   });
-  const escolher = (p: Periodo) => { setPeriodo(p); try { localStorage.setItem("mf-erp-periodo", p); } catch { /* sem armazenamento */ } };
+  const escolher = (p: Periodo) => { setPeriodo(p); try { localStorage.setItem("mf-erp-periodo2", p); } catch { /* sem armazenamento */ } };
 
   const { filtrar } = useUnidade();
   const { data: pedidosTodos = [], isLoading: carregandoPedidos } = useRows<Pedido>("pedidos");

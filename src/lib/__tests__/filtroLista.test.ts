@@ -36,3 +36,20 @@ describe("soma da lista", () => {
     expect(somar([], () => 1)).toBe(0);
   });
 });
+
+import { noPeriodoOuPendente, semanaAtual } from "../filtroLista";
+describe("listas abrem na semana", () => {
+  it("semana de segunda a domingo", () => {
+    expect(semanaAtual("2026-10-20")).toEqual({ de: "2026-10-19", ate: "2026-10-25" }); // terça
+    expect(semanaAtual("2026-10-19")).toEqual({ de: "2026-10-19", ate: "2026-10-25" }); // segunda
+    expect(semanaAtual("2026-10-25")).toEqual({ de: "2026-10-19", ate: "2026-10-25" }); // domingo
+    expect(semanaAtual("2026-11-01")).toEqual({ de: "2026-10-26", ate: "2026-11-01" }); // vira o mês
+  });
+  it("pendente de antes da semana continua na lista", () => {
+    const p = { de: "2026-10-19", ate: "2026-10-25" };
+    expect(noPeriodoOuPendente("2026-10-10", p, true)).toBe(true);
+    expect(noPeriodoOuPendente("2026-10-10", p, false)).toBe(false);
+    expect(noPeriodoOuPendente("2026-11-10", p, true)).toBe(false);
+    expect(noPeriodoOuPendente("2026-10-21", p, false)).toBe(true);
+  });
+});

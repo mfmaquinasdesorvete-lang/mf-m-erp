@@ -41,7 +41,7 @@ import { raizCnpj, resumoPorTipo, tipoPagar, type TipoPagar } from "@/lib/tiposP
 import type { ContaRevisao } from "@/lib/aprovacao";
 import { aguardaAprovacao, COR_RENEGOCIADA, COR_TOM, diaDoPagamento, naVisaoPagar, paraPagarHoje, PASSOS_PAGAR, passoPagar, situacaoPagar, VISOES_PAGAR, type Decisao, type PassoPagar, type VisaoPagar } from "@/lib/programacao";
 import { BarraFiltros, ChipsSituacao, RodapeLista } from "@/components/filtros/BarraFiltros";
-import { noPeriodo, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { noPeriodo, noPeriodoOuPendente, rotuloPeriodo, SEM_PERIODO, semanaAtual, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { AvisoGolpe } from "@/components/fornecedores/Golpe";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
@@ -528,7 +528,8 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const tipoDe = (c: Pagar) => tipos.get(c.id) ?? "outros";
   const aprov = useAprovarPagar(contas, tipoDe);
   const [busca, setBusca] = useState("");
-  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
+  // abre na semana; conta em aberto de antes (vencida) continua aparecendo
+  const [periodo, setPeriodo] = useState<Periodo>(() => (destaque ? SEM_PERIODO : semanaAtual(hoje())));
   // como no Tiny: o período pode ser pelo vencimento, pela emissão, pelo pagamento ou pela competência
   const [campoData, setCampoData] = useState<CampoData>("vencimento");
   const rotuloCampo = CAMPOS_DATA.find((x) => x.v === campoData)?.rotulo ?? "Vencimento";
@@ -577,7 +578,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const filtradas = useMemo(() => contas.filter((c) => {
     const o = origens.get(c.id);
     return (!termo || [c.descricao, c.fornecedor?.nome, c.fornecedor?.cnpj, c.documento, c.categoria, c.observacoes, ...termosOrigem(o)].some((t) => (t ?? "").toLowerCase().includes(termo)))
-      && noPeriodo(dataDaConta(c, campoData, o), periodo) && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))
+      && noPeriodoOuPendente(dataDaConta(c, campoData, o), periodo, c.status === "aberto") && (!categoria || c.categoria === categoria) && (!marcador || ((c as any).marcadores ?? []).includes(marcador))
       && (!origemF || (o?.origem ?? "outro") === origemF);
   }), [contas, termo, periodo, campoData, categoria, marcador, origens, origemF]);
   const origensUsadas = useMemo(() => {
