@@ -10,6 +10,7 @@ import { PainelGiga } from "@/components/testeGiga/PainelGiga";
 import { RegistrosGiga } from "@/components/testeGiga/RegistrosGiga";
 import { ParametrosGiga } from "@/components/testeGiga/ParametrosGiga";
 import { ManualGiga } from "@/components/testeGiga/ManualGiga";
+import { RetesteGiga, useRetestesGiga } from "@/components/testeGiga/RetesteGiga";
 import type { ContextoGiga, OpGiga } from "@/components/testeGiga/tipos";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { usePerfil } from "@/lib/auth";
@@ -20,7 +21,7 @@ import { diaBrasil, validos, type FiltroTestes, type TesteGiga } from "@/lib/tes
 import { MSG_SEM_BANCO, useParametrosGiga, useTestesGiga } from "@/lib/testeGigaDados";
 import type { Produto } from "@/lib/types";
 
-type Aba = "lancar" | "painel" | "registros" | "parametros" | "manual";
+type Aba = "lancar" | "painel" | "registros" | "reteste" | "parametros" | "manual";
 const nomeDaMaquina = (p?: Produto | null) => p?.modelo?.trim() || p?.descricao || "Máquina";
 
 export default function TesteGiga() {
@@ -28,11 +29,13 @@ export default function TesteGiga() {
   const podeLancar = pode("lancar_teste_giga");
   const navigate = useNavigate();
   const location = useLocation();
-  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "parametros", "manual"] : ["painel", "registros", "parametros", "manual"];
+  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "reteste", "parametros", "manual"] : ["painel", "registros", "reteste", "parametros", "manual"];
   const [aba, setAba] = useAbaUrl<Aba>(podeLancar ? "lancar" : "painel", abas);
   const { data: cfg } = useConfig();
   const testesQ = useTestesGiga();
   const parQ = useParametrosGiga();
+  const retQ = useRetestesGiga();
+  const semEnsaio = (retQ.data ?? []).filter((r) => r.situacao === "pendente").length;
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: ops = [] } = useRows<OpGiga>("ordens_producao", {
     select: "id, numero, produto_id, status, numeros_serie, unidade_id, concluida_em", order: "numero", key: ["teste_giga"],
@@ -66,6 +69,7 @@ export default function TesteGiga() {
     setVersao((v) => v + 1);
     setAba("lancar");
   };
+  const lancarDoReteste = (p: Preenchido) => { setPreenchido(p); setVersao((v) => v + 1); setAba("lancar"); };
   const verRegistros = (f: Partial<FiltroTestes>) => { setFiltroReg(f); setVersaoReg((v) => v + 1); setAba("registros"); };
 
   return (
@@ -81,6 +85,7 @@ export default function TesteGiga() {
         ...(podeLancar ? [{ value: "lancar" as const, label: testesHoje ? `Lançar teste (${testesHoje} hoje)` : "Lançar teste" }] : []),
         { value: "painel" as const, label: "Painel" },
         { value: "registros" as const, label: `Registros${validos(testes).length ? ` (${validos(testes).length})` : ""}` },
+        { value: "reteste" as const, label: semEnsaio ? `Reteste (${semEnsaio})` : "Reteste" },
         { value: "parametros" as const, label: "Parâmetros" },
         { value: "manual" as const, label: "Manual do HG371" },
       ]} />
@@ -94,6 +99,7 @@ export default function TesteGiga() {
         {aba === "lancar" && podeLancar && <LancarTeste key={versao} ctx={ctx} inicial={preenchido} onVerRegistros={() => verRegistros({})} />}
         {aba === "painel" && <PainelGiga ctx={ctx} onReteste={reteste} onVerRegistros={verRegistros} />}
         {aba === "registros" && <RegistrosGiga key={versaoReg} ctx={ctx} filtroInicial={filtroReg} onReteste={reteste} />}
+        {aba === "reteste" && <RetesteGiga ctx={ctx} onLancar={lancarDoReteste} />}
         {aba === "parametros" && (parQ.isLoading ? <p className="py-8 text-center text-slate-500">Carregando…</p>
           : <ParametrosGiga ctx={ctx} admin={papel === "admin"} revisao={textoPadrao(cfg, "reg006_revisao")} />)}
         {aba === "manual" && <ManualGiga ctx={ctx} admin={papel === "admin"} />}

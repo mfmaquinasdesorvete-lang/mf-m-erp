@@ -431,6 +431,15 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
   const garantia = pecasEmGarantia(oss);
   // teste do giga (REG-006) das máquinas fabricadas pela MF, pelo nº de série
   const { data: giga } = useSituacaoGiga(equipamentos.filter((e) => !e.origem).map((e) => e.numero_serie));
+  // vendidas desde 2023, antes do registro do giga no ERP: ficam "sem ensaio registrado" até o teste de verdade
+  const { data: semEnsaio } = useQuery({
+    queryKey: ["giga_retestes", "cliente", cliente.id],
+    enabled: !DEMO && equipamentos.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("giga_retestes").select("equipamento_id").eq("situacao", "pendente").in("equipamento_id", equipamentos.map((e) => e.id));
+      return new Set((data ?? []).map((r: { equipamento_id: string }) => r.equipamento_id));
+    },
+  });
   const nome = cliente.nome_fantasia?.trim() || cliente.nome;
   const fone = cliente.whatsapp || cliente.telefone;
   async function copiar(token: string) {
@@ -466,6 +475,7 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
               <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 [overflow-wrap:anywhere]">
                 <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
                 {giga && e.numero_serie && !e.origem && <SeloTesteGiga s={giga.get(normalizarNs(e.numero_serie))} />}
+                {semEnsaio?.has(e.id) && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800" title="Testar no giga na próxima preventiva ou OS">giga: sem ensaio registrado</span>}
                 <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
                 {e.usada && <span className="font-semibold text-emerald-700">usada</span>}
                 {e.garantia_ate && <span className={e.garantia_ate < dia ? "text-slate-500" : "text-emerald-700"}>garantia {e.garantia_ate < dia ? "terminou" : "até"} {dataBR(e.garantia_ate)}</span>}
