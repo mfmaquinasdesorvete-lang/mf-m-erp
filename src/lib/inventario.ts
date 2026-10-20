@@ -75,3 +75,29 @@ export function giroEstoque(itens: ItemInventario[]) {
     paradosIds: parados.sort((a, b) => b.saldo * b.custo - a.saldo * a.custo).map((i) => i.id),
   };
 }
+
+// ---------- contagem de partida ----------
+
+type ProdutoPartida = { id: string; categoria?: string | null; tipo?: string | null; descricao?: string | null };
+export type PartePartida = { chave: string; nome: string; ids: string[]; contados: number };
+
+/** A primeira contagem de verdade, por partes: uma categoria (a principal, antes do " > ") por vez, com no máximo
+ *  `max` itens por parte (categoria grande vira "parte 1 de 2"). Serviços não têm estoque e ficam de fora. */
+export function partesPartida(produtos: ProdutoPartida[], contados: Set<string>, max = 40): PartePartida[] {
+  const grupos = new Map<string, ProdutoPartida[]>();
+  for (const p of produtos) {
+    if (p.tipo === "servico") continue;
+    const cat = String(p.categoria ?? "").split(" > ")[0].trim() || "Sem categoria";
+    grupos.set(cat, [...(grupos.get(cat) ?? []), p]);
+  }
+  const partes: PartePartida[] = [];
+  for (const [cat, lista] of [...grupos.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))) {
+    const ord = [...lista].sort((a, b) => String(a.descricao ?? "").localeCompare(String(b.descricao ?? ""), "pt-BR"));
+    const n = Math.ceil(ord.length / max);
+    for (let k = 0; k < n; k++) {
+      const ids = ord.slice(k * max, (k + 1) * max).map((p) => p.id);
+      partes.push({ chave: `${cat}#${k}`, nome: n > 1 ? `${cat} (parte ${k + 1} de ${n})` : cat, ids, contados: ids.filter((id) => contados.has(id)).length });
+    }
+  }
+  return partes;
+}

@@ -5,13 +5,13 @@
 // No alto, a acuracidade (itens que já estavam certos) e o giro do estoque.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck, ClipboardList, Eye, EyeOff, Gauge, PackageX, Printer, RefreshCw, Users } from "lucide-react";
+import { CalendarCheck, CheckCircle2, ClipboardList, Eye, EyeOff, Flag, Gauge, PackageX, Printer, RefreshCw, Users } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, Table } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
-import { acuracidade, giroEstoque, situacaoDupla, sorteioDoDia, type ItemInventario } from "@/lib/inventario";
+import { acuracidade, giroEstoque, partesPartida, situacaoDupla, sorteioDoDia, type ItemInventario } from "@/lib/inventario";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import type { Produto } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
@@ -145,6 +145,12 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     if (error) return notifyError(error);
     invalidar("contagem_itens");
   }
+  // anota a prateleira na hora de contar: a próxima folha já sai na ordem do caminho
+  async function gravarLocal(produtoId: string, local: string) {
+    const { error } = await supabase.from("produtos").update({ localizacao: local || null }).eq("id", produtoId);
+    if (error) return notifyError(error);
+    invalidar("produtos");
+  }
   async function concluir() {
     if (recontar.length) { setRevelar(true); return notify(`Dupla contagem: ${recontar.length} ${pl(recontar.length, "item precisa", "itens precisam")} da 2ª contagem igual à 1ª (${recontar.slice(0, 3).map((i) => prod(i.produto_id)?.descricao).join(", ")})`, "erro"); }
     if (semJustificativa.length) { setRevelar(true); return notify(`Justifique ${semJustificativa.length} ${pl(semJustificativa.length, "divergência", "divergências")} antes de concluir`, "erro"); }
@@ -213,7 +219,10 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
           const dif = diferenca(i);
           return (
             <tr key={i.produto_id}>
-              <td className="td text-sm">{p?.localizacao ?? "—"}</td>
+              <td className="td text-sm">{editavel && p ? (
+                <input className="input w-28 text-sm" key={`${p.id}-${p.localizacao ?? ""}`} defaultValue={p.localizacao ?? ""} placeholder="Ex.: A1-2" aria-label={`Local de ${p.descricao}`}
+                  onBlur={(e) => e.target.value.trim() !== (p.localizacao ?? "") && gravarLocal(p.id, e.target.value.trim())} />
+              ) : (p?.localizacao ?? "—")}</td>
               <td className="td"><div className="font-medium">{p?.descricao}</div><div className="text-xs text-slate-500">{[p?.sku, p?.unidade].filter(Boolean).join(" · ")}</div></td>
               {((c.dupla && !revelar ? [campo] : c.dupla ? ["contado", "contado2"] : ["contado"]) as ("contado" | "contado2")[]).map((k) => (
                 <td key={k} className="td">
@@ -278,7 +287,12 @@ function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produ
       id: p.id, custo: Number(p.preco_custo) || 0, vendido12m: vendido.get(p.id) ?? 0, ultimaContagem: ultima.get(p.id) ?? null,
       saldo: Number(saldos.find((s) => s.produto_id === p.id && s.unidade_id === unidadeId)?.quantidade ?? 0),
     }));
+    const fisicos = produtos.filter((p) => p.ativo !== false && !p.kit && (p.tipo as string) !== "servico");
+    const partes = partesPartida(fisicos, new Set(ultima.keys()));
+    const totalP = partes.reduce((s, x) => s + x.ids.length, 0);
+    const feitosP = partes.reduce((s, x) => s + x.contados, 0);
     return {
+      partes, totalP, feitosP, pctPartida: totalP ? Math.round((feitosP / totalP) * 100) : 100,
       sorteio: sorteioDoDia(lista, hoje(), 8),
       acur: acuracidade(contagens.filter((c) => c.unidade_id === unidadeId), new Date(Date.now() - 90 * 864e5).toISOString()),
       giro: giroEstoque(lista),
@@ -287,6 +301,20 @@ function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produ
   }, [produtos, saldos, itensCont, contagens, vendas, unidadeId]);
 
   const prod = (id: string) => produtos.find((p) => p.id === id);
+  // enquanto não houver uma primeira contagem de quase tudo, os números do sistema não são confiáveis
+  const emPartida = r.pctPartida < 90;
+  const abertaDaParte = (nomeParte: string) => contagens.find((c) => c.status === "aberta" && c.unidade_id === unidadeId && c.escopo === `Partida: ${nomeParte}`);
+  async function contarParte(nomeParte: string, ids: string[]) {
+    const ja = abertaDaParte(nomeParte);
+    if (ja) return onAberta(ja.id);
+    if (!unidadeId) return;
+    setAbrindo(true);
+    const { data, error } = await supabase.rpc("abrir_contagem_v2", { p_unidade: unidadeId, p_produtos: ids, p_escopo: `Partida: ${nomeParte}`, p_dupla: true });
+    setAbrindo(false);
+    if (error) return notifyError(error);
+    invalidar("contagens_estoque", "contagem_itens");
+    onAberta(data as string);
+  }
   const jaAbertaHoje = contagens.find((c) => c.status === "aberta" && c.escopo?.startsWith(`Contagem do dia ${dataBR(hoje())}`) && c.unidade_id === unidadeId);
 
   async function abrirDoDia() {
@@ -303,14 +331,14 @@ function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produ
   const a = r.acur.pct;
   const corA = a == null ? "text-slate-500" : a >= 98 ? "text-emerald-600" : a >= 90 ? "text-amber-600" : "text-red-600";
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Indicador icone={<Gauge size={16} />} titulo="Acuracidade (90 dias)" valor={a == null ? "—" : `${a.toLocaleString("pt-BR")}%`} cor={corA}
           detalhe={r.acur.contados ? `${r.acur.certos} de ${r.acur.contados} itens já estavam certos · meta 98%` : "conclua uma contagem para medir · meta 98%"} />
-        <Indicador icone={<RefreshCw size={16} />} titulo="Giro no ano" valor={r.giro.giro == null ? "—" : `${r.giro.giro.toLocaleString("pt-BR")}×`} cor="text-sky-600"
+        <Indicador icone={<RefreshCw size={16} />} titulo={emPartida ? "Giro no ano (estimado)" : "Giro no ano"} valor={r.giro.giro == null ? "—" : `${r.giro.giro.toLocaleString("pt-BR")}×`} cor="text-sky-600"
           detalhe={r.giro.diasDeEstoque != null ? `estoque dura uns ${r.giro.diasDeEstoque} dias · ${brl(r.giro.valorEstoque)} a custo` : `${brl(r.giro.valorEstoque)} a custo`} />
         <button type="button" onClick={() => setVerParados(!verParados)} className="text-left">
-          <Indicador icone={<PackageX size={16} />} titulo="Parado (sem venda 12 meses)" valor={brl(r.giro.valorParado)} cor={r.giro.parados ? "text-amber-600" : "text-emerald-600"}
+          <Indicador icone={<PackageX size={16} />} titulo={emPartida ? "Parado (estimado)" : "Parado (sem venda 12 meses)"} valor={brl(r.giro.valorParado)} cor={r.giro.parados ? "text-amber-600" : "text-emerald-600"}
             detalhe={`${r.giro.parados} ${pl(r.giro.parados, "item", "itens")} · toque para ver`} />
         </button>
         <Indicador icone={<ClipboardList size={16} />} titulo="Com saldo e nunca contados" valor={String(r.nunca)} cor={r.nunca ? "text-violet-600" : "text-emerald-600"} detalhe={`na unidade ${nome(unidadeId ?? "")}`} />
@@ -327,7 +355,31 @@ function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produ
         </Card>
       )}
 
-      <Card className="space-y-2 p-4">
+      {emPartida && (
+        <Card className="order-first space-y-3 p-4">
+          <div>
+            <h3 className="flex items-center gap-1.5 font-bold"><Flag size={18} className="text-brand" /> Contagem de partida · {r.feitosP} de {r.totalP} itens ({r.pctPartida}%)</h3>
+            <p className="text-xs text-slate-500">A primeira contagem de verdade do estoque, uma parte por dia, com dupla contagem. Anote também o local de cada item (prateleira).
+              Os números de giro e parado só ficam certos depois dela. Ao chegar em 90%, o ERP passa para a contagem do dia.</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand" style={{ width: `${r.pctPartida}%` }} /></div>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {r.partes.map((x) => {
+              const feita = x.contados >= x.ids.length;
+              const aberta = abertaDaParte(x.nome);
+              return (
+                <li key={x.chave} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                  <span className="min-w-0 flex-1">{feita ? <CheckCircle2 size={15} className="mr-1 inline text-emerald-600" /> : null}<b>{x.nome}</b>
+                    <span className="text-slate-500"> · {x.contados}/{x.ids.length}</span>{aberta && <span className="ml-1 rounded bg-amber-100 px-1.5 text-2xs font-semibold text-amber-800">em contagem</span>}</span>
+                  {podeEditar && !feita && <Button variant={aberta ? "primary" : "secondary"} disabled={abrindo} onClick={() => contarParte(x.nome, x.ids)}>{aberta ? "Continuar" : "Contar"}</Button>}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
+
+      {!emPartida && <Card className="space-y-2 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="flex items-center gap-1.5 font-bold"><CalendarCheck size={18} className="text-emerald-600" /> Contagem do dia · {r.sorteio.length} {pl(r.sorteio.length, "item", "itens")}</h3>
@@ -342,7 +394,7 @@ function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produ
             {r.sorteio.map((x) => <li key={x.id} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs"><b className={x.curva === "A" ? "text-red-600" : x.curva === "B" ? "text-amber-600" : "text-slate-500"}>{x.curva}</b> {prod(x.id)?.descricao}</li>)}
           </ul>
         ) : <p className="text-sm text-emerald-700">Tudo contado dentro do prazo. 🎉</p>}
-      </Card>
+      </Card>}
     </div>
   );
 }

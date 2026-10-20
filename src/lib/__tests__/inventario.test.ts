@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acuracidade, curvaABC, giroEstoque, situacaoDupla, sorteioDoDia, type ItemInventario } from "../inventario";
+import { acuracidade, curvaABC, giroEstoque, partesPartida, situacaoDupla, sorteioDoDia, type ItemInventario } from "../inventario";
 
 const it_ = (id: string, custo: number, saldo: number, vendido12m: number, ultimaContagem: string | null = null): ItemInventario => ({ id, custo, saldo, vendido12m, ultimaContagem });
 
@@ -45,5 +45,20 @@ describe("acuracidade e giro", () => {
     expect(g.parados).toBe(1);
     expect(g.valorParado).toBe(200);
     expect(g.diasDeEstoque).toBe(110);
+  });
+});
+
+describe("contagem de partida", () => {
+  it("divide por categoria principal, parte grande em pedaços, sem serviços", () => {
+    const prods = [
+      ...Array.from({ length: 5 }, (_, i) => ({ id: `e${i}`, categoria: "Elétricas > Relés", descricao: `Relé ${i}` })),
+      { id: "m1", categoria: "Mecânicas", descricao: "Eixo" },
+      { id: "s1", categoria: "Mecânicas", tipo: "servico", descricao: "Troca" },
+      { id: "x", categoria: null, descricao: "Solto" },
+    ];
+    const p = partesPartida(prods, new Set(["e0", "m1"]), 3);
+    expect(p.map((x) => x.nome)).toEqual(["Elétricas (parte 1 de 2)", "Elétricas (parte 2 de 2)", "Mecânicas", "Sem categoria"]);
+    expect(p[0].contados).toBe(1);
+    expect(p[2]).toMatchObject({ ids: ["m1"], contados: 1 });
   });
 });
