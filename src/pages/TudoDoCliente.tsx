@@ -4,9 +4,13 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Check, FileText, Landmark, Receipt, Search, ShoppingCart, Truck, UserRound, Wrench, IceCreamCone } from "lucide-react";
+import { Building2, Check, FileText, Landmark, Printer, Receipt, Search, ShoppingCart, Truck, UserRound, Wrench, IceCreamCone } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { FichaCliente } from "@/components/FichaCliente";
+import { PdfViewer } from "@/components/PdfViewer";
+import { notifyError } from "@/lib/notify";
+import { useConfig } from "@/lib/useConfig";
+import { pdfTudoCliente } from "@/lib/pdf";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { digitos, docDaBusca, extratoDoCliente, termoExtrato } from "@/lib/tudoCliente";
@@ -75,8 +79,34 @@ export default function TudoDoCliente() {
   const [busca, setBusca] = useState("");
   const [escolhido, setEscolhido] = useState<Achado | null>(null);
   const [ficha, setFicha] = useState(false);
+  const [pdf, setPdf] = useState<Blob | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const { data: cfg } = useConfig();
   const achados = useQuery({ queryKey: ["tudo-cliente-busca", busca], queryFn: () => buscar(busca), enabled: busca.trim().length >= 3 });
   const dados = useQuery({ queryKey: ["tudo-cliente", escolhido?.tipo, escolhido?.id], queryFn: () => tudo(escolhido!), enabled: !!escolhido });
+
+  async function imprimir() {
+    if (!escolhido || !dados.data || !cfg) return;
+    setGerando(true);
+    try {
+      const c = escolhido.cliente;
+      const end = (x: { logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null; municipio?: string | null; uf?: string | null; cep?: string | null }) =>
+        [[x.logradouro, x.numero].filter(Boolean).join(", "), x.complemento, x.bairro, [x.municipio, x.uf].filter(Boolean).join("/"), x.cep && `CEP ${x.cep}`].filter(Boolean).join(" · ");
+      const cadastro: [string, string][] = c ? [
+        ["Nome / razão social", c.nome], ["Nome fantasia", c.nome_fantasia ?? ""], ["CPF / CNPJ", c.cpf_cnpj ? docFormat(c.cpf_cnpj) : ""],
+        ["Inscrição estadual", c.inscricao_estadual ?? ""], ["Endereço", end(c)],
+        ...(c.enderecos_extras ?? []).map((e, i): [string, string] => [e.etiqueta || `Endereço ${i + 2}`, end(e)]),
+        ["Telefone", [c.telefone, c.telefone_adicional].filter(Boolean).join(" / ")], ["WhatsApp", c.whatsapp ?? ""],
+        ["E-mail", [c.email, c.email_nfe].filter(Boolean).join(" / ")], ["Site / redes", [c.website, c.instagram].filter(Boolean).join(" · ")],
+        ["Compra da máquina", c.compra_maquina_em ?? ""], ["Observações", c.observacoes ?? ""],
+      ] : [["Nome", escolhido.nome], ["CNPJ", escolhido.doc ? docFormat(escolhido.doc) : ""], ["Cidade", escolhido.cidade ?? ""]];
+      const r = resumoDe(dados.data);
+      setPdf(await pdfTudoCliente({
+        nome: escolhido.nome, sub: [escolhido.fantasia, escolhido.doc && docFormat(escolhido.doc), escolhido.cidade].filter(Boolean).join(" · "),
+        cadastro, resumo: r.cartoes, blocos: blocosDe(dados.data).map((b) => ({ titulo: b.titulo, linhas: b.linhas.map((l) => ({ data: l.data, titulo: l.titulo, detalhe: [l.selo, l.detalhe].filter(Boolean).join(" · "), valor: l.valor })) })),
+      }, cfg));
+    } catch (e) { notifyError(e); } finally { setGerando(false); }
+  }
 
   function enviar(e: FormEvent) { e.preventDefault(); setEscolhido(null); setBusca(termo.trim()); }
 
@@ -121,26 +151,39 @@ export default function TudoDoCliente() {
               <h2 className="truncate text-lg font-bold text-fg">{escolhido.nome}</h2>
               <p className="text-sm text-slate-500">{[escolhido.fantasia, escolhido.doc && docFormat(escolhido.doc), escolhido.cidade].filter(Boolean).join(" · ")}</p>
             </div>
+            <Button onClick={imprimir} disabled={!dados.data || gerando}><Printer size={16} /> {gerando ? "Gerando…" : "Imprimir tudo (PDF)"}</Button>
             {escolhido.cliente && <Button variant="secondary" onClick={() => setFicha(true)}>Ficha 360°</Button>}
             <Button variant="ghost" onClick={() => { setEscolhido(null); }}>Trocar</Button>
           </Card>
           {dados.isLoading ? <p className="text-sm text-slate-500">Juntando tudo…</p> : dados.data && <Resultado d={dados.data} />}
         </>
       )}
+      {pdf && escolhido && <PdfViewer blob={pdf} nome={`ficha-360-${escolhido.nome.split(" ")[0].toLowerCase()}.pdf`} titulo="Ficha 360° do cliente" onClose={() => setPdf(null)} />}
       {ficha && escolhido?.cliente && <FichaCliente cliente={escolhido.cliente} onClose={() => setFicha(false)} />}
     </div>
   );
 }
 
-function Resultado({ d }: { d: Awaited<ReturnType<typeof tudo>> }) {
+type Dados = Awaited<ReturnType<typeof tudo>>;
+
+function resumoDe(d: Dados) {
   const vendido = d.pedidos.filter((p: any) => !["orcamento", "cancelado"].includes(p.status)).reduce((s: number, p: any) => s + Number(p.valor_total ?? 0), 0);
   const notasOk = d.notas.filter((n: any) => n.status === "autorizada" && n.ambiente !== "homologacao");
   const faturado = notasOk.reduce((s: number, n: any) => s + Number(n.valor_total ?? 0), 0) + d.legado.reduce((s: number, n: any) => s + Number(n.valor ?? 0), 0);
   const recebidoBanco = d.extrato.filter((l: any) => Number(l.valor) > 0).reduce((s: number, l: any) => s + Number(l.valor), 0);
   const aReceber = d.receber.filter((c: any) => c.status !== "pago" && c.status !== "cancelado").reduce((s: number, c: any) => s + Number(c.valor) - Number(c.valor_pago ?? 0), 0);
   const total = Object.values(d).reduce((s, l) => s + (l as unknown[]).length, 0);
+  const cartoes: [string, string, string][] = [
+    ["Vendido (pedidos)", brl(vendido), `${d.pedidos.length} ${pl(d.pedidos.length, "pedido", "pedidos")}`],
+    ["Notas emitidas", brl(faturado), `${notasOk.length + d.legado.length} ${pl(notasOk.length + d.legado.length, "nota", "notas")}`],
+    ["Entrou no banco", brl(recebidoBanco), `${d.extrato.length} ${pl(d.extrato.length, "lançamento", "lançamentos")} no extrato`],
+    ["A receber", brl(aReceber), `${total} ${pl(total, "registro", "registros")} no total`],
+  ];
+  return { cartoes };
+}
 
-  const blocos: { titulo: string; icone: typeof Search; para?: string; linhas: Linha[] }[] = [
+function blocosDe(d: Dados): { titulo: string; icone: typeof Search; para?: string; linhas: Linha[] }[] {
+  return [
     { titulo: "Vendas e orçamentos", icone: ShoppingCart, para: "/pedidos", linhas: d.pedidos.map((p: any) => ({ id: p.id, data: p.aprovado_em ?? p.created_at, titulo: `Pedido #${p.numero}`, selo: p.status, valor: p.valor_total, detalhe: p.origem })) },
     { titulo: "Propostas do Tiny", icone: FileText, linhas: d.propostas.map((p: any) => ({ id: p.id, data: p.data, titulo: `Proposta ${p.numero ?? ""} · ${p.empresa ?? ""}`, selo: p.situacao, valor: p.total })) },
     { titulo: "Notas fiscais emitidas", icone: Receipt, para: "/notas", linhas: [
@@ -157,14 +200,16 @@ function Resultado({ d }: { d: Awaited<ReturnType<typeof tudo>> }) {
     { titulo: "Máquinas", icone: IceCreamCone, linhas: d.maquinas.map((m: any) => ({ id: m.id, data: m.data_venda, titulo: m.descricao, detalhe: [m.numero_serie && `série ${m.numero_serie}`, m.garantia_ate && `garantia até ${dataBR(m.garantia_ate)}`].filter(Boolean).join(" · ") })) },
     { titulo: "Fretes (CT-e)", icone: Truck, linhas: d.ctes.map((c: any) => ({ id: c.id, data: c.emissao, titulo: `CT-e ${c.numero} · ${c.emitente_nome ?? ""}`, selo: c.situacao, valor: c.valor })) },
   ];
+}
+
+function Resultado({ d }: { d: Dados }) {
+  const { cartoes } = resumoDe(d);
+  const blocos = blocosDe(d);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Numero rotulo="Vendido (pedidos)" valor={brl(vendido)} sub={`${d.pedidos.length} ${pl(d.pedidos.length, "pedido", "pedidos")}`} />
-        <Numero rotulo="Notas emitidas" valor={brl(faturado)} sub={`${notasOk.length + d.legado.length} ${pl(notasOk.length + d.legado.length, "nota", "notas")}`} />
-        <Numero rotulo="Entrou no banco" valor={brl(recebidoBanco)} sub={`${d.extrato.length} ${pl(d.extrato.length, "lançamento", "lançamentos")} no extrato`} />
-        <Numero rotulo="A receber" valor={brl(aReceber)} sub={`${total} ${pl(total, "registro", "registros")} no total`} />
+        {cartoes.map(([rotulo, valor, sub]) => <Numero key={rotulo} rotulo={rotulo} valor={valor} sub={sub} />)}
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {blocos.filter((b) => b.linhas.length).map((b) => <Bloco key={b.titulo} {...b} />)}

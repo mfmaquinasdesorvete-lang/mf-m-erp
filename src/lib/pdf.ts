@@ -673,6 +673,63 @@ export async function pdfComissoes(r: {
 }
 
 // ---------------------------------------------------------------------
+// Tudo do cliente (Ficha 360°): cadastro, números e cada bloco (vendas, notas, contas, extrato, OS, máquinas…)
+// ---------------------------------------------------------------------
+export async function pdfTudoCliente(r: {
+  nome: string; sub: string;
+  cadastro: [string, string][];
+  resumo: [string, string, string][];
+  blocos: { titulo: string; linhas: { data: string | null; titulo: string; detalhe?: string; valor?: number | null }[] }[];
+}, cfg: Config) {
+  const { doc, autoTable, logo } = await novoDoc();
+  const total = r.blocos.reduce((s, b) => s + b.linhas.length, 0);
+  cabecalho(doc, cfg, "FICHA 360° DO CLIENTE", `${total} ${pl(total, "registro", "registros")}`, logo);
+  const w = doc.internal.pageSize.getWidth();
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(15, 23, 42);
+  doc.text(doc.splitTextToSize(textoPdf(r.nome), w - 28).slice(0, 2), 14, 40);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...CINZA);
+  doc.text(doc.splitTextToSize(textoPdf(r.sub), w - 28).slice(0, 2), 14, 46);
+
+  // números em 4 caixas
+  const larg = (w - 28 - 9) / 4;
+  r.resumo.slice(0, 4).forEach(([rot, val, sub], i) => {
+    const x = 14 + i * (larg + 3);
+    doc.setFillColor(241, 245, 249); doc.roundedRect(x, 51, larg, 19, 2, 2, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...CINZA); doc.text(textoPdf(rot.toUpperCase()), x + 3, 56);
+    doc.setFontSize(11.5); doc.setTextColor(15, 23, 42); doc.text(textoPdf(val), x + 3, 62.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...CINZA); doc.text(doc.splitTextToSize(textoPdf(sub), larg - 6)[0] ?? "", x + 3, 67.3);
+  });
+
+  const estilo = { font: "helvetica", fontSize: 8, cellPadding: 1.6, textColor: [30, 41, 59] as [number, number, number] };
+  autoTable(doc, {
+    startY: 75, margin: { left: 14, right: 14 },
+    head: [[{ content: "CADASTRO", colSpan: 2 }]],
+    body: r.cadastro.filter(([, v]) => v).map(([k, v]) => [k, textoPdf(v)]),
+    styles: estilo, headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+    columnStyles: { 0: { cellWidth: 38, fontStyle: "bold", textColor: [71, 85, 105] } },
+  });
+  for (const b of r.blocos) {
+    if (!b.linhas.length) continue;
+    const ord = [...b.linhas].sort((x, y) => String(y.data ?? "").localeCompare(String(x.data ?? "")));
+    const soma = ord.reduce((s, l) => s + (l.valor != null ? Number(l.valor) : 0), 0);
+    const temValor = ord.some((l) => l.valor != null);
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 6, margin: { left: 14, right: 14 },
+      head: [[{ content: `${b.titulo.toUpperCase()} · ${ord.length}`, colSpan: 3 }], ["Data", "Descrição", "Valor"]],
+      body: ord.map((l) => [l.data ? dataBR(String(l.data).slice(0, 10)) : "", textoPdf([l.titulo, l.detalhe].filter(Boolean).join("\n")), l.valor != null ? brl(Number(l.valor)) : ""]),
+      foot: temValor ? [[{ content: "Total", colSpan: 2 }, brl(soma)]] : undefined,
+      styles: estilo, headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+      footStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: "bold", halign: "right" },
+      alternateRowStyles: { fillColor: [246, 248, 251] },
+      columnStyles: { 0: { cellWidth: 20 }, 2: { halign: "right", cellWidth: 28 } },
+      showHead: "everyPage",
+    });
+  }
+  rodape(doc);
+  return doc.output("blob");
+}
+
+// ---------------------------------------------------------------------
 // Necessidades de compra (Compras): a lista filtrada, em folha deitada (são muitas colunas)
 // ---------------------------------------------------------------------
 export async function pdfNecessidadesCompra(r: {

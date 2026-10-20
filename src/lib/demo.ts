@@ -3151,6 +3151,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         .map((pe) => ({ numero: pe.numero, data: String(pe.aprovado_em ?? pe.created_at).slice(0, 10), status: pe.status, valor: pe.valor_total, rastreio: pe.codigo_rastreio || undefined,
           enviado_em: pe.enviado_em?.slice(0, 10), transportadora: db.transportadoras?.find((t: Row) => t.id === pe.transportadora_id)?.nome,
           itens: db.pedido_itens.filter((i) => i.pedido_id === pe.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade })) })),
+      dados: { nome: c.nome, fantasia: c.nome_fantasia || undefined, documento: c.cpf_cnpj || undefined, ie: c.inscricao_estadual || undefined,
+        endereco: [[c.logradouro, c.numero].filter(Boolean).join(", "), c.bairro, [c.municipio, c.uf].filter(Boolean).join("/"), c.cep && `CEP ${c.cep}`].filter(Boolean).join(" · ") || undefined,
+        telefone: c.telefone || undefined, whatsapp: c.whatsapp || undefined, email: c.email || undefined, cliente_desde: String(c.created_at ?? "").slice(0, 10) || undefined },
+      notas: db.notas_fiscais.filter((n) => n.status === "autorizada" && n.ambiente !== "homologacao" && (n.cliente_id === c.id || db.pedidos.some((pe) => pe.id === n.pedido_id && pe.cliente_id === c.id)))
+        .map((n) => ({ tipo: "NF-e", numero: n.numero, serie: n.serie, data: String(n.created_at).slice(0, 10), valor: n.valor_total, chave: n.chave, danfe: n.danfe_url, devolucao: n.finalidade === "devolucao" })),
+      propostas: [],
     }, error: null };
   },
   gerar_recorrentes: () => (podeFinanceiro() ? { data: gerarRecorrentesDemo(db), error: null } : erro("sem permissão para esta ação")),

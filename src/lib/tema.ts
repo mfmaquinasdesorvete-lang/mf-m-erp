@@ -10,7 +10,8 @@ export function lerTema(): Tema {
 }
 
 export function aplicarTema(t: Tema) {
-  document.documentElement.dataset.theme = t === "escuro" ? "dark" : "light";
+  // páginas públicas (área do cliente, página da máquina) ficam sempre claras; a escolha só é guardada
+  document.documentElement.dataset.theme = t === "escuro" && document.documentElement.dataset.publica !== "1" ? "dark" : "light";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "claro" ? "#f4f6f9" : { marinho: "#061226", grafite: "#101216", app: "#0a0b1a" }[lerFundo()]);
   try { localStorage.setItem(CHAVE, t); } catch { /* navegação privada: só não lembra a escolha */ }
 }
