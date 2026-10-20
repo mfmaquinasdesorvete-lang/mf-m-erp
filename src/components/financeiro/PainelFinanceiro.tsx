@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { BaixaModal } from "./BaixaModal";
+import { CartoesCorporativos } from "./CartaoCorporativo";
 import { Fluxo } from "./VisaoGeral";
 import { BotaoRecibo, reciboDePagar, reciboDeReceber } from "./Recibos";
 import { useRows } from "@/lib/data";
@@ -137,6 +138,22 @@ export function PainelFinanceiro() {
         <h1 className="text-2xl font-bold tracking-tight text-fg">{saudacao}, {nome.split(" ")[0]}</h1>
         <p className="text-sm text-slate-500">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} · seu financeiro de hoje</p>
       </div>
+
+      {/* saldo de hoje de cada conta, dois por linha (toque: abre o extrato para conciliar) */}
+      {temBancos && (
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4" aria-label="Saldo de hoje das contas">
+          {filtrar(saldosTodos).map((b) => (
+            <button key={b.conta_id} type="button" onClick={() => navigate("/conciliacao")}
+              className="min-w-0 rounded-xl border border-slate-200 bg-surface px-3 py-2 text-left shadow-card transition hover:border-slate-300">
+              <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+                <span className="truncate">{b.nome}</span>
+                {unidades.length > 1 && <span className="shrink-0 rounded bg-slate-100 px-1 text-2xs font-bold text-slate-600">{unidades.find((u) => u.id === b.unidade_id)?.codigo}</span>}
+              </span>
+              <b className={`num block whitespace-nowrap text-[clamp(0.9rem,4.2vw,1.15rem)] ${Number(b.saldo) < 0 ? "text-red-600" : "text-fg"}`}>{brl(Number(b.saldo))}</b>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* foco: quanto tem, quanto vai entrar e quem está inadimplente, por empresa */}
       {empresas.length > 1 && (
@@ -289,6 +306,9 @@ export function PainelFinanceiro() {
       </section>
 
       <div id="fluxo-caixa"><Fluxo receber={rec} pagar={pag} dia={dia} /></div>
+
+      {/* cartão corporativo (ex.: Cartão Fabiano) no fim da página */}
+      <CartoesCorporativos className="" />
     </div>
   );
 }
