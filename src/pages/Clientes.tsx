@@ -278,14 +278,14 @@ export default function Clientes() {
         );
       }}
       columns={[
-        { label: "Cód.", render: (r) => <span className="font-mono text-xs text-slate-500">{r.codigo ?? "—"}</span>, className: "w-14" },
         {
           label: "Nome", render: (r) => {
             const crm = rotuloCrm(r.status_crm);
             const f = situacaoFicha.get(r.id);
             return (<>
               <NomeCadastro r={r} />
-              <div className="mt-0.5 flex flex-wrap gap-1">
+              <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                {r.codigo != null && <span className="font-mono text-2xs text-slate-500">cód. {r.codigo}</span>}
                 {crm && <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
                 {f === "assinado" && <span title="Ficha cadastral assinada" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800"><BadgeCheck size={11} aria-hidden /> ficha assinada</span>}
                 {f === "pendente" && <span title="Link da ficha enviado, aguardando a assinatura" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sky-100 px-1.5 py-0.5 text-2xs font-semibold text-sky-800"><Clock size={11} aria-hidden /> aguardando assinatura</span>}

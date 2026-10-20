@@ -434,6 +434,9 @@ export function RolagemLateral({ children, className = "", caixa = "" }: { child
  * que a tela mandar; com `limite`, ordena todas e mostra só as primeiras (o "Mostrar mais" continua igual).
  * Coluna sem texto, com botão/caixinha no título, com `aria-sort` próprio ou `data-sem-ordem` não ordena.
  */
+/** Colunas que dão nome ao registro: viram o título do cartão no celular. */
+const COLUNA_TITULO = /^(nome|cliente|fornecedor|produto|descri|transportadora|técnico|funcionário|vendedor|máquina|empresa|título|item|peça|conta)\b/i;
+
 export function Table({ head, children, empty, limite }: { head: ReactNode; children: ReactNode; empty?: boolean; limite?: number }) {
   const ref = useRef<HTMLTableElement>(null);
   const [ordem, setOrdem] = useState<{ col: number; crescente: boolean } | null>(null);
@@ -467,10 +470,16 @@ export function Table({ head, children, empty, limite }: { head: ReactNode; chil
     if (!t) return;
     const rotular = () => {
       const titulos = Array.from(t.querySelectorAll("thead th")).map((th) => th.textContent?.trim() ?? "");
+      // no celular o cartão abre pelo nome do registro (cliente, produto, fornecedor…), não pelo código
+      const ths = Array.from(t.querySelectorAll("thead th"));
+      const ehSel = (i: number) => !titulos[i] && !!ths[i]?.querySelector("input[type=checkbox]");
+      let titulo = titulos.findIndex((l) => COLUNA_TITULO.test(l));
+      if (titulo < 0) titulo = titulos.findIndex((l, i) => !!l && !ehSel(i));
       t.querySelectorAll("tbody > tr").forEach((tr) =>
         Array.from(tr.children).forEach((td, i) => {
           const l = titulos[i] ?? "";
           if (td.getAttribute("data-label") !== l) td.setAttribute("data-label", l);
+          td.classList.toggle("cel-titulo", i === titulo && (tr.children.length === titulos.length));
         }));
     };
     rotular();

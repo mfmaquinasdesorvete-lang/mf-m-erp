@@ -7,7 +7,8 @@ import { brl, hoje, pl } from "@/lib/format";
 import { ATALHOS, periodoDoAtalho, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 
 export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", periodo, onPeriodo, rotuloData = "Data", campoData, filtros, nFiltros = 0, onLimpar, direita }: {
-  busca: string; onBusca: (v: string) => void; placeholder?: string;
+  /** sem onBusca: barra só com período e filtros (telas sem busca por texto) */
+  busca?: string; onBusca?: (v: string) => void; placeholder?: string;
   /** Período da coluna de data da lista (sem onPeriodo: sem o botão de período). */
   periodo?: Periodo; onPeriodo?: (p: Periodo) => void; rotuloData?: string;
   /** Qual data o período usa (ex.: vencimento, emissão, pagamento), escolhida no painel do período. */
@@ -28,10 +29,12 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
   return (
     <div className="mb-3 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-full sm:basis-64 sm:max-w-md">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input h-10 pl-9" type="search" placeholder={placeholder} aria-label={placeholder} value={busca} onChange={(e) => onBusca(e.target.value)} />
-        </div>
+        {onBusca && (
+          <div className="relative min-w-0 flex-1 basis-full sm:basis-64 sm:max-w-md">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+            <input className="input h-10 pl-9" type="search" placeholder={placeholder} aria-label={placeholder} value={busca ?? ""} onChange={(e) => onBusca(e.target.value)} />
+          </div>
+        )}
         {comPeriodo && (
           // no celular, sem período escolhido, só o nome da data: o botão Filtros cabe na mesma linha
           <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} title={`${rotuloData}: ${rotuloPeriodo(periodo!, hoje())}`}

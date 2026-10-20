@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, ClipboardList, PackageCheck, Plus, Truck, X } from "lucide-react";
 import { Button, PageHeader, Table, Tabs } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
 import { CtePainel } from "@/components/fretes/CtePainel";
@@ -156,26 +157,31 @@ export default function Fretes() {
       {aba === "cte" && <CtePainel transportadoras={transportadoras} />}
       {aba === "faturas" && <CteFaturas transportadoras={transportadoras} />}
 
-      {aba !== "cte" && aba !== "faturas" && <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-3">
-        {aba === "indicadores" ? (
-          <label className="block min-w-[12rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Mês</span>
-            <select className="input" value={mes} onChange={(x) => setMes(x.target.value)}>
-              {meses.map((m) => <option key={m} value={m}>{rotuloDoMes(m)}</option>)}
-            </select></label>
-        ) : (<>
-          <label className="block min-w-0 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
-            <input className="input" type="date" value={filtros.de ?? ""} onChange={(x) => setFiltros({ ...filtros, de: x.target.value || undefined })} /></label>
-          <label className="block min-w-0 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
-            <input className="input" type="date" value={filtros.ate ?? ""} onChange={(x) => setFiltros({ ...filtros, ate: x.target.value || undefined })} /></label>
-        </>)}
-        {filtroSelect("Transportadora", "transportadora", transportadoras.map((t) => [t.id, t.nome]))}
-        {filtroSelect("Região", "regiao", Object.keys(REGIOES).map((r) => [r, r]))}
-        {filtroSelect("UF", "uf", ufs.map((u) => [u, u]))}
-        {filtroSelect("Vendedor", "vendedor", vendedores.map((v) => [v.id, v.nome]))}
-        {filtroSelect("Status", "status", (Object.keys(STATUS_ENVIO) as StatusEnvio[]).map((s) => [s, STATUS_ENVIO[s].rotulo]))}
-        {filtroSelect("Tipo de máquina", "equipamento", equipamentos.map((q) => [q, q]))}
-        {totalFiltros > 0 && <Button variant="ghost" onClick={() => setFiltros({})}><X size={15} /> Limpar</Button>}
-      </div>}
+      {/* filtros compactos: botão de data e botão "Filtros" (os campos só aparecem ao tocar) */}
+      {aba !== "cte" && aba !== "faturas" && (
+        <BarraFiltros
+          periodo={aba === "indicadores" ? undefined : { de: filtros.de ?? "", ate: filtros.ate ?? "" }}
+          onPeriodo={aba === "indicadores" ? undefined : (p) => setFiltros({ ...filtros, de: p.de || undefined, ate: p.ate || undefined })}
+          rotuloData="Data"
+          filtros={<>
+            {aba === "indicadores" && (
+              <label className="block min-w-[12rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Mês</span>
+                <select className="input" value={mes} onChange={(x) => setMes(x.target.value)}>
+                  {meses.map((m) => <option key={m} value={m}>{rotuloDoMes(m)}</option>)}
+                </select></label>
+            )}
+            {filtroSelect("Transportadora", "transportadora", transportadoras.map((t) => [t.id, t.nome]))}
+            {filtroSelect("Região", "regiao", Object.keys(REGIOES).map((r) => [r, r]))}
+            {filtroSelect("UF", "uf", ufs.map((u) => [u, u]))}
+            {filtroSelect("Vendedor", "vendedor", vendedores.map((v) => [v.id, v.nome]))}
+            {filtroSelect("Status", "status", (Object.keys(STATUS_ENVIO) as StatusEnvio[]).map((s) => [s, STATUS_ENVIO[s].rotulo]))}
+            {filtroSelect("Tipo de máquina", "equipamento", equipamentos.map((q) => [q, q]))}
+          </>}
+          nFiltros={totalFiltros - (filtros.de ? 1 : 0) - (filtros.ate ? 1 : 0)}
+          onLimpar={() => setFiltros({})}
+          direita={aba === "indicadores" ? <span className="text-sm font-semibold text-slate-600">{rotuloDoMes(mes)}</span> : undefined}
+        />
+      )}
 
       {aba === "painel" && (
         <div className="mb-5 space-y-4">

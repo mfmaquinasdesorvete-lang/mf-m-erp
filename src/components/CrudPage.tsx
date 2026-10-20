@@ -465,11 +465,15 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             )}
             {columns.map((c, i) => <td key={c.label} className={`td ${c.className ?? ""}`}>{c.render(row)}{i === 0 && marcadores && <div className="mt-1">{tags(row)}</div>}</td>)}
             <td className="td whitespace-nowrap text-right">
-              {/* em tela estreita os botões ficam um embaixo do outro, para a tabela não passar da largura */}
-              <div className={props.acoesEmLinha ? "flex items-center justify-end gap-1" : "flex flex-col items-end gap-1 2xl:flex-row 2xl:items-center 2xl:justify-end"}>
+              {/* ações lado a lado, compactas (Editar vira só o lápis no notebook, para a linha não ficar alta) */}
+              <div className="flex items-center justify-end gap-1.5">
                 {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                 {rowActions?.(row)}
-                {!readOnly && <Button variant="secondary" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+                {!readOnly && (
+                  <Button variant="secondary" className="!min-h-0 !px-2.5 !py-1.5 text-sm" onClick={() => abrir({ ...row })} title="Editar" aria-label="Editar">
+                    <Pencil size={15} /><span className="md:hidden 2xl:inline"> Editar</span>
+                  </Button>
+                )}
               </div>
             </td>
           </tr>
