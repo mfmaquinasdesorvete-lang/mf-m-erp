@@ -1,6 +1,7 @@
 // Tudo do cliente: busca pelo CNPJ, CPF ou nome, a pessoa confirma qual é ("Ver tudo") e a tela junta, numa página só,
 // o cadastro e tudo o que existe dele no ERP: vendas e propostas, notas (emitidas, NFS-e, legado da My Frost),
 // contas a receber, recibos, extrato dos bancos (pelo nome ou pelo documento mascarado), OS, máquinas e CT-e.
+import { atendimentosMyFrost } from "@/lib/notasMyFrost";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -196,7 +197,11 @@ function blocosDe(d: Dados): { titulo: string; icone: typeof Search; para?: stri
     { titulo: "Contas a pagar", icone: Landmark, para: "/financeiro", linhas: d.pagar.map((c: any) => ({ id: c.id, data: c.vencimento, titulo: c.descricao, selo: c.status, valor: c.valor })) },
     { titulo: "Extrato dos bancos", icone: Landmark, linhas: d.extrato.map((l: any) => ({ id: l.id, data: l.data, titulo: l.descricao, selo: l.status === "conciliado" ? "conciliado" : "para conciliar", valor: l.valor })) },
     { titulo: "Recibos", icone: Receipt, linhas: d.recibos.map((r: any) => ({ id: r.id, data: r.data_pagamento, titulo: `Recibo nº ${r.numero} · ${r.referente}`, selo: r.cancelado_em ? "cancelado" : r.tipo, valor: r.valor })) },
-    { titulo: "Assistência (OS)", icone: Wrench, para: "/assistencia", linhas: d.os.map((o: any) => ({ id: o.id, data: o.data_entrada, titulo: `OS #${o.numero} · ${o.equipamento ?? ""}`, selo: o.status, valor: o.valor_total, detalhe: o.defeito_relatado })) },
+    { titulo: "Assistência (OS)", icone: Wrench, para: "/assistencia", linhas: [
+      ...d.os.map((o: any) => ({ id: o.id, data: o.data_entrada, titulo: `OS #${o.numero} · ${o.equipamento ?? ""}`, selo: o.status, valor: o.valor_total, detalhe: o.defeito_relatado })),
+      // My Frost (empresa anterior) não tinha OS: o atendimento está na nota de conserto, retorno ou garantia
+      ...atendimentosMyFrost(d.legado as any[]).lista.map((n: any) => ({ id: `mf-${n.id}`, data: n.data, titulo: `Atendimento My Frost · NF ${n.numero ?? "—"}`, selo: n.tipo, detalhe: "empresa anterior" })),
+    ] },
     { titulo: "Máquinas", icone: IceCreamCone, linhas: d.maquinas.map((m: any) => ({ id: m.id, data: m.data_venda, titulo: m.descricao, detalhe: [m.numero_serie && `série ${m.numero_serie}`, m.garantia_ate && `garantia até ${dataBR(m.garantia_ate)}`].filter(Boolean).join(" · ") })) },
     { titulo: "Fretes (CT-e)", icone: Truck, linhas: d.ctes.map((c: any) => ({ id: c.id, data: c.emissao, titulo: `CT-e ${c.numero} · ${c.emitente_nome ?? ""}`, selo: c.situacao, valor: c.valor })) },
   ];

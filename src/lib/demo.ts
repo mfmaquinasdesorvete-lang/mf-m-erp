@@ -1317,6 +1317,8 @@ function bancosDemo(db: Db) {
   db.notas_legado = [
     { id: uid(), origem: "My Frost", numero: "5395", data: dias(-412), valor: 21500, natureza: "Venda de producao do estabelecimento", cliente_id: "c2" },
     { id: uid(), origem: "My Frost", numero: "6120", data: dias(-95), valor: 3000, natureza: "Remessa de mercadoria ou bem para conserto ou reparo", cliente_id: "c2" },
+    { id: uid(), origem: "My Frost", numero: "6151", data: dias(-80), valor: 3000, natureza: "Retorno de mercadoria ou bem recebido para conserto", cliente_id: "c2" },
+    { id: uid(), origem: "My Frost", numero: "4870", data: dias(-560), valor: 0, natureza: "Remessa de Garantia", cliente_id: "c2" },
   ];
   const nomeCli = (id: string | null) => (db.clientes.find((c) => c.id === id)?.nome ?? "").toUpperCase();
   const add = (conta: string, data: string, valor: number, descricao: string, extra: Row = {}) => db.extrato_lancamentos.push({

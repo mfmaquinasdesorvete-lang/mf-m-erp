@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarNotasMyFrost, nomeParaComparar, tipoDaNota } from "../notasMyFrost";
+import { atendimentosMyFrost, montarNotasMyFrost, nomeParaComparar, tipoDaNota } from "../notasMyFrost";
 
 // nomes e documentos inventados
 const EMP = "Empresa Antiga de Sorvetes Ltda";
@@ -56,5 +56,21 @@ describe("notas fiscais da empresa anterior", () => {
     expect(tipoDaNota("Devolucao de venda")).toBe("Devolução");
     expect(tipoDaNota("999 - Estorno de NF-e nao cancelada no prazo legal")).toBe("Estorno");
     expect(tipoDaNota("Remessa de Garantia")).toBe("Garantia");
+  });
+});
+
+describe("atendimentos da My Frost", () => {
+  it("só conserto, retorno e garantia, do mais novo ao mais antigo, por ano", () => {
+    const r = atendimentosMyFrost([
+      { data: "2023-05-02", natureza: "Remessa de mercadoria ou bem para conserto ou reparo" },
+      { data: "2024-01-10", natureza: "Retorno de mercadoria ou bem recebido para conserto" },
+      { data: "2024-03-01", natureza: "Venda de producao do estabelecimento" },
+      { data: "2022-07-07", natureza: "REMESSA DE GARANTIA" },
+      { data: null, natureza: "Retorno para Reparo" },
+    ]);
+    expect(r.lista.map((n) => n.tipo)).toEqual(["Retorno de conserto", "Conserto", "Garantia", "Retorno de conserto"]);
+    expect(r.porAno.map(([a, l]) => [a, l.length])).toEqual([["2024", 1], ["2023", 1], ["2022", 1], ["sem data", 1]]);
+    expect(r.primeiro).toBe("2022-07-07");
+    expect(r.ultimo).toBe("2024-01-10");
   });
 });

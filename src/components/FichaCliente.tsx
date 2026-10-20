@@ -20,12 +20,13 @@ import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 import { DetalheProposta, SeloEmpresa, SeloSituacao } from "@/components/vendas/PropostasTiny";
 import type { PropostaTiny } from "@/lib/propostasTiny";
-import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
+import { AtendimentosMyFrost, ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 import { SeloTesteGiga } from "@/components/testeGiga/SeloGiga";
 import { useSituacaoGiga } from "@/lib/testeGigaDados";
 import { normalizarNs } from "@/lib/testeGiga";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { consertosDasNotas, type NotaConserto } from "@/lib/consertos";
+import { atendimentosMyFrost } from "@/lib/notasMyFrost";
 
 type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
@@ -159,7 +160,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
         { value: "compras", label: `Compras${calc ? ` (${calc.compras.length})` : ""}` },
         { value: "produtos", label: "O que compra" },
         { value: "financeiro", label: "Financeiro" },
-        { value: "assistencia", label: `Assistência${data ? ` (${data.oss.length})` : ""}` },
+        { value: "assistencia", label: `Assistência${data ? ` (${data.oss.length + atendimentosMyFrost(data.notasMyFrost).lista.length})` : ""}` },
         { value: "atendimentos", label: `Atendimentos${data ? ` (${data.contatos.length})` : ""}` },
       ]} />
 
@@ -171,7 +172,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} notasMyFrost={data.notasMyFrost} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
-          {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} notas={data.notas} />}
+          {aba === "assistencia" && <Assistencia cliente={c} oss={data.oss} equipamentos={data.equipamentos} legado={data.legado} notas={data.notas} notasMyFrost={data.notasMyFrost} />}
           {aba === "atendimentos" && <Atendimentos cliente={c} contatos={data.contatos} nomes={data.nomes} />}
         </>
       )}
@@ -425,7 +426,7 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
   );
 }
 
-function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[]; notas: NotaConserto[] }) {
+function Assistencia({ cliente, oss, equipamentos, legado, notas, notasMyFrost }: { cliente: Cliente; oss: any[]; equipamentos: any[]; legado: any[]; notas: NotaConserto[]; notasMyFrost: NotaLegado[] }) {
   const dia = hoje();
   const consertos = useMemo(() => consertosDasNotas(notas, dia), [notas, dia]);
   const garantia = pecasEmGarantia(oss);
@@ -454,6 +455,7 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
         <Indicador rotulo="Custo da garantia" valor={brl(garantia.custo)} cor="vermelho" sub="peças pelo custo do cadastro" />
       </div>
       {consertos.length > 0 && <ConsertosPelasNotas consertos={consertos} />}
+      <AtendimentosMyFrost notas={notasMyFrost} />
       {garantia.pecas.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">Peças trocadas em garantia</h3>

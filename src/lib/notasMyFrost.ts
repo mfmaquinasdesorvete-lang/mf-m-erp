@@ -116,3 +116,22 @@ export function tipoDaNota(natureza: string | null | undefined): string {
   if (/remessa/.test(n)) return "Remessa";
   return "Outra";
 }
+
+/** Tipos de nota da My Frost que contam como atendimento de assistência (a My Frost não tinha OS no ERP). */
+export const TIPOS_ATENDIMENTO = ["Conserto", "Retorno de conserto", "Garantia"] as const;
+
+/** Atendimentos da My Frost de um cliente, pelas notas de conserto, retorno e garantia: do mais novo ao mais antigo,
+ *  agrupados por ano, com o primeiro e o último. */
+export function atendimentosMyFrost<T extends { data: string | null; natureza: string | null }>(notas: T[]) {
+  const lista = notas
+    .map((n) => ({ ...n, tipo: tipoDaNota(n.natureza) }))
+    .filter((n) => (TIPOS_ATENDIMENTO as readonly string[]).includes(n.tipo))
+    .sort((a, b) => String(b.data ?? "").localeCompare(String(a.data ?? "")));
+  const anos = new Map<string, typeof lista>();
+  for (const n of lista) {
+    const ano = n.data ? n.data.slice(0, 4) : "sem data";
+    anos.set(ano, [...(anos.get(ano) ?? []), n]);
+  }
+  const datas = lista.map((n) => n.data).filter((d): d is string => !!d);
+  return { lista, porAno: [...anos.entries()], primeiro: datas[datas.length - 1] ?? null, ultimo: datas[0] ?? null };
+}
