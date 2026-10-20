@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { SeloCidade } from "@/components/SeloCidade";
 import { useLocation, useNavigate } from "react-router-dom";
 import { lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
@@ -365,7 +366,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
                 {p.numero_externo && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span>}
               </div>
               <div className="mt-0.5 line-clamp-2 pr-6 text-sm font-semibold leading-snug text-fg" title={p.cliente?.nome ?? undefined}>
-                {p.cliente?.nome ?? "—"}{p.cliente?.uf && <span className="ml-1 text-xs font-semibold text-slate-500">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} />
+                {p.cliente?.nome ?? "—"}<SeloCidade cliente={p.cliente} /><SeloLicenciado cliente={p.cliente} />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <Badge value={p.proposta_status} />}{p.situacao_origem && <SituacaoTiny s={p.situacao_origem} />}
@@ -408,7 +409,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
               {p.numero_externo && <div><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span></div>}
               <div className="text-xs font-normal text-slate-500">{dataBR(p.created_at)}</div>
               {info.get(p.id)?.oc && <div className="text-2xs font-normal text-slate-500" title="Nº do pedido do cliente (ordem de compra ou pedido da loja), como veio do Tiny">Ped. {info.get(p.id)!.oc}</div>}</td>
-            <td className="td">{p.cliente?.nome}{p.cliente?.uf && <span className="ml-1.5 rounded bg-slate-100 px-1 py-px text-2xs font-bold text-slate-600" title="Estado do cliente">{p.cliente.uf}</span>}<SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
+            <td className="td">{p.cliente?.nome}<SeloCidade cliente={p.cliente} /><SeloLicenciado cliente={p.cliente} /><div className="mt-1"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td"><Badge value={p.status} forte />{p.status === "orcamento" && p.proposta_status && <div className="mt-1"><Badge value={p.proposta_status} /></div>}{p.situacao_origem && <div className="mt-1"><SituacaoTiny s={p.situacao_origem} /></div>}</td>
             {area === "maquinas" && <td className="td text-sm">{opsDe(p.id).length ? opsDe(p.id).map((o) => <div key={o.id}>#{o.numero} <span className="text-xs text-slate-500">{o.status}</span></div>) : <span className="text-slate-400">—</span>}</td>}
             {vePagamento && <td className="td"><span className="flex items-start gap-2"><IconeMeio meio={info.get(p.id)?.meio ?? null} /><EtiquetaPagamento pg={info.get(p.id)?.pg ?? null} /></span></td>}

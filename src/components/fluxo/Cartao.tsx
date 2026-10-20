@@ -1,4 +1,5 @@
 // Cartão do pedido no fluxo: quem, quanto, há quanto tempo está na etapa, o próximo passo e o botão que faz esse passo.
+import { SeloCidade } from "@/components/SeloCidade";
 import type { ReactNode } from "react";
 import {
   AlertTriangle, CheckCircle2, ClipboardCheck, Clock, FileText, FileWarning, Loader2, MessageCircle, Package, PackageCheck, Printer, Send, Truck, User,
@@ -82,7 +83,7 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
         <span className="whitespace-nowrap text-sm font-bold text-fg">#{p.numero}<EtiquetaUnidade id={p.unidade_id} /></span>
         <span className="num whitespace-nowrap text-sm font-bold text-fg lg:text-xs">{brl(p.valor_total)}</span>
       </div>
-      <div className="truncate text-sm text-slate-600" title={p.cliente?.nome}>{p.cliente?.nome ?? "—"}</div>
+      <div className="truncate text-sm text-slate-600" title={p.cliente?.nome}>{p.cliente?.nome ?? "—"}<SeloCidade cliente={p.cliente} /></div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <Etiqueta className="bg-slate-100 text-slate-600">{CANAIS[p.origem] ?? p.origem}</Etiqueta>

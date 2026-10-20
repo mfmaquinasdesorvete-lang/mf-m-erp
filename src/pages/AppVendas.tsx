@@ -1,6 +1,7 @@
 // App de vendas no celular (erp.myfrost.ai/app/vendas): tela própria, sem o menu do ERP, para quem vende na rua ou
 // pelo WhatsApp. Quanto vendeu no mês, orçamentos esperando resposta, achar o cliente e chamar, preço e estoque de cada
 // unidade e abrir um pedido (o pedido abre na tela de Vendas do ERP, que já funciona no celular). Regras em lib/appVendas.
+import { SeloCidade } from "@/components/SeloCidade";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,7 +17,7 @@ import { CHAVE_APP_VENDAS, combina, numeroWhatsApp, resumoVendas, ROTULO_STATUS_
 import type { Cliente, Produto, Vendedor } from "@/lib/types";
 
 type Aba = "inicio" | "clientes" | "estoque" | "pedidos" | "mais";
-type Pedido = PedidoApp & { cliente_id: string; cliente?: { nome: string; nome_fantasia?: string | null } | null };
+type Pedido = PedidoApp & { cliente_id: string; cliente?: { nome: string; nome_fantasia?: string | null; municipio?: string | null; uf?: string | null } | null };
 
 const ler = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const gravar = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
@@ -37,7 +38,7 @@ export default function AppVendas() {
   const dia = hoje();
 
   const { data: pedidosTodos = [] } = useRows<Pedido>("pedidos", {
-    select: "id, numero, status, valor_total, created_at, aprovado_em, cliente_id, vendedor_id, unidade_id, cliente:clientes(nome, nome_fantasia)", key: ["app-vendas"] });
+    select: "id, numero, status, valor_total, created_at, aprovado_em, cliente_id, vendedor_id, unidade_id, cliente:clientes(nome, nome_fantasia, municipio, uf)", key: ["app-vendas"] });
   const { data: clientes = [] } = useRows<Cliente>("clientes", { select: "id, nome, nome_fantasia, cpf_cnpj, whatsapp, telefone, municipio, uf", order: "nome", ascending: true, key: ["app-vendas"] });
   const { data: produtos = [] } = useRows<Produto>("produtos", { select: "id, descricao, sku, preco_venda, estoque_atual, ativo, vendavel, kit, foto_caminho, codigo_barras, unificado_em", order: "descricao", ascending: true, key: ["app-vendas"] });
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id", ascending: true });
@@ -69,7 +70,7 @@ export default function AppVendas() {
             <b className="num text-sm text-[#8b93a7]">#{p.numero}</b>
             <span className={`rounded-md px-1.5 py-0.5 text-2xs font-bold ${COR_STATUS[p.status] ?? "bg-white/10"}`}>{ROTULO_STATUS_APP[p.status] ?? p.status}</span>
           </span>
-          <span className="mt-0.5 block truncate font-semibold">{nomeCliente(p.cliente)}</span>
+          <span className="mt-0.5 block truncate font-semibold">{nomeCliente(p.cliente)}<SeloCidade cliente={p.cliente} escuro /></span>
           <span className="block text-xs text-[#8b93a7]">{dataBR(p.created_at)}</span>
         </span>
         <span className="num shrink-0 text-lg font-bold">{brl(p.valor_total)}</span>

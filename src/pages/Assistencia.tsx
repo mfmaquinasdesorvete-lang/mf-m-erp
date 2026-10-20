@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { SeloCidade } from "@/components/SeloCidade";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, RotateCcw, Search, ShieldCheck, ShieldOff, Trash2, Wrench,
@@ -139,7 +140,7 @@ export default function Assistencia() {
         : `Olá ${o.cliente.nome.split(" ")[0]}! Conseguiu ver o orçamento da OS #${o.numero} (${o.equipamento})? Fico à disposição.`) : null;
     return (
       <CartaoEtapa key={o.id} cor={ETAPAS_OS.find((e) => e.id === s.etapa)!.cor}
-        titulo={<>#{o.numero} · {o.cliente?.nome ?? "—"}</>} subtitulo={o.equipamento}
+        titulo={<>#{o.numero} · {o.cliente?.nome ?? "—"}<SeloCidade cliente={o.cliente} /></>} subtitulo={o.equipamento}
         valor={o.em_garantia ? null : Number(o.valor_total || 0)} dias={diasDesde(s.desde)} nivel={s.nivel} alerta={s.alerta} proximo={s.proximo}
         etiquetas={<>
           <EtiquetaUnidade id={(o as any).unidade_id} />
@@ -211,7 +212,7 @@ export default function Assistencia() {
           <tr key={o.id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] })}>
             <td className="td font-bold text-fg">#{o.numero}<EtiquetaUnidade id={(o as any).unidade_id} /></td>
             <td className="td num">{dataBR(o.data_entrada)}</td>
-            <td className="td">{o.cliente?.nome}<div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
+            <td className="td">{o.cliente?.nome}<SeloCidade cliente={o.cliente} /><div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
             <td className="td">{o.equipamento}{o.numero_serie && <div className="text-xs text-slate-500">Série {o.numero_serie}</div>}</td>
             <td className="td"><div className="flex flex-wrap gap-1"><Badge value={o.status} />{o.em_garantia && <Badge value="em_garantia" />}
               {o.atendimento === "video" && <span title="Atendimento por vídeo chamada" className="whitespace-nowrap rounded-full bg-purple-100 px-2 py-0.5 text-2xs font-semibold text-purple-800">vídeo{o.agendado_em ? ` ${quandoAgendado(o.agendado_em)}` : " (agendar)"}</span>}

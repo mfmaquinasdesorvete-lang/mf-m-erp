@@ -1,6 +1,7 @@
 // App da assistência no celular (erp.myfrost.ai/app/assistencia): o técnico na bancada ou no cliente, sem o menu do ERP.
 // As OS dele (ou todas) por etapa, o próximo passo com um toque, foto direto da câmera para a OS, WhatsApp do cliente
 // e "Abrir OS" para o checklist, o laudo e a assinatura (a mesma janela do ERP). Etapas e passos em lib/quadroOS.
+import { SeloCidade } from "@/components/SeloCidade";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, ChevronRight, LayoutGrid, MessageCircle, MoreHorizontal, PackageOpen, Search, Send, Stethoscope, ThumbsUp, User, Users, Wrench } from "lucide-react";
@@ -133,7 +134,7 @@ export default function AppAssistencia() {
                           <span className="rounded-md px-1.5 py-0.5 text-2xs font-bold" style={{ background: `${info.cor}33`, color: info.cor }}>{info.curto}</span>
                           {o.em_garantia && <span className="rounded-md bg-[#34d399]/15 px-1.5 py-0.5 text-2xs font-bold text-[#6ee7b7]">garantia</span>}
                         </span>
-                        <span className="mt-0.5 block truncate font-semibold">{o.cliente?.nome_fantasia?.trim() || o.cliente?.nome}</span>
+                        <span className="mt-0.5 block truncate font-semibold">{o.cliente?.nome_fantasia?.trim() || o.cliente?.nome}<SeloCidade cliente={o.cliente} escuro /></span>
                         <span className="block truncate text-xs text-[#8b93a7]">{[o.equipamento, o.numero_serie && `série ${o.numero_serie}`, aba === "todas" && o.tecnico].filter(Boolean).join(" · ")}</span>
                       </span>
                       <ChevronRight size={18} className="mt-1 shrink-0 text-[#8b93a7]" aria-hidden />

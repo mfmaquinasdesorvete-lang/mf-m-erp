@@ -1,6 +1,7 @@
 // App da expedição no celular (erp.myfrost.ai/app/expedicao): o galpão sem o menu do ERP. Uma aba por etapa
 // (separar → conferir → embalar → despachar), lista de separação somada por produto com o local no estoque e um botão
 // grande para o próximo passo. Conferir, embalar e despachar abrem a mesma janela do ERP (leitor, volumes, etiquetas, NF-e).
+import { SeloCidade } from "@/components/SeloCidade";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, ClipboardCheck, LayoutGrid, ListChecks, MoreHorizontal, PackageCheck, Search, Send, Timer } from "lucide-react";
@@ -167,7 +168,7 @@ export default function AppExpedicao() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="num text-sm font-bold text-[#8b93a7]">#{l.p.numero}</p>
-                          <p className="truncate font-semibold">{l.p.cliente?.nome_fantasia?.trim() || l.p.cliente?.nome}</p>
+                          <p className="truncate font-semibold">{l.p.cliente?.nome_fantasia?.trim() || l.p.cliente?.nome}<SeloCidade cliente={l.p.cliente} escuro /></p>
                           <p className="text-xs text-[#8b93a7]">{(l.p.itens ?? []).length} {pl((l.p.itens ?? []).length, "item", "itens")}{l.e.responsavel ? ` · ${l.e.responsavel}` : ""}</p>
                         </div>
                         <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${corTempo(l.horas)}`}><Timer size={13} aria-hidden /> {tempo(l.horas)}</span>
