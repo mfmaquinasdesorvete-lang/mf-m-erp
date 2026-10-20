@@ -21,11 +21,12 @@ import type { Cliente } from "@/lib/types";
 import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } from "@/lib/paineisProdutos";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { PainelMetas } from "@/components/metas/PainelMetas";
+import { PedidoNotaBanco } from "@/components/gerencial/PedidoNotaBanco";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
 const NIVEL = { erro: { Icon: XCircle, cor: "text-red-600", borda: "border-red-200" }, alerta: { Icon: AlertTriangle, cor: "text-amber-600", borda: "border-amber-200" }, info: { Icon: Info, cor: "text-sky-600", borda: "border-slate-200" } };
-type Aba = "abc_produtos" | "abc_clientes" | "clientes" | "tendencias" | "parado" | "metas";
+type Aba = "abc_produtos" | "abc_clientes" | "clientes" | "tendencias" | "parado" | "metas" | "conferencia";
 
 /** "▲ 12,5% vs mês passado" com seta e texto (não depende só da cor). */
 function Variacao({ c, base }: { c: Comparacao; base: string }) {
@@ -41,7 +42,7 @@ function Variacao({ c, base }: { c: Comparacao; base: string }) {
 
 export default function Gerencial() {
   const { filtrar } = useUnidade();
-  const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado", "metas"] as const);
+  const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado", "metas", "conferencia"] as const);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const [janelaAbc, setJanelaAbc] = useState<JanelaABC>("12m");
@@ -134,9 +135,11 @@ export default function Gerencial() {
         { value: "tendencias", label: "Tendências" },
         { value: "parado", label: `Estoque parado (${r.parado.length})` },
         { value: "metas", label: "Metas" },
+        { value: "conferencia", label: "Pedido x Nota x Banco" },
       ]} />
 
       {aba === "metas" && <PainelMetas />}
+      {aba === "conferencia" && <PedidoNotaBanco />}
 
       {(aba === "abc_produtos" || aba === "abc_clientes") && (
         <TabelaABC linhas={aba === "abc_produtos" ? abc.produtos : abc.clientes} tipo={aba === "abc_produtos" ? "produto" : "cliente"} verTodos={verTodos} setVerTodos={setVerTodos}
