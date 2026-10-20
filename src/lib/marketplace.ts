@@ -354,8 +354,41 @@ const DIFERENCIA = /^(antig|nov[oa]$|usad|seminov|grande|pequen|medi[oa]$|mini$|
 /** Dois cadastros com cara de ser o mesmo produto: os mesmos números e medidas, nenhuma palavra que
  *  diferencia (antigo/novo, grande/pequena, cor, lado…), nenhum é pacote ou combinação ("A + B") só de
  *  um lado, e as palavras quase todas iguais (ou parecidas e com o mesmo preço). */
+/** Códigos que identificam a peça (letra e número juntos, ou número longo) e os demais números do nome,
+ *  com medidas e "P 386" escritos de um jeito só. */
+export function codigosDaPeca(d: string | null | undefined) {
+  let t = semAcento(String(d ?? "").toLowerCase()).replace(/compat[ií]vel com m[aá]quinas my frost/g, " ");
+  for (let i = 0; i < 2; i++) t = t.replace(/(\d+(?:[.,]\d+)?)\s*x\s*(\d)/g, "$1x$2");
+  t = t.replace(/\b([a-z]|top)\s+(\d{2,})\b/g, "$1$2").replace(/(\d)\s*mm\b/g, "$1").replace(/\(?\b1\s*un\.?\)?|\bun\b/g, " ");
+  const codigos = new Set<string>(), numeros = new Set<string>();
+  for (const bruto of t.split(/[\s()\[\],;+]+/)) {
+    const w = bruto.replace(/^[-./]+|[-./]+$/g, "");
+    if (!/\d/.test(w)) continue;
+    const limpo = w.replace(/\./g, "");
+    // medida com unidade (220v, 16a, 35w, 1/2hp, 25l) não identifica a peça; ano (2025) também não
+    const medida = /^[\d/.,-]+(v|vca|vcc|vac|a|w|kw|hp|cv|kg|g|l|ml|mm|cm|m|hz|rpm|btu|btus|un|pc|pcs|min)$/.test(w) || /^(19|20)\d{2}$/.test(limpo)
+      // modelo da máquina (A 200, P 386, Q 050, Top 300) é compatibilidade, não código da peça
+      || /^(a|p|q|top|slim|prime)\d{2,4}$/.test(w);
+    if (!medida && ((/[a-z]/.test(w) && w.length >= 4) || /^\d{4,}$/.test(limpo))) codigos.add(/^\d+$/.test(limpo) ? limpo : w);
+    else numeros.add(w);
+  }
+  return { codigos, numeros };
+}
+
 export function nomesParecidos(a: ProdutoAnuncio, b: ProdutoAnuncio) {
   if ((a.tipo === "maquina") !== (b.tipo === "maquina") || !!a.kit !== !!b.kit) return false;
+  // códigos da peça (216EP6, BCE10F, SAV 00949, P 386, 30x52x10) iguais nos dois: o mesmo item escrito de outro jeito
+  const ca = codigosDaPeca(a.descricao), cb = codigosDaPeca(b.descricao);
+  const comuns = [...ca.codigos].filter((c) => cb.codigos.has(c)).length;
+  const soUm = [...ca.codigos].filter((c) => !cb.codigos.has(c)).length + [...cb.codigos].filter((c) => !ca.codigos.has(c)).length;
+  const numerosDiferentes = [...ca.numeros].some((n) => !cb.numeros.has(n)) || [...cb.numeros].some((n) => !ca.numeros.has(n));
+  const soModelos = !ca.codigos.size && !cb.codigos.size && ca.numeros.size >= 2 && !numerosDiferentes
+    && semelhanca(palavras(a.descricao), palavras(b.descricao)) >= 0.5;
+  if (comuns >= 2 || (comuns === 1 && !soUm && !numerosDiferentes) || soModelos) {
+    const A0 = palavras(a.descricao), B0 = palavras(b.descricao);
+    const diferenca = [...A0].filter((w) => !B0.has(w)).concat([...B0].filter((w) => !A0.has(w)));
+    if (!diferenca.some((w) => DIFERENCIA.test(w))) return true;
+  }
   if (pacote(a.descricao) !== pacote(b.descricao)) return false;
   if (String(a.descricao ?? "").includes("+") !== String(b.descricao ?? "").includes("+")) return false;
   const A = palavras(a.descricao), B = palavras(b.descricao);
