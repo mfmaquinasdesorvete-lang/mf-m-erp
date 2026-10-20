@@ -3924,13 +3924,13 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       itens: db.pedido_itens.filter((i) => i.pedido_id === p.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valor: i.quantidade * i.valor_unitario })),
     })),
   }),
-  abrir_contagem: ({ p_unidade, p_produtos, p_escopo }) => {
-    const c: Row = { id: uid(), numero: db.contagens_estoque.length + 1, unidade_id: p_unidade, escopo: p_escopo, status: "aberta",
+  abrir_contagem_v2: ({ p_unidade, p_produtos, p_escopo, p_dupla }) => {
+    const c: Row = { id: uid(), numero: db.contagens_estoque.length + 1, unidade_id: p_unidade, escopo: p_escopo, status: "aberta", dupla: !!p_dupla,
       criada_nome: "Você", created_at: new Date().toISOString() };
     db.contagens_estoque.unshift(c);
     for (const id of p_produtos as string[]) {
       const s = db.estoque_unidade?.find((x) => x.produto_id === id && x.unidade_id === p_unidade);
-      db.contagem_itens.push({ id: uid(), contagem_id: c.id, produto_id: id, saldo_sistema: Number(s?.quantidade ?? 0), contado: null, justificativa: null });
+      db.contagem_itens.push({ id: uid(), contagem_id: c.id, produto_id: id, saldo_sistema: Number(s?.quantidade ?? 0), contado: null, contado2: null, justificativa: null });
     }
     return { data: c.id, error: null };
   },
@@ -3939,6 +3939,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (!c || c.status !== "aberta") return { data: null, error: { message: "contagem não está aberta" } };
     let ajustes = 0, contados = 0;
     for (const i of db.contagem_itens.filter((x) => x.contagem_id === p_contagem && x.contado != null)) {
+      if (c.dupla && (i.contado2 == null || Number(i.contado2) !== Number(i.contado)))
+        return { data: null, error: { message: `reconte "${db.produtos.find((p) => p.id === i.produto_id)?.descricao}": a primeira e a segunda contagem precisam bater` } };
       contados++;
       const atual = Number(db.estoque_unidade?.find((x) => x.produto_id === i.produto_id && x.unidade_id === c.unidade_id)?.quantidade ?? 0);
       const dif = Number(i.contado) - atual;
@@ -3948,7 +3950,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       ajustes++;
     }
     if (!contados) return { data: null, error: { message: "nenhum item foi contado" } };
-    Object.assign(c, { status: "concluida", ajustes, concluida_em: new Date().toISOString(), concluida_nome: "Você" });
+    Object.assign(c, { status: "concluida", ajustes, contados, concluida_em: new Date().toISOString(), concluida_nome: "Você" });
     return { data: { ajustes, contados }, error: null };
   },
   cancelar_contagem: ({ p_contagem }) => {

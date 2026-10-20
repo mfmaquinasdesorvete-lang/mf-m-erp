@@ -1,13 +1,17 @@
 // Produtos e estoque → Contagem de estoque (inventário cíclico).
-// Escolhe um pedaço do estoque (categoria, local, tipo), conta "às cegas" (o saldo do sistema fica escondido),
+// Escolhe um pedaço do estoque (categoria, local, tipo) ou a contagem do dia (poucos itens sorteados pela curva ABC),
+// conta "às cegas" (o saldo do sistema fica escondido), com dupla contagem opcional (duas pessoas; só vale quando bate),
 // depois vê as divergências, justifica cada uma e só então o ERP ajusta o saldo, com o motivo no histórico.
+// No alto, a acuracidade (itens que já estavam certos) e o giro do estoque.
 import { useMemo, useState } from "react";
-import { ClipboardList, Eye, EyeOff, Printer } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarCheck, ClipboardList, Eye, EyeOff, Gauge, PackageX, Printer, RefreshCw, Users } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, Table } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
+import { acuracidade, giroEstoque, situacaoDupla, sorteioDoDia, type ItemInventario } from "@/lib/inventario";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import type { Produto } from "@/lib/types";
 import { confirmar } from "@/components/Dialogos";
@@ -15,8 +19,10 @@ import { confirmar } from "@/components/Dialogos";
 type Contagem = {
   id: string; numero: number; unidade_id: string; escopo: string | null; status: "aberta" | "concluida" | "cancelada";
   criada_nome: string | null; concluida_nome: string | null; concluida_em: string | null; ajustes: number | null; created_at: string;
+  dupla?: boolean | null; contados?: number | null;
 };
-type ItemContagem = { contagem_id: string; produto_id: string; saldo_sistema: number; contado: number | null; justificativa: string | null };
+type ItemContagem = { contagem_id: string; produto_id: string; saldo_sistema: number; contado: number | null; contado2?: number | null; justificativa: string | null };
+type Saldo = { produto_id: string; unidade_id: string; quantidade: number };
 const TIPOS: Record<string, string> = { maquina: "Máquinas", peca: "Peças", acessorio: "Acessórios", insumo: "Insumos" };
 
 export function ContagemEstoque({ produtos, podeEditar }: { produtos: Produto[]; podeEditar: boolean }) {
@@ -29,6 +35,7 @@ export function ContagemEstoque({ produtos, podeEditar }: { produtos: Produto[];
 
   return (
     <div className="space-y-4">
+      <PainelInventario produtos={produtos} contagens={contagens} podeEditar={podeEditar} onAberta={setAbertaId} />
       <Card className="flex flex-wrap items-center gap-4 p-4">
         <p className="min-w-[14rem] flex-1 text-sm text-slate-600">
           Conte uma parte do estoque por vez (uma categoria, uma prateleira). A contagem é <b>às cegas</b>: o saldo do sistema só aparece
@@ -59,6 +66,7 @@ function NovaContagem({ produtos, onClose, onAberta }: { produtos: Produto[]; on
   const { padrao, unidades } = useUnidade();
   const [unidadeId, setUnidadeId] = useState<string | null>(padrao ?? unidades[0]?.id ?? null);
   const [f, setF] = useState({ tipo: "", categoria: "", local: "", comEstoque: false });
+  const [dupla, setDupla] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const invalidar = useInvalidate();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
@@ -72,7 +80,7 @@ function NovaContagem({ produtos, onClose, onAberta }: { produtos: Produto[]; on
   async function abrir() {
     if (!unidadeId || !escolhidos.length) return;
     setOcupado(true);
-    const { data, error } = await supabase.rpc("abrir_contagem", { p_unidade: unidadeId, p_produtos: escolhidos.map((p) => p.id), p_escopo: escopo });
+    const { data, error } = await supabase.rpc("abrir_contagem_v2", { p_unidade: unidadeId, p_produtos: escolhidos.map((p) => p.id), p_escopo: escopo, p_dupla: dupla });
     setOcupado(false);
     if (error) return notifyError(error);
     invalidar("contagens_estoque", "contagem_itens");
@@ -95,6 +103,9 @@ function NovaContagem({ produtos, onClose, onAberta }: { produtos: Produto[]; on
         {sel("categoria", "Categoria", categorias.map((c) => [c, c]))}
         {sel("local", "Localização", locais.map((l) => [l, l]))}
         <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={f.comEstoque} onChange={(e) => setF({ ...f, comEstoque: e.target.checked })} /> Só itens com saldo</label>
+        <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={dupla} onChange={(e) => setDupla(e.target.checked)} />
+          <span><b>Dupla contagem</b>: duas pessoas contam sem ver a outra; o saldo só é ajustado quando as duas batem.</span></label>
+        {escolhidos.length > 60 && <p className="rounded-lg bg-amber-50 p-2 text-sm text-amber-900 sm:col-span-2">Contagem grande demora e acaba ficando aberta. Prefira a <b>contagem do dia</b> (poucos itens) ou uma categoria por vez.</p>}
         <p className="text-sm text-slate-600 sm:col-span-2"><b>{escolhidos.length}</b> {pl(escolhidos.length, "produto", "produtos")} para contar: {escopo}.</p>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -111,6 +122,9 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
   const { data: todos = [] } = useRows<ItemContagem>("contagem_itens", { order: "produto_id" });
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
   const [revelar, setRevelar] = useState(c.status !== "aberta");
+  // dupla contagem: cada pessoa vê só a própria coluna enquanto conta
+  const [vez, setVez] = useState<1 | 2>(1);
+  const campo: "contado" | "contado2" = vez === 1 ? "contado" : "contado2";
   const [ocupado, setOcupado] = useState(false);
   const editavel = podeEditar && c.status === "aberta";
   const prod = (id: string) => produtos.find((p) => p.id === id);
@@ -124,6 +138,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
   const diferenca = (i: ItemContagem) => i.contado == null ? null : Number(i.contado) - (c.status === "aberta" ? saldoAgora(i.produto_id) : Number(i.saldo_sistema));
   const divergentes = itens.filter((i) => (diferenca(i) ?? 0) !== 0);
   const semJustificativa = divergentes.filter((i) => !i.justificativa);
+  const recontar = c.dupla ? itens.filter((i) => i.contado != null && situacaoDupla(i.contado, i.contado2 ?? null) !== "bate") : [];
 
   async function gravar(i: ItemContagem, patch: Partial<ItemContagem>) {
     const { error } = await supabase.from("contagem_itens").update(patch).eq("contagem_id", c.id).eq("produto_id", i.produto_id);
@@ -131,6 +146,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     invalidar("contagem_itens");
   }
   async function concluir() {
+    if (recontar.length) { setRevelar(true); return notify(`Dupla contagem: ${recontar.length} ${pl(recontar.length, "item precisa", "itens precisam")} da 2ª contagem igual à 1ª (${recontar.slice(0, 3).map((i) => prod(i.produto_id)?.descricao).join(", ")})`, "erro"); }
     if (semJustificativa.length) { setRevelar(true); return notify(`Justifique ${semJustificativa.length} ${pl(semJustificativa.length, "divergência", "divergências")} antes de concluir`, "erro"); }
     if (!(await confirmar(`Concluir a contagem nº ${c.numero}? ${divergentes.length} ${pl(divergentes.length, "saldo", "saldos")} serão ajustados para o que foi contado.`))) return;
     setOcupado(true);
@@ -170,18 +186,28 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
         <Button variant="secondary" onClick={onVoltar}>← Contagens</Button>
         <div className="min-w-[12rem] flex-1">
           <div className="font-semibold">Contagem nº {c.numero} · {nome(c.unidade_id)} <Badge value={c.status} /></div>
-          <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{revelar ? ` · ${divergentes.length} ${pl(divergentes.length, "divergência", "divergências")}` : ""}</div>
+          <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{c.dupla ? ` · dupla contagem${recontar.length ? ` (${recontar.length} a conferir)` : ""}` : ""}{revelar ? ` · ${divergentes.length} ${pl(divergentes.length, "divergência", "divergências")}` : ""}</div>
         </div>
         <Button variant="secondary" onClick={imprimirFolha}><Printer size={16} /> Imprimir folha</Button>
         {c.status === "aberta" && <Button variant="secondary" onClick={() => setRevelar(!revelar)}>{revelar ? <><EyeOff size={16} /> Esconder saldo</> : <><Eye size={16} /> Ver divergências</>}</Button>}
         {editavel && <Button variant="ghost" className="!text-red-600" onClick={cancelar}>Cancelar contagem</Button>}
         {editavel && <Button onClick={concluir} disabled={ocupado || !contados}>{ocupado ? "Concluindo…" : "Concluir e ajustar saldos"}</Button>}
       </div>
+      {c.dupla && editavel && !revelar && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900" role="radiogroup" aria-label="Quem está contando">
+          <b>Quem está contando agora?</b>
+          {([1, 2] as const).map((v) => (
+            <button key={v} type="button" role="radio" aria-checked={vez === v} onClick={() => setVez(v)}
+              className={`rounded-lg px-3 py-1 font-semibold ${vez === v ? "bg-violet-600 text-white" : "bg-white text-violet-700"}`}>{v}ª pessoa</button>
+          ))}
+          <span className="text-xs">Cada uma conta sem ver a outra. Só ajusta o saldo quando as duas batem.</span>
+        </div>
+      )}
       {c.status === "aberta" && !revelar && (
         <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">Conte e anote a quantidade física. O saldo do sistema fica escondido para não influenciar a contagem; deixe em branco o que não foi contado.</p>
       )}
       <Table empty={!itens.length}
-        head={<><th className="th">Local</th><th className="th">Produto</th><th className="th w-32">Contado</th>{revelar && <><th className="th text-right">Sistema</th><th className="th text-right">Diferença</th><th className="th">Justificativa</th></>}</>}>
+        head={<><th className="th">Local</th><th className="th">Produto</th><th className="th w-32">{c.dupla && !revelar ? `Contado (${vez}ª)` : c.dupla ? "1ª" : "Contado"}</th>{c.dupla && revelar && <><th className="th w-32">2ª</th><th className="th">Dupla</th></>}{revelar && <><th className="th text-right">Sistema</th><th className="th text-right">Diferença</th><th className="th">Justificativa</th></>}</>}>
         {itens.map((i) => {
           const p = prod(i.produto_id);
           const dif = diferenca(i);
@@ -189,11 +215,15 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
             <tr key={i.produto_id}>
               <td className="td text-sm">{p?.localizacao ?? "—"}</td>
               <td className="td"><div className="font-medium">{p?.descricao}</div><div className="text-xs text-slate-500">{[p?.sku, p?.unidade].filter(Boolean).join(" · ")}</div></td>
-              <td className="td">
-                <input className="input w-28" type="number" step="any" min={0} disabled={!editavel} key={`${i.produto_id}-${i.contado}`}
-                  defaultValue={i.contado ?? ""} aria-label={`Contado de ${p?.descricao}`}
-                  onBlur={(e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (i.contado == null ? null : Number(i.contado))) gravar(i, { contado: v }); }} />
-              </td>
+              {((c.dupla && !revelar ? [campo] : c.dupla ? ["contado", "contado2"] : ["contado"]) as ("contado" | "contado2")[]).map((k) => (
+                <td key={k} className="td">
+                  <input className="input w-28" type="number" step="any" min={0} disabled={!editavel} key={`${i.produto_id}-${k}-${i[k]}`}
+                    defaultValue={i[k] ?? ""} aria-label={`${k === "contado2" ? "2ª contagem" : "Contado"} de ${p?.descricao}`}
+                    onBlur={(e) => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (i[k] == null ? null : Number(i[k]))) gravar(i, { [k]: v }); }} />
+                </td>
+              ))}
+              {c.dupla && revelar && <td className="td text-xs font-semibold">{({ falta1: <span className="text-slate-400">—</span>, falta2: <span className="text-amber-700">falta a 2ª</span>,
+                bate: <span className="text-emerald-700">✓ bate</span>, recontar: <span className="text-red-600">✗ reconte</span> } as const)[situacaoDupla(i.contado, i.contado2 ?? null)]}</td>}
               {revelar && <>
                 <td className="td text-right">{c.status === "aberta" ? saldoAgora(i.produto_id) : Number(i.saldo_sistema)}</td>
                 <td className={`td text-right font-semibold ${dif ? (dif < 0 ? "text-red-600" : "text-amber-700") : "text-emerald-700"}`}>{dif == null ? "—" : dif > 0 ? `+${dif}` : dif}</td>
@@ -210,6 +240,119 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
         })}
       </Table>
       {revelar && c.status === "aberta" && <p className="text-xs text-slate-500">Antes de justificar, investigue: entrada não lançada, baixa de OS esquecida, item guardado em outro local. O ajuste só acontece ao concluir.</p>}
+    </div>
+  );
+}
+
+/** Acuracidade (90 dias), giro do ano, valor parado e a contagem do dia (sorteio pela curva ABC). */
+function PainelInventario({ produtos, contagens, podeEditar, onAberta }: { produtos: Produto[]; contagens: Contagem[]; podeEditar: boolean; onAberta: (id: string) => void }) {
+  const { padrao, unidades, nome } = useUnidade();
+  const unidadeId = padrao ?? unidades[0]?.id ?? null;
+  const invalidar = useInvalidate();
+  const [abrindo, setAbrindo] = useState(false);
+  const [verParados, setVerParados] = useState(false);
+  const { data: saldos = [] } = useRows<Saldo>("estoque_unidade", { order: "produto_id" });
+  const { data: itensCont = [] } = useRows<ItemContagem>("contagem_itens", { order: "produto_id" });
+  const desde12 = new Date(Date.now() - 365 * 864e5).toISOString();
+  const { data: vendas = [] } = useQuery({
+    queryKey: ["pedido_itens", "giro", desde12.slice(0, 10)],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedido_itens").select("produto_id, quantidade, pedido:pedidos!inner(status, created_at)")
+        .in("pedido.status", ["aprovado", "faturado", "entregue"]).gte("pedido.created_at", desde12);
+      if (error) throw error;
+      return (data ?? []) as { produto_id: string; quantidade: number }[];
+    },
+  });
+
+  const r = useMemo(() => {
+    const vendido = new Map<string, number>();
+    for (const v of vendas) if (v.produto_id) vendido.set(v.produto_id, (vendido.get(v.produto_id) ?? 0) + Number(v.quantidade || 0));
+    // última vez que cada produto foi contado (contagens concluídas desta unidade)
+    const concl = new Map(contagens.filter((c) => c.status === "concluida" && c.unidade_id === unidadeId).map((c) => [c.id, c.concluida_em ?? c.created_at]));
+    const ultima = new Map<string, string>();
+    for (const i of itensCont) {
+      const d = concl.get(i.contagem_id);
+      if (d && i.contado != null && (!ultima.has(i.produto_id) || ultima.get(i.produto_id)! < d)) ultima.set(i.produto_id, d);
+    }
+    const lista: ItemInventario[] = produtos.filter((p) => p.ativo !== false && !p.kit).map((p) => ({
+      id: p.id, custo: Number(p.preco_custo) || 0, vendido12m: vendido.get(p.id) ?? 0, ultimaContagem: ultima.get(p.id) ?? null,
+      saldo: Number(saldos.find((s) => s.produto_id === p.id && s.unidade_id === unidadeId)?.quantidade ?? 0),
+    }));
+    return {
+      sorteio: sorteioDoDia(lista, hoje(), 8),
+      acur: acuracidade(contagens.filter((c) => c.unidade_id === unidadeId), new Date(Date.now() - 90 * 864e5).toISOString()),
+      giro: giroEstoque(lista),
+      nunca: lista.filter((i) => i.saldo > 0 && !i.ultimaContagem).length,
+    };
+  }, [produtos, saldos, itensCont, contagens, vendas, unidadeId]);
+
+  const prod = (id: string) => produtos.find((p) => p.id === id);
+  const jaAbertaHoje = contagens.find((c) => c.status === "aberta" && c.escopo?.startsWith(`Contagem do dia ${dataBR(hoje())}`) && c.unidade_id === unidadeId);
+
+  async function abrirDoDia() {
+    if (!unidadeId || !r.sorteio.length) return;
+    setAbrindo(true);
+    const { data, error } = await supabase.rpc("abrir_contagem_v2", { p_unidade: unidadeId, p_produtos: r.sorteio.map((x) => x.id),
+      p_escopo: `Contagem do dia ${dataBR(hoje())} (${r.sorteio.length} itens)`, p_dupla: true });
+    setAbrindo(false);
+    if (error) return notifyError(error);
+    invalidar("contagens_estoque", "contagem_itens");
+    onAberta(data as string);
+  }
+
+  const a = r.acur.pct;
+  const corA = a == null ? "text-slate-500" : a >= 98 ? "text-emerald-600" : a >= 90 ? "text-amber-600" : "text-red-600";
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Indicador icone={<Gauge size={16} />} titulo="Acuracidade (90 dias)" valor={a == null ? "—" : `${a.toLocaleString("pt-BR")}%`} cor={corA}
+          detalhe={r.acur.contados ? `${r.acur.certos} de ${r.acur.contados} itens já estavam certos · meta 98%` : "conclua uma contagem para medir · meta 98%"} />
+        <Indicador icone={<RefreshCw size={16} />} titulo="Giro no ano" valor={r.giro.giro == null ? "—" : `${r.giro.giro.toLocaleString("pt-BR")}×`} cor="text-sky-600"
+          detalhe={r.giro.diasDeEstoque != null ? `estoque dura uns ${r.giro.diasDeEstoque} dias · ${brl(r.giro.valorEstoque)} a custo` : `${brl(r.giro.valorEstoque)} a custo`} />
+        <button type="button" onClick={() => setVerParados(!verParados)} className="text-left">
+          <Indicador icone={<PackageX size={16} />} titulo="Parado (sem venda 12 meses)" valor={brl(r.giro.valorParado)} cor={r.giro.parados ? "text-amber-600" : "text-emerald-600"}
+            detalhe={`${r.giro.parados} ${pl(r.giro.parados, "item", "itens")} · toque para ver`} />
+        </button>
+        <Indicador icone={<ClipboardList size={16} />} titulo="Com saldo e nunca contados" valor={String(r.nunca)} cor={r.nunca ? "text-violet-600" : "text-emerald-600"} detalhe={`na unidade ${nome(unidadeId ?? "")}`} />
+      </div>
+
+      {verParados && r.giro.paradosIds.length > 0 && (
+        <Card className="p-4">
+          <h3 className="mb-1 text-sm font-bold">Itens parados: plano de desova</h3>
+          <p className="mb-2 text-xs text-slate-500">Sem venda há 12 meses. Ideias: promoção, kit com peça que gira, devolução ao fornecedor ou venda no Mercado Livre.</p>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {r.giro.paradosIds.slice(0, 15).map((id) => { const p = prod(id); const s = Number(saldos.find((x) => x.produto_id === id && x.unidade_id === unidadeId)?.quantidade ?? 0);
+              return <li key={id} className="flex justify-between gap-2 py-1.5"><span className="min-w-0 truncate">{p?.descricao}</span><span className="shrink-0 text-slate-600">{s} un · {brl(s * (Number(p?.preco_custo) || 0))}</span></li>; })}
+          </ul>
+        </Card>
+      )}
+
+      <Card className="space-y-2 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="flex items-center gap-1.5 font-bold"><CalendarCheck size={18} className="text-emerald-600" /> Contagem do dia · {r.sorteio.length} {pl(r.sorteio.length, "item", "itens")}</h3>
+            <p className="text-xs text-slate-500">Conte logo cedo, leva uns 15 minutos. Os que valem mais (curva A) voltam a cada 30 dias, B a cada 60 e C a cada 120. Com dupla contagem.</p>
+          </div>
+          {podeEditar && (jaAbertaHoje
+            ? <Button variant="secondary" onClick={() => onAberta(jaAbertaHoje.id)}>Continuar a de hoje</Button>
+            : <Button onClick={abrirDoDia} disabled={abrindo || !r.sorteio.length}><Users size={16} /> {abrindo ? "Abrindo…" : "Contar agora"}</Button>)}
+        </div>
+        {r.sorteio.length ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {r.sorteio.map((x) => <li key={x.id} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs"><b className={x.curva === "A" ? "text-red-600" : x.curva === "B" ? "text-amber-600" : "text-slate-500"}>{x.curva}</b> {prod(x.id)?.descricao}</li>)}
+          </ul>
+        ) : <p className="text-sm text-emerald-700">Tudo contado dentro do prazo. 🎉</p>}
+      </Card>
+    </div>
+  );
+}
+
+function Indicador({ icone, titulo, valor, detalhe, cor }: { icone: React.ReactNode; titulo: string; valor: string; detalhe: string; cor: string }) {
+  return (
+    <div className="h-full rounded-2xl border border-slate-200 bg-surface p-4">
+      <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide ${cor}`}>{icone} {titulo}</div>
+      <div className={`mt-1.5 text-2xl font-extrabold ${cor}`}>{valor}</div>
+      <div className="mt-1 text-xs text-slate-500">{detalhe}</div>
     </div>
   );
 }
