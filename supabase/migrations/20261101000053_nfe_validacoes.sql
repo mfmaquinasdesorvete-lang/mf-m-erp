@@ -1,7 +1,7 @@
 -- Validador de NF-e (Notas fiscais → Validar): guarda o resultado da última validação de cada chave,
 -- para mostrar o selo (verde / amarelo / vermelho) na lista de notas emitidas e recebidas.
 create table if not exists public.nfe_validacoes (
-  chave text primary key check (chave ~ '^\d{44}$'),
+  chave text primary key check (chave ~ '^[0-9]{44}$'),
   nivel text not null check (nivel in ('ok', 'alerta', 'erro')),
   achados jsonb not null default '[]'::jsonb,
   validado_em timestamptz not null default now(),
