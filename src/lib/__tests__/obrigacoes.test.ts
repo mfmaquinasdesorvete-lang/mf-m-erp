@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ajustar, configDaUnidade, diaUtil, feriados, nesimoDiaUtil, ocorrenciasNoPeriodo, pascoa, rotuloCompetencia, situacaoDe, ultimoDiaUtil,
+  ajustar, configDaUnidade, obrigacoesUrgentes, textoPrazo, diaUtil, feriados, nesimoDiaUtil, ocorrenciasNoPeriodo, pascoa, rotuloCompetencia, situacaoDe, ultimoDiaUtil,
   type UnidadeCal,
 } from "../obrigacoes";
 
@@ -98,5 +98,22 @@ describe("calendário do Lucro Real", () => {
     expect(rotuloCompetencia("2026-09")).toBe("set/2026");
     expect(rotuloCompetencia("2026-T3")).toBe("3º tri/2026");
     expect(rotuloCompetencia("2025")).toBe("ano 2025");
+  });
+});
+
+describe("aviso das obrigações urgentes", () => {
+  const o = (vencimento: string | null, situacao: "atrasada" | "hoje" | "proxima" | "futura" | "feito") => ({ vencimento, situacao });
+  it("atrasadas desde o início do acompanhamento e as que vencem em até 3 dias, mais urgentes primeiro", () => {
+    const lista = [o("2026-10-25", "proxima"), o("2026-10-22", "proxima"), o("2026-10-20", "hoje"), o("2026-10-15", "atrasada"),
+      o("2026-08-20", "atrasada"), o("2026-11-10", "futura"), o("2026-10-21", "feito"), o(null, "atrasada")];
+    expect(obrigacoesUrgentes(lista, "2026-10-20", "2026-09").map((x) => x.vencimento)).toEqual(["2026-10-15", "2026-10-20", "2026-10-22"]);
+    expect(obrigacoesUrgentes(lista, "2026-10-20", null).map((x) => x.vencimento)).toEqual(["2026-10-20", "2026-10-22"]);   // sem início: o passado não avisa
+  });
+  it("texto do prazo", () => {
+    expect(textoPrazo("2026-10-18", "2026-10-20")).toBe("atrasada há 2 dias");
+    expect(textoPrazo("2026-10-19", "2026-10-20")).toBe("atrasada há 1 dia");
+    expect(textoPrazo("2026-10-20", "2026-10-20")).toBe("vence hoje");
+    expect(textoPrazo("2026-10-21", "2026-10-20")).toBe("vence amanhã");
+    expect(textoPrazo("2026-11-02", "2026-10-20")).toBe("vence em 13 dias");
   });
 });

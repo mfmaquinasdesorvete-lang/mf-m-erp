@@ -329,3 +329,24 @@ export function situacaoDe(o: Ocorrencia, reg: RegistroObrigacao | undefined, ho
 export const ROTULO_SITUACAO: Record<Situacao, string> = {
   feito: "feito", nao_se_aplica: "não se aplica", atrasada: "atrasada", hoje: "vence hoje", proxima: "nos próximos 7 dias", futura: "a vencer", sem_data: "sem data",
 };
+
+/** Dias até o vencimento (negativo = atrasada há tantos dias). */
+export const diasAte = (vencimento: string, hoje: string) =>
+  Math.round((Date.parse(`${vencimento}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 86400000);
+
+/** Para o aviso na tela: as atrasadas (desde o início do acompanhamento) e as que vencem em até `dias` dias, mais urgentes primeiro. */
+export function obrigacoesUrgentes<T extends { situacao: Situacao; vencimento: string | null }>(lista: T[], hoje: string, inicio: string | null | undefined, dias = 3): T[] {
+  const limite = somarDias(hoje, dias);
+  return lista
+    .filter((o) => o.vencimento && ((o.situacao === "atrasada" && !!inicio && o.vencimento >= inicio) || ((o.situacao === "hoje" || o.situacao === "proxima") && o.vencimento <= limite)))
+    .sort((a, b) => a.vencimento!.localeCompare(b.vencimento!));
+}
+
+/** "atrasada há 2 dias", "vence hoje", "vence amanhã", "vence em 3 dias". */
+export function textoPrazo(vencimento: string, hoje: string) {
+  const d = diasAte(vencimento, hoje);
+  if (d < 0) return `atrasada há ${-d} ${-d === 1 ? "dia" : "dias"}`;
+  if (d === 0) return "vence hoje";
+  if (d === 1) return "vence amanhã";
+  return `vence em ${d} dias`;
+}

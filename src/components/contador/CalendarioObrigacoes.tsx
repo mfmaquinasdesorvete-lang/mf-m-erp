@@ -2,7 +2,7 @@
 // e municipais de cada unidade), com a situação de cada uma — feita, não se aplica, atrasada, vence hoje, próxima.
 // Fica no Painel do contador (aba Calendário) e, resumido, no Painel fiscal.
 import { useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Ban, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, FileText, Receipt, RotateCcw, Settings2 } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { pedirTexto } from "@/components/Dialogos";
@@ -15,7 +15,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, pl } from "@/lib/format";
 import { diaLocal } from "@/lib/filtroLista";
 import {
-  chaveRegistro, configDaUnidade, CPR_SP, iso, ocorrenciasNoPeriodo, rotuloCompetencia, ROTULO_SITUACAO, situacaoDe, somarMes,
+  chaveRegistro, configDaUnidade, CPR_SP, iso, obrigacoesUrgentes, ocorrenciasNoPeriodo, rotuloCompetencia, ROTULO_SITUACAO, situacaoDe, somarMes, textoPrazo,
   type ConfigCalendario, type ConfigUnidade, type Ocorrencia, type RegistroObrigacao, type Situacao, type UnidadeCal,
 } from "@/lib/obrigacoes";
 
@@ -376,26 +376,78 @@ export function ProximasObrigacoes() {
   const { lista, semInicio } = useObrigacoes(desde, ate);
   // sem o mês de início definido, o passado não conta como atrasado (ainda não foi acompanhado no ERP)
   const itens = lista.filter((o) => (o.situacao === "atrasada" && !semInicio) || ((o.situacao === "hoje" || o.situacao === "proxima" || o.situacao === "futura") && (o.vencimento ?? "") <= ate));
-  const atrasadas = itens.filter((o) => o.situacao === "atrasada").length;
+  const conta = (f: (o: ItemCalendario) => boolean) => itens.filter(f).length;
+  const blocos: [string, number, string][] = [
+    ["atrasadas", conta((o) => o.situacao === "atrasada"), "border-red-300 bg-red-50 text-red-800"],
+    ["vencem hoje", conta((o) => o.situacao === "hoje"), "border-amber-300 bg-amber-50 text-amber-900"],
+    ["em 7 dias", conta((o) => o.situacao === "proxima"), "border-amber-200 bg-amber-50/60 text-amber-800"],
+    ["em 15 dias", conta((o) => o.situacao === "futura"), "border-sky-200 bg-sky-50 text-sky-800"],
+  ];
+  const alerta = blocos[0][1] + blocos[1][1] > 0;
   return (
-    <Card className="p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><CalendarDays size={16} className="text-modulo" /> Obrigações do Lucro Real</h2>
-        {atrasadas > 0 && <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${COR.atrasada}`}>{atrasadas} {pl(atrasadas, "atrasada", "atrasadas")}</span>}
+    <Card className={`p-4 ${alerta ? "border-2 border-red-300" : ""}`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className={`grid h-9 w-9 place-items-center rounded-xl ${alerta ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+          {alerta ? <CircleAlert size={18} /> : <CalendarDays size={18} />}
+        </span>
+        <h2 className="text-base font-bold text-fg">Obrigações do Lucro Real</h2>
         <Link to="/contador?aba=calendario" className="ml-auto text-sm font-semibold text-brand">Ver o calendário →</Link>
       </div>
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {blocos.map(([rot, n, cor]) => (
+          <div key={rot} className={`rounded-xl border px-3 py-2 ${n ? cor : "border-slate-200 text-slate-400"}`}>
+            <p className="num text-2xl font-bold leading-none">{n}</p>
+            <p className="text-2xs font-semibold uppercase">{rot}</p>
+          </div>
+        ))}
+      </div>
       {itens.length ? (
-        <ul className="divide-y divide-slate-100">
+        <ul className="space-y-1.5">
           {itens.slice(0, 8).map((o) => (
-            <li key={o.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5 text-sm">
-              <span className="num w-20 shrink-0 font-semibold text-slate-600">{o.vencimento ? dataBR(o.vencimento).slice(0, 5) : "—"}</span>
+            <li key={o.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border border-slate-100 px-2 py-1.5 text-sm">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PONTO[o.situacao]}`} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-fg">{o.regra.nome}{o.unidade ? ` · ${o.unidade.codigo ?? o.unidade.nome}` : ""} <span className="text-xs text-slate-500">({rotuloCompetencia(o.competencia)})</span></span>
-              <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR[o.situacao]}`}>{ROTULO_SITUACAO[o.situacao]}</span>
+              <span className="num text-xs text-slate-500">{o.vencimento ? dataBR(o.vencimento).slice(0, 5) : "—"}</span>
+              <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR[o.situacao]}`}>{o.vencimento ? textoPrazo(o.vencimento, hoje) : ROTULO_SITUACAO[o.situacao]}</span>
             </li>
           ))}
-          {itens.length > 8 && <li className="py-1.5 text-xs text-slate-500">e mais {itens.length - 8} no calendário</li>}
+          {itens.length > 8 && <li className="py-1 text-xs text-slate-500">e mais {itens.length - 8} no calendário</li>}
         </ul>
       ) : <p className="text-sm text-emerald-700">Nada atrasado e nada vencendo nos próximos 15 dias.</p>}
     </Card>
+  );
+}
+
+/** Aviso no meio da tela, uma vez por dia, quando há obrigação atrasada ou vencendo em até 3 dias (financeiro, admin e contador). */
+export function AlertaObrigacoes() {
+  const hoje = hojeBR();
+  const [a, m, d] = hoje.split("-").map(Number);
+  const { lista, cfg, pode } = useObrigacoes(iso(a, m - 3, 1), iso(a, m, d + 3));
+  const navigate = useNavigate();
+  const chave = `mf-erp-alerta-obrigacoes-${hoje}`;
+  const [fechado, setFechado] = useState(() => { try { return localStorage.getItem(chave) === "1"; } catch { return false; } });
+  const urgentes = obrigacoesUrgentes(lista, hoje, cfg.inicio);
+  if (!pode || fechado || !urgentes.length) return null;
+  const fechar = () => { try { localStorage.setItem(chave, "1"); } catch { /* sem armazenamento: volta a avisar */ } setFechado(true); };
+  const atrasadas = urgentes.filter((o) => o.situacao === "atrasada").length;
+  return (
+    <Modal open onClose={fechar} title={atrasadas ? "Obrigação fiscal atrasada" : "Obrigação fiscal vencendo"}>
+      <p className="mb-3 text-sm text-slate-600">
+        {atrasadas ? `${atrasadas} ${pl(atrasadas, "obrigação atrasada", "obrigações atrasadas")}: multa e juros correm a cada dia. ` : ""}
+        Confira com o contador e marque como feita no calendário.
+      </p>
+      <ul className="mb-4 space-y-1.5">
+        {urgentes.slice(0, 8).map((o) => (
+          <li key={o.id} className={`flex flex-wrap items-center gap-x-2 rounded-lg px-2 py-1.5 text-sm ${COR[o.situacao]}`}>
+            <b className="min-w-0 flex-1">{o.regra.nome}{o.unidade ? ` · ${o.unidade.codigo ?? o.unidade.nome}` : ""}</b>
+            <span className="text-xs font-semibold">{textoPrazo(o.vencimento!, hoje)} ({dataBR(o.vencimento!).slice(0, 5)})</span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="secondary" onClick={fechar}>Lembrar amanhã</Button>
+        <Button onClick={() => { fechar(); navigate("/contador?aba=calendario"); }}><CalendarDays size={16} /> Abrir o calendário</Button>
+      </div>
+    </Modal>
   );
 }

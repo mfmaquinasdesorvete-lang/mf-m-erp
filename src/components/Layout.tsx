@@ -22,6 +22,7 @@ import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
 import { Trilha } from "@/components/Trilha";
+import { AlertaObrigacoes } from "@/components/contador/CalendarioObrigacoes";
 
 // versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
@@ -417,6 +418,7 @@ export function Layout() {
       {trocarSenha && <AlterarSenha onClose={() => setTrocarSenha(false)} />}
       {aparencia && <Aparencia onClose={() => setAparencia(false)} />}
       {meusAvisos && <MeusAvisos onClose={() => setMeusAvisos(false)} />}
+      {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
     </div>
     </NotificacoesProvider>
   );
