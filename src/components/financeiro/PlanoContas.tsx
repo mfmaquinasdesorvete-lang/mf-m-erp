@@ -13,6 +13,7 @@ import { usePerfil } from "@/lib/auth";
 import { mesesAte, norm, ORDEM_DRE, rotuloCategoria, type GrupoDre, type LancDre } from "@/lib/dre";
 import { GRUPOS, useCategorias, useCentros, type Categoria } from "./CategoriaRateio";
 import { comportamentoDe } from "@/lib/dreNotas";
+import { CATEGORIAS_SUGERIDAS, resumoLucroReal, ROTULO_CREDITO, ROTULO_DEDUCAO, tratamentoLucroReal } from "@/lib/planoLucroReal";
 
 const COR_SINAL = { "+": "bg-emerald-100 text-emerald-800", "−": "bg-red-100 text-red-800", "±": "bg-amber-100 text-amber-800", fora: "bg-slate-100 text-slate-600" };
 const tipoDe = (l: LancDre) => (l.tipo === "receber" ? "receita" : "despesa");
@@ -107,6 +108,9 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
             </ul>
           </Card>
         )}
+
+        <LucroRealResumo cats={cats} uso={uso} podeEditar={podeEditar}
+          criar={(nome, grupo) => salvarCategoria({ nome, tipo: "despesa", grupo, ordem: 100 }).then((ok) => ok && notify(`Categoria "${nome}" criada`))} />
 
         <Card className="p-4">
           <div className="mb-1 flex items-start justify-between gap-2">
@@ -211,7 +215,7 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo, onComportam
   if (!editando) {
     return (
       <li className={`flex items-center gap-3 px-3 py-2 text-sm ${c.ativo ? "" : "opacity-90"}`}>
-        <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}{chipComp}</span>
+        <span className="min-w-0 flex-1 font-medium">{nome}{etiqueta}{chipComp}<ChipLucroReal nome={c.nome} grupo={c.grupo} /></span>
         <span className="shrink-0 text-right text-xs text-slate-500">
           {uso ? <><span className="num block font-semibold text-slate-700">{brl(uso.total)}</span>{uso.n} conta{uso.n > 1 ? "s" : ""}</> : "sem uso"}
         </span>
@@ -238,5 +242,63 @@ function LinhaCategoria({ c, ambos, editando, uso, onGrupo, onAtivo, onComportam
         </label>
       </div>
     </li>
+  );
+}
+
+const COR_DEDUCAO = { sim: "bg-emerald-100 text-emerald-800", parcial: "bg-amber-100 text-amber-900", nao: "bg-red-100 text-red-800", fora: "bg-slate-100 text-slate-600" };
+
+/** Como a categoria entra no Lucro Real (toque/passe o mouse para ver a base legal). */
+function ChipLucroReal({ nome, grupo }: { nome: string; grupo: string }) {
+  if (grupo === "receita" || grupo === "receita_financeira") return null;
+  const t = tratamentoLucroReal(nome, grupo);
+  return (
+    <span className="ml-1.5 inline-flex flex-wrap gap-1 align-middle" title={t.nota}>
+      <span className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${COR_DEDUCAO[t.deducao]}`}>{grupo === "deducao" ? "dedução da receita" : ROTULO_DEDUCAO[t.deducao]}</span>
+      {t.credito !== "nao" && <span className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${t.credito === "sim" ? "bg-violet-100 text-violet-800" : "bg-violet-50 text-violet-700"}`}>{ROTULO_CREDITO[t.credito]}</span>}
+    </span>
+  );
+}
+
+/** Resumo do plano no Lucro Real: quanto abate o IRPJ/CSLL, o que não abate e a base de crédito de PIS/COFINS; e as categorias que faltam. */
+function LucroRealResumo({ cats, uso, podeEditar, criar }: {
+  cats: Categoria[]; uso: Map<string, Uso & { nome: string; tipo: "receita" | "despesa" }>; podeEditar: boolean;
+  criar: (nome: string, grupo: GrupoDre) => Promise<unknown>;
+}) {
+  const r = resumoLucroReal(cats, (nome, tipo) => uso.get(`${tipo}|${norm(nome)}`)?.total ?? 0);
+  const existentes = new Set(cats.map((c) => norm(c.nome)));
+  const faltam = CATEGORIAS_SUGERIDAS.filter((c) => !existentes.has(norm(c.nome)));
+  const blocos: [string, number, string, string][] = [
+    ["Abate o IR/CSLL", r.abate, "text-emerald-700", "despesas dedutíveis (12 meses)"],
+    ["Abate em parte", r.parcial, "text-amber-700", "juros/multas, veículos, alimentação: separar o que não abate"],
+    ["Não abate", r.naoAbate, "text-red-700", "o contador soma de volta no LALUR"],
+    ["Base de crédito PIS/COFINS", r.credito, "text-violet-700", `≈ ${brl(r.credito * 0.0925)} de crédito (9,25%)${r.creditoTalvez ? ` + até ${brl(r.creditoTalvez * 0.0925)} se for da produção` : ""}`],
+  ];
+  return (
+    <Card className="p-4">
+      <h2 className="font-bold">Lucro Real <span className="text-sm font-normal text-slate-500">· como cada categoria entra no imposto</span></h2>
+      <p className="mb-3 text-xs text-slate-500">Estimativa pelo nome da categoria, com a base legal em cada etiqueta (toque para ver). A apuração oficial é do contador.</p>
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {blocos.map(([rot, v, cor, sub]) => (
+          <div key={rot} className="rounded-xl border border-slate-200 p-3">
+            <p className="text-2xs font-semibold uppercase text-slate-500">{rot}</p>
+            <p className={`num text-lg font-bold ${cor}`}>{brl(v)}</p>
+            <p className="text-2xs text-slate-500">{sub}</p>
+          </div>
+        ))}
+      </div>
+      {faltam.length > 0 && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <h3 className="mb-1 text-sm font-semibold">Categorias que faltam e mudam o imposto</h3>
+          <ul className="space-y-1 text-sm">
+            {faltam.map((c) => (
+              <li key={c.nome} className="flex flex-wrap items-center gap-x-2">
+                <b>{rotuloCategoria(c.nome)}</b><span className="text-xs text-slate-500">{c.porque}</span>
+                {podeEditar && <button type="button" className="ml-auto text-xs font-semibold text-brand underline" onClick={() => criar(c.nome, c.grupo)}>Criar</button>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
   );
 }
