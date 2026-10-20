@@ -11,7 +11,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { brl, dataBR, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ESFERAS } from "@/lib/extratoTipos";
-import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, SEM_GRUPO, type RecebidaGasto, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
+import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, raioXInfinitePay, SEM_GRUPO, type RecebidaGasto, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
 
 type Conta = { id: string; nome: string; unidade_id: string; ativo: boolean };
 type Funcionario = { id: string; nome: string; apelido: string | null; ativo: boolean };
@@ -84,6 +84,9 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
     return [...fixos, ...extras];
   }, [aba, funcionarios, doPeriodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const raioX = useMemo(() => raioXInfinitePay(lancamentos.filter((l) => idsContas.has(l.conta_bancaria_id) && (!mes || l.data.startsWith(mes))), recebidas),
+    [lancamentos, idsContas, recebidas, mes]);
+
   const def = ABAS_GASTO.find((a) => a.id === aba)!;
   const periodo = mes ? nomeMes(mes) : "todo o extrato importado";
   const contasComExtrato = contas.filter((c) => lancamentos.some((l) => l.conta_bancaria_id === c.id)).map((c) => c.nome);
@@ -149,6 +152,23 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
         <Card className="mb-4 border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
           Entram as guias pagas pelas contas com extrato no ERP{contasComExtrato.length ? ` (${contasComExtrato.join(", ")})` : ""} e as contas pagas lançadas
           na categoria <b>impostos</b>. Imposto pago por outro banco aparece quando o extrato dele for importado. Exporte a planilha para mandar ao contador.
+        </Card>
+      )}
+
+      {aba === "tarifas" && raioX.n > 0 && (
+        <Card className="mb-4 border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-bold">Raio-X da InfinitePay{mes ? ` · ${nomeMes(mes)}` : ""}</p>
+          <p>
+            Das vendas no cartão e no link, a InfinitePay ficou com <b>{String(raioX.pct).replace(".", ",")}%</b>: {brl(raioX.taxa)} de {brl(raioX.venda)} em {raioX.n} {pl(raioX.n, "venda", "vendas")} (taxa
+            da maquininha + juros do parcelamento + antecipação). É a maior tarifa da MF: vale cobrar a diferença no preço do cartão e do link
+            (Produtos → Formação de preço → Taxa por forma de pagamento) e oferecer Pix com desconto.
+          </p>
+          {raioX.semVenda.n > 0 && (
+            <p className="mt-1">
+              {raioX.semVenda.n} {pl(raioX.semVenda.n, "depósito", "depósitos")} ({brl(raioX.semVenda.valor)}) ainda sem a venda ligada: a taxa deles não entra nesta conta.
+              Ligue em <Link to="/conciliacao" className="font-semibold underline">Bancos e conciliação</Link>.
+            </p>
+          )}
         </Card>
       )}
 

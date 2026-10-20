@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linhasGasto, porMesGasto, totalPorGrupo, porTipoGasto, type ContaGasto, type LancGasto } from "../impostosTarifas";
+import { linhasGasto, porMesGasto, raioXInfinitePay, totalPorGrupo, porTipoGasto, type ContaGasto, type LancGasto } from "../impostosTarifas";
 
 const lanc = (id: string, data: string, valor: number, descricao: string, extra: Partial<LancGasto> = {}): LancGasto =>
   ({ id, conta_bancaria_id: "c1", data, valor, descricao, status: "pendente", identificador: id, ...extra });
@@ -76,5 +76,25 @@ describe("tarifas da OLIST e taxa da InfinitePay", () => {
     expect(linhas).toHaveLength(1);
     expect(linhas[0]).toMatchObject({ grupo: "InfinitePay", valor: 92.93 });
     expect(porTipoGasto(linhas)[0].tipo).toBe("Taxa da venda no cartão descontada no depósito");
+  });
+});
+
+describe("tarifas: antecipação e raio-X da InfinitePay", () => {
+  it("antecipação de recebíveis lançada em contas a pagar entra nas tarifas", () => {
+    const l = linhasGasto("tarifas", [], [conta("a1", "antecipação de recebíveis", 35.43, "Antecipação do parcelado Olist · pedido Tiny nº 1 (4x)")]);
+    expect(l.map((x) => [x.id, x.grupo, x.valor])).toEqual([["a1", "OLIST", 35.43]]);
+  });
+
+  it("mede a taxa real (venda − depósito) e separa os depósitos sem a venda ligada", () => {
+    const lancs = [
+      lanc("d1", "2026-05-02", 900, "Depósito InfinitePay", { conta_receber_id: "r1" }),
+      lanc("d2", "2026-05-03", 1800, "Depósito InfinitePay", { conta_receber_id: "r2" }),
+      lanc("d3", "2026-05-04", 500, "Depósito InfinitePay"),
+      lanc("d4", "2026-05-04", 500, "Depósito InfinitePay", { conta_bancaria_id: "c2", identificador: "d3" }), // repetido
+      lanc("x1", "2026-05-05", 300, "Pix recebido · Cliente"),
+    ];
+    const r = raioXInfinitePay(lancs, [{ id: "r1", valor: 1000 }, { id: "r2", valor: 2000 }]);
+    expect(r).toEqual({ n: 2, venda: 3000, deposito: 2700, taxa: 300, pct: 10, semVenda: { n: 1, valor: 500 } });
+    expect(raioXInfinitePay([], []).pct).toBeNull();
   });
 });

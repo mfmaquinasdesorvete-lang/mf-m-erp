@@ -7,7 +7,7 @@ export type AbaGasto = "impostos" | "tarifas" | "funcionarios";
 
 export const ABAS_GASTO: { id: AbaGasto; rotulo: string; tipo: TipoLanc; categorias: string[] }[] = [
   { id: "impostos", rotulo: "Impostos pagos", tipo: "imposto", categorias: ["impostos"] },
-  { id: "tarifas", rotulo: "Tarifas de cartão e OLIST", tipo: "tarifa", categorias: ["tarifas bancárias", "juros e multas"] },
+  { id: "tarifas", rotulo: "Tarifas de cartão e OLIST", tipo: "tarifa", categorias: ["tarifas bancárias", "juros e multas", "antecipação de recebíveis"] },
   { id: "funcionarios", rotulo: "Pagamentos a funcionários", tipo: "funcionario", categorias: ["folha", "pró-labore"] },
 ];
 
@@ -119,4 +119,22 @@ export function porTipoGasto(linhas: Pick<LinhaGasto, "descricao" | "valor">[]) 
   }
   return [...m].map(([tipo, x]) => ({ tipo, n: x.n, total: x.total, unitario: x.valores.size === 1 ? [...x.valores][0] : null }))
     .sort((a, b) => b.n - a.n || b.total - a.total);
+}
+
+/** Raio-X da maquininha/link InfinitePay: quanto das vendas ficou de taxa (venda − depósito) e quantos depósitos
+ *  ainda não têm a venda ligada (a taxa deles não dá para medir até conciliar). */
+export function raioXInfinitePay(lancs: LancGasto[], recebidas: RecebidaGasto[]) {
+  const vendas = new Map(recebidas.map((r) => [r.id, Number(r.valor)]));
+  let venda = 0, deposito = 0, n = 0, semVendaN = 0, semVendaValor = 0;
+  for (const l of semRepetidos(lancs)) {
+    const v = Number(l.valor);
+    if (!(v > 0) || !/dep[óo]sito infinitepay/i.test(l.descricao ?? "")) continue;
+    const r = l.conta_receber_id ? vendas.get(l.conta_receber_id) : undefined;
+    if (r == null) { semVendaN++; semVendaValor += v; continue; }
+    if (!(r > v)) continue;
+    venda += r; deposito += v; n++;
+  }
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  return { n, venda: r2(venda), deposito: r2(deposito), taxa: r2(venda - deposito), pct: venda ? r2((venda - deposito) / venda * 100) : null,
+    semVenda: { n: semVendaN, valor: r2(semVendaValor) } };
 }
