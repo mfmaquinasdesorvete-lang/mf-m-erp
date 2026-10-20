@@ -4,7 +4,8 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownCircle, ArrowUpCircle, Check, ClipboardCheck, Eye, EyeOff, Home, LayoutGrid, Undo2, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Check, ClipboardCheck, Eye, EyeOff, Home, LayoutGrid, Receipt, Undo2, Wallet } from "lucide-react";
+import { GastoRapido } from "@/components/financeiro/GastoRapido";
 import { useInvalidate, useRows } from "@/lib/data";
 import { InstalarApp } from "@/components/InstalarApp";
 import { useConfig } from "@/lib/useConfig";
@@ -36,6 +37,7 @@ export default function AppFinanceiro() {
   const [ocultar, setOcultar] = useState(ler("mf-erp-app-ocultar") === "1");
   const [sempre, setSempre] = useState(ler(CHAVE_APP) !== "0");
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [gasto, setGasto] = useState(false);
   const dia = hoje();
 
   const { data: pagar = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
@@ -91,6 +93,10 @@ export default function AppFinanceiro() {
 
         {aba === "inicio" && (
           <>
+            <button type="button" onClick={() => setGasto(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#22d3ee]/40 bg-[#22d3ee]/10 py-3.5 font-bold text-[#67e8f9]">
+              <Receipt size={20} /> Lançar gasto (falar ou foto do cupom)
+            </button>
             {/* saldo nas contas */}
             <section className="rounded-3xl border border-[#22d3ee]/25 bg-gradient-to-br from-[#0e1a2b] via-[#111827] to-[#1e1033] p-5 shadow-[0_0_40px_-12px_rgba(34,211,238,.45)]">
               <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#8b93a7]"><Wallet size={14} /> Saldo nas contas</p>
@@ -203,6 +209,7 @@ export default function AppFinanceiro() {
         </div>
       </nav>
       <Link to="/aprovacoes" className="sr-only">Aprovações completas</Link>
+      {gasto && <GastoRapido onClose={() => setGasto(false)} />}
     </div>
   );
 }
