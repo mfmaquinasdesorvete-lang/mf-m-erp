@@ -683,12 +683,12 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             <div className="flex shrink-0 items-center gap-1">
               {c.whatsapp && (
                 <a href={whatsappLink(c.whatsapp, `Olá, ${nomeTopo.split(" ")[0]}! Aqui é da MF Máquinas.`)} target="_blank" rel="noreferrer" title="Chamar no WhatsApp"
-                  className="hidden rounded-lg p-2 text-emerald-300 hover:bg-white/10 sm:block"><MessageCircle size={18} /></a>
+                  className="hidden rounded-xl bg-emerald-500 p-2 text-white shadow-sm hover:bg-emerald-400 sm:block"><MessageCircle size={18} /></a>
               )}
-              {c.email && <a href={`mailto:${c.email}`} title="Enviar e-mail" className="hidden rounded-lg p-2 text-sky-200 hover:bg-white/10 sm:block"><Mail size={18} /></a>}
+              {c.email && <a href={`mailto:${c.email}`} title="Enviar e-mail" className="hidden rounded-xl bg-sky-500 p-2 text-white shadow-sm hover:bg-sky-400 sm:block"><Mail size={18} /></a>}
               {c.id && (
                 <button type="button" onClick={() => setCorreios(true)} title="Enviar pelos Correios" aria-label="Enviar pelos Correios"
-                  className="rounded-lg p-2 text-amber-200 hover:bg-white/10"><Package size={18} /></button>
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-3 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-amber-300"><Package size={17} /> Correios</button>
               )}
               <button type="button" onClick={fechar} className="rounded-lg p-2 text-white/80 hover:bg-white/10" aria-label="Fechar"><X size={20} /></button>
               {correios && <EnvioCorreios cliente={{ ...c, nome: c.nome ?? nomeTopo } as never} onClose={() => setCorreios(false)} />}
