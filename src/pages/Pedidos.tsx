@@ -36,6 +36,7 @@ import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ConferirNfe } from "@/components/nfe/ConferirNfe";
 import { EmitirLote } from "@/components/nfe/EmitirLote";
 import { ClienteBusca } from "@/components/ClienteBusca";
+import { AtalhosCliente } from "@/components/pedidos/AtalhosCliente";
 import { ClienteRapido } from "@/components/clientes/ClienteRapido";
 import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
 import { combinaBusca } from "@/lib/buscaCliente";
@@ -971,6 +972,7 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
               <ClienteRapido inicial={cadastrarCliente} clientes={clientes} onClose={() => setCadastrarCliente(null)}
                 onCriado={(c) => { setNovosClientes((l) => [c, ...l.filter((x) => x.id !== c.id)]); escolherCliente(c.id, c); setCadastrarCliente(null); invalidate("clientes"); }} />
             )}
+            {cliente && <AtalhosCliente cliente={cliente} pedidoId={p.id} podeEditar={pode("editar_clientes")} />}
             {cliente && (cliente.condicao_pagamento || cliente.limite_credito != null || cliente.desconto_padrao) && (
               <span className="mt-1 block text-xs text-slate-500">
                 {[cliente.condicao_pagamento && `Condição: ${cliente.condicao_pagamento}`,
