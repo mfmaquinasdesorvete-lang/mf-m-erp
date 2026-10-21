@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, FileSpreadsheet, Layers, Wrench } from "lucide-react";
+import { Building2, ClipboardCheck, FileSpreadsheet, Layers, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
+import { SeloClasse } from "@/components/fornecedores/SeloClasse";
 import { ImportarContatos } from "@/components/ImportarContatos";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { filtroCadastradoEm, filtroCompletude, filtrosLocal, ordensCadastro } from "@/lib/filtrosCadastro";
 import { supabase } from "@/lib/supabase";
 import { CartaoCadastro, ComAvatar, Contato, ContatoBotoes, Iniciais, NomeCadastro } from "@/components/Contato";
-import { Button, Modal } from "@/components/ui";
+import { Button, CLASSE_BOTAO, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { AgruparFiliais, FiliaisDaMarca, UnificarCadastros } from "@/components/cadastros/MarcaFiliais";
 import { confirmar } from "@/components/Dialogos";
@@ -241,6 +243,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
           ] : []}
           extraActions={<>
             <Button variant="secondary" aria-pressed={mostrarFiliais} onClick={() => setMostrarFiliais((v) => !v)}><Layers size={16} /> {mostrarFiliais ? "Esconder filiais" : "Mostrar filiais"}</Button>
+            <Link to="/fornecedores/avaliacao" className={`${CLASSE_BOTAO} border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50`}><ClipboardCheck size={16} /> Avaliação</Link>
             {pode("editar_fornecedores") && <Button variant="secondary" onClick={() => setArrumar(true)}><Wrench size={16} /> Arrumar cadastro</Button>}
             {botaoImportar("fornecedor")}
           </>}
@@ -305,6 +308,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             { label: "Situação", render: (r) => <div className="flex flex-col items-start gap-1">
               <span className={`inline-flex items-center gap-1 text-xs font-semibold ${r.ativo === false ? "text-slate-400" : "text-emerald-600"}`}>
                 <span className={`h-2 w-2 rounded-full ${r.ativo === false ? "bg-slate-400" : "bg-emerald-500"}`} aria-hidden />{r.ativo === false ? "inativo" : "ativo"}</span>
+              <SeloClasse c={r.avaliacao_classe} nota={r.avaliacao_nota} />
               {r.homologado && <span title={r.homologado_obs || "Fornecedor homologado"} className="rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-2xs font-black tracking-wide text-emerald-800">HOMOLOGADO</span>}
             </div> },
           ]}

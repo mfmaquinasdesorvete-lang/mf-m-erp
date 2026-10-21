@@ -1957,6 +1957,7 @@ const DEFAULTS: Record<string, () => Row> = {
   scrum_comentarios: () => ({ user_id: sessao?.user.id ?? null, created_at: quando(0) }),
   pagar_negociacao_eventos: () => ({ criado_por: sessao?.user.id ?? null, quando: hojeISO(), created_at: quando(0) }),
   pagar_negociacoes: () => ({ situacao: "negociando", created_at: quando(0), atualizado_em: quando(0) }),
+  fornecedor_ocorrencias: () => ({ resolvida_em: null, created_at: quando(0) }),
   licenciados_arquivos: () => ({ criado_em: new Date().toISOString() }),
   licenciados_custos: () => ({ anulado: false, created_at: quando(0) }),
   licenciados_maquinas: () => ({ situacao: "na_loja", created_at: quando(0) }),
@@ -2454,6 +2455,25 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: id, error: null };
   },
   // no sistema real: public.conciliar_vendas (Vendas → marcar → Conciliar). Aqui só a venda sem conta x entrada de mesmo valor.
+  // no sistema real: public.indicadores_fornecedores (OC no prazo, devoluções, defeitos, notas e não conformidades)
+  indicadores_fornecedores: ({ p_inicio, p_fim }) => {
+    const ids = new Set<string>([...(db.nfe_recebidas ?? []).map((n) => n.fornecedor_id), ...(db.fornecedor_ocorrencias ?? []).map((o) => o.fornecedor_id)].filter(Boolean));
+    return { data: [...ids].map((id) => {
+      const nfs = (db.nfe_recebidas ?? []).filter((n) => n.fornecedor_id === id && String(n.data_emissao ?? "").slice(0, 10) >= p_inicio && String(n.data_emissao ?? "").slice(0, 10) <= p_fim);
+      const ocs = (db.pedidos_compra ?? []).filter((o) => o.fornecedor_id === id && o.recebido_em && o.previsao_entrega);
+      return { fornecedor_id: id, pedidos: ocs.length, entregues: ocs.length, no_prazo: ocs.filter((o) => String(o.recebido_em).slice(0, 10) <= o.previsao_entrega).length,
+        atraso_medio: null, devolucoes: 0, defeitos: 0, notas: nfs.length, valor_compras: nfs.reduce((t, n) => t + Number(n.valor_total ?? 0), 0),
+        ultima_compra: nfs.map((n) => String(n.data_emissao).slice(0, 10)).sort().pop() ?? null,
+        ocorrencias: (db.fornecedor_ocorrencias ?? []).filter((o) => o.fornecedor_id === id).map((o) => ({ tipo: o.tipo, gravidade: o.gravidade, aberta: !o.resolvida_em })) };
+    }), error: null };
+  },
+  registrar_avaliacao_fornecedor: ({ p_fornecedor, p_avaliacao }) => {
+    const id = uid();
+    db.fornecedor_avaliacoes = [...(db.fornecedor_avaliacoes ?? []), { id, fornecedor_id: p_fornecedor, ...p_avaliacao, avaliado_nome: "Você (demonstração)", created_at: quando(0) }];
+    const f = db.fornecedores.find((x) => x.id === p_fornecedor);
+    if (f) Object.assign(f, { avaliacao_nota: p_avaliacao.nota_final, avaliacao_classe: p_avaliacao.classe, avaliado_em: p_avaliacao.data, proxima_avaliacao: p_avaliacao.proxima_avaliacao });
+    return { data: id, error: null };
+  },
   aceitar_redes_sugeridas: ({ p_ids, p_aceitar = true }) => {
     let n = 0;
     for (const c of db.clientes.filter((x) => p_ids.includes(x.id) && x.redes_sugeridas)) {

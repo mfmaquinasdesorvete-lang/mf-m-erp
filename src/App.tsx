@@ -70,6 +70,7 @@ const FormasPagamento = lazy(() => import("@/pages/FormasPagamento"));
 const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
+const AvaliacaoFornecedores = lazy(() => import("@/pages/AvaliacaoFornecedores"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const Conheca = lazy(() => import("@/pages/Conheca"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
@@ -118,6 +119,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "clientes", tela: "clientes", element: <Clientes /> },
   { path: "tudo-do-cliente", tela: "clientes", element: <TudoDoCliente /> },
   { path: "fornecedores", tela: "fornecedores", element: <Fornecedores tipo="fornecedores" /> },
+  { path: "fornecedores/avaliacao", tela: "fornecedores", element: <AvaliacaoFornecedores /> },
   { path: "transportadoras", tela: "fornecedores", element: <Transportadoras /> },
   { path: "configuracoes", tela: "configuracoes", element: <Configuracoes /> },
   // extrato automático: quem cuida dos bancos também abre (o financeiro não abre as outras configurações)
