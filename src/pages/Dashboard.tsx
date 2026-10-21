@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState, type CSSProperties } from "react";
 import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
+import { AtalhoGastoPessoal } from "@/components/pessoal/AtalhoGastoPessoal";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch, Plus,
@@ -78,8 +79,9 @@ export default function Dashboard() {
   const atual = opcoes.includes(visao) ? visao : padrao;
   return (
     <>
+      {(opcoes.length > 1 || papel === "admin") && <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
       {opcoes.length > 1 && (
-        <div className="mb-4 inline-flex max-w-full rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="O que ver no início">
+        <div className="inline-flex max-w-full rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="O que ver no início">
           {opcoes.map((v) => (
             <button key={v} type="button" role="tab" aria-selected={atual === v} onClick={() => escolher(v)}
               className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition sm:px-4 ${atual === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
@@ -88,6 +90,8 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+      {papel === "admin" && <AtalhoGastoPessoal />}
+      </div>}
       {atual === "financeiro" ? <PainelFinanceiro />
         : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>
         : <PainelGeral />}
