@@ -9,7 +9,7 @@ export type Cliente = {
   /** cadastrado pelo representante no portal: falta a empresa conferir */
   portal_conferir?: boolean;
   tags?: string[] | null; receita?: any; receita_situacao?: string | null; ie_situacao?: string | null; receita_em?: string | null;
-  telefone_adicional?: string | null; website?: string | null; instagram?: string | null; facebook?: string | null; tiktok?: string | null; email_nfe?: string | null; contato_observacoes?: string | null;
+  telefone_adicional?: string | null; website?: string | null; instagram?: string | null; facebook?: string | null; tiktok?: string | null; redes_sugeridas?: { instagram?: string; facebook?: string; tiktok?: string; website?: string } | null; redes_buscado_em?: string | null; email_nfe?: string | null; contato_observacoes?: string | null;
   inscricao_municipal?: string | null; inscricao_suframa?: string | null; regime_tributario?: number | null; data_nascimento?: string | null;
   /** mês/ano da compra da máquina (no Tiny ficava no campo Código) */
   compra_maquina_em?: string | null;

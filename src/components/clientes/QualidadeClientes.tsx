@@ -15,6 +15,7 @@ import { corTipo, type TipoContato } from "./TiposContato";
 import { possiveisDuplicados, type DadosReceita } from "../../../supabase/functions/_shared/receita";
 import { gruposCertos, principalDoGrupo } from "@/lib/unificarClientes";
 import { confirmar } from "@/components/Dialogos";
+import { SecaoRedes } from "./RedesClientes";
 
 type ComEtiquetas = { tags?: string[] | null; receita_situacao?: string | null };
 const tem = (c: ComEtiquetas, t: string) => (c.tags ?? []).includes(t);
@@ -116,6 +117,8 @@ export function ArrumarCadastro({ clientes, onClose, onUnificar }: { clientes: C
           ) : <p className="text-slate-500">{situacao.isError ? "Não consegui ver o andamento agora." : "Carregando…"}</p>}
           {s && s.conferidos < s.com_cnpj && <p className="mt-2 text-xs text-slate-500">Faltam {s.com_cnpj - s.conferidos}: cerca de {tempo(Math.ceil((s.com_cnpj - s.conferidos) / 3))}. Pode fechar esta tela.</p>}
         </section>
+
+        <SecaoRedes clientes={clientes} />
 
         <section className="rounded-xl border border-slate-200 p-4">
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-fg"><Merge size={16} className="text-emerald-600" /> Unificar por lógica (repetidos certos)</h3>

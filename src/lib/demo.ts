@@ -2454,6 +2454,14 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: id, error: null };
   },
   // no sistema real: public.conciliar_vendas (Vendas → marcar → Conciliar). Aqui só a venda sem conta x entrada de mesmo valor.
+  aceitar_redes_sugeridas: ({ p_ids, p_aceitar = true }) => {
+    let n = 0;
+    for (const c of db.clientes.filter((x) => p_ids.includes(x.id) && x.redes_sugeridas)) {
+      if (p_aceitar) for (const k of ["instagram", "facebook", "tiktok", "website"]) if (!c[k] && c.redes_sugeridas[k]) c[k] = c.redes_sugeridas[k];
+      c.redes_sugeridas = null; n++;
+    }
+    return { data: n, error: null };
+  },
   conciliar_vendas: ({ p_ids, p_aplicar = false, p_escolhidos = [] }) => {
     const vendas = db.pedidos.filter((p) => p_ids.includes(p.id) && ["aprovado", "faturado", "entregue"].includes(p.status) && Number(p.valor_total) > 0);
     const semConta = vendas.filter((p) => !db.contas_receber.some((c) => c.pedido_id === p.id && c.status !== "cancelado"));
@@ -5669,6 +5677,14 @@ const funcoes: Record<string, (b: any) => any> = {
     }
     const n = (t: string) => comCnpj.filter((c) => (c.tags ?? []).includes(t)).length;
     return { ok: true, com_cnpj: comCnpj.length, conferidos: comCnpj.filter((c) => c.receita_em).length, irregulares: n("cnpj_irregular"), ie_baixada: n("ie_baixada"), endereco_diferente: n("endereco_receita") };
+  },
+  "clientes-redes": () => {
+    // demonstração: o primeiro cliente sem Instagram "tem" site com as redes
+    const c = db.clientes.find((x) => !x.instagram && !x.redes_buscado_em);
+    if (!c) return { ok: true, procurados: 0, achados: 0 };
+    const perfil = String(c.nome_fantasia || c.nome).toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "");
+    Object.assign(c, { redes_buscado_em: new Date().toISOString(), redes_sugeridas: { instagram: "@" + perfil, facebook: "facebook.com/" + perfil } });
+    return { ok: true, procurados: 1, achados: 1 };
   },
   "tiny-importar": () => ({ ok: true, configurado: false, estado: null }),
   "usuarios-admin": (b) => {

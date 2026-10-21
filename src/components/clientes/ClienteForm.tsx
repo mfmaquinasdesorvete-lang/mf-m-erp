@@ -38,6 +38,7 @@ import { docParaConferir, errosDoPasso, faltasDoPasso, PASSOS, passoLiberado, re
 import { confirmar } from "@/components/Dialogos";
 import { FONTE_DESDE, useClienteDesde } from "@/lib/clienteDesde";
 import { EnvioCorreios } from "./EnvioCorreios";
+import { RedesBusca } from "./RedesClientes";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
 export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -824,6 +825,10 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("instagram", "Instagram", { span: 4, placeholder: "@sorveteria" })}
                 {campo("facebook", "Facebook", { span: 4, placeholder: "facebook.com/…" })}
                 {campo("tiktok", "TikTok", { span: 4, placeholder: "@…" })}
+                <RedesBusca c={c} disabled={!podeEditar} onUsar={(r) => {
+                  for (const k of ["instagram", "facebook", "tiktok", "website"] as const) if (r[k] && !c[k]) set(k, r[k]);
+                  set("redes_sugeridas", null);
+                }} />
                 <label className="col-span-1 flex items-center gap-2 self-end rounded-xl border border-slate-200 px-3 py-2.5 text-sm sm:col-span-6">
                   <input type="checkbox" className="h-5 w-5" checked={c.avisos_email !== false} disabled={!podeEditar} onChange={(e) => set("avisos_email", e.target.checked)} />
                   Recebe avisos por e-mail (pedido, nota, entrega, garantia)
