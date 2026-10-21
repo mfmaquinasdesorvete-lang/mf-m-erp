@@ -40,6 +40,7 @@ export function ManuaisMaquinas({ produtos, podeEditar, aoFicha }: { produtos: P
         <p className="mr-auto min-w-0 text-sm text-slate-600">
           <b className="text-fg">{completas} de {maquinas.length}</b> {pl(maquinas.length, "máquina tem", "máquinas têm")} os 3 documentos (manual, elétrico e dicas).
           {podeEditar && " Arraste pela alça para mudar a ordem: o cliente vê nesta ordem."}
+          {podeEditar && " Manual que está no Calameo: abra o livro, copie o endereço e use \"Anexar link\" na máquina."}
         </p>
         <label className="relative min-w-0 basis-56">
           <span className="sr-only">Procurar máquina</span>

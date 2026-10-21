@@ -21,6 +21,22 @@ const LIMITE_BYTES = 50 * 1024 * 1024;
 export const urlMidia = (caminho: string) =>
   /^https?:\/\//.test(caminho) ? caminho : supabase.storage.from(BUCKET_MIDIA).getPublicUrl(caminho).data.publicUrl;
 
+/** Documento por link (Calameo, Google Drive, site do fabricante): devolve o endereço limpo ou null se não for link.
+ *  Link do Calameo vira o leitor público (calameo.com/read/CÓDIGO), que abre em qualquer celular. */
+export function linkDocumento(texto: string): string | null {
+  const t = texto.trim();
+  let u: URL;
+  try { u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes(".")) return null;
+  if (/(^|\.)calameo\.com$/i.test(u.hostname)) {
+    const cod = u.pathname.match(/\/(?:read|books)\/([0-9a-z]{10,})/i)?.[1] ?? u.searchParams.get("bkcode");
+    if (cod) return `https://www.calameo.com/read/${cod}`;
+  }
+  u.protocol = "https:";
+  return u.toString();
+}
+export const ehLinkCalameo = (caminho: string) => /^https:\/\/www\.calameo\.com\/read\//.test(caminho);
+
 export const tamanhoTexto = (b: number | null | undefined) =>
   !b ? "" : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
 

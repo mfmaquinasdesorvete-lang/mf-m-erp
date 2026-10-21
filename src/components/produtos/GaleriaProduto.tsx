@@ -2,11 +2,11 @@
 // máquina, manual elétrico/esquema e dicas de manutenção). Tirar da galeria só esconde (ativo = false).
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, ImagePlus, Loader2, Play, Star, Trash2, Video, X } from "lucide-react";
+import { BookOpen, FileText, ImagePlus, Link2, Loader2, Play, Star, Trash2, Video, X } from "lucide-react";
 import { Button, useFecharComEsc } from "../ui";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { enviarMidia, NOME_MIDIA, tamanhoTexto, urlMidia, VIDEO_MAX_SEG, type Midia, type TipoMidia } from "@/lib/midia";
+import { ehLinkCalameo, enviarMidia, linkDocumento, NOME_MIDIA, tamanhoTexto, urlMidia, VIDEO_MAX_SEG, type Midia, type TipoMidia } from "@/lib/midia";
 import { confirmar } from "@/components/Dialogos";
 import { AlcaArrastar, useArrastar } from "@/components/Arrastar";
 import { moverNaLista } from "@/lib/arrastar";
@@ -127,6 +127,7 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
   const [tipo, setTipo] = useState<TipoMidia>("manual");
   const [titulo, setTitulo] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [link, setLink] = useState("");
   const arquivo = useRef<HTMLInputElement>(null);
   const docs = midia.filter((m) => TIPOS_DOC.includes(m.tipo));
   // a lista de Máquinas → Manuais também conta os documentos de cada máquina
@@ -160,6 +161,22 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
       atualizar();
     } catch (e) { notifyError(e); } finally { setEnviando(false); }
   }
+  /** Link do Calameo (ou de outro site) no lugar do PDF: o cliente abre o mesmo endereço pelo link da máquina. */
+  async function salvarLink() {
+    const url = linkDocumento(link);
+    if (!url) return notify("Cole um endereço de internet válido (ex.: o link do Calameo).", "erro");
+    if (docs.some((m) => m.caminho === url)) return notify("Este link já está nos documentos da máquina.", "erro");
+    setEnviando(true);
+    try {
+      const { error } = await supabase.from("produtos_midia").insert({
+        produto_id: produtoId, tipo, titulo: titulo.trim() || null, caminho: url, mime: "text/uri-list", ordem: docs.length,
+      });
+      if (error) throw error;
+      setLink(""); setTitulo("");
+      notify("Link anexado");
+      atualizar();
+    } catch (e) { notifyError(e); } finally { setEnviando(false); }
+  }
   async function tirar(m: Midia) {
     if (!(await confirmar(`Tirar "${m.titulo ?? NOME_MIDIA[m.tipo]}" dos documentos?`))) return;
     const { error } = await supabase.from("produtos_midia").update({ ativo: false }).eq("id", m.id);
@@ -175,10 +192,11 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
             <li key={m.id} {...arrastar.linha(m.id)} className={`relative flex items-center gap-3 px-3 py-2 ${arrastar.apagada(m.id) ? "opacity-40" : ""}`}>
               {arrastar.marca(m.id)}
               {podeEditar && docs.length > 1 && <AlcaArrastar nome={m.titulo || NOME_MIDIA[m.tipo]} {...arrastar.alca(m.id)} />}
-              <FileText size={18} className="shrink-0 text-brand" aria-hidden />
+              {ehLinkCalameo(m.caminho) ? <BookOpen size={18} className="shrink-0 text-brand" aria-hidden />
+                : /^https?:/.test(m.caminho) ? <Link2 size={18} className="shrink-0 text-brand" aria-hidden /> : <FileText size={18} className="shrink-0 text-brand" aria-hidden />}
               <a href={urlMidia(m.caminho)} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">
                 <span className="block truncate font-semibold text-fg">{m.titulo || NOME_MIDIA[m.tipo]}</span>
-                <span className="text-xs text-slate-500">{NOME_MIDIA[m.tipo]}{m.tamanho ? ` · ${tamanhoTexto(m.tamanho)}` : ""}</span>
+                <span className="text-xs text-slate-500">{NOME_MIDIA[m.tipo]}{ehLinkCalameo(m.caminho) ? " · Calameo" : /^https?:/.test(m.caminho) ? " · link" : ""}{m.tamanho ? ` · ${tamanhoTexto(m.tamanho)}` : ""}</span>
               </a>
               {podeEditar && <button type="button" onClick={() => tirar(m)} className="rounded p-1 text-red-600 hover:bg-red-50" aria-label={`Tirar ${m.titulo ?? "documento"}`}><Trash2 size={15} /></button>}
             </li>
@@ -195,6 +213,11 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
           <Button type="button" variant="secondary" disabled={enviando} onClick={() => arquivo.current?.click()}>
             {enviando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />} {enviando ? "Enviando…" : "Anexar PDF"}
           </Button>
+          <form className="flex w-full flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); salvarLink(); }}>
+            <input className="input min-w-0 flex-1 basis-56" type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)}
+              placeholder="ou cole o link do Calameo (calameo.com/read/…)" aria-label="Link do documento (Calameo ou outro site)" />
+            <Button type="submit" variant="secondary" disabled={enviando || !link.trim()}><Link2 size={15} /> Anexar link</Button>
+          </form>
         </div>
       )}
     </div>
