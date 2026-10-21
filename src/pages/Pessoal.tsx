@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle, ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
-  Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
+  Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Mic, Paperclip, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
   Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +21,7 @@ import { RegrasCards } from "@/components/pessoal/RegrasCards";
 import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
 import { MinhasEmpresas } from "@/components/pessoal/MinhasEmpresas";
 import { MeusEnderecos } from "@/components/pessoal/MeusEnderecos";
+import { GastoPessoal } from "@/components/pessoal/GastoPessoal";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -99,6 +100,7 @@ export default function Pessoal() {
   const [editLanc, setEditLanc] = useState<Partial<LancPessoal> | null>(null);
   const [importar, setImportar] = useState(false);
   const [boleto, setBoleto] = useState(false);
+  const [falado, setFalado] = useState(false);
   const [regrasAbertas, setRegrasAbertas] = useState<Partial<RegraPessoal> | null | false>(false);
   const [pluggy, setPluggy] = useState(false);
 
@@ -210,6 +212,13 @@ export default function Pessoal() {
   }
   const anular = (l: LancPessoal) => gravar("pessoal_lancamentos", { id: l.id, anulado: !l.anulado }, l.anulado ? "Lançamento de volta" : "Lançamento anulado");
   const pagar = (l: LancPessoal) => gravar("pessoal_lancamentos", { id: l.id, situacao: "realizado", data: l.data > hoje() ? hoje() : l.data }, "Marcado como pago");
+  /** A foto do comprovante abre num link que vale 5 minutos (o balde é só do dono). */
+  async function verComprovante(caminho: string) {
+    const { data, error } = await supabase.storage.from("pessoal").createSignedUrl(caminho, 300);
+    if (error || !data?.signedUrl) return notifyError(error ?? new Error("Comprovante não encontrado"));
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
   async function marcarProLabore() {
     const ids = daMFsemCategoria.map((l) => l.id);
     if (!ids.length) return;
@@ -258,6 +267,7 @@ export default function Pessoal() {
             <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={16} /> Regras dos cards</Button>
             <Button variant="secondary" onClick={() => navigate("/licenciados")}><IceCreamCone size={16} /> My Frost Sorveterias (unidades)</Button>
           </MaisAcoes>
+          <Button variant="secondary" onClick={() => setFalado(true)} disabled={!ativas.length} title="Fale, escreva ou tire a foto do comprovante"><Mic size={16} /> Voz ou foto</Button>
           <Button onClick={() => setEditLanc({ conta_id: conta || ativas[0]?.id, data: hoje(), situacao: "realizado", valor: undefined })} disabled={!ativas.length}><Plus size={16} /> Lançar</Button>
         </>} />
 
@@ -590,6 +600,7 @@ export default function Pessoal() {
                                 {l.valor > 0 && daEmpresa(l.descricao, empresa) && <span className="rounded bg-sky-100 px-1.5 text-sky-800">da empresa</span>}
                                 {l.situacao === "previsto" && <span className="rounded bg-amber-100 px-1.5 text-amber-800">previsto</span>}
                                 {l.anulado && <span className="rounded bg-slate-200 px-1.5">anulado</span>}
+                                {l.comprovante && <button type="button" className="inline-flex items-center gap-0.5 rounded bg-slate-100 px-1.5 hover:bg-slate-200" onClick={() => verComprovante(l.comprovante!)}><Paperclip size={11} aria-hidden /> comprovante</button>}
                               </span>
                             </span>
                             <span className={`num shrink-0 font-bold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</span>
@@ -621,6 +632,7 @@ export default function Pessoal() {
       {editConta && <ContaModal conta={editConta} lancs={lancs} onClose={() => setEditConta(null)} onGravar={async (c) => (await gravar("pessoal_contas", c, c.id ? "Conta alterada" : "Conta criada")) && setEditConta(null)} />}
       {editLanc && <LancModal lanc={editLanc} contas={ativas} onClose={() => setEditLanc(null)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, l.id ? "Lançamento alterado" : "Lançado")) && setEditLanc(null)} />}
       {importar && <ImportarModal contas={ativas} empresa={empresa} existentes={lancs} onClose={() => setImportar(false)} onFeito={() => { invalidar("pessoal_lancamentos"); setImportar(false); }} />}
+      {falado && <GastoPessoal contas={ativas} contaInicial={conta || undefined} onClose={() => setFalado(false)} onFeito={() => { invalidar("pessoal_lancamentos"); setFalado(false); }} />}
       {boleto && <BoletoModal contas={ativas} onClose={() => setBoleto(false)} onGravar={async (l) => (await gravar("pessoal_lancamentos", l, "Boleto lançado como previsto")) && setBoleto(false)} />}
       {regrasAbertas !== false && <RegrasCards regras={regras} lancs={lancs} inicial={regrasAbertas} onClose={() => setRegrasAbertas(false)} />}
       {pluggy && <MeuPluggy contas={contas} ultimoDe={(id) => ultimoLancamento(lancs, id)} onClose={() => setPluggy(false)} />}

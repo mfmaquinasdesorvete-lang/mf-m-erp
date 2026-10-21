@@ -1033,6 +1033,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Privacidade: cada um vê só o que criou; nada daqui entra no DRE, na conciliação, nos painéis da empresa nem no que vai para o contador.",
       "Quem vê: só o administrador, pelo ícone da carteira no fim do menu; o contador não vê esta tela.",
       "Abas: Dinheiro, Minhas empresas e Meus endereços.",
+      "Voz ou foto: fale ou escreva \"gastei 45,90 no almoço ontem no Nubank\" e o ERP preenche valor, data, conta e categoria para conferir; a foto do comprovante fica guardada só para você, junto do lançamento.",
       "Período: mês, 3, 6 e 12 meses, ano, tudo ou datas escolhidas, com setas para andar e comparação com o período anterior.",
       "Números do alto: disponível nas contas, fatura dos cartões, o que veio da empresa, quanto entrou, saiu e sobrou, e o gasto médio por dia.",
       "Cards por tipo de gasto: juros do limite em destaque, carro, casa, empréstimos, impostos, saúde, seguros, cartões, postos, mercado, iFood, assinaturas e outros.",

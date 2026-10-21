@@ -13,10 +13,11 @@ import { enviarDocumentos } from "@/components/Anexos";
 import { chaveDoQrCode, interpretarGasto } from "@/lib/gastoRapido";
 
 type Categoria = { nome: string; tipo: string; ativo: boolean | null };
-type Reconhecedor = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void;
+export type Reconhecedor = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: ((e: { error: string }) => void) | null };
 
-const Reconhecimento = () => (window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor }).SpeechRecognition
+/** O reconhecimento de voz do navegador (Chrome, Edge, Safari); sem ele, a pessoa digita. */
+export const Reconhecimento = () => (window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor }).SpeechRecognition
   ?? (window as unknown as { webkitSpeechRecognition?: new () => Reconhecedor }).webkitSpeechRecognition;
 
 /** Lê o QR Code da foto (Chrome/Android têm o leitor; no iPhone a foto vai só como comprovante). */

@@ -10,6 +10,8 @@ export type ContaPessoal = {
 export type LancPessoal = {
   id: string; conta_id: string; data: string; descricao: string; valor: number; categoria: string | null;
   situacao: "realizado" | "previsto"; identificador?: string | null; anulado: boolean;
+  /** foto ou PDF do comprovante no balde "pessoal" (<id do usuário>/<arquivo>): só o dono vê */
+  comprovante?: string | null;
 };
 
 export const TIPOS_CONTA: { id: TipoConta; nome: string }[] = [
@@ -35,9 +37,9 @@ const REGRAS: [RegExp, (typeof CATEGORIAS)[number]][] = [
   [/mercado|supermerc|atacad|padaria|acougue|hortifruti|assai|carrefour|angeloni|giassi|fort atacadista/, "Mercado"],
   [/farmacia|drogaria|raia|panvel|hospital|clinica|laborat|unimed|odonto|medic/, "Saúde"],
   [/escola|colegio|faculdade|curso|udemy|livraria/, "Educação"],
-  [/posto|combust|uber|99 ?app|99pop|estacion|pedagio|ipva|detran|onibus/, "Transporte"],
+  [/posto|combust|gasolina|etanol|alcool|uber|99 ?app|99pop|estacion|pedagio|ipva|detran|onibus/, "Transporte"],
   [/netflix|spotify|disney|prime video|amazon prime|youtube|hbo|globoplay|icloud|google one|assinatura/, "Assinaturas"],
-  [/restaurante|lanchonete|bar |cinema|ifood|viagem|hotel|airbnb|show/, "Lazer"],
+  [/restaurante|lanchonete|almoco|almocei|jantar|lanche|bar |cinema|ifood|viagem|hotel|airbnb|show/, "Lazer"],
   [/iptu|irpf|darf|taxa|tarifa|anuidade|iof/, "Impostos e taxas"],
   [/mercado ?livre|shopee|amazon|magalu|americanas|shein|loja/, "Compras"],
   [/pix|ted|doc|transf/, "Transferências"],
