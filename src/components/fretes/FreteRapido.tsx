@@ -4,15 +4,16 @@
 // O envio detalhado (volumes, coleta, rastreio, conferência) continua na aba "Frete e envio".
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, MessageCircle, Plus, Truck, X } from "lucide-react";
+import { Check, Copy, History, MessageCircle, Plus, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useRows, ler } from "@/lib/data";
-import { brl, whatsappLink, pl } from "@/lib/format";
+import { brl, dataBR, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Item, Produto, Transportadora } from "@/lib/types";
 import { sugerirTransportadoras } from "@/lib/freteSugestao";
+import { referenciasFrete, type FretePassado } from "@/lib/freteHistorico";
 
 type Modo = "sem" | "cobrar" | "gratis" | "fob";
 const MODOS: { value: Modo; label: string; dica: string }[] = [
@@ -56,6 +57,22 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
     queryFn: async () => ((await ler(supabase.from("cotacoes_frete").select("id, transportadora_id, transportadora_nome, valor, prazo_dias, escolhida").eq("pedido_id", pedido.id!).order("valor"))) ?? []) as
       { id: string; transportadora_id: string | null; transportadora_nome: string | null; valor: number; prazo_dias: number | null; escolhida: boolean }[],
   });
+
+  // o que já cobramos de frete para este cliente, esta cidade ou este estado: sugestão na hora
+  const { data: historico = [] } = useQuery({
+    queryKey: ["pedidos", "fretes-historico"],
+    enabled: modo === "cobrar" && !disabled,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const linhas = ((await ler(supabase.from("pedidos").select("id, frete, transportadora_id, created_at, cliente_id, cliente:clientes(uf, municipio)")
+        .gt("frete", 0).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1500))) ?? []) as unknown as
+        { id: string; frete: number; transportadora_id: string | null; created_at: string; cliente_id: string | null; cliente: { uf: string | null; municipio: string | null } | null }[];
+      return linhas.map((l) => ({ id: l.id, frete: Number(l.frete), transportadora_id: l.transportadora_id, data: l.created_at.slice(0, 10), cliente_id: l.cliente_id,
+        uf: l.cliente?.uf ?? null, municipio: l.cliente?.municipio ?? null }));
+    },
+  });
+  const refs = useMemo(() => referenciasFrete(historico.filter((h) => h.id !== pedido.id) as (FretePassado & { id: string })[],
+    { cliente_id: cliente?.id, uf: cliente?.uf, municipio: cliente?.municipio }), [historico, pedido.id, cliente?.id, cliente?.uf, cliente?.municipio]);
 
   const ativas = transportadoras.filter((t) => t.ativo && !t.matriz_id).sort((a, b) => Number(!!b.whatsapp) - Number(!!a.whatsapp) || a.nome.localeCompare(b.nome));
   const [extras, setExtras] = useState<string[]>([]);
@@ -136,6 +153,35 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
             </select>
           </label>
           {podeCotar && !disabled && <Button type="button" variant={cotando ? "ghost" : "secondary"} onClick={() => setCotando(!cotando)}>{cotando ? "Fechar cotação" : "Cotar frete"}</Button>}
+        </div>
+      )}
+
+      {modo === "cobrar" && !disabled && refs.length > 0 && (
+        <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50/50 p-2.5 text-sm">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700"><History size={14} aria-hidden /> Fretes que já cobramos (toque para usar)</p>
+          <ul className="space-y-1.5">
+            {refs.map((r) => {
+              const t = r.porTransportadora[0];
+              return (
+                <li key={r.onde} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="min-w-0 flex-1 basis-48 text-xs text-slate-600">
+                    <b className="text-fg">{r.rotulo}</b> · {r.quantas} {pl(r.quantas, "vez", "vezes")}
+                    {r.quantas > 1 ? ` · de ${brl(r.menor)} a ${brl(r.maior)}` : ""} · último {brl(r.ultimo.frete)} em {dataBR(r.ultimo.data)}
+                    {t ? ` · mais usada: ${nomeT(t.transportadora_id)}` : ""}
+                  </span>
+                  <span className="flex gap-1.5">
+                    <button type="button" className="rounded-lg border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold hover:bg-slate-50"
+                      onClick={() => usar(r.ultimo.transportadora_id, r.ultimo.frete, null)}>Usar o último {brl(r.ultimo.frete)}</button>
+                    {r.quantas > 2 && r.mediana !== r.ultimo.frete && (
+                      <button type="button" className="rounded-lg border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold hover:bg-slate-50"
+                        onClick={() => usar(t?.transportadora_id ?? null, r.mediana, null)}>Usar o típico {brl(r.mediana)}</button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1.5 text-2xs text-slate-500">É o que foi cobrado do cliente nas vendas; confirme com a transportadora se o peso for bem diferente.</p>
         </div>
       )}
 
