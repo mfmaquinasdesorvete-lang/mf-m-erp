@@ -10,6 +10,9 @@ import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { MOTIVOS } from "@/lib/propostas";
 import type { Produto, Vendedor } from "@/lib/types";
 import { SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
+import { useAbaUrl } from "@/lib/abaUrl";
+import { usePerfil } from "@/lib/auth";
+import { DreRelatorio } from "@/components/relatorios/DreRelatorio";
 
 type ItemV = { produto_id: string; descricao: string; quantidade: number; valor_unitario: number; produto?: { preco_custo: number; tipo: string } | null };
 type PedidoR = {
@@ -33,7 +36,25 @@ function ultimosMeses(n: number) {
 }
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
 
+/** Relatórios: a visão geral do período e uma aba só do DRE (financeiro e contador), com as observações de cada mês. */
 export default function Relatorios() {
+  const { tem, papel } = usePerfil();
+  const veDre = tem("financeiro") || papel === "contador";
+  const [aba, setAba] = useAbaUrl<"geral" | "dre">("geral", ["geral", "dre"] as const);
+  return (
+    <div>
+      {veDre && <Tabs value={aba} onChange={setAba} options={[{ value: "geral", label: "Visão geral" }, { value: "dre", label: "DRE" }]} />}
+      {veDre && aba === "dre" ? (
+        <>
+          <PageHeader title="DRE" subtitle="Resultado mês a mês, visual, com SC, SP e o consolidado; anote acima o que explica cada mês." />
+          <DreRelatorio />
+        </>
+      ) : <VisaoGeral />}
+    </div>
+  );
+}
+
+function VisaoGeral() {
   const [periodo, setPeriodo] = useState<"3" | "6" | "12">("6");
   const { data: vendedoresCad = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { filtrar } = useUnidade();
