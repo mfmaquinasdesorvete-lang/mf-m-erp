@@ -372,7 +372,14 @@ function seed(): Db {
     ordens_producao: [
       { id: "op1", numero: 12, produto_id: "p1", quantidade: 3, status: "em_producao", previsao: dias(6), responsavel: "Equipe montagem", numeros_serie: "", created_at: quando(-5) },
       { id: "op2", numero: 13, produto_id: "p2", quantidade: 4, status: "planejada", previsao: dias(15), responsavel: "Equipe montagem", created_at: quando(-1) },
-      { id: "op3", numero: 11, produto_id: "p2", quantidade: 2, status: "concluida", previsao: dias(-20), concluida_em: quando(-22), created_at: quando(-35) },
+      { id: "op3", numero: 11, produto_id: "p2", quantidade: 2, status: "concluida", previsao: dias(-20), concluida_em: quando(-22), created_at: quando(-35), custo_total: 4655, custo_unitario: 2327.5 },
+    ],
+    op_custos: [
+      { id: "opc1", ordem_id: "op3", componente_id: "p8", descricao: "Compressor 1 HP R404A", quantidade: 2, custo_unitario: 1290 },
+      { id: "opc2", ordem_id: "op3", componente_id: "p6", descricao: "Placa eletrônica controladora V3", quantidade: 2, custo_unitario: 590 },
+      { id: "opc3", ordem_id: "op3", componente_id: "p4", descricao: "Motor do batedor 1/2 CV", quantidade: 2, custo_unitario: 410 },
+      { id: "opc4", ordem_id: "op3", componente_id: "p7", descricao: "Bico dosador inox", quantidade: 2, custo_unitario: 0 },
+      { id: "opc5", ordem_id: "op3", componente_id: "p5", descricao: "Kit vedação do cilindro", quantidade: 2, custo_unitario: 37.5 },
     ],
     pedidos_compra: [
       { id: "pco1", numero: 31, fornecedor_id: "f3", ordem_producao_id: "op1", status: "enviado", previsao_entrega: dias(3), condicao_pagamento: "28 dias boleto", frete: 45, observacoes: "Peças para a OP #12", created_at: quando(-4), enviado_em: quando(-4) },
@@ -4728,10 +4735,18 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       .filter(({ q, p }) => saldoUn(p.id, op.unidade_id) < q)
       .map(({ q, p }) => `${p.descricao} (falta ${q - saldoUn(p.id, op.unidade_id)})`);
     if (faltas.length) return erro(`peças insuficientes no estoque desta unidade: ${faltas.join(", ")}`);
+    // custo do dia de cada peça, guardado antes da baixa (mesma regra do banco)
+    let totalOp = 0;
+    db.op_custos ??= [];
+    for (const [id, q] of comps) {
+      const p = db.produtos.find((x) => x.id === id)!;
+      db.op_custos.push({ id: uid(), ordem_id: op.id, componente_id: id, descricao: p.descricao, quantidade: q, custo_unitario: Number(p.preco_custo ?? 0) });
+      totalOp += q * Number(p.preco_custo ?? 0);
+    }
     for (const [id, q] of comps) movimentar(id, "saida", q, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
     movimentar(op.produto_id, "entrada", op.quantidade, `Produção OP #${op.numero}`, { unidade_id: op.unidade_id });
     db.produtos.find((p) => p.id === op.produto_id)!.preco_custo = r2(custoEstrutura(fichas, db.produtos as any, op.produto_id, (db.kit_componentes ?? []) as any));
-    Object.assign(op, { status: "concluida", concluida_em: quando(0) });
+    Object.assign(op, { status: "concluida", concluida_em: quando(0), custo_total: r2(totalOp), custo_unitario: r2(totalOp / Number(op.quantidade || 1)) });
     return { data: null, error: null };
   },
   lancar_contas_nota: ({ p_nota, p_parcelas = 1, p_primeiro, p_intervalo = 30, p_forma = "boleto" }) => {

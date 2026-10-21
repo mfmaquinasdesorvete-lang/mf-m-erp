@@ -39,6 +39,7 @@ import { DocumentosMaquina } from "@/components/produtos/GaleriaProduto";
 import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
+import { CustoDaOp } from "@/components/producao/CustoDaOp";
 import { TesteGigaDaOp } from "@/components/testeGiga/SeloGiga";
 import { avisoGigaDaOp } from "@/lib/testeGigaDados";
 
@@ -214,7 +215,7 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
                 <div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
               <td className="td num text-right">{Number(o.quantidade)}</td>
               <td className="td"><Badge value={o.status} /></td>
-              <td className="td">{aberta ? (f ? <span className="font-semibold text-red-600">faltam {f} {pl(f, "peça", "peças")}</span> : <span className="font-semibold text-emerald-700">tudo disponível</span>) : "—"}</td>
+              <td className="td">{aberta ? (f ? <span className="font-semibold text-red-600">faltam {f} {pl(f, "peça", "peças")}</span> : <span className="font-semibold text-emerald-700">tudo disponível</span>) : o.custo_unitario != null ? <span className="num text-slate-600" title="Quanto custou montar cada unidade">{brl(Number(o.custo_unitario))}/un.</span> : "—"}</td>
               <td className={`td num ${aberta && o.previsao && o.previsao < hoje() ? "font-semibold text-red-600" : ""}`}>{dataBR(o.previsao)}</td>
               <td className="td whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <BotaoMarcadores tabela="ordens_producao" registro={o} nome={["ordem de produção", "ordens de produção"]} />
@@ -280,6 +281,7 @@ function QuadroProducao({ ordens, faltas, marcadores, carregando, aoAbrir, irPar
             dias={diasDesde(s.desde)} nivel={s.nivel} alerta={s.alerta} proximo={s.proximo} onAbrir={() => aoAbrir(o)} botao={botao}
             etiquetas={<>
               {o.responsavel && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-600">{o.responsavel}</span>}
+              {o.custo_unitario != null && <span className="num rounded-md bg-emerald-50 px-1.5 py-0.5 text-2xs font-semibold text-emerald-800" title="Quanto custou montar cada unidade">{brl(Number(o.custo_unitario))}/un.</span>}
               {(o.marcadores ?? []).length > 0 && <ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno />}
             </>} />
         );
@@ -557,6 +559,8 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
             )}
           </div>
         )}
+
+        {o.produto_id && (pode("editar_producao") || perfil.tem("financeiro")) && <CustoDaOp op={o} fichas={fichas} produtos={produtos} />}
 
         {o.id && ehMaquina && <TesteGigaDaOp numerosSerie={o.numeros_serie} produtoId={o.produto_id} opId={o.id} />}
 

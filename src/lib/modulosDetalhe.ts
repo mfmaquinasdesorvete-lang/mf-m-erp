@@ -780,6 +780,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Criar OP de subconjuntos: o subconjunto com estoque próprio que falta ganha a sua OP, para ficar pronto antes da máquina.",
       "Etapas de produção: checklist da montagem da máquina; marcar a etapa grava quem fez e quando.",
       "Iniciar e concluir: concluir baixa as peças do estoque e põe as máquinas prontas no estoque; sem todas as peças não conclui.",
+      "Quanto custou montar cada unidade: na OP aberta, a previsão pela ficha técnica; ao concluir, o ERP guarda o custo de cada peça naquele dia e mostra o custo de cada unidade (e de cada nº de série), o da OP inteira e as peças que mais pesam; o valor aparece também no quadro e na lista.",
       "Teste do giga na OP: mostra o teste de cada número de série e o botão para lançar o teste ou o reteste; avisa se falta ao concluir.",
       "Venda de máquina: a OP pode ser ligada ao pedido (proposta → pedido → OP → nota).",
       "Aba Ficha técnica: peças por grupo com o custo, etapas dentro e fora da fábrica e como cada item chega (comprado, fabricado ou terceirizado).",

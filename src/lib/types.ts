@@ -230,6 +230,9 @@ export type OrdemProducao = {
   setor?: string | null;
   /** lista de conferência copiada das etapas de produção da máquina ao criar a OP */
   etapas?: EtapaOp[] | null;
+  /** custo guardado na conclusão (peças com o custo do dia): da OP inteira e de cada unidade */
+  custo_total?: number | null;
+  custo_unitario?: number | null;
   produto?: Produto;
 };
 export type Necessidade = {
