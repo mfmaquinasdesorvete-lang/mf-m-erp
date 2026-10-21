@@ -3740,6 +3740,20 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     voltam.forEach((i: Row, k: number) => Object.assign(i, { sprint_id: null, status: i.status === "revisao" ? "fazendo" : i.status, prioridade: topo - 10 * (voltam.length - k) }));
     return { data: voltam.length, error: null };
   },
+  devolver_itens_pedido: ({ p_pedido, p_itens = [], p_motivo = "" }) => {
+    const ped = db.pedidos.find((x: Row) => x.id === p_pedido);
+    if (!ped) return { data: null, error: { message: "pedido não encontrado" } };
+    if (String(p_motivo).trim().length < 5) return { data: null, error: { message: "informe o motivo da devolução (mínimo 5 letras)" } };
+    db.pedido_devolucoes ??= [];
+    const itens = (p_itens as Row[]).filter((r) => Number(r.quantidade) > 0).map((r) => {
+      const it = (db.pedido_itens ?? []).find((x: Row) => x.id === r.item_id) ?? (ped.itens ?? []).find((x: Row) => x.id === r.item_id) ?? {};
+      return { item_id: r.item_id, produto_id: it.produto_id, descricao: it.descricao, quantidade: Number(r.quantidade), valor_unitario: Number(it.valor_unitario ?? 0) };
+    });
+    const valor = r2(itens.reduce((t, i) => t + i.quantidade * i.valor_unitario, 0));
+    const d = { id: uid(), pedido_id: p_pedido, itens, valor, motivo: String(p_motivo).trim(), created_at: new Date().toISOString() };
+    db.pedido_devolucoes.unshift(d);
+    return { data: d.id, error: null };
+  },
   lancar_conta_devolucao: ({ p_nota = null, p_recebida = null, p_valor = null, p_vencimento = null, p_chave_pix = null }) => {
     const n = p_nota ? db.notas_fiscais.find((x: Row) => x.id === p_nota) : (db.nfe_recebidas ?? []).find((x: Row) => x.id === p_recebida);
     if (!n || n.finalidade !== "devolucao") return { data: null, error: { message: "Esta nota não é uma devolução de venda" } };

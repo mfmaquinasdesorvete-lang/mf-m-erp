@@ -7,7 +7,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, Copy, Send, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Copy, Send, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Undo2, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
@@ -37,6 +37,7 @@ import { ConferirNfe } from "@/components/nfe/ConferirNfe";
 import { EmitirLote } from "@/components/nfe/EmitirLote";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { AtalhosCliente } from "@/components/pedidos/AtalhosCliente";
+import { DevolverProdutos } from "@/components/pedidos/DevolverProdutos";
 import { ClienteRapido } from "@/components/clientes/ClienteRapido";
 import { arquivoPedido, pixDoPedido, tituloPedido } from "@/lib/pedidoDocs";
 import { combinaBusca } from "@/lib/buscaCliente";
@@ -189,6 +190,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       { rotulo: "Abrir", icone: ChevronRight, onClick: () => abrir() },
       { rotulo: p.status === "orcamento" ? "PDF do orçamento" : "PDF do pedido", icone: FileDown, onClick: () => abrir("pdf") },
       ["aprovado", "faturado", "entregue"].includes(p.status) && { rotulo: "Enviar rastreio", icone: Send, onClick: () => abrir("rastreio") },
+      pode("editar_pedidos") && ["aprovado", "faturado", "entregue"].includes(p.status) && { rotulo: "Devolver produtos", icone: Undo2, onClick: () => abrir("devolver") },
       pode("editar_pedidos") && (p.itens?.length ?? 0) > 0 && { rotulo: "Clonar venda", icone: Copy, onClick: () => setAberto({ ...clonarVenda({ ...p, itens: p.itens ?? [] }), __clone: Date.now() } as any) },
       p.cliente && { rotulo: "Últimas vendas do cliente", icone: List, onClick: () => setUltimasDe(p.cliente!) },
       !!zap && { rotulo: "WhatsApp do cliente", icone: MessageCircle, onClick: () => window.open(whatsappLink(zap, `Olá! Aqui é da MF Máquinas, sobre o pedido #${p.numero}.`), "_blank", "noopener") },
@@ -628,6 +630,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     const acao = (inicial as any).__acao as string | undefined;
     if (!acao || acaoFeita.current) return;
     if (acao === "rastreio") { acaoFeita.current = true; setRastreio(true); }
+    if (acao === "devolver") { acaoFeita.current = true; setDevolver(true); }
     if (acao === "pdf" && cfg) { acaoFeita.current = true; void gerarPdf(); }
   }, [cfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
@@ -645,6 +648,8 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   // a venda saiu com a NF de outra empresa (ex.: empresa ligada): registrar a nota no pedido
   const [nfOutra, setNfOutra] = useState(false);
   const [rastreio, setRastreio] = useState(false);
+  // devolução de produtos: NF de devolução (com NF-e) ou volta ao estoque pelo pedido (sem NF)
+  const [devolver, setDevolver] = useState(false);
   const invalidate = useInvalidate();
   const { pode, tem, user_id } = usePerfil();
   const podeEditar = pode("editar_pedidos");
@@ -987,7 +992,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
             Pedido {p.status}: vendedor, comissão, origem e observações podem ser alterados (pede o motivo, que fica na auditoria).
             {temNotaValida
-              ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou emita uma NF de devolução."
+              ? " Itens, valores e pagamento já estão na NF-e autorizada: para mudar, cancele a nota ou use Devolver produtos (NF de devolução)."
               : <> Para mudar itens, valores ou pagamento, use <b>Reabrir pedido</b>: o estoque volta, as parcelas em aberto são canceladas e o pedido vira orçamento de novo.</>}
           </div>
         )}
@@ -1160,6 +1165,10 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
             <Button type="button" variant="secondary" title="Abrir um orçamento novo com o mesmo cliente, itens, pagamento e frete"
               onClick={() => { onClonar(p as Partial<Pedido> & { itens: Item[] }); notify(`Cópia da venda #${p.numero}: confira e salve o orçamento novo`); }}><Copy size={16} /> Clonar venda</Button>
           )}
+          {ajustavel && (
+            <Button type="button" tom="desfazer" title="Cliente devolveu tudo ou parte: com NF-e emite a NF de devolução; sem NF o estoque volta pelo pedido"
+              onClick={() => setDevolver(true)} disabled={ocupado}><Undo2 size={16} /> Devolver produtos</Button>
+          )}
           {ajustavel && !temNotaValida && (
             <Button type="button" tom="desfazer" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
           )}
@@ -1172,6 +1181,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           )}
         </div>
       </form>
+      {devolver && p.id && <DevolverProdutos pedido={{ id: p.id, numero: p.numero!, itens: p.itens, notas: p.notas as any }} onClose={() => setDevolver(false)} />}
       {nfOutra && p.id && <NfOutraModal p={p as any} onClose={() => setNfOutra(false)} onFeito={recarregarNfOutra} />}
       {conferirNfe && p.id && <ConferirNfe pedidoId={p.id} onClose={() => setConferirNfe(false)} onEmitida={() => invalidate("pedidos", "notas_fiscais")} />}
       {pendencias && (
