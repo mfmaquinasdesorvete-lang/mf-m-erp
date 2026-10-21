@@ -1,4 +1,4 @@
-export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace" | "compras" | "representante";
+export type Papel = "admin" | "vendas" | "financeiro" | "tecnico" | "contador" | "expedicao" | "marketplace" | "compras" | "representante" | "giga";
 
 export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "admin", label: "Administrador", descricao: "Acesso total, usuários e configurações" },
@@ -9,6 +9,7 @@ export const PAPEIS: { value: Papel; label: string; descricao: string }[] = [
   { value: "expedicao", label: "Expedição", descricao: "Separar, conferir, embalar e despachar os pedidos; etiquetas e DANFE" },
   { value: "marketplace", label: "Marketplaces", descricao: "Ajusta os cadastros dos produtos para os anúncios: título, descrição, fotos, EAN, categorias e medidas (sem preço, custo nem estoque)" },
   { value: "compras", label: "Compras", descricao: "Ordens de compra, cotações, necessidades, notas de fornecedor (custo, preço para aprovação, vínculo com a OC), fornecedores e estoque" },
+  { value: "giga", label: "Só o giga", descricao: "Só a tela do Teste do giga (REG-006): lança e anula os testes das máquinas, sem ver o resto do ERP" },
   { value: "representante", label: "Representante (portal)", descricao: "Externo: só o portal, com os próprios pedidos, orçamentos, clientes da carteira e comissões" },
 ];
 
@@ -47,6 +48,8 @@ const TELAS: Record<Exclude<Papel, "admin">, Tela[]> = {
   // área de Compras (OC, cotações, necessidades, reposição), notas de fornecedor, fornecedores, produtos e estoque
   compras: ["producao", "notas", "fornecedores", "estoque", "documentos", "scrum"],
   // externo: nenhuma tela do ERP; só o portal (/portal), que lê e grava pelas funções portal_* do banco
+  // só o Teste do giga (REG-006)
+  giga: ["testegiga"],
   representante: [],
 };
 
@@ -84,6 +87,7 @@ const ACOES: Record<Exclude<Papel, "admin">, Acao[]> = {
   // produto: o banco deixa mudar só marcadores, mínimo/máximo, prazo, compra mínima e fornecedor padrão; preço e custo
   // passam pela nota (custo) e pela aprovação (preço)
   compras: ["editar_producao", "receber_compras", "nfe_recebidas", "editar_fornecedores"],
+  giga: ["lancar_teste_giga"],
   representante: [],
 };
 

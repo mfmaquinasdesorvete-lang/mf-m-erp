@@ -8,6 +8,7 @@ import {
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
+import { sairDoErp } from "@/lib/sair";
 import { descreverAparelho } from "@/lib/acessos";
 import { usePerfil } from "@/lib/auth";
 import { rotuloPapel, type Tela } from "@/lib/permissoes";
@@ -161,12 +162,21 @@ export function Layout() {
   useEffect(() => {
     if (!perfil.user_id) return;
     const { dispositivo, navegador } = descreverAparelho(navigator.userAgent);
-    const sinal = () => { if (!document.hidden) supabase.rpc("registrar_acesso", { p_dispositivo: dispositivo, p_navegador: navegador }).then(() => {}, () => {}); };
+    // parado: sem mexer no mouse, teclado ou tela nos últimos 5 minutos (o banco soma esse tempo)
+    let mexeu = Date.now();
+    const atividade = () => { mexeu = Date.now(); };
+    const EVENTOS = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"] as const;
+    EVENTOS.forEach((e) => window.addEventListener(e, atividade, { passive: true }));
+    const sinal = () => {
+      if (document.hidden) return;
+      const p_ativo = Date.now() - mexeu < 5 * 60_000;
+      supabase.rpc("registrar_acesso", { p_dispositivo: dispositivo, p_navegador: navegador, p_ativo }).then(() => {}, () => {});
+    };
     sinal();
     const t = setInterval(sinal, 5 * 60_000);
-    const voltou = () => { if (!document.hidden) sinal(); };
+    const voltou = () => { if (!document.hidden) { mexeu = Date.now(); sinal(); } };
     document.addEventListener("visibilitychange", voltou);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", voltou); };
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", voltou); EVENTOS.forEach((e) => window.removeEventListener(e, atividade)); };
   }, [perfil.user_id]);
 
   // engrenagem do rodapé: Configurações (ou, para quem não as vê, Usuários ou Importar dados)
@@ -332,7 +342,7 @@ export function Layout() {
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],
-              ["Sair", LogOut, () => supabase.auth.signOut()],
+              ["Sair", LogOut, () => { void sairDoErp(); }],
             ] as const).map(([rotulo, Icone, acao]) => (
               <button key={rotulo} onClick={acao} title={rotulo} aria-label={rotulo}
                 className="grid h-9 flex-1 place-items-center rounded-lg text-nav-fraco hover:bg-ink-soft hover:text-white">

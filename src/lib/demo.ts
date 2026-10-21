@@ -143,6 +143,9 @@ function seed(): Db {
       { id: "os2", numero: 52, cliente_id: "c5", produto_id: "p2", equipamento: "Máquina de Sorvete Expressa MF-150", numero_serie: "MF150-2025-0230", equipamento_id: "e5", checklist: checklistDemo([]), fotos: [], defeito_relatado: "Não liga", diagnostico: "Placa controladora queimada (surto de energia)", status: "aguardando_peca", em_garantia: true, tecnico: "Diego", valor_mao_obra: 0, data_entrada: dias(-6), previsao: dias(3), created_at: quando(-6), estoque_baixado: false },
       { id: "os3", numero: 53, cliente_id: "c2", equipamento: "Máquina de Milk Shake (outra marca)", defeito_relatado: "Haste não gira", checklist: checklistDemo(["Cabo de energia e plugue"]), fotos: [], status: "aberta", em_garantia: false, tecnico: null, valor_mao_obra: 0, data_entrada: dias(0), created_at: quando(0), estoque_baixado: false },
       { id: "os4", numero: 50, cliente_id: "c4", produto_id: "p1", equipamento: "Máquina de Sorvete Soft MF-300", numero_serie: "MF300-2024-0007", equipamento_id: "e6", checklist: checklistDemo([]), fotos: [], defeito_relatado: "Vazamento no cilindro", diagnostico: "Vedação ressecada", solucao: "Troca do kit de vedação e lubrificação", status: "concluida", em_garantia: false, tecnico: "Diego", valor_mao_obra: 180, data_entrada: dias(-10), concluida_em: quando(-1), created_at: quando(-10), estoque_baixado: true },
+      // vídeo chamadas (Assistência → Vídeo chamadas): uma marcada para daqui a pouco e paga, uma esperando o Pix
+      { id: "os5", numero: 54, cliente_id: "c3", equipamento: "Máquina do cliente (a confirmar na vídeo chamada)", defeito_relatado: "Instalação da peça Motor do batedor (pedido de venda #1002). O cliente não sabe instalar: hora técnica por vídeo chamada.", checklist: [], fotos: [], status: "aberta", atendimento: "video", em_garantia: false, tecnico: "Diego", horas_tecnicas: 1, valor_mao_obra: 150, orcamento_aprovado_em: quando(-1), video_pago_em: quando(-1), agendado_em: new Date(Date.now() + 3 * 3600_000).toISOString(), data_entrada: dias(-1), created_at: quando(-1), estoque_baixado: false },
+      { id: "os6", numero: 55, cliente_id: "c2", equipamento: "Máquina do cliente (a confirmar na vídeo chamada)", defeito_relatado: "Troca do sensor de temperatura por vídeo chamada.", checklist: [], fotos: [], status: "aberta", atendimento: "video", em_garantia: false, tecnico: "Rafael", horas_tecnicas: 1, valor_mao_obra: 150, orcamento_aprovado_em: quando(0), data_entrada: dias(0), created_at: quando(0), estoque_baixado: false },
     ],
     os_itens: [
       { id: "oi1", os_id: "os1", produto_id: "p4", descricao: "Motor do batedor 1/2 CV", quantidade: 1, valor_unitario: 790 },
@@ -3667,15 +3670,24 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (pessoas ? p_para.includes(sessao?.user.id) : papel === "admin" || !n.papeis.length || n.papeis.includes(papel)) canais.forEach((f) => f(n));
     return { data: n.id, error: null };
   },
-  registrar_acesso: ({ p_dispositivo, p_navegador }) => {
+  registrar_acesso: ({ p_dispositivo, p_navegador, p_ativo }) => {
     db.acessos_usuarios ??= [];
     const agora = new Date().toISOString();
     const eu = db.usuarios_erp.find((u: Row) => u.user_id === sessao?.user.id);
-    const aberto = db.acessos_usuarios.find((a: Row) => a.user_id === sessao?.user.id && Date.now() - Date.parse(a.ultimo_sinal_em) < 30 * 60_000);
-    if (aberto) { aberto.ultimo_sinal_em = agora; return { data: aberto.id, error: null }; }
+    const aberto = db.acessos_usuarios.find((a: Row) => a.user_id === sessao?.user.id && !a.saiu_em && Date.now() - Date.parse(a.ultimo_sinal_em) < 30 * 60_000);
+    if (aberto) {
+      const gap = (Date.now() - Date.parse(aberto.ultimo_sinal_em)) / 60_000;
+      aberto.minutos_inativo = (aberto.minutos_inativo ?? 0) + Math.round(p_ativo === false ? gap : gap > 6 ? gap - 5 : 0);
+      aberto.ultimo_sinal_em = agora; return { data: aberto.id, error: null };
+    }
     const id = db.acessos_usuarios.length + 1;
-    db.acessos_usuarios.unshift({ id, user_id: sessao?.user.id, nome: eu?.nome ?? null, entrou_em: agora, ultimo_sinal_em: agora, dispositivo: p_dispositivo ?? null, navegador: p_navegador ?? null, ip: null });
+    db.acessos_usuarios.unshift({ id, user_id: sessao?.user.id, nome: eu?.nome ?? null, entrou_em: agora, ultimo_sinal_em: agora, dispositivo: p_dispositivo ?? null, navegador: p_navegador ?? null, ip: null, saiu_em: null, minutos_inativo: 0 });
     return { data: id, error: null };
+  },
+  registrar_saida: () => {
+    const aberto = (db.acessos_usuarios ?? []).find((a: Row) => a.user_id === sessao?.user.id && !a.saiu_em);
+    if (aberto) { aberto.saiu_em = new Date().toISOString(); aberto.ultimo_sinal_em = aberto.saiu_em; }
+    return { data: null, error: null };
   },
   gnre_lancar_nota: ({ p_nota }) => {
     db.gnre_guias = db.gnre_guias ?? [];

@@ -194,6 +194,7 @@ export const ATALHOS_CELULAR: Record<string, string[]> = {
   marketplace: ["/estoque", "/produtos/pecas", "/produtos/maquinas", "/documentos"],
   // a lista do administrador não serve para Compras: a barra ficava vazia
   compras: ["/compras", "/notas", "/fornecedores", "/estoque"],
+  giga: ["/teste-giga"],
 };
 
 /**

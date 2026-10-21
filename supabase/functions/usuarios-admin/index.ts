@@ -8,7 +8,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 
-const PAPEIS = ["admin", "vendas", "financeiro", "tecnico", "contador", "expedicao", "marketplace", "compras"];
+const PAPEIS = ["admin", "vendas", "financeiro", "tecnico", "contador", "expedicao", "marketplace", "compras", "giga"];
 const ADICIONAIS = ["vendas", "financeiro", "tecnico", "expedicao", "marketplace", "compras"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

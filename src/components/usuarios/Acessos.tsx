@@ -7,13 +7,14 @@ import { Card, Stat } from "@/components/ui";
 import { FotoUsuario } from "@/components/FotoUsuario";
 import { useRows } from "@/lib/data";
 import { pl } from "@/lib/format";
-import { duracao, online, quandoAcesso, type Acesso } from "@/lib/acessos";
+import { duracao, minutosParado, minutosTexto, online, quandoAcesso, type Acesso } from "@/lib/acessos";
 
 type Pessoa = { user_id: string; nome: string; ativo: boolean; ultimo_acesso: string | null };
 type Periodo = "hoje" | "7" | "30";
 const PERIODOS: { v: Periodo; rotulo: string; dias: number }[] = [
   { v: "hoje", rotulo: "Hoje", dias: 0 }, { v: "7", rotulo: "7 dias", dias: 7 }, { v: "30", rotulo: "30 dias", dias: 30 },
 ];
+const hora = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 const inicioDoDia = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
 export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[]; fotos?: Map<string, string>; ultimo: Map<string, string> }) {
@@ -79,7 +80,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
           <CalendarClock size={18} className="text-sky-700" aria-hidden />
           <div className="min-w-0 flex-1">
             <h2 className="font-bold text-fg">Registro dos acessos</h2>
-            <p className="text-xs text-slate-600">Data e hora de entrada, até quando ficou, aparelho e endereço de internet. Nada é apagado.</p>
+            <p className="text-xs text-slate-600">Entrada, saída (Sair ou fechou a tela), tempo parado, aparelho e endereço de internet. Nada é apagado.</p>
           </div>
           <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Período">
             {PERIODOS.map((p) => (
@@ -105,6 +106,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
             {(mais ? lista : lista.slice(0, 25)).map((a) => {
               const agoraAberto = online(a, agora);
               const Icone = /Celular|Tablet/.test(a.dispositivo ?? "") ? Smartphone : Monitor;
+              const parado = minutosParado(a, agoraAberto ? new Date().toISOString() : a.ultimo_sinal_em);
               return (
                 <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
                   <FotoUsuario nome={nome(a.user_id, a)} foto={fotos?.get(a.user_id)} tamanho={32} className="bg-slate-100 text-slate-700" />
@@ -117,9 +119,15 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
                   </div>
                   <div className="text-right text-xs">
                     <div className="font-semibold text-fg">entrou {quandoAcesso(a.entrou_em)}</div>
-                    <div className={agoraAberto ? "font-semibold text-emerald-700" : "text-slate-500"}>
-                      {agoraAberto ? `usando agora · ${duracao({ entrou_em: a.entrou_em, ultimo_sinal_em: new Date().toISOString() })}` : `até ${quandoAcesso(a.ultimo_sinal_em).replace(/^(hoje|ontem) às /, "")} · ${duracao(a)}`}
+                    <div className={agoraAberto ? "font-semibold text-emerald-700" : a.saiu_em ? "text-slate-600" : "text-slate-500"}>
+                      {agoraAberto ? `usando agora · ${duracao({ entrou_em: a.entrou_em, ultimo_sinal_em: new Date().toISOString() })}`
+                        : `${a.saiu_em ? "saiu às" : "fechou às"} ${hora(a.saiu_em ?? a.ultimo_sinal_em)} · ${duracao(a)}`}
                     </div>
+                    {parado > 0 && (
+                      <div className={parado >= 15 ? "font-semibold text-amber-700" : "text-slate-500"} title="Tempo com o ERP aberto sem mexer no mouse, teclado ou tela (ou com a tela escondida)">
+                        parado {minutosTexto(parado)}
+                      </div>
+                    )}
                   </div>
                 </li>
               );

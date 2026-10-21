@@ -299,6 +299,7 @@ function RotasERP() {
   const inicio = papel === "contador" && vis.ve("contador", "/contador") ? "/contador"
     : papel === "expedicao" && vis.ve("expedicao", "/expedicao") ? "/expedicao"
     : papel === "marketplace" && vis.ve("estoque", "/estoque") ? "/estoque"
+    : papel === "giga" && vis.ve("testegiga", "/teste-giga") ? "/teste-giga"
     : vis.ve("painel", "/") ? null
     // "Início" escondido no perfil: abre o painel da área (financeiro → Painel do financeiro), senão a primeira tela que a pessoa vê
     : INICIO_DO_PAPEL[papel] && vis.ve(INICIO_DO_PAPEL[papel]!.tela, INICIO_DO_PAPEL[papel]!.to) ? INICIO_DO_PAPEL[papel]!.to

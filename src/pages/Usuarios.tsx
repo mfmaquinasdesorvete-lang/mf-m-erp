@@ -35,7 +35,7 @@ type Funcionario = { id: string; nome: string; cargo: string | null; user_id: st
 const COR_PAPEL: Record<Papel, string> = {
   admin: "bg-solido-cinza text-white", vendas: "bg-emerald-100 text-emerald-800", financeiro: "bg-amber-100 text-amber-800",
   tecnico: "bg-sky-100 text-sky-800", contador: "bg-violet-100 text-violet-800", expedicao: "bg-orange-100 text-orange-800",
-  marketplace: "bg-rose-100 text-rose-800", compras: "bg-indigo-100 text-indigo-800",
+  marketplace: "bg-rose-100 text-rose-800", compras: "bg-indigo-100 text-indigo-800", giga: "bg-amber-100 text-amber-800",
   representante: "bg-teal-100 text-teal-800",
 };
 const SITE = typeof window !== "undefined" ? window.location.origin : "https://erp.myfrost.ai";
@@ -218,7 +218,7 @@ function UsuarioModal({ usuario, vendedores, funcionarios, admins, onClose }: { 
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   // representante externo: só o portal, sem papéis adicionais nem unidade, e sempre ligado a um cadastro de vendedor
   const representante = f.papel === "representante";
-  const comExtras = f.papel !== "admin" && f.papel !== "contador" && !representante;
+  const comExtras = f.papel !== "admin" && f.papel !== "contador" && f.papel !== "giga" && !representante;
   const extras = comExtras ? f.extras.filter((p) => p !== f.papel) : [];
   const vendeTambem = representante || f.papel === "admin" || f.papel === "vendas" || extras.includes("vendas");
   const telasVistas = (Object.keys(TELAS_ROTULO) as Tela[]).filter((t) => podeVer(f.papel, t, extras));

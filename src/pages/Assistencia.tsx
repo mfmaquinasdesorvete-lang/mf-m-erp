@@ -34,8 +34,9 @@ import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocum
 import { pixCopiaECola } from "@/lib/cobranca";
 import { CONDICAO_REMOTA, EQUIPAMENTO_A_CONFIRMAR, deCampoHora, passoVideo, termoVideo, paraCampoHora, quandoAgendado, valorVideo } from "@/lib/osVideo";
 import { CartaoEtapa, QuadroEtapas, diasDesde } from "@/components/quadro/QuadroEtapas";
+import { PainelVideoChamadas } from "@/components/assistencia/PainelVideoChamadas";
 import { ETAPAS_OS, proximoStatus, situacaoOS, type AcaoOS, type SituacaoOS } from "@/lib/quadroOS";
-import { Columns3, List, PackageOpen, Send, Stethoscope, ThumbsUp, FolderOpen } from "lucide-react";
+import { Columns3, List, PackageOpen, Send, Stethoscope, ThumbsUp, FolderOpen, Video } from "lucide-react";
 import { GarantiaCliente, naGarantia, type MaquinaCliente } from "@/components/assistencia/GarantiaCliente";
 
 const STATUS_EDITAVEIS = [
@@ -84,8 +85,8 @@ export default function Assistencia() {
   const [aberta, setAberta] = useState<OS | null>(null);
   const [verExcluidas, setVerExcluidas] = useState(false);
   // quadro por etapas (como o Fluxo de pedidos) ou a lista de sempre; a escolha fica no aparelho
-  const [modo, setModoState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem("erp.os.modo") === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
-  const setModo = (m: "quadro" | "lista") => { setModoState(m); try { localStorage.setItem("erp.os.modo", m); } catch { /* sem armazenamento */ } };
+  const [modo, setModoState] = useState<"quadro" | "lista" | "video">(() => { try { const m = localStorage.getItem("erp.os.modo"); return m === "lista" || m === "video" ? m : "quadro"; } catch { return "quadro"; } });
+  const setModo = (m: "quadro" | "lista" | "video") => { setModoState(m); try { localStorage.setItem("erp.os.modo", m); } catch { /* sem armazenamento */ } };
   const invalidarOS = useInvalidate();
   const [movendo, setMovendo] = useState<string | null>(null);
 
@@ -201,14 +202,16 @@ export default function Assistencia() {
         onLimpar={() => { setBusca(""); setMarcador(""); setMostrarFinalizadas(false); setPeriodo(SEM_PERIODO); }}
         direita={
           <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
-            {([["quadro", "Quadro", Columns3], ["lista", "Lista", List]] as const).map(([v, l, I]) => (
+            {([["quadro", "Quadro", Columns3], ["lista", "Lista", List], ["video", "Vídeo chamadas", Video]] as const).map(([v, l, I]) => (
               <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
             ))}
           </div>
         } />
 
-      {modo === "quadro" ? (
+      {modo === "video" ? (
+        <PainelVideoChamadas ordens={ordens} onAbrir={abrirOS} />
+      ) : modo === "quadro" ? (
         <QuadroEtapas etapas={ETAPAS_OS} itens={noQuadro} carregando={isLoading} nome={["OS", "OS"]} cartao={cartaoOS} />
       ) : (
       <Table
