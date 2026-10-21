@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { escolherConflito } from "@/components/Dialogos";
+import { gravarSincronizado, sincronizada } from "./sincronizacao";
 import { supabase } from "./supabase";
 
 /** Lista registros de uma tabela (com select opcional de relacionamentos). */
@@ -47,7 +49,15 @@ export function useSave(table: string, invalidate: string[] = []) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
-      const { id, ...rest } = row;
+      const { id, __antes, ...rest } = row;
+      // pedidos e contas abertos para editar levam "__antes" (o registro como a pessoa viu): grava só o que ela mudou,
+      // com versão, sem repetir e sem apagar o que outra pessoa mudou nos outros campos
+      if (id && __antes && sincronizada(table)) {
+        await gravarSincronizado({ tabela: table, id, versaoBase: __antes.versao, antes: __antes, depois: rest, escolher: escolherConflito });
+        const { data, error } = await supabase.from(table).select().eq("id", id).single();
+        if (error) throw error;
+        return data;
+      }
       const q = id
         ? supabase.from(table).update(rest).eq("id", id).select().single()
         : supabase.from(table).insert(rest).select().single();

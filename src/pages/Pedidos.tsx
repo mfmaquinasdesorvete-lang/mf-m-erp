@@ -45,7 +45,8 @@ import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/fin
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
 import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
-import { confirmar, pedirTexto } from "@/components/Dialogos";
+import { confirmar, escolherConflito, pedirTexto } from "@/components/Dialogos";
+import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { AplicarMarcadores } from "@/components/nfe/Marcadores";
@@ -588,6 +589,8 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
   const [conferirNfe, setConferirNfe] = useState(false);
   const etiquetas = useEtiquetas();
   const [p, setP] = useState({ ...inicial, unidade_id: (inicial as any).unidade_id ?? padrao });
+  // foto do pedido como estava no banco quando abriu (e depois de cada gravação): salvar manda só o que mudou desde ela
+  const baseRef = useRef<Record<string, unknown>>(inicial as Record<string, unknown>);
   const [ocupado, setOcupado] = useState(false);
   const { data: clientesBanco = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
   // cliente cadastrado agora (cadastro rápido): entra na lista antes de a busca do banco atualizar
@@ -728,10 +731,25 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
       parcelas: Number(cab.parcelas), intervalo_dias: Number(cab.intervalo_dias),
       desconto: Number(cab.desconto || 0), frete: Number(cab.frete || 0), modalidade_frete: Number(cab.modalidade_frete),
     });
-    const { data, error } = dados.id
-      ? await supabase.from("pedidos").update(dados).eq("id", dados.id).select("id, numero").single()
-      : await supabase.from("pedidos").insert(dados).select("id, numero").single();
-    if (error) throw error;
+    let data: { id: string; numero: number };
+    if (dados.id) {
+      // pedido já gravado: operação com versão; se outra pessoa mudou um campo crítico ao mesmo tempo, a pessoa escolhe
+      const r = await gravarSincronizado({ tabela: "pedidos", id: dados.id, versaoBase: baseRef.current.versao as number | undefined,
+        antes: baseRef.current, depois: dados, escolher: escolherConflito });
+      const { data: atual, error } = await supabase.from("pedidos").select("*").eq("id", dados.id).single();
+      if (error) throw error;
+      baseRef.current = atual;
+      const mantidos = Object.fromEntries((r.mantidos ?? []).map((c) => [c, atual[c]]));
+      setP((x) => ({ ...x, ...mantidos, versao: atual.versao }));
+      if (r.mantidos?.length) notify("Ficou o que a outra pessoa gravou nos campos em conflito; o resto foi salvo.");
+      else if (r.sobrescritos?.length) notify(`Outra pessoa também tinha mudado ${r.sobrescritos.map((c) => NOME_CAMPO[c.campo] ?? c.campo).join(", ")}: ficou o seu.`);
+      data = atual;
+    } else {
+      const res = await supabase.from("pedidos").insert(dados).select("*").single();
+      if (res.error) throw res.error;
+      data = res.data;
+      baseRef.current = res.data;
+    }
     if (!p.id) setP((x) => ({ ...x, id: data.id, numero: data.numero, status: x.status ?? "orcamento" }));
 
     // Grava só o que mudou nos itens (o histórico do pedido mostra o que foi incluído, alterado e removido)

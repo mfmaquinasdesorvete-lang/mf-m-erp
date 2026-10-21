@@ -2409,6 +2409,14 @@ function slugPortal(nome: string | null | undefined) {
 }
 
 const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
+  // no sistema real: public.aplicar_operacao (gravação sincronizada de pedidos e contas); no demo grava os campos e sobe a versão
+  aplicar_operacao: ({ p_tabela, p_registro, p_campos }) => {
+    const r = (db as any)[p_tabela]?.find((x: any) => x.id === p_registro);
+    if (!r) return { data: { status: "nao_encontrado" }, error: null };
+    for (const [k, v] of Object.entries(p_campos ?? {})) r[k] = (v as any).depois;
+    r.versao = (r.versao ?? 1) + 1;
+    return { data: { status: "aplicada", versao: r.versao, conflitos: [], sobrescritos: [] }, error: null };
+  },
   // no sistema real: public.renegociar_contas_pagar (Contas a pagar → marcar → Renegociar)
   renegociar_contas_pagar: ({ p_ids, p_titulo, p_trocar, p_valor, p_parcelas, p_primeiro, p_obs }) => {
     const cs = db.contas_pagar.filter((c) => p_ids.includes(c.id) && c.status === "aberto" && !c.negociacao_id);

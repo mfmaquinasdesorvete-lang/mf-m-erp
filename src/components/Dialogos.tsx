@@ -3,9 +3,10 @@
 // dentro de outra página) e mostra o mínimo de caracteres de uma justificativa antes de enviar.
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Modal } from "./ui";
+import { mensagemConflito, type Conflito } from "@/lib/sincronizacao";
 
 type Pedido =
-  | { tipo: "confirmar"; texto: string; titulo: string; ok: string; perigo: boolean; responder: (v: boolean) => void }
+  | { tipo: "confirmar"; texto: string; titulo: string; ok: string; perigo: boolean; voltar?: string; responder: (v: boolean) => void }
   | { tipo: "texto"; texto: string; titulo: string; ok: string; inicial: string; minimo: number; responder: (v: string | null) => void };
 
 let mostrar: ((p: Pedido) => void) | null = null;
@@ -22,14 +23,20 @@ function abrir(p: Pedido) {
 }
 
 /** Pergunta sim/não. Ex.: if (!(await confirmar("Apagar esta regra?"))) return; */
-export function confirmar(texto: string, opcoes: { titulo?: string; ok?: string; perigo?: boolean } = {}): Promise<boolean> {
+export function confirmar(texto: string, opcoes: { titulo?: string; ok?: string; perigo?: boolean; voltar?: string } = {}): Promise<boolean> {
   const verbo = VERBOS.find((v) => texto.startsWith(v + " ") || texto.startsWith(v + "?"));
   return new Promise((responder) => abrir({
     tipo: "confirmar", texto, responder,
     titulo: opcoes.titulo ?? "Confirmar",
     ok: opcoes.ok ?? (verbo === "Sair" ? "Sair sem salvar" : verbo ?? "Confirmar"),
-    perigo: opcoes.perigo ?? RISCO.test(texto),
+    perigo: opcoes.perigo ?? RISCO.test(texto), voltar: opcoes.voltar,
   }));
+}
+
+/** Duas pessoas mudaram o mesmo campo crítico: mostra os dois valores. true = gravar o meu; false = fica o que já está. */
+export function escolherConflito(conflitos: Conflito[]): Promise<boolean> {
+  return confirmar(`Outra pessoa gravou este registro enquanto você editava:\n${mensagemConflito(conflitos)}\n\nOs outros campos que você mudou são gravados de qualquer jeito.`,
+    { titulo: "Duas mudanças ao mesmo tempo", ok: "Gravar o meu", voltar: "Manter o que já está", perigo: false });
 }
 
 /** Pede um texto (motivo, observação…). null = a pessoa desistiu. "minimo" trava o botão até ter os caracteres. */
@@ -80,7 +87,7 @@ export function Dialogos() {
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => fechar(false)}>Voltar</Button>
+          <Button type="button" variant="ghost" onClick={() => fechar(false)}>{atual.tipo === "confirmar" && atual.voltar ? atual.voltar : "Voltar"}</Button>
           <Button type="submit" autoFocus={atual.tipo === "confirmar"} disabled={curto}
             variant={atual.tipo === "confirmar" && atual.perigo ? "danger" : "primary"}>{atual.ok}</Button>
         </div>

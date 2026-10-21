@@ -390,8 +390,8 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                 {c.status === "pago" && <BotaoRecibo atalho contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
                 {podeEditar && c.status === "pago" && <BotaoAtalho icon={Undo2} label="Estornar" cor={COR_ATALHO.rosa} title="Estornar a baixa (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })} />}
                 {podeEditar && c.status === "aberto"
-                  ? <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c })} />
-                  : <BotaoAtalho icon={Eye} label="Ver" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c })} />}
+                  ? <BotaoAtalho icon={Pencil} label="Editar" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c, __antes: c } as any)} />
+                  : <BotaoAtalho icon={Eye} label="Ver" cor={COR_ATALHO.roxo} onClick={() => setNova({ ...c, __antes: c } as any)} />}
               </>} />
           );
         })}
@@ -429,7 +429,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
                   {podeEditar && c.status === "aberto" && <Button variant="ghost" onClick={() => setBaixa({ conta: c, tabela: "contas_receber" })}>Baixar</Button>}
                   {c.status === "pago" && <BotaoRecibo contaId={c.id} tipo="receber" montar={() => reciboDeReceber(c, unidades.find((u) => u.id === c.unidade_id), cfgRecibo)} />}
                   {podeEditar && c.status === "pago" && <Button variant="ghost" title="Estornar a baixa (volta a ficar em aberto)" onClick={() => setMotivo({ conta: c, acao: "estornar" })}><Undo2 size={15} /></Button>}
-                  <Button variant="secondary" onClick={() => setNova({ ...c })}>{podeEditar && c.status === "aberto" ? <><Pencil size={15} /> Editar</> : <><Eye size={15} /> Ver</>}</Button>
+                  <Button variant="secondary" onClick={() => setNova({ ...c, __antes: c } as any)}>{podeEditar && c.status === "aberto" ? <><Pencil size={15} /> Editar</> : <><Eye size={15} /> Ver</>}</Button>
                 </div>
               </td>
             </tr>
@@ -561,8 +561,9 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   // conta nova: uma só ou uma série (parcelada, semanal, mensal…); competência pelo vencimento, mês anterior, emissão ou escolhida
   const [serie, setSerie] = useState<{ ocorrencia: Ocorrencia; vezes: number; modo: ModoCompetencia; mes: string; mexeu: boolean }>({ ocorrencia: "unica", vezes: 2, modo: "vencimento", mes: "", mexeu: false });
   const [gravandoSerie, setGravandoSerie] = useState(false);
+  // conta já lançada leva a foto de quando abriu (__antes): ao salvar vai só o que mudou, com a versão (sincronização)
   const abrirConta = (c: Partial<Pagar>) => {
-    setEditando(c);
+    setEditando(c.id ? ({ ...c, __antes: c } as any) : c);
     setSerie({ ocorrencia: "unica", vezes: 2, modo: c.vencimento ? modoDaCompetencia(c.competencia, c.vencimento, c.emissao) : "vencimento", mes: (c.competencia ?? "").slice(0, 7), mexeu: false });
   };
   // a forma de pagamento da conta ou "pagar por Pix à vista" (conta fixa) vira a forma de pagamento do recibo
