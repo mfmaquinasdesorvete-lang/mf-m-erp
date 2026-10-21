@@ -1072,6 +1072,15 @@ function planoDemo(db: Db) {
     { id: "vc1", nome: "Chave do Supabase no GitHub", tipo: "chave", onde: "GitHub → Settings → Secrets → SUPABASE_ACCESS_TOKEN (backup e funções)",
       vence_em: quando(5).slice(0, 10), avisar_dias: 15, como_renovar: "Gerar outra chave no Supabase (Account → Access Tokens) e trocar o secret no GitHub.", situacao: "ativa" },
   ];
+  // equipamentos de medição (REG-005) com a próxima calibração (exemplo; no sistema real: public.instrumentos_medicao)
+  db.instrumentos_medicao = [
+    { id: "im1", codigo: "GT-01", instrumento: "Giga de testes", marca: "Entran", setor: "Testes", frequencia_meses: 24, certificado: "EN-0001", calibrado_em: quando(-400).slice(0, 10),
+      proxima_em: quando(330).slice(0, 10), laboratorio: "Entran", observacoes: null, ativo: true },
+    { id: "im2", codigo: "PAQ-01", instrumento: "Paquímetro digital", marca: "MTX", setor: "Produção", frequencia_meses: 12, certificado: "24710-50", calibrado_em: quando(-480).slice(0, 10),
+      proxima_em: quando(-115).slice(0, 10), laboratorio: "Laboratório exemplo", observacoes: null, ativo: true },
+    { id: "im3", codigo: "PAQ-02", instrumento: "Paquímetro digital", marca: "Measuring", setor: "Produção", frequencia_meses: 12, certificado: "5100-0202", calibrado_em: quando(-340).slice(0, 10),
+      proxima_em: quando(25).slice(0, 10), laboratorio: "Laboratório exemplo", observacoes: null, ativo: true },
+  ];
   // regra do extrato por favorecido (no sistema real: public.conciliacao_regras): a tarifa da OLIST vira sugestão pronta
   db.conciliacao_regras = [
     { id: "rg1", chave: "OLIST SERVICOS DIGITAIS", direcao: "saida", rotulo: "OLIST SERVICOS DIGITAIS LTDA", acao: "lancar", categoria: "tarifas bancárias",

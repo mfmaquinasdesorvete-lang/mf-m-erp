@@ -1,5 +1,5 @@
 // Teste do giga (registro de qualidade REG-006), na área das máquinas: lançamento rápido na bancada, painel,
-// registros (planilha e PDF no formato do papel), os limites dos testes e o manual do equipamento (HG371). Técnico e administrador lançam;
+// registros (planilha e PDF no formato do papel), a calibração dos instrumentos (REG-005), os limites dos testes e o manual do equipamento (HG371). Técnico e administrador lançam;
 // o financeiro vê o painel e os registros. Tudo grava pelas funções do banco, com auditoria.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -10,9 +10,11 @@ import { PainelGiga } from "@/components/testeGiga/PainelGiga";
 import { RegistrosGiga } from "@/components/testeGiga/RegistrosGiga";
 import { ParametrosGiga } from "@/components/testeGiga/ParametrosGiga";
 import { ManualGiga } from "@/components/testeGiga/ManualGiga";
+import { CalibracaoGiga } from "@/components/testeGiga/CalibracaoGiga";
 import { RetesteGiga, useRetestesGiga } from "@/components/testeGiga/RetesteGiga";
 import type { ContextoGiga, OpGiga } from "@/components/testeGiga/tipos";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { situacaoCalibracao, type Instrumento } from "@/lib/calibracao";
 import { usePerfil } from "@/lib/auth";
 import { useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
@@ -21,7 +23,7 @@ import { diaBrasil, validos, type FiltroTestes, type TesteGiga } from "@/lib/tes
 import { MSG_SEM_BANCO, useParametrosGiga, useTestesGiga } from "@/lib/testeGigaDados";
 import type { Produto } from "@/lib/types";
 
-type Aba = "lancar" | "painel" | "registros" | "reteste" | "parametros" | "manual";
+type Aba = "lancar" | "painel" | "registros" | "reteste" | "calibracao" | "parametros" | "manual";
 const nomeDaMaquina = (p?: Produto | null) => p?.modelo?.trim() || p?.descricao || "Máquina";
 
 export default function TesteGiga() {
@@ -29,13 +31,15 @@ export default function TesteGiga() {
   const podeLancar = pode("lancar_teste_giga");
   const navigate = useNavigate();
   const location = useLocation();
-  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "reteste", "parametros", "manual"] : ["painel", "registros", "reteste", "parametros", "manual"];
+  const abas: Aba[] = podeLancar ? ["lancar", "painel", "registros", "reteste", "calibracao", "parametros", "manual"] : ["painel", "registros", "reteste", "calibracao", "parametros", "manual"];
   const [aba, setAba] = useAbaUrl<Aba>(podeLancar ? "lancar" : "painel", abas);
   const { data: cfg } = useConfig();
   const testesQ = useTestesGiga();
   const parQ = useParametrosGiga();
   const retQ = useRetestesGiga();
   const semEnsaio = (retQ.data ?? []).filter((r) => r.situacao === "pendente").length;
+  const { data: instrumentos = [] } = useRows<Instrumento>("instrumentos_medicao", { order: "codigo", ascending: true });
+  const calibVencidas = instrumentos.filter((i) => i.ativo !== false && situacaoCalibracao(i, new Date().toISOString().slice(0, 10)) === "vencida").length;
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { data: ops = [] } = useRows<OpGiga>("ordens_producao", {
     select: "id, numero, produto_id, status, numeros_serie, unidade_id, concluida_em", order: "numero", key: ["teste_giga"],
@@ -86,6 +90,7 @@ export default function TesteGiga() {
         { value: "painel" as const, label: "Painel" },
         { value: "registros" as const, label: `Registros${validos(testes).length ? ` (${validos(testes).length})` : ""}` },
         { value: "reteste" as const, label: semEnsaio ? `Reteste (${semEnsaio})` : "Reteste" },
+        { value: "calibracao" as const, label: calibVencidas ? `Calibração (${calibVencidas} vencida${calibVencidas > 1 ? "s" : ""})` : "Calibração" },
         { value: "parametros" as const, label: "Parâmetros" },
         { value: "manual" as const, label: "Manual do HG371" },
       ]} />
@@ -100,6 +105,7 @@ export default function TesteGiga() {
         {aba === "painel" && <PainelGiga ctx={ctx} onReteste={reteste} onVerRegistros={verRegistros} />}
         {aba === "registros" && <RegistrosGiga key={versaoReg} ctx={ctx} filtroInicial={filtroReg} onReteste={reteste} />}
         {aba === "reteste" && <RetesteGiga ctx={ctx} onLancar={lancarDoReteste} />}
+        {aba === "calibracao" && <CalibracaoGiga admin={papel === "admin"} />}
         {aba === "parametros" && (parQ.isLoading ? <p className="py-8 text-center text-slate-500">Carregando…</p>
           : <ParametrosGiga ctx={ctx} admin={papel === "admin"} revisao={textoPadrao(cfg, "reg006_revisao")} />)}
         {aba === "manual" && <ManualGiga ctx={ctx} admin={papel === "admin"} />}
