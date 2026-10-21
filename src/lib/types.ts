@@ -226,6 +226,8 @@ export type OrdemProducao = {
   responsavel: string | null; numeros_serie: string | null; observacoes: string | null; concluida_em: string | null; created_at: string;
   /** venda (pedido) de que esta OP é: liga Proposta → Pedido → OP → NF na Venda de Máquinas */
   pedido_id?: string | null;
+  /** setor: máquinas, tornearia ou mecânica (vazio = palpite pelo produto) */
+  setor?: string | null;
   /** lista de conferência copiada das etapas de produção da máquina ao criar a OP */
   etapas?: EtapaOp[] | null;
   produto?: Produto;

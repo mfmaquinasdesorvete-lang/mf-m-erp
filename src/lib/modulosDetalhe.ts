@@ -770,7 +770,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     tags: ["OP", "PRODUÇÃO", "FICHA TÉCNICA"],
     destaque: "Monte as máquinas no prazo, sem parar por falta de peça.",
     partes: [
-      "OP - Ordem de Produção: as ordens das máquinas separadas das peças da tornearia e mecânica (pá batedora, eixo…), com quantas estão abertas.",
+      "OP - Ordem de Produção: três abas, Máquinas, Tornearia (eixo, bucha, pá) e Mecânica (redutor, cilindro, subconjuntos), com quantas estão abertas; na OP da peça, o desenho técnico (PDF ou foto) fica à vista e pode ser anexado ali.",
       "Cartões: planejadas, em produção, ordens com peça faltando e máquinas (ou peças) prontas no mês.",
       "Quadro: colunas Planejadas → Em produção → Prontas no mês, com \"faltam peças\" ou \"peças ok\", prazo, atraso em vermelho e responsável.",
       "Lista: a mesma informação em tabela, com a opção de mostrar concluídas e canceladas.",

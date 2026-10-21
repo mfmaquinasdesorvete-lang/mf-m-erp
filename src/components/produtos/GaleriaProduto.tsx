@@ -120,21 +120,23 @@ function VerMidia({ m, onClose }: { m: Midia; onClose: () => void }) {
 
 export const TIPOS_DOC: TipoMidia[] = ["manual", "eletrico", "dicas", "outro"];
 
-/** Documentos da máquina: manual, manual elétrico/esquema, dicas de manutenção (PDF ou imagem). */
-export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: string | null; podeEditar: boolean }) {
+/** Documentos da máquina: manual, manual elétrico/esquema, dicas de manutenção (PDF ou imagem).
+ *  Com tipos={["desenho"]}: o desenho técnico da peça (só uso interno; aparece na OP da tornearia e da mecânica). */
+export function DocumentosMaquina({ produtoId, podeEditar, tipos = TIPOS_DOC }: { produtoId?: string | null; podeEditar: boolean; tipos?: TipoMidia[] }) {
+  const ehDesenho = tipos.length === 1 && tipos[0] === "desenho";
   const qc = useQueryClient();
   const { data: midia = [] } = useMidiaProduto(produtoId);
-  const [tipo, setTipo] = useState<TipoMidia>("manual");
+  const [tipo, setTipo] = useState<TipoMidia>(tipos[0]);
   const [titulo, setTitulo] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [link, setLink] = useState("");
   const arquivo = useRef<HTMLInputElement>(null);
-  const docs = midia.filter((m) => TIPOS_DOC.includes(m.tipo));
+  const docs = midia.filter((m) => tipos.includes(m.tipo));
   // a lista de Máquinas → Manuais também conta os documentos de cada máquina
   const atualizar = () => { qc.invalidateQueries({ queryKey: ["produtos_midia", produtoId] }); qc.invalidateQueries({ queryKey: ["produtos_midia", "maquinas"] }); };
   /** Grava a ordem nova dos documentos (o cliente vê nesta ordem pelo link da máquina). */
   async function ordenar(nova: Midia[]) {
-    qc.setQueryData<Midia[]>(["produtos_midia", produtoId], (antes) => [...(antes ?? []).filter((m) => !TIPOS_DOC.includes(m.tipo)), ...nova]);
+    qc.setQueryData<Midia[]>(["produtos_midia", produtoId], (antes) => [...(antes ?? []).filter((m) => !tipos.includes(m.tipo)), ...nova]);
     const mudaram = nova.map((m, i) => ({ m, i })).filter(({ m, i }) => m.ordem !== i);
     for (const { m, i } of mudaram) {
       const { error } = await supabase.from("produtos_midia").update({ ordem: i }).eq("id", m.id);
@@ -149,7 +151,7 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
     const i = docs.findIndex((m) => m.id === id);
     if (docs[i + passo]) ordenar(moverNaLista(docs, i, i + passo, passo === 1));
   });
-  if (!produtoId) return <span className="text-xs text-slate-500">Salve o produto para anexar os manuais.</span>;
+  if (!produtoId) return <span className="text-xs text-slate-500">{ehDesenho ? "Escolha a peça para ver o desenho." : "Salve o produto para anexar os manuais."}</span>;
 
   async function enviar(lista: FileList | null) {
     if (!lista?.length) return;
@@ -165,7 +167,7 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
   async function salvarLink() {
     const url = linkDocumento(link);
     if (!url) return notify("Cole um endereço de internet válido (ex.: o link do Calameo).", "erro");
-    if (docs.some((m) => m.caminho === url)) return notify("Este link já está nos documentos da máquina.", "erro");
+    if (docs.some((m) => m.caminho === url)) return notify(ehDesenho ? "Este link já está nos desenhos da peça." : "Este link já está nos documentos da máquina.", "erro");
     setEnviando(true);
     try {
       const { error } = await supabase.from("produtos_midia").insert({
@@ -202,20 +204,25 @@ export function DocumentosMaquina({ produtoId, podeEditar }: { produtoId?: strin
             </li>
           ))}
         </ul>
-      ) : <p className="text-xs text-slate-500">Nenhum manual ainda. O cliente recebe estes documentos pelo link da máquina dele.</p>}
+      ) : <p className="text-xs text-slate-500">{ehDesenho ? "Nenhum desenho ainda. Anexe o PDF ou a foto do desenho com as medidas: ele fica na peça e aparece em toda OP dela." : "Nenhum manual ainda. O cliente recebe estes documentos pelo link da máquina dele."}</p>}
+      {ehDesenho && docs.filter((m) => m.mime?.startsWith("image/")).map((m) => (
+        <a key={`img-${m.id}`} href={urlMidia(m.caminho)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <img src={urlMidia(m.caminho)} alt={m.titulo || "Desenho técnico"} className="mx-auto max-h-80 w-auto object-contain" loading="lazy" />
+        </a>
+      ))}
       {podeEditar && (
         <div className="flex flex-wrap gap-2">
-          <select className="input w-full sm:w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMidia)} aria-label="Tipo do documento">
-            {TIPOS_DOC.map((t) => <option key={t} value={t}>{NOME_MIDIA[t]}</option>)}
-          </select>
+          {tipos.length > 1 && <select className="input w-full sm:w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMidia)} aria-label="Tipo do documento">
+            {tipos.map((t) => <option key={t} value={t}>{NOME_MIDIA[t]}</option>)}
+          </select>}
           <input className="input min-w-0 flex-1 basis-40" value={titulo} maxLength={200} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (opcional)" aria-label="Título do documento" />
           <input ref={arquivo} type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => { enviar(e.target.files); e.target.value = ""; }} />
           <Button type="button" variant="secondary" disabled={enviando} onClick={() => arquivo.current?.click()}>
-            {enviando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />} {enviando ? "Enviando…" : "Anexar PDF"}
+            {enviando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />} {enviando ? "Enviando…" : ehDesenho ? "Anexar desenho (PDF ou foto)" : "Anexar PDF"}
           </Button>
           <form className="flex w-full flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); salvarLink(); }}>
             <input className="input min-w-0 flex-1 basis-56" type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)}
-              placeholder="ou cole o link do Calameo (calameo.com/read/…)" aria-label="Link do documento (Calameo ou outro site)" />
+              placeholder={ehDesenho ? "ou cole o link do desenho (Drive, site…)" : "ou cole o link do Calameo (calameo.com/read/…)"} aria-label="Link do documento (Calameo ou outro site)" />
             <Button type="submit" variant="secondary" disabled={enviando || !link.trim()}><Link2 size={15} /> Anexar link</Button>
           </form>
         </div>

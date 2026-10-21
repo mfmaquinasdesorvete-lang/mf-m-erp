@@ -5,14 +5,14 @@ import { supabase } from "./supabase";
 import { reduzir } from "./fotos";
 
 export const BUCKET_MIDIA = "produtos-midia";
-export type TipoMidia = "foto" | "video" | "manual" | "eletrico" | "dicas" | "outro";
+export type TipoMidia = "foto" | "video" | "manual" | "eletrico" | "dicas" | "outro" | "desenho";
 export type Midia = {
   id: string; produto_id: string; tipo: TipoMidia; titulo: string | null; caminho: string; mime: string | null;
   tamanho: number | null; duracao_seg: number | null; ordem: number; ativo: boolean; created_at: string;
 };
 
 export const NOME_MIDIA: Record<TipoMidia, string> = {
-  foto: "Foto", video: "Vídeo", manual: "Manual da máquina", eletrico: "Manual elétrico / esquema", dicas: "Dicas de manutenção", outro: "Outro documento",
+  foto: "Foto", video: "Vídeo", manual: "Manual da máquina", eletrico: "Manual elétrico / esquema", dicas: "Dicas de manutenção", outro: "Outro documento", desenho: "Desenho técnico",
 };
 /** Vídeo rápido: até 90 segundos. */
 export const VIDEO_MAX_SEG = 90;

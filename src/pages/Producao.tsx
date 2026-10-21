@@ -33,7 +33,9 @@ import { BotaoMarcadores, ChipsMarcadores, useMarcadores } from "@/components/nf
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 import { CartaoEtapa, QuadroEtapas, diasDesde } from "@/components/quadro/QuadroEtapas";
 import { ETAPAS_OC, ETAPAS_OP, situacaoOC, situacaoOP } from "@/lib/quadros";
-import { Columns3, FolderOpen, List as ListaIcone, PackageOpen, Play as Iniciar, ShoppingCart } from "lucide-react";
+import { Cog, Columns3, Ruler, FolderOpen, List as ListaIcone, PackageOpen, Play as Iniciar, ShoppingCart } from "lucide-react";
+import { SETORES, setorDaOP, type SetorOP } from "@/lib/setorProducao";
+import { DocumentosMaquina } from "@/components/produtos/GaleriaProduto";
 import { confirmar } from "@/components/Dialogos";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
@@ -131,21 +133,20 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
   const { pode } = usePerfil();
   const { filtrar } = useUnidade();
   const { data: ordensTodos = [], isLoading } = useRows<OrdemProducao>("ordens_producao", { select: "*, produto:produtos(*)" });
-  // máquinas e peças da tornearia e mecânica (pá batedora, eixo, subconjunto) em ordens separadas
-  const [tipoOp, setTipoOp] = useAbaUrl<"maquinas" | "pecas">("maquinas", ["maquinas", "pecas"] as const, "op");
+  // máquinas, tornearia (eixo, bucha, pá) e mecânica (redutor, cilindro, subconjunto) em ordens separadas
+  const [tipoOp, setTipoOp] = useAbaUrl<SetorOP>("maquinas", ["maquinas", "tornearia", "mecanica"] as const, "op");
   const daUnidade = filtrar(ordensTodos);
-  const ehMaquina = (o: OrdemProducao) => (o as any).produto?.tipo === "maquina";
   // abre na semana; OP planejada ou em produção de antes continua aparecendo (concluída conta pela data em que ficou pronta)
   const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
-  const doTipo = daUnidade.filter((o) => ehMaquina(o) === (tipoOp === "maquinas"));
+  const doTipo = daUnidade.filter((o) => setorDaOP(o as any) === tipoOp);
   const ordens = doTipo.filter((o) => noPeriodoOuPendente(o.concluida_em ?? o.created_at, periodo, ["planejada", "em_producao"].includes(o.status)));
-  const abertasDe = (maq: boolean) => daUnidade.filter((o) => ehMaquina(o) === maq && ["planejada", "em_producao"].includes(o.status)).length;
+  const abertasDe = (setor: SetorOP) => daUnidade.filter((o) => setorDaOP(o as any) === setor && ["planejada", "em_producao"].includes(o.status)).length;
   const { data: necessidade = [] } = useNecessidade();
   const [aberta, setAberta] = useState<Partial<OrdemProducao> | null>(null);
   useEffect(() => {
     const o = abrirId ? ordensTodos.find((x) => x.id === abrirId) : undefined;
     if (!o) return;
-    if (ehMaquina(o) !== (tipoOp === "maquinas")) setTipoOp(ehMaquina(o) ? "maquinas" : "pecas");
+    if (setorDaOP(o as any) !== tipoOp) setTipoOp(setorDaOP(o as any));
     setAberta(o); onAberta?.();
   }, [abrirId, ordensTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mostrarTodas, setMostrarTodas] = useState(false);
@@ -164,11 +165,11 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
   return (
     <>
       <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de ordem">
-        {([["maquinas", "Máquinas", true], ["pecas", "Peças da tornearia e mecânica", false]] as const).map(([v, r, maq]) => (
+        {SETORES.map(({ v, rotulo: r }) => (
           <button key={v} type="button" aria-pressed={tipoOp === v} onClick={() => setTipoOp(v)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${tipoOp === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
-            {maq ? <Factory size={15} aria-hidden /> : <Wrench size={15} aria-hidden />}{r}
-            <span className="num rounded-full bg-black/10 px-1.5 text-xs" title="Ordens abertas (planejadas e em produção)">{abertasDe(maq)}</span>
+            {v === "maquinas" ? <Factory size={15} aria-hidden /> : v === "tornearia" ? <Cog size={15} aria-hidden /> : <Wrench size={15} aria-hidden />}{r}
+            <span className="num rounded-full bg-black/10 px-1.5 text-xs" title="Ordens abertas (planejadas e em produção)">{abertasDe(v)}</span>
           </button>
         ))}
       </div>
@@ -196,7 +197,7 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
         </div>
         <div className="flex flex-wrap gap-2">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
+          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", setor: tipoOp === "maquinas" ? null : tipoOp, previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
         </div>
       </div>
 
@@ -315,6 +316,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const produziveis = produtos.filter((p) => p.id === o.produto_id || (!p.unificado_em && p.ativo
     && (p.tipo === "maquina" || temFicha(fichas, p.id) || !!p.subconjunto_estocado || ["fabricado", "terceirizado"].includes(p.origem_producao ?? ""))));
   const nNiveis = o.produto_id ? niveis(fichas, o.produto_id) : 0;
+  const produtoOP = produtos.find((p) => p.id === o.produto_id);
   const set = (p: Partial<OrdemProducao>) => setO((x) => ({ ...x, ...p }));
 
   async function executar(acao: () => Promise<unknown>, ok: string, fechar = true) {
@@ -451,6 +453,14 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
             </select>
             {nNiveis > 1 && <span className="mt-1 block text-xs text-slate-500">Estrutura com {nNiveis} níveis: as peças abaixo já somam os subconjuntos.</span>}
           </Field>
+          {produtoOP && produtoOP.tipo !== "maquina" && (
+            <Field label="Setor" className="sm:col-span-2">
+              <select className="input" value={setorDaOP({ setor: o.setor, produto: produtoOP })} disabled={!podeEditar} onChange={(e) => set({ setor: e.target.value })}>
+                <option value="tornearia">Tornearia (peça usinada)</option>
+                <option value="mecanica">Mecânica (montagem do subconjunto)</option>
+              </select>
+            </Field>
+          )}
           <Field label="Quantidade"><input className="input" type="number" inputMode="numeric" min={1} value={o.quantidade ?? 1} disabled={!podeEditar} onChange={(e) => set({ quantidade: Number(e.target.value) })} /></Field>
           <Field label="Previsão"><input className="input" type="date" value={o.previsao ?? ""} disabled={!podeEditar} onChange={(e) => set({ previsao: e.target.value })} /></Field>
           <Field label="Responsável" className="sm:col-span-2"><input className="input" value={o.responsavel ?? ""} disabled={!podeEditar} onChange={(e) => set({ responsavel: e.target.value })} /></Field>
@@ -465,6 +475,13 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
           </Field>
           <Field label="Observações" className="sm:col-span-2"><input className="input" value={o.observacoes ?? ""} disabled={!podeEditar} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
         </div>
+
+        {produtoOP && produtoOP.tipo !== "maquina" && (
+          <section className="rounded-xl border border-sky-200 bg-sky-50/40 p-3">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><Ruler size={16} aria-hidden /> Desenho técnico da peça</h3>
+            <DocumentosMaquina produtoId={produtoOP.id} podeEditar={pode("editar_producao")} tipos={["desenho"]} />
+          </section>
+        )}
 
         {o.id && (
           <div>
