@@ -20,7 +20,7 @@ export function TorreCaixa() {
     queryFn: async () => {
       const [rec, pag, ext] = await Promise.all([
         ler(supabase.from("contas_receber").select("valor, valor_pago, vencimento, status, data_pagamento, pedido:pedidos(created_at)").gte("vencimento", desde12)),
-        ler(supabase.from("contas_pagar").select("valor, valor_pago, vencimento, status, data_pagamento, emissao, nfe:nfe_recebidas(data_emissao)").gte("vencimento", desde12)),
+        ler(supabase.from("contas_pagar").select("valor, valor_pago, vencimento, status, data_pagamento, emissao, nfe:nfe_recebidas!contas_pagar_nfe_fk(data_emissao)").gte("vencimento", desde12)),
         ler(supabase.from("extrato_lancamentos").select("valor, descricao, status").gte("data", desde90)
           .is("conta_pagar_id", null).is("conta_receber_id", null).is("par_transferencia_id", null)),
       ]);
