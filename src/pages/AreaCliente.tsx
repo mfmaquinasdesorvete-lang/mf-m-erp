@@ -27,7 +27,7 @@ type Proposta = { numero?: string | number; data?: string; situacao?: string; va
 type Dados = { nome?: string; fantasia?: string; documento?: string; ie?: string; endereco?: string; telefone?: string; whatsapp?: string; email?: string; cliente_desde?: string };
 type Maquina = { token: string; descricao: string; modelo?: string; numero_serie?: string; data_venda?: string; garantia_ate?: string; proxima_preventiva?: string; usada?: boolean; foto?: string; manuais?: number };
 type Manutencao = { numero: number; equipamento?: string; numero_serie?: string; status: string; data_entrada?: string; previsao?: string; concluida_em?: string; entregue_em?: string; em_garantia?: boolean; defeito?: string; solucao?: string; valor?: number };
-type Compra = { numero: number; data: string; status: string; valor: number; rastreio?: string; enviado_em?: string; transportadora?: string; itens?: { descricao: string; quantidade: number }[] };
+type Compra = { numero: number; data: string; status: string; valor: number; rastreio?: string; rastreio_link?: string; enviado_em?: string; transportadora?: string; itens?: { descricao: string; quantidade: number }[] };
 type Aba = "inicio" | "contas" | "maquinas" | "manutencoes" | "compras" | "notas" | "dados";
 const SITUACAO_OS: Record<string, string> = { aberta: "Recebida", em_diagnostico: "Em análise", aguardando_aprovacao: "Esperando sua aprovação", aguardando_peca: "Esperando peças", em_reparo: "Em conserto", concluida: "Pronta para retirar", entregue: "Entregue" };
 const SITUACAO_PEDIDO: Record<string, string> = { aprovado: "Em separação", faturado: "Faturado", entregue: "Entregue" };
@@ -306,6 +306,12 @@ function Compras({ lista }: { lista: Compra[] }) {
             <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs">
               <Truck size={14} aria-hidden /> Rastreio{p.transportadora ? ` (${p.transportadora})` : ""}: <b className="select-all break-all">{p.rastreio}</b>
               <button type="button" className="font-semibold text-[#066d8c] print:hidden" onClick={() => navigator.clipboard.writeText(p.rastreio!).then(() => notify("Código copiado"), () => undefined)}>copiar</button>
+              {p.rastreio_link && /^https?:\/\//.test(p.rastreio_link) && (
+                <a href={p.rastreio_link} target="_blank" rel="noopener noreferrer"
+                  className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-[#066d8c] px-3 text-sm font-semibold text-white hover:bg-[#055a74] print:hidden">
+                  <Truck size={15} aria-hidden /> Acompanhar a entrega
+                </a>
+              )}
             </div>
           )}
         </li>

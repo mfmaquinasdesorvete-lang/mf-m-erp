@@ -10,6 +10,7 @@ import { configPreco, foraDaFaixa, margemAlvo, PRECO_PADRAO, precoSugerido } fro
 import { percentualPedido } from "./comissao";
 import { consumoEstrutura, custoEstrutura, temFicha, type LinhaFicha } from "./estrutura";
 import { pecasDoKit } from "./kits";
+import { linkRastreio } from "./transportadoras";
 import { modeloDaMensagem, nomeModelo } from "../../supabase/functions/_shared/whatsapp-modelos";
 import { cfopDaOperacao, chaveValida, operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { pendencias as pendenciasConta, quemPode, regrasDe, type ContaRevisao, type TipoConta } from "./aprovacao";
@@ -3170,7 +3171,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
           concluida_em: o.concluida_em?.slice(0, 10), entregue_em: o.entregue_em?.slice(0, 10), em_garantia: o.em_garantia, defeito: o.defeito_relatado, solucao: o.solucao, valor: o.valor_total })),
       compras: db.pedidos.filter((pe) => pe.cliente_id === c.id && !pe.excluida_em && ["aprovado", "faturado", "entregue"].includes(pe.status))
         .sort((a, b) => String(b.aprovado_em ?? b.created_at).localeCompare(String(a.aprovado_em ?? a.created_at))).slice(0, 30)
-        .map((pe) => ({ numero: pe.numero, data: String(pe.aprovado_em ?? pe.created_at).slice(0, 10), status: pe.status, valor: pe.valor_total, rastreio: pe.codigo_rastreio || undefined,
+        .map((pe) => ({ numero: pe.numero, data: String(pe.aprovado_em ?? pe.created_at).slice(0, 10), status: pe.status, valor: pe.valor_total, rastreio: pe.codigo_rastreio || undefined, rastreio_link: pe.codigo_rastreio ? (linkRastreio(db.transportadoras?.find((t: any) => t.id === pe.transportadora_id)?.rastreio_url, { codigo: pe.codigo_rastreio }) ?? undefined) : undefined,
           enviado_em: pe.enviado_em?.slice(0, 10), transportadora: db.transportadoras?.find((t: Row) => t.id === pe.transportadora_id)?.nome,
           itens: db.pedido_itens.filter((i) => i.pedido_id === pe.id).map((i) => ({ descricao: i.descricao, quantidade: i.quantidade })) })),
       dados: { nome: c.nome, fantasia: c.nome_fantasia || undefined, documento: c.cpf_cnpj || undefined, ie: c.inscricao_estadual || undefined,
