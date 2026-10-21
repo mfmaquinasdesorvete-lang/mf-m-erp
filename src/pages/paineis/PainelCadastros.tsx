@@ -147,17 +147,6 @@ export default function PainelCadastros() {
         {cartoes.map((c) => <CartaoPainel key={c.id} c={c} anterior={per.anterior} />)}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Clientes novos x clientes que compraram" className="xl:col-span-3">
-          <Colunas dados={k.serie} altura={250} formatar={(v) => `${v}`} inteiro vazio="Nenhum cliente novo nem venda no período."
-            series={[{ nome: "Novos", cor: "var(--serie-3)" }, { nome: "Compraram", cor: "var(--serie-1)" }]} />
-        </Section>
-        <Section title="Onde estão os clientes" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
-          <Rosca total="Clientes" formatar={(v) => `${v}`} ativo={fUf} onClicar={(i) => { const u = k.ufs[i][0]; setFUf(fUf === u ? null : u); }}
-            fatias={k.ufs.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
-        </Section>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Section title={fUf ? `Clientes · ${fUf}` : "Clientes mais recentes"} actions={<span className="text-xs text-slate-500">toque para abrir a ficha</span>}>
           {fUf && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Estado", valor: fUf, limpar: () => setFUf(null) }]} onLimpar={() => setFUf(null)} /></div>}
@@ -183,6 +172,17 @@ export default function PainelCadastros() {
         </Section>
         <Section title="Precisa de atenção" className="md:col-span-2 xl:col-span-1">
           <ListaAtencao itens={atencao} vazio="Cadastros em ordem" />
+        </Section>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <Section title="Clientes novos x clientes que compraram" className="xl:col-span-3">
+          <Colunas dados={k.serie} altura={250} formatar={(v) => `${v}`} inteiro vazio="Nenhum cliente novo nem venda no período."
+            series={[{ nome: "Novos", cor: "var(--serie-3)" }, { nome: "Compraram", cor: "var(--serie-1)" }]} />
+        </Section>
+        <Section title="Onde estão os clientes" className="xl:col-span-2" actions={<span className="text-xs text-slate-500">toque para filtrar</span>}>
+          <Rosca total="Clientes" formatar={(v) => `${v}`} ativo={fUf} onClicar={(i) => { const u = k.ufs[i][0]; setFUf(fUf === u ? null : u); }}
+            fatias={k.ufs.map(([rotulo, valor], i) => ({ rotulo, valor, cor: CORES[i % CORES.length] }))} />
         </Section>
       </div>
 
