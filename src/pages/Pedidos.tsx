@@ -60,6 +60,7 @@ import {
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
 import { KanbanVendas } from "@/components/vendas/KanbanVendas";
 import { clonarVenda } from "@/lib/clonarVenda";
+import { pedidoRepetido, type OutraVenda } from "@/lib/pedidoRepetido";
 import { EnviarRastreio } from "@/components/pedidos/EnviarRastreio";
 import { UltimasVendas } from "@/components/pedidos/AtalhosCliente";
 import { MenuAcoes } from "@/components/MenuAcoes";
@@ -815,9 +816,17 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
 
   const salvar = (e: FormEvent) => { e.preventDefault(); executar(gravar, "Pedido salvo"); };
 
-  const aprovar = () => {
+  const aprovar = async () => {
     if (precisaAprovarDesc && limiteDesc) {
       return notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
+    }
+    // venda repetida (mesmo cliente e valor nas últimas 24 h): pergunta antes de aprovar
+    if (p.cliente_id) {
+      const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: outras } = await supabase.from("pedidos").select("id, numero, valor_total, status, created_at")
+        .eq("cliente_id", p.cliente_id).gte("created_at", desde);
+      const igual = pedidoRepetido({ id: p.id, total }, (outras ?? []) as OutraVenda[]);
+      if (igual && !(await confirmar(`Parece repetido do pedido #${igual.numero}: mesmo cliente e mesmo valor (${brl(total)}) nas últimas 24 horas. Aprovar mesmo assim?`))) return;
     }
     // link na aprovação: InfinitePay ou, na venda no cartão com o Mercado Pago escolhido em Recebimentos, o Checkout dele
     const cartaoNoMP = cfg?.link_cartao_provedor === "mercadopago" && p.forma_pagamento === "cartao";
