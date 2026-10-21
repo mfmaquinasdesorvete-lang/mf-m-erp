@@ -56,6 +56,32 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 }
 
 /** compacto: uma linha só (ícone menor, sem a explicação embaixo — ela fica no título ao passar o mouse) e as ações ao lado. */
+/**
+ * Nome curto no celular: com o título comprido o botão principal (Novo, Nova OS…) caía para a linha de baixo.
+ * No computador continua o nome inteiro.
+ */
+export const TITULO_CURTO: Record<string, string> = {
+  "Produtos e estoque": "Produtos",
+  "Peças de reposição": "Peças",
+  "Componentes de produção": "Componentes",
+  "Ordens de serviço": "OS",
+  "Contas a pagar e receber": "Contas",
+  "Usuários e permissões": "Usuários",
+  "Scrum das equipes": "Scrum",
+  "Painel do contador": "Contador",
+  "Garantias e preventivas": "Garantias",
+  "Formas de pagamento": "Pagamentos",
+  "Impostos, tarifas e funcionários": "Impostos e tarifas",
+  "Entre contas, sócios e empresas ligadas": "Entre contas",
+};
+
+/** Título com o nome curto no celular (quando houver) e o inteiro a partir do tablet. */
+function TituloTela({ title }: { title: string }) {
+  const curto = TITULO_CURTO[title];
+  if (!curto) return <>{title}</>;
+  return <><span className="sm:hidden" aria-hidden>{curto}</span><span className="sr-only sm:not-sr-only">{title}</span></>;
+}
+
 export function PageHeader({ title, subtitle, actions, compacto }: { title: string; subtitle?: string; actions?: ReactNode; compacto?: boolean }) {
   const modulo = useModulo();
   const Icone = modulo?.icone;
@@ -68,7 +94,7 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
               <Icone size={17} />
             </span>
           )}
-          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg">{title}</h1>
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg"><TituloTela title={title} /></h1>
           {subtitle && <span className="sr-only">{subtitle}</span>}
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
@@ -77,7 +103,8 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
   }
   return (
     <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:mb-5 sm:items-end">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      {/* no celular o título encolhe (a explicação corta) para o botão principal caber ao lado */}
+      <div className="flex min-w-0 flex-1 basis-[8.5rem] items-center gap-2 sm:basis-auto sm:gap-3">
         {Icone && (
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card sm:h-11 sm:w-11" aria-hidden>
             <Icone size={20} />
@@ -86,7 +113,7 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
         <div className="min-w-0">
           {/* no celular a área já aparece na trilha logo acima */}
           {modulo?.titulo && modulo.titulo !== title && <p className="hidden text-2xs font-bold uppercase tracking-wider text-modulo-texto sm:block">{modulo.titulo}</p>}
-          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg sm:text-2xl"><TituloTela title={title} /></h1>
           {/* no celular a explicação fica em 2 linhas (tocar mostra tudo): antes empurrava a tela 4 ou 5 linhas para baixo */}
           {subtitle && <p className="mt-0.5 line-clamp-1 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
             onClick={(e) => e.currentTarget.classList.toggle("line-clamp-1")}>{subtitle}</p>}
