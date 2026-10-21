@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { TIPOS_EMBALAGEM, FATOR_CUBAGEM } from "@/lib/fretes";
 import type { Embalagem } from "@/components/fretes/EnvioForm";
 import { pl } from "@/lib/format";
+import { DesenhoMedidas, MiniDesenho } from "@/components/produtos/DesenhoMedidas";
 
 const m3 = (r: Embalagem) => (Number(r.largura_cm) || 0) * (Number(r.altura_cm) || 0) * (Number(r.comprimento_cm) || 0) / 1_000_000;
 
@@ -47,10 +48,18 @@ export default function Embalagens() {
         { name: "comprimento_cm", label: "Comprimento (cm)", type: "number", span: 1 },
         { name: "peso_kg", label: "Peso (kg)", type: "number", span: 1, ajuda: "Peso do volume embalado (usado quando o produto não tem peso)" },
         { name: "ativo", label: "Ativa", type: "checkbox", span: 1 },
+        { name: "desenho", label: "Desenho (muda enquanto digita)", type: "custom", span: 4, render: (_v, _s, r) => (
+          <DesenhoMedidas largura={r.largura_cm} altura={r.altura_cm} profundidade={r.comprimento_cm} peso={r.peso_kg} embalagem={r.descricao || null} letraP="C" />
+        ) },
         { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
       ]}
       columns={[
-        { label: "Embalagem", render: (r) => <><div className="font-semibold">{r.descricao}</div><div className="text-xs text-slate-500">{TIPOS_EMBALAGEM.find(([k]) => k === r.tipo)?.[1] ?? r.tipo}{r.ativo ? "" : " · inativa"}</div></> },
+        { label: "Embalagem", render: (r) => (
+          <div className="flex items-center gap-2.5">
+            <MiniDesenho largura={r.largura_cm} altura={r.altura_cm} profundidade={r.comprimento_cm} />
+            <div className="min-w-0"><div className="font-semibold leading-tight">{r.descricao}</div><div className="text-xs text-slate-500">{TIPOS_EMBALAGEM.find(([k]) => k === r.tipo)?.[1] ?? r.tipo}{r.ativo ? "" : " · inativa"}</div></div>
+          </div>
+        ) },
         { label: "L × A × C (cm)", render: (r) => [r.largura_cm, r.altura_cm, r.comprimento_cm].every(Boolean) ? `${Number(r.largura_cm).toLocaleString("pt-BR")} × ${Number(r.altura_cm).toLocaleString("pt-BR")} × ${Number(r.comprimento_cm).toLocaleString("pt-BR")}` : "—" },
         { label: "Peso", render: (r) => (r.peso_kg != null ? `${Number(r.peso_kg).toLocaleString("pt-BR")} kg` : "—") },
         { label: "Cubagem", render: (r) => (m3(r) ? `${m3(r).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m³ · ${(m3(r) * FATOR_CUBAGEM).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg cubado` : "—") },
