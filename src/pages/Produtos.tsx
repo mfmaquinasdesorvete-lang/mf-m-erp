@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap, RefreshCw } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { DefinirLinha } from "@/components/comissoes/LinhasProduto";
 import type { LinhaProduto } from "@/lib/comissao";
@@ -490,6 +490,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {/* os painéis saíram da lista do menu: ficam a um clique daqui */}
           {ehMaquinas ? <Button variant="secondary" onClick={() => navigate("/painel/maquinas")}><LayoutDashboard size={16} /> Painel das máquinas</Button>
             : <Button variant="secondary" onClick={() => navigate("/painel/produtos")}><LayoutDashboard size={16} /> Painel dos produtos</Button>}
+          {!ehMaquinas && <Button variant="secondary" onClick={() => navigate("/estoque/giro")}><RefreshCw size={16} /> Giro de estoque</Button>}
           {ehMaquinas && vis.ve("testegiga", "/teste-giga") && <Button variant="secondary" onClick={() => navigate("/teste-giga")}><PlugZap size={16} /> Teste do giga (REG-006)</Button>}
           {pode("editar_produtos") && <>
             {tem("financeiro") && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar do Tiny</Button>}

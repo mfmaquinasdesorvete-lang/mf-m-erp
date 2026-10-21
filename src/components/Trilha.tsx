@@ -7,6 +7,7 @@ import { grupoDaRota, grupos, painelDaArea, todosItens } from "@/lib/menu";
 /** Telas fora do menu que não estão em todosItens: nome e tela de cima. */
 const EXTRAS: Record<string, { label: string; pai?: { label: string; to: string } }> = {
   "/retaguarda": { label: "Retaguarda" },
+  "/estoque/giro": { label: "Giro de estoque", pai: { label: "Produtos", to: "/estoque" } },
   "/fornecedores/avaliacao": { label: "Avaliação", pai: { label: "Fornecedores", to: "/fornecedores" } },
   "/pessoal": { label: "Painel pessoal", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/licenciados": { label: "My Frost Sorveterias", pai: { label: "Retaguarda", to: "/retaguarda" } },

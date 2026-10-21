@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Banknote, FileDown, Percent, Receipt, TrendingUp } from "lucide-react";
+import { Banknote, FileDown, Percent, Receipt, RefreshCw, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button, PageHeader, Section, Stat, Tabs } from "@/components/ui";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
@@ -55,6 +56,7 @@ export default function Relatorios() {
 }
 
 function VisaoGeral() {
+  const navigate = useNavigate();
   const [periodo, setPeriodo] = useState<"3" | "6" | "12">("6");
   const { data: vendedoresCad = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { filtrar } = useUnidade();
@@ -214,7 +216,10 @@ function VisaoGeral() {
   return (
     <div>
       <PageHeader title="Relatórios" subtitle="Números do período escolhido, atualizados a cada venda, pagamento e OS concluída."
-        actions={<Button variant="secondary" onClick={exportar}><FileDown size={16} /> Exportar</Button>} />
+        actions={<>
+          <Button variant="secondary" onClick={() => navigate("/estoque/giro")}><RefreshCw size={16} /> Giro de estoque</Button>
+          <Button variant="secondary" onClick={exportar}><FileDown size={16} /> Exportar</Button>
+        </>} />
       <Tabs value={periodo} onChange={setPeriodo} options={[
         { value: "3", label: "Últimos 3 meses" }, { value: "6", label: "Últimos 6 meses" }, { value: "12", label: "Últimos 12 meses" },
       ]} />

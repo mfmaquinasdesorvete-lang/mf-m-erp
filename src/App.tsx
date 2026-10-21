@@ -71,6 +71,7 @@ const Embalagens = lazy(() => import("@/pages/Embalagens"));
 const PropostaPublica = lazy(() => import("@/pages/PropostaPublica"));
 const AreaCliente = lazy(() => import("@/pages/AreaCliente"));
 const AvaliacaoFornecedores = lazy(() => import("@/pages/AvaliacaoFornecedores"));
+const GiroEstoque = lazy(() => import("@/pages/GiroEstoque"));
 const FichaPublica = lazy(() => import("@/pages/FichaPublica"));
 const Conheca = lazy(() => import("@/pages/Conheca"));
 const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
@@ -106,6 +107,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "painel/produtos", tela: "estoque", element: <PainelProdutos /> },
   { path: "assistencia", tela: "assistencia", element: <Assistencia /> },
   { path: "estoque", tela: "estoque", element: <Produtos /> },
+  { path: "estoque/giro", tela: "estoque", element: <GiroEstoque /> },
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },
   { path: "produtos/pecas", tela: "estoque", element: <Produtos key="pecas" cadastroFixo="pecas" /> },
   { path: "produtos/componentes", tela: "estoque", element: <Produtos key="componentes" cadastroFixo="componentes" /> },
