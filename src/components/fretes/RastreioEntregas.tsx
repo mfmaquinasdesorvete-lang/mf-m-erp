@@ -3,14 +3,14 @@
 // código aqui, o banco manda sozinho o e-mail "Seu pedido foi enviado" com o link para o cliente.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlarmClock, CheckCircle2, Copy, ExternalLink, Mail, MessageCircle, PackageSearch, Truck } from "lucide-react";
+import { AlarmClock, BellRing, CheckCircle2, Copy, ExternalLink, Mail, MessageCircle, PackageSearch, Truck } from "lucide-react";
 import { Button } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { dataBR, hoje, pl, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { linkRastreio } from "@/lib/transportadoras";
-import { grupoRastreio, mensagemRastreio, type GrupoRastreio } from "@/lib/rastreio";
+import { grupoRastreio, mensagemAtraso, mensagemChegando, mensagemRastreio, type GrupoRastreio } from "@/lib/rastreio";
 import type { Envio } from "@/lib/fretes";
 import type { Transportadora } from "@/lib/types";
 
@@ -19,6 +19,7 @@ type ClienteContato = { id: string; nome: string; nome_fantasia: string | null; 
 const GRUPOS: { id: GrupoRastreio; titulo: string; icone: typeof Truck; cor: string }[] = [
   { id: "sem_codigo", titulo: "Saíram sem código de rastreio", icone: PackageSearch, cor: "border-l-amber-400" },
   { id: "atrasado", titulo: "Passaram da previsão", icone: AlarmClock, cor: "border-l-red-500" },
+  { id: "chegando", titulo: "Chegam hoje ou amanhã", icone: BellRing, cor: "border-l-violet-500" },
   { id: "a_caminho", titulo: "A caminho", icone: Truck, cor: "border-l-sky-500" },
   { id: "entregue", titulo: "Entregues (últimos 15 dias)", icone: CheckCircle2, cor: "border-l-emerald-500" },
 ];
@@ -44,7 +45,8 @@ export function RastreioEntregas({ envios, transportadoras, numeroPedido, podeEd
   return (
     <div className="space-y-5">
       <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
-        <Mail size={15} className="mr-1 inline" aria-hidden /> Ao preencher o código de rastreio, o cliente recebe o e-mail <b>"Seu pedido foi enviado"</b> com o link para acompanhar (se tiver e-mail no cadastro). Pelo WhatsApp, use o botão de cada entrega.
+        <Mail size={15} className="mr-1 inline" aria-hidden /> Toda manhã às 7h30 o ERP confere os envios: quem tem e-mail recebe sozinho <b>"chega hoje/amanhã"</b> e, se passar da previsão,
+        o aviso de <b>atraso</b> com a explicação. A equipe recebe o resumo e, abaixo, a mensagem pronta para o WhatsApp de cada cliente.
       </p>
       {GRUPOS.map(({ id, titulo, icone: Icone, cor }) => {
         const doGrupo = lista.filter((x) => x.g === id);
@@ -54,7 +56,7 @@ export function RastreioEntregas({ envios, transportadoras, numeroPedido, podeEd
             <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><Icone size={16} aria-hidden /> {titulo} · {doGrupo.length}</h2>
             <ul className="grid gap-3 md:grid-cols-2">
               {doGrupo.map(({ e }) => (
-                <CartaoRastreio key={e.id} e={e} cor={cor} cliente={e.cliente_id ? cli.get(e.cliente_id) : undefined}
+                <CartaoRastreio key={e.id} e={e} grupo={id} cor={cor} cliente={e.cliente_id ? cli.get(e.cliente_id) : undefined}
                   transportadora={e.transportadora_id ? transp.get(e.transportadora_id) : undefined} pedido={numeroPedido(e.pedido_id)} podeEditar={podeEditar} />
               ))}
             </ul>
@@ -65,8 +67,8 @@ export function RastreioEntregas({ envios, transportadoras, numeroPedido, podeEd
   );
 }
 
-function CartaoRastreio({ e, cor, cliente, transportadora, pedido, podeEditar }: {
-  e: Envio; cor: string; cliente?: ClienteContato; transportadora?: Transportadora; pedido: number | null; podeEditar: boolean;
+function CartaoRastreio({ e, grupo, cor, cliente, transportadora, pedido, podeEditar }: {
+  e: Envio; grupo: GrupoRastreio; cor: string; cliente?: ClienteContato; transportadora?: Transportadora; pedido: number | null; podeEditar: boolean;
 }) {
   const invalidar = useInvalidate();
   const [codigo, setCodigo] = useState("");
@@ -121,7 +123,13 @@ function CartaoRastreio({ e, cor, cliente, transportadora, pedido, podeEditar }:
           <Button type="submit" disabled={salvando || !codigo.trim()}>{salvando ? "Salvando…" : "Salvar"}</Button>
         </form>
       ) : <p className="text-xs text-amber-800">Falta o código de rastreio.</p>}
-      {cod && e.status !== "entregue" && (
+      {grupo === "atrasado" && podeEditar && <MotivoAtraso e={e} />}
+      {(grupo === "chegando" || grupo === "atrasado") && (
+        <AvisoCliente e={e} tipo={grupo} zap={zap} texto={grupo === "chegando"
+          ? mensagemChegando({ cliente: cliente?.nome_fantasia || cliente?.nome, pedido, transportadora: nomeTransp, codigo: cod, link, previsao: e.entrega_prevista, hoje: hoje() })
+          : mensagemAtraso({ cliente: cliente?.nome_fantasia || cliente?.nome, pedido, transportadora: nomeTransp, codigo: cod, link, previsao: e.entrega_prevista, motivo: e.motivo_atraso })} />
+      )}
+      {cod && e.status !== "entregue" && grupo !== "chegando" && grupo !== "atrasado" && (
         zap ? (
           <a href={whatsappLink(zap, mensagemRastreio({ cliente: cliente?.nome_fantasia || cliente?.nome, pedido, transportadora: nomeTransp, codigo: cod, link, previsao: e.entrega_prevista }))}
             target="_blank" rel="noreferrer"
@@ -131,6 +139,54 @@ function CartaoRastreio({ e, cor, cliente, transportadora, pedido, podeEditar }:
         ) : <p className="text-xs text-slate-500">Cliente sem WhatsApp no cadastro.</p>
       )}
     </li>
+  );
+}
+
+/** Avisar o cliente (chegando ou atraso): WhatsApp com a mensagem pronta e marca como avisado; mostra se o e-mail já foi. */
+function AvisoCliente({ e, tipo, zap, texto }: { e: Envio; tipo: "chegando" | "atrasado"; zap?: string | null; texto: string }) {
+  const invalidar = useInvalidate();
+  const campo = tipo === "chegando" ? "aviso_chegando_em" : "aviso_atraso_em";
+  const avisado = e[campo];
+  async function marcar() {
+    const { error } = await supabase.from("envios").update({ [campo]: new Date().toISOString() }).eq("id", e.id);
+    if (error) notifyError(error); else invalidar("envios");
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {avisado
+        ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800"><CheckCircle2 size={13} aria-hidden /> cliente avisado {dataBR(avisado)}</span>
+        : <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">{tipo === "chegando" ? "avisar que está chegando" : "avisar o atraso"}</span>}
+      {zap ? (
+        <a href={whatsappLink(zap, texto)} target="_blank" rel="noreferrer" onClick={() => { if (!avisado) void marcar(); }}
+          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700">
+          <MessageCircle size={15} aria-hidden /> {tipo === "chegando" ? "Avisar que está chegando" : "Avisar o atraso"}
+        </a>
+      ) : <span className="text-xs text-slate-500">Cliente sem WhatsApp no cadastro.</span>}
+    </div>
+  );
+}
+
+/** Explicação do atraso: vai no e-mail automático (se ainda não saiu) e na mensagem do WhatsApp. */
+function MotivoAtraso({ e }: { e: Envio }) {
+  const invalidar = useInvalidate();
+  const [motivo, setMotivo] = useState(e.motivo_atraso ?? "");
+  const [salvando, setSalvando] = useState(false);
+  async function salvar(ev: FormEvent) {
+    ev.preventDefault();
+    setSalvando(true);
+    try {
+      const { error } = await supabase.from("envios").update({ motivo_atraso: motivo.trim() || null }).eq("id", e.id);
+      if (error) throw error;
+      notify("Explicação salva: vai na mensagem do atraso");
+      invalidar("envios");
+    } catch (err) { notifyError(err); } finally { setSalvando(false); }
+  }
+  return (
+    <form onSubmit={salvar} className="flex gap-2">
+      <input className="input min-w-0 flex-1 py-1.5 text-sm" value={motivo} onChange={(x) => setMotivo(x.target.value)} maxLength={300}
+        placeholder="O que aconteceu? Ex.: a transportadora remarcou para quinta" aria-label="Explicação do atraso para o cliente" />
+      <Button type="submit" variant="secondary" disabled={salvando || motivo.trim() === (e.motivo_atraso ?? "")}>{salvando ? "…" : "Salvar"}</Button>
+    </form>
   );
 }
 

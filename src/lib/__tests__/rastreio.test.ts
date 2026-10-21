@@ -23,3 +23,20 @@ describe("rastreio das entregas", () => {
     expect(mensagemRastreio({ codigo: "X" })).not.toContain("Transportadora");
   });
 });
+
+import { mensagemAtraso, mensagemChegando } from "../rastreio";
+describe("acompanhamento da manhã", () => {
+  const e = { status: "transito" as const, codigo_rastreio: "X1", entrega_prevista: "2026-10-22", entregue_em: null };
+  it("chega hoje ou amanhã vira 'chegando'", () => {
+    expect(grupoRastreio(e, "2026-10-21")).toBe("chegando");
+    expect(grupoRastreio(e, "2026-10-22")).toBe("chegando");
+    expect(grupoRastreio(e, "2026-10-19")).toBe("a_caminho");
+    expect(grupoRastreio(e, "2026-10-23")).toBe("atrasado");
+  });
+  it("mensagens", () => {
+    expect(mensagemChegando({ cliente: "Ana Souza", pedido: 9, previsao: "2026-10-22", hoje: "2026-10-22" })).toContain("deve chegar hoje");
+    expect(mensagemChegando({ cliente: "Ana", previsao: "2026-10-23", hoje: "2026-10-22" })).toContain("amanhã");
+    expect(mensagemAtraso({ cliente: "Ana", motivo: "chuva na serra" })).toContain("O que aconteceu: chuva na serra");
+    expect(mensagemAtraso({})).toContain("cobrando uma nova data");
+  });
+});

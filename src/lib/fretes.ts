@@ -23,6 +23,8 @@ export type Envio = {
   valor_aprovado: number | null; aprovado_em: string | null;
   coleta_prevista: string | null; coletado_em: string | null; codigo_rastreio: string | null;
   entrega_prevista: string | null; entregue_em: string | null; comprovante_em: string | null;
+  /** acompanhamento da manhã: quando o cliente foi avisado (chegando / atraso) e a explicação do atraso */
+  aviso_chegando_em?: string | null; aviso_atraso_em?: string | null; motivo_atraso?: string | null;
   valor_final: number | null; cte_numero: string | null; observacoes: string | null;
   created_at: string; atualizado_em: string;
   // condições comerciais, decisão, prova de entrega, conferência e conta a pagar (migração 0020)

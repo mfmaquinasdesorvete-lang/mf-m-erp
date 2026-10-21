@@ -29,6 +29,8 @@ export const TIPOS_PADRAO: AvisoTipo[] = ([
   ["cli_pagamento", "cliente", "Pagamento confirmado", "Agradecimento quando o pagamento é confirmado", []],
   ["cli_nfe", "cliente", "Nota fiscal emitida", "Link da DANFE quando a NF-e é autorizada", []],
   ["cli_pedido_enviado", "cliente", "Pedido enviado", "Transportadora e código de rastreio", []],
+  ["cli_entrega_chegando", "cliente", "Entrega chegando", "Na manhã da véspera ou do dia da entrega prevista", []],
+  ["cli_entrega_atraso", "cliente", "Entrega atrasada", "Aviso proativo quando passa da previsão, com a explicação", []],
   ["cli_preventiva", "cliente", "Hora da manutenção preventiva", "Uma semana antes da data da preventiva", []],
   ["cli_garantia", "cliente", "Garantia acabando", "30 dias antes do fim da garantia da máquina", []],
 ] as const).map(([tipo, publico, titulo, descricao, papeis], i) => ({ tipo, publico, titulo, descricao, papeis: [...papeis], ativo: true, ordem: i + 1 }));

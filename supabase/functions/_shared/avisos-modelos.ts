@@ -74,6 +74,8 @@ export const EXEMPLOS: Record<string, Dados> = {
     pagamento: "Banco do Brasil · Ag. 1234-5 · C/C 98765-4" },
   cli_nfe: { cliente: "Sorveteria Gelato", numero: "1301", pedido: 102, valor: 29000, danfe_url: "https://exemplo.com/danfe.pdf", chave: "35261012345678000190550010000013011000013010" },
   cli_pedido_enviado: { cliente: "Açaí do Porto", numero: 103, transportadora: "Rodonaves", rastreio: "RDN123456789BR", volumes: 2, link: "https://exemplo.com/rastreio/RDN123456789BR" },
+  cli_entrega_chegando: { cliente: "Açaí do Porto", numero: 103, transportadora: "Jadlog", rastreio: "JD123456789", previsao: "2026-10-22", hoje: false, link: "https://exemplo.com/rastreio/JD123456789" },
+  cli_entrega_atraso: { cliente: "Açaí do Porto", numero: 103, transportadora: "Jadlog", rastreio: "JD123456789", previsao: "2026-10-20", motivo: "", link: "https://exemplo.com/rastreio/JD123456789" },
   cli_preventiva: { cliente: "Sorveteria Gelato", equipamento: "Máquina de Sorvete Soft MF-300", numero_serie: "MF300-2025-0012", data: "2026-10-14", em_garantia: true },
   cli_garantia: { cliente: "Doce Mel", equipamento: "Máquina de Sorvete Expressa MF-150", numero_serie: "MF150-2025-0230", garantia_ate: "2026-11-06" },
 };
@@ -213,6 +215,24 @@ export function mensagemCliente(tipo: string, d: Dados, empresa: Empresa): Mensa
           ...(d.volumes ? [["Volumes", s(d.volumes)] as [string, string]] : [])],
         botao: d.link ? { texto: "Acompanhar a entrega", url: s(d.link) } : undefined,
         codigos: [{ rotulo: "Código de rastreio", valor: s(d.rastreio) }] };
+    case "cli_entrega_chegando": {
+      const quando = d.hoje ? "hoje" : d.previsao ? `amanhã, ${dataBR(d.previsao)}` : "nos próximos dias";
+      return { assunto: `Seu pedido #${s(d.numero)} chega ${d.hoje ? "hoje" : "amanhã"} 📦`, titulo: "Sua entrega está chegando",
+        paragrafos: [ola, `A previsão é que o seu pedido #${s(d.numero)} chegue ${quando}.`,
+          "Se possível, deixe alguém para receber e conferir os volumes na hora da entrega.", falar],
+        destaques: [["Pedido", `#${s(d.numero)}`], ...(d.transportadora ? [["Transportadora", s(d.transportadora)] as [string, string]] : []),
+          ...(d.previsao ? [["Previsão", dataBR(d.previsao)] as [string, string]] : [])],
+        botao: d.link ? { texto: "Acompanhar a entrega", url: s(d.link) } : undefined,
+        codigos: d.rastreio ? [{ rotulo: "Código de rastreio", valor: s(d.rastreio) }] : [] };
+    }
+    case "cli_entrega_atraso":
+      return { assunto: `Atualização da entrega do seu pedido #${s(d.numero)}`, titulo: "Sua entrega atrasou",
+        paragrafos: [ola, `A entrega do seu pedido #${s(d.numero)} passou da previsão${d.previsao ? ` (${dataBR(d.previsao)})` : ""}.`,
+          d.motivo ? `O que aconteceu: ${s(d.motivo)}` : "A transportadora ainda não confirmou a entrega e já estamos cobrando uma nova data.",
+          "Estamos acompanhando de perto e avisamos assim que tiver novidade. Desculpe o transtorno.", falar],
+        destaques: [["Pedido", `#${s(d.numero)}`], ...(d.transportadora ? [["Transportadora", s(d.transportadora)] as [string, string]] : [])],
+        botao: d.link ? { texto: "Acompanhar a entrega", url: s(d.link) } : undefined,
+        codigos: d.rastreio ? [{ rotulo: "Código de rastreio", valor: s(d.rastreio) }] : [] };
     case "cli_preventiva": {
       const msg = `Olá! Quero agendar a manutenção preventiva da ${s(d.equipamento)}${d.numero_serie ? ` (série ${s(d.numero_serie)})` : ""}.`;
       return { assunto: `Hora da manutenção preventiva da sua máquina`, titulo: "Hora da preventiva",
