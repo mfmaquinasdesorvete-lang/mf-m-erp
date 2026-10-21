@@ -46,6 +46,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/fluxo": "Quadro dos pedidos aprovados até a entrega: NF-e, separação, despacho e entrega, com as ações no cartão.",
   "/expedicao": "Fila de separação e embalagem: conferir os itens, embalar, imprimir etiquetas e despachar.",
   "/fretes": "Cotação de frete padronizada, envios, comprovantes, conferência com as faturas e indicadores do mês.",
+  "/rastreio": "As entregas na estrada: código de rastreio, link da transportadora, mandar ao cliente pelo WhatsApp e e-mail automático quando o código é preenchido.",
   "/transportadoras": "Transportadoras por marca, com filiais, contatos, site e API.",
   "/embalagens": "Caixas, engradados e paletes com medidas e peso, usados na cotação do frete.",
   "/painel/posvenda": "Indicadores da assistência: OS abertas, tempo de conserto, garantias e preventivas.",

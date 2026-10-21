@@ -154,6 +154,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "partes-relacionadas", tela: "financeiro", element: <PartesRelacionadas /> },
   { path: "auditoria", tela: "auditoria", element: <Auditoria /> },
   { path: "fretes", tela: "fretes", element: <Fretes /> },
+  { path: "rastreio", tela: "fretes", element: <Navigate to="/fretes?aba=rastreio" replace /> },
   { path: "formas-pagamento", tela: "financeiro", element: <FormasPagamento /> },
   { path: "embalagens", tela: "fretes", element: <Embalagens /> },
 ];

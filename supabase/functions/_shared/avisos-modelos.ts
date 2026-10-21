@@ -73,7 +73,7 @@ export const EXEMPLOS: Record<string, Dados> = {
     pix_codigo: "00020126360014br.gov.bcb.pix0114123456780001905204000053039865408145005802BR5913MF MAQUINAS6008SAO JOSE62070503***6304ABCD",
     pagamento: "Banco do Brasil · Ag. 1234-5 · C/C 98765-4" },
   cli_nfe: { cliente: "Sorveteria Gelato", numero: "1301", pedido: 102, valor: 29000, danfe_url: "https://exemplo.com/danfe.pdf", chave: "35261012345678000190550010000013011000013010" },
-  cli_pedido_enviado: { cliente: "Açaí do Porto", numero: 103, transportadora: "Rodonaves", rastreio: "RDN123456789BR", volumes: 2 },
+  cli_pedido_enviado: { cliente: "Açaí do Porto", numero: 103, transportadora: "Rodonaves", rastreio: "RDN123456789BR", volumes: 2, link: "https://exemplo.com/rastreio/RDN123456789BR" },
   cli_preventiva: { cliente: "Sorveteria Gelato", equipamento: "Máquina de Sorvete Soft MF-300", numero_serie: "MF300-2025-0012", data: "2026-10-14", em_garantia: true },
   cli_garantia: { cliente: "Doce Mel", equipamento: "Máquina de Sorvete Expressa MF-150", numero_serie: "MF150-2025-0230", garantia_ate: "2026-11-06" },
 };
@@ -211,6 +211,7 @@ export function mensagemCliente(tipo: string, d: Dados, empresa: Empresa): Mensa
         paragrafos: [ola, `Seu pedido #${s(d.numero)} saiu daqui e já está com a transportadora.`, falar],
         destaques: [["Pedido", `#${s(d.numero)}`], ...(d.transportadora ? [["Transportadora", s(d.transportadora)] as [string, string]] : []),
           ...(d.volumes ? [["Volumes", s(d.volumes)] as [string, string]] : [])],
+        botao: d.link ? { texto: "Acompanhar a entrega", url: s(d.link) } : undefined,
         codigos: [{ rotulo: "Código de rastreio", valor: s(d.rastreio) }] };
     case "cli_preventiva": {
       const msg = `Olá! Quero agendar a manutenção preventiva da ${s(d.equipamento)}${d.numero_serie ? ` (série ${s(d.numero_serie)})` : ""}.`;

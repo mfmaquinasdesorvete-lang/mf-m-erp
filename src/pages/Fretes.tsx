@@ -9,6 +9,7 @@ import { EnvioForm } from "@/components/fretes/EnvioForm";
 import { IndicadoresMes } from "@/components/fretes/IndicadoresMes";
 import { CtePainel } from "@/components/fretes/CtePainel";
 import { CteFaturas } from "@/components/fretes/CteFaturas";
+import { RastreioEntregas, contarRastreio } from "@/components/fretes/RastreioEntregas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -65,7 +66,7 @@ export default function Fretes() {
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useAbaUrl<"painel" | "indicadores" | "envios" | "cte" | "faturas">("painel", ["painel", "indicadores", "envios", "cte", "faturas"] as const);
+  const [aba, setAba] = useAbaUrl<"painel" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas">("painel", ["painel", "rastreio", "indicadores", "envios", "cte", "faturas"] as const);
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);
@@ -116,6 +117,7 @@ export default function Fretes() {
   const equipamentos = [...new Set(envios.map((e) => e.tipo_equipamento).filter(Boolean) as string[])].sort();
   const ufs = [...new Set(envios.map((e) => e.uf_destino).filter(Boolean) as string[])].sort();
   const totalFiltros = Object.values(filtros).filter(Boolean).length;
+  const rastreio = useMemo(() => contarRastreio(envios, dia), [envios, dia]);
   const grupos = [...new Set(INDICADORES.map((i) => i.grupo))];
 
   async function criarDoPedido(p: PedidoResumo) {
@@ -151,14 +153,16 @@ export default function Fretes() {
       {aberto && <EnvioForm envioId={aberto.id} onClose={() => { setAberto(null); invalidar("envios", "envio_ocorrencias", "envio_cotacoes", "documentos"); }} />}
 
       <Tabs value={aba} onChange={(v) => { setAba(v); setIndicador(null); }}
-        options={[{ value: "painel", label: "Painel" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
+        options={[{ value: "painel", label: "Painel" }, { value: "rastreio", label: rastreio.atencao ? `Rastreio (${rastreio.atencao})` : "Rastreio" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
           { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }]} />
 
+      {aba === "rastreio" && <RastreioEntregas envios={envios} transportadoras={transportadoras} podeEditar={podeEditar}
+        numeroPedido={(id) => pedidoDe(id)?.numero ?? null} />}
       {aba === "cte" && <CtePainel transportadoras={transportadoras} />}
       {aba === "faturas" && <CteFaturas transportadoras={transportadoras} />}
 
       {/* filtros compactos: botão de data e botão "Filtros" (os campos só aparecem ao tocar) */}
-      {aba !== "cte" && aba !== "faturas" && (
+      {aba !== "cte" && aba !== "faturas" && aba !== "rastreio" && (
         <BarraFiltros
           periodo={aba === "indicadores" ? undefined : { de: filtros.de ?? "", ate: filtros.ate ?? "" }}
           onPeriodo={aba === "indicadores" ? undefined : (p) => setFiltros({ ...filtros, de: p.de || undefined, ate: p.ate || undefined })}

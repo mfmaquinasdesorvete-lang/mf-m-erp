@@ -4,6 +4,7 @@ import {
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench,
   ScanSearch,
+  MapPinned,
 } from "lucide-react";
 import { usePerfil } from "./auth";
 import { useConfig } from "./useConfig";
@@ -63,6 +64,7 @@ export const grupos: Grupo[] = [
       { to: "/fluxo", tela: "fluxo", label: "Fluxo de pedidos", curto: "Fluxo", icon: Workflow, busca: "expedição separar embalar despachar entrega quadro" },
       { to: "/expedicao", tela: "expedicao", label: "Separação e embalagem", curto: "Expedição", icon: PackageCheck, busca: "expedição separar conferir embalar despachar lista de separação picking etiqueta volume" },
       { to: "/fretes", tela: "fretes", label: "Fretes e envios", curto: "Fretes", icon: PackageSearch, busca: "frete cotação transportadora coleta rastreio entrega comprovante ocorrência cte painel" },
+      { to: "/rastreio", tela: "fretes", label: "Rastreio das entregas", curto: "Rastreio", icon: MapPinned, busca: "rastreio rastrear código de rastreio entrega a caminho atrasada mandar ao cliente whatsapp e-mail" },
       { to: "/transportadoras", tela: "fornecedores", label: "Transportadoras", curto: "Transp.", icon: Truck, busca: "transportadora frete coleta cotação" },
       { to: "/embalagens", tela: "fretes", label: "Embalagens", curto: "Embal.", icon: Package, busca: "caixa engradado palete medidas peso cubagem" },
     ],
@@ -176,6 +178,7 @@ export const RAPIDOS: { to: string; label: string; cor: string }[] = [
   { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
   { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
   { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
+  { to: "/rastreio", label: "Rastreio", cor: "from-[#65a30d] to-[#3f6212]" },
   // PDV: cartão próprio, na largura toda
   { to: "/pdv", label: "PDV · venda de balcão", cor: "from-[#ec4899] to-[#9d174d]" },
 ];

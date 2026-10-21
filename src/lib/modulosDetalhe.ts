@@ -429,6 +429,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem usa: o perfil Expedição abre direto nesta tela; vendas, financeiro e administrador também separam e despacham.",
     ],
   },
+  "/rastreio": {
+    tags: ["RASTREIO", "ENTREGA", "CLIENTE"],
+    destaque: "O cliente sabe onde está o pedido sem precisar perguntar.",
+    partes: [
+      "Entregas separadas em 4 grupos: saíram sem código de rastreio, passaram da previsão, a caminho e entregues nos últimos 15 dias.",
+      "Preencher o código ali mesmo: o cliente recebe sozinho o e-mail \"Seu pedido foi enviado\" com o código e o botão \"Acompanhar a entrega\".",
+      "Mandar pelo WhatsApp: mensagem pronta com o nome do cliente, nº do pedido, transportadora, código, previsão e o link de rastreio.",
+      "Rastrear: abre o site da transportadora já com o código (quando o cadastro da transportadora tem o endereço de rastreio).",
+      "Copiar o código com um toque e ver se o cliente tem e-mail para o aviso automático.",
+      "Cartão \"Rastreio\" no menu e na barra de atalhos coloridos; a aba também fica em Fretes e envios.",
+    ],
+  },
   "/fretes": {
     tags: ["FRETE", "COTAÇÃO", "CT-E"],
     destaque: "Pague o frete certo e saiba onde está cada carga.",
