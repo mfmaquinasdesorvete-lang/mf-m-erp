@@ -97,8 +97,49 @@ export function combina({ marca, filiais }: Marca, texto: string) {
     || (marca.contatos ?? []).some((c) => [c.nome, c.email].some((v) => v && sem(v).includes(t)));
 }
 
-export type FiltroMarca = "todas" | "api" | "plataforma" | "conferir" | "sem_contato" | "alerta";
-export function filtrar(lista: Marca[], f: FiltroMarca) {
+/** Nome para achar repetidos: sem acento, sem "Ltda", "Matriz", pontuação e cidade depois do traço; Sedex/Correio = Correios. */
+export function chaveNome(nome: string | null | undefined) {
+  let n = sem(nome ?? "").replace(/\s+[-–]\s*.*$/, "").replace(/\b(ltda|me|eireli|s\/?a|matriz|transportes?|transportadora|logistica|express[oa]?)\b/g, " ")
+    .replace(/[^a-z0-9& ]/g, " ").replace(/\s+/g, " ").trim();
+  if (/^(sedex|pac|correio|correios)$/.test(n)) n = "correios";
+  return n;
+}
+
+/** Marcas soltas com o mesmo nome (ex.: "Sedex" duas vezes, "Correio" e "Correios"): sugestão de unificar. */
+export function repetidasPorNome(lista: Marca[]): Transportadora[][] {
+  const grupos = new Map<string, Transportadora[]>();
+  for (const m of lista) {
+    for (const nome of new Set([chaveNome(m.marca.nome), chaveNome(m.marca.nome_fantasia)].filter((x) => x.length >= 3))) {
+      grupos.set(nome, [...(grupos.get(nome) ?? []), m.marca]);
+    }
+  }
+  const vistos = new Set<string>();
+  const out: Transportadora[][] = [];
+  for (const g of grupos.values()) {
+    const unicos = [...new Map(g.map((t) => [t.id, t])).values()];
+    const chave = unicos.map((t) => t.id).sort().join(",");
+    if (unicos.length < 2 || vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push(unicos);
+  }
+  return out;
+}
+
+/** Sem link de rastreio: busca a página de rastreio da transportadora no Google. */
+export const buscaRastreio = (t: Pick<Transportadora, "nome" | "nome_fantasia">) =>
+  `https://www.google.com/search?q=${encodeURIComponent(`rastreio ${nomeCurto(t)} transportadora`)}`;
+
+/** Ordena pelo uso (envios e pedidos), depois pelo nº de filiais e pelo nome. */
+export function ordenarPorUso(lista: Marca[], usos: Map<string, number>) {
+  const uso = (m: Marca) => [m.marca, ...m.filiais].reduce((t, x) => t + (usos.get(x.id) ?? 0), 0);
+  return [...lista].sort((a, b) => uso(b) - uso(a) || b.filiais.length - a.filiais.length || nomeCurto(a.marca).localeCompare(nomeCurto(b.marca), "pt-BR"));
+}
+export const usoDa = (m: Marca, usos: Map<string, number>) => [m.marca, ...m.filiais].reduce((t, x) => t + (usos.get(x.id) ?? 0), 0);
+
+export type FiltroMarca = "todas" | "usadas" | "api" | "plataforma" | "conferir" | "sem_contato" | "sem_rastreio" | "alerta";
+export function filtrar(lista: Marca[], f: FiltroMarca, usos?: Map<string, number>) {
+  if (f === "usadas") return lista.filter((m) => usoDa(m, usos ?? new Map()) > 0);
+  if (f === "sem_rastreio") return lista.filter((m) => !m.marca.rastreio_url?.trim() && m.marca.tipo !== "plataforma");
   if (f === "api") return lista.filter((m) => m.marca.api === "sim" || m.marca.api === "parcial");
   if (f === "plataforma") return lista.filter((m) => m.marca.api === "plataforma" || m.marca.tipo === "plataforma");
   if (f === "conferir") return lista.filter((m) => aConferir(m.marca));

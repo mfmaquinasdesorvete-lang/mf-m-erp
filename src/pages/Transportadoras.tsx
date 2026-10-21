@@ -2,10 +2,11 @@
 // que atendem a MF dentro dela; a rede (unidades achadas nos CT-e e na internet), os contatos dos e-mails,
 // as condições comerciais e o que veio da internet "a conferir". A lista completa (planilha) continua na outra aba.
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { confirmar } from "@/components/Dialogos";
 import {
   AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Link2, Mail, MapPin, Merge, Pencil,
-  Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
+  MapPinOff, PackageCheck, Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
 } from "lucide-react";
 import { Button, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Contato } from "@/components/Contato";
@@ -18,7 +19,8 @@ import { usePerfil } from "@/lib/auth";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
 import type { ContatoTransportadora, Transportadora, UnidadeRede } from "@/lib/types";
 import {
-  API, RECURSOS, SERVICOS, TIPOS, aConferir, combina, filtrar, integracaoApi, nomeCurto, porMarca, redeNova, sugestoesAgrupar, temContato, ufsDa,
+  API, RECURSOS, SERVICOS, TIPOS, aConferir, buscaRastreio, combina, filtrar, integracaoApi, nomeCurto, ordenarPorUso, porMarca, redeNova, repetidasPorNome,
+  sugestoesAgrupar, temContato, ufsDa, usoDa,
   type FiltroMarca, type Marca,
 } from "@/lib/transportadoras";
 import { FrequenciaColetaEditor } from "@/components/fretes/Coleta";
@@ -55,12 +57,27 @@ function PorMarca() {
   const [abertas, setAbertas] = useState<Set<string>>(new Set());
   const invalidate = useInvalidate();
 
-  const todas = useMemo(() => porMarca(rows, { inativas }), [rows, inativas]);
+  // quantas vezes cada cadastro foi usado (envios e pedidos): as mais usadas vêm primeiro
+  const { data: usos = new Map<string, number>() } = useQuery({
+    queryKey: ["transportadoras", "usos"],
+    queryFn: async () => {
+      const m = new Map<string, number>();
+      for (const tabela of ["envios", "pedidos"] as const) {
+        const { data, error } = await supabase.from(tabela).select("transportadora_id").not("transportadora_id", "is", null).limit(10000);
+        if (error) throw error;
+        for (const r of (data ?? []) as { transportadora_id: string }[]) m.set(r.transportadora_id, (m.get(r.transportadora_id) ?? 0) + 1);
+      }
+      return m;
+    },
+  });
+  const todas = useMemo(() => ordenarPorUso(porMarca(rows, { inativas }), usos), [rows, inativas, usos]);
   const sugestoes = useMemo(() => sugestoesAgrupar(porMarca(rows)), [rows]);
-  const lista = useMemo(() => filtrar(todas, filtro).filter((m) => (!tipo || (m.marca.tipo ?? "transportadora") === tipo) && combina(m, busca)), [todas, filtro, tipo, busca]);
+  const repetidas = useMemo(() => repetidasPorNome(porMarca(rows)), [rows]);
+  const lista = useMemo(() => filtrar(todas, filtro, usos).filter((m) => (!tipo || (m.marca.tipo ?? "transportadora") === tipo) && combina(m, busca)), [todas, filtro, usos, tipo, busca]);
   const chips: { v: FiltroMarca; rotulo: string; icone: typeof Plug }[] = [
-    { v: "todas", rotulo: "Todas", icone: Truck }, { v: "api", rotulo: "Com API", icone: Plug }, { v: "plataforma", rotulo: "Via plataforma", icone: Link2 },
-    { v: "conferir", rotulo: "A conferir", icone: SearchCheck }, { v: "sem_contato", rotulo: "Sem contato", icone: Phone }, { v: "alerta", rotulo: "Com alerta", icone: AlertTriangle },
+    { v: "todas", rotulo: "Todas", icone: Truck }, { v: "usadas", rotulo: "Já usamos", icone: PackageCheck }, { v: "api", rotulo: "Com API", icone: Plug },
+    { v: "plataforma", rotulo: "Via plataforma", icone: Link2 }, { v: "conferir", rotulo: "A conferir", icone: SearchCheck }, { v: "sem_contato", rotulo: "Sem contato", icone: Phone },
+    { v: "sem_rastreio", rotulo: "Sem rastreio", icone: MapPinOff }, { v: "alerta", rotulo: "Com alerta", icone: AlertTriangle },
   ];
   const alterna = (id: string) => setAbertas((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -87,7 +104,7 @@ function PorMarca() {
 
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar marcas">
         {chips.map(({ v, rotulo, icone: I }) => {
-          const n = filtrar(todas, v).length;
+          const n = filtrar(todas, v, usos).length;
           return (
             <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
@@ -126,12 +143,26 @@ function PorMarca() {
         </div>
       )}
 
+      {podeEditar && repetidas.length > 0 && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="mb-1.5 flex items-center gap-2 font-semibold"><Merge size={16} aria-hidden /> Cadastros repetidos pelo nome (Sedex e Correio contam como Correios)</div>
+          <ul className="space-y-1.5">
+            {repetidas.map((g) => (
+              <li key={g.map((t) => t.id).join()} className="flex flex-wrap items-center gap-2">
+                <span className="min-w-0 flex-1">{g.map((t) => `${nomeCurto(t)}${usos.get(t.id) ? ` (${usos.get(t.id)} ${pl(usos.get(t.id)!, "uso", "usos")})` : ""}`).join(" · ")}</span>
+                <Button type="button" variant="secondary" className="!min-h-0 !py-1 text-xs" onClick={() => setUnificar(g)}>Unificar</Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {isLoading ? <p className="py-8 text-center text-sm text-slate-500">Carregando…</p> : !lista.length ? (
         <p className="py-8 text-center text-sm text-slate-500">Nenhuma transportadora com esse filtro.</p>
       ) : (
         <ul className="space-y-2.5">
           {lista.map((m) => (
-            <CartaoMarca key={m.marca.id} m={m} aberta={abertas.has(m.marca.id) || !!busca.trim()} onAlternar={() => alterna(m.marca.id)} podeEditar={podeEditar}
+            <CartaoMarca key={m.marca.id} m={m} usos={usoDa(m, usos)} aberta={abertas.has(m.marca.id) || !!busca.trim()} onAlternar={() => alterna(m.marca.id)} podeEditar={podeEditar}
               onEditar={(t) => setEditar({ registro: t, marca: t.id === m.marca.id ? undefined : m.marca })}
               onNovaFilial={(base) => setEditar({ registro: { nome: m.marca.nome, ativo: true, tipo: m.marca.tipo, matriz_id: m.marca.id, ...base }, marca: m.marca })}
               onAgrupar={() => setAgrupar(m.marca)} onUnificar={(l) => setUnificar(l)}
@@ -152,8 +183,8 @@ function PorMarca() {
 
 /* ------------------------------------------------------------------ cartão da marca */
 
-function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial, onAgrupar, onUnificar, onSeparar, onConferir }: {
-  m: Marca; aberta: boolean; onAlternar: () => void; podeEditar: boolean; onEditar: (t: Transportadora) => void;
+function CartaoMarca({ m, usos, aberta, onAlternar, podeEditar, onEditar, onNovaFilial, onAgrupar, onUnificar, onSeparar, onConferir }: {
+  m: Marca; usos: number; aberta: boolean; onAlternar: () => void; podeEditar: boolean; onEditar: (t: Transportadora) => void;
   onNovaFilial: (base?: Partial<Transportadora>) => void; onAgrupar: () => void; onUnificar: (l: Transportadora[]) => void;
   onSeparar: (t: Transportadora) => void; onConferir: () => void;
 }) {
@@ -189,6 +220,7 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
             {aConferir(t) && <span title="Dados encontrados na internet: confira antes de usar" className="rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">a conferir</span>}
             {!t.ativo && <Chip>inativa</Chip>}
             {!temContato(m) && <span className="rounded-full bg-red-50 px-2 py-0.5 text-2xs font-semibold text-red-700">sem contato</span>}
+            {usos > 0 && <span title="Envios e pedidos com esta transportadora" className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-2xs font-semibold text-emerald-800"><PackageCheck size={11} aria-hidden /> {usos} {pl(usos, "envio", "envios")}</span>}
           </div>
           <div className="mt-1 text-xs text-slate-500">
             {[m.filiais.length ? `${m.filiais.length} filial(is)` : [t.municipio, t.uf].filter(Boolean).join("/"), ufs.length > 1 && ufs.join(", "),
@@ -201,6 +233,10 @@ function CartaoMarca({ m, aberta, onAlternar, podeEditar, onEditar, onNovaFilial
             <a key={r} href={u!} target="_blank" rel="noreferrer" title={r} aria-label={r}
               className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:border-brand/50 hover:text-brand"><I size={15} /></a>
           ))}
+          {!t.rastreio_url?.trim() && t.tipo !== "plataforma" && (
+            <a href={buscaRastreio(t)} target="_blank" rel="noreferrer" title="Sem link de rastreio: procurar a página de rastreio na internet (depois cole em Editar)" aria-label="Achar o rastreio"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-dashed border-amber-400 text-amber-700 hover:bg-amber-50"><MapPinOff size={15} /></a>
+          )}
           {contatoRapido?.whatsapp && <a href={whatsappLink(contatoRapido.whatsapp, MSG)} target="_blank" rel="noreferrer" title="Pedir cotação no WhatsApp" className="grid h-8 w-8 place-items-center rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50"><Phone size={15} /></a>}
           {podeEditar && <Button type="button" variant="secondary" className="!min-h-0 !px-2.5 !py-1.5 text-xs" onClick={() => onEditar(t)}><Pencil size={14} /> Editar</Button>}
         </div>
