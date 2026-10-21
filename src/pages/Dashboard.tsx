@@ -63,7 +63,7 @@ const VISOES: Record<Visao, [string, string]> = { geral: ["Painel geral", "Geral
  * cada um pode trocar e a escolha fica lembrada (por papel, para quem divide o computador).
  */
 export default function Dashboard() {
-  const { papel, podeVer, tem } = usePerfil();
+  const { papel, podeVer, tem, master } = usePerfil();
   const opcoes: Visao[] = papel === "vendas" ? ["fluxo", "geral"]
     : [ "geral" as const, ...(tem("financeiro") ? ["financeiro" as const] : []), ...(podeVer("fluxo") ? ["fluxo" as const] : [])];
   const padrao: Visao = papel === "vendas" ? "fluxo" : papel === "financeiro" ? "financeiro" : "geral";
@@ -90,7 +90,7 @@ export default function Dashboard() {
           ))}
         </div>
       )}
-      {papel === "admin" && <AtalhoGastoPessoal />}
+      {master && <AtalhoGastoPessoal />}
       </div>}
       {atual === "financeiro" ? <PainelFinanceiro />
         : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>

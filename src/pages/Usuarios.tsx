@@ -27,6 +27,8 @@ import { erroPortal, textoConvite } from "@/lib/portal";
 type Usuario = {
   user_id: string; nome: string; papel: Papel; papeis_extras: Papel[] | null; cargo: string | null; telefone: string | null;
   unidade_id: string | null; ativo: boolean; trocar_senha: boolean | null; created_at?: string; email: string; ultimo_acesso: string | null;
+  /** conta master (a dona): abre a Retaguarda e é a única que cria ou muda administradores */
+  master?: boolean;
 };
 type Vendedor = { id: string; nome: string; user_id: string | null; ativo: boolean };
 /** Ficha de funcionário (dados completos: documentos, endereço, banco e Pix, admissão) ligada ao login */
@@ -167,7 +169,7 @@ export default function Usuarios() {
                           {u.cargo && <span className="ml-2 text-sm font-normal text-slate-600">· {u.cargo}</span>}</div>
                         <div className="truncate text-sm text-slate-600">{u.email}{u.telefone ? ` · ${fone(u.telefone)}` : ""}</div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">
-                          <ChipPapel p={u.papel} />{(u.papeis_extras ?? []).map((p) => <ChipPapel key={p} p={p} extra />)}
+                          <ChipPapel p={u.papel} />{u.master && <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white" title="Conta master: Retaguarda e administradores">master</span>}{(u.papeis_extras ?? []).map((p) => <ChipPapel key={p} p={p} extra />)}
                           <span className="text-xs text-slate-500">· {u.unidade_id ? nomeUnidade(u.unidade_id) : "todas as unidades"}{vend ? ` · vendedor: ${vend.nome}` : ""}</span>
                         </div>
                       </div>

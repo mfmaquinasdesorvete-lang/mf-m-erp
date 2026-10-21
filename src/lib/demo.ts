@@ -37,7 +37,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const U_SC = "un-sc", U_SP = "un-sp"; // matriz e filial da demonstração
 
 export const USUARIOS_DEMO = [
-  { user_id: "u-admin", nome: "Admin Exemplo", papel: "admin", email: "admin@exemplo.com.br" },
+  { user_id: "u-admin", nome: "Admin Exemplo", papel: "admin", email: "admin@exemplo.com.br", master: true },
   { user_id: "u-vendas", nome: "Carla Vendas", papel: "vendas", email: "vendas@mfmaquinas.com.br" },
   { user_id: "u-fin", nome: "Rafael Financeiro", papel: "financeiro", email: "financeiro@mfmaquinas.com.br" },
   { user_id: "u-tec", nome: "Diego Técnico", papel: "tecnico", email: "assistencia@mfmaquinas.com.br" },

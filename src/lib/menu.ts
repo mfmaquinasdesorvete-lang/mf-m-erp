@@ -201,10 +201,21 @@ export const ATALHOS_CELULAR: Record<string, string[]> = {
  * O que a pessoa logada vê: a tela tem de estar entre as do papel (principal ou adicional) e não pode estar
  * escondida para esse papel em Usuários → Perfis (configuracoes.menu_oculto). Rota fora do menu segue só o papel.
  */
+/**
+ * Telas da Retaguarda: entre os administradores, só a conta master abre (Configurações da empresa e Usuários).
+ * Categorias e marcadores, bancos e cobrança continuam com quem já abria (são do dia a dia).
+ */
+export const LIVRES_FORA_DA_RETAGUARDA = ["/configuracoes/cadastros", "/configuracoes/bancos", "/configuracoes/cobranca"];
+export function soDaMaster(tela: Tela, to?: string) {
+  if (tela === "usuarios") return true;
+  return tela === "configuracoes" && !(to && LIVRES_FORA_DA_RETAGUARDA.includes(to));
+}
+
 export function useVisivel() {
-  const { papel, papeis_extras } = usePerfil();
+  const { papel, papeis_extras, master } = usePerfil();
   const { data: cfg } = useConfig();
   const oculto = (cfg?.menu_oculto ?? {}) as MenuOculto;
-  const ve = (tela: Tela, to?: string) => itemVisivel(papel, papeis_extras, tela, to && todosItens.some((i) => i.to === to) ? to : undefined, oculto);
+  const ve = (tela: Tela, to?: string) => (master || !soDaMaster(tela, to))
+    && itemVisivel(papel, papeis_extras, tela, to && todosItens.some((i) => i.to === to) ? to : undefined, oculto);
   return { ve, item: (i: { tela: Tela; to: string }) => ve(i.tela, i.to) };
 }

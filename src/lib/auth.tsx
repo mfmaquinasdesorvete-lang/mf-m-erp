@@ -6,6 +6,8 @@ export type Perfil = {
   /** papéis somados ao principal (vendas, financeiro, técnico) */
   papeis_extras?: Papel[] | null;
   trocar_senha?: boolean;
+  /** conta master (a dona): abre a Retaguarda; os outros administradores não */
+  master?: boolean;
 };
 
 const PerfilContext = createContext<Perfil | null>(null);

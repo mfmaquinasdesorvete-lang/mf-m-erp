@@ -23,8 +23,9 @@ const coresDe = (cor: string) => {
 // texto na cor da área, puxado para a cor do texto da tela: fica legível no tema claro e no escuro
 const tinta = (hex: string) => `color-mix(in srgb, ${hex} 72%, currentColor)`;
 
-/** Telas só do administrador, fora do menu: pela carteira e pelo botão rosa do sorvete no fim do menu. */
+/** Telas só da conta master, fora do menu: pela Retaguarda (cadeado no rodapé) e pelo botão rosa do sorvete. */
 const SO_ADMIN: Item[] = [
+  { to: "/retaguarda", tela: "painel", label: "Retaguarda", curto: "Retaguarda", icon: Lock },
   { to: "/pessoal", tela: "painel", label: "Painel pessoal", curto: "Pessoal", icon: Wallet },
   { to: "/licenciados", tela: "painel", label: "My Frost Sorveterias", curto: "My Frost", icon: IceCreamCone },
 ];
@@ -33,7 +34,7 @@ type Bloco = { id: string; titulo: string; texto: string; cor: string; Icone: ty
 
 export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialItem) => void; onAuditoria: () => void }) {
   const vis = useVisivel();
-  const { papel } = usePerfil();
+  const { master } = usePerfil();
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState("");
   const [soMeu, setSoMeu] = useState(false);
@@ -49,7 +50,7 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
   const todosBlocos: Bloco[] = [
     ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", cor: g.cor ?? "from-[#64748b] to-[#334155]", Icone: g.icone ?? LayoutGrid, itens: [...g.itens, ...foraDe(g.id)] })),
     { id: "admin", titulo: "Configurações", texto: "Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.", cor: "from-[#64748b] to-[#334155]", Icone: Settings, itens: foraDe("admin") },
-    ...(papel === "admin" ? [{ id: "dono", titulo: "Só do administrador", texto: "Pela carteira e pelo sorvete no fim do menu: as contas pessoais e a carteira das lojas licenciadas, fora da MF e do contador.", cor: "from-[#c2185b] to-[#7c3aed]", Icone: Lock, itens: SO_ADMIN }] : []),
+    ...(master ? [{ id: "dono", titulo: "Só da conta master", texto: "Pela Retaguarda (cadeado no rodapé do menu) e pelo sorvete: contas pessoais, lojas licenciadas, usuários e configurações da empresa.", cor: "from-[#c2185b] to-[#7c3aed]", Icone: Lock, itens: SO_ADMIN }] : []),
   ];
   const blocos = todosBlocos.filter((b) => !area || b.id === area).map((b) => ({ ...b, itens: b.itens.filter(combina) })).filter((b) => b.itens.length);
   const todas = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu];

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ModuloContext, type Modulo } from "@/lib/modulo";
 import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
-  Truck, UserCog, Users, Wallet, IceCreamCone, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
+  Truck, UserCog, Users, Wallet, IceCreamCone, Lock, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -294,8 +294,8 @@ export function Layout() {
               </section>
             );
           })}
-          {/* My Frost Sorveterias (as unidades licenciadas): botão rosinha no fim do menu, só para o administrador */}
-          {perfil.papel === "admin" && (!busca.trim() || semAcento("my frost sorveterias licenciados unidades lojas quiosques sorvete").includes(semAcento(busca.trim()))) && (
+          {/* My Frost Sorveterias (as unidades licenciadas): botão rosinha no fim do menu, só para a conta master */}
+          {perfil.master && (!busca.trim() || semAcento("my frost sorveterias licenciados unidades lojas quiosques sorvete").includes(semAcento(busca.trim()))) && (
             <NavLink to="/licenciados" onClick={() => setAberto(false)}
               className={({ isActive }) => `mt-3 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#fbcfe8] to-[#f9a8d4] px-2 py-2.5 text-sm font-bold text-[#831843] shadow-sm transition hover:brightness-105 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : ""}`}>
               <IceCreamCone size={19} aria-hidden /> My Frost Sorveterias
@@ -337,8 +337,8 @@ export function Layout() {
             {([
               // engrenagem: Configurações (e, dentro dela, usuários e formas de pagamento)
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
-              // carteira: painel pessoal do dono, separado da empresa (só o administrador)
-              ...(perfil.papel === "admin" ? [["Painel pessoal", Wallet, () => { setAberto(false); navigate("/pessoal"); }] as const] : []),
+              // cadeado: Retaguarda (carteira pessoal, My Frost, usuários, configurações), só a conta master
+              ...(perfil.master ? [["Retaguarda", Lock, () => { setAberto(false); navigate("/retaguarda"); }] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],

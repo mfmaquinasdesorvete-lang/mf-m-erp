@@ -5,6 +5,7 @@
 // POST { acao: "redefinir_senha", user_id, senha }
 // A senha definida aqui é provisória: a pessoa troca no próximo acesso (usuarios_erp.trocar_senha).
 // "Sempre um administrador ativo" é garantido também no banco (gatilho trg_usuarios_ultimo_admin).
+// Administradores (criar, promover, alterar, trocar a senha) só pela conta master (gatilho trg_usuarios_master).
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 
@@ -29,11 +30,14 @@ Deno.serve(async (req) => {
     const { userId } = await requireErpUser(req, []);
     const body = await req.json();
     const db = adminClient();
+    // administradores (criar, promover, mudar ou trocar a senha de um) só pela conta master
+    const souMaster = async () => !!(await db.from("usuarios_erp").select("master").eq("user_id", userId).maybeSingle()).data?.master;
+    const exigirMaster = async () => { if (!(await souMaster())) throw new HttpError(403, "só a conta master cria ou altera administradores"); };
 
     switch (body.acao) {
       case "listar": {
         const [{ data: perfis }, { data: auth }] = await Promise.all([
-          db.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, cargo, telefone, unidade_id, ativo, trocar_senha, created_at").order("nome"),
+          db.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, cargo, telefone, unidade_id, ativo, trocar_senha, created_at, master").order("nome"),
           db.auth.admin.listUsers({ perPage: 1000 }),
         ]);
         const contas = new Map(auth.users.map((u) => [u.id, { email: u.email, ultimo_acesso: u.last_sign_in_at }]));
@@ -47,6 +51,7 @@ Deno.serve(async (req) => {
         const nome = texto(body.nome, 120);
         if (!nome) throw new HttpError(400, "informe o nome");
         validarSenha(body.senha);
+        if (body.papel === "admin") await exigirMaster();
 
         const { data, error } = await db.auth.admin.createUser({ email, password: body.senha, email_confirm: true, user_metadata: { nome } });
         if (error) throw new HttpError(400, /already|registered|exists/i.test(error.message) ? "já existe um usuário com este e-mail" : error.message);
@@ -66,6 +71,7 @@ Deno.serve(async (req) => {
         if (!body.user_id) throw new HttpError(400, "usuário não informado");
         const { data: atual } = await db.from("usuarios_erp").select("papel, ativo").eq("user_id", body.user_id).maybeSingle();
         if (!atual) throw new HttpError(404, "usuário não encontrado");
+        if (atual.papel === "admin" || body.papel === "admin") await exigirMaster();
         const patch: Record<string, unknown> = {};
         if (body.nome !== undefined) {
           patch.nome = texto(body.nome, 120);
@@ -104,6 +110,10 @@ Deno.serve(async (req) => {
 
       case "redefinir_senha": {
         validarSenha(body.senha);
+        if (body.user_id !== userId) {
+          const { data: alvo } = await db.from("usuarios_erp").select("papel").eq("user_id", body.user_id).maybeSingle();
+          if (alvo?.papel === "admin") await exigirMaster();
+        }
         const { error } = await db.auth.admin.updateUserById(body.user_id, { password: body.senha });
         if (error) throw new HttpError(400, error.message);
         if (body.user_id !== userId) await db.from("usuarios_erp").update({ trocar_senha: true }).eq("user_id", body.user_id);

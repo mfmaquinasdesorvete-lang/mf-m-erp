@@ -78,6 +78,7 @@ const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
+const Retaguarda = lazy(() => import("@/pages/Retaguarda"));
 const TudoDoCliente = lazy(() => import("@/pages/TudoDoCliente"));
 const PainelLicencas = lazy(() => import("@/pages/paineis/PainelLicencas"));
 const Scrum = lazy(() => import("@/pages/Scrum"));
@@ -123,6 +124,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "configuracoes/bancos", tela: "conciliacao", element: <Configuracoes secaoFixa="bancos" /> },
   // régua de cobrança e WhatsApp oficial: quem cobra (financeiro e vendas) também abre
   { path: "configuracoes/cobranca", tela: "financeiro", element: <Configuracoes secaoFixa="cobranca" /> },
+  // categorias e marcadores: do dia a dia, ficam com os administradores (as outras configurações são da Retaguarda)
+  { path: "configuracoes/cadastros", tela: "configuracoes", element: <Configuracoes secaoFixa="cadastros" /> },
   { path: "configuracoes/:secao", tela: "configuracoes", element: <Configuracoes /> },
   { path: "usuarios", tela: "usuarios", element: <Usuarios /> },
   { path: "implantacao", tela: "implantacao", element: <Implantacao /> },
@@ -197,7 +200,7 @@ export default function App() {
     if (!userId) return setPerfil(session === null ? null : undefined);
     setPerfil(undefined);
     setErroPerfil(null);
-    const carregar = () => supabase.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, trocar_senha, ativo, unidade_id, preferencias").eq("user_id", userId).maybeSingle();
+    const carregar = () => supabase.from("usuarios_erp").select("user_id, nome, papel, papeis_extras, trocar_senha, ativo, unidade_id, preferencias, master").eq("user_id", userId).maybeSingle();
     carregar().then(async ({ data, error }) => {
       // sem internet ou servidor fora do ar: não é falta de acesso, é só tentar de novo
       if (error) return setErroPerfil(error.message);
@@ -292,7 +295,7 @@ const INICIO_DO_PAPEL: Partial<Record<string, { to: string; tela: Tela }>> = {
 let inicioFeitoPara: string | null = null; // quem já foi levado à tela inicial nesta aba
 
 function RotasERP() {
-  const { papel, user_id } = usePerfil();
+  const { papel, user_id, master } = usePerfil();
   const vis = useVisivel();
   const location = useLocation();
   const navigate = useNavigate();
@@ -356,11 +359,12 @@ function RotasERP() {
         ))}
         {/* Sobre o ERP Line (módulos e atualizações): todos que entram no ERP abrem, pela versão no fim do menu */}
         <Route path="sobre" element={<Sobre />} />
-        {/* painel pessoal do dono: só o administrador abre (e o banco só mostra as linhas de quem criou) */}
-        {papel === "admin" && <Route path="pessoal" element={<Pessoal />} />}
-        {/* carteira dos licenciados My Frost Sorveterias: também só o administrador (e só o dono lê as linhas) */}
-        {papel === "admin" && <Route path="licenciados" element={<Licenciados />} />}
-        {papel === "admin" && <Route path="painel/licencas" element={<PainelLicencas />} />}
+        {/* Retaguarda: só a conta master (painel pessoal, My Frost Sorveterias, usuários, configurações da empresa);
+            o banco também só mostra as linhas de quem criou */}
+        {master && <Route path="retaguarda" element={<Retaguarda />} />}
+        {master && <Route path="pessoal" element={<Pessoal />} />}
+        {master && <Route path="licenciados" element={<Licenciados />} />}
+        {master && <Route path="painel/licencas" element={<PainelLicencas />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
