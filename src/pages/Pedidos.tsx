@@ -7,7 +7,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Copy, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
@@ -59,6 +59,7 @@ import {
 } from "@/lib/vendasLista";
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
 import { KanbanVendas } from "@/components/vendas/KanbanVendas";
+import { clonarVenda } from "@/lib/clonarVenda";
 import { NfOutraModal, NfOutraPainel, SeloNfOutra } from "@/components/vendas/NfOutraEmpresa";
 import { rotuloNfOutra } from "@/lib/nfOutra";
 
@@ -452,7 +453,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {emitindoLote && <EmitirLote pedidos={selecionados as any} onClose={(ok) => { setEmitindoLote(false); if (ok) { selecao.limpar(); invalidate("pedidos", "notas_fiscais"); } }} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {conciliando && <ConciliarVendas ids={selecionados.map((p) => p.id)} onClose={(ok) => { setConciliando(false); if (ok) selecao.limpar(); }} />}
-      {aberto && <PedidoModal pedido={aberto} onClose={() => setAberto(null)} />}
+      {aberto && <PedidoModal key={(aberto as any).id ?? (aberto as any).__clone ?? "novo"} pedido={aberto} onClose={() => setAberto(null)}
+        onClonar={pode("editar_pedidos") ? (base) => setAberto({ ...clonarVenda(base), __clone: Date.now() } as any) : undefined} />}
     </div>
   );
 }
@@ -583,7 +585,7 @@ function LancarContasLote({ pedidos, onClose }: { pedidos: Pedido[]; onClose: (o
   );
 }
 
-function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & { itens: Item[] }; onClose: () => void }) {
+function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<Pedido> & { itens: Item[] }; onClose: () => void; onClonar?: (base: Partial<Pedido> & { itens: Item[] }) => void }) {
   const { padrao, unidades } = useUnidade();
   const { data: ufsIcms = [] } = useRows<{ uf: string }>("icms_uf", { order: "uf", ascending: true });
   const [pendencias, setPendencias] = useState<Pendencia[] | null>(null);
@@ -1113,6 +1115,10 @@ function PedidoModal({ pedido: inicial, onClose }: { pedido: Partial<Pedido> & {
           )}
           {pode("editar_os") && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
             <Button type="button" tom="servico" title="Abrir uma ordem de serviço (instalação, entrega técnica, garantia) ligada a este pedido" onClick={abrirOS}><Wrench size={16} /> Abrir OS</Button>
+          )}
+          {onClonar && p.id && (p.itens?.length ?? 0) > 0 && (
+            <Button type="button" variant="secondary" title="Abrir um orçamento novo com o mesmo cliente, itens, pagamento e frete"
+              onClick={() => { onClonar(p as Partial<Pedido> & { itens: Item[] }); notify(`Cópia da venda #${p.numero}: confira e salve o orçamento novo`); }}><Copy size={16} /> Clonar venda</Button>
           )}
           {ajustavel && !temNotaValida && (
             <Button type="button" tom="desfazer" onClick={() => setAcaoMotivo("reabrir")} disabled={ocupado}><RotateCcw size={16} /> Reabrir pedido</Button>
