@@ -110,14 +110,14 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
         </div>
       )}
 
-      {/* um bloco por etapa */}
-      <div className={`grid grid-cols-3 gap-2 ${etapas.length > 6 ? "lg:grid-cols-7" : etapas.length > 4 ? "lg:grid-cols-6" : "lg:grid-cols-4"}`} role="tablist" aria-label="Etapas">
+      {/* um bloco por etapa (no celular, uma faixa que rola para o lado em vez de 3 linhas de blocos) */}
+      <div className={`faixa-chips gap-2 pt-1.5 sm:grid sm:grid-cols-3 sm:pt-0 ${etapas.length > 6 ? "lg:grid-cols-7" : etapas.length > 4 ? "lg:grid-cols-6" : "lg:grid-cols-4"}`} role="tablist" aria-label="Etapas">
         {etapas.map((e) => {
           const r = resumo.get(e.id)!;
           const ativo = etapa === e.id;
           return (
             <button key={e.id} type="button" role="tab" aria-selected={ativo} onClick={() => setEtapa(ativo ? null : e.id)} title={`${e.titulo}: ${e.frase}`}
-              className={`relative flex min-w-0 flex-col rounded-xl border bg-surface p-2 text-left shadow-card transition hover:-translate-y-0.5 hover:border-brand/60 sm:p-3 ${ativo ? "border-brand ring-2 ring-brand/40" : "border-slate-200"}`}>
+              className={`relative flex w-[6.5rem] min-w-0 flex-col rounded-xl border bg-surface p-2 text-left sm:w-auto shadow-card transition hover:-translate-y-0.5 hover:border-brand/60 sm:p-3 ${ativo ? "border-brand ring-2 ring-brand/40" : "border-slate-200"}`}>
               <span className="flex items-center gap-1.5 text-2xs font-semibold leading-tight text-slate-600 sm:pr-5 sm:text-xs">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: e.cor }} />
                 <span className="truncate">{e.curto}</span>

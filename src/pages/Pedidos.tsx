@@ -324,9 +324,9 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         direita={!destaque && (
           <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as vendas em">
             {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
-              <button key={m} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
+              <button key={m} aria-label={rotulo} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
                 className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                <Icone size={15} aria-hidden /><span>{rotulo}</span>
+                <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
               </button>
             ))}
           </div>

@@ -374,7 +374,7 @@ function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: str
           <div key={l} className="rounded-xl border border-slate-200 p-2.5"><div className="text-xs text-slate-500">{l}</div><div className="num font-bold text-fg">{v}</div></div>
         ))}
       </div>
-      <div role="tablist" aria-label="Filtrar lançamentos" className="mb-3 flex flex-wrap gap-1.5">
+      <div role="tablist" aria-label="Filtrar lançamentos" className="faixa-chips mb-3">
         {([["todos", "Todos"], ["validar", `A validar (${aValidar.length})`], ["nao_aprovados", "Ainda não aprovados"], ["duvidas", "Dúvidas e ajustados"]] as const).map(([v, t]) => (
           <button key={v} type="button" role="tab" aria-selected={filtro === v} onClick={() => setFiltro(v)}
             className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>{t}</button>

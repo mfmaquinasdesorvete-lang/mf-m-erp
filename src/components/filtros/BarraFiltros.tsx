@@ -49,8 +49,8 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           </button>
         )}
         {algo && onLimpar && (
-          <button type="button" onClick={() => { onLimpar(); setPainel(null); }} className="inline-flex h-10 items-center gap-1 px-2 text-sm font-semibold text-slate-600 hover:text-fg">
-            <X size={15} aria-hidden /> Limpar
+          <button type="button" onClick={() => { onLimpar(); setPainel(null); }} aria-label="Limpar filtros" title="Limpar filtros" className="inline-flex h-10 items-center gap-1 px-2 text-sm font-semibold text-slate-600 hover:text-fg">
+            <X size={15} aria-hidden /> <span className="hidden sm:inline">Limpar</span>
           </button>
         )}
         {direita && <div className="ml-auto flex flex-wrap items-center gap-2">{direita}</div>}
@@ -109,7 +109,7 @@ export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotul
   cores?: Partial<Record<T, { ponto: string; ativo: string }>>;
 }) {
   return (
-    <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label={rotulo}>
+    <div className="faixa-chips mb-3" role="group" aria-label={rotulo}>
       {opcoes.map((o, i) => {
         if (!o.n && i > 0 && o.value !== valor) return null;
         const ativo = o.value === valor;

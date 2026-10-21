@@ -156,6 +156,13 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 @layer components {
+  /* chips/abas de filtro: no celular uma linha só que rola para o lado (antes quebravam em 3 ou 4 linhas no topo) */
+  .faixa-chips {
+    @apply -mx-4 flex flex-nowrap gap-1.5 overflow-x-auto px-4 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0;
+    scrollbar-width: none;
+  }
+  .faixa-chips::-webkit-scrollbar { display: none; }
+  .faixa-chips > * { @apply shrink-0 whitespace-nowrap; }
   /* janelas: a linha Cancelar/Salvar do fim do formulário fica presa no pé da tela quando a janela é mais alta que a tela
      (notebook com tela baixa não via o Salvar sem rolar) */
   .modal-corpo form > div:last-child:has(> button[type="submit"], > button:not([type])) {

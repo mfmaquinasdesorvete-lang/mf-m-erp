@@ -415,17 +415,17 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         aposTitulo={<>
           {podeMover && precosPendentes > 0 && (
             <button type="button" onClick={() => setAba("precos")}
-              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800">
-              <AlertTriangle size={18} className="shrink-0" />
-              <span className="min-w-0 flex-1"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b>: o custo mudou e o preço ficou abaixo da margem desejada.</span>
+              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-left text-sm text-amber-800 sm:py-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span className="min-w-0 flex-1 truncate sm:whitespace-normal"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b><span className="hidden sm:inline">: o custo mudou e o preço ficou abaixo da margem desejada.</span></span>
               <span className="shrink-0 font-semibold underline">Revisar</span>
             </button>
           )}
           {baixos.length > 0 && (
             <button type="button" onClick={() => navigate("/estoque?aba=qualidade&problema=abaixo_minimo")} title="Ver a lista dos itens no mínimo"
-              className="mb-3 flex w-full items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800 hover:border-amber-400">
-              <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-              <span>
+              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-left text-sm text-amber-800 hover:border-amber-400 sm:mb-3 sm:items-start sm:py-2">
+              <AlertTriangle size={16} className="shrink-0 sm:mt-0.5" />
+              <span className="min-w-0 flex-1 truncate sm:whitespace-normal">
                 <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
                 <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
                   {baixos.length > 6 && "…"}</span>
@@ -434,16 +434,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             </button>
           )}
 
-          {!ehMaquinas && <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Cadastro de produtos">
+          {!ehMaquinas && <div className="faixa-chips mb-2 sm:mb-3 sm:gap-2" role="tablist" aria-label="Cadastro de produtos">
             {CADASTROS.filter((c) => c.id !== "maquinas").map((c) => (
               <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-card " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-card " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
                 {c.titulo}
                 <span className={`num rounded-full px-1.5 text-xs leading-5 ${cadastro === c.id ? "bg-white/25" : "bg-slate-100 text-slate-600"}`}>{contagem(c.id)}</span>
               </button>
             ))}
           </div>}
-          <p className="mb-3 text-xs text-slate-600 sm:text-sm">
+          <p className="mb-3 hidden text-sm text-slate-600 sm:block">
             {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="font-semibold text-brand hover:underline">Produtos e estoque</Link>.</> : atualCad.ajuda}
           </p>
           {ehMaquinas && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}

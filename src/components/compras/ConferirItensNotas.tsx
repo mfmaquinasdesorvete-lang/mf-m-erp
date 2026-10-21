@@ -177,7 +177,7 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
           </span>
         </label>
       </div>
-      <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Situação dos itens">
+      <div className="faixa-chips mb-3" role="tablist" aria-label="Situação dos itens">
         {FILTROS.map((f) => (
           <button key={f.id} type="button" role="tab" aria-selected={filtro === f.id} onClick={() => { setFiltro(f.id); setLimite(POR_VEZ); setSel(new Set()); }}
             className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${filtro === f.id ? "border-transparent bg-modulo-escuro text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>

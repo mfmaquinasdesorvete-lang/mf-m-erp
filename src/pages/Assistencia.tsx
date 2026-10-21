@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   Camera, CheckCircle2, ClipboardCheck, FileDown, History, MessageCircle, PackageCheck, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, Wrench,
 } from "lucide-react";
-import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
+import { Badge, CelulaAbrir, Button, Card, Field, MaisAcoes, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
 import { Assinatura } from "@/components/Assinatura";
@@ -169,6 +169,9 @@ export default function Assistencia() {
         title="Ordens de serviço"
         subtitle="Recepção com checklist e fotos, laudo, peças, assinatura do cliente e histórico por nº de série."
         actions={<>
+          {pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
+          {/* exportar e excluídas ficam no "Mais": o topo fica com uma linha só */}
+          <MaisAcoes>
           <Button variant="secondary" onClick={() => baixarPlanilha("ordens-de-servico", [{ nome: "OS", linhas: lista.map((o) => ({
             OS: o.numero, Entrada: dataBR(o.data_entrada), Cliente: o.cliente?.nome ?? "", Equipamento: o.equipamento ?? "", Série: o.numero_serie ?? "",
             Situação: o.status, Garantia: o.em_garantia ? "sim" : "não", Previsão: dataBR(o.previsao), Valor: o.em_garantia ? 0 : Number(o.valor_total ?? 0),
@@ -176,7 +179,7 @@ export default function Assistencia() {
             Marcadores: (o.marcadores ?? []).map((id) => marcadores.find((m) => m.id === id)?.nome).filter(Boolean).join(", "),
           })) }]).catch(notifyError)}><FileDown size={16} /> Exportar</Button>
           {pode("editar_os") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
+          </MaisAcoes>
         </>}
       />
 
@@ -203,8 +206,8 @@ export default function Assistencia() {
         direita={
           <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
             {([["quadro", "Quadro", Columns3], ["lista", "Lista", List], ["video", "Vídeo chamadas", Video]] as const).map(([v, l, I]) => (
-              <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
+              <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)} aria-label={l} title={l}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> <span className={modo === v ? "" : "hidden sm:inline"}>{l === "Vídeo chamadas" ? <>Vídeo<span className="hidden sm:inline"> chamadas</span></> : l}</span></button>
             ))}
           </div>
         } />

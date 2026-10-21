@@ -83,7 +83,7 @@ function BotaoImportar({ tipo, rotulo }: { tipo: TipoImportacao; rotulo: string 
 /** Abas com contagem (Todas 388 · Pendentes 4 …), como no Tiny. */
 function AbasContagem({ abas, valor, onChange }: { abas: { valor: string; rotulo: string; n: number; icone?: ReactNode }[]; valor: string; onChange: (v: string) => void }) {
   return (
-    <div className="mb-3 flex flex-wrap gap-1.5" role="tablist">
+    <div className="faixa-chips mb-3" role="tablist">
       {abas.map((a) => (
         <button key={a.valor} type="button" role="tab" aria-selected={valor === a.valor} onClick={() => onChange(a.valor)}
           className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${valor === a.valor ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:bg-slate-50"}`}>

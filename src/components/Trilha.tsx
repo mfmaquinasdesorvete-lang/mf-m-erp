@@ -44,9 +44,9 @@ export function Trilha() {
   // a primeira tela aberta (link, nova aba ou recarregar sem histórico) tem a chave "default": sem tela anterior no ERP
   const temAnterior = key !== "default";
   return (
-    <nav aria-label="Você está em" className="mb-2 flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1 text-sm sm:mb-3 sm:flex-wrap">
+    <nav aria-label="Você está em" className="mb-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1 text-sm sm:mb-3 sm:flex-wrap">
       <button type="button" onClick={() => (temAnterior ? navigate(-1) : navigate(subir))}
-        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-surface px-2.5 py-1 font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-surface px-2 py-0.5 font-semibold sm:px-2.5 sm:py-1 text-slate-700 shadow-sm hover:bg-slate-50">
         <ChevronLeft size={16} aria-hidden /> Voltar
       </button>
       {/* no celular a trilha fica numa linha só: Voltar + a área (o nome da tela já está no título logo abaixo) */}

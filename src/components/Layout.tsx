@@ -360,7 +360,7 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="fundo-modulo relative min-w-0 flex-1 px-4 pb-32 pt-5 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
+      <main className="fundo-modulo relative min-w-0 flex-1 px-4 pb-32 pt-3 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
         {/* assinatura das empresas desde 2009 */}
         <span className="assinatura pointer-events-none absolute right-4 top-1.5 hidden select-none text-xl text-modulo-texto/70 md:block 2xl:right-8" aria-hidden>Sopro Divino</span>
         <ModuloContext.Provider value={modulo}>

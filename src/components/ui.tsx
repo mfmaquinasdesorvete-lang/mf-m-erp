@@ -76,22 +76,23 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
     );
   }
   return (
-    <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
-      <div className="flex min-w-0 items-center gap-3">
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:mb-5 sm:items-end">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {Icone && (
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden>
-            <Icone size={22} />
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card sm:h-11 sm:w-11" aria-hidden>
+            <Icone size={20} />
           </span>
         )}
         <div className="min-w-0">
-          {modulo?.titulo && modulo.titulo !== title && <p className="text-2xs font-bold uppercase tracking-wider text-modulo-texto">{modulo.titulo}</p>}
-          <h1 className="text-xl font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
+          {/* no celular a área já aparece na trilha logo acima */}
+          {modulo?.titulo && modulo.titulo !== title && <p className="hidden text-2xs font-bold uppercase tracking-wider text-modulo-texto sm:block">{modulo.titulo}</p>}
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-fg sm:text-2xl">{title}</h1>
           {/* no celular a explicação fica em 2 linhas (tocar mostra tudo): antes empurrava a tela 4 ou 5 linhas para baixo */}
           {subtitle && <p className="mt-0.5 line-clamp-1 text-sm text-slate-500 sm:line-clamp-none" title={subtitle}
             onClick={(e) => e.currentTarget.classList.toggle("line-clamp-1")}>{subtitle}</p>}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">{actions}</div>
+      <div className="ml-auto flex flex-wrap gap-2">{actions}</div>
     </div>
   );
 }
@@ -517,9 +518,9 @@ export function Tabs<T extends string>({
   return (
     <>
     {lista && (
-      <label className="mb-4 flex items-center gap-2 md:hidden">
+      <label className="mb-2 flex items-center gap-2 md:hidden">
         <span className="sr-only">Seção</span>
-        <select className="input border-modulo/50 font-semibold text-fg" value={value} onChange={(e) => onChange(e.target.value as T)}>
+        <select className="input border-modulo/50 py-1.5 font-semibold text-fg" value={value} onChange={(e) => onChange(e.target.value as T)}>
           {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </label>
@@ -561,7 +562,7 @@ export function MaisAcoes({ children, rotulo = "Mais" }: { children: ReactNode; 
         const largura = Math.min(window.innerWidth - 32, 18 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16));
         setPos({ top: r.bottom + 4, left: Math.max(16, Math.min(r.right - largura, window.innerWidth - largura - 16)), width: largura });
         setAberto((a) => !a);
-      }}><MoreHorizontal size={16} /> {rotulo}</Button>
+      }}><MoreHorizontal size={16} /> <span className="hidden sm:inline">{rotulo}</span></Button>
       {aberto && <div className="fixed inset-0 z-40" aria-hidden onClick={() => setAberto(false)} />}
       <div role="menu" onClick={() => setAberto(false)} style={pos ? { top: pos.top, left: pos.left, width: pos.width } : undefined}
         className={`${aberto ? "flex" : "hidden"} fixed z-50 max-h-[70vh] flex-col gap-1 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
