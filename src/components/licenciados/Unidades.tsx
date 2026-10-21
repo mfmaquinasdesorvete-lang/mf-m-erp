@@ -14,7 +14,7 @@ import { numeroBR } from "@/lib/fichaCadastral";
 import { usePerfil } from "@/lib/auth";
 import {
   CATEGORIAS_CUSTO, CONTRATOS, SITUACOES_LOJA, SITUACOES_MAQUINA, corDaLoja, enderecoCompleto, faltaNaFicha, linkMapa, nomeCategoria,
-  nomeModelo, nomeTipo, resumoUnidade, valePagamento, FILTROS_LOJA, noFiltroLoja, type FiltroLoja,
+  nomeModelo, nomeTipo, resumoUnidade, valePagamento, FILTROS_LOJA, noFiltroLoja, MARCAS_LOJA, nomeMarca, somaParticipacao, type FiltroLoja, type MarcaLoja,
   type ArquivoLoja, type CustoLoja, type Loja, type MaquinaLoja, type PagamentoLoja, type SituacaoLoja,
 } from "@/lib/licenciados";
 
@@ -35,9 +35,11 @@ function ChipContrato({ l }: { l: Loja }) {
 export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbrir: (l: Loja) => void; onNova: () => void }) {
   const [filtro, setFiltro] = useState<FiltroLoja>("ativa");
   const [busca, setBusca] = useState("");
+  const [marca, setMarca] = useState<MarcaLoja | "">("");
   const naFiltro = noFiltroLoja;
   const t = sem(busca.trim());
-  const lista = dados.lojas.filter((l) => naFiltro(l.situacao, filtro) && (!t || sem([l.nome, l.cidade, l.uf, l.responsavel, l.endereco, l.documento].join(" ")).includes(t)));
+  const lista = dados.lojas.filter((l) => naFiltro(l.situacao, filtro) && (!marca || (l.marca ?? "myfrost") === marca)
+    && (!t || sem([l.nome, l.cidade, l.uf, l.responsavel, l.endereco, l.documento, nomeMarca(l.marca), ...(l.socios ?? []).map((x) => x.nome)].join(" ")).includes(t)));
   const n = (f: FiltroLoja) => dados.lojas.filter((l) => naFiltro(l.situacao, f)).length;
   return (
     <div>
@@ -48,6 +50,12 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
               className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${filtro === f ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}>{r} <span className="num opacity-70">{n(f)}</span></button>
           ))}
         </div>
+        {dados.lojas.some((l) => l.marca === "yozzy") && (
+          <select className="input w-auto" value={marca} onChange={(e) => setMarca(e.target.value as MarcaLoja | "")} aria-label="Marca">
+            <option value="">Todas as marcas</option>
+            {MARCAS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome} · {dados.lojas.filter((l) => (l.marca ?? "myfrost") === m.id).length}</option>)}
+          </select>
+        )}
         <label className="relative min-w-0 flex-1 sm:max-w-xs">
           <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
           <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar unidade, cidade ou responsável" aria-label="Buscar unidade" />
@@ -64,10 +72,11 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
             <button key={l.id} type="button" onClick={() => onAbrir(l)}
               className={`overflow-hidden rounded-2xl border border-slate-200 bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-70" : ""}`}>
               <div className="p-3.5 text-white" style={{ background: `linear-gradient(135deg, ${corDaLoja(l.cor)}, #0f172a)` }}>
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-2.5">
+                  <SeloCidade cidade={l.cidade} uf={l.uf} />
                   <div className="min-w-0 flex-1">
                     <div className="line-clamp-2 text-base font-bold leading-tight">{l.nome}</div>
-                    <div className="truncate text-xs opacity-85">{[nomeModelo(l.modelo), [l.cidade, l.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") || "cidade não informada"}</div>
+                    <div className="truncate text-xs opacity-85">{[nomeMarca(l.marca), nomeModelo(l.modelo), l.cidade].filter(Boolean).join(" · ")}</div>
                   </div>
                   <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-2xs font-bold">{sit?.nome}</span>
                 </div>
@@ -84,6 +93,7 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
                   <ChipContrato l={l} />
                   {l.inicio && <span>aberta em {dataBR(l.inicio)}</span>}
                 </p>
+                {(l.socios?.length ?? 0) > 0 && <p>{l.socios!.length} {pl(l.socios!.length, "sócio", "sócios")}{somaParticipacao(l.socios) != null && somaParticipacao(l.socios) !== 100 ? ` · participações somam ${somaParticipacao(l.socios)}%` : ""}</p>}
                 {falta.length > 0 && <p className="text-amber-800">Falta: {falta.join(", ")}</p>}
               </div>
             </button>
@@ -180,6 +190,26 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
               {l.email && <span>{l.email}</span>}</div></div>
           <div><div className="text-xs font-semibold text-slate-500">E-mail da My Frost</div><div className="break-all text-fg">{l.email_institucional || "—"}</div></div>
           {l.observacoes && <p className="whitespace-pre-line rounded-lg bg-slate-50 p-2 text-xs text-slate-600 sm:col-span-2">{l.observacoes}</p>}
+        </section>
+
+        <section aria-label="Sócios" className="rounded-xl border border-slate-200 p-3">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h3 className="font-bold text-fg">Sócios da unidade</h3>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-700">{nomeMarca(l.marca)}</span>
+            {somaParticipacao(l.socios) != null && somaParticipacao(l.socios) !== 100 && <span className="text-xs font-semibold text-amber-800">as participações somam {somaParticipacao(l.socios)}%</span>}
+          </div>
+          {(l.socios?.length ?? 0) ? (
+            <ul className="divide-y divide-slate-100">
+              {l.socios!.map((x, i) => (
+                <li key={i} className="flex flex-wrap items-baseline gap-x-3 py-1.5">
+                  <span className="font-semibold text-fg">{x.nome}</span>
+                  {x.participacao != null && <span className="num text-slate-600">{x.participacao.toLocaleString("pt-BR")}%</span>}
+                  {x.telefone && <a className="text-xs underline" href={`https://wa.me/55${x.telefone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">{x.telefone}</a>}
+                  {x.email && <span className="break-all text-xs text-slate-500">{x.email}</span>}
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-xs text-slate-500">Nenhum sócio cadastrado. Use "Editar dados" para incluir.</p>}
         </section>
 
         <section aria-label="Contrato" className="rounded-xl border border-slate-200 p-3">
@@ -366,3 +396,16 @@ export function MaquinasAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loj
   );
 }
 
+
+/** Selo da cidade e do estado no cartão: a UF grande e a cidade embaixo, como um carimbo. */
+export function SeloCidade({ cidade, uf }: { cidade?: string | null; uf?: string | null }) {
+  return (
+    <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-white/70 bg-white/15 text-center leading-none shadow-inner"
+      title={[cidade, uf].filter(Boolean).join("/") || "cidade não informada"} aria-label={[cidade, uf].filter(Boolean).join(", ") || "cidade não informada"}>
+      <div>
+        <div className="text-lg font-black tracking-wide">{uf?.toUpperCase() || "?"}</div>
+        <div className="mx-auto mt-0.5 max-w-[3.1rem] truncate text-[9px] font-semibold uppercase opacity-90">{cidade || "cidade"}</div>
+      </div>
+    </div>
+  );
+}

@@ -14,7 +14,26 @@ export type Loja = {
   /** ficha da unidade (My Frost Sorveterias): modelo, endereço, contato e contrato */
   modelo?: ModeloLoja | null; endereco?: string | null; cep?: string | null; email?: string | null; email_institucional?: string | null;
   contrato?: SituacaoContrato | null; contrato_assinado_em?: string | null; contrato_vence_em?: string | null; contrato_obs?: string | null;
+  /** marca da unidade (My Frost ou Yozzy) e os sócios dela, com a participação de cada um */
+  marca?: MarcaLoja | null; socios?: Socio[] | null;
 };
+export type MarcaLoja = "myfrost" | "yozzy";
+export type Socio = { nome: string; participacao?: number | null; telefone?: string | null; email?: string | null };
+export const MARCAS_LOJA: { id: MarcaLoja; nome: string }[] = [{ id: "myfrost", nome: "My Frost" }, { id: "yozzy", nome: "Yozzy" }];
+export const nomeMarca = (m: string | null | undefined) => MARCAS_LOJA.find((x) => x.id === m)?.nome ?? "My Frost";
+/** Soma das participações informadas (null quando ninguém tem %). */
+export function somaParticipacao(socios: Socio[] | null | undefined) {
+  const com = (socios ?? []).filter((x) => x.participacao != null && Number.isFinite(Number(x.participacao)));
+  return com.length ? Math.round(com.reduce((t, x) => t + Number(x.participacao), 0) * 100) / 100 : null;
+}
+/** Sócios válidos para gravar: com nome, % entre 0 e 100, sem linhas vazias. */
+export function limparSocios(socios: Socio[] | null | undefined): Socio[] {
+  return (socios ?? []).map((x) => ({
+    nome: String(x.nome ?? "").trim().replace(/\s+/g, " "),
+    participacao: x.participacao == null || String(x.participacao).trim() === "" ? null : Math.min(100, Math.max(0, Number(String(x.participacao).replace(",", ".")))),
+    telefone: String(x.telefone ?? "").trim() || null, email: String(x.email ?? "").trim() || null,
+  })).filter((x) => x.nome.length >= 2).slice(0, 12);
+}
 export type CategoriaCusto = "maquinas" | "insumos" | "pdv" | "moveis" | "montagem" | "suporte" | "uniformes" | "comunicacao" | "inauguracao" | "frete" | "viagem" | "outros";
 export type CustoLoja = { id: string; loja_id: string; data: string; categoria: CategoriaCusto; descricao: string | null; valor: number; observacao: string | null; anulado: boolean };
 export type SituacaoMaquina = "na_loja" | "manutencao" | "devolvida" | "baixada";

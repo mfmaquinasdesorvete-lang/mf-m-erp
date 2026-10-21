@@ -1434,6 +1434,8 @@ function bancosDemo(db: Db) {
       modelo: "loja", endereco: null, cep: null, contrato: "negociando" },
     { ...lojaDemo, id: "lj3", nome: "My Frost Bairro Modelo", cidade: "Bairro Modelo", uf: "MG", nomes_extrato: [], situacao: "fechando", inicio: dias(-320), valor_combinado: null, mensalidade: null, cor: "laranja", ordem: 2,
       modelo: "loja_cafeteria", endereco: "Avenida Teste, 200 - Loja 5", cep: null, contrato: "sem", observacoes: "Vai fechar: combinar a devolução das máquinas." },
+    { ...lojaDemo, id: "lj4", nome: "Yozzy Litoral Exemplo", cidade: "Litoral Exemplo", uf: "SP", nomes_extrato: [], situacao: "ativa", inicio: dias(-90), valor_combinado: null, mensalidade: null, cor: "violeta", ordem: 3,
+      modelo: "loja", endereco: null, cep: null, contrato: "sem", marca: "yozzy", socios: [{ nome: "Sócio Exemplo A", participacao: 50 }, { nome: "Sócio Exemplo B", participacao: 50 }] },
   ];
   db.licenciados_maquinas = [
     { id: "lm1", loja_id: "lj1", descricao: "Máquina de sorvete soft 2 sabores", numero_serie: "EX-001", data_compra: dias(-205), valor: 18000, situacao: "na_loja", observacao: null },

@@ -24,7 +24,7 @@ import type { Parte } from "@/lib/partesRelacionadas";
 import type { ContaPessoal, Empresa, LancPessoal } from "@/lib/pessoal";
 import { paresEntreContas } from "@/lib/pessoalCards";
 import {
-  CONTRATOS, CORES_LOJA, FORMAS_PAGAMENTO, MODELOS_LOJA, PERIODOS_LIC, SITUACOES_LOJA, SITUACOES_MAQUINA, TIPOS_PAGAMENTO, cepBR, corDaLoja, deEmpresaOuSocio,
+  CONTRATOS, CORES_LOJA, FORMAS_PAGAMENTO, MARCAS_LOJA, MODELOS_LOJA, limparSocios, nomeMarca, somaParticipacao, type Socio, PERIODOS_LIC, SITUACOES_LOJA, SITUACOES_MAQUINA, TIPOS_PAGAMENTO, cepBR, corDaLoja, deEmpresaOuSocio,
   entradasCartao, entradasPessoais, faixaLic, nomeCategoria, nomeContrato, nomeForma, nomeModelo, nomeSituacao, nomeTipo, nomesComTermo, resumoLojas,
   serieMensalLojas, sugestoes, valePagamento,
   type ArquivoLoja, type ContaBancaria, type CustoLoja, type ExtratoLinha, type Loja, type MaquinaLoja, type PagamentoLoja, type PeriodoLic,
@@ -181,7 +181,7 @@ export default function Licenciados() {
     try {
       await baixarPlanilha(`my-frost-sorveterias-${hoje()}`, [
         { nome: "Unidades", linhas: ordenadas.map((r) => ({
-          Unidade: r.loja.nome, Modelo: nomeModelo(r.loja.modelo) ?? "", Endereço: r.loja.endereco ?? "", Cidade: r.loja.cidade ?? "", UF: r.loja.uf ?? "", CEP: cepBR(r.loja.cep),
+          Unidade: r.loja.nome, Marca: nomeMarca(r.loja.marca), Sócios: (r.loja.socios ?? []).map((x) => x.participacao != null ? `${x.nome} (${x.participacao}%)` : x.nome).join(", "), Modelo: nomeModelo(r.loja.modelo) ?? "", Endereço: r.loja.endereco ?? "", Cidade: r.loja.cidade ?? "", UF: r.loja.uf ?? "", CEP: cepBR(r.loja.cep),
           Situação: nomeSituacao(r.loja.situacao), Abertura: r.loja.inicio ? dataBR(r.loja.inicio) : "", Responsável: r.loja.responsavel ?? "", Telefone: r.loja.telefone ?? "",
           "E-mail": r.loja.email ?? "", "E-mail My Frost": r.loja.email_institucional ?? "", Contrato: nomeContrato(r.loja.contrato),
           "Contrato assinado em": r.loja.contrato_assinado_em ? dataBR(r.loja.contrato_assinado_em) : "", "Contrato vence em": r.loja.contrato_vence_em ? dataBR(r.loja.contrato_vence_em) : "",
@@ -478,6 +478,7 @@ function LojaModal({ loja, comPagamento, onClose, onGravar }: { loja: Partial<Lo
       situacao: l.situacao ?? "ativa", inicio: l.inicio || null, valor_combinado: numeroBR(l.combinado_txt), mensalidade: numeroBR(l.mensalidade_txt),
       contrato: l.contrato ?? "sem", contrato_assinado_em: l.contrato_assinado_em || null, contrato_vence_em: l.contrato_vence_em || null, contrato_obs: txt(l.contrato_obs),
       cor: l.cor ?? "rosa", observacoes: txt(l.observacoes),
+      marca: l.marca ?? "myfrost", socios: limparSocios(l.socios),
     });
   };
   return (
@@ -488,6 +489,9 @@ function LojaModal({ loja, comPagamento, onClose, onGravar }: { loja: Partial<Lo
           <Field label="Nome da unidade" className="sm:col-span-2"><input className="input" value={l.nome ?? ""} onChange={(e) => set("nome", e.target.value)} required minLength={2} maxLength={120} placeholder="Ex.: My Frost Centro" autoFocus /></Field>
           <Field label="Modelo">
             <select className="input" value={l.modelo ?? ""} onChange={(e) => set("modelo", e.target.value)}><option value="">Não informado</option>{MODELOS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}</select>
+          </Field>
+          <Field label="Marca">
+            <select className="input" value={l.marca ?? "myfrost"} onChange={(e) => set("marca", e.target.value)}>{MARCAS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}</select>
           </Field>
           <Field label="Situação">
             <select className="input" value={l.situacao ?? "ativa"} onChange={(e) => set("situacao", e.target.value)}>{SITUACOES_LOJA.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}</select>
@@ -519,6 +523,7 @@ function LojaModal({ loja, comPagamento, onClose, onGravar }: { loja: Partial<Lo
           <Field label="Observação do contrato" className="sm:col-span-2"><input className="input" value={l.contrato_obs ?? ""} onChange={(e) => set("contrato_obs", e.target.value)} maxLength={1000} placeholder="Ex.: o que foi combinado, multa, renovação" /></Field>
           <p className="text-xs text-slate-500 sm:col-span-2">O contrato assinado (PDF ou foto) vai na ficha da unidade, em "Anexar arquivo".</p>
         </fieldset>
+        <EditorSocios valor={l.socios ?? []} onChange={(v) => set("socios", v)} />
         <Field label="Como aparece no extrato (separe por vírgula)">
           <input className="input" value={l.nomes_txt} onChange={(e) => set("nomes_txt", e.target.value)} placeholder="Ex.: o nome cortado do Pix no Itaú" />
         </Field>
@@ -579,5 +584,28 @@ function PagamentoModal({ pag, lojas, onClose, onGravar }: { pag: Partial<Pagame
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit">Salvar</Button></div>
       </form>
     </Modal>
+  );
+}
+
+/** Os sócios da unidade: nome, % de participação e contato; a soma das % aparece embaixo. */
+function EditorSocios({ valor, onChange }: { valor: Socio[]; onChange: (v: Socio[]) => void }) {
+  const mudar = (i: number, k: keyof Socio, v: string) => onChange(valor.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const soma = somaParticipacao(limparSocios(valor));
+  return (
+    <fieldset className="space-y-2 rounded-xl border border-slate-200 p-3">
+      <legend className="px-1 text-sm font-bold text-fg">Sócios da unidade</legend>
+      {valor.map((x, i) => (
+        <div key={i} className="grid grid-cols-[1fr_5rem_auto] gap-2 sm:grid-cols-[1fr_5rem_10rem_auto]">
+          <input className="input" value={x.nome ?? ""} onChange={(e) => mudar(i, "nome", e.target.value)} placeholder="Nome do sócio" aria-label={`Nome do sócio ${i + 1}`} maxLength={120} />
+          <input className="input" inputMode="decimal" value={x.participacao ?? ""} onChange={(e) => mudar(i, "participacao", e.target.value)} placeholder="%" aria-label={`Participação do sócio ${i + 1} (%)`} />
+          <input className="input hidden sm:block" inputMode="tel" value={x.telefone ?? ""} onChange={(e) => mudar(i, "telefone", e.target.value)} placeholder="Telefone" aria-label={`Telefone do sócio ${i + 1}`} maxLength={40} />
+          <button type="button" onClick={() => onChange(valor.filter((_, j) => j !== i))} className="rounded-lg px-2 text-red-600 hover:bg-red-50" aria-label={`Tirar o sócio ${i + 1}`}><X size={16} /></button>
+        </div>
+      ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="button" variant="secondary" onClick={() => onChange([...valor, { nome: "", participacao: null }])}><Plus size={15} /> Sócio</Button>
+        {soma != null && <span className={`text-xs font-semibold ${soma === 100 ? "text-emerald-700" : "text-amber-800"}`}>Participações somam {soma.toLocaleString("pt-BR")}%{soma === 100 ? " ✓" : ""}</span>}
+      </div>
+    </fieldset>
   );
 }
