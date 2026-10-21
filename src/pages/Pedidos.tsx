@@ -7,7 +7,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, Copy, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Copy, Send, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
@@ -60,6 +60,9 @@ import {
 import { COR_PAGAMENTO, EtiquetaPagamento, IconeEnvio, IconeMeio, MiniaturaVenda, SinaisVenda } from "@/components/vendas/ColunasVenda";
 import { KanbanVendas } from "@/components/vendas/KanbanVendas";
 import { clonarVenda } from "@/lib/clonarVenda";
+import { EnviarRastreio } from "@/components/pedidos/EnviarRastreio";
+import { UltimasVendas } from "@/components/pedidos/AtalhosCliente";
+import { MenuAcoes } from "@/components/MenuAcoes";
 import { NfOutraModal, NfOutraPainel, SeloNfOutra } from "@/components/vendas/NfOutraEmpresa";
 import { rotuloNfOutra } from "@/lib/nfOutra";
 
@@ -176,6 +179,20 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const [soLicenciados, setSoLicenciados] = useState(false);
   const { data: marcadores = [] } = useMarcadores();
   const [aberto, setAberto] = useState<(Partial<Pedido> & { itens: Item[] }) | null>(null);
+  const [ultimasDe, setUltimasDe] = useState<Cliente | null>(null);
+  /** Menu "…" de cada venda, como no Tiny: abrir, PDF, rastreio, clonar, últimas vendas e WhatsApp do cliente. */
+  const menuVenda = (p: Pedido) => {
+    const abrir = (acao?: string) => setAberto({ ...p, itens: p.itens ?? [], ...(acao ? { __acao: acao } : {}) } as any);
+    const zap = p.cliente?.whatsapp || p.cliente?.telefone;
+    return <MenuAcoes rotulo={`Ações da venda ${p.numero}`} itens={[
+      { rotulo: "Abrir", icone: ChevronRight, onClick: () => abrir() },
+      { rotulo: p.status === "orcamento" ? "PDF do orçamento" : "PDF do pedido", icone: FileDown, onClick: () => abrir("pdf") },
+      ["aprovado", "faturado", "entregue"].includes(p.status) && { rotulo: "Enviar rastreio", icone: Send, onClick: () => abrir("rastreio") },
+      pode("editar_pedidos") && (p.itens?.length ?? 0) > 0 && { rotulo: "Clonar venda", icone: Copy, onClick: () => setAberto({ ...clonarVenda({ ...p, itens: p.itens ?? [] }), __clone: Date.now() } as any) },
+      p.cliente && { rotulo: "Últimas vendas do cliente", icone: List, onClick: () => setUltimasDe(p.cliente!) },
+      !!zap && { rotulo: "WhatsApp do cliente", icone: MessageCircle, onClick: () => window.open(whatsappLink(zap, `Olá! Aqui é da MF Máquinas, sobre o pedido #${p.numero}.`), "_blank", "noopener") },
+    ]} />;
+  };
   // Máquinas: vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
   const [vista, setVista] = useState<"erp" | "tiny">("erp");
   const location = useLocation();
@@ -391,7 +408,8 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           </button>
           <div className="flex items-center justify-between gap-2 px-2 pb-1.5">
             <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
-            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Abrir <ChevronRight size={16} /></button>
+            <span className="flex items-center gap-1">{menuVenda(p)}
+            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Abrir <ChevronRight size={16} /></button></span>
           </div>
           </div>
         ))}
@@ -409,7 +427,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       >
         {lista.map((p) => (
           <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
-            <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} /></td>
+            <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><span className="flex flex-col items-center gap-1.5"><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />{menuVenda(p)}</span></td>
             <td className="td w-12 py-1.5 pr-0"><MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} descricao={(p.itens ?? []).map((x) => x.descricao).join(" · ")} /></td>
             <td className="td whitespace-nowrap font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-2xs font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}
               {p.numero_externo && <div><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600" title={`Pedido nº ${p.numero_externo} do Tiny${p.situacao_origem ? ` (${p.situacao_origem})` : ""}`}>TINY {p.numero_externo}</span></div>}
@@ -453,6 +471,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {emitindoLote && <EmitirLote pedidos={selecionados as any} onClose={(ok) => { setEmitindoLote(false); if (ok) { selecao.limpar(); invalidate("pedidos", "notas_fiscais"); } }} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {conciliando && <ConciliarVendas ids={selecionados.map((p) => p.id)} onClose={(ok) => { setConciliando(false); if (ok) selecao.limpar(); }} />}
+      {ultimasDe && <UltimasVendas cliente={ultimasDe} onClose={() => setUltimasDe(null)} />}
       {aberto && <PedidoModal key={(aberto as any).id ?? (aberto as any).__clone ?? "novo"} pedido={aberto} onClose={() => setAberto(null)}
         onClonar={pode("editar_pedidos") ? (base) => setAberto({ ...clonarVenda(base), __clone: Date.now() } as any) : undefined} />}
     </div>
@@ -602,6 +621,14 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   const clientes = useMemo(() => (novosClientes.length ? [...novosClientes, ...clientesBanco.filter((c) => !novosClientes.some((n) => n.id === c.id))] : clientesBanco), [novosClientes, clientesBanco]);
   const { data: produtos = [] } = useRows<Produto & { garantia_meses?: number | null }>("produtos", { order: "descricao", ascending: true });
   const { data: cfg } = useConfig();
+  // aberto pelo menu "…" da lista com uma ação: já faz (PDF espera as configurações para montar o cabeçalho)
+  const acaoFeita = useRef(false);
+  useEffect(() => {
+    const acao = (inicial as any).__acao as string | undefined;
+    if (!acao || acaoFeita.current) return;
+    if (acao === "rastreio") { acaoFeita.current = true; setRastreio(true); }
+    if (acao === "pdf" && cfg) { acaoFeita.current = true; void gerarPdf(); }
+  }, [cfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
   const { data: regrasComissao = [] } = useRows<RegraComissao>("comissao_regras");
@@ -616,6 +643,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   const [acaoMotivo, setAcaoMotivo] = useState<"editar" | "reabrir" | null>(null);
   // a venda saiu com a NF de outra empresa (ex.: empresa ligada): registrar a nota no pedido
   const [nfOutra, setNfOutra] = useState(false);
+  const [rastreio, setRastreio] = useState(false);
   const invalidate = useInvalidate();
   const { pode, tem, user_id } = usePerfil();
   const podeEditar = pode("editar_pedidos");
@@ -1116,6 +1144,9 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           {pode("editar_os") && p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && (
             <Button type="button" tom="servico" title="Abrir uma ordem de serviço (instalação, entrega técnica, garantia) ligada a este pedido" onClick={abrirOS}><Wrench size={16} /> Abrir OS</Button>
           )}
+          {p.id && ["aprovado", "faturado", "entregue"].includes(p.status ?? "") && tem("vendas", "financeiro") && (
+            <Button type="button" tom="logistica" title="Mandar o código de rastreio ao cliente pelo WhatsApp ou e-mail" onClick={() => setRastreio(true)}><Send size={16} /> Rastreio</Button>
+          )}
           {onClonar && p.id && (p.itens?.length ?? 0) > 0 && (
             <Button type="button" variant="secondary" title="Abrir um orçamento novo com o mesmo cliente, itens, pagamento e frete"
               onClick={() => { onClonar(p as Partial<Pedido> & { itens: Item[] }); notify(`Cópia da venda #${p.numero}: confira e salve o orçamento novo`); }}><Copy size={16} /> Clonar venda</Button>
@@ -1151,6 +1182,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
         </Modal>
       )}
       {etiquetas.modal}
+      {rastreio && p.id && <EnviarRastreio pedido={p as any} cliente={cliente} onClose={() => setRastreio(false)} onSalvo={(c) => setP((x) => ({ ...x, codigo_rastreio: c }))} />}
       {aprovarDesc && limiteDesc && (
         <AprovarDesconto percentual={pctDesc} maximo={limiteDesc.max} contexto="pedido" pedidoId={aprovarDesc} canal={p.origem ?? "todos"} forma={p.forma_pagamento ?? null}
           onClose={() => setAprovarDesc(null)}

@@ -4419,6 +4419,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     return { data: null, error: null };
   },
   reivindicar_primeiro_admin: () => ({ data: false, error: null }),
+  reenviar_rastreio: ({ p_pedido }) => {
+    const p = db.pedidos.find((x) => x.id === p_pedido);
+    if (!p?.codigo_rastreio) return { data: "sem_codigo", error: null };
+    const c = db.clientes.find((x) => x.id === p.cliente_id);
+    return { data: c?.email ? "enviado" : "sem_email", error: null };
+  },
   aprovar_pedido: ({ p_pedido }) => {
     const p = db.pedidos.find((x) => x.id === p_pedido);
     if (!p || p.status !== "orcamento") return erro("só orçamentos podem ser aprovados");

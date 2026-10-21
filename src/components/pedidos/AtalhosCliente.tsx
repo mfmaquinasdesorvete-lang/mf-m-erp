@@ -97,7 +97,7 @@ function DadosCliente({ cliente, podeEditar, onClose }: { cliente: Cliente; pode
   );
 }
 
-function UltimasVendas({ cliente, pedidoId, onClose }: { cliente: Cliente; pedidoId?: string; onClose: () => void }) {
+export function UltimasVendas({ cliente, pedidoId, onClose }: { cliente: Cliente; pedidoId?: string; onClose: () => void }) {
   const { data = [], isLoading } = useQuery({
     queryKey: ["pedidos", "ultimas", cliente.id],
     queryFn: async () => {
