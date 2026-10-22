@@ -79,6 +79,7 @@ const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
+const EntradasGrandes = lazy(() => import("@/pages/EntradasGrandes"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
 const Retaguarda = lazy(() => import("@/pages/Retaguarda"));
 const TudoDoCliente = lazy(() => import("@/pages/TudoDoCliente"));
@@ -367,6 +368,7 @@ function RotasERP() {
             o banco também só mostra as linhas de quem criou */}
         {master && <Route path="retaguarda" element={<Retaguarda />} />}
         {master && <Route path="pessoal" element={<Pessoal />} />}
+        {master && <Route path="retaguarda/entradas" element={<EntradasGrandes />} />}
         {master && <Route path="licenciados" element={<Licenciados />} />}
         {master && <Route path="painel/licencas" element={<PainelLicencas />} />}
         <Route path="*" element={<Navigate to="/" replace />} />

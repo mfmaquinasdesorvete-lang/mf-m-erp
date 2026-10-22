@@ -10,6 +10,7 @@ const EXTRAS: Record<string, { label: string; pai?: { label: string; to: string 
   "/estoque/giro": { label: "Giro de estoque", pai: { label: "Produtos", to: "/estoque" } },
   "/fornecedores/avaliacao": { label: "Avaliação", pai: { label: "Fornecedores", to: "/fornecedores" } },
   "/pessoal": { label: "Painel pessoal", pai: { label: "Retaguarda", to: "/retaguarda" } },
+  "/retaguarda/entradas": { label: "Entradas acima de R$ 5 mil", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/licenciados": { label: "My Frost Sorveterias", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/sobre": { label: "Sobre o ERP Line" },
   "/portal": { label: "Portal do representante" },
