@@ -15,3 +15,6 @@
      depois publicar na Hostinger e conferir o index.html. Funções do Supabase: o GitHub Actions já põe em fila.
   3. Soltar a trava: `select public.publicacao_terminar('<id>');` (também se der erro no meio).
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
+- Chats por assunto: tudo de fiscal e contábil (impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
+  parcelamentos, contador) fica no chat "ERP Line – Fiscal e contábil". Se o assunto aparecer em outro chat,
+  avisar a usuária para levar para lá.
