@@ -48,6 +48,8 @@ const COR_BANCO: Record<string, string> = {
 };
 const somarMesIso = (ym: string, n: number) => { const [a, m] = ym.split("-").map(Number); const t = a * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
 
+// limpeza dos extratos antigos concluída em 22/10/2026: daqui para trás já foi revisto
+const INICIO_CONCILIACAO = "2026-10-01";
 export const BANCOS: Record<string, string> = { unicred: "Unicred", nubank: "Nubank", inter: "Banco Inter", infinitepay: "InfinitePay", outro: "Outro banco", caixa: "Caixa (dinheiro)" };
 
 export default function Conciliacao() {
@@ -81,6 +83,9 @@ export default function Conciliacao() {
   const [tratar, setTratar] = useState<Lancamento | null>(null);
   const [desfazer, setDesfazer] = useState<Lancamento | null>(null);
   const [visao, setVisao] = useState<"linhas" | "favorecido">("linhas");
+  // os extratos antigos já foram revistos na limpeza de out/2026: a conciliação mostra só a partir de INICIO_CONCILIACAO
+  const [verAntigos, setVerAntigos] = useState(false);
+  const recente = (l: Lancamento) => verAntigos || l.data >= INICIO_CONCILIACAO;
 
   const idsBancos = new Set(bancos.map((b) => b.id));
   const invalidate = useInvalidate();
@@ -96,7 +101,7 @@ export default function Conciliacao() {
     return r;
   }, [lancamentos, receber, pagar, contasTodas, bancos, regras]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = lancamentos
-    .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
+    .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && recente(l))
     .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
       : situacao === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === situacao))
     .filter((l) => !mes || l.data.startsWith(mes))
@@ -107,11 +112,12 @@ export default function Conciliacao() {
   const sugeridasNaLista = lista.filter((l) => l.status === "pendente" && sugestoes.has(l.id));
   // por favorecido: as pendentes da conta, do mês e do tipo escolhidos; a que já tem conta ou transferência sugerida fica de fora
   const pendentesFiltradas = lancamentos
-    .filter((l) => l.status === "pendente" && idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel))
+    .filter((l) => l.status === "pendente" && idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && recente(l))
     .filter((l) => (!mes || l.data.startsWith(mes)) && (!tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo));
   const paraLote = visao === "favorecido" ? pendentesFiltradas.filter((l) => sugestoes.get(l.id)?.tipo === undefined || sugestoes.get(l.id)?.tipo === "regra") : [];
   const deFora = visao === "favorecido" ? pendentesFiltradas.length - paraLote.length : 0;
-  const pendentesTotal = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente").length;
+  const pendentesTotal = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente" && recente(l)).length;
+  const antigosPendentes = verAntigos ? 0 : lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente" && l.data < INICIO_CONCILIACAO).length;
 
   async function aprovar(ids: string[]) {
     setAprovando(true);
@@ -281,6 +287,10 @@ export default function Conciliacao() {
           {TIPOS_LANC.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
         </select>
         <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
+        <label className="flex items-center gap-2 text-sm text-slate-600" title={`Antes de ${dataBR(INICIO_CONCILIACAO)} os extratos já foram revistos; marque para ver também esses lançamentos`}>
+          <input type="checkbox" checked={verAntigos} onChange={(e) => setVerAntigos(e.target.checked)} />
+          Ver antes de {dataBR(INICIO_CONCILIACAO)}{antigosPendentes > 0 && ` (${antigosPendentes} pendentes antigos)`}
+        </label>
         {podeEditar && visao === "linhas" && sugeridasNaLista.length > 0 && (
           <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
         )}
