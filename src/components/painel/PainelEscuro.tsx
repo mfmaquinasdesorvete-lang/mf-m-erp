@@ -73,19 +73,23 @@ export function AnelEscuro<T extends string>({ fatias, escolhida, onEscolher, ce
   );
 }
 
-/** Número de apoio (vencido, próximos 7 dias…) com o ladrilho colorido; `aceso` quando há algo a olhar. */
-export function NumeroEscuro({ icone: Icone, rotulo, valor, sub, de, ate, aceso }: {
-  icone: LucideIcon; rotulo: string; valor: ReactNode; sub?: ReactNode; de: string; ate: string; aceso?: boolean;
+/** Número de apoio (vencido, próximos 7 dias…) com o ladrilho colorido; `aceso` quando há algo a olhar; com `onClick`, abre o detalhe. */
+export function NumeroEscuro({ icone: Icone, rotulo, valor, sub, de, ate, aceso, onClick, title }: {
+  icone: LucideIcon; rotulo: string; valor: ReactNode; sub?: ReactNode; de: string; ate: string; aceso?: boolean; onClick?: () => void; title?: string;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
     // celular: ícone e nome em cima, valor embaixo na largura toda (o número cabe inteiro); computador: lado a lado
-    <div className={`cartao-fit grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-2xl border p-2.5 lg:gap-x-2.5
-      ${aceso ? "border-white/15 bg-white/[.08]" : "border-white/[.06] bg-white/[.03]"}`}>
+    <Tag type={onClick ? "button" : undefined} onClick={onClick} title={title}
+      className={`cartao-fit grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-2xl border p-2.5 text-left lg:gap-x-2.5
+      ${aceso ? "border-white/15 bg-white/[.08]" : "border-white/[.06] bg-white/[.03]"} ${onClick ? "transition hover:bg-white/[.12]" : ""}`}>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white lg:row-span-3 lg:h-10 lg:w-10" style={ladrilho(de, ate)}><Icone size={17} aria-hidden /></span>
       <span className="min-w-0 text-2xs font-bold uppercase leading-tight tracking-wide text-white/80">{rotulo}</span>
-      <span className="num valor-fit col-span-2 block font-bold leading-tight text-white [--valor-cq:14cqi] [--valor-max:1.35rem] lg:col-span-1 lg:col-start-2 lg:[--valor-cq:10cqi]">{valor}</span>
+      {/* valor comprido ("R$ 1.612.800,00") diminui para caber inteiro no celular, onde o quadro é estreito */}
+      <span className="num valor-fit col-span-2 block font-bold leading-tight text-white [--valor-cq:var(--cq-celular)] [--valor-max:1.35rem] lg:col-span-1 lg:col-start-2 lg:[--valor-cq:10cqi]"
+        style={{ "--cq-celular": `${typeof valor === "string" ? Math.min(14, 165 / Math.max(1, valor.length)).toFixed(1) : 14}cqi` } as CSSProperties}>{valor}</span>
       {sub && <span className="col-span-2 block truncate text-xs text-white/75 lg:col-span-1 lg:col-start-2">{sub}</span>}
-    </div>
+    </Tag>
   );
 }
 

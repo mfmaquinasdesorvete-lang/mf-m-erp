@@ -3,6 +3,7 @@
 import { Link } from "react-router-dom";
 import { BadgeDollarSign, ChevronRight, Database, IceCreamCone, Landmark, Lock, Settings, ShieldAlert, Upload, UserCog, Wallet, type LucideIcon } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
+import { VendasDoAno } from "@/components/gerencial/PainelVendasAno";
 
 type Atalho = { to: string; titulo: string; texto: string; icone: LucideIcon; cor: string };
 
@@ -40,6 +41,7 @@ export default function Retaguarda() {
       <p className="mb-4 flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
         <Lock size={16} className="shrink-0" /> Criar ou mudar administradores também só pela conta master (o banco confere).
       </p>
+      <VendasDoAno />
       <div className="space-y-5">
         {ATALHOS_RETAGUARDA.map((g) => (
           <section key={g.grupo}>

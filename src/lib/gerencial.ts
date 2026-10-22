@@ -80,6 +80,23 @@ export function indicadores(vendas: Venda[], hoje: string) {
   };
 }
 
+/**
+ * Vendas do ano por trimestre (painel "Vendas do ano"), cada um com o mesmo trimestre do ano passado. O trimestre em
+ * curso compara até o mesmo dia do ano passado; os que ainda não começaram vêm com zero.
+ */
+export function trimestresDoAno(vendas: Venda[], hoje: string) {
+  const ano = Number(hoje.slice(0, 4));
+  const corteAnterior = mesmoDia(hoje, -12);
+  return [1, 2, 3, 4].map((t) => {
+    const mi = String(t * 3 - 2).padStart(2, "0"), mf = String(t * 3).padStart(2, "0");
+    const fim = (a: number) => mesmoDia(`${a}-${mf}-31`, 0);
+    const atual = soma(entre(vendas, `${ano}-${mi}-01`, fim(ano) < hoje ? fim(ano) : hoje));
+    const fimAnt = fim(ano - 1) < corteAnterior ? fim(ano - 1) : corteAnterior;
+    const anterior = `${ano}-${mi}-01` > hoje ? 0 : soma(entre(vendas, `${ano - 1}-${mi}-01`, fimAnt));
+    return { trimestre: t, ...comparar(atual, anterior) };
+  });
+}
+
 /** Faturamento por mês nos últimos `n` meses, com o mesmo mês do ano anterior. */
 export function serieMensal(vendas: Venda[], hoje: string, n = 12) {
   const porMes = new Map<string, number>();

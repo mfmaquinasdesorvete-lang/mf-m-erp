@@ -199,7 +199,7 @@ export function DesignSystem() {
       </Bloco>
 
       <Bloco titulo="Painel escuro" peca="<QuadroEscuro> · <AnelEscuro> · <NumeroEscuro> · <LinhaEscura>"
-        texto="O estilo painel: fundo escuro nos dois temas, colorido, com o número principal no centro do anel. É o do “Quanto tem para pagar” e vai para os outros painéis, começando por Vendas do ano. Toque numa parte para filtrar.">
+        texto="O estilo painel: fundo escuro nos dois temas, colorido, com o número principal no centro do anel. É o do “Quanto tem para pagar” e o do “Vendas do ano” (Retaguarda), e vai para os outros painéis. Toque numa parte para filtrar.">
         <QuadroEscuro rotulo="Vendas do ano (exemplo)" titulo="Vendas" destaque="do ano" className=""
           filtro={daVez ? { texto: daVez.rotulo, onLimpar: () => setFatia("") } : undefined}>
           <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,15.5rem)_auto_minmax(0,1fr)] lg:gap-6">
