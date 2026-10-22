@@ -15,6 +15,11 @@ on:
         required: false
         default: ""
 
+# vários chats podem pedir ao mesmo tempo: um espera o outro terminar, nenhum é cancelado
+concurrency:
+  group: publicar-supabase
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -1456,6 +1456,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Registro das execuções: cada comando fica anotado em 6 etapas, da entrada à próxima ação.",
       "Rodada: o trabalho em curso de relance, com etapas até o site, números ao vivo, o que falta de quem, semáforo e riscos.",
       "Atualizações: a versão em uso e o que mudou em cada dia, com busca, filtro de 7 ou 30 dias e o botão Copiar para mandar à equipe.",
+      "Design: a vitrine do design system, com letras, cores, botões, selos, indicadores, painéis, filtros e tabelas, na cor de cada área.",
       "Esquemas: processos em rascunho, fluxograma do menu com auditoria (o menu como cada perfil vê) e cadeia de causas com fatos e hipóteses.",
       "Ideias: anotar, votar e acompanhar; o administrador avalia, planeja, conclui ou descarta, e a aprovada vira pendência.",
       "Handoff: pendências por responsável, decisões, próximos passos e o texto pronto para passar o trabalho adiante.",

@@ -1,5 +1,5 @@
 // Vendas → Propostas do Tiny: o histórico de propostas comerciais do Tiny da MF (com valores) e da My Frost, a empresa
-// anterior (sem valores). Filtra por empresa, situação e vendedor; abre a proposta; a da MF pode virar um orçamento novo.
+// anterior (com valores desde 22/10). Filtra por empresa, situação e vendedor; abre a proposta; a da MF pode virar um orçamento novo.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileDown, FilePlus2, Tags, Upload } from "lucide-react";
@@ -29,8 +29,10 @@ export function SeloSituacao({ s }: { s: string | null }) {
 export function SeloEmpresa({ e }: { e: EmpresaProposta }) {
   return e === "mf"
     ? <span className="whitespace-nowrap rounded-md bg-sky-100 px-1.5 py-0.5 text-2xs font-bold text-sky-800">MF</span>
-    : <span className="whitespace-nowrap rounded-md bg-amber-100 px-1.5 py-0.5 text-2xs font-bold text-amber-800" title="Empresa anterior: proposta sem valores">MY FROST</span>;
+    : <span className="whitespace-nowrap rounded-md bg-amber-100 px-1.5 py-0.5 text-2xs font-bold text-amber-800" title="Empresa anterior">MY FROST</span>;
 }
+/** Proposta com valores: as da MF e as da My Frost importadas depois de 22/10 (as antigas da My Frost vieram sem). */
+const comValor = (p: PropostaTiny) => p.empresa === "mf" || p.total != null;
 const resumoItens = (p: PropostaTiny) => p.itens.map((i) => `${Number(i.quantidade) !== 1 ? `${Number(i.quantidade).toLocaleString("pt-BR")} × ` : ""}${i.descricao}`).join(" · ");
 
 function exportar(lista: PropostaTiny[]) {
@@ -38,11 +40,11 @@ function exportar(lista: PropostaTiny[]) {
     Empresa: EMPRESA_PROPOSTA[p.empresa], Número: p.numero ?? "", Data: celula(p.data), Situação: p.situacao ?? "", Cliente: nomeCliente(p),
     "CPF/CNPJ": p.cliente?.cpf_cnpj ?? "", Cidade: [p.cliente?.municipio, p.cliente?.uf].filter(Boolean).join("/"), Vendedor: p.vendedor ?? "",
     "Próximo contato": celula(p.proximo_contato), Itens: resumoItens(p),
-    Desconto: p.empresa === "mf" ? Number(p.desconto ?? 0) : "", Frete: p.empresa === "mf" ? Number(p.frete ?? 0) : "", Total: p.empresa === "mf" ? Number(p.total ?? 0) : "",
+    Desconto: comValor(p) ? Number(p.desconto ?? 0) : "", Frete: comValor(p) ? Number(p.frete ?? 0) : "", Total: comValor(p) ? Number(p.total ?? 0) : "",
   }));
   const itens = lista.flatMap((p) => p.itens.map((i) => ({
     Empresa: EMPRESA_PROPOSTA[p.empresa], Proposta: p.numero ?? "", Cliente: nomeCliente(p), Item: i.descricao, Quantidade: Number(i.quantidade),
-    Unitário: p.empresa === "mf" ? Number(i.valor_unitario ?? 0) : "", Total: p.empresa === "mf" ? Number(i.quantidade) * Number(i.valor_unitario ?? 0) : "",
+    Unitário: comValor(p) ? Number(i.valor_unitario ?? 0) : "", Total: comValor(p) ? Number(i.quantidade) * Number(i.valor_unitario ?? 0) : "",
   })));
   baixarPlanilha("propostas-tiny", [{ nome: "Propostas", linhas: props }, { nome: "Itens", linhas: itens }]).catch(notifyError);
 }
@@ -171,7 +173,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
               <div className="mt-1 text-sm text-slate-600 [overflow-wrap:anywhere]">{resumoItens(p)}</div>
               <div className="mt-1 flex items-center justify-between gap-2 text-sm text-slate-500">
                 <span>{dataBR(p.data)}{p.vendedor ? ` · ${p.vendedor}` : ""}</span>
-                {p.empresa === "mf" ? <span className="num text-base font-bold text-fg">{brl(p.total)}</span> : <span className="text-xs">sem valores</span>}
+                {comValor(p) ? <span className="num text-base font-bold text-fg">{brl(p.total)}</span> : <span className="text-xs">sem valores</span>}
               </div>
               {p.proximo_contato && <div className="mt-1 text-sm">Próximo contato: <ProxContato p={p} /></div>}
               <div className="mt-2 flex items-center justify-end gap-0.5 text-sm font-semibold text-brand">Ver <ChevronRight size={16} /></div>
@@ -197,7 +199,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
                 <td className="td"><ProxContato p={p} /></td>
                 <td className="td">{nomeCliente(p)}<SeloLicenciado cliente={p.cliente} /><div className="text-xs text-slate-500">{[p.cliente?.municipio, p.cliente?.uf].filter(Boolean).join("/")}{p.vendedor ? ` · ${p.vendedor}` : ""}</div></td>
                 <td className="td max-w-[260px] text-sm text-slate-600"><span className="line-clamp-2">{resumoItens(p)}</span></td>
-                <td className="td whitespace-nowrap text-right font-medium">{p.empresa === "mf" ? brl(p.total) : <span className="text-xs font-normal text-slate-500">sem valores</span>}</td>
+                <td className="td whitespace-nowrap text-right font-medium">{comValor(p) ? brl(p.total) : <span className="text-xs font-normal text-slate-500">sem valores</span>}</td>
                 <td className="td"><ChipsMarcadores ids={p.marcadores} todos={marcadores} pequeno /></td>
                 <td className="td"><SeloSituacao s={p.situacao} /></td>
                 <CelulaAbrir texto="Ver" />
@@ -261,6 +263,7 @@ function AcompanharProposta({ p }: { p: PropostaTiny }) {
 
 export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTiny; onClose: () => void; onNovoOrcamento?: (itens: Item[]) => void }) {
   const mf = p.empresa === "mf";
+  const valores = comValor(p);
   const comProduto = p.itens.filter((i) => i.produto_id);
   return (
     <Modal open onClose={onClose} title={`Proposta ${p.numero ?? ""} do Tiny · ${mf ? "MF" : "My Frost"}`} wide>
@@ -277,37 +280,37 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
         </div>
         {!mf && (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Proposta da My Frost (empresa anterior): fica como histórico de atendimento, sem valores nem condições. A MF não responde por ela.
+            Proposta da My Frost (empresa anterior): fica como histórico de atendimento{valores ? ", com os valores e as condições da My Frost na época" : ", sem valores nem condições"}. A MF não responde por ela.
           </p>
         )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500">
               <th className="py-1.5 pr-2">Item</th><th className="whitespace-nowrap py-1.5 pr-2 text-right">Qtd</th>
-              {mf && <><th className="py-1.5 pr-2 text-right">Unitário</th><th className="py-1.5 text-right">Total</th></>}
+              {valores && <><th className="py-1.5 pr-2 text-right">Unitário</th><th className="py-1.5 text-right">Total</th></>}
             </tr></thead>
             <tbody>
               {p.itens.map((i, k) => (
                 <tr key={k} className="border-b border-slate-100">
                   <td className="py-1.5 pr-2">{i.descricao}{mf && !i.produto_id && <span className="ml-1 text-xs text-slate-400">(sem cadastro no ERP)</span>}</td>
                   <td className="num py-1.5 pr-2 text-right">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
-                  {mf && <><td className="num py-1.5 pr-2 text-right">{brl(i.valor_unitario)}</td><td className="num py-1.5 text-right">{brl(Number(i.quantidade) * Number(i.valor_unitario ?? 0))}</td></>}
+                  {valores && <><td className="num py-1.5 pr-2 text-right">{brl(i.valor_unitario)}</td><td className="num py-1.5 text-right">{brl(Number(i.quantidade) * Number(i.valor_unitario ?? 0))}</td></>}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {mf && (
+        {valores && (
           <div className="ml-auto max-w-xs space-y-0.5 text-sm">
             {Number(p.desconto) > 0 && <div className="flex justify-between"><span>Desconto</span><span className="num">- {brl(p.desconto)}</span></div>}
             {Number(p.frete) > 0 && <div className="flex justify-between"><span>Frete</span><span className="num">{brl(p.frete)}</span></div>}
             <div className="flex justify-between text-base font-bold text-fg"><span>Total</span><span className="num">{brl(p.total)}</span></div>
           </div>
         )}
-        {mf && (p.prazo_entrega || p.validade_dias) && (
+        {valores && (p.prazo_entrega || p.validade_dias) && (
           <p className="text-sm text-slate-700">{[p.prazo_entrega && `Prazo de entrega: ${p.prazo_entrega}`, p.validade_dias ? `Validade: ${p.validade_dias} dias` : ""].filter(Boolean).join(" · ")}</p>
         )}
-        {mf && p.observacoes && (
+        {valores && p.observacoes && (
           <details className="rounded-xl border border-slate-200 p-3 text-sm">
             <summary className="cursor-pointer font-semibold text-fg">Condições e observações</summary>
             <p className="mt-2 whitespace-pre-wrap text-slate-700">{p.observacoes}</p>

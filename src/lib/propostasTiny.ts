@@ -1,7 +1,7 @@
 // Propostas comerciais do Tiny (histórico): a planilha exportada em Vendas → Propostas comerciais (.xls/.xlsx ou .csv)
 // ou a aba "Propostas" do backup da My Frost. Uma linha por item; a proposta é o ID do Tiny.
-// As da MF guardam valores, desconto, frete e condições. As da My Frost (empresa anterior) entram sem valores e só
-// de quem já é cliente do ERP: o banco confere as duas regras de novo.
+// As duas guardam valores, desconto, frete e condições (a My Frost com valores desde 22/10, depois do ok do advogado).
+// As da My Frost (empresa anterior) entram só de quem já é cliente do ERP e sem ligar ao produto da MF: o banco confere.
 
 export type EmpresaProposta = "mf" | "my_frost";
 export const EMPRESA_PROPOSTA: Record<EmpresaProposta, string> = { mf: "MF Máquinas", my_frost: "My Frost (empresa anterior)" };
@@ -147,11 +147,10 @@ export async function lerPropostasTiny(arquivos: File[]): Promise<LeituraPropost
   return { propostas, doBackup, arquivos: arquivos.map((f) => f.name).filter((n) => !vazios.includes(n)), vazios, abasNotas };
 }
 
-/** O que vai para o banco. Na My Frost saem valores, desconto, frete, prazo e observações (o banco também tira). */
+/** O que vai para o banco. Na My Frost o item não leva o produto do Tiny (o cadastro de produtos é da MF). */
 export function paraEnvio(p: PropostaLida, empresa: EmpresaProposta) {
   if (empresa === "mf") return p;
-  const { desconto: _d, frete: _f, observacoes: _o, prazo_entrega: _p, ...resto } = p;
-  return { ...resto, itens: p.itens.map((i) => ({ descricao: i.descricao, quantidade: i.quantidade })) };
+  return { ...p, itens: p.itens.map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valor_unitario })) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

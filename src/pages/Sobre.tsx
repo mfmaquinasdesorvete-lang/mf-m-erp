@@ -25,13 +25,14 @@ import { Seguranca } from "@/components/sobre/Seguranca";
 import { PedidosChecklist } from "@/components/sobre/PedidosChecklist";
 import { TelasAlteradas } from "@/components/sobre/TelasAlteradas";
 import { CodigoErp } from "@/components/sobre/CodigoErp";
+import { DesignSystem } from "@/components/sobre/DesignSystem";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 
-const ABAS = ["modulos", "sistemas", "monitor", "seguranca", "rodada", "pedidos", "telas", "codigo", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
+const ABAS = ["modulos", "sistemas", "monitor", "seguranca", "rodada", "pedidos", "telas", "codigo", "design", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -53,7 +54,7 @@ export default function Sobre() {
       <Tabs value={aba} onChange={setAba} options={[
         { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, ...(ehAdmin ? [{ value: "monitor" as const, label: "Monitor" }, { value: "seguranca" as const, label: "Segurança" }] : []),
         ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }] : []),
-        { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
+        { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }, { value: "design", label: "Design" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
         { value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "handoff" as const, label: "Handoff" }] : []),
       ]} />
       {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
@@ -64,6 +65,7 @@ export default function Sobre() {
       {aba === "pedidos" && <PedidosChecklist />}
       {aba === "telas" && <TelasAlteradas />}
       {aba === "codigo" && <CodigoErp />}
+      {aba === "design" && <DesignSystem />}
       {aba === "atualizacoes" && <Atualizacoes />}
       {aba === "esquemas" && <Esquemas />}
       {aba === "ideias" && <Ideias />}

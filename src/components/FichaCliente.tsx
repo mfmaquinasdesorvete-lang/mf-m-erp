@@ -79,7 +79,7 @@ function useFicha(c: Cliente) {
         supabase.from("usuarios_erp").select("user_id, nome"),
         // o que comprou na My Frost (empresa anterior), trazido do backup do Tiny: só data, item e quantidade
         supabase.from("compras_legado").select("id, data, documento, descricao, quantidade, origem").eq("cliente_id", c.id).order("data", { ascending: false }),
-        // propostas do Tiny (MF com valores; My Frost, a empresa anterior, sem valores)
+        // propostas do Tiny (MF e My Frost, a empresa anterior; as antigas da My Frost vieram sem valores)
         supabase.from("propostas_tiny").select("*").eq("cliente_id", c.id).order("data", { ascending: false }),
         // notas fiscais da My Frost (empresa anterior): número, data, tipo e o valor da nota
         supabase.from("notas_legado").select("id, numero, data, valor, natureza").eq("cliente_id", c.id).order("data", { ascending: false }),
@@ -324,14 +324,14 @@ function Compras({ compras, pedidos, propostasTiny, notasMyFrost }: {
       {propostasTiny.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-semibold">Propostas do Tiny ({propostasTiny.length})</h3>
-          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) ficam sem valores: não são vendas da MF. O valor de cada nota da My Frost aparece em "Notas fiscais da My Frost".</p>
+          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) não são vendas da MF. O valor de cada nota da My Frost aparece em "Notas fiscais da My Frost".</p>
           <ul className="space-y-1.5 text-sm">
             {propostasTiny.map((p) => (
               <li key={p.id}>
                 <button type="button" onClick={() => setProposta(p)} className="flex w-full flex-wrap items-center gap-2 rounded-lg px-1 py-0.5 text-left hover:bg-slate-50">
                   <span className="font-semibold">#{p.numero ?? "—"}</span> <SeloEmpresa e={p.empresa} /> <span className="text-slate-500">{dataBR(p.data)}</span>
                   <SeloSituacao s={p.situacao} />
-                  {p.empresa === "mf" && <span className="font-semibold">{brl(p.total)}</span>}
+                  {p.total != null && <span className="font-semibold">{brl(p.total)}</span>}
                   <span className="min-w-0 text-slate-600 [overflow-wrap:anywhere]">{p.itens.map((i) => i.descricao).join(" · ")}</span>
                 </button>
               </li>
