@@ -123,7 +123,7 @@ const VAZIA = (unidade_id: string): NfseConfig => ({
   serie_dps: 1, proximo_numero_dps: 1, ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", codigo_indicador_operacao: null, consumidor_final: false,
 });
 
-function ConfigNfse({ podeEditar }: { podeEditar: boolean }) {
+export function ConfigNfse({ podeEditar }: { podeEditar: boolean }) {
   const { unidades } = useUnidade();
   const { data: configs = [] } = useRows<NfseConfig>("nfse_config", { order: "unidade_id", ascending: true });
   return (

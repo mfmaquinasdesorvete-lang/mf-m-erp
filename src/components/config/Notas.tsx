@@ -1,9 +1,10 @@
 // Configurações → Notas fiscais: tudo da NF-e num lugar só (geral, Focus NFe, notas de fornecedores e os impostos de
-// cada unidade, que também ficam em Notas fiscais → Configurações).
+// cada unidade, que também ficam em Notas fiscais → Configurações) e a NFS-e de cada unidade (nota de serviço da OS).
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, Tabs } from "@/components/ui";
 import { ConfigNfe } from "@/components/ConfigNfe";
+import { ConfigNfse } from "@/components/nfse/NfsePainel";
 import { callFunction } from "@/lib/supabase";
 import { notify } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
@@ -14,15 +15,16 @@ const CHAVES = ["presenca_comprador", "entrada_automatica_estoque", "conta_pagar
 export function ConfigNotas() {
   const s = secaoPorId("notas")!;
   const navigate = useNavigate();
-  const { papel } = usePerfil();
-  const [aba, setAba] = useState<"geral" | "impostos">("geral");
+  const { papel, pode } = usePerfil();
+  const [aba, setAba] = useState<"geral" | "impostos" | "nfse">("geral");
   const { cfg, mudar, salvar, salvando } = useCfgPagina(CHAVES, (r) => ({ ...r, presenca_comprador: Number(r.presenca_comprador ?? 9) }));
   if (!cfg) return <p className="text-slate-500">Carregando…</p>;
   return (
     <div className="max-w-5xl">
       <CabecalhoSecao s={s} acoes={aba === "geral" ? <BotaoSalvar form="form-notas" salvando={salvando} /> : undefined} />
-      <Tabs value={aba} onChange={setAba} options={[{ value: "geral", label: "Geral e Focus NFe" }, { value: "impostos", label: "Impostos por unidade (CFOP, CST, alíquotas)" }]} />
-      {aba === "impostos" ? (
+      <Tabs value={aba} onChange={setAba} options={[{ value: "geral", label: "Geral e Focus NFe" }, { value: "impostos", label: "Impostos por unidade (CFOP, CST, alíquotas)" }, { value: "nfse", label: "NFS-e (serviços da OS)" }]} />
+      {/* NFS-e na mesma tela das notas, como no Tiny (pedido de 22/10): com a unidade ativa, a OS concluída emite a nota de serviço */}
+      {aba === "nfse" ? <ConfigNfse podeEditar={pode("configurar_nfse")} /> : aba === "impostos" ? (
         <ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => navigate("/notas", { state: { aba: "regras" } })} />
       ) : (
         <form id="form-notas" onSubmit={salvar} className="space-y-5">
