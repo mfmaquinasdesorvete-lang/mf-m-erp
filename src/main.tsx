@@ -37,7 +37,8 @@ window.addEventListener("vite:preloadError", () => window.dispatchEvent(new Even
 // Leitura que falhou (sem internet, sem permissão…) vira aviso na tela, e não "lista vazia" sem explicação
 const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: (e) => notifyLeitura(e) }),
-  defaultOptions: { queries: { staleTime: DEMO ? 0 : 30_000, retry: 1 } },
+  // listas ficam 1 min sem recarregar ao voltar para a tela ou para a aba (o que a própria pessoa grava atualiza na hora)
+  defaultOptions: { queries: { staleTime: DEMO ? 0 : 60_000, retry: 1 } },
 });
 
 // A prévia roda dentro de outra página, então a navegação fica em memória
