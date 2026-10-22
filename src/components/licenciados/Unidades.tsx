@@ -3,7 +3,7 @@
 // pagou). Só o dono vê (no banco, cada linha é de quem a criou) e os arquivos ficam na pasta licenciado/<dono>/…, que
 // ninguém mais do ERP abre. MF ≠ My Frost: nada daqui vai para o DRE, a conciliação ou o contador da MF.
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, Wrench } from "lucide-react";
+import { Ban, ChevronRight, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate } from "@/lib/data";
@@ -19,6 +19,8 @@ import {
 } from "@/lib/licenciados";
 
 const ROSA = "#c2185b";
+const ROSA_CARTAO = "#e91e63";
+const YOZZY = "#f97316";
 const LIMITE = 20 * 1024 * 1024;
 const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const docBR = (d: string | null) => !d ? "" : d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
@@ -65,37 +67,31 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
       {!lista.length && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma unidade aqui.</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {lista.map((l) => {
-          const r = resumoUnidade(l.id, dados.custos, dados.maquinas, dados.pagamentos);
           const sit = SITUACOES_LOJA.find((s) => s.id === l.situacao);
           const falta = faltaNaFicha(l);
+          const cor = l.marca === "yozzy" ? YOZZY : ROSA_CARTAO;
+          const num = String(dados.lojas.indexOf(l) + 1).padStart(2, "0");
+          const nSocios = l.socios?.length ?? 0;
+          const chip = "rounded-md px-1.5 py-0.5 text-2xs font-bold";
           return (
-            <button key={l.id} type="button" onClick={() => onAbrir(l)}
-              className={`overflow-hidden rounded-2xl border border-slate-200 bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-70" : ""}`}>
-              <div className="p-3.5 text-white" style={{ background: `linear-gradient(135deg, ${corDaLoja(l.cor)}, #0f172a)` }}>
-                <div className="flex items-start gap-2.5">
-                  <SeloCidade cidade={l.cidade} uf={l.uf} />
-                  <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-base font-bold leading-tight">{l.nome}</div>
-                    <div className="truncate text-xs opacity-85">{[nomeMarca(l.marca), nomeModelo(l.modelo), l.cidade].filter(Boolean).join(" · ")}</div>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-2xs font-bold">{sit?.nome}</span>
-                </div>
-                <dl className="mt-2 space-y-0.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs">
-                  {[["Custo de montar", brl(r.custo)], ["Recebido", brl(r.recebido)], ["Máquinas na loja", String(r.maquinas)]].map(([rot, v]) => (
-                    <div key={rot} className="flex items-baseline justify-between gap-2"><dt className="opacity-85">{rot}</dt><dd className="num font-bold">{v}</dd></div>
-                  ))}
-                </dl>
-              </div>
-              <div className="space-y-1 p-3 text-xs text-slate-600">
-                {l.endereco ? <p className="flex gap-1.5"><MapPin size={13} className="mt-0.5 shrink-0" aria-hidden /><span className="line-clamp-2">{enderecoCompleto(l)}</span></p>
-                  : <p className="flex gap-1.5 text-amber-800"><MapPin size={13} className="mt-0.5 shrink-0" aria-hidden />Sem endereço da loja</p>}
-                <p className="flex flex-wrap items-center gap-1.5">
-                  <ChipContrato l={l} />
-                  {l.inicio && <span>aberta em {dataBR(l.inicio)}</span>}
-                </p>
-                {(l.socios?.length ?? 0) > 0 && <p>{l.socios!.length} {pl(l.socios!.length, "sócio", "sócios")}{somaParticipacao(l.socios) != null && somaParticipacao(l.socios) !== 100 ? ` · participações somam ${somaParticipacao(l.socios)}%` : ""}</p>}
-                {falta.length > 0 && <p className="text-amber-800">Falta: {falta.join(", ")}</p>}
-              </div>
+            <button key={l.id} type="button" onClick={() => onAbrir(l)} title={falta.length ? `Falta: ${falta.join(", ")}` : undefined}
+              className={`relative flex min-h-[8.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface p-4 pr-16 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-60" : ""}`}>
+              <span className="num absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-bl-2xl text-sm font-bold text-white" style={{ background: cor }}>{num}</span>
+              <span className="line-clamp-2 text-base font-bold leading-tight" style={{ color: cor }}>{l.nome}</span>
+              <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-slate-600">
+                {l.cidade && <span>{l.cidade}</span>}
+                {l.uf && <span className={`${chip} bg-pink-100 text-pink-700`}>{l.uf}</span>}
+                {nomeModelo(l.modelo) && <span className={`${chip} bg-cyan-100 text-cyan-700`}>{nomeModelo(l.modelo)}</span>}
+                {l.marca === "yozzy" && <span className={`${chip} bg-orange-100 text-orange-700`}>Yozzy</span>}
+                {nSocios > 1 && <span className={`${chip} inline-flex items-center gap-1 bg-violet-100 text-violet-700`}><Users size={11} aria-hidden />{nSocios}x</span>}
+                {l.situacao !== "ativa" && <span className={`${chip} bg-slate-200 text-slate-700`}>{sit?.nome}</span>}
+              </span>
+              <span className="mt-auto flex items-center gap-2 border-t border-slate-200 pt-2.5 text-sm text-slate-600" style={{ marginRight: "-3rem" }}>
+                <User size={14} className="shrink-0 text-slate-400" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{l.responsavel || (l.socios?.[0]?.nome ?? "Responsável a definir")}</span>
+                {falta.length > 0 && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-label={`Falta: ${falta.join(", ")}`} />}
+                <ChevronRight size={16} className="shrink-0 text-slate-400" aria-hidden />
+              </span>
             </button>
           );
         })}
