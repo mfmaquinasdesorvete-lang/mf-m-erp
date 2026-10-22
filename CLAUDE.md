@@ -21,6 +21,7 @@
     parcelamentos, contador.
   - "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) e a base antiga da My Frost.
   - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
+  - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
   - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
   - O chat principal (anterior) organiza os outros.
