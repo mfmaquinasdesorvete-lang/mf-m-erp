@@ -15,6 +15,12 @@
      depois publicar na Hostinger e conferir o index.html. Funções do Supabase: o GitHub Actions já põe em fila.
   3. Soltar a trava: `select public.publicacao_terminar('<id>');` (também se der erro no meio).
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
-- Chats por assunto: tudo de fiscal e contábil (impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
-  parcelamentos, contador) fica no chat "ERP Line – Fiscal e contábil". Se o assunto aparecer em outro chat,
-  avisar a usuária para levar para lá.
+- Chats por assunto (cada um cuida só do seu; se o assunto aparecer no chat errado, avisar a usuária para levar
+  para o certo):
+  - "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
+    parcelamentos, contador.
+  - "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) e a base antiga da My Frost.
+  - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
+  - "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
+  - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
+  - O chat principal (anterior) organiza os outros.
