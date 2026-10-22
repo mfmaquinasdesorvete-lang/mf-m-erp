@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
-import { Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
+import { ArrowLeft, Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Scale, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
 import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
@@ -169,26 +169,30 @@ export default function NotasFiscais() {
       navigate({ pathname: location.pathname, search: buscaDaAba(st.aba, "emitidas") }, { replace: true, state: null });
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ajuste = { config: "Configurações da NF-e", regras: "Regras de tributação", compliance: "Conferência fiscal (compliance)" }[aba as string] as string | undefined;
   return (
     <div>
       <PageHeader title="Notas fiscais" />
       {soRecebidas ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <>
-      <Tabs value={aba} onChange={setAba} options={[
-        { value: "emitidas", label: "NF-e emitidas (vendas)" },
-        ...(pode("nfe_recebidas") || contador ? [{ value: "recebidas" as const, label: "NF-e recebidas (fornecedores)" }] : []),
-        { value: "nfse" as const, label: "NFS-e (serviços)" },
-        { value: "config", label: "Configurações da NF-e" },
-        { value: "regras", label: "Regras de tributação" },
-        { value: "compliance", label: "Compliance fiscal" },
+      {/* só as notas nas abas; configuração, regras e conferência fiscal ficam no "Mais" das emitidas (pedido de 22/10) */}
+      {ajuste ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => setAba("emitidas")}><ArrowLeft size={16} /> Voltar para as notas</Button>
+          <span className="font-display text-lg font-semibold text-fg">{ajuste}</span>
+        </div>
+      ) : <Tabs value={aba} onChange={setAba} options={[
+        { value: "emitidas", label: "Vendas · NF-e emitidas" },
+        ...(pode("nfe_recebidas") || contador ? [{ value: "recebidas" as const, label: "Compras · NF-e recebidas" }] : []),
+        { value: "nfse" as const, label: "Serviços · NFS-e" },
         { value: "faturamento", label: "Faturamento" },
-      ]} />
-      {aba === "faturamento" ? <PainelFaturamento /> : aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
+      ]} />}
+      {aba === "faturamento" ? <PainelFaturamento /> : aba === "nfse" ? <NfsePainel /> : aba === "compliance" ? <ComplianceFiscal /> : aba === "config" ? <>{pode("nfe_recebidas") && <DiagnosticoNfe />}<ConfigNfe podeEditar={papel === "admin"} irParaRegras={() => setAba("regras")} /></> : aba === "regras" ? <RegrasTributacao podeEditar={pode("nfe_recebidas")} /> : aba === "recebidas" && (pode("nfe_recebidas") || contador) ? <Recebidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} filtroInicial={filtroInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} /> : <Emitidas key={`${filtroInicial}-${destaque?.titulo ?? ""}`} leitura={contador} irPara={setAba} filtroInicial={filtroInicial} emitirAgora={emitirAgora} onEmitirAberto={() => setEmitirAgora(false)} destaque={destaque} onLimparDestaque={() => setDestaque(null)} />}
       </>}
     </div>
   );
 }
 
-function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
+function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto, filtroInicial, destaque, onLimparDestaque }: { leitura?: boolean; irPara?: (a: "config" | "regras" | "compliance") => void; emitirAgora?: boolean; onEmitirAberto?: () => void; filtroInicial?: string; destaque?: Destaque | null; onLimparDestaque?: () => void }) {
   const { filtrar } = useUnidade();
   const { data: dataTodos = [], isLoading } = useRows<NotaEmitida & { excluida_em?: string | null }>("notas_fiscais", { select: "*, pedido:pedidos(numero, cliente:clientes(nome, nome_fantasia)), transferencia:transferencias(numero, destino_id)" });
   // tentativas recusadas do mesmo pedido viram uma linha só (a mais recente, com o número de tentativas);
@@ -273,6 +277,11 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
             {!leitura && <Button variant="ghost" onClick={() => setJanela("gerenciar")}><Settings2 size={16} /> Marcadores</Button>}
             {podeFin && <BotaoImportar tipo="emitidas" rotulo="Importar do Tiny (XML)" />}
             {podeFin && <Button variant="secondary" onClick={() => setJanela("inutilizar")}><Ban size={16} /> Inutilizar numeração</Button>}
+            {irPara && <>
+              <Button variant="ghost" onClick={() => irPara("config")}><Settings2 size={16} /> Configurações da NF-e</Button>
+              <Button variant="ghost" onClick={() => irPara("regras")}><Scale size={16} /> Regras de tributação</Button>
+              <Button variant="ghost" onClick={() => irPara("compliance")}><ShieldCheck size={16} /> Conferência fiscal</Button>
+            </>}
           </MaisAcoes>
         </div>} />
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
@@ -288,10 +297,10 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
       {aba === "excluidas" ? <Excluidas tabela="notas_fiscais" /> : (
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
-          <Table
+          <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Cliente / destinatário</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Emissão</th><th className="th">Nº</th><th className="th">Cliente / destinatário</th><th className="th">UF</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
             {filtrada.map((n) => {
               const transf = (n as any).transferencia?.numero != null ? (n as any).transferencia : null;
@@ -300,12 +309,12 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
               return (
                 <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
                   {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${n.numero ?? ""}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
+                  <td className="td whitespace-nowrap">{dataBR(n.created_at)}</td>
                   <td className="td font-semibold">{n.numero ?? "—"}<div className="text-xs font-normal text-slate-500">{n.pedido?.numero != null ? `pedido #${n.pedido.numero}` : n.origem === "importada" ? "importada" : ""}</div></td>
-                  <td className="td">{dataBR(n.created_at)}</td>
                   <td className="td">{nome}
-                    {/* a UF do destinatário fica embaixo do nome (sem coluna própria, para a lista caber no notebook) */}
-                    <div className="text-xs text-slate-500">{[fantasia && fantasia !== nome ? fantasia : !fantasia && n.destinatario_doc ? docFormat(n.destinatario_doc) : null, n.payload?.uf_destinatario].filter(Boolean).join(" · ")}</div>
+                    <div className="text-xs text-slate-500">{fantasia && fantasia !== nome ? fantasia : !fantasia && n.destinatario_doc ? docFormat(n.destinatario_doc) : ""}</div>
                     <EtiquetaUnidade id={n.unidade_id ?? undefined} /></td>
+                  <td className="td">{n.payload?.uf_destinatario ?? "—"}</td>
                   <td className="td text-right">{brl(n.valor_total)}</td>
                   <td className="td">
                     <IconeSituacao s={situacaoEmitida(n)} />
@@ -322,7 +331,7 @@ function Emitidas({ leitura = false, emitirAgora = false, onEmitirAberto, filtro
                 </tr>
               );
             })}
-          </Table>
+          </Table></div>
           {mais}
         </>
       )}
@@ -435,16 +444,16 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
       {aba === "excluidas" ? <Excluidas tabela="nfe_recebidas" /> : (
         <>
           <BarraSelecao n={sel.size} onMarcadores={() => setJanela("marcadores")} onLimpar={() => setSel(new Set())} />
-          <Table
+          <div className="tabela-leve"><Table
             limite={limite}
             empty={!isLoading && daAba.length === 0}
-            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Nº</th><th className="th">Emissão</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
+            head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Emissão</th><th className="th">Nº</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
             {filtrada.map((n) => (
               <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
                 {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${numeroDaChave(n.chave)}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
+                <td className="td whitespace-nowrap">{dataBR(n.data_emissao)}</td>
                 <td className="td font-semibold">{numeroDaChave(n.chave)}</td>
-                <td className="td">{dataBR(n.data_emissao)}</td>
                 <td className="td">{n.emitente_nome}<EtiquetaUnidade id={n.unidade_id ?? undefined} /><div className="text-xs text-slate-500">{docFormat(n.emitente_cnpj)}</div></td>
                 <td className="td text-right">{brl(n.valor_total)}</td>
                 <td className="td">
@@ -458,7 +467,7 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
                 <CelulaAbrir />
               </tr>
             ))}
-          </Table>
+          </Table></div>
           {mais}
         </>
       )}

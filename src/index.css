@@ -184,6 +184,11 @@ h1, h2, h3 { text-wrap: balance; }
   .td { @apply px-3 py-3 text-sm align-top 2xl:px-4; }
 }
 .num { font-variant-numeric: tabular-nums; }
+/* Notas fiscais (pedido de 22/10): lista com letra de leitura, como a do Tiny — título das colunas sem caixa-alta e
+   texto das linhas um pouco maior, na fonte do texto (DM Sans) */
+.tabela-leve .th { font-family: theme("fontFamily.sans"); text-transform: none; letter-spacing: normal; font-size: 0.875rem; font-weight: 500; }
+.tabela-leve .td { font-size: 0.9375rem; }
+.tabela-leve .td.font-semibold { font-weight: 500; }
 /* Valor em destaque que cabe no cartão: a letra acompanha a largura do cartão (.cartao-fit) e o número nunca quebra no
    meio (antes "R$ 19.5" ficava numa linha e "17,00" na outra no celular). Tamanho entre --valor-min e --valor-max. */
 .cartao-fit { container-type: inline-size; }
