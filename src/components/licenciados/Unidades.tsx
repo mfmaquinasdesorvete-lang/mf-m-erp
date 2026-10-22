@@ -3,7 +3,7 @@
 // pagou). Só o dono vê (no banco, cada linha é de quem a criou) e os arquivos ficam na pasta licenciado/<dono>/…, que
 // ninguém mais do ERP abre. MF ≠ My Frost: nada daqui vai para o DRE, a conciliação ou o contador da MF.
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import { Ban, ChevronRight, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
+import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate } from "@/lib/data";
@@ -34,7 +34,7 @@ function ChipContrato({ l }: { l: Loja }) {
 }
 
 /** Cartões das unidades, com filtro por situação e busca. */
-export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbrir: (l: Loja) => void; onNova: () => void }) {
+export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dados; onAbrir: (l: Loja) => void; onEditar: (l: Loja) => void; onNova: () => void }) {
   const [filtro, setFiltro] = useState<FiltroLoja>("ativa");
   const [busca, setBusca] = useState("");
   const [marca, setMarca] = useState<MarcaLoja | "">("");
@@ -74,8 +74,9 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
           const nSocios = l.socios?.length ?? 0;
           const chip = "rounded-md px-1.5 py-0.5 text-2xs font-bold";
           return (
-            <button key={l.id} type="button" onClick={() => onAbrir(l)} title={falta.length ? `Falta: ${falta.join(", ")}` : undefined}
-              className={`relative flex min-h-[8.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface p-4 pr-16 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-60" : ""}`}>
+            <div key={l.id} className="relative">
+            <button type="button" onClick={() => onAbrir(l)} title={falta.length ? `Falta: ${falta.join(", ")}` : undefined}
+              className={`relative flex h-full w-full min-h-[8.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface p-4 pr-16 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-60" : ""}`}>
               <span className="num absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-bl-2xl text-sm font-bold text-white" style={{ background: cor }}>{num}</span>
               <span className="line-clamp-2 text-base font-bold leading-tight" style={{ color: cor }}>{l.nome}</span>
               <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-slate-600">
@@ -90,9 +91,14 @@ export function UnidadesLista({ dados, onAbrir, onNova }: { dados: Dados; onAbri
                 <User size={14} className="shrink-0 text-slate-400" aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{l.responsavel || (l.socios?.[0]?.nome ?? "Responsável a definir")}</span>
                 {falta.length > 0 && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-label={`Falta: ${falta.join(", ")}`} />}
-                <ChevronRight size={16} className="shrink-0 text-slate-400" aria-hidden />
+                <span className="w-8 shrink-0" aria-hidden />
               </span>
             </button>
+            <button type="button" onClick={() => onEditar(l)} title="Editar a unidade" aria-label={`Editar ${l.nome}`}
+              className="absolute bottom-2 right-2.5 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-fg">
+              <Pencil size={15} aria-hidden />
+            </button>
+            </div>
           );
         })}
       </div>

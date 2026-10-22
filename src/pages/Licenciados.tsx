@@ -251,7 +251,7 @@ export default function Licenciados() {
         { value: "quiosques", label: "Quiosques" },
       ]} />
 
-      {aba === "unidades" && (isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : <UnidadesLista dados={dados} onAbrir={(l) => setFicha(l.id)} onNova={() => setEditLoja({ loja: novaLoja() })} />)}
+      {aba === "unidades" && (isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : <UnidadesLista dados={dados} onAbrir={(l) => setFicha(l.id)} onEditar={(l) => setEditLoja({ loja: l })} onNova={() => setEditLoja({ loja: novaLoja() })} />)}
       {aba === "custos" && <CustosAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
       {aba === "maquinas" && <MaquinasAba dados={dados} onAbrir={(l) => setFicha(l.id)} />}
       {aba === "quiosques" && (
