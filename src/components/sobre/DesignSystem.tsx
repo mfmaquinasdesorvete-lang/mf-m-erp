@@ -71,6 +71,7 @@ export function DesignSystem() {
   useEffect(() => { document.documentElement.dataset.modulo = area; }, [area]);
 
   const [aba, setAba] = useState<"um" | "dois" | "tres">("um");
+  const [chipDemo, setChipDemo] = useState("Todos");
   const [periodoPainel, setPeriodoPainel] = useState<PeriodoPainel>("mes");
   const [busca, setBusca] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
@@ -123,6 +124,15 @@ export function DesignSystem() {
               </div>
             ))}
           </div>
+          {/* cores que não mudam com o tema: nome da paleta no lugar do #hex solto */}
+          <p className="mt-3 text-xs text-slate-500">Cores fixas com nome: <code>fixo-emerald-500</code>, <code>noite-fundo</code> (apps do celular), <code>publico-petroleo</code> (páginas públicas) e os tons do painel escuro (<code>TOM_ESCURO</code>):</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {Object.entries(TOM_ESCURO).map(([nome, t]) => (
+              <span key={nome} className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-600">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: `linear-gradient(135deg, ${t.de}, ${t.ate})` }} aria-hidden />{nome}
+              </span>
+            ))}
+          </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {Object.entries(COR_ATALHO).map(([nome, cor]) => (
               <span key={nome} className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-600">
@@ -150,7 +160,25 @@ export function DesignSystem() {
           <button type="button" className="botao-icone h-8 w-8" title="Editar" aria-label="Editar (exemplo)"><Pencil size={16} /></button>
           <button type="button" className="botao-icone-perigo h-8 w-8" title="Apagar" aria-label="Apagar (exemplo)"><Trash2 size={16} /></button>
           <button type="button" className="link-acao text-sm">Ver detalhes</button>
-          <code className="text-2xs text-slate-500">.botao-icone · .botao-icone-perigo · .link-acao · .cartao</code>
+          <button type="button" className="link-modulo text-sm">Ver todas</button>
+          <button type="button" className="link-discreto text-sm">Limpar</button>
+          <code className="text-2xs text-slate-500">.botao-icone · .botao-icone-perigo · .link-acao · .link-modulo · .link-discreto · .cartao</code>
+        </div>
+        {/* botão pequeno das linhas e cartões, chips de escolha e linha de lista que abre algo */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button tamanho="mini" variant="secondary">+7 dias</Button>
+          <Button tamanho="mini" tom="enviar"><Mail size={13} /> WhatsApp</Button>
+          <Button tamanho="mini" tom="perigo">Tirar</Button>
+          <span className="mx-1 h-5 w-px bg-slate-200" aria-hidden />
+          {["Todos", "Abertos", "Pagos"].map((r) => (
+            <button key={r} type="button" aria-pressed={chipDemo === r} onClick={() => setChipDemo(r)} className={chip(chipDemo === r)}>{r}</button>
+          ))}
+          <code className="text-2xs text-slate-500">{'<Button tamanho="mini"> · chip(ativo) · .linha-clicavel'}</code>
+        </div>
+        <div className="mt-2 max-w-md">
+          {["Sorveteria Central · R$ 1.200,00", "Gelato & Cia · R$ 860,00"].map((l) => (
+            <button key={l} type="button" className="linha-clicavel flex items-center justify-between px-2 py-2 text-sm">{l}<span className="text-slate-400">›</span></button>
+          ))}
         </div>
         <div className="mt-4 grid max-w-md grid-cols-4 gap-2 sm:grid-cols-6">
           <BotaoAtalho icon={ShoppingCart} label="Vendas" cor={COR_ATALHO.verde} />
