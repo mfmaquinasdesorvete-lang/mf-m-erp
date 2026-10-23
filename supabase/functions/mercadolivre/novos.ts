@@ -155,7 +155,9 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
       const texto = (c: { message?: string; code?: string; references?: string[] }) =>
         `${(c.message || c.code || "").trim()}${c.references?.length ? ` [${c.references.join(", ")}]` : ""}`.slice(0, 300);
       if (erros.length) faltando.push(...erros.map((c) => `Mercado Livre: ${texto(c)}`));
-      else if (e.causas.length) faltando.push(...e.causas.map((c) => `Mercado Livre (${c.type ?? "?"}): ${texto(c)}`));
+      // só avisos (ex.: "Catalog has not mode me2" numa conta que envia por Mercado Envios): não trava; se o Mercado
+      // Livre recusar na hora de publicar, a proposta fica com o erro dele
+      else if (e.causas.length) avisos.push(...e.causas.map((c) => `Mercado Livre avisa: ${texto(c)}`));
       else faltando.push(`Mercado Livre: ${msg(e)}`);
       break;
     }
