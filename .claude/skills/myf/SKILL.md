@@ -49,6 +49,11 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 - `src/lib/legadoMyFrost.ts`, `src/lib/notasMyFrost.ts`, `src/pages/NotasMyFrostContador.tsx`.
 
 ## Cuidados conhecidos
+- Três coisas diferentes, nunca misturar: My Frost Máquinas antiga (CNPJ 32.584.697/0001-81, a empresa anterior, este
+  chat), o licenciamento My Frost Sorveterias (contratos em nome da MF, chat SOR) e a MF Máquinas (empresa atual).
+  Contrato "My Frost" com licenciadora MF é das Sorveterias, não da My Frost antiga.
+- Máquina sem empresa marcada: vendida até 18/09/2025 é da My Frost antiga; de out/2025 em diante fica da MF
+  (escolha da usuária, 23/10).
 - Máquina da My Frost entra sem garantia da MF e sem preventiva marcada; ninguém recebe mensagem na importação.
 - OS de máquina de outra empresa só conclui com identificação, nº de série, diagnóstico, condição de entrada,
   serviço executado e orçamento aprovado.
