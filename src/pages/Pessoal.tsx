@@ -6,22 +6,24 @@
 // dono (Regras dos cards: nomes de pessoas e empresas ficam só no banco); os em âmbar são para mostrar ao contador, e o
 // arquivo "Baixar para o contador" só sai quando o dono baixa (o contador não vê este painel). O mesmo extrato importado
 // duas vezes (PDF e OFX) aparece para anular as cópias; o Meu Pluggy traz o extrato sozinho. Abas: Minhas empresas e
-// Meus endereços.
+// Meus endereços. No alto, o resumo (ResumoCarteira): os números do período, o encontro de contas com cada empresa, o
+// que pode ser da empresa, as contas pessoais pagas e o passo a passo para o contador.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
-  Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Mic, Paperclip, Package, Pencil, Percent, PiggyBank, Pill, Plug, Plus,
+  AlertTriangle, ArrowLeftRight, Barcode, Building2, CalendarClock, Car, ChevronLeft, ChevronRight, CreditCard, Check, Copy,
+  Download, FileUp, Fuel, IceCreamCone, Gavel, HandCoins, HandHeart, HeartPulse, Home, House, Landmark, Lock, Megaphone, Mic, Paperclip, Package, Pencil, Percent, Pill, Plug, Plus,
   Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
-import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Stat, Tabs } from "@/components/ui";
+import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Tabs } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { RegrasCards } from "@/components/pessoal/RegrasCards";
 import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
 import { MinhasEmpresas } from "@/components/pessoal/MinhasEmpresas";
 import { MeusEnderecos } from "@/components/pessoal/MeusEnderecos";
 import { GastoPessoal } from "@/components/pessoal/GastoPessoal";
+import { ResumoCarteira } from "@/components/pessoal/ResumoCarteira";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -34,6 +36,7 @@ import { lerBoleto } from "@/lib/boleto";
 import { numeroBR } from "@/lib/fichaCadastral";
 import { baixarPlanilha } from "@/lib/exportar";
 import { useUnidade } from "@/lib/unidade";
+import { CARDS_TALVEZ_EMPRESA, NOME_TIPO_ENCONTRO, encontroDeContas, ehDaEmpresa, type EmpresaLigada } from "@/lib/encontroContas";
 import type { Parte } from "@/lib/partesRelacionadas";
 import {
   CATEGORIAS, CORES_CONTA, NOME_TIPO_CONTA, PERIODOS_PESSOAIS, TIPOS_CONTA, categoriaDe, categoriaDoLanc, daEmpresa, faixaAnterior, faixaDoPeriodo,
@@ -118,6 +121,14 @@ export default function Pessoal() {
     };
   }, [empresa, partes]);
 
+  // para o encontro de contas: a MF primeiro (sem nome que combine, o gasto da empresa fica com ela) e as ligadas
+  const ligadas: EmpresaLigada[] = useMemo(() => [
+    ...(empresa.nomes.length || empresa.documentos.length ? [{ id: "mf", nome: empresa.nomes[0] ?? "MF", e: empresa }] : []),
+    ...partes.filter((p) => p.tipo === "empresa" && p.ativo !== false).map((p) => ({
+      id: p.id, nome: p.nome, e: { nomes: [p.nome, ...(p.nomes_extrato ?? [])], documentos: (p.documentos ?? []).map((d) => String(d).replace(/\D/g, "")) },
+    })),
+  ], [empresa, partes]);
+
   // começa no mês atual; sem lançamento nele, no último mês com movimento (o extrato pode estar atrasado)
   const mesPadrao = useMemo(() => {
     const atual = hoje().slice(0, 7);
@@ -169,6 +180,12 @@ export default function Pessoal() {
   const grupos = useMemo(() => cardsDoPeriodo(daConta, faixa, anterior, ctx, doze), [daConta, faixa.de, faixa.ate, anterior.de, anterior.ate, ctx]); // eslint-disable-line react-hooks/exhaustive-deps
   const todosCards: CardPessoal[] = useMemo(() => [...CARDS_PRONTOS, ...cardsDasRegras(regras)], [regras]);
   const metas = useMemo(() => metasDasRegras(lancs, regras), [lancs, regras]);
+  const encontro = useMemo(() => encontroDeContas(daConta, faixa, ligadas, classe, todosCards, PRO_LABORE), [daConta, faixa.de, faixa.ate, ligadas, classe, todosCards]); // eslint-disable-line react-hooks/exhaustive-deps
+  // os cards do período para o resumo: os que podem ser da empresa e as contas pessoais (o resto: empresas, entradas)
+  const separados = useMemo(() => ({
+    talvez: grupos.filter((g) => CARDS_TALVEZ_EMPRESA.has(g.id) && g.saiu > 0).sort((a, b) => b.saiu - a.saiu),
+    pessoais: grupos.filter((g) => !g.fora && g.id !== "empresas" && g.id !== "rendimentos" && !CARDS_TALVEZ_EMPRESA.has(g.id) && !ehDaEmpresa(g) && g.saiu > 0).sort((a, b) => b.saiu - a.saiu),
+  }), [grupos]);
   const grupoSel = grupos.find((g) => g.id === grupo) ?? todosCards.find((g) => g.id === grupo);
   const cardDoLanc = (l: LancPessoal) => todosCards.find((c) => c.id === classe.get(l.id)?.card);
   function escolherGrupo(id: string) {
@@ -245,6 +262,15 @@ export default function Pessoal() {
         { nome: "Resumo por tipo", linhas: grupos.filter((g) => !g.fora).map((g) => ({ Tipo: g.nome, "Saiu no período (R$)": g.saiu, "Entrou no período (R$)": g.entrou, Lançamentos: g.qtd, "Período anterior (R$)": g.anterior, "Para o contador": g.aviso ?? "" })) },
         { nome: "Impostos por tipo", linhas: (impostos?.partes ?? []).map((p) => ({ Imposto: p.nome, "Total (R$)": p.total, Lançamentos: p.qtd })) },
         { nome: "Para conferir", linhas: conferir },
+        { nome: "Encontro por empresa", linhas: encontro.map((s) => ({
+          Empresa: s.nome, "Você mandou (R$)": s.enviou, "Contas da empresa pagas por você (R$)": s.pagou, "A empresa mandou para você (R$)": s.recebeu,
+          "Saldo: a empresa deve a você (R$)": s.saldo, "Pró-labore, à parte (R$)": s.prolabore, "Sem comprovante": s.semComprovante,
+          "Para o contador": "Aporte, empréstimo (mútuo), reembolso ou lucros? Confirmar.",
+        })) },
+        { nome: "Encontro um por um", linhas: encontro.flatMap((s) => s.itens.map((i) => ({
+          Empresa: s.nome, ...linha(i.lanc, NOME_TIPO_ENCONTRO[i.tipo], i.lanc.comprovante ? "com comprovante" : "sem comprovante"), "Valor (R$)": i.valor,
+        }))) },
+        { nome: "Contas pessoais", linhas: separados.pessoais.map((g) => ({ Tipo: g.nome, "Pago no período (R$)": g.saiu, Lançamentos: g.qtd, Observação: g.nota ?? g.aviso ?? "" })) },
         { nome: "Da empresa para você", linhas: daMF.filter(noPeriodo).map((l) => linha(l, l.categoria ?? "", "Pró-labore, distribuição de lucros ou empréstimo? Confirmar com o contador.")) },
       ]);
     } catch (e) { notifyError(e); }
@@ -316,6 +342,9 @@ export default function Pessoal() {
             {conta && <> · só a conta <b>{nomeConta(conta)?.nome}</b> <button type="button" className="font-semibold text-brand hover:underline" onClick={() => setConta("")}>ver todas</button></>}
           </p>
         </Card>
+
+        <ResumoCarteira rotulo={rotuloPeriodo} entrou={resumo.entrou} saiu={resumo.saiu} resultado={resumo.resultado} disponivel={disponivel} cartoes={cartoes}
+          encontro={encontro} grupos={separados} visual={visualDo} onAbrirCard={escolherGrupo} onBaixar={baixarContador} onVerComprovante={verComprovante} />
 
         {daMFsemCategoria.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
@@ -417,7 +446,7 @@ export default function Pessoal() {
               <p className="text-xs text-slate-500">Pelo texto do extrato e pelas suas regras · toque num card para ver os lançamentos · <span className="font-semibold text-amber-800">em âmbar: mostrar ao contador</span></p>
             </div>
             <Button variant="secondary" onClick={() => setRegrasAbertas(null)}><Tag size={15} /> Regras ({regras.length})</Button>
-            <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo}><Download size={15} /> Baixar para o contador</Button>
+            <Button variant="secondary" onClick={baixarContador} disabled={!grupos.length && !daMFperiodo && !encontro.length}><Download size={15} /> Baixar para o contador</Button>
           </div>
           {!grupos.length ? <p className="text-sm text-slate-500">Nenhum gasto reconhecido no período (financiamento, impostos, plano de saúde, iFood, postos…).</p> : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -467,17 +496,6 @@ export default function Pessoal() {
             </div>
           )}
         </Card>
-
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <Stat label={`Disponível nas contas · hoje ${dataBR(hoje()).slice(0, 5)}`} valor={brl(disponivel)} icon={Wallet} tom={disponivel < 0 ? "critico" : "bom"} sub={`${ativas.filter((c) => c.tipo !== "cartao").length} ${pl(ativas.filter((c) => c.tipo !== "cartao").length, "conta", "contas")}`} />
-          <Stat label="Cartões (fatura em aberto)" valor={brl(-cartoes)} icon={CreditCard} tom={cartoes < 0 ? "atencao" : "neutro"} sub={`${ativas.filter((c) => c.tipo === "cartao").length} ${pl(ativas.filter((c) => c.tipo === "cartao").length, "cartão", "cartões")}`} />
-          <Stat label="Da empresa para você · período" valor={brl(daMFperiodo)} icon={Building2} tom="info" sub="Pix e TED da MF nas suas contas (pró-labore ou lucros)" />
-          <Stat label="Entrou · período" valor={brl(resumo.entrou)} icon={ArrowUpCircle} tom="info" sub={comparado(resumo.entrou, resumoAnt.entrou) ?? "sem o que só passou entre as suas contas"} />
-          <Stat label="Saiu · período" valor={brl(resumo.saiu)} icon={ArrowDownCircle} tom={resumo.saiu > resumo.entrou ? "atencao" : "neutro"}
-            sub={[resumo.entrou ? `${Math.round((resumo.saiu / resumo.entrou) * 100)}% do que entrou` : null, comparado(resumo.saiu, resumoAnt.saiu)].filter(Boolean).join(" · ") || undefined} />
-          <Stat label={resumo.resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={brl(resumo.resultado)} icon={PiggyBank} tom={resumo.resultado >= 0 ? "bom" : "critico"}
-            sub={`gasto médio de ${brl(resumo.mediaDia)} por dia · ${resumo.quantidade} ${pl(resumo.quantidade, "lançamento", "lançamentos")}`} />
-        </div>
 
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card className="min-w-0 p-4">
