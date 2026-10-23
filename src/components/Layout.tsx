@@ -6,7 +6,7 @@ import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, IceCreamCone, Lock, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
-  ScanFace,
+  ScanFace, Sparkles,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { sairDoErp } from "@/lib/sair";
@@ -25,6 +25,7 @@ import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
 import { usaRosto } from "@/lib/rosto";
 import { ResultadosBusca } from "./BuscaGeral";
+import { PerguntarIA, parecePergunta } from "./PerguntarIA";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
@@ -105,6 +106,7 @@ export function Layout() {
   const [aberto, setAberto] = useState(false);
   const [criar, setCriar] = useState(false);
   const [busca, setBusca] = useState("");
+  const [pergunta, setPergunta] = useState<string | null>(null);
   const navigate = useNavigate();
   // menu maior que a tela (notebook 1366x768): mostra "mais opções" enquanto houver itens escondidos embaixo
   const navRef = useRef<HTMLElement>(null);
@@ -323,6 +325,13 @@ export function Layout() {
               ))}
             </section>
           )}
+          {parecePergunta(busca) && (
+            <button type="button" onClick={() => setPergunta(busca)}
+              className="mb-2 flex w-full items-center gap-2 rounded-xl border border-brand-ice/40 bg-white/[0.06] px-3 py-2 text-left text-sm text-white hover:bg-white/10">
+              <Sparkles size={16} className="shrink-0 text-brand-ice" aria-hidden />
+              <span className="min-w-0 flex-1"><span className="block font-semibold">Perguntar à IA</span><span className="block truncate text-xs text-nav-fraco">"{busca.trim()}"</span></span>
+            </button>
+          )}
           {busca.trim().length >= 2 && <ResultadosBusca termo={busca} onIr={() => { setAberto(false); setBusca(""); }} />}
         </nav>
           {maisAbaixo && (
@@ -441,6 +450,7 @@ export function Layout() {
       {meusAvisos && <MeusAvisos onClose={() => setMeusAvisos(false)} />}
       {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
       {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
+      {pergunta !== null && <PerguntarIA inicial={pergunta} onClose={() => { setPergunta(null); setBusca(""); setAberto(false); }} />}
     </div>
     </NotificacoesProvider>
   );
