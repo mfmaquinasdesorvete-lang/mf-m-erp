@@ -95,7 +95,7 @@ export function ClienteRapido({ inicial, clientes, onClose, onCriado }: {
           <Field label="E-mail"><input className="input" type="email" value={d.email} onChange={(e) => set("email", e.target.value)} /></Field>
         </div>
         {!endereco ? (
-          <button type="button" onClick={(e) => { e.preventDefault(); setEndereco(true); }} className="text-sm font-semibold text-brand hover:underline">+ Endereço (precisa para emitir NF-e)</button>
+          <button type="button" onClick={(e) => { e.preventDefault(); setEndereco(true); }} className="link-acao text-sm">+ Endereço (precisa para emitir NF-e)</button>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Field label="CEP"><input className="input" inputMode="numeric" value={mostrar("cep", d.cep)} onChange={(e) => cep(e.target.value)} placeholder={buscando === "cep" ? "buscando…" : "00000-000"} /></Field>

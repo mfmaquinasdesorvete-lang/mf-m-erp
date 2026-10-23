@@ -142,7 +142,7 @@ export function MinhasEmpresas({ meusNomes }: { meusNomes: string[] }) {
                         {m.fonte && !m.conferido_em && <> · <a href={m.fonte} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-brand hover:underline">fonte <ExternalLink size={11} /></a></>}</span>
                       <Button variant="secondary" onClick={() => conferir(m)} disabled={!!conferindo}>{conferindo === m.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Conferir</Button>
                       <Button variant="secondary" onClick={() => setEdit(m)}><Pencil size={14} /> Lembrança</Button>
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-red-600 hover:bg-red-50" onClick={() => tirar(m)} aria-label={`Tirar ${m.razao_social ?? m.cnpj}`}><Trash2 size={15} /></button>
+                      <button type="button" className="botao-icone-perigo h-8 w-8 text-red-600" onClick={() => tirar(m)} aria-label={`Tirar ${m.razao_social ?? m.cnpj}`}><Trash2 size={15} /></button>
                     </div>
                   </div>
                 </Card>

@@ -213,7 +213,7 @@ function Chip({ ativo, onClick, children, titulo }: { ativo: boolean; onClick: (
 function Indicador({ icone, titulo, valor, detalhe, cor, onClick }: { icone: React.ReactNode; titulo: string; valor: string; detalhe: string; cor: string; onClick?: () => void }) {
   const C = onClick ? "button" : "div";
   return (
-    <C type={onClick ? "button" : undefined} onClick={onClick} className="rounded-xl border border-slate-200 bg-surface p-3 text-left">
+    <C type={onClick ? "button" : undefined} onClick={onClick} className="cartao p-3 text-left">
       <div className={`flex items-center gap-1.5 text-xs font-semibold ${cor}`}>{icone}{titulo}</div>
       <div className="mt-1 text-lg font-bold text-fg">{valor}</div>
       <div className="text-xs text-slate-500">{detalhe}</div>

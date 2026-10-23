@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, X, type LucideIcon } from "lucide-react";
 import { hoje, somarDias } from "@/lib/format";
-import { fitValor } from "@/components/ui";
+import { estiloBrilho, fitValor, Luz } from "@/components/ui";
 import { todosItens, useVisivel } from "@/lib/menu";
 import type { Tela } from "@/lib/permissoes";
 
@@ -156,8 +156,9 @@ export function CartaoPainel({ c, anterior }: { c: Cartao; anterior?: string }) 
   const Tag = c.onClick ? "button" : "div";
   return (
     <Tag type={c.onClick ? "button" : undefined} onClick={c.onClick} title={c.titulo}
-      className={`cartao-fit group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-surface p-4 text-left shadow-card transition sm:p-4 ${c.onClick ? "hover:-translate-y-0.5 hover:shadow-pop" : ""}`}>
-      <span className="absolute inset-x-0 top-0 h-1" style={{ background: c.cor }} aria-hidden />
+      className={`cartao-fit group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border p-4 text-left transition sm:p-4 ${c.onClick ? "hover:-translate-y-0.5" : ""}`}
+      style={estiloBrilho(c.cor)}>
+      <Luz cor={c.cor} />
       {/* o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda */}
       <span className="flow-root text-sm leading-tight">
         <span className="float-right mb-1 ml-2 grid h-9 w-9 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c.cor} 16%, transparent)`, color: c.cor }}><c.icone size={18} /></span>

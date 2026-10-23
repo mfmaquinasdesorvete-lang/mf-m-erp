@@ -169,7 +169,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
                           <IconeArquivo tipo={d.tipo} />
                           <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" title={d.nome} onClick={() => abrirDocumento(d)}>{d.nome}</button>
                           <span className="shrink-0 text-2xs text-slate-500">{dataBR(d.created_at)}</span>
-                          {podeApagar(d) && <button type="button" aria-label="Apagar" className="rounded p-1 text-slate-400 hover:text-red-600" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={14} /></button>}
+                          {podeApagar(d) && <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={14} /></button>}
                         </li>
                       ))}
                     </ul>
@@ -256,7 +256,7 @@ function TodosOsAnexos({ docs, carregando, podeApagar }: { docs: Documento[]; ca
                 <td className="td">{tamanhoArquivo(d.tamanho)}</td>
                 <td className="td">{dataBR(d.created_at)}</td>
                 <td className="td text-right">{podeApagar(d) && (
-                  <button type="button" aria-label="Apagar" className="rounded p-1 text-slate-400 hover:text-red-600" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={16} /></button>
+                  <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={16} /></button>
                 )}</td>
               </tr>
             ))}

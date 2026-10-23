@@ -152,7 +152,7 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
               ))}
             </ul>
           )}
-          <Link to="/notas" state={{ aba: "recebidas" }} className="mt-2 inline-block text-sm font-semibold text-brand hover:underline">Abrir notas recebidas</Link>
+          <Link to="/notas" state={{ aba: "recebidas" }} className="link-acao mt-2 inline-block text-sm">Abrir notas recebidas</Link>
         </Card>
         <Card className="p-4">
           <h2 className="mb-2 font-bold text-fg">Postos no cadastro de fornecedores</h2>

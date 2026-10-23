@@ -109,7 +109,7 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
           })}
         </ul>
       )}
-      {r.itens.length > 6 && <button type="button" onClick={() => setTodas(!todas)} className="mt-1 text-sm font-semibold text-brand hover:underline">{todas ? "Mostrar menos" : `Ver todas (${r.itens.length})`}</button>}
+      {r.itens.length > 6 && <button type="button" onClick={() => setTodas(!todas)} className="link-acao mt-1 text-sm">{todas ? "Mostrar menos" : `Ver todas (${r.itens.length})`}</button>}
       {r.vencidasAntes.qtd > 0 && (
         <p className="mt-2 text-xs font-semibold text-red-700">+ {r.vencidasAntes.qtd} {pl(r.vencidasAntes.qtd, "conta", "contas")} {pl(r.vencidasAntes.qtd, "vencida", "vencidas")} antes deste período: {brl(r.vencidasAntes.valor)}</p>
       )}

@@ -113,7 +113,7 @@ function GrupoPendencias({ g, abrir }: { g: Grupo; abrir: number }) {
   const e = g.itens.filter((i) => i.nivel === "erro").length;
   const a = g.itens.length - e;
   return (
-    <div id={idGrupo(g.titulo)} className="scroll-mt-24 rounded-xl border border-slate-200 bg-surface">
+    <div id={idGrupo(g.titulo)} className="cartao scroll-mt-24">
       <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         {g.itens.length ? <AlertTriangle size={18} className={e ? "text-red-600" : "text-amber-600"} /> : <CheckCircle2 size={18} className="text-emerald-600" />}
         <span className="flex-1 font-semibold text-fg">{g.titulo}</span>

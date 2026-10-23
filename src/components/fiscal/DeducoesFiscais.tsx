@@ -151,14 +151,14 @@ export function DeducoesFiscais() {
         <h3 className="mb-2 font-bold">Checklist da fábrica e da revenda</h3>
         <ul className="grid gap-2 md:grid-cols-2">
           {checklist.map((c) => (
-            <li key={c.titulo} className="flex gap-3 rounded-xl border border-slate-200 bg-surface p-3">
+            <li key={c.titulo} className="cartao flex gap-3 p-3">
               {c.situacao === "ok" ? <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-emerald-600" aria-label="pronto" />
                 : c.situacao === "parcial" ? <CircleDashed size={20} className="mt-0.5 shrink-0 text-amber-600" aria-label="parcial" />
                 : <AlertTriangle size={20} className="mt-0.5 shrink-0 text-red-600" aria-label="falta" />}
               <div className="min-w-0 flex-1">
                 <div className="font-semibold">{c.titulo}</div>
                 <p className="text-sm text-slate-600">{c.texto}</p>
-                {c.acao && <button type="button" onClick={c.acao.ir} className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">{c.acao.rotulo} <ArrowRight size={14} /></button>}
+                {c.acao && <button type="button" onClick={c.acao.ir} className="link-acao mt-1 inline-flex items-center gap-1 text-sm">{c.acao.rotulo} <ArrowRight size={14} /></button>}
               </div>
             </li>
           ))}
@@ -185,7 +185,7 @@ export function DeducoesFiscais() {
           })}
         </Table>
         {maiores.length > 0 && (
-          <details className="mt-2 rounded-xl border border-slate-200 bg-surface p-3">
+          <details className="cartao mt-2 p-3">
             <summary className="cursor-pointer text-sm font-semibold">Os {maiores.length} maiores pagamentos sem documento</summary>
             <ul className="mt-2 divide-y divide-slate-100 text-sm">
               {maiores.map((s) => (
@@ -251,7 +251,7 @@ export function DeducoesFiscais() {
         </Table>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-surface p-3 text-sm">
+      <section className="cartao p-3 text-sm">
         <h3 className="mb-1 font-bold">Regras de cada motivo</h3>
         <ul className="space-y-1.5">
           {REGRAS_BAIXA.map((r) => (

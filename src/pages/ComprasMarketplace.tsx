@@ -242,13 +242,13 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
 
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-bold text-fg">Notas de compra <span className="text-sm font-normal text-slate-500">· {notasVis.length} {pl(notasVis.length, "nota", "notas")} · {brl(totalNotas)}</span></h2>
-        {notasVis.length > 0 && <Link to="/notas" state={estado(notasVis.map((n) => n.id), `Compras em marketplaces · ${periodo}`)} className="text-sm font-semibold text-brand hover:underline">Abrir estas notas nas notas recebidas</Link>}
+        {notasVis.length > 0 && <Link to="/notas" state={estado(notasVis.map((n) => n.id), `Compras em marketplaces · ${periodo}`)} className="link-acao text-sm">Abrir estas notas nas notas recebidas</Link>}
       </div>
       <Table empty={!notasVis.length} head={<><th className="th">Data</th><th className="th">Nota</th><th className="th">Loja</th><th className="th">Marketplace</th><th className="th">O que comprou</th><th className="th text-right">Valor</th></>}>
         {notasVis.slice(0, 300).map((n) => (
           <tr key={n.id}>
             <td className="td whitespace-nowrap">{dataBR(n.data_emissao)}</td>
-            <td className="td whitespace-nowrap"><Link to="/notas" state={estado([n.id], `NF ${n.numero}`)} className="font-semibold text-brand hover:underline">NF {n.numero || "—"}</Link>{n.pedido && <div className="text-xs text-slate-500">pedido {n.pedido}</div>}</td>
+            <td className="td whitespace-nowrap"><Link to="/notas" state={estado([n.id], `NF ${n.numero}`)} className="link-acao">NF {n.numero || "—"}</Link>{n.pedido && <div className="text-xs text-slate-500">pedido {n.pedido}</div>}</td>
             <td className="td">{n.emitente_nome}{n.loja_usuario && <div className="text-xs text-slate-500">{n.loja_usuario}</div>}</td>
             <td className="td"><Chip m={n.marketplace} /></td>
             <td className="td text-sm text-slate-700 [overflow-wrap:anywhere]">{textoItens(n.id) || "—"}</td>
@@ -267,7 +267,7 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
               <td className="td">{estabelecimento(p.descricao)}</td>
               <td className="td text-sm text-slate-600">{nomeConta(p.conta_bancaria_id)}</td>
               <td className="td"><Chip m={p.marketplace} /></td>
-              <td className="td text-sm">{n ? <Link to="/notas" state={estado([n.id], `NF ${n.numero}`)} className="font-semibold text-brand hover:underline">NF {n.numero} · {n.emitente_nome}</Link> : <span className="font-semibold text-amber-700">sem nota</span>}</td>
+              <td className="td text-sm">{n ? <Link to="/notas" state={estado([n.id], `NF ${n.numero}`)} className="link-acao">NF {n.numero} · {n.emitente_nome}</Link> : <span className="font-semibold text-amber-700">sem nota</span>}</td>
               <td className="td num whitespace-nowrap text-right font-semibold text-red-600">{brl(-Number(p.valor))}</td>
             </tr>
           );

@@ -233,7 +233,7 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
                 {a.mime?.startsWith("image/") ? <Imagem size={15} className="shrink-0 text-sky-600" aria-hidden /> : <FileText size={15} className="shrink-0 text-brand" aria-hidden />}
                 <button type="button" onClick={() => abrir(a)} className="min-w-0 flex-1 truncate text-left font-semibold text-fg hover:underline">{a.nome}</button>
                 <span className="shrink-0 text-2xs text-slate-500">{a.tipo} · {dataBR(a.criado_em.slice(0, 10))}</span>
-                <button type="button" onClick={() => apagar(a)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label={`Apagar ${a.nome}`}><Trash2 size={14} /></button>
+                <button type="button" onClick={() => apagar(a)} className="botao-icone-perigo p-1" aria-label={`Apagar ${a.nome}`}><Trash2 size={14} /></button>
               </li>
             ))}
             {!arquivos.length && <li className="text-xs text-slate-500">Nenhum arquivo ainda (contrato assinado, ficha do licenciado, documentos).</li>}
@@ -262,8 +262,8 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
                 <span className="num w-20 shrink-0 text-xs text-slate-500">{dataBR(c.data)}</span>
                 <span className="min-w-0 flex-1"><span className="font-semibold text-fg">{nomeCategoria(c.categoria)}</span>{c.descricao && <span className="text-slate-600"> · {c.descricao}</span>}</span>
                 <span className="num font-semibold">{brl(c.valor)}</span>
-                {!c.anulado && <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => setCusto(c)} aria-label="Editar custo"><Pencil size={14} /></button>}
-                <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => gravar("licenciados_custos", { id: c.id, anulado: !c.anulado })}
+                {!c.anulado && <button type="button" className="botao-icone p-1" onClick={() => setCusto(c)} aria-label="Editar custo"><Pencil size={14} /></button>}
+                <button type="button" className="botao-icone p-1" onClick={() => gravar("licenciados_custos", { id: c.id, anulado: !c.anulado })}
                   aria-label={c.anulado ? "Voltar o custo" : "Anular o custo"} title={c.anulado ? "Voltar" : "Anular (lançado errado)"}>{c.anulado ? <Undo2 size={14} /> : <Ban size={14} />}</button>
               </li>
             ))}
@@ -362,7 +362,7 @@ function MaquinasDaLoja({ loja: l, anotadas, onEditarAnotada }: { loja: Loja; an
                   <span className="text-xs text-slate-500">{[m.numero_serie && `nº ${m.numero_serie}`, m.data_compra && `comprada em ${dataBR(m.data_compra)}`, SITUACOES_MAQUINA.find((s) => s.id === m.situacao)?.nome].filter(Boolean).join(" · ")}</span></span>
                 {m.valor != null && <span className="num font-semibold">{brl(m.valor)}</span>}
                 {l.cliente_id && <Button variant="secondary" className="!min-h-0 !py-1 text-xs" onClick={() => setPassar({ cliente_id: l.cliente_id ?? undefined, descricao: m.descricao, numero_serie: m.numero_serie, data_venda: m.data_compra, observacoes: m.observacao })}>Passar para o cliente</Button>}
-                <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => onEditarAnotada(m)} aria-label={`Editar ${m.descricao}`}><Pencil size={14} /></button>
+                <button type="button" className="botao-icone p-1" onClick={() => onEditarAnotada(m)} aria-label={`Editar ${m.descricao}`}><Pencil size={14} /></button>
               </li>
             ))}
           </ul>
@@ -436,7 +436,7 @@ export function CustosAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loja)
         {!cats.length && <p className="mt-1 text-sm opacity-90">Abra uma unidade e lance os custos de montar (máquinas, quiosque, insumos, PDV, montagem, uniformes, comunicação, inauguração).</p>}
       </div>
       {porLoja.length > 0 && (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
+        <ul className="cartao divide-y divide-slate-100">
           {porLoja.map(({ l, r }) => (
             <li key={l.id}><button type="button" onClick={() => onAbrir(l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: corDaLoja(l.cor) }} aria-hidden />
@@ -472,7 +472,7 @@ export function MaquinasAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loj
     <div className="space-y-2">
       {semCliente > 0 && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{semCliente} {pl(semCliente, "unidade aberta ainda não está ligada", "unidades abertas ainda não estão ligadas")} ao cliente do ERP: abra a unidade e ligue em "Máquinas e manutenções".</p>}
       {!lista.length ? <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma máquina ainda. Abra uma unidade, ligue ao cliente e cadastre as máquinas em "Máquinas e manutenções".</p> : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
+        <ul className="cartao divide-y divide-slate-100">
           {lista.map((m) => (
             <li key={m.id}><button type="button" onClick={() => m.l && onAbrir(m.l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
               <Wrench size={14} className="shrink-0" style={{ color: corDaLoja(m.l?.cor) }} aria-hidden />

@@ -155,7 +155,7 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
                       <td className="num whitespace-nowrap py-1 text-right">{brl(Number(p.preco_venda) || 0)}</td>
                       <td className="num py-1 text-right">{Number(p.estoque_atual) || 0}</td>
                       <td className="num py-1 text-right">{uso.get(p.id) ?? 0}</td>
-                      <td className="py-1 text-right"><button type="button" className="text-xs font-semibold text-brand hover:underline" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>
+                      <td className="py-1 text-right"><button type="button" className="link-acao text-xs" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>
                     </tr>
                   );
                 })}
@@ -314,7 +314,7 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
                 <td className="p-2"><div className="flex flex-wrap gap-1">{a.pendencias.map((x) => (
                   <span key={x.id} title={x.texto} className={`rounded px-1.5 py-0.5 text-2xs font-semibold ${x.automatica ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>{ROTULO_PEND[x.id] ?? x.id}</span>
                 ))}{!a.pendencias.length && <span className="text-xs font-semibold text-emerald-700">tudo certo</span>}</div></td>
-                <td className="p-2 text-right"><button type="button" className="text-xs font-semibold text-brand hover:underline" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>
+                <td className="p-2 text-right"><button type="button" className="link-acao text-xs" onClick={() => onAbrir(p as unknown as Produto)}>abrir</button></td>
               </tr>
             ))}
           </tbody>

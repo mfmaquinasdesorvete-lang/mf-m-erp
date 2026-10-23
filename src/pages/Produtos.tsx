@@ -444,7 +444,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             ))}
           </div>}
           <p className="mb-3 hidden text-sm text-slate-600 sm:block">
-            {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="font-semibold text-brand hover:underline">Produtos e estoque</Link>.</> : atualCad.ajuda}
+            {ehMaquinas ? <>As máquinas que a MF fabrica e vende, separadas dos produtos. Peças, componentes e serviços ficam em <Link to="/estoque" className="link-acao">Produtos e estoque</Link>.</> : atualCad.ajuda}
           </p>
           {ehMaquinas && <ModelosMaquinas produtos={produtosTodos} aoAbrir={setFicha} />}
           {podeMover && sugeridos.length > 0 && (cadastro === "componentes" || cadastro === "pecas" || cadastro === "todos") && (

@@ -11,7 +11,7 @@ export class ErroTela extends Component<{ children: ReactNode }, { erro: unknown
     if (!this.state.erro) return this.props.children;
     const versao = ehErroDeVersao(this.state.erro);
     return (
-      <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-surface p-6 text-center shadow-card">
+      <div className="cartao mx-auto max-w-lg p-6 text-center">
         <h2 className="text-lg font-bold text-fg">{versao ? "O ERP foi atualizado" : "Esta tela não abriu"}</h2>
         <p className="mt-2 text-sm text-slate-600">
           {versao ? "Recarregue a página para usar a versão nova." : "Recarregue a página. Se continuar, avise com um print desta mensagem."}

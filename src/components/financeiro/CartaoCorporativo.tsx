@@ -98,7 +98,7 @@ function CartaoResumo({ cartao: c }: { cartao: Cartao }) {
     ? { r: resumoCartao(lista.filter((g) => g.data === ultimoDia), casadas, funcionarios), titulo: `Último dia no extrato · ${dataBR(ultimoDia)}` } : null;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+    <section className="cartao overflow-hidden">
       <div className="bg-gradient-to-br from-[#0f2a4a] via-[#16406e] to-[#0b7a75] p-4 text-white">
         <div className="flex flex-wrap items-start gap-3">
           <span className="grid h-10 w-14 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 shadow-inner" aria-hidden><CreditCard size={22} /></span>

@@ -48,8 +48,8 @@ export function Contabilidade() {
           <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-lg font-bold text-fg">{dados.razao || cfg?.contador_nome || "Escritório de contabilidade"}</h2>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-              {dados.telefone && <a className="font-semibold text-brand hover:underline" href={linkTelefone(dados.telefone) ?? undefined}><Phone size={13} className="mr-1 inline" aria-hidden />{dados.telefone}</a>}
-              {dados.site && <a className="font-semibold text-brand hover:underline" href={`https://${dados.site.replace(/^https?:\/\//, "")}`} target="_blank" rel="noreferrer">{dados.site}</a>}
+              {dados.telefone && <a className="link-acao" href={linkTelefone(dados.telefone) ?? undefined}><Phone size={13} className="mr-1 inline" aria-hidden />{dados.telefone}</a>}
+              {dados.site && <a className="link-acao" href={`https://${dados.site.replace(/^https?:\/\//, "")}`} target="_blank" rel="noreferrer">{dados.site}</a>}
               {dados.instagram && <span>Instagram: {dados.instagram}</span>}
             </div>
             {dados.endereco && <p className="mt-1 text-sm text-slate-600">{dados.endereco}</p>}
@@ -73,15 +73,15 @@ export function Contabilidade() {
         {podeEditar && <Button variant="secondary" onClick={() => setForm({ setor: "fiscal", nome: "", email: "", whatsapp: "", observacao: "", ativo: true })}><Plus size={16} /> Contato</Button>}
       </div>
 
-      {!contatos.length && <p className="rounded-xl border border-slate-200 bg-surface p-6 text-center text-sm text-slate-500">Nenhum contato do escritório cadastrado ainda.</p>}
-      {contatos.length > 0 && !grupos.length && <p className="rounded-xl border border-slate-200 bg-surface p-6 text-center text-sm text-slate-500">Nada encontrado para “{busca}”. Na dúvida, fale com a recepção.</p>}
+      {!contatos.length && <p className="cartao p-6 text-center text-sm text-slate-500">Nenhum contato do escritório cadastrado ainda.</p>}
+      {contatos.length > 0 && !grupos.length && <p className="cartao p-6 text-center text-sm text-slate-500">Nada encontrado para “{busca}”. Na dúvida, fale com a recepção.</p>}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {grupos.map((g) => (
           <Card key={g.id} className="overflow-hidden">
             <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5">
               <h3 className="font-bold text-fg">{g.rotulo}</h3>
               {g.paraQue && <p className="text-xs text-slate-600">{g.paraQue}</p>}
-              {g.id === "certificado" && papel === "admin" && <Link to="/sobre?aba=monitor" className="text-xs font-semibold text-brand hover:underline">Ver a data de vencimento em Chaves e certificados</Link>}
+              {g.id === "certificado" && papel === "admin" && <Link to="/sobre?aba=monitor" className="link-acao text-xs">Ver a data de vencimento em Chaves e certificados</Link>}
             </div>
             <ul className="divide-y divide-slate-100">
               {g.contatos.map((c) => {
@@ -118,7 +118,7 @@ export function Contabilidade() {
       </div>
       {podeEditar && desativados.length > 0 && !busca && (
         <p className="text-xs text-slate-500">Desativados ({desativados.length}): {desativados.map((c, i) => (
-          <button key={c.id} type="button" className="font-semibold text-brand hover:underline" onClick={() => setForm({ id: c.id, setor: c.setor, nome: c.nome, email: c.email ?? "", whatsapp: c.whatsapp ?? "", observacao: c.observacao ?? "", ativo: c.ativo })}>
+          <button key={c.id} type="button" className="link-acao" onClick={() => setForm({ id: c.id, setor: c.setor, nome: c.nome, email: c.email ?? "", whatsapp: c.whatsapp ?? "", observacao: c.observacao ?? "", ativo: c.ativo })}>
             {c.nome}{i < desativados.length - 1 ? ", " : ""}</button>))}
         </p>
       )}
@@ -127,7 +127,7 @@ export function Contabilidade() {
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-3">
           <Mail size={17} className="text-slate-500" aria-hidden />
           <h3 className="flex-1 font-bold text-fg">E-mails recebidos da contabilidade</h3>
-          <Link to="/email" className="text-sm font-semibold text-brand hover:underline">Abrir a caixa de e-mail</Link>
+          <Link to="/email" className="link-acao text-sm">Abrir a caixa de e-mail</Link>
         </div>
         {!emails.length ? (
           <p className="p-4 text-sm text-slate-600">

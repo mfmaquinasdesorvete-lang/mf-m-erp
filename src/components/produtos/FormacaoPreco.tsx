@@ -91,7 +91,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
   const todosMarcados = pendentes.length > 0 && pendentes.every((s) => marcados.has(s.id));
   return (
     <div className="space-y-5">
-      <section className="rounded-xl border border-slate-200 bg-surface p-3 sm:p-4">
+      <section className="cartao p-3 sm:p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-base font-bold">Preços para revisar {pendentes.length > 0 && <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{pendentes.length}</span>}</h2>
@@ -177,7 +177,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
       <MargemCategorias categorias={categorias} cfg={cfg} podeEditar={podeAprovar} />
 
       {decididas.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-surface p-3 sm:p-4">
+        <section className="cartao p-3 sm:p-4">
           <h2 className="mb-2 text-base font-bold">Últimas decisões</h2>
           <ul className="divide-y divide-slate-100 text-sm">
             {decididas.map((s) => (
@@ -221,7 +221,7 @@ function RegrasPreco({ cfg, podeEditar }: { cfg: ConfigPreco; podeEditar: boolea
     } catch (e) { notifyError(e); } finally { setSalvando(false); }
   }
   return (
-    <section className="rounded-xl border border-slate-200 bg-surface p-3 sm:p-4">
+    <section className="cartao p-3 sm:p-4">
       <h2 className="flex items-center gap-2 text-base font-bold"><Calculator size={18} /> Regras do preço</h2>
       <p className="mb-3 text-xs text-slate-500 sm:text-sm">
         Preço = custo ÷ (1 − (margem + despesas) ÷ 100). A margem é o que sobra depois das despesas. A do produto vale mais que a da categoria, e a da categoria mais que a do tipo.
@@ -358,7 +358,7 @@ function MargemCategorias({ categorias, cfg, podeEditar }: { categorias: Categor
     if (error) notifyError(error); else { notify(v == null ? `${c.nome}: usa a margem do tipo` : `${c.nome}: margem de ${pct(v)}`); invalidar("categorias_produto"); }
   }
   return (
-    <section className="rounded-xl border border-slate-200 bg-surface p-3 sm:p-4">
+    <section className="cartao p-3 sm:p-4">
       <button type="button" className="flex w-full items-center justify-between text-left" onClick={() => setAberto((a) => !a)}>
         <span>
           <span className="block text-base font-bold">Margem por categoria</span>

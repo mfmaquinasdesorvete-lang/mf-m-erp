@@ -30,7 +30,7 @@ function Copiar({ texto }: { texto: string }) {
   return (
     <span className="mt-1 flex min-w-0 items-center gap-1">
       <code className="num min-w-0 flex-1 break-all rounded-md bg-slate-100 px-2 py-1 text-xs text-fg">{texto}</code>
-      <button type="button" onClick={copiar} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Copiar" title="Copiar"><Copy size={14} /></button>
+      <button type="button" onClick={copiar} className="botao-icone p-2" aria-label="Copiar" title="Copiar"><Copy size={14} /></button>
     </span>
   );
 }
@@ -128,7 +128,7 @@ function Conectar({ admin, ocupado, onConectar }: { admin: boolean; ocupado: boo
       {admin && (
         <ol className="space-y-4">
           <Passo n={1} titulo="Crie o app no Mercado Livre">
-            <p>Entre no <a href={DEV_ML} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-brand hover:underline">Mercado Livre Developers <ExternalLink size={12} /></a> com a conta da empresa e clique em "Criar aplicação". Preencha:</p>
+            <p>Entre no <a href={DEV_ML} target="_blank" rel="noreferrer" className="link-acao inline-flex items-center gap-0.5">Mercado Livre Developers <ExternalLink size={12} /></a> com a conta da empresa e clique em "Criar aplicação". Preencha:</p>
             <p className="mt-2">Endereço de retorno (Redirect URI):</p>
             <Copiar texto={retorno ?? `${site}/mercado-livre/retorno`} />
             {funcoes && (<>

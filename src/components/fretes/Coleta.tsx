@@ -120,7 +120,7 @@ export function AgendarColeta({ envio, transportadoras, podeAgendar, pendente, n
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-surface p-3">
+          <div className="cartao p-3">
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Frequência de coleta{nomeTransp ? ` · ${nomeTransp}` : ""}</div>
             {endereco && <p className="mb-2 flex gap-1.5 text-sm text-slate-700"><MapPin size={15} className="mt-0.5 shrink-0 text-slate-400" aria-hidden />{endereco}</p>}
             <div className="flex flex-wrap gap-1.5">

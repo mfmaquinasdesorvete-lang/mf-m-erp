@@ -121,7 +121,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
           {R.pedidos.map((p) => {
             const s = PEDIDO[p.situacao];
             return (
-              <li key={p.pedido} className="grid items-center gap-2 rounded-xl border border-slate-200 bg-surface p-3 md:grid-cols-[1fr_auto_1fr_auto]">
+              <li key={p.pedido} className="cartao grid items-center gap-2 p-3 md:grid-cols-[1fr_auto_1fr_auto]">
                 <span className="min-w-0 rounded-lg bg-slate-100 px-3 py-2 text-sm italic text-slate-700">“{p.pedido}”</span>
                 <ArrowRight size={16} className="hidden text-slate-400 md:block" aria-hidden />
                 <ArrowDown size={16} className="mx-auto text-slate-400 md:hidden" aria-hidden />
@@ -277,7 +277,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
 
       <p className="text-xs text-slate-500">
         A cada rodada esta página muda. As respostas também podem ir para o Handoff (botão "Anotar no Handoff");{" "}
-        <button type="button" className="font-semibold text-brand hover:underline" onClick={() => onIdeia({ titulo: "Rodada: ", area: "geral" })}>anotar uma ideia sobre a rodada</button>.
+        <button type="button" className="link-acao" onClick={() => onIdeia({ titulo: "Rodada: ", area: "geral" })}>anotar uma ideia sobre a rodada</button>.
       </p>
     </div>
   );

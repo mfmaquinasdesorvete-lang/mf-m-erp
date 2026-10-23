@@ -177,7 +177,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:grid-cols-2 sm:p-4">
+      <div className="cartao grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4">
         <Field label="Máquina (modelo)" className="sm:col-span-2">
           <select className="input text-base font-semibold" value={f.produto_id} required
             onChange={(e) => set({ produto_id: e.target.value, ordem_producao_id: "" })}>
@@ -254,7 +254,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
       </div>
 
       {!par.temAlgum && f.produto_id && (
-        <p className="flex items-start gap-2 rounded-xl border border-slate-200 bg-surface p-3 text-xs text-slate-600">
+        <p className="cartao flex items-start gap-2 p-3 text-xs text-slate-600">
           <Info size={15} className="mt-0.5 shrink-0" aria-hidden />
           Sem limites cadastrados para esta máquina: o ERP não sugere aprovado/reprovado pelas medidas. O administrador cadastra em Parâmetros.
         </p>
@@ -288,7 +288,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
         </Aviso>
       )}
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:p-4">
+      <div className="cartao grid grid-cols-1 gap-3 p-3 sm:p-4">
         <Field label={div.length ? "Observações (obrigatório: medida fora do limite)" : geral === "reprovada" ? "Observações (obrigatório: o que falhou)" : "Observações"}>
           <textarea className="input" rows={2} maxLength={1000} value={f.observacoes} required={div.length > 0 || geral === "reprovada"}
             placeholder={geral === "reprovada" ? "O que falhou e o que foi feito (ex.: cabo terra solto, reapertado)" : "Opcional"}
@@ -298,12 +298,12 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
           <Field label="Data e hora do teste (do papel)">
             <span className="flex flex-wrap items-center gap-2">
               <input type="datetime-local" className="input w-auto" value={f.testado_em} max={agoraLocal()} required onChange={(e) => set({ testado_em: e.target.value })} />
-              <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setOutraData(false); set({ testado_em: "" }); }}>Usar agora</button>
+              <button type="button" className="link-acao text-sm" onClick={() => { setOutraData(false); set({ testado_em: "" }); }}>Usar agora</button>
             </span>
           </Field>
         ) : (
           <button type="button" onClick={() => { setOutraData(true); set({ testado_em: agoraLocal() }); }}
-            className="inline-flex items-center gap-1.5 justify-self-start text-sm font-semibold text-brand hover:underline">
+            className="link-acao inline-flex items-center gap-1.5 justify-self-start text-sm">
             <CalendarClock size={15} aria-hidden /> Lançar com outra data (teste anotado no papel)
           </button>
         )}
@@ -337,7 +337,7 @@ function Escolha({ rotulo, valor, onChange, sugestao, auto, children }: {
   rotulo: string; valor: Resultado | null; onChange: (v: Resultado) => void; sugestao?: Sugestao; auto?: boolean; children?: ReactNode;
 }) {
   return (
-    <fieldset className="rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:p-4">
+    <fieldset className="cartao p-3 sm:p-4">
       <legend className="sr-only">{rotulo}</legend>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-sm font-bold text-fg" aria-hidden>{rotulo}</span>

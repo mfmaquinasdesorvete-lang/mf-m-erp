@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
 import { AtalhoGastoPessoal } from "@/components/pessoal/AtalhoGastoPessoal";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,7 +6,7 @@ import {
   AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch, Plus,
   ShieldCheck, ShieldOff, ShoppingBag, Truck, TrendingUp, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
-import { Section } from "@/components/ui";
+import { estiloBrilho, Luz, Section } from "@/components/ui";
 import { Area, Rosca } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
@@ -81,7 +81,7 @@ export default function Dashboard() {
     <>
       {(opcoes.length > 1 || papel === "admin") && <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
       {opcoes.length > 1 && (
-        <div className="inline-flex max-w-full rounded-xl border border-slate-200 bg-surface p-1 shadow-card" role="tablist" aria-label="O que ver no início">
+        <div className="cartao inline-flex max-w-full p-1" role="tablist" aria-label="O que ver no início">
           {opcoes.map((v) => (
             <button key={v} type="button" role="tab" aria-selected={atual === v} onClick={() => escolher(v)}
               className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition sm:px-4 ${atual === v ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
@@ -257,7 +257,7 @@ function PainelGeral() {
             {" · "}{carregando ? "conferindo…" : atencao.length ? <span className="font-semibold text-red-600">{atencao.length} {pl(atencao.length, "assunto", "assuntos")} pedem atenção</span> : "tudo em dia"}
           </p>
         </div>
-        <div role="tablist" aria-label="Período" className="grid grid-cols-4 gap-1 rounded-2xl border border-slate-200 bg-surface p-1 shadow-card sm:inline-grid">
+        <div role="tablist" aria-label="Período" className="cartao grid grid-cols-4 gap-1 p-1 sm:inline-grid">
           {PERIODOS.map((p) => (
             <button key={p.id} role="tab" aria-selected={periodo === p.id} onClick={() => escolher(p.id)}
               className={`min-h-[40px] rounded-xl px-3 text-sm font-semibold transition sm:px-4 ${
@@ -276,7 +276,7 @@ function PainelGeral() {
 
       {/* Atalhos */}
       {acoes.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:gap-3 sm:p-4 lg:grid-cols-8">
+        <div className="cartao grid grid-cols-4 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-8">
           {acoes.map((a) => (
             <button key={a.label} onClick={() => navigate(a.to, { state: a.state })}
               className="group flex flex-col items-center gap-1.5 rounded-xl p-1.5 text-center transition hover:bg-slate-50">
@@ -296,7 +296,7 @@ function PainelGeral() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {podeVer("pedidos") && (
           <Section title="Vendas x Recebido · 6 meses" className="xl:col-span-3"
-            actions={podeVer("relatorios") && <Link to="/relatorios" className="text-sm font-semibold text-brand hover:underline">Relatórios</Link>}>
+            actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm">Relatórios</Link>}>
             <Area dados={k.serie} series={podeVer("financeiro")
               ? [{ nome: "Vendas", cor: "var(--serie-1)" }, { nome: "Recebido", cor: "var(--serie-3)" }]
               : [{ nome: "Vendas", cor: "var(--serie-1)" }]}
@@ -306,7 +306,7 @@ function PainelGeral() {
 
         {podeVer("financeiro") ? (
           <Section title="Contas a receber" className="xl:col-span-2"
-            actions={<Link to="/financeiro" className="text-sm font-semibold text-brand hover:underline">Abrir</Link>}>
+            actions={<Link to="/financeiro" className="link-acao text-sm">Abrir</Link>}>
             <Rosca total="Em aberto" fatias={[
               { rotulo: "Vence em 30 dias", valor: k.receber30, cor: "var(--serie-1)" },
               { rotulo: "Depois de 30 dias", valor: k.receberDepois, cor: "var(--serie-3)" },
@@ -315,7 +315,7 @@ function PainelGeral() {
           </Section>
         ) : (
           <Section title="Assistência técnica agora" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"}
-            actions={<Link to="/assistencia" className="text-sm font-semibold text-brand hover:underline">Abrir</Link>}>
+            actions={<Link to="/assistencia" className="link-acao text-sm">Abrir</Link>}>
             <Rosca total="Ordens" fatias={k.osPorSituacao} formatar={(v) => `${v} OS`} />
           </Section>
         )}
@@ -339,7 +339,7 @@ function PainelGeral() {
 
         <div className="space-y-4 xl:col-span-3">
           {podeVer("producao") && (
-            <Section title="Fábrica" actions={<Link to="/producao" className="text-sm font-semibold text-brand hover:underline">Abrir produção</Link>}>
+            <Section title="Fábrica" actions={<Link to="/producao" className="link-acao text-sm">Abrir produção</Link>}>
               <div className="grid grid-cols-2 gap-2">
                 <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
                 <Mini icon={PackageSearch} cor={k.opsComFalta ? "var(--kpi-rosa)" : "var(--kpi-verde)"} label="Peça faltando" valor={k.opsComFalta} onClick={() => navigate("/producao")} />
@@ -348,7 +348,7 @@ function PainelGeral() {
               </div>
             </Section>
           )}
-          <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="text-sm font-semibold text-brand hover:underline">Ver todas</Link>}>
+          <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="link-acao text-sm">Ver todas</Link>}>
             <div className="grid grid-cols-2 gap-2">
               <Mini icon={ShieldCheck} cor="var(--kpi-verde)" label="Em garantia" valor={k.emGarantia} onClick={() => navigate("/garantias")} />
               <Mini icon={ShieldCheck} cor="var(--kpi-laranja)" label="Vencem em 30 dias" valor={k.garantiaVence} onClick={() => navigate("/garantias")} />
@@ -362,18 +362,13 @@ function PainelGeral() {
   );
 }
 
-/** Cartão de indicador colorido: fundo tingido com a cor, ícone grande e variação vs período anterior. */
+/** Cartão de indicador colorido (o brilho é a peça comum estiloBrilho/Luz): ícone grande e variação vs período anterior. */
 function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: () => void }) {
-  const estilo: CSSProperties = {
-    background: `linear-gradient(140deg, color-mix(in srgb, ${c.cor} 20%, rgb(var(--surface))) 0%, rgb(var(--surface)) 70%)`,
-    borderColor: `color-mix(in srgb, ${c.cor} 38%, transparent)`,
-    boxShadow: `0 12px 28px -20px ${c.cor}`,
-  };
   const subiu = (c.delta ?? 0) >= 0;
   return (
-    <button onClick={onClick} style={estilo}
+    <button onClick={onClick} style={estiloBrilho(c.cor)}
       className="group relative flex min-h-[132px] flex-col overflow-hidden rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 sm:p-5">
-      <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-25 blur-2xl" style={{ background: c.cor }} aria-hidden />
+      <Luz cor={c.cor} />
       <span className="flex items-start justify-between gap-2">
         <span className="text-xs font-semibold leading-tight text-slate-600 sm:text-sm">{c.label}</span>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11"

@@ -69,7 +69,7 @@ function Resultado({ r, nome }: { r: ResultadoValidacao; nome?: string }) {
         if (!itens.length) return null;
         const pior: Nivel = itens.some((a) => a.nivel === "erro") ? "erro" : itens.some((a) => a.nivel === "alerta") ? "alerta" : "ok";
         return (
-          <section key={id} className="rounded-2xl border border-slate-200 bg-surface p-3">
+          <section key={id} className="cartao p-3">
             <header className="mb-2 flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-100 text-slate-600"><Icone size={16} /></span>
               <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{titulo}</p><p className="truncate text-2xs text-slate-500">{dica}</p></div>

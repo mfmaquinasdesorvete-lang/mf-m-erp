@@ -243,7 +243,7 @@ export default function Clientes() {
         const cnpj = d.length === 14;
         const filiais = cnpj ? todos.filter((c) => digitos(c.cpf_cnpj).slice(0, 8) === d.slice(0, 8)) : [];
         return (
-          <div className="mb-3 rounded-2xl border border-slate-200 bg-surface p-4 text-sm">
+          <div className="cartao mb-3 p-4 text-sm">
             <p className="text-fg"><b>Nenhum cliente com o {cnpj ? "CNPJ" : "CPF"} {docFormat(d)}.</b>{" "}
               {cnpj && !cnpjValido(d) ? <span className="text-red-600">Esse CNPJ não é válido: confira os números.</span> : "Ele ainda não está cadastrado no ERP."}</p>
             {filiais.length > 0 && (
@@ -251,7 +251,7 @@ export default function Clientes() {
                 Mesma empresa (outra filial):
                 <ul className="mt-1 space-y-1">
                   {filiais.slice(0, 5).map((c) => (
-                    <li key={c.id}><button type="button" className="font-semibold text-brand hover:underline" onClick={() => setAbrirAgora({ ...c })}>{c.nome_fantasia || c.nome}</button> <span className="num text-xs">{docFormat(c.cpf_cnpj)}</span></li>
+                    <li key={c.id}><button type="button" className="link-acao" onClick={() => setAbrirAgora({ ...c })}>{c.nome_fantasia || c.nome}</button> <span className="num text-xs">{docFormat(c.cpf_cnpj)}</span></li>
                   ))}
                 </ul>
               </div>

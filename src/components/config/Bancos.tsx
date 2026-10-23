@@ -65,7 +65,7 @@ function ContasBancarias({ bancos, carregando, onNova, onEditar }: {
                   {BANCOS[b.banco] ?? b.banco}{b.agencia ? ` · ag. ${b.agencia}` : ""}{b.numero ? ` · conta ${b.numero}` : ""}{!b.ativo && " · inativa"}<EtiquetaUnidade id={b.unidade_id} />
                 </span>
               </span>
-              <button type="button" onClick={() => onEditar(b)} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-brand hover:underline"><Pencil size={12} aria-hidden /> Editar</button>
+              <button type="button" onClick={() => onEditar(b)} className="link-acao flex shrink-0 items-center gap-1 text-xs"><Pencil size={12} aria-hidden /> Editar</button>
             </li>
           ))}
         </ul>

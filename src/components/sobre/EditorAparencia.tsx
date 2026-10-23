@@ -55,7 +55,7 @@ function CampoCor({ rotulo, valor, padrao, onChange }: { rotulo: ReactNode; valo
           onChange={(e) => { setTexto(e.target.value); if (corValida(e.target.value)) onChange(e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`); if (!e.target.value) onChange(null); }} />
       </div>
       {corValida(valor) && valor.toLowerCase() !== padrao && (
-        <button type="button" onClick={() => onChange(null)} title="Voltar à cor padrão" aria-label="Voltar à cor padrão" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><RotateCcw size={15} /></button>
+        <button type="button" onClick={() => onChange(null)} title="Voltar à cor padrão" aria-label="Voltar à cor padrão" className="botao-icone"><RotateCcw size={15} /></button>
       )}
     </div>
   );

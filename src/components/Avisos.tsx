@@ -173,7 +173,7 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-fg">{t.titulo}</div>
                     <div className="text-sm text-slate-500">{t.ativo ? t.descricao : "Desligado pelo administrador"}</div>
-                    <button type="button" onClick={() => setPrevia(previa === t.tipo ? null : t.tipo)} className="mt-1 text-xs font-semibold text-brand hover:underline">
+                    <button type="button" onClick={() => setPrevia(previa === t.tipo ? null : t.tipo)} className="link-acao mt-1 text-xs">
                       {previa === t.tipo ? "Fechar exemplo" : "Ver exemplo"}
                     </button>
                   </div>
@@ -268,7 +268,7 @@ export function AvisosConfig() {
             <div className="text-sm text-slate-500">{t.descricao}</div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {publico === "equipe" && t.papeis.map((p) => <span key={p} className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">{PAPEL_ROTULO[p]}</span>)}
-              <button type="button" onClick={() => setPrevia(t)} className="text-xs font-semibold text-brand hover:underline">Ver exemplo</button>
+              <button type="button" onClick={() => setPrevia(t)} className="link-acao text-xs">Ver exemplo</button>
             </div>
           </div>
           <Interruptor rotulo={t.titulo} ligado={t.ativo} onChange={(v) => alternarTipo(t, v)} />

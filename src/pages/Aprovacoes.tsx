@@ -131,7 +131,7 @@ export default function Aprovacoes() {
         <>
           {aba === "revisar" && (
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div role="tablist" aria-label="Quais contas" className="inline-flex rounded-xl border border-slate-200 bg-surface p-1">
+              <div role="tablist" aria-label="Quais contas" className="cartao inline-flex p-1">
                 {[{ v: true, t: `Minha vez (${k.minha.length})` }, { v: false, t: `Todas em revisão (${k.emRevisao.length})` }].map((o) => (
                   <button key={String(o.v)} type="button" role="tab" aria-selected={soMinha === o.v} onClick={() => setSoMinha(o.v)}
                     className={`min-h-[36px] rounded-lg px-3 text-sm font-semibold ${soMinha === o.v ? "bg-modulo text-white" : "text-slate-600 hover:bg-slate-50"}`}>{o.t}</button>
@@ -156,12 +156,12 @@ export default function Aprovacoes() {
               ))}
             </ul>
           ) : (
-            <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-slate-500">
+            <p className="cartao p-8 text-center text-slate-500">
               {aba === "revisar" ? (soMinha ? "Nada esperando a sua revisão. ✅" : "Nenhuma conta em revisão. ✅") : aba === "pendencias" ? "Nenhuma pendência nem devolução. ✅" : "Nenhuma conta aprovada ainda."}
             </p>
           )}
           {marcadas.length > 0 && (
-            <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
+            <div className="cartao sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 p-2.5 shadow-pop">
               <span className="mr-auto text-sm"><b>{marcadas.length}</b> {pl(marcadas.length, "marcada", "marcadas")} · <b className="num">{brl(marcadas.reduce((s, l) => s + Number(l.c.valor), 0))}</b></span>
               <Button type="button" variant="ghost" onClick={() => setSel(new Set())}><X size={15} /> Desmarcar</Button>
               <Button type="button" disabled={ocupado} onClick={() => pedir("aprovar", marcadas)}><Check size={15} /> Aprovar {marcadas.length}</Button>
@@ -335,7 +335,7 @@ function Regras({ admin, regras }: { admin: boolean; regras: ReturnType<typeof r
   }
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+      <div className="cartao p-4">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold text-fg"><Settings2 size={18} /> Quem revisa</h2>
         {admin ? (
           <>
@@ -364,7 +364,7 @@ function Regras({ admin, regras }: { admin: boolean; regras: ReturnType<typeof r
         )}
         {admin && <p className="mt-3 text-xs text-slate-500">Hoje: 1ª revisão {regras.revisor1.map(nome).join(", ") || "—"} · 2ª revisão {regras.revisor2.map(nome).join(", ") || "—"}.</p>}
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-surface p-4 text-sm text-slate-700 shadow-card">
+      <div className="cartao p-4 text-sm text-slate-700">
         <h2 className="mb-2 text-base font-bold text-fg">Como funciona</h2>
         <ol className="list-decimal space-y-1.5 pl-5">
           <li><b>Lançou, entrou em revisão.</b> Lançamento automático (pedido, NF de fornecedor, tarifas, extrato) que passa nas validações já entra aprovado.</li>

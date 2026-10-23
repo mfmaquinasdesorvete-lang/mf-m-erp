@@ -268,7 +268,7 @@ function Apuracao({ mes, m }: { mes: string; m: { s: ReturnType<typeof impostosD
       </p>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {m.ap.linhas.map((l) => (
-          <li key={l.imposto} className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+          <li key={l.imposto} className="cartao p-4">
             <p className="font-bold text-fg">{l.imposto}</p>
             <dl className="num mt-1 space-y-0.5 text-sm">
               <div className="flex justify-between gap-2"><dt className="text-slate-600">Débito (vendas)</dt><dd className="whitespace-nowrap">{brl(l.debito)}</dd></div>
@@ -357,7 +357,7 @@ function Rotina({ abrir }: { abrir: (to: string) => void }) {
   return (
     <ol className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {ROTINA.map((r, k) => (
-        <li key={r.titulo} className="flex gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+        <li key={r.titulo} className="cartao flex gap-3 p-4">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-modulo/15 text-sm font-bold text-modulo-texto">{k + 1}</span>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-fg">{r.titulo}</p>

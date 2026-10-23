@@ -173,7 +173,7 @@ export default function PartesRelacionadas() {
                     <span className="block text-xs text-slate-500">{p.documentos.map(mascararDocumento).join(" · ") || "sem CPF/CNPJ"}</span>
                     {p.nomes_extrato.length > 0 && <span className="block text-xs text-slate-500">No extrato: {p.nomes_extrato.join(" · ")}</span>}
                   </span>
-                  {admin && <button type="button" onClick={() => setEditando(p)} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label={`Editar ${p.nome}`}><Pencil size={16} aria-hidden /></button>}
+                  {admin && <button type="button" onClick={() => setEditando(p)} className="botao-icone p-2" aria-label={`Editar ${p.nome}`}><Pencil size={16} aria-hidden /></button>}
                 </li>
               ))}
             </ul>

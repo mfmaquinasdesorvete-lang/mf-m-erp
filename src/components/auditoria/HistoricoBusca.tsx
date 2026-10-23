@@ -141,7 +141,7 @@ export function HistoricoBusca({ inicial, nomeRegistro }: { inicial?: Partial<Fi
       </Table>
       {!isLoading && !resultado.length && ["hoje", "7d"].includes(f.periodo) && !f.ids?.length && (
         <p className="mt-2 text-center text-sm text-slate-500">
-          Não achou? <button type="button" className="font-semibold text-brand hover:underline" onClick={() => mudar({ periodo: "30d" })}>Procure nos últimos 30 dias</button>
+          Não achou? <button type="button" className="link-acao" onClick={() => mudar({ periodo: "30d" })}>Procure nos últimos 30 dias</button>
         </p>
       )}
       {resultado.length > mostrar && (

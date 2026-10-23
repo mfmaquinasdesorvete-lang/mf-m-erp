@@ -79,8 +79,8 @@ export function PorFavorecido({ linhas, deFora, regras, nomeConta, podeEditar }:
         <Button variant="secondary" onClick={() => setVerRegras(true)}><ListChecks size={16} /> Regras ({regras.filter((r) => r.ativo).length})</Button>
       </div>
 
-      {!grupos.length && <p className="rounded-xl border border-slate-200 bg-surface p-6 text-center text-sm text-slate-500">Nenhuma linha pendente {termo ? "com este nome" : "nestes filtros"}.</p>}
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-surface">
+      {!grupos.length && <p className="cartao p-6 text-center text-sm text-slate-500">Nenhuma linha pendente {termo ? "com este nome" : "nestes filtros"}.</p>}
+      <ul className="cartao divide-y divide-slate-100 overflow-hidden">
         {grupos.slice(0, limite).map((g) => {
           const k = chaveRegra(g.chave, g.direcao);
           const regra = regraDe.get(k);

@@ -105,7 +105,7 @@ function ListaNfse() {
             <td className="td text-right whitespace-nowrap" data-label="Valor">{brl(n.valor_servicos)}{n.valor_iss != null && <div className="text-xs text-slate-500">ISS {brl(n.valor_iss)}</div>}</td>
             <td className="td" data-label="Situação"><ChipNfse n={n} />{n.ambiente === "homologacao" && <FlaskConical size={12} className="ml-1 inline text-amber-600" aria-label="teste" />}</td>
             <td className="td" data-label="">
-              {n.url_danfse && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline" href={n.url_danfse} target="_blank" rel="noreferrer"><FileText size={14} /> PDF</a>}
+              {n.url_danfse && <a className="link-acao inline-flex items-center gap-1 text-sm" href={n.url_danfse} target="_blank" rel="noreferrer"><FileText size={14} /> PDF</a>}
             </td>
           </tr>
         ))}
@@ -170,7 +170,7 @@ function FormConfig({ inicial, unidadeNome, podeEditar }: { inicial: NfseConfig;
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+    <section className="cartao p-4">
       <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-bold"><Settings2 size={17} className="text-brand" /> {unidadeNome}</h3>
         <label className="inline-flex items-center gap-2 text-sm font-semibold">

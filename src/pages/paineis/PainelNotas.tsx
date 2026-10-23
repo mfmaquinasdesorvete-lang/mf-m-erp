@@ -223,7 +223,7 @@ export default function PainelNotas() {
             { rotulo: "Painel do contador", icone: Calculator, to: "/contador", tela: "contador" },
             { rotulo: "Analista fiscal", icone: Scale, to: "/analista-fiscal", tela: "contador" },
           ]} />
-          <div className="flex items-start gap-2 rounded-2xl border border-slate-200/80 bg-surface p-3 text-xs text-slate-500 shadow-card">
+          <div className="cartao flex items-start gap-2 p-3 text-xs text-slate-500">
             <Landmark size={16} className="mt-0.5 shrink-0 text-modulo-texto" aria-hidden />
             Impostos destacados são os que saíram nas notas (débitos). A apuração do mês, com os créditos das compras, fica no Painel do contador e no Analista fiscal.
           </div>

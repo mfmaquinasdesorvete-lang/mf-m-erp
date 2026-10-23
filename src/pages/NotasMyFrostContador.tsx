@@ -61,7 +61,7 @@ export default function NotasMyFrostContador() {
         {[...resumo.anos, resumo.total].map((l) => (
           <tr key={l.ano} className={l.ano === "Total" ? "bg-slate-50 font-bold" : ""}>
             <td className="td">
-              {l.ano === "Total" ? "Total" : <button type="button" className="font-semibold text-brand hover:underline" onClick={() => { setAno(l.ano); setGrupo("todos"); }}>{l.ano}</button>}
+              {l.ano === "Total" ? "Total" : <button type="button" className="link-acao" onClick={() => { setAno(l.ano); setGrupo("todos"); }}>{l.ano}</button>}
             </td>
             {GRUPOS.map((g) => (
               <td key={g} className="td whitespace-nowrap text-right">

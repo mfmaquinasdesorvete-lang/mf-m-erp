@@ -89,7 +89,7 @@ export function ConciliarVendas({ ids, onClose }: { ids: string[]; onClose: (ok:
             <div className="flex flex-wrap items-center gap-2">
               <b>{escolhidosNaLista.length} de {pares.length} {pl(pares.length, "par marcado", "pares marcados")}</b>
               <span className="num text-slate-600">{brl(escolhidosNaLista.reduce((t, p) => t + Number(p.valor), 0))}</span>
-              <button type="button" className="text-xs font-semibold text-brand hover:underline" onClick={() => setEscolhidos(new Set(pares.map((p) => p.lanc)))}>Marcar todos</button>
+              <button type="button" className="link-acao text-xs" onClick={() => setEscolhidos(new Set(pares.map((p) => p.lanc)))}>Marcar todos</button>
               <button type="button" className="text-xs font-semibold text-slate-600 hover:underline" onClick={() => setEscolhidos(new Set())}>Desmarcar todos</button>
             </div>
             <div className="max-h-[50vh] overflow-auto rounded-lg border border-slate-200">

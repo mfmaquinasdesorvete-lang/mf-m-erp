@@ -73,7 +73,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
         <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input className="input pl-9" placeholder="Pesquise por descrição" value={busca} onChange={(e) => setBusca(e.target.value)} />
       </label>
-      <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
+      <ul className="cartao divide-y divide-slate-100">
         {lista.map((c) => {
           const nivel = c.nome.split(" > ").length - 1;
           const n = contagem.get(c.nome) ?? 0;
@@ -140,7 +140,7 @@ export function CampoCategoriaProduto({ valor, onChange, opcoes, produtos, podeE
       <select className="input" aria-label="Categoria" value={valor ?? ""} onChange={(e) => onChange(e.target.value)}>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <button type="button" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => setAberto(true)}>
+      <button type="button" className="link-acao mt-1 inline-flex items-center gap-1 text-xs" onClick={() => setAberto(true)}>
         <FolderTree size={13} aria-hidden /> {podeEditar ? "Criar ou editar categorias" : "Ver categorias"}
       </button>
       {aberto && (

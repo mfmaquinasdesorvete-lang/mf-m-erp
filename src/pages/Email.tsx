@@ -234,7 +234,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
   }
 
   return (
-    <article className="min-w-0 rounded-2xl border border-slate-200 bg-surface">
+    <article className="cartao min-w-0">
       <div className="border-b border-slate-100 p-4">
         <button type="button" onClick={onVoltar} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand lg:hidden"><ArrowLeft size={16} /> Voltar</button>
         <h2 className="text-lg font-bold leading-snug text-fg">{e.assunto}</h2>

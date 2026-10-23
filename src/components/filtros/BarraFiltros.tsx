@@ -57,7 +57,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
       </div>
       {painel === "periodo" && comPeriodo && <PainelPeriodo periodo={periodo!} onChange={onPeriodo!} rotulo={rotuloData} campoData={campoData} />}
       {painel === "filtros" && filtros && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-2.5">{filtros}</div>
+        <div className="cartao flex flex-wrap items-end gap-2 p-2.5">{filtros}</div>
       )}
     </div>
   );
@@ -69,7 +69,7 @@ export type CampoDataPeriodo = { valor: string; opcoes: { v: string; rotulo: str
 export function PainelPeriodo({ periodo, onChange, rotulo = "Data", campoData }: { periodo: Periodo; onChange: (p: Periodo) => void; rotulo?: string; campoData?: CampoDataPeriodo }) {
   const dia = hoje();
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-2.5">
+    <div className="cartao flex flex-wrap items-end gap-2 p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
         {campoData ? (
           <label className="flex items-center gap-1 text-xs font-semibold text-slate-600">Período por

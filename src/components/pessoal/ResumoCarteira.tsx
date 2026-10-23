@@ -42,7 +42,7 @@ function CartaoEmpresa({ s, onVerComprovante }: { s: SaldoEmpresa; onVerComprova
     : s.saldo > 0 ? "A empresa deve a você" : "Você recebeu a mais da empresa";
   const tom = Math.abs(s.saldo) < 0.01 ? "text-emerald-700" : s.saldo > 0 ? "text-violet-700" : "text-sky-700";
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-surface p-4">
+    <div className="cartao flex min-w-0 flex-col gap-3 p-4">
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7c3aed] text-white"><Building2 size={18} aria-hidden /></span>
         <div className="min-w-0 flex-1 basis-40">
@@ -71,7 +71,7 @@ function CartaoEmpresa({ s, onVerComprovante }: { s: SaldoEmpresa; onVerComprova
         {s.semComprovante > 0
           ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800"><FileWarning size={12} aria-hidden /> {s.semComprovante} sem comprovante</span>
           : <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800"><CheckCircle2 size={12} aria-hidden /> todos com comprovante</span>}
-        <button type="button" className="ml-auto inline-flex items-center gap-1 font-semibold text-brand hover:underline" aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
+        <button type="button" className="link-acao ml-auto inline-flex items-center gap-1" aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
           {aberto ? "Esconder" : "Ver um por um"} <ChevronDown size={14} className={aberto ? "rotate-180" : ""} aria-hidden />
         </button>
       </div>

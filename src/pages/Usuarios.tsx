@@ -566,7 +566,7 @@ function MatrizPermissoes() {
                   return (
                     <td key={p.value} className="td text-center">
                       {editavel && seus.length > 1 && (
-                        <button type="button" onClick={() => area(p.value, g.itens, !todosVisiveis)} className="text-2xs font-semibold text-brand hover:underline">
+                        <button type="button" onClick={() => area(p.value, g.itens, !todosVisiveis)} className="link-acao text-2xs">
                           {todosVisiveis ? "esconder área" : "mostrar área"}
                         </button>
                       )}

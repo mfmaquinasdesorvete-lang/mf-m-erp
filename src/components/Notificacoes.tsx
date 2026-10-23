@@ -373,13 +373,13 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       {/* Histórico */}
       {painel && (
         <div className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
-          <div className="absolute inset-x-3 top-[70px] max-h-[75vh] overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-3 shadow-pop md:left-auto md:right-5 md:top-5 md:w-96"
+          <div className="cartao absolute inset-x-3 top-[70px] max-h-[75vh] overflow-y-auto p-3 shadow-pop md:left-auto md:right-5 md:top-5 md:w-96"
             onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-2 px-1">
               <span className="font-bold text-fg">Notificações</span>
               <span className="flex items-center gap-1">
                 <button type="button" onClick={alternarSom} title={som ? "Som dos avisos ligado (o urgente toca sempre)" : "Som dos avisos desligado (o urgente toca sempre)"}
-                  aria-label={som ? "Desligar o som dos avisos" : "Ligar o som dos avisos"} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+                  aria-label={som ? "Desligar o som dos avisos" : "Ligar o som dos avisos"} className="botao-icone">
                   {som ? <Volume2 size={17} /> : <VolumeX size={17} />}
                 </button>
                 <button type="button" onClick={alternarVoz} title={voz ? "Voz dos avisos dos chats ligada" : "Voz dos avisos dos chats desligada"}

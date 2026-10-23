@@ -157,8 +157,8 @@ export function AssistenteIA({ row, setCampo, produtos, garantiaPadrao }: {
               {!linhas.length ? <p className="rounded-lg bg-emerald-50 px-3 py-3 text-emerald-900">O cadastro já está igual ao que a IA sugere. Nada a mudar.</p> : (
                 <>
                   <div className="flex items-center gap-3 text-xs">
-                    <button type="button" className="font-semibold text-brand hover:underline" onClick={() => setLinhas(linhas.map((l) => ({ ...l, marcada: true })))}>marcar todos</button>
-                    <button type="button" className="font-semibold text-brand hover:underline" onClick={() => setLinhas(linhas.map((l) => ({ ...l, marcada: false })))}>desmarcar</button>
+                    <button type="button" className="link-acao" onClick={() => setLinhas(linhas.map((l) => ({ ...l, marcada: true })))}>marcar todos</button>
+                    <button type="button" className="link-acao" onClick={() => setLinhas(linhas.map((l) => ({ ...l, marcada: false })))}>desmarcar</button>
                     <span className="text-slate-500">{linhas.filter((l) => l.marcada).length} de {linhas.length} marcados</span>
                   </div>
                   <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">

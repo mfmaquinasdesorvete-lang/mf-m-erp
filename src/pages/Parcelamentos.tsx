@@ -286,7 +286,7 @@ function CartaoParcelamento({ p, parcelas, dia, unidade, aberto, onAbrir, onParc
                           {x.pago_por && <span className="whitespace-nowrap rounded px-1.5 text-2xs font-semibold text-white" style={{ background: PAGO_POR[x.pago_por].cor }} title={x.pago_por_nome ?? PAGO_POR[x.pago_por].nome}>{PAGO_POR[x.pago_por].curto}</span>}
                         </span>}
                       </td>
-                      <td className="px-3 py-2 text-right"><button type="button" className="whitespace-nowrap text-xs font-semibold text-brand hover:underline" onClick={() => onParcela(x)}>{podeGravar && x.situacao === "a_pagar" ? "Pagar" : "Abrir"}</button></td>
+                      <td className="px-3 py-2 text-right"><button type="button" className="link-acao whitespace-nowrap text-xs" onClick={() => onParcela(x)}>{podeGravar && x.situacao === "a_pagar" ? "Pagar" : "Abrir"}</button></td>
                     </tr>
                   );
                 })}

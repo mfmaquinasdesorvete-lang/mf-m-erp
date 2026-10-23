@@ -241,7 +241,7 @@ function Bloco({ titulo, icone: Icone, para, linhas }: { titulo: string; icone: 
       <div className="mb-2 flex items-center gap-2">
         <Icone size={18} className="text-modulo-texto" aria-hidden />
         <h3 className="flex-1 font-bold text-fg">{titulo} <span className="text-sm font-normal text-slate-500">· {linhas.length}</span></h3>
-        {para && <Link to={para} className="text-xs font-semibold text-brand hover:underline">abrir a lista</Link>}
+        {para && <Link to={para} className="link-acao text-xs">abrir a lista</Link>}
       </div>
       <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
         {ordenadas.map((l) => (

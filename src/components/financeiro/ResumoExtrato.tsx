@@ -39,9 +39,9 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes, funcion
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{TIPOS_LANC.filter((t) => !t.entrada).map(quadro)}</div>
       {(r.combustivel.n > 0 || r.marketplace.n > 0 || r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && (
         <p className="mt-2 text-xs text-slate-500">
-          {r.combustivel.n > 0 && <><Link to="/gastos" className="font-semibold text-brand hover:underline">Ver gastos com combustível</Link> por mês e por posto. </>}
-          {r.marketplace.n > 0 && <><Link to="/gastos?aba=marketplaces" className="font-semibold text-brand hover:underline">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
-          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <>Ver de todas as contas juntas: <Link to="/impostos-pagos" className="font-semibold text-brand hover:underline">impostos</Link>, <Link to="/gastos?aba=tarifas" className="font-semibold text-brand hover:underline">tarifas</Link> e <Link to="/funcionarios?aba=pagamentos" className="font-semibold text-brand hover:underline">funcionários</Link>.</>}
+          {r.combustivel.n > 0 && <><Link to="/gastos" className="link-acao">Ver gastos com combustível</Link> por mês e por posto. </>}
+          {r.marketplace.n > 0 && <><Link to="/gastos?aba=marketplaces" className="link-acao">Ver compras no Mercado Livre, TikTok e outros</Link> com as notas. </>}
+          {(r.imposto.n > 0 || r.tarifa.n > 0 || r.funcionario.n > 0) && <>Ver de todas as contas juntas: <Link to="/impostos-pagos" className="link-acao">impostos</Link>, <Link to="/gastos?aba=tarifas" className="link-acao">tarifas</Link> e <Link to="/funcionarios?aba=pagamentos" className="link-acao">funcionários</Link>.</>}
         </p>
       )}
       {meses.length > 1 && (
@@ -54,7 +54,7 @@ export function ResumoExtrato({ lancs, titulo, mes, tipo, onTipo, onMes, funcion
             <tbody className="divide-y divide-slate-100">
               {meses.map((m) => (
                 <tr key={m.mes}>
-                  <td className="py-1.5 pr-3"><button type="button" className="font-semibold text-brand hover:underline" onClick={() => onMes(m.mes)}>{nomeMes(m.mes)}</button></td>
+                  <td className="py-1.5 pr-3"><button type="button" className="link-acao" onClick={() => onMes(m.mes)}>{nomeMes(m.mes)}</button></td>
                   <td className="whitespace-nowrap py-1.5 pr-3 text-right">{m.pix_n} {pl(m.pix_n, "Pix", "Pix")} · {brl(m.pix)}</td>
                   <td className="whitespace-nowrap py-1.5 pr-3 text-right">{brl(m.vendas)}</td>
                   <td className="whitespace-nowrap py-1.5 pr-3 text-right text-emerald-700">{brl(m.entradas)}</td>

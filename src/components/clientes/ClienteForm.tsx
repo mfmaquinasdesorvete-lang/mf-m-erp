@@ -78,7 +78,7 @@ function Secao({ icone: Icon, titulo, sub, cor = "sky", acao, children }: {
   icone: LucideIcon; titulo: string; sub?: string; cor?: keyof typeof COR_SECAO; acao?: ReactNode; children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:p-5">
+    <section className="cartao p-4 sm:p-5">
       <header className="mb-4 flex items-start gap-3">
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${COR_SECAO[cor]}`}><Icon size={18} /></span>
         <div className="min-w-0 flex-1">
@@ -424,7 +424,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 { Icon: UserPlus, titulo: "Cadastrar outro cliente", sub: "Começa de novo, do primeiro passo", cor: "bg-purple-50 text-purple-600", ir: cadastrarOutro },
               ]).map(({ Icon, titulo, sub, cor, ir }) => (
                 <button key={titulo} type="button" onClick={ir}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-surface p-4 text-left shadow-card transition hover:border-brand hover:shadow-pop">
+                  className="cartao flex items-start gap-3 p-4 text-left transition hover:border-brand hover:shadow-pop">
                   <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${cor}`}><Icon size={18} /></span>
                   <span className="min-w-0"><span className="block font-bold text-fg">{titulo}</span><span className="block text-xs text-slate-500">{sub}</span></span>
                 </button>
@@ -474,7 +474,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+              <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
                 {campo("cpf_cnpj", pj ? "CNPJ" : "CPF", { span: 12, buscar: true, ajuda: pj ? "Toque na lupa (ou Enter) para buscar na Receita" : "Pode deixar para depois" })}
                 {repetido && (
                   <div className="col-span-1 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-12">
@@ -499,7 +499,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             </>)}
 
             {passo === "contato" && (<>
-              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+              <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
                 {campo("whatsapp", "Celular / WhatsApp", { span: 6 })}
                 {campo("telefone", "Telefone", { span: 6 })}
                 {campo("email", "E-mail", { span: 12 })}
@@ -509,14 +509,14 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   Recebe avisos por e-mail (pedido, nota, entrega, garantia)
                 </label>
               </div>
-              <details className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:p-5">
+              <details className="cartao p-4 sm:p-5">
                 <summary className="cursor-pointer font-semibold text-fg">Pessoas de contato <span className="font-normal text-slate-500">(opcional: quem compra, quem paga, quem recebe)</span></summary>
                 <div className="mt-3"><PessoasContato pessoas={pessoas} onChange={setPessoas} /></div>
               </details>
             </>)}
 
             {passo === "endereco" && (<>
-              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+              <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
                 {campo("cep", "CEP", { span: 4, buscar: true })}
                 {campo("logradouro", "Rua", { span: 8 })}
                 {campo("numero", "Número", { span: 3 })}
@@ -525,13 +525,13 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 {campo("municipio", "Cidade", { span: 9 })}
                 {campo("uf", "UF", { span: 3 })}
               </div>
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+              <label className="cartao flex items-center gap-3 p-4">
                 <input type="checkbox" className="h-5 w-5" checked={!!c.cobranca_diferente} onChange={(e) => set("cobranca_diferente", e.target.checked)} />
                 <span><span className="block font-semibold text-fg">A cobrança vai para outro endereço</span>
                   <span className="text-xs text-slate-500">Boletos e correspondência de cobrança</span></span>
               </label>
               {c.cobranca_diferente && (
-                <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+                <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
                   {campo("cobranca_cep", "CEP de cobrança", { span: 4, buscar: true })}
                   {campo("cobranca_logradouro", "Rua", { span: 8 })}
                   {campo("cobranca_numero", "Número", { span: 3 })}
@@ -543,7 +543,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             </>)}
 
             {passo === "venda" && (
-              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:grid-cols-12 sm:p-5">
+              <div className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-12 sm:p-5">
                 <div className="col-span-1 sm:col-span-12">
                   <span className="mb-1.5 block text-xs font-semibold text-slate-600">Além de cliente, ele é</span>
                   <div className="flex flex-wrap gap-2">
@@ -601,7 +601,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             )}
 
             {passo === "revisao" && (<>
-              <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card sm:p-5">
+              <div className="cartao p-4 sm:p-5">
                 <div className="flex items-center justify-between text-sm font-semibold text-fg">
                   <span>A ficha fica {pctNovo}% completa</span>
                   <span className="text-xs font-normal text-slate-500">a assinatura do cliente vem depois</span>
@@ -615,7 +615,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 const falta = faltasDoPasso(p.id, c);
                 return (
                   <button key={p.id} type="button" onClick={() => irPara(k)}
-                    className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-surface p-4 text-left shadow-card transition hover:border-brand">
+                    className="cartao flex w-full items-start gap-3 p-4 text-left transition hover:border-brand">
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${falta.length ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
                       {falta.length ? k + 1 : <Check size={16} />}
                     </span>
@@ -861,7 +861,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             <Secao icone={MapPinned} titulo="Outros endereços" sub={`Até ${MAX_ENDERECOS} endereços no total, cada um com etiqueta: entrega, outra loja, casa do dono, vizinho que recebe…`} cor="indigo">
               <EnderecosExtras lista={c.enderecos_extras ?? []} disabled={!podeEditar} onChange={(l) => set("enderecos_extras", l)} />
             </Secao>
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+            <label className="cartao flex items-center gap-3 p-4">
               <input type="checkbox" className="h-5 w-5" checked={!!c.cobranca_diferente} disabled={!podeEditar} onChange={(e) => set("cobranca_diferente", e.target.checked)} />
               <span><span className="block font-semibold text-fg">Possui endereço de cobrança diferente</span>
                 <span className="text-xs text-slate-500">Boletos e correspondência de cobrança vão para outro endereço</span></span>

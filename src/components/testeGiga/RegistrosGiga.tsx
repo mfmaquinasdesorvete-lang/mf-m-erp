@@ -85,7 +85,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-surface p-3 shadow-card sm:grid-cols-3 lg:grid-cols-6">
+      <div className="cartao grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 lg:grid-cols-6">
         <Field label="De"><input type="date" className="input" value={f.de ?? ""} onChange={(e) => set({ de: e.target.value || undefined })} /></Field>
         <Field label="Até"><input type="date" className="input" value={f.ate ?? ""} onChange={(e) => set({ ate: e.target.value || undefined })} /></Field>
         <Field label="Modelo">
@@ -111,7 +111,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
             <input type="checkbox" className="h-4 w-4" checked={!!f.anulados} onChange={(e) => set({ anulados: e.target.checked })} /> Mostrar os anulados
           </label>
           <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
-          <button type="button" className="text-sm font-semibold text-brand hover:underline"
+          <button type="button" className="link-acao text-sm"
             onClick={() => { setF({ de: inicioDoMes(), ate: hojeBR() }); setMarcador(""); }}>Limpar filtros</button>
           <span className="flex-1" />
           <Button variant="secondary" onClick={exportar} disabled={!lista.length}><FileDown size={16} /> Planilha</Button>

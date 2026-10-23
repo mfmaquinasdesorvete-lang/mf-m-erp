@@ -160,12 +160,12 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
       {podeEditar && modo !== "presencial" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setModo("presencial")}
-            className="group rounded-2xl border border-slate-200 bg-surface p-4 text-left shadow-card transition hover:border-brand hover:shadow-pop">
+            className="cartao group p-4 text-left transition hover:border-brand hover:shadow-pop">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-light text-brand"><PenLine size={22} /></span>
             <div className="mt-3 font-bold text-fg">{assinada ? "Assinar de novo aqui" : "Assinar agora neste aparelho"}</div>
             <p className="text-sm text-slate-500">O cliente está com você: confere os dados, assina com o dedo e pronto.</p>
           </button>
-          <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+          <div className="cartao p-4">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><Smartphone size={22} /></span>
             <div className="mt-3 font-bold text-fg">Enviar link para o cliente</div>
             <p className="text-sm text-slate-500">Ele confere, corrige contato e endereço e assina pelo celular (vale 15 dias).</p>
@@ -201,7 +201,7 @@ export function AssinaturaFicha({ cliente, salvarAntes, podeEditar }: {
                   {a.nome && <span className="font-medium text-fg">{a.nome}</span>}
                   {a.alteracoes && <span className="text-xs text-amber-700" title={Object.keys(a.alteracoes).map((k) => ROTULOS_FICHA[k] ?? k).join(", ")}>atualizou {Object.keys(a.alteracoes).length} {pl(Object.keys(a.alteracoes).length, "dado", "dados")}</span>}
                   {a.status === "assinado" && (
-                    <button type="button" className="ml-auto text-xs font-semibold text-brand hover:underline" onClick={() => comprovante(a.id)}>Comprovante</button>
+                    <button type="button" className="link-acao ml-auto text-xs" onClick={() => comprovante(a.id)}>Comprovante</button>
                   )}
                 </li>
               );

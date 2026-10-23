@@ -235,7 +235,7 @@ function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: P
                     </button>
                   ) : <Link to={e.link} className="font-medium text-fg hover:underline"><Destaque texto={e.titulo} termos={termos} /></Link>}
                   {idHist != null && e.link !== "/auditoria" && (
-                    <button type="button" onClick={() => verNoHistorico(e, idHist)} className="mt-0.5 block text-xs font-semibold text-brand hover:underline">Ver no histórico</button>
+                    <button type="button" onClick={() => verNoHistorico(e, idHist)} className="link-acao mt-0.5 block text-xs">Ver no histórico</button>
                   )}
                 </td>
                 <td className="td text-sm text-slate-600"><Destaque texto={e.detalhe} termos={termos} />{t.observacao && <div className="mt-1 text-xs text-slate-500">Obs.: <Destaque texto={t.observacao} termos={termos} /></div>}</td>

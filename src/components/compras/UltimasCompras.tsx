@@ -71,7 +71,7 @@ export function UltimasCompras({ fornecedorId, fornecedorNome, onClose }: { forn
               {outros ? `"${busca}" em todos os fornecedores` : fornecedorNome ? `Comprado de ${fornecedorNome}` : "Comprado deste fornecedor"} · pedidos de compra e notas fiscais
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar"><X size={20} /></button>
+          <button type="button" onClick={onClose} className="botao-icone p-2" aria-label="Fechar"><X size={20} /></button>
         </header>
         <div className="border-b border-slate-200 px-4 py-3 sm:px-6">
           <label htmlFor="ultimas-busca" className="mb-1.5 block text-xs font-semibold text-slate-600">Outros produtos</label>

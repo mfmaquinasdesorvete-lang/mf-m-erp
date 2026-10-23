@@ -105,7 +105,7 @@ export function ImportarKitsTiny({ onClose }: { onClose: () => void }) {
                       <p className="text-xs text-slate-500">
                         {k.produto?.sku ? `${k.produto.sku} · ` : ""}{k.itens.length} {pl(k.itens.length, "componente", "componentes")}{k.faltando.length ? ` · ${k.faltando.length} fora do cadastro` : ""}
                         {k.proprio ? ` · o próprio kit aparece ${k.proprio}× na composição (fica de fora)` : ""}
-                        {(k.itens.length > 0 || k.faltando.length > 0) && <> · <button type="button" className="font-semibold text-brand hover:underline" aria-expanded={aberto === k.tinyId}
+                        {(k.itens.length > 0 || k.faltando.length > 0) && <> · <button type="button" className="link-acao" aria-expanded={aberto === k.tinyId}
                           onClick={() => setAberto(aberto === k.tinyId ? null : k.tinyId)}>{aberto === k.tinyId ? "fechar" : "ver"}</button></>}
                       </p>
                       {aberto === k.tinyId && (

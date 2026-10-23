@@ -109,7 +109,7 @@ function AbaGeral({ p, podeEditar }: { p: ProdutoFicha; podeEditar: boolean }) {
       <section>
         <h3 className="mb-2 text-sm font-bold text-fg">Fotos e vídeos</h3>
         <GaleriaProduto produtoId={p.id} podeEditar={podeEditar} fotoPrincipal={p.foto_caminho} />
-        {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"><ExternalLink size={14} /> Vídeo no YouTube</a>}
+        {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer" className="link-acao mt-2 inline-flex items-center gap-1 text-sm"><ExternalLink size={14} /> Vídeo no YouTube</a>}
       </section>
       {p.tipo !== "servico" && (
         <section className="grid gap-4 md:grid-cols-2">
@@ -154,7 +154,7 @@ function AbaAnuncios({ p }: { p: ProdutoFicha }) {
             {ml.map((a) => (
               <li key={a.anuncio_id} className="grid gap-2 p-3 text-sm sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                 <div className="min-w-0">
-                  <a href={linkAnuncio(a.ml_item_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">{a.titulo || a.ml_item_id} <ExternalLink size={12} /></a>
+                  <a href={linkAnuncio(a.ml_item_id)} target="_blank" rel="noreferrer" className="link-acao inline-flex items-center gap-1">{a.titulo || a.ml_item_id} <ExternalLink size={12} /></a>
                   <span className="num block text-xs text-slate-500">{a.ml_item_id}{a.variation_id ? ` · variação ${a.variation_id}` : ""}</span>
                   <span className="mt-1 block"><SituacaoChip s={a.situacao} /></span>
                   {detalheSituacao(a) && <span className={`mt-0.5 block text-xs ${a.situacao === "erro" ? "text-red-700" : "text-slate-500"}`}>{detalheSituacao(a)}</span>}

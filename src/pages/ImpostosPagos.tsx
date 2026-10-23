@@ -11,7 +11,7 @@ export default function ImpostosPagos() {
     <div>
       <PageHeader title="Impostos pagos" subtitle="Guias pagas por esfera (federal, estadual, municipal e veículos), de todas as contas" />
       <p className="-mt-2 mb-4 text-sm text-slate-500">
-        Parcelas de impostos em atraso ou renegociados ficam em <Link to="/parcelamentos" className="font-semibold text-brand hover:underline">Parcelamentos</Link>.
+        Parcelas de impostos em atraso ou renegociados ficam em <Link to="/parcelamentos" className="link-acao">Parcelamentos</Link>.
       </p>
       <Suspense fallback={<div className="p-6 text-slate-500">Carregando…</div>}>
         <ImpostosTarifas aba="impostos" />

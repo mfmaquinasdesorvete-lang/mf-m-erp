@@ -176,7 +176,7 @@ export function PainelRenegociadas({ contas, onAbrir, rodape }: { contas: Conta[
           const s = SITUACOES_NEGOCIACAO[n.situacao];
           const forn = fornecedores.find((f) => f.id === n.fornecedor_id)?.nome;
           return (
-            <article key={n.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+            <article key={n.id} className="cartao overflow-hidden">
               <button type="button" onClick={() => onAbrir(n.id)} className="block w-full p-4 text-left hover:brightness-105" style={{ background: COR_RENEGOCIADA.fundo, color: COR_RENEGOCIADA.tinta }}
                 title="Abrir o histórico da negociação">
                 <div className="flex items-start gap-2">
@@ -426,7 +426,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
                   const e = it.evento;
                   const meu = !!e && (papel === "admin" || e.criado_por === user_id);
                   return (
-                    <li key={e?.id ?? `p${i}`} className="flex gap-2.5 rounded-xl border border-slate-200 bg-surface p-2.5">
+                    <li key={e?.id ?? `p${i}`} className="cartao flex gap-2.5 p-2.5">
                       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${COR_EVENTO[it.tipo]}`}><Icone size={15} aria-hidden /></span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-slate-500">

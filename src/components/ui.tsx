@@ -141,21 +141,34 @@ export function Section({ title, actions, children, className = "" }: { title: s
 }
 
 /**
- * Cores dos cartões de indicador: fundo levemente tingido, faixa colorida à esquerda e ícone na mesma cor.
- * A cor diz o assunto (dinheiro, prazo, alerta…), para achar o número sem ler tudo.
+ * Brilho dos cartões de número (o mesmo da tela inicial): fundo em degradê com a cor do assunto, borda e sombra na
+ * mesma cor e uma luz desfocada no canto. Uma peça só para todos os cartões de número do ERP.
+ */
+export const estiloBrilho = (cor: string): CSSProperties => ({
+  background: `linear-gradient(140deg, color-mix(in srgb, ${cor} 20%, rgb(var(--surface))) 0%, rgb(var(--surface)) 70%)`,
+  borderColor: `color-mix(in srgb, ${cor} 38%, transparent)`,
+  boxShadow: `0 12px 28px -20px ${cor}`,
+});
+/** A luz desfocada no canto do cartão (o cartão precisa de relative e overflow-hidden). */
+export const Luz = ({ cor }: { cor: string }) =>
+  <span className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-25 blur-2xl" style={{ background: cor }} aria-hidden />;
+
+/**
+ * Cores dos cartões de indicador: a cor do brilho, o ícone e o número. A cor diz o assunto (dinheiro, prazo,
+ * alerta…), para achar o número sem ler tudo.
  */
 export type CorCartao = "neutro" | "azul" | "verde" | "ambar" | "vermelho" | "roxo" | "indigo" | "laranja";
-const coresCartao: Record<CorCartao, { caixa: string; icone: string; valor: string }> = {
-  neutro: { caixa: "border-slate-200 bg-surface before:bg-modulo", icone: "bg-modulo/15 text-modulo-texto", valor: "text-fg" },
-  azul: { caixa: "border-sky-200 bg-sky-50 before:bg-sky-500", icone: "bg-sky-100 text-sky-700", valor: "text-fg" },
-  verde: { caixa: "border-emerald-200 bg-emerald-50 before:bg-emerald-500", icone: "bg-emerald-100 text-emerald-700", valor: "text-emerald-700" },
-  ambar: { caixa: "border-amber-200 bg-amber-50 before:bg-amber-500", icone: "bg-amber-100 text-amber-700", valor: "text-amber-700" },
-  vermelho: { caixa: "border-red-200 bg-red-50 before:bg-red-500", icone: "bg-red-100 text-red-700", valor: "text-red-700" },
-  roxo: { caixa: "border-purple-200 bg-purple-50 before:bg-purple-500", icone: "bg-purple-100 text-purple-700", valor: "text-fg" },
-  indigo: { caixa: "border-indigo-200 bg-indigo-50 before:bg-indigo-500", icone: "bg-indigo-100 text-indigo-700", valor: "text-fg" },
-  laranja: { caixa: "border-orange-200 bg-orange-50 before:bg-orange-500", icone: "bg-orange-100 text-orange-700", valor: "text-fg" },
+const coresCartao: Record<CorCartao, { brilho: string; icone: string; valor: string }> = {
+  neutro: { brilho: "rgb(var(--modulo))", icone: "bg-modulo/15 text-modulo-texto", valor: "text-fg" },
+  azul: { brilho: "var(--kpi-azul)", icone: "bg-sky-100 text-sky-700", valor: "text-fg" },
+  verde: { brilho: "var(--kpi-verde)", icone: "bg-emerald-100 text-emerald-700", valor: "text-emerald-700" },
+  ambar: { brilho: "#f59e0b", icone: "bg-amber-100 text-amber-700", valor: "text-amber-700" },
+  vermelho: { brilho: "#ef4444", icone: "bg-red-100 text-red-700", valor: "text-red-700" },
+  roxo: { brilho: "var(--kpi-roxo)", icone: "bg-purple-100 text-purple-700", valor: "text-fg" },
+  indigo: { brilho: "#6366f1", icone: "bg-indigo-100 text-indigo-700", valor: "text-fg" },
+  laranja: { brilho: "var(--kpi-laranja)", icone: "bg-orange-100 text-orange-700", valor: "text-fg" },
 };
-const caixaCartao = "relative min-w-0 overflow-hidden rounded-xl border shadow-card before:absolute before:inset-y-0 before:left-0 before:w-1";
+const caixaCartao = "relative min-w-0 overflow-hidden rounded-xl border";
 
 /**
  * Para o .valor-fit: a letra diminui conforme o tamanho do texto, para o valor caber inteiro no cartão; número curto
@@ -171,8 +184,9 @@ export function Indicador({ rotulo, valor, sub, icon: Icon, cor = "neutro" }: {
   const c = coresCartao[cor];
   return (
     // o ícone flutua no canto: o rótulo passa por baixo dele e usa a largura toda (no celular não fica espremido)
-    <div className={`${caixaCartao} cartao-fit p-3 pl-4 ${c.caixa}`}>
-      <div className="flow-root text-sm leading-tight">
+    <div className={`${caixaCartao} cartao-fit p-3`} style={estiloBrilho(c.brilho)}>
+      <Luz cor={c.brilho} />
+      <div className="relative flow-root text-sm leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-7 w-7 place-items-center rounded-lg ${c.icone}`} aria-hidden><Icon size={15} /></span>}
         <span className="text-sm font-semibold leading-tight text-slate-700">{rotulo}</span>
       </div>
@@ -223,9 +237,9 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
     // o ícone flutua no canto: o nome passa por baixo dele e número e explicação usam a largura toda (no celular,
     // com o ícone ao lado, o texto ficava numa coluna de 70 px)
     <Tag onClick={onClick}
-      className={`${caixaCartao} cartao-fit block w-full p-4 pl-4 text-left sm:p-4 sm:pl-5 ${c.caixa}
-        ${onClick ? "transition hover:shadow-pop hover:brightness-[1.03]" : ""}`}>
-      <span className="flow-root text-xs leading-tight">
+      className={`${caixaCartao} cartao-fit block w-full p-4 text-left ${onClick ? "transition hover:-translate-y-0.5" : ""}`} style={estiloBrilho(c.brilho)}>
+      <Luz cor={c.brilho} />
+      <span className="relative flow-root text-xs leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}
         <span className="text-xs font-semibold leading-tight text-slate-600">{label}</span>
       </span>
@@ -373,7 +387,7 @@ export function Modal({
         className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop focus:outline-none`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
           <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>
-          <button type="button" onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
+          <button type="button" onClick={onClose} className="botao-icone p-2" aria-label="Fechar">
             <X size={18} aria-hidden />
           </button>
         </div>

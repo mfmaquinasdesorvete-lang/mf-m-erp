@@ -423,7 +423,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {avisoBusca}
       {props.cartaoCelular && (
         <div className="md:hidden">
-          {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
+          {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="cartao p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
           <ul className="space-y-2">
             {filtrados.slice(0, limite).map((row) => (
               <li key={row.id} className={`relative rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>

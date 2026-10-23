@@ -96,7 +96,7 @@ export function PainelFaturamento() {
 
 function Cartao({ icone, titulo, valor, detalhe, cor }: { icone: React.ReactNode; titulo: string; valor: string; detalhe: string; cor: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface p-4">
+    <div className="cartao p-4">
       <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide ${cor}`}>{icone} {titulo}</div>
       <div className={`mt-2 text-3xl font-extrabold ${cor}`}>{valor}</div>
       <div className="mt-1 text-xs text-slate-500">{detalhe}</div>

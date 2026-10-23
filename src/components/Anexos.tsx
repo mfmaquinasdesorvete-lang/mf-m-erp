@@ -89,7 +89,7 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
               <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
               <span className="shrink-0 text-xs text-slate-500">{tamanhoArquivo(d.tamanho)} · {dataBR(d.created_at)}</span>
               {(d.created_by === user_id || papel === "admin") && (
-                <button type="button" aria-label="Apagar" className="rounded p-1 text-slate-400 hover:text-red-600"
+                <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1"
                   onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={15} /></button>
               )}
             </li>

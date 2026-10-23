@@ -53,7 +53,7 @@ export function PortalPedidos() {
           const entrega = situacaoEntrega(p);
           return (
             <li key={p.id}>
-              <Link to={`/portal/pedidos/${p.id}`} className="block rounded-xl border border-slate-200 bg-surface p-4 shadow-card active:bg-slate-50">
+              <Link to={`/portal/pedidos/${p.id}`} className="cartao block p-4 active:bg-slate-50">
                 <div className="flex items-start justify-between gap-2">
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-1.5 font-bold text-fg">#{p.numero} {p.via_portal && <SeloPortal />}</span>

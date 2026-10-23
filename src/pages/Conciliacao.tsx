@@ -486,7 +486,7 @@ export function ExtratoPorEmail({ bancos, importacoes, onEditar }: { bancos: Con
                 </span>
                 {u && <span className="block text-xs text-emerald-800">último pelo e-mail: {dataBR(u.created_at)}{u.periodo_fim ? ` (até ${dataBR(u.periodo_fim)})` : ""}</span>}
               </span>
-              <button type="button" onClick={() => onEditar(b)} className="shrink-0 text-xs font-semibold text-brand hover:underline">{ligada ? "Alterar" : "Ligar"}</button>
+              <button type="button" onClick={() => onEditar(b)} className="link-acao shrink-0 text-xs">{ligada ? "Alterar" : "Ligar"}</button>
             </li>
           );
         })}

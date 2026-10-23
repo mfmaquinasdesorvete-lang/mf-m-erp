@@ -49,7 +49,7 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
         const falta = [!espec && "especificações", !etapas && "etapas"].filter(Boolean).join(" e ");
         return (
           <button key={p.id} type="button" onClick={() => aoAbrir(p)} aria-label={`Ficha de ${p.descricao}`}
-            className="group flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-surface p-2 text-left shadow-sm transition hover:border-brand hover:shadow-pop">
+            className="cartao group flex min-w-0 items-center gap-3 p-2 text-left shadow-sm transition hover:border-brand hover:shadow-pop">
             <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
               {p.foto_caminho ? <img src={urlFotoProduto(p.foto_caminho)} alt="" loading="lazy" className="h-full w-full object-contain p-1" />
                 : <span className="text-2xs text-slate-400">sem foto</span>}
@@ -92,7 +92,7 @@ function GraficoModelos({ barras }: { barras: { nome: string; n: number; antigo:
   const total = barras.reduce((s, b) => s + b.n, 0);
   const maior = barras[0]?.n || 1;
   return (
-    <section aria-label="Máquinas com clientes por modelo" className="mb-4 rounded-xl border border-slate-200 bg-surface p-3 shadow-sm">
+    <section aria-label="Máquinas com clientes por modelo" className="cartao mb-4 p-3 shadow-sm">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-bold text-fg">Máquinas com clientes por modelo</h2>
         <p className="text-xs text-slate-500">

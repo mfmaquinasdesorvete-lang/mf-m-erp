@@ -31,7 +31,7 @@ export function PainelFiltros({ f, onChange, comUf = false, rotuloData = "Emiss√
   const dia = hoje();
   const rotulo = "mb-1 block text-xs font-semibold text-slate-600";
   return (
-    <div className="mb-3 rounded-xl border border-slate-200 bg-surface p-3">
+    <div className="cartao mb-3 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <span className="mr-1 text-xs font-semibold text-slate-600">{rotuloData}:</span>
         {ATALHOS.map((a) => {

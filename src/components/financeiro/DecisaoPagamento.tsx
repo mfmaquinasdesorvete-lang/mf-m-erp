@@ -271,7 +271,7 @@ export function BarraLote({ contas, onLimpar, extra }: { contas: Conta[]; onLimp
   const idsPagar = aprovadas.map((c) => c.id);
   const semAprovacao = abertas.length - aprovadas.length;
   return (
-    <div className="sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface p-2.5 shadow-pop">
+    <div className="cartao sticky bottom-2 z-20 mt-3 flex flex-wrap items-center gap-2 p-2.5 shadow-pop">
       <span className="mr-auto text-sm"><b>{contas.length}</b> {pl(contas.length, "marcada", "marcadas")}{abertas.length !== contas.length && ` (${abertas.length} em aberto)`} · <b className="num">{brl(total)}</b>{golpe > 0 && <span className="text-red-700"> · {golpe} de golpe fica(m) de fora</span>}
         {semAprovacao > 0 && <span className="text-amber-800" title={TEXTO_FALTA_APROVAR}> · {semAprovacao} sem aprovação: só “Não pagar”</span>}</span>
       <Button type="button" variant="secondary" disabled={ocupado || !idsPagar.length} onClick={async () => { if (await programar(idsPagar, "pagar")) onLimpar(); }}><Check size={15} /> Pagar</Button>

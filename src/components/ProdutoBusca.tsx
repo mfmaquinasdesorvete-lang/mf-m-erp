@@ -62,7 +62,7 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
         }}
       />
       {aberto && (
-        <div ref={painel} className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-pop">
+        <div ref={painel} className="cartao absolute left-0 right-0 z-40 mt-1 overflow-hidden shadow-pop">
           {achados.length === 0 ? (
             <p className="px-3 py-3 text-sm text-slate-500">
               {produtos.length === 0 ? "Nenhum produto cadastrado para escolher aqui." : <>Nenhum produto com “{consulta}”. Busque por parte do nome, pelo SKU ou pelo código de barras.</>}

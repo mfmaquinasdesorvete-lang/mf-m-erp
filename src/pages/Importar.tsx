@@ -50,7 +50,7 @@ export default function Importar() {
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{g}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {visiveis.filter((c) => c.grupo === g).map((c) => (
-                <div key={c.id} className="flex gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+                <div key={c.id} className="cartao flex gap-3 p-4">
                   <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${c.cor} text-white shadow-card`} aria-hidden><c.icone size={22} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-fg">{c.titulo}</div>

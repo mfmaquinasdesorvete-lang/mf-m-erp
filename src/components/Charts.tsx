@@ -74,7 +74,7 @@ export function Colunas({ dados, series, altura = 220, formatar = brl, inteiro =
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <Legenda series={series} />
-        <button onClick={() => setTabela(!tabela)} className="ml-auto text-xs font-semibold text-brand hover:underline">
+        <button onClick={() => setTabela(!tabela)} className="link-acao ml-auto text-xs">
           {tabela ? "Ver gráfico" : "Ver tabela"}
         </button>
       </div>
@@ -235,7 +235,7 @@ export function Area({ dados, series, altura = 240, formatar = brl }: {
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <Legenda series={series} />
-        <button onClick={() => setTabela(!tabela)} className="ml-auto text-xs font-semibold text-brand hover:underline">
+        <button onClick={() => setTabela(!tabela)} className="link-acao ml-auto text-xs">
           {tabela ? "Ver gráfico" : "Ver tabela"}
         </button>
       </div>
@@ -408,7 +408,7 @@ export function SaldoPrevisto({ dados, hoje, altura = 260, formatar = brl }: { d
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
         <span className="inline-flex items-center gap-1.5"><svg width="18" height="4" aria-hidden><line x1="0" x2="18" y1="2" y2="2" stroke="var(--serie-1)" strokeWidth="2.5" /></svg> Realizado</span>
         <span className="inline-flex items-center gap-1.5"><svg width="18" height="4" aria-hidden><line x1="0" x2="18" y1="2" y2="2" stroke="var(--serie-1)" strokeWidth="2.5" strokeDasharray="4 3" /></svg> Previsto (contas em aberto)</span>
-        <button onClick={() => setTabela(!tabela)} className="ml-auto text-xs font-semibold text-brand hover:underline">{tabela ? "Ver gráfico" : "Ver tabela"}</button>
+        <button onClick={() => setTabela(!tabela)} className="link-acao ml-auto text-xs">{tabela ? "Ver gráfico" : "Ver tabela"}</button>
       </div>
       {tabela ? (
         <div className="max-h-80 overflow-auto">

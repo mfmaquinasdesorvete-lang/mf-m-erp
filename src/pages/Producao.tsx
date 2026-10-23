@@ -793,7 +793,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
         </div>
         {p.fornecedor_id && (
           <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <button type="button" onClick={() => setVerUltimas(true)} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
+            <button type="button" onClick={() => setVerUltimas(true)} className="link-acao inline-flex items-center gap-1">
               <History size={15} aria-hidden /> Ver últimas compras deste fornecedor
             </button>
           </div>

@@ -72,7 +72,7 @@ export function TesteGigaDaOp({ numerosSerie, produtoId, opId }: { numerosSerie:
                 {s?.aprovado_operador && <span className="text-xs text-slate-500">{s.aprovado_operador}</span>}
                 <span className="flex-1" />
                 {falta && pode("lancar_teste_giga") && !isLoading && (
-                  <button type="button" onClick={() => lancar(n)} className="text-xs font-semibold text-brand hover:underline">
+                  <button type="button" onClick={() => lancar(n)} className="link-acao text-xs">
                     {s?.testes ? "Lançar reteste" : "Lançar teste"}
                   </button>
                 )}

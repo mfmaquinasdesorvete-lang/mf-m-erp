@@ -70,15 +70,15 @@ export function MeusEnderecos() {
                       {(e.atual || e.periodo) && <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{e.atual ? "Onde você mora hoje" : ""}{e.atual && e.periodo ? " · " : ""}{e.periodo}</div>}
                       <div className="font-semibold text-fg">{e.endereco}</div>
                       {e.lembranca && <p className="mt-1 text-sm italic text-violet-900">{e.lembranca}</p>}
-                      <a href={mapa(e.endereco)} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><MapPin size={12} aria-hidden /> Ver no mapa</a>
+                      <a href={mapa(e.endereco)} target="_blank" rel="noreferrer" className="link-acao mt-1 inline-flex items-center gap-1 text-xs"><MapPin size={12} aria-hidden /> Ver no mapa</a>
                     </div>
                     <span className="flex shrink-0 items-center gap-1">
                       {!e.atual && <>
-                        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30" disabled={i === 0} onClick={() => mover(e, -1)} aria-label="Subir"><ArrowUp size={15} /></button>
-                        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30" disabled={i === semAtual.length - 1} onClick={() => mover(e, 1)} aria-label="Descer"><ArrowDown size={15} /></button>
+                        <button type="button" className="botao-icone h-8 w-8" disabled={i === 0} onClick={() => mover(e, -1)} aria-label="Subir"><ArrowUp size={15} /></button>
+                        <button type="button" className="botao-icone h-8 w-8" disabled={i === semAtual.length - 1} onClick={() => mover(e, 1)} aria-label="Descer"><ArrowDown size={15} /></button>
                       </>}
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => setEdit(e)} aria-label={`Editar ${e.endereco}`}><Pencil size={15} /></button>
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-red-600 hover:bg-red-50" onClick={() => tirar(e)} aria-label={`Tirar ${e.endereco}`}><Trash2 size={15} /></button>
+                      <button type="button" className="botao-icone h-8 w-8" onClick={() => setEdit(e)} aria-label={`Editar ${e.endereco}`}><Pencil size={15} /></button>
+                      <button type="button" className="botao-icone-perigo h-8 w-8 text-red-600" onClick={() => tirar(e)} aria-label={`Tirar ${e.endereco}`}><Trash2 size={15} /></button>
                     </span>
                   </div>
                 </Card>

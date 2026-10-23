@@ -80,10 +80,10 @@ export function RegrasCards({ regras, lancs, inicial, onClose }: {
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30" disabled={i === 0} onClick={() => mover(r, -1)} aria-label="Subir a regra"><ArrowUp size={15} /></button>
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30" disabled={i === ordenadas.length - 1} onClick={() => mover(r, 1)} aria-label="Descer a regra"><ArrowDown size={15} /></button>
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => setEdit(r)} aria-label={`Editar a regra ${r.texto}`}><Pencil size={15} /></button>
-                      <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-red-600 hover:bg-red-50" onClick={() => tirar(r)} aria-label={`Tirar a regra ${r.texto}`}><Trash2 size={15} /></button>
+                      <button type="button" className="botao-icone h-8 w-8" disabled={i === 0} onClick={() => mover(r, -1)} aria-label="Subir a regra"><ArrowUp size={15} /></button>
+                      <button type="button" className="botao-icone h-8 w-8" disabled={i === ordenadas.length - 1} onClick={() => mover(r, 1)} aria-label="Descer a regra"><ArrowDown size={15} /></button>
+                      <button type="button" className="botao-icone h-8 w-8" onClick={() => setEdit(r)} aria-label={`Editar a regra ${r.texto}`}><Pencil size={15} /></button>
+                      <button type="button" className="botao-icone-perigo h-8 w-8 text-red-600" onClick={() => tirar(r)} aria-label={`Tirar a regra ${r.texto}`}><Trash2 size={15} /></button>
                     </span>
                   </li>
                 );

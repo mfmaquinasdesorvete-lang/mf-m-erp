@@ -280,7 +280,7 @@ export default function Licenciados() {
                 className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${periodo === p.id ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}>{p.rotulo}</button>
             ))}
           </div>
-          {lojaSel && <button type="button" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline" onClick={() => setLojaSel("")}><X size={14} /> ver todas as lojas</button>}
+          {lojaSel && <button type="button" className="link-acao inline-flex items-center gap-1 text-sm" onClick={() => setLojaSel("")}><X size={14} /> ver todas as lojas</button>}
         </div>
       </Card>
 
@@ -303,7 +303,7 @@ export default function Licenciados() {
               onNova={() => setEditLoja({ loja: { ...novaLoja(), nome: s.nome ? nomeProprio(s.nome) : "", nomes_extrato: s.nome ? [s.nome] : [] }, depois: s })} />)}
           </ul>
         )}
-        {lista.length > 12 && <button type="button" className="mt-2 text-sm font-semibold text-brand hover:underline" onClick={() => setVerTodas(!verTodas)}>{verTodas ? "Mostrar menos" : `Ver as ${lista.length}`}</button>}
+        {lista.length > 12 && <button type="button" className="link-acao mt-2 text-sm" onClick={() => setVerTodas(!verTodas)}>{verTodas ? "Mostrar menos" : `Ver as ${lista.length}`}</button>}
         {descartes.length > 0 && (
           <div className="mt-3 border-t border-slate-100 pt-2 text-sm">
             <button type="button" className="font-semibold text-slate-600 hover:underline" onClick={() => setVerDescartes(!verDescartes)}>
@@ -316,7 +316,7 @@ export default function Licenciados() {
                     <span className="w-20 shrink-0 text-xs text-slate-500">{dataBR(p.data)}</span>
                     <span className="min-w-0 flex-1 truncate">{p.descricao}</span>
                     <span className="num">{brl(p.valor)}</span>
-                    <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => anular(p)}><Undo2 size={13} /> voltar para conferir</button>
+                    <button type="button" className="link-acao inline-flex items-center gap-1 text-xs" onClick={() => anular(p)}><Undo2 size={13} /> voltar para conferir</button>
                   </li>
                 ))}
               </ul>

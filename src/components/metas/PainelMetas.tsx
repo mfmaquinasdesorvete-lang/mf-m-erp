@@ -135,7 +135,7 @@ function VisaoVendedor({ linhas, doMes, meses, mes }: { linhas: LinhaApuracao[];
   const minhas = doMes.filter((l) => l.tipo === "vendedor");
   const serie = useMemo(() => serieMetas(linhas.filter((l) => l.tipo === "vendedor").map((l) => ({ ...l, chave: "eu" })), meses, "eu"), [linhas, meses]);
   if (!linhas.some((l) => l.tipo === "vendedor")) {
-    return <p className="rounded-xl border border-slate-200 bg-surface p-4 text-sm text-slate-600">Seu usuário não está ligado a um cadastro de vendedor. Peça ao financeiro para ligar em Comissões → Vendedores.</p>;
+    return <p className="cartao p-4 text-sm text-slate-600">Seu usuário não está ligado a um cadastro de vendedor. Peça ao financeiro para ligar em Comissões → Vendedores.</p>;
   }
   return (
     <>
@@ -306,7 +306,7 @@ function TabelaEvolucao({ serie }: { serie: ReturnType<typeof serieMetas> }) {
 
 function ComoConta() {
   return (
-    <details className="rounded-xl border border-slate-200 bg-surface p-3 text-sm text-slate-600">
+    <details className="cartao p-3 text-sm text-slate-600">
       <summary className="flex cursor-pointer items-center gap-1.5 font-semibold text-fg"><Info size={15} aria-hidden /> Como o realizado é contado</summary>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         <li>Pedidos aprovados, faturados ou entregues, no dia da aprovação, mais as notas fiscais de venda sem pedido no ERP (importadas do Tiny). Nota ligada a pedido não conta duas vezes.</li>

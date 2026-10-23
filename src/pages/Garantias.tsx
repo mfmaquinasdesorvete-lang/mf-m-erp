@@ -119,7 +119,7 @@ export default function Garantias() {
           const g = situacaoGarantia(e.garantia_ate);
           const p = situacaoPreventiva(e.proxima_preventiva);
           return (
-            <div key={e.id} className="rounded-xl border border-slate-200/80 bg-surface p-4 shadow-card">
+            <div key={e.id} className="cartao p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 font-semibold text-fg">{e.descricao} <SeloVoltagem v={e.voltagem} /></div>

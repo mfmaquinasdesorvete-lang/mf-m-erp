@@ -198,7 +198,7 @@ export default function Fretes() {
             {semEnvio.length > 0 && <ArrowRight size={16} className="ml-auto" />}
           </button>
           {verSemEnvio && semEnvio.length > 0 && (
-            <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
+            <ul className="cartao divide-y divide-slate-100">
               {semEnvio.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-3 p-3 text-sm">
                   <span className="font-semibold">#{p.numero}</span>

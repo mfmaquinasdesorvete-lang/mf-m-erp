@@ -64,7 +64,7 @@ export function ListaContas({ vazia, children }: { vazia: boolean; children: Rea
   return (
     <div className="md:hidden">
       {vazia
-        ? <p className="rounded-2xl border border-slate-200 bg-surface p-8 text-center text-sm text-slate-500">Nenhuma conta neste filtro.</p>
+        ? <p className="cartao p-8 text-center text-sm text-slate-500">Nenhuma conta neste filtro.</p>
         : <ul className="space-y-3">{children}</ul>}
     </div>
   );

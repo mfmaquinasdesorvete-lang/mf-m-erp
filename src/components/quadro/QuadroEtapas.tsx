@@ -138,7 +138,7 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
         <p className="py-10 text-center text-slate-500">Carregando…</p>
       ) : etapa ? (
         <div className="space-y-3">
-          <button type="button" onClick={() => setEtapa(null)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+          <button type="button" onClick={() => setEtapa(null)} className="link-acao inline-flex items-center gap-1.5 text-sm">
             <ArrowLeft size={15} /> Ver todas as etapas
           </button>
           <Secao e={etapas.find((x) => x.id === etapa)!} lista={porEtapa.get(etapa) ?? []} limite={200} vazio={vazio} cartao={cartao} valor={mostrarValor ? valorDe : undefined} />

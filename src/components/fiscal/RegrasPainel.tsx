@@ -44,7 +44,7 @@ export function ComoFuncionaRegras() {
 /** Os termos da tela explicados (CST, cBenef, redução, DIFAL…). */
 export function GlossarioFiscal() {
   return (
-    <details className="group rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+    <details className="cartao group p-4">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-bold text-fg">
         <BookOpen size={18} className="text-modulo" aria-hidden /> Entenda os termos
         <span className="text-sm font-normal text-slate-500">· {GLOSSARIO.length} explicações</span>

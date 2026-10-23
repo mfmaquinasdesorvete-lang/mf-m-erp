@@ -172,7 +172,7 @@ export function PainelFinanceiro() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {empresas.map((e) => (
-          <section key={e.u.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+          <section key={e.u.id} className="cartao overflow-hidden">
             <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
               <Building2 size={17} className="text-brand" />
               <h2 className="min-w-0 flex-1 truncate font-bold text-fg">{e.u.nome}</h2>
@@ -192,7 +192,7 @@ export function PainelFinanceiro() {
       </div>
 
       {/* quem está devendo: um por cliente, com o botão de cobrar */}
-      <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+      <section className="cartao p-4">
         <div className="mb-1 flex items-center gap-2">
           <Users size={17} className="text-red-600" />
           <h2 className="flex-1 font-bold text-fg">Clientes inadimplentes</h2>
@@ -221,7 +221,7 @@ export function PainelFinanceiro() {
           </ul>
         )}
         {inadimplentes.length > 6 && (
-          <button type="button" onClick={() => setTodosInad(!todosInad)} className="mt-1 text-sm font-semibold text-brand hover:underline">
+          <button type="button" onClick={() => setTodosInad(!todosInad)} className="link-acao mt-1 text-sm">
             {todosInad ? "Mostrar menos" : `Ver todos (${inadimplentes.length})`}
           </button>
         )}
@@ -257,7 +257,7 @@ export function PainelFinanceiro() {
 
       {/* o que pede atenção */}
       {atencao.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+        <section className="cartao p-4">
           <h2 className="mb-2 font-bold text-fg">Precisa da sua atenção</h2>
           <ul className="divide-y divide-slate-100">
             {atencao.map((a) => (
@@ -272,7 +272,7 @@ export function PainelFinanceiro() {
       )}
 
       {/* próximos 7 dias */}
-      <section className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+      <section className="cartao p-4">
         <h2 className="mb-1 font-bold text-fg">Próximos 7 dias</h2>
         <p className="mb-2 text-xs text-slate-500">Toque no dia para ver as contas.</p>
         <ul className="divide-y divide-slate-100">
@@ -299,7 +299,7 @@ export function PainelFinanceiro() {
       <section className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <Mes titulo="Recebido no mês" valor={k.recebidoMes} delta={variacao(k.recebidoMes, k.recebidoAnt)} bomSobe />
         <Mes titulo="Pago no mês" valor={k.pagoMes} delta={variacao(k.pagoMes, k.pagoAnt)} />
-        <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+        <div className="cartao p-4">
           <div className="text-sm text-slate-500">Resultado do mês (recebido − pago)</div>
           <div className={`num text-2xl font-bold ${resultadoMes >= 0 ? "text-emerald-700" : "text-red-700"}`}>{resultadoMes >= 0 ? "+ " : "− "}{brl(Math.abs(resultadoMes))}</div>
         </div>
@@ -350,7 +350,7 @@ function Mes({ titulo, valor, delta, bomSobe }: { titulo: string; valor: number;
   const bom = delta == null ? null : bomSobe ? delta >= 0 : delta <= 0;
   const Seta = delta != null && delta < 0 ? TrendingDown : TrendingUp;
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+    <div className="cartao p-4">
       <div className="text-sm text-slate-500">{titulo}</div>
       <div className="num text-2xl font-bold text-fg">{brl(valor)}</div>
       {delta != null && (

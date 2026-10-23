@@ -149,7 +149,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
                 onClick={() => navigator.clipboard.writeText(`${window.location.origin}/cliente/${c.portal_link || c.portal_token}`).then(() => notify("Link da página do cliente copiado"))}>
                 <Link2 size={15} /> Link do cliente
               </Button>
-              <a href={`/cliente/${c.portal_link || c.portal_token}`} target="_blank" rel="noreferrer" className="whitespace-nowrap text-sm font-semibold text-brand hover:underline"
+              <a href={`/cliente/${c.portal_link || c.portal_token}`} target="_blank" rel="noreferrer" className="link-acao whitespace-nowrap text-sm"
                 onClick={(e) => { if (DEMO) { e.preventDefault(); navigate(`/cliente/${c.portal_link || c.portal_token}`); } }}>Ver como o cliente vê</a>
             </div>
           )}

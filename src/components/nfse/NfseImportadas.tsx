@@ -85,7 +85,7 @@ export function ListaNfseImportadas({ tipo }: { tipo: "emitida" | "tomada" }) {
                       <Button variant="secondary" className="!px-2 !py-1 text-xs" onClick={() => setLancarConta(n)}><Receipt size={14} /> Lançar conta</Button>
                     ) : <span className="text-xs text-slate-400">—</span>}
                     {financeiro && n.origem === "manual" && n.situacao !== "cancelada" && !contaAtiva(n) && (
-                      <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => setCorrigir(n)}>
+                      <button type="button" className="link-acao inline-flex items-center gap-1 text-xs" onClick={() => setCorrigir(n)}>
                         <Pencil size={12} /> Corrigir
                       </button>
                     )}

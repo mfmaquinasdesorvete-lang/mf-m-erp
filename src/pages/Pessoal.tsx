@@ -344,7 +344,7 @@ export default function Pessoal() {
                 <span className="min-w-0 text-sm font-bold text-fg">{rotuloPeriodo}</span>
                 <button type="button" className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40" aria-label="Próximo período"
                   disabled={somarMesPessoal(mes, passo) > hoje().slice(0, 7) && periodo !== "ano"} onClick={() => setMes(somarMesPessoal(mes, passo))}><ChevronRight size={18} /></button>
-                {mes !== hoje().slice(0, 7) && <button type="button" className="ml-1 text-xs font-semibold text-brand hover:underline" onClick={() => setMes(hoje().slice(0, 7))}>Hoje</button>}
+                {mes !== hoje().slice(0, 7) && <button type="button" className="link-acao ml-1 text-xs" onClick={() => setMes(hoje().slice(0, 7))}>Hoje</button>}
               </div>
             ) : periodo === "pers" ? (
               <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -355,7 +355,7 @@ export default function Pessoal() {
           </div>
           <p className="mt-2 text-xs text-slate-500">
             De <b>{dataBR(faixa.de)}</b> a <b>{dataBR(faixa.ate)}</b> · comparado com {dataBR(anterior.de)} a {dataBR(anterior.ate)}
-            {conta && <> · só a conta <b>{nomeConta(conta)?.nome}</b> <button type="button" className="font-semibold text-brand hover:underline" onClick={() => setConta("")}>ver todas</button></>}
+            {conta && <> · só a conta <b>{nomeConta(conta)?.nome}</b> <button type="button" className="link-acao" onClick={() => setConta("")}>ver todas</button></>}
           </p>
         </Card>
 
@@ -420,7 +420,7 @@ export default function Pessoal() {
           <Card className="min-w-0 p-4">
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-bold text-fg">Para onde foi o dinheiro</h2>
-              {categoria && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline" onClick={() => setCategoria("")}><X size={12} /> tirar o filtro {categoria}</button>}
+              {categoria && <button type="button" className="link-acao inline-flex items-center gap-1 text-xs" onClick={() => setCategoria("")}><X size={12} /> tirar o filtro {categoria}</button>}
             </div>
             {!resumo.categorias.length ? <p className="text-sm text-slate-500">Nenhuma saída no período.</p> : (
               <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
@@ -582,13 +582,13 @@ export default function Pessoal() {
             <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
             <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar lançamento" aria-label="Buscar lançamento" />
           </label>
-          {(conta || categoria || grupo) && <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); setParte(""); }}>Tirar os filtros</button>}
+          {(conta || categoria || grupo) && <button type="button" className="link-acao text-sm" onClick={() => { setConta(""); setCategoria(""); setGrupo(""); setParte(""); }}>Tirar os filtros</button>}
         </div>
         {grupoSel && (grupoSel.aviso || grupoSel.nota) && (
           <div className={`mb-2 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm ${grupoSel.aviso ? "border-amber-200 bg-amber-50 text-amber-900" : grupoSel.destaque ? "border-red-200 bg-red-50 text-red-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
             <span className="min-w-0 flex-1 basis-64"><b>{grupoSel.nome}:</b> {grupoSel.aviso ?? grupoSel.nota}{grupoSel.aviso && grupoSel.nota && <span className="block text-xs">{grupoSel.nota}</span>}</span>
             {grupoSel.naMF && <span className="text-xs">Use <b>Lançar na MF</b> em cada lançamento que for da empresa.</span>}
-            {grupoSel.id === "empresas" && <Link to="/partes-relacionadas" className="text-xs font-semibold text-brand hover:underline">Ver o lado da empresa em Entre contas e sócios →</Link>}
+            {grupoSel.id === "empresas" && <Link to="/partes-relacionadas" className="link-acao text-xs">Ver o lado da empresa em Entre contas e sócios →</Link>}
           </div>
         )}
         {/* o card aberto separado por tipo (impostos), por banco (cartões) ou pelo nome das suas regras */}
@@ -643,11 +643,11 @@ export default function Pessoal() {
                                 <button type="button" onClick={() => lancarNaMF(l, card)} title="Gasto da MF pago daqui: abre Contas a pagar da empresa já preenchido"
                                   className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">Lançar na MF</button>
                               )}
-                              <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" title="Sempre colocar lançamentos como este num card"
+                              <button type="button" className="botao-icone h-8 w-8" title="Sempre colocar lançamentos como este num card"
                                 onClick={() => setRegrasAbertas({ texto: textoSugerido(l.descricao), sentido: l.valor < 0 ? "saida" : "entrada", ativa: true, da_empresa: false, card: cl?.card && !cl.card.startsWith("meu:") ? cl.card : undefined })}
                                 aria-label={`Criar uma regra para ${l.descricao}`}><Tag size={15} /></button>
-                              <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => setEditLanc(l)} aria-label={`Editar ${l.descricao}`}><Pencil size={15} /></button>
-                              <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={() => anular(l)}
+                              <button type="button" className="botao-icone h-8 w-8" onClick={() => setEditLanc(l)} aria-label={`Editar ${l.descricao}`}><Pencil size={15} /></button>
+                              <button type="button" className="botao-icone h-8 w-8" onClick={() => anular(l)}
                                 aria-label={l.anulado ? `Trazer de volta ${l.descricao}` : `Anular ${l.descricao}`} title={l.anulado ? "Trazer de volta" : "Anular (não conta no saldo)"}>{l.anulado ? <Undo2 size={15} /> : <span className="text-base leading-none">⊘</span>}</button>
                             </span>
                           </li>

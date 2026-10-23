@@ -516,7 +516,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
               </label>
             ))}
             {filtrosAtivos > 0 && (
-              <button type="button" className="text-sm font-semibold text-brand hover:underline" onClick={() => { setF(FILTROS_PADRAO); setPeriodo(PERIODO_PADRAO); setUnidade(atual); }}>Limpar filtros</button>
+              <button type="button" className="link-acao text-sm" onClick={() => { setF(FILTROS_PADRAO); setPeriodo(PERIODO_PADRAO); setUnidade(atual); }}>Limpar filtros</button>
             )}
           </div>
         </Card>
@@ -641,7 +641,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
         </div>
       )}
 
-      <details className="rounded-xl border border-slate-200 bg-surface p-3 text-sm text-slate-700">
+      <details className="cartao p-3 text-sm text-slate-700">
         <summary className="cursor-pointer font-semibold text-fg">Como cada número é calculado</summary>
         <dl className="mt-2 space-y-1.5">
           {Object.entries(DICAS).map(([k, [rotulo, texto]]) => <div key={k}><dt className="inline font-semibold text-fg">{rotulo}: </dt><dd className="inline">{texto}</dd></div>)}

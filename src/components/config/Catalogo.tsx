@@ -47,7 +47,7 @@ export function ConfigCatalogo() {
       <Card className="mb-5 p-4 sm:p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold text-fg">Como aparece na loja</h2>
-          <a href={urlLoja()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><ExternalLink size={13} /> {urlLoja()}</a>
+          <a href={urlLoja()} target="_blank" rel="noreferrer" className="link-acao inline-flex items-center gap-1 text-xs"><ExternalLink size={13} /> {urlLoja()}</a>
         </div>
         {cfg.catalogo_texto && <p className="mb-3 max-w-2xl text-sm text-slate-600">{cfg.catalogo_texto}</p>}
         {tipos.length > 1 && (
@@ -61,7 +61,7 @@ export function ConfigCatalogo() {
         {vitrine.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {vitrine.map((p) => (
-              <a key={p.id} href={urlLoja(p.id)} target="_blank" rel="noreferrer" className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card hover:border-brand">
+              <a key={p.id} href={urlLoja(p.id)} target="_blank" rel="noreferrer" className="cartao flex flex-col overflow-hidden hover:border-brand">
                 <div className="aspect-square bg-white">{p.foto_caminho && <img src={urlFotoProduto(p.foto_caminho)} alt="" loading="lazy" className="h-full w-full object-contain p-2" />}</div>
                 <div className="flex flex-1 flex-col gap-1 p-3">
                   <span className="line-clamp-2 text-sm font-semibold text-fg">{p.descricao}</span>

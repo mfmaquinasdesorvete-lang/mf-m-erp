@@ -73,7 +73,7 @@ export function ParametrosGiga({ ctx, admin, revisao }: { ctx: ContextoGiga; adm
         </dl>
         <p className="mt-2 text-xs text-slate-500">
           A revisão sai no cabeçalho do PDF. Para mudar: {admin
-            ? <Link to="/configuracoes/orcamentos" className="font-semibold text-brand hover:underline">Configurações → Orçamentos e garantia → Textos dos documentos</Link>
+            ? <Link to="/configuracoes/orcamentos" className="link-acao">Configurações → Orçamentos e garantia → Textos dos documentos</Link>
             : "Configurações → Orçamentos e garantia → Textos dos documentos (administrador)"}.
         </p>
       </Section>

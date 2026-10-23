@@ -139,7 +139,7 @@ export default function Loja() {
             {lista.length ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {lista.map((p) => (
-                  <div key={p.id} className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+                  <div key={p.id} className="cartao group flex flex-col overflow-hidden">
                     <Link to={`/loja/${p.id}`}><Foto p={p} /></Link>
                     <div className="flex flex-1 flex-col p-3 sm:p-4">
                       <Disponivel p={p} />
@@ -285,7 +285,7 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
       <h1 className="mb-4 text-2xl font-bold">Carrinho</h1>
       {linhas.length ? (
         <>
-          <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-surface">
+          <ul className="cartao divide-y divide-slate-100">
             {linhas.map((l) => (
               <li key={l.id} className="flex items-center gap-3 p-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl"><Foto p={l.p} /></div>
@@ -305,7 +305,7 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
             <span className="mb-1.5 block text-sm font-semibold text-slate-600">Observações (voltagem, prazo, endereço de entrega diferente…)</span>
             <textarea className="input" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
           </label>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-surface p-4">
+          <div className="cartao mt-4 p-4">
             <div className="flex items-baseline justify-between"><span className="text-slate-600">Produtos</span><span className="num text-2xl font-bold">{brl(total)}</span></div>
             <p className="mt-1 text-sm text-slate-500">Frete e forma de pagamento são combinados com a nossa equipe depois do pedido.</p>
             {sessao && cadastro.data === null && <p className="mt-2 text-sm font-semibold text-amber-700">Falta completar o seu cadastro (CPF/CNPJ e endereço).</p>}
@@ -410,7 +410,7 @@ function Entrar() {
     <div className="mx-auto max-w-md">
       <h1 className="mb-1 text-2xl font-bold">{modo === "entrar" ? "Entrar" : "Criar conta"}</h1>
       <p className="mb-4 text-slate-600">{modo === "entrar" ? "Para fazer e acompanhar os seus pedidos." : "Leva 1 minuto. Depois é só completar o endereço."}</p>
-      <form onSubmit={enviar} className="space-y-3 rounded-2xl border border-slate-200 bg-surface p-4">
+      <form onSubmit={enviar} className="cartao space-y-3 p-4">
         {modo === "criar" && <Campo label="Seu nome"><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} required autoComplete="name" /></Campo>}
         <Campo label="E-mail"><input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></Campo>
         <Campo label="Senha"><input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required autoComplete={modo === "entrar" ? "current-password" : "new-password"} /></Campo>
@@ -440,7 +440,7 @@ function NovaSenha({ onPronto }: { onPronto: () => void }) {
     onPronto();
   }
   return (
-    <form onSubmit={salvar} className="mx-auto max-w-md space-y-3 rounded-2xl border border-slate-200 bg-surface p-4">
+    <form onSubmit={salvar} className="cartao mx-auto max-w-md space-y-3 p-4">
       <h1 className="text-xl font-bold">Criar nova senha</h1>
       <Campo label="Nova senha"><input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus /></Campo>
       <button className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-brand font-bold text-brand-fg">Salvar</button>
@@ -468,7 +468,7 @@ function FormCadastro({ inicial, onSalvo, voltarParaCarrinho }: { inicial: Recor
   }
 
   return (
-    <form onSubmit={salvar} className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-surface p-4 sm:grid-cols-4">
+    <form onSubmit={salvar} className="cartao grid grid-cols-1 gap-3 p-4 sm:grid-cols-4">
       <div className="sm:col-span-4">
         <h2 className="text-lg font-bold">{inicial ? "Meus dados" : "Complete o seu cadastro"}</h2>
         <p className="text-sm text-slate-500">Usamos para a nota fiscal e a entrega. Empresa: digite o CNPJ que o resto se preenche.</p>
@@ -524,7 +524,7 @@ function PaginaPedidos({ sessao, empresa }: { sessao: Session | null | undefined
           {data.map((p) => {
             const s = SITUACAO_PEDIDO[p.status] ?? SITUACAO_PEDIDO.orcamento;
             return (
-              <li key={p.numero} className="rounded-2xl border border-slate-200 bg-surface p-4">
+              <li key={p.numero} className="cartao p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-lg font-bold">Pedido #{p.numero}</span>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.tom}`}>{s.rotulo}</span>

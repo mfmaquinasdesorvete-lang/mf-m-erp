@@ -98,7 +98,7 @@ export function PainelConfig() {
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Acessos e listas</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {outras.map((o) => (
-                <Link key={o.to} to={o.to} className="group flex gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand">
+                <Link key={o.to} to={o.to} className="cartao group flex gap-3 p-4 transition hover:-translate-y-0.5 hover:border-brand">
                   <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${o.cor} text-white shadow-card`} aria-hidden><o.icone size={22} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2 font-semibold text-fg">{o.titulo}<ChevronRight size={16} className="shrink-0 text-slate-400 group-hover:text-brand" aria-hidden /></span>
@@ -116,7 +116,7 @@ export function PainelConfig() {
               {SECOES.filter((s) => s.grupo === g).map((s) => {
                 const st = situacao[s.id];
                 return (
-                  <Link key={s.id} to={`/configuracoes/${s.id}`} className="group flex gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand">
+                  <Link key={s.id} to={`/configuracoes/${s.id}`} className="cartao group flex gap-3 p-4 transition hover:-translate-y-0.5 hover:border-brand">
                     <IconeSecao s={s} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2 font-semibold text-fg">{s.titulo}<ChevronRight size={16} className="shrink-0 text-slate-400 group-hover:text-brand" aria-hidden /></span>

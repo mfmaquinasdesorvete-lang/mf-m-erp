@@ -2,7 +2,7 @@
 // dela no código, para aprovar o visual antes de espalhar e para quem monta uma tela nova usar a peça certa
 // (e não montar botão, cartão ou selo à mão). Trocar a área pinta a vitrine com a cor dela; o tema vem do menu.
 import { useEffect, useState, type ReactNode } from "react";
-import { AlertTriangle, CalendarClock, ClipboardCheck, FileText, Mail, Package, Plus, ShoppingCart, Trash2, TrendingUp, Truck, Users, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarClock, ClipboardCheck, FileText, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, TrendingUp, Truck, Users, Wrench } from "lucide-react";
 import { Badge, BotaoAtalho, Button, Card, COR_ATALHO, Field, Indicador, Modal, Section, Stat, Table, Tabs, type TomAcao } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, Funil, type Periodo as PeriodoPainel } from "@/components/painel/Painel";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
@@ -146,6 +146,13 @@ export function DesignSystem() {
         <div className="mt-3 flex flex-wrap gap-2">
           {TONS.map((t) => <Button key={t.tom} tom={t.tom}><t.icone size={16} /> {t.rotulo}</Button>)}
         </div>
+        {/* peças únicas em classe (index.css): botões só de ícone, link de texto e cartão */}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button type="button" className="botao-icone h-8 w-8" title="Editar" aria-label="Editar (exemplo)"><Pencil size={16} /></button>
+          <button type="button" className="botao-icone-perigo h-8 w-8" title="Apagar" aria-label="Apagar (exemplo)"><Trash2 size={16} /></button>
+          <button type="button" className="link-acao text-sm">Ver detalhes</button>
+          <code className="text-2xs text-slate-500">.botao-icone · .botao-icone-perigo · .link-acao · .cartao</code>
+        </div>
         <div className="mt-4 grid max-w-md grid-cols-4 gap-2 sm:grid-cols-6">
           <BotaoAtalho icon={ShoppingCart} label="Vendas" cor={COR_ATALHO.verde} />
           <BotaoAtalho icon={FileText} label="Notas" cor={COR_ATALHO.azul} />
@@ -180,7 +187,7 @@ export function DesignSystem() {
       </Bloco>
 
       <Bloco titulo="Indicadores" peca="<Stat tom> · <Indicador cor> · <CartaoPainel>"
-        texto="Números de destaque no alto das telas. A cor diz o assunto. O cartão do painel traz também a variação e a linha de tendência.">
+        texto="Números de destaque no alto das telas, todos com o mesmo brilho da tela inicial (estiloBrilho e Luz). A cor diz o assunto. O cartão do painel traz também a variação e a linha de tendência.">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label="Vendas do mês" valor={brl(182400)} sub="34 pedidos" icon={TrendingUp} />
           <Stat label="Recebido" valor={brl(95300)} icon={ClipboardCheck} tom="bom" />

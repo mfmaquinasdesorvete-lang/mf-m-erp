@@ -322,7 +322,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
                       <td className="py-1 pr-1"><Numero rotulo={`Largura do volume ${i + 1}`} valor={v.largura_cm} onChange={(n) => setVol(i, { largura_cm: n })} /></td>
                       <td className="py-1 pr-1"><Numero rotulo={`Altura do volume ${i + 1}`} valor={v.altura_cm} onChange={(n) => setVol(i, { altura_cm: n })} /></td>
                       <td className="whitespace-nowrap py-1">
-                        <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" title="Duplicar" aria-label={`Duplicar o volume ${i + 1}`}
+                        <button type="button" className="botao-icone p-1" title="Duplicar" aria-label={`Duplicar o volume ${i + 1}`}
                           onClick={() => setVolumes([...d.volumes.slice(0, i + 1), { ...v }, ...d.volumes.slice(i + 1)])}><Copy size={14} /></button>
                         <button type="button" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" title="Tirar" aria-label={`Tirar o volume ${i + 1}`}
                           disabled={d.volumes.length <= 1} onClick={() => { setVolumes(d.volumes.filter((_, k) => k !== i)); setVolPrev(0); }}><Trash2 size={14} /></button>

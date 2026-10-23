@@ -119,7 +119,7 @@ export function CampoBoleto({ linha, contaId, encargos, onLinha, onLido, onEncar
       {conf && <ResultadoConferencia r={conf} contaId={contaId} />}
       {lido && (
         !verEncargos ? (
-          <button type="button" onClick={(e) => { e.preventDefault(); setVerEncargos(true); }} className="text-xs font-semibold text-brand hover:underline">
+          <button type="button" onClick={(e) => { e.preventDefault(); setVerEncargos(true); }} className="link-acao text-xs">
             Multa e juros do boleto: padrão 2% + 1% ao mês (mudar)
           </button>
         ) : (

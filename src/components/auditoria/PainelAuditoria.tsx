@@ -132,7 +132,7 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
           <Ranking itens={ex.porTipo.slice(0, 6).map((t) => ({ rotulo: TIPOS[t.tipo].rotulo, valor: t.n }))} formatar={contagem} cor="rgb(var(--modulo))"
             onClicar={(i) => exc({ tipo: ex.porTipo[i].tipo })} vazio="Nenhuma exceção em aberto." />
           {ex.porTipo.length > 6 && (
-            <button type="button" onClick={() => exc()} className="mt-1 text-xs font-semibold text-brand hover:underline">
+            <button type="button" onClick={() => exc()} className="link-acao mt-1 text-xs">
               e mais {ex.porTipo.length - 6} {pl(ex.porTipo.length - 6, "tipo", "tipos")}
             </button>
           )}
@@ -217,7 +217,7 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
 
 function VerTudo({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-0.5 text-xs font-semibold text-brand hover:underline">
+    <button type="button" onClick={onClick} className="link-acao inline-flex items-center gap-0.5 text-xs">
       {children} <ChevronRight size={14} />
     </button>
   );
@@ -263,7 +263,7 @@ function BarrasPorDia({ dias, hoje, onDia }: { dias: { dia: string; total: numbe
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" aria-hidden /> Exclusões</span>
         {soma > 0 && (
           <span className="sm:ml-auto">
-            Maior dia: <button type="button" onClick={() => onDia(pico.dia)} className="font-semibold text-brand hover:underline">{diaMes(pico.dia)} ({contagem(pico.total)})</button>
+            Maior dia: <button type="button" onClick={() => onDia(pico.dia)} className="link-acao">{diaMes(pico.dia)} ({contagem(pico.total)})</button>
             {" "}· média de {contagem(Math.round(soma / dias.length))} por dia
           </span>
         )}

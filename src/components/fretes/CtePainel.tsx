@@ -91,7 +91,7 @@ function FaturasParaMontar({ grupos, porId, onMontar }: {
         Montar: ela vai para Contas a pagar (tipo Transportadoras) e passa pela aprovação.</p>
       <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {grupos.map((g) => (
-          <li key={g.chave} className="flex flex-col gap-2 rounded-xl border border-l-[5px] border-slate-200 border-l-cyan-500 bg-surface p-3">
+          <li key={g.chave} className="cartao flex flex-col gap-2 border-l-[5px] border-l-cyan-500 p-3">
             <span className="flex flex-wrap items-baseline justify-between gap-x-2">
               <b className="min-w-0 flex-1 truncate">{nomeTransportadora(g.transportadora_id ? porId.get(g.transportadora_id) : null)}</b>
               <span className="num whitespace-nowrap text-lg font-bold">{brl(g.total)}</span>
@@ -161,7 +161,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   return (
     <div className="space-y-4">
       <BuscaSefaz />
-      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-surface p-3">
+      <div className="cartao flex flex-wrap items-end gap-2 p-3">
         <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
           <input className="input" type="date" value={de} onChange={(e) => setDe(e.target.value)} /></label>
         <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>

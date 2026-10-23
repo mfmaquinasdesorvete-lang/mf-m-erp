@@ -128,7 +128,7 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
   const idPartes = `partes-${item.to.replace(/\W+/g, "-")}`;
   return (
     // compacto: ícone ao lado do nome, etiquetas numa linha e a explicação em até 3 linhas (o "Saiba mais" mostra tudo)
-    <article className="relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-surface p-3.5 shadow-card"
+    <article className="cartao relative flex min-w-0 flex-col p-3.5"
       style={{ backgroundImage: `radial-gradient(120% 70% at 100% 0%, ${clara}14, transparent 60%)` }}>
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${clara}26`, color: tinta(escura) }} aria-hidden><Icon size={18} /></span>
