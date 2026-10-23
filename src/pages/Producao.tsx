@@ -912,7 +912,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
             </Button>
           )}
           {pode("receber_compras") && p.id && ["enviado", "parcial"].includes(p.status ?? "") && (
-            <Button type="button" onClick={() => setReceber(true)}><PackageCheck size={16} /> Receber mercadoria</Button>
+            <Button type="button" onClick={() => setReceber(true)}><PackageCheck size={16} /> Receber sem nota</Button>
           )}
         </div>
       </form>
@@ -927,6 +927,7 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
   const [gerarConta, setGerarConta] = useState(true);
   const [vencimento, setVencimento] = useState(somarDias(28));
   const [ocupado, setOcupado] = useState(false);
+  const travado = useRef(false);
   const invalidate = useInvalidate();
   // OC com parcelas, recebida inteira de uma vez: as contas saem pelas parcelas (receber_pedido_compra)
   const primeira = !pc.itens.some((i) => Number(i.quantidade_recebida ?? 0) > 0);
@@ -934,6 +935,8 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
   const pelasParcelas = primeira && tudo && !!pc.parcelas?.length;
 
   async function confirmar() {
+    if (travado.current) return;
+    travado.current = true;
     setOcupado(true);
     try {
       const { data, error } = await supabase.rpc("receber_pedido_compra", {
@@ -941,19 +944,23 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
         p_gerar_conta: gerarConta, p_vencimento: vencimento,
       });
       if (error) throw error;
-      notify(data === "recebido" ? "Mercadoria recebida e lançada no estoque" : "Recebimento parcial registrado");
-      invalidate("pedidos_compra", "necessidade_producao", "produtos", "contas_pagar", "estoque_movimentos");
+      notify(data === "recebido" ? "Mercadoria recebida sem nota e lançada no estoque" : "Recebimento parcial (sem nota) registrado");
+      invalidate("pedidos_compra", "necessidade_producao", "produtos", "contas_pagar", "estoque_movimentos", "estoque_unidade");
       onClose();
       onFeito();
     } catch (e) {
       notifyError(e);
     } finally {
+      travado.current = false;
       setOcupado(false);
     }
   }
 
   return (
-    <Modal open onClose={onClose} title={`Receber pedido #${pc.numero}`}>
+    <Modal open onClose={onClose} title={`Receber pedido #${pc.numero} sem nota`}>
+      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        Use só quando a mercadoria chega <b>sem nota fiscal</b>. Com nota, confirme a entrada em Notas fiscais → Recebidas: o estoque, o custo e a baixa desta ordem de compra entram por lá, uma vez só.
+      </p>
       <p className="mb-3 text-sm text-slate-500">Confira o que chegou. Se veio menos, ajuste a quantidade: o resto continua “a caminho”.</p>
       <div className="space-y-2">
         {pc.itens.map((i) => {
@@ -975,7 +982,7 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
           </p>
         )}
         {gerarConta && !pelasParcelas && <Field label="Vencimento" className="mt-2 max-w-[200px]"><input className="input" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} /></Field>}
-        <p className="mt-2 text-xs text-slate-500">Se a nota do fornecedor chegar pela SEFAZ, prefira lançar a conta por ela (Notas fiscais), para não duplicar.</p>
+        <p className="mt-2 text-xs text-slate-500">Se depois chegar a nota destes itens, o estoque não entra de novo; só confira se a conta a pagar não ficou em dobro.</p>
       </Card>
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>Voltar</Button>

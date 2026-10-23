@@ -21,7 +21,7 @@ type Contagem = {
   criada_nome: string | null; concluida_nome: string | null; concluida_em: string | null; ajustes: number | null; created_at: string;
   dupla?: boolean | null; contados?: number | null;
 };
-type ItemContagem = { contagem_id: string; produto_id: string; saldo_sistema: number; contado: number | null; contado2?: number | null; justificativa: string | null };
+type ItemContagem = { contagem_id: string; produto_id: string; saldo_sistema: number; saldo_contado?: number | null; contado: number | null; contado2?: number | null; justificativa: string | null };
 type Saldo = { produto_id: string; unidade_id: string; quantidade: number };
 const TIPOS: Record<string, string> = { maquina: "Máquinas", peca: "Peças", acessorio: "Acessórios", insumo: "Insumos" };
 
@@ -134,8 +134,10 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     || (prod(a.produto_id)?.descricao ?? "").localeCompare(prod(b.produto_id)?.descricao ?? "", "pt-BR")), // eslint-disable-next-line react-hooks/exhaustive-deps
   [todos, c.id, produtos]);
   const contados = itens.filter((i) => i.contado != null).length;
-  // concluída: a diferença foi contra o saldo da época (o ajuste já entrou); aberta: contra o saldo de agora
-  const diferenca = (i: ItemContagem) => i.contado == null ? null : Number(i.contado) - (c.status === "aberta" ? saldoAgora(i.produto_id) : Number(i.saldo_sistema));
+  // saldo do sistema na hora em que o item foi contado (o que entrou ou saiu depois não vira diferença);
+  // contagem antiga sem esse saldo: aberta compara com o de agora, concluída com o da abertura
+  const saldoRef = (i: ItemContagem) => i.saldo_contado != null ? Number(i.saldo_contado) : c.status === "aberta" ? saldoAgora(i.produto_id) : Number(i.saldo_sistema);
+  const diferenca = (i: ItemContagem) => i.contado == null ? null : Number(i.contado) - saldoRef(i);
   const divergentes = itens.filter((i) => (diferenca(i) ?? 0) !== 0);
   const semJustificativa = divergentes.filter((i) => !i.justificativa);
   const recontar = c.dupla ? itens.filter((i) => i.contado != null && situacaoDupla(i.contado, i.contado2 ?? null) !== "bate") : [];
@@ -234,7 +236,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
               {c.dupla && revelar && <td className="td text-xs font-semibold">{({ falta1: <span className="text-slate-400">—</span>, falta2: <span className="text-amber-700">falta a 2ª</span>,
                 bate: <span className="text-emerald-700">✓ bate</span>, recontar: <span className="text-red-600">✗ reconte</span> } as const)[situacaoDupla(i.contado, i.contado2 ?? null)]}</td>}
               {revelar && <>
-                <td className="td text-right">{c.status === "aberta" ? saldoAgora(i.produto_id) : Number(i.saldo_sistema)}</td>
+                <td className="td text-right" title={i.saldo_contado != null ? "Saldo do sistema na hora da contagem" : undefined}>{saldoRef(i)}</td>
                 <td className={`td text-right font-semibold ${dif ? (dif < 0 ? "text-red-600" : "text-amber-700") : "text-emerald-700"}`}>{dif == null ? "—" : dif > 0 ? `+${dif}` : dif}</td>
                 <td className="td">
                   {dif ? (

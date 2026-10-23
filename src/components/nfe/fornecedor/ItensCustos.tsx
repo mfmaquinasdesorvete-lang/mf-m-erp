@@ -66,10 +66,11 @@ export function ItensCustos({ d, nota, podeEditar }: { d: DadosNota; nota: NotaB
         p_baixas: baixas.map((b) => ({ item_id: b.item_id, quantidade: b.quantidade })),
       });
       if (error) throw error;
-      const r = { itens: 0, custos: 0, baixas: 0, para_aprovar: 0, aprovados: 0, ...(data ?? {}) } as { itens: number; custos: number; baixas: number; para_aprovar: number; aprovados: number };
+      const r = { itens: 0, custos: 0, baixas: 0, para_aprovar: 0, aprovados: 0, ja_recebidos: 0, ...(data ?? {}) } as { itens: number; custos: number; baixas: number; para_aprovar: number; aprovados: number; ja_recebidos: number };
       notify([`${r.itens} ${pl(r.itens, "item lançado", "itens lançados")} no estoque`, r.custos ? `${r.custos} ${pl(r.custos, "custo", "custos")}` : "",
         r.para_aprovar ? `${r.para_aprovar} para aprovar` : "", r.aprovados ? `${r.aprovados} ${pl(r.aprovados, "preço aplicado", "preços aplicados")}` : "",
-        r.baixas ? `${r.baixas} ${pl(r.baixas, "baixa", "baixas")} na OC` : ""].filter(Boolean).join(" · "));
+        r.baixas ? `${r.baixas} ${pl(r.baixas, "baixa", "baixas")} na OC` : "",
+        r.ja_recebidos ? `${r.ja_recebidos} ${pl(r.ja_recebidos, "item já tinha entrado", "itens já tinham entrado")} pela OC recebida sem nota` : ""].filter(Boolean).join(" · "));
       d.marcarGravado();
       d.recarregar();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }

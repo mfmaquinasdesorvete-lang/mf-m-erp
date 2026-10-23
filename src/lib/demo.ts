@@ -4083,7 +4083,7 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
         return { data: null, error: { message: `reconte "${db.produtos.find((p) => p.id === i.produto_id)?.descricao}": a primeira e a segunda contagem precisam bater` } };
       contados++;
       const atual = Number(db.estoque_unidade?.find((x) => x.produto_id === i.produto_id && x.unidade_id === c.unidade_id)?.quantidade ?? 0);
-      const dif = Number(i.contado) - atual;
+      const dif = Number(i.contado) - (i.saldo_contado != null ? Number(i.saldo_contado) : atual);
       if (!dif) continue;
       if (!i.justificativa) return { data: null, error: { message: `justifique a divergência de "${db.produtos.find((p) => p.id === i.produto_id)?.descricao}" antes de concluir` } };
       movimentar(i.produto_id, "ajuste", dif, `Contagem nº ${c.numero}: ${i.justificativa}`, { unidade_id: c.unidade_id });
