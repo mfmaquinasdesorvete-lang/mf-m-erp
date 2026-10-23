@@ -110,7 +110,7 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
     pictures: [{ source: urlFoto(p.foto_caminho) }], attributes: atributos,
     shipping: { mode: "me2", free_shipping: preco >= FRETE_GRATIS_DESDE, local_pick_up: false },
     sale_terms: p.garantia_meses
-      ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} ${p.garantia_meses === 1 ? "mês" : "meses"}` }]
+      ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} meses` }]
       : [],
   };
   // o Mercado Livre confere tudo sem publicar. Conta no modelo novo (family_name) pode recusar o "title": tira e confere de novo

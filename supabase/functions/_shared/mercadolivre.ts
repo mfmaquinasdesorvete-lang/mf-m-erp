@@ -29,8 +29,9 @@ export async function chamarML<T = any>(caminho: string, token: string | null, i
     if (extra && extra !== msg && extra.length > 12 && !msg.includes(extra)) msg = `${msg}: ${extra}`;
     // erro de validação (ex.: ao mudar preço ou estoque): o motivo vem em "cause"
     // (sem mensagem, vale o código e os campos citados: "item.title.invalid [title]")
-    const causas = (Array.isArray(corpo?.cause) ? corpo.cause : [])
-      .filter((c: any) => !c?.type || c.type === "error")
+    const todas: any[] = Array.isArray(corpo?.cause) ? corpo.cause : [];
+    const erros = todas.filter((c: any) => !c?.type || c.type === "error");
+    const causas = (erros.length ? erros : todas)
       .map((c: any) => {
         const t = String(c?.message ?? "").trim() || String(c?.code ?? "").trim();
         const refs = Array.isArray(c?.references) && c.references.length ? ` [${c.references.join(", ")}]` : "";
