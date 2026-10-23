@@ -54,6 +54,12 @@ const doisDigitos = (n: number) => String(n).padStart(2, "0");
 /** A agenda em português, no horário de Brasília (o agendador usa UTC; Brasília é UTC−3 o ano todo). */
 export function agendaEmPortugues(agenda: string): string {
   const [min = "*", hora = "*", dia = "*", mes = "*", semana = "*"] = agenda.trim().split(/\s+/);
+  // dias úteis (1-5) ou um dia da semana fixo, num horário fixo
+  if (dia === "*" && mes === "*" && semana !== "*" && /^\d+$/.test(hora) && /^\d+$/.test(min)) {
+    const h = `${doisDigitos((Number(hora) + 21) % 24)}h${doisDigitos(Number(min))}`;
+    if (semana === "1-5") return `dias úteis às ${h}`;
+    if (/^[0-6]$/.test(semana)) return `${["todo domingo", "toda segunda", "toda terça", "toda quarta", "toda quinta", "toda sexta", "todo sábado"][Number(semana)]} às ${h}`;
+  }
   if (dia !== "*" || mes !== "*" || semana !== "*") return agenda;
   if (hora === "*") {
     if (min === "*") return "a cada minuto";
@@ -83,27 +89,40 @@ export function situacaoAutomacao(a: Automacao, agora: Date | string): SituacaoA
 }
 
 /** O que cada automação faz, na língua da empresa. A que não estiver aqui aparece com o nome técnico. */
-export const AUTOMACOES: Record<string, { nome: string; texto: string; tela?: string }> = {
-  "erp-avisos-diarios": { nome: "Avisos do dia", texto: "Monta os lembretes do dia (vencimentos, garantias, preventivas).", tela: "/financeiro" },
-  "erp-avisos-enviar": { nome: "Envio de e-mails", texto: "Manda os e-mails que estão na fila (lembretes e cobranças).", tela: "/financeiro?aba=cobranca" },
-  "erp-backups-conferir": { nome: "Conferência do backup", texto: "Confere se o backup do dia chegou e se a cópia foi para a Hostinger.", tela: "/configuracoes" },
-  "erp-clientes-receita": { nome: "Clientes na Receita", texto: "Confere clientes e fornecedores na Receita (CNPJá), 3 por minuto, de novo a cada 90 dias.", tela: "/clientes" },
-  "erp-contador-pacote": { nome: "Pacote do contador", texto: "Monta e manda o fechamento do mês ao contador.", tela: "/contador" },
-  "erp-contas-fixas": { nome: "Contas fixas", texto: "Lança as contas fixas e recorrentes do mês.", tela: "/financeiro" },
-  "erp-email-caixa": { nome: "Caixa de e-mail", texto: "Busca e-mails novos (e os extratos OFX que chegam por e-mail).", tela: "/email" },
-  "erp-inter": { nome: "Banco Inter", texto: "Extrato e saldo do Inter, a cada 4 horas.", tela: "/conciliacao" },
-  "erp-mercadolivre": { nome: "Mercado Livre: vendas", texto: "Traz as vendas pagas do Mercado Livre.", tela: "/mercado-livre" },
-  "erp-mercadolivre-anuncios": { nome: "Mercado Livre: anúncios", texto: "Manda o estoque e o preço do ERP para os anúncios.", tela: "/mercado-livre" },
-  "erp-mercadolivre-posvenda": { nome: "Mercado Livre: NF-e e rastreio", texto: "Manda a NF-e autorizada e o rastreio do envio próprio para as vendas do Mercado Livre.", tela: "/mercado-livre" },
-  "erp-mercadolivre-conferir": { nome: "Mercado Livre: conferência", texto: "Confere todos os anúncios uma vez por dia.", tela: "/mercado-livre" },
-  "erp-nfe-processar": { nome: "Notas de fornecedor", texto: "Busca na SEFAZ as notas contra o CNPJ, faz a ciência e dá entrada.", tela: "/notas?aba=recebidas" },
-  "erp-nfse-processar": { nome: "NFS-e", texto: "Acompanha as notas de serviço enviadas até autorizar.", tela: "/assistencia" },
-  "erp-openfinance": { nome: "Open Finance", texto: "Extratos dos bancos conectados, a cada 4 horas.", tela: "/conciliacao" },
-  "erp-parcelamentos-avisos": { nome: "Parcelamentos de impostos", texto: "Avisa as parcelas perto de vencer ou atrasadas.", tela: "/parcelamentos" },
-  "erp-produtos-sugestoes": { nome: "Correções de produtos", texto: "Sugere NCM, custo, marca e código de barras pelas notas e compras.", tela: "/estoque?aba=qualidade" },
-  "erp-regua-cobranca": { nome: "Régua de cobrança", texto: "Cobra as contas vencidas pelos canais da régua.", tela: "/configuracoes/cobranca" },
-  "erp-vigiar-sistema": { nome: "Vigia do sistema", texto: "Confere tudo isto de hora em hora e avisa o administrador do que parou." },
-  "erp-whatsapp-enviar": { nome: "Envio de WhatsApp", texto: "Manda as mensagens da fila do WhatsApp.", tela: "/financeiro?aba=cobranca" },
+/** Áreas da página Automações (Gestão → Automações), na ordem em que aparecem. */
+export const AREAS_AUTOMACAO = {
+  financeiro: "Financeiro e bancos", fiscal: "Notas e impostos", vendas: "Vendas e Mercado Livre", cadastros: "Cadastros",
+  comunicacao: "Avisos, e-mails e cobrança", equipe: "Equipe e IA", sistema: "Sistema e segurança", pessoal: "Pessoal (só a conta master)",
+} as const;
+export type AreaAutomacao = keyof typeof AREAS_AUTOMACAO;
+
+export const AUTOMACOES: Record<string, { nome: string; texto: string; tela?: string; area: AreaAutomacao }> = {
+  "erp-avisos-diarios": { area: "comunicacao", nome: "Avisos do dia", texto: "Monta os lembretes do dia (vencimentos, garantias, preventivas).", tela: "/financeiro" },
+  "erp-avisos-enviar": { area: "comunicacao", nome: "Envio de e-mails", texto: "Manda os e-mails que estão na fila (lembretes e cobranças).", tela: "/financeiro?aba=cobranca" },
+  "erp-backups-conferir": { area: "sistema", nome: "Conferência do backup", texto: "Confere se o backup do dia chegou e se a cópia foi para a Hostinger.", tela: "/configuracoes" },
+  "erp-clientes-receita": { area: "cadastros", nome: "Clientes na Receita", texto: "Confere clientes e fornecedores na Receita (CNPJá), 3 por minuto, de novo a cada 90 dias.", tela: "/clientes" },
+  "erp-clientes-redes": { area: "cadastros", nome: "Redes sociais dos clientes", texto: "Abre o site de cada cliente, acha o Instagram, o Facebook e o TikTok e sugere no cadastro (a equipe aprova).", tela: "/clientes" },
+  "erp-contador-pacote": { area: "fiscal", nome: "Pacote do contador", texto: "Monta e manda o fechamento do mês ao contador.", tela: "/contador" },
+  "erp-contas-fixas": { area: "financeiro", nome: "Contas fixas", texto: "Lança as contas fixas e recorrentes do mês.", tela: "/financeiro" },
+  "erp-email-caixa": { area: "comunicacao", nome: "Caixa de e-mail", texto: "Busca e-mails novos (e os extratos OFX que chegam por e-mail).", tela: "/email" },
+  "erp-envios-manha": { area: "vendas", nome: "Envios da manhã", texto: "Acompanha os envios: avisa o cliente que está chegando e marca os atrasados.", tela: "/fretes" },
+  "erp-inter": { area: "financeiro", nome: "Banco Inter", texto: "Extrato e saldo do Inter, a cada 4 horas.", tela: "/conciliacao" },
+  "erp-mercadolivre": { area: "vendas", nome: "Mercado Livre: vendas", texto: "Traz as vendas pagas do Mercado Livre.", tela: "/mercado-livre" },
+  "erp-mercadolivre-anuncios": { area: "vendas", nome: "Mercado Livre: anúncios", texto: "Manda o estoque e o preço do ERP para os anúncios.", tela: "/mercado-livre" },
+  "erp-mercadolivre-posvenda": { area: "vendas", nome: "Mercado Livre: NF-e e rastreio", texto: "Manda a NF-e autorizada e o rastreio do envio próprio para as vendas do Mercado Livre.", tela: "/mercado-livre" },
+  "erp-mercadolivre-conferir": { area: "vendas", nome: "Mercado Livre: conferência", texto: "Confere todos os anúncios uma vez por dia.", tela: "/mercado-livre" },
+  "erp-nfe-processar": { area: "fiscal", nome: "Notas de fornecedor", texto: "Busca na SEFAZ as notas contra o CNPJ, faz a ciência e dá entrada.", tela: "/notas?aba=recebidas" },
+  "erp-nfse-processar": { area: "fiscal", nome: "NFS-e", texto: "Acompanha as notas de serviço enviadas até autorizar.", tela: "/assistencia" },
+  "erp-openfinance": { area: "financeiro", nome: "Open Finance", texto: "Extratos dos bancos conectados, a cada 4 horas.", tela: "/conciliacao" },
+  "erp-parcelamentos-avisos": { area: "fiscal", nome: "Parcelamentos de impostos", texto: "Avisa as parcelas perto de vencer ou atrasadas.", tela: "/parcelamentos" },
+  "erp-pessoal-pluggy": { area: "pessoal", nome: "Carteira pessoal", texto: "Extratos das contas pessoais conectadas.", tela: "/pessoal" },
+  "erp-produtos-sugestoes": { area: "cadastros", nome: "Correções de produtos", texto: "Sugere NCM, custo, marca e código de barras pelas notas e compras.", tela: "/estoque?aba=qualidade" },
+  "erp-regua-cobranca": { area: "comunicacao", nome: "Régua de cobrança", texto: "Cobra as contas vencidas pelos canais da régua.", tela: "/configuracoes/cobranca" },
+  "erp-vigiar-seguranca": { area: "sistema", nome: "Vigia de segurança", texto: "Confere a segurança do banco todo dia (acessos, funções, arquivos, administradores novos) e avisa o administrador.", tela: "/sobre" },
+  "erp-vigiar-sistema": { area: "sistema", nome: "Vigia do sistema", texto: "Confere tudo isto de hora em hora e avisa o administrador do que parou." },
+  "erp-voz-escalar": { area: "equipe", nome: "Anotações por voz paradas", texto: "Anotação por voz sem conferir há mais de 2 dias vai para a retaguarda (conta master).", tela: "/anotacoes" },
+  "erp-voz-resumo": { area: "equipe", nome: "Resumo das anotações por voz", texto: "Toda segunda, o resumo da semana para o financeiro acompanhar.", tela: "/anotacoes" },
+  "erp-whatsapp-enviar": { area: "comunicacao", nome: "Envio de WhatsApp", texto: "Manda as mensagens da fila do WhatsApp.", tela: "/financeiro?aba=cobranca" },
 };
 
 /** As filas que travam o trabalho quando crescem. `grave`: qualquer item já é problema. */

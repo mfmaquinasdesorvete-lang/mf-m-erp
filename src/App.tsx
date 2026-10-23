@@ -81,6 +81,7 @@ const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
 const Anotacoes = lazy(() => import("@/pages/Anotacoes"));
+const Automacoes = lazy(() => import("@/pages/Automacoes"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const EntradasGrandes = lazy(() => import("@/pages/EntradasGrandes"));
 const NotasMyFrostContador = lazy(() => import("@/pages/NotasMyFrostContador"));
@@ -142,6 +143,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "garantias", tela: "garantias", element: <Garantias /> },
   { path: "relatorios", tela: "relatorios", element: <Relatorios /> },
   { path: "gerencial", tela: "relatorios", element: <Gerencial /> },
+  // Automações: o que o ERP faz sozinho (só o administrador, como Configurações)
+  { path: "automacoes", tela: "configuracoes", element: <Automacoes /> },
   { path: "producao", tela: "producao", element: <Producao key="producao" area="producao" /> },
   { path: "compras", tela: "producao", element: <Producao key="compras" area="compras" /> },
   { path: "transferencias", tela: "estoque", element: <Transferencias /> },

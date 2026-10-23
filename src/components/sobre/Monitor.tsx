@@ -16,7 +16,7 @@ import {
 import { ExecucaoModal, RegistroExecucoes, type InicialExecucao } from "./Execucoes";
 import { Chaves } from "./Chaves";
 
-const haQuanto = (iso: string | null, agora: string) => {
+export const haQuanto = (iso: string | null, agora: string) => {
   if (!iso) return "nunca";
   const min = Math.round((new Date(agora).getTime() - new Date(iso).getTime()) / 60000);
   if (min < 1) return "agora há pouco";
@@ -26,7 +26,7 @@ const haQuanto = (iso: string | null, agora: string) => {
 };
 
 /** A saúde do sistema (só o administrador lê): a mesma leitura no Monitor e no Painel gerencial. */
-function useSaude() {
+export function useSaude() {
   return useQuery({
     queryKey: ["saude_sistema"],
     queryFn: async () => { const { data, error } = await supabase.rpc("saude_sistema"); if (error) throw error; return data as Saude; },

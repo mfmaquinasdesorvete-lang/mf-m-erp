@@ -1248,6 +1248,19 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem vê: financeiro e administrador cadastram e registram; o contador consulta.",
     ],
   },
+  "/automacoes": {
+    tags: ["AUTOMÁTICO", "IA", "SAÚDE"],
+    destaque: "Tudo o que o ERP faz sozinho, por área, e se está em dia.",
+    partes: [
+      "Indicadores: quantas automações rodam sozinhas, quantas estão em dia, com problema (falhou ou atrasada) e desligadas.",
+      "Por área: financeiro e bancos, notas e impostos, vendas e Mercado Livre, cadastros, avisos e cobrança, equipe e IA, sistema e segurança.",
+      "Cada automação: o que faz em português, quando roda (horário de Brasília), quando rodou pela última vez e as falhas das últimas 24 horas.",
+      "Atalho Abrir: leva à tela onde aparece o resultado da automação (extrato, notas, anúncios, anotações).",
+      "Conferir agora: lê de novo a situação de todas, na hora.",
+      "Próximas automações: o que já foi pedido para a IA do dia a dia e está na fila ou sendo feito (Sobre → Pedidos).",
+      "Detalhes técnicos (erros, funções e backup) continuam no Sobre → Monitor; a carteira pessoal só aparece para a conta master.",
+    ],
+  },
   "/gerencial": {
     tags: ["DECISÃO", "CURVA ABC", "METAS"],
     destaque: "Veja onde a empresa cresce, onde trava e o que fazer.",

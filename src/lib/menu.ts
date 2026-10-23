@@ -2,7 +2,7 @@
 import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
-  Upload, UserCog, Users, Wallet, Workflow, Wrench,
+  Upload, UserCog, Users, Wallet, Workflow, Wrench, Zap,
   ScanSearch,
   MapPinned,
 } from "lucide-react";
@@ -122,6 +122,7 @@ export const grupos: Grupo[] = [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
       { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
+      { to: "/automacoes", tela: "configuracoes", label: "Automações", curto: "Automações", icon: Zap, busca: "automação automático sozinho robô agendado agenda cron rotina tarefa ia inteligência lynn monitor" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor pagamento pagamentos pix foto" },
     ],
   },

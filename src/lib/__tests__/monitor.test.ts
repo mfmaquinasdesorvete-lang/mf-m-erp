@@ -30,6 +30,8 @@ describe("monitor das automações", () => {
     expect(agendaEmPortugues("17 */4 * * *")).toBe("a cada 4 horas");
     expect(agendaEmPortugues("7 11 * * *")).toBe("todo dia às 08h07");
     expect(agendaEmPortugues("15 2 * * *")).toBe("todo dia às 23h15");
+    expect(agendaEmPortugues("0 12 * * 1-5")).toBe("dias úteis às 09h00");
+    expect(agendaEmPortugues("0 11 * * 1")).toBe("toda segunda às 08h00");
   });
 
   it("situação: falhou, atrasada (mais de 2 intervalos), falhou e voltou, ainda não rodou, desligada, em dia", () => {

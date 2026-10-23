@@ -73,6 +73,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/analista-fiscal": "Auditoria fiscal, apuração estimada e estratégias legais para pagar menos imposto, para conferir com o contador.",
   "/parcelamentos": "Parcelamentos de impostos (Receita Federal, PGFN, SEFAZ SC e SP, prefeitura): parcelas pagas e a vencer, quem pagou cada uma com o comprovante, avisos antes do vencimento e risco de cancelar o parcelamento.",
   "/gerencial": "Painel para decidir: curva ABC, clientes parados, tendências, gargalos e metas.",
+  "/automacoes": "Tudo o que o ERP faz sozinho, por área (financeiro, notas, vendas, cadastros, avisos, equipe e IA, sistema): quando roda, se está em dia e as próximas automações na fila.",
   "/relatorios": "Relatórios de faturamento, DRE e fluxo de caixa, com exportação.",
   "/margem": "Margem de contribuição por venda, canal, produto, vendedor, cliente e unidade.",
   "/implantacao": "Plano da troca do Tiny: etapas, prazos, responsáveis e o uso do ERP.",
