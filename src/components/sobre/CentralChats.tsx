@@ -83,12 +83,18 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
   const pubsPeriodo = pubs.filter((p) => noPeriodo(p.inicio)).length;
   const precisaTotal = estado.reduce((s, x) => s + x.precisa, 0);
 
-  // órbita: chats num círculo em volta do ERP
-  const R = 120, CX = 180, CY = 160;
+  // órbita (maior e interativa, 23/10): chats num círculo em volta do ERP; o nome fica para fora, alinhado pelo lado,
+  // para não encavalar. Passar o mouse (ou o foco do teclado) acende o chat; tocar abre o cartão dele ao lado.
+  const W = 800, H = 540, CX = 400, CY = 270, R = 185;
   const pos = (i: number) => {
     const a = (i / Math.max(1, estado.length)) * 2 * Math.PI - Math.PI / 2;
-    return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) };
+    return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a), cos: Math.cos(a), sin: Math.sin(a) };
   };
+  const [sobre, setSobre] = useState<string | null>(null);
+  const [escolhido, setEscolhido] = useState<string | null>(null);
+  const foco = sobre ?? escolhido;
+  const sel = estado.find((x) => x.c.id === escolhido) ?? null;
+  const urlSessao = (s: string) => (/^session_[A-Za-z0-9]+$/.test(s) ? `https://claude.ai/code/${s}` : null);
 
   return (
     <div className="overflow-hidden rounded-2xl text-fixo-slate-200 shadow-pop" style={{ background: "radial-gradient(120% 90% at 50% 0%, #1e1b4b 0%, #0b1020 55%, #05070f 100%)" }}>
@@ -101,7 +107,10 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
         .cc-fluxo { animation: cc-fluxo .8s linear infinite }
         .cc-pisca { animation: cc-pisca 1s ease-in-out infinite }
         .cc-gira { transform-box: fill-box; transform-origin: center; animation: cc-gira 18s linear infinite }
-        @media (prefers-reduced-motion: reduce) { .cc-pulso, .cc-fluxo, .cc-pisca, .cc-gira { animation: none } }
+        .cc-no { cursor: pointer; outline: none }
+        .cc-no .cc-bola { transition: r .2s ease, fill-opacity .2s ease }
+        .cc-no:focus-visible .cc-anel { stroke: #fff; stroke-width: 2 }
+        @media (prefers-reduced-motion: reduce) { .cc-pulso, .cc-fluxo, .cc-pisca, .cc-gira { animation: none } .cc-no .cc-bola { transition: none } }
       `}</style>
 
       {/* faixa do "agora" */}
@@ -120,66 +129,121 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         {/* órbita */}
         <div className="min-w-0">
-          <svg viewBox="0 0 360 320" className="mx-auto w-full max-w-md" role="img" aria-label="Mapa dos chats em volta do ERP">
+          <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full" role="group" aria-label="Mapa dos chats em volta do ERP: toque num chat para ver o que ele está fazendo"
+            onMouseLeave={() => setSobre(null)}>
             <defs>
               <radialGradient id="cc-nucleo"><stop offset="0%" stopColor="#a78bfa" /><stop offset="70%" stopColor="#6d28d9" /><stop offset="100%" stopColor="#312e81" /></radialGradient>
             </defs>
             <circle cx={CX} cy={CY} r={R} fill="none" stroke="#ffffff1f" strokeDasharray="2 6" />
-            <circle cx={CX} cy={CY} r={R + 18} fill="none" stroke="#ffffff0f" className="cc-gira" strokeDasharray="1 10" />
+            <circle cx={CX} cy={CY} r={R + 24} fill="none" stroke="#ffffff0f" className="cc-gira" strokeDasharray="1 10" />
             {estado.map((x, i) => {
               const p = pos(i), cor = NEON[x.c.cor] ?? NEON.slate;
+              const luz = foco === x.c.id;
               return (
                 <line key={`l${x.c.id}`} x1={CX} y1={CY} x2={p.x} y2={p.y} stroke={x.publicandoAgora ? "#22d3ee" : cor}
-                  strokeOpacity={x.publicandoAgora ? 0.95 : x.aceso ? 0.45 : 0.15} strokeWidth={x.publicandoAgora ? 2.5 : 1}
-                  strokeDasharray={x.publicandoAgora ? "6 6" : undefined} className={x.publicandoAgora ? "cc-fluxo" : undefined} />
+                  strokeOpacity={luz ? 1 : foco ? 0.06 : x.publicandoAgora ? 0.95 : x.aceso ? 0.45 : 0.15} strokeWidth={luz || x.publicandoAgora ? 2.5 : 1}
+                  strokeDasharray={x.publicandoAgora || luz ? "6 6" : undefined} className={x.publicandoAgora || luz ? "cc-fluxo" : undefined} />
               );
             })}
-            <circle cx={CX} cy={CY} r={34} fill="url(#cc-nucleo)" />
-            <circle cx={CX} cy={CY} r={34} fill="none" stroke="#c4b5fd" strokeOpacity=".6" className={publicando ? "cc-pulso" : undefined} />
-            <text x={CX} y={CY - 2} textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">ERP Line</text>
-            <text x={CX} y={CY + 12} textAnchor="middle" fontSize="8" fill="#ddd6fe">{publicando ? "recebendo…" : "no ar"}</text>
+            <g className="cc-no" role="button" tabIndex={0} aria-label="ERP Line: limpar a escolha" onClick={() => setEscolhido(null)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEscolhido(null); } }}>
+              <circle cx={CX} cy={CY} r={52} fill="url(#cc-nucleo)" />
+              <circle className="cc-anel" cx={CX} cy={CY} r={52} fill="none" stroke="#c4b5fd" strokeOpacity=".6" />
+              {publicando && <circle cx={CX} cy={CY} r={52} fill="none" stroke="#c4b5fd" strokeOpacity=".6" className="cc-pulso" />}
+              <text x={CX} y={CY - 2} textAnchor="middle" fontSize="17" fontWeight="700" fill="#fff">ERP Line</text>
+              <text x={CX} y={CY + 18} textAnchor="middle" fontSize="12" fill="#ddd6fe">{publicando ? "recebendo…" : "no ar"}</text>
+            </g>
             {estado.map((x, i) => {
               const p = pos(i), cor = NEON[x.c.cor] ?? NEON.slate;
               const rotulo = curto(x.c.nome).replace(/ \(.*\)$/, "");
+              const luz = foco === x.c.id, apagado = !!foco && !luz;
+              const vivo = x.aceso || x.publicandoAgora;
+              // nome para fora do círculo: à direita começa no nó, à esquerda termina nele, em cima e embaixo centralizado
+              const lado = p.cos > 0.25 ? "start" : p.cos < -0.25 ? "end" : "middle";
+              const tx = p.x + p.cos * 24 + (lado === "start" ? 4 : lado === "end" ? -4 : 0);
+              const ty = p.y + p.sin * 24 + (lado === "middle" ? (p.sin > 0 ? 10 : -2) : 5);
+              const escolher = () => setEscolhido((v) => (v === x.c.id ? null : x.c.id));
               return (
-                <g key={x.c.id}>
-                  {x.publicandoAgora && <circle cx={p.x} cy={p.y} r={18} fill="#22d3ee" fillOpacity=".25" className="cc-pulso" />}
-                  {x.precisa > 0 && <circle cx={p.x} cy={p.y} r={16} fill="none" stroke="#f43f5e" strokeWidth="3" className="cc-pisca" />}
-                  <circle cx={p.x} cy={p.y} r={11} fill={cor} fillOpacity={x.aceso || x.publicandoAgora ? 1 : 0.35}
-                    style={{ filter: x.aceso || x.publicandoAgora ? `drop-shadow(0 0 6px ${cor})` : undefined }} />
-                  {x.precisa > 0 && <text x={p.x} y={p.y + 3.5} textAnchor="middle" fontSize="10" fontWeight="800" fill="#0b1020">{x.precisa}</text>}
-                  <text x={p.x} y={p.y + (p.y > CY ? 26 : -17)} textAnchor="middle" fontSize="9" fontWeight="600" fill={x.aceso || x.publicandoAgora ? "#f8fafc" : "#94a3b8"}>
-                    {rotulo.length > 22 ? `${rotulo.slice(0, 21)}…` : rotulo}
+                <g key={x.c.id} className="cc-no" role="button" tabIndex={0} aria-pressed={escolhido === x.c.id}
+                  aria-label={`${curto(x.c.nome)}: ${x.publicandoAgora ? "publicando agora" : x.precisa ? "precisa de você" : vivo ? "ativo nas últimas 2 horas" : "parado"}`}
+                  opacity={apagado ? 0.35 : 1}
+                  onMouseEnter={() => setSobre(x.c.id)} onFocus={() => setSobre(x.c.id)} onBlur={() => setSobre(null)} onClick={escolher}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); escolher(); } }}>
+                  <title>{curto(x.c.nome)}</title>
+                  {/* área de toque maior que a bolinha */}
+                  <circle cx={p.x} cy={p.y} r={26} fill="transparent" />
+                  {x.publicandoAgora && <circle cx={p.x} cy={p.y} r={26} fill="#22d3ee" fillOpacity=".25" className="cc-pulso" />}
+                  {x.precisa > 0 && <circle cx={p.x} cy={p.y} r={23} fill="none" stroke="#f43f5e" strokeWidth="3" className="cc-pisca" />}
+                  <circle className="cc-anel" cx={p.x} cy={p.y} r={luz ? 21 : 17} fill="none" stroke={cor} strokeOpacity={luz ? 0.9 : 0} />
+                  <circle className="cc-bola" cx={p.x} cy={p.y} r={luz ? 17 : 14} fill={cor} fillOpacity={vivo || luz ? 1 : 0.35}
+                    style={{ filter: vivo || luz ? `drop-shadow(0 0 ${luz ? 12 : 7}px ${cor})` : undefined }} />
+                  {x.precisa > 0 && <text x={p.x} y={p.y + 4.5} textAnchor="middle" fontSize="13" fontWeight="800" fill="#0b1020">{x.precisa}</text>}
+                  <text x={tx} y={ty} textAnchor={lado} fontSize={luz ? 16 : 14} fontWeight={luz ? 800 : 600} fill={luz || vivo ? "#f8fafc" : "#94a3b8"}>
+                    {rotulo.length > 24 ? `${rotulo.slice(0, 23)}…` : rotulo}
                   </text>
                 </g>
               );
             })}
           </svg>
-          <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-2xs text-fixo-slate-400">
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-cyan-400" /> publicando</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full ring-2 ring-fixo-rose-500" /> precisa de você</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-violet-400" /> ativo nas últimas 2 h</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-violet-400/35" /> parado</span>
+          <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-fixo-slate-400">
+            <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full bg-fixo-cyan-400" /> publicando</span>
+            <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full ring-2 ring-fixo-rose-500" /> precisa de você</span>
+            <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full bg-fixo-violet-400" /> ativo nas últimas 2 h</span>
+            <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full bg-fixo-violet-400/35" /> parado</span>
+            <span className="text-fixo-slate-500">· toque num chat para ver o que ele faz</span>
           </div>
         </div>
 
-        {/* números + linha do tempo */}
+        {/* cartão do chat escolhido (ou os números do período) + linha do tempo */}
         <div className="min-w-0 space-y-4">
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { n: pubsPeriodo, t: "publicações", cor: "#22d3ee" },
-              { n: entregasPeriodo, t: "entregas no código", cor: "#a78bfa" },
-              { n: precisaTotal, t: "precisam de você", cor: precisaTotal ? "#f43f5e" : "#34d399" },
-            ].map((k) => (
-              <div key={k.t} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-                <div className="font-mono text-2xl font-bold sm:text-3xl" style={{ color: k.cor, textShadow: `0 0 18px ${k.cor}66` }}>{k.n}</div>
-                <div className="text-2xs leading-tight text-fixo-slate-400">{k.t}</div>
-              </div>
-            ))}
-          </div>
+          {sel ? (() => {
+            const cor = NEON[sel.c.cor] ?? NEON.slate;
+            const e = sel.entregas.filter((y) => noPeriodo(y.quando));
+            const pb = sel.minhas.filter((y) => noPeriodo(y.inicio));
+            const url = urlSessao(sel.c.sessao);
+            return (
+              <section aria-live="polite" className="rounded-2xl border p-4" style={{ borderColor: `${cor}66`, background: `linear-gradient(140deg, ${cor}26, transparent 70%)` }}>
+                <div className="flex items-start gap-3">
+                  <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: cor, boxShadow: `0 0 12px ${cor}` }} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-white">{curto(sel.c.nome)}</h3>
+                    <p className="text-sm text-fixo-slate-300">
+                      {sel.publicandoAgora ? <span className="font-semibold text-fixo-cyan-400">Publicando agora</span>
+                        : sel.precisa ? <span className="font-semibold text-fixo-rose-400">Precisa de você ({sel.precisa})</span>
+                        : sel.ultima ? `Última atividade ${ha(sel.ultima, agora)}` : "Sem atividade registrada"}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setEscolhido(null)} className="rounded-full px-2 text-lg leading-none text-fixo-slate-400 hover:text-white" aria-label="Fechar">×</button>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-white/5 p-2.5 text-center"><div className="font-mono text-2xl font-bold" style={{ color: cor }}>{e.length}</div><div className="text-2xs text-fixo-slate-400">entregas no código</div></div>
+                  <div className="rounded-xl bg-white/5 p-2.5 text-center"><div className="font-mono text-2xl font-bold text-fixo-cyan-400">{pb.length}</div><div className="text-2xs text-fixo-slate-400">publicações</div></div>
+                </div>
+                {pb.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-xs text-fixo-slate-300">
+                    {pb.slice(-4).reverse().map((y) => <li key={y.id} className="truncate"><span className="font-mono text-fixo-slate-500">{hora(y.inicio)}</span> · {y.o_que}</li>)}
+                  </ul>
+                )}
+                {url && <a href={url} target="_blank" rel="noopener" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#0b1020] hover:bg-fixo-slate-200">Abrir o chat ↗</a>}
+              </section>
+            );
+          })() : (
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { n: pubsPeriodo, t: "publicações", cor: "#22d3ee" },
+                { n: entregasPeriodo, t: "entregas no código", cor: "#a78bfa" },
+                { n: precisaTotal, t: "precisam de você", cor: precisaTotal ? "#f43f5e" : "#34d399" },
+              ].map((k) => (
+                <div key={k.t} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                  <div className="font-mono text-2xl font-bold sm:text-3xl" style={{ color: k.cor, textShadow: `0 0 18px ${k.cor}66` }}>{k.n}</div>
+                  <div className="text-2xs leading-tight text-fixo-slate-400">{k.t}</div>
+                </div>
+              ))}
+            </div>
+          )}
           <LinhaDoTempo estado={estado} ini={ini} fimMs={agora} periodo={periodo} />
         </div>
       </div>
@@ -191,7 +255,9 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
           const e = x.entregas.filter((y) => noPeriodo(y.quando)).length;
           const pb = x.minhas.filter((y) => noPeriodo(y.inicio)).length;
           return (
-            <div key={x.c.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <button key={x.c.id} type="button" onClick={() => setEscolhido((v) => (v === x.c.id ? null : x.c.id))} aria-pressed={escolhido === x.c.id}
+              onMouseEnter={() => setSobre(x.c.id)} onMouseLeave={() => setSobre(null)}
+              className={`linha-clicavel flex min-w-0 items-center gap-3 border px-3 py-2 ${escolhido === x.c.id ? "border-white/40 bg-white/10" : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08]"}`}>
               <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: cor, boxShadow: `0 0 10px ${cor}` }} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-white">{curto(x.c.nome)}</div>
@@ -205,7 +271,7 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
                 <div style={{ color: cor }}>{e} entr.</div>
                 <div className="text-fixo-cyan-400">{pb} publ.</div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
