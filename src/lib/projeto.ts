@@ -100,6 +100,16 @@ export function ordenarIdeias<T extends ItemProjeto>(l: T[], modo: OrdemIdeias):
   return [...l].sort((a, b) => cmp(chave(a), chave(b)) || recente(a, b));
 }
 
+/**
+ * Título da ideia para mostrar: tira o código do roteiro do começo ("ops-os · Backup diário:" → código "ops-os",
+ * texto "Backup diário") e os dois-pontos que sobram no fim. O título gravado não muda.
+ */
+export function partesTituloIdeia(titulo: string): { codigo: string | null; texto: string } {
+  const t = titulo.trim().replace(/\s*[:：]\s*$/, "");
+  const m = /^([a-z]+-os)\s*[·\-–:]\s*(.+)$/i.exec(t);
+  return m ? { codigo: m[1].toLowerCase(), texto: m[2] } : { codigo: null, texto: t };
+}
+
 export function indicadoresIdeias(ideias: ItemProjeto[]) {
   const conta = (s: SituacaoItem) => ideias.filter((i) => i.situacao === s).length;
   const ativas = ideias.filter(ativo);

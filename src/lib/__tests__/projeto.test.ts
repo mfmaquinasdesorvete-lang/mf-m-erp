@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  atrasada, ganhoRapido, indicadoresHandoff, indicadoresIdeias, ordenarIdeias, ordenarPendencias, proximosPassos, rotuloSituacao,
+  atrasada, ganhoRapido, indicadoresHandoff, indicadoresIdeias, ordenarIdeias, ordenarPendencias, partesTituloIdeia, proximosPassos, rotuloSituacao,
   textoHandoff, type ItemProjeto,
 } from "../projeto";
 
@@ -82,4 +82,13 @@ it("texto do handoff: situação, próximos passos, pendências por responsável
   expect(t).toContain("Decisões em vigor\n- Venda não é NF");
   expect(t).toContain("Ideias em aberto\n- App dos técnicos (1 voto)");
   expect(t).not.toMatch(/\n\n\n/);
+});
+
+describe("título da ideia para mostrar", () => {
+  it("separa o código do roteiro e tira os dois-pontos do fim", () => {
+    expect(partesTituloIdeia("ops-os · Backup diário:")).toEqual({ codigo: "ops-os", texto: "Backup diário" });
+    expect(partesTituloIdeia("analytics-os · IA analítica:")).toEqual({ codigo: "analytics-os", texto: "IA analítica" });
+    expect(partesTituloIdeia("Garantias e preventivas:")).toEqual({ codigo: null, texto: "Garantias e preventivas" });
+    expect(partesTituloIdeia("App para técnicos: fotos, checklist e assinatura na OS")).toEqual({ codigo: null, texto: "App para técnicos: fotos, checklist e assinatura na OS" });
+  });
 });

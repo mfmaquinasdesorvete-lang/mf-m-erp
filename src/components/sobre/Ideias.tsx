@@ -1,9 +1,10 @@
 // Ideias para o ERP (Sobre o ERP Line → Ideias): anotar rápido, votar e acompanhar. Quem avalia é o
 // administrador (avaliar, planejar, feita ou descartar com o motivo); a ideia aprovada vira pendência do Handoff.
 import { useMemo, useState, type FormEvent } from "react";
-import { Ban, CheckCircle2, ClipboardList, Lightbulb, ListChecks, Pencil, RotateCcw, Search, Sparkles, ThumbsUp, Zap } from "lucide-react";
-import { Button, Card, Stat } from "@/components/ui";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { Ban, CheckCircle2, ClipboardList, Columns3, Lightbulb, List, ListChecks, Pencil, RotateCcw, Sparkles, ThumbsUp, Zap, type LucideIcon } from "lucide-react";
+import { Button, Card } from "@/components/ui";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
@@ -11,12 +12,23 @@ import { hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import {
-  ROTULO_ESFORCO, ativo, ganhoRapido, indicadoresIdeias, ordenarIdeias, type ItemProjeto, type OrdemIdeias, type SituacaoItem,
+  ROTULO_ESFORCO, ROTULO_PRIORIDADE, ativo, ganhoRapido, indicadoresIdeias, ordenarIdeias, partesTituloIdeia, rotuloSituacao,
+  type ItemProjeto, type OrdemIdeias, type SituacaoItem,
 } from "@/lib/projeto";
-import { AREAS, ChipArea, ChipPrioridade, ChipSituacao, ItemModal, dataCurta, useItensProjeto, useMudarSituacao, useVotar, type InicialItem } from "./ItemProjeto";
+import { AREAS, ItemModal, dataCurta, rotuloArea, useItensProjeto, useMudarSituacao, useVotar, type InicialItem } from "./ItemProjeto";
 
 type Visao = "ativas" | SituacaoItem | "todas";
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// cor de cada situação (bolinha da linha, coluna do quadro e pedaço do anel; o anel usa o tom "neon" no fundo escuro)
+const SITUACOES: { id: SituacaoItem; rotulo: string; ponto: string; cor: string; neon: string; icone: LucideIcon }[] = [
+  { id: "aberta", rotulo: "Novas", ponto: "bg-amber-500", cor: "#f59e0b", neon: "#fcd34d", icone: Lightbulb },
+  { id: "avaliando", rotulo: "Em avaliação", ponto: "bg-sky-500", cor: "#3b82f6", neon: "#93c5fd", icone: ClipboardList },
+  { id: "planejada", rotulo: "Planejadas", ponto: "bg-purple-500", cor: "#8b5cf6", neon: "#c4b5fd", icone: ListChecks },
+  { id: "feita", rotulo: "Feitas", ponto: "bg-emerald-500", cor: "#10b981", neon: "#6ee7b7", icone: CheckCircle2 },
+  { id: "descartada", rotulo: "Descartadas", ponto: "bg-slate-400", cor: "#64748b", neon: "#cbd5e1", icone: Ban },
+];
+const daSituacao = (s: SituacaoItem) => SITUACOES.find((x) => x.id === s) ?? SITUACOES[0];
 
 export function Ideias() {
   const { user_id, papel, tem } = usePerfil();
@@ -32,6 +44,9 @@ export function Ideias() {
   const [minhas, setMinhas] = useState(false);
   const [soGanho, setSoGanho] = useState(false);
   const [busca, setBusca] = useState("");
+  // lista ou quadro por etapa (a escolha fica no aparelho)
+  const [modo, setModoState] = useState<"lista" | "quadro">(() => { try { return localStorage.getItem("erp.ideias.modo") === "quadro" ? "quadro" : "lista"; } catch { return "lista"; } });
+  const setModo = (m: "lista" | "quadro") => { setModoState(m); try { localStorage.setItem("erp.ideias.modo", m); } catch { /* sem armazenamento */ } };
   const [editando, setEditando] = useState<{ item?: ItemProjeto | null; inicial?: InicialItem } | null>(null);
   const [virando, setVirando] = useState<ItemProjeto | null>(null);
   const mudar = useMudarSituacao();
@@ -41,57 +56,73 @@ export function Ideias() {
     && (!termo || termo.split(/\s+/).every((p) => semAcento(`${i.titulo} ${i.detalhe ?? ""}`).includes(p))));
   const naVisao = (i: ItemProjeto, v: Visao) => v === "todas" || (v === "ativas" ? ativo(i) : i.situacao === v);
   const lista = ordenarIdeias(base.filter((i) => naVisao(i, visao)), ordem);
-  const nFiltros = (area ? 1 : 0) + (minhas ? 1 : 0) + (soGanho ? 1 : 0) + (termo ? 1 : 0);
+  const nFiltros = (area ? 1 : 0) + (minhas ? 1 : 0) + (soGanho ? 1 : 0);
   const ir = (f: () => void) => { setVisao("ativas"); setArea(""); setMinhas(false); setSoGanho(false); setBusca(""); f(); };
+  const linha = (i: ItemProjeto, compacta?: boolean) => (
+    <LinhaIdeia key={i.id} i={i} dia={dia} meu={i.criado_por === user_id} votei={i.votos.includes(user_id)} admin={admin} compacta={compacta}
+      podePendencia={podePendencia} onEditar={() => setEditando({ item: i })} onVirarPendencia={() => setVirando(i)} mudar={mudar} />
+  );
 
   return (
     <div className="space-y-4">
       {/* 1º: anotar rápido, sem sair da tela */}
       <AnotarRapido onDetalhes={(inicial) => setEditando({ inicial })} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
-        <Stat label="Novas" valor={ind.novas} icon={Lightbulb} tom={ind.novas ? "atencao" : "neutro"} onClick={() => ir(() => setVisao("aberta"))} sub="esperando avaliação" />
-        <Stat label="Em avaliação" valor={ind.avaliando} icon={ClipboardList} tom="info" onClick={() => ir(() => setVisao("avaliando"))} />
-        <Stat label="Planejadas" valor={ind.planejadas} icon={ListChecks} tom="info" onClick={() => ir(() => setVisao("planejada"))} sub="viram pendência no Handoff" />
-        <Stat label="Feitas" valor={ind.feitas} icon={CheckCircle2} tom="bom" onClick={() => ir(() => setVisao("feita"))} />
-        <Stat label="Ganho rápido" valor={ind.ganhoRapido} icon={Zap} tom={ind.ganhoRapido ? "bom" : "neutro"} onClick={() => ir(() => { setSoGanho(true); setOrdem("ganho"); })} sub="ajuda muito, pouco trabalho" />
-        <Stat label="Mais votada" valor={ind.maisVotada ? `${ind.maisVotada.votos.length} ${pl(ind.maisVotada.votos.length, "voto", "votos")}` : "—"} icon={ThumbsUp}
-          onClick={() => ir(() => setOrdem("votos"))} sub={ind.maisVotada ? <span className="line-clamp-1">{ind.maisVotada.titulo}</span> : "vote nas ideias"} />
-      </div>
+      <PainelIdeias ideias={ideias} ind={ind} visao={visao} onVisao={(v) => ir(() => setVisao(v))}
+        onGanho={() => ir(() => { setSoGanho(true); setOrdem("ganho"); })} onVotadas={() => ir(() => setOrdem("votos"))} />
 
       <Card className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-0 flex-1 basis-56">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-            <input className="input h-10 pl-9" type="search" placeholder="Buscar ideia" aria-label="Buscar ideia" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          </div>
-          <select className="input h-10 w-auto" aria-label="Área" value={area} onChange={(e) => setArea(e.target.value)}>
-            <option value="">Todas as áreas</option>
-            {AREAS.filter((a) => ideias.some((i) => i.area === a.id)).map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
-          </select>
-          <select className="input h-10 w-auto" aria-label="Ordem" value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemIdeias)}>
-            <option value="votos">Mais votadas</option>
-            <option value="ganho">Ganho rápido primeiro</option>
-            <option value="recentes">Mais recentes</option>
-          </select>
-          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
-            <input type="checkbox" checked={minhas} onChange={(e) => setMinhas(e.target.checked)} /> Só as minhas
-          </label>
-          {nFiltros > 0 && <button type="button" onClick={() => ir(() => {})} className="text-xs font-semibold text-slate-500 hover:text-fg">Limpar filtros ({nFiltros})</button>}
-        </div>
-        <div className="mt-3">
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar ideia"
+          filtros={<>
+            <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Área</span>
+              <select className="input w-auto" value={area} onChange={(e) => setArea(e.target.value)}>
+                <option value="">Todas as áreas</option>
+                {AREAS.filter((a) => ideias.some((i) => i.area === a.id)).map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+              </select></label>
+            <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Ordem</span>
+              <select className="input w-auto" value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemIdeias)}>
+                <option value="votos">Mais votadas</option>
+                <option value="ganho">Ganho rápido primeiro</option>
+                <option value="recentes">Mais recentes</option>
+              </select></label>
+            <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={minhas} onChange={(e) => setMinhas(e.target.checked)} /> Só as minhas</label>
+            <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={soGanho} onChange={(e) => setSoGanho(e.target.checked)} /> Só ganho rápido</label>
+          </>}
+          nFiltros={nFiltros} onLimpar={() => ir(() => {})}
+          direita={
+            <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm font-semibold" role="group" aria-label="Ver como">
+              {([["lista", "Lista", List], ["quadro", "Quadro", Columns3]] as const).map(([v, l, I]) => (
+                <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${modo === v ? "bg-brand text-brand-fg" : "bg-surface text-slate-600 hover:bg-slate-50"}`}><I size={15} /> {l}</button>
+              ))}
+            </div>} />
+
+        {modo === "lista" ? <>
           <ChipsSituacao valor={visao} onChange={setVisao} rotulo="Situação"
             opcoes={([["ativas", "Em aberto"], ["aberta", "Novas"], ["avaliando", "Em avaliação"], ["planejada", "Planejadas"], ["feita", "Feitas"], ["descartada", "Descartadas"], ["todas", "Todas"]] as [Visao, string][])
               .map(([v, l]) => ({ value: v, label: l, n: base.filter((i) => naVisao(i, v)).length }))} />
-        </div>
-
-        {!lista.length && !isLoading && <p className="py-6 text-center text-sm text-slate-500">Nenhuma ideia {nFiltros || visao !== "ativas" ? "com esses filtros" : "ainda: anote a primeira acima"}.</p>}
-        <ul className="divide-y divide-slate-100">
-          {lista.map((i) => (
-            <LinhaIdeia key={i.id} i={i} dia={dia} meu={i.criado_por === user_id} votei={i.votos.includes(user_id)} admin={admin}
-              podePendencia={podePendencia} onEditar={() => setEditando({ item: i })} onVirarPendencia={() => setVirando(i)} mudar={mudar} />
-          ))}
-        </ul>
+          {!lista.length && !isLoading && <p className="py-6 text-center text-sm text-slate-500">Nenhuma ideia {nFiltros || termo || visao !== "ativas" ? "com esses filtros" : "ainda: anote a primeira acima"}.</p>}
+          <ul className="divide-y divide-slate-100">{lista.map((i) => linha(i))}</ul>
+        </> : (
+          // quadro: uma coluna por etapa (as descartadas ficam só na lista)
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {SITUACOES.filter((x) => x.id !== "descartada").map((x) => {
+              const daColuna = ordenarIdeias(base.filter((i) => i.situacao === x.id), x.id === "feita" ? "recentes" : ordem);
+              return (
+                <section key={x.id} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+                  <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-fg">
+                    <span className={`h-2.5 w-2.5 rounded-full ${x.ponto}`} aria-hidden />{x.rotulo}<span className="num ml-auto text-xs font-semibold text-slate-500">{daColuna.length}</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {daColuna.slice(0, x.id === "feita" ? 8 : 50).map((i) => linha(i, true))}
+                    {!daColuna.length && <li className="px-1 py-3 text-center text-xs text-slate-500">Nada aqui.</li>}
+                  </ul>
+                  {x.id === "feita" && daColuna.length > 8 && <p className="mt-2 px-1 text-xs text-slate-500">e mais {daColuna.length - 8} na lista (Feitas).</p>}
+                </section>
+              );
+            })}
+          </div>
+        )}
         {!admin && <p className="mt-3 text-xs text-slate-500">Quem avalia as ideias é o administrador. Você pode votar nas ideias e editar ou retirar as suas.</p>}
       </Card>
 
@@ -108,6 +139,48 @@ export function Ideias() {
           }} />
       )}
     </div>
+  );
+}
+
+/** Topo no estilo painel escuro: as ideias em aberto no centro do anel (um pedaço por situação; tocar filtra). */
+function PainelIdeias({ ideias, ind, visao, onVisao, onGanho, onVotadas }: {
+  ideias: ItemProjeto[]; ind: ReturnType<typeof indicadoresIdeias>; visao: Visao; onVisao: (v: Visao) => void; onGanho: () => void; onVotadas: () => void;
+}) {
+  const conta = (s: SituacaoItem) => ideias.filter((i) => i.situacao === s).length;
+  const fatias: FatiaAnel<SituacaoItem>[] = SITUACOES.map((x) => ({ id: x.id, rotulo: x.rotulo, valor: conta(x.id), cor: x.cor, neon: x.neon, dica: `${x.rotulo}: ${conta(x.id)}` }));
+  const escolhida = SITUACOES.some((x) => x.id === visao) ? (visao as SituacaoItem) : "";
+  const daVez = escolhida ? daSituacao(escolhida) : null;
+  const mv = ind.maisVotada;
+  return (
+    <QuadroEscuro rotulo="Ideias para o ERP" titulo="Ideias" destaque="para o ERP" className=""
+      filtro={daVez ? { texto: daVez.rotulo, onLimpar: () => onVisao("ativas") } : undefined}>
+      <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,15.5rem)_auto_minmax(0,1fr)] lg:gap-6">
+        <div className="order-1 min-w-0 lg:order-2">
+          <AnelEscuro fatias={fatias} escolhida={escolhida} onEscolher={(id) => onVisao(id || "ativas")} rotulo={`${ind.ativas} ideias em aberto`}
+            centro={daVez
+              ? { rotulo: daVez.rotulo, valor: String(conta(daVez.id)), sub: pl(conta(daVez.id), "ideia", "ideias") }
+              : { rotulo: "Em aberto", valor: String(ind.ativas), sub: `de ${ideias.length} · ${ind.feitas} ${pl(ind.feitas, "feita", "feitas")}` }} />
+        </div>
+        <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
+          <NumeroEscuro icone={Lightbulb} rotulo="Novas" valor={ind.novas} sub="esperando avaliação" de="#fcd34d" ate="#d97706" aceso={ind.novas > 0} onClick={() => onVisao("aberta")} />
+          <NumeroEscuro icone={Zap} rotulo="Ganho rápido" valor={ind.ganhoRapido} sub="ajuda muito, pouco trabalho" de="#6ee7b7" ate="#059669" aceso={ind.ganhoRapido > 0} onClick={onGanho} />
+          <NumeroEscuro icone={ThumbsUp} rotulo="Mais votada" valor={mv ? `${mv.votos.length} ${pl(mv.votos.length, "voto", "votos")}` : "—"}
+            sub={mv ? partesTituloIdeia(mv.titulo).texto : "vote nas ideias"} de="#93c5fd" ate="#2563eb" aceso={!!mv} onClick={onVotadas} />
+          <NumeroEscuro icone={ListChecks} rotulo="Planejadas" valor={ind.planejadas} sub="viram pendência no Handoff" de="#c4b5fd" ate="#7c3aed" aceso={ind.planejadas > 0} onClick={() => onVisao("planejada")} />
+        </div>
+        <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1" aria-label="Por situação">
+          {SITUACOES.map((x) => {
+            const n = conta(x.id), ativa = escolhida === x.id;
+            return (
+              <li key={x.id} className="min-w-0">
+                <LinhaEscura icone={x.icone} rotulo={x.rotulo} valor={n} pct={ideias.length ? Math.round((n / ideias.length) * 100) : 0} cor={x.cor} neon={x.neon}
+                  ativo={ativa} apagado={!!escolhida && !ativa} onClick={() => onVisao(ativa ? "ativas" : x.id)} title="Toque para ver só estas ideias" />
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </QuadroEscuro>
   );
 }
 
@@ -144,46 +217,77 @@ function AnotarRapido({ onDetalhes }: { onDetalhes: (inicial: InicialItem) => vo
   );
 }
 
-function LinhaIdeia({ i, dia, meu, votei, admin, podePendencia, onEditar, onVirarPendencia, mudar }: {
-  i: ItemProjeto; dia: string; meu: boolean; votei: boolean; admin: boolean; podePendencia: boolean;
+function LinhaIdeia({ i, dia, meu, votei, admin, podePendencia, compacta, onEditar, onVirarPendencia, mudar }: {
+  i: ItemProjeto; dia: string; meu: boolean; votei: boolean; admin: boolean; podePendencia: boolean; compacta?: boolean;
   onEditar: () => void; onVirarPendencia: () => void; mudar: ReturnType<typeof useMudarSituacao>;
 }) {
   const votar = useVotar();
   const proximo: Partial<Record<SituacaoItem, [string, SituacaoItem]>> = { aberta: ["Avaliar", "avaliando"], avaliando: ["Planejar", "planejada"], planejada: ["Feita", "feita"] };
   const passo = admin ? proximo[i.situacao] : undefined;
+  const { codigo, texto } = partesTituloIdeia(i.titulo);
+  const sit = daSituacao(i.situacao);
+  // impacto e esforço juntos numa etiqueta só, na cor do impacto
+  const corImpacto = i.prioridade === "alta" ? "bg-red-50 text-red-700 ring-red-200" : i.prioridade === "media" ? "bg-amber-50 text-amber-800 ring-amber-200" : "bg-slate-100 text-slate-600 ring-slate-200";
+  const voto = (
+    <button type="button" onClick={() => votar(i)} aria-pressed={votei} title={votei ? "Tirar meu voto" : "Votar nesta ideia"}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1 text-xs font-bold transition ${votei ? "border-brand/40 bg-brand/10 text-brand" : "border-slate-200 text-slate-600 hover:border-slate-400"}`}>
+      <ThumbsUp size={13} aria-hidden /><span className="num">{i.votos.length}</span>
+      <span className="sr-only">{pl(i.votos.length, "voto", "votos")}</span>
+    </button>
+  );
+  const acoes = (
+    <div className="flex shrink-0 items-start gap-1">
+      {passo && <Button variant="secondary" className="!min-h-0 !px-2 !py-1 text-xs whitespace-nowrap" onClick={() => mudar(i, passo[1])}>{passo[0]}</Button>}
+      {admin && !ativo(i) && <Button variant="secondary" className="!min-h-0 !px-2 !py-1 text-xs" onClick={() => mudar(i, "aberta")}><RotateCcw size={14} /> Reabrir</Button>}
+      <MenuAcoes itens={[
+        admin && i.situacao !== "avaliando" && ativo(i) && { rotulo: "Em avaliação", icone: ClipboardList, onClick: () => mudar(i, "avaliando") },
+        admin && i.situacao !== "planejada" && ativo(i) && { rotulo: "Planejar", icone: ListChecks, onClick: () => mudar(i, "planejada") },
+        podePendencia && ativo(i) && { rotulo: "Virar pendência no Handoff", icone: ClipboardList, onClick: onVirarPendencia },
+        admin && ativo(i) && { rotulo: "Marcar feita", icone: CheckCircle2, onClick: () => mudar(i, "feita") },
+        (admin || meu) && { rotulo: "Editar", icone: Pencil, onClick: onEditar },
+        (admin || meu) && ativo(i) && { rotulo: meu && !admin ? "Retirar minha ideia…" : "Descartar…", icone: Ban, onClick: () => mudar(i, "descartada"), perigo: true },
+        meu && !admin && i.situacao === "descartada" && { rotulo: "Voltar a valer", icone: RotateCcw, onClick: () => mudar(i, "aberta") },
+      ]} />
+    </div>
+  );
+  const etiquetas = (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-2xs text-slate-500">
+      {ganhoRapido(i) && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800"><Zap size={11} aria-hidden /> ganho rápido</span>}
+      <span className={`rounded-full px-2 py-0.5 font-bold ring-1 ring-inset ${corImpacto}`}>
+        impacto {ROTULO_PRIORIDADE[i.prioridade].toLowerCase()}{i.esforco ? ` · esforço ${ROTULO_ESFORCO[i.esforco].toLowerCase()}` : ""}
+      </span>
+      <span className="font-semibold text-slate-600">{rotuloArea(i.area)}</span>
+      <span>· {i.criado_nome ? `${i.criado_nome}, ` : ""}{dataCurta(i.created_at, dia)}</span>
+      {i.motivo && <span className="w-full text-slate-600">motivo: {i.motivo}</span>}
+    </div>
+  );
+  const titulo = (
+    <p className={`font-semibold leading-snug text-fg ${compacta ? "text-sm" : ""} ${i.situacao === "descartada" ? "line-through" : ""}`}>
+      {texto}{codigo && <span className="ml-1.5 whitespace-nowrap rounded bg-slate-100 px-1.5 py-px align-middle font-mono text-2xs font-semibold text-slate-500" title="Código do roteiro">{codigo}</span>}
+    </p>
+  );
+
+  if (compacta) {
+    // cartão do quadro
+    return (
+      <li className={`rounded-lg border border-slate-200 bg-surface p-2.5 shadow-card ${ativo(i) ? "" : "opacity-75"}`}>
+        {titulo}
+        {i.detalhe && <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-600" title={i.detalhe}>{i.detalhe}</p>}
+        {etiquetas}
+        <div className="mt-2 flex items-center justify-between gap-2">{voto}{acoes}</div>
+      </li>
+    );
+  }
   return (
-    <li className={`flex gap-3 py-3 ${ativo(i) ? "" : "opacity-75"}`}>
-      <button type="button" onClick={() => votar(i)} aria-pressed={votei} title={votei ? "Tirar meu voto" : "Votar nesta ideia"}
-        className={`flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl border text-xs font-bold transition ${votei ? "border-brand bg-brand text-brand-fg" : "border-slate-200 text-slate-600 hover:border-slate-400"}`}>
-        <ThumbsUp size={16} aria-hidden /><span className="num mt-0.5">{i.votos.length}</span>
-        <span className="sr-only">{pl(i.votos.length, "voto", "votos")}</span>
-      </button>
+    // no celular o voto e as ações descem para baixo do texto (ao lado, espremiam a ideia numa coluna estreita)
+    <li className={`flex flex-wrap gap-x-3 gap-y-2 py-3 sm:flex-nowrap ${ativo(i) ? "" : "opacity-75"}`}>
+      <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${sit.ponto}`} title={rotuloSituacao("ideia", i.situacao)} aria-label={rotuloSituacao("ideia", i.situacao)} />
       <div className="min-w-0 flex-1">
-        <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
-        {i.detalhe && <p className="mt-0.5 whitespace-pre-line text-xs leading-snug text-slate-600">{i.detalhe}</p>}
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <ChipSituacao i={i} />
-          {ganhoRapido(i) && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-bold text-emerald-800"><Zap size={11} aria-hidden /> ganho rápido</span>}
-          <ChipPrioridade p={i.prioridade} rotulo="impacto" />
-          {i.esforco && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-bold text-slate-600">esforço {ROTULO_ESFORCO[i.esforco].toLowerCase()}</span>}
-          <ChipArea area={i.area} />
-          <span className="text-2xs text-slate-500">{i.criado_nome ? `por ${i.criado_nome} · ` : ""}{dataCurta(i.created_at, dia)}</span>
-          {i.motivo && <span className="text-2xs text-slate-600">motivo: {i.motivo}</span>}
-        </div>
+        {titulo}
+        {i.detalhe && <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs leading-snug text-slate-600" title={i.detalhe}>{i.detalhe}</p>}
+        {etiquetas}
       </div>
-      <div className="flex shrink-0 items-start gap-1.5">
-        {passo && <Button variant="secondary" className="!min-h-0 !px-2.5 !py-1.5 whitespace-nowrap" onClick={() => mudar(i, passo[1])}>{passo[0]}</Button>}
-        {admin && !ativo(i) && <Button variant="secondary" className="!min-h-0 !px-2.5 !py-1.5" onClick={() => mudar(i, "aberta")}><RotateCcw size={15} /> Reabrir</Button>}
-        <MenuAcoes itens={[
-          admin && i.situacao !== "avaliando" && ativo(i) && { rotulo: "Em avaliação", icone: ClipboardList, onClick: () => mudar(i, "avaliando") },
-          admin && i.situacao !== "planejada" && ativo(i) && { rotulo: "Planejar", icone: ListChecks, onClick: () => mudar(i, "planejada") },
-          podePendencia && ativo(i) && { rotulo: "Virar pendência no Handoff", icone: ClipboardList, onClick: onVirarPendencia },
-          admin && ativo(i) && { rotulo: "Marcar feita", icone: CheckCircle2, onClick: () => mudar(i, "feita") },
-          (admin || meu) && { rotulo: "Editar", icone: Pencil, onClick: onEditar },
-          (admin || meu) && ativo(i) && { rotulo: meu && !admin ? "Retirar minha ideia…" : "Descartar…", icone: Ban, onClick: () => mudar(i, "descartada"), perigo: true },
-          meu && !admin && i.situacao === "descartada" && { rotulo: "Voltar a valer", icone: RotateCcw, onClick: () => mudar(i, "aberta") },
-        ]} />
-      </div>
+      <div className="ml-[1.375rem] flex w-full items-start justify-between gap-1.5 sm:ml-0 sm:w-auto sm:shrink-0 sm:justify-start">{voto}{acoes}</div>
     </li>
   );
 }
