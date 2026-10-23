@@ -13,7 +13,7 @@ export type LancExtratoDre = {
 };
 export type ContaBancariaDre = { id: string; ativo?: boolean | null; unidade_id?: string | null; nome?: string | null };
 /** Conta paga ou recebida (para não contar a mesma linha duas vezes). */
-export type ContaPagaDre = { tipo: "receber" | "pagar"; valor: number; valor_pago?: number | null; status: string; data_pagamento?: string | null };
+export type ContaPagaDre = { id?: string; tipo: "receber" | "pagar"; valor: number; valor_pago?: number | null; status: string; data_pagamento?: string | null };
 
 /** Linha do DRE (grupo) e nome da categoria de cada tipo do extrato. */
 const DESTINO: Record<TipoLanc, { grupo: GrupoDre; categoria: string }> = {
@@ -53,9 +53,11 @@ export function extratoParaDre(
   const pares = transferenciasInternas(unicas);
 
   // contas pagas/recebidas ainda sem linha do extrato: cada uma "consome" uma linha de mesmo valor e data próxima
+  // (a conta que já tem linha ligada não consome outra: dois Pix iguais na semana, um conciliado, o outro conta no DRE)
+  const ligadas = new Set(lancs.flatMap((l) => [l.conta_receber_id, l.conta_pagar_id]).filter(Boolean));
   const sobra = new Map<string, number[]>();
   for (const c of contasPagas) {
-    if (c.status !== "pago" || !c.data_pagamento) continue;
+    if (c.status !== "pago" || !c.data_pagamento || (c.id && ligadas.has(c.id))) continue;
     const k = `${c.tipo === "receber" ? "+" : "-"}${centavos(Number(c.valor_pago ?? c.valor))}`;
     sobra.set(k, [...(sobra.get(k) ?? []), dia(c.data_pagamento)]);
   }

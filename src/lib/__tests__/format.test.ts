@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { brl, docFormat, somarDias, whatsappLink } from "../format";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { brl, docFormat, hoje, somarDias, whatsappLink } from "../format";
 
 // o Intl separa "R$" do número com espaço não separável (U+00A0)
 const sp = (s: string) => s.replace(/\s/g, " ");
@@ -33,5 +33,21 @@ describe("documentos e contato", () => {
 
   it("somarDias conta a partir da data base", () => {
     expect(somarDias(30, new Date("2026-10-14T12:00:00Z"))).toBe("2026-11-13");
+  });
+});
+
+describe("hoje no horário de Brasília", () => {
+  afterEach(() => vi.useRealTimers());
+  it("às 22h de 31/10 em Brasília (01h de 01/11 em UTC) ainda é 31/10", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T01:00:00Z"));
+    expect(hoje()).toBe("2026-10-31");
+    expect(somarDias(1)).toBe("2026-11-01");
+    expect(somarDias(-1)).toBe("2026-10-30");
+  });
+  it("de manhã é o mesmo dia nos dois horários", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-23T13:00:00Z"));
+    expect(hoje()).toBe("2026-10-23");
   });
 });

@@ -20,6 +20,8 @@
      depois publicar na Hostinger e conferir o index.html. Funções do Supabase: o GitHub Actions já põe em fila.
   3. Soltar a trava: `select public.publicacao_terminar('<id>');` (também se der erro no meio).
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
+- Antes de pedir "Pode publicar", conferir o que mudou com a lista `.claude/checklist-codigo.md` (conta certa, gravação
+  segura, leve, fácil de mexer); achado de prioridade alta se conserta na hora.
 - Marcadores são da usuária e não se perdem: importação (Tiny ou outra), unificação de cadastros e correções
   automáticas só somam marcadores, nunca tiram; os marcadores que vierem do Tiny (ex.: Em garantia, Fora de garantia,
   Não cobrado) entram com o mesmo nome.

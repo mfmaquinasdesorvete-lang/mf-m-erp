@@ -38,6 +38,7 @@ type Lancamento = {
   identificador?: string | null;
 };
 export type Importacao = { id: string; conta_bancaria_id: string; saldo_final: number | null; saldo_final_data: string | null; periodo_fim: string | null; created_at: string; arquivo: string | null; email_id?: string | null };
+const CAMPOS_CONTA = "id, descricao, valor, vencimento, status, data_pagamento, valor_pago, unidade_id, conta_bancaria_id";
 type Conta = {
   id: string; descricao: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   unidade_id: string | null; conta_bancaria_id: string | null; cliente?: { nome: string } | null; fornecedor?: { nome: string } | null;
@@ -69,8 +70,9 @@ export default function Conciliacao() {
   const { data: importacoes = [] } = useRows<Importacao>("extrato_importacoes");
   const { data: conexoes = [] } = useRows<ConexaoOF>("openfinance_conexoes");
   const { data: conexoesInter = [] } = useRows<ConexaoInter>("inter_conexoes");
-  const { data: receber = [] } = useRows<Conta>("contas_receber", { select: "*, cliente:clientes(nome)" });
-  const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: "*, fornecedor:fornecedores(nome)" });
+  // só os campos que a conciliação usa (a tabela inteira de contas a pagar passa de 6 MB)
+  const { data: receber = [] } = useRows<Conta>("contas_receber", { select: `${CAMPOS_CONTA}, cliente:clientes(nome)` });
+  const { data: pagar = [] } = useRows<Conta>("contas_pagar", { select: `${CAMPOS_CONTA}, fornecedor:fornecedores(nome)` });
   // nomes do cadastro de funcionários: o Pix para eles aparece como "Funcionários" (quem não é do financeiro não lê o cadastro)
   const { data: funcionarios = [] } = useRows<{ id: string; nome: string }>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
   // "este favorecido vai sempre para esta categoria": sugestão pronta para a linha sem conta nem transferência

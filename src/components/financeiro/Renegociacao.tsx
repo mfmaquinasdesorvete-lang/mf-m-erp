@@ -8,6 +8,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, hoje, pl, somarDias } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { usePerfil } from "@/lib/auth";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { confirmar } from "@/components/Dialogos";
@@ -48,7 +49,7 @@ export function ModalRenegociar({ contas, onClose, onFeito }: { contas: Conta[];
   const [primeiro, setPrimeiro] = useState(somarDias(30));
   const [obs, setObs] = useState("");
   const [ocupado, setOcupado] = useState(false);
-  const valorNum = Number(String(valor).replace(",", "."));
+  const valorNum = lerValor(valor) ?? NaN; // "1.500" é mil e quinhentos
   const previa = trocar ? parcelasDoAcordo(valorNum, parcelas, primeiro) : [];
   const diferenca = Math.round((valorNum - total) * 100) / 100;
 

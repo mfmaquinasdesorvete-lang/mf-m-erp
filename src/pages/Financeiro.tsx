@@ -51,6 +51,7 @@ import { LinkPagamentoModal, SituacaoLink, type CobrancaLink } from "@/component
 import { BoletoInterModal, SituacaoBoleto, boletoAberto, type BoletoInter } from "@/components/financeiro/BoletoInter";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
+import { filtroRecentesPagar, inicioRecentes, periodoPedeHistorico } from "@/lib/pagarRecentes";
 import { useFormasPagamento } from "@/lib/formasPagamento";
 import { CAMPOS_DATA, competenciaDe, dataDaConta, MAX_VEZES, MODOS_COMPETENCIA, modoDaCompetencia, OCORRENCIAS, ORIGENS, rotuloOrigem, serieContas, termosOrigem,
   type CampoData, type CodigoOrigem, type ModoCompetencia, type Ocorrencia, type OrigemConta } from "@/lib/pagarTiny";
@@ -97,6 +98,10 @@ const FILTROS = [
   { value: "pago", label: "Pagas" },
   { value: "todos", label: "Todas" },
 ];
+
+const SELECT_PAGAR = "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)";
+/** Só o que as contas a receber, a cobrança, o recibo e a busca de cliente usam (o cadastro inteiro passa de 5 MB). */
+const CAMPOS_CLIENTE_CONTA = "id, codigo, nome, nome_fantasia, cpf_cnpj, municipio, uf, email, telefone, telefone_adicional, whatsapp, portal_token, portal_link";
 
 function filtrar<T extends { status: string; vencimento: string }>(lista: T[], filtro: string, mes: string) {
   return lista
@@ -145,9 +150,17 @@ export default function Financeiro() {
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();
-  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(*)" });
+  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Receber>("contas_receber", { select: `*, cliente:clientes(${CAMPOS_CLIENTE_CONTA})` });
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)" });
+  // contas a pagar: primeiro as recentes (rápido); o histórico inteiro só quando a tela pede (e fica guardado)
+  const corte = inicioRecentes(hoje());
+  const [pedeHistorico, setPedeHistorico] = useState(false);
+  const historico = pedeHistorico || aba === "dre" || aba === "plano" || !!destaque;
+  const recentes = useRows<Pagar>("contas_pagar", { select: SELECT_PAGAR, key: ["recentes", corte], filtro: filtroRecentesPagar(corte) });
+  const completo = useRows<Pagar>("contas_pagar", { select: SELECT_PAGAR, enabled: historico });
+  const pagarTodos = useMemo(() => completo.data ?? recentes.data ?? [], [completo.data, recentes.data]);
+  const esperandoHistorico = historico && !completo.data;
+  const carregandoPagar = recentes.isLoading || esperandoHistorico;
   const pagar = filtrar(pagarTodos);
 
   const resumo = useMemo(() => {
@@ -190,6 +203,7 @@ export default function Financeiro() {
       ]} />
       {aba === "cobranca" && veCobranca ? <Cobranca contas={receber} />
         : aba === "recibos" ? <Recibos />
+        : (aba === "dre" || aba === "plano") && veContasPagar && esperandoHistorico ? <p className="py-10 text-center text-sm text-slate-500">Carregando o histórico das contas…</p>
         : aba === "dre" && veContasPagar ? <DreComExtratos lancamentos={paraDreTodas} />
         : aba === "plano" && veContasPagar ? <PlanoContas lancamentos={paraDre} />
         : aba === "visao" ? (
@@ -206,7 +220,7 @@ export default function Financeiro() {
           </div>}
           {(aba === "pagar" || aba === "fixas") && veContasPagar ? <ContasPagar key={destaque?.titulo ?? ""} contas={destaque ? pagar.filter((c) => destaque.ids.includes(c.id)) : pagar} novaAoAbrir={novaAoAbrir} contaInicial={contaInicial} onNovaAberta={() => { setNovaAoAbrir(false); setContaInicial(null); }}
             tipoInicial={tipoInicial} destaque={destaque} onLimparDestaque={() => setDestaque(null)} carregando={carregandoPagar}
-            visaoInicial={visaoInicial} onVisaoAplicada={() => setVisaoInicial(null)} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
+            visaoInicial={visaoInicial} onVisaoAplicada={() => setVisaoInicial(null)} corte={corte} onPedeHistorico={() => setPedeHistorico(true)} /> : <ContasReceber contas={receber} carregando={carregandoReceber} />}
         </>
       )}
     </div>
@@ -317,7 +331,7 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
     return m;
   }, [links]);
   const contaBanco = useNomeContaBancaria();
-  const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: clientes = [] } = useRows<Cliente>("clientes", { select: CAMPOS_CLIENTE_CONTA, order: "nome", ascending: true, key: ["contas"] });
   const save = useSave("contas_receber");
   const invalidate = useInvalidate();
   const lista = filtrar(contas, filtro, mes);
@@ -496,9 +510,9 @@ function ContasReceber({ contas, carregando = false }: { contas: Receber[]; carr
 
 /* ------------------------------ Contas a pagar ------------------------------ */
 
-function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false, visaoInicial, onVisaoAplicada }: {
+function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, tipoInicial = "", destaque, onLimparDestaque, carregando = false, visaoInicial, onVisaoAplicada, corte, onPedeHistorico }: {
   contas: Pagar[]; novaAoAbrir?: boolean; contaInicial?: Partial<Pagar> | null; onNovaAberta?: () => void; tipoInicial?: TipoPagar | ""; destaque?: Destaque | null; onLimparDestaque?: () => void; carregando?: boolean;
-  visaoInicial?: VisaoPagar | null; onVisaoAplicada?: () => void;
+  visaoInicial?: VisaoPagar | null; onVisaoAplicada?: () => void; corte: string; onPedeHistorico: () => void;
 }) {
   const { padrao, unidades, filtrar: filtrarUnidade } = useUnidade();
   const { pode } = usePerfil();
@@ -530,6 +544,8 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
   const [busca, setBusca] = useState("");
   // abre na semana; conta em aberto de antes (vencida) continua aparecendo
   const [periodo, setPeriodo] = useState<Periodo>(() => (destaque ? SEM_PERIODO : semanaAtual(hoje())));
+  // período antes das contas recentes (ou sem começo): busca o histórico inteiro
+  useEffect(() => { if (periodoPedeHistorico(periodo, corte)) onPedeHistorico(); }, [periodo, corte]); // eslint-disable-line react-hooks/exhaustive-deps
   // como no Tiny: o período pode ser pelo vencimento, pela emissão, pelo pagamento ou pela competência
   const [campoData, setCampoData] = useState<CampoData>("vencimento");
   const rotuloCampo = CAMPOS_DATA.find((x) => x.v === campoData)?.rotulo ?? "Vencimento";
@@ -1025,16 +1041,29 @@ function MotivoModal({ conta, acao, tabela, onClose }: {
   conta: { id: string; descricao: string; valor: number }; acao: "cancelar" | "estornar"; tabela: "contas_receber" | "contas_pagar"; onClose: () => void;
 }) {
   const [motivo, setMotivo] = useState("");
+  const [gravando, setGravando] = useState(false);
   const invalidate = useInvalidate();
   async function confirmar(e: FormEvent) {
     e.preventDefault();
+    if (gravando) return;
+    setGravando(true);
+    try { await gravar(); } finally { setGravando(false); }
+  }
+  async function gravar() {
+    // baixa que veio do extrato do banco: estornar só a conta deixaria a linha do banco conciliada com ela (saldo errado)
+    if (acao === "estornar") {
+      const { data: ligada, error: erroLigada } = await supabase.from("extrato_lancamentos").select("id")
+        .eq(tabela === "contas_receber" ? "conta_receber_id" : "conta_pagar_id", conta.id).eq("status", "conciliado").limit(1);
+      if (erroLigada) return notifyError(erroLigada);
+      if (ligada?.length) return notifyError("Esta baixa está ligada a uma linha do extrato do banco. Para desfazer, abra o Extrato e use \"Desfazer conciliação\" nessa linha: a conta volta a ficar em aberto e a linha fica pendente.");
+    }
     const patch = acao === "cancelar"
       ? { status: "cancelado", motivo_alteracao: motivo }
       : { status: "aberto", data_pagamento: null, valor_pago: null, conta_bancaria_id: null, motivo_alteracao: `Estorno: ${motivo}` };
     const { error } = await supabase.from(tabela).update(patch).eq("id", conta.id);
     if (error) return notifyError(error);
     notify(acao === "cancelar" ? "Conta cancelada" : "Baixa estornada: a conta voltou a ficar em aberto");
-    invalidate(tabela, "auditoria");
+    invalidate(tabela, "auditoria", "saldos_bancarios", "movimentos_realizados");
     onClose();
   }
   return (
@@ -1048,7 +1077,7 @@ function MotivoModal({ conta, acao, tabela, onClose }: {
         <Field label="Motivo"><input className="input" value={motivo} onChange={(e) => setMotivo(e.target.value)} required minLength={3} autoFocus /></Field>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Voltar</Button>
-          <Button variant={acao === "cancelar" ? "danger" : "primary"}>{acao === "cancelar" ? "Cancelar conta" : "Estornar"}</Button>
+          <Button variant={acao === "cancelar" ? "danger" : "primary"} disabled={gravando}>{acao === "cancelar" ? "Cancelar conta" : "Estornar"}</Button>
         </div>
       </form>
     </Modal>

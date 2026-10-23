@@ -8,6 +8,7 @@ import { BotaoAtalho, Button, CampoMes, COR_ATALHO, Field, Modal, Table } from "
 import { PdfViewer } from "@/components/PdfViewer";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -146,7 +147,7 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
 
   async function emitir(e: FormEvent) {
     e.preventDefault();
-    if (!(Number(r.valor) > 0)) return notify("Informe o valor", "erro");
+    if (!((lerValor(r.valor) ?? 0) > 0)) return notify("Informe o valor", "erro");
     setOcupado(true);
     try {
       const dados = {
@@ -154,7 +155,7 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
         conta_receber_id: r.conta_receber_id ?? null, conta_pagar_id: r.conta_pagar_id ?? null,
         pagador_nome: String(r.pagador_nome ?? "").trim(), pagador_doc: String(r.pagador_doc ?? "").replace(/\D/g, "") || null,
         recebedor_nome: String(r.recebedor_nome ?? "").trim(), recebedor_doc: String(r.recebedor_doc ?? "").replace(/\D/g, "") || null,
-        valor: Number(String(r.valor).replace(",", ".")), referente: String(r.referente ?? "").trim(), forma_pagamento: r.forma_pagamento || null,
+        valor: lerValor(r.valor) ?? 0, referente: String(r.referente ?? "").trim(), forma_pagamento: r.forma_pagamento || null,
         data_pagamento: r.data_pagamento || hoje(), cidade: r.cidade || null, observacoes: r.observacoes?.trim() || null,
       };
       const { data, error } = await supabase.from("recibos").insert(dados).select("*").single();
@@ -189,7 +190,7 @@ export function ReciboModal({ rascunho, onClose }: { rascunho: RascunhoRecibo; o
   if (pdf) return <PdfViewer blob={pdf.blob} nome={`recibo-${String(pdf.numero).padStart(6, "0")}.pdf`} titulo={`Recibo nº ${pdf.numero}`} onClose={onClose} />;
   if (jaEmitido) return null;
 
-  const valorNum = Number(String(r.valor ?? "").replace(",", "."));
+  const valorNum = lerValor(r.valor) ?? NaN;
   return (
     <Modal open onClose={onClose} title="Emitir recibo">
       <form onSubmit={emitir} className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">

@@ -6,6 +6,7 @@ import { Button, Field, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, hoje } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -16,7 +17,7 @@ import { useCategorias } from "./CategoriaRateio";
 export type Prestacao = { conta_pagar_id: string; troco: number; observacao: string | null; prestado_em: string; prestado_por_nome: string | null };
 type Linha = { categoria: string; valor: string; descricao: string; data: string };
 
-const num = (s: string) => { const t = s.trim(); const v = Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t); return Number.isFinite(v) ? v : NaN; };
+const num = (s: string) => lerValor(s) ?? NaN; // "1.500" é mil e quinhentos
 const ATALHOS = [{ rotulo: "Combustível", categoria: "combustível", Icon: Fuel }, { rotulo: "Correios", categoria: "correios", Icon: Package }];
 
 export const usePrestacoes = () => useRows<Prestacao>("adiantamento_prestacoes", { order: "prestado_em", ascending: false });
@@ -73,10 +74,16 @@ export function PrestarContas({ conta, onClose }: { conta: { id: string; valor: 
     if (r.diferencaTroco !== 0 && !obs.trim()) return notify(`O troco deveria ser ${brl(r.trocoEsperado)}: explique a diferença na observação`, "erro");
     setSalvando(true);
     try {
-      const del = await supabase.from("adiantamento_gastos").delete().eq("conta_pagar_id", conta.id);
-      if (del.error) throw del.error;
+      // grava os gastos novos antes de tirar os antigos: se a internet cair no meio, a prestação anterior não se perde
+      const antes = await supabase.from("adiantamento_gastos").select("id").eq("conta_pagar_id", conta.id);
+      if (antes.error) throw antes.error;
       const ins = await supabase.from("adiantamento_gastos").insert(validas.map((l) => ({ conta_pagar_id: conta.id, categoria: l.categoria, valor: num(l.valor), descricao: l.descricao.trim() || null, data: l.data || hoje() })));
       if (ins.error) throw ins.error;
+      const velhos = (antes.data ?? []).map((g) => g.id);
+      if (velhos.length) {
+        const del = await supabase.from("adiantamento_gastos").delete().in("id", velhos);
+        if (del.error) throw del.error;
+      }
       const up = await supabase.from("adiantamento_prestacoes").upsert({ conta_pagar_id: conta.id, troco: t, observacao: obs.trim() || null, prestado_em: new Date().toISOString(), prestado_por_nome: nome || null });
       if (up.error) throw up.error;
       invalidar("adiantamento_gastos", "adiantamento_prestacoes");

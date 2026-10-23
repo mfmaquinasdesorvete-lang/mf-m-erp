@@ -6,11 +6,12 @@ import { supabase } from "./supabase";
 /** Lista registros de uma tabela (com select opcional de relacionamentos). */
 export function useRows<T = any>(
   table: string,
-  opts: { select?: string; order?: string; ascending?: boolean; key?: unknown[]; filtro?: Filtro } = {},
+  opts: { select?: string; order?: string; ascending?: boolean; key?: unknown[]; filtro?: Filtro; enabled?: boolean } = {},
 ) {
-  const { select = "*", order = "created_at", ascending = false, key = [], filtro } = opts;
+  const { select = "*", order = "created_at", ascending = false, key = [], filtro, enabled = true } = opts;
   return useQuery({
     queryKey: [table, select, order, ascending, ...key],
+    enabled,
     // O Supabase devolve no máximo 1000 linhas por consulta: lista maior vem em páginas (a 1ª já é a página 1)
     queryFn: async () => (await todasAsPaginas(table, select, order, ascending, filtro)) as T[],
   });

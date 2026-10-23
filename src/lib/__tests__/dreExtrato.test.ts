@@ -8,6 +8,15 @@ const l = (conta: string, data: string, valor: number, descricao: string, extra:
   ({ id: `l${++n}`, conta_bancaria_id: conta, data, valor, descricao, identificador: `id${n}`, status: "pendente", ...extra });
 
 describe("extratos dos bancos no DRE", () => {
+  it("conta já ligada a uma linha não apaga outra linha de mesmo valor na mesma semana", () => {
+    const r = extratoParaDre([
+      l("b1", "2026-10-02", 150, "Pix recebido de Cliente A", { status: "conciliado", conta_receber_id: "cr1" }),
+      l("b1", "2026-10-04", 150, "Pix recebido de Cliente B"),
+    ], bancos, [{ id: "cr1", tipo: "receber", valor: 150, status: "pago", data_pagamento: "2026-10-02" }]);
+    expect(r.lancamentos.map((x) => x.valor)).toEqual([150]);
+    expect(r.fora.ja_em_conta).toBe(1);
+  });
+
   it("Pix e cartão recebidos viram receita; funcionário, imposto, tarifa e combustível vão para a linha certa", () => {
     const { lancamentos } = extratoParaDre([
       l("b1", "2026-10-02", 1500, "Pix recebido de Sorveteria Exemplo"),

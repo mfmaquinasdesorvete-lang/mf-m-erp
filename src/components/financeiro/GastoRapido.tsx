@@ -9,6 +9,7 @@ import { useUnidade } from "@/lib/unidade";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { hoje } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { enviarDocumentos } from "@/components/Anexos";
 import { chaveDoQrCode, interpretarGasto } from "@/lib/gastoRapido";
 
@@ -77,7 +78,7 @@ export function GastoRapido({ onClose }: { onClose: () => void }) {
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
-    const v = Number(valor.replace(/\./g, "").replace(",", "."));
+    const v = lerValor(valor) ?? NaN; // "45.90" é quarenta e cinco e noventa
     if (!(v > 0)) return notify("Informe o valor do gasto", "erro");
     if (!texto.trim()) return notify("Escreva ou fale o que foi o gasto", "erro");
     setGravando(true);
@@ -88,8 +89,15 @@ export function GastoRapido({ onClose }: { onClose: () => void }) {
         observacoes: [`Gasto rápido lançado pelo celular${jaPago ? "; já foi pago (conferir no extrato)" : ""}.`, chave ? `Chave da NFC-e: ${chave}` : ""].filter(Boolean).join(" "),
       }).select("id").single();
       if (error) throw error;
-      if (foto && conta) await enviarDocumentos("conta_pagar", conta.id, [foto]);
       invalidar("contas_pagar", "documentos");
+      // a conta já foi lançada: se só a foto falhar, fecha e avisa (tentar de novo lançaria o gasto em dobro)
+      if (foto && conta) {
+        try { await enviarDocumentos("conta_pagar", conta.id, [foto]); } catch {
+          notify("Gasto lançado, mas a foto não foi enviada: anexe pela conta em Contas a pagar", "erro");
+          onClose();
+          return;
+        }
+      }
       notify("Gasto lançado: vai para as Aprovações");
       onClose();
     } catch (err) { notifyError(err); } finally { setGravando(false); }

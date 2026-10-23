@@ -7,7 +7,9 @@ export const dataBR = (v: string | null | undefined) => {
   return d.toLocaleDateString("pt-BR");
 };
 
-export const hoje = () => new Date().toISOString().slice(0, 10);
+/** Hoje no horário de Brasília (AAAA-MM-DD). Em UTC o dia já virava às 21h: baixa, recibo e "vencida" saíam com o dia seguinte. */
+export const hoje = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
 /** "17/10/2026 18:23" (hora do aparelho) */
 export const dataHoraBR = (v: string | null | undefined) => {
@@ -17,8 +19,9 @@ export const dataHoraBR = (v: string | null | undefined) => {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "");
 };
 
-export const somarDias = (dias: number, base = new Date()) =>
-  new Date(base.getTime() + dias * 864e5).toISOString().slice(0, 10);
+/** Hoje (Brasília) mais `dias`; com `base`, a partir dela. */
+export const somarDias = (dias: number, base?: Date) =>
+  new Date((base ? base.getTime() : Date.parse(`${hoje()}T12:00:00Z`)) + dias * 864e5).toISOString().slice(0, 10);
 
 export const digitos = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
 
