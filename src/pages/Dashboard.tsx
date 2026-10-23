@@ -3,8 +3,8 @@ import { PainelFinanceiro } from "@/components/financeiro/PainelFinanceiro";
 import { AtalhoGastoPessoal } from "@/components/pessoal/AtalhoGastoPessoal";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch, Plus,
-  ShieldCheck, ShieldOff, ShoppingBag, Truck, TrendingUp, Wallet, Wrench, type LucideIcon,
+  AlarmClock, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BellRing, Boxes, ClipboardList, Factory, FileWarning, PackageSearch,
+  ShieldCheck, ShieldOff, Truck, TrendingUp, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import { estiloBrilho, Luz, Section } from "@/components/ui";
 import { Area, Rosca } from "@/components/Charts";
@@ -16,6 +16,7 @@ import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
 import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import { ordenarAtencao, type ItemAtencao } from "@/lib/prioridadeInicio";
+import { AcessoRapido } from "@/components/painel/AcessoRapido";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -61,7 +62,6 @@ const SELECT_CONTAS_INICIO = "id, status, valor, valor_pago, vencimento, data_pa
 /** Só o que a venda pela nota precisa para valor e data (sem o cliente). */
 const SELECT_NOTAS_INICIO = "id, created_at, status, ambiente, pedido_id, unidade_id, tipo_operacao, finalidade, excluida_em, payload, valor_total, chave, chave_referenciada, nota_referenciada_id";
 
-type Acao = { label: string; icon: LucideIcon; to: string; state?: unknown; cor: string; aviso?: number };
 type Kpi = { id: string; label: string; valor: string | number; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
 
 type Visao = "geral" | "financeiro" | "fluxo";
@@ -246,17 +246,6 @@ function PainelGeral() {
     podeVer("garantias") && { id: "prev", label: "Preventivas a lembrar", valor: lembretes.length, sub: `${k.prevAtrasada} ${pl(k.prevAtrasada, "atrasada", "atrasadas")}`, icon: BellRing, cor: "var(--kpi-rosa)", to: "/garantias", state: { lembretes: true } },
   ].filter(Boolean) as Kpi[]).slice(0, 4);
 
-  // Atalhos estilo "app": o que cada papel mais faz
-  const acoes = ([
-    pode("editar_pedidos") && { label: "Novo orçamento", icon: Plus, to: "/pedidos", state: { novo: true }, cor: "var(--kpi-ciano)" },
-    pode("editar_os") && { label: "Nova OS", icon: Wrench, to: "/assistencia", state: { novaOS: {} }, cor: "var(--kpi-laranja)" },
-    podeVer("garantias") && { label: "Lembrar clientes", icon: BellRing, to: "/garantias", state: { lembretes: true }, cor: "var(--kpi-rosa)", aviso: lembretes.length },
-    pode("editar_producao") && { label: "Pedir peças", icon: ShoppingBag, to: "/compras", state: { aba: "compras", novaCompra: true }, cor: "var(--kpi-roxo)" },
-    podeVer("financeiro") && { label: "Contas", icon: Wallet, to: "/financeiro", cor: "var(--kpi-verde)", aviso: k.qtdReceberVencido },
-    podeVer("producao") && { label: "Produção", icon: Factory, to: "/producao", cor: "var(--kpi-azul)" },
-    podeVer("estoque") && { label: "Estoque", icon: Boxes, to: "/estoque", cor: "var(--kpi-ciano)", aviso: k.estoqueBaixo.length },
-    pode("nfe_recebidas") && { label: "Notas", icon: FileWarning, to: "/notas", state: { aba: "recebidas" }, cor: "var(--kpi-laranja)", aviso: k.nfeConferir },
-  ].filter(Boolean) as Acao[]).slice(0, 8);
 
   const atencao = [
     podeVer("financeiro") && k.qtdReceberVencido > 0 && { nivel: "urgente", icon: Wallet, cor: "var(--kpi-rosa)", texto: `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cobrança", "cobranças")} ${pl(k.qtdReceberVencido, "vencida", "vencidas")}: ${brl(k.receberVencido)}`, to: "/financeiro", state: { aba: "cobranca" } },
@@ -277,7 +266,7 @@ function PainelGeral() {
   const saudacao = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 
   // Mapa de atenção (23/10): a tela segue a ordem do que a pessoa precisa ao abrir o ERP —
-  // 1) o que resolver agora; 2) como estão os números do período; 3) começar uma tarefa; 4) a tendência; 5) os detalhes.
+  // acesso rápido às telas; 1) o que resolver agora; 2) como estão os números do período; 4) a tendência; 5) os detalhes.
   // Só o bloco "Para resolver agora" usa vermelho; o resto fica um degrau abaixo para não disputar o olhar.
   const temAtencao = atencao.length > 0;
   const periodoTabs = (
@@ -304,6 +293,9 @@ function PainelGeral() {
             : "tudo em dia ✅"}
         </p>
       </div>
+
+      {/* 0b. Acesso rápido (23/10): as telas do dia a dia numa faixa de bolinhas que rola para o lado */}
+      <AcessoRapido avisos={{ "/notas": k.nfeConferir, "/financeiro": k.qtdReceberVencido, "/estoque": k.estoqueBaixo.length, "/garantias": lembretes.length, "/assistencia": k.osAtrasadas }} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {/* 1. Para resolver agora: o primeiro lugar do olhar (urgentes primeiro, poucos de cada vez) */}
@@ -348,25 +340,6 @@ function PainelGeral() {
           {kpis.some((c) => c.delta !== undefined) && <p className="mt-2 text-xs text-slate-500 sm:hidden">% comparado com {per.anterior}</p>}
         </section>
       </div>
-
-      {/* 3. Começar uma tarefa */}
-      {acoes.length > 0 && (
-        <section aria-label="Atalhos" className="cartao grid grid-cols-4 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-8">
-          {acoes.map((a) => (
-            <button key={a.label} onClick={() => navigate(a.to, { state: a.state })}
-              className="group flex flex-col items-center gap-1.5 rounded-cartao p-1.5 text-center transition hover:bg-slate-50">
-              <span className="relative grid h-12 w-12 place-items-center rounded-painel transition group-hover:scale-105 sm:h-14 sm:w-14"
-                style={{ background: `color-mix(in srgb, ${a.cor} 18%, transparent)`, color: a.cor, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${a.cor} 35%, transparent)` }}>
-                <a.icon size={24} />
-                {!!a.aviso && (
-                  <span className="num absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-slate-700 px-1 text-2xs font-bold text-white ring-2 ring-[rgb(var(--surface))]">{a.aviso}</span>
-                )}
-              </span>
-              <span className="text-xs font-semibold leading-tight text-slate-700">{a.label}</span>
-            </button>
-          ))}
-        </section>
-      )}
 
       {/* 4. Tendência: os últimos 6 meses e o que está para entrar */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
