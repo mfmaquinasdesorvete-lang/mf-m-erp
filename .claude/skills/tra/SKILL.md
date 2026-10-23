@@ -60,8 +60,7 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - A leitura da planilha de CT-e segue o modelo de uma transportadora (`src/lib/cte.ts`): outra pode ter outras colunas.
 - Zebra: PDF pelo driver funciona em qualquer uma; direto (ZPL) só com o Browser Print instalado.
 - A São Miguel não usa o SSW (tem sistema próprio); Aceville, MIR e Norte Brasil responderam no SSW.
-- A Rodonaves é contratada pelo Olist Envios (cadastro com "Olist Envios" em integrações): sem a API direta
-  (`integracaoApi` devolve null); rastreio dela pelo SSW. O frete do Olist Envios sai do repasse da Olist, não aparece
-  no extrato. A API v2 do Tiny não faz cotação nem etiqueta; chamada nova à API do Tiny passa pelo chat TIN.
+- Rodonaves e Olist Envios são empresas diferentes (corrigido pela usuária em 23/10): a Rodonaves é contratada direto,
+  com API própria (usuário e senha da MF). Chamada nova à API do Tiny passa pelo chat TIN.
 - Braspress: cotação e rastreio pela API própria (Basic com usuário e senha da Braspress); o rastreio grava nos mesmos
   campos `rastreio_*` do envio com a fonte "Braspress".
