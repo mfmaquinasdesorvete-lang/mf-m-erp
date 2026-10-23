@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Receipt, Repeat, Save, Wrench, XCircle } from "lucide-react";
 import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
+import { ResponderWhatsApp } from "@/components/atendimento/ResponderWhatsApp";
 import { Contato } from "@/components/Contato";
 import { DEMO, supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
@@ -105,6 +106,7 @@ function useFicha(c: Cliente) {
 export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClose: () => void }) {
   const navigate = useNavigate();
   const [aba, setAba] = useState<Aba>("resumo");
+  const [responder, setResponder] = useState(false);
   const { data, isLoading, error } = useFicha(c);
   const dia = hoje();
 
@@ -119,6 +121,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
   const nome = c.nome_fantasia?.trim() || c.nome;
   return (
     <Modal open onClose={onClose} title={`Ficha 360 · ${nome}`} wide>
+      {responder && <ResponderWhatsApp cliente={c} onClose={() => setResponder(false)} />}
       {/* no celular tudo quebra linha: nada pode passar da largura da janela (senão ela desliza para os lados) */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 [overflow-wrap:anywhere]">
         <div className="min-w-0 text-sm text-slate-600">
@@ -143,6 +146,9 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           {calc && <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROTULO_SITUACAO[calc.resumo.situacao].cor}`}>{ROTULO_SITUACAO[calc.resumo.situacao].rotulo}</span>}
           <div className="min-w-0"><Contato r={c} mensagem={`Olá, ${nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /></div>
+          <Button type="button" variant="secondary" onClick={() => setResponder(true)} title="Mensagem pronta com a nota fiscal, o rastreio ou o preço e estoque da peça">
+            <MessageCircle size={15} className="text-emerald-600" /> Responder no WhatsApp
+          </Button>
           {c.portal_token && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Button type="button" variant="ghost" title="Página do cliente: contas em aberto, Pix e segunda via (sem login)"
