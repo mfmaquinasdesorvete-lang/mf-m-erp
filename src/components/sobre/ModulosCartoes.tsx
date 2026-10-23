@@ -105,7 +105,7 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
                 {texto && <p className="text-sm text-slate-600">{texto}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {itens.map((i) => (
                 <CartaoTela key={i.to} item={i} clara={clara} escura={escura} pode={id === "dono" || vis.item(i)} aberto={aberto(i.to)}
                   onAlternar={() => alternar(i.to)} onIdeia={() => onIdeia({ titulo: `${i.label}: `, area: id === "admin" || id === "dono" ? "geral" : id })} />
@@ -127,23 +127,23 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
   const Icon = item.icon;
   const idPartes = `partes-${item.to.replace(/\W+/g, "-")}`;
   return (
-    <article className="relative flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-surface p-5 shadow-card"
+    // compacto: ícone ao lado do nome, etiquetas numa linha e a explicação em até 3 linhas (o "Saiba mais" mostra tudo)
+    <article className="relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-surface p-3.5 shadow-card"
       style={{ backgroundImage: `radial-gradient(120% 70% at 100% 0%, ${clara}14, transparent 60%)` }}>
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: `${clara}26`, color: tinta(escura) }} aria-hidden><Icon size={22} /></span>
-        {d?.tags.length ? (
-          <span className="min-w-0 rounded-full border px-2.5 py-1 text-right text-2xs font-bold uppercase leading-tight tracking-wider"
-            style={{ color: tinta(escura), borderColor: `${clara}66`, background: `${clara}14` }}>{d.tags.join(" · ")}</span>
-        ) : null}
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${clara}26`, color: tinta(escura) }} aria-hidden><Icon size={18} /></span>
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-bold leading-tight text-fg">
+            {pode ? <Link to={item.to} className="hover:underline">{item.label}</Link> : <span className="inline-flex items-center gap-1.5">{item.label} <Lock size={13} className="text-slate-400" aria-label="sem acesso no seu perfil" /></span>}
+          </h3>
+          {d?.tags.length ? <p className="truncate text-2xs font-bold uppercase tracking-wider" style={{ color: tinta(escura) }} title={d.tags.join(" · ")}>{d.tags.join(" · ")}</p> : null}
+        </div>
       </div>
-      <h3 className="mt-4 text-lg font-bold leading-tight text-fg">
-        {pode ? <Link to={item.to} className="hover:underline">{item.label}</Link> : <span className="inline-flex items-center gap-1.5">{item.label} <Lock size={14} className="text-slate-400" aria-label="sem acesso no seu perfil" /></span>}
-      </h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">{SOBRE_TELAS[item.to] ?? "—"}</p>
-      {d?.destaque && <p className="mt-3 text-xs font-semibold" style={{ color: tinta(escura) }}>{d.destaque}</p>}
+      <p className={`mt-2 text-sm leading-snug text-slate-600 ${aberto ? "" : "line-clamp-3"}`} title={aberto ? undefined : SOBRE_TELAS[item.to]}>{SOBRE_TELAS[item.to] ?? "—"}</p>
+      {d?.destaque && <p className={`mt-1.5 text-xs font-semibold leading-snug ${aberto ? "" : "line-clamp-2"}`} style={{ color: tinta(escura) }}>{d.destaque}</p>}
 
       {aberto && d && (
-        <div id={idPartes} className="mt-4 border-t border-slate-200 pt-3">
+        <div id={idPartes} className="mt-3 border-t border-slate-200 pt-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Tudo o que faz · {d.partes.length} {pl(d.partes.length, "parte", "partes")}</p>
           <ul className="space-y-2">
             {d.partes.map((t) => {
@@ -160,16 +160,16 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
         </div>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2">
         {d && (
           <button type="button" onClick={onAlternar} aria-expanded={aberto} aria-controls={idPartes}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:underline">
-            {aberto ? "Mostrar menos" : "Saiba mais"} <ArrowRight size={15} className={`transition ${aberto ? "-rotate-90" : ""}`} aria-hidden />
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline">
+            {aberto ? "Mostrar menos" : "Saiba mais"} <ArrowRight size={14} className={`transition ${aberto ? "-rotate-90" : ""}`} aria-hidden />
           </button>
         )}
-        {pode && <Link to={item.to} className="text-sm font-semibold text-slate-600 hover:text-fg hover:underline">Abrir a tela</Link>}
-        <button type="button" onClick={onIdeia} className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600"
-          title={`Anotar ideia sobre ${item.label}`} aria-label={`Anotar ideia sobre ${item.label}`}><Lightbulb size={16} /></button>
+        {pode && <Link to={item.to} className="text-xs font-semibold text-slate-600 hover:text-fg hover:underline">Abrir a tela</Link>}
+        <button type="button" onClick={onIdeia} className="ml-auto grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600"
+          title={`Anotar ideia sobre ${item.label}`} aria-label={`Anotar ideia sobre ${item.label}`}><Lightbulb size={15} /></button>
       </div>
     </article>
   );
