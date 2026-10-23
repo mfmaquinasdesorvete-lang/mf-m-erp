@@ -12,7 +12,7 @@ const EXTRAS: Record<string, { label: string; pai?: { label: string; to: string 
   "/fornecedores/avaliacao": { label: "Avaliação", pai: { label: "Fornecedores", to: "/fornecedores" } },
   "/pessoal": { label: "Painel pessoal", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/retaguarda/entradas": { label: "Entradas acima de R$ 5 mil", pai: { label: "Retaguarda", to: "/retaguarda" } },
-  "/retaguarda/notas-my-frost": { label: "Notas da My Frost para o contador", pai: { label: "Retaguarda", to: "/retaguarda" } },
+  "/retaguarda/notas-my-frost": { label: "My Frost (empresa anterior)", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/licenciados": { label: "My Frost Sorveterias", pai: { label: "Retaguarda", to: "/retaguarda" } },
   "/sobre": { label: "Sobre o ERP Line" },
   "/portal": { label: "Portal do representante" },

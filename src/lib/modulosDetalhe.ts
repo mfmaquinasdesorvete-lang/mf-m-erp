@@ -113,7 +113,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     destaque: "Cada máquina vendida acompanhada da proposta até a nota.",
     partes: [
       "Separação automática: a venda que tem máquina aparece aqui; a de peças fica em Venda de Peças.",
-      "Abas: Propostas e vendas (feitas no ERP) e Propostas do Tiny (da MF e da My Frost, a empresa anterior).",
+      "Abas: Propostas e vendas (feitas no ERP) e Propostas do Tiny da MF; as da My Frost (empresa anterior) ficam na Retaguarda.",
       "Quadro Kanban: 1 Orçamentos, 2 Aprovados, 3 Faturados, 4 Entregues e Cancelados, com a contagem, o total e o que fazer em cada passo.",
       "Lista: nº e data, cliente, situação, ordem de produção (OP) ligada e a situação dela, pagamento, total, NF e envio.",
       "Licenciados My Frost: botão que mostra só as vendas para as lojas licenciadas, com o selo ao lado do nome.",
@@ -124,7 +124,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Pagamento: link InfinitePay ou Mercado Pago com baixa sozinha, Pix com QR Code e conciliação com o extrato do banco.",
       "NF-e: emissão pela Focus NF-e com conferência do cadastro antes; aviso quando a nota foi cancelada e falta emitir de novo.",
       "Abrir OS: instalação, entrega técnica ou garantia, já com o cliente, a máquina e o nº do pedido.",
-      "Propostas do Tiny: filtro por empresa (MF ou My Frost), licenciados, situação e vendedor, e busca por nº, cliente, cidade ou item.",
+      "Propostas do Tiny: filtro por licenciados, situação e vendedor, e busca por nº, cliente, cidade ou item.",
       "Resumo do Tiny: quantas propostas da MF viraram venda e quantas estão em aberto, com os totais.",
       "Proposta antiga vira orçamento: \"Novo orçamento com estes itens\" abre um orçamento novo com os itens e os preços dela.",
       "Importar do Tiny: o administrador traz a planilha de propostas; dá para exportar e pôr marcadores em várias de uma vez.",

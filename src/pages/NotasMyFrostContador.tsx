@@ -1,9 +1,12 @@
-// Notas fiscais da My Frost (empresa anterior) para o contador: resumo por ano e por grupo (vendas, remessas,
-// devoluções, estornos e canceladas), a lista das notas e a planilha para mandar a ele. Só a conta master abre (Retaguarda).
-// Vem do backup de XML da My Frost (notas_legado): fica à parte das notas da MF.
+// My Frost (empresa anterior), só a conta master (Retaguarda), à parte da MF:
+// - Notas fiscais para o contador: resumo por ano e por grupo (vendas, remessas, devoluções, estornos e canceladas), a lista
+//   das notas e a planilha para mandar a ele. Vem do backup de XML da My Frost (notas_legado).
+// - Propostas de compra: as propostas do Tiny da My Frost, guardadas aqui (em Vendas ficam só as da MF). Continuam ligadas
+//   ao cliente: aparecem na ficha dele junto com as da MF.
 import { useMemo, useState } from "react";
 import { Download, FileText } from "lucide-react";
-import { Button, Card, PageHeader, Table } from "@/components/ui";
+import { Button, Card, PageHeader, Table, Tabs } from "@/components/ui";
+import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -17,6 +20,18 @@ const COR: Record<Grupo, string> = {
 };
 
 export default function NotasMyFrostContador() {
+  const [vista, setVista] = useState<"notas" | "propostas">("notas");
+  return (
+    <div>
+      <PageHeader title="My Frost (empresa anterior)"
+        subtitle="CNPJ 32.584.697/0001-81. Notas fiscais e propostas de compra da My Frost, guardadas à parte da MF. Os clientes são os mesmos: na ficha do cliente aparece tudo junto." />
+      <Tabs value={vista} onChange={setVista} options={[{ value: "notas", label: "Notas fiscais (contador)" }, { value: "propostas", label: "Propostas de compra" }]} />
+      {vista === "notas" ? <NotasContador /> : <PropostasTiny empresaFixa="my_frost" />}
+    </div>
+  );
+}
+
+function NotasContador() {
   const { data: linhas = [], isLoading } = useRows<Linha>("notas_legado", {
     select: "id, numero, data, valor, natureza, situacao, tipo, chave, dest_doc, dest_nome, cartas_correcao, cliente:clientes(nome)",
     order: "data", ascending: true, key: ["notas-my-frost-contador"], filtro: (q) => q.eq("origem", "My Frost"),
@@ -42,8 +57,6 @@ export default function NotasMyFrostContador() {
 
   return (
     <div>
-      <PageHeader title="Notas da My Frost para o contador"
-        subtitle="Empresa anterior (CNPJ 32.584.697/0001-81), pelo backup de XML: por ano e por tipo. Fica à parte das notas da MF." />
       <Card className="mb-4 flex flex-wrap items-center gap-3 p-3 text-sm text-slate-600 sm:p-4">
         <FileText size={20} className="shrink-0 text-slate-500" />
         <span className="min-w-0 flex-1">

@@ -13,7 +13,7 @@ export const ATALHOS_RETAGUARDA: { grupo: string; itens: Atalho[] }[] = [
     itens: [
       { to: "/pessoal", titulo: "Painel pessoal", texto: "Suas contas, cartões, gastos e empresas, separados da MF", icone: Wallet, cor: "from-fixo-amber-500 to-fixo-amber-700" },
       { to: "/retaguarda/entradas", titulo: "Entradas acima de R$ 5 mil", texto: "Dinheiro grande que entrou nas contas da MF e ainda não tem dono: escreva de quem é e o que foi", icone: BadgeDollarSign, cor: "from-fixo-green-500 to-fixo-green-700" },
-      { to: "/retaguarda/notas-my-frost", titulo: "Notas da My Frost para o contador", texto: "Empresa anterior: notas por ano e tipo (vendas, remessas, devoluções e canceladas) e a planilha para o contador", icone: FileText, cor: "from-fixo-sky-500 to-fixo-sky-700" },
+      { to: "/retaguarda/notas-my-frost", titulo: "My Frost (empresa anterior)", texto: "Notas fiscais por ano e tipo, com a planilha para o contador, e as propostas de compra dela, guardadas à parte da MF", icone: FileText, cor: "from-fixo-sky-500 to-fixo-sky-700" },
       { to: "/licenciados", titulo: "My Frost Sorveterias", texto: "Lojas licenciadas, máquinas, contratos e pagamentos", icone: IceCreamCone, cor: "from-fixo-pink-500 to-fixo-pink-700" },
     ],
   },

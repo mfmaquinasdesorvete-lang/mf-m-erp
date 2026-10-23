@@ -1,5 +1,7 @@
-// Vendas → Propostas do Tiny: o histórico de propostas comerciais do Tiny da MF (com valores) e da My Frost, a empresa
-// anterior (com valores desde 22/10). Filtra por empresa, situação e vendedor; abre a proposta; a da MF pode virar um orçamento novo.
+// Propostas do Tiny: o histórico de propostas comerciais do Tiny da MF (com valores) e da My Frost, a empresa anterior
+// (com valores desde 22/10). Em Vendas → Venda de Máquinas ficam só as da MF; as da My Frost ficam guardadas em
+// Retaguarda → My Frost (empresa anterior). Na ficha do cliente aparecem as duas. Filtra por situação e vendedor; abre a
+// proposta; a da MF pode virar um orçamento novo.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileDown, FilePlus2, Tags, Upload } from "lucide-react";
@@ -54,11 +56,18 @@ function exportar(lista: PropostaTiny[]) {
 type Aba = "todas" | "contatar" | string;
 const COR_CONTATO = { atrasado: "text-red-600 font-semibold", hoje: "text-amber-700 font-semibold", futuro: "text-slate-600" } as const;
 
-export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteId: string, itens: Item[]) => void }) {
+export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
+  onNovoOrcamento?: (clienteId: string, itens: Item[]) => void;
+  /** Só as propostas desta empresa (MF em Vendas; My Frost na Retaguarda), sem o filtro de empresa. */
+  empresaFixa?: EmpresaProposta;
+}) {
   const { papel } = usePerfil();
-  const { data: todas = [], isLoading, error } = useRows<PropostaTiny>("propostas_tiny", { select: SELECT, order: "data", ascending: false });
+  const { data: todas = [], isLoading, error } = useRows<PropostaTiny>("propostas_tiny", {
+    select: SELECT, order: "data", ascending: false, key: [empresaFixa ?? "todas"],
+    filtro: empresaFixa ? (q) => q.eq("empresa", empresaFixa) : undefined,
+  });
   const { data: marcadores = [] } = useMarcadores();
-  const [empresa, setEmpresa] = useState<EmpresaProposta | "todas">("todas");
+  const [empresa, setEmpresa] = useState<EmpresaProposta | "todas">(empresaFixa ?? "todas");
   const [aba, setAba] = useState<Aba>("todas");
   const [vendedor, setVendedor] = useState("");
   const [marcador, setMarcador] = useState("");
@@ -121,13 +130,13 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
             <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
           </>}
           nFiltros={(vendedor ? 1 : 0) + (marcador ? 1 : 0)}
-          onLimpar={() => { setBusca(""); setVendedor(""); setMarcador(""); setPeriodo(SEM_PERIODO); setEmpresa("todas"); setSoLicenciados(false); setAba("todas"); setSel(new Set()); }}
+          onLimpar={() => { setBusca(""); setVendedor(""); setMarcador(""); setPeriodo(SEM_PERIODO); setEmpresa(empresaFixa ?? "todas"); setSoLicenciados(false); setAba("todas"); setSel(new Set()); }}
           direita={<>
             <Button variant="secondary" disabled={!lista.length} onClick={() => exportar(lista)}><FileDown size={16} /> Exportar</Button>
             {papel === "admin" && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar do Tiny</Button>}
           </>} />
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {(["todas", "mf", "my_frost"] as const).map((e) => (
+          {!empresaFixa && (["todas", "mf", "my_frost"] as const).map((e) => (
             <button key={e} type="button" className={chip(empresa === e)} onClick={() => setEmpresa(e)}>
               {e === "todas" ? "Todas as empresas" : e === "mf" ? "MF" : "My Frost"} <span className="num ml-1 opacity-90">{e === "todas" ? todas.length : todas.filter((p) => p.empresa === e).length}</span>
             </button>

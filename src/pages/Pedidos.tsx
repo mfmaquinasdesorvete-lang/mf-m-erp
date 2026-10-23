@@ -143,7 +143,7 @@ const novoPedido = (observacoes?: string | null): Partial<Pedido> & { itens: Ite
 });
 
 /** Venda de Peças (/pedidos) e Venda de Máquinas (/vendas-maquinas): a mesma lista de vendas, separada pelo que
- * foi vendido (pedido com máquina vai para Máquinas). Em Máquinas ficam também as propostas do Tiny (MF e My Frost)
+ * foi vendido (pedido com máquina vai para Máquinas). Em Máquinas ficam também as propostas do Tiny da MF (as da My Frost ficam na Retaguarda)
  * e a OP de cada venda. */
 export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas" }) {
   const { pode, tem } = usePerfil();
@@ -196,7 +196,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       !!zap && { rotulo: "WhatsApp do cliente", icone: MessageCircle, onClick: () => window.open(whatsappLink(zap, `Olá! Aqui é da MF Máquinas, sobre o pedido #${p.numero}.`), "_blank", "noopener") },
     ]} />;
   };
-  // Máquinas: vendas do ERP ou o histórico de propostas do Tiny (MF e My Frost)
+  // Máquinas: vendas do ERP ou o histórico de propostas do Tiny da MF
   const [vista, setVista] = useState<"erp" | "tiny">("erp");
   const location = useLocation();
   const navigate = useNavigate();
@@ -302,16 +302,16 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   return (
     <div>
       <PageHeader title={area === "maquinas" ? "Venda de Máquinas" : "Venda de Peças"}
-        subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF e da My Frost."
+        subtitle={area === "maquinas" ? "Propostas e vendas de máquinas: proposta, pedido, OP e nota fiscal. Com o histórico do Tiny da MF."
           : "Orçamentos e vendas de peças, do WhatsApp à entrega, com frete e nota fiscal."}
         actions={vista === "erp" ? <>
           <Button variant="secondary" disabled={!lista.length} onClick={() => exportarPedidos(lista, infoDe)}><FileDown size={16} /> Exportar</Button>
           {pode("editar_pedidos") && <Button onClick={() => setAberto(novoPedido(cfgPedidos?.orcamento_observacoes))}><Plus size={16} /> {area === "maquinas" ? "Nova proposta" : "Novo orçamento"}</Button>}
         </> : undefined} />
 
-      {area === "maquinas" && <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Propostas e vendas" }, { value: "tiny", label: "Propostas do Tiny (MF e My Frost)" }]} />}
+      {area === "maquinas" && <Tabs value={vista} onChange={setVista} options={[{ value: "erp", label: "Propostas e vendas" }, { value: "tiny", label: "Propostas do Tiny (MF)" }]} />}
       {area === "maquinas" && vista === "tiny" ? (
-        <PropostasTiny onNovoOrcamento={pode("editar_pedidos") ? (cliente_id, itens) => {
+        <PropostasTiny empresaFixa="mf" onNovoOrcamento={pode("editar_pedidos") ? (cliente_id, itens) => {
           setVista("erp");
           setAberto({ ...novoPedido(cfgPedidos?.orcamento_observacoes), cliente_id, itens });
         } : undefined} />
