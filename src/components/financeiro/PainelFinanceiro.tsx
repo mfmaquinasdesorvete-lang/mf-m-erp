@@ -22,6 +22,7 @@ import { useConfig } from "@/lib/useConfig";
 import { somarDias, type ContaFin } from "@/lib/financeiro";
 import { BotoesDecisao, ChipDecisao, PagarLoteModal } from "./DecisaoPagamento";
 import { aDecidir, filtrarDecisao, paraPagarHoje, type ContaDecisao } from "@/lib/programacao";
+import { filtroRecentesPagar, inicioRecentes } from "@/lib/pagarRecentes";
 
 type Receber = ContaFin & { cliente_id?: string | null; cliente?: { nome: string; nome_fantasia?: string | null; whatsapp?: string | null; cpf_cnpj?: string | null } | null };
 type Pagar = ContaFin & ContaDecisao & { fornecedor_id?: string | null; observacoes?: string | null; fornecedor?: { nome: string; cnpj?: string | null } | null };
@@ -39,9 +40,15 @@ export function PainelFinanceiro() {
   const { filtrar, unidades, atual } = useUnidade();
   const dia = hojeISO();
   const { data: recTodos = [] } = useRows<Receber>("contas_receber", { select: "*, cliente:clientes(nome, nome_fantasia, whatsapp, cpf_cnpj)", key: ["painel"] });
-  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)", key: ["painel"] });
+  // só as abertas e as dos últimos meses (o painel usa este mês e o anterior); mesma consulta de Contas a pagar
+  const corte = inicioRecentes(dia);
+  const { data: pagTodos = [] } = useRows<Pagar>("contas_pagar", { select: "*, fornecedor:fornecedores(nome, cnpj, bloqueado, bloqueio_motivo)", key: ["recentes", corte], filtro: filtroRecentesPagar(corte) });
   const { data: recebidasTodas = [] } = useRows<{ processamento: string; unidade_id: string | null }>("nfe_recebidas", { select: "processamento, unidade_id", key: ["painel"] });
-  const { data: extrato = [] } = useRows<{ status: string }>("extrato_lancamentos", { select: "status", order: "status", key: ["painel"] });
+  // só a contagem das linhas do extrato a conciliar (antes baixava a situação de todas as linhas)
+  const { data: extratoPendente = 0 } = useQuery({
+    queryKey: ["extrato_lancamentos", "pendentes"],
+    queryFn: async () => { const { count, data, error } = await supabase.from("extrato_lancamentos").select("id", { count: "exact", head: true }).eq("status", "pendente"); if (error) throw error; return count ?? data?.length ?? 0; },
+  });
   const { data: saldosTodos = [] } = useQuery({
     queryKey: ["saldos_bancarios"],
     queryFn: async () => { const { data, error } = await supabase.rpc("saldos_bancarios"); if (error) throw error; return (data ?? []) as { conta_id: string; nome: string; unidade_id: string; saldo: number }[]; },
@@ -116,7 +123,6 @@ export function PainelFinanceiro() {
   }, [empresas, dia]);
   const [todosInad, setTodosInad] = useState(false);
   const nfeConferir = filtrar(recebidasTodas).filter((n) => ["aguardando_vinculo", "revisao"].includes(n.processamento)).length;
-  const extratoPendente = extrato.filter((l) => l.status === "pendente").length;
   const resultadoMes = k.recebidoMes - k.pagoMes;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";

@@ -151,7 +151,8 @@ export default function Financeiro() {
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
   const { filtrar } = useUnidade();
   const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Receber>("contas_receber", { select: `*, cliente:clientes(${CAMPOS_CLIENTE_CONTA})` });
-  const receber = filtrar(receberTodos);
+  // a lista filtrada só muda quando muda a unidade ou os dados (senão as contas abaixo refazem a cada tecla)
+  const receber = useMemo(() => filtrar(receberTodos), [receberTodos, filtrar]);
   // contas a pagar: primeiro as recentes (rápido); o histórico inteiro só quando a tela pede (e fica guardado)
   const corte = inicioRecentes(hoje());
   const [pedeHistorico, setPedeHistorico] = useState(false);
@@ -161,7 +162,7 @@ export default function Financeiro() {
   const pagarTodos = useMemo(() => completo.data ?? recentes.data ?? [], [completo.data, recentes.data]);
   const esperandoHistorico = historico && !completo.data;
   const carregandoPagar = recentes.isLoading || esperandoHistorico;
-  const pagar = filtrar(pagarTodos);
+  const pagar = useMemo(() => filtrar(pagarTodos), [pagarTodos, filtrar]);
 
   const resumo = useMemo(() => {
     const aberto = (l: { status: string; valor: number; vencimento: string }[]) => l.filter((c) => c.status === "aberto");

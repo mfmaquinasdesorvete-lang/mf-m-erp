@@ -61,7 +61,8 @@ export default function Conciliacao() {
   const podeEditar = pode("editar_financeiro");
   const { filtrar, padrao: unidadePadrao, unidades, nome: nomeUnidade } = useUnidade();
   const { data: contasTodas = [] } = useRows<ContaBancaria>("contas_bancarias", { order: "nome", ascending: true });
-  const bancos = filtrar(contasTodas);
+  // estável entre as teclas da busca: as sugestões cruzam todas as linhas do extrato com todas as contas
+  const bancos = useMemo(() => filtrar(contasTodas), [contasTodas, filtrar]);
   // cartões separados por unidade (SC, depois SP), as inativas no fim de cada uma
   const gruposBancos = [...new Set(bancos.map((b) => b.unidade_id))]
     .sort((a, c) => (unidades.findIndex((u) => u.id === a) + 1 || 99) - (unidades.findIndex((u) => u.id === c) + 1 || 99))
@@ -557,7 +558,7 @@ export function ImportarModal({ bancos, contaInicial, arquivoInicial, onImportad
       });
       if (error) throw error;
       notify(`${data.novas} ${pl(data.novas, "lançamento", "lançamentos")} novos${data.repetidas ? `, ${data.repetidas} já importados antes` : ""}; ${data.conciliadas} ${pl(data.conciliadas, "conciliado", "conciliados")} automaticamente`);
-      invalidate("extrato_lancamentos", "extrato_importacoes", "contas_receber", "contas_pagar", "auditoria");
+      invalidate("extrato_lancamentos", "extrato_importacoes", "contas_receber", "contas_pagar", "auditoria", "saldos_bancarios", "movimentos_realizados");
       onImportado?.({ novas: data.novas, repetidas: data.repetidas, conciliadas: data.conciliadas, conta });
       onClose();
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
@@ -698,7 +699,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
     setOcupado(false);
     if (error) return notifyError(error);
     notify(ok);
-    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "auditoria");
+    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "auditoria", "saldos_bancarios", "movimentos_realizados");
     onClose();
   }
 
@@ -781,7 +782,7 @@ function DesfazerModal({ lanc, onClose }: { lanc: Lancamento; onClose: () => voi
     const { error } = await supabase.rpc("desfazer_conciliacao", { p_lanc: lanc.id, p_motivo: motivo });
     if (error) return notifyError(error);
     notify("Conciliação desfeita");
-    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "auditoria");
+    invalidate("extrato_lancamentos", "contas_receber", "contas_pagar", "auditoria", "saldos_bancarios", "movimentos_realizados");
     onClose();
   }
   return (
