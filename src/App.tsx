@@ -12,6 +12,7 @@ import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
+import { PortaoRosto } from "@/components/Rosto";
 import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
 import { abrirAppCelular, abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
 import { CHAVE_APP_ASSISTENCIA, CHAVE_APP_EXPEDICAO, CHAVE_APP_PRODUCAO } from "@/lib/appCelular";
@@ -274,6 +275,8 @@ export default function App() {
           </Suspense>
         </PerfilProvider>
       ) : (
+        // administrador e financeiro confirmam a entrada com o rosto (pedido #103)
+        <PortaoRosto papel={perfil.papel} extras={perfil.papeis_extras}>
         <PerfilProvider perfil={perfil}>
           <UnidadeProvider inicial={perfil.unidade_id ?? null}>
           <Suspense fallback={<Carregando />}>
@@ -281,6 +284,7 @@ export default function App() {
           </Suspense>
           </UnidadeProvider>
         </PerfilProvider>
+        </PortaoRosto>
       )}
     </>
   );

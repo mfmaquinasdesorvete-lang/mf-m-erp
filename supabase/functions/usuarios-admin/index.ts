@@ -3,6 +3,7 @@
 // POST { acao: "criar", email, nome, papel, senha, papeis_extras?, cargo?, telefone?, unidade_id? }
 // POST { acao: "atualizar", user_id, nome?, email?, papel?, papeis_extras?, cargo?, telefone?, unidade_id?, ativo? }
 // POST { acao: "redefinir_senha", user_id, senha }
+// POST { acao: "apagar_rosto", user_id }  → apaga o rosto (login com o rosto) de outra pessoa que perdeu o celular
 // A senha definida aqui é provisória: a pessoa troca no próximo acesso (usuarios_erp.trocar_senha).
 // "Sempre um administrador ativo" é garantido também no banco (gatilho trg_usuarios_ultimo_admin).
 // Administradores (criar, promover, alterar, trocar a senha) só pela conta master (gatilho trg_usuarios_master).
@@ -118,6 +119,26 @@ Deno.serve(async (req) => {
         if (error) throw new HttpError(400, error.message);
         if (body.user_id !== userId) await db.from("usuarios_erp").update({ trocar_senha: true }).eq("user_id", body.user_id);
         return json({ ok: true });
+      }
+
+      // perdeu ou trocou o celular: apaga os rostos cadastrados (a pessoa cadastra de novo no próximo acesso)
+      case "apagar_rosto": {
+        if (!body.user_id || body.user_id === userId) throw new HttpError(400, "o próprio rosto se apaga em Meu rosto");
+        const { data: alvo } = await db.from("usuarios_erp").select("nome").eq("user_id", body.user_id).maybeSingle();
+        if (!alvo) throw new HttpError(404, "usuário não encontrado");
+        const { data: lista, error } = await db.auth.admin.mfa.listFactors({ userId: body.user_id });
+        if (error) throw new HttpError(400, error.message);
+        const rostos = (lista?.factors ?? []).filter((f) => f.factor_type === "webauthn");
+        for (const f of rostos) {
+          const { error: e } = await db.auth.admin.mfa.deleteFactor({ id: f.id, userId: body.user_id });
+          if (e) throw new HttpError(400, e.message);
+        }
+        const { data: eu } = await db.from("usuarios_erp").select("nome").eq("user_id", userId).maybeSingle();
+        await db.from("auditoria").insert({
+          tabela: "usuarios_erp", registro_id: body.user_id, acao: "update", usuario: userId, usuario_nome: eu?.nome ?? null,
+          campos: ["rosto"], antes: { aparelhos: rostos.length }, depois: { aparelhos: 0 }, motivo: "rosto apagado: perdeu ou trocou o celular", origem: "usuario",
+        });
+        return json({ ok: true, apagados: rostos.length });
       }
 
       default:

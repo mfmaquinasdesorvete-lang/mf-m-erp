@@ -6,6 +6,7 @@ import {
   ArrowLeftRight, BarChart3, Bell, Boxes, Inbox, Paperclip, HandCoins, Workflow, PieChart, Calculator, Check, Factory, Palette, FileText, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Settings, ShieldCheck, ShoppingCart, Sun,
   Truck, UserCog, Users, Wallet, IceCreamCone, Lock, Wrench, X, ChevronDown, Landmark, ShieldAlert, Search, Gauge,
   Store, PackageSearch, CreditCard, Package, ScanBarcode, Scale, IdCard, Plus,
+  ScanFace,
 } from "lucide-react";
 import { DEMO, supabase } from "@/lib/supabase";
 import { sairDoErp } from "@/lib/sair";
@@ -18,6 +19,8 @@ import { aplicarDestaque, aplicarFundo, aplicarTema, DESTAQUES, lerDestaque, ler
 import logo from "@/assets/logo.webp";
 import { Button, Field, Modal } from "./ui";
 import { MeusAvisos } from "./Avisos";
+import { MeuRosto } from "./Rosto";
+import { usaRosto } from "@/lib/rosto";
 import { ResultadosBusca } from "./BuscaGeral";
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
@@ -118,6 +121,7 @@ export function Layout() {
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [aparencia, setAparencia] = useState(false);
   const [meusAvisos, setMeusAvisos] = useState(false);
+  const [meuRosto, setMeuRosto] = useState(false);
   const iniciais = perfil.nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   // foto do usuário (Configurações → Usuários); cada um lê a própria
   const { data: minhaFoto } = useQuery({
@@ -342,6 +346,7 @@ export function Layout() {
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],
+              ...(!DEMO && usaRosto(perfil.papel, perfil.papeis_extras) ? [["Meu rosto", ScanFace, () => setMeuRosto(true)] as const] : []),
               ["Sair", LogOut, () => { void sairDoErp(); }],
             ] as const).map(([rotulo, Icone, acao]) => (
               <button key={rotulo} onClick={acao} title={rotulo} aria-label={rotulo}
@@ -428,6 +433,7 @@ export function Layout() {
       {trocarSenha && <AlterarSenha onClose={() => setTrocarSenha(false)} />}
       {aparencia && <Aparencia onClose={() => setAparencia(false)} />}
       {meusAvisos && <MeusAvisos onClose={() => setMeusAvisos(false)} />}
+      {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
       {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
     </div>
     </NotificacoesProvider>

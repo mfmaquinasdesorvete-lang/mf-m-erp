@@ -2,7 +2,7 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ScanFace, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { useNotificacoes } from "@/components/Notificacoes";
 import { PainelAcessos } from "@/components/usuarios/Acessos";
@@ -23,6 +23,7 @@ import {
 import { grupos, itensForaDoMenu, type Item } from "@/lib/menu";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { gerarSenha } from "@/lib/senhas";
+import { usaRosto } from "@/lib/rosto";
 import { erroPortal, textoConvite } from "@/lib/portal";
 
 type Usuario = {
@@ -441,9 +442,32 @@ function SenhaModal({ usuario, onClose }: { usuario: Usuario; onClose: () => voi
             <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
             <Button>Salvar senha</Button>
           </div>
+          {!souEu && usaRosto(usuario.papel, usuario.papeis_extras) && <ApagarRosto usuario={usuario} />}
         </form>
       )}
     </Modal>
+  );
+}
+
+/** Quem perdeu ou trocou o celular: o administrador apaga o rosto e a pessoa cadastra de novo no próximo acesso. */
+function ApagarRosto({ usuario }: { usuario: Usuario }) {
+  const [feito, setFeito] = useState<number | null>(null);
+  const [apagando, setApagando] = useState(false);
+  async function apagar() {
+    if (!window.confirm(`Apagar o rosto de ${usuario.nome}? No próximo acesso a pessoa cadastra o rosto de novo.`)) return;
+    setApagando(true);
+    try { setFeito((await callFunction<{ apagados: number }>("usuarios-admin", { acao: "apagar_rosto", user_id: usuario.user_id })).apagados); }
+    catch (err) { notifyError(err); }
+    finally { setApagando(false); }
+  }
+  return (
+    <div className="mt-2 rounded-lg border border-slate-200 p-3 text-sm">
+      <p className="font-semibold text-fg">Perdeu ou trocou o celular?</p>
+      <p className="text-xs text-slate-600">Apague o rosto cadastrado: no próximo acesso {usuario.nome.split(" ")[0]} cadastra o rosto no aparelho novo.</p>
+      {feito !== null
+        ? <p className="mt-2 text-xs font-semibold text-emerald-700">{feito ? `${feito === 1 ? "1 aparelho apagado" : `${feito} aparelhos apagados`}.` : "Não havia rosto cadastrado."}</p>
+        : <Button type="button" variant="secondary" className="mt-2" disabled={apagando} onClick={apagar}><ScanFace size={15} aria-hidden /> {apagando ? "Apagando…" : "Apagar o rosto"}</Button>}
+    </div>
   );
 }
 

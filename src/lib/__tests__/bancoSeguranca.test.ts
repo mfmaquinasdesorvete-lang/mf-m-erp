@@ -84,6 +84,7 @@ const AJUDANTES: Record<string, string> = {
   preco_sugerido: "preço sugerido pelo custo e pela margem",
   preco_tabela: "preço do produto na tabela",
   rateio_valido: "sim/não: o rateio fecha 100%",
+  rosto_vigente: "sim/não: o login com o rosto já é obrigatório (data em configuracoes)",
   termo_ficha_cadastral: "texto do termo da ficha cadastral",
   unidade_matriz: "id da unidade matriz",
 };
