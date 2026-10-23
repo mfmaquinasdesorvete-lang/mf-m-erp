@@ -10,6 +10,7 @@ import { aplicarPreferencias } from "@/lib/tema";
 import { ehRepresentante, podeVer, type Tela } from "@/lib/permissoes";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
+import { AnotarPorVoz } from "@/components/voz/AnotarPorVoz";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { PortaoRosto } from "@/components/Rosto";
@@ -79,6 +80,7 @@ const Tecnicos = lazy(() => import("@/pages/Tecnicos"));
 const MaquinaPublica = lazy(() => import("@/pages/MaquinaPublica"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Sobre = lazy(() => import("@/pages/Sobre"));
+const Anotacoes = lazy(() => import("@/pages/Anotacoes"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const EntradasGrandes = lazy(() => import("@/pages/EntradasGrandes"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
@@ -348,6 +350,7 @@ function RotasERP() {
     if (casa && location.pathname === "/" && vis.ve(casa.tela, casa.to)) navigate(casa.to, { replace: true });
   }, [user_id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
+    <>
     <Routes>
       {/* PDV em tela própria (erp.myfrost.ai/pdv), sem o menu do ERP */}
       {vis.ve("pedidos", "/pdv") && <Route path="pdv" element={<Pdv />} />}
@@ -368,6 +371,8 @@ function RotasERP() {
         ))}
         {/* Sobre o ERP Line (módulos e atualizações): todos que entram no ERP abrem, pela versão no fim do menu */}
         <Route path="sobre" element={<Sobre />} />
+        {/* Anotações por voz (botão do microfone): todos que entram no ERP abrem; quem confere marca */}
+        <Route path="anotacoes" element={<Anotacoes />} />
         {/* Retaguarda: só a conta master (painel pessoal, My Frost Sorveterias, usuários, configurações da empresa);
             o banco também só mostra as linhas de quem criou */}
         {master && <Route path="retaguarda" element={<Retaguarda />} />}
@@ -378,6 +383,9 @@ function RotasERP() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    {/* botão do microfone (Anotar por voz) em todas as telas, inclusive nos apps do celular */}
+    <AnotarPorVoz />
+    </>
   );
 }
 

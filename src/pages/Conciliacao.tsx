@@ -15,6 +15,7 @@ import { lerExtrato, linhasCsv, type LinhaExtrato, type MapaCsv, type ResultadoE
 import { sugerir, type Sugestao } from "@/lib/conciliacao";
 import { direcaoDe, emPedacos, regrasDasLinhas, textoRegra, type RegraConciliacao } from "@/lib/conciliacaoLote";
 import { PorFavorecido } from "@/components/financeiro/ConciliacaoLote";
+import { PagamentosAnotados } from "@/components/voz/PagamentosAnotados";
 import type { ConexaoOF } from "@/components/financeiro/OpenFinance";
 import type { ConexaoInter } from "@/components/financeiro/Inter";
 import { AvisoContasRepetidas, ResumoExtrato } from "@/components/financeiro/ResumoExtrato";
@@ -197,6 +198,8 @@ export default function Conciliacao() {
           <Button variant="secondary" onClick={() => navigate("/configuracoes/bancos")} title="Open Finance, API do Inter e extrato OFX por e-mail"><Zap size={16} /> Extrato automático</Button>
           <Button onClick={() => setImportar(true)} disabled={!bancos.some((b) => b.ativo)}><FileUp size={16} /> Importar extrato</Button>
         </>} />
+
+      <PagamentosAnotados />
 
       {!bancos.length && (
         <Card className="mb-5 p-5 text-sm text-slate-600">
