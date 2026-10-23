@@ -41,10 +41,14 @@ export function passosDaTrilha(path: string): Passo[] {
 }
 
 export function Trilha() {
-  const { pathname, key } = useLocation();
+  const { pathname, search, key } = useLocation();
   const navigate = useNavigate();
   if (pathname === "/") return null;
   const passos = passosDaTrilha(pathname);
+  // no Sobre, o Início volta para o começo do Sobre (e o nome dele vira link quando uma aba está aberta)
+  const noSobre = pathname === "/sobre";
+  const inicio = noSobre ? "/sobre" : "/";
+  if (noSobre && search && passos.length) passos[passos.length - 1] = { ...passos[passos.length - 1], to: "/sobre" };
   const subir = [...passos].reverse().find((p) => p.to && p.to !== pathname)?.to ?? "/";
   // a primeira tela aberta (link, nova aba ou recarregar sem histórico) tem a chave "default": sem tela anterior no ERP
   const temAnterior = key !== "default";
@@ -57,12 +61,12 @@ export function Trilha() {
       {/* no celular a trilha fica numa linha só: Voltar + a área (o nome da tela já está no título logo abaixo) */}
       <ol className="flex min-w-0 flex-nowrap items-center gap-x-1 gap-y-0.5 overflow-hidden text-slate-500 sm:flex-wrap">
         <li className="hidden items-center sm:flex">
-          <Link to="/" className="inline-flex items-center gap-1 rounded px-1 hover:text-fg hover:underline"><Home size={14} aria-hidden /> Início</Link>
+          <Link to={inicio} className="inline-flex items-center gap-1 rounded px-1 hover:text-fg hover:underline"><Home size={14} aria-hidden /> Início</Link>
         </li>
         {passos.map((p, i) => (
           <li key={`${p.label}-${i}`} className={`min-w-0 items-center gap-1 ${i === passos.length - 1 && passos.length > 1 ? "hidden sm:flex" : "flex"}`}>
             <ChevronRight size={14} className={`shrink-0 text-slate-400 ${i === 0 ? "hidden sm:block" : ""}`} aria-hidden />
-            {p.to && i < passos.length - 1
+            {p.to && (i < passos.length - 1 || noSobre)
               ? <Link to={p.to} className="truncate rounded px-1 hover:text-fg hover:underline">{p.label}</Link>
               : <span aria-current={i === passos.length - 1 ? "page" : undefined} className="truncate px-1 font-semibold text-fg">{p.label}</span>}
           </li>
