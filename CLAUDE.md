@@ -44,6 +44,10 @@
   - CLI "ERP Line – Cadastro de clientes": o cadastro de clientes da MF (dados completos e certos, conferência com a Receita,
     IE baixada, repetidos e unificação, endereços, marcadores, cliente desde, Ficha 360). Importação do Tiny fica no
     "Importações do Tiny"; clientes da My Frost no "My Frost".
+  - PRD "ERP Line – Cadastro de produtos": o cadastro de produtos da MF (peças, componentes e máquinas como produto;
+    NCM, custo, categoria, marca, EAN, fotos, medidas, fornecedores do produto, kits e composição, repetidos e unificação,
+    qualidade do cadastro, formação de preço e tabelas de preço). Estoque, compras e produção ficam no "continuação";
+    importação do Tiny no "Importações do Tiny"; anúncios no "Marketplaces".
   - DSG "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
   - SEG "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - CAR "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
@@ -51,7 +55,8 @@
   - ENT "ERP Line – Entradas nas contas da MF": de onde veio cada entrada nos bancos da MF (vendas, clientes,
     licenciados, cartão, Olist, InfinitePay, Inter, Mercado Pago) e a ligação com pedido, nota ou conta a receber.
   - IAD "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
-  - GER "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
+  - GER "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco);
+    o cadastro de produtos é do PRD.
   - CNF "ERP Line – Conferência dos pedidos": confere se o que foi pedido a cada chat deu certo e está no ar, cobra os
     chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
   - DOC "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir

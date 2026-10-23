@@ -1,6 +1,6 @@
 ---
 name: ger
-description: GER — chat "ERP Line – continuação (22/10)". Use quando o pedido for sobre vendas, pedidos e propostas, máquinas, produtos e estoque, fornecedores, compras, produção, financeiro (contas a pagar e a receber, DRE, bancos), assistência e garantias, expedição, comissões, metas, PDV, portal do representante ou qualquer assunto sem outro dono. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
+description: GER — chat "ERP Line – continuação (22/10)". Use quando o pedido for sobre vendas, pedidos e propostas, máquinas, estoque, fornecedores, compras, produção, financeiro (contas a pagar e a receber, DRE, bancos), assistência e garantias, expedição, comissões, metas, PDV, portal do representante ou qualquer assunto sem outro dono. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
 ---
 
 # GER — continuação (22/10)
@@ -12,8 +12,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 ## Faço
 - Vendas e propostas: `src/pages/Pedidos.tsx`, `src/components/pedidos/`, `src/components/vendas/`, `src/lib/propostas.ts`,
   tabelas `pedidos`, `pedido_itens`; PDV `src/pages/Pdv.tsx`; portal `src/pages/Portal.tsx`, `src/components/portal/`.
-- Produtos, máquinas e estoque: `src/pages/Produtos.tsx`, `src/components/produtos/`, `src/lib/maquinas.ts`, `src/lib/kits.ts`,
-  `src/lib/estrutura.ts`; tabelas `produtos`, `estoque_movimentos`, `equipamentos`; `src/pages/Transferencias.tsx`.
+- Máquinas e estoque: `src/lib/maquinas.ts`, tabelas `estoque_movimentos`, `equipamentos`; `src/pages/Transferencias.tsx`.
 - Fornecedores e compras: `src/pages/Fornecedores.tsx`, `src/components/compras/`, `src/lib/ordemCompra.ts`,
   tabelas `fornecedores`, `pedidos_compra`, `cotacoes`; compras em marketplaces (`src/pages/ComprasMarketplace.tsx`).
 - Produção: `src/pages/Producao.tsx`, `src/components/producao/`, tabela `ordens_producao`; teste do giga `src/pages/TesteGiga.tsx`.
@@ -28,6 +27,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - Nota fiscal, impostos, contador, parcelamentos → FIS. Importação do Tiny → TIN.
 - De onde veio cada entrada nos bancos → ENT. Carteira pessoal → CAR.
 - Cadastro de clientes (Receita, repetidos, endereços, Ficha 360) → CLI.
+- Cadastro de produtos (dados, NCM, custo, EAN, fotos, kits, repetidos, formação de preço) → PRD.
 - Mercado Livre, Google Shopping e loja online → MKT. Transportadoras e fretes → TRA. Técnicos → TEC.
 - My Frost (empresa anterior) → MYF. My Frost Sorveterias e Yozzy → SOR.
 - Visual → DSG. Permissões e login → SEG. Docs `.md` → DOC. Ideias de IA → IAD.
@@ -58,7 +58,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   `set timezone to 'America/Sao_Paulo'` (quem recria com "create or replace" mantém).
 - Valor digitado: `lerValor` / `lerValorOuErro` (`src/lib/auditoriaBusca.ts`), nunca `Number()` de texto pt-BR.
 - Salvar só o que mudou: `src/lib/soMudou.ts` (o `CrudPage` já usa).
-- Unificação de cadastros só soma marcadores e completa campos vazios (`unificar_produtos`, `unificar_fornecedores`).
+- Unificação de cadastros só soma marcadores e completa campos vazios (`unificar_fornecedores`).
 - Botão de gravar com trava `useRef` (ex.: `const travado = useRef(false)`) contra clique duplo.
 - Criar trigger em `public.produtos` pela API (apply_migration) costuma travar: fazer por migração no GitHub Actions.
 - No cartão, "MP *LOJA" é maquininha do Mercado Pago, não compra no Mercado Livre (`src/lib/marketplaces.ts`).

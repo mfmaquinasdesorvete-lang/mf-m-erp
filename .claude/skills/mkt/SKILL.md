@@ -26,7 +26,7 @@ Cuido das vendas da MF nos canais online: Mercado Livre, Google Shopping e os pr
 - Configuração da NF-e, impostos e regras de tributação → FIS (eu cuido só da NF do pedido no fluxo do canal).
 - Transportadoras e fretes fora do envio do canal → TRA.
 - Dinheiro que entrou no banco vindo do canal → ENT.
-- Cadastro do produto (dados gerais, estoque, custo) → GER. Cadastro do cliente → CLI.
+- Cadastro do produto (dados gerais, custo, EAN, fotos) → PRD. Estoque → GER. Cadastro do cliente → CLI.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".

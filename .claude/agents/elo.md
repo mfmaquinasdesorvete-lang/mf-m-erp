@@ -37,6 +37,7 @@ só. Seu trabalho é fazer com que nenhum deles esqueça quem é, o que faz e as
 | TRA | Transportadoras | Transportadoras e fretes: cotação, coleta, etiqueta, rastreio, CT-e e faturas delas |
 | TEC | Técnicos | Técnicos próprios e parceiros: cadastro, região, app do técnico, OS que atendem, pagamentos |
 | CLI | Cadastro de clientes | Cadastro de clientes da MF: dados certos, Receita, repetidos, endereços, marcadores, Ficha 360 |
+| PRD | Cadastro de produtos | Cadastro de produtos: dados completos, NCM, custo, EAN, fotos, fornecedores, kits, repetidos, formação de preço |
 
 Chat novo: escolha 3 letras que lembrem o assunto, sem repetir as de cima, e acrescente na tabela, no `CLAUDE.md`, na
 `chats_claude` e crie a skill.

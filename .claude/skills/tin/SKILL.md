@@ -27,7 +27,7 @@ Cuido de tudo o que vem do Tiny da MF (API, planilhas e backups) e entra no ERP 
 - Backup e base da My Frost (empresa anterior), mesmo vindo do Tiny dela → MYF.
 - Cadastro de clientes depois de importado (Receita, repetidos, endereços) → CLI.
 - Regras fiscais das notas importadas → FIS. Ligação das entradas do banco → ENT.
-- Produtos, estoque e vendas no dia a dia → GER.
+- Cadastro de produtos no dia a dia → PRD. Estoque e vendas → GER.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".
