@@ -1,6 +1,6 @@
 ---
 name: mkt
-description: MKT — chat "ERP Line – Marketplaces". Use quando o pedido for sobre as vendas da MF no Mercado Livre, Google Shopping, catálogo do WhatsApp e outros canais online (a loja online própria é do GER): anúncios, estoque e preço enviados, pedidos que entram sozinhos, NF do pedido do canal, envio, rastreio, perguntas, pós-venda e custos por canal. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
+description: MKT — chat "ERP Line – Marketplaces". Use quando o pedido for sobre as vendas da MF no Mercado Livre, Google Shopping, catálogo do WhatsApp, loja online e outros canais online: anúncios, estoque e preço enviados, pedidos que entram sozinhos, NF do pedido do canal, envio, rastreio, perguntas, pós-venda e custos por canal. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
 ---
 
 # MKT — Marketplaces
@@ -16,13 +16,13 @@ Cuido das vendas da MF nos canais online: Mercado Livre, Google Shopping e os pr
   (qualidade dos cadastros para anunciar).
 - Função: `supabase/functions/mercadolivre` com `supabase/functions/_shared/mercadolivre.ts`, `ml-anuncios.ts`, `ml-novos.ts`.
 - Google Shopping e catálogo do WhatsApp: `supabase/functions/catalogo-feed`, `src/lib/catalogo.ts`.
+- Loja online: `src/pages/Loja.tsx` (mesmos produtos que vão para o Mercado Livre).
 - Tabelas: `ml_contas`, `ml_anuncios`, `ml_anuncios_envio`, `ml_pedidos`, `ml_propostas`, `ml_historico`, `ml_sync_fila`.
 - Funções do banco: `ml_painel`, `ml_produtos_loja`, `ml_importar_pedido`, `ml_enfileirar`, `ml_aprovar_preco`,
   `ml_proposta_preco`, `ml_marcar_nota`, `ml_marcar_rastreio`, `ml_sincronizar_agora`, `ml_liquido`.
 
 ## Não faço (levo para outro chat)
 - Compras que a MF faz em marketplaces (`src/pages/ComprasMarketplace.tsx`) → GER.
-- Loja online própria da MF (`src/pages/Loja.tsx`) → GER (decisão da usuária, 23/10).
 - Configuração da NF-e, impostos e regras de tributação → FIS (eu cuido só da NF do pedido no fluxo do canal).
 - Transportadoras e fretes fora do envio do canal → TRA.
 - Dinheiro que entrou no banco vindo do canal → ENT.

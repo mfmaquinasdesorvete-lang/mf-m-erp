@@ -21,7 +21,6 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   tabelas `contas_pagar`, `contas_receber`, `contas_bancarias`; gastos separados, partes relacionadas, combustível.
 - Assistência e garantias: `src/pages/Assistencia.tsx`, `src/pages/Garantias.tsx`, `src/lib/garantia.ts`,
   tabelas `ordens_servico`, `os_itens`.
-- Loja online própria: `src/pages/Loja.tsx` (cadastro do cliente, carrinho e pedido; usa os mesmos produtos do Mercado Livre).
 - Expedição, comissões, metas, margem, fluxo: `src/pages/paineis/PainelExpedicao.tsx`, `src/pages/Comissoes.tsx`,
   `src/pages/Metas.tsx`, `src/pages/Margem.tsx`, `src/pages/Fluxo.tsx`.
 
@@ -29,7 +28,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - Nota fiscal, impostos, contador, parcelamentos → FIS. Importação do Tiny → TIN.
 - De onde veio cada entrada nos bancos → ENT. Carteira pessoal → CAR.
 - Cadastro de clientes (Receita, repetidos, endereços, Ficha 360) → CLI.
-- Mercado Livre, Google Shopping e outros marketplaces → MKT. Transportadoras e fretes → TRA. Técnicos → TEC.
+- Mercado Livre, Google Shopping e loja online → MKT. Transportadoras e fretes → TRA. Técnicos → TEC.
 - My Frost (empresa anterior) → MYF. My Frost Sorveterias e Yozzy → SOR.
 - Visual → DSG. Permissões e login → SEG. Docs `.md` → DOC. Ideias de IA → IAD.
 

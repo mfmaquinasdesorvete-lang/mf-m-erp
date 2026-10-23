@@ -36,7 +36,7 @@
     unidades, contratos, sócios, máquinas das lojas, custos, pagamentos, licenças e o plano fiscal delas.
   - MKT "ERP Line – Marketplaces": vendas da MF no Mercado Livre, Google Shopping e outros canais online (anúncios,
     estoque e preço, pedidos que entram sozinhos, NF do pedido, envio, perguntas, pós-venda e custos por canal).
-    Compras feitas em marketplaces e a loja online própria (Loja) ficam no "continuação".
+    Compras feitas em marketplaces ficam no "continuação".
   - TRA "ERP Line – Transportadoras": transportadoras e fretes (cadastro, cotação, coleta, etiquetas, rastreio, CT-e e
     faturas das transportadoras, integrações como a Rodonaves). Crédito fiscal do CT-e fica no "Fiscal e contábil".
   - TEC "ERP Line – Técnicos": técnicos próprios e parceiros (cadastro, região, app do técnico, OS que eles atendem,
