@@ -15,9 +15,13 @@ AQUI="$(cd "$(dirname "$0")" && pwd)"
 TRAB="$(mktemp -d)"
 cd "$TRAB"
 supabase link --project-ref "$PROJECT_REF" < /dev/null > /dev/null
+# trava de publicação durante a cópia: nenhum chat muda o banco entre a estrutura e os dados
+node "$AQUI/trava.mjs" pegar "$TRAB/trava.id"
+trap 'node "$AQUI/trava.mjs" soltar "$TRAB/trava.id" || true' EXIT
 supabase db dump --linked --role-only -f "$BACKUP_DIR/banco/roles.sql" < /dev/null
 supabase db dump --linked -f "$BACKUP_DIR/banco/schema.sql" < /dev/null
 supabase db dump --linked --data-only --use-copy -f "$BACKUP_DIR/banco/data.sql" < /dev/null
+node "$AQUI/trava.mjs" soltar "$TRAB/trava.id" && trap - EXIT
 # Separa o que não se restaura num Supabase novo (o usuário postgres não grava aí e não faria sentido):
 #   agendamentos (cron), fila HTTP (net), webhooks (supabase_functions) e segredos do Vault (cifrados com a chave
 #   do projeto antigo) vão para banco/interno.sql, só para consulta; tabelas internas vazias (ex.: storage.buckets_vectors)
