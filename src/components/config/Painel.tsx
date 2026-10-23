@@ -54,6 +54,7 @@ export function PainelConfig() {
     email: { texto: cfg.avisos_email_ativo ? "E-mails automáticos para os clientes ligados" : "E-mails automáticos para os clientes desligados" },
     contador: cfg.contador_envio_auto ? { texto: `Fechamento enviado sozinho todo dia ${cfg.contador_envio_dia ?? 5}`, ok: !!cfg.contador_email } : { texto: "Envio automático desligado" },
     cadastros: { texto: "Criar, renomear e organizar categorias e marcadores" },
+    ia: cfg.ia_ligada === false ? { texto: `IA desligada${cfg.ia_desligada_motivo ? `: ${cfg.ia_desligada_motivo}` : ""}`, ok: false } : { texto: "IA ligada · registro de cada uso" },
     dados: tem("financeiro")
       ? (ultimoBackup ? { texto: `Último backup: ${new Date(ultimoBackup.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`, ok: !backupAtrasado } : { texto: "Nenhum backup registrado", ok: false })
       : { texto: "Exportar dados e apagar testes" },

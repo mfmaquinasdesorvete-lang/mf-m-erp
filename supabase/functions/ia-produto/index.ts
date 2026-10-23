@@ -2,11 +2,12 @@
 // já preenchidos, a foto e o PDF do fornecedor e devolve as sugestões (ver _shared/ia-produto.ts). Só sugere: quem
 // cadastra marca o que quer usar e salva o produto. A chave fica no secret ANTHROPIC_API_KEY do Supabase.
 // POST { produto, foto_caminho?, imagem?: { tipo, base64 }, documento?: { nome, base64 } } -> { sugestao, modelo }
-// POST { acao: "situacao" }                                                               -> { configurada }
+// POST { acao: "situacao" }                                                               -> { configurada, ligada }
 // POST { acao: "itens", itens: ItemIA[] } (Conferir itens das notas, até 25)              -> { itens: SugestaoItemIA[], modelo }
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
+import { conferirIaLigada, registrarIa } from "../_shared/ia-controle.ts";
 import {
   ESQUEMA_SUGESTAO, INSTRUCOES, LIMITE_ARQUIVO, montarPedido, normalizarSugestao, TIPOS_IMAGEM, type ProdutoEntrada, type SugestaoIA,
 } from "../_shared/ia-produto.ts";
@@ -64,25 +65,34 @@ async function perguntar<T>(chave: string, instrucoes: string, esquema: unknown,
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const db = adminClient();
+  let userId: string | null = null;
+  let uso: { acao: string; resumo: string } | null = null; // o que vai para o registro da IA
   try {
-    await requireErpUser(req);
+    ({ userId } = await requireErpUser(req));
     const body = await req.json().catch(() => ({}));
     const chave = Deno.env.get("ANTHROPIC_API_KEY");
-    if (body.acao === "situacao") return json({ configurada: !!chave });
+    if (body.acao === "situacao") {
+      const { data: c } = await db.from("configuracoes").select("ia_ligada").eq("id", 1).maybeSingle();
+      return json({ configurada: !!chave, ligada: c?.ia_ligada !== false });
+    }
     if (!chave) throw new HttpError(503, "IA não configurada: cadastre o secret ANTHROPIC_API_KEY no Supabase (Edge Functions → Secrets).");
+    await conferirIaLigada(db);
 
     if (body.acao === "itens") {
       const itens = (Array.isArray(body.itens) ? body.itens : []).slice(0, LIMITE_ITENS) as ItemIA[];
       if (!itens.length) throw new HttpError(400, "Nenhum item para conferir.");
+      uso = { acao: "itens", resumo: `Conferir ${itens.length} itens das notas: ${itens.slice(0, 3).map((i) => i.descricao).join("; ")}` };
       const r = await perguntar<{ itens?: [] }>(chave, INSTRUCOES_ITENS, ESQUEMA_ITENS, [{ type: "text", text: montarPedidoItens(itens) }],
         "A IA não quis responder sobre estes itens: confira à mão.");
+      await registrarIa(db, userId, { funcao: "ia-produto", ...uso, modelo: r.modelo, ok: true });
       return json({ itens: normalizarItens(r.bruta, itens), modelo: r.modelo });
     }
 
     const produto = body.produto as ProdutoEntrada | undefined;
     if (!produto?.descricao || String(produto.descricao).trim().length < 2) throw new HttpError(400, "Escreva o nome do produto primeiro.");
 
-    const db = adminClient();
+    uso = { acao: "produto", resumo: `Preencher o produto: ${produto.descricao}` };
     const { data: cats } = await db.from("categorias_produto").select("nome").eq("ativo", true).order("nome");
     const categorias = (cats ?? []).map((c: { nome: string }) => c.nome);
 
@@ -104,8 +114,10 @@ Deno.serve(async (req) => {
 
     const r = await perguntar<Partial<SugestaoIA>>(chave, INSTRUCOES, ESQUEMA_SUGESTAO, conteudo,
       "A IA não quis responder sobre este produto. Preencha à mão ou tente sem o arquivo.");
+    await registrarIa(db, userId, { funcao: "ia-produto", ...uso, modelo: r.modelo, ok: true });
     return json({ sugestao: normalizarSugestao(r.bruta, categorias), modelo: r.modelo, foto_usada: !!imagem, documento_usado: !!documento });
   } catch (e) {
+    if (uso) await registrarIa(db, userId, { funcao: "ia-produto", ...uso, ok: false, erro: (e as Error).message });
     const status = e instanceof HttpError ? e.status : 500;
     return json({ error: (e as Error).message }, status);
   }

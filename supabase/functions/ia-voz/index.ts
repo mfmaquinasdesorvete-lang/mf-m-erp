@@ -6,6 +6,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
+import { conferirIaLigada, registrarIa } from "../_shared/ia-controle.ts";
 import { ESQUEMA_VOZ, INSTRUCOES_VOZ, LIMITE_FALA, montarPedidoVoz, normalizarVoz, termosBusca, type EntendidoVoz } from "../_shared/ia-voz.ts";
 
 const MODELO = "claude-opus-5-5";
@@ -121,14 +122,22 @@ async function candidatos(db: Db, e: EntendidoVoz): Promise<Candidato[]> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const db = adminClient();
+  let userId: string | null = null;
+  let uso: { acao: string; resumo: string } | null = null; // o que vai para o registro da IA
   try {
-    await requireErpUser(req);
+    ({ userId } = await requireErpUser(req));
     const body = await req.json().catch(() => ({}));
     const chave = Deno.env.get("ANTHROPIC_API_KEY");
-    if (body.acao === "situacao") return json({ configurada: !!chave });
+    if (body.acao === "situacao") {
+      const { data: c } = await db.from("configuracoes").select("ia_ligada").eq("id", 1).maybeSingle();
+      return json({ configurada: !!chave, ligada: c?.ia_ligada !== false });
+    }
     if (!chave) throw new HttpError(503, "IA não configurada: cadastre o secret ANTHROPIC_API_KEY no Supabase (Edge Functions → Secrets).");
+    await conferirIaLigada(db);
     const fala = String(body.fala ?? "").replace(/\s+/g, " ").trim().slice(0, LIMITE_FALA);
     if (fala.length < 4) throw new HttpError(400, "Não deu para ouvir: fale de novo.");
+    uso = { acao: "entender_fala", resumo: fala };
 
     const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
     const client = new Anthropic({ apiKey: chave });
@@ -157,13 +166,14 @@ Deno.serve(async (req) => {
     try { bruta = JSON.parse(texto); } catch { throw new HttpError(502, "A resposta da IA veio num formato inesperado: tente de novo."); }
     const entendido = normalizarVoz(bruta, fala);
 
-    const db = adminClient();
     const lista = unicos(await candidatos(db, entendido)).slice(0, 8);
     // lembrete: a pessoa da equipe citada (as outras ficam para escolher na tela)
     const { data: equipe } = await db.from("usuarios_erp").select("user_id, nome").eq("ativo", true).neq("papel", "representante").order("nome");
     const pessoas = (equipe ?? []).map((u: { user_id: string; nome: string }) => ({ id: u.user_id, nome: u.nome }));
+    await registrarIa(db, userId, { funcao: "ia-voz", ...uso, resumo: `${entendido.tipo}: ${fala}`, modelo: resposta.model, ok: true });
     return json({ entendido, candidatos: lista, pessoas, modelo: resposta.model });
   } catch (e) {
+    if (uso) await registrarIa(db, userId, { funcao: "ia-voz", ...uso, ok: false, erro: (e as Error).message });
     const status = e instanceof HttpError ? e.status : 500;
     return json({ error: (e as Error).message }, status);
   }
