@@ -77,7 +77,7 @@ export function AlcaArrastar({ nome, ...props }: { nome: string } & ReturnType<R
   return (
     <button type="button" {...props} aria-label={`Mudar a ordem de ${nome}: arraste ou use as setas para cima e para baixo`}
       title="Arraste para mudar a ordem" style={{ touchAction: "none" }}
-      className="grid h-8 w-6 shrink-0 cursor-grab place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing">
+      className="botao-icone h-8 w-6 cursor-grab p-0 text-slate-400 active:cursor-grabbing">
       <GripVertical size={16} aria-hidden />
     </button>
   );

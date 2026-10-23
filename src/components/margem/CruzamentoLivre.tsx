@@ -4,7 +4,7 @@
 // fluxo de caixa).
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { Button, Table } from "@/components/ui";
+import { Button, Table, chip } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
@@ -77,7 +77,7 @@ export function CruzamentoLivre({ fatosVendas, de, ate, filtrar, nomeUnidade }: 
         <span className="font-semibold text-fg">Cruzar:</span>
         {([["vendas", "Vendas e margem"], ["dinheiro", "Dinheiro recebido e pago"]] as const).map(([v, l]) => (
           <button key={v} type="button" onClick={() => setFonte(v)} aria-pressed={fonte === v}
-            className={`rounded-lg px-3 py-1.5 font-semibold ${fonte === v ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{l}</button>
+            className={chip(fonte === v)}>{l}</button>
         ))}
       </div>
       {fonte === "vendas"

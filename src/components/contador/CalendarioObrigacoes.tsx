@@ -4,7 +4,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Ban, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, FileText, Receipt, RotateCcw, Settings2 } from "lucide-react";
-import { Button, Card, Field, Modal } from "@/components/ui";
+import { Button, Card, Field, Modal, chip } from "@/components/ui";
 import { pedirTexto } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
@@ -81,15 +81,15 @@ export function CalendarioObrigacoes() {
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => mudarMes(-1)} aria-label="Mês anterior" className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button type="button" onClick={() => mudarMes(-1)} aria-label="Mês anterior" className="botao-icone h-9 w-9 border border-slate-200"><ChevronLeft size={18} /></button>
             <h2 className="min-w-[11rem] text-center text-lg font-bold text-fg">{nomeDoMes(mes)}</h2>
-            <button type="button" onClick={() => mudarMes(1)} aria-label="Próximo mês" className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 hover:bg-slate-50"><ChevronRight size={18} /></button>
-            {mes !== hoje.slice(0, 7) && <button type="button" onClick={() => setMes(hoje.slice(0, 7))} className="ml-1 px-2 text-sm font-semibold text-brand">Hoje</button>}
+            <button type="button" onClick={() => mudarMes(1)} aria-label="Próximo mês" className="botao-icone h-9 w-9 border border-slate-200"><ChevronRight size={18} /></button>
+            {mes !== hoje.slice(0, 7) && <button type="button" onClick={() => setMes(hoje.slice(0, 7))} className="link-acao ml-1 px-2 text-sm">Hoje</button>}
           </div>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar">
             {[["todas", "Tudo"], ["empresa", "Empresa"], ...unidades.map((u) => [u.id, u.codigo || u.nome])].map(([v, r]) => (
               <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
-                className={`rounded-full border px-3 py-1 text-sm font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>{r}</button>
+                className={chip(filtro === v)}>{r}</button>
             ))}
           </div>
           {pode && <Button variant="secondary" className="ml-auto" onClick={() => setAjustar(true)}><Settings2 size={16} /> Ajustar prazos</Button>}
@@ -105,7 +105,7 @@ export function CalendarioObrigacoes() {
         <Card className="border-violet-200 p-4 text-sm text-slate-700">
           <b className="text-fg">Começando a usar o calendário?</b> Em "Ajustar prazos", escolha o mês a partir do qual o ERP acompanha as
           obrigações: o que venceu antes fica de fora (já cuidado pelo contador) e não aparece como atrasado.
-          {pode && <button type="button" onClick={() => setAjustar(true)} className="ml-1 font-semibold text-brand">Definir agora</button>}
+          {pode && <button type="button" onClick={() => setAjustar(true)} className="link-acao ml-1">Definir agora</button>}
         </Card>
       )}
       {atrasadasAntes.length > 0 && (

@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
 import { rotuloPapel } from "@/lib/permissoes";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, Field, Modal, chip } from "@/components/ui";
 import { guardarVoz, melhorVoz, nomeVozEscolhida, pontuarVoz, vozesPortugues } from "@/lib/voz";
 
 export type Urgencia = "normal" | "importante" | "urgente";
@@ -322,11 +322,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                   {n.texto && <span className="mt-0.5 block truncate text-xs text-slate-600 md:line-clamp-2 md:whitespace-normal md:text-sm">{n.texto}</span>}
                 </button>
                 <span className="flex flex-wrap gap-x-4">
-                  {n.link && <button type="button" onClick={() => abrir(n)} className="mt-2 hidden text-sm font-bold text-brand hover:underline md:inline">Abrir →</button>}
-                  {respondivel(n) && <button type="button" onClick={() => responder(n)} className="mt-1.5 inline-flex items-center gap-1 text-sm font-bold text-brand hover:underline md:mt-2"><Reply size={14} /> Responder</button>}
+                  {n.link && <button type="button" onClick={() => abrir(n)} className="link-acao mt-2 hidden text-sm md:inline">Abrir →</button>}
+                  {respondivel(n) && <button type="button" onClick={() => responder(n)} className="link-acao mt-1.5 inline-flex items-center gap-1 text-sm md:mt-2"><Reply size={14} /> Responder</button>}
                 </span>
               </div>
-              <button type="button" aria-label="Fechar" onClick={() => setPopups((p) => p.filter((x) => x.id !== n.id))} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
+              <button type="button" aria-label="Fechar" onClick={() => setPopups((p) => p.filter((x) => x.id !== n.id))} className="botao-icone p-1"><X size={16} /></button>
             </div>
           );
         })}
@@ -384,10 +384,10 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 </button>
                 <button type="button" onClick={alternarVoz} title={voz ? "Voz dos avisos dos chats ligada" : "Voz dos avisos dos chats desligada"}
                   aria-label={voz ? "Desligar a voz dos avisos dos chats" : "Ligar a voz dos avisos dos chats"} aria-pressed={voz}
-                  className={`rounded-lg p-1.5 hover:bg-slate-100 ${voz ? "text-violet-600" : "text-slate-400"}`}>
+                  className={`botao-icone ${voz ? "text-violet-600" : "text-slate-400"}`}>
                   <Speaker size={17} />
                 </button>
-                <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
+                <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="botao-icone p-1"><X size={18} /></button>
               </span>
             </div>
             {voz && <EscolherVoz />}
@@ -409,7 +409,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                   return (
                     <li key={n.id} className="flex items-start gap-1">
                       <button type="button" onClick={() => (n.exige_ciencia && paraMim(n) && !meu(n) && !jaCiente(n) ? setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]) : n.conversa_id && !n.link ? setResponderA(n) : abrir(n))}
-                        className="flex min-w-0 flex-1 items-start gap-3 rounded-xl p-2 text-left hover:bg-slate-50">
+                        className="linha-clicavel flex min-w-0 flex-1 items-start gap-3 p-2">
                         <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${e.cor} 18%, transparent)`, color: e.cor }}><e.icon size={17} /></span>
                         <span className="min-w-0 flex-1">
                           {n.urgencia && n.urgencia !== "normal" && (
@@ -431,7 +431,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                       </button>
                       {(respondivel(n) || (meu(n) && n.conversa_id)) && (
                         <button type="button" onClick={() => responder(n)} aria-label={`Responder: ${n.titulo}`} title={respondivel(n) ? "Responder" : "Ver a conversa"}
-                          className="mt-1.5 shrink-0 rounded-lg p-2 text-brand hover:bg-slate-100"><Reply size={16} /></button>
+                          className="botao-icone mt-1.5 p-2 text-brand"><Reply size={16} /></button>
                       )}
                     </li>
                   );
@@ -486,7 +486,7 @@ function NovoAviso({ paraInicial = [], onClose }: { paraInicial?: string[]; onCl
 
   const aba = (v: typeof modo, rotulo: string) => (
     <button type="button" onClick={() => setModo(v)} aria-pressed={modo === v}
-      className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${modo === v ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"}`}>{rotulo}</button>
+      className={chip(modo === v)}>{rotulo}</button>
   );
   return (
     <Modal open onClose={onClose} title="Enviar aviso">
@@ -607,7 +607,7 @@ function ResponderAviso({ aviso, onClose }: { aviso: Notificacao; onClose: () =>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Urgência">
               {(Object.keys(NIVEL) as Urgencia[]).map((k) => (
                 <button key={k} type="button" aria-pressed={urgencia === k} onClick={() => { setUrgencia(k); tocar(k); }}
-                  className={`inline-flex items-center gap-1 rounded-full border-2 px-3 py-1 text-xs font-bold ${urgencia === k ? "" : "border-slate-200 text-slate-600"}`}
+                  className={chip(urgencia === k, "bg-surface")}
                   style={urgencia === k ? { borderColor: NIVEL[k].cor, color: NIVEL[k].cor } : undefined}>
                   {(() => { const I = NIVEL[k].icon; return <I size={14} />; })()} {NIVEL[k].rotulo}
                 </button>

@@ -78,7 +78,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: 
       {required && <input tabIndex={-1} aria-hidden className="pointer-events-none absolute bottom-0 left-4 h-px w-px opacity-0" required value={value ?? ""} onChange={() => {}} />}
       {escolhido && !disabled && !aberto && (
         <button type="button" title="Tirar o cliente" aria-label="Tirar o cliente" onClick={() => escolher(null)}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          className="botao-icone absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
           <X size={16} />
         </button>
       )}

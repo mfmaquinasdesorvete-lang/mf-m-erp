@@ -146,7 +146,7 @@ export function FormServicoTomado({ inicial, onClose }: { inicial?: NfseImportad
         </div>
 
         <div className="rounded-xl border border-slate-200 p-3">
-          <button type="button" className="text-sm font-semibold text-brand" onClick={() => setRetencoesAbertas((v) => !v)} aria-expanded={retencoesAbertas}>
+          <button type="button" className="link-acao text-sm" onClick={() => setRetencoesAbertas((v) => !v)} aria-expanded={retencoesAbertas}>
             {retencoesAbertas ? "▾" : "▸"} Impostos retidos (ISS, IR, INSS, PIS, COFINS, CSLL)
           </button>
           {retencoesAbertas && (

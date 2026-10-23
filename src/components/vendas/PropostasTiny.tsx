@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileDown, FilePlus2, Tags, Upload } from "lucide-react";
-import { Button, CelulaAbrir, Modal, Table } from "@/components/ui";
+import { Button, CelulaAbrir, Modal, Table, chip } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { AplicarMarcadores, BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
@@ -100,7 +100,6 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   const alternar = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const todosMarcados = lista.length > 0 && lista.every((p) => sel.has(p.id));
 
-  const chip = (ativo: boolean) => `shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`;
   const ProxContato = ({ p }: { p: PropostaTiny }) => {
     if (!p.proximo_contato) return <span className="text-slate-400">—</span>;
     const c = contatoDaProposta(p, dia);
@@ -135,7 +134,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
           ))}
           <button type="button" aria-pressed={soLicenciados} onClick={() => { setSoLicenciados((v) => !v); setSel(new Set()); }}
             title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
-            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+            className={chip(soLicenciados, "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500")}>
             Licenciados <span className="num ml-1 opacity-90">{todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && ehLicenciado(p.cliente)).length}</span>
           </button>
         </div>
@@ -254,7 +253,7 @@ function AcompanharProposta({ p }: { p: PropostaTiny }) {
       </label>
       {pode && (
         <span className="flex gap-1 pb-1">
-          {[1, 3, 7, 15].map((d) => <button key={d} type="button" onClick={() => mais(d)} className="rounded-full border border-slate-300 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-white">+{d}d</button>)}
+          {[1, 3, 7, 15].map((d) => <Button key={d} type="button" tamanho="mini" variant="secondary" onClick={() => mais(d)}>+{d}d</Button>)}
         </span>
       )}
       <label className="block">

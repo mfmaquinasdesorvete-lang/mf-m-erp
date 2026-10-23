@@ -381,7 +381,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           </div>
         ))}
         {(filtrosAtivos > 0 || busca) && (
-          <button type="button" className={`px-2 py-2 text-sm text-brand hover:underline md:order-1 ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
+          <button type="button" className={`link-acao px-2 py-2 text-sm md:order-1 ${painel ? "" : "hidden md:inline"}`} onClick={() => { setEscolhas({}); setBusca(""); }}>Limpar filtros</button>
         )}
         {/* filtros escolhidos, à vista com o painel fechado (no computador, só os que estão dentro do painel) */}
         {!painel && filtrosAtivos > 0 && (
@@ -587,7 +587,7 @@ export function CampoMascara({ f, valor, row, buscando, mostrarErro, onBlur, onC
           )}
           {f.buscar && (
             <button type="button" title="Buscar dados" aria-label={`Buscar ${f.label}`} onClick={(e) => { e.preventDefault(); onBuscar(); }}
-              disabled={buscando} className="rounded-md p-1.5 text-brand hover:bg-slate-100 disabled:opacity-60">
+              disabled={buscando} className="botao-icone text-brand disabled:opacity-60">
               {buscando ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
             </button>
           )}

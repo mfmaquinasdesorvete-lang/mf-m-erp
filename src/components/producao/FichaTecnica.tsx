@@ -146,7 +146,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
     const n = todas.filter((f) => f.produto_id === m.id).length;
     return (
       <button key={m.id} type="button" onClick={() => setSelId(m.id)} aria-current={m.id === item?.id ? "true" : undefined}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${m.id === item?.id ? "bg-brand-light font-semibold text-fg" : "hover:bg-slate-50"}`}>
+        className={`linha-clicavel flex items-center justify-between gap-2 px-3 py-2 text-sm ${m.id === item?.id ? "bg-brand-light font-semibold text-fg hover:bg-brand-light" : ""}`}>
         <span className="min-w-0">{m.descricao}</span>
         <span className={`shrink-0 rounded px-1.5 text-2xs ${n ? "bg-slate-100 text-slate-600" : "bg-amber-100 font-semibold text-amber-800"}`}>
           {n ? `${n} ${pl(n, "item", "itens")}` : "sem ficha"}
@@ -312,7 +312,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
                                     {sub && (
                                       <button type="button" onClick={() => setAbertos((x) => { const n = new Set(x); if (n.has(c.componente_id)) n.delete(c.componente_id); else n.add(c.componente_id); return n; })}
                                         aria-expanded={abertos.has(c.componente_id)} aria-label={`${abertos.has(c.componente_id) ? "Fechar" : "Abrir"} as peças de ${nome}`}
-                                        className="mt-0.5 rounded p-0.5 text-slate-500 hover:bg-slate-100">
+                                        className="botao-icone mt-0.5 p-0.5">
                                         <ChevronRight size={15} className={`transition ${abertos.has(c.componente_id) ? "rotate-90" : ""}`} aria-hidden />
                                       </button>
                                     )}
@@ -325,7 +325,7 @@ export function FichaTecnica({ inicial }: { inicial?: string } = {}) {
                                     {kitNaFicha && <span className="font-semibold text-purple-700">kit · sai pelas peças dele</span>}
                                     {custoUn > 0 ? <span>{brl(custoUn)}/{peca?.unidade ?? "un"} · linha <b className="num">{brl(custoUn * c.quantidade)}</b></span> : <span className="font-semibold text-amber-700">sem custo</span>}
                                     {!kitNaFicha && <span>estoque {qtd(peca?.estoque_atual)}</span>}
-                                    {sub && <button type="button" className="text-brand hover:underline" onClick={() => setSelId(c.componente_id)}>abrir ficha</button>}
+                                    {sub && <button type="button" className="link-acao" onClick={() => setSelId(c.componente_id)}>abrir ficha</button>}
                                   </span>
                                 </span>
                                 <label className="flex items-center gap-1">

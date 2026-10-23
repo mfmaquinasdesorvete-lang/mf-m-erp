@@ -64,7 +64,7 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
                     {f.preferido
                       ? <Star size={16} className="fill-amber-400 text-amber-500" aria-label="Preferido" />
                       : podeEditar
-                        ? <button type="button" className="rounded p-0.5 text-slate-400 hover:text-amber-500" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f)}><Star size={16} aria-hidden /></button>
+                        ? <button type="button" className="botao-icone p-0.5 text-slate-400 hover:text-amber-500" title="Tornar o fornecedor preferido" aria-label={`Tornar ${nome(f.fornecedor_id)} o preferido`} onClick={() => preferido(f)}><Star size={16} aria-hidden /></button>
                         : null}
                   </td>
                   <td className="px-3 py-2 font-semibold text-fg">{nome(f.fornecedor_id)}</td>

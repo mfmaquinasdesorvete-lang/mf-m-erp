@@ -1,6 +1,7 @@
 import { Component, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { ehErroDeVersao, haVersaoNova, MSG_VERSAO } from "@/lib/versao";
+import { Button } from "@/components/ui";
 
 /** Uma tela que falhou não derruba o ERP inteiro: mostra o aviso e deixa o menu funcionando. */
 export class ErroTela extends Component<{ children: ReactNode }, { erro: unknown }> {
@@ -17,10 +18,9 @@ export class ErroTela extends Component<{ children: ReactNode }, { erro: unknown
           {versao ? "Recarregue a página para usar a versão nova." : "Recarregue a página. Se continuar, avise com um print desta mensagem."}
         </p>
         {!versao && <p className="mt-2 break-words text-xs text-slate-400">{String((this.state.erro as Error)?.message ?? this.state.erro)}</p>}
-        <button type="button" onClick={() => window.location.reload()}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg">
+        <Button type="button" onClick={() => window.location.reload()} className="mt-4">
           <RefreshCw size={15} /> Recarregar
-        </button>
+        </Button>
       </div>
     );
   }

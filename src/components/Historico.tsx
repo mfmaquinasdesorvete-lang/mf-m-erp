@@ -79,7 +79,7 @@ export function Historico({ tabela, id }: { tabela: string; id?: string | null }
   if (!id) return null;
   return (
     <div className="rounded-xl border border-slate-200 p-3">
-      <button type="button" onClick={() => setAberto(!aberto)} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-fg">
+      <button type="button" onClick={() => setAberto(!aberto)} className="link-discreto flex items-center gap-2 text-sm">
         <History size={15} /> Histórico de alterações {aberto ? "▴" : "▾"}
       </button>
       {aberto && (

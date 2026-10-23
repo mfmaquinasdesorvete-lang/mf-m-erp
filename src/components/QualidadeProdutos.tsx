@@ -66,7 +66,7 @@ export function QualidadeProdutos({ produtos, onCorrigir, podeEditar, inicial }:
         return (
           <div key={p.id} id={`problema-${p.id}`} className="scroll-mt-24"><Card className="overflow-hidden">
             <button type="button" onClick={() => setAberto(expandido ? "" : p.id)} aria-expanded={expandido}
-              className="flex w-full items-center gap-3 p-4 text-left hover:bg-slate-50">
+              className="linha-clicavel flex items-center gap-3 p-4">
               <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${COR[p.gravidade]}`} aria-label={`gravidade ${p.gravidade}`} />
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-fg">{p.titulo} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{p.itens.length}</span></span>

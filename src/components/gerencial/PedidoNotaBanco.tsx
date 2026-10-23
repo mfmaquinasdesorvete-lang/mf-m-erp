@@ -2,7 +2,7 @@
 // fiscal e do que entrou no banco (extrato ligado à conta a receber), com filtros pelo que não bate.
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, chip as classeChip } from "@/components/ui";
 import { CartaoPainel, type Cartao } from "@/components/painel/Painel";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
@@ -93,7 +93,7 @@ export function PedidoNotaBanco() {
   ];
   const chip = (f: Filtro, rotulo: string, qtd: number | undefined) => (
     <button key={f} type="button" onClick={() => setFiltro(f)} aria-pressed={filtro === f}
-      className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtro === f ? "border-brand bg-brand text-brand-fg" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+      className={classeChip(filtro === f)}>
       {rotulo} · {qtd ?? 0}
     </button>
   );

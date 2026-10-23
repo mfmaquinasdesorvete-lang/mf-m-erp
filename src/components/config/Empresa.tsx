@@ -106,7 +106,7 @@ function Cor({ rotulo, valor, padrao, onChange }: { rotulo: string; valor?: stri
       <span className="flex items-center gap-2">
         <input type="color" className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-transparent" value={valor || padrao} onChange={(e) => onChange(e.target.value.toUpperCase())} />
         <span className="num text-sm text-slate-500">{valor || "padrão"}</span>
-        {valor && <button type="button" className="text-xs font-semibold text-slate-500 hover:underline" onClick={() => onChange(null)}>limpar</button>}
+        {valor && <button type="button" className="link-discreto text-xs" onClick={() => onChange(null)}>limpar</button>}
       </span>
     </label>
   );

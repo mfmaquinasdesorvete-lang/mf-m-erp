@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link2, Loader2, RotateCcw, Send } from "lucide-react";
-import { Button, Card, Table } from "@/components/ui";
+import { Button, Card, Table, chip } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
 import { brl } from "@/lib/format";
@@ -139,7 +139,7 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar vendas">
         {([["todas", `Todas (${lista.length})`], ["atencao", `Pedem atenção (${atencao.length})`], ["fila", `NF-e na fila (${naFila.length})`]] as const).map(([v, t]) => (
           <button key={v} type="button" onClick={() => setFiltro(v)} aria-pressed={filtro === v}
-            className={`rounded-full border px-3 py-1 text-sm ${filtro === v ? "border-brand bg-brand-light font-semibold text-brand" : "border-slate-300 text-slate-600 hover:border-brand"}`}>{t}</button>
+            className={chip(filtro === v, "border-brand bg-brand-light text-brand")}>{t}</button>
         ))}
       </div>
 

@@ -104,7 +104,7 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
                         <div className="flex items-center justify-end gap-1">
                           <input className={`input w-20 py-1 text-right ${q > i.disponivel + 1e-9 ? "border-red-400" : ""}`} inputMode="decimal" disabled={!i.disponivel}
                             value={qtd[i.numero] ?? ""} placeholder="0" onChange={(e) => setQtd({ ...qtd, [i.numero]: e.target.value })} aria-label={`Quantidade a devolver de ${i.descricao}`} />
-                          <button type="button" className="text-xs font-semibold text-brand disabled:opacity-40" disabled={!i.disponivel} onClick={() => setQtd({ ...qtd, [i.numero]: String(i.disponivel) })}>tudo</button>
+                          <button type="button" className="link-acao text-xs disabled:opacity-40" disabled={!i.disponivel} onClick={() => setQtd({ ...qtd, [i.numero]: String(i.disponivel) })}>tudo</button>
                         </div>
                       </td>
                       <td className="px-3 py-2">

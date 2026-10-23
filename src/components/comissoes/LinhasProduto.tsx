@@ -116,7 +116,7 @@ function LinhaModal({ linha, onClose }: { linha: Partial<LinhaProduto>; onClose:
                   <input className="input" inputMode="decimal" value={f.pct} onChange={(e) => setFaixas(faixas.map((x, k) => k === i ? { ...x, pct: e.target.value.replace(/[^\d,.]/g, "") } : x))} />
                 </Field>
                 {faixas.length > 1 && (
-                  <button type="button" aria-label="Tirar faixa" className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={() => setFaixas(faixas.filter((_, k) => k !== i))}><Trash2 size={16} /></button>
+                  <button type="button" aria-label="Tirar faixa" className="botao-icone mb-1 p-2" onClick={() => setFaixas(faixas.filter((_, k) => k !== i))}><Trash2 size={16} /></button>
                 )}
               </div>
             ))}

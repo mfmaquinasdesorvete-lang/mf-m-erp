@@ -222,8 +222,8 @@ function ItemNota({ l, conta, d, podeEditar, trocando, onTrocar }: {
               aria-label={`Quantas ${unidadeErp} vêm em 1 ${i.unidade}`} onChange={(e) => d.mudarLinha(i.numero, { fator: Number(e.target.value) > 0 ? Number(e.target.value) : 1 })} />
             <span className="text-slate-600">{unidadeErp}</span>
             {l.fatorSugerido && l.fatorSugerido !== l.fator && podeEditar && (
-              <button type="button" className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-sky-200"
-                onClick={() => d.mudarLinha(i.numero, { fator: l.fatorSugerido! })}>usar {l.fatorSugerido} (pela descrição)</button>
+              <Button type="button" tamanho="mini" tom="fiscal"
+                onClick={() => d.mudarLinha(i.numero, { fator: l.fatorSugerido! })}>usar {l.fatorSugerido} (pela descrição)</Button>
             )}
             <span className="ml-auto text-xs text-slate-600">entra <b className="text-fg">{qtd(conta.quantidade_erp)} {unidadeErp}</b></span>
           </div>

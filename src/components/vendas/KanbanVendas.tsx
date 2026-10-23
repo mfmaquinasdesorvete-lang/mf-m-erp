@@ -74,7 +74,7 @@ export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, 
             ))}
             {!col.n && <p className="px-1 py-4 text-center text-xs text-slate-500">Nada aqui</p>}
             {col.fora > 0 && (
-              <button type="button" onClick={() => onVerNaLista(col.id)} className="inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-brand hover:bg-surface">
+              <button type="button" onClick={() => onVerNaLista(col.id)} className="link-acao inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs">
                 Mais {col.fora} na lista <ChevronRight size={14} aria-hidden />
               </button>
             )}

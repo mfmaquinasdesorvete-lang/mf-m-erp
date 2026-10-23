@@ -146,7 +146,7 @@ export function ApagarTestes() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button type="button" variant="secondary" disabled={!total || ocupado} onClick={() => chamar(false)}><Eye size={16} aria-hidden /> Ver o que vai sair ({total})</Button>
         {travados.n > 0 && (
-          <button type="button" onClick={() => setVerTravados(!verTravados)} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:underline">
+          <button type="button" onClick={() => setVerTravados(!verTravados)} className="link-discreto inline-flex items-center gap-1 text-sm">
             <Lock size={14} aria-hidden /> {verTravados ? "Esconder" : "Mostrar"} os {travados.n.toLocaleString("pt-BR")} travados (vieram do Tiny ou o dinheiro já entrou)
           </button>
         )}

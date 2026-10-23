@@ -71,7 +71,7 @@ export function LegendaEvolucao({ tipo }: { tipo: "emitidas" | "recebidas" }) {
     : [["manifestacao", "Ciência na SEFAZ"], ["xml", "XML completo"], ["fornecedor", "Fornecedor cadastrado"], ["produtos", "Entrada no estoque"], ["pagar", "Contas a pagar"]];
   return (
     <div className="text-xs">
-      <button type="button" onClick={() => setAberta(!aberta)} className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-fg">
+      <button type="button" onClick={() => setAberta(!aberta)} className="link-discreto inline-flex items-center gap-1">
         <Info size={14} /> O que os ícones querem dizer
       </button>
       {aberta && (

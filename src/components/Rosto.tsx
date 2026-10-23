@@ -138,7 +138,7 @@ export function MeuRosto({ onClose }: { onClose: () => void }) {
                 </span>
                 <button type="button" disabled={ocupado} title="Apagar este aparelho" aria-label={`Apagar ${f.nome}`}
                   onClick={() => { if (window.confirm(`Apagar o rosto do aparelho "${f.nome}"?`)) void agir(() => apagarRosto(f.id), "Aparelho apagado."); }}
-                  className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">
+                  className="botao-icone-perigo h-9 w-9 disabled:opacity-50">
                   <Trash2 size={16} />
                 </button>
               </li>

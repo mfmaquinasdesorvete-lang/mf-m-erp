@@ -122,8 +122,8 @@ export function DecidirRisco({ pedidoId, numero, onClose }: { pedidoId: string; 
                 <div className="mb-1.5 text-xs font-semibold text-slate-600">O que foi conferido (fica registrado)</div>
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {CONFERIDO.map((t) => (
-                    <button key={t} type="button" onClick={() => setObs((o) => (o.includes(t) ? o : o ? `${o}; ${t}` : t))}
-                      className="rounded-full border border-slate-300 px-2.5 py-1 text-xs hover:border-brand"><CheckCircle2 size={12} className="mr-1 inline" aria-hidden />{t}</button>
+                    <Button key={t} type="button" tamanho="mini" variant="secondary" onClick={() => setObs((o) => (o.includes(t) ? o : o ? `${o}; ${t}` : t))}>
+                      <CheckCircle2 size={12} aria-hidden />{t}</Button>
                   ))}
                 </div>
                 <textarea className="input min-h-[80px]" value={obs} onChange={(e) => setObs(e.target.value)} maxLength={1000}

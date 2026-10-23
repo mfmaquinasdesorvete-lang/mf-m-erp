@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { brl, hoje, pl } from "@/lib/format";
+import { chip } from "@/components/ui";
 import { ATALHOS, FILTRO_VAZIO, filtrosEmUso, periodoDoAtalho, type FiltroNota } from "@/lib/filtroNotas";
 
 const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
@@ -39,7 +40,7 @@ export function PainelFiltros({ f, onChange, comUf = false, rotuloData = "Emiss√
           const ativo = f.de === p.de && f.ate === p.ate;
           return (
             <button key={a.id} type="button" aria-pressed={ativo} onClick={() => onChange({ ...f, ...(ativo ? { de: "", ate: "" } : p) })}
-              className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              className={chip(ativo)}>
               {a.rotulo}
             </button>
           );
@@ -59,7 +60,7 @@ export function PainelFiltros({ f, onChange, comUf = false, rotuloData = "Emiss√
         )}
       </div>
       {filtrosEmUso(f) > 0 && (
-        <button type="button" onClick={() => onChange(FILTRO_VAZIO)} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-fg"><X size={13} /> Limpar filtros</button>
+        <button type="button" onClick={() => onChange(FILTRO_VAZIO)} className="link-discreto mt-2 inline-flex items-center gap-1 text-xs"><X size={13} /> Limpar filtros</button>
       )}
     </div>
   );

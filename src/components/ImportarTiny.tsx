@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { confirmar } from "@/components/Dialogos";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Field } from "@/components/ui";
+import { Button, Card, Field, chip } from "@/components/ui";
 import { notify } from "@/lib/notify";
 import { callFunction } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
@@ -292,7 +292,7 @@ export function ImportarTiny() {
           <div className="mb-3 flex gap-1" role="tablist" aria-label="Recebimentos do Tiny">
             {([["buscar", "Buscar"], ["decidir", "Decidir"]] as const).map(([id, rotulo]) => (
               <button key={id} type="button" role="tab" aria-selected={abaRecebidas === id} onClick={() => setAbaRecebidas(id)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${abaRecebidas === id ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                className={chip(abaRecebidas === id)}>
                 {rotulo}
               </button>
             ))}

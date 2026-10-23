@@ -4,7 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Mic } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, dataHoraBR } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -62,10 +62,9 @@ export function PagamentosAnotados() {
               {possiveis.length > 0 ? (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {possiveis.slice(0, 4).map((e) => (
-                    <button key={e.id} type="button" onClick={() => conferir(a, e)}
-                      className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                    <Button key={e.id} type="button" tamanho="mini" tom="enviar" onClick={() => conferir(a, e)}>
                       <Check className="h-3.5 w-3.5" /> É este: {dataBR(e.data)} · {brl(e.valor)}{e.descricao ? ` · ${e.descricao.slice(0, 40)}` : ""}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               ) : (

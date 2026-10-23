@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, ExternalLink, ImageOff, PackageSearch, ShoppingBag, Store, TriangleAlert } from "lucide-react";
-import { Card, Indicador } from "@/components/ui";
+import { Card, Indicador, chip } from "@/components/ui";
 import { CatalogoConfig } from "@/components/CatalogoConfig";
 import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
@@ -54,7 +54,7 @@ export function ConfigCatalogo() {
           <div className="mb-3 flex flex-wrap gap-2">
             {[["todos", "Todos"], ...tipos.map((t) => [t, TIPO[t]])].map(([v, r]) => (
               <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 text-slate-600"}`}>{r}</button>
+                className={chip(filtro === v)}>{r}</button>
             ))}
           </div>
         )}

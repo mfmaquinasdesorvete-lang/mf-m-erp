@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Copy, Download, Eye, Plus, Printer, RotateCcw, Save, Settings2, Trash2 } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, Field, Modal, chip } from "@/components/ui";
 import { useConfig } from "@/lib/useConfig";
 import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
@@ -170,10 +170,10 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
       <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-slate-600">
         {rotulo}
         {editados.has(caminho) && (
-          <button type="button" title="Voltar ao que está no ERP" onClick={() => voltarCampo(caminho)}
-            className="ml-auto inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 text-2xs font-bold text-amber-800 hover:bg-amber-200">
+          <Button type="button" tamanho="mini" tom="logistica" title="Voltar ao que está no ERP" onClick={() => voltarCampo(caminho)}
+            className="ml-auto">
             editado <RotateCcw size={10} />
-          </button>
+          </Button>
         )}
       </span>
       <input className={`input ${editados.has(caminho) ? "!border-amber-400" : ""}`} value={String(lerCampo(d, caminho) ?? "")} maxLength={max}
@@ -248,10 +248,10 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
           {/* O que imprimir */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-600">Imprimir:</span>
-            <div role="group" aria-label="O que imprimir" className="inline-flex rounded-lg border border-slate-200 p-0.5">
+            <div role="group" aria-label="O que imprimir" className="inline-flex gap-1 rounded-lg border border-slate-200 p-0.5">
               {IMPRIMIR.map(([v, rot]) => (
                 <button key={v} type="button" aria-pressed={m.imprimir === v} onClick={() => { gravarImprimir(v); setImprimirLocal(v); if (modeloTela) setModelo({ imprimir: v }); }}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold ${m.imprimir === v ? "bg-brand text-brand-fg" : "text-slate-600 hover:bg-slate-100"}`}>{rot}</button>
+                  className={chip(m.imprimir === v)}>{rot}</button>
               ))}
             </div>
             <span className="text-xs text-slate-500">
@@ -324,7 +324,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
                       <td className="whitespace-nowrap py-1">
                         <button type="button" className="botao-icone p-1" title="Duplicar" aria-label={`Duplicar o volume ${i + 1}`}
                           onClick={() => setVolumes([...d.volumes.slice(0, i + 1), { ...v }, ...d.volumes.slice(i + 1)])}><Copy size={14} /></button>
-                        <button type="button" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" title="Tirar" aria-label={`Tirar o volume ${i + 1}`}
+                        <button type="button" className="botao-icone-perigo p-1 disabled:opacity-30" title="Tirar" aria-label={`Tirar o volume ${i + 1}`}
                           disabled={d.volumes.length <= 1} onClick={() => { setVolumes(d.volumes.filter((_, k) => k !== i)); setVolPrev(0); }}><Trash2 size={14} /></button>
                       </td>
                     </tr>
@@ -336,7 +336,7 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
               <Button type="button" variant="secondary" className="!py-1" onClick={() => setVolumes([...d.volumes, volumeVazio()])}><Plus size={14} /> Volume</Button>
               {d.volumes.length > 1 && <Button type="button" variant="ghost" className="!py-1" onClick={repetirPrimeiro}>Repetir o 1º em todos</Button>}
               {d.volumes.length > 1 && d.peso_total_kg && <Button type="button" variant="ghost" className="!py-1" onClick={dividirPeso}>Dividir o peso total</Button>}
-              {editados.has("volumes") && <button type="button" onClick={() => voltarCampo("volumes")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-1 text-2xs font-bold text-amber-800"><RotateCcw size={11} /> volumes como no ERP</button>}
+              {editados.has("volumes") && <Button type="button" tamanho="mini" tom="logistica" onClick={() => voltarCampo("volumes")}><RotateCcw size={11} /> volumes como no ERP</Button>}
               <label className="ml-auto flex items-center gap-1.5 text-xs text-slate-600">
                 Peso total (kg)
                 <span className="w-24"><Numero rotulo="Peso total" valor={d.peso_total_kg} onChange={(n) => set("peso_total_kg", n)} /></span>
@@ -345,14 +345,14 @@ export function EditorEtiquetas({ origem, onClose }: { origem: OrigemEtiqueta; o
             {somaPesos > 0 && <p className="mt-1 text-right text-2xs text-slate-500">soma dos volumes: {somaPesos.toLocaleString("pt-BR")} kg</p>}
           </Grupo>
 
-          <Grupo titulo="Avisos de manuseio" extra={editados.has("avisos") ? <button type="button" onClick={() => voltarCampo("avisos")} className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-2xs font-bold text-amber-800"><RotateCcw size={11} /> como no ERP</button> : undefined}>
+          <Grupo titulo="Avisos de manuseio" extra={editados.has("avisos") ? <Button type="button" tamanho="mini" tom="logistica" onClick={() => voltarCampo("avisos")}><RotateCcw size={11} /> como no ERP</Button> : undefined}>
             <div className="flex flex-wrap gap-2">
               {AVISOS.map((a) => {
                 const on = d.avisos.includes(a.id);
                 return (
                   <button key={a.id} type="button" aria-pressed={on}
                     onClick={() => set("avisos", on ? d.avisos.filter((x) => x !== a.id) : AVISOS.map((x) => x.id).filter((x) => x === a.id || d.avisos.includes(x)) as AvisoId[])}
-                    className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${on ? "border-ink bg-ink text-white" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>{a.rotulo}</button>
+                    className={chip(on, "border-ink bg-ink text-white")}>{a.rotulo}</button>
                 );
               })}
             </div>

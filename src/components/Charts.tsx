@@ -160,7 +160,7 @@ export function Ranking({ itens, cor = "var(--serie-1)", formatar = brl, onClica
           <li key={i.rotulo} title={`${i.rotulo}: ${formatar(i.valor)}`} className={`transition-opacity ${apagado ? "opacity-45" : ""}`}>
             {onClicar
               ? <button type="button" onClick={() => onClicar(k)} aria-pressed={ativo === undefined ? undefined : ativo === i.rotulo}
-                  className={`block w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 ${ativo === i.rotulo ? "bg-slate-50 ring-1 ring-slate-200" : ""}`}>{corpo}</button>
+                  className={`linha-clicavel block px-2 py-1.5 ${ativo === i.rotulo ? "bg-slate-50 ring-1 ring-slate-200" : ""}`}>{corpo}</button>
               : corpo}
           </li>
         );

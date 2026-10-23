@@ -326,7 +326,7 @@ function Compras({ compras, pedidos, propostasTiny, notasMyFrost }: {
           <ul className="space-y-1.5 text-sm">
             {propostasTiny.map((p) => (
               <li key={p.id}>
-                <button type="button" onClick={() => setProposta(p)} className="flex w-full flex-wrap items-center gap-2 rounded-lg px-1 py-0.5 text-left hover:bg-slate-50">
+                <button type="button" onClick={() => setProposta(p)} className="linha-clicavel flex flex-wrap items-center gap-2 px-1 py-0.5">
                   <span className="font-semibold">#{p.numero ?? "—"}</span> <SeloEmpresa e={p.empresa} /> <span className="text-slate-500">{dataBR(p.data)}</span>
                   <SeloSituacao s={p.situacao} />
                   {p.total != null && <span className="font-semibold">{brl(p.total)}</span>}
@@ -484,8 +484,8 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas, notasMyFrost }
                   <span className="flex gap-1">
                     {fone && <a href={whatsappLink(fone, mensagemMaquina(nome, e.descricao, e.token))} target="_blank" rel="noreferrer" title="Mandar ao cliente o link da máquina (manuais, dicas e garantia)"
                       className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={12} /> Manuais</a>}
-                    <button type="button" onClick={() => copiar(e.token)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      aria-label={`Copiar o link da máquina ${e.numero_serie ?? e.descricao}`}><Link2 size={12} /> Link</button>
+                    <Button type="button" tamanho="mini" variant="secondary" onClick={() => copiar(e.token)}
+                      aria-label={`Copiar o link da máquina ${e.numero_serie ?? e.descricao}`}><Link2 size={12} /> Link</Button>
                   </span>
                 )}
               </li>
@@ -635,8 +635,7 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
     </li>
   );
   const botaoLigar = (t: TecnicoRegiao) => podeLigar && (
-    <button type="button" disabled={gravando} onClick={() => ligar(t.id)}
-      className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-0.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Link2 size={12} /> Ligar ao cliente</button>
+    <Button type="button" tamanho="mini" variant="secondary" disabled={gravando} onClick={() => ligar(t.id)}><Link2 size={12} /> Ligar ao cliente</Button>
   );
 
   return (
@@ -650,7 +649,7 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
               <ul className="space-y-1.5">
                 {ligado && linha(ligado, <>
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800">técnico do cliente</span>
-                  {podeLigar && <button type="button" disabled={gravando} onClick={() => ligar(null)} className="text-xs text-slate-500 underline hover:text-red-700 disabled:opacity-50">tirar</button>}
+                  {podeLigar && <button type="button" disabled={gravando} onClick={() => ligar(null)} className="link-discreto text-xs disabled:opacity-50">tirar</button>}
                 </>)}
                 {naCidade.map((t) => linha(t, botaoLigar(t)))}
               </ul>
@@ -660,12 +659,12 @@ function TecnicosRegiao({ cliente, equipamentos }: { cliente: Cliente; equipamen
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               {regiao.length > 0 && (
                 <button type="button" onClick={() => setVerRegiao((v) => !v)} aria-expanded={verRegiao}
-                  className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400">
+                  className="link-acao text-sm">
                   {verRegiao ? "Esconder" : "Ver"} técnicos da região{cliente.uf ? ` (${cliente.uf})` : ""} · {regiao.length} {verRegiao ? "↑" : "→"}
                 </button>
               )}
               {podeLigar && (
-                <button type="button" onClick={() => setEscolher((v) => !v)} className="text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400">
+                <button type="button" onClick={() => setEscolher((v) => !v)} className="link-acao text-sm">
                   {ligado ? "Trocar o técnico do cliente" : "Ligar um técnico ao cliente"}
                 </button>
               )}
@@ -701,7 +700,7 @@ function EscolherTecnico({ onEscolher, gravando }: { onEscolher: (id: string) =>
             : data.map((t) => (
               <li key={t.id}>
                 <button type="button" disabled={gravando} onClick={() => onEscolher(t.id)}
-                  className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-sm hover:bg-slate-100 disabled:opacity-50">
+                  className="linha-clicavel flex items-center justify-between gap-2 px-2 py-1 text-sm disabled:opacity-50">
                   <span className="font-medium">{t.nome}</span>
                   <span className="text-xs text-slate-500">{[t.municipio, t.uf].filter(Boolean).join("/")}</span>
                 </button>

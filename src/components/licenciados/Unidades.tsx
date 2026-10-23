@@ -80,7 +80,7 @@ export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dad
           return (
             <div key={l.id} className="relative">
             <button type="button" onClick={() => onAbrir(l)} title={falta.length ? `Falta: ${falta.join(", ")}` : undefined}
-              className={`relative flex h-full w-full min-h-[8.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface p-4 pr-16 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-60" : ""}`}>
+              className={`cartao relative flex h-full w-full min-h-[8.5rem] flex-col overflow-hidden p-4 pr-16 text-left transition hover:-translate-y-0.5 hover:shadow-pop ${l.situacao === "encerrada" || l.situacao === "mudou" ? "opacity-60" : ""}`}>
               <span className="num absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-bl-2xl text-sm font-bold text-white" style={{ background: cor }}>{num}</span>
               <span className="line-clamp-2 text-base font-bold leading-tight" style={{ color: cor }}>{l.nome}</span>
               <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-slate-600">
@@ -99,7 +99,7 @@ export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dad
               </span>
             </button>
             <button type="button" onClick={() => onEditar(l)} title="Editar a unidade" aria-label={`Editar ${l.nome}`}
-              className="absolute bottom-2 right-2.5 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-fg">
+              className="botao-icone absolute bottom-2 right-2.5 h-8 w-8">
               <Pencil size={15} aria-hidden />
             </button>
             </div>
@@ -438,7 +438,7 @@ export function CustosAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loja)
       {porLoja.length > 0 && (
         <ul className="cartao divide-y divide-slate-100">
           {porLoja.map(({ l, r }) => (
-            <li key={l.id}><button type="button" onClick={() => onAbrir(l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
+            <li key={l.id}><button type="button" onClick={() => onAbrir(l)} className="linha-clicavel flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: corDaLoja(l.cor) }} aria-hidden />
               <span className="min-w-0 flex-1 truncate font-semibold text-fg">{l.nome}</span>
               <span className="num text-xs text-slate-500">custo {brl(r.custo)} · recebido {brl(r.recebido)}</span>
@@ -474,7 +474,7 @@ export function MaquinasAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loj
       {!lista.length ? <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma máquina ainda. Abra uma unidade, ligue ao cliente e cadastre as máquinas em "Máquinas e manutenções".</p> : (
         <ul className="cartao divide-y divide-slate-100">
           {lista.map((m) => (
-            <li key={m.id}><button type="button" onClick={() => m.l && onAbrir(m.l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
+            <li key={m.id}><button type="button" onClick={() => m.l && onAbrir(m.l)} className="linha-clicavel flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
               <Wrench size={14} className="shrink-0" style={{ color: corDaLoja(m.l?.cor) }} aria-hidden />
               <span className="min-w-0 flex-1"><span className="block font-semibold text-fg">{m.descricao}</span><span className="text-xs text-slate-500">{m.l?.nome ?? "—"}{m.serie ? ` · nº ${m.serie}` : ""}</span></span>
               <span className="text-xs text-slate-600">{m.data ? `desde ${dataBR(m.data)}` : "sem data"}</span>

@@ -3,7 +3,7 @@
 // ligar a um produto e buscar os anúncios da conta. No celular a tabela vira cartões.
 import { useMemo, useState, type ReactNode } from "react";
 import { Download, ExternalLink, Link2, Loader2, Pause, Play, Send } from "lucide-react";
-import { Button, Card, Modal, Table } from "@/components/ui";
+import { Button, Card, Modal, Table, chip } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { confirmar } from "@/components/Dialogos";
@@ -210,7 +210,7 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
         )} />
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar pela situação">
         <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}
-          className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${!filtro ? "bg-modulo-escuro text-white ring-transparent" : "bg-surface text-slate-700 ring-slate-200 hover:bg-slate-50"}`}>
+          className={chip(!filtro, "border-transparent bg-modulo-escuro text-white")}>
           Todos <span className="num">{anuncios.length}</span>
         </button>
         {SITUACOES.filter((s) => contagem.get(s.id)).map((s) => (

@@ -66,7 +66,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, preco
                       <div className="mt-1 text-xs text-slate-500">
                         Kit: {composicao(it.produto_id, comps, it.kit_escolha).map((c) => `${c.quantidade}× ${nomeProd(c.componente_id)}`).join(", ") || "sem componentes cadastrados"}
                         {!disabled && comps.some((c) => c.kit_id === it.produto_id && (c.opcional || c.grupo)) && (
-                          <button type="button" className="ml-1 font-semibold text-brand" onClick={() => setKitIdx(idx)}>Escolher componentes</button>
+                          <button type="button" className="link-acao ml-1" onClick={() => setKitIdx(idx)}>Escolher componentes</button>
                         )}
                       </div>
                     )}

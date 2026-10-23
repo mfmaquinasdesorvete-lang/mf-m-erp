@@ -37,7 +37,7 @@ export function MenuAcoes({ itens, rotulo = "Mais ações", extra }: { itens: (I
   return (
     <>
       <button ref={botao} type="button" onClick={abrir} aria-haspopup="menu" aria-expanded={!!pos} aria-label={rotulo} title={rotulo}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-400 hover:text-fg">
+        className="botao-icone h-9 w-9 border border-slate-200 hover:border-slate-400">
         <MoreHorizontal size={18} aria-hidden />
       </button>
       {pos && createPortal(

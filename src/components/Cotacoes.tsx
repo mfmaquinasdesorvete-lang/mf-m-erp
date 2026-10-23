@@ -3,7 +3,7 @@
 // Os fornecedores sugeridos vêm do histórico de fornecimento de cada produto (notas, pedidos e cotações).
 import { useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, Copy, Mail, MessageCircle, Plus, Send, Trash2, Trophy, XCircle } from "lucide-react";
-import { Button, Card, Field, Modal } from "@/components/ui";
+import { Button, Card, Field, Modal, chip } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -57,10 +57,10 @@ export function Cotacoes({ podeEditar, inicial, aoGerarPedidos }: {
     <Card className="p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="mr-auto font-bold">Cotações com fornecedores</h2>
-        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Filtrar cotações">
+        <div className="inline-flex gap-1 rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Filtrar cotações">
           {(["abertas", "encerradas", "todas"] as const).map((f) => (
             <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
-              className={`rounded-md px-3 py-1 font-semibold ${filtro === f ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>{f}</button>
+              className={chip(filtro === f, "border-transparent bg-modulo-escuro text-white")}>{f}</button>
           ))}
         </div>
         {podeEditar && <Button type="button" onClick={() => setNova(true)}><Plus size={16} aria-hidden /> Nova cotação</Button>}
@@ -77,7 +77,7 @@ export function Cotacoes({ podeEditar, inicial, aoGerarPedidos }: {
             const n = itens.filter((i) => i.cotacao_id === c.id).length;
             return (
               <li key={c.id}>
-                <button type="button" onClick={() => setAberta(c.id)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left hover:bg-slate-50">
+                <button type="button" onClick={() => setAberta(c.id)} className="linha-clicavel flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
                   <span className="font-bold">Nº {c.numero}</span>
                   <span className="min-w-0 flex-1 truncate">{c.titulo || `${n} ${n === 1 ? "item" : "itens"}`}</span>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS[c.status].cor}`}>{STATUS[c.status].rotulo}</span>

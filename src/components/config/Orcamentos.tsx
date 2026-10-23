@@ -65,8 +65,8 @@ export function ConfigOrcamentos() {
       <div className="sm:col-span-4">
         <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2 text-xs font-semibold">
           <label htmlFor={`texto-${k}`} className="text-slate-600">{label}</label>
-          {padrao && !valor && <button type="button" className="text-brand hover:underline" onClick={() => mudarTexto(padrao)}>Editar a partir do padrão</button>}
-          {padrao && valor && valor !== padrao && <button type="button" className="text-slate-500 hover:underline" onClick={() => mudarTexto("")}>Voltar ao padrão</button>}
+          {padrao && !valor && <button type="button" className="link-acao" onClick={() => mudarTexto(padrao)}>Editar a partir do padrão</button>}
+          {padrao && valor && valor !== padrao && <button type="button" className="link-discreto" onClick={() => mudarTexto("")}>Voltar ao padrão</button>}
         </div>
         <textarea id={`texto-${k}`} className="input" rows={linhas} value={valor} placeholder={padrao || "Vazio: não sai nada"}
           aria-describedby={`texto-${k}-ajuda`} onChange={(e) => mudarTexto(e.target.value)} />

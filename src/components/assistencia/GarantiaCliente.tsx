@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ShieldCheck, ShieldOff, Snowflake, Video } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui";
 import { brl, dataBR } from "@/lib/format";
 import { mesAnoCompra } from "../../../supabase/functions/_shared/compra-maquina";
 import { diasAte } from "@/lib/garantia";
@@ -73,10 +74,9 @@ export function GarantiaCliente({ clienteId, taxa, hoje, editavel, onUsar, onCob
           )}
         </div>
         {tom !== "dentro" && editavel && onCobrarTaxa && (
-          <button type="button" onClick={onCobrarTaxa}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border bg-surface px-2.5 py-1.5 text-xs font-semibold hover:brightness-95 ${tom === "misto" ? "border-amber-300 text-amber-900" : "border-red-300 text-red-800"}`}>
+          <Button type="button" tamanho="mini" tom={tom === "misto" ? "logistica" : "perigo"} onClick={onCobrarTaxa}>
             <Video size={14} /> Lançar {valorTaxa} de diagnóstico
-          </button>
+          </Button>
         )}
       </div>
       {maquinas.length > 0 && (
@@ -98,7 +98,7 @@ export function GarantiaCliente({ clienteId, taxa, hoje, editavel, onUsar, onCob
                     : `garantia acabou em ${dataBR(m.garantia_ate)}`}
                 </span>
                 {editavel && onUsar && (
-                  <button type="button" onClick={() => onUsar(m)} className="whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold text-brand hover:bg-slate-100">Usar nesta OS</button>
+                  <button type="button" onClick={() => onUsar(m)} className="link-acao whitespace-nowrap px-2 py-0.5 text-xs">Usar nesta OS</button>
                 )}
               </li>
             );

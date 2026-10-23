@@ -3,7 +3,7 @@
 // "conforme" depois de conferir documento e extrato. "Não conforme" vira exceção (responsável, prazo, evidência).
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, Download } from "lucide-react";
-import { Button, CampoMes, Card } from "./ui";
+import { Button, CampoMes, Card, chip } from "./ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
@@ -107,7 +107,7 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
                         {SITUACOES.map((o) => (
                           <button key={o.valor} type="button" disabled={!podeEditar} aria-pressed={r?.situacao === o.valor}
                             onClick={() => salvar(i, { situacao: r?.situacao === o.valor ? "pendente" : o.valor })}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition disabled:opacity-60 ${r?.situacao === o.valor ? o.classe : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                            className={`${chip(r?.situacao === o.valor, `border-transparent ${o.classe}`)} disabled:opacity-60`}>
                             {o.rotulo}
                           </button>
                         ))}
@@ -116,10 +116,9 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
                     {alertas.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {alertas.some((a) => a.n) ? alertas.filter((a) => a.n).map((a) => (
-                          <button key={a.t} type="button" onClick={() => verExcecoes(a.t)} title={TIPOS[a.t].criterio}
-                            className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                          <Button key={a.t} type="button" tamanho="mini" tom="logistica" onClick={() => verExcecoes(a.t)} title={TIPOS[a.t].criterio}>
                             <AlertTriangle size={12} /> {a.n} {TIPOS[a.t].rotulo.toLowerCase()}
-                          </button>
+                          </Button>
                         )) : (
                           <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 size={12} /> sem alertas automáticos em aberto</span>
                         )}

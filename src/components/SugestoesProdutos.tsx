@@ -3,7 +3,7 @@
 // "Correção sugerida (fonte)"; ignorar não deixa a sugestão voltar. "Só conferir" não traz valor: abre o cadastro.
 import { useMemo, useState } from "react";
 import { ArrowRight, Check, RefreshCw, Search, Sparkles, X } from "lucide-react";
-import { Button, Card } from "./ui";
+import { Button, Card, chip as classeChip } from "./ui";
 import { confirmar } from "./Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -67,7 +67,7 @@ export function SugestoesProdutos({ produtos, onAbrir, podeCorrigir }: { produto
   const procurar = () => rodar(() => supabase.rpc("gerar_sugestoes_produtos"), (r: { novas?: number; vencidas?: number } | null) =>
     `${r?.novas ?? 0} ${pl(r?.novas ?? 0, "sugestão nova", "sugestões novas")}${r?.vencidas ? ` · ${r.vencidas} já ${pl(r.vencidas, "estava corrigida", "estavam corrigidas")}` : ""}`);
 
-  const chip = (ativo: boolean, cor: string) => `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${ativo ? `${cor} ring-2` : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`;
+  const chip = (ativo: boolean, cor: string) => classeChip(ativo, `border-transparent ring-2 ${cor}`);
 
   if (error) return <Card className="border-red-300 bg-red-50 p-3 text-sm text-red-800">Não consegui ler as correções sugeridas: {(error as Error).message}</Card>;
 
@@ -122,7 +122,7 @@ export function SugestoesProdutos({ produtos, onAbrir, podeCorrigir }: { produto
           <b>{escolhidas.length}</b> {pl(escolhidas.length, "escolhida", "escolhidas")}
           <Button onClick={() => aplicar(escolhidas)} disabled={ocupado || !escolhidas.some(aplicavel)}><Check size={16} /> Aplicar</Button>
           <Button variant="secondary" onClick={() => ignorar(escolhidas)} disabled={ocupado}><X size={16} /> Ignorar</Button>
-          <button type="button" className="ml-auto text-sm font-semibold text-slate-600 hover:underline" onClick={() => setMarcadas(new Set())}>Limpar</button>
+          <button type="button" className="link-discreto ml-auto text-sm" onClick={() => setMarcadas(new Set())}>Limpar</button>
         </div>
       )}
 

@@ -104,7 +104,7 @@ export function CustoDaOp({ op, fichas, produtos }: { op: Partial<OrdemProducao>
                 </tbody>
               </table>
               {r.pecas.length > PRIMEIRAS && (
-                <button type="button" className="w-full border-t border-slate-100 px-3 py-2 text-sm font-semibold text-brand hover:bg-slate-50" onClick={() => setTodas((v) => !v)}>
+                <button type="button" className="link-acao w-full border-t border-slate-100 px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setTodas((v) => !v)}>
                   {todas ? "Mostrar só as que mais pesam" : `Ver as ${r.pecas.length} peças`}
                 </button>
               )}

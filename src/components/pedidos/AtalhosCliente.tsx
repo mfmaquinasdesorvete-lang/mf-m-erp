@@ -20,7 +20,7 @@ export function AtalhosCliente({ cliente, pedidoId, podeEditar }: { cliente: Cli
   const [aberto, setAberto] = useState<Painel>(null);
   const pend = pendenciasDoCliente(cliente);
   const graves = pend.filter((p) => p.grave);
-  const link = "font-semibold text-brand hover:underline";
+  const link = "link-acao";
   return (
     <div className="mt-1 space-y-1">
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">

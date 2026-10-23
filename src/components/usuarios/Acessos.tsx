@@ -3,7 +3,7 @@
 // Só o administrador vê os acessos de todos (regra do banco).
 import { useMemo, useState } from "react";
 import { Activity, CalendarClock, LogIn, Monitor, Smartphone, UserX, Wifi } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { Card, Stat, chip } from "@/components/ui";
 import { FotoUsuario } from "@/components/FotoUsuario";
 import { useRows } from "@/lib/data";
 import { pl } from "@/lib/format";
@@ -82,10 +82,10 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
             <h2 className="font-bold text-fg">Registro dos acessos</h2>
             <p className="text-xs text-slate-600">Entrada, saída (Sair ou fechou a tela), tempo parado, aparelho e endereço de internet. Nada é apagado.</p>
           </div>
-          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Período">
+          <div className="inline-flex gap-1 rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Período">
             {PERIODOS.map((p) => (
               <button key={p.v} type="button" aria-pressed={periodo === p.v} onClick={() => setPeriodo(p.v)}
-                className={`rounded-md px-3 py-1 font-semibold ${periodo === p.v ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>{p.rotulo}</button>
+                className={chip(periodo === p.v, "border-transparent bg-modulo-escuro text-white")}>{p.rotulo}</button>
             ))}
           </div>
         </div>
@@ -93,7 +93,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
           <div className="flex flex-wrap gap-1.5 px-4 pt-3" role="group" aria-label="Pessoa">
             {["", ...pessoasNoPeriodo].map((id) => (
               <button key={id || "todos"} type="button" aria-pressed={pessoa === id} onClick={() => setPessoa(id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${pessoa === id ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>
+                className={chip(pessoa === id)}>
                 {id ? nome(id).split(" ")[0] : "Todos"} <span className="opacity-70">{id ? doPeriodo.filter((a) => a.user_id === id).length : doPeriodo.length}</span>
               </button>
             ))}
@@ -135,7 +135,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
           </ul>
         )}
         {lista.length > 25 && !mais && (
-          <button type="button" onClick={() => setMais(true)} className="w-full border-t border-slate-100 p-3 text-sm font-semibold text-brand hover:bg-slate-50">Ver todos os {lista.length} acessos</button>
+          <button type="button" onClick={() => setMais(true)} className="link-acao w-full border-t border-slate-100 p-3 text-sm hover:bg-slate-50">Ver todos os {lista.length} acessos</button>
         )}
       </Card>
     </div>

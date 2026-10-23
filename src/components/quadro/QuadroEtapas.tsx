@@ -4,7 +4,7 @@
 // com o CartaoEtapa: quem, quanto, há quanto tempo, o próximo passo e o botão que faz esse passo.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Loader2, X, type LucideIcon } from "lucide-react";
-import { RolagemLateral } from "@/components/ui";
+import { Button, RolagemLateral, chip } from "@/components/ui";
 import { brl } from "@/lib/format";
 
 export type Nivel = 0 | 1 | 2;
@@ -95,18 +95,16 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
             <div className="flex flex-wrap gap-1.5">
               {porAlerta.map(([a, n]) => (
                 <button key={a} type="button" aria-pressed={alerta === a} onClick={() => { const igual = alerta === a; setAlerta(igual ? null : a); setSoAcao(!igual); }}
-                  className={`max-w-full truncate whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold transition ${alerta === a
-                    ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand hover:text-brand"}`}>
+                  className={`${chip(alerta === a)} inline-block max-w-full truncate whitespace-nowrap`}>
                   {n} {a}
                 </button>
               ))}
             </div>
           </div>
-          <button type="button" aria-pressed={filtrando} onClick={() => { setSoAcao(!filtrando); setAlerta(null); }}
-            className={`inline-flex min-h-[38px] w-full shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-1 text-sm font-semibold shadow-sm transition sm:min-h-0 sm:w-auto ${
-              filtrando ? "bg-brand text-brand-fg" : "border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+          <Button type="button" aria-pressed={filtrando} onClick={() => { setSoAcao(!filtrando); setAlerta(null); }}
+            variant={filtrando ? "primary" : "secondary"} className="w-full shrink-0 sm:w-auto">
             {filtrando ? <><X size={15} /> Ver todas</> : "Ver só essas"}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -171,7 +169,7 @@ export function QuadroEtapas<T extends ItemQuadro>({ etapas, itens, cartao, carr
                   </header>
                   <div className="space-y-2">{lista.slice(0, NO_QUADRO).map(cartao)}</div>
                   {lista.length > NO_QUADRO && (
-                    <button type="button" onClick={() => setEtapa(e.id)} className="mt-2 rounded-lg py-2 text-sm font-semibold text-brand hover:bg-slate-100">Ver mais {lista.length - NO_QUADRO}</button>
+                    <button type="button" onClick={() => setEtapa(e.id)} className="link-acao mt-2 py-2 text-sm">Ver mais {lista.length - NO_QUADRO}</button>
                   )}
                 </section>
               );
@@ -218,7 +216,7 @@ function Secao<T extends ItemQuadro>({ e, lista, limite, vazio, cartao, valor, o
         <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))]">{lista.slice(0, limite).map(cartao)}</div>
       ) : <p className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">{vazio}</p>}
       {lista.length > limite && onMais && (
-        <button type="button" onClick={onMais} className="mt-2 w-full rounded-lg py-2 text-sm font-semibold text-brand hover:bg-slate-100">Ver mais {lista.length - limite}</button>
+        <button type="button" onClick={onMais} className="link-acao mt-2 w-full py-2 text-sm">Ver mais {lista.length - limite}</button>
       )}
     </section>
   );
@@ -266,11 +264,10 @@ export function CartaoEtapa({ cor, titulo, subtitulo, valor, etiquetas, dias, ni
           {proximo && <p className="text-xs text-slate-500">Próximo passo: <b className="text-slate-700">{proximo}</b></p>}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {botao && (
-              <button type="button" disabled={botao.ocupado} onClick={botao.onClick}
-                className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition disabled:opacity-50 ${botao.secundario
-                  ? "border border-slate-300 bg-surface text-fg hover:border-brand" : "bg-brand text-brand-fg hover:opacity-90"}`}>
+              <Button type="button" tamanho="mini" variant={botao.secundario ? "secondary" : "primary"} disabled={botao.ocupado} onClick={botao.onClick}
+                className="flex-1">
                 {botao.ocupado ? <Loader2 size={14} className="animate-spin" /> : <botao.icon size={14} aria-hidden />} {botao.rotulo}
-              </button>
+              </Button>
             )}
             {extra}
           </div>

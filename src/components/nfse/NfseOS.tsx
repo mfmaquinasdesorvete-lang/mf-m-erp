@@ -209,7 +209,7 @@ export function NfseOS({ os, telefone }: { os: OSResumo; telefone?: string | nul
       {/* histórico */}
       {notas.length > 0 && (
         <div>
-          <button type="button" onClick={() => setVerHistorico((v) => !v)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-fg" aria-expanded={verHistorico}>
+          <button type="button" onClick={() => setVerHistorico((v) => !v)} className="link-discreto inline-flex items-center gap-1.5 text-sm" aria-expanded={verHistorico}>
             <History size={15} /> Histórico ({notas.length} tentativa{notas.length > 1 ? "s" : ""}) <ChevronDown size={14} className={verHistorico ? "rotate-180" : ""} />
           </button>
           {verHistorico && (

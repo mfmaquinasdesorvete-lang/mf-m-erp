@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { grupoDaRota, grupos, painelDaArea, todosItens } from "@/lib/menu";
+import { Button } from "@/components/ui";
 
 /** Telas fora do menu que não estão em todosItens: nome e tela de cima. */
 const EXTRAS: Record<string, { label: string; pai?: { label: string; to: string } }> = {
@@ -54,10 +55,9 @@ export function Trilha() {
   const temAnterior = key !== "default";
   return (
     <nav aria-label="Você está em" className="mb-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1 text-sm sm:mb-3 sm:flex-wrap">
-      <button type="button" onClick={() => (temAnterior ? navigate(-1) : navigate(subir))}
-        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-surface px-2 py-0.5 font-semibold sm:px-2.5 sm:py-1 text-slate-700 shadow-sm hover:bg-slate-50">
+      <Button type="button" tamanho="mini" variant="secondary" onClick={() => (temAnterior ? navigate(-1) : navigate(subir))}>
         <ChevronLeft size={16} aria-hidden /> Voltar
-      </button>
+      </Button>
       {/* no celular a trilha fica numa linha só: Voltar + a área (o nome da tela já está no título logo abaixo) */}
       <ol className="flex min-w-0 flex-nowrap items-center gap-x-1 gap-y-0.5 overflow-hidden text-slate-500 sm:flex-wrap">
         <li className="hidden items-center sm:flex">

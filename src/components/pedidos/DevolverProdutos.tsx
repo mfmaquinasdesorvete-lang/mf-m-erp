@@ -93,7 +93,7 @@ function DevolucaoSemNf({ pedido, aguardar, onClose }: { pedido: PedidoDev; agua
                         <div className="flex items-center justify-end gap-1">
                           <input className={`input w-20 py-1 text-right ${q > s.disponivel + 1e-9 ? "border-red-400" : ""}`} inputMode="decimal" disabled={!s.disponivel}
                             value={qtd[i.id!] ?? ""} placeholder="0" onChange={(e) => setQtd({ ...qtd, [i.id!]: e.target.value })} aria-label={`Quantidade a devolver de ${i.descricao}`} />
-                          <button type="button" className="text-xs font-semibold text-brand disabled:opacity-40" disabled={!s.disponivel} onClick={() => setQtd({ ...qtd, [i.id!]: String(s.disponivel) })}>tudo</button>
+                          <button type="button" className="link-acao text-xs disabled:opacity-40" disabled={!s.disponivel} onClick={() => setQtd({ ...qtd, [i.id!]: String(s.disponivel) })}>tudo</button>
                         </div>
                       </td>
                     </tr>

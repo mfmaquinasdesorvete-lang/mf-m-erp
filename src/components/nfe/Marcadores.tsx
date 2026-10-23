@@ -75,7 +75,7 @@ export function AplicarMarcadores({ tabela, notas, onClose, nome = ["nota", "not
           return (
             <li key={m.id}>
               <button type="button" disabled={ocupado === m.id} onClick={() => alternar(m)} aria-pressed={estado === "todas"}
-                className="flex w-full items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50 disabled:opacity-60">
+                className="linha-clicavel flex items-center gap-2 border border-slate-200 px-3 py-2 disabled:opacity-60">
                 <span className={`flex h-5 w-5 items-center justify-center rounded border ${estado === "nenhuma" ? "border-slate-300" : "border-brand bg-brand text-brand-fg"}`}>
                   {estado === "todas" ? <Check size={14} /> : estado === "algumas" ? <Minus size={14} /> : null}
                 </span>

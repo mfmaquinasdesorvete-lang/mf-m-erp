@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FilePlus2, FileText, FileUp, FlaskConical, Info, Save, Settings2 } from "lucide-react";
-import { Button, Field, Table, Tabs } from "@/components/ui";
+import { Button, Field, Table, Tabs, chip } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
@@ -85,7 +85,7 @@ function ListaNfse() {
       <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTROS.map((x) => (
           <button key={x.value} type="button" onClick={() => setFiltro(x.value)} aria-pressed={filtro === x.value}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtro === x.value ? "border-brand bg-brand-light text-fg" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            className={chip(filtro === x.value, "border-brand bg-brand-light text-fg")}>
             {x.label} <span className="text-slate-400">{contagem[x.value] ?? 0}</span>
           </button>
         ))}

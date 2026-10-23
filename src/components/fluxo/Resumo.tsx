@@ -1,6 +1,7 @@
 // Resumo do fluxo: um bloco por etapa (quantos, quanto vale, quantos pedem ação) e a faixa do que precisa de ação agora.
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { brl } from "@/lib/format";
+import { Button, chip } from "@/components/ui";
 import { ALERTAS, COLUNAS, type ColunaId, type Nivel, type TipoAlerta } from "@/lib/fluxo";
 
 export type ResumoEtapa = { qtd: number; valor: number; alertas: number; nivel: Nivel };
@@ -64,18 +65,16 @@ export function FaixaAcao({ porTipo, total, nivel, soAcao, tipo, onSoAcao, onTip
         <div className="flex flex-wrap gap-1.5">
           {porTipo.map(([t, n]) => (
             <button key={t} type="button" onClick={() => onTipo(t)} aria-pressed={tipo === t} title={tipo === t ? "Mostrar todos de novo" : "Mostrar só esses pedidos"}
-              className={`max-w-full truncate whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold transition ${tipo === t
-                ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand hover:text-brand"}`}>
+              className={`${chip(tipo === t)} inline-block max-w-full truncate whitespace-nowrap`}>
               {n} {ALERTAS[t][n === 1 ? 0 : 1]}
             </button>
           ))}
         </div>
       </div>
-      <button type="button" onClick={() => onSoAcao(!soAcao)} aria-pressed={soAcao}
-        className={`inline-flex min-h-[38px] w-full shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-1 text-sm font-semibold shadow-sm transition sm:min-h-0 sm:w-auto ${
-          soAcao ? "bg-brand text-brand-fg" : "border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+      <Button type="button" onClick={() => onSoAcao(!soAcao)} aria-pressed={soAcao}
+        variant={soAcao ? "primary" : "secondary"} className="w-full shrink-0 sm:w-auto">
         {soAcao ? <><X size={15} /> Ver todos os pedidos</> : "Ver só esses"}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 // Cartão do pedido no fluxo: quem, quanto, há quanto tempo está na etapa, o próximo passo e o botão que faz esse passo.
 import { SeloCidade } from "@/components/SeloCidade";
+import { Button } from "@/components/ui";
 import type { ReactNode } from "react";
 import {
   AlertTriangle, CheckCircle2, ClipboardCheck, Clock, FileText, FileWarning, Loader2, MessageCircle, Package, PackageCheck, Printer, Send, Truck, User,
@@ -65,11 +66,10 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
     const b = BOTAO[s.acao];
     const Icone = ocupado ? Loader2 : b.icon;
     botao = (
-      <button type="button" disabled={ocupado} onClick={(ev) => { parar(ev); onAcao(s.acao!); }}
-        className={`inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 sm:min-h-0 ${
-          b.secundario ? "border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50" : "bg-brand text-brand-fg shadow-sm hover:bg-brand-dark"}`}>
+      <Button type="button" disabled={ocupado} onClick={(ev) => { parar(ev); onAcao(s.acao!); }}
+        variant={b.secundario ? "secondary" : "primary"} className="flex-1 disabled:cursor-wait">
         <Icone size={15} className={ocupado ? "animate-spin" : ""} /> {b.rotulo}
-      </button>
+      </Button>
     );
   }
 
@@ -112,7 +112,7 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
             {onEtiquetas && (
               <button type="button" aria-label={`Imprimir etiquetas do pedido ${p.numero}`} title="Imprimir etiquetas (um clique)"
                 onClick={(ev) => { parar(ev); onEtiquetas(); }}
-                className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:border-brand hover:text-brand sm:h-9 sm:w-9">
+                className="botao-icone h-[42px] w-[42px] border border-slate-300 hover:border-brand hover:text-brand sm:h-9 sm:w-9">
                 <Printer size={15} />
               </button>
             )}

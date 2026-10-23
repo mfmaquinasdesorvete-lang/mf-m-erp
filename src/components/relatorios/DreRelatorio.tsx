@@ -81,7 +81,7 @@ function Observacoes() {
         <p className="mt-1 text-2xs text-slate-500">{nomeMes(o.mes)} · {nomeUnidade(o.unidade_id)} · {o.autor_nome ?? "usuário do ERP"} · {dataHoraBR(o.created_at)}</p>
       </div>
       {(o.autor === perfil.user_id || perfil.papel === "admin") && (
-        <button type="button" onClick={() => apagar(o)} className="self-start rounded p-1 text-red-600 hover:bg-red-50" aria-label="Apagar observação"><Trash2 size={15} /></button>
+        <button type="button" onClick={() => apagar(o)} className="botao-icone-perigo self-start p-1" aria-label="Apagar observação"><Trash2 size={15} /></button>
       )}
     </li>
   );

@@ -33,7 +33,7 @@ export function ComoFuncionaRegras() {
         ))}
       </ol>
       <button type="button" onClick={() => setDesenho((v) => !v)} aria-expanded={desenho}
-        className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">
+        className="link-modulo mt-3 inline-flex items-center gap-1 text-sm">
         <ChevronDown size={16} className={`transition ${desenho ? "rotate-180" : ""}`} aria-hidden /> {desenho ? "Esconder o desenho" : "Ver em desenho"}
       </button>
       {desenho && <div className="mt-3"><EsquemaProcesso id="imposto-nota" /></div>}
@@ -88,7 +88,7 @@ export function CartaoRegra({ r, nomeUnidade, podeEditar, onEditar, onApagar }: 
         {(aberta ? muda : muda.slice(0, 3)).map((t) => <li key={t} className="flex gap-2"><FileCheck2 size={15} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden /><span>{t}</span></li>)}
       </ul>
       {(muda.length > 3 || exemplo.length > 0) && (
-        <button type="button" onClick={() => setAberta((v) => !v)} aria-expanded={aberta} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-modulo-escuro hover:underline">
+        <button type="button" onClick={() => setAberta((v) => !v)} aria-expanded={aberta} className="link-modulo mt-2 inline-flex items-center gap-1 text-sm">
           <ChevronDown size={16} className={`transition ${aberta ? "rotate-180" : ""}`} aria-hidden /> {aberta ? "Mostrar menos" : exemplo.length ? "Ver tudo e o exemplo em reais" : "Ver tudo"}
         </button>
       )}

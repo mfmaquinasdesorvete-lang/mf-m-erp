@@ -66,7 +66,7 @@ export function OcorrenciasVenda({ pedidoId, podeExcluir }: { pedidoId: string; 
                 <span className="block whitespace-pre-wrap break-words text-slate-800">{o.texto}</span>
               </span>
               {exclui && (
-                <button type="button" onClick={() => excluir(o)} className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700" title="Excluir ocorrência" aria-label="Excluir ocorrência">
+                <button type="button" onClick={() => excluir(o)} className="botao-icone-perigo" title="Excluir ocorrência" aria-label="Excluir ocorrência">
                   <Trash2 size={15} aria-hidden />
                 </button>
               )}

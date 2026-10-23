@@ -79,7 +79,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
       {!resposta && !erro && !ocupado && (
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
           <span className="text-slate-500">Exemplos:</span>
-          {EXEMPLOS.map((x) => <button key={x} type="button" onClick={() => { setPergunta(x); perguntar(x); }} className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-200">{x}</button>)}
+          {EXEMPLOS.map((x) => <Button key={x} type="button" tamanho="mini" variant="secondary" onClick={() => { setPergunta(x); perguntar(x); }}>{x}</Button>)}
         </div>
       )}
       {erro && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{erro}</p>}
@@ -97,7 +97,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
           <ul className="max-h-[50vh] divide-y divide-slate-100 overflow-y-auto rounded-xl ring-1 ring-slate-200">
             {resposta.resultados.map((a) => (
               <li key={`${a.tipo}-${a.id}`}>
-                <button type="button" onClick={() => ir(a)} className="flex w-full items-start gap-3 px-3 py-2 text-left hover:bg-slate-50">
+                <button type="button" onClick={() => ir(a)} className="linha-clicavel flex items-start gap-3 px-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-fg">{a.titulo}</span>
                     <span className="block truncate text-xs text-slate-500">{[DESTINO[a.tipo]?.rotulo, a.sub, a.data && dataBR(a.data.slice(0, 10))].filter(Boolean).join(" · ")}</span>

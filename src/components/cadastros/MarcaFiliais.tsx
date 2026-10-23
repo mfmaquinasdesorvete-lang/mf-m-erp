@@ -160,7 +160,7 @@ export function FiliaisDaMarca<T extends CadastroBase>({ marca, filiais, rede = 
                   <td className="px-3 py-2 text-xs">{f.telefone ? formatarTelefone(f.telefone) : "—"}{f.email && <span className="block break-all text-slate-500">{f.email}</span>}</td>
                   <td className="px-3 py-2 text-xs">{f.receita_situacao ?? "—"}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-right">{podeEditar && f.id !== marca.id &&
-                    <button type="button" onClick={() => onSeparar(f)} className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100" title="Tirar desta marca (vira um fornecedor avulso)">Separar</button>}</td>
+                    <Button type="button" tamanho="mini" variant="ghost" onClick={() => onSeparar(f)} title="Tirar desta marca (vira um fornecedor avulso)">Separar</Button>}</td>
                 </tr>
               ))}
             </tbody>
