@@ -6,7 +6,11 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
-import { useInvalidate } from "@/lib/data";
+import { useInvalidate, useRows } from "@/lib/data";
+import { ClienteBusca } from "@/components/ClienteBusca";
+import { MaquinasOsCliente } from "@/components/clientes/MaquinasOsCliente";
+import { EquipamentoModal } from "@/pages/Garantias";
+import type { Cliente, Equipamento } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -112,6 +116,8 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
   const invalidar = useInvalidate();
   const r = resumoUnidade(l.id, dados.custos, dados.maquinas, dados.pagamentos);
   const maquinas = dados.maquinas.filter((m) => m.loja_id === l.id);
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda", ascending: false });
+  const noCadastro = l.cliente_id ? equipamentos.filter((e) => e.cliente_id === l.cliente_id).length : 0;
   const custos = dados.custos.filter((c) => c.loja_id === l.id).sort((a, b) => b.data.localeCompare(a.data));
   const pags = dados.pagamentos.filter((p) => p.loja_id === l.id && valePagamento(p)).sort((a, b) => b.data.localeCompare(a.data));
   const arquivos = dados.arquivos.filter((a) => a.loja_id === l.id);
@@ -174,7 +180,7 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
             <Button variant="secondary" onClick={onEditar}><Pencil size={15} /> Editar dados</Button>
           </div>
           <div className="grid grid-cols-2 border-t border-white/20 sm:grid-cols-4">
-            {[["Custo de montar", brl(r.custo)], ["Recebido (líquido)", brl(r.recebido)], [r.saldo >= 0 ? "Já voltou" : "Falta voltar", brl(Math.abs(r.saldo))], ["Máquinas", String(r.maquinas)]].map(([rot, v], i) => (
+            {[["Custo de montar", brl(r.custo)], ["Recebido (líquido)", brl(r.recebido)], [r.saldo >= 0 ? "Já voltou" : "Falta voltar", brl(Math.abs(r.saldo))], ["Máquinas", String(noCadastro || r.maquinas)]].map(([rot, v], i) => (
               <div key={rot} className={`px-4 py-2 ${i % 2 ? "border-l border-white/20" : ""} ${i >= 2 ? "border-t border-white/20 sm:border-t-0" : ""} ${i === 2 ? "sm:border-l" : ""}`}>
                 <div className="text-xs opacity-80">{rot}</div><div className="num font-bold">{v}</div>
               </div>
@@ -242,22 +248,7 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
           </div>
         </section>
 
-        <section aria-label="Máquinas da unidade" className="rounded-xl border border-slate-200 p-3">
-          <div className="mb-2 flex items-center gap-2"><h3 className="mr-auto font-bold text-fg">Máquinas <span className="text-slate-500">({maquinas.length})</span></h3>
-            <Button variant="secondary" onClick={() => setMaq({ situacao: "na_loja", data_compra: l.inicio ?? hoje() })}><Plus size={15} /> Máquina</Button></div>
-          <ul className="divide-y divide-slate-100">
-            {maquinas.map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
-                <Wrench size={14} className="shrink-0 text-slate-400" aria-hidden />
-                <span className="min-w-0 flex-1"><span className="block font-semibold text-fg">{m.descricao}</span>
-                  <span className="text-xs text-slate-500">{[m.numero_serie && `nº ${m.numero_serie}`, m.data_compra && `comprada em ${dataBR(m.data_compra)}`, SITUACOES_MAQUINA.find((s) => s.id === m.situacao)?.nome].filter(Boolean).join(" · ")}</span></span>
-                {m.valor != null && <span className="num font-semibold">{brl(m.valor)}</span>}
-                <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => setMaq(m)} aria-label={`Editar ${m.descricao}`}><Pencil size={14} /></button>
-              </li>
-            ))}
-            {!maquinas.length && <li className="py-1 text-xs text-slate-500">Nenhuma máquina cadastrada.</li>}
-          </ul>
-        </section>
+        <MaquinasDaLoja loja={l} anotadas={maquinas} onEditarAnotada={(m) => setMaq(m)} />
 
         <section aria-label="Custos de montar" className="rounded-xl border border-slate-200 p-3">
           <div className="mb-2 flex items-center gap-2"><h3 className="mr-auto font-bold text-fg">Custos de montar <span className="num text-slate-500">· {brl(r.custo)}</span></h3>
@@ -295,6 +286,90 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
       {maq && <MaquinaModal maq={maq} onClose={() => setMaq(null)} onGravar={(x) => gravar("licenciados_maquinas", x)} />}
       {custo && <CustoModal custo={custo} onClose={() => setCusto(null)} onGravar={(x) => gravar("licenciados_custos", x)} />}
     </Modal>
+  );
+}
+
+/**
+ * Máquinas da unidade: as mesmas do cadastro do cliente (equipamentos), para não ter dois cadastros. A unidade fica
+ * ligada a um cliente do ERP; as máquinas dele entram no aviso de preventiva e de garantia, que vai para a própria loja.
+ * As anotadas antes só aqui (licenciados_maquinas) aparecem com "Passar para o cliente".
+ */
+function MaquinasDaLoja({ loja: l, anotadas, onEditarAnotada }: { loja: Loja; anotadas: MaquinaLoja[]; onEditarAnotada: (m: MaquinaLoja) => void }) {
+  const invalidar = useInvalidate();
+  const { data: clientes = [], isLoading } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda", ascending: false });
+  const [escolha, setEscolha] = useState<string | null>(null);
+  const [passar, setPassar] = useState<Partial<Equipamento> | null>(null);
+  const [gravando, setGravando] = useState(false);
+  const cliente = clientes.find((c) => c.id === l.cliente_id) ?? null;
+  const doc = String(l.documento ?? "").replace(/\D/g, "");
+  const sugeridos = !l.cliente_id && doc ? clientes.filter((c) => String(c.cpf_cnpj ?? "").replace(/\D/g, "") === doc) : [];
+  const series = new Set(equipamentos.filter((e) => e.cliente_id === l.cliente_id).map((e) => sem(e.numero_serie)).filter(Boolean));
+  const soAqui = anotadas.filter((m) => !m.numero_serie || !series.has(sem(m.numero_serie)));
+
+  async function ligar(clienteId: string | null) {
+    setGravando(true);
+    const { error } = await supabase.from("licenciados_lojas").update({ cliente_id: clienteId }).eq("id", l.id);
+    setGravando(false);
+    if (error) return notifyError(error);
+    notify(clienteId ? "Unidade ligada ao cliente" : "Unidade desligada do cliente");
+    setEscolha(null);
+    invalidar("licenciados_lojas");
+  }
+  async function criarCliente() {
+    if (!(await confirmar(`Criar o cliente "${l.nome}" com o CPF/CNPJ, a cidade e os contatos da unidade?`))) return;
+    setGravando(true);
+    const { data, error } = await supabase.from("clientes").insert({
+      nome: l.nome, tipo_pessoa: doc.length === 11 ? "PF" : "PJ", cpf_cnpj: doc || null, municipio: l.cidade, uf: l.uf,
+      telefone: l.telefone, email: l.email, observacoes: `Unidade licenciada ${nomeMarca(l.marca)} (cadastro criado pela tela Licenciados).`,
+    }).select("id").single();
+    setGravando(false);
+    if (error) return notifyError(error);
+    invalidar("clientes");
+    await ligar(data.id as string);
+  }
+
+  return (
+    <section aria-label="Máquinas da unidade" className="rounded-xl border border-slate-200 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h3 className="mr-auto font-bold text-fg">Máquinas e manutenções</h3>
+        {cliente && <span className="text-xs text-slate-600">no cadastro de <b>{cliente.codigo ? `${cliente.codigo} · ` : ""}{cliente.nome}</b></span>}
+        {cliente && <Button variant="ghost" className="!min-h-0 !py-1 text-xs" disabled={gravando} onClick={async () => { if (await confirmar("Desligar a unidade deste cliente? As máquinas continuam no cadastro do cliente.")) ligar(null); }}>Trocar cliente</Button>}
+      </div>
+      {l.cliente_id ? (
+        <MaquinasOsCliente clienteId={l.cliente_id} salvarAntes={async () => l.cliente_id} podeEditar />
+      ) : (
+        <div className="space-y-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          <p>Ligue a unidade ao cliente do ERP: as máquinas ficam no cadastro dele, com garantia, preventiva e OS, e o aviso de preventiva vai para a loja.</p>
+          {sugeridos.map((c) => (
+            <Button key={c.id} variant="secondary" disabled={gravando} onClick={() => ligar(c.id)}>Ligar a {c.codigo ? `${c.codigo} · ` : ""}{c.nome} (mesmo CPF/CNPJ)</Button>
+          ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-[16rem] flex-1"><ClienteBusca clientes={clientes} carregando={isLoading} value={escolha} onChange={(id) => setEscolha(id)} placeholder="Procurar o cliente pelo nome, CNPJ ou cidade" /></div>
+            <Button disabled={!escolha || gravando} onClick={() => ligar(escolha)}>Ligar</Button>
+            {!sugeridos.length && <Button variant="secondary" disabled={gravando} onClick={criarCliente}><Plus size={15} /> Criar cliente com os dados da unidade</Button>}
+          </div>
+        </div>
+      )}
+      {soAqui.length > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 text-xs font-semibold text-slate-500">Anotadas só aqui ({soAqui.length}){l.cliente_id ? " · passe para o cadastro do cliente para entrar na preventiva" : ""}</div>
+          <ul className="divide-y divide-slate-100">
+            {soAqui.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
+                <Wrench size={14} className="shrink-0 text-slate-400" aria-hidden />
+                <span className="min-w-0 flex-1"><span className="block font-semibold text-fg">{m.descricao}</span>
+                  <span className="text-xs text-slate-500">{[m.numero_serie && `nº ${m.numero_serie}`, m.data_compra && `comprada em ${dataBR(m.data_compra)}`, SITUACOES_MAQUINA.find((s) => s.id === m.situacao)?.nome].filter(Boolean).join(" · ")}</span></span>
+                {m.valor != null && <span className="num font-semibold">{brl(m.valor)}</span>}
+                {l.cliente_id && <Button variant="secondary" className="!min-h-0 !py-1 text-xs" onClick={() => setPassar({ cliente_id: l.cliente_id ?? undefined, descricao: m.descricao, numero_serie: m.numero_serie, data_venda: m.data_compra, observacoes: m.observacao })}>Passar para o cliente</Button>}
+                <button type="button" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => onEditarAnotada(m)} aria-label={`Editar ${m.descricao}`}><Pencil size={14} /></button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {passar && <EquipamentoModal inicial={passar} onClose={() => { setPassar(null); invalidar("equipamentos"); }} />}
+    </section>
   );
 }
 
@@ -376,25 +451,39 @@ export function CustosAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loja)
   );
 }
 
-/** Aba Máquinas: todas as máquinas das unidades, com a data da compra. */
+/** Aba Máquinas: as máquinas do cadastro dos clientes ligados às unidades (com garantia e preventiva) e as anotadas só aqui. */
 export function MaquinasAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loja) => void }) {
-  const lojaDe = (id: string) => dados.lojas.find((l) => l.id === id);
-  const lista = [...dados.maquinas].sort((a, b) => (b.data_compra ?? "").localeCompare(a.data_compra ?? ""));
-  if (!lista.length) return <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma máquina cadastrada. Abra uma unidade e use "+ Máquina" (modelo, nº de série e data da compra).</p>;
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda", ascending: false });
+  const lojaDoCliente = new Map(dados.lojas.filter((l) => l.cliente_id).map((l) => [l.cliente_id as string, l]));
+  type Linha = { id: string; l: Loja | undefined; descricao: string; serie: string | null; data: string | null; extra: string; cor: string };
+  const doCadastro: Linha[] = equipamentos.filter((e) => lojaDoCliente.has(e.cliente_id)).map((e) => ({
+    id: e.id, l: lojaDoCliente.get(e.cliente_id), descricao: e.descricao, serie: e.numero_serie, data: e.data_venda,
+    extra: e.proxima_preventiva ? `preventiva ${dataBR(e.proxima_preventiva)}` : "sem preventiva marcada", cor: "bg-emerald-100 text-emerald-800",
+  }));
+  const series = new Set(equipamentos.map((e) => `${e.cliente_id}|${sem(e.numero_serie)}`));
+  const anotadas: Linha[] = dados.maquinas.filter((m) => {
+    const l = dados.lojas.find((x) => x.id === m.loja_id);
+    return !(l?.cliente_id && m.numero_serie && series.has(`${l.cliente_id}|${sem(m.numero_serie)}`));
+  }).map((m) => ({ id: m.id, l: dados.lojas.find((x) => x.id === m.loja_id), descricao: m.descricao, serie: m.numero_serie, data: m.data_compra,
+    extra: "anotada só aqui", cor: "bg-amber-100 text-amber-800" }));
+  const lista = [...doCadastro, ...anotadas].sort((a, b) => (b.data ?? "").localeCompare(a.data ?? ""));
+  const semCliente = dados.lojas.filter((l) => !l.cliente_id && l.situacao !== "encerrada" && l.situacao !== "mudou").length;
   return (
-    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
-      {lista.map((m) => {
-        const l = lojaDe(m.loja_id);
-        return (
-          <li key={m.id}><button type="button" onClick={() => l && onAbrir(l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
-            <Wrench size={14} className="shrink-0" style={{ color: corDaLoja(l?.cor) }} aria-hidden />
-            <span className="min-w-0 flex-1"><span className="block font-semibold text-fg">{m.descricao}</span><span className="text-xs text-slate-500">{l?.nome ?? "—"}{m.numero_serie ? ` · nº ${m.numero_serie}` : ""}</span></span>
-            <span className="text-xs text-slate-600">{m.data_compra ? `comprada em ${dataBR(m.data_compra)}` : "sem data da compra"}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-bold text-slate-700">{SITUACOES_MAQUINA.find((s) => s.id === m.situacao)?.nome}</span>
-          </button></li>
-        );
-      })}
-    </ul>
+    <div className="space-y-2">
+      {semCliente > 0 && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{semCliente} {pl(semCliente, "unidade aberta ainda não está ligada", "unidades abertas ainda não estão ligadas")} ao cliente do ERP: abra a unidade e ligue em "Máquinas e manutenções".</p>}
+      {!lista.length ? <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma máquina ainda. Abra uma unidade, ligue ao cliente e cadastre as máquinas em "Máquinas e manutenções".</p> : (
+        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-surface">
+          {lista.map((m) => (
+            <li key={m.id}><button type="button" onClick={() => m.l && onAbrir(m.l)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-slate-50">
+              <Wrench size={14} className="shrink-0" style={{ color: corDaLoja(m.l?.cor) }} aria-hidden />
+              <span className="min-w-0 flex-1"><span className="block font-semibold text-fg">{m.descricao}</span><span className="text-xs text-slate-500">{m.l?.nome ?? "—"}{m.serie ? ` · nº ${m.serie}` : ""}</span></span>
+              <span className="text-xs text-slate-600">{m.data ? `desde ${dataBR(m.data)}` : "sem data"}</span>
+              <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${m.cor}`}>{m.extra}</span>
+            </button></li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

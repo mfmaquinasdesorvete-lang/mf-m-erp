@@ -1438,7 +1438,7 @@ function bancosDemo(db: Db) {
   const lojaDemo = { cidade: "Cidade Exemplo", responsavel: null, documento: null, telefone: null, cliente_id: null, observacoes: null, email: null, email_institucional: null,
     contrato_assinado_em: null, contrato_vence_em: null, contrato_obs: null };
   db.licenciados_lojas = [
-    { ...lojaDemo, id: "lj1", nome: "My Frost Centro Exemplo", uf: "SC", nomes_extrato: ["BELTRAN"], situacao: "ativa", inicio: dias(-200), valor_combinado: 40000, mensalidade: 1500, cor: "rosa", ordem: 0,
+    { ...lojaDemo, id: "lj1", cliente_id: "c1", nome: "My Frost Centro Exemplo", uf: "SC", nomes_extrato: ["BELTRAN"], situacao: "ativa", inicio: dias(-200), valor_combinado: 40000, mensalidade: 1500, cor: "rosa", ordem: 0,
       modelo: "quiosque", endereco: "Rua Exemplo, 100 - Anexo ao Mercado Exemplo - Centro", cep: "88000000", responsavel: "Licenciado Exemplo", telefone: "(48) 90000-0000",
       email_institucional: "centro@exemplo.com.br", contrato: "assinado", contrato_assinado_em: dias(-210), contrato_vence_em: dias(1250) },
     { ...lojaDemo, id: "lj2", nome: "My Frost Praia Teste", cidade: "Praia Teste", uf: "SP", nomes_extrato: [], situacao: "implantacao", inicio: dias(-40), valor_combinado: 35000, mensalidade: null, cor: "turquesa", ordem: 1,

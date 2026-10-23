@@ -10,6 +10,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { Link } from "react-router-dom";
 import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Search, Store, Undo2, Wallet, X } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
+import type { Equipamento } from "@/lib/types";
 import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
 import { confirmar } from "@/components/Dialogos";
 import { Colunas, Ranking } from "@/components/Charts";
@@ -49,6 +50,7 @@ export default function Licenciados() {
   const { data: lojas = [], isLoading } = useRows<Loja>("licenciados_lojas", { order: "ordem", ascending: true });
   const { data: pagamentos = [] } = useRows<PagamentoLoja>("licenciados_pagamentos", { order: "data", ascending: false });
   const { data: maquinas = [] } = useRows<MaquinaLoja>("licenciados_maquinas", { order: "data_compra", ascending: false });
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda", ascending: false });
   const { data: custos = [] } = useRows<CustoLoja>("licenciados_custos", { order: "data", ascending: false });
   const { data: arquivos = [] } = useRows<ArquivoLoja>("licenciados_arquivos", { order: "criado_em", ascending: false });
   const { data: contasPessoais = [] } = useRows<ContaPessoal>("pessoal_contas", { order: "ordem", ascending: true });
@@ -104,7 +106,12 @@ export default function Licenciados() {
   const taxas = r2(noPeriodo.reduce((t, p) => t + Number(p.taxa), 0));
   const ativas = lojas.filter((l) => l.situacao === "ativa" || l.situacao === "implantacao" || l.situacao === "fechando").length;
   const custoTotal = r2(custos.filter((c) => !c.anulado).reduce((t, c) => t + Number(c.valor), 0));
-  const maquinasNaLoja = maquinas.filter((m) => m.situacao === "na_loja" || m.situacao === "manutencao").length;
+  // máquinas no cadastro dos clientes ligados às unidades + as anotadas só aqui (que ainda não passaram para o cliente)
+  const clientesLojas = new Set(lojas.map((l) => l.cliente_id).filter(Boolean));
+  const doCadastro = equipamentos.filter((e) => clientesLojas.has(e.cliente_id));
+  const seriesCadastro = new Set(doCadastro.map((e) => String(e.numero_serie ?? "").trim().toLowerCase()).filter(Boolean));
+  const maquinasNaLoja = doCadastro.length + maquinas.filter((m) => (m.situacao === "na_loja" || m.situacao === "manutencao")
+    && !(m.numero_serie && seriesCadastro.has(m.numero_serie.trim().toLowerCase()))).length;
   const dados = { lojas, custos, maquinas, pagamentos, arquivos };
   const lojaFicha = ficha ? lojas.find((l) => l.id === ficha) : undefined;
   const novaLoja = (): Partial<Loja> => ({ situacao: "ativa", modelo: "quiosque", contrato: "sem", cor: Object.keys(CORES_LOJA)[lojas.length % 8], nomes_extrato: [] });
@@ -247,7 +254,7 @@ export default function Licenciados() {
 
       <Tabs<Aba> value={aba} onChange={setAba} options={[
         { value: "unidades", label: `Unidades · ${lojas.length}` }, { value: "custos", label: "Custos de montar" },
-        { value: "maquinas", label: `Máquinas · ${maquinas.length}` }, { value: "pagamentos", label: lista.length ? `Pagamentos · ${lista.length} para conferir` : "Pagamentos" },
+        { value: "maquinas", label: "Máquinas" }, { value: "pagamentos", label: lista.length ? `Pagamentos · ${lista.length} para conferir` : "Pagamentos" },
         { value: "quiosques", label: "Quiosques" },
       ]} />
 
