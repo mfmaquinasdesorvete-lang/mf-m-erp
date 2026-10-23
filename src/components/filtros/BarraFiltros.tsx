@@ -41,7 +41,10 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} title={`${rotuloData}: ${rotuloPeriodo(periodo!, hoje())}`}
             className={`${botao(ativoPeriodo, painel === "periodo")} min-w-0 !shrink`}>
             <CalendarDays size={16} className="shrink-0" aria-hidden />
-            <span className="max-w-52 truncate">{rotuloData}{ativoPeriodo ? `: ${rotuloPeriodo(periodo!, hoje())}` : <span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span>}</span>
+            {/* celular com período escolhido: só o período ("Esta semana"), para o resto da barra caber na mesma linha */}
+            <span className="max-w-52 truncate">{ativoPeriodo
+              ? <><span className="hidden sm:inline">{rotuloData}: </span>{rotuloPeriodo(periodo!, hoje())}</>
+              : <>{rotuloData}<span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span></>}</span>
           </button>
         )}
         {filtros && (
@@ -140,7 +143,7 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
     // celular: fica logo acima da barra de atalhos fixa do pé da tela, numa faixa baixa (os números numa linha só,
     // sem a dica das ações em lote) para não cobrir a lista
     // com linhas marcadas a faixa ganha a cor do sistema e as ações em lote aparecem como botões cheios, bem à vista
-    <div className={`sticky bottom-[calc(5.4rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border py-1.5 pl-3 pr-16 shadow-card backdrop-blur md:bottom-0 md:pr-4 md:gap-y-2 md:px-4 md:py-2 ${selecionados > 0 && acoes ? "border-brand bg-surface ring-2 ring-brand/40" : "border-slate-200 bg-surface/95"}`}>
+    <div className={`sticky bottom-[calc(5.4rem+env(safe-area-inset-bottom,0px))] z-10 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border py-1.5 pl-3 pr-14 shadow-card backdrop-blur md:bottom-0 md:pr-4 md:gap-y-2 md:px-4 md:py-2 ${selecionados > 0 && acoes ? "border-brand bg-surface ring-2 ring-brand/40" : "border-slate-200 bg-surface/95"}`}>
       {selecionados > 0 ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Ações em lote">
           <span className="rounded-full bg-brand px-2.5 py-1 text-sm font-bold text-brand-fg">{selecionados} {pl(selecionados, "selecionado", "selecionados")}</span>
@@ -152,10 +155,10 @@ export function RodapeLista({ quantidade, nome, total, rotuloTotal = "valor tota
           )}
         </div>
       ) : dica ? <span className="hidden text-xs text-slate-500 md:inline">{dica}</span> : null}
-      <div className="ml-auto flex w-full flex-wrap items-end justify-between gap-x-3 gap-y-1 text-right md:w-auto md:justify-end md:gap-x-5">
-        <div className="text-left md:text-right"><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-2xs leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
-        {total != null && <div><div className="num whitespace-nowrap text-sm font-bold leading-tight text-fg md:text-base">{brl(total)}</div><div className="text-2xs leading-tight text-slate-500">{rotuloTotal}</div></div>}
-        {extras?.map((x) => <div key={x.rotulo}><div className={`num whitespace-nowrap text-sm font-bold leading-tight md:text-base ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-2xs leading-tight text-slate-500">{x.rotulo}</div></div>)}
+      <div className="ml-auto flex w-full flex-nowrap items-end justify-between gap-x-3 gap-y-1 overflow-x-auto text-right md:w-auto md:flex-wrap md:justify-end md:gap-x-5">
+        <div className="text-left md:text-right"><div className="num whitespace-nowrap text-xs font-bold leading-tight text-fg sm:text-sm md:text-base">{quantidade.toLocaleString("pt-BR")}</div><div className="text-2xs leading-tight text-slate-500">{pl(quantidade, nome[0], nome[1])}</div></div>
+        {total != null && <div><div className="num whitespace-nowrap text-xs font-bold leading-tight text-fg sm:text-sm md:text-base">{brl(total)}</div><div className="text-2xs leading-tight text-slate-500">{rotuloTotal}</div></div>}
+        {extras?.map((x) => <div key={x.rotulo}><div className={`num whitespace-nowrap text-xs font-bold leading-tight sm:text-sm md:text-base ${x.cor ?? "text-fg"}`}>{brl(x.valor)}</div><div className="text-2xs leading-tight text-slate-500">{x.rotulo}</div></div>)}
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export const TOM_ACAO: Record<TomAcao, string> = {
   desfazer: "border border-orange-200 bg-orange-50 text-orange-800 shadow-sm hover:bg-orange-100",
   perigo: "border border-red-200 bg-red-50 text-red-800 shadow-sm hover:bg-red-100",
 };
-export const CLASSE_BOTAO = "inline-flex min-h-toque items-center justify-center gap-1.5 rounded-botao px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
+export const CLASSE_BOTAO = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-botao px-3.5 py-2 text-sm font-semibold sm:min-h-0 sm:px-4 transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões.
@@ -264,7 +264,7 @@ export function Stat({ label, valor, sub, icon: Icon, tom = "neutro", onClick }:
     // o ícone flutua no canto: o nome passa por baixo dele e número e explicação usam a largura toda (no celular,
     // com o ícone ao lado, o texto ficava numa coluna de 70 px)
     <Tag onClick={onClick}
-      className={`${caixaCartao} cartao-fit block w-full p-4 text-left ${onClick ? "transition hover:-translate-y-0.5" : ""}`} style={estiloBrilho(c.brilho)}>
+      className={`${caixaCartao} cartao-fit block w-full p-3 text-left sm:p-4 ${onClick ? "transition hover:-translate-y-0.5" : ""}`} style={estiloBrilho(c.brilho)}>
       <Luz cor={c.brilho} />
       <span className="relative flow-root text-xs leading-tight">
         {Icon && <span className={`float-right mb-1 ml-2 grid h-8 w-8 place-items-center rounded-lg sm:h-9 sm:w-9 ${c.icone}`}><Icon size={17} /></span>}

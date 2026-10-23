@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
-import { Badge, Button, Field, Modal, PageHeader, Stat, Table } from "@/components/ui";
+import { Badge, Button, Field, Modal, PageHeader, Stat, Table, TOM_ACAO } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { diasAte, situacaoGarantia, situacaoPreventiva, textoVenda } from "@/lib/garantia";
@@ -91,8 +91,8 @@ export default function Garantias() {
         title="Garantias e preventivas"
         subtitle="Cada máquina vendida entra aqui sozinha, com a garantia e a próxima preventiva calculadas."
         actions={<>
-          <Button onClick={() => setFila(true)}><BellRing size={16} /> Lembrar clientes{lembretes.length ? ` (${lembretes.length})` : ""}</Button>
-          {pode("editar_equipamentos") && <Button variant="secondary" onClick={() => setEditando({ data_venda: hoje() })}><Plus size={16} /> Cadastrar máquina</Button>}
+          <Button onClick={() => setFila(true)}><BellRing size={16} aria-hidden /> Lembrar<span className="hidden sm:inline"> clientes</span>{lembretes.length ? ` (${lembretes.length})` : ""}</Button>
+          {pode("editar_equipamentos") && <Button variant="secondary" onClick={() => setEditando({ data_venda: hoje() })}><Plus size={16} aria-hidden /> <span className="hidden sm:inline">Cadastrar </span>máquina</Button>}
         </>}
       />
 
@@ -138,14 +138,15 @@ export default function Garantias() {
                   </dd>
                 </div>
               </dl>
-              <div className="mt-3 flex flex-wrap gap-2">
+              {/* ações do cartão: botões pequenos lado a lado (no celular eram 4 botões grandes em 2 linhas) */}
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3">
                 {e.cliente?.whatsapp && (
                   <a href={whatsappLink(e.cliente.whatsapp, mensagem(e))} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700"><MessageCircle size={15} /> WhatsApp</a>
+                    className={`botao-mini ${TOM_ACAO.enviar}`}><MessageCircle size={13} aria-hidden /> WhatsApp</a>
                 )}
-                <Button variant="secondary" onClick={() => setHistorico(e)}><History size={15} /> Histórico</Button>
-                {pode("editar_os") && <Button variant="secondary" onClick={() => abrirOS(e)}><Wrench size={15} /> Abrir OS</Button>}
-                {pode("editar_equipamentos") && <Button variant="ghost" onClick={() => setEditando(e)}>Editar</Button>}
+                <Button tamanho="mini" variant="secondary" onClick={() => setHistorico(e)}><History size={13} aria-hidden /> Histórico</Button>
+                {pode("editar_os") && <Button tamanho="mini" tom="servico" onClick={() => abrirOS(e)}><Wrench size={13} aria-hidden /> Abrir OS</Button>}
+                {pode("editar_equipamentos") && <Button tamanho="mini" variant="ghost" onClick={() => setEditando(e)}>Editar</Button>}
               </div>
             </div>
           );
