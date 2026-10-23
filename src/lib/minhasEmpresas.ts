@@ -9,8 +9,20 @@ export type EmpresaPessoal = {
   abertura: string | null; natureza: string | null; porte: string | null; cnae: string | null; municipio: string | null; uf: string | null;
   capital_social: number | null; qualificacao: string | null; entrada: string | null; saida: string | null; lembranca: string | null;
   fonte: string | null; conferido_em: string | null; ordem: number; socios?: Socio[] | null;
+} & FichaEmpresa & { endereco_receita?: string | null };
+/** O que a dona sabe da empresa e a Receita não traz (contatos, inscrições, notas e folha). */
+export type FichaEmpresa = {
+  inscricao_estadual?: string | null; inscricao_municipal?: string | null; endereco?: string | null; telefones?: string | null; email?: string | null;
+  responsavel?: string | null; notas_entrada?: string | null; notas_saida?: string | null; folha?: string | null;
 };
-export type DadosReceita = Omit<EmpresaPessoal, "id" | "cnpj" | "qualificacao" | "entrada" | "saida" | "lembranca" | "fonte" | "conferido_em" | "ordem"> & { socios: Socio[] };
+export const CAMPOS_FICHA: { campo: keyof FichaEmpresa; rotulo: string; largo?: boolean }[] = [
+  { campo: "responsavel", rotulo: "Quem cuida" }, { campo: "inscricao_estadual", rotulo: "Inscrição estadual" },
+  { campo: "inscricao_municipal", rotulo: "Inscrição municipal" }, { campo: "telefones", rotulo: "Telefones" },
+  { campo: "email", rotulo: "E-mail" }, { campo: "folha", rotulo: "Folha de pagamento" },
+  { campo: "notas_entrada", rotulo: "Notas de entrada" }, { campo: "notas_saida", rotulo: "Notas de saída" },
+  { campo: "endereco", rotulo: "Endereço", largo: true },
+];
+export type DadosReceita = Omit<EmpresaPessoal, "id" | "cnpj" | "qualificacao" | "entrada" | "saida" | "lembranca" | "fonte" | "conferido_em" | "ordem" | keyof FichaEmpresa> & { socios: Socio[] };
 
 export const cnpjFormatado = (c: string) => {
   const d = digitos(c);
@@ -89,6 +101,8 @@ async function json(url: string) {
   }
 }
 
+const enderecoDe = (partes: unknown[]) => partes.map((x) => String(x ?? "").trim()).filter(Boolean).join(", ").slice(0, 300) || null;
+
 /** Lê a resposta da BrasilAPI (Receita). */
 export function daBrasilApi(j: any): DadosReceita | null {
   if (!j?.razao_social) return null;
@@ -98,6 +112,7 @@ export function daBrasilApi(j: any): DadosReceita | null {
     porte: ou(j.porte) ?? PORTE[String(j.codigo_porte ?? "").padStart(2, "0")] ?? null,
     cnae: j.cnae_fiscal ? `${String(j.cnae_fiscal).replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")} ${j.cnae_fiscal_descricao ?? ""}`.trim() : null,
     municipio: ou(j.municipio), uf: ou(j.uf), capital_social: j.capital_social != null ? Number(j.capital_social) : null,
+    endereco_receita: enderecoDe([[j.descricao_tipo_de_logradouro, j.logradouro].filter(Boolean).join(" "), j.numero, j.complemento, j.bairro, j.municipio && `${j.municipio}/${j.uf ?? ""}`, j.cep && `CEP ${j.cep}`]),
     socios: (j.qsa ?? []).map((s: any) => ({ nome: String(s.nome_socio ?? "").trim(), qualificacao: ou(s.qualificacao_socio), entrada: data(s.data_entrada_sociedade) })).filter((s: Socio) => s.nome),
   };
 }
@@ -110,6 +125,7 @@ export function doCnpja(j: any): DadosReceita | null {
     abertura: data(j.founded), natureza: ou(j.company.nature?.text), porte: ou(j.company.size?.text),
     cnae: j.mainActivity ? `${String(j.mainActivity.id).replace(/^(\d{4})(\d)(\d{2})$/, "$1-$2/$3")} ${j.mainActivity.text ?? ""}`.trim() : null,
     municipio: ou(j.address?.city), uf: ou(j.address?.state), capital_social: j.company.equity != null ? Number(j.company.equity) : null,
+    endereco_receita: enderecoDe([j.address?.street, j.address?.number, j.address?.details, j.address?.district, j.address?.city && `${j.address.city}/${j.address.state ?? ""}`, j.address?.zip && `CEP ${j.address.zip}`]),
     socios: (j.company.members ?? []).map((m: any) => ({ nome: String(m.person?.name ?? "").trim(), qualificacao: ou(m.role?.text), entrada: data(m.since) })).filter((s: Socio) => s.nome),
   };
 }

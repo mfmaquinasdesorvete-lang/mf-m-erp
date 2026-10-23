@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { brl, dataBR, dataHoraBR, digitos, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import {
-  agruparEmpresas, anosEntre, cnpjFormatado, cnpjValido, consultarReceita, euNoQuadro, resumoEmpresas, tomSituacao, type EmpresaPessoal,
+  CAMPOS_FICHA, agruparEmpresas, anosEntre, cnpjFormatado, cnpjValido, consultarReceita, euNoQuadro, resumoEmpresas, tomSituacao, type EmpresaPessoal,
 } from "@/lib/minhasEmpresas";
 
 const CHIP: Record<ReturnType<typeof tomSituacao>, string> = {
@@ -136,12 +136,18 @@ export function MinhasEmpresas({ meusNomes }: { meusNomes: string[] }) {
                         </ul>
                       </div>
                     )}
+                    {CAMPOS_FICHA.some(({ campo }) => m[campo]) && (
+                      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 rounded-xl bg-slate-50 p-2 text-sm sm:grid-cols-2">
+                        {CAMPOS_FICHA.filter(({ campo }) => m[campo]).map(({ campo, rotulo, largo }) => <Linha key={campo} rotulo={rotulo} largo={largo}>{m[campo]}</Linha>)}
+                      </dl>
+                    )}
+                    {m.endereco_receita && m.endereco_receita !== m.endereco && <p className="mt-1 text-xs text-slate-500">Endereço na Receita: {m.endereco_receita}</p>}
                     {m.lembranca && <p className="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-sm italic text-violet-900">{m.lembranca}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                       <span className="mr-auto text-slate-500">{m.conferido_em ? `conferido na Receita em ${dataHoraBR(m.conferido_em)}` : <span className="font-semibold text-amber-800">ainda não conferido na Receita</span>}
                         {m.fonte && !m.conferido_em && <> · <a href={m.fonte} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-brand hover:underline">fonte <ExternalLink size={11} /></a></>}</span>
                       <Button variant="secondary" onClick={() => conferir(m)} disabled={!!conferindo}>{conferindo === m.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Conferir</Button>
-                      <Button variant="secondary" onClick={() => setEdit(m)}><Pencil size={14} /> Lembrança</Button>
+                      <Button variant="secondary" onClick={() => setEdit(m)}><Pencil size={14} /> Ficha e lembrança</Button>
                       <button type="button" className="botao-icone-perigo h-8 w-8 text-red-600" onClick={() => tirar(m)} aria-label={`Tirar ${m.razao_social ?? m.cnpj}`}><Trash2 size={15} /></button>
                     </div>
                   </div>
@@ -162,10 +168,12 @@ function Linha({ rotulo, largo, children }: { rotulo: string; largo?: boolean; c
 
 function EditarEmpresa({ e, onClose, onFeito }: { e: EmpresaPessoal; onClose: () => void; onFeito: () => void }) {
   const [f, setF] = useState({ lembranca: e.lembranca ?? "", qualificacao: e.qualificacao ?? "", entrada: e.entrada ?? "", saida: e.saida ?? "" });
+  const [ficha, setFicha] = useState<Record<string, string>>(Object.fromEntries(CAMPOS_FICHA.map(({ campo }) => [campo, e[campo] ?? ""])));
   async function salvar(ev: FormEvent) {
     ev.preventDefault();
     const { error } = await supabase.from("pessoal_empresas").update({
       lembranca: f.lembranca.trim() || null, qualificacao: f.qualificacao.trim() || null, entrada: f.entrada || null, saida: f.saida || null,
+      ...Object.fromEntries(CAMPOS_FICHA.map(({ campo }) => [campo, ficha[campo].trim() || null])),
     }).eq("id", e.id);
     if (error) return notifyError(error);
     notify("Salvo");
@@ -179,6 +187,13 @@ function EditarEmpresa({ e, onClose, onFeito }: { e: EmpresaPessoal; onClose: ()
           <Field label="Você era/é"><input className="input" value={f.qualificacao} onChange={(x) => setF({ ...f, qualificacao: x.target.value })} maxLength={80} placeholder="Sócia-administradora" /></Field>
           <Field label="Entrou em"><input className="input" type="date" value={f.entrada} onChange={(x) => setF({ ...f, entrada: x.target.value })} /></Field>
           <Field label="Saiu em"><input className="input" type="date" value={f.saida} onChange={(x) => setF({ ...f, saida: x.target.value })} /></Field>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {CAMPOS_FICHA.map(({ campo, rotulo, largo }) => (
+            <div key={campo} className={largo ? "sm:col-span-2" : ""}>
+              <Field label={rotulo}><input className="input" value={ficha[campo]} onChange={(x) => setFicha({ ...ficha, [campo]: x.target.value })} maxLength={campo === "endereco" ? 300 : 120} /></Field>
+            </div>
+          ))}
         </div>
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit">Salvar</Button></div>
       </form>
