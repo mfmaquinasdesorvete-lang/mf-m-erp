@@ -11,6 +11,9 @@ describe("rastreio das entregas", () => {
     expect(grupoRastreio({ ...base, status: "entregue", entregue_em: "2026-10-20" }, "2026-10-21")).toBe("entregue");
     expect(grupoRastreio({ ...base, status: "entregue", entregue_em: "2026-09-01" }, "2026-10-21")).toBeNull();
     expect(grupoRastreio({ ...base, status: "cotacao" }, "2026-10-21")).toBeNull();
+    // SSW: entregue pela transportadora fica para confirmar; rastreado pela nota não precisa de código
+    expect(grupoRastreio({ ...base, rastreio_entregue_em: "2026-10-20T10:00:00-03:00" }, "2026-10-26")).toBe("confirmar");
+    expect(grupoRastreio({ ...base, codigo_rastreio: null, rastreio_fonte: "SSW" }, "2026-10-21")).toBe("a_caminho");
     expect(grupoRastreio({ ...base, status: "coleta", codigo_rastreio: null }, "2026-10-21")).toBeNull();
   });
   it("mensagem do WhatsApp com o primeiro nome, código e link", () => {

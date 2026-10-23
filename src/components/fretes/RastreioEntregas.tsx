@@ -1,13 +1,15 @@
 // Fretes → Rastreio: as entregas na estrada (sem código, a caminho, atrasadas e entregues nos últimos 15 dias). Em
 // cada uma: o link de acompanhar da transportadora, copiar o código e mandar pelo WhatsApp do cliente. Ao preencher o
-// código aqui, o banco manda sozinho o e-mail "Seu pedido foi enviado" com o link para o cliente.
+// código aqui, o banco manda sozinho o e-mail "Seu pedido foi enviado" com o link para o cliente. Transportadora que usa
+// o SSW é rastreada sozinha pela chave da nota (7h05 e 14h05, ou no botão): a última ocorrência aparece no cartão e,
+// quando ela informa a entrega, o envio vai para "Entregues pela transportadora" para a equipe confirmar.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlarmClock, BellRing, CheckCircle2, Copy, ExternalLink, Mail, MessageCircle, PackageSearch, Truck } from "lucide-react";
+import { AlarmClock, BellRing, CheckCircle2, ChevronDown, Copy, ExternalLink, Mail, MessageCircle, PackageCheck, PackageSearch, RefreshCw, Truck } from "lucide-react";
 import { Button } from "@/components/ui";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
-import { dataBR, hoje, pl, whatsappLink } from "@/lib/format";
+import { dataBR, dataHoraBR, hoje, pl, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { linkRastreio } from "@/lib/transportadoras";
 import { grupoRastreio, mensagemAtraso, mensagemChegando, mensagemRastreio, type GrupoRastreio } from "@/lib/rastreio";
@@ -17,6 +19,7 @@ import type { Transportadora } from "@/lib/types";
 type ClienteContato = { id: string; nome: string; nome_fantasia: string | null; whatsapp: string | null; telefone: string | null; email: string | null; avisos_email: boolean | null };
 
 const GRUPOS: { id: GrupoRastreio; titulo: string; icone: typeof Truck; cor: string }[] = [
+  { id: "confirmar", titulo: "Entregues pela transportadora (confirmar)", icone: PackageCheck, cor: "border-l-emerald-600" },
   { id: "sem_codigo", titulo: "Saíram sem código de rastreio", icone: PackageSearch, cor: "border-l-amber-400" },
   { id: "atrasado", titulo: "Passaram da previsão", icone: AlarmClock, cor: "border-l-red-500" },
   { id: "chegando", titulo: "Chegam hoje ou amanhã", icone: BellRing, cor: "border-l-violet-500" },
@@ -123,6 +126,7 @@ function CartaoRastreio({ e, grupo, cor, cliente, transportadora, pedido, podeEd
           <Button type="submit" disabled={salvando || !codigo.trim()}>{salvando ? "Salvando…" : "Salvar"}</Button>
         </form>
       ) : <p className="text-xs text-amber-800">Falta o código de rastreio.</p>}
+      <SituacaoTransportadora e={e} podeEditar={podeEditar} />
       {grupo === "atrasado" && podeEditar && <MotivoAtraso e={e} />}
       {(grupo === "chegando" || grupo === "atrasado") && (
         <AvisoCliente e={e} tipo={grupo} zap={zap} texto={grupo === "chegando"
@@ -166,6 +170,71 @@ function AvisoCliente({ e, tipo, zap, texto }: { e: Envio; tipo: "chegando" | "a
   );
 }
 
+/** O que a transportadora informou (SSW, pela chave da nota): última ocorrência, todas as ocorrências, atualizar agora
+ *  e, quando ela informa a entrega, "Confirmar entrega" (data do comprovante = a da transportadora). */
+function SituacaoTransportadora({ e, podeEditar }: { e: Envio; podeEditar: boolean }) {
+  const invalidar = useInvalidate();
+  const [aberto, setAberto] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const eventos = e.rastreio_eventos ?? [];
+  async function atualizar() {
+    setOcupado(true);
+    try {
+      const r = await callFunction<{ ok: boolean; erro?: string; entregue?: boolean }>("ssw", { acao: "rastrear", envio_id: e.id });
+      if (r.ok) notify(r.entregue ? "A transportadora informou a entrega" : "Rastreio atualizado pelo SSW");
+      else notify(`SSW: ${r.erro}`);
+      invalidar("envios");
+    } catch (err) { notifyError(err); } finally { setOcupado(false); }
+  }
+  async function confirmar() {
+    if (!e.rastreio_entregue_em) return;
+    setOcupado(true);
+    try {
+      // dia da entrega no horário de Brasília
+      const dia = new Date(e.rastreio_entregue_em).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+      const { error } = await supabase.from("envios").update({ status: "entregue", entregue_em: dia, comprovante_em: dia }).eq("id", e.id);
+      if (error) throw error;
+      notify("Entrega confirmada");
+      invalidar("envios", "pedidos");
+    } catch (err) { notifyError(err); } finally { setOcupado(false); }
+  }
+  if (e.status === "entregue" && !eventos.length) return null;
+  return (
+    <div className="space-y-1.5 rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1">
+          {e.rastreio_situacao
+            ? <><b>Transportadora:</b> {e.rastreio_situacao}{eventos.length ? ` · ${eventos[eventos.length - 1].em ? dataHoraBR(eventos[eventos.length - 1].em!) : ""}` : ""}</>
+            : e.rastreio_em ? "O SSW não achou a nota (a transportadora pode não usar o SSW)." : "Ainda não rastreado pela nota."}
+        </span>
+        {eventos.length > 1 && (
+          <button type="button" onClick={() => setAberto(!aberto)} className="inline-flex items-center gap-0.5 font-semibold text-modulo-texto hover:underline" aria-expanded={aberto}>
+            {aberto ? "esconder" : `ver ${eventos.length} ocorrências`} <ChevronDown size={12} className={aberto ? "rotate-180" : ""} aria-hidden />
+          </button>
+        )}
+        {podeEditar && e.status !== "entregue" && (
+          <Button type="button" tamanho="mini" variant="secondary" onClick={atualizar} disabled={ocupado} aria-label="Atualizar o rastreio pelo SSW">
+            <RefreshCw size={12} className={ocupado ? "animate-spin" : ""} aria-hidden /> SSW
+          </Button>
+        )}
+      </div>
+      {aberto && (
+        <ol className="space-y-0.5 border-l-2 border-slate-200 pl-2">
+          {[...eventos].reverse().map((ev, i) => (
+            <li key={i}><span className="text-slate-500">{ev.em ? dataHoraBR(ev.em) : ""}</span> {ev.ocorrencia}{ev.cidade ? ` · ${ev.cidade}` : ""}</li>
+          ))}
+        </ol>
+      )}
+      {e.rastreio_entregue_em && e.status !== "entregue" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 p-2 text-emerald-900">
+          <span className="flex-1">Entregue em <b>{dataHoraBR(e.rastreio_entregue_em)}</b>{e.rastreio_recebedor ? `, recebido por ${e.rastreio_recebedor}` : ""}, segundo a transportadora.</span>
+          {podeEditar && <Button type="button" tamanho="mini" onClick={confirmar} disabled={ocupado}><CheckCircle2 size={12} aria-hidden /> Confirmar entrega</Button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Explicação do atraso: vai no e-mail automático (se ainda não saiu) e na mensagem do WhatsApp. */
 function MotivoAtraso({ e }: { e: Envio }) {
   const invalidar = useInvalidate();
@@ -192,6 +261,6 @@ function MotivoAtraso({ e }: { e: Envio }) {
 
 export const contarRastreio = (envios: Envio[], dia = hoje()) => {
   const g = envios.map((e) => grupoRastreio(e, dia));
-  const atencao = g.filter((x) => x === "sem_codigo" || x === "atrasado").length;
+  const atencao = g.filter((x) => x === "sem_codigo" || x === "atrasado" || x === "confirmar").length;
   return { naEstrada: g.filter((x) => x && x !== "entregue").length, atencao, texto: atencao ? `${atencao} ${pl(atencao, "precisa", "precisam")} de atenção` : "" };
 };

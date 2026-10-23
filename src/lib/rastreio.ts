@@ -2,13 +2,16 @@
 // link de acompanhar da transportadora. O e-mail automático sai pelo banco quando o código é preenchido.
 import type { Envio } from "./fretes";
 
-export type GrupoRastreio = "sem_codigo" | "chegando" | "a_caminho" | "atrasado" | "entregue";
+export type GrupoRastreio = "confirmar" | "sem_codigo" | "chegando" | "a_caminho" | "atrasado" | "entregue";
 
 /** Em que ponto do rastreio está o envio (null = fora da tela: em cotação, aprovação ou cancelado). */
-export function grupoRastreio(e: Pick<Envio, "status" | "codigo_rastreio" | "entrega_prevista" | "entregue_em">, hoje: string): GrupoRastreio | null {
+export function grupoRastreio(e: Pick<Envio, "status" | "codigo_rastreio" | "entrega_prevista" | "entregue_em"> & Pick<Partial<Envio>, "rastreio_entregue_em" | "rastreio_fonte">, hoje: string): GrupoRastreio | null {
   if (e.status === "entregue") return e.entregue_em && dias(e.entregue_em, hoje) <= 15 ? "entregue" : null;
   if (e.status !== "transito" && e.status !== "coleta") return null;
-  if (!e.codigo_rastreio?.trim()) return e.status === "transito" ? "sem_codigo" : null;
+  // a transportadora (SSW) já informou a entrega: falta a equipe confirmar
+  if (e.rastreio_entregue_em) return "confirmar";
+  // rastreado pela chave da nota (SSW) não precisa do código
+  if (!e.codigo_rastreio?.trim() && !e.rastreio_fonte) return e.status === "transito" ? "sem_codigo" : null;
   if (e.entrega_prevista && e.entrega_prevista < hoje) return "atrasado";
   // chega hoje ou amanhã: hora de avisar o cliente com antecedência
   if (e.entrega_prevista && e.entrega_prevista <= somarDia(hoje, 1)) return "chegando";

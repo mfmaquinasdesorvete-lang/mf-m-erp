@@ -2,6 +2,8 @@
 // Funções puras: o painel e o formulário usam as mesmas regras.
 import { pl } from "./format";
 
+export type EventoRastreio = { em: string | null; ocorrencia: string; descricao: string | null; cidade: string | null; filial: string | null; tipo: string | null; recebedor: string | null };
+
 export type Volume = {
   embalagem_id?: string | null; descricao?: string | null; quantidade: number;
   largura_cm?: number | null; altura_cm?: number | null; comprimento_cm?: number | null; peso_kg?: number | null;
@@ -25,6 +27,9 @@ export type Envio = {
   entrega_prevista: string | null; entregue_em: string | null; comprovante_em: string | null;
   /** acompanhamento da manhã: quando o cliente foi avisado (chegando / atraso) e a explicação do atraso */
   aviso_chegando_em?: string | null; aviso_atraso_em?: string | null; motivo_atraso?: string | null;
+  /** rastreio automático pela chave da nota (SSW): última ocorrência, eventos e a entrega informada pela transportadora */
+  rastreio_fonte?: string | null; rastreio_chave?: string | null; rastreio_em?: string | null; rastreio_situacao?: string | null;
+  rastreio_eventos?: EventoRastreio[] | null; rastreio_entregue_em?: string | null; rastreio_recebedor?: string | null;
   valor_final: number | null; cte_numero: string | null; observacoes: string | null;
   created_at: string; atualizado_em: string;
   // condições comerciais, decisão, prova de entrega, conferência e conta a pagar (migração 0020)
