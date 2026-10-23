@@ -25,7 +25,14 @@ export async function chamarML<T = any>(caminho: string, token: string | null, i
   if (!r.ok) {
     const msg = String(corpo?.message || corpo?.error_description || corpo?.error || `Mercado Livre respondeu ${r.status}`);
     // erro de validação (ex.: ao mudar preço ou estoque): o motivo vem em "cause"
-    const causas = (Array.isArray(corpo?.cause) ? corpo.cause : []).map((c: any) => String(c?.message ?? "").trim()).filter(Boolean).join("; ");
+    // (sem mensagem, vale o código e os campos citados: "item.title.invalid [title]")
+    const causas = (Array.isArray(corpo?.cause) ? corpo.cause : [])
+      .filter((c: any) => !c?.type || c.type === "error")
+      .map((c: any) => {
+        const t = String(c?.message ?? "").trim() || String(c?.code ?? "").trim();
+        const refs = Array.isArray(c?.references) && c.references.length ? ` [${c.references.join(", ")}]` : "";
+        return t ? `${t}${refs}` : "";
+      }).filter(Boolean).join("; ");
     throw new ErroML(r.status, causas && !msg.includes(causas) ? `${msg}: ${causas}` : msg, corpo?.error);
   }
   return corpo as T;
