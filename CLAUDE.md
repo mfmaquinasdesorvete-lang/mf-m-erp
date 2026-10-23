@@ -38,6 +38,8 @@
   - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
   - "ERP Line – Conferência dos pedidos": confere se o que foi pedido a cada chat deu certo e está no ar, cobra os
     chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
+  - "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
+    do código e sem dados da empresa (o repositório é público).
   - O chat principal (anterior) organiza os outros.
   - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, o que faz, exemplos, sessao =
     "session_…", cor), que aparece em Sobre → Chats; chat encerrado fica com ativo = false.
