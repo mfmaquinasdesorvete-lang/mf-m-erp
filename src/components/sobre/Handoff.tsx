@@ -1,18 +1,21 @@
 // Handoff do ERP (Sobre o ERP Line → Handoff): onde o ERP está, o que falta e quem faz, para passar o trabalho
-// adiante sem perder nada. Indicadores no topo (clicáveis), próximos passos, pendências com filtros, decisões e
-// como o ERP funciona. O texto do handoff sai pronto para colar no WhatsApp ou numa conversa.
-import { useMemo, useState } from "react";
+// adiante sem perder nada. No topo, o que é o Handoff (pendência, decisão e ideia) e como usar; depois o painel escuro
+// (pendências abertas no centro do anel, um pedaço por quem faz, tocar filtra), os próximos passos, as pendências com a
+// barra de filtros, as decisões e como o ERP funciona. O texto do handoff sai pronto para colar no WhatsApp ou numa conversa.
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  AlarmClock, Ban, Check, CheckCircle2, ClipboardCopy, FileText, Flag, Hourglass, ListTodo, Pencil, Play, Plus, RotateCcw, Scale, Search, UserRound, Bot,
+  AlarmClock, Ban, Bot, Briefcase, Check, CheckCircle2, ClipboardCopy, Code2, Database, FileText, Flag, Globe, Hourglass, Lightbulb, ListTodo, Pencil, Play,
+  Plus, RotateCcw, Scale, Store, Truck, UserRound, X, type LucideIcon,
 } from "lucide-react";
-import { Button, Card, Modal, Stat } from "@/components/ui";
-import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { Button, Card, Modal } from "@/components/ui";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { hoje, pl } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import {
-  RESPONSAVEIS, ROTULO_PRIORIDADE, ROTULO_RESPONSAVEL, ativo, atrasada, indicadoresHandoff, ordenarPendencias, proximosPassos, textoHandoff,
+  RESPONSAVEIS, ROTULO_PRIORIDADE, ROTULO_RESPONSAVEL, ativo, atrasada, indicadoresHandoff, ordenarPendencias, partesTituloIdeia, proximosPassos, textoHandoff,
   type ItemProjeto, type Prioridade, type Responsavel, type TipoItem,
 } from "@/lib/projeto";
 import {
@@ -22,6 +25,14 @@ import {
 type Visao = "ativas" | "aguardando" | "feita" | "descartada" | "todas";
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const COR_FAIXA: Record<Prioridade, string> = { alta: "bg-red-500", media: "bg-amber-400", baixa: "bg-slate-300" };
+// cor e ícone de quem faz (as mesmas das etiquetas; o "neon" é o tom que aparece no painel escuro)
+const QUEM: Record<Responsavel, { cor: string; neon: string; icone: LucideIcon }> = {
+  empresa: { cor: "#8b5cf6", neon: "#c4b5fd", icone: UserRound }, claude: { cor: "#f97316", neon: "#fdba74", icone: Bot },
+  contador: { cor: "#0ea5e9", neon: "#7dd3fc", icone: Briefcase }, advogado: { cor: "#64748b", neon: "#cbd5e1", icone: Scale },
+  fornecedor: { cor: "#14b8a6", neon: "#5eead4", icone: Truck },
+};
+/** Título sem o código do roteiro ("analytics-os · BI:" → "BI"); o título gravado não muda. */
+const tituloLimpo = (t: string) => partesTituloIdeia(t).texto;
 
 export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: string } | null; onIrAba: (aba: "modulos" | "atualizacoes" | "ideias") => void }) {
   const { data: itens = [], isLoading } = useItensProjeto();
@@ -50,39 +61,52 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
   const limpar = () => { setResp(""); setPrio(""); setArea(""); setSoAtrasadas(false); setBusca(""); setVisao("ativas"); };
   const filtrar = (f: () => void) => { limpar(); f(); document.getElementById("pendencias")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
   // agrupado por quem faz quando não há filtro de responsável
+  const fatiasQuem: FatiaAnel<Responsavel>[] = RESPONSAVEIS.map((r) => ({ id: r, rotulo: ROTULO_RESPONSAVEL[r], valor: ind.porResponsavel[r], cor: QUEM[r].cor, neon: QUEM[r].neon }));
   const grupos = resp ? [{ r: resp, l: lista }] : RESPONSAVEIS.map((r) => ({ r, l: lista.filter((i) => i.responsavel === r) })).filter((g) => g.l.length);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <p className="min-w-0 max-w-2xl flex-1 basis-72 text-sm text-slate-600">
-          Onde o ERP está, o que falta e quem faz. Comece pelos <b>próximos passos</b>; ao terminar, marque como feita.
-          Ideia nova vai para <button type="button" className="font-semibold text-modulo-texto underline-offset-2 hover:underline" onClick={() => onIrAba("ideias")}>Ideias</button>.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setTexto(textoHandoff(itens, dia, versao))} disabled={!itens.length}><FileText size={16} /> Handoff em texto</Button>
-          <Button variant="secondary" onClick={() => setEditando({ tipo: "decisao" })}><Scale size={16} /> Registrar decisão</Button>
-          <Button onClick={() => setEditando({ tipo: "pendencia" })}><Plus size={16} /> Nova pendência</Button>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="secondary" onClick={() => setTexto(textoHandoff(itens, dia, versao))} disabled={!itens.length}><FileText size={16} /> Handoff em texto</Button>
+        <Button variant="secondary" onClick={() => setEditando({ tipo: "decisao" })}><Scale size={16} /> Registrar decisão</Button>
+        <Button onClick={() => setEditando({ tipo: "pendencia" })}><Plus size={16} /> Nova pendência</Button>
       </div>
 
-      {/* indicadores: tocar filtra a lista de pendências */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
-        <Stat label="Pendências abertas" valor={ind.abertas} icon={ListTodo} tom="info" onClick={() => filtrar(() => {})}
-          sub={`${ind.fazendo} fazendo · ${ind.feitasSemana} ${pl(ind.feitasSemana, "feita", "feitas")} em 7 dias`} />
-        <Stat label="Alta prioridade" valor={ind.alta} icon={Flag} tom={ind.alta ? "critico" : "bom"} onClick={() => filtrar(() => setPrio("alta"))} sub="fazer primeiro" />
-        <Stat label="Atrasadas" valor={ind.atrasadas} icon={AlarmClock} tom={ind.atrasadas ? "critico" : "bom"} onClick={() => filtrar(() => setSoAtrasadas(true))} sub="prazo vencido" />
-        <Stat label="Aguardando alguém" valor={ind.aguardando} icon={Hourglass} tom={ind.aguardando ? "atencao" : "neutro"} onClick={() => filtrar(() => setVisao("aguardando"))} sub="paradas por resposta" />
-        <Stat label="Com a empresa" valor={ind.porResponsavel.empresa} icon={UserRound} onClick={() => filtrar(() => setResp("empresa"))} sub={`+ ${ind.terceiros} com contador e outros`} />
-        <Stat label="Com o Claude" valor={ind.porResponsavel.claude} icon={Bot} onClick={() => filtrar(() => setResp("claude"))} sub={`${ind.decisoes} ${pl(ind.decisoes, "decisão", "decisões")} em vigor`} />
-      </div>
+      <OQueE onIdeias={() => onIrAba("ideias")} />
+
+      {/* painel: as pendências abertas no centro, um pedaço por quem faz (tocar filtra a lista) */}
+      <QuadroEscuro rotulo="Pendências do ERP" titulo="Handoff" destaque="o que falta e quem faz" className=""
+        filtro={resp ? { texto: ROTULO_RESPONSAVEL[resp], onLimpar: () => setResp("") } : undefined}>
+        <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,15.5rem)_auto_minmax(0,1fr)] lg:gap-6">
+          <div className="order-1 min-w-0 lg:order-2">
+            <AnelEscuro fatias={fatiasQuem} escolhida={resp} onEscolher={(r) => filtrar(() => setResp(r))} rotulo={`${ind.abertas} pendências abertas`}
+              centro={resp
+                ? { rotulo: ROTULO_RESPONSAVEL[resp], valor: String(ind.porResponsavel[resp]), sub: pl(ind.porResponsavel[resp], "pendência aberta", "pendências abertas") }
+                : { rotulo: "Abertas", valor: String(ind.abertas), sub: `${ind.fazendo} fazendo agora` }} />
+          </div>
+          <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
+            <NumeroEscuro icone={Flag} rotulo="Alta prioridade" valor={ind.alta} sub="fazer primeiro" de="#fb7185" ate="#e11d48" aceso={ind.alta > 0} onClick={() => filtrar(() => setPrio("alta"))} />
+            <NumeroEscuro icone={AlarmClock} rotulo="Atrasadas" valor={ind.atrasadas} sub="prazo vencido" de="#fbbf24" ate="#d97706" aceso={ind.atrasadas > 0} onClick={() => filtrar(() => setSoAtrasadas(true))} />
+            <NumeroEscuro icone={Hourglass} rotulo="Aguardando alguém" valor={ind.aguardando} sub="paradas por resposta" de="#c084fc" ate="#7c3aed" aceso={ind.aguardando > 0} onClick={() => filtrar(() => setVisao("aguardando"))} />
+            <NumeroEscuro icone={CheckCircle2} rotulo="Feitas em 7 dias" valor={ind.feitasSemana} sub={`${ind.decisoes} ${pl(ind.decisoes, "decisão", "decisões")} em vigor`} de="#6ee7b7" ate="#059669" aceso={ind.feitasSemana > 0} onClick={() => filtrar(() => setVisao("feita"))} />
+          </div>
+          <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1" aria-label="Por quem faz">
+            {RESPONSAVEIS.filter((r) => ind.porResponsavel[r] > 0 || resp === r).map((r) => (
+              <li key={r} className="min-w-0">
+                <LinhaEscura icone={QUEM[r].icone} rotulo={ROTULO_RESPONSAVEL[r]} valor={ind.porResponsavel[r]} pct={ind.abertas ? Math.round((ind.porResponsavel[r] / ind.abertas) * 100) : 0}
+                  cor={QUEM[r].cor} neon={QUEM[r].neon} ativo={resp === r} apagado={!!resp && resp !== r} onClick={() => filtrar(() => setResp(resp === r ? "" : r))} title="Toque para ver só as pendências de quem faz" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </QuadroEscuro>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 space-y-4 xl:col-span-2">
           {/* 1º: o que fazer agora */}
           <Card className="p-4 sm:p-5">
             <h2 className="text-base font-bold text-fg">Próximos passos</h2>
-            <p className="text-sm text-slate-600">As pendências que dá para fazer agora, na ordem: atrasadas, prioridade e prazo.</p>
+            <p className="text-sm text-slate-600">Comece por aqui: as pendências que dá para fazer agora, na ordem atrasadas, prioridade e prazo. Terminou? Toque em <b>Concluir</b>.</p>
             {!passos.length && !isLoading && <p className="mt-3 text-sm text-slate-500">Nada pendente. Anote a próxima pendência ou veja as ideias.</p>}
             <ol className="mt-3 space-y-2">
               {passos.map((i, k) => (
@@ -90,7 +114,7 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                 <li key={i.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                   <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full bg-modulo-escuro text-sm font-bold text-white">{k + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold leading-snug text-fg">{i.titulo}</p>
+                    <p className="font-semibold leading-snug text-fg" title={i.titulo}>{tituloLimpo(i.titulo)}</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {i.responsavel && <ChipResponsavel r={i.responsavel} />}<ChipPrioridade p={i.prioridade} />
                       {i.situacao === "andamento" && <ChipSituacao i={i} />}
@@ -105,28 +129,24 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
 
           <Card className="p-4 sm:p-5">
             <div id="pendencias" className="scroll-mt-20" />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-bold text-fg">Pendências</h2>
-              {nFiltros > 0 && <button type="button" onClick={limpar} className="text-xs font-semibold text-slate-500 hover:text-fg">Limpar filtros ({nFiltros})</button>}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="relative min-w-0 flex-1 basis-56">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-                <input className="input h-10 pl-9" type="search" placeholder="Buscar pendência" aria-label="Buscar pendência" value={busca} onChange={(e) => setBusca(e.target.value)} />
-              </div>
-              <select className="input h-10 w-auto" aria-label="Área" value={area} onChange={(e) => setArea(e.target.value)}>
-                <option value="">Todas as áreas</option>
-                {AREAS.filter((a) => pend.some((i) => i.area === a.id)).map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
-              </select>
-              <select className="input h-10 w-auto" aria-label="Prioridade" value={prio} onChange={(e) => setPrio(e.target.value as Prioridade | "")}>
-                <option value="">Toda prioridade</option>
-                {(["alta", "media", "baixa"] as Prioridade[]).map((p) => <option key={p} value={p}>Prioridade {ROTULO_PRIORIDADE[p].toLowerCase()}</option>)}
-              </select>
-              <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
-                <input type="checkbox" checked={soAtrasadas} onChange={(e) => setSoAtrasadas(e.target.checked)} /> Atrasadas
-              </label>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Quem faz">
+            <h2 className="text-base font-bold text-fg">Pendências</h2>
+            <p className="mb-3 text-sm text-slate-600">Tudo o que falta, separado por quem faz. Use os botões abaixo para ver só um responsável ou uma situação.</p>
+            <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar pendência"
+              filtros={<>
+                <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Área</span>
+                  <select className="input w-auto" value={area} onChange={(e) => setArea(e.target.value)}>
+                    <option value="">Todas as áreas</option>
+                    {AREAS.filter((a) => pend.some((i) => i.area === a.id)).map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                  </select></label>
+                <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Prioridade</span>
+                  <select className="input w-auto" value={prio} onChange={(e) => setPrio(e.target.value as Prioridade | "")}>
+                    <option value="">Toda prioridade</option>
+                    {(["alta", "media", "baixa"] as Prioridade[]).map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
+                  </select></label>
+                <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={soAtrasadas} onChange={(e) => setSoAtrasadas(e.target.checked)} /> Só atrasadas</label>
+              </>}
+              nFiltros={(prio ? 1 : 0) + (area ? 1 : 0) + (soAtrasadas ? 1 : 0) + (resp ? 1 : 0)} onLimpar={limpar} />
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quem faz">
               {(["", ...RESPONSAVEIS] as (Responsavel | "")[]).map((r) => {
                 const n = base.filter((i) => naVisao(i, visao) && (!r || i.responsavel === r)).length;
                 if (r && !n && resp !== r) return null;
@@ -199,7 +219,7 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
     <li className={`grid grid-cols-[4px_minmax(0,1fr)] gap-x-3 gap-y-2 py-3 sm:grid-cols-[4px_minmax(0,1fr)_auto] ${ativo(i) ? "" : "opacity-75"}`}>
       <span className={`row-span-2 w-1 self-stretch rounded-full sm:row-span-1 ${ativo(i) ? COR_FAIXA[i.prioridade] : "bg-slate-200"}`} title={`Prioridade ${ROTULO_PRIORIDADE[i.prioridade].toLowerCase()}`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`}>{i.titulo}</p>
+        <p className={`font-semibold leading-snug text-fg ${i.situacao === "descartada" ? "line-through" : ""}`} title={i.titulo}>{tituloLimpo(i.titulo)}</p>
         {i.detalhe && (
           <p className={`mt-0.5 whitespace-pre-line text-xs leading-snug text-slate-600 ${aberto || !longo ? "" : "line-clamp-2"}`}>
             {i.detalhe}
@@ -257,6 +277,58 @@ function Decisoes({ decisoes, dia, onEditar }: { decisoes: ItemProjeto[]; dia: s
 }
 const rotuloAreaCurta = (id: string) => AREAS.find((a) => a.id === id)?.titulo ?? id;
 
+/**
+ * O que é o Handoff e como usar: as três coisas que ele guarda (pendência, decisão e ideia) e o passo a passo.
+ * Dá para fechar (fica fechado no aparelho) e abrir de novo pelo botão "O que é o Handoff?".
+ */
+function OQueE({ onIdeias }: { onIdeias: () => void }) {
+  const CHAVE = "erp.handoff.explicacao";
+  const [aberta, setAbertaState] = useState(() => { try { return localStorage.getItem(CHAVE) !== "fechada"; } catch { return true; } });
+  const setAberta = (v: boolean) => { setAbertaState(v); try { localStorage.setItem(CHAVE, v ? "aberta" : "fechada"); } catch { /* sem armazenamento */ } };
+  if (!aberta) {
+    return <button type="button" onClick={() => setAberta(true)} className="text-sm font-semibold text-modulo-texto hover:underline">O que é o Handoff e como usar?</button>;
+  }
+  const tipos: { icone: LucideIcon; cor: string; titulo: string; texto: ReactNode; exemplo: string }[] = [
+    { icone: ListTodo, cor: "from-sky-500 to-blue-700", titulo: "Pendência", texto: "Algo que precisa ser feito, com quem faz, prioridade e, se tiver, prazo.", exemplo: "Ex.: emitir a NF-e da venda #3 (empresa, alta)" },
+    { icone: Scale, cor: "from-emerald-500 to-teal-700", titulo: "Decisão", texto: "Algo que já foi combinado e vale daqui para frente. Leia antes de mudar alguma coisa.", exemplo: "Ex.: o site só é publicado com o ok da empresa" },
+    { icone: Lightbulb, cor: "from-amber-500 to-orange-600", titulo: "Ideia", texto: <>Ainda não é trabalho: vai para <button type="button" onClick={onIdeias} className="font-semibold text-modulo-texto hover:underline">Ideias</button>, é votada e, se aprovada, vira pendência.</>, exemplo: "Ex.: avisar o cliente quando a máquina sair do conserto" },
+  ];
+  const passos = [
+    ["Comece pelos próximos passos", "são as pendências mais urgentes, já na ordem certa"],
+    ["Toque em Concluir ao terminar", "ou em ⋯ → Estou fazendo, para a equipe saber"],
+    ["Parou esperando alguém?", "⋯ → Aguardando alguém, escrevendo o que falta"],
+    ["Passar o trabalho adiante", "Handoff em texto gera o resumo para colar no WhatsApp ou numa conversa com o Claude"],
+  ];
+  return (
+    <Card className="relative p-4 sm:p-5">
+      <button type="button" onClick={() => setAberta(false)} aria-label="Fechar a explicação" title="Fechar a explicação" className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-fg"><X size={16} /></button>
+      <h2 className="pr-8 text-base font-bold text-fg">O que é o Handoff</h2>
+      <p className="text-sm text-slate-600">O caderno de trabalho do ERP: <b>onde ele está, o que falta e quem faz</b>, para qualquer pessoa (ou um chat novo do Claude) continuar sem perder nada.</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        {tipos.map((t) => (
+          <div key={t.titulo} className="min-w-0 rounded-xl border border-slate-200 p-3">
+            <div className="flex items-center gap-2">
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${t.cor} text-white`} aria-hidden><t.icone size={16} /></span>
+              <b className="text-fg">{t.titulo}</b>
+            </div>
+            <p className="mt-2 text-sm leading-snug text-slate-600">{t.texto}</p>
+            <p className="mt-1.5 text-xs italic text-slate-500">{t.exemplo}</p>
+          </div>
+        ))}
+      </div>
+      <h3 className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">Como usar</h3>
+      <ol className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {passos.map(([t, d], k) => (
+          <li key={t} className="flex min-w-0 gap-2.5">
+            <span className="num grid h-6 w-6 shrink-0 place-items-center rounded-full bg-modulo-escuro text-xs font-bold text-white">{k + 1}</span>
+            <span className="min-w-0 text-sm leading-snug"><b className="block text-fg">{t}</b><span className="text-slate-600">{d}</span></span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 /** Como o ERP funciona, em linhas gerais (para quem vai continuar o trabalho). */
 function ComoFunciona({ onIrAba }: { onIrAba: (aba: "modulos" | "atualizacoes" | "ideias") => void }) {
   const link = "font-semibold text-modulo-texto underline-offset-2 hover:underline";
@@ -264,19 +336,35 @@ function ComoFunciona({ onIrAba }: { onIrAba: (aba: "modulos" | "atualizacoes" |
     <Card className="p-4 sm:p-5">
       <h2 className="text-base font-bold text-fg">Como o ERP funciona</h2>
       <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">As peças</h3>
-      <ul className="mt-1 space-y-1 text-xs leading-snug text-slate-700">
-        <li><b>Telas</b>: abrem no navegador do computador e do celular.</li>
-        <li><b>Banco e regras</b>: Supabase guarda os dados, as permissões de cada perfil e as funções do servidor (NF-e, bancos, e-mail).</li>
-        <li><b>Site</b>: publicado na Hostinger.</li>
-        <li><b>Código</b>: no GitHub. É público: nada da empresa vai no código; senhas só pelas telas ou pelos segredos do Supabase.</li>
+      <ul className="mt-2 space-y-2.5">
+        {([
+          [Store, "Telas", "abrem no navegador do computador e do celular."],
+          [Database, "Banco e regras", "o Supabase guarda os dados, as permissões de cada perfil e as funções do servidor (NF-e, bancos, e-mail)."],
+          [Globe, "Site", "publicado na Hostinger, só com o ok da empresa."],
+          [Code2, "Código", "no GitHub. É público: nada da empresa vai no código; senhas só pelas telas ou pelos segredos do Supabase."],
+        ] as const).map(([Icone, t, d]) => (
+          <li key={t} className="flex gap-2.5 text-xs leading-snug text-slate-700">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-modulo/15 text-modulo-texto" aria-hidden><Icone size={14} /></span>
+            <span><b className="text-fg">{t}</b>: {d}</span>
+          </li>
+        ))}
       </ul>
-      <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Uma mudança até chegar ao ar</h3>
-      <ol className="mt-1 list-decimal space-y-1 pl-5 text-xs leading-snug text-slate-700">
-        <li>O pedido vira pendência aqui (ou ideia, se ainda for só ideia).</li>
-        <li>É feita e testada no código, com testes automáticos.</li>
-        <li>Mudança no banco só por acréscimo, anotada no registro de migrações.</li>
-        <li>O site só é publicado com o ok da empresa.</li>
-        <li>A versão nova aparece em <button type="button" className={link} onClick={() => onIrAba("atualizacoes")}>Atualizações</button>.</li>
+      <h3 className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">Uma mudança até chegar ao ar</h3>
+      <ol className="relative mt-2 space-y-2.5 border-l-2 border-slate-200 pl-4">
+        {[
+          "O pedido vira pendência aqui (ou ideia, se ainda for só ideia).",
+          "É feita e testada no código, com testes automáticos.",
+          "Mudança no banco só por acréscimo, anotada no registro de migrações.",
+          "O site só é publicado com o ok da empresa (um chat publica por vez).",
+        ].map((t, k) => (
+          <li key={t} className="relative text-xs leading-snug text-slate-700">
+            <span className="num absolute -left-[1.6rem] top-0 grid h-5 w-5 place-items-center rounded-full bg-modulo-escuro text-2xs font-bold text-white">{k + 1}</span>{t}
+          </li>
+        ))}
+        <li className="relative text-xs leading-snug text-slate-700">
+          <span className="num absolute -left-[1.6rem] top-0 grid h-5 w-5 place-items-center rounded-full bg-emerald-600 text-2xs font-bold text-white">5</span>
+          A versão nova aparece em <button type="button" className={link} onClick={() => onIrAba("atualizacoes")}>Atualizações</button>.
+        </li>
       </ol>
       <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Onde olhar</h3>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
