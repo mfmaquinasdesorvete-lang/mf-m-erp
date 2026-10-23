@@ -27,7 +27,11 @@
   para o certo):
   - "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
     parcelamentos, contador.
-  - "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) e a base antiga da My Frost.
+  - "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) da MF.
+  - "ERP Line – My Frost": tudo da My Frost (empresa anterior): base antiga, clientes e máquinas dela, notas e XML,
+    propostas, advogado, auditoria fiscal das notas dela e a separação MF × My Frost.
+  - "ERP Line – My Frost Sorveterias e Yozzy": as lojas My Frost Sorveterias (licenciadas e próprias) e as Yozzy:
+    unidades, contratos, sócios, máquinas das lojas, custos, pagamentos, licenças e o plano fiscal delas.
   - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
   - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
