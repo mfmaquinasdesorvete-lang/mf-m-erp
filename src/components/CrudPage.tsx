@@ -445,10 +445,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
                 {marcadores && <div className="mt-1.5">{tags(row)}</div>}
                 {/* no guia o cartão já abre o cadastro ao tocar: o rodapé só aparece quando tem o que mostrar */}
-                {(!props.cartoesNoPc || marcadores || rowActions) && <div className="mt-auto flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
+                {(!props.cartoesNoPc || marcadores || rowActions) && <div className="mt-auto flex flex-wrap items-center justify-end gap-1 border-t border-slate-100 pt-2">
                   {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                   {rowActions?.(row)}
-                  {!readOnly && <Button variant="secondary" className="!min-h-0 !px-3 !py-1.5 text-sm" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
+                  {!readOnly && <Button tamanho="mini" variant="secondary" className="ml-1" onClick={() => abrir({ ...row })}><Pencil size={13} aria-hidden /> Editar</Button>}
                 </div>}
               </li>
             ))}

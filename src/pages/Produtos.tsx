@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap, RefreshCw, Wrench } from "lucide-react";
 import { CrudPage, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { DefinirLinha } from "@/components/comissoes/LinhasProduto";
 import type { LinhaProduto } from "@/lib/comissao";
@@ -319,27 +319,30 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     const c = custo(r), v = Number(r.preco_venda || 0);
     return c > 0 && v > 0 ? Math.round(((v - c) / v) * 100) : null;
   };
-  /** Celular: nome (com o NCM pequeno ao lado) e foto em cima; custo, venda, estoque e vendidos em 3 meses embaixo. */
+  /** Celular: nome (com o NCM pequeno ao lado) e foto em cima; custo, venda, estoque e vendidos em 3 meses numa faixa
+   *  baixa embaixo (eram 4 caixas grandes, 23/10). Serviço não tem NCM nem estoque: esses dois não aparecem. */
   const cartaoProduto = (r: Produto, abrir: () => void) => {
     const e = estoque(r), c = custo(r), m = margem(r), v = vendidos3m.get(r.id);
     const ncm = String(r.ncm ?? "").replace(/\D/g, "");
+    const servico = r.tipo === "servico";
     return (
       <div>
         <button type="button" onClick={abrir} className="flex w-full items-start gap-3 pr-8 text-left">
           {r.foto_caminho
-            ? <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
-            : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400"><Boxes size={22} /></span>}
+            ? <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-11 w-11 shrink-0 rounded-cartao object-cover ring-1 ring-slate-200" />
+            : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-cartao bg-slate-100 text-slate-400">{servico ? <Wrench size={18} /> : <Boxes size={18} />}</span>}
           <span className="min-w-0 flex-1">
             <span className="block font-semibold leading-snug text-fg [overflow-wrap:anywhere]">
               {r.descricao}{" "}
-              <span className={`inline-block whitespace-nowrap rounded px-1 align-middle text-2xs font-medium leading-4 ${ncm.length === 8 ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-600"}`}>
-                {ncm ? `NCM ${ncm}` : "sem NCM"}
-              </span>
+              {!servico && (
+                <span className={`inline-block whitespace-nowrap rounded px-1 align-middle text-2xs font-medium leading-4 ${ncm.length === 8 && !/^0+$/.test(ncm) ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-600"}`}>
+                  {ncm && !/^0+$/.test(ncm) ? `NCM ${ncm}` : "sem NCM"}
+                </span>
+              )}
             </span>
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
-              {[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
+              {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
-            {r.vendavel !== false && <span className="mt-1 block text-2xs font-semibold uppercase tracking-wide text-slate-400">{NOME_CADASTRO[r.tipo] ?? r.tipo}</span>}
           </span>
         </button>
         {r.vendavel === false && (
@@ -354,26 +357,25 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         {(r.ativo === false || r.fora_de_linha || r.no_catalogo || naProducao.has(r.id) || (cadastro === "componentes" && r.tipo !== "insumo")) && (
           <div className="mt-2 flex flex-wrap items-center gap-1">{selos(r)}</div>
         )}
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-2xs font-semibold uppercase text-slate-500">Custo</dt>
-            <dd className={`text-sm font-bold tabular-nums ${c ? "" : "text-amber-600"}`}>{c ? brl(c) : "sem custo"}</dd>
-            {r.kit && c > 0 && <dd className="text-2xs text-slate-500">pelos componentes</dd>}
+        <dl className={`mt-2.5 grid divide-x divide-slate-100 rounded-cartao border border-slate-100 py-1.5 text-center ${servico ? "grid-cols-3" : "grid-cols-4"}`}>
+          <div className="min-w-0 px-1">
+            <dt className="text-2xs text-slate-500">Custo</dt>
+            <dd className={`truncate text-xs font-bold tabular-nums ${c ? "" : "text-amber-600"}`}>{c ? brl(c) : "sem custo"}</dd>
           </div>
-          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-2xs font-semibold uppercase text-slate-500">Venda</dt>
-            <dd className="text-sm font-bold tabular-nums">{brl(r.preco_venda)}</dd>
-            {m !== null && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>margem {m}%</dd>}
+          <div className="min-w-0 px-1">
+            <dt className="text-2xs text-slate-500">Venda</dt>
+            <dd className="truncate text-xs font-bold tabular-nums">{brl(r.preco_venda)}</dd>
+            {m !== null && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>{m}%</dd>}
           </div>
-          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-2xs font-semibold uppercase text-slate-500">Estoque</dt>
-            <dd className={`text-sm font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
-            {e.detalhe && <dd className="text-2xs text-slate-500">{e.detalhe}</dd>}
-          </div>
-          <div className="rounded-xl bg-slate-50 px-1 py-1.5">
-            <dt className="text-2xs font-semibold uppercase text-slate-500">Vendidos 3 meses</dt>
-            <dd className="text-sm font-bold tabular-nums">{v ? `${v.quantidade} ${r.unidade ?? ""}`.trim() : "0"}</dd>
-            <dd className="text-2xs text-slate-500">{v ? `em ${v.vendas} venda${v.vendas > 1 ? "s" : ""}` : "nenhuma venda"}</dd>
+          {!servico && (
+            <div className="min-w-0 px-1">
+              <dt className="text-2xs text-slate-500">Estoque</dt>
+              <dd className={`truncate text-xs font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
+            </div>
+          )}
+          <div className="min-w-0 px-1">
+            <dt className="text-2xs text-slate-500" title="Vendidos nos últimos 3 meses">Vendidos 3m</dt>
+            <dd className="truncate text-xs font-bold tabular-nums">{v ? `${v.quantidade} ${r.unidade ?? ""}`.trim() : "0"}</dd>
           </div>
         </dl>
       </div>
@@ -822,12 +824,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         cartaoCelular={cartaoProduto}
         rowActions={(r) => (
           <>
-            <Button variant="ghost" title="Ficha do produto" aria-label={`Ficha de ${r.descricao}`} onClick={() => setFicha(r)}><IdCard size={16} /></Button>
-            {pode("movimentar_estoque") && (
-              <Button variant="ghost" title="Movimentar estoque" onClick={() => setMovimentar(r)}><ArrowDownUp size={16} /></Button>
+            <button type="button" className="botao-icone h-9 w-9" title="Ficha do produto" aria-label={`Ficha de ${r.descricao}`} onClick={() => setFicha(r)}><IdCard size={16} /></button>
+            {pode("movimentar_estoque") && r.tipo !== "servico" && (
+              <button type="button" className="botao-icone h-9 w-9" title="Movimentar estoque" aria-label="Movimentar estoque" onClick={() => setMovimentar(r)}><ArrowDownUp size={16} /></button>
             )}
-            <Button variant="ghost" title="Histórico" onClick={() => setHistorico(r)}><History size={16} /></Button>
-            {r.kit && <Button variant="ghost" title="Componentes do kit" onClick={() => setKitAberto(r)}><Boxes size={16} /></Button>}
+            <button type="button" className="botao-icone h-9 w-9" title="Histórico" aria-label="Histórico" onClick={() => setHistorico(r)}><History size={16} /></button>
+            {r.kit && <button type="button" className="botao-icone h-9 w-9" title="Componentes do kit" aria-label="Componentes do kit" onClick={() => setKitAberto(r)}><Boxes size={16} /></button>}
           </>
         )}
       />
