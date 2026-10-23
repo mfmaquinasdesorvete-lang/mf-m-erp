@@ -19,7 +19,7 @@ import { aplicarDestaque, aplicarFundo, aplicarTema, DESTAQUES, lerDestaque, ler
 import logo from "@/assets/logo.webp";
 import { corValida, useAparencia } from "@/lib/aparencia";
 import { useConfig } from "@/lib/useConfig";
-import { IconeArea } from "@/components/IconeArea";
+import { corDoDegrade, IconeArea } from "@/components/IconeArea";
 import { Button, Field, Modal, useFecharComEsc } from "./ui";
 import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
@@ -48,15 +48,26 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
   const itens = RAPIDOS.map((r) => ({ ...r, item: todosItens.find((i) => i.to === r.to)! })).filter((r) => r.item && ve(r.item))
     .map((r) => ({ ...r, item: { ...r.item, icon: r.to.startsWith("/painel/") ? grupos.find((g) => g.itens.includes(r.item))?.icone ?? r.item.icon : r.item.icon } }));
   if (!itens.length) return null;
+  // menu renovado (23/10): quadradinhos de vidro com o ícone na cor da área, 4 por linha (antes eram blocos cheios que
+  // ocupavam metade do menu); o escolhido acende com a cor cheia. O PDV entra na mesma grade.
   return (
-    <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2 md:pt-0" aria-label="Acesso rápido">
-      {itens.map(({ to, label, cor, item: { icon: Icon } }) => (
-        <NavLink key={to} to={to} onClick={onIr} title={label} {...alvoDoLink(to)}
-          className={({ isActive }) => `flex items-center justify-center gap-1 rounded-xl bg-gradient-to-br ${cor} px-1 py-2 text-center font-bold leading-tight text-white shadow-sm transition hover:brightness-110 ${to === "/pdv" ? "col-span-3 flex-row gap-2 text-sm" : "flex-col text-2xs"} ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : "opacity-95"}`}>
-          <Icon size={18} aria-hidden />
-          <span>{label}</span>
-        </NavLink>
-      ))}
+    <div className="grid grid-cols-4 gap-1.5 px-3 pb-2 md:grid-cols-2 md:gap-x-0.5 md:gap-y-1" aria-label="Acesso rápido">
+      {itens.map(({ to, label, cor, item: { icon: Icon } }) => {
+        const c = corDoDegrade(cor) ?? "#64748b";
+        const nome = to === "/pdv" ? "PDV" : label;
+        return (
+          <NavLink key={to} to={to} onClick={onIr} title={label} {...alvoDoLink(to)}
+            className="group flex min-w-0 flex-col items-center gap-1 rounded-cartao px-0.5 py-1.5 text-center text-2xs font-semibold leading-tight text-nav-texto transition hover:bg-white/5 hover:text-white md:flex-row md:gap-1.5 md:px-1 md:py-1 md:text-left md:text-xs md:tracking-tight">
+            {({ isActive }) => <>
+              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-cartao transition group-hover:scale-105 md:h-7 md:w-7 md:rounded-botao ${isActive ? `bg-gradient-to-br ${cor} text-white shadow-lg` : ""}`}
+                style={isActive ? undefined : { background: `color-mix(in srgb, ${c} 20%, transparent)`, color: `color-mix(in srgb, ${c} 72%, white)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${c} 38%, transparent)` }}>
+                <Icon size={16} aria-hidden />
+              </span>
+              <span className="w-full min-w-0 truncate">{nome}</span>
+            </>}
+          </NavLink>
+        );
+      })}
     </div>
   );
 }
@@ -231,8 +242,7 @@ export function Layout() {
       <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
         <div className="hidden px-5 pb-4 pt-6 md:block [@media(min-width:768px)_and_(max-height:860px)]:pb-3 [@media(min-width:768px)_and_(max-height:860px)]:pt-4"><div className="flex items-center justify-between gap-2"><Marca /><Sino /></div><div className="mt-4"><SeletorUnidade /></div></div>
         <div className="relative flex min-h-0 flex-1 flex-col">
-        <AcessoRapido ve={vis.item} onIr={() => setAberto(false)} />
-        <form className="px-3 pb-2 pt-2 md:pt-0" role="search" onSubmit={(e) => {
+        <form className="px-3 pb-3 pt-2 md:pt-0" role="search" onSubmit={(e) => {
           e.preventDefault();
           const primeiro = todosItens.find((m) => vis.item(m) && combina(m, busca));
           if (primeiro && abreEmOutraAba(primeiro.to)) window.open(primeiro.to, "_blank", "noopener");
@@ -242,9 +252,11 @@ export function Layout() {
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nav-fraco" />
             <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setBusca("")}
               placeholder="Buscar tela, cliente, venda, nota…" aria-label="Buscar no menu (Ctrl+K)" aria-keyshortcuts="Control+K"
-              className="w-full rounded-lg border border-ink-line bg-ink-soft py-1.5 pl-9 pr-3 text-sm text-white placeholder:text-nav-fraco focus:border-brand-ice focus:outline-none" />
+              className="w-full rounded-cartao border border-white/10 bg-white/[.06] py-2 pl-9 pr-14 text-sm text-white placeholder:text-nav-fraco focus:border-brand-ice focus:bg-white/10 focus:outline-none" />
+            <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-chip border border-white/15 px-1.5 py-0.5 font-sans text-2xs font-semibold text-nav-fraco md:block" aria-hidden>Ctrl K</kbd>
           </label>
         </form>
+        <AcessoRapido ve={vis.item} onIr={() => setAberto(false)} />
         <nav ref={navRef} onScroll={medirNav} className="flex-1 overflow-y-auto px-3 pb-4">
           {busca.trim() && !todosItens.some((m) => vis.item(m) && combina(m, busca)) && (
             <p className="px-3 py-2 text-sm text-nav-fraco">Nenhuma tela com "{busca.trim()}".</p>
@@ -262,7 +274,7 @@ export function Layout() {
                 {...alvoDoLink(to)}
                 className={({ isActive }) =>
                   `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition [@media(min-width:768px)_and_(max-height:860px)]:py-[6px] [@media(min-width:768px)_and_(max-height:860px)]:text-sm ${
-                    isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white"
+                    isActive ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]" : "text-nav-texto hover:bg-white/5 hover:text-white"
                   }`
                 }
               >
@@ -291,7 +303,7 @@ export function Layout() {
             // o "+" só aparece para quem pode fazer (antes o contador via "+ Conta" e "+ NF-e" sem poder lançar)
             const acao = g.acao && vis.ve(g.acao.tela, g.acao.to) && perfil.pode(g.acao.pode) ? g.acao : null;
             return (
-              <section key={g.id} className={`mb-2 overflow-hidden rounded-xl border transition ${aberta ? "border-white/15 bg-white/[0.04]" : "border-transparent"}`}>
+              <section key={g.id} className={`mb-1 overflow-hidden rounded-cartao border transition ${aberta ? "border-white/10 bg-white/[0.05]" : "border-transparent"}`}>
                 <div className="flex items-center gap-1 pr-1.5">
                   <button type="button" aria-expanded={aberta}
                     onClick={() => {
@@ -305,14 +317,15 @@ export function Layout() {
                       }
                       setAreaAberta(aberta && !buscando ? null : g.id);
                     }}
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/5 2xl:gap-2.5">
-                    <IconeArea id={g.id} Icone={Icone} tamanho={16} caixa="h-8 w-8 rounded-lg shadow-sm" degrade={g.cor} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{g.titulo}</span>
+                    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-cartao px-2 py-1.5 text-left hover:bg-white/5">
+                    <IconeArea id={g.id} Icone={Icone} tamanho={16} caixa="h-7 w-7 rounded-botao" degrade={g.cor} suave />
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{g.titulo}</span>
                     <ChevronDown size={16} className={`shrink-0 text-nav-fraco transition ${aberta ? "rotate-180" : ""}`} />
                   </button>
                   {acao && (
                     <button type="button" title={acao.dica} onClick={() => { setAberto(false); navigate(acao.to, { state: acao.state }); }}
-                      className={`shrink-0 whitespace-nowrap rounded-lg bg-gradient-to-br ${g.cor} px-2 py-1 text-2xs font-bold text-white shadow-sm hover:brightness-110`}>
+                      style={{ background: `color-mix(in srgb, ${corDoDegrade(g.cor) ?? "#64748b"} 22%, transparent)`, color: `color-mix(in srgb, ${corDoDegrade(g.cor) ?? "#64748b"} 70%, white)` }}
+                      className="shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-2xs font-bold transition hover:brightness-125">
                       + {acao.label}
                     </button>
                   )}
@@ -351,9 +364,9 @@ export function Layout() {
         </nav>
           {maisAbaixo && (
             <button type="button" onClick={() => navRef.current?.scrollBy({ top: 240, behavior: "smooth" })} aria-label="Ver mais itens do menu"
-              className="absolute inset-x-0 bottom-0 flex h-8 items-end justify-center bg-gradient-to-t from-ink to-transparent pb-1 text-xs font-semibold text-nav-texto hover:text-white">
-              {/* faixa baixa e botão sólido: antes o degradê alto cobria metade de um item, que parecia desativado */}
-              <span className="flex items-center gap-1 rounded-full border border-white/10 bg-ink-line px-2.5 py-0.5 shadow"><ChevronDown size={14} /> mais opções</span>
+              className="absolute inset-x-0 bottom-0 flex h-6 items-end justify-center bg-gradient-to-t from-ink/90 to-transparent text-nav-fraco hover:text-white">
+              {/* só uma setinha na beirada (a pílula "mais opções" cobria o nome da área de baixo) */}
+              <ChevronDown size={16} className="motion-safe:animate-bounce" aria-hidden />
             </button>
           )}
         </div>
