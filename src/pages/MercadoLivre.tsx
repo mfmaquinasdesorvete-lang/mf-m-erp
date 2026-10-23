@@ -1,6 +1,6 @@
 // Loja online e marketplace (Vendas → Loja online e marketplace): a aba Marketplace (qualidade dos cadastros para
-// anunciar, antes a aba Anúncios de Produtos) e o Mercado Livre: o painel (tem pedido? quantos, quanto, em quanto tempo), os produtos anunciados
-// com o estoque e o preço que o ERP manda, as vendas depois da venda (envio, NF-e e rastreio), os ajustes do envio, a
+// anunciar, antes a aba Anúncios de Produtos) e o Mercado Livre: o painel (tem pedido? quantos, quanto, em quanto tempo), os produtos da loja com o
+// anúncio de cada um, os anúncios com o estoque e o preço que o ERP manda, as vendas depois da venda (envio, NF-e e rastreio), os ajustes do envio, a
 // conta conectada e os outros marketplaces. Também recebe a volta do "Conectar" (/mercado-livre/retorno?code=…&state=…).
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -17,11 +17,12 @@ import { AnunciosMercadoLivre } from "@/components/mercadolivre/AnunciosMercadoL
 import { VendasMercadoLivre } from "@/components/mercadolivre/VendasMercadoLivre";
 import { PainelMercadoLivre } from "@/components/mercadolivre/PainelMercadoLivre";
 import { OutrosMarketplaces } from "@/components/mercadolivre/OutrosMarketplaces";
+import { ProdutosLojaML } from "@/components/mercadolivre/ProdutosLojaML";
 import { AuditoriaProdutos } from "@/components/produtos/AuditoriaProdutos";
 import { useRows } from "@/lib/data";
 import type { Produto } from "@/lib/types";
 
-type Aba = "marketplace" | "painel" | "anuncios" | "vendas" | "envio" | "conta" | "outros";
+type Aba = "marketplace" | "painel" | "produtos" | "anuncios" | "vendas" | "envio" | "conta" | "outros";
 
 export default function MercadoLivre() {
   const { tem, pode } = usePerfil();
@@ -74,7 +75,8 @@ export default function MercadoLivre() {
       <Tabs value={atual} onChange={setAba} options={[
         { value: "marketplace" as const, label: "Marketplace" },
         ...(veVendas ? [{ value: "painel" as const, label: "Painel" }] : []),
-        { value: "anuncios", label: atencao ? `Produtos (${atencao} para ver)` : "Produtos" },
+        ...(veVendas || podeMudar ? [{ value: "produtos" as const, label: "Produtos" }] : []),
+        { value: "anuncios", label: atencao ? `Anúncios (${atencao} para ver)` : "Anúncios" },
         ...(veVendas && conta ? [{ value: "vendas" as const, label: "Vendas e notas" }] : []),
         { value: "envio", label: "Envio de estoque e preço" },
         { value: "conta", label: conta ? "Conta" : "Conectar a conta" },
@@ -82,6 +84,7 @@ export default function MercadoLivre() {
       ]} />
       {atual === "marketplace" && <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => navigate(`/estoque?editar=${p.id}`)} />}
       {atual === "painel" && veVendas && <PainelMercadoLivre conta={conta} irConta={() => setAba("conta")} />}
+      {atual === "produtos" && <ProdutosLojaML />}
       {atual === "anuncios" && <AnunciosMercadoLivre conta={conta} anuncios={anuncios} carregando={carregando} erro={erro} podeMudar={podeMudar} />}
       {atual === "vendas" && veVendas && <VendasMercadoLivre conta={conta} />}
       {atual === "envio" && <EnvioEstoquePreco conta={conta} podeMudar={podeMudar} irConta={() => setAba("conta")} />}
