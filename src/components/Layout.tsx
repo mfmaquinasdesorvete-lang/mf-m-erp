@@ -370,9 +370,9 @@ export function Layout() {
               </button>
             ))}
           </div>
-          {/* versão em uso, com data e hora: abre as atualizações dia a dia; "Sobre" explica cada tela */}
+          {/* versão em uso, com data e hora: abre o Sobre no Resumo (com as atualizações dia a dia) */}
           <div className="mt-1 flex items-center justify-between gap-2 px-1 text-2xs leading-tight text-nav-fraco">
-            <Link to="/sobre?aba=atualizacoes" onClick={() => setAberto(false)} title="Ver as atualizações dia a dia" className="min-w-0 truncate hover:text-white">
+            <Link to="/sobre" onClick={() => setAberto(false)} title="Sobre o ERP Line: o resumo, com as atualizações dia a dia" className="min-w-0 truncate hover:text-white">
               ERP Line {VERSAO ? <>v{VERSAO.numero} · {VERSAO.quando}</> : "· prévia"}
             </Link>
             <Link to="/sobre" onClick={() => setAberto(false)} title="Sobre o ERP Line: módulos, atualizações, esquemas e ideias" className="shrink-0 font-semibold hover:text-white">Sobre</Link>
