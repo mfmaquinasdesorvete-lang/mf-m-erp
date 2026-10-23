@@ -20,6 +20,29 @@ const LIMITE_MS = 100_000;
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 500);
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Repete quando o Mercado Livre pede calma (429): 1, 2, 4 e 8 segundos. */
+async function ml<T = any>(caminho: string, token: string, init: Parameters<typeof chamarML>[2] = {}): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await chamarML<T>(caminho, token, init); } catch (e) {
+      if (e instanceof ErroML && (e.status === 429 || /rate_limit/i.test(e.message)) && i < 4) { await pausa(1000 * 2 ** i); continue; }
+      throw e;
+    }
+  }
+}
+
+/** Categoria sugerida pelo Mercado Livre: primeiro pelo nome da peça + "máquina de sorvete", depois pelo título. */
+async function categoria(token: string, p: Produto, titulo: string) {
+  const nome = String(p.descricao ?? "").split(/\s+[-–]\s+|\(|,/)[0].trim();
+  const tentativas = [...new Set([/sorvete/i.test(nome) ? nome : `${nome} máquina de sorvete`, titulo, nome].filter((q) => q.length >= 3))];
+  for (const q of tentativas) {
+    const r = await ml<any[]>(`/sites/MLB/domain_discovery/search?limit=1&q=${encodeURIComponent(q)}`, token).catch(() => []);
+    if (Array.isArray(r) && r[0]?.category_id) return r[0];
+  }
+  return null;
+}
+
 const urlFoto = (caminho: string) =>
   /^https?:\/\//.test(caminho) ? caminho : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/produtos-fotos/${caminho}`;
 
@@ -59,31 +82,30 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
   const avisos: string[] = [];
   const faltando: string[] = [];
   const titulo = tituloML(p.titulo_anuncio || p.descricao);
-  const busca = await chamarML<any[]>(`/sites/MLB/domain_discovery/search?limit=1&q=${encodeURIComponent(titulo)}`, token).catch(() => []);
-  const cat = Array.isArray(busca) ? busca[0] : null;
+  const cat = await categoria(token, p, titulo);
   if (!cat?.category_id) throw new Error("o Mercado Livre não sugeriu uma categoria para o título");
-  const attrsCat = await chamarML<AtributoCategoria[]>(`/categories/${cat.category_id}/attributes`, token).catch(() => [] as AtributoCategoria[]);
+  const attrsCat = await ml<AtributoCategoria[]>(`/categories/${cat.category_id}/attributes`, token).catch(() => [] as AtributoCategoria[]);
   const { atributos, faltando: obrigatorios } = atributosDoProduto(p, Array.isArray(attrsCat) ? attrsCat : []);
   faltando.push(...obrigatorios);
-  if (!p.marca) faltando.push("Marca (no cadastro do produto)");
+  if (!p.marca && !faltando.includes("Marca")) faltando.push("Marca");
 
   const alvo = num(p.preco_venda);
   // tarifa da categoria (% do Clássico)
-  const lp = await chamarML<any>(`/sites/MLB/listing_prices?price=${Math.max(alvo * 1.15, 1).toFixed(2)}&listing_type_id=${TIPO_ANUNCIO}&category_id=${cat.category_id}`, token).catch(() => null);
+  const lp = await ml<any>(`/sites/MLB/listing_prices?price=${Math.max(alvo * 1.15, 1).toFixed(2)}&listing_type_id=${TIPO_ANUNCIO}&category_id=${cat.category_id}`, token).catch(() => null);
   const det = (Array.isArray(lp) ? lp[0] : lp)?.sale_fee_details ?? {};
   let pct = num(det.percentage_fee ?? det.meli_percentage_fee);
   if (!(pct > 0)) { pct = 14; avisos.push("tarifa do Mercado Livre estimada em 14%"); }
   // frete grátis que a MF paga (a partir de R$ 79)
   const med = medidasFrete(p);
   if (med.estimado) avisos.push("sem peso ou medidas no cadastro: frete estimado com uma caixa média");
-  const fr = await chamarML<any>(`/users/${conta.ml_user_id}/shipping_options/free?dimensions=${med.texto}&verbose=true&item_price=${Math.max(alvo * 1.3, FRETE_GRATIS_DESDE).toFixed(2)}&listing_type_id=${TIPO_ANUNCIO}&mode=me2&condition=new&logistic_type=drop_off`, token).catch((e) => { avisos.push(`frete não consultado (${msg(e).slice(0, 80)})`); return null; });
+  const fr = await ml<any>(`/users/${conta.ml_user_id}/shipping_options/free?dimensions=${med.texto}&verbose=true&item_price=${Math.max(alvo * 1.3, FRETE_GRATIS_DESDE).toFixed(2)}&listing_type_id=${TIPO_ANUNCIO}&mode=me2&condition=new&logistic_type=drop_off`, token).catch((e) => { avisos.push(`frete não consultado (${msg(e).slice(0, 80)})`); return null; });
   const frete = num(fr?.coverage?.all_country?.list_cost);
   const preco = precoParaReceber(alvo, pct, frete);
   if (num(p.preco_custo) > 0 && alvo < num(p.preco_custo)) avisos.push("preço da loja abaixo do custo");
   if (estoque < 1) faltando.push("Estoque disponível para o anúncio (saldo menos a segurança)");
 
   const item: Record<string, unknown> = {
-    title: titulo, category_id: cat.category_id, price: preco, currency_id: "BRL", available_quantity: Math.max(1, estoque),
+    title: titulo, family_name: titulo, category_id: cat.category_id, price: preco, currency_id: "BRL", available_quantity: Math.max(1, estoque),
     buying_mode: "buy_it_now", listing_type_id: TIPO_ANUNCIO, condition: "new",
     pictures: [{ source: urlFoto(p.foto_caminho) }], attributes: atributos,
     shipping: { mode: "me2", free_shipping: preco >= FRETE_GRATIS_DESDE, local_pick_up: false },
@@ -91,12 +113,17 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
       ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} ${p.garantia_meses === 1 ? "mês" : "meses"}` }]
       : [],
   };
-  // o Mercado Livre confere tudo sem publicar
-  try {
-    await chamarML("/items/validate", token, { method: "POST", body: JSON.stringify(item), cabecalhos: { "Content-Type": "application/json" } });
-  } catch (e) {
-    if (e instanceof ErroML && e.status >= 400 && e.status < 500) faltando.push(`Mercado Livre: ${msg(e)}`);
-    else avisos.push(`conferência do Mercado Livre não respondeu (${msg(e).slice(0, 80)})`);
+  // o Mercado Livre confere tudo sem publicar. Conta no modelo novo (family_name) pode recusar o "title": tira e confere de novo
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    try {
+      await ml("/items/validate", token, { method: "POST", body: JSON.stringify(item), cabecalhos: { "Content-Type": "application/json" } });
+      break;
+    } catch (e) {
+      if (tentativa === 0 && e instanceof ErroML && /\btitle\b/i.test(e.message) && !/family_name/i.test(e.message)) { delete item.title; continue; }
+      if (e instanceof ErroML && e.status >= 400 && e.status < 500) faltando.push(`Mercado Livre: ${msg(e)}`);
+      else avisos.push(`conferência do Mercado Livre não respondeu (${msg(e).slice(0, 80)})`);
+      break;
+    }
   }
   const linha = {
     produto_id: p.id, categoria_id: cat.category_id, categoria_nome: cat.category_name ?? cat.domain_name ?? null, tipo_anuncio: TIPO_ANUNCIO,
@@ -143,7 +170,7 @@ export async function publicarAnuncios(db: SupabaseClient, conta: Conta, token: 
     await db.from("ml_propostas").update({ situacao: "publicando", atualizado_em: new Date().toISOString() }).eq("id", pr.id);
     try {
       const corpo = { ...pr.corpo.item, price: num(pr.preco), shipping: { ...(pr.corpo.item.shipping ?? {}), free_shipping: num(pr.preco) >= FRETE_GRATIS_DESDE } };
-      const item = await chamarML<any>("/items", token, { method: "POST", body: JSON.stringify(corpo), cabecalhos: { "Content-Type": "application/json" } });
+      const item = await ml<any>("/items", token, { method: "POST", body: JSON.stringify(corpo), cabecalhos: { "Content-Type": "application/json" } });
       const avisos = [...(pr.avisos ?? [])];
       if (pr.corpo.descricao) {
         await chamarML(`/items/${item.id}/description`, token, { method: "POST", body: JSON.stringify({ plain_text: pr.corpo.descricao }), cabecalhos: { "Content-Type": "application/json" } })
