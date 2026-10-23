@@ -1,5 +1,7 @@
 // Clientes / Fornecedores → Importar: lê a planilha (do Tiny, de outro sistema ou exportada daqui),
 // mostra o resumo e cadastra tudo de uma vez. Quem já existe (mesmo CPF/CNPJ) é atualizado, não duplica.
+// Pergunta de qual empresa é a planilha: a da My Frost (empresa anterior) entra pela Base da My Frost, não por aqui;
+// e cadastro que veio da My Frost só ganha o que está vazio (o banco confere).
 import { useState } from "react";
 import { CheckCircle2, FileSpreadsheet } from "lucide-react";
 import { Button, Modal } from "./ui";
@@ -19,7 +21,7 @@ const CAMPO: Record<string, string> = {
   cob_cep: "CEP de cobrança", cob_endereco: "endereço de cobrança", cob_numero: "número de cobrança", cob_complemento: "complemento de cobrança",
   cob_bairro: "bairro de cobrança", cob_cidade: "cidade de cobrança", cob_uf: "UF de cobrança",
 };
-type Resultado = { clientes: number; fornecedores: number; transportadoras: number; atualizados: number };
+type Resultado = { clientes: number; fornecedores: number; transportadoras: number; atualizados: number; protegidos_my_frost: number };
 const LOTE = 500;
 
 export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose: () => void }) {
@@ -27,6 +29,7 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
   const [ocupado, setOcupado] = useState("");
   const [progresso, setProgresso] = useState(0);
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [empresa, setEmpresa] = useState<"" | "mf" | "my_frost">("");
   const invalidar = useInvalidate();
 
   async function abrir(arquivo?: File) {
@@ -38,7 +41,8 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
   async function importar() {
     if (!leitura) return;
     setOcupado("importar");
-    const total: Resultado = { clientes: 0, fornecedores: 0, transportadoras: 0, atualizados: 0 };
+    if (empresa !== "mf") return;
+    const total: Resultado = { clientes: 0, fornecedores: 0, transportadoras: 0, atualizados: 0, protegidos_my_frost: 0 };
     let feitos = 0;
     try {
       for (let i = 0; i < leitura.itens.length; i += LOTE) {
@@ -68,6 +72,7 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
             {resultado.fornecedores > 0 && <li>{resultado.fornecedores} fornecedores novos</li>}
             {resultado.transportadoras > 0 && <li>{resultado.transportadoras} transportadoras novas</li>}
             <li>{resultado.atualizados} cadastros que já existiam foram atualizados</li>
+            {resultado.protegidos_my_frost > 0 && <li>{resultado.protegidos_my_frost} deles vieram da My Frost: só ganharam o que estava vazio</li>}
           </ul>
           <p className="text-sm text-slate-500">Importar a mesma planilha de novo só atualiza, sem duplicar.</p>
           <div className="flex justify-end"><Button onClick={onClose}>Fechar</Button></div>
@@ -121,12 +126,28 @@ export function ImportarContatos({ tipo, onClose }: { tipo: TipoContato; onClose
                 {leitura.ignorados.length > 5 ? "…" : ""}
               </li>
             )}
-            <li className="text-slate-500">Quem já está no ERP com o mesmo CPF/CNPJ é atualizado, não duplica.</li>
+            <li className="text-slate-500">Quem já está no ERP com o mesmo CPF/CNPJ é atualizado, não duplica. Cadastro que veio da My Frost só ganha o que está vazio.</li>
           </ul>
+          <fieldset className="space-y-2">
+            <legend className="mb-1 text-sm font-semibold text-fg">De qual empresa é esta planilha?</legend>
+            <div className="flex flex-wrap gap-2">
+              {([["mf", "MF Máquinas (Tiny atual ou outro sistema)"], ["my_frost", "My Frost (empresa anterior)"]] as const).map(([id, rotulo]) => (
+                <label key={id} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm ${empresa === id ? "border-brand bg-sky-50" : "border-slate-200"}`}>
+                  <input type="radio" name="empresa_contatos" className="h-4 w-4" checked={empresa === id} onChange={() => setEmpresa(id)} /> {rotulo}
+                </label>
+              ))}
+            </div>
+            {empresa === "my_frost" && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                A My Frost é outra empresa: a planilha dela não entra por aqui. Use <b>Importar dados → Base da My Frost</b>, que marca a origem
+                e não mistura com os cadastros da MF.
+              </p>
+            )}
+          </fieldset>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {ocupado === "importar" && <span className="text-sm text-slate-500">{progresso} de {itens.length}…</span>}
-            <Button variant="secondary" onClick={() => setLeitura(null)} disabled={!!ocupado}>Outra planilha</Button>
-            <Button onClick={importar} disabled={!!ocupado || !itens.length}>{ocupado ? "Importando…" : `Importar ${itens.length} cadastros`}</Button>
+            <Button variant="secondary" onClick={() => { setLeitura(null); setEmpresa(""); }} disabled={!!ocupado}>Outra planilha</Button>
+            <Button onClick={importar} disabled={!!ocupado || !itens.length || empresa !== "mf"}>{ocupado ? "Importando…" : `Importar ${itens.length} cadastros`}</Button>
           </div>
         </div>
       )}
