@@ -30,7 +30,8 @@ const quando = (dia: string, venc: string) => {
 };
 const texto = (v: number | null | undefined) => (v == null ? "" : String(v).replace(".", ","));
 
-export default function Parcelamentos() {
+/** embutido: dentro de Documentos → Parcelamentos (sem o título da tela; os botões ficam numa linha à direita). */
+export default function Parcelamentos({ embutido }: { embutido?: boolean } = {}) {
   const { tem } = usePerfil();
   const podeGravar = tem("financeiro");
   const { filtrar, codigo, unidades } = useUnidade();
@@ -96,16 +97,18 @@ export default function Parcelamentos() {
 
   const novo = () => setEdit({ orgao: "receita_federal", situacao: "ativo" });
 
+  const acoes = (<>
+    <MaisAcoes>
+      <Button variant="secondary" onClick={() => setMensagem(true)}><MessageSquareText size={16} /> Pedir a lista ao contador</Button>
+      <Button variant="secondary" onClick={exportar} disabled={!daUnidade.length}><Download size={16} /> Exportar (Excel)</Button>
+    </MaisAcoes>
+    {podeGravar && <Button onClick={novo}><Plus size={16} /> Novo parcelamento</Button>}
+  </>);
   return (
     <div>
-      <PageHeader title="Parcelamentos de impostos" subtitle="Receita, PGFN, SEFAZ e prefeitura: o que vence, o que atrasou e quem pagou"
-        actions={<>
-          <MaisAcoes>
-            <Button variant="secondary" onClick={() => setMensagem(true)}><MessageSquareText size={16} /> Pedir a lista ao contador</Button>
-            <Button variant="secondary" onClick={exportar} disabled={!daUnidade.length}><Download size={16} /> Exportar (Excel)</Button>
-          </MaisAcoes>
-          {podeGravar && <Button onClick={novo}><Plus size={16} /> Novo parcelamento</Button>}
-        </>} />
+      {embutido ? <div className="mb-3 flex flex-wrap items-center justify-end gap-2">{acoes}</div> : (
+        <PageHeader title="Parcelamentos de impostos" subtitle="Receita, PGFN, SEFAZ e prefeitura: o que vence, o que atrasou e quem pagou" actions={acoes} />
+      )}
 
       {emRisco.some((p) => res(p).risco === "rescisao") && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl bg-solido-vermelho p-4 text-white shadow-card" role="alert">
