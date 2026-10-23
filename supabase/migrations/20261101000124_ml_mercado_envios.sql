@@ -15,6 +15,9 @@ returns uuid language sql stable security definer set search_path = public as $$
    where ativo and nome ilike 'mercado envios%' and unificado_em is null
    order by (lower(btrim(nome)) = 'mercado envios') desc, created_at limit 1;
 $$;
+-- só o gatilho usa (roda como dono): fechada para quem entra pelo site
+revoke execute on function public.ml_transportadora_envios() from public, anon, authenticated;
+grant execute on function public.ml_transportadora_envios() to service_role;
 
 create or replace function public.trg_ml_pedido_transportadora()
 returns trigger language plpgsql security definer set search_path = public as $$
