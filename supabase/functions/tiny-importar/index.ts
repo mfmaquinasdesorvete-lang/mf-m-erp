@@ -1,6 +1,8 @@
 // Importa do Tiny / Olist ERP (API v2): contatos, produtos com estoque e contas em aberto.
 // POST { acao: "status" }                  -> situação da importação e se o TINY_API_TOKEN está cadastrado
 // POST { acao: "iniciar", unidade_id }     -> confere o token e começa do zero (o que já existe é atualizado, não duplica)
+//      { ..., so_cadastros: true }           -> só clientes, fornecedores e transportadoras (com a data de cadastro no Tiny);
+//                                             termina depois dos contatos, sem produtos nem contas
 // POST { acao: "continuar" }               -> avança ~40 s e devolve o progresso; a tela chama de novo até concluir
 // POST { acao: "datas_contatos", pagina }  -> só a data de cadastro no Tiny dos contatos já importados (~40 s por vez;
 //                                             devolve a próxima página, ou null no fim)
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const { userId } = await requireErpUser(req, ["financeiro"]);
-    const { acao, unidade_id, pagina, indice } = await req.json();
+    const { acao, unidade_id, pagina, indice, so_cadastros } = await req.json();
     const db = adminClient();
     // as funções de importação conferem o papel de quem chamou
     const dbUsuario = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -66,7 +68,7 @@ Deno.serve(async (req) => {
       }
       const estado = {
         id: 1, etapa: "contatos", pagina: 1, indice: 0, unidade_id,
-        totais: { conta: conta ? { nome: conta.nome ?? null, cnpj: conta.cpf_cnpj ?? null } : null, limite: ritmo.limite },
+        totais: { conta: conta ? { nome: conta.nome ?? null, cnpj: conta.cpf_cnpj ?? null } : null, limite: ritmo.limite, so_cadastros: !!so_cadastros },
         erros: [], iniciado_por: userId, iniciado_em: new Date().toISOString(), atualizado_em: new Date(ritmo.ultima).toISOString(), concluido_em: null,
       };
       await db.from("importacao_tiny").upsert(estado);
@@ -171,7 +173,11 @@ Deno.serve(async (req) => {
     const erro = (mensagem: string) => {
       e.erros = [...e.erros, { quando: new Date().toISOString(), etapa: e.etapa, mensagem: mensagem.slice(0, 300) }].slice(-50);
     };
-    const proxima = () => { e.etapa = ETAPAS[ETAPAS.indexOf(e.etapa) + 1]; e.pagina = 1; e.indice = 0; };
+    // só cadastros: depois dos contatos já termina (produtos e contas ficam como estão)
+    const proxima = () => {
+      e.etapa = e.totais.so_cadastros && e.etapa === "contatos" ? "concluida" : ETAPAS[ETAPAS.indexOf(e.etapa) + 1];
+      e.pagina = 1; e.indice = 0;
+    };
     const salvar = async () => {
       e.totais.limite = ritmo.limite;
       await db.from("importacao_tiny").update({

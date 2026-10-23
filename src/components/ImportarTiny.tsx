@@ -58,11 +58,12 @@ export function ImportarTiny() {
   }, []);
   useEffect(() => { if (!unidade && padrao) setUnidade(padrao); }, [padrao, unidade]);
 
-  async function rodar(inicio: "iniciar" | "continuar") {
+  async function rodar(inicio: "iniciar" | "continuar", soCadastros = false) {
     setErro("");
     setRodando(true);
     try {
-      let r = await callFunction<Resposta>("tiny-importar", inicio === "iniciar" ? { acao: "iniciar", unidade_id: unidade } : { acao: "continuar" });
+      let r = await callFunction<Resposta>("tiny-importar", inicio === "iniciar"
+        ? { acao: "iniciar", unidade_id: unidade, so_cadastros: soCadastros } : { acao: "continuar" });
       setInfo(r);
       while (ativo.current && r.estado && r.estado.etapa !== "concluida") {
         if (r.aguardar) {
@@ -74,7 +75,7 @@ export function ImportarTiny() {
         setInfo(r);
       }
       if (r.estado?.etapa === "concluida") {
-        notify("Importação do Tiny concluída");
+        notify(r.estado.totais?.so_cadastros ? "Cadastros do Tiny atualizados" : "Importação do Tiny concluída");
         ["clientes", "fornecedores", "transportadoras", "produtos", "contas_receber", "contas_pagar", "estoque_unidade"]
           .forEach((t) => qc.invalidateQueries({ queryKey: [t] }));
       }
@@ -161,6 +162,8 @@ export function ImportarTiny() {
   const t = e?.totais ?? {};
   const emAndamento = !!e && e.etapa !== "concluida";
   const posicao = ETAPAS.findIndex(([k]) => k === e?.etapa);
+  // "Atualizar cadastros do Tiny" só passa pelos contatos
+  const etapasVistas = t.so_cadastros ? ETAPAS.slice(0, 1) : ETAPAS;
   const n = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR");
 
   return (
@@ -184,7 +187,7 @@ export function ImportarTiny() {
         <div className="mb-3 space-y-2 text-sm">
           {t.conta?.nome && <p className="text-slate-500">Conta do Tiny: <b>{t.conta.nome}</b>{t.conta.cnpj ? ` (${t.conta.cnpj})` : ""}</p>}
           <ul className="space-y-1">
-            {ETAPAS.map(([k, rotulo], i) => {
+            {etapasVistas.map(([k, rotulo], i) => {
               const feito = e.etapa === "concluida" || i < posicao;
               const agora = i === posicao;
               return (
@@ -250,11 +253,19 @@ export function ImportarTiny() {
               {e?.etapa === "concluida" ? "Importar de novo (atualiza)" : "Importar tudo do Tiny"}
             </Button>
           )}
+          {!rodando && (
+            <Button type="button" variant="secondary" disabled={!unidade} onClick={async () => {
+              if (!(await confirmar("Atualizar os cadastros do Tiny? Traz clientes, fornecedores e transportadoras com a data de cadastro no Tiny. Quem já está no ERP é atualizado com o que está no Tiny; cadastro que veio da My Frost só ganha o que estiver vazio. Produtos e contas não mudam.", { ok: "Atualizar cadastros" }))) return;
+              ativo.current = true; rodar("iniciar", true);
+            }}>
+              Atualizar cadastros do Tiny
+            </Button>
+          )}
           {rodando && <span className="text-sm text-slate-500">Importando… pode continuar usando o ERP em outra aba.</span>}
         </div>
       )}
 
-      {info?.configurado && !emAndamento && (
+      {info?.configurado && (
         <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
           <p className="mb-2 text-slate-600">
             <b>Data de cadastro no Tiny:</b> os clientes trazidos do Tiny ficaram com a data da importação, e cliente importado não conta como
