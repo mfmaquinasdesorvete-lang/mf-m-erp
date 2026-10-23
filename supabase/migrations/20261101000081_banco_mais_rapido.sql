@@ -1,13 +1,14 @@
 -- Banco mais rápido.
--- Aplicada em 22/10/2026: as partes 3 e 4 (índices) pelo Claude; as partes 1 e 2 pelo SQL Editor do Supabase
--- (a ferramenta do Claude trava em alter/drop). Pode rodar o arquivo inteiro de novo sem problema.
+-- Aplicada em 22 e 23/10/2026 pelo Claude: partes 1, 3 e 4. A parte 2 (apagar 3 índices repetidos) fica para o
+-- SQL Editor do Supabase (a ferramenta do Claude trava em drop). Pode rodar o arquivo inteiro de novo sem problema.
 -- 1) Regras de acesso (RLS): tem_papel(), is_erp_user(), e_contador(), auth.uid() etc. eram conferidos de novo em
 --    cada linha. Embrulhados em (select ...), o Postgres confere uma vez por consulta (ex.: clientes de 45 ms para 3 ms).
 --    Só as funções sem coluna da linha nos argumentos; pode_ver_documento(nome) e afins ficam como estão.
+--    metas_meus_vendedores() também fica: devolve uma lista e é usada em "= any (...)", que não aceita (select ...).
 do $$
 declare
   p record;
-  fn constant text := '\m((?:public\.)?(?:tem_papel|tem_algum_papel|is_erp_user|is_erp_admin|is_erp_master|e_contador|metas_meus_vendedores)\([^()]*\))';
+  fn constant text := '\m((?:public\.)?(?:tem_papel|tem_algum_papel|is_erp_user|is_erp_admin|is_erp_master|e_contador)\([^()]*\))';
   au constant text := '\m(auth\.(?:uid|jwt|role)\(\))';
   novo_using text;
   novo_check text;
