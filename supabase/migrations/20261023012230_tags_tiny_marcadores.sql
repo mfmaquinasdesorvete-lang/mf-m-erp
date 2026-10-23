@@ -1,3 +1,4 @@
+-- (Dados, 23/10, com o ok da usuária: os 18 marcadores do Tiny que estavam no texto das 13 OS da SC viraram marcadores nessas OS, e os de garantia também nos 11 clientes delas.)
 -- Tags do Tiny nos cadastros (pedido de 23/10): os "tipos de contato" que a empresa criou no Tiny (ex.: "Garantia",
 -- das máquinas consertadas em garantia) e os marcadores do contato viram marcadores no cliente, com o mesmo nome; a tag
 -- que fala de garantia também ganha o marcador Garantia do ERP. Só acrescenta (nada é tirado). Contato que no Tiny só
