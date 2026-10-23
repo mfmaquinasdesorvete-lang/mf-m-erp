@@ -114,12 +114,15 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
       : [],
   };
   // o Mercado Livre confere tudo sem publicar. Conta no modelo novo (family_name) pode recusar o "title": tira e confere de novo
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
     try {
       await ml("/items/validate", token, { method: "POST", body: JSON.stringify(item), cabecalhos: { "Content-Type": "application/json" } });
       break;
     } catch (e) {
-      if (tentativa === 0 && e instanceof ErroML && /\btitle\b/i.test(e.message) && !/family_name/i.test(e.message)) { delete item.title; continue; }
+      // campo que a conta não aceita ("The fields [title] are invalid"): tira e confere de novo
+      const recusados = e instanceof ErroML ? (/fields?\s*\[([^\]]+)\]\s*(are|is) invalid/i.exec(e.message)?.[1] ?? "").split(/\s*,\s*/) : [];
+      const tirar = recusados.filter((c) => (c === "title" || c === "family_name") && c in item);
+      if (tirar.length && tentativa < 2) { for (const c of tirar) delete item[c]; continue; }
       if (e instanceof ErroML && e.status >= 400 && e.status < 500) faltando.push(`Mercado Livre: ${msg(e)}`);
       else avisos.push(`conferência do Mercado Livre não respondeu (${msg(e).slice(0, 80)})`);
       break;

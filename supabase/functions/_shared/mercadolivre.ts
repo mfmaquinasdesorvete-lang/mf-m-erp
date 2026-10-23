@@ -23,7 +23,10 @@ export async function chamarML<T = any>(caminho: string, token: string | null, i
   let corpo: any = null;
   try { corpo = texto ? JSON.parse(texto) : null; } catch { corpo = { message: texto.slice(0, 300) }; }
   if (!r.ok) {
-    const msg = String(corpo?.message || corpo?.error_description || corpo?.error || `Mercado Livre respondeu ${r.status}`);
+    let msg = String(corpo?.message || corpo?.error_description || corpo?.error || `Mercado Livre respondeu ${r.status}`);
+    // "body.invalid_fields" vem com o campo só em "error" ("The fields [title] are invalid…")
+    const extra = String(corpo?.error ?? "").trim();
+    if (extra && extra !== msg && extra.length > 12 && !msg.includes(extra)) msg = `${msg}: ${extra}`;
     // erro de validação (ex.: ao mudar preço ou estoque): o motivo vem em "cause"
     // (sem mensagem, vale o código e os campos citados: "item.title.invalid [title]")
     const causas = (Array.isArray(corpo?.cause) ? corpo.cause : [])
