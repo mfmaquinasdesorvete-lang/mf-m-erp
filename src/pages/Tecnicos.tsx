@@ -2,7 +2,7 @@
 // (estados inteiros e/ou cidades). A OS guarda o técnico, e a ficha do cliente mostra quem já atendeu e quem
 // atende a região dele. Parceiros Dr. Frost: convidados, com anúncio no site de técnicos (cadastro completo do
 // anúncio); os demais são contatos (já atenderam ou vieram da internet).
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, ExternalLink, List, MessageCircle, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
@@ -190,8 +190,11 @@ export default function Tecnicos() {
   const [ocupado, setOcupado] = useState(false);
   // clientes ligados a cada técnico (clientes.tecnico_id, escolhido na ficha do cliente → Assistência)
   const { data: ligados = [] } = useRows<{ tecnico_id: string }>("clientes", { select: "tecnico_id", order: "tecnico_id", key: ["tecnicos-clientes"], filtro: (q) => q.not("tecnico_id", "is", null) });
-  const clientesPor = new Map<string, number>();
-  for (const c of ligados) clientesPor.set(c.tecnico_id, (clientesPor.get(c.tecnico_id) ?? 0) + 1);
+  const clientesPor = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of ligados) m.set(c.tecnico_id, (m.get(c.tecnico_id) ?? 0) + 1);
+    return m;
+  }, [ligados]);
   const podeEditar = tem("tecnico", "financeiro");
   const [visao, setVisao] = useState(lerVisao);
   const trocarVisao = (v: "guia" | "lista") => { setVisao(v); try { localStorage.setItem(CHAVE_VISAO, v); } catch { /* vale só nesta visita */ } };
