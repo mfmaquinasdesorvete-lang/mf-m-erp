@@ -32,6 +32,9 @@
     propostas, advogado, auditoria fiscal das notas dela e a separação MF × My Frost.
   - "ERP Line – My Frost Sorveterias e Yozzy": as lojas My Frost Sorveterias (licenciadas e próprias) e as Yozzy:
     unidades, contratos, sócios, máquinas das lojas, custos, pagamentos, licenças e o plano fiscal delas.
+  - "ERP Line – Marketplaces": vendas da MF no Mercado Livre, Google Shopping e outros canais online (anúncios,
+    estoque e preço, pedidos que entram sozinhos, NF do pedido, envio, perguntas, pós-venda e custos por canal).
+    Compras feitas em marketplaces ficam no "continuação".
   - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
   - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
