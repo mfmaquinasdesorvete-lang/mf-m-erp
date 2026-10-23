@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pagasSemComprovante, prazosParaConfirmar, tipoDocEmpresa } from "../documentosPainel";
+import { ehContaDeImposto, pagasSemComprovante, prazosParaConfirmar, tipoDocEmpresa } from "../documentosPainel";
 
 describe("documentos da empresa por tipo", () => {
   it("separa pelo nome do arquivo", () => {
@@ -23,5 +23,23 @@ describe("contas na tela Documentos", () => {
   });
   it("prazo passado: vencidas em aberto, a mais antiga primeiro", () => {
     expect(prazosParaConfirmar(contas, "2026-10-23").map((x) => x.id)).toEqual(["f", "d"]);
+  });
+});
+
+describe("ehContaDeImposto", () => {
+  it("pela categoria de impostos", () => {
+    expect(ehContaDeImposto({ categoria: "impostos", descricao: "MUNICIPIO DE SAO JOSE" })).toBe(true);
+    expect(ehContaDeImposto({ categoria: "Parcelamento PGFN", descricao: null })).toBe(true);
+  });
+  it("pela descrição da guia, sem categoria", () => {
+    expect(ehContaDeImposto({ categoria: null, descricao: "DARE SANTA CATARINA · Pagamento efetuado" })).toBe(true);
+    expect(ehContaDeImposto({ categoria: null, descricao: "DAS do Simples 09/2026" })).toBe(true);
+    expect(ehContaDeImposto({ categoria: null, descricao: "GNRE DIFAL BA" })).toBe(true);
+  });
+  it("fornecedores e outras despesas ficam de fora", () => {
+    expect(ehContaDeImposto({ categoria: "fornecedores", descricao: "Boleto Expresso São Miguel" })).toBe(false);
+    expect(ehContaDeImposto({ categoria: "energia/água/internet", descricao: "Internet e Telefone Unifique" })).toBe(false);
+    expect(ehContaDeImposto({ categoria: null, descricao: "Pix Conectcar" })).toBe(false);
+    expect(ehContaDeImposto({ categoria: null, descricao: "Boleto Angeza Assessoria de Cobranças" })).toBe(false);
   });
 });

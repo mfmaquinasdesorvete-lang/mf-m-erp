@@ -22,6 +22,13 @@ export function tipoDocEmpresa(nome: string): TipoDocEmpresa {
 
 export type ContaDoc = { id: string; descricao: string | null; valor: number | string; vencimento: string; status: string; data_pagamento: string | null };
 
+/** Conta de imposto ou guia (DAS, DARF, DARE/ICMS, GNRE, INSS/FGTS, ISS, parcelamentos): a tela Documentos só mostra essas;
+ *  as de fornecedores ficam em Financeiro → Contas a pagar. Vale a categoria ou, sem ela, a descrição. */
+export function ehContaDeImposto(c: { categoria?: string | null; descricao?: string | null }): boolean {
+  if (/imposto|tribut|parcelamento|inss|fgts/.test(sem(c.categoria ?? ""))) return true;
+  return /\b(darf|dare|gnre|icms|inss|fgts|iss|issqn|irpj|csll|pis|cofins|dctf|das( do)? simples|simples nacional|parcelamento|pgfn|receita federal|sefaz|esocial)\b/.test(sem(c.descricao ?? ""));
+}
+
 const menosDias = (dia: string, n: number) => { const d = new Date(`${dia}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
 
 /** Pagas nos últimos `dias` dias sem nenhum arquivo anexado na conta (a mais recente primeiro). */

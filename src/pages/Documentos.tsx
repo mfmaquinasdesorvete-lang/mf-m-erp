@@ -1,5 +1,5 @@
 // Documentos (no jeito do site Cofre): duas partes — Docs da empresa e Parcelamentos.
-// Docs da empresa: o que precisa de atenção (contas vencidas em aberto: confirmar), as pagas que ainda esperam o
+// Docs da empresa: o que precisa de atenção (impostos e guias vencidos em aberto: confirmar), os pagos que ainda esperam o
 // comprovante (Anexar na própria linha), os documentos da empresa por tipo (contratos, certificados, extratos) e todos
 // os anexos do ERP com busca; ao lado, o acompanhamento com as dicas. Parcelamentos: a tela dos parcelamentos de impostos.
 import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from "react";
@@ -15,7 +15,7 @@ import { noPeriodo, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroL
 import { usePerfil } from "@/lib/auth";
 import { useVisivel } from "@/lib/menu";
 import { useAbaUrl } from "@/lib/abaUrl";
-import { pagasSemComprovante, prazosParaConfirmar, tipoDocEmpresa, TIPOS_DOC_EMPRESA, type ContaDoc, type TipoDocEmpresa } from "@/lib/documentosPainel";
+import { ehContaDeImposto, pagasSemComprovante, prazosParaConfirmar, tipoDocEmpresa, TIPOS_DOC_EMPRESA, type ContaDoc, type TipoDocEmpresa } from "@/lib/documentosPainel";
 
 const Parcelamentos = lazy(() => import("@/pages/Parcelamentos"));
 const GERAL = "00000000-0000-0000-0000-000000000000";
@@ -80,8 +80,10 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
   const [enviando, setEnviando] = useState(false);
 
   const comAnexo = useMemo(() => new Set(docs.filter((d) => d.entidade === "conta_pagar" && d.entidade_id).map((d) => d.entidade_id!)), [docs]);
-  const atencao = veContas ? prazosParaConfirmar(contas, dia) : [];
-  const semComprovante = veContas ? pagasSemComprovante(contas, comAnexo, dia) : [];
+  // só impostos e guias: as contas de fornecedores ficam em Financeiro → Contas a pagar
+  const deImpostos = useMemo(() => contas.filter(ehContaDeImposto), [contas]);
+  const atencao = veContas ? prazosParaConfirmar(deImpostos, dia) : [];
+  const semComprovante = veContas ? pagasSemComprovante(deImpostos, comAnexo, dia) : [];
   const daEmpresa = docs.filter((d) => d.entidade === "geral").sort((a, b) => b.created_at.localeCompare(a.created_at));
   const porTipo = TIPOS_DOC_EMPRESA.map((t) => ({ ...t, docs: daEmpresa.filter((d) => tipoDocEmpresa(d.nome) === t.id) })).filter((t) => t.docs.length);
 
@@ -99,8 +101,8 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
         {veContas && (
-          <Quadro titulo="O que precisa de atenção" texto="Contas vencidas que ainda estão em aberto: confirme se foram pagas e anexe o comprovante.">
-            {!atencao.length ? <Vazio icone={ShieldCheck} titulo="Tudo em dia" texto="Nenhuma conta vencida em aberto." /> : (
+          <Quadro titulo="O que precisa de atenção" texto="Impostos e guias vencidos que ainda estão em aberto: confirme se foram pagos e anexe o comprovante. As contas de fornecedores ficam em Financeiro → Contas a pagar.">
+            {!atencao.length ? <Vazio icone={ShieldCheck} titulo="Tudo em dia" texto="Nenhum imposto ou guia vencido em aberto." /> : (
               <ul className="divide-y divide-slate-100 border-t border-slate-100">
                 {atencao.slice(0, 6).map((c) => (
                   <li key={c.id}>
@@ -126,11 +128,11 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
         )}
 
         {veContas && (
-          <Quadro titulo="Pagas, aguardando comprovante" texto="Contas pagas nos últimos 60 dias sem nenhum arquivo anexado." destaque>
+          <Quadro titulo="Pagas, aguardando comprovante" texto="Impostos e guias pagos nos últimos 60 dias sem nenhum arquivo anexado." destaque>
             <div className="mx-4 mb-3 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900 sm:mx-5">
               <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> Guia ou boleto emitido não comprova o pagamento: anexe o comprovante do banco.
             </div>
-            {!semComprovante.length ? <Vazio icone={FileCheck2} titulo="Todos os comprovantes anexados" texto="Cada conta paga nos últimos 60 dias já tem um arquivo." /> : (
+            {!semComprovante.length ? <Vazio icone={FileCheck2} titulo="Todos os comprovantes anexados" texto="Cada imposto ou guia pago nos últimos 60 dias já tem um arquivo." /> : (
               <ul className="divide-y divide-slate-100 border-t border-slate-100">
                 {semComprovante.slice(0, 8).map((c) => (
                   <li key={c.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
@@ -190,10 +192,10 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
           <h2 className="mb-4 text-xl font-bold text-fg">Seus documentos, mais claros.</h2>
           <ul className="space-y-4 text-sm">
             {veContas && <Dica icone={FileCheck2} titulo="Guarde a prova do pagamento">
-              {semComprovante.length ? `${semComprovante.length} ${pl(semComprovante.length, "conta paga espera", "contas pagas esperam")} o comprovante.` : "Todas as contas pagas recentes têm comprovante."} Anexe o do banco, não a guia.
+              {semComprovante.length ? `${semComprovante.length} ${pl(semComprovante.length, "imposto ou guia pago espera", "impostos e guias pagos esperam")} o comprovante.` : "Todos os impostos e guias pagos recentes têm comprovante."} Anexe o do banco, não a guia.
             </Dica>}
             {veContas && <Dica icone={ReceiptText} titulo="Prazos passados">
-              {atencao.length ? `${atencao.length} ${pl(atencao.length, "conta vencida está", "contas vencidas estão")} em aberto: confirme se foram pagas.` : "Nenhuma conta vencida em aberto."}
+              {atencao.length ? `${atencao.length} ${pl(atencao.length, "imposto ou guia vencido está", "impostos e guias vencidos estão")} em aberto: confirme se foram pagos.` : "Nenhum imposto ou guia vencido em aberto."}
             </Dica>}
             <Dica icone={KeyRound} titulo="Certificado digital">
               {porTipo.find((t) => t.id === "certificado")?.docs.length ? "O certificado (.pfx) está guardado aqui; a senha fica só em Configurações." : "Guarde aqui o arquivo .pfx do certificado A1 (a senha fica só em Configurações)."}
