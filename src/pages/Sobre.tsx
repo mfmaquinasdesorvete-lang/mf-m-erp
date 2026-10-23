@@ -1,11 +1,13 @@
-// Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, os sistemas (finance-os, analytics-os,
-// ops-os, innovation-os, capability-showcase e a linguagem de comandos ECL), o Monitor (saúde das automações, filas,
-// backup e o registro das execuções — só o administrador), a Segurança (o que é auditado e como está — só o administrador), a rodada de trabalho em curso (VISUALIZE), as versões dia a
-// dia, o checklist dos pedidos (com quantas vezes cada tela mudou), esquemas para explicar à equipe (processos, fluxograma do menu com auditoria, cadeia de causas), as ideias e o handoff.
-// Cada aba começa pelos indicadores, depois os filtros e as ações.
+// Sobre o ERP Line (aberta pela versão no fim do menu). As abas ficam em 4 grupos:
+// - Conhecer o ERP: o que faz cada módulo, os esquemas dos processos (rascunho, fluxograma do menu, cadeia de causas),
+//   os sistemas (finance-os, analytics-os, ops-os, innovation-os, capability-showcase e a ECL) e o design system;
+// - Chats e saúde (só o administrador): os chats do Claude, o Monitor (automações, filas, backup) e a Segurança;
+// - O que mudou: as versões dia a dia, o checklist dos pedidos, as telas alteradas e o código;
+// - Equipe e ideias: as ideias, a rodada de trabalho em curso (VISUALIZE) e o handoff (financeiro e contador).
+// O endereço continua ?aba=… (os links antigos abrem a aba certa). Cada aba começa pelos indicadores, depois os filtros e as ações.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles } from "lucide-react";
+import { Activity, AlertTriangle, BookOpen, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { Button, Card, PageHeader, Stat, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -33,8 +35,25 @@ import { copiar } from "@/components/sobre/Guardanapo";
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 
-const ABAS = ["modulos", "chats", "sistemas", "monitor", "seguranca", "rodada", "pedidos", "telas", "codigo", "design", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
+const ABAS = ["modulos", "esquemas", "sistemas", "design", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
+
+type Grupo = { id: string; titulo: string; texto: string; icone: LucideIcon; cor: string; abas: { value: Aba; label: string }[] };
+
+/** Os grupos do menu do Sobre, só com as abas que a pessoa pode abrir (grupo sem aba some). */
+function gruposDoSobre(ehAdmin: boolean, podeHandoff: boolean): Grupo[] {
+  const g: Grupo[] = [
+    { id: "conhecer", titulo: "Conhecer o ERP", texto: "O que cada tela faz e os processos desenhados", icone: BookOpen, cor: "from-sky-500 to-blue-700",
+      abas: [{ value: "modulos", label: "Módulos" }, { value: "esquemas", label: "Esquemas" }, { value: "sistemas", label: "Sistemas" }, { value: "design", label: "Design" }] },
+    { id: "chats", titulo: "Chats e saúde", texto: "Chats do Claude, automações e segurança", icone: Activity, cor: "from-violet-500 to-purple-700",
+      abas: ehAdmin ? [{ value: "chats", label: "Chats" }, { value: "monitor", label: "Monitor" }, { value: "seguranca", label: "Segurança" }] : [] },
+    { id: "mudou", titulo: "O que mudou", texto: "Versões, pedidos e cada tela alterada", icone: History, cor: "from-emerald-500 to-teal-700",
+      abas: [{ value: "atualizacoes", label: "Atualizações" }, { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }] },
+    { id: "equipe", titulo: "Equipe e ideias", texto: "Ideias, a rodada de trabalho e o handoff", icone: Lightbulb, cor: "from-amber-500 to-orange-600",
+      abas: [{ value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }, { value: "handoff" as const, label: "Handoff" }] : [])] },
+  ];
+  return g.filter((x) => x.abas.length);
+}
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
@@ -43,21 +62,33 @@ export default function Sobre() {
   const podeHandoff = tem("financeiro", "contador");
   const ehAdmin = papel === "admin";
   // Rodada e Handoff falam de finanças e decisões da empresa: financeiro, contador e administrador. Chats, Monitor e Segurança: só o administrador
-  const [aba, setAba] = useAbaUrl<Aba>("modulos", ABAS.filter((a) =>
-    (podeHandoff || (a !== "handoff" && a !== "rodada")) && (ehAdmin || (a !== "monitor" && a !== "seguranca" && a !== "chats"))));
+  const grupos = gruposDoSobre(ehAdmin, podeHandoff);
+  const [aba, setAba] = useAbaUrl<Aba>("modulos", grupos.flatMap((x) => x.abas.map((a) => a.value)));
+  const grupo = grupos.find((x) => x.abas.some((a) => a.value === aba)) ?? grupos[0];
   const [ideia, setIdeia] = useState<InicialItem | null>(null);
   const [pendencia, setPendencia] = useState<InicialItem | null>(null);
   return (
     <div>
       <PageHeader title="Sobre o ERP Line"
-        subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. O que faz cada módulo, os sistemas, a saúde do ERP, o que mudou, esquemas para a equipe, ideias e o handoff.` : "O que faz cada módulo, os sistemas, a saúde do ERP, o que mudou, esquemas para a equipe, ideias e o handoff."}
+        subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. Escolha um grupo e depois a aba.` : "Escolha um grupo e depois a aba."}
         actions={<Button variant="secondary" onClick={() => setIdeia({})}><Lightbulb size={16} /> Anotar ideia</Button>} />
-      <Tabs value={aba} onChange={setAba} options={[
-        { value: "modulos", label: "Módulos" }, ...(ehAdmin ? [{ value: "chats" as const, label: "Chats" }] : []), { value: "sistemas", label: "Sistemas" }, ...(ehAdmin ? [{ value: "monitor" as const, label: "Monitor" }, { value: "seguranca" as const, label: "Segurança" }] : []),
-        ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }] : []),
-        { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }, { value: "design", label: "Design" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
-        { value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "handoff" as const, label: "Handoff" }] : []),
-      ]} />
+      <nav aria-label="Grupos do Sobre" className={`mb-3 grid gap-2 ${grupos.length > 3 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+        {grupos.map((x) => {
+          const ativo = x.id === grupo.id;
+          return (
+            <button key={x.id} type="button" aria-pressed={ativo} onClick={() => !ativo && setAba(x.abas[0].value)}
+              className={`flex min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition ${ativo ? "border-modulo bg-modulo/10 ring-1 ring-modulo" : "border-slate-200 bg-surface hover:border-slate-300"}`}>
+              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${x.cor} text-white shadow-sm`} aria-hidden><x.icone size={18} /></span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-fg">{x.titulo}</span>
+                <span className="hidden text-xs leading-snug text-slate-600 sm:block">{x.texto}</span>
+                <span className="mt-0.5 block truncate text-2xs font-semibold text-slate-500">{x.abas.map((a) => a.label).join(" · ")}</span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+      <Tabs value={aba} onChange={setAba} options={grupo.abas} />
       {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
       {aba === "chats" && ehAdmin && <Chats />}
       {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}

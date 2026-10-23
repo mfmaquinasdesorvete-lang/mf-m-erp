@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { ClipboardCopy, Download, Link2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { notify, notifyError } from "@/lib/notify";
-import { AREAS_ESQUEMA, COR_QUEM, PROCESSOS, ROTULO_QUEM, posicoes, quebrar, textoProcesso, type Processo, type Quem } from "@/lib/esquemas";
+import { usePerfil } from "@/lib/auth";
+import { AREAS_ESQUEMA, COR_QUEM, PROCESSOS, ROTULO_QUEM, processosVisiveis, posicoes, quebrar, textoProcesso, type Processo, type Quem } from "@/lib/esquemas";
 import { todosItens } from "@/lib/menu";
 
 const FONTE = `"Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", "Patrick Hand", cursive`;
@@ -70,14 +71,17 @@ export async function copiar(texto: string, aviso: string) {
   try { await navigator.clipboard.writeText(texto); notify(aviso); } catch { notify("Não deu para copiar: selecione e copie à mão"); }
 }
 
+const ABAS_SOBRE: Record<string, string> = { ideias: "Ideias", handoff: "Handoff", atualizacoes: "Atualizações", chats: "Chats", pedidos: "Pedidos", modulos: "Módulos" };
 const nomeTela = (rota: string) => {
   const base = rota.split("?")[0];
-  if (base === "/sobre") return `Sobre o ERP Line → ${rota.includes("ideias") ? "Ideias" : rota.includes("handoff") ? "Handoff" : "Atualizações"}`;
+  if (base === "/sobre") return `Sobre o ERP Line → ${ABAS_SOBRE[new URLSearchParams(rota.split("?")[1]).get("aba") ?? ""] ?? "Módulos"}`;
   return todosItens.find((i) => i.to === base)?.label;
 };
 
 export function Guardanapo({ processoId, onProcesso }: { processoId: string; onProcesso: (id: string) => void }) {
-  const p = PROCESSOS.find((x) => x.id === processoId) ?? PROCESSOS[0];
+  const { papel, master } = usePerfil();
+  const visiveis = processosVisiveis(papel === "admin", !!master);
+  const p = visiveis.find((x) => x.id === processoId) ?? visiveis[0];
   const [ref, largura] = useLargura<HTMLDivElement>();
   const svg = useRef<SVGSVGElement>(null);
   const colunas = largura < 560 ? 1 : largura < 860 ? 2 : largura < 1120 ? 3 : 4;
@@ -92,7 +96,7 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
       <div className="flex flex-wrap items-center gap-2">
         <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Processo">
           {AREAS_ESQUEMA.map((a) => {
-            const lista = PROCESSOS.filter((x) => x.area === a.id);
+            const lista = visiveis.filter((x) => x.area === a.id);
             if (!lista.length) return null;
             return (
               <div key={a.id} className="min-w-0 rounded-xl border border-slate-200 p-2.5">

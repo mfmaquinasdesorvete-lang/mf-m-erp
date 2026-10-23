@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AREAS_ESQUEMA, PROCESSOS, posicoes, quebrar, textoProcesso } from "../esquemas";
+import { AREAS_ESQUEMA, PROCESSOS, posicoes, processosVisiveis, quebrar, textoProcesso } from "../esquemas";
 import { SOBRE_TELAS } from "../modulos";
 
 describe("esquemas dos processos", () => {
   it("toda tela citada existe no ERP (ou é uma aba do Sobre)", () => {
     for (const p of PROCESSOS) for (const s of p.passos) {
       if (!s.tela) continue;
-      expect(s.tela.split("?")[0] in SOBRE_TELAS || /^\/sobre\?aba=(ideias|handoff|atualizacoes|modulos)$/.test(s.tela), `${p.id}: ${s.tela}`).toBe(true);
+      expect(s.tela.split("?")[0] in SOBRE_TELAS || /^\/sobre\?aba=(ideias|handoff|atualizacoes|modulos|chats|pedidos)$/.test(s.tela), `${p.id}: ${s.tela}`).toBe(true);
     }
     expect(new Set(PROCESSOS.map((p) => p.id)).size).toBe(PROCESSOS.length);
   });
@@ -21,6 +21,16 @@ describe("esquemas dos processos", () => {
         expect((s.nota ?? "").length, `${p.id}: ${s.nota}`).toBeLessThanOrEqual(30);
       }
     }
+  });
+
+  it("esquemas restritos: os da retaguarda só para a conta master e os dos chats só para o administrador", () => {
+    const ids = (admin: boolean, master: boolean) => processosVisiveis(admin, master).map((p) => p.id);
+    expect(ids(false, false)).not.toContain("chats");
+    expect(ids(false, false)).not.toContain("encontro-contas");
+    expect(ids(true, false)).toContain("chats");
+    expect(ids(true, false)).not.toContain("licenciado");
+    expect(ids(true, true)).toHaveLength(PROCESSOS.length);
+    for (const p of PROCESSOS.filter((x) => x.area === "retaguarda")) expect(p.restrito, p.id).toBe("master");
   });
 
   it("zigue-zague: a segunda linha volta da direita para a esquerda", () => {

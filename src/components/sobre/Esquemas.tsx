@@ -3,7 +3,7 @@
 import { GitCommitVertical, Network, PenLine } from "lucide-react";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
-import { PROCESSOS } from "@/lib/esquemas";
+import { processosVisiveis } from "@/lib/esquemas";
 import { CadeiaCausas } from "./CadeiaCausas";
 import { FluxoMenu } from "./FluxoMenu";
 import { Guardanapo } from "./Guardanapo";
@@ -12,10 +12,11 @@ const TIPOS = ["processos", "menu", "causas"] as const;
 type Tipo = (typeof TIPOS)[number];
 
 export function Esquemas() {
-  const { tem } = usePerfil();
+  const { tem, papel, master } = usePerfil();
+  const processos = processosVisiveis(papel === "admin", !!master);
   const podeCausas = tem("financeiro", "contador");
   const [tipo, setTipo] = useAbaUrl<Tipo>("processos", podeCausas ? TIPOS : TIPOS.filter((t) => t !== "causas"), "esquema");
-  const [processo, setProcesso] = useAbaUrl<string>(PROCESSOS[0].id, PROCESSOS.map((p) => p.id), "processo");
+  const [processo, setProcesso] = useAbaUrl<string>(processos[0].id, processos.map((p) => p.id), "processo");
   const opcoes: { v: Tipo; l: string; d: string; I: typeof PenLine }[] = [
     { v: "processos", l: "Processos", d: "O passo a passo em rascunho, para explicar à equipe", I: PenLine },
     { v: "menu", l: "Fluxograma do menu", d: "Áreas e telas, com a auditoria do menu", I: Network },

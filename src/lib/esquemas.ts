@@ -4,13 +4,15 @@
 export type Quem = "vendas" | "cliente" | "fiscal" | "expedicao" | "logistica" | "financeiro" | "contador" | "compras" | "estoque"
   | "diretoria" | "assistencia" | "tecnico" | "sistema" | "todos" | "claude";
 export type Passo = { titulo: string; quem: Quem; tela?: string; nota?: string };
-export type Area = "vendas" | "financeiro" | "fiscal" | "producao" | "assistencia" | "erp";
-export type Processo = { id: string; area: Area; nome: string; resumo: string; passos: Passo[] };
+export type Area = "vendas" | "financeiro" | "fiscal" | "producao" | "assistencia" | "erp" | "retaguarda";
+/** restrito: "admin" só aparece para o administrador; "master" só para a conta master (a dona). */
+export type Processo = { id: string; area: Area; nome: string; resumo: string; passos: Passo[]; restrito?: "admin" | "master" };
 
 /** Áreas dos esquemas, na ordem da tela. */
 export const AREAS_ESQUEMA: { id: Area; nome: string }[] = [
   { id: "vendas", nome: "Vendas" }, { id: "financeiro", nome: "Financeiro" }, { id: "fiscal", nome: "Fiscal" },
   { id: "producao", nome: "Compras e produção" }, { id: "assistencia", nome: "Assistência" }, { id: "erp", nome: "O ERP e a equipe" },
+  { id: "retaguarda", nome: "Retaguarda (só a dona)" },
 ];
 
 export const ROTULO_QUEM: Record<Quem, string> = {
@@ -247,8 +249,178 @@ export const PROCESSOS: Processo[] = [
       { titulo: "Ok para publicar", quem: "diretoria", nota: "só com o ok da empresa" },
       { titulo: "No ar", quem: "todos", tela: "/sobre?aba=atualizacoes", nota: "aparece em Atualizações" },
     ],
+  },  // auditoria de 23/10: os processos que o ERP já faz e ainda não tinham esquema
+  {
+    id: "cliente-novo", area: "vendas", nome: "Cliente novo no cadastro", resumo: "O cadastro passo a passo, conferido na Receita, sem repetir quem já existe.",
+    passos: [
+      { titulo: "Quem é o cliente", quem: "vendas", tela: "/clientes", nota: "CPF ou CNPJ" },
+      { titulo: "Conferir na Receita", quem: "sistema", tela: "/clientes", nota: "nome e endereço certos" },
+      { titulo: "Já existe?", quem: "sistema", tela: "/clientes", nota: "aviso de já cadastrado" },
+      { titulo: "Contato e endereço", quem: "vendas", tela: "/clientes", nota: "endereço pelo CEP" },
+      { titulo: "Assinar a ficha", quem: "cliente", nota: "na hora ou por link" },
+      { titulo: "Abrir a venda", quem: "vendas", tela: "/pedidos" },
+    ],
+  },
+  {
+    id: "comissao", area: "vendas", nome: "Comissão do vendedor", resumo: "Da venda com vendedor à comissão paga, calculada sozinha e sem planilha.",
+    passos: [
+      { titulo: "Venda com vendedor", quem: "vendas", tela: "/pedidos", nota: "ou o da carteira do cliente" },
+      { titulo: "Comissão calculada", quem: "sistema", tela: "/comissoes", nota: "item a item, pelas regras" },
+      { titulo: "Comissão liberada", quem: "sistema", tela: "/comissoes", nota: "na aprovação ou no pagamento" },
+      { titulo: "Gerar a conta", quem: "financeiro", tela: "/comissoes", nota: "marcar as do vendedor" },
+      { titulo: "Aprovação", quem: "diretoria", tela: "/aprovacoes" },
+      { titulo: "Comissão paga", quem: "financeiro", tela: "/financeiro", nota: "a baixa marca como paga" },
+      { titulo: "Vendedor confere", quem: "vendas", tela: "/comissoes", nota: "vê só as próprias" },
+    ],
+  },
+  {
+    id: "rastreio", area: "vendas", nome: "Cliente acompanha a entrega", resumo: "O cliente sabe onde está o pedido sem precisar perguntar.",
+    passos: [
+      { titulo: "Pedido despachado", quem: "expedicao", tela: "/expedicao" },
+      { titulo: "Código de rastreio", quem: "logistica", tela: "/rastreio", nota: "preenchido na lista" },
+      { titulo: "E-mail ao cliente", quem: "sistema", tela: "/rastreio", nota: "sozinho, com o código" },
+      { titulo: "WhatsApp pronto", quem: "logistica", tela: "/rastreio", nota: "com a previsão e o link" },
+      { titulo: "Passou da previsão?", quem: "logistica", tela: "/rastreio", nota: "aparece em destaque" },
+      { titulo: "Entregue", quem: "logistica", tela: "/fluxo" },
+    ],
+  },
+  {
+    id: "frete", area: "financeiro", nome: "Frete do CT-e à conta paga", resumo: "Da cotação do frete à fatura da transportadora conferida e paga.",
+    passos: [
+      { titulo: "Cotar o frete", quem: "vendas", tela: "/fretes", nota: "mensagem pronta" },
+      { titulo: "Aprovar e coletar", quem: "logistica", tela: "/fretes", nota: "agendar a coleta" },
+      { titulo: "CT-e chega", quem: "sistema", tela: "/fretes", nota: "busca a cada 15 min" },
+      { titulo: "Montar a fatura", quem: "financeiro", tela: "/fretes", nota: "a soma dos CT-e confere" },
+      { titulo: "Conta a pagar", quem: "financeiro", tela: "/financeiro" },
+      { titulo: "Aprovação", quem: "diretoria", tela: "/aprovacoes" },
+      { titulo: "Conciliado no banco", quem: "financeiro", tela: "/conciliacao" },
+    ],
+  },
+  {
+    id: "entradas", area: "financeiro", nome: "De onde veio a entrada", resumo: "Cada dinheiro que entra nos bancos da MF ligado à venda, ao cliente ou à conta certa.",
+    passos: [
+      { titulo: "Extrato entra", quem: "sistema", tela: "/conciliacao", nota: "banco, Open Finance ou OFX" },
+      { titulo: "ERP reconhece", quem: "sistema", tela: "/conciliacao", nota: "Pix, cartão, boleto ou regra" },
+      { titulo: "Ligar à venda", quem: "financeiro", tela: "/conciliacao", nota: "conta a receber baixada" },
+      { titulo: "Entre contas e sócios", quem: "sistema", tela: "/partes-relacionadas", nota: "não conta como venda" },
+      { titulo: "Entrada grande sem dono", quem: "diretoria", nota: "a dona anota de quem é" },
+      { titulo: "Pronto para o contador", quem: "contador", tela: "/contador" },
+    ],
+  },
+  {
+    id: "cartao-empresa", area: "financeiro", nome: "Gasto no cartão da empresa", resumo: "Cada compra no cartão corporativo com a nota certa ou o motivo de não ter.",
+    passos: [
+      { titulo: "Compra no cartão", quem: "todos" },
+      { titulo: "Pedir a nota", quem: "financeiro", tela: "/", nota: "botão Pedi a nota" },
+      { titulo: "NF chega e liga", quem: "sistema", tela: "/notas", nota: "pelo valor da compra" },
+      { titulo: "Sem nota? Motivo", quem: "financeiro", tela: "/", nota: "Sem nota ou Pessoal" },
+      { titulo: "Gasto separado", quem: "sistema", tela: "/gastos", nota: "combustível, marketplaces" },
+      { titulo: "Conciliado no banco", quem: "financeiro", tela: "/conciliacao" },
+    ],
+  },
+  {
+    id: "devolucao", area: "fiscal", nome: "Devolução de venda", resumo: "O cliente devolve: nota de devolução, reembolso aprovado e a venda descontada.",
+    passos: [
+      { titulo: "Cliente devolve", quem: "cliente", nota: "peça ou máquina" },
+      { titulo: "NF de devolução", quem: "fiscal", tela: "/notas", nota: "a partir da nota de venda" },
+      { titulo: "Conferir o que voltou", quem: "estoque", tela: "/estoque" },
+      { titulo: "Reembolso a pagar", quem: "financeiro", tela: "/notas", nota: "vira conta a pagar" },
+      { titulo: "Aprovação", quem: "diretoria", tela: "/aprovacoes" },
+      { titulo: "Venda descontada", quem: "sistema", tela: "/relatorios", nota: "relatórios, metas e DRE" },
+    ],
+  },
+  {
+    id: "nfse", area: "fiscal", nome: "Nota de serviço (NFS-e)", resumo: "Da OS concluída à nota de serviço autorizada pela prefeitura e entregue ao cliente.",
+    passos: [
+      { titulo: "OS concluída", quem: "tecnico", tela: "/assistencia" },
+      { titulo: "Conferir antes", quem: "sistema", tela: "/assistencia", nota: "antes de enviar" },
+      { titulo: "Emitir a NFS-e", quem: "financeiro", tela: "/assistencia", nota: "pela Focus" },
+      { titulo: "Prefeitura autoriza", quem: "sistema", tela: "/assistencia", nota: "acompanhada no ERP" },
+      { titulo: "Mandar ao cliente", quem: "financeiro", tela: "/assistencia" },
+      { titulo: "Pacote do mês", quem: "contador", tela: "/contador" },
+    ],
+  },
+  {
+    id: "parcelamento", area: "fiscal", nome: "Parcelamento de imposto", resumo: "Nenhuma parcela esquecida e nenhum parcelamento cancelado por atraso.",
+    passos: [
+      { titulo: "Pedir a lista", quem: "contador", tela: "/parcelamentos", nota: "mensagem pronta" },
+      { titulo: "Cadastrar", quem: "financeiro", tela: "/parcelamentos", nota: "parcelas geradas na hora" },
+      { titulo: "Aviso antes de vencer", quem: "sistema", tela: "/parcelamentos", nota: "7 e 2 dias antes" },
+      { titulo: "Pagar a guia", quem: "financeiro", tela: "/parcelamentos", nota: "com o comprovante" },
+      { titulo: "Risco de cancelar", quem: "sistema", tela: "/parcelamentos", nota: "pelas parcelas atrasadas" },
+      { titulo: "Impostos pagos", quem: "sistema", tela: "/impostos-pagos", nota: "todas as contas juntas" },
+    ],
+  },
+  {
+    id: "os-celular", area: "assistencia", nome: "OS pelo celular do técnico", resumo: "O técnico na bancada ou no cliente, com a OS no celular, sem o menu do ERP.",
+    passos: [
+      { titulo: "Abrir o app", quem: "tecnico", nota: "instalado no celular" },
+      { titulo: "Minhas OS por etapa", quem: "tecnico", nota: "o próximo passo num toque" },
+      { titulo: "Foto da câmera", quem: "tecnico", nota: "vai direto para a OS" },
+      { titulo: "Checklist e laudo", quem: "tecnico", tela: "/assistencia" },
+      { titulo: "Cliente assina", quem: "cliente", nota: "na entrada e na retirada" },
+      { titulo: "Avisar o cliente", quem: "tecnico", nota: "mensagem pronta" },
+    ],
+  },
+  {
+    id: "tiny", area: "erp", nome: "Dados do Tiny para o ERP", resumo: "Trazer cadastros, notas e vendas do Tiny sem digitar e sem perder nada.",
+    passos: [
+      { titulo: "Exportar do Tiny", quem: "diretoria", nota: "planilha, XML ou pela API" },
+      { titulo: "Importar", quem: "diretoria", tela: "/importar", nota: "um cartão por tipo" },
+      { titulo: "Resumo antes", quem: "sistema", tela: "/importar", nota: "o que entra e o que fica" },
+      { titulo: "Sem duplicar", quem: "sistema", nota: "pelo CPF ou CNPJ" },
+      { titulo: "Marcadores somam", quem: "sistema", nota: "nunca tiram os que existem" },
+      { titulo: "Plano de troca", quem: "diretoria", tela: "/implantacao", nota: "até desligar o Tiny" },
+    ],
+  },
+  {
+    id: "sprint", area: "erp", nome: "Sprint da equipe", resumo: "Cada equipe entrega um pouco toda semana, sem perder o foco.",
+    passos: [
+      { titulo: "Anotar no backlog", quem: "todos", tela: "/scrum" },
+      { titulo: "Planejar a sprint", quem: "diretoria", tela: "/scrum", nota: "objetivo e datas" },
+      { titulo: "Daily", quem: "todos", tela: "/scrum", nota: "fiz, vou fazer, me impede" },
+      { titulo: "Quadro", quem: "todos", tela: "/scrum", nota: "A fazer → Feito" },
+      { titulo: "Revisão e retro", quem: "todos", tela: "/scrum" },
+      { titulo: "Volta ao backlog", quem: "sistema", tela: "/scrum", nota: "o que não terminou" },
+    ],
+  },
+  {
+    id: "chats", area: "erp", restrito: "admin", nome: "Publicação pelos chats", resumo: "Cada chat do Claude cuida de um assunto; só um publica por vez e nada vai ao ar sem o seu ok.",
+    passos: [
+      { titulo: "Pedido no chat certo", quem: "diretoria", tela: "/sobre?aba=chats", nota: "um chat por assunto" },
+      { titulo: "Entra em Pedidos", quem: "claude", tela: "/sobre?aba=pedidos", nota: "no dia do pedido" },
+      { titulo: "Feito e testado", quem: "claude", nota: "testes automáticos" },
+      { titulo: "Aviso para você", quem: "claude", nota: "som, voz e celular" },
+      { titulo: "Pode publicar?", quem: "diretoria", nota: "botões no chat" },
+      { titulo: "Um publica por vez", quem: "claude", tela: "/sobre?aba=chats", nota: "o outro chat espera" },
+      { titulo: "No ar", quem: "todos", tela: "/sobre?aba=atualizacoes", nota: "aparece em Atualizações" },
+    ],
+  },
+  {
+    id: "encontro-contas", area: "retaguarda", restrito: "master", nome: "Encontro de contas", resumo: "O gasto da empresa pago pela conta pessoal volta para a empresa, com o contador sabendo.",
+    passos: [
+      { titulo: "Gasto pessoal", quem: "diretoria", tela: "/pessoal", nota: "por voz ou foto" },
+      { titulo: "Era da empresa?", quem: "diretoria", tela: "/pessoal", nota: "card em âmbar" },
+      { titulo: "Lançar na MF", quem: "diretoria", tela: "/pessoal", nota: "conta a pagar preenchida" },
+      { titulo: "Aprovação", quem: "diretoria", tela: "/aprovacoes" },
+      { titulo: "Planilha ao contador", quem: "contador", nota: "o que foi pago por você" },
+    ],
+  },
+  {
+    id: "licenciado", area: "retaguarda", restrito: "master", nome: "Pagamento de licenciado", resumo: "O que cada loja My Frost pagou, ligado à loja certa, com aviso de atraso.",
+    passos: [
+      { titulo: "Entrada no extrato", quem: "sistema", tela: "/licenciados", nota: "para conferir" },
+      { titulo: "Loja sugerida", quem: "sistema", tela: "/licenciados", nota: "pelo nome no extrato" },
+      { titulo: "Ligar à loja", quem: "diretoria", tela: "/licenciados", nota: "licença, mensalidade…" },
+      { titulo: "Atraso?", quem: "sistema", tela: "/licenciados", nota: "45 dias sem pagar" },
+      { titulo: "Carteira", quem: "diretoria", tela: "/licenciados", nota: "recebido e líquido" },
+    ],
   },
 ];
+
+/** Os esquemas que a pessoa pode ver (os restritos só para o administrador ou a conta master). */
+export const processosVisiveis = (admin: boolean, master: boolean) =>
+  PROCESSOS.filter((p) => !p.restrito || (p.restrito === "admin" ? admin : master));
 
 /** Os passos em texto numerado, para mandar no WhatsApp. */
 export function textoProcesso(p: Processo, nomeTela: (rota: string) => string | undefined = () => undefined) {
