@@ -55,3 +55,7 @@ Cuido das vendas da MF nos canais online: Mercado Livre, Google Shopping e os pr
 - Anúncio ligado ao produto direto ou por um kit só dele ("4 Un" = kit com 4).
 - O preço do anúncio novo é o que deixa o mesmo valor da loja depois da tarifa e do frete grátis.
 - No cartão, "MP *LOJA" é maquininha do Mercado Pago, não venda nem compra no Mercado Livre.
+- Anúncio novo no ML (items/validate): a conta usa o modelo novo, que pede `family_name`; garantia só em "dias", "meses"
+  ou "anos" (nunca "1 mês"); o motivo da recusa vem em `error` e em `cause` (tipo error ou warning). Aviso
+  ("Catalog has not mode me2", "Mandatory free shipping added") não trava: a conta envia por me2 (xd_drop_off e Full).
+- Estoque do ML sai da unidade da conta (`ml_contas.unidade_id`, SC desde 23/10) menos a reserva (`estoque_seguranca`, 1).
