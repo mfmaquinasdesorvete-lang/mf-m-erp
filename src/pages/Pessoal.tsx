@@ -5,7 +5,8 @@
 // Os cards separam os gastos por tipo (juros do limite, carro, impostos, cartões…) pelo texto do extrato e pelas regras do
 // dono (Regras dos cards: nomes de pessoas e empresas ficam só no banco); os em âmbar são para mostrar ao contador, e o
 // arquivo "Baixar para o contador" só sai quando o dono baixa (o contador não vê este painel). O mesmo extrato importado
-// duas vezes (PDF e OFX) aparece para anular as cópias; o Meu Pluggy traz o extrato sozinho. Abas: Minhas empresas e
+// duas vezes (PDF e OFX) aparece para anular as cópias; o Meu Pluggy traz o extrato sozinho. Abas: Extratos (de quais meses
+// já veio o extrato de cada conta), Minhas empresas e
 // Meus endereços. No alto, o resumo (ResumoCarteira): os números do período, o encontro de contas com cada empresa, o
 // que pode ser da empresa, as contas pessoais pagas e o passo a passo para o contador.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -23,6 +24,7 @@ import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
 import { MinhasEmpresas } from "@/components/pessoal/MinhasEmpresas";
 import { MeusEnderecos } from "@/components/pessoal/MeusEnderecos";
 import { GastoPessoal } from "@/components/pessoal/GastoPessoal";
+import { ExtratosRecebidos } from "@/components/pessoal/ExtratosRecebidos";
 import { ResumoCarteira } from "@/components/pessoal/ResumoCarteira";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { Area, Colunas, Ranking, Rosca } from "@/components/Charts";
@@ -90,7 +92,7 @@ export default function Pessoal() {
   const { data: partes = [] } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
   const { data: regras = [] } = useRows<RegraPessoal>("pessoal_regras", { order: "ordem", ascending: true });
   const navigate = useNavigate();
-  const [aba, setAba] = useAbaUrl<"dinheiro" | "empresas" | "enderecos">("dinheiro", ["dinheiro", "empresas", "enderecos"]);
+  const [aba, setAba] = useAbaUrl<"dinheiro" | "extratos" | "empresas" | "enderecos">("dinheiro", ["dinheiro", "extratos", "empresas", "enderecos"]);
   const [periodo, setPeriodo] = useState<PeriodoId>("mes");
   const [mesEscolhido, setMes] = useState<string | null>(null);
   const [livre, setLivre] = useState<Faixa>({ de: `${hoje().slice(0, 7)}-01`, ate: hoje() });
@@ -302,9 +304,10 @@ export default function Pessoal() {
         <span>Só você vê este painel. Nada daqui entra no DRE, na conciliação, nos painéis da empresa nem no que vai para o contador. Não precisa de senha do banco: só o nome da conta e o saldo.</span>
       </div>
 
-      <Tabs value={aba} onChange={setAba} options={[{ value: "dinheiro", label: "Dinheiro" }, { value: "empresas", label: "Minhas empresas" }, { value: "enderecos", label: "Meus endereços" }]} />
+      <Tabs value={aba} onChange={setAba} options={[{ value: "dinheiro", label: "Dinheiro" }, { value: "extratos", label: "Extratos" }, { value: "empresas", label: "Minhas empresas" }, { value: "enderecos", label: "Meus endereços" }]} />
       {aba === "empresas" ? <MinhasEmpresas meusNomes={partes.filter((p) => p.tipo === "socio").flatMap((p) => [p.nome, ...(p.nomes_extrato ?? [])])} />
       : aba === "enderecos" ? <MeusEnderecos />
+      : aba === "extratos" && contas.length ? <ExtratosRecebidos contas={contas} lancs={lancs} onImportar={() => setImportar(true)} onPluggy={() => setPluggy(true)} />
       : !isLoading && !contas.length ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#7c3aed] text-white"><Wallet size={28} aria-hidden /></span>
