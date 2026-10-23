@@ -736,7 +736,11 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     if (v !== Number(p.desconto || 0)) set({ desconto: v });
   }, [subtotal, descPct]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function executar(acao: () => Promise<unknown>, ok: string | (() => string), fechar = true) {
+  // trava imediata (o "ocupado" só desabilita o botão no próximo desenho da tela: o clique duplo passava)
+  const gravando = useRef(false);
+  async function executar(acao: () => Promise<unknown>, ok: string | (() => string), fechar = true, jaTravado = false) {
+    if (gravando.current && !jaTravado) return;
+    gravando.current = true;
     setOcupado(true);
     try {
       await acao();
@@ -746,6 +750,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     } catch (e) {
       notifyError(e);
     } finally {
+      gravando.current = false;
       setOcupado(false);
     }
   }
@@ -799,14 +804,8 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
     if (lerErr) throw lerErr;
     const manter = new Set(itens.filter((i: Item) => i.id).map((i: Item) => i.id));
     const remover = (atuais ?? []).map((x: { id: string }) => x.id).filter((id: string) => !manter.has(id));
-    if (remover.length) {
-      const { error } = await supabase.from("pedido_itens").delete().in("id", remover);
-      if (error) throw error;
-    }
-    for (const i of itens.filter((i: Item) => i.id && (atuais ?? []).some((x: { id: string }) => x.id === i.id))) {
-      const { error } = await supabase.from("pedido_itens").update(linha(i)).eq("id", i.id!);
-      if (error) throw error;
-    }
+    // ordem segura: primeiro entra o que é novo, depois o que mudou e só no fim sai o que foi tirado
+    // (se a internet cair no meio, o pedido nunca fica sem itens)
     const novos = itens.filter((i: Item) => !i.id || !(atuais ?? []).some((x: { id: string }) => x.id === i.id));
     if (novos.length) {
       const { data: criados, error } = await supabase.from("pedido_itens").insert(novos.map(linha)).select("id");
@@ -816,14 +815,30 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
       const comId = itens.map((i: Item) => (!i.id || !(atuais ?? []).some((x: { id: string }) => x.id === i.id) ? { ...i, id: criados?.[k++]?.id } : i));
       setP((x) => ({ ...x, itens: comId }));
     }
+    for (const i of itens.filter((i: Item) => i.id && (atuais ?? []).some((x: { id: string }) => x.id === i.id))) {
+      const { error } = await supabase.from("pedido_itens").update(linha(i)).eq("id", i.id!);
+      if (error) throw error;
+    }
+    if (remover.length) {
+      const { error } = await supabase.from("pedido_itens").delete().in("id", remover);
+      if (error) throw error;
+    }
     return data.id;
   }
 
   const salvar = (e: FormEvent) => { e.preventDefault(); executar(gravar, "Pedido salvo"); };
 
   const aprovar = async () => {
+    // trava já no clique: a checagem de "venda repetida" abaixo demora e um 2º clique aprovaria a venda duas vezes
+    if (gravando.current) return;
+    gravando.current = true;
+    let passou = false;
+    try { passou = await aprovarAgora(); } finally { if (!passou) gravando.current = false; }
+  };
+  const aprovarAgora = async (): Promise<boolean> => {
     if (precisaAprovarDesc && limiteDesc) {
-      return notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
+      notify(`Desconto de ${pctTexto(pctDesc)} passa do máximo de ${pctTexto(limiteDesc.max)}: use "Aprovar desconto" (senha do administrador) antes de aprovar a venda.`, "erro");
+      return false;
     }
     // venda repetida (mesmo cliente e valor nas últimas 24 h): pergunta antes de aprovar
     if (p.cliente_id) {
@@ -831,14 +846,14 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
       const { data: outras } = await supabase.from("pedidos").select("id, numero, valor_total, status, created_at")
         .eq("cliente_id", p.cliente_id).gte("created_at", desde);
       const igual = pedidoRepetido({ id: p.id, total }, (outras ?? []) as OutraVenda[]);
-      if (igual && !(await confirmar(`Parece repetido do pedido #${igual.numero}: mesmo cliente e mesmo valor (${brl(total)}) nas últimas 24 horas. Aprovar mesmo assim?`))) return;
+      if (igual && !(await confirmar(`Parece repetido do pedido #${igual.numero}: mesmo cliente e mesmo valor (${brl(total)}) nas últimas 24 horas. Aprovar mesmo assim?`))) return false;
     }
     // link na aprovação: InfinitePay ou, na venda no cartão com o Mercado Pago escolhido em Recebimentos, o Checkout dele
     const cartaoNoMP = cfg?.link_cartao_provedor === "mercadopago" && p.forma_pagamento === "cartao";
     const comLink = verPagamento && (temInfinitePay || cartaoNoMP) && cfg?.link_pagamento_ao_aprovar !== false && MEIOS_LINK.includes(p.forma_pagamento ?? "");
     // a mensagem final só fala da NF-e quando ela foi mesmo enviada (falha ou bloqueio já aparece em vermelho)
     let nfeEnviada = false;
-    return executar(async () => {
+    await executar(async () => {
       const id = await gravar();
       const { error } = await supabase.rpc("aprovar_pedido", { p_pedido: id });
       if (error) throw error;
@@ -856,7 +871,8 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
         if (data) setP({ ...(data as any), itens: (data as any).itens ?? [] });
         setLinkAgora(true);
       }
-    }, () => (nfeEnviada ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro"), !comLink);
+    }, () => (nfeEnviada ? "Venda aprovada: estoque baixado, parcelas geradas e NF-e enviada" : "Pedido aprovado: estoque baixado e parcelas geradas no financeiro"), !comLink, true);
+    return true; // o executar já soltou a trava no fim
   };
 
   const cancelar = async () => {

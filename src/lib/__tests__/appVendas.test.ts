@@ -21,6 +21,10 @@ describe("app de vendas", () => {
     expect(r.valorOrcamentos).toBe(999);
     expect(r.aprovados).toBe(3);
   });
+  it("venda aprovada às 22h de 31/10 (01h de 01/11 em UTC) conta em outubro", () => {
+    const r = resumoVendas([p({ valor_total: 700, aprovado_em: "2026-11-01T01:00:00Z" })], "2026-10-31");
+    expect(r.valor).toBe(700);
+  });
   it("só os pedidos do vendedor", () => {
     const r = resumoVendas([p({ vendedor_id: "a", aprovado_em: "2026-10-10" }), p({ vendedor_id: "b", aprovado_em: "2026-10-10" })], "2026-10-19", "a");
     expect(r.qtd).toBe(1);

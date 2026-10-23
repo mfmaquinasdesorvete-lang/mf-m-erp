@@ -9,7 +9,7 @@ import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { numeroBR } from "@/lib/fichaCadastral";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { dadosDaChave, rotuloNfOutra } from "@/lib/nfOutra";
 import type { Parte } from "@/lib/partesRelacionadas";
 import type { Pedido } from "@/lib/types";
@@ -95,7 +95,7 @@ export function NfOutraModal({ p, onClose, onFeito }: { p: PedidoNf; onClose: ()
     setOcupado(true);
     const { error } = await supabase.rpc("registrar_nf_outra_empresa", {
       p_pedido: p.id,
-      p_dados: { empresa: f.empresa.trim(), cnpj: f.cnpj.replace(/\D/g, ""), numero: f.numero.trim(), data: f.data, chave, valor: numeroBR(f.valor) ?? "", motivo: f.motivo.trim() },
+      p_dados: { empresa: f.empresa.trim(), cnpj: f.cnpj.replace(/\D/g, ""), numero: f.numero.trim(), data: f.data, chave, valor: lerValor(f.valor) ?? "" /* "1.500" é mil e quinhentos */, motivo: f.motivo.trim() },
       p_entregue: f.entregue,
     });
     setOcupado(false);

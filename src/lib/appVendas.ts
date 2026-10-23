@@ -1,5 +1,6 @@
 // App de vendas no celular (erp.myfrost.ai/app/vendas): o que o vendedor faz na rua ou no WhatsApp — quanto vendeu no
 // mês, os orçamentos que esperam resposta, achar o cliente e chamar, consultar preço e estoque e abrir um pedido.
+import { diaLocal } from "./filtroLista";
 
 export type PedidoApp = { id: string; numero: number; status: string; valor_total: number; created_at: string; aprovado_em?: string | null; vendedor_id?: string | null };
 
@@ -18,7 +19,8 @@ export function resumoVendas(pedidos: PedidoApp[], hoje: string, vendedorId?: st
   d.setUTCMonth(d.getUTCMonth() - 1);
   const mesAnterior = d.toISOString().slice(0, 7);
   const diaDoMes = hoje.slice(8, 10);
-  const dataVenda = (p: PedidoApp) => (p.aprovado_em ?? p.created_at).slice(0, 10);
+  // o dia da venda em Brasília (às 22h de 31/10 ainda é outubro)
+  const dataVenda = (p: PedidoApp) => diaLocal(p.aprovado_em ?? p.created_at);
   const soma = (l: PedidoApp[]) => Math.round(l.reduce((s, p) => s + Number(p.valor_total || 0), 0) * 100) / 100;
   const doMes = meus.filter((p) => ehVenda(p) && dataVenda(p).startsWith(mes));
   // mesmo período do mês passado (até o mesmo dia), para comparar sem esperar o mês acabar

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, X, type LucideIcon } from "lucide-react";
 import { hoje, somarDias } from "@/lib/format";
+import { diaLocal } from "@/lib/filtroLista";
 import { estiloBrilho, fitValor, Luz } from "@/components/ui";
 import { todosItens, useVisivel } from "@/lib/menu";
 import type { Tela } from "@/lib/permissoes";
@@ -53,7 +54,8 @@ export function intervalos(p: Periodo): { atual: Faixa; anterior: Faixa } {
 }
 
 /** Data (ou data e hora) dentro da faixa. */
-export const dentro = (data: string | null | undefined, [a, b]: Faixa) => !!data && data.slice(0, 10) >= a && data.slice(0, 10) <= b;
+/** Data e hora (created_at, aprovado_em) contam pelo dia em Brasília: venda às 22h de 31/10 é de outubro. */
+export const dentro = (data: string | null | undefined, [a, b]: Faixa) => { const d = diaLocal(data); return !!d && d >= a && d <= b; };
 
 /** Variação em % (null = antes era zero e agora não é · undefined = zero nos dois: nada a comparar). */
 export const variacao = (agora: number, antes: number): number | null | undefined => (antes > 0 ? ((agora - antes) / antes) * 100 : agora > 0 ? null : undefined);
