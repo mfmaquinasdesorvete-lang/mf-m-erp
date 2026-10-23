@@ -2,7 +2,7 @@
 # Monta o site do ERP Line e grava na branch "site" (de onde a Hostinger publica).
 # Sempre igual em todos os chats, para um não apagar o trabalho do outro:
 #   - monta a partir da paineis-no-ar mais nova do GitHub (com o que todos os chats já enviaram);
-#   - junta os arquivos do site.zip mais novo da branch site (quem está com a versão antiga aberta não vê erro);
+#   - junta os arquivos das últimas 8 versões do site.zip da branch site (quem está com a versão antiga aberta não vê erro);
 #   - se outro chat gravou na branch site no meio do caminho, o envio é recusado: rode de novo.
 # Antes de rodar, pegue a trava no banco (veja o CLAUDE.md). Depois, publique na Hostinger e solte a trava.
 # Uso: scripts/publicar-site.sh   (SEM_ENVIAR=1 monta e confere, sem gravar na branch site)
@@ -28,8 +28,24 @@ else
 fi
 npx vite build >/dev/null
 
-# arquivos das versões anteriores entram sem sobrescrever os novos
-unzip -q -n "$tmp/site/site.zip" -d dist
+# arquivos das versões anteriores entram sem sobrescrever os novos, só os das últimas 8 publicações (quem está com uma
+# versão antiga aberta não vê erro; antes juntava todas e o site.zip passou do limite de 100 MB do GitHub). Cada
+# publicação regrava os arquivos que continuam no site com a hora dela; os que saíram ficam com a hora da última versão
+# que os usava. Então as 8 horas mais recentes de assets/ cobrem tudo o que as 8 últimas versões pedem.
+python3 -I - dist "$tmp/site/site.zip" <<'PY'
+import os, sys, zipfile
+raiz, antigo = sys.argv[1], sys.argv[2]
+VERSOES = 8
+with zipfile.ZipFile(antigo) as z:
+    velhos = [i for i in z.infolist() if i.filename.startswith("assets/") and not os.path.exists(os.path.join(raiz, i.filename))]
+    horas = sorted({i.date_time[:5] for i in velhos}, reverse=True)[:VERSOES]
+    ficam = [i for i in velhos if i.date_time[:5] in horas]
+    for i in ficam:
+        z.extract(i, raiz)
+        t = __import__("time").mktime(i.date_time + (0, 0, -1))
+        os.utime(os.path.join(raiz, i.filename), (t, t))  # mantém a hora da versão de origem
+print(f"versões anteriores: {len(ficam)} arquivos de {len(horas)} publicações ({len(velhos) - len(ficam)} mais antigos ficaram de fora)")
+PY
 python3 -I - dist "$tmp/site/site.zip" <<'PY'
 import os, sys, zipfile
 raiz, destino = sys.argv[1], sys.argv[2]
