@@ -31,6 +31,10 @@ export async function ler<T>(consulta: PromiseLike<{ data: T | null; error: unkn
   return data;
 }
 
+/** Tabelas e visões sem coluna id (icms_uf, clientes_desde…): depois da 1ª vez, nem tenta o desempate pelo id. */
+const SEM_ID = new Set<string>(["icms_uf", "nfe_validacoes", "tiny_documentos", "necessidade_producao", "tipos_contato", "usuarios_erp",
+  "adiantamento_prestacoes", "avisos_tipos", "estoque_unidade", "clientes_desde"]);
+
 /** Lê a tabela inteira de 1000 em 1000 (desempate pelo id para nenhuma linha repetir ou faltar entre as páginas). */
 async function todasAsPaginas(table: string, select: string, order: string, ascending: boolean, filtro?: Filtro) {
   const pagina = (de: number, desempate: boolean) => {
@@ -38,9 +42,14 @@ async function todasAsPaginas(table: string, select: string, order: string, asce
     if (desempate) q = q.order("id", { ascending: true });
     return q.range(de, de + PAGINA - 1) as PromiseLike<{ data: unknown[] | null; error: unknown }>;
   };
-  let desempate = true;
-  let primeira = await pagina(0, true);
-  if (primeira.error) { desempate = false; primeira = await pagina(0, false); } // tabela sem coluna id
+  let desempate = !SEM_ID.has(table);
+  let primeira = await pagina(0, desempate);
+  if (primeira.error && desempate) {
+    // tabela sem coluna id: tenta sem o desempate e, se era isso mesmo, lembra (erro de rede não entra na lista)
+    desempate = false;
+    primeira = await pagina(0, false);
+    if (!primeira.error) SEM_ID.add(table);
+  }
   if (primeira.error) throw primeira.error;
   const todas: unknown[] = [...(primeira.data ?? [])];
   if (todas.length < PAGINA) return todas;

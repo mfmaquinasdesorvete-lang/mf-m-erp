@@ -79,9 +79,10 @@ function useExcecoes() {
   const { data: lancamentos = NENHUM } = useRows<any>("extrato_lancamentos");
   const { data: bancos = NENHUM } = useRows<any>("contas_bancarias", { order: "nome", ascending: true });
   const { data: importacoes = NENHUM } = useRows<any>("extrato_importacoes");
-  // as regras só olham o histórico das contas, dos produtos e das vendas (o resto do histórico não é baixado)
+  // as regras só olham o histórico das contas, dos produtos e das vendas (o resto do histórico não é baixado), e das
+  // contas e dos produtos só o que uma pessoa fez: o que o sistema gravou sozinho (~10 mil linhas) nenhuma regra usa
   const { data: auditoria = NENHUM } = useRows<any>("auditoria", {
-    filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]), key: ["excecoes"],
+    filtro: (q) => q.in("tabela", ["contas_receber", "contas_pagar", "produtos", "pedidos"]).or("origem.eq.usuario,tabela.eq.pedidos"), key: ["excecoes"],
   });
   const { data: documentos = NENHUM } = useRows<any>("documentos", { select: "entidade, entidade_id" });
   const { data: pedidos = NENHUM } = useRows<any>("pedidos", { select: "id, numero, numero_externo, status, unidade_id, valor_total, valor_produtos, desconto, vendedor_id, origem, nf_outra_numero, notas:notas_fiscais(status, ambiente)" });
