@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowRight, BadgeCheck, Calculator, CalendarCheck, CheckCircle2, ClipboardCopy, FileDown, Lightbulb, ListChecks, Receipt, Scale, ShieldAlert, XCircle,
+  AlertTriangle, ArrowRight, BadgeCheck, Calculator, CalendarCheck, CheckCircle2, ClipboardCopy, FileDown, Lightbulb, ListChecks, MapPinned, Receipt, Scale, ShieldAlert, XCircle,
 } from "lucide-react";
 import { Button, CampoMes, Card, Indicador, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
@@ -22,8 +22,9 @@ import {
 } from "@/lib/analistaFiscal";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { DeducoesFiscais } from "@/components/fiscal/DeducoesFiscais";
+import { DifalPorEstado } from "@/components/fiscal/DifalPorEstado";
 
-type Aba = "auditoria" | "deducoes" | "economia" | "apuracao" | "regime" | "rotina";
+type Aba = "auditoria" | "deducoes" | "economia" | "apuracao" | "difal" | "regime" | "rotina";
 type ContaReceberF = { categoria?: string | null; valor: number; valor_pago?: number | null; status: string; vencimento: string; data_pagamento?: string | null; competencia?: string | null; unidade_id?: string | null };
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -33,7 +34,7 @@ const proximoMes = (am: string) => { const [a, m] = am.split("-").map(Number); r
 export default function AnalistaFiscal() {
   const navigate = useNavigate();
   const { unidades, atual, filtrar } = useUnidade();
-  const [aba, setAba] = useAbaUrl<Aba>("auditoria", ["auditoria", "deducoes", "economia", "apuracao", "regime", "rotina"] as const);
+  const [aba, setAba] = useAbaUrl<Aba>("auditoria", ["auditoria", "deducoes", "economia", "apuracao", "difal", "regime", "rotina"] as const);
   const [mes, setMes] = useState(hoje().slice(0, 7));
   const meses = useMemo(() => mesesAte(mes, 12), [mes]);
 
@@ -146,6 +147,7 @@ export default function AnalistaFiscal() {
           ["auditoria", "Conferência fiscal", ListChecks, a.resumo.problemas + a.resumo.alertas ? `${a.resumo.problemas + a.resumo.alertas} para ver` : "tudo certo", a.resumo.problemas ? "text-red-600" : a.resumo.alertas ? "text-amber-600" : "text-emerald-600"],
           ["economia", "Pagar menos imposto", Lightbulb, a.resumo.economia ? `${brl(a.resumo.economia)}/ano` : `${a.resumo.oportunidades} ${pl(a.resumo.oportunidades, "ideia", "ideias")}`, "text-emerald-600"],
           ["apuracao", "Apuração do mês", Receipt, brl(doMes.ap.total), "text-sky-600"],
+          ["difal", "DIFAL por estado", MapPinned, "vendas a não contribuinte", "text-amber-600"],
           ["regime", "Real x Presumido", Scale, a.regimes.real.total <= a.regimes.presumido.total ? "Real é melhor" : "Presumido é melhor", "text-violet-600"],
           ["deducoes", "Deduções", Calculator, "modo avançado", "text-slate-600"],
           ["rotina", "Rotina simples", CalendarCheck, "passo a passo", "text-slate-600"],
@@ -162,6 +164,7 @@ export default function AnalistaFiscal() {
       {aba === "deducoes" && <DeducoesFiscais />}
       {aba === "economia" && <Economia estrategias={a.estrategias} />}
       {aba === "apuracao" && <Apuracao mes={mes} m={doMes} />}
+      {aba === "difal" && <DifalPorEstado contas={pagar} />}
       {aba === "regime" && <Regime a={a} />}
       {aba === "rotina" && <Rotina abrir={navigate} />}
 

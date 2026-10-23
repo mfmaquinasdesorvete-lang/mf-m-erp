@@ -4191,6 +4191,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     }
     return { data: r, error: null };
   },
+  // DIFAL por estado (no sistema real: lido do XML das notas no banco); na demonstração não há XML
+  difal_vendas_interestaduais: () => ({ data: [], error: null }),
   // notas fiscais da My Frost (no sistema real: public.importar_notas_legado) — só de quem já é cliente, pelo CPF/CNPJ
   importar_notas_legado: ({ p_notas }) => {
     const r = { novas: 0, atualizadas: 0, sem_cliente: 0, ambiguas: 0, erros: [] as Row[] };
