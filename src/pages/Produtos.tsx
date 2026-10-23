@@ -767,6 +767,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             { name: "documentos_maquina", label: "Manuais (máquina, elétrico) e dicas em PDF", type: "custom" as const, span: 4 as const,
               render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" ? <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || tem("tecnico")} /> : <span className="text-xs text-slate-500">Só para máquinas.</span> },
           ] : []),
+          // peça e insumo: o desenho técnico (PDF, foto ou link) que aparece em toda OP dela (tornearia e mecânica)
+          { name: "desenho_tecnico", label: "Desenho técnico (aparece na OP da tornearia e da mecânica)", type: "custom" as const, span: 4 as const,
+            render: (_v: any, _s: any, row: Record<string, any>) => row.tipo === "maquina" || row.tipo === "servico" ? <span className="text-xs text-slate-500">Só para peças e insumos.</span>
+              : <DocumentosMaquina produtoId={row.id} podeEditar={pode("editar_produtos") || pode("editar_producao")} tipos={["desenho"]} /> },
           { name: "secao_fiscal", label: "Dados fiscais (NF-e)", type: "secao" },
           { name: "ncm", label: "NCM (8 dígitos)", type: "custom", span: 2, render: (v, set, row) => <CampoNcm valor={v} onChange={set} produtoId={row.id} /> },
           { name: "cest", label: "CEST", span: 1 },

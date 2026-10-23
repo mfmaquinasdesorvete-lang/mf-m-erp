@@ -6,7 +6,7 @@
 //  link da máquina para mandar pelo WhatsApp) e Assistência (OS do modelo, peças trocadas em garantia e o custo).
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, ExternalLink, MessageCircle, Pencil, ShieldCheck, Store, Wrench } from "lucide-react";
+import { Copy, ExternalLink, MessageCircle, Pencil, Ruler, ShieldCheck, Store, Wrench } from "lucide-react";
 import { Button, Modal, Table, Tabs } from "../ui";
 import { supabase } from "@/lib/supabase";
 import { brl, dataBR, hoje, pl, whatsappLink } from "@/lib/format";
@@ -113,6 +113,12 @@ function AbaGeral({ p, podeEditar, custo }: { p: ProdutoFicha; podeEditar: boole
         <GaleriaProduto produtoId={p.id} podeEditar={podeEditar} fotoPrincipal={p.foto_caminho} />
         {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer" className="link-acao mt-2 inline-flex items-center gap-1 text-sm"><ExternalLink size={14} /> Vídeo no YouTube</a>}
       </section>
+      {p.tipo !== "maquina" && p.tipo !== "servico" && (
+        <section>
+          <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-fg"><Ruler size={15} aria-hidden /> Desenho técnico</h3>
+          <DocumentosMaquina produtoId={p.id} podeEditar={podeEditar} tipos={["desenho"]} />
+        </section>
+      )}
       {p.tipo !== "servico" && (
         <section className="grid gap-4 md:grid-cols-2">
           <div>
