@@ -43,16 +43,14 @@ export function CodigoErp() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-4">
           <h3 className="mb-3 flex items-center gap-2 font-semibold text-fg"><Layers size={16} /> Linhas por técnica</h3>
-          <div className={HORAS?.horas ? "grid items-center gap-4 sm:grid-cols-2" : ""}>
-            <Rosca fatias={CODIGO.map((t) => ({ rotulo: t.tecnica, valor: t.linhas, cor: t.cor }))} total="linhas" formatar={n} />
-            {!!HORAS?.horas && <HorasNoProjeto h={HORAS} />}
-          </div>
+          <Rosca fatias={CODIGO.map((t) => ({ rotulo: t.tecnica, valor: t.linhas, cor: t.cor }))} total="linhas" formatar={n} />
         </Card>
-        <Card className="p-4">
-          <h3 className="mb-3 flex items-center gap-2 font-semibold text-fg"><Code2 size={16} /> Do maior para o menor</h3>
-          <Ranking itens={CODIGO.map((t) => ({ rotulo: t.tecnica, valor: t.linhas, detalhe: `${n(t.arquivos)} arquivos · ${t.oQueFaz}` }))} formatar={(v) => `${n(v)} linhas`} />
-        </Card>
+        {HORAS?.horas ? <HorasNoProjeto h={HORAS} /> : null}
       </div>
+      <Card className="p-4">
+        <h3 className="mb-3 flex items-center gap-2 font-semibold text-fg"><Code2 size={16} /> Do maior para o menor</h3>
+        <Ranking itens={CODIGO.map((t) => ({ rotulo: t.tecnica, valor: t.linhas, detalhe: `${n(t.arquivos)} arquivos · ${t.oQueFaz}` }))} formatar={(v) => `${n(v)} linhas`} />
+      </Card>
 
       <Card className="p-4">
         <h3 className="mb-3 font-semibold text-fg">As ferramentas</h3>
@@ -71,15 +69,17 @@ export function CodigoErp() {
 function HorasNoProjeto({ h }: { h: HorasProjeto }) {
   const desde = h.desde ? new Date(h.desde).toLocaleDateString("pt-BR") : "";
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl bg-slate-50 p-4 text-center ring-1 ring-slate-100">
+    <Card className="flex flex-col p-4">
+      <h3 className="mb-3 flex items-center gap-2 font-semibold text-fg"><Clock size={16} /> Horas no projeto</h3>
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
       <Relogio />
-      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500"><Clock size={13} /> Horas no projeto</p>
-      <p className="num text-3xl font-bold text-fg">{n(h.horas)} h</p>
+      <p className="num text-4xl font-bold text-fg">{n(h.horas)} h</p>
       <p className="text-xs text-slate-500">
         desde {desde} · {n(h.dias)} {h.dias === 1 ? "dia" : "dias"} de trabalho · {n(h.periodos)} {h.periodos === 1 ? "período" : "períodos"}
       </p>
       <p className="text-2xs text-slate-400">Pelos horários de cada envio do código (pausa de até 1h30 conta como o mesmo período).</p>
-    </div>
+      </div>
+    </Card>
   );
 }
 
@@ -92,7 +92,7 @@ function Relogio() {
       stroke={cor} strokeWidth={larg} strokeLinecap="round" />
   );
   return (
-    <svg viewBox="0 0 100 100" className="h-28 w-28" role="img" aria-label={`Relógio: ${agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}>
+    <svg viewBox="0 0 100 100" className="h-40 w-40" role="img" aria-label={`Relógio: ${agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}>
       <circle cx="50" cy="50" r="46" fill="rgb(var(--surface))" stroke="currentColor" strokeWidth="3" className="text-slate-300" />
       {Array.from({ length: 12 }, (_, i) => {
         const a = (i * 30 * Math.PI) / 180, r1 = i % 3 === 0 ? 34 : 38;
