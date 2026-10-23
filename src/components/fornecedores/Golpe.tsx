@@ -1,4 +1,5 @@
 import { Ban, ShieldAlert } from "lucide-react";
+import { diaLocal } from "@/lib/filtroLista";
 import { dataBR } from "@/lib/format";
 
 type ComBloqueio = { bloqueado?: boolean | null; bloqueio_motivo?: string | null; bloqueado_em?: string | null; bloqueado_por_nome?: string | null };
@@ -60,7 +61,7 @@ export function CampoBloqueio({ row, setCampo, admin }: { row: ComBloqueio & { i
             placeholder="Ex.: Golpe: boleto falso que chega todo mês" onChange={(e) => setCampo("bloqueio_motivo", e.target.value)} />
           {salvo && (
             <p className="text-xs text-red-700">
-              Bloqueado{row.bloqueado_por_nome ? ` por ${row.bloqueado_por_nome}` : ""} em {dataBR(row.bloqueado_em!.slice(0, 10))}.
+              Bloqueado{row.bloqueado_por_nome ? ` por ${row.bloqueado_por_nome}` : ""} em {dataBR(diaLocal(row.bloqueado_em))}.
               {travado ? " Só o administrador tira o bloqueio." : " Desmarque para tirar o bloqueio (fica na auditoria)."}
             </p>
           )}

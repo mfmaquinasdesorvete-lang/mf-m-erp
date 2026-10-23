@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { custoUnitario, margemPedido, pctMc, somar, zero, type Contexto, type PedidoMargem } from "../margem";
+import { custoUnitario, margemBruta, margemPedido, pctMc, somar, zero, type Contexto, type PedidoMargem } from "../margem";
 import type { Cliente, Config, KitComponente, Produto, Vendedor } from "../types";
 import type { Unidade } from "../unidade";
 
@@ -128,4 +128,9 @@ describe("margemPedido", () => {
     expect(somar(a, a)).toEqual({ ...zero(), receita: 200, mc: 80 });
     expect(pctMc(zero())).toBe(0);
   });
+});
+
+describe("margemBruta", () => {
+  it("(venda − custo) ÷ venda", () => { expect(margemBruta(1000, 800)).toBeCloseTo(20); });
+  it("sem custo ou sem preço: null", () => { expect(margemBruta(1000, 0)).toBeNull(); expect(margemBruta(0, 10)).toBeNull(); });
 });

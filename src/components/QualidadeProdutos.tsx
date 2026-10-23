@@ -18,7 +18,8 @@ const COR = { alta: "bg-red-500", media: "bg-amber-500", baixa: "bg-slate-400" }
 
 export function QualidadeProdutos({ produtos, onCorrigir, podeEditar, inicial }: { produtos: Produto[]; onCorrigir: (p: Produto) => void; podeEditar: boolean; inicial?: string | null }) {
   const { data: vinculos = [] } = useRows<{ produto_id: string }>("produto_fornecedor", { select: "produto_id", order: "produto_id" });
-  const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
+  // só as saídas contam (mesma consulta da lista de produtos: aproveita o que já foi baixado)
+  const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at", key: ["saidas"], filtro: (q) => q.eq("tipo", "saida") });
   const problemas = useMemo(() => avaliarCadastro(produtos, {
     comFornecedor: new Set(vinculos.map((v) => v.produto_id)), movimentos, hoje: hoje(),
   }), [produtos, vinculos, movimentos]);

@@ -44,6 +44,13 @@ export function custoUnitario(p: Produto | undefined, ctx: Pick<Contexto, "produ
   return pecasDoKit(p.id, ctx.comps, escolha).reduce((s, c) => s + c.quantidade * Number(ctx.produtos.find((x) => x.id === c.componente_id)?.preco_custo ?? 0), 0);
 }
 
+/** Margem bruta em % sobre a venda ((venda − custo) ÷ venda); null quando falta o custo ou o preço.
+ *  Kit: passe o custo pela soma dos componentes (custoUnitario), não o preco_custo do cadastro. */
+export function margemBruta(venda: number | null | undefined, custo: number | null | undefined): number | null {
+  const v = Number(venda || 0), c = Number(custo || 0);
+  return c > 0 && v > 0 ? ((v - c) / v) * 100 : null;
+}
+
 export function margemPedido(p: PedidoMargem, ctx: Contexto): ResultadoPedido {
   const itens = p.itens ?? [];
   const brutos = itens.map((i) => Number(i.quantidade) * Number(i.valor_unitario));

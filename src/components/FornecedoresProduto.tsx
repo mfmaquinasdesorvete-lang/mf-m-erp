@@ -15,7 +15,8 @@ type Fornecimento = { id: string; produto_id: string; fornecedor_id: string; cod
 const ORIGEM: Record<string, string> = { nota: "NF-e", pedido: "pedido de compra", cotacao: "cotação", manual: "informado" };
 
 export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }: { produtoId?: string | null; podeEditar: boolean; aoMudarPreferido?: (fornecedorId: string) => void }) {
-  const { data: todos = [] } = useRows<Fornecimento>("fornecimentos");
+  // só os fornecimentos deste produto (não a tabela inteira a cada cadastro aberto)
+  const { data: todos = [] } = useRows<Fornecimento>("fornecimentos", { key: ["produto", produtoId], enabled: !!produtoId, filtro: (q) => q.eq("produto_id", produtoId) });
   const { data: fornecedoresTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
   const fornecedores = semUnificados(fornecedoresTodos);
   const invalidate = useInvalidate();

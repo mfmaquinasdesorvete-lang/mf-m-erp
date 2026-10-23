@@ -37,7 +37,7 @@ export default function AvaliacaoFornecedores() {
   const { tem } = usePerfil();
   const podeAvaliar = tem("compras", "financeiro");
   const invalidar = useInvalidate();
-  const [inicio, setInicio] = useState(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().slice(0, 10); });
+  const [inicio, setInicio] = useState(() => `${Number(hoje().slice(0, 4)) - 1}${hoje().slice(4)}`); // um ano antes de hoje (Brasília)
   const [fim, setFim] = useState(hoje());
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("compras");
   const [busca, setBusca] = useState("");

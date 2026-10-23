@@ -2101,7 +2101,9 @@ function projetar(tabela: string, row: Row, sel: string): Row {
   const out: Row = {};
   for (const parte of dividir(sel)) {
     const rel = parte.match(/^(\w+):(\w+)(?:!\w+)?\((.*)\)$/s);
+    const json = parte.match(/^(?:(\w+):)?(\w+)->(\w+)$/); // "itens:payload->items" (parte de uma coluna JSON)
     if (parte === "*") Object.assign(out, row);
+    else if (json) out[json[1] ?? json[3]] = (row[json[2]] as Row | null | undefined)?.[json[3]] ?? null;
     else if (rel) {
       const [, alias, alvo, sub] = rel;
       const fk = FK_PAI[alvo];

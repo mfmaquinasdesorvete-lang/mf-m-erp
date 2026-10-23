@@ -50,6 +50,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
         supabase.from("preco_sugestoes").select(SELECT).in("status", ["aprovada", "recusada"]).order("decidido_em", { ascending: false }).limit(15),
       ]);
       if (p.error) throw p.error;
+      if (d.error) throw d.error;
       return [...(p.data ?? []), ...(d.data ?? [])] as unknown as Sugestao[];
     },
   });
@@ -270,16 +271,16 @@ function RegrasPreco({ cfg, podeEditar }: { cfg: ConfigPreco; podeEditar: boolea
 
 /** Mediana da taxa real da InfinitePay (venda − depósito) nas vendas ligadas aos depósitos, para preencher o link. */
 function useTaxaInfinitePay() {
-  const { data: lancs = [] } = useRows<{ valor: number; descricao: string | null; conta_receber_id: string | null }>("extrato_lancamentos",
-    { select: "valor, descricao, conta_receber_id", order: "data", key: ["taxa-infinitepay"] });
-  const { data: vendas = [] } = useRows<{ id: string; valor: number }>("contas_receber", { select: "id, valor", order: "vencimento", key: ["taxa-infinitepay"] });
+  // só os depósitos da InfinitePay ligados a uma venda, já com o valor da venda (não as duas tabelas inteiras)
+  const { data: lancs = [] } = useRows<{ valor: number; descricao: string | null; conta_receber_id: string | null; venda: { valor: number } | null }>("extrato_lancamentos",
+    { select: "valor, descricao, conta_receber_id, venda:contas_receber(valor)", order: "data", key: ["taxa-infinitepay"],
+      filtro: (q) => q.gt("valor", 0).not("conta_receber_id", "is", null).ilike("descricao", "%infinitepay%") });
   return useMemo(() => {
-    const valor = new Map(vendas.map((v) => [v.id, Number(v.valor)]));
     const taxas = lancs.filter((l) => Number(l.valor) > 0 && l.conta_receber_id && /dep[óo]sito infinitepay/i.test(l.descricao ?? ""))
-      .map((l) => { const v = valor.get(l.conta_receber_id!) ?? 0; return v > Number(l.valor) ? (v - Number(l.valor)) / v * 100 : null; })
+      .map((l) => { const v = Number(l.venda?.valor ?? 0); return v > Number(l.valor) ? (v - Number(l.valor)) / v * 100 : null; })
       .filter((t): t is number => t != null).sort((a, b) => a - b);
     return taxas.length ? { mediana: Math.round(taxas[Math.floor(taxas.length / 2)] * 100) / 100, n: taxas.length } : null;
-  }, [lancs, vendas]);
+  }, [lancs]);
 }
 
 /** Taxa de cada forma de pagamento e quanto o preço fica em cada uma, para a MF receber o mesmo líquido. */

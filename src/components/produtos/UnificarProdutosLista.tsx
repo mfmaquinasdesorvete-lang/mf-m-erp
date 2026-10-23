@@ -34,7 +34,7 @@ export function UnificarProdutosLista({ produtos, onFim }: { produtos: Produto[]
         p_principal: principal, p_outros: lista.filter((p) => p.id !== principal).map((p) => p.id), p_motivo: motivo.trim() || "Cadastro repetido",
       });
       if (error) throw error;
-      invalidar("produtos", "estoque_unidade", "estoque_movimentos", "kit_componentes", "produto_componentes", "produto_fornecedor", "pedido_itens");
+      invalidar("produtos", "estoque_unidade", "estoque_movimentos", "kit_componentes", "produto_componentes", "produto_fornecedor", "pedido_itens", "fornecimentos", "produtos_midia", "tabela_preco_itens");
       const n = Number(data) || 0;
       onFim(`${n} ${pl(n, "cadastro", "cadastros")} ${pl(n, "unificado", "unificados")} em "${m?.descricao}": vendas, notas, estoque, kits e fornecedores estão agora nele`);
     } catch (e) { notifyError(e); } finally { setOcupado(false); }

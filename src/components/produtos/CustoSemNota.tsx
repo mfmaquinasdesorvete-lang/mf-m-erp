@@ -1,7 +1,7 @@
 // Produtos → Qualidade → "Sem custo": cada produto ativo sem custo, com o item de nota de fornecedor que mais parece
 // ser ele. "Usar" liga o item ao produto (as próximas notas já entram sozinhas) e grava o custo da última compra;
 // quem nunca veio por nota (peça fabricada, catálogo) recebe o custo digitado.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { lerValor } from "@/lib/auditoriaBusca";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, ChevronRight, Receipt } from "lucide-react";
@@ -20,6 +20,7 @@ export function CustoSemNota({ produtos, podeEditar }: { produtos: Produto[]; po
   const [aberto, setAberto] = useState(false);
   const [digitado, setDigitado] = useState<Record<string, string>>({});
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const emLote = useRef(false);
   const qc = useQueryClient();
   const invalidate = useInvalidate();
   const semCusto = useMemo(() => produtos.filter((p) => p.ativo !== false && !p.unificado_em && !p.kit && p.tipo !== "servico" && !Number(p.preco_custo)), [produtos]);
@@ -55,8 +56,13 @@ export function CustoSemNota({ produtos, podeEditar }: { produtos: Produto[]; po
   async function usarFortes() {
     const fortes = linhas.filter((l) => l.sug && l.sug.nota >= 0.8);
     if (!fortes.length || !(await confirmar(`Gravar o custo da nota em ${fortes.length} ${pl(fortes.length, "produto", "produtos")} com sugestão forte?`))) return;
+    if (emLote.current) return;
+    emLote.current = true;
+    setOcupado("lote");
     let n = 0;
-    for (const l of fortes) { try { await usar(l, true); n++; } catch { break; } }
+    try {
+      for (const l of fortes) { try { await usar(l, true); n++; } catch { break; } }
+    } finally { emLote.current = false; setOcupado(null); }
     notify(`${n} ${pl(n, "custo gravado", "custos gravados")}`);
     fim();
   }
@@ -87,7 +93,7 @@ export function CustoSemNota({ produtos, podeEditar }: { produtos: Produto[]; po
         <div className="border-t border-slate-100">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
             <span className="text-slate-600">{itens.length ? <><b>{comSugestao}</b> com sugestão das notas · {semCusto.length - comSugestao} para digitar</> : "Procurando nas notas…"}</span>
-            {podeEditar && linhas.some((l) => l.sug && l.sug.nota >= 0.8) && <Button className="ml-auto" onClick={usarFortes}><Check size={16} /> Usar as sugestões fortes</Button>}
+            {podeEditar && linhas.some((l) => l.sug && l.sug.nota >= 0.8) && <Button className="ml-auto" disabled={ocupado === "lote"} onClick={usarFortes}><Check size={16} /> Usar as sugestões fortes</Button>}
           </div>
           <ul className="max-h-[32rem] overflow-auto">
             {linhas.map((l) => (

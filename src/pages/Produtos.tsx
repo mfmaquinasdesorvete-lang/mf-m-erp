@@ -9,7 +9,7 @@ import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
-import { brl, hoje, pl } from "@/lib/format";
+import { brl, hoje, pl, somarDias } from "@/lib/format";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -32,7 +32,7 @@ import { CampoCategoriaProduto, CategoriasProdutos, opcoesCategoria, useCategori
 import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
 import { vendidosPorProduto } from "@/lib/gerencial";
-import { custoUnitario } from "@/lib/margem";
+import { custoUnitario, margemBruta } from "@/lib/margem";
 import { usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
@@ -176,7 +176,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }, [editarId, produtosTodos]);
   const [ficha, setFicha] = useState<Produto | null>(null);
   const [itensNotas, setItensNotas] = useState(false);
-  const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
+  // só as saídas contam no consumo (giro e última saída): não baixa a tabela inteira de movimentos
+  const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at", key: ["saidas"], filtro: (q) => q.eq("tipo", "saida") });
   const { data: codigosForn = [] } = useRows<{ produto_id: string; codigo_fornecedor: string; fator_conversao: number; fornecedor: { nome: string } | null }>(
     "produto_fornecedor", { select: "produto_id, codigo_fornecedor, fator_conversao, fornecedor:fornecedores(nome)", order: "produto_id" });
   const { data: fornecedoresTodos = [] } = useRows<{ id: string; nome: string }>("fornecedores", { order: "nome", ascending: true });
@@ -215,16 +216,18 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
-  const saldo = (p: string, u: string) => Number(saldos.find((s) => s.produto_id === p && s.unidade_id === u)?.quantidade ?? 0);
+  const saldoPor = useMemo(() => new Map(saldos.map((s) => [`${s.produto_id}|${s.unidade_id}`, Number(s.quantidade)])), [saldos]);
+  const saldo = (p: string, u: string) => saldoPor.get(`${p}|${u}`) ?? 0;
   // vendidos nos últimos 3 meses (pedidos aprovados + notas do sistema anterior), da unidade escolhida
-  const desde3m = useMemo(() => new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10), []);
+  const desde3m = useMemo(() => somarDias(-89), []);
   const { data: pedidos3m = [] } = useQuery({
     queryKey: ["pedidos", "vendidos-3m", desde3m],
     queryFn: async () => {
       // o pedido conta na data da aprovação: busca os criados até 1 ano antes
       const { data, error } = await supabase.from("pedidos")
         .select("id, numero, status, valor_total, created_at, aprovado_em, unidade_id, itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario)")
-        .gte("created_at", new Date(Date.parse(desde3m) - 365 * 864e5).toISOString());
+        .gte("created_at", new Date(Date.parse(desde3m) - 365 * 864e5).toISOString())
+        .or(`aprovado_em.gte.${desde3m},created_at.gte.${desde3m}`);
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -233,10 +236,11 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     queryKey: ["notas_fiscais", "vendidos-3m", desde3m],
     queryFn: async () => {
       const { data, error } = await supabase.from("notas_fiscais")
-        .select("id, numero, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, unidade_id, payload")
+        // da nota só interessam os itens (o JSON inteiro é pesado)
+        .select("id, numero, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, unidade_id, itens_nota:payload->items")
         .gte("created_at", desde3m);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).map(({ itens_nota, ...n }) => ({ ...n, payload: { items: itens_nota ?? [] } }));
     },
   });
   const vendidos3m = useMemo(() => {
@@ -253,7 +257,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     // as máquinas têm tela própria (Máquinas): ficam fora de "Todos"
     todos: (r: Produto) => r.tipo !== "maquina",
   }), [naProducao]);
-  const contagem = (c: Cadastro) => produtos.filter(doCadastro[c]).length;
+  const contagens = useMemo(() => Object.fromEntries((Object.keys(doCadastro) as Cadastro[]).map((c) => [c, produtos.filter(doCadastro[c]).length])) as Record<Cadastro, number>,
+    [produtos, doCadastro]);
+  const contagem = (c: Cadastro) => contagens[c];
   const [verInativos, setVerInativos] = useState(false);
   const inativos = produtos.filter((p) => doCadastro[cadastro](p) && p.ativo === false).length;
   const ehMaquinas = cadastro === "maquinas";
@@ -274,8 +280,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     return `${ids.length} ${pl(ids.length, "produto", "produtos")} agora em ${nome}`;
   }
   async function catalogo(ids: string[], no: boolean) {
-    const { error } = await supabase.from("produtos").update({ no_catalogo: no }).in("id", ids);
-    if (error) throw error;
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await supabase.from("produtos").update({ no_catalogo: no }).in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+    }
     // só aparece na loja e no WhatsApp com foto e preço de venda: avisa quem ainda não vai aparecer
     const faltando = no ? produtosTodos.filter((p) => ids.includes(p.id) && pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })) : [];
     const aviso = faltando.length ? `. ${faltando.length} ainda não aparece(m) na loja: ${faltando.slice(0, 3).map((p) => `${p.descricao} (${pendenciaCatalogo({ foto: p.foto_caminho, preco: p.preco_venda })})`).join("; ")}` : "";
@@ -283,7 +291,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }
   // o aviso de estoque mínimo mostra só o que é desta tela (as máquinas na tela Máquinas, o resto em Produtos)
   const baixos = produtos.filter((p) => p.ativo && !p.fora_de_linha && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo) && doCadastro[cadastro](p));
-  const consumo = resumoMovimentos(movimentos, hoje());
+  const consumo = useMemo(() => resumoMovimentos(movimentos, hoje()), [movimentos]);
   const unidadesUsadas = [...new Set(produtos.map((p) => String(p.unidade ?? "").toUpperCase()))].filter((u) => u && !UNIDADES.some(([c]) => c === u));
   const opcoesUnidade = [...UNIDADES.map(([v, l]) => ({ value: v, label: `${v} - ${l}` })), ...unidadesUsadas.map((u) => ({ value: u, label: `${u} (fora do padrão)` }))];
 
@@ -316,8 +324,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   /** Margem bruta sobre o preço de venda (só com custo e preço preenchidos). */
   const custo = (r: Produto) => custoUnitario(r, { produtos, comps });   // kit: soma dos componentes
   const margem = (r: Produto) => {
-    const c = custo(r), v = Number(r.preco_venda || 0);
-    return c > 0 && v > 0 ? Math.round(((v - c) / v) * 100) : null;
+    const m = margemBruta(r.preco_venda, custo(r));
+    return m == null ? null : Math.round(m);
   };
   /** Celular: nome (com o NCM pequeno ao lado) e foto em cima; custo, venda, estoque e vendidos em 3 meses numa faixa
    *  baixa embaixo (eram 4 caixas grandes, 23/10). Serviço não tem NCM nem estoque: no lugar do estoque vai a margem. */
@@ -662,9 +670,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {
             name: "margem_info", label: "Margem bruta", type: "custom", span: 1,
             render: (_v, _s, row) => {
-              const c = Number(row.preco_custo || 0), v = Number(row.preco_venda || 0);
-              if (!c || !v) return <span className="text-xs text-slate-500">—</span>;
-              const m = ((v - c) / v) * 100;
+              // kit: custo pela soma dos componentes (o mesmo da lista)
+              const m = margemBruta(row.preco_venda, custo(row as Produto));
+              if (m == null) return <span className="text-xs text-slate-500">—</span>;
               return <span className={`text-sm font-semibold ${m < 0 ? "text-red-600" : m < 20 ? "text-amber-700" : "text-emerald-700"}`}>{m.toFixed(1).replace(".", ",")}%</span>;
             },
           },
@@ -844,7 +852,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
 
       <MovimentoModal produto={movimentar} onClose={() => setMovimentar(null)} />
       <HistoricoModal produto={historico} onClose={() => setHistorico(null)} />
-      {ficha && <FichaProduto produto={ficha} podeEditar={pode("editar_produtos") || tem("tecnico")} onClose={() => setFicha(null)}
+      {ficha && <FichaProduto produto={ficha} custo={custo(ficha)} podeEditar={pode("editar_produtos") || tem("tecnico")} onClose={() => setFicha(null)}
         onEditar={() => { const p = ficha; setFicha(null); setEditarAgora({ ...p }); }} />}
       {importar && <ImportarProdutos onClose={() => setImportar(false)} />}
       {importarKits && <ImportarKitsTiny onClose={() => setImportarKits(false)} />}

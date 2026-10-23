@@ -126,7 +126,9 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
   const invalidar = useInvalidate();
   // marca com filiais (como nas transportadoras) e cadastros repetidos
   const { data: fornTodos = [] } = useRows<Fornecedor>("fornecedores", { order: "nome", ascending: true });
-  const { data: transpTodas = [] } = useRows<Transportadora>("transportadoras", { order: "nome", ascending: true });
+  // cada aba baixa só o que usa
+  const ehForn = aba === "fornecedores";
+  const { data: transpTodas = [] } = useRows<Transportadora>("transportadoras", { order: "nome", ascending: true, enabled: !ehForn });
   const [mostrarFiliais, setMostrarFiliais] = useState(false);
   const [filiaisDe, setFiliaisDe] = useState<string | null>(null);
   const [abrirForn, setAbrirForn] = useState<Fornecedor | null>(null);
@@ -137,12 +139,13 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
     for (const f of fornTodos) if (f.matriz_id && !f.unificado_em) m.set(f.matriz_id, [...(m.get(f.matriz_id) ?? []), f]);
     return m;
   }, [fornTodos]);
-  const nomeForn = (id: string | null | undefined) => { const f = fornTodos.find((x) => x.id === id); return f ? (f.nome_fantasia?.trim() || f.nome) : ""; };
+  const fornPorId = useMemo(() => new Map(fornTodos.map((f) => [f.id, f])), [fornTodos]);
+  const nomeForn = (id: string | null | undefined) => { const f = id ? fornPorId.get(id) : undefined; return f ? (f.nome_fantasia?.trim() || f.nome) : ""; };
   const baseForn = useCallback((r: Fornecedor) => !r.unificado_em && (mostrarFiliais || !r.matriz_id), [mostrarFiliais]);
   const baseTransp = useCallback((r: Transportadora) => !r.unificado_em, []);
   // o que se compra de cada fornecedor: as categorias dos produtos ligados a ele (cadastro de fornecimento e códigos das notas)
-  const { data: forneceProd = [] } = useRows<{ produto_id: string; fornecedor_id: string }>("produto_fornecedor", { select: "produto_id, fornecedor_id", order: "produto_id", key: ["cat-forn"] });
-  const { data: prodCat = [] } = useRows<{ id: string; categoria: string | null }>("produtos", { select: "id, categoria", order: "id", key: ["cat-forn"] });
+  const { data: forneceProd = [] } = useRows<{ produto_id: string; fornecedor_id: string }>("produto_fornecedor", { select: "produto_id, fornecedor_id", order: "produto_id", key: ["cat-forn"], enabled: ehForn });
+  const { data: prodCat = [] } = useRows<{ id: string; categoria: string | null }>("produtos", { select: "id, categoria", order: "id", key: ["cat-forn"], enabled: ehForn });
   const categoriasDo = useMemo(() => {
     const cat = new Map(prodCat.map((p) => [p.id, p.categoria?.trim()]));
     const conta = new Map<string, Map<string, number>>();
@@ -161,6 +164,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
       return (data ?? []) as { fornecedor_id: string; grupos: string[]; total: number; notas: number; ultima: string | null }[];
     },
     staleTime: 5 * 60_000,
+    enabled: ehForn,
   });
   const comprasDo = useMemo(() => new Map(compras.map((c) => [c.fornecedor_id, c])), [compras]);
   const marcaAberta = filiaisDe ? fornTodos.find((f) => f.id === filiaisDe) : null;
@@ -170,7 +174,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
     try {
       const n = await rpc(unificando.tabela === "fornecedores" ? "unificar_fornecedores" : "unificar_transportadoras", { p_principal: principal, p_outros: outros, p_motivo: motivo });
       const msg = `${n} ${pl(Number(n), "repetido unificado", "repetidos unificados")}: tudo passou para o principal`;
-      invalidar(unificando.tabela, "nfe_recebidas", "contas_pagar", "pedidos_compra", "produtos");
+      invalidar(unificando.tabela, "nfe_recebidas", "contas_pagar", "pedidos_compra", "produtos", "produto_fornecedor", "fornecimentos", "fornecedores_compras");
       if (unificando.fim) unificando.fim(msg); else notify(msg);
       setUnificando(null);
     } catch (e) { notifyError(e); }

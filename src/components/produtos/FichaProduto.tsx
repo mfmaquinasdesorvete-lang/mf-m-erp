@@ -23,6 +23,7 @@ import { DocumentosMaquina, GaleriaProduto } from "./GaleriaProduto";
 import type { Especificacao } from "./EditoresMaquina";
 import type { Produto } from "@/lib/types";
 import { custoMedioCompras, linkMaquina, mensagemMaquina, pecasEmGarantia } from "@/lib/maquinas";
+import { margemBruta } from "@/lib/margem";
 
 type Aba = "geral" | "fornecedores" | "anuncios" | "custos" | "maquina" | "clientes" | "assistencia";
 type ProdutoFicha = Produto & { especificacoes?: Especificacao[] | null; etapas_producao?: string[] | null; dicas_manutencao?: string | null; video_url?: string | null };
@@ -32,7 +33,8 @@ type LinhaCusto = { data: string; evento: "cadastro" | "alteracao" | "compra"; d
 const NOME_TIPO: Record<string, string> = { maquina: "Máquina", peca: "Peça de reposição", acessorio: "Acessório", insumo: "Componente de produção", servico: "Serviço" };
 const lista = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
-export function FichaProduto({ produto, onClose, onEditar, podeEditar }: { produto: ProdutoFicha; onClose: () => void; onEditar?: () => void; podeEditar: boolean }) {
+export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: { produto: ProdutoFicha; onClose: () => void; onEditar?: () => void; podeEditar: boolean;
+  /** custo usado na margem (kit: soma dos componentes); sem ele, o do cadastro */ custo?: number }) {
   const maquina = produto.tipo === "maquina";
   const [aba, setAba] = useState<Aba>("geral");
   const abas: { value: Aba; label: string }[] = [
@@ -52,7 +54,7 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar }: { produ
         {onEditar && podeEditar && <Button variant="secondary" className="ml-auto" onClick={onEditar}><Pencil size={14} /> Editar cadastro</Button>}
       </div>
       <Tabs value={aba} onChange={setAba} options={abas} />
-      {aba === "geral" && <AbaGeral p={produto} podeEditar={podeEditar} />}
+      {aba === "geral" && <AbaGeral p={produto} podeEditar={podeEditar} custo={custo} />}
       {aba === "fornecedores" && <FornecedoresProduto produtoId={produto.id} podeEditar={podeEditar} />}
       {aba === "anuncios" && <AbaAnuncios p={produto} />}
       {aba === "custos" && <AbaCustos p={produto} />}
@@ -72,14 +74,14 @@ function Dado({ rotulo, valor, num }: { rotulo: string; valor: ReactNode; num?: 
   );
 }
 
-function AbaGeral({ p, podeEditar }: { p: ProdutoFicha; podeEditar: boolean }) {
+function AbaGeral({ p, podeEditar, custo }: { p: ProdutoFicha; podeEditar: boolean; custo?: number }) {
   const { data: marcadores = [] } = useMarcadores();
   const { data: embalagem } = useQuery({
     queryKey: ["embalagens", "ficha", p.embalagem_id],
     enabled: !!p.embalagem_id,
     queryFn: async () => (await supabase.from("embalagens").select("descricao").eq("id", p.embalagem_id!).maybeSingle()).data as { descricao: string } | null,
   });
-  const margem = Number(p.preco_venda) > 0 && Number(p.preco_custo) > 0 ? ((Number(p.preco_venda) - Number(p.preco_custo)) / Number(p.preco_venda)) * 100 : null;
+  const margem = margemBruta(p.preco_venda, custo ?? p.preco_custo);
   const campos = lista<Especificacao>(p.especificacoes);
   return (
     <div className="space-y-4">
@@ -205,7 +207,7 @@ function AbaCustos({ p }: { p: ProdutoFicha }) {
       return (data ?? []) as LinhaCusto[];
     },
   });
-  const umAno = useMemo(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().slice(0, 10); }, []);
+  const umAno = useMemo(() => `${Number(hoje().slice(0, 4)) - 1}${hoje().slice(4)}`, []); // um ano antes de hoje (Brasília)
   const ano = custoMedioCompras(data, umAno), tudo = custoMedioCompras(data);
   const ultima = data.find((l) => l.evento === "compra" && Number(l.valor_unitario) > 0);
   if (error) return <p className="text-sm text-red-600">Não deu para ler o histórico de custos: {(error as Error).message}</p>;

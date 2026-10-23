@@ -112,9 +112,12 @@ function Repetidos({ grupos, uso, podeEditar, onAbrir }: { grupos: GrupoRepetido
         n += Number(data) || 0;
       }
       notify(`${n} ${pl(n, "cadastro", "cadastros")} ${pl(n, "unificado", "unificados")}: pedidos, estoque, kits e fornecedores foram para o principal`);
-      invalidar("produtos", "estoque_unidade", "estoque_movimentos", "kit_componentes", "produto_fornecedor", "pedido_itens");
       setConfirmar(null);
-    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+    } catch (e) { notifyError(e); } finally {
+      // mesmo se um grupo falhou no meio, os anteriores já foram unificados: a lista se atualiza
+      invalidar("produtos", "estoque_unidade", "estoque_movimentos", "kit_componentes", "produto_componentes", "produto_fornecedor", "pedido_itens", "fornecimentos", "produtos_midia", "tabela_preco_itens");
+      setOcupado(false);
+    }
   }
 
   if (!grupos.length) return <Card className="flex items-center gap-2 p-4 text-sm text-emerald-700"><CheckCircle2 size={18} /> Nenhum cadastro repetido.</Card>;
