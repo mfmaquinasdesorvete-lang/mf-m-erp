@@ -3,7 +3,7 @@
 // atende a região dele. Parceiros Dr. Frost: convidados, com anúncio no site de técnicos (cadastro completo do
 // anúncio); os demais são contatos (já atenderam ou vieram da internet).
 import { useMemo, useState } from "react";
-import { BookOpen, ExternalLink, List, MessageCircle, Users } from "lucide-react";
+import { BookOpen, ExternalLink, Instagram, List, MessageCircle, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { CrudPage, type CampoForm, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
 import { dataBR, pl, whatsappLink } from "@/lib/format";
+import { ehBannerDrFrost, linkInstagram } from "@/lib/tecnicos";
 
 export type Tecnico = {
   id: string; nome: string; tipo: "interno" | "parceiro"; whatsapp: string | null; telefone: string | null; email: string | null;
@@ -28,7 +29,13 @@ export type Tecnico = {
 /** Logo do cadastro; sem logo, as iniciais (azul quando é parceiro Dr. Frost). */
 function LogoTecnico({ t, tamanho = 40 }: { t: Tecnico; tamanho?: number }) {
   const iniciais = (t.nome_fantasia || t.nome).split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-  if (t.logo_url) return <img src={t.logo_url} alt="" className="shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-0.5" style={{ width: tamanho, height: tamanho }} />;
+  // o banner do anúncio Dr. Frost traz a foto/logo num círculo no meio: aproxima nele
+  if (t.logo_url && ehBannerDrFrost(t.logo_url)) return (
+    <span className="block shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-900" style={{ width: tamanho, height: tamanho }}>
+      <img src={t.logo_url} alt="" loading="lazy" className="h-full w-full object-cover" style={{ transform: "scale(1.7)", transformOrigin: "50% 44%" }} />
+    </span>
+  );
+  if (t.logo_url) return <img src={t.logo_url} alt="" loading="lazy" className="shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-0.5" style={{ width: tamanho, height: tamanho }} />;
   return (
     <span aria-hidden className={`grid shrink-0 place-items-center rounded-xl text-xs font-extrabold ${t.drfrost ? "bg-sky-600 text-white" : t.tipo === "interno" ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}
       style={{ width: tamanho, height: tamanho }}>{iniciais}</span>
@@ -55,9 +62,10 @@ function Atende({ t }: { t: Tecnico }) {
 const ufsAtende = (t: Tecnico) =>
   [...new Set([...(t.ufs ?? []), ...(t.cidades ?? []).map((c) => c.split("/")[1]?.trim().toUpperCase()), t.uf?.toUpperCase()].filter((u): u is string => !!u && UFS.includes(u)))].sort();
 
-/** Cartão do guia, enxuto: foto, nome, a sigla do estado e o WhatsApp; embaixo, quantos clientes já atendeu.
- *  O resto (descrição, máquinas, e-mail, anúncio) fica no cadastro, ao abrir o técnico. */
+/** Cartão do guia, enxuto: foto, nome, a sigla do estado, o Instagram e o WhatsApp; embaixo, quantos clientes já atendeu.
+ *  O Instagram vira um ícone ao lado. O resto (descrição, máquinas, e-mail, anúncio) fica no cadastro, ao abrir o técnico. */
 function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; clientes: number }) {
+  const insta = linkInstagram(t.instagram);
   const uf = t.uf?.toUpperCase() || (t.cidades?.[0]?.split("/")[1] ?? "").toUpperCase() || (t.ufs?.length === 1 ? t.ufs[0] : null);
   return (
     <div className="flex items-center gap-3 pr-7">{/* pr-7: o canto direito é da caixinha de seleção */}
@@ -72,6 +80,12 @@ function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; cli
           <span className="mt-0.5 block text-xs text-slate-500">{clientes ? `${clientes} ${pl(clientes, "cliente atendido", "clientes atendidos")}` : "nenhum cliente ligado"}</span>
         </span>
       </button>
+      {insta && (
+        <a href={insta} target="_blank" rel="noreferrer" title="Abrir o Instagram" aria-label={`Instagram de ${t.nome}`}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 text-white hover:opacity-90">
+          <Instagram size={20} aria-hidden />
+        </a>
+      )}
       {t.whatsapp && (
         <a href={whatsappLink(t.whatsapp, `Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`)} target="_blank" rel="noreferrer"
           title="Chamar no WhatsApp" aria-label={`Chamar ${t.nome} no WhatsApp`}

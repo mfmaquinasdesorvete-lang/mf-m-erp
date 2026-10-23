@@ -51,3 +51,8 @@ Cuido dos técnicos da MF e dos parceiros: quem são, onde atendem, o app deles,
 - Vídeo chamada em garantia não cobra; OS cancelada ou excluída fica fora do financeiro do técnico.
 - O app do técnico abre sem o menu do ERP; a escolha de abrir o app fica guardada no aparelho.
 - Datas no horário de Brasília (`hoje()` em `src/lib/format.ts`); valor digitado com `lerValor`.
+- O site drfrost.com.br não abre do ambiente do Claude (a rede bloqueia), mas está no ar: buscar pelo banco com
+  `net.http_get` (pg_net) na API do WordPress (`/wp-json/wp/v2/listing?include=…&_embed=wp:featuredmedia`),
+  e ler a resposta em `net._http_response`. `drfrost_id` é o número do anúncio (post do Listeo).
+- A foto do parceiro Dr. Frost (`logo_url`) é o banner do anúncio, com a foto ou o logo no círculo do meio:
+  o cartão aproxima nesse círculo (`ehBannerDrFrost` em `src/lib/tecnicos.ts`).
