@@ -210,7 +210,7 @@ export const ECL: ComandoEcl[] = [
     entrega: "O semáforo de cada automação, fila e do backup, com o que parou e o que fazer; aviso urgente quando o backup para.",
     alvos: [
       { alvo: "automacoes", palavras: ["automacoes", "automacao", "rotinas", "agendador", "cron", "tudo", "sistema"], destinos: [{ rotulo: "Monitor", to: "/sobre?aba=monitor" }] },
-      { alvo: "filas", palavras: ["filas", "fila", "pendencias", "travado"], destinos: [{ rotulo: "Monitor: filas", to: "/sobre?aba=monitor" }] },
+      { alvo: "filas", palavras: ["filas", "fila", "pendencias", "travado"], destinos: [{ rotulo: "Painel gerencial: filas e o que está parado", to: "/gerencial" }] },
       { alvo: "backup", palavras: ["backup", "copia", "copias"], destinos: [{ rotulo: "Monitor: backup", to: "/sobre?aba=monitor" }, { rotulo: "Configurações do backup", to: "/configuracoes" }] },
       { alvo: "integracoes", palavras: ["integracoes", "bancos", "funcoes", "mercado", "sefaz", "email"], destinos: [{ rotulo: "Monitor: funções", to: "/sobre?aba=monitor" }, { rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
     ],
