@@ -29,8 +29,6 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/", tela: "painel", label: "Início", curto: "Início", icon: LayoutDashboard, busca: "painel dashboard resumo" },
       { to: "/email", tela: "email", label: "Caixa de e-mail", curto: "E-mail", icon: Inbox, busca: "email mensagens" },
-      // de todas as equipes: em Gestão, cinco perfis veriam a área só com ele
-      { to: "/scrum", tela: "scrum", label: "Scrum das equipes", curto: "Scrum", icon: SquareKanban, busca: "scrum sprint backlog quadro kanban daily burndown velocidade retrospectiva retro revisão equipe time tarefas ágil pontos impedimento ideias erp line produção assistência vendas financeiro" },
     ],
   },
   {
@@ -146,6 +144,8 @@ export const itensForaDoMenu: Item[] = [
   { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
   // Troca do Tiny: saiu de Gestão (pedido de 19/10) e fica na engrenagem de Configurações e na busca
   { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
+  // Scrum: saiu do alto do menu (pedido de 23/10, junto com Início); abre pela busca do menu (Ctrl+K)
+  { to: "/scrum", tela: "scrum", label: "Scrum das equipes", curto: "Scrum", icon: SquareKanban, busca: "scrum sprint backlog quadro kanban daily burndown velocidade retrospectiva retro revisão equipe time tarefas ágil pontos impedimento ideias erp line produção assistência vendas financeiro" },
   // Automações: saiu de Gestão (pedido de 23/10) e fica na Retaguarda e na busca
   { to: "/automacoes", tela: "configuracoes", label: "Automações", curto: "Automações", icon: Zap, busca: "automação automático sozinho robô agendado agenda cron rotina tarefa ia inteligência lynn monitor" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
@@ -174,15 +174,7 @@ export const todosItens = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu
 
 /** Acesso rápido: os botões coloridos no alto do menu (as telas mais usadas no dia a dia). */
 export const RAPIDOS: { to: string; label: string; cor: string }[] = [
-  { to: "/painel/vendas", label: "Vendas", cor: "from-[#10b981] to-[#059669]" },
-  // "Fiscal" (a área): o botão abre o Painel fiscal, e "Notas fiscais" é outra tela
-  { to: "/painel/notas", label: "Fiscal", cor: "from-[#0ea5e9] to-[#2563eb]" },
-  { to: "/painel/financeiro", label: "Financeiro", cor: "from-[#f59e0b] to-[#ea580c]" },
-  { to: "/clientes", label: "Clientes", cor: "from-[#a855f7] to-[#6d28d9]" },
-  { to: "/estoque", label: "Produtos", cor: "from-[#f97316] to-[#dc2626]" },
-  { to: "/painel/posvenda", label: "Assistência", cor: "from-[#14b8a6] to-[#0e7490]" },
-  { to: "/rastreio", label: "Rastreio", cor: "from-[#65a30d] to-[#3f6212]" },
-  // PDV: cartão próprio, na largura toda
+  // menu renovado (23/10): os atalhos das áreas repetiam a lista de baixo e saíram; fica só o PDV, no cartão do alto
   { to: "/pdv", label: "PDV · venda de balcão", cor: "from-[#ec4899] to-[#9d174d]" },
 ];
 

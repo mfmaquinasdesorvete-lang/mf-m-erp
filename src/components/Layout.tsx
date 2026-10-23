@@ -43,32 +43,29 @@ const combina = (m: Item, termo: string) => {
 };
 
 /** Botões coloridos do acesso rápido (3 por linha). */
-function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void }) {
-  // painel da área: o botão mostra o ícone da área (o do item "Painel" é o mesmo em todas)
-  const itens = RAPIDOS.map((r) => ({ ...r, item: todosItens.find((i) => i.to === r.to)! })).filter((r) => r.item && ve(r.item))
-    .map((r) => ({ ...r, item: { ...r.item, icon: r.to.startsWith("/painel/") ? grupos.find((g) => g.itens.includes(r.item))?.icone ?? r.item.icon : r.item.icon } }));
-  if (!itens.length) return null;
-  // menu renovado (23/10): quadradinhos de vidro com o ícone na cor da área, 4 por linha (antes eram blocos cheios que
-  // ocupavam metade do menu); o escolhido acende com a cor cheia. O PDV entra na mesma grade.
+/** E-mail ao lado do sino (saiu da fileira Início · E-mail · Scrum do menu, pedido de 23/10). */
+function BotaoEmail({ onIr }: { onIr?: () => void }) {
+  const vis = useVisivel();
+  const item = todosItens.find((i) => i.to === "/email");
+  if (!item || !vis.item(item)) return null;
   return (
-    <div className="grid grid-cols-4 gap-1.5 px-3 pb-2 md:grid-cols-2 md:gap-x-0.5 md:gap-y-1" aria-label="Acesso rápido">
-      {itens.map(({ to, label, cor, item: { icon: Icon } }) => {
-        const c = corDoDegrade(cor) ?? "#64748b";
-        const nome = to === "/pdv" ? "PDV" : label;
-        return (
-          <NavLink key={to} to={to} onClick={onIr} title={label} {...alvoDoLink(to)}
-            className="group flex min-w-0 flex-col items-center gap-1 rounded-cartao px-0.5 py-1.5 text-center text-2xs font-semibold leading-tight text-nav-texto transition hover:bg-white/5 hover:text-white md:flex-row md:gap-1.5 md:px-1 md:py-1 md:text-left md:text-xs md:tracking-tight">
-            {({ isActive }) => <>
-              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-cartao transition group-hover:scale-105 md:h-7 md:w-7 md:rounded-botao ${isActive ? `bg-gradient-to-br ${cor} text-white shadow-lg` : ""}`}
-                style={isActive ? undefined : { background: `color-mix(in srgb, ${c} 20%, transparent)`, color: `color-mix(in srgb, ${c} 72%, white)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${c} 38%, transparent)` }}>
-                <Icon size={16} aria-hidden />
-              </span>
-              <span className="w-full min-w-0 truncate">{nome}</span>
-            </>}
-          </NavLink>
-        );
-      })}
-    </div>
+    <NavLink to="/email" onClick={onIr} title="Caixa de e-mail" aria-label="Caixa de e-mail"
+      className={({ isActive }) => `grid h-9 w-9 place-items-center rounded-full transition ${isActive ? "bg-white/15 text-white" : "text-nav-texto hover:bg-white/10 hover:text-white"}`}>
+      <Inbox size={19} aria-hidden />
+    </NavLink>
+  );
+}
+
+/** PDV no cartão do alto do menu: botão fino, na cor dele (abre em outra aba). */
+function BotaoPdv({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void }) {
+  const r = RAPIDOS.find((x) => x.to === "/pdv");
+  const item = todosItens.find((i) => i.to === "/pdv");
+  if (!r || !item || !ve(item)) return null;
+  return (
+    <NavLink to="/pdv" onClick={onIr} title={r.label} {...alvoDoLink("/pdv")}
+      className={`mt-2 flex items-center justify-center gap-2 rounded-botao bg-gradient-to-r ${r.cor} px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:brightness-110`}>
+      <ScanBarcode size={15} aria-hidden /> {r.label}
+    </NavLink>
   );
 }
 
@@ -80,7 +77,7 @@ function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
       className={`flex shrink-0 items-center rounded-xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-ice ${compacta ? "gap-2" : "gap-3"}`}>
       <img src={logoErp || logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl object-cover ring-1 ring-white/10`} />
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
-      <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
+      <span className={`${compacta ? "hidden min-[440px]:inline" : ""} whitespace-nowrap leading-tight`}>
         <span className="block text-lg font-bold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
         <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-selo text-nav-fraco`}>MF Máquinas</span>
       </span>
@@ -233,14 +230,26 @@ export function Layout() {
     <div className="min-h-screen md:flex">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-white/5 bg-ink/85 px-4 py-2.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top, 0px))" }}>
         <Marca compacta onIr={() => setAberto(false)} />
-        <div className="ml-auto flex items-center gap-1"><SeletorUnidade compacto /><Sino /></div>
+        <div className="ml-auto flex items-center gap-1"><SeletorUnidade compacto /><BotaoEmail onIr={() => setAberto(false)} /><Sino /></div>
         <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} className="rounded-lg p-2 text-white hover:bg-white/10">
           {aberto ? <X /> : <Menu />}
         </button>
       </header>
 
       <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
-        <div className="hidden px-5 pb-4 pt-6 md:block [@media(min-width:768px)_and_(max-height:860px)]:pb-3 [@media(min-width:768px)_and_(max-height:860px)]:pt-4"><div className="flex items-center justify-between gap-2"><Marca /><Sino /></div><div className="mt-4"><SeletorUnidade /></div></div>
+        {/* topo do menu (23/10): cartão de vidro com aurora — marca, e-mail e sino; a unidade e o PDV embaixo */}
+        <div className="hidden px-3 pb-3 pt-3 md:block">
+          <div className="relative overflow-hidden rounded-painel border border-white/10 p-3 shadow-lg"
+            style={{ background: "linear-gradient(140deg, rgb(168 85 247 / 0.28) 0%, rgb(236 72 153 / 0.14) 45%, rgb(37 99 235 / 0.18) 100%)" }}>
+            <span className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-fixo-pink-500/30 blur-2xl" aria-hidden />
+            <div className="relative flex items-center gap-1">
+              <Marca />
+              <span className="ml-auto flex items-center"><BotaoEmail /><Sino /></span>
+            </div>
+            <div className="relative mt-3"><SeletorUnidade /></div>
+            <div className="relative"><BotaoPdv ve={vis.item} onIr={() => setAberto(false)} /></div>
+          </div>
+        </div>
         <div className="relative flex min-h-0 flex-1 flex-col">
         <form className="px-3 pb-3 pt-2 md:pt-0" role="search" onSubmit={(e) => {
           e.preventDefault();
@@ -256,7 +265,8 @@ export function Layout() {
             <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-chip border border-white/15 px-1.5 py-0.5 font-sans text-2xs font-semibold text-nav-fraco md:block" aria-hidden>Ctrl K</kbd>
           </label>
         </form>
-        <AcessoRapido ve={vis.item} onIr={() => setAberto(false)} />
+        {/* celular: o PDV fica embaixo da busca (no computador está no cartão do alto) */}
+        <div className="px-3 pb-2 md:hidden"><BotaoPdv ve={vis.item} onIr={() => setAberto(false)} /></div>
         <nav ref={navRef} onScroll={medirNav} className="flex-1 overflow-y-auto px-3 pb-4">
           {busca.trim() && !todosItens.some((m) => vis.item(m) && combina(m, busca)) && (
             <p className="px-3 py-2 text-sm text-nav-fraco">Nenhuma tela com "{busca.trim()}".</p>
@@ -287,7 +297,9 @@ export function Layout() {
                 )}
               </NavLink>
             );
-            // Início, e-mail e documentos: soltos no alto, lado a lado (ícone em cima do nome quando são três)
+            // Início e e-mail não aparecem mais em fileira (23/10): o logo volta ao início e o e-mail fica ao lado do sino;
+            // na busca eles continuam aparecendo
+            if (!g.titulo && !buscando) return null;
             if (!g.titulo) return (
               <div key={g.id} className={`mb-3 grid gap-1 ${itens.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                 {itens.length < 3 ? itens.map(link) : itens.map(({ to, curto, label, icon: Icon }) => (
