@@ -9,16 +9,19 @@ export type Etapa = {
 };
 export type ContaCobranca = {
   id: string; cliente_id: string | null; descricao: string; valor: number; valor_pago?: number | null; vencimento: string; status: string;
-  data_pagamento?: string | null; created_at?: string; unidade_id?: string | null;
+  data_pagamento?: string | null; created_at?: string; unidade_id?: string | null; forma_pagamento?: string | null;
 };
 export type Envio = { conta_receber_id: string; etapa_id: string; canal: string };
 
 const somar = (d: string, n: number) => new Date(Date.parse(d.slice(0, 10) + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 
+/** Parcela que o cliente paga (no cartão quem paga é a maquininha: não entra em lembrete nem cobrança ao cliente). */
+export const cobraDoCliente = (c: Pick<ContaCobranca, "forma_pagamento">) => c.forma_pagamento !== "cartao";
+
 /** Dia em que a etapa vale para a conta (null se a etapa não se aplica a ela). */
 export function dataDaEtapa(e: Etapa, c: ContaCobranca): string | null {
-  if (e.evento === "vencimento") return c.status === "aberto" ? somar(c.vencimento, e.dias) : null;
-  if (e.evento === "criacao") return c.status === "aberto" && c.created_at ? c.created_at.slice(0, 10) : null;
+  if (e.evento === "vencimento") return c.status === "aberto" && cobraDoCliente(c) ? somar(c.vencimento, e.dias) : null;
+  if (e.evento === "criacao") return c.status === "aberto" && cobraDoCliente(c) && c.created_at ? c.created_at.slice(0, 10) : null;
   return c.status === "pago" && c.data_pagamento ? c.data_pagamento.slice(0, 10) : null;
 }
 
@@ -49,7 +52,7 @@ export function situacaoClientes(contas: ContaCobranca[], hoje: string) {
   const sit = new Map<string, "atrasado" | "a_vencer" | "em_dia">();
   const peso = { em_dia: 0, a_vencer: 1, atrasado: 2 };
   for (const c of contas) {
-    if (!c.cliente_id || c.status === "cancelado" || c.vencimento < corte) continue;
+    if (!c.cliente_id || c.status === "cancelado" || c.vencimento < corte || !cobraDoCliente(c)) continue;
     const s = c.status === "aberto" && c.vencimento < hoje ? "atrasado" : c.status === "aberto" && c.vencimento <= semana ? "a_vencer" : "em_dia";
     const atual = sit.get(c.cliente_id);
     if (!atual || peso[s] > peso[atual]) sit.set(c.cliente_id, s);
