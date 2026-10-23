@@ -57,3 +57,7 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 - Documento do destinatário da nota sai do nome, dos contatos e dos pedidos; nome com mais de um documento só liga
   se todos forem do mesmo cliente.
 - Peça da My Frost que o catálogo não tem entra com "compatível com máquinas My Frost" no nome.
+- Notas fiscais da My Frost (`notas_legado`) ficam isoladas na Retaguarda → My Frost (só a conta master, regra
+  `notas_legado_so_master` no banco): não aparecem na ficha do cliente, no Tudo do cliente nem na proposta aberta fora
+  da Retaguarda, e nunca somam com as notas da MF (pedido da usuária, 23/10).
+- Documentos da My Frost (contabilidade, guias) ficam na aba Documentos da mesma tela, entidade `my_frost`, só master.

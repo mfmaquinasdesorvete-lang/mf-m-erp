@@ -227,7 +227,7 @@ export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
         )}
       </div>
 
-      {aberta && <DetalheProposta p={aberta} onClose={() => setAbertaId(null)}
+      {aberta && <DetalheProposta p={aberta} onClose={() => setAbertaId(null)} notasMyFrost={empresaFixa === "my_frost"}
         onNovoOrcamento={onNovoOrcamento && aberta.empresa === "mf" && aberta.cliente_id ? (itens) => { setAbertaId(null); onNovoOrcamento(aberta.cliente_id!, itens); } : undefined} />}
       {importar && <ImportarPropostasTiny onClose={() => setImportar(false)} />}
       {marcando && <AplicarMarcadores tabela="propostas_tiny" notas={todas.filter((p) => sel.has(p.id))} nome={["proposta", "propostas"]} onClose={() => setMarcando(false)} />}
@@ -279,7 +279,10 @@ function AcompanharProposta({ p }: { p: PropostaTiny }) {
   );
 }
 
-export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTiny; onClose: () => void; onNovoOrcamento?: (itens: Item[]) => void }) {
+/** `notasMyFrost`: só na Retaguarda → My Frost; fora dela as notas da My Frost não aparecem (ficam isoladas lá). */
+export function DetalheProposta({ p, onClose, onNovoOrcamento, notasMyFrost = false }: {
+  p: PropostaTiny; onClose: () => void; onNovoOrcamento?: (itens: Item[]) => void; notasMyFrost?: boolean;
+}) {
   const mf = p.empresa === "mf";
   const valores = comValor(p);
   const comProduto = p.itens.filter((i) => i.produto_id);
@@ -334,7 +337,7 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
             <p className="mt-2 whitespace-pre-wrap text-slate-700">{p.observacoes}</p>
           </details>
         )}
-        <DocumentosLigados p={p} />
+        <DocumentosLigados p={p} notasMyFrost={notasMyFrost} />
         <div className="flex flex-wrap justify-end gap-2">
           {onNovoOrcamento && comProduto.length > 0 && (
             <Button variant="secondary" title="Abre um orçamento novo com os itens e os preços desta proposta (confira os preços)"
@@ -350,14 +353,14 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento }: { p: PropostaTi
 }
 
 /** Proposta → Pedido → OP → NF: os documentos do ERP deste cliente a partir da data da proposta (até 8 meses depois).
- *  Na proposta da My Frost, também as notas fiscais dela no mesmo período, com o valor da nota (por quanto o cliente comprou). */
-function DocumentosLigados({ p }: { p: PropostaTiny }) {
+ *  Na proposta da My Frost aberta na Retaguarda, também as notas fiscais dela no mesmo período, com o valor da nota. */
+function DocumentosLigados({ p, notasMyFrost }: { p: PropostaTiny; notasMyFrost: boolean }) {
   const doc = (p.cliente?.cpf_cnpj ?? "").replace(/\D/g, "");
   const base = p.data ? new Date(`${p.data.slice(0, 10)}T12:00:00Z`) : null;
   const de = base ? somarDias(-15, base) : null;
   const ate = base ? somarDias(240, base) : null;
   const { data, isLoading } = useQuery({
-    queryKey: ["propostas_tiny", "documentos", p.id], enabled: !!p.cliente_id && !!de,
+    queryKey: ["propostas_tiny", "documentos", p.id, notasMyFrost], enabled: !!p.cliente_id && !!de,
     queryFn: async () => {
       // NF-e da MF ligada ao cliente pelo cadastro ou pelo CPF/CNPJ (as importadas do Tiny vêm só com o documento)
       const notasPor = (campo: string, valor: string) => supabase.from("notas_fiscais")
@@ -368,7 +371,7 @@ function DocumentosLigados({ p }: { p: PropostaTiny }) {
           .gte("created_at", de!).lte("created_at", `${ate}T23:59:59`).order("created_at"),
         notasPor("cliente_id", p.cliente_id!),
         doc ? notasPor("destinatario_doc", doc) : Promise.resolve({ data: [] as any[] }),
-        p.empresa === "my_frost"
+        p.empresa === "my_frost" && notasMyFrost
           ? supabase.from("notas_legado").select("id, numero, data, valor, natureza").eq("cliente_id", p.cliente_id!)
             .gte("data", de!).lte("data", ate!).order("data")
           : Promise.resolve({ data: [] as any[] }),

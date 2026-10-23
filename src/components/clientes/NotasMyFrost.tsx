@@ -1,7 +1,8 @@
 // Notas fiscais da My Frost (empresa anterior) de um cliente: número, data, tipo e o valor da nota (o valor oficial,
-// para saber por quanto ele comprou). Ficam à parte das vendas da MF. Usado na ficha do cliente e na proposta.
+// para saber por quanto ele comprou). Ficam isoladas na Retaguarda → My Frost (só a conta master): aparecem só na
+// proposta da My Frost aberta lá, nunca na ficha do cliente nem nas telas da MF.
 import { brl, dataBR } from "@/lib/format";
-import { atendimentosMyFrost, tipoDaNota } from "@/lib/notasMyFrost";
+import { tipoDaNota } from "@/lib/notasMyFrost";
 
 export type NotaLegado = { id: string; numero: string; data: string | null; valor: number | null; natureza: string | null };
 
@@ -27,37 +28,5 @@ export function ListaNotasMyFrost({ notas }: { notas: NotaLegado[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Atendimentos de assistência da My Frost (empresa anterior) pelas notas de conserto, retorno e garantia, por ano. */
-export function AtendimentosMyFrost({ notas }: { notas: NotaLegado[] }) {
-  const a = atendimentosMyFrost(notas);
-  if (!a.lista.length) return null;
-  return (
-    <div>
-      <h3 className="mb-1 text-sm font-semibold">Atendimentos da My Frost (empresa anterior) · {a.lista.length}</h3>
-      <p className="mb-2 text-xs text-slate-500">
-        Pelas notas de conserto, retorno e garantia da My Frost{a.primeiro ? `, de ${dataBR(a.primeiro)}` : ""}{a.ultimo ? ` a ${dataBR(a.ultimo)}` : ""}. A My Frost não usava OS no sistema: a nota é o registro do atendimento.
-      </p>
-      <div className="space-y-2">
-        {a.porAno.map(([ano, lista]) => (
-          <div key={ano} className="rounded-lg border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-              <span>{ano}</span><span>{lista.length} {lista.length === 1 ? "atendimento" : "atendimentos"}</span>
-            </div>
-            <ul className="divide-y divide-slate-100 px-3 text-sm">
-              {lista.map((n) => (
-                <li key={n.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5">
-                  <span className="whitespace-nowrap text-slate-500">{dataBR(n.data)}</span>
-                  <SeloTipoNota natureza={n.natureza} />
-                  <span className="whitespace-nowrap text-slate-600">NF {n.numero}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

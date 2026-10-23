@@ -1,7 +1,6 @@
 // Tudo do cliente: busca pelo CNPJ, CPF ou nome, a pessoa confirma qual é ("Ver tudo") e a tela junta, numa página só,
-// o cadastro e tudo o que existe dele no ERP: vendas e propostas, notas (emitidas, NFS-e, legado da My Frost),
+// o cadastro e tudo o que existe dele no ERP: vendas e propostas, notas (emitidas e NFS-e; as da My Frost ficam só na Retaguarda),
 // contas a receber, recibos, extrato dos bancos (pelo nome ou pelo documento mascarado), OS, máquinas e CT-e.
-import { atendimentosMyFrost } from "@/lib/notasMyFrost";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -44,11 +43,10 @@ async function tudo(a: Achado) {
   const termo = termoExtrato(a.nome);
   const lista = async <T,>(p: PromiseLike<{ data: unknown; error: unknown }>) => { const r = await p; return (r.error ? [] : (r.data ?? [])) as T[]; };
   const porCliente = a.tipo === "cliente";
-  const [pedidos, notas, legado, nfse, receber, recibos, os, maquinas, propostas, extrato, ctes, recebidas, pagar] = await Promise.all([
+  const [pedidos, notas, nfse, receber, recibos, os, maquinas, propostas, extrato, ctes, recebidas, pagar] = await Promise.all([
     porCliente ? lista<any>(supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, origem").eq("cliente_id", a.id).is("excluida_em", null).order("created_at", { ascending: false })) : [],
     lista<any>(supabase.from("notas_fiscais").select("id, numero, serie, status, valor_total, created_at, ambiente, finalidade, danfe_url, destinatario_doc, cliente_id, pedido_id")
       .or(porCliente ? `cliente_id.eq.${a.id}${doc ? `,destinatario_doc.eq.${doc}` : ""}` : `fornecedor_id.eq.${a.id}`).is("excluida_em", null).order("created_at", { ascending: false })),
-    porCliente ? lista<any>(supabase.from("notas_legado").select("id, numero, data, valor, natureza, origem").eq("cliente_id", a.id).order("data", { ascending: false })) : [],
     porCliente ? lista<any>(supabase.from("nfse").select("id, numero, status, valor_servicos, data_emissao, created_at").eq("cliente_id", a.id)) : [],
     porCliente ? lista<any>(supabase.from("contas_receber").select("id, descricao, valor, valor_pago, vencimento, status, data_pagamento").eq("cliente_id", a.id).order("vencimento", { ascending: false })) : [],
     lista<any>(supabase.from("recibos").select("id, numero, tipo, valor, data_pagamento, referente, pagador_nome, recebedor_nome, cancelado_em")
@@ -70,7 +68,7 @@ async function tudo(a: Achado) {
   const dosPedidos = ids.length ? (await lista<any>(supabase.from("notas_fiscais").select("id, numero, serie, status, valor_total, created_at, ambiente, finalidade, danfe_url, pedido_id")
     .in("pedido_id", ids).is("excluida_em", null))).filter((n) => !daNota.has(n.id)) : [];
   return {
-    pedidos, notas: [...(notas as any[]), ...dosPedidos], legado, nfse, receber, recibos, os, maquinas, propostas, ctes, recebidas, pagar,
+    pedidos, notas: [...(notas as any[]), ...dosPedidos], nfse, receber, recibos, os, maquinas, propostas, ctes, recebidas, pagar,
     extrato: (extrato as any[]).filter((l) => extratoDoCliente(l.descricao, a.nome, doc) || (a.fantasia && extratoDoCliente(l.descricao, a.fantasia, null))),
   };
 }
@@ -201,13 +199,13 @@ type Dados = Awaited<ReturnType<typeof tudo>>;
 function resumoDe(d: Dados) {
   const vendido = d.pedidos.filter((p: any) => !["orcamento", "cancelado"].includes(p.status)).reduce((s: number, p: any) => s + Number(p.valor_total ?? 0), 0);
   const notasOk = d.notas.filter((n: any) => n.status === "autorizada" && n.ambiente !== "homologacao");
-  const faturado = notasOk.reduce((s: number, n: any) => s + Number(n.valor_total ?? 0), 0) + d.legado.reduce((s: number, n: any) => s + Number(n.valor ?? 0), 0);
+  const faturado = notasOk.reduce((s: number, n: any) => s + Number(n.valor_total ?? 0), 0);
   const recebidoBanco = d.extrato.filter((l: any) => Number(l.valor) > 0).reduce((s: number, l: any) => s + Number(l.valor), 0);
   const aReceber = d.receber.filter((c: any) => c.status !== "pago" && c.status !== "cancelado").reduce((s: number, c: any) => s + Number(c.valor) - Number(c.valor_pago ?? 0), 0);
   const total = Object.values(d).reduce((s, l) => s + (l as unknown[]).length, 0);
   const cartoes: [string, string, string][] = [
     ["Vendido (pedidos)", brl(vendido), `${d.pedidos.length} ${pl(d.pedidos.length, "pedido", "pedidos")}`],
-    ["Notas emitidas", brl(faturado), `${notasOk.length + d.legado.length} ${pl(notasOk.length + d.legado.length, "nota", "notas")}`],
+    ["Notas emitidas", brl(faturado), `${notasOk.length} ${pl(notasOk.length, "nota", "notas")}`],
     ["Entrou no banco", brl(recebidoBanco), `${d.extrato.length} ${pl(d.extrato.length, "lançamento", "lançamentos")} no extrato`],
     ["A receber", brl(aReceber), `${total} ${pl(total, "registro", "registros")} no total`],
   ];
@@ -220,7 +218,6 @@ function blocosDe(d: Dados): { titulo: string; icone: typeof Search; para?: stri
     { titulo: "Propostas do Tiny", icone: FileText, linhas: d.propostas.map((p: any) => ({ id: p.id, data: p.data, titulo: `Proposta ${p.numero ?? ""} · ${p.empresa ?? ""}`, selo: p.situacao, valor: p.total })) },
     { titulo: "Notas fiscais emitidas", icone: Receipt, para: "/notas", linhas: [
       ...d.notas.map((n: any) => ({ id: n.id, data: n.created_at, titulo: `NF ${n.numero ?? "—"}${n.serie ? `/${n.serie}` : ""}`, selo: n.ambiente === "homologacao" ? "teste" : n.status, valor: n.valor_total, detalhe: n.finalidade })),
-      ...d.legado.map((n: any) => ({ id: n.id, data: n.data, titulo: `NF ${n.numero ?? "—"} (${n.origem ?? "histórico"})`, selo: "legado", valor: n.valor, detalhe: n.natureza })),
       ...d.nfse.map((n: any) => ({ id: n.id, data: n.data_emissao ?? n.created_at, titulo: `NFS-e ${n.numero ?? "—"}`, selo: n.status, valor: n.valor_servicos })),
     ] },
     { titulo: "Notas recebidas (fornecedor)", icone: Receipt, linhas: d.recebidas.map((n: any) => ({ id: n.id, data: n.data_emissao, titulo: `NF ${String(n.chave ?? "").slice(25, 34).replace(/^0+/, "") || "—"}`, selo: n.situacao, valor: n.valor_total })) },
@@ -230,8 +227,6 @@ function blocosDe(d: Dados): { titulo: string; icone: typeof Search; para?: stri
     { titulo: "Recibos", icone: Receipt, linhas: d.recibos.map((r: any) => ({ id: r.id, data: r.data_pagamento, titulo: `Recibo nº ${r.numero} · ${r.referente}`, selo: r.cancelado_em ? "cancelado" : r.tipo, valor: r.valor })) },
     { titulo: "Assistência (OS)", icone: Wrench, para: "/assistencia", linhas: [
       ...d.os.map((o: any) => ({ id: o.id, data: o.data_entrada, titulo: `OS #${o.numero} · ${o.equipamento ?? ""}`, selo: o.status, valor: o.valor_total, detalhe: o.defeito_relatado })),
-      // My Frost (empresa anterior) não tinha OS: o atendimento está na nota de conserto, retorno ou garantia
-      ...atendimentosMyFrost(d.legado as any[]).lista.map((n: any) => ({ id: `mf-${n.id}`, data: n.data, titulo: `Atendimento My Frost · NF ${n.numero ?? "—"}`, selo: n.tipo, detalhe: "empresa anterior" })),
     ] },
     { titulo: "Máquinas", icone: IceCreamCone, linhas: d.maquinas.map((m: any) => ({ id: m.id, data: m.data_venda, titulo: m.descricao, detalhe: [m.numero_serie && `série ${m.numero_serie}`, m.garantia_ate && `garantia até ${dataBR(m.garantia_ate)}`].filter(Boolean).join(" · ") })) },
     { titulo: "Fretes (CT-e)", icone: Truck, linhas: d.ctes.map((c: any) => ({ id: c.id, data: c.emissao, titulo: `CT-e ${c.numero} · ${c.emitente_nome ?? ""}`, selo: c.situacao, valor: c.valor })) },
