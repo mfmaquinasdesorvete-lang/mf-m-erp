@@ -3,8 +3,9 @@
 // Cada cartão diz o próximo passo e tem o botão que faz esse passo; o resumo no alto mostra o que precisa de ação agora.
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Printer, Search, User, Zap, ZapOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Printer, User, Zap, ZapOff } from "lucide-react";
 import { PageHeader, RolagemLateral } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Cartao } from "@/components/fluxo/Cartao";
 import { BlocosEtapas, FaixaAcao, type ResumoEtapa } from "@/components/fluxo/Resumo";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
@@ -179,25 +180,6 @@ export default function Fluxo() {
       <div className="space-y-2">
         <PageHeader compacto title="Fluxo de pedidos" subtitle="Do orçamento à entrega, de todos os canais. Cada cartão mostra o próximo passo e o botão para fazê-lo."
           actions={<>
-            <label className="relative block w-full sm:w-60">
-              <span className="sr-only">Buscar</span>
-              <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input className="input !min-h-0 !py-1.5 pl-8 text-sm" placeholder="Buscar nº ou cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-            </label>
-            {escolheVendedor && vendedores.length > 0 && (
-              <select className="input !min-h-0 !py-1.5 text-sm sm:w-48" aria-label="Vendedor" value={vendedorSel} onChange={(e) => setVendedorSel(e.target.value)}>
-                <option value="">Todos os vendedores</option>
-                {meuVendedor && <option value={meuVendedor.id}>Minhas vendas</option>}
-                {vendedores.filter((v) => v.ativo !== false && v.id !== meuVendedor?.id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-                <option value="sem">Sem vendedor</option>
-              </select>
-            )}
-            {!escolheVendedor && meuVendedor && (
-              <div className="flex gap-1.5">
-                {chip("todas", !minhas, () => setMinhas(false), "Todas as vendas")}
-                {chip("minhas", minhas, () => setMinhas(true), <><User size={14} /> Minhas vendas</>)}
-              </div>
-            )}
             {cfg && (cfg.nfe_automatica ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700" title="Pedido aprovado tem a nota emitida sozinho">
                 <Zap size={13} aria-hidden /> NF-e automática ligada
@@ -213,6 +195,25 @@ export default function Fluxo() {
               </span>
             ))}
           </>} />
+        {/* a mesma barra das outras listas: busca e, no botão Filtros, o vendedor; os canais logo abaixo */}
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº ou cliente…"
+          filtros={escolheVendedor && vendedores.length > 0 ? (
+            <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Vendedor</span>
+              <select className="input w-auto" value={vendedorSel} onChange={(e) => setVendedorSel(e.target.value)}>
+                <option value="">Todos os vendedores</option>
+                {meuVendedor && <option value={meuVendedor.id}>Minhas vendas</option>}
+                {vendedores.filter((v) => v.ativo !== false && v.id !== meuVendedor?.id).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                <option value="sem">Sem vendedor</option>
+              </select></label>
+          ) : undefined}
+          nFiltros={(vendedorSel ? 1 : 0) + (canal ? 1 : 0)}
+          onLimpar={() => { setBusca(""); setVendedorSel(""); setCanal(""); }}
+          direita={!escolheVendedor && meuVendedor ? (
+            <div className="flex gap-1.5">
+              {chip("todas", !minhas, () => setMinhas(false), "Todas as vendas")}
+              {chip("minhas", minhas, () => setMinhas(true), <><User size={14} /> Minhas vendas</>)}
+            </div>
+          ) : undefined} />
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Canal de venda">
           {[["", "Todos os canais"], ...Object.entries(CANAIS)].map(([v, l]) => (
             <button key={v || "todos"} type="button" onClick={() => setCanal(v)} aria-pressed={canal === v}

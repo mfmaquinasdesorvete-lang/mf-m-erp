@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ShieldAlert, X } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { ler, useInvalidate, useRows } from "@/lib/data";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +18,8 @@ import {
 } from "@/lib/auditoriaBusca";
 import { PainelAuditoria } from "@/components/auditoria/PainelAuditoria";
 import { HistoricoBusca } from "@/components/auditoria/HistoricoBusca";
-import { CampoBusca, Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { Destaque, FiltroAtivo, Pilula } from "@/components/auditoria/BuscaUi";
 import { useNomesRegistros, type Destino } from "@/components/auditoria/useAuditoria";
 
 export type Tratativa = { id?: string; chave: string; tipo: string; titulo?: string | null; situacao: "indicio" | "confirmado" | "resolvido" | "descartado"; impacto: string | null; responsavel: string | null; prazo: string | null; observacao: string | null; updated_at?: string };
@@ -145,7 +146,6 @@ function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: P
   const atrasoR = faixasAtraso(receber, hoje());
   const atrasoP = faixasAtraso(pagar, hoje());
   const atrasados = (t: Tratativa) => t.prazo && t.prazo < dia && !fechada(t);
-  const limpo = !texto && !f.tipo && !f.gravidade && f.ver === FILTROS_EXCECOES.ver && !f.chave;
   const limpar = () => { setTexto(""); setF(FILTROS_EXCECOES); };
 
   // exceção que nasceu do histórico: abre a linha do histórico (a alteração com quem, quando e o motivo)
@@ -180,34 +180,37 @@ function Excecoes({ dados, inicial, abrir }: { dados: DadosExcecoes; inicial?: P
         ))}
       </div>
 
-      <div className="mb-3">
-        <CampoBusca value={texto} onChange={(v) => { setTexto(v); if (f.chave) mudar({}); }} rotulo="Buscar nas exceções"
-          placeholder="Buscar: fornecedor, cliente, valor (1.234,56), documento, responsável, observação…" />
-      </div>
+      {/* a mesma barra das outras listas: busca, e o que mostrar e a gravidade no botão Filtros; os tipos em pílulas logo abaixo */}
+      <BarraFiltros busca={texto} onBusca={(v) => { setTexto(v); if (f.chave) mudar({}); }}
+        placeholder="Buscar: fornecedor, cliente, valor (1.234,56), documento, responsável, observação…"
+        filtros={<>
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Mostrar</span>
+            <select className="input w-auto max-w-full" value={f.ver} onChange={(e) => mudar({ ver: e.target.value as VerExcecoes })}>
+              {VER_EXCECOES.map((v) => <option key={v.valor} value={v.valor}>{v.rotulo}</option>)}
+            </select></label>
+          <div className="pb-1">
+            <span className="mb-1 block text-xs font-semibold text-slate-600">Gravidade</span>
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Gravidade">
+              {GRAVIDADES.map(([g, rotulo, cor]) => (
+                <Pilula key={g} ativo={f.gravidade === g} onClick={() => mudar({ gravidade: f.gravidade === g ? "" : g })} title={`Só gravidade ${rotulo.toLowerCase()}`}>
+                  <span className={`mr-1 inline-block h-2 w-2 rounded-full ${cor}`} aria-hidden />{rotulo}
+                </Pilula>
+              ))}
+            </div>
+          </div>
+        </>}
+        nFiltros={(f.ver !== FILTROS_EXCECOES.ver ? 1 : 0) + (f.gravidade ? 1 : 0) + (f.tipo ? 1 : 0)} onLimpar={limpar}
+        direita={<Button variant="secondary" onClick={exportar} disabled={!lista.length}>Exportar</Button>} />
       <div className="mb-3 flex flex-wrap gap-1.5">
         <Pilula ativo={!f.tipo} onClick={() => mudar({ tipo: "" })}>Todas ({contagem.reduce((s, c) => s + c.n, 0)})</Pilula>
         {contagem.filter((c) => c.n || f.tipo === c.k).map((c) => (
           <Pilula key={c.k} ativo={f.tipo === c.k} onClick={() => mudar({ tipo: c.k })} title={TIPOS[c.k].criterio}>{TIPOS[c.k].rotulo} ({c.n})</Pilula>
         ))}
       </div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="input w-auto max-w-full" value={f.ver} onChange={(e) => mudar({ ver: e.target.value as VerExcecoes })} aria-label="Mostrar">
-          {VER_EXCECOES.map((v) => <option key={v.valor} value={v.valor}>{v.rotulo}</option>)}
-        </select>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Gravidade">
-          {GRAVIDADES.map(([g, rotulo, cor]) => (
-            <Pilula key={g} ativo={f.gravidade === g} onClick={() => mudar({ gravidade: f.gravidade === g ? "" : g })} title={`Só gravidade ${rotulo.toLowerCase()}`}>
-              <span className={`mr-1 inline-block h-2 w-2 rounded-full ${cor}`} aria-hidden />{rotulo}
-            </Pilula>
-          ))}
-        </div>
-        <Button variant="secondary" className="ml-auto" onClick={exportar} disabled={!lista.length}>Exportar</Button>
-      </div>
       {f.tipo && <p className="mb-2 text-xs text-slate-500"><b>Critério:</b> {TIPOS[f.tipo].criterio}</p>}
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <p className="text-sm text-slate-600" aria-live="polite"><b className="num text-fg">{lista.length}</b> {pl(lista.length, "exceção", "exceções")}</p>
         {f.chave && <FiltroAtivo onRemover={() => mudar({ chave: "", ver: FILTROS_EXCECOES.ver })}>Exceção escolhida no painel · ver todas</FiltroAtivo>}
-        {!limpo && <Button variant="ghost" onClick={limpar}><X size={16} /> Limpar filtros</Button>}
       </div>
 
       {!excecoes.length ? (

@@ -8,9 +8,10 @@
 import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { Link } from "react-router-dom";
-import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Search, Store, Undo2, Wallet, X } from "lucide-react";
+import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Store, Undo2, Wallet, X } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
 import { useAparencia } from "@/lib/aparencia";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import type { Equipamento } from "@/lib/types";
 import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
 import { confirmar } from "@/components/Dialogos";
@@ -383,13 +384,15 @@ export default function Licenciados() {
         </Card>
       </div>
 
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto font-bold text-fg">Pagamentos <span className="text-sm font-normal text-slate-500">· {rotulo}{lojaSel ? ` · ${nomeLoja(lojaSel)?.nome}` : ""} · {pagsLista.length}</span></h2>
-        <label className="relative w-full sm:w-64">
-          <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar pagamento" aria-label="Buscar pagamento" />
-        </label>
-      </div>
+      <h2 className="mb-2 font-bold text-fg">Pagamentos <span className="text-sm font-normal text-slate-500">· {rotulo}{lojaSel ? ` · ${nomeLoja(lojaSel)?.nome}` : ""} · {pagsLista.length}</span></h2>
+      {/* a mesma barra das outras listas; o período continua nos botões do topo (vale também para os números e o ranking) */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar pagamento: loja, descrição, onde ou tipo"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Loja</span>
+          <select className="input w-auto" value={lojaSel} onChange={(e) => setLojaSel(e.target.value)}>
+            <option value="">Todas as lojas</option>
+            {ordenadas.map((r) => <option key={r.loja.id} value={r.loja.id}>{r.loja.nome}</option>)}
+          </select></label>}
+        nFiltros={lojaSel ? 1 : 0} onLimpar={() => { setBusca(""); setLojaSel(""); }} />
       <Card className="overflow-hidden">
         {!pagsLista.length ? <p className="p-4 text-sm text-slate-500">Nenhum pagamento no período.</p> : (
           <ul className="divide-y divide-slate-100">

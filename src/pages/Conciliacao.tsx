@@ -3,6 +3,7 @@ import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Lan
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
 import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { Colunas, Ranking } from "@/components/Charts";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { CampoUnidade, EtiquetaUnidade, useUnidade } from "@/lib/unidade";
@@ -86,6 +87,7 @@ export default function Conciliacao() {
   const [visao, setVisao] = useState<"linhas" | "favorecido">("linhas");
   // os extratos antigos já foram revistos na limpeza de out/2026: a conciliação mostra só a partir de INICIO_CONCILIACAO
   const [verAntigos, setVerAntigos] = useState(false);
+  const [busca, setBusca] = useState("");
   const recente = (l: Lancamento) => verAntigos || l.data >= INICIO_CONCILIACAO;
 
   const idsBancos = new Set(bancos.map((b) => b.id));
@@ -101,12 +103,19 @@ export default function Conciliacao() {
     }
     return r;
   }, [lancamentos, receber, pagar, contasTodas, bancos, regras]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lista = lancamentos
+  // busca na descrição do banco (sem acento; cada palavra precisa aparecer)
+  const termos = busca.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/\s+/).filter(Boolean);
+  const casaBusca = (l: { descricao: string | null }) => !termos.length
+    || termos.every((t) => String(l.descricao ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(t));
+  const naSituacao = (l: (typeof lancamentos)[number], sit: string) => sit === "todos" || (sit === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
+    : sit === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === sit);
+  // tudo menos a situação: as contagens dos chips seguem a busca, a conta, o mês e o tipo
+  const semSituacao = lancamentos
     .filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && recente(l))
-    .filter((l) => situacao === "todos" || (situacao === "sugestao" ? l.status === "pendente" && sugestoes.has(l.id)
-      : situacao === "divergente" ? l.status === "pendente" && divergentes.has(l.id) : l.status === situacao))
     .filter((l) => !mes || l.data.startsWith(mes))
-    .filter((l) => !tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo);
+    .filter((l) => !tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo)
+    .filter(casaBusca);
+  const lista = semSituacao.filter((l) => naSituacao(l, situacao));
   // base do resumo: conta e mês escolhidos, todas as situações
   const doResumo = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && (!mes || l.data.startsWith(mes)));
   const repetidas = useMemo(() => contasRepetidas(lancamentos.filter((l) => contasTodas.some((b) => b.id === l.conta_bancaria_id && b.ativo))), [lancamentos, contasTodas]);
@@ -114,7 +123,7 @@ export default function Conciliacao() {
   // por favorecido: as pendentes da conta, do mês e do tipo escolhidos; a que já tem conta ou transferência sugerida fica de fora
   const pendentesFiltradas = lancamentos
     .filter((l) => l.status === "pendente" && idsBancos.has(l.conta_bancaria_id) && (!contaSel || l.conta_bancaria_id === contaSel) && recente(l))
-    .filter((l) => (!mes || l.data.startsWith(mes)) && (!tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo));
+    .filter((l) => (!mes || l.data.startsWith(mes)) && (!tipo || tipoLancamento(l.descricao, Number(l.valor), funcionarios) === tipo) && casaBusca(l));
   const paraLote = visao === "favorecido" ? pendentesFiltradas.filter((l) => sugestoes.get(l.id)?.tipo === undefined || sugestoes.get(l.id)?.tipo === "regra") : [];
   const deFora = visao === "favorecido" ? pendentesFiltradas.length - paraLote.length : 0;
   const pendentesTotal = lancamentos.filter((l) => idsBancos.has(l.conta_bancaria_id) && l.status === "pendente" && recente(l)).length;
@@ -269,36 +278,50 @@ export default function Conciliacao() {
       <ResumoExtrato lancs={doResumo} titulo={contaSel ? nomeConta(contaSel) : "todas as contas"} mes={mes} tipo={tipo}
         onTipo={(t) => { setTipo(t); if (t) setSituacao("todos"); }} onMes={setMes} funcionarios={funcionarios} />
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Como ver o extrato">
-          {([["linhas", "Linha a linha", List], ["favorecido", "Por favorecido", Users]] as const).map(([v, l, I]) => (
-            <button key={v} type="button" aria-pressed={visao === v} onClick={() => setVisao(v)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${visao === v ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}><I size={15} aria-hidden /> {l}</button>
-          ))}
+      {/* a mesma barra das outras listas: busca na descrição e, no botão Filtros, conta, tipo e os lançamentos antigos;
+          a visão, o mês (que também muda o resumo acima) e o aprovar ficam à vista */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar na descrição do banco"
+        filtros={<>
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Conta</span>
+            <select className="input w-auto" value={contaSel} onChange={(e) => setContaSel(e.target.value)}>
+              <option value="">Todas as contas</option>
+              {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+            </select></label>
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Tipo de lançamento</span>
+            <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoLanc | "")}>
+              <option value="">Todos os tipos</option>
+              {TIPOS_LANC.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
+            </select></label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-slate-600" title={`Antes de ${dataBR(INICIO_CONCILIACAO)} os extratos já foram revistos; marque para ver também esses lançamentos`}>
+            <input type="checkbox" checked={verAntigos} onChange={(e) => setVerAntigos(e.target.checked)} />
+            Ver antes de {dataBR(INICIO_CONCILIACAO)}{antigosPendentes > 0 && ` (${antigosPendentes} pendentes antigos)`}
+          </label>
+        </>}
+        nFiltros={(contaSel ? 1 : 0) + (tipo ? 1 : 0) + (verAntigos ? 1 : 0)}
+        onLimpar={() => { setBusca(""); setContaSel(""); setTipo(""); setVerAntigos(false); }}
+        direita={<>
+          <div className="flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Como ver o extrato">
+            {([["linhas", "Linha a linha", List], ["favorecido", "Por favorecido", Users]] as const).map(([v, l, I]) => (
+              <button key={v} type="button" aria-pressed={visao === v} onClick={() => setVisao(v)}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${visao === v ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}><I size={15} aria-hidden /> {l}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
+        </>} />
+      {visao === "linhas" && (
+        <ChipsSituacao valor={situacao} onChange={setSituacao} rotulo="Situação" opcoes={([
+          ["pendente", "Pendentes"], ["sugestao", "Com sugestão"], ["divergente", "Divergentes"], ["conciliado", "Conciliados"],
+          ["transferencia", "Transferências"], ["ignorado", "Ignorados"], ["todos", "Todos"],
+        ] as const).map(([v, l]) => ({ value: v as string, label: l, n: semSituacao.filter((x) => naSituacao(x, v)).length }))} />
+      )}
+      {visao === "linhas" && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {podeEditar && sugeridasNaLista.length > 0 && (
+            <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
+          )}
+          <span className="ml-auto text-sm text-slate-500">{lista.length} {pl(lista.length, "lançamento", "lançamentos")} · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>
         </div>
-        {visao === "linhas" && <select className="input w-auto" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
-          <option value="pendente">Pendentes</option><option value="sugestao">Com sugestão ({[...sugestoes.keys()].length})</option>
-          <option value="divergente">Divergentes ({divergentes.size})</option><option value="conciliado">Conciliados</option>
-          <option value="transferencia">Transferências</option><option value="ignorado">Ignorados</option><option value="todos">Todos</option>
-        </select>}
-        <select className="input w-auto" value={contaSel} onChange={(e) => setContaSel(e.target.value)} aria-label="Conta">
-          <option value="">Todas as contas</option>
-          {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
-        </select>
-        <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value as TipoLanc | "")} aria-label="Tipo de lançamento">
-          <option value="">Todos os tipos</option>
-          {TIPOS_LANC.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
-        </select>
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês do extrato" /></div>
-        <label className="flex items-center gap-2 text-sm text-slate-600" title={`Antes de ${dataBR(INICIO_CONCILIACAO)} os extratos já foram revistos; marque para ver também esses lançamentos`}>
-          <input type="checkbox" checked={verAntigos} onChange={(e) => setVerAntigos(e.target.checked)} />
-          Ver antes de {dataBR(INICIO_CONCILIACAO)}{antigosPendentes > 0 && ` (${antigosPendentes} pendentes antigos)`}
-        </label>
-        {podeEditar && visao === "linhas" && sugeridasNaLista.length > 0 && (
-          <Button onClick={() => aprovar(sugeridasNaLista.map((l) => l.id))} disabled={aprovando}><Check size={16} /> {aprovando ? "Aprovando…" : `Aprovar sugestões (${sugeridasNaLista.length})`}</Button>
-        )}
-        {visao === "linhas" && <span className="ml-auto text-sm text-slate-500">{lista.length} {pl(lista.length, "lançamento", "lançamentos")} · entradas {brl(lista.filter((l) => l.valor > 0).reduce((s, l) => s + Number(l.valor), 0))} · saídas {brl(-lista.filter((l) => l.valor < 0).reduce((s, l) => s + Number(l.valor), 0))}</span>}
-      </div>
+      )}
 
       {visao === "favorecido" ? (
         <PorFavorecido linhas={paraLote} deFora={deFora} regras={regras} nomeConta={nomeConta} podeEditar={podeEditar} />
