@@ -2,10 +2,10 @@
 // site, código, integrações e contas dos serviços —, com a situação de cada item, o resultado da última verificação e
 // quando conferir de novo. O resultado pode descrever uma falha: fica só no banco (seguranca_auditoria), nunca no código.
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Hourglass, Search, ShieldAlert, ShieldCheck } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { AlertTriangle, CheckCircle2, Hourglass, RefreshCw, Search, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Button, Card, Stat } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { dataBR } from "@/lib/format";
+import { dataBR, dataHoraBR } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 
@@ -68,6 +68,8 @@ export function Seguranca() {
           sobrecarregam o sistema. O resultado fica só aqui, para o administrador — nunca no código, que é público.</p>
       </Card>
 
+      <Vigia />
+
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         <Stat label="Itens auditados" valor={itens.length} icon={ShieldCheck} sub={vencidos ? `${vencidos} para conferir de novo` : undefined} onClick={() => setSituacao("")} />
         <Stat label="Risco" valor={conta("risco")} icon={ShieldAlert} tom={conta("risco") ? "critico" : "neutro"} onClick={() => filtrar("risco")} />
@@ -118,5 +120,70 @@ export function Seguranca() {
         </Card>
       ))}
     </div>
+  );
+}
+
+type Achado = { chave: string; gravidade: "risco" | "atencao"; titulo: string; itens: string[] };
+type Conferencia = { id: number; conferido_em: string; achados: Achado[]; problemas: number; origem: string };
+/** o que vem da comparação com a base aceita (dá para aceitar); o resto é conferência de quantidade */
+const ACEITAVEIS = new Set(["tabelas_sem_rls", "visitante_tabelas", "regras_abertas", "visitante_funcoes", "funcoes_sem_conferir",
+  "funcoes_sem_caminho", "visoes_sem_invoker", "arquivos_publicos", "administradores"]);
+
+/** Vigia automático: todo dia o banco confere a segurança e avisa no sino o que mudou ou está errado. */
+function Vigia() {
+  const invalidar = useInvalidate();
+  const { data: ultimas = [] } = useRows<Conferencia>("seguranca_vigia", { order: "conferido_em", ascending: false, filtro: (q) => q.limit(1) });
+  const [ocupado, setOcupado] = useState(false);
+  const ultima = ultimas[0];
+
+  async function rodar(acao: () => PromiseLike<{ error: unknown }>) {
+    setOcupado(true);
+    try { const { error } = await acao(); if (error) throw error; invalidar("seguranca_vigia"); }
+    catch (e) { notifyError(e); }
+    finally { setOcupado(false); }
+  }
+  const conferir = () => rodar(() => supabase.rpc("vigiar_seguranca", { p_manual: true }));
+  const aceitar = (a: Achado) => {
+    if (!window.confirm(`Confirma que esta mudança está certa?\n\n${a.titulo}: ${a.itens.join(", ")}\n\nO vigia para de avisar sobre ela.`)) return;
+    void rodar(async () => {
+      const r = await supabase.rpc("seguranca_aceitar", { p_chave: a.chave });
+      if (r.error) return r;
+      return supabase.rpc("vigiar_seguranca", { p_manual: true });
+    });
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {ultima?.problemas ? <ShieldAlert size={20} className="text-rose-600" aria-hidden /> : <ShieldCheck size={20} className="text-emerald-600" aria-hidden />}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-fg">Vigia automático</p>
+          <p className="text-xs text-slate-500">
+            Todo dia às 9h41 o banco confere a segurança sozinho e avisa no sino o que mudou ou está errado.
+            {ultima ? ` Última conferência: ${dataHoraBR(ultima.conferido_em)}.` : " Ainda não conferiu."}
+          </p>
+        </div>
+        <Button variant="secondary" disabled={ocupado} onClick={conferir}><RefreshCw size={15} aria-hidden /> {ocupado ? "Conferindo…" : "Conferir agora"}</Button>
+      </div>
+      {ultima && !ultima.problemas && <p className="mt-2 text-sm font-medium text-emerald-700">Tudo certo na última conferência.</p>}
+      {ultima && ultima.achados.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {ultima.achados.map((a) => (
+            <li key={a.chave} className={`rounded-lg px-3 py-2 text-sm ${a.gravidade === "risco" ? "bg-rose-50 text-rose-900" : "bg-amber-50 text-amber-900"}`}>
+              <div className="flex flex-wrap items-start gap-2">
+                <span className="min-w-0 flex-1">
+                  <span className="font-semibold">{a.gravidade === "risco" ? "Risco: " : "Atenção: "}{a.titulo}</span>
+                  {a.itens.length > 0 && <span className="block text-xs">{a.itens.join(", ")}</span>}
+                </span>
+                {ACEITAVEIS.has(a.chave) && (
+                  <button type="button" disabled={ocupado} onClick={() => aceitar(a)}
+                    className="shrink-0 rounded-md bg-white/70 px-2 py-1 text-xs font-semibold hover:bg-white disabled:opacity-50">Está certo, aceitar</button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
