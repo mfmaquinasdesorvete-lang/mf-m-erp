@@ -113,7 +113,7 @@ export default function PartesRelacionadas() {
           const ativo = grupo === g.id;
           return (
             <button key={g.id} type="button" onClick={() => setGrupo(ativo ? "" : g.id)} aria-pressed={ativo}
-              className={`rounded-2xl border bg-surface p-4 text-left shadow-sm transition hover:shadow-pop ${ativo ? "border-brand ring-2 ring-brand/40" : "border-slate-200"}`}>
+              className={`cartao p-4 text-left transition hover:shadow-pop ${ativo ? "border-brand ring-2 ring-brand/40" : ""}`}>
               <div className="flex items-start gap-3">
                 <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${g.id === ENTRE ? "bg-sky-100 text-sky-700" : "bg-violet-100 text-violet-700"}`}><g.icone size={18} aria-hidden /></span>
                 <span className="min-w-0">
@@ -146,7 +146,7 @@ export default function PartesRelacionadas() {
             <ul className="space-y-2">
               {porMes.map(([m, x]) => (
                 <li key={m}>
-                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`linha-clicavel px-2 py-1 text-sm ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex flex-wrap justify-between gap-x-3"><span className="font-semibold text-fg">{nomeMes(m)}</span>
                       <span className="num whitespace-nowrap"><span className="text-emerald-700">+{brl(x.entrou)}</span> · <span className="text-red-600">−{brl(x.saiu)}</span></span></div>
                     <div className="mt-1 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-emerald-500" style={{ width: `${Math.max(1, (x.entrou / maiorMes) * 100)}%` }} /></div>

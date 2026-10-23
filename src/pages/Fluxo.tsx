@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Printer, User, Zap, ZapOff } from "lucide-react";
-import { PageHeader, RolagemLateral } from "@/components/ui";
+import { Button, chip as classeChip, PageHeader, RolagemLateral } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Cartao } from "@/components/fluxo/Cartao";
 import { BlocosEtapas, FaixaAcao, type ResumoEtapa } from "@/components/fluxo/Resumo";
@@ -156,11 +156,11 @@ export default function Fluxo() {
       onEtiquetas={l.e && ["conferido", "embalado", "despachado"].includes(l.e.status) ? () => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }]) : undefined} />
   );
   const imprimirTodas = (id: ColunaId, lista: Linha[], className = "") => id === "embalar" && lista.length > 0 && (
-    <button type="button" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}
-      className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 bg-surface px-2.5 py-1.5 text-xs font-semibold text-fg hover:border-brand disabled:opacity-50 ${className}`}
+    <Button type="button" variant="secondary" tamanho="mini" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}
+      className={className}
       title="Imprimir as etiquetas de todos os pedidos desta etapa">
       <Printer size={13} /> Imprimir etiquetas de todos
-    </button>
+    </Button>
   );
   const valorDe = (lista: Linha[]) => lista.reduce((s, l) => s + (somaNoValor(l.p) ? Number(l.p.valor_total) : 0), 0);
   const filtrando = soAcao || !!tipo;
@@ -168,7 +168,7 @@ export default function Fluxo() {
 
   const chip = (chave: string, ativo: boolean, onClick: () => void, children: ReactNode) => (
     <button key={chave} type="button" onClick={onClick} aria-pressed={ativo}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${ativo ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+      className={classeChip(ativo)}>
       {children}
     </button>
   );
@@ -217,7 +217,7 @@ export default function Fluxo() {
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Canal de venda">
           {[["", "Todos os canais"], ...Object.entries(CANAIS)].map(([v, l]) => (
             <button key={v || "todos"} type="button" onClick={() => setCanal(v)} aria-pressed={canal === v}
-              className={`shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition ${canal === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+              className={`${classeChip(canal === v)} whitespace-nowrap`}>
               {l}
             </button>
           ))}
@@ -271,7 +271,7 @@ export default function Fluxo() {
                   </header>
                   <div className="space-y-2">{lista.slice(0, NO_QUADRO).map(cartao)}</div>
                   {lista.length > NO_QUADRO && (
-                    <button type="button" onClick={() => setEtapa(c.id)} className="mt-2 rounded-lg py-2 text-sm font-semibold text-brand hover:bg-slate-100">
+                    <button type="button" onClick={() => setEtapa(c.id)} className="link-acao mt-2 py-2 text-sm">
                       Ver mais {lista.length - NO_QUADRO}
                     </button>
                   )}
@@ -328,7 +328,7 @@ function SecaoEtapa({ id, lista, limite, vazio, cartao, extra, valor, onMais }: 
       ) : <p className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">{vazio}</p>}
       {lista.length > limite && (
         onMais
-          ? <button type="button" onClick={onMais} className="mt-2 w-full rounded-lg py-2 text-sm font-semibold text-brand hover:bg-slate-100">Ver mais {lista.length - limite}</button>
+          ? <button type="button" onClick={onMais} className="link-acao mt-2 w-full py-2 text-sm">Ver mais {lista.length - limite}</button>
           : <p className="mt-2 text-center text-xs text-slate-500">Mostrando {limite} de {lista.length}. Use a busca para achar os outros.</p>
       )}
     </section>

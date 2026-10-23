@@ -8,7 +8,7 @@ import {
   AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Globe, Link2, Mail, MapPin, Merge, Pencil,
   MapPinOff, PackageCheck, Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
 } from "lucide-react";
-import { Button, Field, Modal, PageHeader, Tabs } from "@/components/ui";
+import { Button, chip, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Contato } from "@/components/Contato";
 import Fornecedores from "@/pages/Fornecedores";
@@ -119,7 +119,7 @@ function PorMarca() {
           const n = filtrar(todas, v, usos).length;
           return (
             <button key={v} type="button" aria-pressed={filtro === v} onClick={() => setFiltro(v)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-300 bg-surface text-slate-700 hover:border-brand/50"}`}>
+              className={chip(filtro === v)}>
               <I size={13} aria-hidden /> {rotulo} <span className="opacity-90">{n}</span>
             </button>
           );
@@ -204,7 +204,7 @@ function CartaoMarca({ m, usos, aberta, onAlternar, podeEditar, onEditar, onNova
     <li className={`rounded-2xl border bg-surface shadow-card ${t.ativo ? "border-slate-200" : "border-dashed border-slate-300 opacity-75"}`}>
       <div className="flex flex-wrap items-start gap-3 p-4">
         <button type="button" onClick={onAlternar} aria-expanded={aberta} aria-label={aberta ? "Fechar" : "Abrir"}
-          className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
+          className="botao-icone mt-0.5 h-9 w-9">
           {aberta ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         </button>
         <div className="min-w-0 flex-1 basis-60">
@@ -247,7 +247,7 @@ function CartaoMarca({ m, usos, aberta, onAlternar, podeEditar, onEditar, onNova
           <div className="mb-2.5 flex flex-wrap gap-1" role="tablist">
             {abas.map((a) => (
               <button key={a.v} type="button" role="tab" aria-selected={aba === a.v} onClick={() => setAba(a.v)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${aba === a.v ? "bg-brand text-brand-fg" : "text-slate-600 hover:bg-slate-100"}`}>
+                className={chip(aba === a.v)}>
                 {a.rotulo}{a.n != null && <span className="ml-1 opacity-75">{a.n}</span>}
               </button>
             ))}
@@ -562,7 +562,7 @@ function Toggles({ titulo, opcoes, valores, onAlternar }: { titulo: string; opco
       <div className="flex flex-wrap gap-1.5">
         {Object.entries(opcoes).map(([v, l]) => (
           <button key={v} type="button" aria-pressed={valores.includes(v)} onClick={() => onAlternar(v)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${valores.includes(v) ? "border-brand bg-brand text-brand-fg" : "border-slate-300 text-slate-700 hover:border-brand/50"}`}>{l}</button>
+            className={chip(valores.includes(v))}>{l}</button>
         ))}
       </div>
     </div>

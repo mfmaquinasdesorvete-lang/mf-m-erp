@@ -130,7 +130,7 @@ export default function Email() {
           {lista.map((e) => (
             <li key={e.id}>
               <button type="button" onClick={() => abrir(e)}
-                className={`flex w-full gap-3 p-3 text-left transition hover:bg-slate-50 ${aberto?.id === e.id ? "bg-brand-light" : ""}`}>
+                className={`linha-clicavel flex gap-3 p-3 ${aberto?.id === e.id ? "bg-brand-light" : ""}`}>
                 <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${e.lido ? "bg-transparent" : "bg-brand"}`} aria-label={e.lido ? undefined : "não lido"} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
@@ -236,7 +236,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
   return (
     <article className="cartao min-w-0">
       <div className="border-b border-slate-100 p-4">
-        <button type="button" onClick={onVoltar} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand lg:hidden"><ArrowLeft size={16} /> Voltar</button>
+        <button type="button" onClick={onVoltar} className="link-acao mb-2 inline-flex items-center gap-1 text-sm lg:hidden"><ArrowLeft size={16} /> Voltar</button>
         <h2 className="text-lg font-bold leading-snug text-fg">{e.assunto}</h2>
         <div className="mt-1 text-sm text-slate-600"><b className="text-fg">{e.de_nome || e.de_email}</b> {e.de_nome && <span>&lt;{e.de_email}&gt;</span>}</div>
         <div className="text-xs text-slate-500">{new Date(e.data).toLocaleString("pt-BR")}{e.para ? ` · para ${e.para}` : ""}</div>
@@ -255,7 +255,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
               <Paperclip size={15} className="text-slate-400" />
               <span className="max-w-[200px] truncate font-medium">{a.nome}</span>
               <span className="text-xs text-slate-400">{kb(a.tamanho)}</span>
-              <button type="button" aria-label={`Baixar ${a.nome}`} disabled={!!ocupado} onClick={() => baixar(a)} className="rounded-lg p-1 text-brand hover:bg-brand-light"><Download size={15} /></button>
+              <button type="button" aria-label={`Baixar ${a.nome}`} disabled={!!ocupado} onClick={() => baixar(a)} className="botao-icone p-1"><Download size={15} /></button>
               {a.nfe && pode("nfe_recebidas") && (
                 <Button variant="secondary" disabled={!!ocupado} onClick={() => importar(a)}>{ocupado === `n${a.indice}` ? "Importando…" : "Dar entrada na NF-e"}</Button>
               )}
@@ -298,7 +298,7 @@ function Leitura({ e, onVoltar }: { e: EmailMsg; onVoltar: () => void }) {
       <div className="p-4">
         {e.html && (
           <div className="mb-2 flex justify-end">
-            <button type="button" onClick={() => setHtml(!html)} className="text-xs font-semibold text-brand">{html ? "Ver só o texto" : "Ver formatado"}</button>
+            <button type="button" onClick={() => setHtml(!html)} className="link-acao text-xs">{html ? "Ver só o texto" : "Ver formatado"}</button>
           </div>
         )}
         {e.html && html ? (

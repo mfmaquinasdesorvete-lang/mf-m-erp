@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, BookOpen, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutDashboard, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles, type LucideIcon } from "lucide-react";
-import { Button, Card, PageHeader, Stat, Tabs } from "@/components/ui";
+import { Button, Card, chip, PageHeader, Stat, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
@@ -82,7 +82,7 @@ export default function Sobre() {
           const ativo = x.id === grupo.id;
           return (
             <button key={x.id} type="button" aria-pressed={ativo} onClick={() => !ativo && setAba(x.abas[0].value)}
-              className={`flex min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition ${ativo ? "border-modulo bg-modulo/10 ring-1 ring-modulo" : "border-slate-200 bg-surface hover:border-slate-300"}`}>
+              className={`cartao flex min-w-0 items-start gap-3 p-3 text-left transition ${ativo ? "border-modulo bg-modulo/10 ring-1 ring-modulo" : "hover:border-slate-300"}`}>
               <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${x.cor} text-white shadow-sm`} aria-hidden><x.icone size={18} /></span>
               <span className="min-w-0">
                 <span className="block text-sm font-bold text-fg">{x.titulo}</span>
@@ -172,7 +172,7 @@ function Atualizacoes() {
         <div className="flex gap-1.5" role="group" aria-label="Período">
           {([["tudo", "Tudo"], ["7", "7 dias"], ["30", "30 dias"]] as [Periodo, string][]).map(([v, l]) => (
             <button key={v} type="button" aria-pressed={periodo === v} onClick={() => setPeriodo(v)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${periodo === v ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{l}</button>
+              className={chip(periodo === v, "border-transparent bg-modulo-escuro text-white")}>{l}</button>
           ))}
         </div>
       </div>
@@ -189,7 +189,7 @@ function Atualizacoes() {
                   <span className={`num rounded-lg px-2 py-0.5 text-sm font-bold ${i === 0 ? "bg-modulo-escuro text-white" : "bg-slate-100 text-fg"}`}>{v.numero}</span>
                   <span className="text-sm font-semibold capitalize text-slate-600">{diaPorExtenso(v.dia)}</span>
                   {i === 0 && VERSAO && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">em uso</span>}
-                  <button type="button" onClick={() => copiarDia(versoes[i])} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-fg" title="Copiar as novidades do dia para mandar à equipe">
+                  <button type="button" onClick={() => copiarDia(versoes[i])} className="link-discreto ml-auto inline-flex items-center gap-1 text-xs" title="Copiar as novidades do dia para mandar à equipe">
                     <ClipboardCopy size={13} aria-hidden /> Copiar
                   </button>
                 </div>

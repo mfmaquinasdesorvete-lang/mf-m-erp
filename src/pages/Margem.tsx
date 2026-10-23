@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowDownWideNarrow, ArrowRight, CheckCircle2, FileDown, Lightbulb, Percent, Sparkles, TrendingUp, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button, CampoMes, PageHeader, Section, Stat, Table, Tabs } from "@/components/ui";
+import { Button, CampoMes, chip, PageHeader, Section, Stat, Table, Tabs } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { useConfig } from "@/lib/useConfig";
@@ -145,7 +145,7 @@ export default function Margem() {
       {visao === "cruzar" ? (dados ? <CruzamentoLivre fatosVendas={dados.fatos} de={de} ate={ate} filtrar={filtrar} nomeUnidade={nomeUnidade} /> : <p className="text-sm text-slate-500">Carregando…</p>) : <>
       <div className="mb-2 flex justify-end gap-1 text-sm">
         Ordenar: {([["mc", "margem R$"], ["pct", "margem %"], ["receita", "receita"]] as const).map(([v, l]) => (
-          <button key={v} type="button" onClick={() => setOrdem(v)} className={`rounded-md px-2 py-0.5 font-semibold ${ordem === v ? "bg-brand text-brand-fg" : "text-slate-600"}`}>{l}</button>
+          <button key={v} type="button" onClick={() => setOrdem(v)} className={chip(ordem === v)}>{l}</button>
         ))}
       </div>
       {/* no notebook cabe sem rolar (quantidade embaixo do nome, margem e % na mesma coluna); no celular cada linha vira um cartão */}

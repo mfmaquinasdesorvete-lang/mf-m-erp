@@ -151,7 +151,7 @@ export default function AnalistaFiscal() {
           ["rotina", "Rotina simples", CalendarCheck, "passo a passo", "text-slate-600"],
         ] as [Aba, string, typeof Receipt, string, string][]).map(([id, titulo, Icone, numero, cor]) => (
           <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
-            className={`rounded-2xl border p-3 text-left shadow-card transition hover:shadow-pop ${aba === id ? "border-modulo bg-modulo/10 ring-2 ring-modulo/40" : "border-slate-200 bg-surface"}`}>
+            className={`cartao p-3 text-left transition hover:shadow-pop ${aba === id ? "border-modulo bg-modulo/10 ring-2 ring-modulo/40" : ""}`}>
             <span className="flex items-center gap-2 text-sm font-semibold text-fg"><Icone size={16} className={cor} aria-hidden /> {titulo}</span>
             <span className={`num mt-1 block text-lg font-bold ${cor}`}>{carregando ? "…" : numero}</span>
           </button>

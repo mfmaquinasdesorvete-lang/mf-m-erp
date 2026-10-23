@@ -2,7 +2,7 @@
 // conta a receber. A dona escreve de quem é e o que foi; a anotação fica na própria linha do extrato (observacao).
 import { useState } from "react";
 import { CheckCircle2, CircleHelp } from "lucide-react";
-import { Card, PageHeader, Table } from "@/components/ui";
+import { PageHeader, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje } from "@/lib/format";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
@@ -45,19 +45,15 @@ export default function EntradasGrandes() {
     <div>
       <PageHeader title="Entradas acima de R$ 5 mil" subtitle="Todas as contas da MF: escreva de quem é e o que foi cada entrada que ainda não tem dono." />
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <button type="button" onClick={() => setVisao("falta")} className="text-left">
-          <Card className={`flex items-center gap-3 p-4 ${visao === "falta" ? "border-amber-400 ring-2 ring-amber-200" : ""}`}>
-            <CircleHelp className="shrink-0 text-amber-600" size={28} />
-            <span><span className="block text-2xl font-bold text-fg">{falta.length}</span>
-              <span className="text-sm text-slate-600">falta identificar · {brl(soma(falta))}</span></span>
-          </Card>
+        <button type="button" onClick={() => setVisao("falta")} className={`cartao flex items-center gap-3 p-4 text-left ${visao === "falta" ? "border-amber-400 ring-2 ring-amber-200" : ""}`}>
+          <CircleHelp className="shrink-0 text-amber-600" size={28} />
+          <span><span className="block text-2xl font-bold text-fg">{falta.length}</span>
+            <span className="text-sm text-slate-600">falta identificar · {brl(soma(falta))}</span></span>
         </button>
-        <button type="button" onClick={() => setVisao("feitas")} className="text-left">
-          <Card className={`flex items-center gap-3 p-4 ${visao === "feitas" ? "border-emerald-400 ring-2 ring-emerald-200" : ""}`}>
-            <CheckCircle2 className="shrink-0 text-emerald-600" size={28} />
-            <span><span className="block text-2xl font-bold text-fg">{feitas.length}</span>
-              <span className="text-sm text-slate-600">já identificadas · {brl(soma(feitas))}</span></span>
-          </Card>
+        <button type="button" onClick={() => setVisao("feitas")} className={`cartao flex items-center gap-3 p-4 text-left ${visao === "feitas" ? "border-emerald-400 ring-2 ring-emerald-200" : ""}`}>
+          <CheckCircle2 className="shrink-0 text-emerald-600" size={28} />
+          <span><span className="block text-2xl font-bold text-fg">{feitas.length}</span>
+            <span className="text-sm text-slate-600">já identificadas · {brl(soma(feitas))}</span></span>
         </button>
       </div>
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nome ou anotação" periodo={periodo} onPeriodo={setPeriodo} rotuloData="Entrada"

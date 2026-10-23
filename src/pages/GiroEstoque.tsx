@@ -3,7 +3,7 @@
 // OS e produção; o estoque é o de hoje (da unidade escolhida no topo, ou das duas).
 import { useMemo, useState } from "react";
 import { Download, PackageX, RefreshCw, Timer, TrendingUp } from "lucide-react";
-import { Button, Card, Field, PageHeader } from "@/components/ui";
+import { Button, Card, chip, Field, PageHeader } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
@@ -107,7 +107,7 @@ export default function GiroEstoque() {
           <div className="flex gap-1">
             {PERIODOS.map((p) => (
               <button key={p.m} type="button" onClick={() => { setInicio(mesesAtras(p.m)); setFim(hoje()); }}
-                className={`rounded-lg border px-2.5 py-2 text-xs font-semibold ${inicio === mesesAtras(p.m) && fim === hoje() ? "border-brand bg-brand text-white" : "border-slate-300 text-slate-700"}`}>{p.r}</button>
+                className={`${chip(inicio === mesesAtras(p.m) && fim === hoje())} py-2`}>{p.r}</button>
             ))}
           </div>
           <Field label="De" className="w-36"><input type="date" className="input" value={inicio} onChange={(e) => setInicio(e.target.value)} /></Field>
@@ -206,7 +206,7 @@ const Dado = ({ rotulo, valor }: { rotulo: string; valor: string }) => (
 function Chip({ ativo, onClick, children, titulo }: { ativo: boolean; onClick: () => void; children: React.ReactNode; titulo?: string }) {
   return (
     <button type="button" title={titulo} aria-pressed={ativo} onClick={onClick}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${ativo ? "border-brand bg-brand text-white" : "border-slate-300 bg-surface text-slate-700"}`}>{children}</button>
+      className={chip(ativo)}>{children}</button>
   );
 }
 

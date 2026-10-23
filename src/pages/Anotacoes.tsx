@@ -144,7 +144,7 @@ function Linha({ a, pode }: { a: AnotacaoVoz; pode: boolean }) {
           <Button variant="secondary" onClick={() => marcar("nao_achei")} disabled={salvando}><X className="h-4 w-4" /> Não achei</Button>
         </div>
       ) : (
-        <button type="button" onClick={() => marcar("pendente")} disabled={salvando} className="text-xs font-semibold text-slate-500 hover:underline">
+        <button type="button" onClick={() => marcar("pendente")} disabled={salvando} className="link-discreto text-xs">
           Voltar para conferir
         </button>
       ))}

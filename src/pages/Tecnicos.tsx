@@ -7,7 +7,7 @@ import { ExternalLink, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, chip } from "@/components/ui";
 import { CartaoCadastro, Contato, ContatoBotoes } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -81,7 +81,7 @@ function EscolherUfs({ valor, onChange }: { valor: string[] | null | undefined; 
         const on = lista.includes(u);
         return (
           <button key={u} type="button" aria-pressed={on} onClick={() => onChange(on ? lista.filter((x) => x !== u) : [...lista, u].sort())}
-            className={`num w-10 rounded-md py-1 text-xs font-bold transition ${on ? "bg-brand text-brand-fg" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>{u}</button>
+            className={`${chip(on)} num w-10 justify-center`}>{u}</button>
         );
       })}
     </div>

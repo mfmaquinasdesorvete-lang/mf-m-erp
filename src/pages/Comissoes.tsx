@@ -95,12 +95,10 @@ function ListaComissoes({ financeiro, userId }: { financeiro: boolean; userId?: 
       {financeiro && porVendedor.length > 0 && (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {porVendedor.slice(0, 8).map(([id, v]) => (
-            <button key={id} type="button" className="text-left" onClick={() => { setVend(id); setStatus("a_pagar"); }}>
-              <Card className="p-4 hover:border-brand">
-                <div className="font-semibold text-fg">{nome(id)}</div>
-                <div className="num mt-1 text-lg font-bold">{brl(v.aPagar)}</div>
-                <div className="text-xs text-slate-500">a pagar · {brl(v.pagas)} já pago</div>
-              </Card>
+            <button key={id} type="button" className="cartao p-4 text-left hover:border-brand" onClick={() => { setVend(id); setStatus("a_pagar"); }}>
+              <div className="font-semibold text-fg">{nome(id)}</div>
+              <div className="num mt-1 text-lg font-bold">{brl(v.aPagar)}</div>
+              <div className="text-xs text-slate-500">a pagar · {brl(v.pagas)} já pago</div>
             </button>
           ))}
         </div>

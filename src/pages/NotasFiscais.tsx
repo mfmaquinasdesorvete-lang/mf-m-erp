@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { ArrowLeft, Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Scale, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
-import { Button, CelulaAbrir, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
+import { Button, CelulaAbrir, chip, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
@@ -86,7 +86,7 @@ function AbasContagem({ abas, valor, onChange }: { abas: { valor: string; rotulo
     <div className="faixa-chips mb-3" role="tablist">
       {abas.map((a) => (
         <button key={a.valor} type="button" role="tab" aria-selected={valor === a.valor} onClick={() => onChange(a.valor)}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${valor === a.valor ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:bg-slate-50"}`}>
+          className={chip(valor === a.valor)}>
           {a.icone}{a.rotulo}
           <span className={`rounded-full px-1.5 text-xs ${valor === a.valor ? "bg-black/15" : "bg-slate-100 text-slate-600"}`}>{a.n}</span>
         </button>

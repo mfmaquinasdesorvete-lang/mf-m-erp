@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ClipboardCheck, Plus, ShieldCheck, Star } from "lucide-react";
-import { Button, Card, Field, Modal, PageHeader } from "@/components/ui";
+import { Button, Card, chip, Field, Modal, PageHeader } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
@@ -105,7 +105,7 @@ export default function AvaliacaoFornecedores() {
       <div className="faixa-chips mb-3">
         {FILTROS.map((x) => (
           <button key={x.id} type="button" aria-pressed={filtro === x.id} onClick={() => setFiltro(x.id)}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${filtro === x.id ? "border-brand bg-brand text-white" : "border-slate-300 bg-surface text-slate-700"}`}>{x.rotulo}</button>
+            className={chip(filtro === x.id)}>{x.rotulo}</button>
         ))}
       </div>
 
@@ -132,7 +132,7 @@ export default function AvaliacaoFornecedores() {
                 </div>
                 <button type="button" onClick={() => alternarCritico(f)} disabled={!podeAvaliar} aria-pressed={!!f.critico}
                   title={f.critico ? "Fornecedor crítico (peça que afeta a qualidade das máquinas). Toque para tirar" : "Marcar como crítico (peça que afeta a qualidade ou a certificação das máquinas)"}
-                  className={`shrink-0 rounded-lg p-1.5 ${f.critico ? "text-amber-500" : "text-slate-300 hover:text-amber-400"}`}>
+                  className={`botao-icone ${f.critico ? "text-amber-500 hover:text-amber-500" : "text-slate-300 hover:text-amber-400"}`}>
                   <Star size={18} fill={f.critico ? "currentColor" : "none"} aria-hidden /><span className="sr-only">Crítico</span>
                 </button>
               </div>

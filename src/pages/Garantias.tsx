@@ -283,7 +283,7 @@ export function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipa
             NF nº <input className="input !min-h-0 w-24 !py-1 text-xs" inputMode="numeric" value={nfSerie} onChange={(x) => setNfSerie(x.target.value)} aria-label="Número da NF da venda" />
             {(() => {
               const sug = serieMF(bicosDoModelo(e.descricao), e.data_venda, nfSerie);
-              return sug ? <button type="button" className="rounded-md bg-brand px-2 py-1 font-bold text-brand-fg" onClick={() => set({ numero_serie: sug })}>Usar {sug}</button>
+              return sug ? <Button type="button" tamanho="mini" onClick={() => set({ numero_serie: sug })}>Usar {sug}</Button>
                 : <span>{bicosDoModelo(e.descricao) ? "digite a NF para gerar" : "não sei os bicos pelo modelo"}</span>;
             })()}
           </span>

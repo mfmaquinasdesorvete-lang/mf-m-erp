@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Flag, Lightbulb } from "lucide-react";
-import { Card, PageHeader, Tabs } from "@/components/ui";
+import { Button, Card, PageHeader, Tabs } from "@/components/ui";
 import { Backlog } from "@/components/scrum/Backlog";
 import { ComoUsar } from "@/components/scrum/ComoUsar";
 import { DailyScrum } from "@/components/scrum/DailyScrum";
@@ -123,8 +123,8 @@ function SemSprint({ planejada, onSprints, onBacklog }: { planejada: Sprint | nu
     <Card className="p-8 text-center">
       <p className="text-sm text-slate-600">{planejada ? `A sprint ${planejada.numero} está planejada: inicie quando os itens estiverem nela.` : "Nenhuma sprint em andamento."}</p>
       <div className="mt-3 flex flex-wrap justify-center gap-2">
-        <button type="button" onClick={onSprints} className="rounded-lg bg-modulo-escuro px-4 py-2 text-sm font-semibold text-white">{planejada ? "Abrir a sprint" : "Planejar a sprint"}</button>
-        <button type="button" onClick={onBacklog} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Ver o backlog</button>
+        <Button type="button" onClick={onSprints}>{planejada ? "Abrir a sprint" : "Planejar a sprint"}</Button>
+        <Button type="button" variant="secondary" onClick={onBacklog}>Ver o backlog</Button>
       </div>
     </Card>
   );

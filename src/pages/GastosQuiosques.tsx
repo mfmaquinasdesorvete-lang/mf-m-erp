@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Hammer, PaintBucket, Receipt, Store, Wallet } from "lucide-react";
-import { Button, Card, nomeMes, Stat, Table } from "@/components/ui";
+import { Button, Card, chip, nomeMes, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useMarcadores } from "@/components/nfe/Marcadores";
@@ -170,10 +170,10 @@ export default function GastosQuiosques() {
         direita={<Button variant="secondary" onClick={exportar} disabled={!notasVis.length && !pagsVis.length}><Download size={16} /> Exportar</Button>} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Grupo de material">
         <button type="button" aria-pressed={!grupo} onClick={() => setGrupo("")}
-          className={`rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${!grupo ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>Tudo</button>
+          className={chip(!grupo)}>Tudo</button>
         {porGrupo.map((g) => (
           <button key={g.id} type="button" aria-pressed={grupo === g.id} onClick={() => setGrupo(grupo === g.id ? "" : g.id)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${grupo === g.id ? `${g.chip} ring-2` : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>
+            className={chip(grupo === g.id, `${g.chip} ring-2`)}>
             <span className={`h-2.5 w-2.5 rounded-full ${g.barra}`} aria-hidden />{g.nome}
           </button>
         ))}
@@ -196,7 +196,7 @@ export default function GastosQuiosques() {
                 const Icone = ICONE[g.id];
                 return (
                   <li key={g.id}>
-                    <button type="button" onClick={() => setGrupo(grupo === g.id ? "" : g.id)} className={`w-full rounded-lg px-2 py-1 text-left hover:bg-slate-50 ${grupo === g.id ? "ring-2 ring-brand/40" : ""}`}>
+                    <button type="button" onClick={() => setGrupo(grupo === g.id ? "" : g.id)} className={`linha-clicavel px-2 py-1 ${grupo === g.id ? "ring-2 ring-brand/40" : ""}`}>
                       <div className="flex flex-wrap justify-between gap-x-3 text-sm">
                         <span className="flex items-center gap-1.5 font-semibold text-fg"><Icone size={15} aria-hidden /> {g.nome}</span>
                         <span className="num whitespace-nowrap">{brl(g.total)}</span>
@@ -216,7 +216,7 @@ export default function GastosQuiosques() {
             <ul className="space-y-1.5">
               {porMes.map((x) => (
                 <li key={x.mes}>
-                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`linha-clicavel px-2 py-1 text-sm ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(x.mes)}</span><span className="num whitespace-nowrap">{brl(x.total)}</span></div>
                     <div className="mt-1 flex h-2.5 overflow-hidden rounded-full bg-slate-100" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }}>
                       {GRUPOS_QUIOSQUE.filter((g) => x.partes[g.id] > 0).map((g) => <div key={g.id} className={g.barra} style={{ width: `${(x.partes[g.id] / x.total) * 100}%` }} title={`${g.nome}: ${brl(x.partes[g.id])}`} />)}

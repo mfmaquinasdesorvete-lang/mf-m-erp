@@ -556,10 +556,10 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     {!somenteLeitura && (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {cliente?.whatsapp && <a href={whatsappLink(cliente.whatsapp, termo)} target="_blank" rel="noreferrer" className="rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">Mandar termo{pixVideo ? " + Pix" : ""}</a>}
-                        <button type="button" className="rounded-md border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold"
-                          onClick={() => navigator.clipboard.writeText(termo).then(() => notify("Termo copiado"), () => notify("Não deu para copiar", "erro"))}>Copiar termo</button>
-                        {!o.orcamento_aprovado_em && <button type="button" className="rounded-md border border-purple-300 bg-surface px-2 py-1 text-xs font-semibold text-purple-900"
-                          onClick={() => set({ orcamento_aprovado_em: new Date().toISOString(), orcamento_aprovado_por: o.orcamento_aprovado_por || "Cliente, ACEITO pelo WhatsApp" })}>Cliente aceitou</button>}
+                        <Button type="button" variant="secondary" tamanho="mini"
+                          onClick={() => navigator.clipboard.writeText(termo).then(() => notify("Termo copiado"), () => notify("Não deu para copiar", "erro"))}>Copiar termo</Button>
+                        {!o.orcamento_aprovado_em && <Button type="button" tom="servico" tamanho="mini"
+                          onClick={() => set({ orcamento_aprovado_em: new Date().toISOString(), orcamento_aprovado_por: o.orcamento_aprovado_por || "Cliente, ACEITO pelo WhatsApp" })}>Cliente aceitou</Button>}
                       </div>
                     )}
                   </li>
@@ -567,8 +567,8 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     <b>2. Pix pago</b>
                     <span className="block text-xs">{o.em_garantia ? "Na garantia: sem cobrança." : o.video_pago_em ? `Pago em ${dataBR(o.video_pago_em.slice(0, 10))} (${brl(valorVideoOS)})` : pixVideo ? `${brl(valorVideoOS)} — o Pix vai junto com o termo.` : `${brl(valorVideoOS)} — cadastre a chave Pix da unidade para ir junto.`}</span>
                     {!somenteLeitura && !o.em_garantia && (
-                      <button type="button" className="mt-1.5 rounded-md border border-purple-300 bg-surface px-2 py-1 text-xs font-semibold text-purple-900"
-                        onClick={() => set({ video_pago_em: o.video_pago_em ? null : new Date().toISOString() })}>{o.video_pago_em ? "Desfazer" : "Pix recebido"}</button>
+                      <Button type="button" tom="servico" tamanho="mini" className="mt-1.5"
+                        onClick={() => set({ video_pago_em: o.video_pago_em ? null : new Date().toISOString() })}>{o.video_pago_em ? "Desfazer" : "Pix recebido"}</Button>
                     )}
                   </li>
                   <li className={`rounded-lg border p-2 ${o.agendado_em ? "border-emerald-200 bg-emerald-50 text-emerald-900" : passo === 3 ? "border-purple-300 bg-surface text-fg" : "border-slate-200 bg-surface text-slate-500"}`}>
@@ -873,7 +873,7 @@ function FotosOS({ fotos, podeEditar, ocupado, onEnviar, onRemover }: {
             <figcaption className="px-2 py-1 text-2xs text-slate-500">{new Date(f.criado_em).toLocaleString("pt-BR")}</figcaption>
             {podeEditar && (
               <button type="button" onClick={() => onRemover(f.caminho)} aria-label="Remover foto"
-                className="absolute right-1.5 top-1.5 rounded-lg bg-surface/90 p-1.5 text-red-600 shadow transition focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
+                className="botao-icone-perigo absolute right-1.5 top-1.5 bg-surface/90 text-red-600 shadow focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
                 <Trash2 size={14} />
               </button>
             )}
@@ -901,10 +901,9 @@ function ServicosOS({ onEscolher }: { onEscolher: (s: Produto) => void }) {
       <div className="mb-2 text-xs font-semibold text-slate-600">Serviços (somam na mão de obra e vão para o serviço executado)</div>
       <div className="flex flex-wrap gap-1.5">
         {servicos.map((sv) => (
-          <button key={sv.id} type="button" onClick={() => onEscolher(sv)}
-            className="rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-800 hover:bg-teal-100">
+          <Button key={sv.id} type="button" tom="servico" tamanho="mini" onClick={() => onEscolher(sv)}>
             + {sv.descricao.replace(/\s*\(servi[cç]o\)\s*$/i, "")}{Number(sv.preco_venda) > 0 ? ` · ${brl(Number(sv.preco_venda))}` : ""}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

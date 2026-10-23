@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, Wrench, XCircle,
 } from "lucide-react";
-import { Badge, CelulaAbrir, Button, Card, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
+import { Badge, CelulaAbrir, Button, Card, chip, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { limpar, useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra, sincronizarItens } from "@/lib/itens";
@@ -168,7 +168,7 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
       <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de ordem">
         {SETORES.map(({ v, rotulo: r }) => (
           <button key={v} type="button" aria-pressed={tipoOp === v} onClick={() => setTipoOp(v)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${tipoOp === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            className={chip(tipoOp === v)}>
             {v === "maquinas" ? <Factory size={15} aria-hidden /> : v === "tornearia" ? <Cog size={15} aria-hidden /> : <Wrench size={15} aria-hidden />}{r}
             <span className="num rounded-full bg-black/10 px-1.5 text-xs" title="Ordens abertas (planejadas e em produção)">{abertasDe(v)}</span>
           </button>

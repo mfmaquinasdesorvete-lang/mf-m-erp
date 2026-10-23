@@ -2,7 +2,7 @@
 // envio automático, mês travado depois de fechado e conversa com o financeiro.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CircleHelp, Download, FilePlus2, Lock, LockOpen, Mail, MessageSquare, Send } from "lucide-react";
-import { Button, CampoMes, Card, Field, Modal, PageHeader, Section, Tabs } from "@/components/ui";
+import { Button, CampoMes, Card, chip, Field, Modal, PageHeader, Section, Tabs } from "@/components/ui";
 import { ChipRevisao } from "@/components/financeiro/Revisao";
 import { TABELA, type ContaRevisao, type TipoConta } from "@/lib/aprovacao";
 import { Anexos } from "@/components/Anexos";
@@ -59,7 +59,7 @@ export default function Contador() {
         <div className="flex gap-1.5">
           {unidades.map((u) => (
             <button key={u.id} type="button" onClick={() => setUnid(u.id)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${unid === u.id ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>{u.nome}</button>
+              className={chip(unid === u.id)}>{u.nome}</button>
           ))}
         </div>
       </div>
@@ -290,7 +290,7 @@ function Mensagens({ unidadeId, comp, meuNome }: { unidadeId: string; comp: stri
             <li key={m.id} className={`rounded-xl border p-2.5 text-sm ${m.resolvida ? "border-slate-100 opacity-90" : "border-slate-200"}`}>
               <div className="mb-0.5 flex items-center gap-2 text-xs text-slate-500">
                 <b className="text-slate-700">{m.autor_nome ?? "—"}</b> {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "agora"}
-                <button type="button" onClick={() => resolver(m)} className="ml-auto rounded px-1 font-semibold text-brand" aria-pressed={!!m.resolvida}>{m.resolvida ? "reabrir" : "resolvido ✓"}</button>
+                <button type="button" onClick={() => resolver(m)} className="link-acao ml-auto px-1" aria-pressed={!!m.resolvida}>{m.resolvida ? "reabrir" : "resolvido ✓"}</button>
               </div>
               <p className="whitespace-pre-line text-fg">{m.texto}</p>
             </li>
@@ -377,7 +377,7 @@ function LancamentosMes({ unidadeId, comp, contador, fechado }: { unidadeId: str
       <div role="tablist" aria-label="Filtrar lançamentos" className="faixa-chips mb-3">
         {([["todos", "Todos"], ["validar", `A validar (${aValidar.length})`], ["nao_aprovados", "Ainda não aprovados"], ["duvidas", "Dúvidas e ajustados"]] as const).map(([v, t]) => (
           <button key={v} type="button" role="tab" aria-selected={filtro === v} onClick={() => setFiltro(v)}
-            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>{t}</button>
+            className={chip(filtro === v)}>{t}</button>
         ))}
       </div>
       {lista.length ? (

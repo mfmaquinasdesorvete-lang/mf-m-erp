@@ -306,7 +306,7 @@ export default function Licenciados() {
         {lista.length > 12 && <button type="button" className="link-acao mt-2 text-sm" onClick={() => setVerTodas(!verTodas)}>{verTodas ? "Mostrar menos" : `Ver as ${lista.length}`}</button>}
         {descartes.length > 0 && (
           <div className="mt-3 border-t border-slate-100 pt-2 text-sm">
-            <button type="button" className="font-semibold text-slate-600 hover:underline" onClick={() => setVerDescartes(!verDescartes)}>
+            <button type="button" className="link-discreto" onClick={() => setVerDescartes(!verDescartes)}>
               {descartes.length} {pl(descartes.length, "entrada marcada", "entradas marcadas")} como "não é de loja" {verDescartes ? "▲" : "▼"}
             </button>
             {verDescartes && (
@@ -411,8 +411,8 @@ export default function Licenciados() {
                     {Number(p.taxa) > 0 && <span className="num block text-2xs text-slate-500">taxa {brl(p.taxa)}</span>}
                   </span>
                   <span className="flex shrink-0 gap-1">
-                    <button type="button" className="rounded p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Editar pagamento" title="Editar" onClick={() => setEditPag(p)}><Pencil size={15} /></button>
-                    <button type="button" className="rounded p-1.5 text-red-600 hover:bg-red-50" aria-label="Anular pagamento" title="Anular (a entrada volta para conferir)" onClick={() => anular(p)}><Undo2 size={15} /></button>
+                    <button type="button" className="botao-icone" aria-label="Editar pagamento" title="Editar" onClick={() => setEditPag(p)}><Pencil size={15} /></button>
+                    <button type="button" className="botao-icone-perigo" aria-label="Anular pagamento" title="Anular (a entrada volta para conferir)" onClick={() => anular(p)}><Undo2 size={15} /></button>
                   </span>
                 </li>
               );
@@ -611,7 +611,7 @@ function EditorSocios({ valor, onChange }: { valor: Socio[]; onChange: (v: Socio
           <input className="input" value={x.nome ?? ""} onChange={(e) => mudar(i, "nome", e.target.value)} placeholder="Nome do sócio" aria-label={`Nome do sócio ${i + 1}`} maxLength={120} />
           <input className="input" inputMode="decimal" value={x.participacao ?? ""} onChange={(e) => mudar(i, "participacao", e.target.value)} placeholder="%" aria-label={`Participação do sócio ${i + 1} (%)`} />
           <input className="input hidden sm:block" inputMode="tel" value={x.telefone ?? ""} onChange={(e) => mudar(i, "telefone", e.target.value)} placeholder="Telefone" aria-label={`Telefone do sócio ${i + 1}`} maxLength={40} />
-          <button type="button" onClick={() => onChange(valor.filter((_, j) => j !== i))} className="rounded-lg px-2 text-red-600 hover:bg-red-50" aria-label={`Tirar o sócio ${i + 1}`}><X size={16} /></button>
+          <button type="button" onClick={() => onChange(valor.filter((_, j) => j !== i))} className="botao-icone-perigo px-2" aria-label={`Tirar o sócio ${i + 1}`}><X size={16} /></button>
         </div>
       ))}
       <div className="flex flex-wrap items-center gap-3">

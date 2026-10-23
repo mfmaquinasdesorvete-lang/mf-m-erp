@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Package, Receipt, ShoppingBag, Store, Wallet } from "lucide-react";
-import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { Card, chip, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
@@ -155,13 +155,13 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
         nFiltros={(conta ? 1 : 0) + (qual ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setQual(""); setFaixa(SEM_PERIODO); }} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Marketplace">
         <button type="button" aria-pressed={!qual} onClick={() => setQual("")}
-          className={`rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${!qual ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>Todos</button>
+          className={chip(!qual)}>Todos</button>
         {MARKETPLACES.map((m) => {
           const n = notas.filter((x) => x.marketplace === m.id && doMes(x.data_emissao)).length + pagamentos.filter((p) => p.marketplace === m.id && doMes(p.data) && !ligacao.has(p.id)).length;
           if (!n && qual !== m.id) return null;
           return (
             <button key={m.id} type="button" aria-pressed={qual === m.id} onClick={() => setQual(qual === m.id ? "" : m.id)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${qual === m.id ? `${m.chip} ring-2` : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>
+              className={chip(qual === m.id, `${m.chip} ring-2`)}>
               <span className={`h-2.5 w-2.5 rounded-full ${m.barra}`} aria-hidden />{m.nome} <span className="text-xs opacity-70">{n}</span>
             </button>
           );
@@ -191,7 +191,7 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
             <ul className="space-y-3">
               {porMkt.map((m) => (
                 <li key={m.id}>
-                  <button type="button" onClick={() => setQual(qual === m.id ? "" : m.id)} className={`w-full rounded-lg px-2 py-1 text-left hover:bg-slate-50 ${qual === m.id ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setQual(qual === m.id ? "" : m.id)} className={`linha-clicavel px-2 py-1 ${qual === m.id ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex flex-wrap justify-between gap-x-3 text-sm">
                       <span className="font-semibold text-fg">{m.nome}</span>
                       <span className="num whitespace-nowrap">{brl(m.total)} · {m.notas} {pl(m.notas, "nota", "notas")}</span>
@@ -211,7 +211,7 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
             <ul className="space-y-1.5">
               {porMes.map((x) => (
                 <li key={x.mes}>
-                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`linha-clicavel px-2 py-1 text-sm ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(x.mes)}</span><span className="num whitespace-nowrap">{brl(x.total)}</span></div>
                     <div className="mt-1 flex h-2.5 overflow-hidden rounded-full bg-slate-100" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }}>
                       {x.partes.map(([mk, v]) => <div key={mk} className={ESTILO[mk].barra} style={{ width: `${(v / x.total) * 100}%` }} title={`${NOME_MARKETPLACE[mk]}: ${brl(v)}`} />)}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Ban, Check, FileUp, Landmark, Link2, List, Mail, Pencil, Plus, Receipt, Scale, Undo2, UserRound, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CartaoPainel, variacao } from "@/components/painel/Painel";
-import { Badge, Button, CampoMes, Card, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
+import { Badge, Button, CampoMes, Card, chip, Field, Modal, PageHeader, Section, Table } from "@/components/ui";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { Colunas, Ranking } from "@/components/Charts";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
@@ -710,7 +710,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
         {([["conta", entrada ? "É uma conta a receber" : "É uma conta a pagar", Link2], ["lancar", entrada ? "Lançar como receita" : "Lançar como despesa (tarifa, juros…)", Receipt],
           ["transferencia", "Transferência entre contas", ArrowLeftRight], ["ignorar", "Ignorar", Ban]] as const).map(([v, l, I]) => (
           <button key={v} type="button" onClick={() => setModo(v)}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${modo === v ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}><I size={14} /> {l}</button>
+            className={chip(modo === v)}><I size={14} /> {l}</button>
         ))}
       </div>
 

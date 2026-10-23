@@ -134,7 +134,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
           const ativo = grupo === g.id;
           return (
             <button key={g.id} type="button" onClick={() => setGrupo(ativo ? "" : g.id)} aria-pressed={ativo} disabled={!x.n && !ativo}
-              className={`rounded-2xl border bg-surface p-4 text-left shadow-sm transition enabled:hover:shadow-pop disabled:opacity-60 ${ativo ? "border-brand ring-2 ring-brand/40" : "border-slate-200"}`}>
+              className={`cartao p-4 text-left transition enabled:hover:shadow-pop disabled:opacity-60 ${ativo ? "border-brand ring-2 ring-brand/40" : ""}`}>
               <div className="flex items-start gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700"><g.icone size={18} aria-hidden /></span>
                 <span className="min-w-0">
@@ -188,7 +188,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
                   <li key={t.tipo}>
                     {/* tocar filtra a lista pelo tipo (busca na descrição) */}
                     <button type="button" onClick={() => setBusca(t.tipo)} title={`Mostrar só "${t.tipo}"`}
-                      className="flex w-full items-center gap-2 py-1.5 text-left hover:bg-slate-50">
+                      className="linha-clicavel flex items-center gap-2 py-1.5">
                       <span className="min-w-0 flex-1 truncate text-fg">{t.tipo}</span>
                       <span className="num shrink-0 rounded-full bg-slate-100 px-2 text-xs font-bold text-slate-700">{t.n}×{t.unitario != null ? ` ${brl(t.unitario)}` : ""}</span>
                       <span className="num w-24 shrink-0 text-right font-semibold text-red-600">{brl(t.total)}</span>
@@ -205,7 +205,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
             <ul className="space-y-1.5">
               {porMes.map(([m, x]) => (
                 <li key={m}>
-                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`linha-clicavel px-2 py-1 text-sm ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(m)}</span><span className="num whitespace-nowrap">{brl(x.total)} · {x.n} {pl(x.n, "pagamento", "pagamentos")}</span></div>
                     <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }} /></div>
                   </button>

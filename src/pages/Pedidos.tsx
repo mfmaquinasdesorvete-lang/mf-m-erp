@@ -12,7 +12,7 @@ import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
-import { Badge, Button, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
+import { Badge, Button, chip, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
 import { osDoPedido } from "@/lib/osVideo";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
 import { ItensEditor, totalItens } from "@/components/ItensEditor";
@@ -349,7 +349,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           {area === "maquinas" && (
             <button type="button" aria-pressed={soLicenciados} onClick={() => setSoLicenciados((v) => !v)}
               title="Clientes com a etiqueta Licenciado My Frost (marque em Clientes: selecione e use a ação em lote)"
-              className={`h-10 shrink-0 rounded-lg border px-3 text-sm font-semibold transition ${soLicenciados ? "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500" : "border-slate-200 bg-surface text-purple-700 hover:border-slate-300"}`}>
+              className={`${chip(soLicenciados, "border-purple-500 bg-purple-100 text-purple-800 ring-1 ring-purple-500")} h-10`}>
               Licenciados My Frost <span className="num ml-1 opacity-90">{pedidos.filter((x) => ehLicenciado(x.cliente)).length}</span>
             </button>
           )}
@@ -382,7 +382,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <input type="checkbox" className="absolute right-3 top-3 z-[1] h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
           {/* celular: nº e etiquetas numa linha, o cliente na linha de baixo (até 2 linhas), a situação em fila e o valor à direita da data */}
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
-            className="flex w-full gap-3 rounded-xl p-3 pb-1.5 text-left active:bg-slate-50">
+            className="linha-clicavel flex gap-3 p-3 pb-1.5 active:bg-slate-50">
             <MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 pr-8 text-sm">
@@ -412,7 +412,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <div className="flex items-center justify-between gap-2 px-2 pb-1.5">
             <BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} />
             <span className="flex items-center gap-1">{menuVenda(p)}
-            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="flex items-center gap-0.5 px-2 py-1 text-sm font-semibold text-brand">Abrir <ChevronRight size={16} /></button></span>
+            <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} className="link-acao flex items-center gap-0.5 px-2 py-1 text-sm">Abrir <ChevronRight size={16} /></button></span>
           </div>
           </div>
         ))}
@@ -504,7 +504,7 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
           </button>
         );
       })}
-      {valor && <button type="button" onClick={() => onChange("")} className="px-1 text-xs font-semibold text-slate-500 hover:text-fg">Todas</button>}
+      {valor && <button type="button" onClick={() => onChange("")} className="link-discreto px-1 text-xs">Todas</button>}
     </div>
   );
 }
@@ -1098,7 +1098,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
             {descAcima && limiteDesc && (precisaAprovarDesc ? (
               <span className="mt-1 block text-xs text-amber-800">
                 Passa do máximo de {pctTexto(limiteDesc.max)} ({rotuloRegra(p.origem ?? "todos", p.forma_pagamento)}).
-                {editavel && <button type="button" className="ml-1 font-semibold text-brand underline" disabled={ocupado}
+                {editavel && <button type="button" className="link-acao ml-1" disabled={ocupado}
                   onClick={() => executar(async () => setAprovarDesc(await gravar()), "Orçamento salvo: falta a senha do administrador", false)}>Aprovar desconto</button>}
               </span>
             ) : <span className="mt-1 block text-xs font-semibold text-emerald-700">Desconto aprovado (até {pctTexto(descAprovado)})</span>)}

@@ -513,7 +513,7 @@ export default function Pdv() {
           <Card className="space-y-3 p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-bold">Pagamento</h2>
-              <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-modulo-texto hover:underline" aria-pressed={dividir}
+              <button type="button" className="link-modulo inline-flex items-center gap-1 text-xs" aria-pressed={dividir}
                 onClick={() => { setDividir(!dividir); setPagamentos([]); }}><Split size={14} aria-hidden /> {dividir ? "Um meio só" : "Dividir pagamento"}</button>
             </div>
             <div className="grid grid-cols-3 gap-2" role="group" aria-label="Forma de pagamento">
