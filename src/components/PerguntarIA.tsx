@@ -100,6 +100,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
           {EXEMPLOS.map((x) => <Button key={x} type="button" tamanho="mini" variant="secondary" onClick={() => { setPergunta(x); perguntar(x); }}>{x}</Button>)}
         </div>
       )}
+      {!pronta && !resposta && <p className="mt-2 text-xs text-slate-500">No celular dá para perguntar falando: toque no campo e use o 🎤 do teclado.</p>}
       {pronta && <RespostaPronta key={pronta} tipo={pronta} onIr={onClose} />}
       {erro && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{erro}</p>}
       {resposta && (

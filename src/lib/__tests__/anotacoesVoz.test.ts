@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizarVoz, termosBusca } from "../../../supabase/functions/_shared/ia-voz";
-import { acharPessoa, parada, tiposPermitidos } from "../anotacoesVoz";
+import { acharPessoa, parada, tiposPermitidos, vozBloqueadaEm } from "../anotacoesVoz";
 
 describe("normalizarVoz", () => {
   it("aceita o que a IA entendeu e limpa o nº de série", () => {
@@ -53,5 +53,18 @@ describe("tiposPermitidos e parada", () => {
     expect(parada({ situacao: "pendente", criado_em: "2026-10-20T12:00:00Z" }, agora)).toBe(true);
     expect(parada({ situacao: "pendente", criado_em: "2026-10-22T12:00:00Z" }, agora)).toBe(false);
     expect(parada({ situacao: "conferido", criado_em: "2026-10-01T12:00:00Z" }, agora)).toBe(false);
+  });
+});
+
+describe("vozBloqueadaEm", () => {
+  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148";
+  it("iPhone pelo ícone da tela inicial: a Apple bloqueia o reconhecimento de fala", () => {
+    expect(vozBloqueadaEm({ ua: iphone, standalone: true, toque: 5 })).toBe(true);
+    expect(vozBloqueadaEm({ ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15", standalone: true, toque: 5 })).toBe(true); // iPad
+  });
+  it("iPhone no Safari, Android e computador continuam ouvindo", () => {
+    expect(vozBloqueadaEm({ ua: iphone, standalone: false, toque: 5 })).toBe(false);
+    expect(vozBloqueadaEm({ ua: "Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile", standalone: true, toque: 5 })).toBe(false);
+    expect(vozBloqueadaEm({ ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130", standalone: true, toque: 0 })).toBe(false);
   });
 });

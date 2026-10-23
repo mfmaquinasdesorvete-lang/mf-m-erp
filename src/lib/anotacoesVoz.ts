@@ -59,6 +59,20 @@ type Reconhecedor = {
   onresult: ((e: any) => void) | null; onerror: ((e: any) => void) | null; onend: (() => void) | null;
 };
 
+/**
+ * iPhone/iPad com o ERP aberto pelo ícone da tela inicial: a Apple não libera o reconhecimento de fala do navegador
+ * ali (o microfone liga, mas não volta texto). Nesse caso a janela já abre no campo de texto, com a dica do 🎤 do teclado.
+ */
+export function vozBloqueadaEm(a: { ua: string; standalone: boolean; toque: number }) {
+  const ios = /iPhone|iPad|iPod/i.test(a.ua) || (/Macintosh/i.test(a.ua) && a.toque > 1);
+  return ios && a.standalone;
+}
+export function vozBloqueada() {
+  if (typeof window === "undefined") return false;
+  const standalone = (navigator as any).standalone === true || !!window.matchMedia?.("(display-mode: standalone)").matches;
+  return vozBloqueadaEm({ ua: navigator.userAgent, standalone, toque: navigator.maxTouchPoints ?? 0 });
+}
+
 export function suportaVoz() {
   return typeof window !== "undefined" && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 }
@@ -70,7 +84,11 @@ export function ouvir(cb: { parcial: (t: string) => void; fim: (t: string) => vo
   r.lang = "pt-BR"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
   let final = "";
   let parcial = "";
+  let ouviu = false;
+  // nada ouvido em 8 segundos (microfone bloqueado sem aviso, como no app do iPhone): avisa e para
+  const vigia = setTimeout(() => { if (!ouviu) { cb.erro("Não ouvi nada. Fale de novo ou escreva no campo (o 🎤 do teclado também dita)."); try { r.stop(); } catch { /* já parou */ } } }, 8000);
   r.onresult = (e: any) => {
+    ouviu = true;
     parcial = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript;
@@ -81,10 +99,12 @@ export function ouvir(cb: { parcial: (t: string) => void; fim: (t: string) => vo
   r.onerror = (e: any) => {
     const msg = e?.error === "not-allowed" || e?.error === "service-not-allowed"
       ? "O microfone está bloqueado: libere o microfone para este site nas configurações do navegador."
-      : e?.error === "no-speech" ? "Não ouvi nada: aperte e fale de novo." : e?.error === "network" ? "Sem internet para entender a fala: tente de novo." : "";
+      : e?.error === "no-speech" ? "Não ouvi nada: aperte e fale de novo." : e?.error === "network" ? "Sem internet para entender a fala: tente de novo."
+      : e?.error === "audio-capture" ? "O celular não liberou o microfone: confira se outro app está usando e tente de novo."
+      : e?.error === "aborted" ? "" : "O microfone não funcionou aqui: escreva no campo (o 🎤 do teclado também dita).";
     if (msg) cb.erro(msg);
   };
-  r.onend = () => cb.fim(`${final}${parcial}`.trim());
+  r.onend = () => { clearTimeout(vigia); cb.fim(`${final}${parcial}`.trim()); };
   r.start();
-  return { parar: () => r.stop(), cancelar: () => { r.onend = null; r.abort(); } };
+  return { parar: () => r.stop(), cancelar: () => { clearTimeout(vigia); r.onend = null; r.abort(); } };
 }

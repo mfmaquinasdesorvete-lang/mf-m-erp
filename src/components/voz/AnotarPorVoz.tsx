@@ -2,10 +2,12 @@
 // vídeo chamada", "a Braspress coletou a máquina do pedido 1520"), a IA entende (função ia-voz), a pessoa confere o
 // resumo e o registro e confirma. A voz só anota: vira OBS no registro e aviso para quem confere (anotar_por_voz).
 // Sem a IA (chave não cadastrada ou fora do ar) dá para anotar do mesmo jeito, escolhendo o tipo e escrevendo.
+// Pergunta rápida falada ("o que foi vendido hoje?", "tem frete demorando?") responde na hora, sem anotar.
+// iPhone pelo ícone da tela inicial: a Apple não deixa o ERP ouvir; a janela abre no campo com a dica do 🎤 do teclado.
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Mic, MicOff, RotateCcw, Sparkles } from "lucide-react";
+import { Check, Loader2, Mic, RotateCcw, Sparkles } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { useVisivel } from "@/lib/menu";
@@ -13,10 +15,12 @@ import { usePerfil } from "@/lib/auth";
 import { brl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import {
-  acharPessoa, ouvir, suportaVoz, TIPOS, tiposPermitidos, type CandidatoVoz, type RespostaVoz, type TipoVoz,
+  acharPessoa, ouvir, suportaVoz, TIPOS, tiposPermitidos, vozBloqueada, type CandidatoVoz, type RespostaVoz, type TipoVoz,
 } from "@/lib/anotacoesVoz";
+import { reconhecer, type Pronta } from "@/lib/respostasProntas";
+import { RespostaPronta } from "@/components/RespostaPronta";
 
-type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando";
+type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando" | "resposta";
 const SEM_REGISTRO = "";
 
 export function AnotarPorVoz() {
@@ -27,7 +31,7 @@ export function AnotarPorVoz() {
   if (papel === "contador" || pathname.startsWith("/pdv")) return null;
   return (
     <>
-      <button type="button" onClick={() => setAberto(true)} aria-label="Anotar por voz" title="Anotar por voz"
+      <button type="button" onClick={() => setAberto(true)} aria-label="Anotar ou perguntar por voz" title="Anotar ou perguntar por voz"
         className="fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-3 z-gaveta grid h-11 w-11 place-items-center rounded-full bg-brand text-brand-fg shadow-pop ring-2 ring-white/50 transition hover:scale-105 active:scale-95 md:bottom-20 md:right-5 md:h-12 md:w-12">
         <Mic className="h-6 w-6 md:h-5 md:w-5" />
       </button>
@@ -40,7 +44,10 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
   const vis = useVisivel();
   const qc = useQueryClient();
   const permitidos = tiposPermitidos((t) => vis.ve(t));
-  const [etapa, setEtapa] = useState<Etapa>(suportaVoz() ? "ouvindo" : "texto");
+  const bloqueada = vozBloqueada();
+  const usarVoz = suportaVoz() && !bloqueada;
+  const [etapa, setEtapa] = useState<Etapa>(usarVoz ? "ouvindo" : "texto");
+  const [pronta, setPronta] = useState<Pronta | null>(null);
   const [fala, setFala] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [semIa, setSemIa] = useState(false);
@@ -78,6 +85,9 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
     microfone.current?.parar();
     const texto = fala.trim();
     if (texto.length < 4) { setErro("Fale ou escreva o que quer anotar."); return; }
+    // pergunta rápida: responde na hora, sem a IA e sem anotar
+    const pergunta = reconhecer(texto);
+    if (pergunta) { setErro(null); setPronta(pergunta); setEtapa("resposta"); return; }
     setErro(null); setEtapa("entendendo");
     try {
       aplicar(await callFunction<RespostaVoz>("ia-voz", { fala: texto }));
@@ -105,24 +115,30 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
 
   const ouvindo = etapa === "ouvindo";
   return (
-    <Modal open onClose={() => { microfone.current?.cancelar(); onClose(); }} title="Anotar por voz">
+    <Modal open onClose={() => { microfone.current?.cancelar(); onClose(); }} title="Anotar ou perguntar por voz">
       {(etapa === "ouvindo" || etapa === "texto" || etapa === "entendendo") && (
         <div className="space-y-4">
           <p className="text-sm text-slate-600">
-            Fale o que aconteceu. Ex.: <i>“A cliente Maria da Sorveteria Gelato pagou a vídeo chamada”</i>, <i>“A Braspress coletou a máquina do pedido 1520”</i>, <i>“Giga da série 1234 conferido, está certo”</i>.
+            Fale o que aconteceu. Ex.: <i>“A cliente Maria da Sorveteria Gelato pagou a vídeo chamada”</i>, <i>“A Braspress coletou a máquina do pedido 1520”</i>.
+            Ou pergunte: <i>“O que foi vendido hoje?”</i>, <i>“Tem frete demorando?”</i>
           </p>
+          {bloqueada && (
+            <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
+              No app do iPhone a Apple não deixa o ERP ouvir direto. Toque no campo abaixo e use o <b>🎤 do teclado</b> para ditar; depois toque em Entender.
+            </p>
+          )}
           <div className="flex justify-center">
-            <button type="button" disabled={etapa === "entendendo" || !suportaVoz()} onClick={() => (ouvindo ? microfone.current?.parar() : comecar())}
+            {usarVoz && <button type="button" disabled={etapa === "entendendo"} onClick={() => (ouvindo ? microfone.current?.parar() : comecar())}
               aria-label={ouvindo ? "Parar de ouvir" : "Falar de novo"}
               className={`grid h-24 w-24 place-items-center rounded-full text-white shadow-pop transition disabled:opacity-40 ${ouvindo ? "animate-pulse bg-red-600" : "bg-brand"}`}>
-              {ouvindo ? <Mic className="h-10 w-10" /> : suportaVoz() ? <RotateCcw className="h-9 w-9" /> : <MicOff className="h-9 w-9" />}
-            </button>
+              {ouvindo ? <Mic className="h-10 w-10" /> : <RotateCcw className="h-9 w-9" />}
+            </button>}
           </div>
           <p className="text-center text-xs font-semibold text-slate-500">
-            {ouvindo ? "Ouvindo… toque para parar" : suportaVoz() ? "Toque para falar de novo, ou corrija o texto" : "Este navegador não ouve a fala: escreva aqui"}
+            {ouvindo ? "Ouvindo… toque para parar" : usarVoz ? "Toque para falar de novo, ou corrija o texto" : bloqueada ? "" : "Este navegador não ouve a fala: escreva aqui (ou use o 🎤 do teclado)"}
           </p>
           <Field label="O que foi dito">
-            <textarea className="input min-h-[88px]" value={fala} onChange={(e) => setFala(e.target.value)} placeholder="A fala aparece aqui…" />
+            <textarea className="input min-h-[88px]" value={fala} onChange={(e) => setFala(e.target.value)} placeholder={usarVoz ? "A fala aparece aqui…" : "Toque aqui e dite pelo 🎤 do teclado…"} autoFocus={!usarVoz} />
           </Field>
           {erro && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{erro}</p>}
           <div className="flex justify-end gap-2">
@@ -130,6 +146,16 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
             <Button onClick={entender} disabled={etapa === "entendendo" || fala.trim().length < 4}>
               {etapa === "entendendo" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Entender
             </Button>
+          </div>
+        </div>
+      )}
+
+      {etapa === "resposta" && pronta && (
+        <div>
+          <RespostaPronta tipo={pronta} onIr={onClose} />
+          <div className="mt-3 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setPronta(null); setFala(""); setEtapa(usarVoz ? "ouvindo" : "texto"); if (usarVoz) comecar(); }}>Perguntar outra</Button>
+            <Button onClick={onClose}>Fechar</Button>
           </div>
         </div>
       )}
