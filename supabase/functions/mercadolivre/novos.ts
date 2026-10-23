@@ -78,7 +78,25 @@ function textoDescricao(p: Produto) {
   return `${base}${garantia}`.replace(/<[^>]+>/g, "").slice(0, 49_000);
 }
 
-async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Produto, estoque: number) {
+type ModeloEnvio = Record<string, unknown> | null;
+
+/** Envio de um anúncio da conta que já funciona (modo e logística), para os novos irem igual; e as preferências da conta. */
+async function envioDaConta(db: SupabaseClient, conta: Conta, token: string) {
+  const { data } = await db.from("ml_anuncios").select("ml_item_id").limit(1);
+  const id = (data ?? [])[0]?.ml_item_id as string | undefined;
+  const item = id ? await ml<any>(`/items/${id}?attributes=shipping`, token).catch(() => null) : null;
+  const prefs = await ml<any>(`/users/${conta.ml_user_id}/shipping_preferences`, token).catch((e) => ({ erro: msg(e) }));
+  const s = item?.shipping ?? null;
+  const modelo: ModeloEnvio = s ? { mode: s.mode, logistic_type: s.logistic_type, local_pick_up: false } : null;
+  const diag = {
+    anuncio: id ?? null, envio_anuncio: s ? { mode: s.mode, logistic_type: s.logistic_type, tags: s.tags } : null,
+    modos_conta: prefs?.modes ?? null, logisticas: (prefs?.logistics ?? []).map((l: any) => ({ modo: l?.mode, tipos: (l?.types ?? []).map((t: any) => t?.type) })),
+    erro_prefs: prefs?.erro ?? null,
+  };
+  return { modelo, diag };
+}
+
+async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Produto, estoque: number, modelo: ModeloEnvio = null) {
   const avisos: string[] = [];
   const faltando: string[] = [];
   const titulo = tituloML(p.titulo_anuncio || p.descricao);
@@ -108,7 +126,7 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
     title: titulo, family_name: titulo, category_id: cat.category_id, price: preco, currency_id: "BRL", available_quantity: Math.max(1, estoque),
     buying_mode: "buy_it_now", listing_type_id: TIPO_ANUNCIO, condition: "new",
     pictures: [{ source: urlFoto(p.foto_caminho) }], attributes: atributos,
-    shipping: { mode: "me2", free_shipping: preco >= FRETE_GRATIS_DESDE, local_pick_up: false },
+    shipping: { mode: "me2", ...(modelo ?? {}), free_shipping: preco >= FRETE_GRATIS_DESDE, local_pick_up: false },
     sale_terms: p.garantia_meses
       ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} meses` }]
       : [],
@@ -127,8 +145,10 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
       const erros = e.causas.filter((c) => !c.type || c.type === "error");
       const deEnvio = (c: { references?: string[]; message?: string }) => (c.references ?? []).some((r) => /shipping/i.test(r)) || /\bme[12]\b|shipping/i.test(c.message ?? "");
       const envio = item.shipping as Record<string, unknown> | undefined;
-      if (erros.length && erros.every(deEnvio) && envio && tentativa < 4) {
-        // primeiro sem o modo fixo (o Mercado Livre usa o da conta); depois sem o bloco de envio
+      const motivos = erros.length ? erros : e.causas;
+      if (motivos.length && motivos.every(deEnvio) && envio && tentativa < 4) {
+        // 1º com as medidas da caixa no envio (o Mercado Envios precisa), 2º sem o modo fixo, 3º sem o bloco de envio
+        if (!("dimensions" in envio) && !med.estimado) { envio.dimensions = med.texto; continue; }
         if ("mode" in envio) { delete envio.mode; continue; }
         delete item.shipping; continue;
       }
@@ -155,12 +175,13 @@ export async function prepararAnuncios(db: SupabaseClient, conta: Conta, token: 
   const comeco = Date.now();
   const produtos = await produtosSemAnuncio(db, ids);
   const estoque = await estoques(db, conta, produtos.map((p) => p.id));
-  const resumo = { produtos: produtos.length, preparados: 0, prontos: 0, com_pendencia: 0, erros: 0, faltam: 0 };
+  const { modelo, diag } = await envioDaConta(db, conta, token);
+  const resumo = { produtos: produtos.length, preparados: 0, prontos: 0, com_pendencia: 0, erros: 0, faltam: 0, envio: diag };
   let i = 0;
   for (; i < produtos.length && Date.now() - comeco < LIMITE_MS; i += 3) {
     await Promise.all(produtos.slice(i, i + 3).map(async (p) => {
       try {
-        const l = await prepararUm(db, conta, token, p, estoque(p.id));
+        const l = await prepararUm(db, conta, token, p, estoque(p.id), modelo);
         resumo.preparados++;
         if (l.faltando.length) resumo.com_pendencia++; else resumo.prontos++;
       } catch (e) {
