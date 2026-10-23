@@ -14,6 +14,7 @@ import { CANAIS, margemPedido, pctMc, somar, zero, type Contexto, type PedidoMar
 import type { KitComponente, Produto, Vendedor } from "@/lib/types";
 import { rotuloVenda, SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import { conselhosMargem, type Conselho } from "@/lib/conselheiroMargem";
+import { CruzamentoLivre, type FatoVenda } from "@/components/margem/CruzamentoLivre";
 
 const VALIDOS = ["aprovado", "faturado", "entregue"];
 type Visao = "venda" | "produto" | "canal" | "vendedor" | "cliente" | "unidade";
@@ -41,7 +42,7 @@ export default function Margem() {
   const [de, setDe] = useState(mesesAtras(2));
   const [ate, setAte] = useState(mesAtual());
   const [canal, setCanal] = useState("");
-  const [visao, setVisao] = useState<Visao>("venda");
+  const [visao, setVisao] = useState<Visao | "cruzar">("venda");
   const [ordem, setOrdem] = useState<"mc" | "pct" | "receita">("mc");
 
   const dados = useMemo(() => {
@@ -72,7 +73,19 @@ export default function Margem() {
       }
       return [...grupos.values()];
     };
-    const linhas = agrupar(visao).sort((a, b) => ordem === "pct" ? pctMc(b) - pctMc(a) : ordem === "receita" ? b.receita - a.receita : b.mc - a.mc);
+    // cruzamento livre: cada item vendido vira um fato com tudo o que dá para cruzar
+    const fatos: FatoVenda[] = calc.flatMap(({ p, r }) => {
+      const v = vendedores.find((x) => x.id === p.vendedor_id);
+      const base = {
+        venda: p.id, mes: (p.aprovado_em ?? p.created_at).slice(0, 7), canal: CANAIS[p.origem] ?? p.origem ?? "(sem canal)",
+        vendedor: v?.nome ?? p.vendedor ?? "Sem vendedor", cliente: p.cliente?.nome ?? "(sem cliente)", uf: p.cliente?.uf?.toUpperCase() || "(sem UF)", unidade: nomeUnidade(p.unidade_id),
+      };
+      return r.itens.map((i) => ({
+        ...base, produto: i.descricao, categoria: produtos.find((x) => x.id === i.produto_id)?.categoria || "(sem categoria)",
+        quantidade: i.quantidade, receita: i.receita, impostos: i.impostos, cmv: i.cmv, comissao: i.comissao, frete: i.frete, taxa: i.taxa, mc: i.mc,
+      }));
+    });
+    const linhas = visao === "cruzar" ? [] : agrupar(visao).sort((a, b) => ordem === "pct" ? pctMc(b) - pctMc(a) : ordem === "receita" ? b.receita - a.receita : b.mc - a.mc);
     const deNotas = vendas.filter((p) => (p as { de_nota?: boolean }).de_nota);
     const semCusto = deNotas.reduce((s, p) => s + p.itens.filter((i) => i.produto_id.startsWith("nf-item:")).length, 0);
     const estimadas = calc.filter((x) => x.r.impostosEstimados).length;
@@ -80,11 +93,11 @@ export default function Margem() {
       total, produtos: agrupar("produto"), canais: agrupar("canal"), vendedores: agrupar("vendedor"), clientes: agrupar("cliente"),
       semCusto, estimadas, vendas: vendas.length,
     });
-    return { total, linhas, n: vendas.length, estimadas, deNotas: deNotas.length, semCusto, conselhos };
+    return { total, linhas, n: vendas.length, estimadas, deNotas: deNotas.length, semCusto, conselhos, fatos };
   }, [cfg, produtos, comps, unidades, vendedores, regrasComissao, comissoes, cotacoes, formas, envios, notas, ufs, pedidosTodos, filtrar, de, ate, canal, visao, ordem, nomeUnidade]);
 
   function exportar() {
-    if (!dados) return;
+    if (!dados || visao === "cruzar") return;
     baixarPlanilha(`margem-${visao}`, [{ nome: "Margem de contribuição", linhas: dados.linhas.map((l) => ({
       [ROTULO[visao]]: l.nome, Detalhe: l.detalhe ?? "", [visao === "produto" ? "Quantidade" : "Pedidos"]: l.qtd,
       Receita: r2(l.receita), Impostos: r2(l.impostos), "Custo do produto": r2(l.cmv), Comissão: r2(l.comissao), Frete: r2(l.frete),
@@ -127,7 +140,9 @@ export default function Margem() {
 
       {dados && <Conselheiro conselhos={dados.conselhos} />}
 
-      <Tabs value={visao} onChange={setVisao} options={(Object.keys(ROTULO) as Visao[]).map((v) => ({ value: v, label: `Por ${ROTULO[v].toLowerCase()}` }))} />
+      <Tabs value={visao} onChange={setVisao} options={[...(Object.keys(ROTULO) as Visao[]).map((v) => ({ value: v as Visao | "cruzar", label: `Por ${ROTULO[v].toLowerCase()}` })),
+        { value: "cruzar", label: "Cruzar à vontade" }]} />
+      {visao === "cruzar" ? (dados ? <CruzamentoLivre fatosVendas={dados.fatos} de={de} ate={ate} filtrar={filtrar} nomeUnidade={nomeUnidade} /> : <p className="text-sm text-slate-500">Carregando…</p>) : <>
       <div className="mb-2 flex justify-end gap-1 text-sm">
         Ordenar: {([["mc", "margem R$"], ["pct", "margem %"], ["receita", "receita"]] as const).map(([v, l]) => (
           <button key={v} type="button" onClick={() => setOrdem(v)} className={`rounded-md px-2 py-0.5 font-semibold ${ordem === v ? "bg-brand text-brand-fg" : "text-slate-600"}`}>{l}</button>
@@ -170,6 +185,7 @@ export default function Margem() {
         })}
       </Table>
       {!dados?.linhas.length && <p className="p-6 text-center text-sm text-slate-500">Sem vendas aprovadas no período.</p>}
+      </>}
     </div>
   );
 }
