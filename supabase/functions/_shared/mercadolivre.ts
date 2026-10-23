@@ -5,8 +5,11 @@
 export const API_ML = "https://api.mercadolibre.com";
 export const AUTORIZAR_ML = "https://auth.mercadolivre.com.br/authorization";
 
+export type CausaML = { type?: string; code?: string; message?: string; references?: string[] };
+
 export class ErroML extends Error {
-  constructor(public status: number, message: string, public codigo?: string) {
+  /** `causas`: a lista "cause" da resposta, como veio (erros e avisos) */
+  constructor(public status: number, message: string, public codigo?: string, public causas: CausaML[] = []) {
     super(message);
   }
 }
@@ -37,7 +40,7 @@ export async function chamarML<T = any>(caminho: string, token: string | null, i
         const refs = Array.isArray(c?.references) && c.references.length ? ` [${c.references.join(", ")}]` : "";
         return t ? `${t}${refs}` : "";
       }).filter(Boolean).join("; ");
-    throw new ErroML(r.status, causas && !msg.includes(causas) ? `${msg}: ${causas}` : msg, corpo?.error);
+    throw new ErroML(r.status, causas && !msg.includes(causas) ? `${msg}: ${causas}` : msg, corpo?.error, todas);
   }
   return corpo as T;
 }

@@ -113,18 +113,30 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
       ? [{ id: "WARRANTY_TYPE", value_name: "Garantia do vendedor" }, { id: "WARRANTY_TIME", value_name: `${p.garantia_meses} meses` }]
       : [],
   };
-  // o Mercado Livre confere tudo sem publicar. Conta no modelo novo (family_name) pode recusar o "title": tira e confere de novo
-  for (let tentativa = 0; tentativa < 3; tentativa++) {
+  // o Mercado Livre confere tudo sem publicar. Campo que a conta não aceita (title ou family_name) ou modo de envio que
+  // a categoria não tem: tira e confere de novo; o que sobrar de erro é pendência, aviso fica como aviso.
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
     try {
       await ml("/items/validate", token, { method: "POST", body: JSON.stringify(item), cabecalhos: { "Content-Type": "application/json" } });
       break;
     } catch (e) {
-      // campo que a conta não aceita ("The fields [title] are invalid"): tira e confere de novo
-      const recusados = e instanceof ErroML ? (/fields?\s*\[([^\]]+)\]\s*(are|is) invalid/i.exec(e.message)?.[1] ?? "").split(/\s*,\s*/) : [];
+      if (!(e instanceof ErroML) || e.status < 400 || e.status >= 500) { avisos.push(`conferência do Mercado Livre não respondeu (${msg(e).slice(0, 80)})`); break; }
+      const recusados = (/fields?\s*\[([^\]]+)\]\s*(are|is) invalid/i.exec(e.message)?.[1] ?? "").split(/\s*,\s*/);
       const tirar = recusados.filter((c) => (c === "title" || c === "family_name") && c in item);
-      if (tirar.length && tentativa < 2) { for (const c of tirar) delete item[c]; continue; }
-      if (e instanceof ErroML && e.status >= 400 && e.status < 500) faltando.push(`Mercado Livre: ${msg(e)}`);
-      else avisos.push(`conferência do Mercado Livre não respondeu (${msg(e).slice(0, 80)})`);
+      if (tirar.length && tentativa < 4) { for (const c of tirar) delete item[c]; continue; }
+      const erros = e.causas.filter((c) => !c.type || c.type === "error");
+      const deEnvio = (c: { references?: string[]; message?: string }) => (c.references ?? []).some((r) => /shipping/i.test(r)) || /\bme[12]\b|shipping/i.test(c.message ?? "");
+      const envio = item.shipping as Record<string, unknown> | undefined;
+      if (erros.length && erros.every(deEnvio) && envio && tentativa < 4) {
+        // primeiro sem o modo fixo (o Mercado Livre usa o da conta); depois sem o bloco de envio
+        if ("mode" in envio) { delete envio.mode; continue; }
+        delete item.shipping; continue;
+      }
+      const texto = (c: { message?: string; code?: string; references?: string[] }) =>
+        `${(c.message || c.code || "").trim()}${c.references?.length ? ` [${c.references.join(", ")}]` : ""}`.slice(0, 300);
+      if (erros.length) faltando.push(...erros.map((c) => `Mercado Livre: ${texto(c)}`));
+      else if (e.causas.length) faltando.push(...e.causas.map((c) => `Mercado Livre (${c.type ?? "?"}): ${texto(c)}`));
+      else faltando.push(`Mercado Livre: ${msg(e)}`);
       break;
     }
   }
