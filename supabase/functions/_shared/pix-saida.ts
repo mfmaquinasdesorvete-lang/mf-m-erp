@@ -35,7 +35,7 @@ export function lerChavePix(texto: string | null | undefined): { chave: string; 
   return null;
 }
 
-/** Acha a chave Pix escrita num texto livre (ex.: "Pix 691.484.909-97" na descrição da conta). */
+/** Acha a chave Pix escrita num texto livre (ex.: "Pix 123.456.789-09" na descrição da conta). */
 export function chaveNoTexto(texto: string | null | undefined) {
   const t = String(texto ?? "");
   const m = t.match(/pix[:\s-]*([^\s·,;]+(?:\s?[^\s·,;]+)?)/i);
