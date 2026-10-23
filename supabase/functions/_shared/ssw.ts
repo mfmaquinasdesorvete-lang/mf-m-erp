@@ -1,4 +1,4 @@
-// SSW (ssw.inf.br): sistema usado por muitas transportadoras (ex.: Expresso São Miguel). O rastreio pela chave da
+// SSW (ssw.inf.br): sistema usado por muitas transportadoras (ex.: Aceville, MIR, Norte Brasil; a São Miguel tem TMS próprio). O rastreio pela chave da
 // NF-e (POST https://ssw.inf.br/api/trackingdanfe, JSON { chave_nfe }) não pede senha e vale para qualquer
 // transportadora do SSW. Funções puras (testadas no Vitest); a chamada fica em functions/ssw.
 // Resposta conferida na ajuda pública do SSW (ssw.inf.br/ajuda/trackingdanfe.html): { success, message,
