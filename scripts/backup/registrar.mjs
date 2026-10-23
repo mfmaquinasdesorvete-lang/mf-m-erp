@@ -45,6 +45,18 @@ await registrar({
   restauracao_ok: teste ? !!teste.ok : null,
   detalhe: teste && !teste.ok ? `Teste de restauração: ${teste.motivo ?? `${teste.diferentes} tabela(s) com contagem diferente`}. ${execucao}` : null,
 });
+// restauração com problema: aviso urgente no sino do administrador (em 23/10 falhou e ninguém soube)
+if (teste && !teste.ok) {
+  const r = await fetch(`${URL_PROJETO}/rest/v1/notificacoes`, {
+    method: "POST", headers: { ...h, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({
+      tipo: "outro", titulo: "Backup: a cópia de hoje não passou no teste de restauração", papeis: ["admin"], urgencia: "urgente",
+      exige_ciencia: true, link: "/sobre?aba=seguranca",
+      texto: "A cópia foi guardada, mas pode não voltar inteira. Rode o Backup diário de novo no GitHub (Actions → Backup diário → Run workflow, branch paineis-no-ar) e veja Sobre → Segurança.",
+    }),
+  });
+  if (!r.ok) console.log(`::warning::não consegui avisar no ERP (HTTP ${r.status})`);
+}
 console.log(`Guardado: ${nome} (${partes.length} parte(s), ${mb(tamanho)})${teste ? `, restauração ${teste.ok ? "OK" : "com problema"}` : ""}`);
 
 // guarda 7 dias no Supabase (a Hostinger guarda 30 + 1 por mês)
