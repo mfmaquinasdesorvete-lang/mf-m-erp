@@ -5,6 +5,7 @@ import path from "path";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { contarCodigo, ehCodigo, linhasDoTexto, type TecnicaCodigo } from "./src/lib/codigoErp";
+import { FORMATO_GIT_CHATS, lerEntregasChats, type EntregaChat } from "./src/lib/chatsEntregas";
 import { agruparHistorico, contarAlteracoesTelas, dataHoraBR, FORMATO_GIT, FORMATO_GIT_ARQUIVOS, numeroVersao, type AlteracaoTela, type DiaHistorico, type InfoVersao } from "./src/lib/atualizacoes";
 
 // Versão e histórico do ERP (página Atualizações e rodapé do menu), lidos do git na hora de montar o site.
@@ -35,6 +36,17 @@ function codigoDoGit(): TecnicaCodigo[] {
 }
 const codigo = codigoDoGit();
 
+// Entregas de cada chat do Claude nos últimos 30 dias (Sobre → Chats → Central dos chats).
+function entregasDosChats(): EntregaChat[] {
+  try {
+    return lerEntregasChats(execFileSync("git", ["log", "--no-merges", "--since=30 days ago", `--format=${FORMATO_GIT_CHATS}`],
+      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }));
+  } catch {
+    return [];
+  }
+}
+const entregasChats = entregasDosChats();
+
 // `npm run build:demo` gera a prévia com dados de exemplo num único arquivo HTML.
 export default defineConfig(({ mode }) => ({
   plugins: [react(), ...(mode === "demo" ? [viteSingleFile()] : [])],
@@ -45,7 +57,7 @@ export default defineConfig(({ mode }) => ({
       { find: "@", replacement: path.resolve(__dirname, "./src") },
     ],
   },
-  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas), __ERP_CODIGO__: JSON.stringify(codigo) },
+  define: { __ERP_VERSAO__: JSON.stringify(versao), __ERP_HISTORICO__: JSON.stringify(historico), __ERP_TELAS__: JSON.stringify(telas), __ERP_CODIGO__: JSON.stringify(codigo), __ERP_ENTREGAS_CHATS__: JSON.stringify(entregasChats) },
   server: { port: 5174 },
   // xmllint (validador de NF-e) abre um worker e um .wasm pelo próprio caminho: não pode ser pré-empacotado
   optimizeDeps: { exclude: ["xmllint-wasm"] },

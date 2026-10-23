@@ -1,16 +1,18 @@
-// Sobre o ERP Line → Chats: os chats do Claude que trabalham no ERP, um por assunto, com o que cada um faz, exemplos
+// Sobre o ERP Line → Chats: no alto a Central dos chats (quem está publicando, linha do tempo e placar); embaixo os chats
+// do Claude que trabalham no ERP, um por assunto, com o que cada um faz, exemplos
 // do que levar para ele e o botão para abrir direto (o link só abre na conta dona dos chats). A lista fica na tabela
 // chats_claude, só para o administrador; quem abre um chat novo acrescenta a linha (veja o CLAUDE.md).
 import { useState } from "react";
-import { Copy, ExternalLink, MessagesSquare, Search } from "lucide-react";
-import { Button, Card, CLASSE_BOTAO, Stat } from "@/components/ui";
+import { Copy, ExternalLink, Search } from "lucide-react";
+import { Button, Card, CLASSE_BOTAO } from "@/components/ui";
 import { useRows } from "@/lib/data";
 import { copiar } from "./Guardanapo";
+import { CentralChats } from "./CentralChats";
 
 type Chat = { id: string; ordem: number; nome: string; faz: string; exemplos: string | null; sessao: string; cor: string; ativo: boolean };
 
 const CORES: Record<string, string> = {
-  slate: "from-slate-600 to-slate-800", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
+  slate: "from-[#475569] to-[#1e293b]", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
   teal: "from-teal-500 to-teal-700", ambar: "from-amber-500 to-orange-600", rosa: "from-pink-500 to-rose-600",
   violeta: "from-violet-500 to-purple-700", vermelho: "from-red-500 to-red-700", indigo: "from-indigo-500 to-indigo-700",
 };
@@ -27,9 +29,7 @@ export function Chats() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Chats" valor={ativos.length} icon={MessagesSquare} sub="um para cada assunto" />
-      </div>
+      <CentralChats chats={data} />
       <p className="text-sm text-slate-600">
         Cada chat cuida só do seu assunto e todos seguem as mesmas regras (só um publica por vez, tudo entra em Pedidos).
         Para chegar rápido: toque em <b>Abrir chat</b>. No app do Claude, os chats ficam em <b>Code</b>, com o mesmo nome.

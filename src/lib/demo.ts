@@ -571,6 +571,7 @@ function seed(): Db {
   origemPagarDemo(db);
   scrumDemo(db);
   renegociacaoDemo(db);
+  chatsDemo(db);
   return db;
 }
 
@@ -1551,6 +1552,26 @@ function renegociacaoDemo(db: Db) {
     { id: "ne1", negociacao_id: neg, tipo: "nota", quando: dias(-24), texto: "Liguei para o financeiro do fornecedor: aceitam parcelar sem juros se a 1ª for paga em 10 dias.", arquivo_caminho: null, arquivo_nome: null, arquivo_tipo: null, criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-24) },
     { id: "ne2", negociacao_id: neg, tipo: "print", quando: dias(-21), texto: "Proposta enviada pelo WhatsApp", arquivo_caminho: "conta_pagar/negociacao-neg1/print.jpg", arquivo_nome: "print-whatsapp.jpg", arquivo_tipo: "image/jpeg", criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-21) },
     { id: "ne3", negociacao_id: neg, tipo: "acordo", quando: dias(-20), texto: "2 contas (R$ 3.170,00) trocada(s) por 3 parcelas de R$ 1.000,00.", arquivo_caminho: null, arquivo_nome: null, arquivo_tipo: null, criado_por: "u-fin", criado_nome: "Rafael Financeiro", created_at: quando(-20) },
+  ];
+}
+
+/** Chats do Claude e publicações (exemplos para a Central dos chats; no sistema real: chats_claude e publicacoes) */
+function chatsDemo(db: Db) {
+  const chat = (ordem: number, nome: string, faz: string, cor: string) => ({ id: `ch${ordem}`, ordem, nome: `ERP Line – ${nome}`, faz, exemplos: null, sessao: `session_demo${ordem}`, cor, ativo: true, criado_em: quando(-5) });
+  db.chats_claude = [
+    chat(1, "chat principal", "Organiza os outros chats.", "slate"),
+    chat(2, "continuação", "Vendas, máquinas, cadastros, financeiro e produção.", "azul"),
+    chat(3, "Fiscal e contábil", "Impostos, notas fiscais e contador.", "verde"),
+    chat(4, "Importações do Tiny", "Tudo o que vem do Tiny.", "ambar"),
+    chat(5, "Design system", "O visual do ERP.", "violeta"),
+    chat(6, "Segurança", "Permissões, login e testes de segurança.", "vermelho"),
+  ];
+  const h = (horas: number) => new Date(Date.now() - horas * 3600e3).toISOString();
+  db.publicacoes = [
+    { id: "pb1", chat: "ERP Line – Design system", o_que: "Vitrine do design system", inicio: h(6), fim: h(5.8), situacao: "feita" },
+    { id: "pb2", chat: "ERP Line – continuação", o_que: "Telas mais leves", inicio: h(4), fim: h(3.85), situacao: "feita" },
+    { id: "pb3", chat: "ERP Line – Segurança", o_que: "Login com o rosto", inicio: h(2), fim: h(1.8), situacao: "feita" },
+    { id: "pb4", chat: "ERP Line – Fiscal e contábil", o_que: "Aba NFS-e da OS", inicio: h(0.05), fim: null, situacao: "publicando" },
   ];
 }
 
