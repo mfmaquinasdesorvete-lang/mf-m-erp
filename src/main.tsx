@@ -40,8 +40,9 @@ window.addEventListener("vite:preloadError", () => window.dispatchEvent(new Even
 // Leitura que falhou (sem internet, sem permissão…) vira aviso na tela, e não "lista vazia" sem explicação
 const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: (e) => notifyLeitura(e) }),
-  // listas ficam 1 min sem recarregar ao voltar para a tela ou para a aba (o que a própria pessoa grava atualiza na hora)
-  defaultOptions: { queries: { staleTime: DEMO ? 0 : 60_000, retry: 1 } },
+  // O que já foi baixado vale por 5 min e fica guardado 30 min: trocar de tela ou voltar para a aba não baixa as tabelas
+  // de novo (era o que deixava o ERP pesado). O que a própria pessoa grava atualiza na hora (invalidate).
+  defaultOptions: { queries: { staleTime: DEMO ? 0 : 5 * 60_000, gcTime: 30 * 60_000, refetchOnWindowFocus: false, retry: 1 } },
 });
 
 // A prévia roda dentro de outra página, então a navegação fica em memória
