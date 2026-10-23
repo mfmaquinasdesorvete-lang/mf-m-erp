@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Calculator, Check, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -20,12 +21,8 @@ type Sugestao = {
 
 const SELECT = "id, produto_id, status, origem, custo_anterior, custo_novo, preco_atual, preco_sugerido, margem_alvo, preco_aprovado, decidido_em, created_at, produto:produtos(descricao, sku, unidade, preco_venda, preco_custo)";
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${String(Math.round(Number(v) * 10) / 10).replace(".", ",")}%`);
-/** "1.250,90", "285,72", "285.72" ou "1.250" (milhar) → número */
-const numero = (t: string) => {
-  const s = String(t).trim().replace(/\s|R\$/g, "");
-  if (s.includes(",")) return Number(s.replace(/\./g, "").replace(",", "."));
-  return Number(/^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s);
-};
+/** "1.250,90", "285,72", "285.72" ou "1.250" (milhar) → número; inválido vira NaN */
+const numero = (t: string) => lerValor(t) ?? NaN;
 
 /** Quantas sugestões de preço esperam aprovação (para o aviso e o número na aba). */
 export function usePrecosPendentes() {
@@ -63,8 +60,14 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
   const [ocupado, setOcupado] = useState(false);
   const precoDe = (s: Sugestao) => (precos[s.id] != null && precos[s.id] !== "" ? numero(precos[s.id]) : Number(s.preco_sugerido));
 
+  const travado = useRef(false);
   async function decidir(ids: string[], aprovar: boolean) {
-    if (!ids.length) return;
+    if (!ids.length || travado.current) return;
+    if (aprovar) {
+      const ruins = pendentes.filter((s) => ids.includes(s.id) && !(precoDe(s) > 0));
+      if (ruins.length) return notifyError(new Error(`Preço inválido em ${ruins.length} ${pl(ruins.length, "produto", "produtos")} (${ruins.slice(0, 3).map((s) => s.produto?.descricao).join(", ")}): digite como 1.250,90`));
+    }
+    travado.current = true;
     setOcupado(true);
     try {
       const lista = pendentes.filter((s) => ids.includes(s.id));
@@ -75,7 +78,7 @@ export function FormacaoPreco({ categorias, podeAprovar }: { categorias: Categor
       notify(aprovar ? `${data} ${pl(data, "preço", "preços")} ${pl(data, "aprovado", "aprovados")} e já valendo` : `${data} ${pl(data, "sugestão recusada", "sugestões recusadas")}: o preço não mudou`);
       setMarcados(new Set());
       invalidar("preco_sugestoes", "produtos");
-    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+    } catch (e) { notifyError(e); } finally { travado.current = false; setOcupado(false); }
   }
 
   async function revisarTodos() {

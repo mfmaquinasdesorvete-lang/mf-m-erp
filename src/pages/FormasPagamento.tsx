@@ -1,6 +1,7 @@
 // Cadastros → Formas de pagamento (como no Tiny): nome, meio, condição (parcelas, intervalo, 1º vencimento) e custo
 // (taxa % e tarifa por parcela). As vendas e as contas fixas escolhem daqui.
 import { CrudPage, type FiltroCrud } from "@/components/CrudPage";
+import { lerValorOuErro } from "@/lib/auditoriaBusca";
 import { useRows } from "@/lib/data";
 import { MEIOS, condicao, type FormaPagamento } from "@/lib/formasPagamento";
 import { brl, pl } from "@/lib/format";
@@ -18,6 +19,10 @@ async function situacao(ids: string[], ativo: boolean) {
   if (error) throw error;
   return `${ids.length} ${pl(ids.length, "forma", "formas")} ${ativo ? pl(ids.length, "ativada", "ativadas") : pl(ids.length, "inativada", "inativadas")}`;
 }
+
+/** campos numéricos: o que vale quando fica vazio, e o nome para o aviso */
+const PADRAO_NUM: Record<string, number> = { parcelas: 1, intervalo_dias: 30, primeiro_em_dias: 0, taxa_percentual: 0, tarifa_fixa: 0, ordem: 100 };
+const NOME_NUM: Record<string, string> = { parcelas: "Parcelas", intervalo_dias: "Intervalo", primeiro_em_dias: "1º vencimento", taxa_percentual: "Taxa", tarifa_fixa: "Tarifa", ordem: "Ordem" };
 
 export default function FormasPagamento() {
   const { pode } = usePerfil();
@@ -37,7 +42,8 @@ export default function FormasPagamento() {
       searchKeys={["nome", "meio", "observacoes"]}
       beforeSave={(r) => ({
         ...r, nome: String(r.nome ?? "").trim(), conta_bancaria_id: r.conta_bancaria_id || null,
-        ...Object.fromEntries(["parcelas", "intervalo_dias", "primeiro_em_dias", "taxa_percentual", "tarifa_fixa", "ordem"].map((k) => [k, r[k] === "" || r[k] == null ? 0 : Number(String(r[k]).replace(",", "."))])),
+        // vazio fica no padrão (1 parcela, 30 dias); "2,50" e "2.50" valem o mesmo
+        ...Object.fromEntries(Object.entries(PADRAO_NUM).map(([k, padrao]) => [k, r[k] === "" || r[k] == null ? padrao : lerValorOuErro(r[k], NOME_NUM[k])])),
       })}
       fields={[
         { name: "nome", label: "Nome (como aparece na venda)", required: true, placeholder: "Ex.: Boleto 30/60/90", span: 2 },
@@ -48,8 +54,8 @@ export default function FormasPagamento() {
         { name: "intervalo_dias", label: "Intervalo entre parcelas (dias)", type: "number", span: 1 },
         { name: "primeiro_em_dias", label: "1º vencimento em (dias; 0 = à vista)", type: "number", span: 2 },
         { name: "t", label: "Custo (entra na margem)", type: "secao" },
-        { name: "taxa_percentual", label: "Taxa (%)", type: "number", span: 1, ajuda: "Ex.: cartão 3,5%" },
-        { name: "tarifa_fixa", label: "Tarifa por parcela (R$)", type: "number", span: 1, ajuda: "Ex.: boleto R$ 2,50" },
+        { name: "taxa_percentual", label: "Taxa (%)", span: 1, ajuda: "Ex.: cartão 3,5%" },
+        { name: "tarifa_fixa", label: "Tarifa por parcela (R$)", span: 1, ajuda: "Ex.: boleto R$ 2,50" },
         { name: "conta_bancaria_id", label: "Cai na conta", type: "select", span: 2, options: [{ value: "", label: "—" }, ...contas.map((c) => ({ value: c.id, label: c.nome }))] },
         { name: "ordem", label: "Ordem na lista", type: "number", span: 1 },
         { name: "ativo", label: "Ativa", type: "checkbox", span: 1 },

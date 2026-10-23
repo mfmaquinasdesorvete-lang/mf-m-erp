@@ -115,6 +115,13 @@ export function lerValor(texto: string | number | null | undefined): number | nu
   return interpretar(String(texto ?? ""))?.valor ?? null;
 }
 
+/** Como lerValor, mas para gravar: valor que não é número para a gravação com o nome do campo. */
+export function lerValorOuErro(texto: string | number, campo: string): number {
+  const v = lerValor(texto);
+  if (v == null) throw new Error(`${campo}: "${texto}" não é um número (digite como 1.500,00)`);
+  return v;
+}
+
 /** 1234.5 → "1.234,50" (como o valor aparece na tela, sem o "R$"). */
 export const valorBR = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ChevronDown, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
+import { soMudou } from "@/lib/soMudou";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { Button, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
@@ -134,6 +135,9 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const save = useSave(table);
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Record<string, any> | null>(null);
+  // o registro como estava ao abrir: ao salvar, grava só o que mudou (não apaga marcador ou unificação feitos por outra pessoa)
+  const aoAbrir = useRef<Record<string, any> | null>(null);
+  useEffect(() => { aoAbrir.current = editando?.id ? { ...editando } : null; }, [editando?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (props.editarAgora) setEditando({ ...props.editarAgora }); }, [props.editarAgora]);
   // um só registro em destaque: já abre o cadastro dele
   const [destaqueAberto, setDestaqueAberto] = useState(false);
@@ -230,7 +234,15 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }
     try {
       const row = limpar(beforeSave ? beforeSave(editando) : editando);
-      await save.mutateAsync(row);
+      let gravar: Record<string, any> | null = row;
+      const aberto = aoAbrir.current;
+      if (aberto && row.id && aberto.id === row.id && !("__antes" in row)) {
+        try {
+          const antes = limpar(beforeSave ? beforeSave({ ...aberto }) : aberto);
+          gravar = soMudou(row, antes);
+        } catch { gravar = row; } // não deu para comparar: grava tudo, como antes
+      }
+      if (gravar) await save.mutateAsync(gravar);
       notify("Salvo com sucesso");
       setEditando(null);
     } catch (err) {

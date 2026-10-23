@@ -2,7 +2,8 @@
 // e a ligação com o usuário do ERP, o vendedor (comissões) e a assistência técnica (técnicos da OS).
 // Só admin e financeiro veem (salário, CPF e conta são dados sensíveis; o banco garante isso).
 // "Lançar salários" cria as contas a pagar do mês (uma por pessoa), sem repetir as que já foram lançadas.
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lerValorOuErro } from "@/lib/auditoriaBusca";
 import { CalendarClock, Cake, HandCoins, Users, Wallet } from "lucide-react";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button, CampoMes, Indicador, Modal } from "@/components/ui";
@@ -150,7 +151,7 @@ export default function Funcionarios() {
     { name: "uf", label: "UF", mask: "uf", span: 1 },
 
     { name: "s_pagamento", label: "Salário e pagamento", type: "secao", ajuda: "Salário bruto do contrato. O líquido de cada mês vem da folha do contador." },
-    { name: "salario", label: "Salário (R$)", type: "number", span: 1 },
+    { name: "salario", label: "Salário (R$)", placeholder: "Ex.: 2.500,00", span: 1 },
     { name: "dia_pagamento", label: "Dia do pagamento", type: "number", placeholder: "5", span: 1 },
     { name: "pix", label: "Chave Pix", span: 2 },
     { name: "banco", label: "Banco", span: 2 },
@@ -215,7 +216,7 @@ export default function Funcionarios() {
         extraActions={pode("contas_pagar") && <Button variant="secondary" onClick={() => setLancar(true)}><HandCoins size={16} /> Lançar salários</Button>}
         beforeSave={(r) => ({
           ...r, uf: r.uf?.toUpperCase() || null,
-          salario: r.salario === "" || r.salario == null ? null : Number(r.salario),
+          salario: r.salario === "" || r.salario == null ? null : lerValorOuErro(r.salario, "Salário"),
           dia_pagamento: r.dia_pagamento === "" || r.dia_pagamento == null ? null : Number(r.dia_pagamento),
         })}
         onFieldChange={async (name, value, _row, forcar) => (name === "cep" && (forcar || String(value ?? "").replace(/\D/g, "").length === 8) ? completarPorCep(value, forcar) : null)}
@@ -260,7 +261,10 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
   const [ocupado, setOcupado] = useState(false);
   const comSalario = funcionarios.filter((f) => Number(f.salario) > 0);
   const documento = (f: Funcionario) => `RH-${mes}-${f.id.slice(0, 8)}`;
-  const { data: lancadas = [] } = useRows<{ documento: string | null }>("contas_pagar", { select: "documento", key: ["rh"] });
+  // só as contas da equipe deste mês (o documento é RH-AAAA-MM-…); enquanto não carregou, o botão espera
+  const { data: lancadas = [], isLoading: carregando, isError: erroLeitura } = useRows<{ documento: string | null }>("contas_pagar",
+    { select: "documento", key: ["rh", mes], filtro: (q) => q.like("documento", `RH-${mes}-%`) });
+  const travado = useRef(false);
   const jaTem = useMemo(() => new Set(lancadas.map((c) => c.documento).filter(Boolean)), [lancadas]);
   const novas = comSalario.filter((f) => !jaTem.has(documento(f)));
   const [a, m] = mes.split("-").map(Number);
@@ -274,9 +278,17 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
   const titulo = (f: Funcionario) => (f.vinculo === "socio" ? "Pró-labore" : f.vinculo === "pj" || f.vinculo === "autonomo" ? "Serviço" : "Salário");
 
   async function lancarContas() {
+    if (travado.current) return;
+    travado.current = true;
     setOcupado(true);
     try {
-      const linhas = novas.map((f) => ({
+      // confere de novo no banco na hora de gravar: outra pessoa pode ter lançado agora
+      const { data: ja, error: e1 } = await supabase.from("contas_pagar").select("documento").in("documento", novas.map(documento));
+      if (e1) throw e1;
+      const jaLancados = new Set((ja ?? []).map((c) => c.documento));
+      const faltam = novas.filter((f) => !jaLancados.has(documento(f)));
+      if (!faltam.length) { notify("Os salários deste mês já estavam lançados"); invalidar("contas_pagar"); onClose(); return; }
+      const linhas = faltam.map((f) => ({
         descricao: `${titulo(f)} ${rotulo} · ${nomeCurto(f)}`, categoria: categoriaDoVinculo(f.vinculo), valor: Number(f.salario),
         vencimento: vencimento(f), competencia: `${mes}-01`, status: "aberto", documento: documento(f), unidade_id: f.unidade_id ?? padrao,
         observacoes: "Lançado pelo cadastro de funcionários com o salário bruto: ajuste para o líquido da folha do contador.",
@@ -286,7 +298,7 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
       notify(`${linhas.length} ${pl(linhas.length, "conta", "contas")} ${pl(linhas.length, "lançada", "lançadas")} em Contas a pagar`);
       invalidar("contas_pagar");
       onClose();
-    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+    } catch (e) { notifyError(e); } finally { travado.current = false; setOcupado(false); }
   }
 
   return (
@@ -310,8 +322,8 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
       <p className="mt-2 text-xs text-slate-500">Valor bruto do contrato. Quando o contador mandar a folha, ajuste cada conta para o líquido (e lance INSS/FGTS pelas guias).</p>
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button type="button" disabled={ocupado || !novas.length} onClick={lancarContas}>
-          {ocupado ? "Lançando…" : novas.length ? `Lançar ${novas.length} ${pl(novas.length, "conta", "contas")} · ${brl(novas.reduce((s, f) => s + Number(f.salario), 0))}` : "Tudo já lançado"}
+        <Button type="button" disabled={ocupado || carregando || erroLeitura || !novas.length} onClick={lancarContas}>
+          {ocupado ? "Lançando…" : carregando ? "Conferindo o que já foi lançado…" : erroLeitura ? "Não deu para conferir: abra de novo" : novas.length ? `Lançar ${novas.length} ${pl(novas.length, "conta", "contas")} · ${brl(novas.reduce((s, f) => s + Number(f.salario), 0))}` : "Tudo já lançado"}
         </Button>
       </div>
     </Modal>

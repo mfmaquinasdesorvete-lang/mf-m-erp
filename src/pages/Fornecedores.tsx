@@ -13,7 +13,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { AgruparFiliais, FiliaisDaMarca, UnificarCadastros } from "@/components/cadastros/MarcaFiliais";
 import { confirmar } from "@/components/Dialogos";
 import { ArrumarFornecedores, EtiquetasCliente, ReceitaCadastro } from "@/components/clientes/QualidadeClientes";
-import { brl, dataBR, digitos, docFormat, pl } from "@/lib/format";
+import { brl, dataBR, digitos, docFormat, hoje, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import type { Fornecedor, Transportadora } from "@/lib/types";
 import { completarPorCep, completarPorCnpj } from "@/lib/cadastro";
@@ -225,8 +225,12 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
               return `Agora em Clientes: ${r.criados} ${pl(r.criados, "novo", "novos")}${r.voltaram ? ` e ${r.voltaram} que já eram clientes` : ""}`;
             } },
             { label: "Marcar homologado", executar: async (ids) => {
-              const { error } = await supabase.from("fornecedores").update({ homologado: true, homologado_em: new Date().toISOString().slice(0, 10) }).in("id", ids);
-              if (error) throw error; invalidar("fornecedores"); return `${ids.length} ${pl(ids.length, "homologado", "homologados")}`;
+              // quem já era homologado fica com a data de quando foi homologado
+              const { data, error } = await supabase.from("fornecedores").update({ homologado: true, homologado_em: hoje() })
+                .in("id", ids).or("homologado.is.null,homologado.eq.false").select("id");
+              if (error) throw error; invalidar("fornecedores");
+              const n = data?.length ?? 0;
+              return `${n} ${pl(n, "homologado", "homologados")}${n < ids.length ? ` (${ids.length - n} já ${pl(ids.length - n, "era", "eram")})` : ""}`;
             } },
             { label: "Inativar", executar: async (ids) => {
               const { error } = await supabase.from("fornecedores").update({ ativo: false }).in("id", ids);

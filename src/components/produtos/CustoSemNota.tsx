@@ -2,6 +2,7 @@
 // ser ele. "Usar" liga o item ao produto (as próximas notas já entram sozinhas) e grava o custo da última compra;
 // quem nunca veio por nota (peça fabricada, catálogo) recebe o custo digitado.
 import { useMemo, useState } from "react";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import { Button, Card } from "@/components/ui";
@@ -60,7 +61,7 @@ export function CustoSemNota({ produtos, podeEditar }: { produtos: Produto[]; po
     fim();
   }
   async function digitar(p: Produto) {
-    const v = Number(String(digitado[p.id] ?? "").replace(/\./g, "").replace(",", "."));
+    const v = lerValor(digitado[p.id] ?? "") ?? NaN;
     if (!(v > 0)) return notifyError(new Error("Digite um custo maior que zero"));
     setOcupado(p.id);
     try { await gravarCusto(p, v, "Custo informado na revisão de produtos sem custo"); notify(`Custo de ${brl(v)} gravado`); fim(); }

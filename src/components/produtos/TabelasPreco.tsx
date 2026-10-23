@@ -1,6 +1,7 @@
 // Tabelas de preço: Marketplace, Revenda, Atacado… Cada tabela é um % sobre o preço de venda (com arredondamento)
 // e pode ter preço fixo em produtos específicos. O cliente pode ter a sua tabela; o pedido usa a tabela escolhida.
 import { useMemo, useState, type FormEvent } from "react";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { FileDown, Pencil, Plus, Search, Tags } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -11,7 +12,8 @@ import { baixarPlanilha } from "@/lib/exportar";
 import type { Produto } from "@/lib/types";
 import { ARREDONDAMENTOS, CANAIS_TABELA, ajusteTexto, precoNaTabela, type PrecoFixo, type TabelaPreco } from "@/lib/tabelasPreco";
 
-const num = (s: string) => Number(s.replace(/\./g, "").replace(",", "."));
+/** valor digitado ("45,90", "45.90", "1.500"); inválido vira NaN para a validação recusar */
+const num = (s: string) => lerValor(s) ?? NaN;
 
 export function TabelasPreco({ produtos, podeEditar }: { produtos: Produto[]; podeEditar: boolean }) {
   const { data: tabelas = [] } = useRows<TabelaPreco>("tabelas_preco", { order: "nome", ascending: true });

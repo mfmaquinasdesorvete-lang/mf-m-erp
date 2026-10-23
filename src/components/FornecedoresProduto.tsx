@@ -1,11 +1,12 @@
 // Cadastro do produto → todos os fornecedores que vendem o item: último preço (de nota, pedido, cotação ou
 // informado à mão), prazo e código no fornecedor; marca o preferido (vira o fornecedor padrão do produto).
 import { useState } from "react";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, hoje } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import type { Fornecedor } from "@/lib/types";
 
@@ -32,9 +33,10 @@ export function FornecedoresProduto({ produtoId, podeEditar, aoMudarPreferido }:
   }
   async function incluir() {
     if (!novo.fornecedor_id) return;
-    const preco = Number(novo.preco.replace(/\./g, "").replace(",", "."));
+    const preco = lerValor(novo.preco) ?? NaN;
+    if (novo.preco.trim() && !(preco >= 0)) return notifyError(new Error("Preço inválido: digite como 45,90"));
     const { error } = await supabase.from("fornecimentos").insert({
-      produto_id: produtoId, fornecedor_id: novo.fornecedor_id, preco: novo.preco && preco >= 0 ? preco : null, preco_em: novo.preco ? new Date().toISOString().slice(0, 10) : null,
+      produto_id: produtoId, fornecedor_id: novo.fornecedor_id, preco: novo.preco && preco >= 0 ? preco : null, preco_em: novo.preco ? hoje() : null,
       preco_origem: novo.preco ? "manual" : null, prazo_dias: novo.prazo ? Number(novo.prazo) : null,
     });
     if (error) return notifyError(/duplicate|unique/i.test(error.message) ? new Error("este fornecedor já está na lista") : error);
