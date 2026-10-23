@@ -5,3 +5,4 @@ dist
 supabase/.temp
 dist-demo
 previa-erp-mf-maquinas.html
+*.tsbuildinfo
