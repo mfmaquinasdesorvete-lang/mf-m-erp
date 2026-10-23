@@ -123,7 +123,6 @@ export const grupos: Grupo[] = [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
       { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
-      { to: "/automacoes", tela: "configuracoes", label: "Automações", curto: "Automações", icon: Zap, busca: "automação automático sozinho robô agendado agenda cron rotina tarefa ia inteligência lynn monitor" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor pagamento pagamentos pix foto" },
     ],
   },
@@ -147,6 +146,8 @@ export const itensForaDoMenu: Item[] = [
   { to: "/importar", tela: "importar", label: "Importar dados", curto: "Importar", icon: Upload, busca: "importar planilha xml zip tiny extrato ofx my frost kits propostas contatos produtos" },
   // Troca do Tiny: saiu de Gestão (pedido de 19/10) e fica na engrenagem de Configurações e na busca
   { to: "/implantacao", tela: "implantacao", label: "Troca do Tiny", curto: "Implantação", icon: ClipboardCheck, busca: "implantação plano virada tiny etapas prazos uso do erp checklist" },
+  // Automações: saiu de Gestão (pedido de 23/10) e fica na Retaguarda e na busca
+  { to: "/automacoes", tela: "configuracoes", label: "Automações", curto: "Automações", icon: Zap, busca: "automação automático sozinho robô agendado agenda cron rotina tarefa ia inteligência lynn monitor" },
   { to: "/usuarios", tela: "usuarios", label: "Usuários e permissões", curto: "Usuários", icon: UserCog, busca: "acesso senha permissões papel perfil" },
   { to: "/formas-pagamento", tela: "financeiro", label: "Formas de pagamento", curto: "Pagto.", icon: CreditCard, busca: "pix boleto cartão parcelas taxa condição de pagamento" },
   { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },

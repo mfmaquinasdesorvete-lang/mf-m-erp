@@ -1,7 +1,7 @@
 // Retaguarda: o que só a conta master (a dona) abre. Os outros administradores tocam a operação inteira, mas não
 // veem a carteira pessoal, a My Frost Sorveterias, os usuários e permissões nem as configurações da empresa.
 import { Link } from "react-router-dom";
-import { BadgeDollarSign, ChevronRight, Database, FileText, IceCreamCone, Landmark, Lock, Settings, ShieldAlert, Upload, UserCog, Wallet, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, ChevronRight, Database, FileText, IceCreamCone, Landmark, Lock, Settings, ShieldAlert, Upload, UserCog, Wallet, Zap, type LucideIcon } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { VendasDoAno } from "@/components/gerencial/PainelVendasAno";
 
@@ -30,6 +30,7 @@ export const ATALHOS_RETAGUARDA: { grupo: string; itens: Atalho[] }[] = [
       { to: "/configuracoes", titulo: "Configurações da empresa", texto: "Empresa, unidades, NF-e, recebimentos, comissões, descontos e avisos", icone: Settings, cor: "from-fixo-slate-500 to-fixo-slate-700" },
       { to: "/configuracoes/bancos", titulo: "Bancos e integrações", texto: "Contas, Banco Inter, Open Finance e extratos automáticos", icone: Landmark, cor: "from-fixo-sky-500 to-fixo-blue-600" },
       { to: "/configuracoes/dados", titulo: "Dados e backups", texto: "Cópias de segurança e exportação completa", icone: Database, cor: "from-fixo-teal-500 to-fixo-cyan-700" },
+      { to: "/automacoes", titulo: "Automações", texto: "O que o ERP faz sozinho e quando: rotinas agendadas, avisos e a IA", icone: Zap, cor: "from-fixo-violet-500 to-fixo-purple-700" },
       { to: "/importar", titulo: "Importar dados", texto: "Planilhas e XML do Tiny, extratos e cadastros", icone: Upload, cor: "from-fixo-purple-500 to-fixo-violet-700" },
     ],
   },
