@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   alvoDaLinha, camposAchados, casaBusca, consultaHistorico, descricaoLinha, destacar, FILTROS_EXCECOES, FILTROS_HISTORICO, faixaValor,
   filtrarExcecoes, filtrarHistorico, indexarHistorico, intervalo, lerConsulta, lerValor, mapaNomes, montarAlvo, normalizar,
-  painelChecklist, painelExcecoes, painelHistorico, somarDiasData, somarMes, valoresDinheiro, type FiltrosHistorico, type LinhaHistorico,
+  painelChecklist, painelExcecoes, painelHistorico, painelHistoricoResumo, diaLocal, DIAS_PAINEL, somarDiasData, somarMes, valoresDinheiro, type FiltrosHistorico, type LinhaHistorico,
 } from "../auditoriaBusca";
 import { ITENS_CHECKLIST } from "../checklistAuditoria";
 import type { Excecao } from "../auditoria";
@@ -200,6 +200,22 @@ describe("painel do histórico", () => {
     expect(n({ periodo: "30d", acao: "delete" })).toBe(p.exclusoes30);
     expect(n({ periodo: "30d", pessoa: "Bia" })).toBe(2);
     for (const d of p.porDia) expect(n({ periodo: "livre", de: d.dia, ate: d.dia })).toBe(d.total);
+  });
+  it("o painel contado no banco (auditoria_painel) dá o mesmo resultado", () => {
+    // o que a função do banco faz: só alterações e exclusões do período, contadas por dia, pessoa e área;
+    // inteiras só as exclusões e as mudanças de campos de dinheiro
+    const ini = somarDiasData(HOJE, -(DIAS_PAINEL - 1));
+    const doPeriodo = linhas.filter((l) => diaLocal(l.created_at) >= ini);
+    const base = doPeriodo.filter((l) => l.acao !== "insert");
+    const contar = (f: (l: (typeof base)[number]) => string) => [...base.reduce((m, l) => m.set(f(l), (m.get(f(l)) ?? 0) + 1), new Map<string, number>())];
+    const dias = contar((l) => diaLocal(l.created_at)).map(([dia, total]) => ({ dia, total, exclusoes: base.filter((l) => l.acao === "delete" && diaLocal(l.created_at) === dia).length }));
+    const r = painelHistoricoResumo({
+      por_dia: dias,
+      pessoas: contar((l) => l.usuario_nome ?? "sistema").map(([nome, n]) => ({ nome, n })),
+      tabelas: contar((l) => l.tabela).map(([tabela, n]) => ({ tabela, n })),
+      linhas: doPeriodo.filter((l) => l.acao === "delete" || (l.acao === "update" && (l.campos ?? []).some((c) => /^(valor|preco)/.test(c)))),
+    }, HOJE);
+    expect(r).toEqual(p);
   });
 });
 

@@ -1,10 +1,12 @@
 // Leituras da auditoria usadas pelo painel e pela busca do histórico (só leitura, nada é gravado).
 import { useMemo } from "react";
-import { useRows } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { ler, useRows } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 import type { LinhaAuditoria } from "@/components/Historico";
 import {
-  chaveNome, inicioDoDia, mapaNomes, somarDiasData,
-  type ConsultaHistorico, type FiltrosExcecoes, type FiltrosHistorico, type FontesNomes,
+  chaveNome, DIAS_PAINEL, inicioDoDia, mapaNomes, somarDiasData,
+  type ConsultaHistorico, type ResumoHistorico, type FiltrosExcecoes, type FiltrosHistorico, type FontesNomes,
 } from "@/lib/auditoriaBusca";
 
 const NENHUM: never[] = [];
@@ -31,6 +33,19 @@ export function useHistorico(c: ConsultaHistorico) {
     },
   });
   return { ...r, linhas: r.data ?? (NENHUM as LinhaAuditoria[]) };
+}
+
+/**
+ * Painel dos últimos 30 dias, contado no banco (auditoria_painel): vem só o resumo e as linhas que o painel mostra
+ * inteiras. A chave começa por "auditoria", então o que invalida a auditoria atualiza o painel também.
+ */
+export function usePainelHistorico(hoje: string) {
+  const de = somarDiasData(hoje, -(DIAS_PAINEL - 1));
+  const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo";
+  return useQuery({
+    queryKey: ["auditoria", "painel", de, fuso],
+    queryFn: async () => (await ler(supabase.rpc("auditoria_painel", { p_de: inicioDoDia(de), p_tz: fuso }))) as ResumoHistorico<LinhaAuditoria>,
+  });
 }
 
 /**

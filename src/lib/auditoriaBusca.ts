@@ -468,6 +468,41 @@ export function painelHistorico<L extends LinhaHistorico>(linhas: L[], hoje: str
   };
 }
 
+/** O que o banco devolve em auditoria_painel: as contas do período e só as linhas que o painel mostra inteiras. */
+export type ResumoHistorico<L> = {
+  por_dia: { dia: string; total: number; exclusoes: number }[]; pessoas: { nome: string; n: number }[];
+  tabelas: { tabela: string; n: number }[]; linhas: L[];
+};
+export const RESUMO_VAZIO: ResumoHistorico<never> = { por_dia: [], pessoas: [], tabelas: [], linhas: [] };
+
+/**
+ * O mesmo painel de painelHistorico, a partir do resumo feito no banco: as contas (por dia, pessoa e área) já vêm
+ * prontas e só as exclusões e as mudanças de valor vêm inteiras, em vez das ~40 mil linhas do período.
+ */
+export function painelHistoricoResumo<L extends LinhaHistorico>(r: ResumoHistorico<L>, hoje: string, limite = 5) {
+  const ini = somarDiasData(hoje, -(DIAS_PAINEL - 1)), ini7 = somarDiasData(hoje, -6);
+  const dias = new Map(r.por_dia.map((d) => [d.dia, d]));
+  const porDia = Array.from({ length: DIAS_PAINEL }, (_, i) => {
+    const dia = somarDiasData(ini, i), d = dias.get(dia);
+    return { dia, total: Number(d?.total ?? 0), exclusoes: Number(d?.exclusoes ?? 0) };
+  });
+  const soma = (de: string) => porDia.filter((d) => d.dia >= de).reduce((s, d) => s + d.total, 0);
+  const ranking = (itens: { nome: string; n: number }[]) =>
+    itens.map((i) => ({ nome: i.nome, n: Number(i.n) })).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, "pt-BR"));
+  const { exclusoesRecentes, maioresMudancas } = painelHistorico(r.linhas, hoje, limite);
+  return {
+    hoje: porDia[porDia.length - 1].total,
+    ultimos7: soma(ini7),
+    ultimos30: soma(ini),
+    exclusoes30: porDia.reduce((s, d) => s + d.exclusoes, 0),
+    porDia,
+    pessoas: ranking(r.pessoas).slice(0, limite),
+    tabelas: ranking(r.tabelas.map((t) => ({ nome: t.tabela, n: t.n }))).slice(0, limite).map((t) => ({ tabela: t.nome, rotulo: rotuloTabela(t.nome), n: t.n })),
+    exclusoesRecentes,
+    maioresMudancas,
+  };
+}
+
 /* ------------------------------------ exceções ------------------------------------ */
 
 export type TratativaBusca = { situacao: string; prazo: string | null; responsavel?: string | null; observacao?: string | null; impacto?: string | null };

@@ -9,11 +9,11 @@ import { useRows } from "@/lib/data";
 import { brl, dataBR, hoje as hojeUTC, pl } from "@/lib/format";
 import { TIPOS } from "@/lib/auditoria";
 import {
-  consultaHistorico, descricaoLinha, diaMes, FILTROS_HISTORICO, hojeLocal, painelChecklist, painelExcecoes, painelHistorico, quem, rotuloTabela,
+  descricaoLinha, diaMes, hojeLocal, painelChecklist, painelExcecoes, painelHistoricoResumo, quem, RESUMO_VAZIO, rotuloTabela,
   type FiltrosExcecoes, type FiltrosHistorico, type OpcoesHistorico, type RespostaChecklist,
 } from "@/lib/auditoriaBusca";
 import type { DadosExcecoes } from "@/pages/Auditoria";
-import { useHistorico, type Destino } from "./useAuditoria";
+import { usePainelHistorico, type Destino } from "./useAuditoria";
 
 const NENHUM: never[] = [];
 const contagem = (v: number) => v.toLocaleString("pt-BR");
@@ -33,8 +33,9 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
   const { data: respostas = NENHUM } = useRows<RespostaChecklist>("auditoria_checklist", { order: "item", ascending: true });
   const ck = useMemo(() => painelChecklist(respostas, comp), [respostas, comp]);
   const ex = painelExcecoes(dados.excecoes, dados.trat, hoje);
-  const { linhas, isLoading, isError } = useHistorico(consultaHistorico({ ...FILTROS_HISTORICO, periodo: "30d" }, hoje));
-  const h = useMemo(() => painelHistorico(linhas, hoje), [linhas, hoje]);
+  // contado no banco: antes a tela baixava todo o histórico dos 30 dias (~40 mil linhas) só para estes números
+  const { data: resumo, isLoading, isError } = usePainelHistorico(hoje);
+  const h = useMemo(() => painelHistoricoResumo(resumo ?? RESUMO_VAZIO, hoje), [resumo, hoje]);
 
   const checklist = () => abrir({ aba: "checklist" });
   const exc = (filtros: Partial<FiltrosExcecoes> = {}) => abrir({ aba: "excecoes", filtros });

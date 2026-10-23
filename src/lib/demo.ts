@@ -2675,6 +2675,27 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       .slice(0, lim).map((f: Row) => ({ tipo: "fornecedor", id: f.id, titulo: f.nome_fantasia || f.nome, sub: [f.municipio, f.uf].filter(Boolean).join("/") })));
     return { data: r, error: null };
   },
+  // no sistema real: public.auditoria_painel (contas do painel da Auditoria feitas no banco)
+  auditoria_painel: ({ p_de }: { p_de: string }) => {
+    const p2 = (n: number) => String(n).padStart(2, "0");
+    const dia = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+    const doPeriodo = (db.auditoria ?? []).filter((l: Row) => new Date(l.created_at).getTime() >= new Date(p_de).getTime());
+    const base = doPeriodo.filter((l: Row) => l.acao === "update" || l.acao === "delete");
+    const contar = (chave: (l: Row) => string) => { const m = new Map<string, number>(); for (const l of base) m.set(chave(l), (m.get(chave(l)) ?? 0) + 1); return m; };
+    const porDia = new Map<string, { dia: string; total: number; exclusoes: number }>();
+    for (const l of base) {
+      const k = dia(l.created_at), d = porDia.get(k) ?? { dia: k, total: 0, exclusoes: 0 };
+      d.total++; if (l.acao === "delete") d.exclusoes++; porDia.set(k, d);
+    }
+    const dinheiro = (c: string) => /^(valor|preco|saldo|custo)(_|$)/.test(c) || ["desconto", "frete", "juros", "multa", "limite_credito"].includes(c);
+    return { data: {
+      por_dia: [...porDia.values()].sort((a, b) => a.dia.localeCompare(b.dia)),
+      pessoas: [...contar((l) => l.usuario_nome ?? "sistema")].map(([nome, n]) => ({ nome, n })),
+      tabelas: [...contar((l) => l.tabela)].map(([tabela, n]) => ({ tabela, n })),
+      linhas: doPeriodo.filter((l: Row) => l.acao === "delete" || (l.acao === "update" && (l.campos ?? Object.keys(l.depois ?? {})).some(dinheiro)))
+        .sort((a: Row, b: Row) => String(b.created_at).localeCompare(String(a.created_at))),
+    }, error: null };
+  },
   // no sistema real: public.usuarios_ultimo_acesso (data do login, de auth.users)
   usuarios_ultimo_acesso: () => ({ data: (db.usuarios_erp ?? []).map((u: Row) => ({ user_id: u.user_id, ultimo_acesso: u.ultimo_acesso ?? null })), error: null }),
   // no sistema real: public.implantacao_indicadores (contagens feitas no banco)
