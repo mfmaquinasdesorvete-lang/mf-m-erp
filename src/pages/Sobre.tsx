@@ -1,4 +1,5 @@
-// Sobre o ERP Line (aberta pela versão no fim do menu). As abas ficam em 4 grupos:
+// Sobre o ERP Line (aberta pela versão no fim do menu). Abre no Resumo (um painel com tudo de relance, começando pela
+// central dos chats) e as outras abas ficam em 4 grupos:
 // - Conhecer o ERP: o que faz cada módulo, os esquemas dos processos (rascunho, fluxograma do menu, cadeia de causas),
 //   os sistemas (finance-os, analytics-os, ops-os, innovation-os, capability-showcase e a ECL) e o design system;
 // - Chats e saúde (só o administrador): os chats do Claude, o Monitor (automações, filas, backup) e a Segurança;
@@ -7,7 +8,7 @@
 // O endereço continua ?aba=… (os links antigos abrem a aba certa). Cada aba começa pelos indicadores, depois os filtros e as ações.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, AlertTriangle, BookOpen, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { Activity, AlertTriangle, BookOpen, Boxes, CalendarDays, ClipboardCopy, ExternalLink, Eye, History, LayoutDashboard, LayoutGrid, Lightbulb, Lock, Search, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { Button, Card, PageHeader, Stat, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -29,13 +30,15 @@ import { TelasAlteradas } from "@/components/sobre/TelasAlteradas";
 import { CodigoErp } from "@/components/sobre/CodigoErp";
 import { DesignSystem } from "@/components/sobre/DesignSystem";
 import { Chats } from "@/components/sobre/Chats";
+import { ResumoSobre } from "@/components/sobre/ResumoSobre";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
+const ULTIMA = versoesDoHistorico(HISTORICO)[0] ?? null;
 
-const ABAS = ["modulos", "esquemas", "sistemas", "design", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;
+const ABAS = ["resumo", "modulos", "esquemas", "sistemas", "design", "chats", "monitor", "seguranca", "atualizacoes", "pedidos", "telas", "codigo", "ideias", "rodada", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 type Grupo = { id: string; titulo: string; texto: string; icone: LucideIcon; cor: string; abas: { value: Aba; label: string }[] };
@@ -43,6 +46,8 @@ type Grupo = { id: string; titulo: string; texto: string; icone: LucideIcon; cor
 /** Os grupos do menu do Sobre, só com as abas que a pessoa pode abrir (grupo sem aba some). */
 function gruposDoSobre(ehAdmin: boolean, podeHandoff: boolean): Grupo[] {
   const g: Grupo[] = [
+    { id: "resumo", titulo: "Resumo", texto: "Tudo de relance: chats, pendências, pedidos, ideias e o que mudou", icone: LayoutDashboard, cor: "from-cyan-500 to-sky-700",
+      abas: [{ value: "resumo", label: "Resumo" }] },
     { id: "conhecer", titulo: "Conhecer o ERP", texto: "O que cada tela faz e os processos desenhados", icone: BookOpen, cor: "from-sky-500 to-blue-700",
       abas: [{ value: "modulos", label: "Módulos" }, { value: "esquemas", label: "Esquemas" }, { value: "sistemas", label: "Sistemas" }, { value: "design", label: "Design" }] },
     { id: "chats", titulo: "Chats e saúde", texto: "Chats do Claude, automações e segurança", icone: Activity, cor: "from-violet-500 to-purple-700",
@@ -63,7 +68,7 @@ export default function Sobre() {
   const ehAdmin = papel === "admin";
   // Rodada e Handoff falam de finanças e decisões da empresa: financeiro, contador e administrador. Chats, Monitor e Segurança: só o administrador
   const grupos = gruposDoSobre(ehAdmin, podeHandoff);
-  const [aba, setAba] = useAbaUrl<Aba>("modulos", grupos.flatMap((x) => x.abas.map((a) => a.value)));
+  const [aba, setAba] = useAbaUrl<Aba>("resumo", grupos.flatMap((x) => x.abas.map((a) => a.value)));
   const grupo = grupos.find((x) => x.abas.some((a) => a.value === aba)) ?? grupos[0];
   const [ideia, setIdeia] = useState<InicialItem | null>(null);
   const [pendencia, setPendencia] = useState<InicialItem | null>(null);
@@ -72,7 +77,7 @@ export default function Sobre() {
       <PageHeader title="Sobre o ERP Line"
         subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. Escolha um grupo e depois a aba.` : "Escolha um grupo e depois a aba."}
         actions={<Button variant="secondary" onClick={() => setIdeia({})}><Lightbulb size={16} /> Anotar ideia</Button>} />
-      <nav aria-label="Grupos do Sobre" className={`mb-3 grid gap-2 ${grupos.length > 3 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+      <nav aria-label="Grupos do Sobre" className={`mb-3 grid gap-2 ${grupos.length > 4 ? "grid-cols-2 lg:grid-cols-5" : grupos.length > 3 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
         {grupos.map((x) => {
           const ativo = x.id === grupo.id;
           return (
@@ -88,7 +93,8 @@ export default function Sobre() {
           );
         })}
       </nav>
-      <Tabs value={aba} onChange={setAba} options={grupo.abas} />
+      {grupo.abas.length > 1 && <Tabs value={aba} onChange={setAba} options={grupo.abas} />}
+      {aba === "resumo" && <ResumoSobre ehAdmin={ehAdmin} podeHandoff={podeHandoff} ultima={ULTIMA} onIrAba={setAba} />}
       {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
       {aba === "chats" && ehAdmin && <Chats />}
       {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
