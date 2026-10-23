@@ -1,4 +1,5 @@
-// Mercado Livre (Vendas → Mercado Livre): o painel (tem pedido? quantos, quanto, em quanto tempo), os produtos anunciados
+// Loja online e marketplace (Vendas → Loja online e marketplace): a aba Marketplace (qualidade dos cadastros para
+// anunciar, antes a aba Anúncios de Produtos) e o Mercado Livre: o painel (tem pedido? quantos, quanto, em quanto tempo), os produtos anunciados
 // com o estoque e o preço que o ERP manda, as vendas depois da venda (envio, NF-e e rastreio), os ajustes do envio, a
 // conta conectada e os outros marketplaces. Também recebe a volta do "Conectar" (/mercado-livre/retorno?code=…&state=…).
 import { useEffect, useRef, useState } from "react";
@@ -16,15 +17,22 @@ import { AnunciosMercadoLivre } from "@/components/mercadolivre/AnunciosMercadoL
 import { VendasMercadoLivre } from "@/components/mercadolivre/VendasMercadoLivre";
 import { PainelMercadoLivre } from "@/components/mercadolivre/PainelMercadoLivre";
 import { OutrosMarketplaces } from "@/components/mercadolivre/OutrosMarketplaces";
+import { AuditoriaProdutos } from "@/components/produtos/AuditoriaProdutos";
+import { useRows } from "@/lib/data";
+import type { Produto } from "@/lib/types";
 
-type Aba = "painel" | "anuncios" | "vendas" | "envio" | "conta" | "outros";
+type Aba = "marketplace" | "painel" | "anuncios" | "vendas" | "envio" | "conta" | "outros";
 
 export default function MercadoLivre() {
-  const { tem } = usePerfil();
+  const { tem, pode } = usePerfil();
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  // aba Marketplace (antes "Anúncios" em Produtos): a qualidade dos cadastros para anunciar
+  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
   const podeMudar = tem("financeiro", "marketplace");
   const veVendas = tem("vendas", "financeiro");
   const { conta, anuncios, carregando, erro } = useAnunciosML();
-  const [aba, setAba] = useState<Aba | null>(null);
+  const [aba, setAba] = useState<Aba | null>(() => (new URLSearchParams(search).get("aba") === "marketplace" ? "marketplace" : null));
   const [sincronizando, setSincronizando] = useState(false);
   const invalidar = useInvalidate();
   const conectando = useRetornoConexao();
@@ -47,8 +55,8 @@ export default function MercadoLivre() {
   return (
     <div>
       <PageHeader
-        title="Mercado Livre"
-        subtitle="Os pedidos que entram, quanto vendeu e em quanto tempo chega. O ERP manda o estoque e o preço para os anúncios e, depois da venda, a NF-e e o rastreio."
+        title="Loja online e marketplace"
+        subtitle="Na aba Marketplace, os cadastros prontos para anunciar. No Mercado Livre, os pedidos que entram e quanto vendeu; o ERP manda o estoque e o preço para os anúncios e, depois da venda, a NF-e e o rastreio."
         actions={conta && podeMudar ? (
           <Button onClick={sincronizar} disabled={sincronizando || !envioLigado} title={envioLigado ? "Manda agora estoque e preço de todos os anúncios ligados" : "Ligue antes o envio do estoque ou do preço"}>
             {sincronizando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Sincronizar agora
@@ -64,6 +72,7 @@ export default function MercadoLivre() {
         </p>
       )}
       <Tabs value={atual} onChange={setAba} options={[
+        { value: "marketplace" as const, label: "Marketplace" },
         ...(veVendas ? [{ value: "painel" as const, label: "Painel" }] : []),
         { value: "anuncios", label: atencao ? `Produtos (${atencao} para ver)` : "Produtos" },
         ...(veVendas && conta ? [{ value: "vendas" as const, label: "Vendas e notas" }] : []),
@@ -71,6 +80,7 @@ export default function MercadoLivre() {
         { value: "conta", label: conta ? "Conta" : "Conectar a conta" },
         { value: "outros", label: "Outros marketplaces" },
       ]} />
+      {atual === "marketplace" && <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => navigate(`/estoque?editar=${p.id}`)} />}
       {atual === "painel" && veVendas && <PainelMercadoLivre conta={conta} irConta={() => setAba("conta")} />}
       {atual === "anuncios" && <AnunciosMercadoLivre conta={conta} anuncios={anuncios} carregando={carregando} erro={erro} podeMudar={podeMudar} />}
       {atual === "vendas" && veVendas && <VendasMercadoLivre conta={conta} />}

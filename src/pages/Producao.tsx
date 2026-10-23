@@ -165,7 +165,8 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de ordem">
+      {/* celular: os tipos numa linha só que rola para o lado (quebravam em duas linhas no topo) */}
+      <div className="faixa-chips mb-4" role="group" aria-label="Tipo de ordem">
         {SETORES.map(({ v, rotulo: r }) => (
           <button key={v} type="button" aria-pressed={tipoOp === v} onClick={() => setTipoOp(v)}
             className={chip(tipoOp === v)}>
@@ -184,6 +185,8 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
       </div>}
 
       <BarraFiltros periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data" onLimpar={() => setPeriodo(SEM_PERIODO)} />
+      {/* celular: "Nova ordem" na largura toda em cima; Quadro/Lista e Excluídas juntos numa linha embaixo
+          (antes eram três linhas, e o botão principal ficava depois de tudo) */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded-lg border border-slate-200 p-0.5" role="group" aria-label="Como ver as ordens">
@@ -196,9 +199,9 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
             <input type="checkbox" checked={mostrarTodas} onChange={(e) => setMostrarTodas(e.target.checked)} /> Mostrar concluídas e canceladas
           </label>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-md:contents">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_producao") && <Button onClick={() => setAberta({ quantidade: 1, status: "planejada", setor: tipoOp === "maquinas" ? null : tipoOp, previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
+          {pode("editar_producao") && <Button className="max-md:order-first max-md:w-full" onClick={() => setAberta({ quantidade: 1, status: "planejada", setor: tipoOp === "maquinas" ? null : tipoOp, previsao: somarDias(10), observacoes: textoPadrao(cfgTextos, "op_observacoes") || null })}><Plus size={16} /> Nova ordem de produção</Button>}
         </div>
       </div>
 
@@ -209,7 +212,7 @@ function OrdensProducao({ irParaCompras, abrirId, onAberta }: { irParaCompras: (
           const f = faltasPorOP.get(o.id) ?? 0;
           const aberta = ["planejada", "em_producao"].includes(o.status);
           return (
-            <tr key={o.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(o)}>
+            <tr key={o.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberta(o)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta(o); } }}>
               <td className="td font-bold text-fg">#{o.numero}</td>
               <td className="td">{o.produto?.descricao}{o.responsavel && <div className="text-xs text-slate-500">{o.responsavel}</div>}
                 <div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
@@ -633,9 +636,9 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
             <input type="checkbox" checked={mostrarTodos} onChange={(e) => setMostrarTodos(e.target.checked)} /> Mostrar recebidos e cancelados
           </label>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-md:contents">
           {pode("editar_producao") && <Button variant="ghost" onClick={() => setVerExcluidas(true)}><Trash2 size={16} /> Excluídas</Button>}
-          {pode("editar_producao") && <Button onClick={() => setAberto(novaOC())}><Plus size={16} /> Novo pedido de compra</Button>}
+          {pode("editar_producao") && <Button className="max-md:order-first max-md:w-full" onClick={() => setAberto(novaOC())}><Plus size={16} /> Novo pedido de compra</Button>}
         </div>
       </div>
       {modo === "quadro" ? (
@@ -658,7 +661,7 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((p) => (
-          <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
+          <tr key={p.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto({ ...p, itens: p.itens ?? [] }); } }}>
             <td className="td font-bold text-fg">#{p.numero}{p.numero_fornecedor && <span className="block text-xs font-normal text-slate-500">nº forn. {p.numero_fornecedor}</span>}</td>
             <td className="td num whitespace-nowrap">{dataBR(p.data ?? p.created_at?.slice(0, 10))}</td>
             <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}
@@ -925,7 +928,7 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
           return (
             <div key={i.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5">
               <span className="flex-1 text-sm"><b className="text-fg">{i.descricao}</b><span className="block text-xs text-slate-500">faltam {pendente} de {i.quantidade}</span></span>
-              <input className="input w-24 text-right" type="number" min={0} max={pendente} step="any" value={qtd[i.id!] ?? 0}
+              <input aria-label={`Quantidade de ${i.descricao}`} className="input w-24 text-right" type="number" min={0} max={pendente} step="any" value={qtd[i.id!] ?? 0}
                 onChange={(e) => setQtd({ ...qtd, [i.id!]: Math.min(pendente, Number(e.target.value)) })} disabled={!pendente} />
             </div>
           );

@@ -52,7 +52,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: 
   return (
     <div className="relative">
       <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input
+      <input aria-label="Buscar cliente"
         ref={campo}
         className="input pl-9 pr-9"
         role="combobox" aria-expanded={aberto} aria-autocomplete="list" autoComplete="off" autoFocus={autoFocus}
@@ -85,7 +85,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: 
       {aberto && (
         // o campo costuma estar dentro de um <label> (Field): sem o preventDefault, o clique na lista volta o foco
         // para o campo, que reabre a busca vazia e parece que o cliente não foi escolhido
-        <div className="cartao absolute left-0 right-0 z-gaveta mt-1 overflow-hidden shadow-pop"
+        <div role="presentation" className="cartao absolute left-0 right-0 z-gaveta mt-1 overflow-hidden shadow-pop"
           onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
           {achados.length === 0 && carregando ? (
             <p className="px-3 py-3 text-sm text-slate-500">Carregando os clientes… a busca aparece em instantes.</p>

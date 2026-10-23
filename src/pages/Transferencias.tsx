@@ -70,7 +70,7 @@ export default function Transferencias() {
         {visiveis.map((t) => {
           const nf = notas.filter((n) => !!n.transferencia_id && n.transferencia_id === t.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
           return (
-            <tr key={t.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta({ ...t, itens: t.itens ?? [] })}>
+            <tr key={t.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberta({ ...t, itens: t.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta({ ...t, itens: t.itens ?? [] }); } }}>
               <td className="td font-bold text-fg">#{t.numero}</td>
               <td className="td"><span className="inline-flex items-center gap-1.5 font-semibold">{nome(t.origem_id)} <ArrowRight size={14} className="text-slate-400" /> {nome(t.destino_id)}</span></td>
               <td className="td text-slate-600">{(t.itens ?? []).map((i) => `${Number(i.quantidade)}× ${i.descricao}`).join(", ")}</td>

@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
 import { rotuloPapel } from "@/lib/permissoes";
-import { Button, Field, Modal, chip } from "@/components/ui";
+import { Button, Field, Modal, chip, useFecharComEsc } from "@/components/ui";
 import { guardarVoz, melhorVoz, nomeVozEscolhida, pontuarVoz, vozesPortugues } from "@/lib/voz";
 
 export type Urgencia = "normal" | "importante" | "urgente";
@@ -159,6 +159,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const [popups, setPopups] = useState<Notificacao[]>([]);
   const [centro, setCentro] = useState<Notificacao[]>([]); // importantes e urgentes esperando "Ciente"
   const [painel, setPainel] = useState(false);
+  useFecharComEsc(painel, () => setPainel(false));
   const [compor, setCompor] = useState<string[] | null>(null); // aberto: para quem (vazio = escolher)
   const [responderA, setResponderA] = useState<Notificacao | null>(null);
   const [som, setSom] = useState(somLigado);
@@ -372,7 +373,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
 
       {/* Histórico */}
       {painel && (
-        <div className="fixed inset-0 z-sobre-janela bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
+        <div role="presentation" className="fixed inset-0 z-sobre-janela bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
           <div className="cartao absolute inset-x-3 top-[70px] max-h-[75vh] overflow-y-auto p-3 shadow-pop md:left-auto md:right-5 md:top-5 md:w-96"
             onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-2 px-1">

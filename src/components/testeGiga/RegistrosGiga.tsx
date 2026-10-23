@@ -153,7 +153,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
             <th className="th">Funcional</th><th className="th">Cont. aterram.</th><th className="th">Tensão suport.</th><th className="th">Resultado</th>
           </>}>
           {lista.map((t) => (
-            <tr key={t.id} className={`cursor-pointer hover:bg-slate-50/70 ${t.anulado_em ? "opacity-60" : ""}`} onClick={() => setAberto(t)}>
+            <tr key={t.id} className={`cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50/70 ${t.anulado_em ? "opacity-60" : ""}`} onClick={() => setAberto(t)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto(t); } }}>
               <td className="td num text-slate-500">{t.numero}</td>
               <td className="td num whitespace-nowrap">{dataHoraBR(t.testado_em)}</td>
               <td className="td">

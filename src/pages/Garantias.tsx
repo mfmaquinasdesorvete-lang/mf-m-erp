@@ -96,7 +96,8 @@ export default function Garantias() {
         </>}
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {/* celular: os 5 cartões numa faixa que rola para o lado (em grade ocupavam meia tela e empurravam a busca e a lista) */}
+      <div className="-mx-4 mb-5 flex snap-x gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-5 max-md:[&>*]:w-40 max-md:[&>*]:shrink-0 max-md:[&>*]:snap-start">
         <Stat icon={ShieldCheck} tom="bom" label="Em garantia" valor={cont.em_garantia + cont.vence_logo}
           sub={filtro === "em_garantia" ? "filtrando ✓" : "toque para filtrar"} onClick={() => alternar("em_garantia")} />
         <Stat icon={ShieldAlert} tom={cont.vence_logo ? "atencao" : "neutro"} label="Garantia vence em 30 dias" valor={cont.vence_logo}
@@ -402,7 +403,7 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
                   ) : <span className="self-center text-sm text-amber-700">Cliente sem WhatsApp no cadastro</span>}
                   {agendando === e.id ? (
                     <span className="flex items-center gap-2">
-                      <input className="input w-auto" type="date" value={data} onChange={(x) => setData(x.target.value)} />
+                      <input aria-label="Data da preventiva" className="input w-auto" type="date" value={data} onChange={(x) => setData(x.target.value)} />
                       <Button variant="secondary" onClick={() => { registrar(e, `agendou a preventiva para ${dataBR(data)}`, null, data); setAgendando(null); }}>Confirmar</Button>
                     </span>
                   ) : (

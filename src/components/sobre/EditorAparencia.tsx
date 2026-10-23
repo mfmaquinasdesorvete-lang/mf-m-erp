@@ -53,7 +53,7 @@ function CampoCor({ rotulo, valor, padrao, onChange }: { rotulo: ReactNode; valo
         className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-slate-300 bg-surface p-1" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-fg">{rotulo}</div>
-        <input className="input h-8 py-1 font-mono text-xs" value={texto} placeholder={`padrão ${padrao}`} maxLength={7}
+        <input aria-label={`Código da cor: ${rotulo}`} className="input h-8 py-1 font-mono text-xs" value={texto} placeholder={`padrão ${padrao}`} maxLength={7}
           onChange={(e) => { setTexto(e.target.value); if (corValida(e.target.value)) onChange(e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`); if (!e.target.value) onChange(null); }} />
       </div>
       {corValida(valor) && valor.toLowerCase() !== padrao && (

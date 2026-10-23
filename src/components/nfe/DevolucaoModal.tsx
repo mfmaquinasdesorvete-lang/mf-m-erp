@@ -113,7 +113,7 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
                             {[...new Set([i.cfop, ...previa.cfops.map((c) => c.cfop)])].map((c) => <option key={c} value={c}>{c} {previa.cfops.find((x) => x.cfop === c)?.descricao ?? ""}</option>)}
                           </select>
                         ) : (
-                          <input className="input w-20 py-1 text-xs" inputMode="numeric" maxLength={4} value={cfop[i.numero] ?? i.cfop} onChange={(e) => setCfop({ ...cfop, [i.numero]: e.target.value.replace(/\D/g, "") })} />
+                          <input aria-label="CFOP" className="input w-20 py-1 text-xs" inputMode="numeric" maxLength={4} value={cfop[i.numero] ?? i.cfop} onChange={(e) => setCfop({ ...cfop, [i.numero]: e.target.value.replace(/\D/g, "") })} />
                         )}
                       </td>
                       <td className="px-3 py-2 text-xs">{i.kit ? <span className="text-amber-700">kit: ajuste manual</span> : i.produto_nome ? <span className="text-slate-600">{previa.tipo === "venda" ? "entra" : "sai"}: {i.produto_nome}</span> : <span className="text-slate-500">sem produto ligado</span>}</td>

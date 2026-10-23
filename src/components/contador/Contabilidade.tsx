@@ -183,7 +183,7 @@ function ContatoModal({ inicial, onClose }: { inicial: Form; onClose: () => void
         </Field>
         <Field label="Nome"><input className="input" value={f.nome} onChange={(e) => set("nome", e.target.value)} required minLength={2} maxLength={120} /></Field>
         <Field label="E-mail"><input className="input" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} maxLength={200} /></Field>
-        <Field label="WhatsApp ou telefone"><input className="input" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} maxLength={40} placeholder="(19) 9 0000-0000" /></Field>
+        <Field label="WhatsApp ou telefone"><input className="input" inputMode="tel" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} maxLength={40} placeholder="(19) 9 0000-0000" /></Field>
         <Field label="Observação" className="sm:col-span-2"><input className="input" value={f.observacao} onChange={(e) => set("observacao", e.target.value)} maxLength={300} /></Field>
         {f.id && (
           <label className="flex items-center gap-2 text-sm sm:col-span-2">

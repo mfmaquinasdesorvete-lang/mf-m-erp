@@ -108,6 +108,23 @@ const filtrosBase = (): FiltroCrud<Cliente>[] => [
 ];
 const ORDENS = ordensCadastro<Cliente>();
 
+// tira a marca "do portal: conferir" (trava enquanto salva, para não mandar duas vezes)
+function BotaoConferido({ id }: { id: string }) {
+  const invalidar = useInvalidate();
+  const [salvando, setSalvando] = useState(false);
+  return (
+    <button type="button" className="ml-0.5 rounded underline hover:no-underline" title="Dados conferidos: tirar a marca"
+      disabled={salvando} aria-busy={salvando || undefined}
+      onClick={async (e) => {
+        e.stopPropagation();
+        setSalvando(true);
+        const { error } = await supabase.from("clientes").update({ portal_conferir: false }).eq("id", id);
+        setSalvando(false);
+        if (error) notifyError(error); else invalidar("clientes");
+      }}>conferido</button>
+  );
+}
+
 export default function Clientes() {
   const { papel, tem, pode } = usePerfil();
   const [importar, setImportar] = useState(false);
@@ -293,12 +310,7 @@ export default function Clientes() {
                   <span title="Cadastrado pelo representante no portal: confira os dados" className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900">
                     do portal: conferir
                     {pode("editar_clientes") && (
-                      <button type="button" className="ml-0.5 rounded underline hover:no-underline" title="Dados conferidos: tirar a marca"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const { error } = await supabase.from("clientes").update({ portal_conferir: false }).eq("id", r.id);
-                          if (error) notifyError(error); else invalidar("clientes");
-                        }}>conferido</button>
+                      <BotaoConferido id={r.id} />
                     )}
                   </span>
                 )}

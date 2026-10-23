@@ -325,7 +325,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <div className="inline-flex rounded-lg border border-slate-300 bg-surface p-0.5 shadow-sm" role="group" aria-label="Ver as vendas em">
             {([["quadro", SquareKanban, "Quadro"], ["lista", List, "Lista"]] as const).map(([m, Icone, rotulo]) => (
               <button key={m} aria-label={rotulo} type="button" aria-pressed={visual === m} onClick={() => setVisual(m)} title={m === "quadro" ? "Quadro Kanban: uma coluna por passo da venda" : "Lista com seleção e ações em lote"}
-                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                className={`inline-flex items-center gap-1 rounded-md px-3.5 py-2.5 text-sm font-semibold sm:px-2.5 sm:py-1.5 ${visual === m ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 <Icone size={15} aria-hidden /><span className="hidden sm:inline">{rotulo}</span>
               </button>
             ))}
@@ -429,7 +429,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
           <th className="th"><span title="Embaixo do número: E estoque baixado · C contas lançadas · N NF-e autorizada · P proposta enviada">NF e feito</span></th><th className="th">Envio</th><th className="th"><span className="sr-only">Marcadores e abrir</span></th></>}
       >
         {lista.map((p) => (
-          <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}>
+          <tr key={p.id} className={`cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto({ ...p, itens: p.itens ?? [] }); } }}>
             <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><span className="flex flex-col items-center gap-1.5"><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />{menuVenda(p)}</span></td>
             <td className="td w-12 py-1.5 pr-0"><MiniaturaVenda url={info.get(p.id)?.foto ?? null} nItens={(p.itens ?? []).length} descricao={(p.itens ?? []).map((x) => x.descricao).join(" · ")} /></td>
             <td className="td whitespace-nowrap font-medium">#{p.numero}<EtiquetaUnidade id={(p as any).unidade_id} />{p.origem === "loja" && <span className="ml-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-2xs font-bold text-sky-700">LOJA</span>}{p.via_portal && <SeloPortal />}

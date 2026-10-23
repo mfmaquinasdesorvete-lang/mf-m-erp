@@ -331,7 +331,7 @@ function LinhaGasto({ g, cat, est, casada, aberto, onAbrir, onMarcar }: {
       </div>
       {motivo !== null && (
         <div className="mt-2 flex flex-wrap gap-2 pl-9">
-          <input className="input min-w-0 flex-1" autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por que não tem nota? Ex.: ambulante, não emite nota" />
+          <input aria-label="Por que não tem nota" className="input min-w-0 flex-1" autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por que não tem nota? Ex.: ambulante, não emite nota" />
           <Button type="button" disabled={motivo.trim().length < 3} onClick={async () => { if (await onMarcar("sem_nota", { obs: motivo })) setMotivo(null); }}>Salvar</Button>
         </div>
       )}

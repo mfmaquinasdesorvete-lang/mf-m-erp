@@ -236,7 +236,16 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }
   }
 
+  // mudou algo no formulário aberto: fechar sem salvar pergunta antes
+  const [alterou, setAlterou] = useState(false);
+  useEffect(() => { if (!editando) setAlterou(false); }, [editando]);
+  const fecharForm = async () => {
+    if (alterou && !(await confirmar("Sair sem salvar? O que você digitou neste cadastro será perdido.", { voltar: "Continuar editando" }))) return;
+    setEditando(null);
+  };
+
   const set = (name: string, value: any, forcar = false) => {
+    setAlterou(true);
     setEditando((r) => ({ ...r, [name]: value }));
     const p = onFieldChange?.(name, value, { ...(editando ?? {}), [name]: value }, forcar);
     if (!p) return;
@@ -343,7 +352,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       <div className="mb-3 flex flex-wrap items-end gap-2">
         <div className="relative min-w-0 flex-1 md:w-full md:max-w-sm md:flex-none">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <input aria-label="Buscar" className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
         {temFiltros && (
           <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
@@ -493,7 +502,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           notas={data.filter((r) => sel.has(r.id)) as (T & { marcadores?: string[] | null })[]} onClose={() => setMarcandoLote(false)} />
       )}
       {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
-      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} title={editando?.id ? `Editar` : `Novo cadastro`}>
+      <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (
           <form onSubmit={salvar}>
             <div className="space-y-3">
@@ -519,7 +528,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
             </div>
             {anexos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
             <div className="mt-5 flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setEditando(null)}>Cancelar</Button>
+              <Button type="button" variant="secondary" onClick={fecharForm}>Cancelar</Button>
               <Button disabled={save.isPending}>{save.isPending ? "Salvando…" : "Salvar"}</Button>
             </div>
           </form>

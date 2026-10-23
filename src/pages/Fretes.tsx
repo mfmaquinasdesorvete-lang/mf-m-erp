@@ -252,7 +252,7 @@ export default function Fretes() {
               const divergente = freteDivergente(e.valor_aprovado, e.valor_final);
               const abertas = ocorrencias.filter((o) => o.envio_id === e.id && o.status === "aberta").length;
               return (
-                <tr key={e.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberto({ id: e.id })}>
+                <tr key={e.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberto({ id: e.id })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto({ id: e.id }); } }}>
                   <td className="td" data-label="Envio">
                     <div className="font-semibold">#{e.numero}{p ? <span className="font-normal text-slate-500"> · pedido #{p.numero}</span> : ""}</div>
                     <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-2xs font-bold ${STATUS_ENVIO[e.status].cor}`}>{STATUS_ENVIO[e.status].rotulo}</span>

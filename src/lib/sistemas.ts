@@ -181,7 +181,7 @@ export const ECL: ComandoEcl[] = [
       { alvo: "financeiro", palavras: ["financeiro", "financas", "contas", "bancos", "caixa"], destinos: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Painel do contador", to: "/contador" }] },
       { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas", "nf", "tributos"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }, { rotulo: "Painel fiscal", to: "/painel/notas" }] },
       { alvo: "parcelamentos", palavras: ["parcelamentos", "parcelamento", "parcelas", "dividas", "pgfn", "refis"], destinos: [{ rotulo: "Parcelamentos de impostos", to: "/parcelamentos" }] },
-      { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque", "pecas"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }, { rotulo: "Marketplace e anúncios", to: "/estoque?aba=auditoria" }] },
+      { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque", "pecas"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }, { rotulo: "Loja online e marketplace", to: "/mercado-livre?aba=marketplace" }] },
       { alvo: "menu", palavras: ["menu", "telas", "erp", "sistema"], destinos: [{ rotulo: "Auditoria do menu", to: "/sobre?aba=esquemas" }] },
       { alvo: "estoque", palavras: ["estoque", "contagem", "saldo", "giro"], destinos: [{ rotulo: "Contagem de estoque", to: "/estoque?aba=contagem" }, { rotulo: "Giro de estoque", to: "/estoque/giro" }] },
       { alvo: "maquinas", palavras: ["maquinas", "maquina", "garantia", "preventiva", "serie"], destinos: [{ rotulo: "Garantias e preventivas", to: "/garantias" }, { rotulo: "Painel das máquinas", to: "/painel/maquinas" }] },

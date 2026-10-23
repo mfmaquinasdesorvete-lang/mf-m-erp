@@ -67,6 +67,7 @@ const Conciliacao = lazy(() => import("@/pages/Conciliacao"));
 const GastosSeparados = lazy(() => import("@/pages/GastosSeparados"));
 const PartesRelacionadas = lazy(() => import("@/pages/PartesRelacionadas"));
 const MercadoLivre = lazy(() => import("@/pages/MercadoLivre"));
+const GestaoPrecos = lazy(() => import("@/pages/GestaoPrecos"));
 const Auditoria = lazy(() => import("@/pages/Auditoria"));
 const Fretes = lazy(() => import("@/pages/Fretes"));
 const FormasPagamento = lazy(() => import("@/pages/FormasPagamento"));
@@ -102,6 +103,7 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "pedidos", tela: "pedidos", element: <Pedidos /> },
   { path: "vendas-maquinas", tela: "pedidos", element: <Pedidos area="maquinas" /> },
   { path: "mercado-livre", tela: "mercadolivre", element: <MercadoLivre /> },
+  { path: "precos", tela: "estoque", element: <GestaoPrecos /> },
   // volta do "Conectar" do Mercado Livre (o endereço cadastrado no app de lá)
   { path: "mercado-livre/retorno", tela: "mercadolivre", element: <MercadoLivre /> },
   { path: "painel/vendas", tela: "pedidos", element: <PainelVendas /> },

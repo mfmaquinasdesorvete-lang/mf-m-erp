@@ -57,6 +57,7 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
   const { data: todos = [] } = useRows<Documento>("documentos", {});
   const docs = todos.filter((d) => d.entidade === entidade && d.entidade_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const [ocupado, setOcupado] = useState(false);
+  const [apagando, setApagando] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const invalidar = useInvalidate();
@@ -89,8 +90,8 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
               <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
               <span className="shrink-0 text-xs text-slate-500">{tamanhoArquivo(d.tamanho)} · {dataBR(d.created_at)}</span>
               {(d.created_by === user_id || papel === "admin") && (
-                <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1"
-                  onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={15} /></button>
+                <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" disabled={apagando === d.id} aria-busy={apagando === d.id || undefined}
+                  onClick={async () => { setApagando(d.id); try { if (await apagarDocumento(d)) invalidar("documentos"); } finally { setApagando(null); } }}><Trash2 size={15} /></button>
               )}
             </li>
           ))}

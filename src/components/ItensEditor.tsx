@@ -58,7 +58,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, preco
               return (
                 <tr key={idx}>
                   <td className="td it-largo" data-label="Item">
-                    <input className="input" value={it.descricao} disabled={disabled} onChange={(e) => atualizar(idx, { descricao: e.target.value })} />
+                    <input aria-label="Descrição do item" className="input" value={it.descricao} disabled={disabled} onChange={(e) => atualizar(idx, { descricao: e.target.value })} />
                     {estoque !== undefined && Number(estoque) < it.quantidade && !disabled && (
                       <p className="mt-1 text-xs text-red-600">{prod?.kit ? "Kits que dá para montar" : "Estoque disponível"}: {Number(estoque)}</p>
                     )}
@@ -73,15 +73,15 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, preco
                   </td>
                   {comSerie && (
                     <td className="td it-largo" data-label="Nº série">
-                      <input className="input" value={it.numero_serie ?? ""} disabled={disabled} onChange={(e) => atualizar(idx, { numero_serie: e.target.value })} />
+                      <input aria-label="Nº de série" className="input" value={it.numero_serie ?? ""} disabled={disabled} onChange={(e) => atualizar(idx, { numero_serie: e.target.value })} />
                     </td>
                   )}
                   <td className="td" data-label="Qtd">
-                    <input className="input text-right" type="number" min={0.001} step="any" value={it.quantidade} disabled={disabled}
+                    <input aria-label="Quantidade" className="input text-right" type="number" min={0.001} step="any" value={it.quantidade} disabled={disabled}
                       onChange={(e) => atualizar(idx, { quantidade: Number(e.target.value) })} />
                   </td>
                   <td className="td" data-label="Unitário">
-                    <input className="input text-right" type="number" min={0} step="0.01" value={it.valor_unitario} disabled={disabled}
+                    <input aria-label="Valor unitário" className="input text-right" type="number" min={0} step="0.01" value={it.valor_unitario} disabled={disabled}
                       onChange={(e) => atualizar(idx, { valor_unitario: Number(e.target.value) })} />
                   </td>
                   <td className="td it-total pt-4 text-right" data-label="Total">{brl(it.quantidade * it.valor_unitario)}</td>

@@ -50,7 +50,7 @@ export function ConfigIa() {
             : <><b>Desligada</b> por {cfg?.ia_desligada_por ?? "—"} em {dataHoraBR(cfg?.ia_desligada_em)}{cfg?.ia_desligada_motivo ? ` · ${cfg.ia_desligada_motivo}` : ""}</>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {ligada && <input className="input min-w-0 flex-1 basis-60" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo para desligar (obrigatório)" />}
+          {ligada && <input aria-label="Motivo para desligar" className="input min-w-0 flex-1 basis-60" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo para desligar (obrigatório)" />}
           <Button tom={ligada ? "perigo" : undefined} onClick={alternar} disabled={salvando || (ligada && !motivo.trim())}>
             {ligada ? <><PowerOff className="h-4 w-4" /> Desligar a IA</> : <><Power className="h-4 w-4" /> Ligar a IA</>}
           </Button>

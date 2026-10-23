@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownUp, Boxes, FileSpreadsheet, History, IdCard, LayoutDashboard, ListChecks, PlugZap, RefreshCw } from "lucide-react";
@@ -23,7 +23,6 @@ import { KitComponentesModal } from "@/components/KitComponentes";
 import { estoqueKit } from "@/lib/kits";
 import type { KitComponente } from "@/lib/types";
 import { QualidadeProdutos } from "@/components/QualidadeProdutos";
-import { AuditoriaProdutos } from "@/components/produtos/AuditoriaProdutos";
 import { ConferenciaEan } from "@/components/produtos/CodigosEan";
 import { contextoEan, erroCodigoNovo, soDigitos, type ProdutoEan } from "@/lib/gtin";
 import { useConfig } from "@/lib/useConfig";
@@ -34,8 +33,7 @@ import { DescricaoMudanca, type LinhaAuditoria } from "@/components/Historico";
 import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } from "@/lib/qualidadeProdutos";
 import { vendidosPorProduto } from "@/lib/gerencial";
 import { custoUnitario } from "@/lib/margem";
-import { FormacaoPreco, usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
-import { TabelasPreco } from "@/components/produtos/TabelasPreco";
+import { usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -152,15 +150,30 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   // o aviso "Preços para revisar" abre direto na aba (…?aba=precos)
   const [busca] = useSearchParams();
   // Máquinas ganham as abas Ficha técnica e Manuais (?aba=ficha&maquina=<id> abre a ficha daquela máquina)
-  type AbaProdutos = "produtos" | "ficha" | "manuais" | "qualidade" | "auditoria" | "contagem" | "categorias" | "precos" | "tabelas";
+  // Preços e Tabelas de preço foram para a Gestão de preços (/precos) e Anúncios para a Loja online e marketplace
+  // (/mercado-livre?aba=marketplace) em 23/10; os endereços antigos levam para lá.
+  type AbaProdutos = "produtos" | "ficha" | "manuais" | "qualidade" | "contagem" | "categorias";
   const abasValidas: readonly AbaProdutos[] = cadastroFixo === "maquinas"
-    ? ["produtos", "ficha", "manuais", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"]
-    : ["produtos", "qualidade", "auditoria", "contagem", "categorias", "precos", "tabelas"];
+    ? ["produtos", "ficha", "manuais", "qualidade", "contagem", "categorias"]
+    : ["produtos", "qualidade", "contagem", "categorias"];
   const [aba, setAba] = useAbaUrl<AbaProdutos>("produtos", abasValidas);
+  useEffect(() => {
+    const antiga = busca.get("aba");
+    if (antiga === "precos") navigate("/precos", { replace: true });
+    else if (antiga === "tabelas") navigate("/precos?aba=tabelas", { replace: true });
+    else if (antiga === "auditoria") navigate("/mercado-livre?aba=marketplace", { replace: true });
+  }, [busca, navigate]);
   const [fichaDe, setFichaDe] = useState<string | undefined>(() => busca.get("maquina") ?? undefined);
   const { data: precosPendentes = 0 } = usePrecosPendentes();
   const { data: categorias = [] } = useCategoriasProduto();
   const [editarAgora, setEditarAgora] = useState<Produto | null>(null);
+  // ?editar=<id> abre o cadastro daquele produto (ex.: "abrir" na aba Marketplace da loja online)
+  const editarId = busca.get("editar");
+  useEffect(() => {
+    if (!editarId || !produtosTodos.length) return;
+    const p = produtosTodos.find((x) => x.id === editarId);
+    if (p) setEditarAgora({ ...p });
+  }, [editarId, produtosTodos]);
   const [ficha, setFicha] = useState<Produto | null>(null);
   const [itensNotas, setItensNotas] = useState(false);
   const { data: movimentos = [] } = useRows<Movimento>("estoque_movimentos", { select: "produto_id, tipo, quantidade, created_at" });
@@ -370,10 +383,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
     ...(ehMaquinas ? [{ value: "ficha" as const, label: "Ficha técnica" }, { value: "manuais" as const, label: "Manuais" }] : []),
     { value: "qualidade" as const, label: "Qualidade" },
-    { value: "auditoria" as const, label: "Anúncios" },
     { value: "categorias" as const, label: "Categorias" },
-    ...(tem("financeiro") ? [{ value: "precos" as const, label: precosPendentes ? `Preços (${precosPendentes})` : "Preços" }] : []),
-    { value: "tabelas" as const, label: "Tabelas de preço" },
     ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem" }] : []),
   ];
   return (
@@ -392,14 +402,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         <FichaTecnica inicial={fichaDe} />
       ) : aba === "manuais" ? (
         <ManuaisMaquinas produtos={produtosTodos} podeEditar={pode("editar_produtos") || tem("tecnico")} aoFicha={(id) => { setFichaDe(id); setAba("ficha"); }} />
-      ) : aba === "tabelas" ? (
-        <TabelasPreco produtos={produtos} podeEditar={podeMover} />
-      ) : aba === "precos" ? (
-        <FormacaoPreco categorias={categorias} podeAprovar={podeMover} />
       ) : aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
-      ) : aba === "auditoria" ? (
-        <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "qualidade" ? (
         <QualidadeProdutos produtos={produtos} inicial={busca.get("problema")} podeEditar={pode("editar_produtos")} onCorrigir={(p) => { setAba("produtos"); setEditarAgora({ ...p }); }} />
       ) : aba === "contagem" ? (
@@ -414,7 +418,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
         aposTitulo={<>
           {podeMover && precosPendentes > 0 && (
-            <button type="button" onClick={() => setAba("precos")}
+            <button type="button" onClick={() => navigate("/precos")}
               className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-left text-sm text-amber-800 sm:py-2">
               <AlertTriangle size={16} className="shrink-0" />
               <span className="min-w-0 flex-1 truncate sm:whitespace-normal"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b><span className="hidden sm:inline">: o custo mudou e o preço ficou abaixo da margem desejada.</span></span>
@@ -547,7 +551,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {
             name: "motivo_alteracao", label: "Motivo da alteração (ao mudar preço ou custo já preenchidos)", type: "custom", span: 4,
             render: (v, set, row) => row.id
-              ? <input className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste da tabela de serviços" />
+              ? <input aria-label="Motivo da alteração" className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste da tabela de serviços" />
               : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
           },
         ] : [
@@ -628,7 +632,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             name: "preco_venda", label: "Preço de venda", type: "custom", span: 1,
             render: (v, set, row) => row.tipo === "insumo" && !row.vendavel
               ? <span className="text-sm text-slate-700"><b className="num">{brl(Number(row.preco_custo || 0))}</b> <span className="text-xs text-slate-500">· igual ao custo (componente de produção)</span></span>
-              : <input className="input num" type="number" step="0.01" min="0" inputMode="decimal" value={v ?? ""}
+              : <input aria-label="Preço de venda" className="input num" type="number" step="0.01" min="0" inputMode="decimal" value={v ?? ""}
                   onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))} />,
           },
           { name: "ipi_aliquota", label: "IPI (%) — TIPI do NCM", type: "number", span: 1 },
@@ -659,7 +663,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {
             name: "motivo_alteracao", label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
             render: (v, set, row) => row.id
-              ? <input className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste do fornecedor na NF 1234" />
+              ? <input aria-label="Motivo da alteração" className="input" value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder="Ex.: reajuste do fornecedor na NF 1234" />
               : <span className="text-xs text-slate-500">no cadastro novo não precisa</span>,
           },
           { name: "ativo", label: "Ativo", type: "checkbox", span: 1 },
@@ -709,7 +713,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             name: "titulo_anuncio", label: "Título do anúncio (até 60 letras)", type: "custom", span: 4,
             render: (v, set) => (
               <div className="relative">
-                <input className="input pr-14" value={v ?? ""} maxLength={120} onChange={(e) => set(e.target.value)} placeholder="O que é + para que serve + marca. Ex.: Parafuso de Chave para Máquina de Sorvete My Frost" />
+                <input aria-label="Título do anúncio" className="input pr-14" value={v ?? ""} maxLength={120} onChange={(e) => set(e.target.value)} placeholder="O que é + para que serve + marca. Ex.: Parafuso de Chave para Máquina de Sorvete My Frost" />
                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold ${String(v ?? "").length > LIMITE_TITULO ? "text-red-600" : "text-slate-400"}`}>{String(v ?? "").length}/{LIMITE_TITULO}</span>
               </div>
             ),
@@ -717,13 +721,13 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "slug", label: "Endereço da página (slug)", span: 2, placeholder: "parafuso-de-chave-para-maquina-de-sorvete" },
           {
             name: "palavras_chave", label: "Palavras-chave (separadas por vírgula)", type: "custom", span: 2,
-            render: (v, set) => <input className="input" value={Array.isArray(v) ? v.join(", ") : (v ?? "")} onChange={(e) => set(e.target.value)} placeholder="parafuso, chave extratora, peça para máquina de sorvete" />,
+            render: (v, set) => <input aria-label="Palavras-chave" className="input" value={Array.isArray(v) ? v.join(", ") : (v ?? "")} onChange={(e) => set(e.target.value)} placeholder="parafuso, chave extratora, peça para máquina de sorvete" />,
           },
           {
             name: "meta_descricao", label: "Descrição para o Google (até 160 letras)", type: "custom", span: 4,
             render: (v, set) => (
               <div className="relative">
-                <input className="input pr-16" value={v ?? ""} maxLength={300} onChange={(e) => set(e.target.value)} />
+                <input aria-label="Descrição para o Google" className="input pr-16" value={v ?? ""} maxLength={300} onChange={(e) => set(e.target.value)} />
                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold ${String(v ?? "").length > LIMITE_META ? "text-red-600" : "text-slate-400"}`}>{String(v ?? "").length}/{LIMITE_META}</span>
               </div>
             ),

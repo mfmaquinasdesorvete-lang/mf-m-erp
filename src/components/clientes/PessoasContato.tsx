@@ -40,13 +40,13 @@ export function PessoasContato({ pessoas, onChange, disabled }: { pessoas: Pesso
   const formulario = (
     <div className="rounded-xl border border-brand/40 bg-brand-light/40 p-3">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
-        <input className="input sm:col-span-4" placeholder="Nome *" value={form.nome} autoFocus onChange={(e) => setForm({ ...form, nome: e.target.value })}
+        <input aria-label="Nome" className="input sm:col-span-4" placeholder="Nome *" value={form.nome} autoFocus onChange={(e) => setForm({ ...form, nome: e.target.value })}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); confirmar(); } }} />
-        <input className="input sm:col-span-3" placeholder="Setor" list="setores-contato" value={form.setor} onChange={(e) => setForm({ ...form, setor: e.target.value })} />
-        <input className="input sm:col-span-5" placeholder="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input className="input sm:col-span-5" placeholder="Telefone / WhatsApp" inputMode="numeric" value={mostrar("telefone", form.telefone)}
+        <input aria-label="Setor" className="input sm:col-span-3" placeholder="Setor" list="setores-contato" value={form.setor} onChange={(e) => setForm({ ...form, setor: e.target.value })} />
+        <input aria-label="E-mail" className="input sm:col-span-5" placeholder="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <input aria-label="Telefone ou WhatsApp" className="input sm:col-span-5" placeholder="Telefone / WhatsApp" inputMode="numeric" value={mostrar("telefone", form.telefone)}
           onChange={(e) => setForm({ ...form, telefone: gravar("telefone", e.target.value) })} />
-        <input className="input sm:col-span-2" placeholder="Ramal" value={form.ramal} onChange={(e) => setForm({ ...form, ramal: e.target.value })} />
+        <input aria-label="Ramal" className="input sm:col-span-2" placeholder="Ramal" value={form.ramal} onChange={(e) => setForm({ ...form, ramal: e.target.value })} />
         <div className="flex gap-2 sm:col-span-5 sm:justify-end">
           <Button type="button" variant="secondary" className="flex-1 sm:flex-none" onClick={() => setEditando(null)}><X size={15} /> Cancelar</Button>
           <Button type="button" className="flex-1 sm:flex-none" onClick={confirmar}><Check size={15} /> {editando === "nova" ? "Adicionar" : "Confirmar"}</Button>

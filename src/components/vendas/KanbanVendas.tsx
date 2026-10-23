@@ -62,9 +62,10 @@ export function KanbanVendas<T extends Pedido>({ vendas, onAbrir, onVerNaLista, 
                 <span className="block truncate text-sm font-semibold text-fg" title={v.cliente?.nome ?? undefined}>
                   <span className="text-slate-500">#{v.numero}</span> {v.cliente?.nome ?? "—"}
                 </span>
-                <span className="mt-1 flex items-center gap-1.5">
+                {/* celular: pagamento e envio numa linha própria embaixo (ao lado do valor ficavam espremidos, letra por linha) */}
+                <span className="mt-1 flex items-center gap-1.5 max-md:flex-wrap">
                   <EtiquetaUnidade id={(v as any).unidade_id} />
-                  {extras && <span className="flex min-w-0 items-center gap-1 overflow-hidden">{extras(v)}</span>}
+                  {extras && <span className="flex min-w-0 items-center gap-1 overflow-hidden max-md:order-last max-md:w-full max-md:flex-wrap">{extras(v)}</span>}
                   <span className="num ml-auto whitespace-nowrap text-sm font-bold text-fg">{brl(v.valor_total)}</span>
                   <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-2xs font-bold text-white" style={{ background: col.cor }}>
                     {dataBR(v.created_at).slice(0, 5)}

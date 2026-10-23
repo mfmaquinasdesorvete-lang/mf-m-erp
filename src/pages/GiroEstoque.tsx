@@ -148,7 +148,7 @@ export default function GiroEstoque() {
             </thead>
             <tbody>
               {totais.slice(0, 15).map((t) => (
-                <tr key={t.chave} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50" onClick={() => setCategoria(t.chave)}>
+                <tr key={t.chave} className="cursor-pointer focus-visible:bg-slate-50 border-t border-slate-100 hover:bg-slate-50" onClick={() => setCategoria(t.chave)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setCategoria(t.chave); } }}>
                   <td className="px-3 py-2 font-semibold">{t.chave} <span className="text-xs font-normal text-slate-400">· {t.itens}</span></td>
                   <td className="px-3 py-2 text-right">{brl(t.valorEstoque)}</td>
                   <td className="px-3 py-2 text-right">{t.giro != null ? `${num(t.giro)}×` : "—"}</td>

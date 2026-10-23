@@ -158,19 +158,20 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 @layer components {
-  /* peças únicas do design system (Sobre → Design): cartão, link de texto e botões só de ícone. Mudar aqui muda o ERP
+  /* no celular (max-sm) links, chips e botões pequenos ganham altura de toque de 32 px sem mudar o desenho.
+     peças únicas do design system (Sobre → Design): cartão, link de texto e botões só de ícone. Mudar aqui muda o ERP
      inteiro; as classes de tamanho e espaço ficam em cada tela (ex.: "cartao p-4", "botao-icone h-8 w-8"). */
   .cartao { @apply rounded-cartao border border-slate-200/80 bg-surface shadow-card; }
-  .link-acao { @apply font-semibold text-brand hover:underline; }
+  .link-acao { @apply font-semibold text-brand hover:underline max-sm:py-1.5; }
   .botao-icone { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-fg disabled:opacity-30; }
   .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
-  .link-modulo { @apply font-semibold text-modulo-texto hover:underline; }
-  .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline; }
+  .link-modulo { @apply font-semibold text-modulo-texto hover:underline max-sm:py-1.5; }
+  .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline max-sm:py-1.5; }
   /* botão pequeno (ações dentro de linhas e cartões); as cores vêm de Button (variant/tom) ou de .botao-mini-neutro */
-  .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-botao px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-botao px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-8; }
   .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50; }
   /* chip de filtro ou de escolha (o mesmo de ChipsSituacao): .chip + .chip-ativo, .chip-neutro ou uma cor própria */
-  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60; }
+  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 max-sm:min-h-8; }
   .chip-ativo { @apply border-brand bg-brand text-brand-fg; }
   .chip-neutro { @apply border-slate-200 bg-surface text-slate-600 hover:border-slate-300 hover:text-fg; }
   /* botão sobre fundo escuro ou colorido (avisos, painéis escuros, apps do celular): vidro branco */

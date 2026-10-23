@@ -138,7 +138,7 @@ function Linha({ a, pode }: { a: AnotacaoVoz; pode: boolean }) {
 
       {pode && (a.situacao === "pendente" ? (
         <div className="flex flex-wrap items-center gap-2">
-          <input className="input min-w-0 flex-1 basis-48" value={resposta} onChange={(e) => setResposta(e.target.value)}
+          <input aria-label="Observação" className="input min-w-0 flex-1 basis-48" value={resposta} onChange={(e) => setResposta(e.target.value)}
             placeholder={a.tipo === "pagamento_video" ? "Obs. (ex.: Pix de 22/10 no Inter)" : "Obs. (opcional)"} />
           <Button onClick={() => marcar("conferido")} disabled={salvando}><Check className="h-4 w-4" /> Conferido</Button>
           <Button variant="secondary" onClick={() => marcar("nao_achei")} disabled={salvando}><X className="h-4 w-4" /> Não achei</Button>

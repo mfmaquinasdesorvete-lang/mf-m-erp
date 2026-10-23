@@ -69,7 +69,7 @@ export function PedidosChecklist() {
         )}
         <div className="relative min-w-0 flex-1">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar no checklist" />
+          <input aria-label="Buscar no checklist" className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar no checklist" />
         </div>
         <span className="text-sm text-slate-500">{doDia.filter((i) => i.conferido).length} de {doDia.length} conferidos</span>
       </div>

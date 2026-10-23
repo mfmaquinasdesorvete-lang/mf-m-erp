@@ -447,7 +447,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
               {PASSOS.map((p, k) => (
                 <li key={p.id}>
                   <button type="button" disabled={k > liberado} onClick={() => irPara(k)} aria-current={k === n ? "step" : undefined}
-                    title={k > liberado ? "Termine o passo anterior" : p.titulo} className="w-full text-left disabled:cursor-not-allowed">
+                    title={k > liberado ? "Termine o passo anterior" : p.titulo} className="-my-3.5 w-full py-3.5 text-left disabled:cursor-not-allowed sm:my-0 sm:py-0">
                     <span className={`block h-1.5 rounded-full transition ${k < n ? "bg-emerald-400" : k === n ? "bg-sky-400" : "bg-white/15"}`} />
                     <span className={`mt-1.5 hidden items-center gap-1 text-2xs font-semibold sm:flex ${k === n ? "text-white" : "text-white/60"}`}>
                       {k < n ? <Check size={12} className="text-emerald-300" /> : <span>{k + 1}.</span>} {p.titulo}
@@ -645,7 +645,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           {/* rodapé: voltar, ver tudo em abas, próximo / cadastrar */}
           <div className="sticky bottom-0 z-10 flex items-center gap-2 border-t border-slate-200 bg-surface/95 px-3 py-3 backdrop-blur sm:rounded-b-2xl sm:px-6">
             <Button type="button" variant="ghost" disabled={n === 0} onClick={() => irPara(n - 1)}><ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span></Button>
-            <Button type="button" tamanho="mini" variant="ghost" onClick={() => { setAba(n < 4 ? (["gerais", "contato", "endereco", "complementares"] as Aba[])[n] : "gerais"); setModo("abas"); }}
+            <Button type="button" tamanho="mini" variant="ghost" className="min-h-toque sm:min-h-0" onClick={() => { setAba(n < 4 ? (["gerais", "contato", "endereco", "complementares"] as Aba[])[n] : "gerais"); setModo("abas"); }}
               title="Ver o cadastro completo, com todas as abas">
               <LayoutList size={14} /> <span className="hidden sm:inline">Ver tudo em abas</span><span className="sm:hidden">Abas</span>
             </Button>

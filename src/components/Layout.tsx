@@ -20,7 +20,7 @@ import logo from "@/assets/logo.webp";
 import { corValida, useAparencia } from "@/lib/aparencia";
 import { useConfig } from "@/lib/useConfig";
 import { IconeArea } from "@/components/IconeArea";
-import { Button, Field, Modal } from "./ui";
+import { Button, Field, Modal, useFecharComEsc } from "./ui";
 import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
 import { usaRosto } from "@/lib/rosto";
@@ -164,6 +164,7 @@ export function Layout() {
     document.addEventListener("click", clique, true);
     return () => document.removeEventListener("click", clique, true);
   }, []);
+  useFecharComEsc(criar, () => setCriar(false));
   useEffect(() => {
     if (!aberto) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
@@ -414,7 +415,7 @@ export function Layout() {
       <AvisoVersao />
 
       {/* Celular: barra flutuante embaixo, ao alcance do polegar, com o "+" no meio (criar venda, OS, conta, NF-e…) */}
-      {criar && <div className="fixed inset-0 z-gaveta bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setCriar(false)} />}
+      {criar && <div aria-hidden className="fixed inset-0 z-gaveta bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setCriar(false)} />}
       {criar && (
         <div role="dialog" aria-label="Criar" className="fixed inset-x-3 z-janela rounded-3xl border border-white/10 bg-ink-soft/95 p-3 shadow-2xl backdrop-blur-xl md:hidden"
           style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))", animation: "entrar .18s ease-out" }}>

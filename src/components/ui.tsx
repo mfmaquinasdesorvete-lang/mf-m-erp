@@ -391,10 +391,21 @@ export function useFecharComEsc(open: boolean, onClose: () => void) {
 /** O que recebe o foco pelo Tab. */
 const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * Janela do ERP. `sujo`: o formulário tem mudança não salva — fechar pelo X ou pelo Esc pergunta antes ("Sair sem
+ * salvar?"), para ninguém perder o que digitou com um toque sem querer.
+ */
 export function Modal({
-  open, onClose, title, children, wide,
-}: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
-  useFecharComEsc(open, onClose);
+  open, onClose, title, children, wide, sujo,
+}: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean; sujo?: boolean }) {
+  const fechar = async () => {
+    if (sujo) {
+      const { confirmar } = await import("./Dialogos");
+      if (!(await confirmar("Sair sem salvar? O que você digitou aqui será perdido.", { voltar: "Continuar editando" }))) return;
+    }
+    onClose();
+  };
+  useFecharComEsc(open, fechar);
   const tituloId = useId();
   const caixa = useRef<HTMLDivElement>(null);
   // leitor de tela e teclado entram na janela ao abrir e voltam para onde estavam ao fechar
@@ -426,7 +437,7 @@ export function Modal({
         className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-painel bg-surface shadow-pop focus:outline-none`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
           <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>
-          <button type="button" onClick={onClose} className="botao-icone p-2" aria-label="Fechar">
+          <button type="button" onClick={fechar} className="botao-icone p-2" aria-label="Fechar">
             <X size={18} aria-hidden />
           </button>
         </div>
@@ -608,7 +619,8 @@ export function Tabs<T extends string>({
         </select>
       </label>
     )}
-    <div className={`mb-4 flex-wrap gap-1 rounded-xl border border-slate-200 bg-surface p-1 shadow-card ${lista ? "hidden md:inline-flex" : "inline-flex"}`}>
+      {/* até 3 abas no celular: uma linha só que rola para o lado (rótulo comprido empilhava as abas) */}
+    <div className={`mb-4 max-w-full gap-1 rounded-cartao border border-slate-200 bg-surface p-1 shadow-card max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[&>*]:shrink-0 max-sm:[&>*]:whitespace-nowrap sm:flex-wrap ${lista ? "hidden md:inline-flex" : "inline-flex"}`}>
       {options.map((o) => (
         <button
           key={o.value}

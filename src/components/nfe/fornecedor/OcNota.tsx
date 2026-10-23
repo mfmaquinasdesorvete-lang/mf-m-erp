@@ -104,7 +104,7 @@ export function OcNota({ d, nota, podeEditar }: { d: DadosNota; nota: NotaBase; 
         )}
         {podeEditar && (
           <div className="mt-2 flex max-w-sm items-center gap-2">
-            <input className="input" inputMode="numeric" placeholder="Nº de outra ordem de compra" value={numero} onChange={(e) => setNumero(e.target.value)}
+            <input aria-label="Nº de outra ordem de compra" className="input" inputMode="numeric" placeholder="Nº de outra ordem de compra" value={numero} onChange={(e) => setNumero(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); ligarPeloNumero(); } }} />
             <Button type="button" variant="secondary" disabled={ocupado || !numero.trim()} onClick={ligarPeloNumero}>Ligar</Button>
           </div>

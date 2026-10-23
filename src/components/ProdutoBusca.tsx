@@ -43,7 +43,7 @@ export function ProdutoBusca<T extends ProdutoBuscavel & { kit?: boolean | null 
   return (
     <div className={`relative ${className ?? ""}`}>
       <Plus size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input
+      <input aria-label="Adicionar item"
         className="input pl-9"
         role="combobox" aria-expanded={aberto} aria-autocomplete="list" autoComplete="off"
         placeholder={placeholder ?? "Adicionar item: nome, SKU ou código"}

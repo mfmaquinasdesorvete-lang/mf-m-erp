@@ -94,7 +94,7 @@ export function FormVendedor({ inicial, usuarios, tabelas, onClose }: {
         <Field label="Tipo de pessoa">
           <select className="input" value={v.tipo_pessoa ?? ""} onChange={set("tipo_pessoa")}><option value="">—</option><option value="fisica">Física</option><option value="juridica">Jurídica</option></select>
         </Field>
-        <Field label={v.tipo_pessoa === "fisica" ? "CPF" : v.tipo_pessoa === "juridica" ? "CNPJ" : "CPF/CNPJ"}><input className="input" value={v.cpf_cnpj ?? ""} onChange={set("cpf_cnpj")} /></Field>
+        <Field label={v.tipo_pessoa === "fisica" ? "CPF" : v.tipo_pessoa === "juridica" ? "CNPJ" : "CPF/CNPJ"}><input className="input" inputMode="numeric" value={v.cpf_cnpj ?? ""} onChange={set("cpf_cnpj")} /></Field>
         <Field label="Contribuinte (ICMS)">
           <select className="input" value={v.contribuinte ?? ""} onChange={set("contribuinte")}>
             <option value="">Não informado</option><option value="contribuinte">Contribuinte</option><option value="isento">Isento</option><option value="nao_contribuinte">Não contribuinte</option>

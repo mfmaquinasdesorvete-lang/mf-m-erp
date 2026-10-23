@@ -207,6 +207,7 @@ export function NovaSenha({ onPronto, obrigatoria = false }: { onPronto: () => v
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [saindo, setSaindo] = useState(false);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -243,7 +244,7 @@ export function NovaSenha({ onPronto, obrigatoria = false }: { onPronto: () => v
           <Button className="w-full" disabled={carregando}><KeyRound size={16} /> {carregando ? "Salvando…" : "Salvar senha nova"}</Button>
         </form>
         <button type="button" className="mt-4 w-full rounded text-center text-sm text-slate-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          onClick={async () => { await supabase.auth.signOut(); window.history.replaceState(null, "", "/"); onPronto(); }}>
+          disabled={saindo} onClick={async () => { setSaindo(true); try { await supabase.auth.signOut(); window.history.replaceState(null, "", "/"); onPronto(); } finally { setSaindo(false); } }}>
           {obrigatoria ? "Sair" : "Cancelar"}
         </button>
       </Card>

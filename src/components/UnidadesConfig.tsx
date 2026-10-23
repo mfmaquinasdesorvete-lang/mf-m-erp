@@ -70,7 +70,7 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={!!u[k]} onChange={(e) => setU({ ...u, [k]: e.target.checked })} /> {label}</label>
   );
   const campo = (k: string, label: string, cls = "", type = "text") => (
-    <Field label={label} className={cls}><input className="input" type={type} step={type === "number" ? "any" : undefined} value={u[k] ?? ""} onChange={set(k)} /></Field>
+    <Field label={label} className={cls}><input className="input" type={type} step={type === "number" ? "any" : undefined} inputMode={k === "telefone" ? "tel" : undefined} value={u[k] ?? ""} onChange={set(k)} /></Field>
   );
 
   // CNAE pela Receita: na hora de buscar (botão) troca o que está na tela; ao digitar o CNPJ só preenche o que está vazio
@@ -160,7 +160,7 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
             {campo("codigo", "Sigla")}
             {campo("serie_nfe", "Série da NF-e", "", "number")}
             {campo("razao_social", "Razão social", "sm:col-span-2")}
-            <Field label="CNPJ (preenche o resto)"><input className="input" value={u.cnpj ?? ""} onChange={set("cnpj")}
+            <Field label="CNPJ (preenche o resto)"><input className="input" inputMode="numeric" value={u.cnpj ?? ""} onChange={set("cnpj")}
               onBlur={async () => { const d = await buscarCnpj(u.cnpj); if (d) { setU((x) => ({ ...x, ...preencherVazios(x, { ...d, inscricao_estadual: inscricaoDoEstado(d) }, { inscricao_estadual: "inscricao_estadual",  razao_social: "nome", logradouro: "logradouro", numero: "numero", complemento: "complemento", bairro: "bairro", municipio: "municipio", uf: "uf", cep: "cep", telefone: "telefone", email: "email" }) })); aplicarCnae(d, false); notify("Dados preenchidos pela Receita Federal"); } }} /></Field>
             {campo("inscricao_estadual", "Inscrição estadual")}
             {campo("inscricao_municipal", "Inscrição municipal")}
@@ -179,7 +179,7 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
                 </Field>
               </div>
             </div>
-            <Field label="CEP"><input className="input" value={u.cep ?? ""} onChange={set("cep")}
+            <Field label="CEP"><input className="input" inputMode="numeric" value={u.cep ?? ""} onChange={set("cep")}
               onBlur={async () => { const r = await buscarCep(u.cep); if (r) setU((x) => ({ ...x, ...r })); }} /></Field>
             {campo("logradouro", "Logradouro", "sm:col-span-2")}
             {campo("numero", "Número")}

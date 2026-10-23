@@ -98,7 +98,7 @@ function Anotacao({ linha }: { linha: Linha }) {
   }
   return (
     <div className="flex items-center gap-2">
-      <input className="input flex-1" placeholder="Ex.: venda de máquina para..., empréstimo, aporte" value={texto}
+      <input aria-label="Anotação da entrada" className="input flex-1" placeholder="Ex.: venda de máquina para..., empréstimo, aporte" value={texto}
         onChange={(e) => setTexto(e.target.value)} onBlur={salvar} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       {salvando && <span className="text-xs text-slate-500">salvando…</span>}
     </div>

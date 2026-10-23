@@ -52,9 +52,9 @@ function Atende({ t }: { t: Tecnico }) {
 }
 
 /** Lista separada por vírgula (serviços, diferenciais): digita livre e vira a lista ao sair do campo. */
-function CampoLista({ valor, onChange, placeholder }: { valor: string[] | null | undefined; onChange: (v: string[]) => void; placeholder?: string }) {
+function CampoLista({ valor, onChange, placeholder, rotulo }: { valor: string[] | null | undefined; onChange: (v: string[]) => void; placeholder?: string; rotulo: string }) {
   const [texto, setTexto] = useState((valor ?? []).join(", "));
-  return <input className="input" value={texto} placeholder={placeholder} onChange={(e) => setTexto(e.target.value)}
+  return <input aria-label={rotulo} className="input" value={texto} placeholder={placeholder} onChange={(e) => setTexto(e.target.value)}
     onBlur={() => { const l = [...new Set(texto.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean))]; onChange(l); setTexto(l.join(", ")); }} />;
 }
 
@@ -118,9 +118,9 @@ const fields: CampoForm[] = [
   { name: "site", label: "Site", span: 2 },
   { name: "youtube", label: "YouTube", span: 2 },
   { name: "servicos", label: "Serviços (máquinas que atende, separados por vírgula)", type: "custom", span: 4,
-    render: (v, set) => <CampoLista valor={v} onChange={set} placeholder="Máquinas de Sorvete Expresso, Máquina de Açaí Expresso" /> },
+    render: (v, set) => <CampoLista rotulo="Serviços" valor={v} onChange={set} placeholder="Máquinas de Sorvete Expresso, Máquina de Açaí Expresso" /> },
   { name: "diferenciais", label: "Diferenciais (separados por vírgula)", type: "custom", span: 4,
-    render: (v, set) => <CampoLista valor={v} onChange={set} placeholder="Refrigeração, Pane Elétrica, Técnico Autorizado" /> },
+    render: (v, set) => <CampoLista rotulo="Diferenciais" valor={v} onChange={set} placeholder="Refrigeração, Pane Elétrica, Técnico Autorizado" /> },
   { name: "area_atuacao", label: "Área de atuação (texto do site)", span: 4 },
   { name: "apresentacao", label: "Apresentação (texto do site)", type: "textarea", span: 4 },
 ];
@@ -128,7 +128,7 @@ const fields: CampoForm[] = [
 /** Cidades: digita livre e vira a lista ao sair do campo (sem perder o que está digitando). */
 function CampoCidades({ valor, onChange }: { valor: string[] | null | undefined; onChange: (v: string[]) => void }) {
   const [texto, setTexto] = useState((valor ?? []).join(", "));
-  return <input className="input" value={texto} onChange={(e) => setTexto(e.target.value)} onBlur={() => { const l = lerCidades(texto); onChange(l); setTexto(l.join(", ")); }} placeholder="Joinville/SC, Blumenau/SC" />;
+  return <input aria-label="Cidades" className="input" value={texto} onChange={(e) => setTexto(e.target.value)} onBlur={() => { const l = lerCidades(texto); onChange(l); setTexto(l.join(", ")); }} placeholder="Joinville/SC, Blumenau/SC" />;
 }
 
 const FILTROS: FiltroCrud<Tecnico>[] = [

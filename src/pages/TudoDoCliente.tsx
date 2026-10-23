@@ -6,7 +6,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Check, FileText, Landmark, Printer, Receipt, Search, ShoppingCart, Truck, UserRound, Wrench, IceCreamCone } from "lucide-react";
-import { Button, Card, PageHeader } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { FichaCliente } from "@/components/FichaCliente";
 import { PdfViewer } from "@/components/PdfViewer";
 import { notifyError } from "@/lib/notify";
@@ -113,16 +113,47 @@ export default function TudoDoCliente() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Tudo do cliente" subtitle="Busque pelo CNPJ, CPF ou nome, confirme quem é e veja tudo o que existe dele no ERP numa página só" />
-      <Card className="p-4">
-        <form onSubmit={enviar} className="flex flex-wrap items-center gap-2">
-          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-300 bg-surface px-3">
-            <Search size={18} className="shrink-0 text-slate-400" aria-hidden />
-            <input className="h-11 min-w-0 flex-1 bg-transparent outline-none" value={termo} onChange={(e) => setTermo(e.target.value)}
-              placeholder="CNPJ, CPF ou nome do cliente" aria-label="CNPJ, CPF ou nome" autoFocus />
-          </label>
-          <Button type="submit" disabled={termo.trim().length < 3}><Search size={16} /> Buscar</Button>
-        </form>
+      {/* Hero: a proposta da página e a busca no centro (antes era só um campo solto e a tela parecia vazia) */}
+      <section aria-labelledby="tudo-titulo"
+        className="relative overflow-hidden rounded-painel border border-modulo/25 p-5 shadow-card sm:p-7"
+        style={{ background: "linear-gradient(135deg, color-mix(in srgb, rgb(var(--modulo)) 16%, rgb(var(--surface))) 0%, rgb(var(--surface)) 65%)" }}>
+        <span className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-modulo opacity-20 blur-3xl" aria-hidden />
+        <div className="relative max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-rotulo text-modulo-texto">Cadastros · Tudo do cliente</p>
+          <h1 id="tudo-titulo" className="mt-1 text-2xl font-bold text-fg sm:text-3xl">Tudo de um cliente numa página só</h1>
+          {!escolhido && (
+            <p className="mt-2 text-sm text-slate-600 sm:text-base">
+              Digite o CNPJ, o CPF ou o nome, confirme quem é e veja o cadastro e todo o histórico com a MF: vendas, notas,
+              contas, extrato dos bancos, OS, máquinas e fretes. Dá para imprimir tudo na Ficha 360°.
+            </p>
+          )}
+          <form onSubmit={enviar} className="mt-4 flex flex-wrap items-center gap-2" role="search">
+            <label className="flex min-w-0 flex-1 basis-64 items-center gap-2 rounded-campo border border-slate-300 bg-campo px-3 shadow-sm focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/20">
+              <Search size={18} className="shrink-0 text-slate-400" aria-hidden />
+              <input className="h-12 min-w-0 flex-1 bg-transparent text-base outline-none focus-visible:outline-none" value={termo} onChange={(e) => setTermo(e.target.value)}
+                placeholder="CNPJ, CPF ou nome do cliente" aria-label="CNPJ, CPF ou nome" autoFocus />
+            </label>
+            <Button type="submit" className="h-12" disabled={termo.trim().length < 3}><Search size={16} aria-hidden /> Buscar</Button>
+          </form>
+          {!escolhido && !busca && (
+            <>
+              <ol className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
+                {["Busque pelo CNPJ, CPF ou nome", "Confirme quem é na lista", "Veja tudo e imprima a Ficha 360°"].map((t, i) => (
+                  <li key={t} className="flex items-center gap-2 text-slate-600">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-modulo text-xs font-bold text-white">{i + 1}</span>{t}
+                  </li>
+                ))}
+              </ol>
+              <ul className="mt-4 flex flex-wrap gap-1.5" aria-label="O que aparece">
+                {([[ShoppingCart, "Vendas e propostas"], [Receipt, "Notas fiscais"], [Landmark, "Contas e extrato"], [Wrench, "Assistência"], [IceCreamCone, "Máquinas"], [Truck, "Fretes"]] as const).map(([I, t]) => (
+                  <li key={t} className="inline-flex items-center gap-1.5 rounded-chip border border-slate-200 bg-surface px-2.5 py-1 text-xs font-semibold text-slate-600"><I size={13} aria-hidden />{t}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </section>
+      <Card className={busca && !escolhido ? "p-4" : "hidden"}>
         {busca && !escolhido && (
           <div className="mt-3">
             {achados.isLoading ? <p className="text-sm text-slate-500">Buscando…</p>

@@ -210,7 +210,7 @@ export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
               <th className="th text-right">Valor</th><th className="th">Marcadores</th><th className="th">Situação</th><th className="th" />
             </>}>
             {lista.map((p) => (
-              <tr key={p.id} className={`cursor-pointer hover:bg-slate-50 ${sel.has(p.id) ? "bg-brand-light/30" : ""}`} onClick={() => setAbertaId(p.id)}>
+              <tr key={p.id} className={`cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50 ${sel.has(p.id) ? "bg-brand-light/30" : ""}`} onClick={() => setAbertaId(p.id)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAbertaId(p.id); } }}>
                 <td className="td" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={sel.has(p.id)} onChange={() => alternar(p.id)} aria-label={`Selecionar proposta ${p.numero ?? ""}`} /></td>
                 <td className="td whitespace-nowrap font-medium">#{p.numero ?? "—"} <SeloEmpresa e={p.empresa} /></td>
                 <td className="td whitespace-nowrap">{dataBR(p.data)}</td>

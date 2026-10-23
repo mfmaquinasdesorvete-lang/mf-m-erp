@@ -61,7 +61,7 @@ export function UltimasCompras({ fornecedorId, fornecedorNome, onClose }: { forn
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-flutuante flex justify-end bg-ink/50 backdrop-blur-[2px]" onClick={onClose}>
+    <div role="presentation" className="fixed inset-0 z-flutuante flex justify-end bg-ink/50 backdrop-blur-[2px]" onClick={onClose}>
       <aside role="dialog" aria-modal="true" aria-label="Últimas compras" onClick={(e) => e.stopPropagation()}
         className="flex h-full w-full max-w-4xl flex-col bg-canvas shadow-pop">
         <header className="flex items-start gap-3 border-b border-slate-200 bg-surface px-4 py-4 sm:px-6">

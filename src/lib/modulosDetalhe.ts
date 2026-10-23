@@ -132,10 +132,23 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem vê: vendas, financeiro e administrador.",
     ],
   },
-  "/mercado-livre": {
-    tags: ["MERCADO LIVRE", "ANÚNCIOS", "ESTOQUE"],
-    destaque: "Anúncios com estoque e preço certos e vendas que entram sozinhas.",
+  "/precos": {
+    tags: ["PREÇOS", "MARGEM", "TABELAS"],
+    destaque: "Os preços num lugar só: o que revisar, as regras e as tabelas.",
     partes: [
+      "Preços para revisar: quando o custo muda (nota do fornecedor, compra ou produção), o ERP calcula o preço pela margem desejada; nada muda sem a sua aprovação.",
+      "Regras do preço: margem desejada por tipo, despesas que saem do preço, arredondamento e o aviso de preço abaixo do sugerido.",
+      "Taxa por forma de pagamento: Pix, maquininha e link, com o exemplo do preço em cada uma.",
+      "Tabelas de preço: listas de preço por cliente ou canal (atacado, revenda…).",
+      "Revisar todos os preços: refaz a conta de todos os produtos com as regras de agora.",
+      "Antes ficava nas abas de Produtos; agora tem o espaço próprio em Vendas.",
+    ],
+  },
+  "/mercado-livre": {
+    tags: ["LOJA ONLINE", "MARKETPLACE", "MERCADO LIVRE"],
+    destaque: "Cadastros prontos para anunciar e o Mercado Livre em dia.",
+    partes: [
+      "Aba Marketplace: cadastros repetidos para unificar, nomes fora do padrão, códigos EAN e quantos produtos estão prontos para marketplace (antes era a aba Anúncios de Produtos).",
       "Vendas automáticas: cada venda paga no Mercado Livre entra sozinha no ERP como pedido, pelo aviso que o Mercado Livre manda.",
       "Abas: Anúncios, Vendas e notas, Envio de estoque e preço e Conta (ou Conectar a conta).",
       "Anúncios: cada anúncio com o produto ligado, estoque e preço no ERP x último enviado e a situação (em dia, na fila, aguardando, erro).",

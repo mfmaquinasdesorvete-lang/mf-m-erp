@@ -265,8 +265,8 @@ export function EnvioForm({ envioId, inicial, novaOcorrencia, onClose }: { envio
                           <option value="">—</option>{embalagens.filter((m) => m.ativo || m.id === v.embalagem_id).map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}
                         </select>
                       </td>
-                      <td className="py-1 pr-2"><input className="input" value={v.descricao ?? ""} onChange={(x) => setVol(i, { descricao: x.target.value })} /></td>
-                      <td className="py-1 pr-2"><input className="input" inputMode="numeric" value={v.quantidade ?? ""} onChange={(x) => setVol(i, { quantidade: Number(x.target.value) || 0 })} /></td>
+                      <td className="py-1 pr-2"><input aria-label="Descrição do volume" className="input" value={v.descricao ?? ""} onChange={(x) => setVol(i, { descricao: x.target.value })} /></td>
+                      <td className="py-1 pr-2"><input aria-label="Quantidade de volumes" className="input" inputMode="numeric" value={v.quantidade ?? ""} onChange={(x) => setVol(i, { quantidade: Number(x.target.value) || 0 })} /></td>
                       {(["largura_cm", "altura_cm", "comprimento_cm", "peso_kg"] as const).map((k) => (
                         <td key={k} className="py-1 pr-2">
                           <input className={`input ${semMedida(v, k) ? "!border-red-500" : ""}`} inputMode="decimal" aria-label={k} value={v[k] ?? ""} onChange={(x) => setVol(i, { [k]: x.target.value as unknown as number })} />
@@ -744,7 +744,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
                   {TIPOS_ADICIONAL.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
                 </select>
                 <input className="input" inputMode="decimal" aria-label="Valor do adicional" placeholder="R$" value={a.valor} onChange={(x) => setNova({ ...nova, adicionais: nova.adicionais.map((y, i) => (i === k ? { ...y, valor: x.target.value } : y)) })} />
-                <input className="input sm:col-span-2" placeholder="Detalhe (opcional)" value={a.descricao} onChange={(x) => setNova({ ...nova, adicionais: nova.adicionais.map((y, i) => (i === k ? { ...y, descricao: x.target.value } : y)) })} />
+                <input aria-label="Detalhe do adicional" className="input sm:col-span-2" placeholder="Detalhe (opcional)" value={a.descricao} onChange={(x) => setNova({ ...nova, adicionais: nova.adicionais.map((y, i) => (i === k ? { ...y, descricao: x.target.value } : y)) })} />
                 <Button type="button" variant="ghost" aria-label="Tirar adicional" onClick={() => setNova({ ...nova, adicionais: nova.adicionais.filter((_, i) => i !== k) })}><Trash2 size={14} /></Button>
               </div>
             ))}
@@ -777,7 +777,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
                 {TIPOS_ADICIONAL.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
               </select>
               <input className="input" inputMode="decimal" aria-label="Valor do adicional não previsto" placeholder="R$" value={extra.valor} onChange={(x) => setExtra({ ...extra, valor: x.target.value })} />
-              <input className="input sm:col-span-3" placeholder="Detalhe (opcional)" value={extra.descricao} onChange={(x) => setExtra({ ...extra, descricao: x.target.value })} />
+              <input aria-label="Detalhe do adicional não previsto" className="input sm:col-span-3" placeholder="Detalhe (opcional)" value={extra.descricao} onChange={(x) => setExtra({ ...extra, descricao: x.target.value })} />
               <textarea className="input col-span-2 sm:col-span-6" rows={2} aria-label="Justificativa do adicional" placeholder="Justificativa: quem pediu e por quê (obrigatória)" value={extra.justificativa} onChange={(x) => setExtra({ ...extra, justificativa: x.target.value })} />
               <div className="col-span-2 flex justify-end gap-2 sm:col-span-6">
                 <Button type="button" variant="ghost" onClick={() => setExtra(null)}>Cancelar</Button>
@@ -873,8 +873,8 @@ function Ocorrencias({ envioId, podeEditar, abrirNova, nomeUsuario }: { envioId:
               )}
               {podeEditar && o.status === "aberta" && (ed ? (
                 <div className="mt-2 grid gap-2 sm:grid-cols-4">
-                  <input className="input" placeholder="Responsável" value={ed.responsavel} onChange={(x) => setEditando({ ...editando, [o.id]: { ...ed, responsavel: x.target.value } })} />
-                  <input className="input sm:col-span-2" placeholder="Andamento (o que foi feito)" value={ed.andamento} onChange={(x) => setEditando({ ...editando, [o.id]: { ...ed, andamento: x.target.value } })} />
+                  <input aria-label="Responsável" className="input" placeholder="Responsável" value={ed.responsavel} onChange={(x) => setEditando({ ...editando, [o.id]: { ...ed, responsavel: x.target.value } })} />
+                  <input aria-label="Andamento" className="input sm:col-span-2" placeholder="Andamento (o que foi feito)" value={ed.andamento} onChange={(x) => setEditando({ ...editando, [o.id]: { ...ed, andamento: x.target.value } })} />
                   <Button type="button" variant="secondary" onClick={() => atualizar(o, { responsavel: ed.responsavel.trim() || null, andamento: ed.andamento.trim() || null })}>Salvar</Button>
                 </div>
               ) : rv !== undefined ? (
@@ -901,8 +901,8 @@ function Ocorrencias({ envioId, podeEditar, abrirNova, nomeUsuario }: { envioId:
           <select className="input" aria-label="Tipo de ocorrência" value={nova.tipo} onChange={(x) => setNova({ ...nova, tipo: x.target.value })}>
             {TIPOS_OCORRENCIA.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
           </select>
-          <input className="input sm:col-span-2" placeholder="O que aconteceu" value={nova.descricao} onChange={(x) => setNova({ ...nova, descricao: x.target.value })} />
-          <input className="input" placeholder="Responsável" value={nova.responsavel} onChange={(x) => setNova({ ...nova, responsavel: x.target.value })} />
+          <input aria-label="O que aconteceu" className="input sm:col-span-2" placeholder="O que aconteceu" value={nova.descricao} onChange={(x) => setNova({ ...nova, descricao: x.target.value })} />
+          <input aria-label="Responsável" className="input" placeholder="Responsável" value={nova.responsavel} onChange={(x) => setNova({ ...nova, responsavel: x.target.value })} />
           <div className="flex justify-end gap-2 sm:col-span-4">
             <Button type="button" variant="ghost" onClick={() => setNova(null)}>Cancelar</Button>
             <Button type="button" onClick={registrar}>Registrar</Button>

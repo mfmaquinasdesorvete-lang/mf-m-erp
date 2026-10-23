@@ -78,6 +78,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
   const [anexarEm, setAnexarEm] = useState<Conta | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
+  const [apagando, setApagando] = useState<string | null>(null);
 
   const comAnexo = useMemo(() => new Set(docs.filter((d) => d.entidade === "conta_pagar" && d.entidade_id).map((d) => d.entidade_id!)), [docs]);
   // só impostos e guias: as contas de fornecedores ficam em Financeiro → Contas a pagar
@@ -171,7 +172,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
                           <IconeArquivo tipo={d.tipo} />
                           <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" title={d.nome} onClick={() => abrirDocumento(d)}>{d.nome}</button>
                           <span className="shrink-0 text-2xs text-slate-500">{dataBR(d.created_at)}</span>
-                          {podeApagar(d) && <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={14} /></button>}
+                          {podeApagar(d) && <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" disabled={apagando === d.id} aria-busy={apagando === d.id || undefined} onClick={async () => { setApagando(d.id); try { if (await apagarDocumento(d)) invalidar("documentos"); } finally { setApagando(null); } }}><Trash2 size={14} /></button>}
                         </li>
                       ))}
                     </ul>
@@ -232,6 +233,7 @@ function TodosOsAnexos({ docs, carregando, podeApagar }: { docs: Documento[]; ca
   const invalidar = useInvalidate();
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("");
+  const [apagando, setApagando] = useState<string | null>(null);
   // abre na semana (pela data do anexo), como as outras listas
   const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
   const lista = useMemo(() => docs
@@ -258,7 +260,7 @@ function TodosOsAnexos({ docs, carregando, podeApagar }: { docs: Documento[]; ca
                 <td className="td">{tamanhoArquivo(d.tamanho)}</td>
                 <td className="td">{dataBR(d.created_at)}</td>
                 <td className="td text-right">{podeApagar(d) && (
-                  <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" onClick={async () => { if (await apagarDocumento(d)) invalidar("documentos"); }}><Trash2 size={16} /></button>
+                  <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" disabled={apagando === d.id} aria-busy={apagando === d.id || undefined} onClick={async () => { setApagando(d.id); try { if (await apagarDocumento(d)) invalidar("documentos"); } finally { setApagando(null); } }}><Trash2 size={16} /></button>
                 )}</td>
               </tr>
             ))}

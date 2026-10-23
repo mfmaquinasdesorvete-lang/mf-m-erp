@@ -37,7 +37,7 @@ export function Chats() {
       </p>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar por assunto (ex.: nota, Tiny, extrato)" />
+        <input aria-label="Procurar chat por assunto" className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar por assunto (ex.: nota, Tiny, extrato)" />
       </div>
 
       {isLoading && <p className="py-6 text-center text-slate-500">Carregando…</p>}

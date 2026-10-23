@@ -121,7 +121,7 @@ export function ExpedicaoModal({ pedido: p, exp, onClose }: { pedido: P; exp: Ex
               <>
                 <form onSubmit={lerCodigo} className="flex gap-2">
                   <div className="relative flex-1"><Barcode size={16} className="absolute left-3 top-3 text-slate-400" />
-                    <input className="input pl-9" value={scan} onChange={(e) => setScan(e.target.value)} placeholder="Leia o código de barras, SKU ou nº de série (leitor ou digitando)" /></div>
+                    <input aria-label="Código de barras, SKU ou nº de série" className="input pl-9" value={scan} onChange={(e) => setScan(e.target.value)} placeholder="Leia o código de barras, SKU ou nº de série (leitor ou digitando)" /></div>
                   <Button variant="secondary">Conferir</Button>
                 </form>
                 <div className="flex items-center justify-between gap-2">

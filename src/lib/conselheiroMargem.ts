@@ -30,7 +30,7 @@ export function conselhosMargem(d: {
   // 1. a margem do período
   if (total.mc < 0) out.push({ id: "mc-negativa", tom: "alerta", titulo: "O período fechou no prejuízo",
     porque: `Os custos variáveis passaram a receita: margem de ${brl(total.mc)} (${pct(m)}).`,
-    fazer: "Comece pelos produtos no prejuízo abaixo e reveja os preços antes de novas vendas.", ir: { rotulo: "Formação de preço", para: "/estoque?aba=precos" } });
+    fazer: "Comece pelos produtos no prejuízo abaixo e reveja os preços antes de novas vendas.", ir: { rotulo: "Formação de preço", para: "/precos" } });
   else if (m < 0.15) out.push({ id: "mc-baixa", tom: "atencao", titulo: `Margem apertada: ${pct(m)} da receita`,
     porque: `De cada R$ 100 vendidos sobram ${brl(m * 100)} para pagar as despesas fixas (aluguel, salários).`,
     fazer: "Abaixo de 15% o fixo costuma não fechar. Veja o que mais pesa nos conselhos seguintes." });
@@ -42,11 +42,11 @@ export function conselhosMargem(d: {
     titulo: `${prejuizo.length === 1 ? "1 produto vendido" : `${prejuizo.length} produtos vendidos`} no prejuízo`,
     porque: `${nomes(prejuizo.slice(0, 3))}${prejuizo.length > 3 ? "…" : ""}: juntos tiraram ${brl(-prejuizo.reduce((s, p) => s + p.mc, 0))} da margem.`,
     fazer: "Confira o custo no cadastro (pode estar errado) e o preço de venda; se estiver certo, suba o preço ou pare de dar desconto nele.",
-    ir: { rotulo: "Formação de preço", para: "/estoque?aba=precos" } });
+    ir: { rotulo: "Formação de preço", para: "/precos" } });
   const apertados = d.produtos.filter((p) => p.mc >= 0 && pctMc(p) < 0.1 && parte(p.receita, total.receita) >= 0.05).sort((a, b) => b.receita - a.receita);
   if (apertados.length) out.push({ id: "produtos-apertados", tom: "atencao", titulo: "Produtos que vendem muito e quase não deixam margem",
     porque: `${nomes(apertados.slice(0, 3))}: menos de 10% de margem e pelo menos 5% da receita cada.`,
-    fazer: "São os primeiros a reajustar: 1 ou 2 pontos no preço deles mexem no resultado do mês todo.", ir: { rotulo: "Formação de preço", para: "/estoque?aba=precos" } });
+    fazer: "São os primeiros a reajustar: 1 ou 2 pontos no preço deles mexem no resultado do mês todo.", ir: { rotulo: "Formação de preço", para: "/precos" } });
 
   // 3. custos que pesam no total
   const custos: [keyof Valores, string, number, string, Conselho["ir"]?][] = [
@@ -69,7 +69,7 @@ export function conselhosMargem(d: {
     out.push({ id: "canal-baixo", tom: "atencao", titulo: `${canal.nome}: margem bem abaixo da média`,
       porque: `${pct(pctMc(canal))} no canal contra ${pct(m)} no total; o que mais pesa é ${rot} (${pct(pior[1])} da receita do canal).`,
       fazer: canal.chave === "marketplace" ? "Use a tabela de preço do marketplace (com a comissão e o frete do canal embutidos)." : "Tenha uma tabela de preço própria para este canal.",
-      ir: { rotulo: "Tabelas de preço", para: "/estoque?aba=tabelas" } });
+      ir: { rotulo: "Tabelas de preço", para: "/precos?aba=tabelas" } });
   }
   const vend = abaixo(d.vendedores)[0];
   if (vend) out.push({ id: "vendedor-baixo", tom: "atencao", titulo: `${vend.nome}: vende com margem menor`,

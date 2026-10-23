@@ -238,7 +238,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
                 <td className={`td text-right font-semibold ${dif ? (dif < 0 ? "text-red-600" : "text-amber-700") : "text-emerald-700"}`}>{dif == null ? "—" : dif > 0 ? `+${dif}` : dif}</td>
                 <td className="td">
                   {dif ? (
-                    <input className={`input text-sm ${!i.justificativa && editavel ? "border-red-300" : ""}`} disabled={!editavel} key={`${i.produto_id}-${i.justificativa}`}
+                    <input aria-label="Justificativa da diferença" className={`input text-sm ${!i.justificativa && editavel ? "border-red-300" : ""}`} disabled={!editavel} key={`${i.produto_id}-${i.justificativa}`}
                       defaultValue={i.justificativa ?? ""} placeholder="Ex.: peça usada na OS 120 sem baixa"
                       onBlur={(e) => e.target.value.trim() !== (i.justificativa ?? "") && gravar(i, { justificativa: e.target.value })} />
                   ) : <span className="text-xs text-slate-400">—</span>}

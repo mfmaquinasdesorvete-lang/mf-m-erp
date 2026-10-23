@@ -3,7 +3,7 @@ import {
   ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench, Zap,
-  ScanSearch,
+  ScanSearch, Tags,
   MapPinned,
 } from "lucide-react";
 import { usePerfil } from "./auth";
@@ -40,9 +40,8 @@ export const grupos: Grupo[] = [
       { to: "/painel/vendas", tela: "pedidos", label: "Painel de vendas", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos conversão funil canal vendedor" },
       { to: "/pedidos", tela: "pedidos", label: "Venda de Peças", curto: "Vendas", icon: ShoppingCart, busca: "pedido orçamento venda peça peças balcão whatsapp" },
       { to: "/vendas-maquinas", tela: "pedidos", label: "Venda de Máquinas", curto: "Venda máq.", icon: IceCreamCone, busca: "proposta comercial máquina máquinas tiny my frost op nota" },
-      { to: "/mercado-livre", tela: "mercadolivre", label: "Mercado Livre", curto: "M. Livre", icon: Handshake, busca: "marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },
-      { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
-      { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
+      { to: "/mercado-livre", tela: "mercadolivre", label: "Loja online e marketplace", curto: "Loja online", icon: Handshake, busca: "loja online vitrine prontos para marketplace cadastros repetidos ean nomes fora do padrão mercado livre marketplace meli mlb anúncio anúncios estoque preço sincronizar conectar conta trava aprovação" },
+      { to: "/precos", tela: "estoque", label: "Gestão de preços", curto: "Preços", icon: Tags, busca: "preço preços ajuste reajuste margem desejada regras do preço revisar preço custo mudou tabela de preço tabelas atacado revenda lista" },
     ],
   },
   {
@@ -76,6 +75,9 @@ export const grupos: Grupo[] = [
       { to: "/painel/posvenda", tela: "assistencia", label: "Painel da assistência", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos técnico conserto tempo garantia preventiva pós-venda" },
       { to: "/assistencia", tela: "assistencia", label: "Ordens de serviço", curto: "OS", icon: Wrench, busca: "os ordem de serviço conserto técnico assistência técnica" },
       { to: "/garantias", tela: "garantias", label: "Garantias e preventivas", curto: "Garantias", icon: ShieldCheck, busca: "preventiva manutenção equipamento" },
+      { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
+      { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield manual hg371 gigateste programação do equipamento" },
+      { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
     ],
   },
   {
@@ -83,9 +85,6 @@ export const grupos: Grupo[] = [
     itens: [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
-      { to: "/produtos/maquinas", tela: "estoque", label: "Máquinas", curto: "Máquinas", icon: Factory, busca: "máquina sorvete milk shake produto acabado modelos ficha manuais garantia" },
-      { to: "/teste-giga", tela: "testegiga", label: "Teste do giga (REG-006)", curto: "Giga", icon: PlugZap, busca: "teste do giga reg-006 reg 006 qualidade bancada aterramento continuidade tensão suportável rigidez dielétrica hipot funcional número de série ns reteste reprovada aprovada first pass yield manual hg371 gigateste programação do equipamento" },
-      { to: "/producao", tela: "producao", label: "Produção", curto: "Produção", icon: Factory, busca: "ordem de produção op quadro montagem fábrica ficha técnica atrasada peça faltando" },
       { to: "/compras", tela: "producao", label: "Compras e cotações", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
@@ -114,14 +113,16 @@ export const grupos: Grupo[] = [
       { to: "/analista-fiscal", tela: "contador", label: "Analista fiscal", curto: "Analista", icon: Scale, busca: "imposto economia auditoria fiscal lucro real presumido crédito pis cofins icms ipi irpj csll planejamento" },
       { to: "/impostos-pagos", tela: "financeiro", label: "Impostos pagos", curto: "Impostos", icon: Landmark, busca: "imposto guia darf das icms difal dare gnre sefaz prefeitura iss detran ipva pago pagos esfera federal estadual municipal" },
       { to: "/parcelamentos", tela: "contador", label: "Parcelamentos de impostos", curto: "Parcelas", icon: CalendarClock, busca: "parcelamento parcela imposto dívida divida ativa pgfn receita federal e-cac regularize sefaz icms iss refis transação darf dae dare atrasada vencimento rescisão" },
+      { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
+      { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
     ],
   },
   {
     id: "analises", titulo: "Gestão", cor: "from-[#6366f1] to-[#4338ca]", icone: BarChart3, painel: "/gerencial",
     itens: [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
-      { to: "/relatorios", tela: "relatorios", label: "Relatórios", curto: "Relatórios", icon: BarChart3, busca: "faturamento dre fluxo de caixa" },
-      { to: "/margem", tela: "margem", label: "Margem de contribuição", curto: "Margem", icon: PieChart, busca: "lucro custo rentabilidade" },
+      { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
+      { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
       { to: "/automacoes", tela: "configuracoes", label: "Automações", curto: "Automações", icon: Zap, busca: "automação automático sozinho robô agendado agenda cron rotina tarefa ia inteligência lynn monitor" },
       { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor pagamento pagamentos pix foto" },
     ],

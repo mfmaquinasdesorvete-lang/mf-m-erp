@@ -222,7 +222,7 @@ export default function Assistencia() {
         head={<><th className="th">OS</th><th className="th">Entrada</th><th className="th">Cliente</th><th className="th">Equipamento</th><th className="th">Situação</th><th className="th">Previsão</th><th className="th text-right">Valor</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((o) => (
-          <tr key={o.id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] })}>
+          <tr key={o.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50/70" onClick={() => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] }); } }}>
             <td className="td font-bold text-fg">#{o.numero}<EtiquetaUnidade id={(o as any).unidade_id} /></td>
             <td className="td num">{dataBR(o.data_entrada)}</td>
             <td className="td">{o.cliente?.nome}<SeloCidade cliente={o.cliente} /><div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
@@ -695,7 +695,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     ))}
                   </div>
                   <span className="min-w-[160px] flex-1 text-sm font-medium text-slate-700">{c.item}</span>
-                  <input className="input max-w-xs py-1.5" placeholder="Observação" value={c.obs ?? ""} disabled={somenteLeitura}
+                  <input aria-label={`Observação: ${c.item}`} className="input max-w-xs py-1.5" placeholder="Observação" value={c.obs ?? ""} disabled={somenteLeitura}
                     onChange={(e) => set({ checklist: o.checklist!.map((x, k) => (k === i ? { ...x, obs: e.target.value } : x)) })} />
                 </div>
               ))}

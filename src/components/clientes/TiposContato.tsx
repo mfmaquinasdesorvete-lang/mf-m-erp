@@ -95,7 +95,7 @@ export function CategoriasContato({ open, onClose, podeEditar }: { open: boolean
           });
         }}>
           <div className="flex flex-wrap gap-2">
-            <input className="input min-w-0 flex-1" placeholder="Nova categoria (ex.: Distribuidor, Transportador, Assistência)" maxLength={40}
+            <input aria-label="Nova categoria" className="input min-w-0 flex-1" placeholder="Nova categoria (ex.: Distribuidor, Transportador, Assistência)" maxLength={40}
               value={nova.nome} onChange={(e) => setNova({ ...nova, nome: e.target.value })} />
             <Button disabled={ocupado || !nova.nome.trim()}><Plus size={16} /> Criar</Button>
           </div>
@@ -114,7 +114,7 @@ export function CategoriasContato({ open, onClose, podeEditar }: { open: boolean
                 atualizar(t.chave, { nome, cor: editando.cor }).then((ok) => ok && setEditando(null));
               }}>
                 <div className="flex flex-wrap gap-2">
-                  <input className="input min-w-0 flex-1" autoFocus maxLength={40} value={editando.nome} onChange={(e) => setEditando({ ...editando, nome: e.target.value })} />
+                  <input aria-label="Nome da categoria" className="input min-w-0 flex-1" autoFocus maxLength={40} value={editando.nome} onChange={(e) => setEditando({ ...editando, nome: e.target.value })} />
                   <Button disabled={ocupado || !editando.nome.trim()}>Salvar</Button>
                   <Button type="button" variant="ghost" onClick={() => setEditando(null)}>Cancelar</Button>
                 </div>

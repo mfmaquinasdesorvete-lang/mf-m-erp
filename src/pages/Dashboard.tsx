@@ -329,7 +329,7 @@ function PainelGeral() {
               ))}
             </ul>
             {fila.escondidos.length > 0 && (
-              <button type="button" onClick={() => setVerTudo((v) => !v)} className="link-acao mt-3 text-sm">
+              <button type="button" onClick={() => setVerTudo((v) => !v)} className="link-acao mt-3 text-sm max-md:-mb-1.5 max-md:py-1.5">
                 {verTudo ? "Mostrar menos" : `Ver mais ${fila.escondidos.length}`}
               </button>
             )}
@@ -372,7 +372,7 @@ function PainelGeral() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {podeVer("pedidos") && (
           <Section title="Vendas x Recebido · 6 meses" className="xl:col-span-3"
-            actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm">Relatórios</Link>}>
+            actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Relatórios</Link>}>
             <Area dados={k.serie} series={podeVer("financeiro")
               ? [{ nome: "Vendas", cor: "var(--serie-1)" }, { nome: "Recebido", cor: "var(--serie-3)" }]
               : [{ nome: "Vendas", cor: "var(--serie-1)" }]}
@@ -382,7 +382,7 @@ function PainelGeral() {
 
         {podeVer("financeiro") ? (
           <Section title="Contas a receber" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"}
-            actions={<Link to="/financeiro" className="link-acao text-sm">Abrir</Link>}>
+            actions={<Link to="/financeiro" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Em aberto" fatias={[
               { rotulo: "Vence em 30 dias", valor: k.receber30, cor: "var(--serie-1)" },
               { rotulo: "Depois de 30 dias", valor: k.receberDepois, cor: "var(--serie-3)" },
@@ -391,7 +391,7 @@ function PainelGeral() {
           </Section>
         ) : (
           <Section title="Assistência técnica agora" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"}
-            actions={<Link to="/assistencia" className="link-acao text-sm">Abrir</Link>}>
+            actions={<Link to="/assistencia" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Ordens" fatias={k.osPorSituacao} formatar={(v) => `${v} OS`} />
           </Section>
         )}
@@ -400,7 +400,7 @@ function PainelGeral() {
       {/* 5. Detalhes da fábrica e das máquinas vendidas */}
       <div className={`grid grid-cols-1 gap-4 ${podeVer("producao") ? "xl:grid-cols-2" : ""}`}>
         {podeVer("producao") && (
-          <Section title="Fábrica" actions={<Link to="/producao" className="link-acao text-sm">Abrir produção</Link>}>
+          <Section title="Fábrica" actions={<Link to="/producao" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir produção</Link>}>
             <div className="grid grid-cols-2 gap-2">
               <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
               <Mini icon={PackageSearch} cor={k.opsComFalta ? "var(--kpi-rosa)" : "var(--kpi-verde)"} label="Peça faltando" valor={k.opsComFalta} onClick={() => navigate("/producao")} />
@@ -409,7 +409,7 @@ function PainelGeral() {
             </div>
           </Section>
         )}
-        <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="link-acao text-sm">Ver todas</Link>}>
+        <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Ver todas</Link>}>
           <div className="grid grid-cols-2 gap-2">
             <Mini icon={ShieldCheck} cor="var(--kpi-verde)" label="Em garantia" valor={k.emGarantia} onClick={() => navigate("/garantias")} />
             <Mini icon={ShieldCheck} cor="var(--kpi-laranja)" label="Vencem em 30 dias" valor={k.garantiaVence} onClick={() => navigate("/garantias")} />

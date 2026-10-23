@@ -307,16 +307,17 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
               const nome = transf ? `Transferência #${transf.numero}` : n.pedido?.cliente?.nome ?? n.destinatario_nome ?? n.payload?.nome_destinatario ?? "—";
               const fantasia = n.pedido?.cliente?.nome_fantasia;
               return (
-                <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
+                <tr key={n.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberta(n)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta(n); } }}>
                   {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${n.numero ?? ""}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
                   <td className="td whitespace-nowrap">{dataBR(n.created_at)}</td>
-                  <td className="td font-semibold">{n.numero ?? "—"}<div className="text-xs font-normal text-slate-500">{n.pedido?.numero != null ? `pedido #${n.pedido.numero}` : n.origem === "importada" ? "importada" : ""}</div></td>
+                  {/* celular: nº ao lado da emissão, e situação ao lado da evolução (cada uma numa linha deixava o cartão comprido) */}
+                  <td className="td font-semibold max-md:!col-span-1">{n.numero ?? "—"}<div className="text-xs font-normal text-slate-500">{n.pedido?.numero != null ? `pedido #${n.pedido.numero}` : n.origem === "importada" ? "importada" : ""}</div></td>
                   <td className="td">{nome}
                     <div className="text-xs text-slate-500">{fantasia && fantasia !== nome ? fantasia : !fantasia && n.destinatario_doc ? docFormat(n.destinatario_doc) : ""}</div>
                     <EtiquetaUnidade id={n.unidade_id ?? undefined} /></td>
                   <td className="td">{n.payload?.uf_destinatario ?? "—"}</td>
                   <td className="td text-right">{brl(n.valor_total)}</td>
-                  <td className="td">
+                  <td className={`td ${n.status === "erro" ? "" : "max-md:!col-span-1"}`}>
                     <IconeSituacao s={situacaoEmitida(n)} />
                     {n.chave && <div className="flex flex-wrap gap-1"><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /><IconePostos eventos={eventosNfe.get(n.chave)} /></div>}
                     {n.ambiente === "homologacao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Emitida no ambiente de teste da SEFAZ"><FlaskConical size={11} /> teste</div>}
@@ -325,7 +326,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
                     {n.status === "erro" && guiaRejeicao(n.mensagem) && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-900" title="Abra a nota para ver o passo a passo"><Lightbulb size={11} /> {guiaRejeicao(n.mensagem)!.titulo}</div>}
                     {n.status === "erro" && (n as any)._tentativas > 1 && <div className="mt-0.5 text-2xs font-semibold text-rose-700">{(n as any)._tentativas} tentativas recusadas · corrija o cadastro antes de reenviar</div>}
                   </td>
-                  <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
+                  <td className="td max-md:!col-span-1"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
                   <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
                   <CelulaAbrir />
                 </tr>
@@ -450,19 +451,19 @@ function Recebidas({ leitura = false, filtroInicial, destaque, onLimparDestaque 
             head={<>{!leitura && <th className="th w-8">{caixaTodos}</th>}<th className="th">Emissão</th><th className="th">Nº</th><th className="th">Fornecedor</th><th className="th text-right">Valor</th><th className="th">Situação</th><th className="th">Evolução</th><th className="th"><TituloMarcadores /></th><th className="th" /></>}
           >
             {filtrada.map((n) => (
-              <tr key={n.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setAberta(n)}>
+              <tr key={n.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberta(n)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta(n); } }}>
                 {!leitura && <td className="td w-8" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Selecionar NF ${numeroDaChave(n.chave)}`} checked={sel.has(n.id)} onChange={() => alternar(n.id)} /></td>}
                 <td className="td whitespace-nowrap">{dataBR(n.data_emissao)}</td>
                 <td className="td font-semibold">{numeroDaChave(n.chave)}</td>
                 <td className="td">{n.emitente_nome}<EtiquetaUnidade id={n.unidade_id ?? undefined} /><div className="text-xs text-slate-500">{docFormat(n.emitente_cnpj)}</div></td>
                 <td className="td text-right">{brl(n.valor_total)}</td>
-                <td className="td">
+                <td className={`td ${n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) ? "" : "max-md:!col-span-1"}`}>
                   <IconeSituacao s={situacaoRecebida(n)} />
                   {n.chave && <div className="flex flex-wrap gap-1"><SeloValidacao nivel={validacoes.get(n.chave)?.nivel} quando={validacoes.get(n.chave)?.validado_em} /><IconePostos eventos={eventosNfe.get(n.chave)} /></div>}
                   {n.finalidade === "devolucao" && <div className="mt-0.5 inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-2xs font-semibold text-purple-800"><Undo2 size={11} /> devolução</div>}
                   {n.processamento_msg && !["concluido", "ignorada"].includes(n.processamento) && <div className="mt-1 line-clamp-2 max-w-xs text-xs text-slate-500">{n.processamento_msg}</div>}
                 </td>
-                <td className="td"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
+                <td className="td max-md:!col-span-1"><TrilhaEvolucao e={evolucao.get(n.id)!} /></td>
                 <td className="td"><ChipsMarcadores ids={n.marcadores} todos={marcadores} pequeno /></td>
                 <CelulaAbrir />
               </tr>

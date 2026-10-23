@@ -716,7 +716,7 @@ function TratarModal({ lanc, bancos, receber, pagar, lancamentos, onClose }: {
 
       {modo === "conta" && (
         <div className="space-y-2">
-          <input className="input" placeholder="Buscar por nome, descrição ou valor…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <input aria-label="Buscar conta" className="input" placeholder="Buscar por nome, descrição ou valor…" value={busca} onChange={(e) => setBusca(e.target.value)} />
           {!candidatas.length && <p className="text-sm text-slate-500">Nenhuma conta {entrada ? "a receber" : "a pagar"} desta unidade encontrada. Use "Lançar como {entrada ? "receita" : "despesa"}".</p>}
           <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             {candidatas.map(({ c, valor, ref, pontos }) => (

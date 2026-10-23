@@ -326,10 +326,10 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
               <tbody className="divide-y divide-slate-100">
                 {itens.map((i, k) => (
                   <tr key={k}>
-                    <td className="px-2 py-1.5"><input className="input py-1" value={i.descricao} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, descricao: e.target.value } : x))} /></td>
-                    <td className="px-2 py-1.5"><input className="input w-28 py-1" value={i.codigo_ncm} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, codigo_ncm: e.target.value } : x))} /></td>
-                    <td className="px-2 py-1.5"><input className="input w-20 py-1" value={i.cfop} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, cfop: e.target.value } : x))} /></td>
-                    <td className="px-2 py-1.5"><input className="input w-24 py-1" value={i.cest} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, cest: e.target.value } : x))} /></td>
+                    <td className="px-2 py-1.5"><input aria-label="Descrição do item" className="input py-1" value={i.descricao} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, descricao: e.target.value } : x))} /></td>
+                    <td className="px-2 py-1.5"><input aria-label="NCM" className="input w-28 py-1" value={i.codigo_ncm} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, codigo_ncm: e.target.value } : x))} /></td>
+                    <td className="px-2 py-1.5"><input aria-label="CFOP" className="input w-20 py-1" value={i.cfop} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, cfop: e.target.value } : x))} /></td>
+                    <td className="px-2 py-1.5"><input aria-label="CEST" className="input w-24 py-1" value={i.cest} onChange={(e) => setItens(itens.map((x, j) => j === k ? { ...x, cest: e.target.value } : x))} /></td>
                   </tr>
                 ))}
               </tbody>

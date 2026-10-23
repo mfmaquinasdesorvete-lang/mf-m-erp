@@ -64,7 +64,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
               return `Categoria "${nome}" criada`;
             });
           }}>
-            <input className="input min-w-0 flex-1 sm:w-64 sm:flex-none" placeholder="Nova categoria" value={nova} onChange={(e) => setNova(e.target.value)} />
+            <input aria-label="Nova categoria" className="input min-w-0 flex-1 sm:w-64 sm:flex-none" placeholder="Nova categoria" value={nova} onChange={(e) => setNova(e.target.value)} />
             <Button disabled={ocupado || !nova.trim()}><Plus size={16} /> Criar</Button>
           </form>
         )}
@@ -92,7 +92,7 @@ export function CategoriasProdutos({ produtos, podeEditar }: { produtos: Produto
                     return `Categoria renomeada (${data} ${pl(data, "produto", "produtos")} atualizados)`;
                   });
                 }}>
-                  <input className="input min-w-0 flex-1" autoFocus value={editando!.para} onChange={(e) => setEditando({ de: c.nome, para: e.target.value })} />
+                  <input aria-label="Nome da categoria" className="input min-w-0 flex-1" autoFocus value={editando!.para} onChange={(e) => setEditando({ de: c.nome, para: e.target.value })} />
                   <Button disabled={ocupado}>Salvar</Button>
                   <Button type="button" variant="ghost" onClick={() => setEditando(null)}>Cancelar</Button>
                 </form>
