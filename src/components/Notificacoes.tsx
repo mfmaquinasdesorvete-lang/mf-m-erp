@@ -13,6 +13,7 @@ import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
 import { rotuloPapel } from "@/lib/permissoes";
 import { Button, Field, Modal } from "@/components/ui";
+import { guardarVoz, melhorVoz, nomeVozEscolhida, pontuarVoz, vozesPortugues } from "@/lib/voz";
 
 export type Urgencia = "normal" | "importante" | "urgente";
 export type Notificacao = {
@@ -87,19 +88,67 @@ export function tocarClaude() {
   } catch { /* navegador sem áudio */ }
 }
 
-/** Lê o texto em voz alta (português). O navegador só fala depois de a pessoa ter tocado na tela ao menos uma vez. */
-export function falar(texto: string) {
+/** As vozes do aparelho (no Chrome elas chegam um pouco depois de abrir a página). */
+function carregarVozes(): Promise<SpeechSynthesisVoice[]> {
+  const ja = window.speechSynthesis.getVoices();
+  if (ja.length) return Promise.resolve(ja);
+  return new Promise((ok) => {
+    const fim = () => ok(window.speechSynthesis.getVoices());
+    window.speechSynthesis.addEventListener("voiceschanged", fim, { once: true });
+    setTimeout(fim, 1500);
+  });
+}
+
+/** Lê o texto em voz alta com a voz mais natural em português do Brasil (ou a escolhida no sino).
+ *  O navegador só fala depois de a pessoa ter tocado na tela ao menos uma vez. */
+export async function falar(texto: string, nomeVoz = nomeVozEscolhida(), mesmoDesligada = false) {
   try {
-    if (!("speechSynthesis" in window) || !vozLigada()) return;
+    if (!("speechSynthesis" in window) || (!mesmoDesligada && !vozLigada())) return;
+    const voz = melhorVoz(await carregarVozes(), nomeVoz);
     const u = new SpeechSynthesisUtterance(texto);
-    u.lang = "pt-BR"; u.rate = 1;
-    const voz = window.speechSynthesis.getVoices().find((v) => v.lang?.toLowerCase().startsWith("pt"));
+    u.lang = voz?.lang ?? "pt-BR"; u.rate = 1; u.pitch = 1;
     if (voz) u.voice = voz;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   } catch { /* sem voz */ }
 }
-const falarAviso = (n: Notificacao) => falar(`${n.titulo}. ${n.texto ?? ""}`);
+
+/** Nome curto da voz (sem "Microsoft" e sem "- Portuguese (Brazil)"). */
+const nomeCurtoVoz = (nome: string) => nome.replace(/^Microsoft\s+/i, "").replace(/\s*-\s*Portugu[eê]s?e?\s*\(.*\)$/i, "").replace(/\s*-\s*Portuguese.*$/i, "");
+
+/** Escolher a voz dos avisos e ouvir antes (fica guardado só neste aparelho). */
+function EscolherVoz() {
+  const [vozes, setVozes] = useState<SpeechSynthesisVoice[]>([]);
+  const [nome, setNome] = useState(() => nomeVozEscolhida() ?? "");
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    let vivo = true;
+    const ler = () => { if (vivo) setVozes(vozesPortugues(window.speechSynthesis.getVoices())); };
+    carregarVozes().then(ler);
+    window.speechSynthesis.addEventListener("voiceschanged", ler);
+    return () => { vivo = false; window.speechSynthesis.removeEventListener("voiceschanged", ler); };
+  }, []);
+  if (!vozes.length) return <p className="mb-2 px-1 text-xs text-slate-500">Este aparelho não tem voz em português.</p>;
+  const atual = melhorVoz(vozes, nome);
+  const semNatural = pontuarVoz(vozes[0]) < 80;
+  return (
+    <div className="mb-2 rounded-xl bg-violet-50 p-2 dark:bg-violet-500/10">
+      <div className="flex items-center gap-2">
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Voz dos avisos</span>
+          <select className="input h-9 py-1 text-sm" value={atual?.name ?? ""}
+            onChange={(e) => { setNome(e.target.value); guardarVoz(e.target.value); falar("Assim fica a voz dos avisos do ERP.", e.target.value, true); }}>
+            {vozes.map((v, k) => <option key={v.name} value={v.name}>{nomeCurtoVoz(v.name)}{k === 0 ? " (mais natural)" : ""}</option>)}
+          </select>
+        </label>
+        <Button type="button" variant="secondary" onClick={() => falar("Olá! Este é o aviso do chat do Claude.", atual?.name, true)}><Speaker size={15} /> Ouvir</Button>
+      </div>
+      {semNatural && <p className="mt-1.5 text-xs text-slate-600">Para uma voz mais natural: no computador, abra o ERP no Microsoft Edge (vozes Francisca e Thalita) ou no Chrome (voz do Google); no iPhone, baixe uma voz "Aprimorada" em Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil).</p>}
+    </div>
+  );
+}
+
+const falarAviso = (n: Notificacao) => { void falar(`${n.titulo}. ${n.texto ?? ""}`); };
 const ehExterno = (link: string | null) => !!link && /^https?:\/\//.test(link);
 
 export function NotificacoesProvider({ children }: { children: ReactNode }) {
@@ -341,6 +390,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
               </span>
             </div>
+            {voz && <EscolherVoz />}
             <button type="button" onClick={() => { setPainel(false); setCompor([]); }}
               className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#6366f1] px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
               <Send size={16} /> Enviar aviso para a equipe
