@@ -396,7 +396,7 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
                   {e.cliente_whatsapp ? (
                     <a href={whatsappLink(e.cliente_whatsapp, mensagem({ ...e, cliente: { nome: e.cliente_nome } as Cliente }))} target="_blank" rel="noreferrer"
                       onClick={() => registrar(e, "mensagem enviada pelo WhatsApp", somarDias(7))}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#1b7a4b] px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-publico-sucesso px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
                       <MessageCircle size={16} /> Enviar lembrete
                     </a>
                   ) : <span className="self-center text-sm text-amber-700">Cliente sem WhatsApp no cadastro</span>}

@@ -12,7 +12,7 @@ export function SeloCidade({ cliente, escuro }: { cliente?: { municipio?: string
   if (!t) return null;
   return (
     <span title={`Cidade do cliente: ${t}`}
-      className={`ml-1.5 inline-flex max-w-[11rem] items-center gap-0.5 truncate rounded-md px-1.5 py-px align-middle text-2xs font-semibold ${escuro ? "bg-white/10 text-[#b8bfcd]" : "bg-sky-50 text-sky-800 ring-1 ring-sky-200"}`}>
+      className={`ml-1.5 inline-flex max-w-[11rem] items-center gap-0.5 truncate rounded-md px-1.5 py-px align-middle text-2xs font-semibold ${escuro ? "bg-white/10 text-noite-medio" : "bg-sky-50 text-sky-800 ring-1 ring-sky-200"}`}>
       <MapPin size={10} className="shrink-0" aria-hidden /><span className="truncate">{t}</span>
     </span>
   );

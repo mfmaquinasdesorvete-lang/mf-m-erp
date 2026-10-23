@@ -3,7 +3,7 @@
 // as máquinas dele em etiquetas grandes, cada modelo na sua cor, com a venda, a garantia e o nº de série.
 import { useState } from "react";
 import { AlertTriangle, BadgeCheck, CalendarDays, Receipt, ShieldCheck, Snowflake, TrendingUp } from "lucide-react";
-import { AnelEscuro, NumeroEscuro, QuadroEscuro, ladrilho, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, NumeroEscuro, QuadroEscuro, ladrilho, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { corMaquinaHex, rotuloMaquina } from "@/components/clientes/MaquinasCliente";
 import { brl, dataBR, pl } from "@/lib/format";
 import { comprasPorAno, type CompraCliente, type resumoCliente } from "@/lib/fichaCliente";
@@ -11,8 +11,8 @@ import { mesAnoCompra } from "../../../supabase/functions/_shared/compra-maquina
 
 // cores dos anos (o mais novo por último, com a cor mais forte)
 const CORES = [
-  { cor: "#64748b", neon: "#cbd5e1" }, { cor: "#a855f7", neon: "#d8b4fe" }, { cor: "#6366f1", neon: "#a5b4fc" },
-  { cor: "#06b6d4", neon: "#22d3ee" }, { cor: "#f97316", neon: "#fdba74" }, { cor: "#10b981", neon: "#6ee7b7" },
+  { ...TOM_ESCURO.cinza }, { ...TOM_ESCURO.roxo }, { ...TOM_ESCURO.indigo },
+  { ...TOM_ESCURO.ciano }, { ...TOM_ESCURO.laranja }, { ...TOM_ESCURO.verde },
 ];
 
 type Maquina = { id: string; descricao: string; numero_serie?: string | null; data_venda?: string | null; garantia_ate?: string | null; origem?: string | null; usada?: boolean | null };
@@ -58,9 +58,9 @@ export function PainelFicha({ r, compras, maquinas, compraCadastro, hoje }: {
 
         <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
           <NumeroEscuro icone={TrendingUp} rotulo="Últimos 12 meses" valor={brl(r.ultimos12m)} sub={`${r.compras} ${pl(r.compras, "compra", "compras")} no total`}
-            de="#60a5fa" ate="#2563eb" aceso={r.ultimos12m > 0} />
+            tom="anil" aceso={r.ultimos12m > 0} />
           <NumeroEscuro icone={Receipt} rotulo="Ticket médio" valor={brl(r.ticket)} sub={r.intervaloMedio ? `compra a cada ${r.intervaloMedio} dias` : undefined}
-            de="#c084fc" ate="#7c3aed" aceso={r.ticket > 0} />
+            tom="roxo" aceso={r.ticket > 0} />
           <NumeroEscuro icone={CalendarDays} rotulo="Última compra" valor={r.ultima ? dataBR(r.ultima) : "—"} sub={r.semComprar !== null ? `há ${r.semComprar} dias` : undefined}
             {...(r.situacao === "inativo" ? { de: "#fb7185", ate: "#e11d48" } : r.situacao === "em_risco" ? { de: "#fbbf24", ate: "#d97706" } : { de: "#34d399", ate: "#059669" })}
             aceso={!!r.ultima} />
@@ -97,7 +97,7 @@ export function PainelFicha({ r, compras, maquinas, compraCadastro, hoje }: {
                         {[m.data_venda ? `vendida em ${dataBR(m.data_venda).slice(3)}` : "data não informada", m.origem && m.origem !== "MF" ? m.origem : "", m.numero_serie ? `nº ${m.numero_serie}` : ""].filter(Boolean).join(" · ")}
                       </span>
                       {m.garantia_ate && (
-                        <span className={`mt-0.5 inline-flex items-center gap-1 text-xs font-semibold ${garantia ? "text-[#6ee7b7]" : "text-white/55"}`}>
+                        <span className={`mt-0.5 inline-flex items-center gap-1 text-xs font-semibold ${garantia ? "text-fixo-emerald-300" : "text-white/55"}`}>
                           <ShieldCheck size={12} aria-hidden /> {garantia ? `garantia até ${dataBR(m.garantia_ate)}` : "fora da garantia"}
                         </span>
                       )}

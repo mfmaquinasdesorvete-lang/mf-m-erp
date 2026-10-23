@@ -254,7 +254,7 @@ export function FichaUnidade({ loja: l, dados, onClose, onEditar }: { loja: Loja
           <div className="mb-2 flex items-center gap-2"><h3 className="mr-auto font-bold text-fg">Custos de montar <span className="num text-slate-500">· {brl(r.custo)}</span></h3>
             <Button variant="secondary" onClick={() => setCusto({ data: hoje(), categoria: "maquinas" })}><Plus size={15} /> Custo</Button></div>
           {r.porCategoria.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5">{r.porCategoria.map((k) => <span key={k.id} className="rounded-full bg-pink-50 px-2 py-0.5 text-xs font-semibold text-[#9d174d]">{k.nome} <span className="num">{brl(k.valor)}</span></span>)}</div>
+            <div className="mb-2 flex flex-wrap gap-1.5">{r.porCategoria.map((k) => <span key={k.id} className="rounded-full bg-pink-50 px-2 py-0.5 text-xs font-semibold text-fixo-pink-800">{k.nome} <span className="num">{brl(k.valor)}</span></span>)}</div>
           )}
           <ul className="divide-y divide-slate-100">
             {custos.map((c) => (

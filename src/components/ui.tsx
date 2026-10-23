@@ -31,16 +31,20 @@ export const TOM_ACAO: Record<TomAcao, string> = {
 };
 export const CLASSE_BOTAO = "inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
 
+/** Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões. */
 export function Button({
-  variant = "primary", tom, className = "", ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; tom?: TomAcao }) {
+  variant = "primary", tom, tamanho, className = "", ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; tom?: TomAcao; tamanho?: "mini" }) {
   return (
     <button
-      className={`${CLASSE_BOTAO} ${tom ? TOM_ACAO[tom] : variants[variant]} ${className}`}
+      className={`${tamanho === "mini" ? "botao-mini" : CLASSE_BOTAO} ${tom ? TOM_ACAO[tom] : variants[variant]} ${className}`}
       {...props}
     />
   );
 }
+
+/** Classe do chip de filtro/escolha: `chip(ativo)` ou `chip(ativo, "bg-… text-…")` para a cor própria quando escolhido. */
+export const chip = (ativo: boolean, corAtiva = "chip-ativo") => `chip ${ativo ? corAtiva : "chip-neutro"}`;
 
 export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
@@ -324,7 +328,7 @@ const badgeLabel: Record<string, string> = {
 
 /** Selo cheio (fundo forte e letra branca) para a etapa da venda: a lista fica colorida nos dois temas. */
 const badgeForte: Record<string, string> = {
-  orcamento: "bg-[#7c3aed]", aprovado: "bg-solido-azul", faturado: "bg-[#4338ca]", entregue: "bg-solido-verde", cancelado: "bg-solido-vermelho",
+  orcamento: "bg-fixo-violet-600", aprovado: "bg-solido-azul", faturado: "bg-fixo-indigo-700", entregue: "bg-solido-verde", cancelado: "bg-solido-vermelho",
 };
 
 export function Badge({ value, forte }: { value: string | null | undefined; forte?: boolean }) {

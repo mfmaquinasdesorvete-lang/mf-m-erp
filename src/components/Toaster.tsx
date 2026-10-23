@@ -20,7 +20,7 @@ export function Toaster() {
         <div
           key={a.id}
           role={a.tipo === "erro" ? "alert" : undefined}
-          className={`rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${a.tipo === "erro" ? "bg-[#c62828]" : "bg-[#1b7a4b]"}`}
+          className={`rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${a.tipo === "erro" ? "bg-[#c62828]" : "bg-publico-sucesso"}`}
         >
           {a.texto}
         </div>

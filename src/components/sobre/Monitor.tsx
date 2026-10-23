@@ -187,7 +187,7 @@ function Filas({ s }: { s: Saude }) {
 function Semaforo({ nivel, problemas, onAtualizar, atualizando, onRegistrar }: {
   nivel: "ok" | "atencao" | "critico"; problemas: string[]; onAtualizar: () => void; atualizando: boolean; onRegistrar: () => void;
 }) {
-  const estilo = nivel === "critico" ? "from-[#e11d48] to-[#9f1239]" : nivel === "atencao" ? "from-[#f59e0b] to-[#b45309]" : "from-[#10b981] to-[#047857]";
+  const estilo = nivel === "critico" ? "from-fixo-rose-600 to-fixo-rose-800" : nivel === "atencao" ? "from-fixo-amber-500 to-fixo-amber-700" : "from-fixo-emerald-500 to-fixo-emerald-700";
   const Icone = nivel === "ok" ? CheckCircle2 : AlertTriangle;
   return (
     <Card className="overflow-hidden">
@@ -203,7 +203,7 @@ function Semaforo({ nivel, problemas, onAtualizar, atualizando, onRegistrar }: {
           <button type="button" onClick={onAtualizar} className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold hover:bg-white/25">
             <RefreshCw size={14} className={atualizando ? "animate-spin" : ""} aria-hidden /> Conferir agora
           </button>
-          <button type="button" onClick={onRegistrar} className="inline-flex items-center gap-1 rounded-lg bg-[#ffffff] px-3 py-1.5 text-sm font-semibold text-[#0f172a] hover:bg-[#e2e8f0]">
+          <button type="button" onClick={onRegistrar} className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-fixo-slate-900 hover:bg-fixo-slate-200">
             <ClipboardPlus size={14} aria-hidden /> Registrar verificação
           </button>
         </div>

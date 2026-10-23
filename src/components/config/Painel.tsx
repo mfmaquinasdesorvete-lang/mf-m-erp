@@ -71,12 +71,12 @@ export function PainelConfig() {
 
   const grupos = [...new Set(SECOES.map((s) => s.grupo))];
   const outras = [
-    { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-[#64748b] to-[#334155]" },
-    { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "from-[#0ea5e9] to-[#2563eb]" },
-    { to: "/implantacao", tela: "implantacao" as const, titulo: "Troca do Tiny", resumo: "Etapas, prazos e uso do ERP na virada do Tiny para o ERP Line", icone: ClipboardCheck, cor: "from-[#14b8a6] to-[#0f766e]" },
-    { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-[#f59e0b] to-[#b45309]" },
+    { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-fixo-slate-500 to-fixo-slate-700" },
+    { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "from-fixo-sky-500 to-fixo-blue-600" },
+    { to: "/implantacao", tela: "implantacao" as const, titulo: "Troca do Tiny", resumo: "Etapas, prazos e uso do ERP na virada do Tiny para o ERP Line", icone: ClipboardCheck, cor: "from-fixo-teal-500 to-fixo-teal-700" },
+    { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-fixo-amber-500 to-fixo-amber-700" },
     // saiu do Início do menu (é mais de uso pessoal): fica aqui e na busca do menu
-    { to: "/documentos", tela: "documentos" as const, titulo: "Documentos (Docs)", resumo: "Os anexos de pedidos, OS, clientes, fornecedores, contas e produtos num lugar só", icone: Paperclip, cor: "from-[#6366f1] to-[#4338ca]" },
+    { to: "/documentos", tela: "documentos" as const, titulo: "Documentos (Docs)", resumo: "Os anexos de pedidos, OS, clientes, fornecedores, contas e produtos num lugar só", icone: Paperclip, cor: "from-fixo-indigo-500 to-fixo-indigo-700" },
   ].filter((o) => vis.ve(o.tela, o.to));
   return (
     <div className="max-w-6xl">

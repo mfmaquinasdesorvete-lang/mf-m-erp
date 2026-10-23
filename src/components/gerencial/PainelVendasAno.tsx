@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, Flower2, History, Leaf, Receipt, Snowflake, Sun, Users, type LucideIcon } from "lucide-react";
-import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje as hojeBR, pl } from "@/lib/format";
@@ -17,10 +17,10 @@ type Indicadores = { mes: Comparacao; mesAnoAnterior: Comparacao; ano: Comparaca
 
 // cada trimestre com a sua cor (tom forte e o "neon" do fundo escuro) e a estação (verão, outono, inverno e primavera)
 const TRI: { cor: string; neon: string; icone: LucideIcon }[] = [
-  { cor: "#f97316", neon: "#fdba74", icone: Sun },
-  { cor: "#06b6d4", neon: "#22d3ee", icone: Leaf },
-  { cor: "#6366f1", neon: "#818cf8", icone: Snowflake },
-  { cor: "#a855f7", neon: "#d8b4fe", icone: Flower2 },
+  { ...TOM_ESCURO.laranja, icone: Sun },
+  { ...TOM_ESCURO.ciano, icone: Leaf },
+  { ...TOM_ESCURO.indigo, icone: Snowflake },
+  { ...TOM_ESCURO.roxo, icone: Flower2 },
 ];
 
 /** "▲ 12,5% vs …" (com seta e palavra, não depende só da cor). */
@@ -60,14 +60,14 @@ export function PainelVendasAno({ k, trimestres, hoje, clientes, onClientes }: {
 
         <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
           <NumeroEscuro icone={CalendarDays} rotulo={`Este mês (até ${dataBR(hoje).slice(0, 5)})`} valor={brl(k.mes.atual)}
-            sub={textoVariacao(k.mes, "vs mês passado").replace(" a mais", "").replace(" a menos", "")} de="#34d399" ate="#059669" aceso={k.mes.atual > 0} />
+            sub={textoVariacao(k.mes, "vs mês passado").replace(" a mais", "").replace(" a menos", "")} tom="verde" aceso={k.mes.atual > 0} />
           <NumeroEscuro icone={Receipt} rotulo="Últimos 12 meses" valor={brl(k.doze.atual)}
-            sub={`${k.vendas.atual} ${pl(k.vendas.atual, "venda", "vendas")} · ticket ${brl(k.ticket.atual)}`} de="#60a5fa" ate="#2563eb" aceso />
+            sub={`${k.vendas.atual} ${pl(k.vendas.atual, "venda", "vendas")} · ticket ${brl(k.ticket.atual)}`} tom="anil" aceso />
           <NumeroEscuro icone={Users} rotulo="Clientes (12 meses)" valor={k.clientes.atual}
             sub={`${k.novos.atual} ${pl(k.novos.atual, "novo", "novos")} · ${clientes.emRisco + clientes.inativos} ${pl(clientes.emRisco + clientes.inativos, "parado", "parados")}`}
-            de="#fb923c" ate="#ea580c" aceso onClick={onClientes} title={`${clientes.emRisco} em risco e ${clientes.inativos} ${pl(clientes.inativos, "inativo", "inativos")}${onClientes ? " · toque para ver os clientes parados" : ""}`} />
+            tom="laranja" aceso onClick={onClientes} title={`${clientes.emRisco} em risco e ${clientes.inativos} ${pl(clientes.inativos, "inativo", "inativos")}${onClientes ? " · toque para ver os clientes parados" : ""}`} />
           <NumeroEscuro icone={History} rotulo={`${anoAnt} até ${dataBR(hoje).slice(0, 5)}`} valor={brl(k.ano.anterior)}
-            sub="mesmo período" de="#94a3b8" ate="#475569" />
+            sub="mesmo período" tom="cinza" />
         </div>
 
         <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2" aria-label="Por trimestre">
@@ -79,7 +79,7 @@ export function PainelVendasAno({ k, trimestres, hoje, clientes, onClientes }: {
                   ativo={ativo} apagado={!!tri && !ativo} onClick={() => setTri(ativo ? "" : id)} title="Toque para ver só este trimestre"
                   detalhes={<>
                     <span>{pct(t.atual)}% do ano</span>
-                    <span className={t.variacao == null ? "" : t.variacao >= 0 ? "font-semibold text-[#6ee7b7]" : "font-semibold text-[#fda4af]"}>
+                    <span className={t.variacao == null ? "" : t.variacao >= 0 ? "font-semibold text-fixo-emerald-300" : "font-semibold text-fixo-rose-300"}>
                       {textoVariacao(t, `que em ${anoAnt}`)}
                     </span>
                   </>} />

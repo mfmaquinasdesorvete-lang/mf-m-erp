@@ -45,10 +45,10 @@ export function ResumoPagarTipos({ r, tipo, onTipo, className = "mb-4", acoes }:
         </div>
 
         <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
-          <NumeroEscuro icone={AlertTriangle} rotulo="Vencido" valor={brl(r.vencido)} sub={r.nVencidas ? `${r.nVencidas} ${pl(r.nVencidas, "conta atrasada", "contas atrasadas")}` : "nada atrasado"} de="#fb7185" ate="#e11d48" aceso={r.vencido > 0} />
-          <NumeroEscuro icone={CalendarClock} rotulo="Próximos 7 dias" valor={brl(r.semana)} sub="vai sair esta semana" de="#fbbf24" ate="#d97706" aceso={r.semana > 0} />
-          <NumeroEscuro icone={ClipboardCheck} rotulo="Falta aprovar" valor={brl(r.aprovar)} sub={r.nAprovar ? `${r.nAprovar} esperando o ok` : "tudo aprovado"} de="#c084fc" ate="#7c3aed" aceso={r.nAprovar > 0} />
-          <NumeroEscuro icone={Ban} rotulo="Não pagar" valor={brl(r.seguradas)} sub={r.nSeguradas ? `${r.nSeguradas} ${pl(r.nSeguradas, "segurada", "seguradas")}, fora do total` : "nenhuma segurada"} de="#94a3b8" ate="#475569" />
+          <NumeroEscuro icone={AlertTriangle} rotulo="Vencido" valor={brl(r.vencido)} sub={r.nVencidas ? `${r.nVencidas} ${pl(r.nVencidas, "conta atrasada", "contas atrasadas")}` : "nada atrasado"} tom="rosa" aceso={r.vencido > 0} />
+          <NumeroEscuro icone={CalendarClock} rotulo="Próximos 7 dias" valor={brl(r.semana)} sub="vai sair esta semana" tom="ambar" aceso={r.semana > 0} />
+          <NumeroEscuro icone={ClipboardCheck} rotulo="Falta aprovar" valor={brl(r.aprovar)} sub={r.nAprovar ? `${r.nAprovar} esperando o ok` : "tudo aprovado"} tom="roxo" aceso={r.nAprovar > 0} />
+          <NumeroEscuro icone={Ban} rotulo="Não pagar" valor={brl(r.seguradas)} sub={r.nSeguradas ? `${r.nSeguradas} ${pl(r.nSeguradas, "segurada", "seguradas")}, fora do total` : "nenhuma segurada"} tom="cinza" />
         </div>
 
         <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2" aria-label="Por tipo de conta">
@@ -61,8 +61,8 @@ export function ResumoPagarTipos({ r, tipo, onTipo, className = "mb-4", acoes }:
                   ativo={ativo} apagado={!!tipo && !ativo} onClick={() => onTipo(ativo ? "" : l.tipo)} title={`${t.dica} · toque para ver só estas contas`}
                   detalhes={<>
                     <span>{pct}% · {l.n} {pl(l.n, "conta", "contas")}</span>
-                    {l.vencido > 0 && <span className="font-semibold text-[#fda4af]">{brl(l.vencido)} vencido</span>}
-                    {l.nAprovar > 0 && <span className="font-semibold text-[#d8b4fe]">{l.nAprovar} falta aprovar</span>}
+                    {l.vencido > 0 && <span className="font-semibold text-fixo-rose-300">{brl(l.vencido)} vencido</span>}
+                    {l.nAprovar > 0 && <span className="font-semibold text-fixo-purple-300">{l.nAprovar} falta aprovar</span>}
                   </>} />
               </li>
             );

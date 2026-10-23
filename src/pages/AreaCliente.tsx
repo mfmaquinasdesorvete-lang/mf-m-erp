@@ -78,7 +78,7 @@ export default function AreaCliente() {
   return (
     <Tela>
       <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl print:max-w-none print:rounded-none print:shadow-none">
-        <header className="flex items-center gap-4 bg-[#0B1F3A] px-6 py-5 text-white">
+        <header className="flex items-center gap-4 bg-publico-marinho px-6 py-5 text-white">
           <img src={logo} alt="" className="h-12 w-12 rounded-xl bg-white/10" />
           <div className="min-w-0 flex-1">
             <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Área do cliente · {a.empresa.nome}</div>
@@ -92,8 +92,8 @@ export default function AreaCliente() {
         <nav className="flex gap-1 overflow-x-auto border-b border-slate-300 bg-slate-50 px-3 print:hidden" aria-label="Seções">
           {abas.map((x) => (
             <button key={x.id} type="button" onClick={() => setAba(x.id)} aria-current={aba === x.id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 py-3 text-sm font-bold ${aba === x.id ? "border-[#066d8c] text-[#05506a]" : "border-transparent text-slate-700 hover:text-slate-950"}`}>
-              <x.icone size={16} aria-hidden /> {x.nome}{x.n > 0 && <span className="rounded-full bg-[#0B1F3A] px-1.5 text-xs text-white">{x.n}</span>}
+              className={`inline-flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 py-3 text-sm font-bold ${aba === x.id ? "border-publico-petroleo text-publico-petroleo-escuro" : "border-transparent text-slate-700 hover:text-slate-950"}`}>
+              <x.icone size={16} aria-hidden /> {x.nome}{x.n > 0 && <span className="rounded-full bg-publico-marinho px-1.5 text-xs text-white">{x.n}</span>}
             </button>
           ))}
         </nav>
@@ -111,7 +111,7 @@ export default function AreaCliente() {
               <div className="text-sm text-slate-700">{a.abertas.length ? `${a.abertas.length} ${pl(a.abertas.length, "conta", "contas")}` : "Nada em aberto. Obrigado!"}</div>
             </div>
             <div className="flex gap-2 print:hidden">
-              <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border-2 border-[#066d8c] px-3 py-2 text-sm font-bold text-[#05506a] hover:bg-sky-50"><Printer size={16} /> Segunda via (PDF)</button>
+              <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border-2 border-publico-petroleo px-3 py-2 text-sm font-bold text-publico-petroleo-escuro hover:bg-sky-50"><Printer size={16} /> Segunda via (PDF)</button>
               {zap && <a href={whatsappLink(zap, `Olá! Sou ${a.cliente} e quero falar sobre as minhas contas.`)} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-solido-verde px-3 py-2 text-sm font-semibold text-white hover:opacity-90"><MessageCircle size={16} /> Falar</a>}
             </div>
@@ -166,7 +166,7 @@ function Inicio({ a, total, ir, imprimir }: { a: Area; total: number; ir: (x: Ab
           </button>
         ))}
       </div>
-      <button type="button" onClick={imprimir} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-3 font-semibold text-white sm:hidden">
+      <button type="button" onClick={imprimir} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-publico-marinho px-4 py-3 font-semibold text-white sm:hidden">
         <Printer size={18} aria-hidden /> Imprimir tudo (PDF)
       </button>
     </div>
@@ -203,14 +203,14 @@ function Notas({ lista, propostas }: { lista: Nota[]; propostas: Proposta[] }) {
         <ul className="divide-y divide-slate-200 rounded-xl border border-slate-300">
           {lista.map((n, i) => (
             <li key={i} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <FileText size={20} className="shrink-0 text-[#066d8c]" aria-hidden />
+              <FileText size={20} className="shrink-0 text-publico-petroleo" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-slate-950">{n.tipo} nº {n.numero ?? "—"}{n.serie ? `/${n.serie}` : ""}{n.devolucao && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs font-semibold text-amber-900">devolução</span>}</div>
                 <div className="text-xs font-medium text-slate-700">Emitida em {dataBR(n.data)}</div>
                 {n.chave && <div className="mt-0.5 select-all break-all font-mono text-[11px] text-slate-600">{n.chave}</div>}
               </div>
               {n.valor != null && <b className="whitespace-nowrap text-slate-950">{brl(Number(n.valor))}</b>}
-              {n.danfe && <a href={n.danfe} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#066d8c] px-3 py-1.5 text-xs font-bold text-white print:hidden">DANFE</a>}
+              {n.danfe && <a href={n.danfe} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-publico-petroleo px-3 py-1.5 text-xs font-bold text-white print:hidden">DANFE</a>}
             </li>
           ))}
         </ul>
@@ -250,7 +250,7 @@ function Maquinas({ lista, zap, cliente }: { lista: Maquina[]; zap: string | nul
                 {m.proxima_preventiva && <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${m.proxima_preventiva < dia ? "bg-amber-50 text-amber-800" : "bg-sky-50 text-sky-800"}`}><CalendarClock size={13} aria-hidden /> Preventiva {m.proxima_preventiva < dia ? "atrasada desde" : "em"} {dataBR(m.proxima_preventiva)}</span>}
               </div>
               <div className="flex flex-wrap gap-2 pt-1 print:hidden">
-                <a href={`/maquina/${m.token}`} className="inline-flex items-center gap-1.5 rounded-lg bg-[#066d8c] px-3 py-2 text-sm font-semibold text-white"><BookOpen size={15} aria-hidden /> Manuais e dicas{m.manuais ? ` (${m.manuais})` : ""}</a>
+                <a href={`/maquina/${m.token}`} className="inline-flex items-center gap-1.5 rounded-lg bg-publico-petroleo px-3 py-2 text-sm font-semibold text-white"><BookOpen size={15} aria-hidden /> Manuais e dicas{m.manuais ? ` (${m.manuais})` : ""}</a>
                 {zap && <a href={whatsappLink(zap, `Olá! Sou ${cliente} e preciso de assistência na máquina ${m.descricao}${m.numero_serie ? ` (série ${m.numero_serie})` : ""}.`)} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"><Wrench size={15} aria-hidden /> Pedir assistência</a>}
               </div>
@@ -305,10 +305,10 @@ function Compras({ lista }: { lista: Compra[] }) {
           {p.rastreio && (
             <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs">
               <Truck size={14} aria-hidden /> Rastreio{p.transportadora ? ` (${p.transportadora})` : ""}: <b className="select-all break-all">{p.rastreio}</b>
-              <button type="button" className="font-semibold text-[#066d8c] print:hidden" onClick={() => navigator.clipboard.writeText(p.rastreio!).then(() => notify("Código copiado"), () => undefined)}>copiar</button>
+              <button type="button" className="font-semibold text-publico-petroleo print:hidden" onClick={() => navigator.clipboard.writeText(p.rastreio!).then(() => notify("Código copiado"), () => undefined)}>copiar</button>
               {p.rastreio_link && /^https?:\/\//.test(p.rastreio_link) && (
                 <a href={p.rastreio_link} target="_blank" rel="noopener noreferrer"
-                  className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-[#066d8c] px-3 text-sm font-semibold text-white hover:bg-[#055a74] print:hidden">
+                  className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-publico-petroleo px-3 text-sm font-semibold text-white hover:bg-[#055a74] print:hidden">
                   <Truck size={15} aria-hidden /> Acompanhar a entrega
                 </a>
               )}
@@ -360,7 +360,7 @@ function Conta({ c, dia, token }: { c: Aberta; dia: string; token: string }) {
             <div className="mb-1 text-xs font-semibold text-slate-700">Pix copia e cola (o valor já vem preenchido)</div>
             <div className="break-all rounded-lg bg-slate-100 p-2 font-mono text-xs text-slate-800">{pix}</div>
             <button type="button" onClick={() => navigator.clipboard.writeText(pix).then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2500); })}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#066d8c] px-3 py-2 text-sm font-semibold text-white print:hidden">
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-publico-petroleo px-3 py-2 text-sm font-semibold text-white print:hidden">
               {copiado ? <><Check size={16} /> Copiado</> : <><Copy size={16} /> Copiar código Pix</>}
             </button>
           </div>
@@ -368,7 +368,7 @@ function Conta({ c, dia, token }: { c: Aberta; dia: string; token: string }) {
       ) : null}
       {c.link && (
         <button type="button" onClick={pagarLink} disabled={abrindo}
-          className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 font-semibold text-white disabled:opacity-70 sm:w-auto print:hidden">
+          className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-lg bg-publico-marinho px-4 py-2 font-semibold text-white disabled:opacity-70 sm:w-auto print:hidden">
           {abrindo ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />} Pagar com cartão (até 12x) ou Pix
         </button>
       )}

@@ -57,8 +57,8 @@ export function FluxoMenu() {
   const mostra = (i: Item) => (!soVe || como.ve(i)) && (!termo || semAcento(`${i.label} ${i.busca ?? ""}`).includes(termo));
 
   const colunas = [
-    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", cor: g.cor ?? "from-[#64748b] to-[#334155]", Icone: g.icone ?? LayoutGrid, itens: g.itens, fora: false })),
-    { id: "fora", titulo: "Fora do menu", cor: "from-[#94a3b8] to-[#64748b]", Icone: Boxes, itens: itensForaDoMenu, fora: true },
+    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", cor: g.cor ?? "from-fixo-slate-500 to-fixo-slate-700", Icone: g.icone ?? LayoutGrid, itens: g.itens, fora: false })),
+    { id: "fora", titulo: "Fora do menu", cor: "from-fixo-slate-400 to-fixo-slate-500", Icone: Boxes, itens: itensForaDoMenu, fora: true },
   ].map((c) => ({ ...c, visiveis: c.itens.filter(mostra) })).filter((c) => c.visiveis.length || (!termo && !soVe));
 
   return (

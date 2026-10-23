@@ -4,6 +4,27 @@
 import type { CSSProperties, ReactNode } from "react";
 import { X, type LucideIcon } from "lucide-react";
 
+/**
+ * Tons do painel escuro, um por cor (o mesmo verde em todo painel): `cor` (sombra e brilho) e `neon` (anel e barra)
+ * para AnelEscuro e LinhaEscura; `de` e `ate` (degradê do ladrilho) para NumeroEscuro. Uso: {...TOM_ESCURO.verde} ou tom="verde".
+ */
+export const TOM_ESCURO = {
+  verde: { cor: "#10b981", neon: "#6ee7b7", de: "#34d399", ate: "#059669" },
+  teal: { cor: "#14b8a6", neon: "#5eead4", de: "#2dd4bf", ate: "#0d9488" },
+  ciano: { cor: "#06b6d4", neon: "#22d3ee", de: "#22d3ee", ate: "#0891b2" },
+  azul: { cor: "#0ea5e9", neon: "#7dd3fc", de: "#38bdf8", ate: "#0284c7" },
+  anil: { cor: "#3b82f6", neon: "#93c5fd", de: "#60a5fa", ate: "#2563eb" },
+  indigo: { cor: "#6366f1", neon: "#a5b4fc", de: "#818cf8", ate: "#4f46e5" },
+  violeta: { cor: "#8b5cf6", neon: "#c4b5fd", de: "#a78bfa", ate: "#7c3aed" },
+  roxo: { cor: "#a855f7", neon: "#d8b4fe", de: "#c084fc", ate: "#7c3aed" },
+  rosa: { cor: "#e11d48", neon: "#fb7185", de: "#fb7185", ate: "#e11d48" },
+  vermelho: { cor: "#ef4444", neon: "#fca5a5", de: "#f87171", ate: "#dc2626" },
+  laranja: { cor: "#f97316", neon: "#fdba74", de: "#fb923c", ate: "#ea580c" },
+  ambar: { cor: "#f59e0b", neon: "#fcd34d", de: "#fbbf24", ate: "#d97706" },
+  cinza: { cor: "#64748b", neon: "#cbd5e1", de: "#94a3b8", ate: "#475569" },
+} as const;
+export type TomEscuro = keyof typeof TOM_ESCURO;
+
 /** Quadradinho com degradê e ícone (como nos painéis de referência). */
 export const ladrilho = (de: string, ate: string): CSSProperties => ({ background: `linear-gradient(135deg, ${de}, ${ate})`, boxShadow: `0 6px 18px -6px ${ate}` });
 
@@ -20,7 +41,7 @@ export function QuadroEscuro({ titulo, destaque, rotulo, acoes, filtro, classNam
       className={`relative overflow-hidden rounded-2xl border border-[#1d3b66] bg-[radial-gradient(120%_90%_at_50%_0%,#123463_0%,#0a1f3d_45%,#06132a_100%)] p-4 text-white shadow-pop sm:p-5 ${className}`}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         <h2 className="text-base font-bold uppercase tracking-[.12em] sm:text-lg">
-          {titulo}{destaque && <> <span className="bg-gradient-to-r from-[#fb7185] to-[#fbbf24] bg-clip-text text-transparent">{destaque}</span></>}
+          {titulo}{destaque && <> <span className="bg-gradient-to-r from-fixo-rose-400 to-fixo-amber-400 bg-clip-text text-transparent">{destaque}</span></>}
         </h2>
         {acoes}
         {filtro && (
@@ -67,15 +88,15 @@ export function AnelEscuro<T extends string>({ fatias, escolhida, onEscolher, ce
         {/* valor comprido ("R$ 289.000,00") diminui para caber inteiro; curto fica no tamanho cheio */}
         <span className="num valor-fit w-full font-bold leading-tight text-white [--valor-max:2.1rem]"
           style={{ "--valor-cq": `${Math.min(14, 165 / Math.max(1, centro.valor.length)).toFixed(1)}cqi` } as CSSProperties}>{centro.valor}</span>
-        {centro.sub && <span className="text-xs font-semibold text-[#5eead4]">{centro.sub}</span>}
+        {centro.sub && <span className="text-xs font-semibold text-fixo-teal-300">{centro.sub}</span>}
       </div>
     </div>
   );
 }
 
 /** Número de apoio (vencido, próximos 7 dias…) com o ladrilho colorido; `aceso` quando há algo a olhar; com `onClick`, abre o detalhe. */
-export function NumeroEscuro({ icone: Icone, rotulo, valor, sub, de, ate, aceso, onClick, title }: {
-  icone: LucideIcon; rotulo: string; valor: ReactNode; sub?: ReactNode; de: string; ate: string; aceso?: boolean; onClick?: () => void; title?: string;
+export function NumeroEscuro({ icone: Icone, rotulo, valor, sub, tom = "cinza", de = TOM_ESCURO[tom].de, ate = TOM_ESCURO[tom].ate, aceso, onClick, title }: {
+  icone: LucideIcon; rotulo: string; valor: ReactNode; sub?: ReactNode; tom?: TomEscuro; de?: string; ate?: string; aceso?: boolean; onClick?: () => void; title?: string;
 }) {
   const Tag = onClick ? "button" : "div";
   return (

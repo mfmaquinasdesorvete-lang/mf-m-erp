@@ -78,7 +78,7 @@ export function ManualGiga({ ctx, admin }: { ctx: ContextoGiga; admin: boolean }
     <ol className="space-y-1.5">
       {PASSOS_HG371.slice(de, ate).map((p, i) => (
         <li key={de + i} className={`flex items-start gap-2.5 rounded-lg px-2 py-1 text-sm ${p.ajuste ? "bg-emerald-50 text-emerald-900" : "text-fg"}`}>
-          <span className={`mt-0.5 grid h-6 w-7 shrink-0 place-items-center rounded-md text-xs font-bold text-white ${p.ajuste ? "bg-[#0f766e]" : "bg-[#475569]"}`}>{String(de + i + 1).padStart(2, "0")}</span>
+          <span className={`mt-0.5 grid h-6 w-7 shrink-0 place-items-center rounded-md text-xs font-bold text-white ${p.ajuste ? "bg-fixo-teal-700" : "bg-fixo-slate-600"}`}>{String(de + i + 1).padStart(2, "0")}</span>
           <span className="min-w-0">{p.texto}</span>
         </li>
       ))}
@@ -88,9 +88,9 @@ export function ManualGiga({ ctx, admin }: { ctx: ContextoGiga; admin: boolean }
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-start gap-3 border-l-4 border-[#0d9488] bg-[#132238] p-4 text-white sm:p-5">
+        <div className="flex flex-wrap items-start gap-3 border-l-4 border-fixo-teal-600 bg-[#132238] p-4 text-white sm:p-5">
           <div className="min-w-0 flex-1 basis-64">
-            <div className="text-xs font-bold uppercase tracking-widest text-[#99f6e4]">Manual do Gigateste</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-fixo-teal-200">Manual do Gigateste</div>
             <h2 className="text-xl font-bold leading-tight">Programação do equipamento HG371</h2>
             <p className="mt-1 text-sm text-white/80">Procedimento de programação · equipamento sob ensaio: máquina de sorvete · Rev. 01 (18/10/2026)</p>
           </div>

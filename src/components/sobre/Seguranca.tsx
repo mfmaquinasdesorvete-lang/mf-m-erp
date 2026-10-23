@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Code2, Database, Globe, Hourglass, KeyRound, Plug, RefreshCw, Search, Server, ShieldAlert, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Button, Card } from "@/components/ui";
-import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { useInvalidate, useRows } from "@/lib/data";
 import { dataBR, dataHoraBR, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
@@ -29,11 +29,11 @@ const SITUACOES: Record<Situacao, { rotulo: string; classe: string }> = {
 const PRIORIDADES: Record<Prioridade, string> = { alta: "prioridade alta", media: "prioridade média", baixa: "prioridade baixa" };
 /** cores no painel escuro (tom forte e o "neon") e na bolinha de cada item */
 const COR: Record<Situacao, { cor: string; neon: string }> = {
-  risco: { cor: "#e11d48", neon: "#fb7185" },
-  atencao: { cor: "#d97706", neon: "#fbbf24" },
-  verificando: { cor: "#0284c7", neon: "#38bdf8" },
-  a_verificar: { cor: "#475569", neon: "#94a3b8" },
-  ok: { cor: "#059669", neon: "#34d399" },
+  risco: { ...TOM_ESCURO.rosa },
+  atencao: { ...TOM_ESCURO.ambar },
+  verificando: { ...TOM_ESCURO.azul },
+  a_verificar: { ...TOM_ESCURO.cinza },
+  ok: { ...TOM_ESCURO.verde },
   nao_se_aplica: { cor: "#334155", neon: "#64748b" },
 };
 const ORDEM_ANEL: Situacao[] = ["ok", "atencao", "risco", "verificando", "a_verificar", "nao_se_aplica"];
@@ -118,12 +118,12 @@ export function Seguranca() {
               de={ultima?.problemas ? "#fb7185" : "#34d399"} ate={ultima?.problemas ? "#e11d48" : "#059669"} aceso
               title="Todo dia às 9h41 o banco confere a segurança sozinho e avisa no sino o que mudou ou está errado" />
             <NumeroEscuro icone={ShieldAlert} rotulo="Risco" valor={conta("risco")} sub={conta("risco") ? "resolver primeiro" : "nenhum"}
-              de="#fb7185" ate="#e11d48" aceso={conta("risco") > 0} onClick={() => filtrar("risco")} title="Toque para ver só os itens em risco" />
+              tom="rosa" aceso={conta("risco") > 0} onClick={() => filtrar("risco")} title="Toque para ver só os itens em risco" />
             <NumeroEscuro icone={AlertTriangle} rotulo="Atenção" valor={conta("atencao")} sub={conta("atencao") ? "pontos a melhorar" : "nenhum"}
-              de="#fbbf24" ate="#d97706" aceso={conta("atencao") > 0} onClick={() => filtrar("atencao")} title="Toque para ver só os itens de atenção" />
+              tom="ambar" aceso={conta("atencao") > 0} onClick={() => filtrar("atencao")} title="Toque para ver só os itens de atenção" />
             <NumeroEscuro icone={Hourglass} rotulo="A verificar" valor={conta("a_verificar") + conta("verificando")}
               sub={vencidos ? `${vencidos} para conferir de novo` : conta("verificando") ? `${conta("verificando")} verificando agora` : "na fila da auditoria"}
-              de="#94a3b8" ate="#475569" aceso={conta("a_verificar") + conta("verificando") > 0} onClick={() => filtrar("a_verificar")} title="Toque para ver só os que faltam verificar" />
+              tom="cinza" aceso={conta("a_verificar") + conta("verificando") > 0} onClick={() => filtrar("a_verificar")} title="Toque para ver só os que faltam verificar" />
           </div>
 
           <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2" aria-label="Por área">

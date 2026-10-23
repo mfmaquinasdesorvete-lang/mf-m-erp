@@ -109,7 +109,7 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
           <span className="mt-0.5 block text-xs leading-snug text-white/85">Em cada conta: <b>Aprovar</b> libera para pagar; <b>Não</b> devolve para corrigir ou cancela, com o motivo.</span>
         </span>
         <span className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <button type="button" onClick={onVer} className="inline-flex min-h-[42px] flex-1 items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-[#4c1d95] hover:bg-white/90 sm:flex-none">Ver uma a uma</button>
+          <button type="button" onClick={onVer} className="inline-flex min-h-[42px] flex-1 items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-fixo-violet-900 hover:bg-white/90 sm:flex-none">Ver uma a uma</button>
           {completas.length > 1 && (
             <button type="button" disabled={ocupado} onClick={() => setJanela({ tipo: "todas", contas: completas })}
               className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-solido-verde px-4 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50 sm:flex-none">

@@ -84,7 +84,7 @@ export function ModalRenegociar({ contas, onClose, onFeito }: { contas: Conta[];
           {([[true, "Trocar por um acordo", "As contas viram parcelas novas (as antigas ficam canceladas, com o motivo)"],
             [false, "Só registrar a negociação", "As contas continuam as mesmas; guarda o histórico da conversa"]] as const).map(([v, t, d]) => (
             <button key={String(v)} type="button" role="radio" aria-checked={trocar === v} onClick={() => setTrocar(v)}
-              className={`rounded-xl border p-3 text-left ${trocar === v ? "border-teal-500 bg-[#f0fdfa] ring-2 ring-teal-300" : "border-slate-200 hover:bg-slate-50"}`}>
+              className={`rounded-xl border p-3 text-left ${trocar === v ? "border-teal-500 bg-fixo-teal-50 ring-2 ring-teal-300" : "border-slate-200 hover:bg-slate-50"}`}>
               <span className="block font-bold text-fg">{t}</span><span className="block text-xs text-slate-600">{d}</span>
             </button>
           ))}
@@ -126,7 +126,7 @@ function BarraAndamento({ a }: { a: ReturnType<typeof andamento> }) {
         <span>{a.pagas} de {a.total} {pl(a.total, "parcela paga", "parcelas pagas")}</span><span className="num">{a.pct}%</span>
       </div>
       <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-white/50" role="progressbar" aria-valuenow={a.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Parcelas pagas">
-        <div className="h-full rounded-full bg-[#042f2e]" style={{ width: `${a.pct}%` }} />
+        <div className="h-full rounded-full bg-fixo-teal-950" style={{ width: `${a.pct}%` }} />
       </div>
       <div className="num mt-1 flex flex-wrap justify-between gap-x-3 text-xs"><span>Pago {brl(a.valorPago)}</span><span>Falta {brl(a.falta)}</span></div>
     </div>
@@ -157,14 +157,14 @@ export function PainelRenegociadas({ contas, onAbrir, rodape }: { contas: Conta[
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Situação da negociação">
         {([["andamento", "Em andamento"], ["quitada", "Quitadas"], ["cancelada", "Canceladas"], ["todas", "Todas"]] as const).map(([f, r]) => (
           <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
-            className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${filtro === f ? "border-transparent text-[#042f2e] shadow-card" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${filtro === f ? "border-transparent text-fixo-teal-950 shadow-card" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}
             style={filtro === f ? { background: COR_RENEGOCIADA.fundo } : undefined}>
             {r} <span className="num opacity-80">{contagem(f)}</span>
           </button>
         ))}
       </div>
       {!isLoading && !mostradas.length && (
-        <div className="rounded-2xl border border-dashed border-teal-300 bg-[#f0fdfa] p-5 text-sm text-[#134e4a]">
+        <div className="rounded-2xl border border-dashed border-teal-300 bg-fixo-teal-50 p-5 text-sm text-fixo-teal-900">
           <p className="font-bold">Nenhuma renegociação {filtro === "andamento" ? "em andamento" : "aqui"}.</p>
           <p className="mt-1">Para renegociar: marque as contas na lista e toque em <b>Renegociar</b> (ou no menu ⋯ da conta → <b>Renegociar…</b>). O acordo, as parcelas pagas e o histórico (áudios, prints e arquivos) ficam aqui.</p>
         </div>
@@ -211,7 +211,7 @@ export function PainelRenegociadas({ contas, onAbrir, rodape }: { contas: Conta[
 const ICONE_EVENTO: Record<TipoEvento | "pagamento", typeof FileText> = { nota: StickyNote, audio: Mic, print: Imagem, arquivo: Paperclip, acordo: Handshake, pagamento: Wallet };
 const COR_EVENTO: Record<TipoEvento | "pagamento", string> = {
   nota: "bg-slate-100 text-slate-700", audio: "bg-orange-100 text-orange-800", print: "bg-sky-100 text-sky-800",
-  arquivo: "bg-indigo-100 text-indigo-800", acordo: "bg-[#ccfbf1] text-[#134e4a]", pagamento: "bg-emerald-100 text-emerald-800",
+  arquivo: "bg-indigo-100 text-indigo-800", acordo: "bg-fixo-teal-100 text-fixo-teal-900", pagamento: "bg-emerald-100 text-emerald-800",
 };
 
 /** Arquivo do histórico: áudio toca aqui, print aparece em miniatura, o resto abre numa aba. Link temporário (10 min). */
@@ -343,7 +343,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
               </div>
               {podeEditar ? (
                 <label className="flex w-full flex-col text-xs font-bold sm:w-auto">Situação
-                  <select className="input mt-0.5 h-9 w-full bg-white/90 text-[#042f2e] sm:w-auto" value={n.situacao} onChange={(e) => mudarSituacao(e.target.value as SituacaoNegociacao)}>
+                  <select className="input mt-0.5 h-9 w-full bg-white/90 text-fixo-teal-950 sm:w-auto" value={n.situacao} onChange={(e) => mudarSituacao(e.target.value as SituacaoNegociacao)}>
                     {(Object.keys(SITUACOES_NEGOCIACAO) as SituacaoNegociacao[]).map((s) => <option key={s} value={s}>{SITUACOES_NEGOCIACAO[s].rotulo}</option>)}
                   </select>
                 </label>
@@ -352,7 +352,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
             <div className="num mt-2 text-xs">Contas <b>{brl(n.valor_original)}</b>{n.valor_acordo != null && <> → acordo <b>{brl(n.valor_acordo)}</b>{n.parcelas ? ` em ${n.parcelas}x` : ""}</>}</div>
             <div className="mt-2 max-w-md"><BarraAndamento a={a} /></div>
             {a.quitada && n.situacao !== "quitada" && podeEditar && (
-              <button type="button" onClick={() => mudarSituacao("quitada")} className="mt-2 rounded-lg bg-[#042f2e] px-3 py-1.5 text-xs font-bold text-white hover:brightness-125">Todas pagas: marcar como quitada</button>
+              <button type="button" onClick={() => mudarSituacao("quitada")} className="mt-2 rounded-lg bg-fixo-teal-950 px-3 py-1.5 text-xs font-bold text-white hover:brightness-125">Todas pagas: marcar como quitada</button>
             )}
             {n.observacoes && <p className="mt-2 whitespace-pre-line rounded-lg bg-white/50 p-2 text-xs">{n.observacoes}</p>}
           </div>
@@ -388,7 +388,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
             <section aria-label="Linha do tempo">
               <h3 className="mb-1.5 font-bold text-fg">Linha do tempo</h3>
               {podeEditar && (
-                <form onSubmit={adicionar} className="mb-3 space-y-2 rounded-xl border border-teal-200 bg-[#f0fdfa] p-3">
+                <form onSubmit={adicionar} className="mb-3 space-y-2 rounded-xl border border-teal-200 bg-fixo-teal-50 p-3">
                   <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Tipo do registro">
                     {(["nota", "audio", "print", "arquivo"] as const).map((t) => {
                       const Icone = ICONE_EVENTO[t];

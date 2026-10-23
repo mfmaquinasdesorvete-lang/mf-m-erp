@@ -45,8 +45,8 @@ type Conta = {
 
 /** Cor do cartão de cada banco (faixa colorida com o saldo). */
 const COR_BANCO: Record<string, string> = {
-  infinitepay: "from-[#10b981] to-[#047857]", nubank: "from-[#a855f7] to-[#6d28d9]", inter: "from-[#f97316] to-[#c2410c]",
-  unicred: "from-[#22c55e] to-[#166534]", caixa: "from-[#64748b] to-[#334155]", outro: "from-[#0ea5e9] to-[#4f46e5]",
+  infinitepay: "from-fixo-emerald-500 to-fixo-emerald-700", nubank: "from-fixo-purple-500 to-fixo-violet-700", inter: "from-fixo-orange-500 to-fixo-orange-700",
+  unicred: "from-fixo-green-500 to-fixo-green-800", caixa: "from-fixo-slate-500 to-fixo-slate-700", outro: "from-fixo-sky-500 to-fixo-indigo-600",
 };
 const somarMesIso = (ym: string, n: number) => { const [a, m] = ym.split("-").map(Number); const t = a * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
 

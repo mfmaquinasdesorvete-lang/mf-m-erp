@@ -114,23 +114,23 @@ function RastroMaquina({ serie }: { serie: string }) {
       return { maquinas: (eq.data ?? []) as any[], oss: (os.data ?? []) as any[] };
     },
   });
-  if (termo.length < 3) return <p className="mb-2 text-xs text-[#fcd34d]">Escreva pelo menos 3 letras ou números do nº de série.</p>;
-  if (q.isLoading) return <p className="mb-2 text-xs text-[#94a3b8]">Procurando a máquina…</p>;
-  if (q.isError) return <p className="mb-2 text-xs text-[#fca5a5]">Não deu para procurar: {(q.error as Error).message}</p>;
+  if (termo.length < 3) return <p className="mb-2 text-xs text-fixo-amber-300">Escreva pelo menos 3 letras ou números do nº de série.</p>;
+  if (q.isLoading) return <p className="mb-2 text-xs text-fixo-slate-400">Procurando a máquina…</p>;
+  if (q.isError) return <p className="mb-2 text-xs text-fixo-red-300">Não deu para procurar: {(q.error as Error).message}</p>;
   const { maquinas = [], oss = [] } = q.data ?? {};
   return (
     <div className="mb-2 space-y-1.5 rounded-lg bg-white/[0.04] p-2 ring-1 ring-white/10">
-      {!maquinas.length && <p className="text-xs text-[#94a3b8]">Nenhuma máquina com o nº de série "{termo}".</p>}
+      {!maquinas.length && <p className="text-xs text-fixo-slate-400">Nenhuma máquina com o nº de série "{termo}".</p>}
       {maquinas.map((m) => (
-        <div key={m.id} className="text-[#e2e8f0]">
-          <b className="text-[#ffffff]">{m.descricao}</b> <span className="font-mono text-xs text-[#94a3b8]">{m.numero_serie}</span>
-          <div className="text-xs text-[#cbd5e1]">{[m.cliente?.nome ?? "sem cliente", m.data_venda ? `comprada em ${dataBR(m.data_venda)}` : "sem data da compra",
+        <div key={m.id} className="text-fixo-slate-200">
+          <b className="text-white">{m.descricao}</b> <span className="font-mono text-xs text-fixo-slate-400">{m.numero_serie}</span>
+          <div className="text-xs text-fixo-slate-300">{[m.cliente?.nome ?? "sem cliente", m.data_venda ? `comprada em ${dataBR(m.data_venda)}` : "sem data da compra",
             m.garantia_ate ? `garantia até ${dataBR(m.garantia_ate)}` : "sem garantia marcada", m.proxima_preventiva ? `preventiva ${dataBR(m.proxima_preventiva)}` : "sem preventiva", m.origem].filter(Boolean).join(" · ")}</div>
         </div>
       ))}
-      {oss.length > 0 && <div className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#94a3b8]">Ordens de serviço</div>}
+      {oss.length > 0 && <div className="pt-1 text-xs font-semibold uppercase tracking-wide text-fixo-slate-400">Ordens de serviço</div>}
       {oss.map((o) => (
-        <button key={o.id} type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })} className="block w-full rounded px-1 py-0.5 text-left text-xs text-[#e2e8f0] hover:bg-white/5">
+        <button key={o.id} type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })} className="block w-full rounded px-1 py-0.5 text-left text-xs text-fixo-slate-200 hover:bg-white/5">
           <b>OS #{o.numero}</b> · {String(o.status).replace(/_/g, " ")}{o.data_entrada ? ` · ${dataBR(o.data_entrada)}` : ""}{o.defeito_relatado ? ` · ${o.defeito_relatado}` : ""}
         </button>
       ))}
@@ -149,49 +149,49 @@ function LinhaDeComando() {
 
   return (
     <Card className="overflow-hidden">
-      <div className="bg-[#0f172a] p-4 text-[#f1f5f9] sm:p-5">
-        <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#6ee7b7]"><Terminal size={14} aria-hidden /> Enterprise Command Language (ECL) <span className="rounded bg-[#34d399]/15 px-1.5 py-0.5 normal-case tracking-normal text-[#a7f3d0]">linguagem de domínio (DSL)</span></div>
-        <p className="mb-2 text-sm text-[#cbd5e1]">A linguagem da MF para mandar no ERP: um verbo e o alvo, como numa ordem, com as palavras da empresa. O ERP mostra onde aquilo é feito e a entrega de cada comando.</p>
-        <p className="mb-2 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#94a3b8]"><span className="text-[#64748b]">cada execução registra:</span> {ETAPAS.map((x) => x.nome.toLowerCase()).join(" → ")}</p>
-        <p className="mb-3 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#94a3b8]">
-          <span className="text-[#64748b]">gramática:</span> <span className="text-[#6ee7b7]">VERBO</span> <span className="text-[#7dd3fc]">alvo</span>
-          <span className="text-[#64748b]"> · verbos:</span> {ECL.map((c) => c.verbo).join(" | ")}
-          <span className="text-[#64748b]"> · alvos:</span> {[...new Set(ECL.flatMap((c) => c.alvos.map((a) => a.alvo)))].join(" | ")}
+      <div className="bg-fixo-slate-900 p-4 text-fixo-slate-100 sm:p-5">
+        <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-fixo-emerald-300"><Terminal size={14} aria-hidden /> Enterprise Command Language (ECL) <span className="rounded bg-fixo-emerald-400/15 px-1.5 py-0.5 normal-case tracking-normal text-fixo-emerald-200">linguagem de domínio (DSL)</span></div>
+        <p className="mb-2 text-sm text-fixo-slate-300">A linguagem da MF para mandar no ERP: um verbo e o alvo, como numa ordem, com as palavras da empresa. O ERP mostra onde aquilo é feito e a entrega de cada comando.</p>
+        <p className="mb-2 overflow-x-auto whitespace-nowrap font-mono text-xs text-fixo-slate-400"><span className="text-fixo-slate-500">cada execução registra:</span> {ETAPAS.map((x) => x.nome.toLowerCase()).join(" → ")}</p>
+        <p className="mb-3 overflow-x-auto whitespace-nowrap font-mono text-xs text-fixo-slate-400">
+          <span className="text-fixo-slate-500">gramática:</span> <span className="text-fixo-emerald-300">VERBO</span> <span className="text-fixo-sky-300">alvo</span>
+          <span className="text-fixo-slate-500"> · verbos:</span> {ECL.map((c) => c.verbo).join(" | ")}
+          <span className="text-fixo-slate-500"> · alvos:</span> {[...new Set(ECL.flatMap((c) => c.alvos.map((a) => a.alvo)))].join(" | ")}
         </p>
-        <p className="mb-3 text-xs text-[#94a3b8]"><span className="text-[#64748b]">no chat do Claude, o comando vira o trabalho feito (auditoria, análise ou rastreio completo):</span>{" "}
-          {["AUDIT pedidos", "ANALYZE erp", "TRACE cliente <nome>"].map((c) => <code key={c} className="mr-1.5 rounded bg-[#1e293b] px-1.5 py-0.5 font-mono text-[#a7f3d0]">{c}</code>)}</p>
-        <form onSubmit={enviar} className="flex items-center gap-2 rounded-lg bg-[#1e293b] px-3 ring-1 ring-[#334155] focus-within:ring-[#34d399]">
-          <span className="font-mono text-[#34d399]" aria-hidden>&gt;</span>
+        <p className="mb-3 text-xs text-fixo-slate-400"><span className="text-fixo-slate-500">no chat do Claude, o comando vira o trabalho feito (auditoria, análise ou rastreio completo):</span>{" "}
+          {["AUDIT pedidos", "ANALYZE erp", "TRACE cliente <nome>"].map((c) => <code key={c} className="mr-1.5 rounded bg-fixo-slate-800 px-1.5 py-0.5 font-mono text-fixo-emerald-200">{c}</code>)}</p>
+        <form onSubmit={enviar} className="flex items-center gap-2 rounded-lg bg-fixo-slate-800 px-3 ring-1 ring-fixo-slate-700 focus-within:ring-fixo-emerald-400">
+          <span className="font-mono text-fixo-emerald-400" aria-hidden>&gt;</span>
           <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="AUDIT financeiro" aria-label="Comando ECL" autoComplete="off" spellCheck={false}
-            className="h-11 min-w-0 flex-1 bg-transparent font-mono text-sm text-[#ffffff] placeholder:text-[#64748b] focus:outline-none" />
-          <button type="submit" className="rounded-md bg-[#10b981] px-3 py-1.5 text-sm font-bold text-[#0f172a] hover:bg-[#34d399]">Rodar</button>
+            className="h-11 min-w-0 flex-1 bg-transparent font-mono text-sm text-white placeholder:text-fixo-slate-500 focus:outline-none" />
+          <button type="submit" className="rounded-md bg-fixo-emerald-500 px-3 py-1.5 text-sm font-bold text-fixo-slate-900 hover:bg-fixo-emerald-400">Rodar</button>
         </form>
         {res && (
           <div className="mt-3 text-sm" role="status">
             {res.ok ? (
               <>
-                <div className="mb-2 text-[#cbd5e1]"><b className="font-mono text-[#6ee7b7]">{res.comando.verbo}</b> · {res.comando.nome}{res.alvo ? ` · ${res.alvo}` : " · em todas as áreas"}</div>
-                <p className="mb-2 flex items-start gap-1.5 text-[#e2e8f0]"><PackageCheck size={16} className="mt-0.5 shrink-0 text-[#6ee7b7]" aria-hidden /><span><b className="text-[#a7f3d0]">Entrega:</b> {res.comando.entrega}</span></p>
+                <div className="mb-2 text-fixo-slate-300"><b className="font-mono text-fixo-emerald-300">{res.comando.verbo}</b> · {res.comando.nome}{res.alvo ? ` · ${res.alvo}` : " · em todas as áreas"}</div>
+                <p className="mb-2 flex items-start gap-1.5 text-fixo-slate-200"><PackageCheck size={16} className="mt-0.5 shrink-0 text-fixo-emerald-300" aria-hidden /><span><b className="text-fixo-emerald-200">Entrega:</b> {res.comando.entrega}</span></p>
                 {res.comando.verbo === "ANALYZE" && <Passos titulo="Os 6 pontos" itens={DIMENSOES_ANALISE.map((d) => ({ nome: d.nome, texto: d.pergunta }))} />}
                 {res.comando.verbo === "INNOVATE" && <Passos titulo="O ciclo" itens={CICLO_INOVACAO} />}
                 {res.comando.verbo === "TRACE" && (res.argumento
                   ? (res.alvo === "maquina" ? <RastroMaquina serie={res.argumento} /> : <div className="mb-2"><ResultadosBusca termo={res.argumento} onIr={() => undefined} /></div>)
-                  : <p className="mb-2 text-xs text-[#fcd34d]">Escreva o que procurar depois do alvo, por exemplo: TRACE maquina 050626366-01, TRACE pedido 554 ou TRACE cliente padaria.</p>)}
+                  : <p className="mb-2 text-xs text-fixo-amber-300">Escreva o que procurar depois do alvo, por exemplo: TRACE maquina 050626366-01, TRACE pedido 554 ou TRACE cliente padaria.</p>)}
                 <div className="flex flex-wrap gap-2">
                   {res.destinos.map((d) => (
-                    <Link key={d.to + d.rotulo} to={d.to} className="inline-flex items-center gap-1 rounded-lg bg-[#10b981]/15 px-3 py-1.5 font-semibold text-[#a7f3d0] ring-1 ring-[#34d399]/40 hover:bg-[#10b981]/25">
+                    <Link key={d.to + d.rotulo} to={d.to} className="inline-flex items-center gap-1 rounded-lg bg-fixo-emerald-500/15 px-3 py-1.5 font-semibold text-fixo-emerald-200 ring-1 ring-fixo-emerald-400/40 hover:bg-fixo-emerald-500/25">
                       {d.rotulo} <ArrowRight size={14} aria-hidden />
                     </Link>
                   ))}
                   {ehAdmin && (
                     <button type="button" onClick={() => setExecucao({ comando: res.comando.verbo, alvo: res.alvo, situacao: "em_andamento", entrada: texto.trim() })}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#ffffff] px-3 py-1.5 font-semibold text-[#0f172a] hover:bg-[#e2e8f0]">
+                      className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 font-semibold text-fixo-slate-900 hover:bg-fixo-slate-200">
                       <ClipboardPlus size={14} aria-hidden /> Registrar execução
                     </button>
                   )}
                 </div>
               </>
-            ) : <span className="text-[#fcd34d]">{res.motivo}</span>}
+            ) : <span className="text-fixo-amber-300">{res.motivo}</span>}
           </div>
         )}
       </div>
@@ -219,11 +219,11 @@ function LinhaDeComando() {
 function Passos({ titulo, itens }: { titulo: string; itens: { nome: string; texto: string }[] }) {
   return (
     <div className="mb-3">
-      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#94a3b8]">{titulo}</div>
+      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-fixo-slate-400">{titulo}</div>
       <ol className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
         {itens.map((x, i) => (
-          <li key={x.nome} className="rounded-md bg-[#1e293b] px-2.5 py-1.5 ring-1 ring-[#334155]">
-            <b className="text-[#7dd3fc]">{i + 1}. {x.nome}</b> <span className="text-xs text-[#cbd5e1]">{x.texto}</span>
+          <li key={x.nome} className="rounded-md bg-fixo-slate-800 px-2.5 py-1.5 ring-1 ring-fixo-slate-700">
+            <b className="text-fixo-sky-300">{i + 1}. {x.nome}</b> <span className="text-xs text-fixo-slate-300">{x.texto}</span>
           </li>
         ))}
       </ol>

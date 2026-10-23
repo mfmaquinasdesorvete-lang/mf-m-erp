@@ -95,7 +95,7 @@ export function Contabilidade() {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {zap ? (
-                        <a href={zap} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#059669] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#047857]" aria-label={`WhatsApp de ${c.nome}`}>
+                        <a href={zap} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-fixo-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-fixo-emerald-700" aria-label={`WhatsApp de ${c.nome}`}>
                           <MessageCircle size={14} aria-hidden /> {c.whatsapp}
                         </a>
                       ) : tel ? (

@@ -11,26 +11,26 @@ export const ATALHOS_RETAGUARDA: { grupo: string; itens: Atalho[] }[] = [
   {
     grupo: "Minha carteira",
     itens: [
-      { to: "/pessoal", titulo: "Painel pessoal", texto: "Suas contas, cartões, gastos e empresas, separados da MF", icone: Wallet, cor: "from-[#f59e0b] to-[#b45309]" },
-      { to: "/retaguarda/entradas", titulo: "Entradas acima de R$ 5 mil", texto: "Dinheiro grande que entrou nas contas da MF e ainda não tem dono: escreva de quem é e o que foi", icone: BadgeDollarSign, cor: "from-[#22c55e] to-[#15803d]" },
-      { to: "/retaguarda/notas-my-frost", titulo: "Notas da My Frost para o contador", texto: "Empresa anterior: notas por ano e tipo (vendas, remessas, devoluções e canceladas) e a planilha para o contador", icone: FileText, cor: "from-[#0ea5e9] to-[#0369a1]" },
-      { to: "/licenciados", titulo: "My Frost Sorveterias", texto: "Lojas licenciadas, máquinas, contratos e pagamentos", icone: IceCreamCone, cor: "from-[#ec4899] to-[#be185d]" },
+      { to: "/pessoal", titulo: "Painel pessoal", texto: "Suas contas, cartões, gastos e empresas, separados da MF", icone: Wallet, cor: "from-fixo-amber-500 to-fixo-amber-700" },
+      { to: "/retaguarda/entradas", titulo: "Entradas acima de R$ 5 mil", texto: "Dinheiro grande que entrou nas contas da MF e ainda não tem dono: escreva de quem é e o que foi", icone: BadgeDollarSign, cor: "from-fixo-green-500 to-fixo-green-700" },
+      { to: "/retaguarda/notas-my-frost", titulo: "Notas da My Frost para o contador", texto: "Empresa anterior: notas por ano e tipo (vendas, remessas, devoluções e canceladas) e a planilha para o contador", icone: FileText, cor: "from-fixo-sky-500 to-fixo-sky-700" },
+      { to: "/licenciados", titulo: "My Frost Sorveterias", texto: "Lojas licenciadas, máquinas, contratos e pagamentos", icone: IceCreamCone, cor: "from-fixo-pink-500 to-fixo-pink-700" },
     ],
   },
   {
     grupo: "Quem entra e o que pode",
     itens: [
-      { to: "/usuarios", titulo: "Usuários e permissões", texto: "Criar usuários, papéis, senhas e o registro de acessos (entrada, saída e tempo parado)", icone: UserCog, cor: "from-[#6366f1] to-[#4338ca]" },
-      { to: "/auditoria", titulo: "Auditoria", texto: "Histórico de alterações e exceções do financeiro", icone: ShieldAlert, cor: "from-[#ef4444] to-[#b91c1c]" },
+      { to: "/usuarios", titulo: "Usuários e permissões", texto: "Criar usuários, papéis, senhas e o registro de acessos (entrada, saída e tempo parado)", icone: UserCog, cor: "from-fixo-indigo-500 to-fixo-indigo-700" },
+      { to: "/auditoria", titulo: "Auditoria", texto: "Histórico de alterações e exceções do financeiro", icone: ShieldAlert, cor: "from-fixo-red-500 to-fixo-red-700" },
     ],
   },
   {
     grupo: "Empresa e sistema",
     itens: [
-      { to: "/configuracoes", titulo: "Configurações da empresa", texto: "Empresa, unidades, NF-e, recebimentos, comissões, descontos e avisos", icone: Settings, cor: "from-[#64748b] to-[#334155]" },
-      { to: "/configuracoes/bancos", titulo: "Bancos e integrações", texto: "Contas, Banco Inter, Open Finance e extratos automáticos", icone: Landmark, cor: "from-[#0ea5e9] to-[#2563eb]" },
-      { to: "/configuracoes/dados", titulo: "Dados e backups", texto: "Cópias de segurança e exportação completa", icone: Database, cor: "from-[#14b8a6] to-[#0e7490]" },
-      { to: "/importar", titulo: "Importar dados", texto: "Planilhas e XML do Tiny, extratos e cadastros", icone: Upload, cor: "from-[#a855f7] to-[#6d28d9]" },
+      { to: "/configuracoes", titulo: "Configurações da empresa", texto: "Empresa, unidades, NF-e, recebimentos, comissões, descontos e avisos", icone: Settings, cor: "from-fixo-slate-500 to-fixo-slate-700" },
+      { to: "/configuracoes/bancos", titulo: "Bancos e integrações", texto: "Contas, Banco Inter, Open Finance e extratos automáticos", icone: Landmark, cor: "from-fixo-sky-500 to-fixo-blue-600" },
+      { to: "/configuracoes/dados", titulo: "Dados e backups", texto: "Cópias de segurança e exportação completa", icone: Database, cor: "from-fixo-teal-500 to-fixo-cyan-700" },
+      { to: "/importar", titulo: "Importar dados", texto: "Planilhas e XML do Tiny, extratos e cadastros", icone: Upload, cor: "from-fixo-purple-500 to-fixo-violet-700" },
     ],
   },
 ];

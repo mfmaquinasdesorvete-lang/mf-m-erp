@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button, Card, Modal } from "@/components/ui";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
-import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { hoje, pl } from "@/lib/format";
 import { notify } from "@/lib/notify";
@@ -27,9 +27,9 @@ const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 const COR_FAIXA: Record<Prioridade, string> = { alta: "bg-red-500", media: "bg-amber-400", baixa: "bg-slate-300" };
 // cor e ícone de quem faz (as mesmas das etiquetas; o "neon" é o tom que aparece no painel escuro)
 const QUEM: Record<Responsavel, { cor: string; neon: string; icone: LucideIcon }> = {
-  empresa: { cor: "#8b5cf6", neon: "#c4b5fd", icone: UserRound }, claude: { cor: "#f97316", neon: "#fdba74", icone: Bot },
-  contador: { cor: "#0ea5e9", neon: "#7dd3fc", icone: Briefcase }, advogado: { cor: "#64748b", neon: "#cbd5e1", icone: Scale },
-  fornecedor: { cor: "#14b8a6", neon: "#5eead4", icone: Truck },
+  empresa: { ...TOM_ESCURO.violeta, icone: UserRound }, claude: { ...TOM_ESCURO.laranja, icone: Bot },
+  contador: { ...TOM_ESCURO.azul, icone: Briefcase }, advogado: { ...TOM_ESCURO.cinza, icone: Scale },
+  fornecedor: { ...TOM_ESCURO.teal, icone: Truck },
 };
 /** Título sem o código do roteiro ("analytics-os · BI:" → "BI"); o título gravado não muda. */
 const tituloLimpo = (t: string) => partesTituloIdeia(t).texto;
@@ -85,10 +85,10 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                 : { rotulo: "Abertas", valor: String(ind.abertas), sub: `${ind.fazendo} fazendo agora` }} />
           </div>
           <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
-            <NumeroEscuro icone={Flag} rotulo="Alta prioridade" valor={ind.alta} sub="fazer primeiro" de="#fb7185" ate="#e11d48" aceso={ind.alta > 0} onClick={() => filtrar(() => setPrio("alta"))} />
-            <NumeroEscuro icone={AlarmClock} rotulo="Atrasadas" valor={ind.atrasadas} sub="prazo vencido" de="#fbbf24" ate="#d97706" aceso={ind.atrasadas > 0} onClick={() => filtrar(() => setSoAtrasadas(true))} />
-            <NumeroEscuro icone={Hourglass} rotulo="Aguardando alguém" valor={ind.aguardando} sub="paradas por resposta" de="#c084fc" ate="#7c3aed" aceso={ind.aguardando > 0} onClick={() => filtrar(() => setVisao("aguardando"))} />
-            <NumeroEscuro icone={CheckCircle2} rotulo="Feitas em 7 dias" valor={ind.feitasSemana} sub={`${ind.decisoes} ${pl(ind.decisoes, "decisão", "decisões")} em vigor`} de="#6ee7b7" ate="#059669" aceso={ind.feitasSemana > 0} onClick={() => filtrar(() => setVisao("feita"))} />
+            <NumeroEscuro icone={Flag} rotulo="Alta prioridade" valor={ind.alta} sub="fazer primeiro" tom="rosa" aceso={ind.alta > 0} onClick={() => filtrar(() => setPrio("alta"))} />
+            <NumeroEscuro icone={AlarmClock} rotulo="Atrasadas" valor={ind.atrasadas} sub="prazo vencido" tom="ambar" aceso={ind.atrasadas > 0} onClick={() => filtrar(() => setSoAtrasadas(true))} />
+            <NumeroEscuro icone={Hourglass} rotulo="Aguardando alguém" valor={ind.aguardando} sub="paradas por resposta" tom="roxo" aceso={ind.aguardando > 0} onClick={() => filtrar(() => setVisao("aguardando"))} />
+            <NumeroEscuro icone={CheckCircle2} rotulo="Feitas em 7 dias" valor={ind.feitasSemana} sub={`${ind.decisoes} ${pl(ind.decisoes, "decisão", "decisões")} em vigor`} tom="verde" aceso={ind.feitasSemana > 0} onClick={() => filtrar(() => setVisao("feita"))} />
           </div>
           <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1" aria-label="Por quem faz">
             {RESPONSAVEIS.filter((r) => ind.porResponsavel[r] > 0 || resp === r).map((r) => (

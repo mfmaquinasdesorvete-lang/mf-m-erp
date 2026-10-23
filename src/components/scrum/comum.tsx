@@ -41,7 +41,7 @@ export function ChipTipo({ tipo }: { tipo: TipoItem }) {
 export function Pontos({ pontos }: { pontos: number | null }) {
   return pontos == null
     ? <span className="rounded-full border border-dashed border-amber-400 px-1.5 text-2xs font-bold text-amber-700" title="Sem estimativa de pontos">? pts</span>
-    : <span className="num rounded-full bg-[#334155] px-2 py-0.5 text-2xs font-bold text-white ring-1 ring-inset ring-white/20" title={`${pontos} pontos de esforço`}>{pontos} pts</span>;
+    : <span className="num rounded-full bg-fixo-slate-700 px-2 py-0.5 text-2xs font-bold text-white ring-1 ring-inset ring-white/20" title={`${pontos} pontos de esforço`}>{pontos} pts</span>;
 }
 
 /** Tarefas feitas / total do item (nada sem lista); verde quando todas estão feitas */

@@ -62,7 +62,7 @@ export function Assinatura({ valor, onChange, disabled }: { valor: string | null
     <div>
       <div className="relative">
         <canvas ref={canvas} onPointerDown={inicio} onPointerMove={mover} onPointerUp={fim} onPointerLeave={fim}
-          className={`h-36 w-full touch-none rounded-lg border-2 border-dashed ${disabled ? "border-slate-200 bg-[#f1f5f9]" : "border-slate-300 bg-[#ffffff]"}`} />
+          className={`h-36 w-full touch-none rounded-lg border-2 border-dashed ${disabled ? "border-slate-200 bg-fixo-slate-100" : "border-slate-300 bg-white"}`} />
         {vazio && !disabled && (
           <span className="pointer-events-none absolute inset-0 grid place-items-center text-sm text-slate-400">Assine aqui com o dedo ou o mouse</span>
         )}

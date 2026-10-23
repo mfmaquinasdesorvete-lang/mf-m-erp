@@ -7,6 +7,7 @@ import { useRows } from "@/lib/data";
 import { dataBR, pl } from "@/lib/format";
 import { modeloMaquina } from "@/lib/legadoMyFrost";
 import { mesAnoCompra } from "../../../supabase/functions/_shared/compra-maquina";
+import { TOM_ESCURO } from "@/components/painel/PainelEscuro";
 
 export type MaquinaResumo = {
   id: string; cliente_id: string; descricao: string; data_venda: string | null; usada?: boolean | null; origem?: string | null;
@@ -48,9 +49,9 @@ export function corMaquina(rotulo: string) {
 
 // a mesma cor do modelo no painel escuro da ficha: tom forte e o "neon" que aparece sobre o fundo azul-escuro
 const HEX: Record<string, { cor: string; neon: string }> = {
-  sky: { cor: "#0ea5e9", neon: "#7dd3fc" }, purple: { cor: "#a855f7", neon: "#d8b4fe" }, emerald: { cor: "#10b981", neon: "#6ee7b7" },
-  amber: { cor: "#f59e0b", neon: "#fcd34d" }, indigo: { cor: "#6366f1", neon: "#a5b4fc" }, orange: { cor: "#f97316", neon: "#fdba74" },
-  red: { cor: "#ef4444", neon: "#fca5a5" }, slate: { cor: "#64748b", neon: "#cbd5e1" },
+  sky: TOM_ESCURO.azul, purple: TOM_ESCURO.roxo, emerald: TOM_ESCURO.verde,
+  amber: TOM_ESCURO.ambar, indigo: TOM_ESCURO.indigo, orange: TOM_ESCURO.laranja,
+  red: TOM_ESCURO.vermelho, slate: TOM_ESCURO.cinza,
 };
 export function corMaquinaHex(rotulo: string) {
   return HEX[/text-(\w+)-/.exec(corMaquina(rotulo))?.[1] ?? "slate"] ?? HEX.slate;

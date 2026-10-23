@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle, CalendarClock, ClipboardCheck, FileText, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, TrendingUp, Truck, Users, Wrench } from "lucide-react";
 import { Badge, BotaoAtalho, Button, Card, COR_ATALHO, Field, Indicador, Modal, Section, Stat, Table, Tabs, type TomAcao } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, Funil, type Periodo as PeriodoPainel } from "@/components/painel/Painel";
-import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { SeloCidade } from "@/components/SeloCidade";
 import { SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
@@ -42,10 +42,10 @@ const TONS: { tom: TomAcao; rotulo: string; icone: typeof Mail }[] = [
 ];
 
 const FATIAS: FatiaAnel<string>[] = [
-  { id: "maquinas", rotulo: "Máquinas", valor: 182000, cor: "#06b6d4", neon: "#22d3ee" },
-  { id: "pecas", rotulo: "Peças", valor: 64000, cor: "#6366f1", neon: "#818cf8" },
-  { id: "servicos", rotulo: "Serviços", valor: 28000, cor: "#f97316", neon: "#fdba74" },
-  { id: "insumos", rotulo: "Insumos", valor: 15000, cor: "#a855f7", neon: "#d8b4fe" },
+  { id: "maquinas", rotulo: "Máquinas", valor: 182000, ...TOM_ESCURO.ciano },
+  { id: "pecas", rotulo: "Peças", valor: 64000, ...TOM_ESCURO.indigo },
+  { id: "servicos", rotulo: "Serviços", valor: 28000, ...TOM_ESCURO.laranja },
+  { id: "insumos", rotulo: "Insumos", valor: 15000, ...TOM_ESCURO.roxo },
 ];
 const ICONE_FATIA: Record<string, typeof Package> = { maquinas: ShoppingCart, pecas: Package, servicos: Wrench, insumos: Users };
 
@@ -221,10 +221,10 @@ export function DesignSystem() {
                 centro={{ rotulo: daVez?.rotulo ?? "Vendas do ano", valor: brl(daVez?.valor ?? total), sub: daVez ? `${Math.round((daVez.valor / total) * 100)}% do ano` : "18% a mais que 2025" }} />
             </div>
             <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
-              <NumeroEscuro icone={TrendingUp} rotulo="Este mês" valor={brl(31200)} sub="8 pedidos" de="#34d399" ate="#059669" aceso />
-              <NumeroEscuro icone={ShoppingCart} rotulo="Ticket médio" valor={brl(9150)} sub="por pedido" de="#60a5fa" ate="#2563eb" aceso />
-              <NumeroEscuro icone={ClipboardCheck} rotulo="Orçamentos" valor="23" sub="esperando resposta" de="#c084fc" ate="#7c3aed" aceso />
-              <NumeroEscuro icone={AlertTriangle} rotulo="Cancelados" valor={brl(6400)} sub="2 pedidos" de="#94a3b8" ate="#475569" />
+              <NumeroEscuro icone={TrendingUp} rotulo="Este mês" valor={brl(31200)} sub="8 pedidos" tom="verde" aceso />
+              <NumeroEscuro icone={ShoppingCart} rotulo="Ticket médio" valor={brl(9150)} sub="por pedido" tom="anil" aceso />
+              <NumeroEscuro icone={ClipboardCheck} rotulo="Orçamentos" valor="23" sub="esperando resposta" tom="roxo" aceso />
+              <NumeroEscuro icone={AlertTriangle} rotulo="Cancelados" valor={brl(6400)} sub="2 pedidos" tom="cinza" />
             </div>
             <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2" aria-label="Por tipo de venda">
               {FATIAS.map((f) => {

@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { CalendarDays, Search, SlidersHorizontal, X } from "lucide-react";
 import { brl, hoje, pl } from "@/lib/format";
 import { ATALHOS, periodoDoAtalho, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
+import { chip } from "@/components/ui";
 
 export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", periodo, onPeriodo, rotuloData = "Data", campoData, filtros, nFiltros = 0, onLimpar, direita }: {
   /** sem onBusca: barra só com período e filtros (telas sem busca por texto) */
@@ -116,7 +117,7 @@ export function ChipsSituacao<T extends string>({ opcoes, valor, onChange, rotul
         const cor = cores?.[o.value];
         return (
           <button key={o.value} type="button" aria-pressed={ativo} onClick={() => onChange(o.value)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${ativo ? (cor ? `${cor.ativo} border-transparent text-white shadow-card` : "border-brand bg-brand text-brand-fg") : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+            className={chip(ativo, cor ? `${cor.ativo} border-transparent text-white shadow-card` : undefined)}>
             {cor && <span className={`h-2 w-2 rounded-full ${ativo ? "bg-white/90" : cor.ponto}`} aria-hidden />}
             {o.label} <span className="num ml-0.5 opacity-80">{o.n}</span>
           </button>

@@ -91,7 +91,7 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl text-[#e2e8f0] shadow-pop" style={{ background: "radial-gradient(120% 90% at 50% 0%, #1e1b4b 0%, #0b1020 55%, #05070f 100%)" }}>
+    <div className="overflow-hidden rounded-2xl text-fixo-slate-200 shadow-pop" style={{ background: "radial-gradient(120% 90% at 50% 0%, #1e1b4b 0%, #0b1020 55%, #05070f 100%)" }}>
       <style>{`
         @keyframes cc-pulso { 0%,100% { opacity: .35; transform: scale(1) } 50% { opacity: .9; transform: scale(1.35) } }
         @keyframes cc-fluxo { to { stroke-dashoffset: -24 } }
@@ -106,16 +106,16 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
 
       {/* faixa do "agora" */}
       <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${publicando ? "cc-pisca bg-[#22d3ee] shadow-[0_0_12px_#22d3ee]" : "bg-[#34d399] shadow-[0_0_10px_#34d399]"}`} aria-hidden />
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${publicando ? "cc-pisca bg-fixo-cyan-400 shadow-[0_0_12px_#22d3ee]" : "bg-fixo-emerald-400 shadow-[0_0_10px_#34d399]"}`} aria-hidden />
         <p className="min-w-0 flex-1 text-sm sm:text-base" aria-live="polite">
           {publicando
-            ? <><span className="font-mono text-xs uppercase tracking-widest text-[#22d3ee]">Agora · </span><b>{curto(publicando.chat)}</b> está publicando <b>{publicando.o_que}</b> <span className="text-[#94a3b8]">({ha(publicando.inicio, agora)})</span></>
-            : <><span className="font-mono text-xs uppercase tracking-widest text-[#34d399]">Agora · </span>Ninguém publicando. Caminho livre.</>}
+            ? <><span className="font-mono text-xs uppercase tracking-widest text-fixo-cyan-400">Agora · </span><b>{curto(publicando.chat)}</b> está publicando <b>{publicando.o_que}</b> <span className="text-fixo-slate-400">({ha(publicando.inicio, agora)})</span></>
+            : <><span className="font-mono text-xs uppercase tracking-widest text-fixo-emerald-400">Agora · </span>Ninguém publicando. Caminho livre.</>}
         </p>
         <div className="flex rounded-full bg-white/10 p-0.5 text-xs font-semibold" role="group" aria-label="Período">
           {(["hoje", "semana"] as const).map((p) => (
             <button key={p} type="button" aria-pressed={periodo === p} onClick={() => setPeriodo(p)}
-              className={`rounded-full px-3 py-1 ${periodo === p ? "bg-white text-[#0b1020]" : "text-[#cbd5e1] hover:text-white"}`}>{p === "hoje" ? "Hoje" : "7 dias"}</button>
+              className={`rounded-full px-3 py-1 ${periodo === p ? "bg-white text-[#0b1020]" : "text-fixo-slate-300 hover:text-white"}`}>{p === "hoje" ? "Hoje" : "7 dias"}</button>
           ))}
         </div>
       </div>
@@ -158,11 +158,11 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
               );
             })}
           </svg>
-          <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-2xs text-[#94a3b8]">
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#22d3ee]" /> publicando</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full ring-2 ring-[#f43f5e]" /> precisa de você</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#a78bfa]" /> ativo nas últimas 2 h</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#a78bfa]/35" /> parado</span>
+          <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-2xs text-fixo-slate-400">
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-cyan-400" /> publicando</span>
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full ring-2 ring-fixo-rose-500" /> precisa de você</span>
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-violet-400" /> ativo nas últimas 2 h</span>
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-violet-400/35" /> parado</span>
           </div>
         </div>
 
@@ -176,7 +176,7 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
             ].map((k) => (
               <div key={k.t} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
                 <div className="font-mono text-2xl font-bold sm:text-3xl" style={{ color: k.cor, textShadow: `0 0 18px ${k.cor}66` }}>{k.n}</div>
-                <div className="text-2xs leading-tight text-[#94a3b8]">{k.t}</div>
+                <div className="text-2xs leading-tight text-fixo-slate-400">{k.t}</div>
               </div>
             ))}
           </div>
@@ -195,21 +195,21 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
               <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: cor, boxShadow: `0 0 10px ${cor}` }} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-white">{curto(x.c.nome)}</div>
-                <div className="truncate text-2xs text-[#94a3b8]">
-                  {x.publicandoAgora ? <span className="font-semibold text-[#22d3ee]">publicando agora</span>
-                    : x.precisa ? <span className="font-semibold text-[#fb7185]">precisa de você</span>
+                <div className="truncate text-2xs text-fixo-slate-400">
+                  {x.publicandoAgora ? <span className="font-semibold text-fixo-cyan-400">publicando agora</span>
+                    : x.precisa ? <span className="font-semibold text-fixo-rose-400">precisa de você</span>
                     : x.ultima ? `última atividade ${ha(x.ultima, agora)}` : "sem atividade registrada"}
                 </div>
               </div>
               <div className="shrink-0 text-right font-mono text-xs leading-tight">
                 <div style={{ color: cor }}>{e} entr.</div>
-                <div className="text-[#22d3ee]">{pb} publ.</div>
+                <div className="text-fixo-cyan-400">{pb} publ.</div>
               </div>
             </div>
           );
         })}
       </div>
-      <p className="px-4 pb-4 text-2xs text-[#64748b] sm:px-5">
+      <p className="px-4 pb-4 text-2xs text-fixo-slate-500 sm:px-5">
         Entregas: mudanças no código de cada chat, até a última publicação do site. Publicações e "precisa de você": ao vivo.
       </p>
     </div>
@@ -231,7 +231,7 @@ function LinhaDoTempo({ estado, ini, fimMs, periodo }: { estado: Estado[]; ini: 
     : Array.from({ length: 7 }, (_, i) => { const d = new Date(ini + i * 864e5); d.setHours(0, 0, 0, 0); return { t: d.getTime(), r: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "") }; }).filter((m) => m.t >= ini);
   return (
     <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-      <div className="mb-1 font-mono text-2xs uppercase tracking-widest text-[#94a3b8]">Linha do tempo · {periodo === "hoje" ? "hoje" : "7 dias"}</div>
+      <div className="mb-1 font-mono text-2xs uppercase tracking-widest text-fixo-slate-400">Linha do tempo · {periodo === "hoje" ? "hoje" : "7 dias"}</div>
       <div className="overflow-x-auto">
         <svg viewBox={`0 0 ${W + 4} ${H}`} className="w-full min-w-[280px]" role="img" aria-label="Publicações e entregas de cada chat no período">
           {marcas.map((m) => (
@@ -260,9 +260,9 @@ function LinhaDoTempo({ estado, ini, fimMs, periodo }: { estado: Estado[]; ini: 
           })}
         </svg>
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-4 text-2xs text-[#94a3b8]">
-        <span className="flex items-center gap-1"><i className="h-2 w-3 rounded-sm bg-[#22d3ee]" /> publicação</span>
-        <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#a78bfa]" /> entrega no código (cor do chat)</span>
+      <div className="mt-1 flex flex-wrap gap-x-4 text-2xs text-fixo-slate-400">
+        <span className="flex items-center gap-1"><i className="h-2 w-3 rounded-sm bg-fixo-cyan-400" /> publicação</span>
+        <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-fixo-violet-400" /> entrega no código (cor do chat)</span>
       </div>
     </div>
   );

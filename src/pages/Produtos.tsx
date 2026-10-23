@@ -65,15 +65,15 @@ const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Pe�
 /** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
 export type Cadastro = "maquinas" | "pecas" | "componentes" | "servicos" | "todos";
 const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
-  { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-[#10b981] to-[#059669]",
+  { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-fixo-emerald-500 to-fixo-emerald-600",
     padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
-  { id: "pecas", titulo: "Peças de reposição", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-[#0ea5e9] to-[#2563eb]",
+  { id: "pecas", titulo: "Peças de reposição", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-fixo-sky-500 to-fixo-blue-600",
     padrao: { tipo: "peca", vendavel: true, no_catalogo: true } },
-  { id: "componentes", titulo: "Componentes de produção", ajuda: "O que vai dentro das máquinas (ficha técnica). Peça de reposição que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-[#f97316] to-[#dc2626]",
+  { id: "componentes", titulo: "Componentes de produção", ajuda: "O que vai dentro das máquinas (ficha técnica). Peça de reposição que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-fixo-orange-500 to-fixo-red-600",
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
-  { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-[#14b8a6] to-[#0e7490]",
+  { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-fixo-teal-500 to-fixo-cyan-700",
     padrao: { tipo: "servico", vendavel: true, no_catalogo: false, unidade: "UN", ncm: "00000000", gtin_isento: true } },
-  { id: "todos", titulo: "Todos", ajuda: "Peças, componentes e serviços juntos. As máquinas ficam na tela Máquinas (menu Fábrica e estoque).", cor: "from-[#64748b] to-[#334155]", padrao: {} },
+  { id: "todos", titulo: "Todos", ajuda: "Peças, componentes e serviços juntos. As máquinas ficam na tela Máquinas (menu Fábrica e estoque).", cor: "from-fixo-slate-500 to-fixo-slate-700", padrao: {} },
 ];
 const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
 const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [

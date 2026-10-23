@@ -44,7 +44,7 @@ function CartaoEmpresa({ s, onVerComprovante }: { s: SaldoEmpresa; onVerComprova
   return (
     <div className="cartao flex min-w-0 flex-col gap-3 p-4">
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7c3aed] text-white"><Building2 size={18} aria-hidden /></span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-fixo-violet-600 text-white"><Building2 size={18} aria-hidden /></span>
         <div className="min-w-0 flex-1 basis-40">
           <div className="font-bold leading-tight text-fg">{s.nome}</div>
           <div className={`text-xs font-semibold ${tom}`}>{frase}</div>
@@ -128,7 +128,7 @@ export function ResumoCarteira({ rotulo, entrou, saiu, resultado, disponivel, ca
       {/* 2. o encontro de contas com as empresas */}
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-start gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#7c3aed] text-white"><ArrowLeftRight size={22} aria-hidden /></span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-fixo-violet-600 text-white"><ArrowLeftRight size={22} aria-hidden /></span>
           <div className="mr-auto min-w-0 flex-1 basis-64">
             <h2 className="text-lg font-bold text-fg">Você e as suas empresas</h2>
             <p className="text-sm text-slate-600">O que foi da sua conta para cada empresa, as contas dela que você pagou e o que ela devolveu. No fim, quanto cada uma deve a você.</p>

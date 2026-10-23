@@ -216,7 +216,7 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             {empresa.whatsapp && (
               <a href={whatsappLink(empresa.whatsapp, `Olá! Tenho interesse em: ${p.nome}${p.sku ? ` (cód. ${p.sku})` : ""}.\n${urlLoja(p.id)}`)} target="_blank" rel="noreferrer"
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 font-bold text-[#06301a]">
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-publico-whatsapp px-5 font-bold text-publico-whatsapp-tinta">
                 <MessageCircle size={19} /> Tirar dúvidas no WhatsApp
               </a>
             )}
@@ -272,7 +272,7 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
         <div className="mt-6 flex flex-col gap-2">
           {dados.empresa.whatsapp && (
             <a href={whatsappLink(dados.empresa.whatsapp, `Olá! Acabei de fazer o pedido #${feito.numero} pelo site.`)} target="_blank" rel="noreferrer"
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 font-bold text-[#06301a]"><MessageCircle size={20} /> Falar agora no WhatsApp</a>
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-publico-whatsapp px-5 font-bold text-publico-whatsapp-tinta"><MessageCircle size={20} /> Falar agora no WhatsApp</a>
           )}
           <Link to="/loja/pedidos" className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-300 font-semibold">Ver meus pedidos</Link>
         </div>

@@ -15,7 +15,7 @@ import type { InicialItem } from "@/components/sobre/ItemProjeto";
 import { PaginasPorLink } from "./PaginasPorLink";
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-/** As duas cores do degradê da área ("from-[#10b981] to-[#059669]"). */
+/** As duas cores do degradê da área ("from-fixo-emerald-500 to-fixo-emerald-600"). */
 const coresDe = (cor: string) => {
   const hex = cor.match(/#[0-9a-f]{6}/gi) ?? ["#64748b", "#334155"];
   return { clara: hex[0], escura: hex[1] ?? hex[0] };
@@ -48,9 +48,9 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
   const combina = (i: Item) => (!soMeu || vis.item(i)) && (!termo || termo.split(/\s+/).every((p) => semAcento(textoDa(i)).includes(p)));
   const foraDe = (id: string) => itensForaDoMenu.filter((i) => (grupoDaRota(i.to) ?? "admin") === id);
   const todosBlocos: Bloco[] = [
-    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", cor: g.cor ?? "from-[#64748b] to-[#334155]", Icone: g.icone ?? LayoutGrid, itens: [...g.itens, ...foraDe(g.id)] })),
-    { id: "admin", titulo: "Configurações", texto: "Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.", cor: "from-[#64748b] to-[#334155]", Icone: Settings, itens: foraDe("admin") },
-    ...(master ? [{ id: "dono", titulo: "Só da conta master", texto: "Pela Retaguarda (cadeado no rodapé do menu) e pelo sorvete: contas pessoais, lojas licenciadas, usuários e configurações da empresa.", cor: "from-[#c2185b] to-[#7c3aed]", Icone: Lock, itens: SO_ADMIN }] : []),
+    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", texto: SOBRE_AREAS[g.id] ?? "", cor: g.cor ?? "from-fixo-slate-500 to-fixo-slate-700", Icone: g.icone ?? LayoutGrid, itens: [...g.itens, ...foraDe(g.id)] })),
+    { id: "admin", titulo: "Configurações", texto: "Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.", cor: "from-fixo-slate-500 to-fixo-slate-700", Icone: Settings, itens: foraDe("admin") },
+    ...(master ? [{ id: "dono", titulo: "Só da conta master", texto: "Pela Retaguarda (cadeado no rodapé do menu) e pelo sorvete: contas pessoais, lojas licenciadas, usuários e configurações da empresa.", cor: "from-[#c2185b] to-fixo-violet-600", Icone: Lock, itens: SO_ADMIN }] : []),
   ];
   const blocos = todosBlocos.filter((b) => !area || b.id === area).map((b) => ({ ...b, itens: b.itens.filter(combina) })).filter((b) => b.itens.length);
   const todas = [...grupos.flatMap((g) => g.itens), ...itensForaDoMenu];

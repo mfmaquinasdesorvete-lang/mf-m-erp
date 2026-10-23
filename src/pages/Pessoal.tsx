@@ -323,7 +323,7 @@ export default function Pessoal() {
       : aba === "extratos" && contas.length ? <ExtratosRecebidos contas={contas} lancs={lancs} onImportar={() => setImportar(true)} onPluggy={() => setPluggy(true)} />
       : !isLoading && !contas.length ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#7c3aed] text-white"><Wallet size={28} aria-hidden /></span>
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-fixo-violet-600 text-white"><Wallet size={28} aria-hidden /></span>
           <h2 className="text-lg font-bold text-fg">Cadastre as suas contas</h2>
           <p className="max-w-md text-sm text-slate-600">Conta corrente, poupança, cartão ou investimento: o nome, o banco e o saldo de hoje. Depois é lançar ou importar o extrato do banco.</p>
           <Button onClick={() => setEditConta({ tipo: "corrente", cor: "sky", saldo_inicial: 0, saldo_inicial_em: hoje(), ativa: true, ordem: 0 })}><Plus size={16} /> Primeira conta</Button>

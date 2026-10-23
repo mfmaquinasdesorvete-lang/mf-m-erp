@@ -512,9 +512,9 @@ function ChipsPagamento({ valor, onChange, lista, info }: {
 /** Cor de cada situação nos filtros (a mesma dos selos da lista); fundo sólido não muda com o tema. */
 const CORES_STATUS: Partial<Record<(typeof STATUS)[number], { ponto: string; ativo: string }>> = {
   todos: { ponto: "bg-slate-400", ativo: "bg-solido-cinza" },
-  orcamento: { ponto: "bg-purple-500", ativo: "bg-[#7c3aed]" },
+  orcamento: { ponto: "bg-purple-500", ativo: "bg-fixo-violet-600" },
   aprovado: { ponto: "bg-sky-500", ativo: "bg-solido-azul" },
-  faturado: { ponto: "bg-indigo-500", ativo: "bg-[#4338ca]" },
+  faturado: { ponto: "bg-indigo-500", ativo: "bg-fixo-indigo-700" },
   entregue: { ponto: "bg-emerald-500", ativo: "bg-solido-verde" },
   cancelado: { ponto: "bg-red-500", ativo: "bg-solido-vermelho" },
 };

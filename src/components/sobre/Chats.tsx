@@ -12,7 +12,7 @@ import { CentralChats } from "./CentralChats";
 type Chat = { id: string; ordem: number; nome: string; faz: string; exemplos: string | null; sessao: string; cor: string; ativo: boolean };
 
 const CORES: Record<string, string> = {
-  slate: "from-[#475569] to-[#1e293b]", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
+  slate: "from-fixo-slate-600 to-fixo-slate-800", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
   teal: "from-teal-500 to-teal-700", ambar: "from-amber-500 to-orange-600", rosa: "from-pink-500 to-rose-600",
   violeta: "from-violet-500 to-purple-700", vermelho: "from-red-500 to-red-700", indigo: "from-indigo-500 to-indigo-700",
 };

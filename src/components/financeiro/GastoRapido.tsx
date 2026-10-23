@@ -95,36 +95,36 @@ export function GastoRapido({ onClose }: { onClose: () => void }) {
     } catch (err) { notifyError(err); } finally { setGravando(false); }
   }
 
-  const campo = "w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-[#e9ecf2] placeholder:text-[#6b7280]";
+  const campo = "w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-noite-texto placeholder:text-fixo-gray-500";
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Lançar gasto">
-      <form onSubmit={salvar} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0f1420] p-5 text-[#e9ecf2] sm:rounded-3xl"
+      <form onSubmit={salvar} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0f1420] p-5 text-noite-texto sm:rounded-3xl"
         style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">Lançar gasto</h2>
-          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-[#8b93a7] hover:bg-white/10"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-noite-fraco hover:bg-white/10"><X size={20} /></button>
         </div>
 
         {temVoz && (
           <button type="button" onClick={falar}
-            className={`mb-3 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold ${ouvindo ? "animate-pulse bg-[#fb7185] text-[#1a0508]" : "bg-[#22d3ee] text-[#05131a]"}`}>
+            className={`mb-3 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold ${ouvindo ? "animate-pulse bg-fixo-rose-400 text-[#1a0508]" : "bg-fixo-cyan-400 text-[#05131a]"}`}>
             {ouvindo ? <><MicOff size={22} /> Ouvindo… toque para parar</> : <><Mic size={22} /> Falar o gasto</>}
           </button>
         )}
-        <label className="block text-xs font-semibold text-[#8b93a7]">O que foi
+        <label className="block text-xs font-semibold text-noite-fraco">O que foi
           <textarea className={`${campo} mt-1`} rows={2} value={texto} onChange={(e) => aplicar(e.target.value, false)}
             placeholder='Ex.: "gastei 80 reais de gasolina ontem"' />
         </label>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <label className="block text-xs font-semibold text-[#8b93a7]">Valor (R$)
+          <label className="block text-xs font-semibold text-noite-fraco">Valor (R$)
             <input className={`${campo} num mt-1 text-lg font-bold`} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
           </label>
-          <label className="block text-xs font-semibold text-[#8b93a7]">Data
+          <label className="block text-xs font-semibold text-noite-fraco">Data
             <input type="date" className={`${campo} mt-1`} value={data} max={hoje()} onChange={(e) => setData(e.target.value)} />
           </label>
         </div>
-        <label className="mt-3 block text-xs font-semibold text-[#8b93a7]">Categoria
+        <label className="mt-3 block text-xs font-semibold text-noite-fraco">Categoria
           <select className={`${campo} mt-1`} value={categoria} onChange={(e) => setCategoria(e.target.value)}>
             {!despesas.some((c) => c.nome === categoria) && <option value={categoria}>{categoria}</option>}
             {despesas.map((c) => <option key={c.nome} value={c.nome}>{c.nome}</option>)}
@@ -134,17 +134,17 @@ export function GastoRapido({ onClose }: { onClose: () => void }) {
           <input type="checkbox" checked={jaPago} onChange={(e) => setJaPago(e.target.checked)} className="h-5 w-5" /> Já foi pago (cartão, Pix ou dinheiro)
         </label>
 
-        <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-white/25 py-3 text-sm font-semibold text-[#b8bfcd]">
+        <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-white/25 py-3 text-sm font-semibold text-noite-medio">
           <Camera size={18} /> {foto ? `Foto: ${foto.name.slice(0, 28)}` : "Foto do cupom ou da nota"}
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => escolherFoto(e.target.files?.[0] ?? null)} />
         </label>
-        {chave && <p className="mt-1 text-xs text-[#6ee7b7]">NFC-e lida: …{chave.slice(-10)}</p>}
+        {chave && <p className="mt-1 text-xs text-fixo-emerald-300">NFC-e lida: …{chave.slice(-10)}</p>}
 
         <button type="submit" disabled={gravando}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#10b981] py-3.5 text-base font-bold text-[#04130d] disabled:opacity-50">
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-fixo-emerald-500 py-3.5 text-base font-bold text-noite-tinta disabled:opacity-50">
           <Check size={20} /> {gravando ? "Gravando…" : "Lançar gasto"}
         </button>
-        <p className="mt-2 text-center text-xs text-[#8b93a7]">Confira os campos antes de lançar. O gasto passa pelas Aprovações.</p>
+        <p className="mt-2 text-center text-xs text-noite-fraco">Confira os campos antes de lançar. O gasto passa pelas Aprovações.</p>
       </form>
     </div>
   );

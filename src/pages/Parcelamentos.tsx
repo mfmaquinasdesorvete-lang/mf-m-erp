@@ -123,7 +123,7 @@ export default function Parcelamentos({ embutido }: { embutido?: boolean } = {})
 
       {!isLoading && !todos.length ? (
         <Card className="flex flex-col items-center gap-3 p-8 text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#1d4ed8] text-white"><Landmark size={28} aria-hidden /></span>
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-fixo-blue-700 text-white"><Landmark size={28} aria-hidden /></span>
           <h2 className="text-lg font-bold text-fg">Nenhum parcelamento cadastrado ainda</h2>
           <p className="max-w-xl text-sm text-slate-600">
             Peça ao contador a lista de todos os parcelamentos (ativos e antigos) com o PDF do recibo de adesão e o extrato de cada um.

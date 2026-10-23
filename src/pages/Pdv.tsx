@@ -339,12 +339,12 @@ export default function Pdv() {
 
       {vazio ? (
         // tela de entrada: o caixa parado, esperando o primeiro produto
-        <section className="relative mx-auto max-w-3xl rounded-2xl bg-gradient-to-br from-[#be185d] via-[#6d28d9] to-[#c2410c] px-5 py-7 text-white shadow-pop sm:mt-4 sm:px-10 sm:py-10" aria-label="Nova venda">
+        <section className="relative mx-auto max-w-3xl rounded-2xl bg-gradient-to-br from-fixo-pink-700 via-fixo-violet-700 to-fixo-orange-700 px-5 py-7 text-white shadow-pop sm:mt-4 sm:px-10 sm:py-10" aria-label="Nova venda">
           {/* manchas de cor recortadas numa camada própria: a lista de produtos pode passar da borda do cartão */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
-            <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[#f472b6]/40 blur-3xl" />
-            <span className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-[#fb923c]/35 blur-3xl" />
-            <span className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#38bdf8]/25 blur-3xl" />
+            <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-fixo-pink-400/40 blur-3xl" />
+            <span className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-fixo-orange-400/35 blur-3xl" />
+            <span className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-fixo-sky-400/25 blur-3xl" />
           </div>
           <div className="relative">
             <Relogio caixa={caixa.aberto} vendas={balcao.deHoje.length} total={balcao.total} onCaixa={() => setTelaCaixa(caixa.aberto ? "detalhes" : "abrir")} />

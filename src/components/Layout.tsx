@@ -309,7 +309,7 @@ export function Layout() {
           {/* My Frost Sorveterias (as unidades licenciadas): botão rosinha no fim do menu, só para a conta master */}
           {perfil.master && (!busca.trim() || semAcento("my frost sorveterias licenciados unidades lojas quiosques sorvete").includes(semAcento(busca.trim()))) && (
             <NavLink to="/licenciados" onClick={() => setAberto(false)}
-              className={({ isActive }) => `mt-3 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#fbcfe8] to-[#f9a8d4] px-2 py-2.5 text-sm font-bold text-[#831843] shadow-sm transition hover:brightness-105 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : ""}`}>
+              className={({ isActive }) => `mt-3 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-fixo-pink-200 to-fixo-pink-300 px-2 py-2.5 text-sm font-bold text-fixo-pink-900 shadow-sm transition hover:brightness-105 ${isActive ? "ring-2 ring-white/80 ring-offset-2 ring-offset-[#071528]" : ""}`}>
               <IceCreamCone size={19} aria-hidden /> My Frost Sorveterias
             </NavLink>
           )}
@@ -439,7 +439,7 @@ export function Layout() {
         ))}
         <div className="flex shrink-0 justify-center px-1" style={{ order: 1 }}>
           <button type="button" onClick={() => { setAberto(false); setCriar(!criar); }} aria-expanded={criar} aria-label={criar ? "Fechar" : "Criar"}
-            className="-mt-7 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#3b82f6] text-white shadow-[0_10px_25px_-5px_rgb(124_58_237/0.7)] ring-4 ring-canvas transition active:scale-95">
+            className="-mt-7 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-fixo-violet-500 to-fixo-blue-500 text-white shadow-[0_10px_25px_-5px_rgb(124_58_237/0.7)] ring-4 ring-canvas transition active:scale-95">
             <Plus size={26} className={`transition ${criar ? "rotate-45" : ""}`} />
           </button>
         </div>

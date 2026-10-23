@@ -157,7 +157,7 @@ export function PainelFinanceiro() {
 
       {/* foco: quanto tem, quanto vai entrar e quem está inadimplente, por empresa */}
       {empresas.length > 1 && (
-        <div className="rounded-2xl bg-gradient-to-br from-[#f59e0b] to-[#ea580c] p-4 text-white shadow-pop">
+        <div className="rounded-2xl bg-gradient-to-br from-fixo-amber-500 to-fixo-orange-600 p-4 text-white shadow-pop">
           <div className="text-sm font-semibold text-white/90">As duas empresas juntas</div>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {([["Tem hoje", total.tem, false], ["Vai entrar", total.vaiEntrar, false], ["Inadimplentes", total.inadimplente, true]] as const).map(([r, v, alerta]) => (

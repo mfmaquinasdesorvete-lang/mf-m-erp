@@ -32,9 +32,9 @@ const ESTILO: Record<string, { icon: LucideIcon; cor: string }> = {
   outro: { icon: BellRing, cor: "var(--kpi-laranja)" },
 };
 const NIVEL: Record<Urgencia, { rotulo: string; ajuda: string; icon: LucideIcon; cor: string; faixa: string }> = {
-  normal: { rotulo: "Normal", ajuda: "Aparece no canto da tela, com um toque", icon: Megaphone, cor: "var(--kpi-azul)", faixa: "from-[#0ea5e9] to-[#2563eb]" },
-  importante: { rotulo: "Importante", ajuda: "No meio da tela, com som; a pessoa confirma que leu", icon: AlertTriangle, cor: "var(--kpi-laranja)", faixa: "from-[#f59e0b] to-[#ea580c]" },
-  urgente: { rotulo: "Urgente", ajuda: "No meio da tela, em vermelho; o som repete até a pessoa clicar em Ciente", icon: Siren, cor: "var(--kpi-rosa)", faixa: "from-[#ef4444] to-[#b91c1c]" },
+  normal: { rotulo: "Normal", ajuda: "Aparece no canto da tela, com um toque", icon: Megaphone, cor: "var(--kpi-azul)", faixa: "from-fixo-sky-500 to-fixo-blue-600" },
+  importante: { rotulo: "Importante", ajuda: "No meio da tela, com som; a pessoa confirma que leu", icon: AlertTriangle, cor: "var(--kpi-laranja)", faixa: "from-fixo-amber-500 to-fixo-orange-600" },
+  urgente: { rotulo: "Urgente", ajuda: "No meio da tela, em vermelho; o som repete até a pessoa clicar em Ciente", icon: Siren, cor: "var(--kpi-rosa)", faixa: "from-fixo-red-500 to-fixo-red-700" },
 };
 const ehClaude = (n: Notificacao) => n.tipo === "claude";
 const estiloDe = (n: Notificacao) => ehClaude(n) ? ESTILO.claude : n.remetente_id ? { icon: NIVEL[n.urgencia ?? "normal"].icon, cor: NIVEL[n.urgencia ?? "normal"].cor } : ESTILO[n.tipo] ?? ESTILO.outro;
@@ -336,7 +336,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       {atual && (() => {
         const claude = ehClaude(atual);
         const nv = claude
-          ? { rotulo: "Chat do Claude", icon: Bot, faixa: "from-[#8b5cf6] to-[#6d28d9]" }
+          ? { rotulo: "Chat do Claude", icon: Bot, faixa: "from-fixo-violet-500 to-fixo-violet-700" }
           : NIVEL[atual.urgencia ?? "importante"];
         const urgente = atual.urgencia === "urgente";
         return (
@@ -392,7 +392,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             </div>
             {voz && <EscolherVoz />}
             <button type="button" onClick={() => { setPainel(false); setCompor([]); }}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#6366f1] px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fixo-sky-500 to-fixo-indigo-500 px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
               <Send size={16} /> Enviar aviso para a equipe
             </button>
             {"Notification" in window && Notification.permission === "default" && (

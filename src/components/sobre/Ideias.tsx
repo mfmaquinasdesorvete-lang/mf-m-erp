@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Ban, CheckCircle2, ClipboardList, Columns3, Lightbulb, List, ListChecks, Pencil, RotateCcw, Sparkles, ThumbsUp, Zap, type LucideIcon } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
-import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel } from "@/components/painel/PainelEscuro";
+import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
@@ -22,11 +22,11 @@ const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 
 // cor de cada situação (bolinha da linha, coluna do quadro e pedaço do anel; o anel usa o tom "neon" no fundo escuro)
 const SITUACOES: { id: SituacaoItem; rotulo: string; ponto: string; cor: string; neon: string; icone: LucideIcon }[] = [
-  { id: "aberta", rotulo: "Novas", ponto: "bg-amber-500", cor: "#f59e0b", neon: "#fcd34d", icone: Lightbulb },
-  { id: "avaliando", rotulo: "Em avaliação", ponto: "bg-sky-500", cor: "#3b82f6", neon: "#93c5fd", icone: ClipboardList },
-  { id: "planejada", rotulo: "Planejadas", ponto: "bg-purple-500", cor: "#8b5cf6", neon: "#c4b5fd", icone: ListChecks },
-  { id: "feita", rotulo: "Feitas", ponto: "bg-emerald-500", cor: "#10b981", neon: "#6ee7b7", icone: CheckCircle2 },
-  { id: "descartada", rotulo: "Descartadas", ponto: "bg-slate-400", cor: "#64748b", neon: "#cbd5e1", icone: Ban },
+  { id: "aberta", rotulo: "Novas", ponto: "bg-amber-500", ...TOM_ESCURO.ambar, icone: Lightbulb },
+  { id: "avaliando", rotulo: "Em avaliação", ponto: "bg-sky-500", ...TOM_ESCURO.anil, icone: ClipboardList },
+  { id: "planejada", rotulo: "Planejadas", ponto: "bg-purple-500", ...TOM_ESCURO.violeta, icone: ListChecks },
+  { id: "feita", rotulo: "Feitas", ponto: "bg-emerald-500", ...TOM_ESCURO.verde, icone: CheckCircle2 },
+  { id: "descartada", rotulo: "Descartadas", ponto: "bg-slate-400", ...TOM_ESCURO.cinza, icone: Ban },
 ];
 const daSituacao = (s: SituacaoItem) => SITUACOES.find((x) => x.id === s) ?? SITUACOES[0];
 
@@ -162,11 +162,11 @@ function PainelIdeias({ ideias, ind, visao, onVisao, onGanho, onVotadas }: {
               : { rotulo: "Em aberto", valor: String(ind.ativas), sub: `de ${ideias.length} · ${ind.feitas} ${pl(ind.feitas, "feita", "feitas")}` }} />
         </div>
         <div className="order-2 grid min-w-0 grid-cols-2 gap-2 lg:order-1 lg:grid-cols-1">
-          <NumeroEscuro icone={Lightbulb} rotulo="Novas" valor={ind.novas} sub="esperando avaliação" de="#fcd34d" ate="#d97706" aceso={ind.novas > 0} onClick={() => onVisao("aberta")} />
-          <NumeroEscuro icone={Zap} rotulo="Ganho rápido" valor={ind.ganhoRapido} sub="ajuda muito, pouco trabalho" de="#6ee7b7" ate="#059669" aceso={ind.ganhoRapido > 0} onClick={onGanho} />
+          <NumeroEscuro icone={Lightbulb} rotulo="Novas" valor={ind.novas} sub="esperando avaliação" tom="ambar" aceso={ind.novas > 0} onClick={() => onVisao("aberta")} />
+          <NumeroEscuro icone={Zap} rotulo="Ganho rápido" valor={ind.ganhoRapido} sub="ajuda muito, pouco trabalho" tom="verde" aceso={ind.ganhoRapido > 0} onClick={onGanho} />
           <NumeroEscuro icone={ThumbsUp} rotulo="Mais votada" valor={mv ? `${mv.votos.length} ${pl(mv.votos.length, "voto", "votos")}` : "—"}
-            sub={mv ? partesTituloIdeia(mv.titulo).texto : "vote nas ideias"} de="#93c5fd" ate="#2563eb" aceso={!!mv} onClick={onVotadas} />
-          <NumeroEscuro icone={ListChecks} rotulo="Planejadas" valor={ind.planejadas} sub="viram pendência no Handoff" de="#c4b5fd" ate="#7c3aed" aceso={ind.planejadas > 0} onClick={() => onVisao("planejada")} />
+            sub={mv ? partesTituloIdeia(mv.titulo).texto : "vote nas ideias"} tom="anil" aceso={!!mv} onClick={onVotadas} />
+          <NumeroEscuro icone={ListChecks} rotulo="Planejadas" valor={ind.planejadas} sub="viram pendência no Handoff" tom="violeta" aceso={ind.planejadas > 0} onClick={() => onVisao("planejada")} />
         </div>
         <ul className="order-3 grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-1" aria-label="Por situação">
           {SITUACOES.map((x) => {

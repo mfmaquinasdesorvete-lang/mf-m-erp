@@ -23,8 +23,8 @@ const ler = (k: string) => { try { return localStorage.getItem(k); } catch { ret
 const gravar = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
 const nomeCliente = (c?: { nome: string; nome_fantasia?: string | null } | null) => c ? c.nome_fantasia?.trim() || c.nome : "Cliente";
 const COR_STATUS: Record<string, string> = {
-  orcamento: "bg-[#fbbf24]/15 text-[#fcd34d]", aprovado: "bg-[#22d3ee]/15 text-[#67e8f9]", faturado: "bg-[#a855f7]/20 text-[#d8b4fe]",
-  entregue: "bg-[#10b981]/15 text-[#6ee7b7]", cancelado: "bg-white/10 text-[#8b93a7]",
+  orcamento: "bg-fixo-amber-400/15 text-fixo-amber-300", aprovado: "bg-fixo-cyan-400/15 text-fixo-cyan-300", faturado: "bg-fixo-purple-500/20 text-fixo-purple-300",
+  entregue: "bg-fixo-emerald-500/15 text-fixo-emerald-300", cancelado: "bg-white/10 text-noite-fraco",
 };
 
 export default function AppVendas() {
@@ -64,44 +64,44 @@ export default function AppVendas() {
 
   const LinhaPedido = ({ p }: { p: Pedido }) => (
     <li>
-      <button type="button" onClick={() => abrirPedido(p.id)} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-[#111521] p-3.5 text-left active:bg-white/5">
+      <button type="button" onClick={() => abrirPedido(p.id)} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-noite-cartao p-3.5 text-left active:bg-white/5">
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
-            <b className="num text-sm text-[#8b93a7]">#{p.numero}</b>
+            <b className="num text-sm text-noite-fraco">#{p.numero}</b>
             <span className={`rounded-md px-1.5 py-0.5 text-2xs font-bold ${COR_STATUS[p.status] ?? "bg-white/10"}`}>{ROTULO_STATUS_APP[p.status] ?? p.status}</span>
           </span>
           <span className="mt-0.5 block truncate font-semibold">{nomeCliente(p.cliente)}<SeloCidade cliente={p.cliente} escuro /></span>
-          <span className="block text-xs text-[#8b93a7]">{dataBR(p.created_at)}</span>
+          <span className="block text-xs text-noite-fraco">{dataBR(p.created_at)}</span>
         </span>
         <span className="num shrink-0 text-lg font-bold">{brl(p.valor_total)}</span>
-        <ChevronRight size={18} className="shrink-0 text-[#8b93a7]" aria-hidden />
+        <ChevronRight size={18} className="shrink-0 text-noite-fraco" aria-hidden />
       </button>
     </li>
   );
 
   return (
-    <div className="min-h-screen bg-[#07090f] pb-28 text-[#e9ecf2]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+    <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#10b981] to-[#22d3ee] font-bold text-[#07090f]">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-emerald-500 to-fixo-cyan-400 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-[#8b93a7]">Olá{primeiro ? `, ${primeiro}` : ""}</p>
+            <p className="text-xs text-noite-fraco">Olá{primeiro ? `, ${primeiro}` : ""}</p>
             <p className="truncate font-bold tracking-wide">Vendas MF</p>
           </div>
-          <button type="button" onClick={() => novoPedido()} className="flex items-center gap-1.5 rounded-full bg-[#10b981] px-4 py-2 text-sm font-bold text-[#04130d]">
+          <button type="button" onClick={() => novoPedido()} className="flex items-center gap-1.5 rounded-full bg-fixo-emerald-500 px-4 py-2 text-sm font-bold text-noite-tinta">
             <Plus size={17} /> Pedido
           </button>
         </header>
 
         {aba === "inicio" && (
           <>
-            <section className="rounded-3xl border border-[#10b981]/25 bg-gradient-to-br from-[#0b1f1a] via-[#111827] to-[#0e1a2b] p-5 shadow-[0_0_40px_-12px_rgba(16,185,129,.45)]">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#8b93a7]">{meuVendedor ? "Minhas vendas no mês" : "Vendas no mês"}</p>
+            <section className="rounded-3xl border border-fixo-emerald-500/25 bg-gradient-to-br from-[#0b1f1a] via-fixo-gray-900 to-[#0e1a2b] p-5 shadow-[0_0_40px_-12px_rgba(16,185,129,.45)]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-noite-fraco">{meuVendedor ? "Minhas vendas no mês" : "Vendas no mês"}</p>
               <p className="num mt-1 text-4xl font-bold">{brl(r.valor)}</p>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-[#b8bfcd]">
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-noite-medio">
                 <span>{r.qtd} {pl(r.qtd, "venda", "vendas")}{r.qtd ? ` · ticket ${brl(r.ticket)}` : ""}</span>
                 {r.variacao != null && (
-                  <span className={`inline-flex items-center font-bold ${r.variacao >= 0 ? "text-[#34d399]" : "text-[#fb7185]"}`}>
+                  <span className={`inline-flex items-center font-bold ${r.variacao >= 0 ? "text-fixo-emerald-400" : "text-fixo-rose-400"}`}>
                     {r.variacao >= 0 ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}{Math.abs(r.variacao)}% vs mês passado
                   </span>
                 )}
@@ -109,88 +109,88 @@ export default function AppVendas() {
             </section>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => { setFiltroStatus("orcamento"); ir("pedidos"); }} className="rounded-2xl border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 text-left">
-                <p className="flex items-center gap-1 text-xs font-semibold text-[#fcd34d]"><FileText size={14} /> Orçamentos abertos</p>
+              <button type="button" onClick={() => { setFiltroStatus("orcamento"); ir("pedidos"); }} className="rounded-2xl border border-fixo-amber-400/30 bg-fixo-amber-400/10 p-3 text-left">
+                <p className="flex items-center gap-1 text-xs font-semibold text-fixo-amber-300"><FileText size={14} /> Orçamentos abertos</p>
                 <p className="num mt-1 text-2xl font-bold">{r.orcamentos}</p>
-                <p className="text-xs text-[#b8bfcd]">{brl(r.valorOrcamentos)} esperando resposta</p>
+                <p className="text-xs text-noite-medio">{brl(r.valorOrcamentos)} esperando resposta</p>
               </button>
-              <button type="button" onClick={() => { setFiltroStatus("aprovado"); ir("pedidos"); }} className="rounded-2xl border border-[#22d3ee]/30 bg-[#22d3ee]/10 p-3 text-left">
-                <p className="flex items-center gap-1 text-xs font-semibold text-[#67e8f9]"><ShoppingBag size={14} /> Aprovados</p>
+              <button type="button" onClick={() => { setFiltroStatus("aprovado"); ir("pedidos"); }} className="rounded-2xl border border-fixo-cyan-400/30 bg-fixo-cyan-400/10 p-3 text-left">
+                <p className="flex items-center gap-1 text-xs font-semibold text-fixo-cyan-300"><ShoppingBag size={14} /> Aprovados</p>
                 <p className="num mt-1 text-2xl font-bold">{r.aprovados}</p>
-                <p className="text-xs text-[#b8bfcd]">{brl(r.valorAprovados)} para faturar</p>
+                <p className="text-xs text-noite-medio">{brl(r.valorAprovados)} para faturar</p>
               </button>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               {([["clientes", "Achar cliente", Users], ["estoque", "Preço e estoque", Package], ["pedidos", "Meus pedidos", ShoppingBag]] as const).map(([a, rot, Icone]) => (
-                <button key={a} type="button" onClick={() => ir(a)} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#111521] py-4 text-xs font-semibold">
-                  <Icone size={22} className="text-[#34d399]" />{rot}
+                <button key={a} type="button" onClick={() => ir(a)} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-noite-cartao py-4 text-xs font-semibold">
+                  <Icone size={22} className="text-fixo-emerald-400" />{rot}
                 </button>
               ))}
             </div>
 
-            <h2 className="mb-2 mt-6 text-sm font-semibold text-[#8b93a7]">Últimos pedidos</h2>
+            <h2 className="mb-2 mt-6 text-sm font-semibold text-noite-fraco">Últimos pedidos</h2>
             <ul className="space-y-2">{r.recentes.map((p) => <LinhaPedido key={p.id} p={p as Pedido} />)}</ul>
-            {!r.recentes.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-[#8b93a7]">Nenhum pedido ainda. Toque em <b>+ Pedido</b> para começar.</p>}
+            {!r.recentes.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-noite-fraco">Nenhum pedido ainda. Toque em <b>+ Pedido</b> para começar.</p>}
           </>
         )}
 
         {(aba === "clientes" || aba === "estoque") && (
           <label className="relative mb-3 block">
             <span className="sr-only">{aba === "clientes" ? "Procurar cliente" : "Procurar produto"}</span>
-            <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b93a7]" aria-hidden />
+            <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-noite-fraco" aria-hidden />
             <input key={aba} autoFocus type="search" value={busca} onChange={(e) => setBusca(e.target.value)}
               placeholder={aba === "clientes" ? "Nome, cidade, CNPJ ou telefone" : "Produto, SKU ou código de barras"}
-              className="w-full rounded-2xl border border-white/15 bg-[#111521] py-3.5 pl-11 pr-4 text-base text-[#e9ecf2] placeholder:text-[#6b7385] focus:border-[#34d399] focus:outline-none" />
+              className="w-full rounded-2xl border border-white/15 bg-noite-cartao py-3.5 pl-11 pr-4 text-base text-noite-texto placeholder:text-noite-apagado focus:border-fixo-emerald-400 focus:outline-none" />
           </label>
         )}
 
         {aba === "clientes" && (
           <>
-            {busca.trim().length < 2 && <p className="p-4 text-center text-sm text-[#8b93a7]">Digite pelo menos 2 letras. {clientes.length.toLocaleString("pt-BR")} clientes no ERP.</p>}
+            {busca.trim().length < 2 && <p className="p-4 text-center text-sm text-noite-fraco">Digite pelo menos 2 letras. {clientes.length.toLocaleString("pt-BR")} clientes no ERP.</p>}
             <ul className="space-y-2">
               {achados.map((c) => {
                 const wa = numeroWhatsApp(c.whatsapp || c.telefone);
                 const fone = (c.telefone || c.whatsapp || "").replace(/\D/g, "");
                 return (
-                  <li key={c.id} className="rounded-2xl border border-white/10 bg-[#111521] p-3.5">
+                  <li key={c.id} className="rounded-2xl border border-white/10 bg-noite-cartao p-3.5">
                     <p className="font-semibold">{nomeCliente(c)}</p>
-                    <p className="text-xs text-[#8b93a7]">{[c.municipio && `${c.municipio}${c.uf ? `/${c.uf}` : ""}`, c.nome_fantasia?.trim() && c.nome].filter(Boolean).join(" · ") || "—"}</p>
+                    <p className="text-xs text-noite-fraco">{[c.municipio && `${c.municipio}${c.uf ? `/${c.uf}` : ""}`, c.nome_fantasia?.trim() && c.nome].filter(Boolean).join(" · ") || "—"}</p>
                     <div className="mt-2.5 grid grid-cols-3 gap-2 text-sm font-semibold">
-                      {wa ? <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1 rounded-xl bg-[#10b981]/15 py-2.5 text-[#6ee7b7]"><MessageCircle size={16} /> WhatsApp</a>
-                        : <span className="flex items-center justify-center rounded-xl border border-white/10 py-2.5 text-xs text-[#6b7385]">sem WhatsApp</span>}
+                      {wa ? <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1 rounded-xl bg-fixo-emerald-500/15 py-2.5 text-fixo-emerald-300"><MessageCircle size={16} /> WhatsApp</a>
+                        : <span className="flex items-center justify-center rounded-xl border border-white/10 py-2.5 text-xs text-noite-apagado">sem WhatsApp</span>}
                       {fone.length >= 10 ? <a href={`tel:${fone}`} className="flex items-center justify-center gap-1 rounded-xl border border-white/15 py-2.5"><Phone size={16} /> Ligar</a>
-                        : <span className="flex items-center justify-center rounded-xl border border-white/10 py-2.5 text-xs text-[#6b7385]">sem telefone</span>}
-                      <button type="button" onClick={() => novoPedido(c.id)} className="flex items-center justify-center gap-1 rounded-xl bg-[#10b981] py-2.5 font-bold text-[#04130d]"><Plus size={16} /> Pedido</button>
+                        : <span className="flex items-center justify-center rounded-xl border border-white/10 py-2.5 text-xs text-noite-apagado">sem telefone</span>}
+                      <button type="button" onClick={() => novoPedido(c.id)} className="flex items-center justify-center gap-1 rounded-xl bg-fixo-emerald-500 py-2.5 font-bold text-noite-tinta"><Plus size={16} /> Pedido</button>
                     </div>
                   </li>
                 );
               })}
             </ul>
-            {busca.trim().length >= 2 && !achados.length && <p className="p-4 text-center text-sm text-[#8b93a7]">Nenhum cliente com “{busca}”.</p>}
+            {busca.trim().length >= 2 && !achados.length && <p className="p-4 text-center text-sm text-noite-fraco">Nenhum cliente com “{busca}”.</p>}
           </>
         )}
 
         {aba === "estoque" && (
           <>
-            {busca.trim().length < 2 && <p className="p-4 text-center text-sm text-[#8b93a7]">Digite pelo menos 2 letras do produto ou o SKU.</p>}
+            {busca.trim().length < 2 && <p className="p-4 text-center text-sm text-noite-fraco">Digite pelo menos 2 letras do produto ou o SKU.</p>}
             <ul className="space-y-2">
               {itens.map((p) => {
                 const foto = urlFotoProduto(p.foto_caminho);
                 return (
-                  <li key={p.id} className="flex gap-3 rounded-2xl border border-white/10 bg-[#111521] p-3">
+                  <li key={p.id} className="flex gap-3 rounded-2xl border border-white/10 bg-noite-cartao p-3">
                     {foto ? <img src={foto} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl bg-white object-contain" />
-                      : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white/5 text-[#6b7385]"><Package size={22} /></span>}
+                      : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white/5 text-noite-apagado"><Package size={22} /></span>}
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold leading-snug">{p.descricao}</p>
-                      {p.sku && <p className="text-xs text-[#8b93a7]">{p.sku}</p>}
+                      {p.sku && <p className="text-xs text-noite-fraco">{p.sku}</p>}
                       <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3">
-                        <span className="num text-lg font-bold text-[#6ee7b7]">{brl(p.preco_venda)}</span>
+                        <span className="num text-lg font-bold text-fixo-emerald-300">{brl(p.preco_venda)}</span>
                         <span className="flex flex-wrap gap-1.5 text-xs">
                           {unidades.length > 1 && !p.kit ? unidades.filter((u) => u.ativo).map((u) => {
                             const q = saldoEm(p.id, u.id);
-                            return <span key={u.id} className={`rounded-md px-1.5 py-0.5 font-bold ${q > 0 ? "bg-[#10b981]/15 text-[#6ee7b7]" : "bg-[#fb7185]/15 text-[#fda4af]"}`}>{codigo(u.id)} {q.toLocaleString("pt-BR")}</span>;
-                          }) : <span className={`rounded-md px-1.5 py-0.5 font-bold ${Number(p.estoque_atual) > 0 ? "bg-[#10b981]/15 text-[#6ee7b7]" : "bg-[#fb7185]/15 text-[#fda4af]"}`}>{p.kit ? "kit" : `estoque ${Number(p.estoque_atual).toLocaleString("pt-BR")}`}</span>}
+                            return <span key={u.id} className={`rounded-md px-1.5 py-0.5 font-bold ${q > 0 ? "bg-fixo-emerald-500/15 text-fixo-emerald-300" : "bg-fixo-rose-400/15 text-fixo-rose-300"}`}>{codigo(u.id)} {q.toLocaleString("pt-BR")}</span>;
+                          }) : <span className={`rounded-md px-1.5 py-0.5 font-bold ${Number(p.estoque_atual) > 0 ? "bg-fixo-emerald-500/15 text-fixo-emerald-300" : "bg-fixo-rose-400/15 text-fixo-rose-300"}`}>{p.kit ? "kit" : `estoque ${Number(p.estoque_atual).toLocaleString("pt-BR")}`}</span>}
                         </span>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ export default function AppVendas() {
                 );
               })}
             </ul>
-            {busca.trim().length >= 2 && !itens.length && <p className="p-4 text-center text-sm text-[#8b93a7]">Nenhum produto com “{busca}”.</p>}
+            {busca.trim().length >= 2 && !itens.length && <p className="p-4 text-center text-sm text-noite-fraco">Nenhum produto com “{busca}”.</p>}
           </>
         )}
 
@@ -209,14 +209,14 @@ export default function AppVendas() {
                 const n = meus.filter((p) => p.status === s).length;
                 return (
                   <button key={s} type="button" role="tab" aria-selected={filtroStatus === s} onClick={() => setFiltroStatus(s)}
-                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold ${filtroStatus === s ? "bg-[#e9ecf2] text-[#07090f]" : "border border-white/15 text-[#b8bfcd]"}`}>
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold ${filtroStatus === s ? "bg-noite-texto text-noite-fundo" : "border border-white/15 text-noite-medio"}`}>
                     {ROTULO_STATUS_APP[s]} <span className="num opacity-70">{n}</span>
                   </button>
                 );
               })}
             </div>
             <ul className="space-y-2">{listaPedidos.map((p) => <LinhaPedido key={p.id} p={p} />)}</ul>
-            {!listaPedidos.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-[#8b93a7]">Nenhum pedido nesta situação.</p>}
+            {!listaPedidos.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-noite-fraco">Nenhum pedido nesta situação.</p>}
           </>
         )}
 
@@ -224,11 +224,11 @@ export default function AppVendas() {
           <div className="space-y-3">
             <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 p-4 text-sm">
               <span>Abrir sempre aqui pelo celular</span>
-              <input type="checkbox" className="h-5 w-5 accent-[#10b981]" checked={sempre}
+              <input type="checkbox" className="h-5 w-5 accent-fixo-emerald-500" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP_VENDAS, e.target.checked ? "1" : "0"); }} />
             </label>
             <InstalarApp />
-            <button type="button" onClick={() => navigate("/pedidos")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-[#b8bfcd]">
+            <button type="button" onClick={() => navigate("/pedidos")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-noite-medio">
               <LayoutGrid size={18} /> <span className="flex-1">Abrir o ERP completo</span> <ChevronRight size={16} />
             </button>
           </div>
@@ -236,13 +236,13 @@ export default function AppVendas() {
       </div>
 
       {/* barra de baixo */}
-      <nav aria-label="App de vendas" className="fixed inset-x-0 bottom-0 border-t border-white/10 bg-[#0b0e16]/95 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav aria-label="App de vendas" className="fixed inset-x-0 bottom-0 border-t border-white/10 bg-noite-fundo-2/95 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-auto grid max-w-md grid-cols-5">
           {([["inicio", "Início", Home], ["clientes", "Clientes", Users], ["estoque", "Estoque", Package], ["pedidos", "Pedidos", ShoppingBag], ["mais", "Mais", MoreHorizontal]] as const).map(([id, rot, Icone]) => (
             <button key={id} type="button" onClick={() => ir(id)} aria-current={aba === id ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${aba === id ? "text-[#34d399]" : "text-[#8b93a7]"}`}>
+              className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${aba === id ? "text-fixo-emerald-400" : "text-noite-fraco"}`}>
               <Icone size={21} />{rot}
-              {id === "pedidos" && r.orcamentos > 0 && <span className="absolute right-[18%] top-1 rounded-full bg-[#fbbf24] px-1.5 text-2xs font-bold text-[#07090f]">{r.orcamentos}</span>}
+              {id === "pedidos" && r.orcamentos > 0 && <span className="absolute right-[18%] top-1 rounded-full bg-fixo-amber-400 px-1.5 text-2xs font-bold text-noite-fundo">{r.orcamentos}</span>}
             </button>
           ))}
         </div>

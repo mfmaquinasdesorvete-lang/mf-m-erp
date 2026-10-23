@@ -72,12 +72,12 @@ export default function AppProducao() {
   const concluirNoErp = (o: OP) => navigate("/producao", { state: { abrirOp: o.id } });
 
   return (
-    <div className="min-h-screen bg-[#07090f] pb-28 text-[#e9ecf2]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+    <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#f97316] to-[#eab308] font-bold text-[#07090f]">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-orange-500 to-fixo-yellow-500 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-[#8b93a7]">{abertas.length} {pl(abertas.length, "OP aberta", "OPs abertas")}{atrasadas ? ` · ${atrasadas} ${pl(atrasadas, "atrasada", "atrasadas")}` : ""}</p>
+            <p className="text-xs text-noite-fraco">{abertas.length} {pl(abertas.length, "OP aberta", "OPs abertas")}{atrasadas ? ` · ${atrasadas} ${pl(atrasadas, "atrasada", "atrasadas")}` : ""}</p>
             <p className="truncate font-bold tracking-wide">Produção MF</p>
           </div>
         </header>
@@ -86,9 +86,9 @@ export default function AppProducao() {
           <>
             <label className="relative mb-3 block">
               <span className="sr-only">Procurar OP</span>
-              <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b93a7]" aria-hidden />
+              <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-noite-fraco" aria-hidden />
               <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nº da OP, produto, série ou responsável"
-                className="w-full rounded-2xl border border-white/15 bg-[#111521] py-3 pl-11 pr-4 text-base placeholder:text-[#6b7385] focus:border-[#f97316] focus:outline-none" />
+                className="w-full rounded-2xl border border-white/15 bg-noite-cartao py-3 pl-11 pr-4 text-base placeholder:text-noite-apagado focus:border-fixo-orange-500 focus:outline-none" />
             </label>
             <ul className="space-y-2.5">
               {lista.map((o) => {
@@ -98,24 +98,24 @@ export default function AppProducao() {
                 const abertaAqui = aberta === o.id;
                 const cor = o.status === "em_producao" ? "#f97316" : "#64748b";
                 return (
-                  <li key={o.id} className="rounded-2xl border border-white/10 bg-[#111521] p-3.5" style={{ borderLeft: `4px solid ${cor}` }}>
+                  <li key={o.id} className="rounded-2xl border border-white/10 bg-noite-cartao p-3.5" style={{ borderLeft: `4px solid ${cor}` }}>
                     <button type="button" aria-expanded={abertaAqui} onClick={() => setAberta(abertaAqui ? null : o.id)} className="w-full text-left">
                       <span className="flex items-center gap-2 text-sm">
-                        <b className="num text-[#8b93a7]">OP #{o.numero}</b>
+                        <b className="num text-noite-fraco">OP #{o.numero}</b>
                         <span className="rounded-md px-1.5 py-0.5 text-2xs font-bold" style={{ background: `${cor}33`, color: cor === "#64748b" ? "#cbd5e1" : cor }}>{o.status === "em_producao" ? "Em produção" : "Planejada"}</span>
-                        {atrasada && <span className="rounded-md bg-[#fb7185]/15 px-1.5 py-0.5 text-2xs font-bold text-[#fda4af]">atrasada</span>}
+                        {atrasada && <span className="rounded-md bg-fixo-rose-400/15 px-1.5 py-0.5 text-2xs font-bold text-fixo-rose-300">atrasada</span>}
                       </span>
                       <span className="mt-0.5 block font-semibold leading-snug">{Number(o.quantidade).toLocaleString("pt-BR")}× {o.produto?.descricao ?? "Produto"}</span>
-                      <span className="flex flex-wrap gap-x-3 text-xs text-[#8b93a7]">
-                        {o.previsao && <span className={`inline-flex items-center gap-1 ${atrasada ? "font-semibold text-[#fb7185]" : ""}`}><CalendarClock size={12} aria-hidden /> {dataBR(o.previsao)}</span>}
+                      <span className="flex flex-wrap gap-x-3 text-xs text-noite-fraco">
+                        {o.previsao && <span className={`inline-flex items-center gap-1 ${atrasada ? "font-semibold text-fixo-rose-400" : ""}`}><CalendarClock size={12} aria-hidden /> {dataBR(o.previsao)}</span>}
                         {o.responsavel && <span>{o.responsavel}</span>}
                       </span>
                       {etapas.length > 0 && (
                         <span className="mt-2 block">
                           <span className="flex h-2 overflow-hidden rounded-full bg-white/10" role="img" aria-label={`${p.feitas} de ${p.total} etapas feitas`}>
-                            <span className="h-full rounded-full bg-[#34d399]" style={{ width: `${p.pct}%` }} />
+                            <span className="h-full rounded-full bg-fixo-emerald-400" style={{ width: `${p.pct}%` }} />
                           </span>
-                          <span className="mt-1 block text-xs text-[#b8bfcd]">{p.feitas} de {p.total} etapas{p.proxima ? ` · próxima: ${p.proxima}` : " ✓"}</span>
+                          <span className="mt-1 block text-xs text-noite-medio">{p.feitas} de {p.total} etapas{p.proxima ? ` · próxima: ${p.proxima}` : " ✓"}</span>
                         </span>
                       )}
                     </button>
@@ -127,22 +127,22 @@ export default function AppProducao() {
                             {etapas.map((e, i) => (
                               <li key={i}>
                                 <button type="button" disabled={!podeEditar || ocupado === o.id} aria-pressed={e.feita} onClick={() => marcar(o, i)}
-                                  className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left disabled:opacity-60 ${e.feita ? "border-[#34d399]/30 bg-[#34d399]/10" : "border-white/10"}`}>
-                                  {e.feita ? <CheckCircle2 size={22} className="shrink-0 text-[#34d399]" aria-hidden /> : <Circle size={22} className="shrink-0 text-[#6b7385]" aria-hidden />}
+                                  className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left disabled:opacity-60 ${e.feita ? "border-fixo-emerald-400/30 bg-fixo-emerald-400/10" : "border-white/10"}`}>
+                                  {e.feita ? <CheckCircle2 size={22} className="shrink-0 text-fixo-emerald-400" aria-hidden /> : <Circle size={22} className="shrink-0 text-noite-apagado" aria-hidden />}
                                   <span className="min-w-0 flex-1">
-                                    <span className={`block text-sm font-semibold ${e.feita ? "text-[#b8bfcd] line-through" : ""}`}>{e.nome}</span>
-                                    {e.feita && (e.por || e.em) && <span className="block text-2xs text-[#8b93a7]">{[e.por, e.em && new Date(e.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })].filter(Boolean).join(" · ")}</span>}
+                                    <span className={`block text-sm font-semibold ${e.feita ? "text-noite-medio line-through" : ""}`}>{e.nome}</span>
+                                    {e.feita && (e.por || e.em) && <span className="block text-2xs text-noite-fraco">{[e.por, e.em && new Date(e.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })].filter(Boolean).join(" · ")}</span>}
                                   </span>
                                 </button>
                               </li>
                             ))}
                           </ol>
-                        ) : <p className="text-sm text-[#8b93a7]">Esta OP não tem etapas. Cadastre as etapas na ficha técnica da máquina (ERP → Produção → Ficha técnica).</p>}
+                        ) : <p className="text-sm text-noite-fraco">Esta OP não tem etapas. Cadastre as etapas na ficha técnica da máquina (ERP → Produção → Ficha técnica).</p>}
                         {podeEditar && (
                           <div className="mt-3 grid grid-cols-2 gap-2">
                             {o.status === "planejada"
-                              ? <button type="button" disabled={ocupado === o.id} onClick={() => iniciar(o)} className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#f97316] py-3.5 font-bold text-[#07090f] disabled:opacity-50"><Play size={17} /> Iniciar produção</button>
-                              : <button type="button" onClick={() => concluirNoErp(o)} className={`col-span-2 flex items-center justify-center gap-1.5 rounded-xl py-3.5 font-bold disabled:opacity-50 ${p.feitas === p.total && p.total > 0 ? "bg-[#34d399] text-[#04130d]" : "border border-white/20 text-[#e9ecf2]"}`}>
+                              ? <button type="button" disabled={ocupado === o.id} onClick={() => iniciar(o)} className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-fixo-orange-500 py-3.5 font-bold text-noite-fundo disabled:opacity-50"><Play size={17} /> Iniciar produção</button>
+                              : <button type="button" onClick={() => concluirNoErp(o)} className={`col-span-2 flex items-center justify-center gap-1.5 rounded-xl py-3.5 font-bold disabled:opacity-50 ${p.feitas === p.total && p.total > 0 ? "bg-fixo-emerald-400 text-noite-tinta" : "border border-white/20 text-noite-texto"}`}>
                                 <Check size={17} /> Concluir (série, giga e baixa no ERP)
                               </button>}
                           </div>
@@ -153,7 +153,7 @@ export default function AppProducao() {
                 );
               })}
             </ul>
-            {!lista.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-[#8b93a7]">{busca ? "Nenhuma OP com essa busca." : `Nenhuma OP de ${aba === "pecas" ? "peças" : "máquinas"} aberta ✓`}</p>}
+            {!lista.length && <p className="rounded-2xl border border-white/10 p-6 text-center text-noite-fraco">{busca ? "Nenhuma OP com essa busca." : `Nenhuma OP de ${aba === "pecas" ? "peças" : "máquinas"} aberta ✓`}</p>}
           </>
         )}
 
@@ -161,25 +161,25 @@ export default function AppProducao() {
           <div className="space-y-3">
             <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 p-4 text-sm">
               <span>Abrir sempre aqui pelo celular</span>
-              <input type="checkbox" className="h-5 w-5 accent-[#f97316]" checked={sempre}
+              <input type="checkbox" className="h-5 w-5 accent-fixo-orange-500" checked={sempre}
                 onChange={(e) => { setSempre(e.target.checked); gravar(CHAVE_APP_PRODUCAO, e.target.checked ? "1" : "0"); }} />
             </label>
             <InstalarApp />
-            <p className="px-1 text-xs text-[#8b93a7]">Nova OP, peças que faltam, compras e ficha técnica ficam no ERP completo.</p>
-            <button type="button" onClick={() => navigate("/producao")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-[#b8bfcd]">
+            <p className="px-1 text-xs text-noite-fraco">Nova OP, peças que faltam, compras e ficha técnica ficam no ERP completo.</p>
+            <button type="button" onClick={() => navigate("/producao")} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 p-4 text-left text-sm text-noite-medio">
               <LayoutGrid size={18} /> <span className="flex-1">Abrir o ERP completo</span>
             </button>
           </div>
         )}
       </div>
 
-      <nav aria-label="App da produção" className="fixed inset-x-0 bottom-0 border-t border-white/10 bg-[#0b0e16]/95 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav aria-label="App da produção" className="fixed inset-x-0 bottom-0 border-t border-white/10 bg-noite-fundo-2/95 backdrop-blur" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="mx-auto grid max-w-md grid-cols-3">
           {([["maquinas", "Máquinas", Factory, abertas.filter(ehMaquina).length], ["pecas", "Peças", Wrench, abertas.filter((o) => !ehMaquina(o)).length], ["mais", "Mais", MoreHorizontal, 0]] as const).map(([id, rot, Icone, n]) => (
             <button key={id} type="button" onClick={() => { setAba(id); setAberta(null); setBusca(""); }} aria-current={aba === id ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${aba === id ? "text-[#fb923c]" : "text-[#8b93a7]"}`}>
+              className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${aba === id ? "text-fixo-orange-400" : "text-noite-fraco"}`}>
               <Icone size={21} />{rot}
-              {n > 0 && <span className="absolute right-[28%] top-1 rounded-full bg-[#f97316] px-1.5 text-2xs font-bold text-[#07090f]">{n}</span>}
+              {n > 0 && <span className="absolute right-[28%] top-1 rounded-full bg-fixo-orange-500 px-1.5 text-2xs font-bold text-noite-fundo">{n}</span>}
             </button>
           ))}
         </div>

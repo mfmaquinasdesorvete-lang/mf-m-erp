@@ -79,7 +79,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
     <div className="space-y-6">
       {/* onde a rodada está */}
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-[#0f766e] via-[#1d4ed8] to-[#7c3aed] p-4 text-white sm:p-5">
+        <div className="bg-gradient-to-r from-fixo-teal-700 via-fixo-blue-700 to-fixo-violet-600 p-4 text-white sm:p-5">
           <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Rodada atual · VISUALIZE</div>
           <h2 className="text-xl font-bold [text-wrap:balance]">{R.titulo}</h2>
           <p className="mt-1 max-w-3xl text-sm opacity-90">{R.resumo}</p>
@@ -170,7 +170,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
           {([
             ["Entrou", R.escopo.entrou, "bg-solido-verde", CheckCircle2],
             ["Continua igual", R.escopo.mantido, "bg-solido-azul", ShieldCheck],
-            ["Autorizado", R.escopo.autorizado, "bg-[#7c3aed]", Sparkles],
+            ["Autorizado", R.escopo.autorizado, "bg-fixo-violet-600", Sparkles],
             ["Não autorizado", R.escopo.naoAutorizado, "bg-solido-vermelho", Ban],
           ] as const).map(([nome, itens, cor, Icone]) => (
             <Card key={nome} className="overflow-hidden">

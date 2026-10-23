@@ -426,7 +426,7 @@ function WhatsappEquipe({ cfg }: { cfg: Record<string, any> | undefined }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
       <div className="flex items-start gap-3">
-        <MessageCircle size={20} className="mt-0.5 shrink-0 text-[#15803d]" aria-hidden />
+        <MessageCircle size={20} className="mt-0.5 shrink-0 text-fixo-green-700" aria-hidden />
         <div className="min-w-0 flex-1 space-y-1.5">
           {!cfg?.whatsapp_numero_id ? (
             <p className="text-slate-700"><b>WhatsApp:</b> falta ligar o número da empresa na Meta (Configurações → <b>Cobrança automática</b> → WhatsApp oficial). Até lá, quem escolher WhatsApp recebe pelo Telegram.</p>
