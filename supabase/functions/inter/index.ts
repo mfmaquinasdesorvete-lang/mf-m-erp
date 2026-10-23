@@ -6,14 +6,15 @@
 //  POST { acao: "desligar", conexao_id }       (admin) → para de buscar e esquece as credenciais
 //  Boleto com Pix (boletos.ts): boletos_ligar / boletos_desligar (admin), boleto_emitir, boleto_atualizar, boleto_pdf
 //       (financeiro ou vendas), boleto_cancelar (financeiro) e o aviso do Inter (lista de cobranças, sem login).
-//  Pix de saída (pix.ts): pix_pagar { conta_id, conexao_id, chave } e pix_consultar { id } (financeiro).
+//  Pix de saída (pix.ts): pix_pagar { conta_id, conexao_id, chave } e pix_consultar { id } (financeiro); na sincronização,
+//       os Pix que ficaram esperando são conferidos no Inter sozinhos (conferirPixAbertos) e o financeiro é avisado.
 // Deploy com --no-verify-jwt: o agendamento não manda login de usuário; o resto confere aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { type ChavesInter, clienteInter, conferirCertificado, ErroInter, hojeSP, linhasInter, somarDias } from "../_shared/inter.ts";
-import { consultarPix, pagarPix } from "./pix.ts";
+import { conferirPixAbertos, consultarPix, pagarPix } from "./pix.ts";
 import { atualizarBoleto, avisoBoletos, cancelarBoleto, conferirAbertos, desligarBoletos, emitirBoleto, ligarBoletos, pdfBoleto } from "./boletos.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -81,6 +82,8 @@ Deno.serve(async (req) => {
         if (c.boletos) {
           try { (resultado[c.id] as Record<string, unknown>).boletos = await conferirAbertos(db, c.id, chaves); } catch { /* fica para a próxima */ }
         }
+        // Pix de saída que ficou esperando (envio sem resposta, aprovação no app do Inter, agendado)
+        try { (resultado[c.id] as Record<string, unknown>).pix = await conferirPixAbertos(db, c.id, chaves); } catch { /* fica para a próxima */ }
       }
       return json({ ok: true, resultado });
     }

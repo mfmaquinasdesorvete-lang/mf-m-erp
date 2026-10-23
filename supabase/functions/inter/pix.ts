@@ -103,3 +103,51 @@ export async function consultarPix(req: Request, db: SupabaseClient, id: string,
     cli.fechar();
   }
 }
+
+/**
+ * Rede de segurança do Pix de saída (na sincronização agendada, como os boletos): o Pix que ficou "enviando",
+ * "aguardando aprovação" no app do Inter ou "agendado" é conferido no Inter sozinho. Mudou de situação: grava.
+ * Saiu (pago): avisa o financeiro para dar a baixa pela conta ("Conferir no Inter"), com o login de quem confere.
+ * Sem o código do Inter há mais de 1 dia (a internet caiu no envio): avisa uma vez para conferir no app.
+ */
+export async function conferirPixAbertos(db: SupabaseClient, conexaoId: string, chaves: Chaves) {
+  const { data } = await db.from("pix_pagamentos")
+    .select("id, conta_pagar_id, conexao_id, valor, status, codigo_solicitacao, erro, atualizado_em, conta:contas_pagar(descricao)")
+    .eq("conexao_id", conexaoId).in("status", ["enviando", "aguardando_aprovacao", "agendado"]).limit(20);
+  const lista = (data ?? []) as (Pedido & { erro: string | null; atualizado_em: string | null; conta: { descricao?: string } | null })[];
+  if (!lista.length) return { conferidos: 0 };
+  const AVISO_SEM_CODIGO = "Sem resposta do Inter no envio: confira no app do Inter se este Pix saiu.";
+  const avisar = (titulo: string, p: (typeof lista)[number]) => db.rpc("notificar", {
+    p_tipo: "pagamento", p_titulo: titulo, p_texto: `${p.conta?.descricao ?? "Conta a pagar"} · R$ ${Number(p.valor).toFixed(2).replace(".", ",")}`,
+    p_link: "/financeiro", p_papeis: ["financeiro"],
+  });
+  const ch = await chaves(db, conexaoId);
+  const conexao = await conexaoAtiva(db, conexaoId);
+  let mudaram = 0;
+  const cli = ch ? clienteInter(ch, conexao.conta_corrente) : null;
+  try {
+    for (const p of lista) {
+      if (!p.codigo_solicitacao) {
+        const velho = p.atualizado_em && Date.now() - new Date(p.atualizado_em).getTime() > 864e5;
+        if (velho && p.erro !== AVISO_SEM_CODIGO) {
+          await db.from("pix_pagamentos").update({ erro: AVISO_SEM_CODIGO }).eq("id", p.id);
+          await avisar("Pix de saída sem confirmação do Inter: confira no app", p);
+        }
+        continue;
+      }
+      if (!cli) continue;
+      try {
+        const r = await cli.pedir<Record<string, unknown>>("GET", `/banking/v2/pix/${encodeURIComponent(p.codigo_solicitacao)}`, undefined, ESCOPO_PIX);
+        const lida = situacaoDaConsulta(r);
+        if (lida === "enviando" || lida === p.status) continue;
+        await db.from("pix_pagamentos").update({ status: lida, resposta: r, atualizado_em: new Date().toISOString() }).eq("id", p.id);
+        mudaram++;
+        if (lida === "pago") await avisar("Pix saiu no Inter: dê a baixa da conta (Conferir no Inter)", p);
+        if (lida === "falhou") await avisar("Pix de saída não foi feito pelo Inter: pague de novo ou por outro meio", p);
+      } catch { /* fica para a próxima sincronização */ }
+    }
+  } finally {
+    cli?.fechar();
+  }
+  return { conferidos: lista.length, mudaram };
+}
