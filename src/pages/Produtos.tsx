@@ -431,6 +431,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
 
       <CrudPage<Produto>
         key={cadastro}
+        // produto novo: passo a passo (o básico, compra, preço, catálogo, anúncio…), com "Salvar agora" para pular o resto
+        passoAPasso
         // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
         aposTitulo={<>
           {podeMover && precosPendentes > 0 && (

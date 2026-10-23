@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ChevronDown, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FileDown, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { soMudou } from "@/lib/soMudou";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { Button, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
+import { Button, chip, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
@@ -104,6 +104,9 @@ type Props<T> = {
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
   /** Os cartões também no computador (em colunas, como um guia), no lugar da tabela; sem o rodapé de Editar (tocar abre). */
   cartoesNoPc?: boolean;
+  /** Cadastro novo passo a passo (onboarding): cada seção do formulário vira um passo, com Voltar/Próximo e o
+   *  "Salvar agora" para pular o que é opcional. Editar continua com o formulário inteiro. */
+  passoAPasso?: boolean;
   /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
   marcadores?: [string, string];
   /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
@@ -148,6 +151,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   }, [destaque, destaqueAberto, todos, readOnly]);
   const [buscando, setBuscando] = useState<string | null>(null);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
+  const [passo, setPasso] = useState(0);
   const [fechadas, setFechadas] = useState<Set<string>>(() =>
     typeof window !== "undefined" && window.innerWidth < 640 ? new Set(fields.filter((f) => f.type === "secao").map((f) => f.name)) : new Set());
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
@@ -226,6 +230,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   async function salvar(e: FormEvent) {
     e.preventDefault();
     if (!editando) return;
+    // passo a passo: os campos obrigatórios de passos que não estão na tela também contam (volta ao primeiro que falta)
+    if (emPassos) {
+      const i = grupos.findIndex((g) => g.campos.some((f) => f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")));
+      if (i >= 0) { setPasso(i); notify("Falta preencher um campo obrigatório deste passo", "erro"); return; }
+    }
     const errados = fields.filter((f) => f.mask && erroCampo(f.mask, editando[f.name]));
     if (errados.length) {
       setTocados(new Set(errados.map((f) => f.name)));
@@ -252,7 +261,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
 
   // mudou algo no formulário aberto: fechar sem salvar pergunta antes
   const [alterou, setAlterou] = useState(false);
-  useEffect(() => { if (!editando) setAlterou(false); }, [editando]);
+  useEffect(() => { if (!editando) { setAlterou(false); setPasso(0); } }, [editando]);
   const fecharForm = async () => {
     if (alterou && !(await confirmar("Sair sem salvar? O que você digitou neste cadastro será perdido.", { voltar: "Continuar editando" }))) return;
     setEditando(null);
@@ -270,7 +279,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }).catch(notifyError).finally(() => { clearTimeout(t); setBuscando((b) => (b === name ? null : b)); });
   };
 
-  const abrir = (row: Record<string, any>) => { setTocados(new Set()); setEditando(row); };
+  const abrir = (row: Record<string, any>) => { setTocados(new Set()); setPasso(0); setEditando(row); };
 
   // Exporta o que está na tela (respeita a busca), com os nomes dos campos do formulário
   function exportar() {
@@ -339,6 +348,21 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     }
     return g.filter((x) => x.secao || x.campos.length);
   }, [fields]);
+  const emPassos = !!props.passoAPasso && !!editando && !editando.id && grupos.length > 1;
+  // trocou de passo: a janela volta para o alto (senão o passo novo abria rolado no fim)
+  useEffect(() => { if (emPassos) document.querySelector('[role="dialog"]')?.scrollIntoView({ block: "start" }); }, [passo]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Próximo passo: antes confere o que é obrigatório e o formato (CPF, e-mail…) só dos campos deste passo. */
+  const avancar = () => {
+    if (!editando) return;
+    const errados = grupos[passo].campos.filter((f) =>
+      (f.required && (editando[f.name] == null || String(editando[f.name]).trim() === "")) || (f.mask && erroCampo(f.mask, editando[f.name])));
+    if (errados.length) {
+      setTocados(new Set(errados.map((f) => f.name)));
+      notify(`Preencha para seguir: ${errados.map((f) => f.label.replace(/\s*\(.*\)$/, "")).join(", ")}`, "erro");
+      return;
+    }
+    setPasso((p) => Math.min(grupos.length - 1, p + 1));
+  };
 
   return (
     <div>
@@ -519,7 +543,41 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {props.formulario && editando && props.formulario(editando, () => setEditando(null))}
       <Modal open={!!editando && !props.formulario} onClose={() => setEditando(null)} sujo={alterou} title={editando?.id ? `Editar` : `Novo cadastro`}>
         {editando && (
-          <form onSubmit={salvar}>
+          <form onSubmit={salvar} onKeyDown={(e) => {
+            // passo a passo: Enter num campo vai para o próximo passo (e não salva o cadastro pela metade)
+            if (emPassos && passo < grupos.length - 1 && e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); avancar(); }
+          }}>
+            {emPassos ? (() => {
+              // onboarding: um passo por seção, com a barra de progresso e os nomes dos passos (os já vistos voltam ao tocar)
+              const g = grupos[passo];
+              const titulo = (x: typeof g, i: number) => x.secao?.label ?? (i === 0 ? "O básico" : `Passo ${i + 1}`);
+              return (
+                <div>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-xs font-semibold text-slate-500">
+                    <span>Passo {passo + 1} de {grupos.length}</span>
+                    <span className="num">{Math.round(((passo + 1) / grupos.length) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                    <div className="h-full rounded-full bg-gradient-to-r from-modulo to-brand transition-all" style={{ width: `${((passo + 1) / grupos.length) * 100}%` }} />
+                  </div>
+                  <ol className="faixa-chips mt-3" aria-label="Passos do cadastro">
+                    {grupos.map((x, i) => (
+                      <li key={x.secao?.name ?? `p${i}`}>
+                        <button type="button" disabled={i > passo} aria-current={i === passo ? "step" : undefined} onClick={() => setPasso(i)}
+                          className={chip(i === passo, "border-modulo bg-modulo-escuro text-white")}>
+                          <span className="num">{i + 1}</span> {titulo(x, i)}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                  <section className="mt-3" aria-labelledby="passo-titulo">
+                    <h3 id="passo-titulo" className="text-base font-bold text-fg">{titulo(g, passo)}</h3>
+                    {g.secao?.ajuda && <p className="mt-0.5 text-xs text-slate-600">{g.secao.ajuda}</p>}
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{g.campos.map(campoForm)}</div>
+                  </section>
+                </div>
+              );
+            })() : (
             <div className="space-y-3">
               {grupos.map((g, k) => {
                 const campos = <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{g.campos.map(campoForm)}</div>;
@@ -541,11 +599,27 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 );
               })}
             </div>
+            )}
             {anexos && <div className="mt-4"><Anexos entidade={anexos} id={editando.id} /></div>}
+            {emPassos ? (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+                {passo === 0
+                  ? <Button type="button" variant="secondary" onClick={fecharForm}>Cancelar</Button>
+                  : <Button type="button" variant="secondary" onClick={() => setPasso((p) => p - 1)}><ChevronLeft size={16} aria-hidden /> Voltar</Button>}
+                <div className="flex flex-wrap gap-2">
+                  {/* do 2º passo em diante, o resto é opcional: dá para salvar já */}
+                  {passo > 0 && passo < grupos.length - 1 && <Button variant="ghost" carregando={save.isPending}>Salvar agora</Button>}
+                  {passo < grupos.length - 1
+                    ? <Button type="button" onClick={avancar}>Próximo <ChevronRight size={16} aria-hidden /></Button>
+                    : <Button carregando={save.isPending}>Salvar</Button>}
+                </div>
+              </div>
+            ) : (
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={fecharForm}>Cancelar</Button>
-              <Button disabled={save.isPending}>{save.isPending ? "Salvando…" : "Salvar"}</Button>
+              <Button carregando={save.isPending}>{save.isPending ? "Salvando…" : "Salvar"}</Button>
             </div>
+            )}
           </form>
         )}
       </Modal>
