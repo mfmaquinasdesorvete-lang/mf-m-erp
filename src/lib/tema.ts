@@ -1,3 +1,5 @@
+import { aparenciaAtual, corValida } from "./aparencia";
+
 export type Tema = "escuro" | "claro";
 const CHAVE = "mf-erp-tema";
 
@@ -37,10 +39,12 @@ export function aplicarFundo(f: Fundo) {
   if (document.documentElement.dataset.theme === "dark") aplicarTema("escuro");
 }
 
-export type Destaque = "ciano" | "laranja" | "roxo" | "dourado" | "verde" | "azul";
+export type Destaque = "marca" | "ciano" | "laranja" | "roxo" | "dourado" | "verde" | "azul";
 const CHAVE_COR = "mf-erp-destaque";
 
+// "marca": a cor da empresa escolhida em Sobre → Design (só aparece na escolha quando ela existe)
 export const DESTAQUES: { value: Destaque; label: string; cor: string; par: string }[] = [
+  { value: "marca", label: "Cor da empresa", cor: "#0EA5E9", par: "#0b1f3a" },
   { value: "ciano", label: "Navy + Ciano", cor: "#00d4ff", par: "#0b1f3a" },
   { value: "laranja", label: "Navy + Laranja", cor: "#ff6b00", par: "#102a43" },
   { value: "roxo", label: "Roxo + Rosa", cor: "#ff4fa3", par: "#6c2bd9" },
@@ -49,12 +53,15 @@ export const DESTAQUES: { value: Destaque; label: string; cor: string; par: stri
   { value: "azul", label: "Azul clássico", cor: "#60a5fa", par: "#1e3a8a" },
 ];
 
+/** Sem escolha guardada: a cor da empresa, quando ela definiu uma; senão o ciano de sempre. */
+const padraoDestaque = (): Destaque => (corValida(aparenciaAtual().cor_marca) ? "marca" : "ciano");
+
 export function lerDestaque(): Destaque {
   try {
     const v = localStorage.getItem(CHAVE_COR) as Destaque | null;
-    return v && DESTAQUES.some((d) => d.value === v) ? v : "ciano";
+    return v && DESTAQUES.some((d) => d.value === v) ? v : padraoDestaque();
   } catch {
-    return "ciano";
+    return padraoDestaque();
   }
 }
 

@@ -82,7 +82,8 @@ function TituloTela({ title }: { title: string }) {
   return <><span className="sm:hidden" aria-hidden>{curto}</span><span className="sr-only sm:not-sr-only">{title}</span></>;
 }
 
-export function PageHeader({ title, subtitle, actions, compacto }: { title: string; subtitle?: string; actions?: ReactNode; compacto?: boolean }) {
+/** logo: imagem da marca no lugar do ícone da área (ex.: My Frost Sorveterias, com o logo de Sobre → Design). */
+export function PageHeader({ title, subtitle, actions, compacto, logo }: { title: string; subtitle?: string; actions?: ReactNode; compacto?: boolean; logo?: string | null }) {
   const modulo = useModulo();
   const Icone = modulo?.icone;
   if (compacto) {
@@ -105,7 +106,9 @@ export function PageHeader({ title, subtitle, actions, compacto }: { title: stri
     <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:mb-5 sm:items-end">
       {/* no celular o título encolhe (a explicação corta) para o botão principal caber ao lado */}
       <div className="flex min-w-0 flex-1 basis-[8.5rem] items-center gap-2 sm:basis-auto sm:gap-3">
-        {Icone && (
+        {logo ? (
+          <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain p-0.5 shadow-card sm:h-11 sm:w-11" />
+        ) : Icone && (
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card sm:h-11 sm:w-11" aria-hidden>
             <Icone size={20} />
           </span>

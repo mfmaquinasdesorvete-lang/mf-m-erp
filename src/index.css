@@ -6,6 +6,8 @@
 :root {
   color-scheme: light;
   --sombra: 0.05;
+  /* fontes (a aparência da empresa, em Sobre → Design, troca por cima) */
+  --fonte-titulos: Poppins; --fonte-texto: "DM Sans Variable";
   --canvas: 244 246 249;
   --surface: 255 255 255;
   /* campo de preencher (input/select): no claro é branco; no escuro fica um tom abaixo do cartão, para se destacar */

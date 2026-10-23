@@ -17,6 +17,9 @@ import { ATALHOS_CELULAR, RAPIDOS, abreEmOutraAba, alvoDoLink, grupoDaRota, grup
 import { notify, notifyError } from "@/lib/notify";
 import { aplicarDestaque, aplicarFundo, aplicarTema, DESTAQUES, lerDestaque, lerFundo, lerTema, type Destaque, type Fundo, type Tema } from "@/lib/tema";
 import logo from "@/assets/logo.webp";
+import { corValida, useAparencia } from "@/lib/aparencia";
+import { useConfig } from "@/lib/useConfig";
+import { IconeArea } from "@/components/IconeArea";
 import { Button, Field, Modal } from "./ui";
 import { MeusAvisos } from "./Avisos";
 import { MeuRosto } from "./Rosto";
@@ -59,10 +62,11 @@ function AcessoRapido({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void
 
 /** Logo do topo: tocar volta ao início (a tela inicial do perfil). */
 function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
+  const logoErp = useAparencia().logo_erp;
   return (
     <Link to="/" onClick={() => { onIr?.(); window.scrollTo({ top: 0 }); }} aria-label="ERP Line: voltar ao início" title="Voltar ao início"
       className={`flex shrink-0 items-center rounded-xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-ice ${compacta ? "gap-2" : "gap-3"}`}>
-      <img src={logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl ring-1 ring-white/10`} />
+      <img src={logoErp || logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl object-cover ring-1 ring-white/10`} />
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
       <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
         <span className="block text-lg font-bold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
@@ -92,6 +96,8 @@ function SeletorUnidade({ compacto }: { compacto?: boolean }) {
 
 export function Layout() {
   const perfil = usePerfil();
+  // configurações da empresa carregadas em toda tela: trazem a aparência (cores, fontes e logo) de Sobre → Design
+  useConfig();
   const vis = useVisivel();
   const location = useLocation();
   // trocou de tela (ex.: tocou num aviso do painel): começa do alto, e não no meio da página de antes
@@ -283,7 +289,7 @@ export function Layout() {
                       setAreaAberta(aberta && !buscando ? null : g.id);
                     }}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/5 2xl:gap-2.5">
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${g.cor} text-white shadow-sm`}><Icone size={16} /></span>
+                    <IconeArea id={g.id} Icone={Icone} tamanho={16} caixa="h-8 w-8 rounded-lg shadow-sm" degrade={g.cor} />
                     <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{g.titulo}</span>
                     <ChevronDown size={16} className={`shrink-0 text-nav-fraco transition ${aberta ? "rotate-180" : ""}`} />
                   </button>
@@ -396,7 +402,7 @@ export function Layout() {
               return (
                 <button key={g.id} type="button" onClick={() => { setCriar(false); setAberto(false); navigate(acao.to, { state: acao.state }); }}
                   className="flex items-center gap-2.5 rounded-2xl bg-white/5 p-3 text-left text-white active:scale-[.98]">
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${g.cor ?? "from-brand to-brand-dark"}`}><Icone size={18} /></span>
+                  <IconeArea id={g.id} Icone={Icone} tamanho={18} caixa="h-9 w-9 rounded-xl" degrade={g.cor} />
                   <span className="min-w-0"><span className="block text-sm font-semibold">{acao.label}</span><span className="block truncate text-2xs font-normal text-nav-fraco">{acao.dica}</span></span>
                 </button>
               );
@@ -475,6 +481,7 @@ export function AlterarSenha({ onClose }: { onClose: () => void }) {
 function Aparencia({ onClose }: { onClose: () => void }) {
   const [tema, setTema] = useState<Tema>(lerTema());
   const [cor, setCor] = useState<Destaque>(lerDestaque());
+  const corMarca = useAparencia().cor_marca;
   const [fundo, setFundo] = useState<Fundo>(lerFundo());
   // salva no perfil: a mesma aparência aparece em qualquer aparelho em que a pessoa entrar
   const salvar = (p: Record<string, string>) => { supabase.rpc("salvar_preferencias", { p }).then(() => null); };
@@ -517,7 +524,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
         <div>
           <div className="mb-2 text-sm font-bold text-fg">Cor de destaque</div>
           <div className="grid grid-cols-2 gap-3">
-            {DESTAQUES.map((d) => (
+            {DESTAQUES.filter((d) => d.value !== "marca" || corValida(corMarca)).map((d) => ({ ...d, cor: d.value === "marca" ? corMarca! : d.cor })).map((d) => (
               <button key={d.value} type="button" onClick={() => escolherCor(d.value)}
                 className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${cor === d.value ? "border-brand" : "border-slate-200 hover:border-slate-300"}`}>
                 <span className="relative flex">

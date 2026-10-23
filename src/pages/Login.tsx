@@ -4,6 +4,7 @@ import { DEMO, supabase } from "@/lib/supabase";
 import { entrarDemo, USUARIOS_DEMO } from "@/lib/demo";
 import { PAPEIS } from "@/lib/permissoes";
 import logo from "@/assets/logo.webp";
+import { useAparencia } from "@/lib/aparencia";
 import { Button, Card, Field } from "@/components/ui";
 
 export default function Login({ linkExpirado = false }: { linkExpirado?: boolean }) {
@@ -44,10 +45,12 @@ export const URL_NOVA_SENHA = () => `${window.location.origin}/?nova-senha=1`;
 export const MOLDURA = "flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4";
 
 export function Marca({ sub }: { sub: string }) {
+  // o logo da empresa (Sobre → Design), pela cópia guardada no aparelho: aqui ainda não entrou ninguém
+  const logoErp = useAparencia().logo_erp;
   return (
     <>
       <div className="mb-5 flex flex-col items-center text-center">
-        <img src={logo} alt="" className="mb-3 h-20 w-20 rounded-2xl shadow-pop" />
+        <img src={logoErp || logo} alt="" className="mb-3 h-20 w-20 rounded-2xl object-cover shadow-pop" />
         <h1 className="text-2xl font-bold tracking-tight text-fg">ERP <span className="text-brand">Line</span></h1>
         <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">MF Máquinas</span>
       </div>

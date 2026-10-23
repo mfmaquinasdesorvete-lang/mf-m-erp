@@ -10,6 +10,7 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { Link } from "react-router-dom";
 import { Check, Download, IceCreamCone, Link2, Lock, Pencil, Plus, Search, Store, Undo2, Wallet, X } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, PageHeader, Tabs } from "@/components/ui";
+import { useAparencia } from "@/lib/aparencia";
 import type { Equipamento } from "@/lib/types";
 import { CustosAba, FichaUnidade, MaquinasAba, UnidadesLista } from "@/components/licenciados/Unidades";
 import { confirmar } from "@/components/Dialogos";
@@ -45,6 +46,7 @@ type Aba = "unidades" | "custos" | "maquinas" | "pagamentos" | "quiosques";
 const GastosQuiosques = lazy(() => import("./GastosQuiosques"));
 
 export default function Licenciados() {
+  const logoMyFrost = useAparencia().marcas?.find((m) => m.id === "myfrost")?.url;
   const invalidar = useInvalidate();
   const { unidades } = useUnidade();
   const { data: lojas = [], isLoading } = useRows<Loja>("licenciados_lojas", { order: "ordem", ascending: true });
@@ -214,7 +216,7 @@ export default function Licenciados() {
   const sugestoesVistas = verTodas ? lista : lista.slice(0, 12);
   return (
     <div>
-      <PageHeader title="My Frost Sorveterias" subtitle="As unidades licenciadas: endereços, contratos, máquinas, custos de montar e o que cada uma pagou"
+      <PageHeader title="My Frost Sorveterias" logo={logoMyFrost} subtitle="As unidades licenciadas: endereços, contratos, máquinas, custos de montar e o que cada uma pagou"
         actions={<>
           <MaisAcoes>
             <Button variant="secondary" onClick={() => setEditPag({ data: hoje(), tipo: "licenca", forma: "pix", origem: "manual", loja_id: lojaSel || lojas[0]?.id })} disabled={!lojas.length}><Plus size={16} /> Lançar pagamento</Button>

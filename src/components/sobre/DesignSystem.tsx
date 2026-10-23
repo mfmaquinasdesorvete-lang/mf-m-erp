@@ -10,6 +10,9 @@ import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { SeloCidade } from "@/components/SeloCidade";
 import { SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 import { brl } from "@/lib/format";
+import { usePerfil } from "@/lib/auth";
+import { useAparencia } from "@/lib/aparencia";
+import { EditorAparencia } from "@/components/sobre/EditorAparencia";
 
 // cor de cada área (o --modulo de index.css), para o ponto da escolha
 const AREAS = [
@@ -57,6 +60,8 @@ function Bloco({ titulo, peca, children, texto }: { titulo: string; peca: string
 }
 
 export function DesignSystem() {
+  const { papel, master } = usePerfil();
+  const corAreas = useAparencia().cores_areas ?? {};
   const [area, setArea] = useState(() => document.documentElement.dataset.modulo || "inicio");
   // pinta a vitrine com a área escolhida e devolve a cor da tela ao sair (como o PDV faz com Vendas)
   useEffect(() => {
@@ -77,6 +82,7 @@ export function DesignSystem() {
 
   return (
     <div className="space-y-4">
+      {(papel === "admin" || master) && <EditorAparencia />}
       <Card className="p-4 sm:p-5">
         <p className="text-sm text-slate-600">
           Todas as peças do visual do ERP num lugar só. Toda tela nova usa estas peças, e as telas antigas vão passando
@@ -88,7 +94,7 @@ export function DesignSystem() {
             <button key={a.id} type="button" aria-pressed={area === a.id} onClick={() => setArea(a.id)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition
                 ${area === a.id ? "border-modulo bg-modulo-escuro text-white" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
-              <span className="h-2.5 w-2.5 rounded-full ring-1 ring-white/60" style={{ background: `rgb(${a.cor})` }} aria-hidden />{a.rotulo}
+              <span className="h-2.5 w-2.5 rounded-full ring-1 ring-white/60" style={{ background: corAreas[a.id] ?? `rgb(${a.cor})` }} aria-hidden />{a.rotulo}
             </button>
           ))}
         </div>

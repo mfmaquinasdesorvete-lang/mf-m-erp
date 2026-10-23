@@ -17,8 +17,11 @@ import "@fontsource/poppins/700.css";
 import "@fontsource/great-vibes/latin-400.css";
 import "./index.css";
 import { aplicarDestaque, aplicarFundo, aplicarTema, lerDestaque, lerFundo, lerTema } from "./lib/tema";
+import { aparenciaAtual, aplicarAparencia } from "./lib/aparencia";
 
 // Tema escuro por padrão; a escolha fica salva no aparelho.
+// cores, fontes e logo da empresa (a cópia guardada no aparelho; a do banco chega com as configurações)
+aplicarAparencia(aparenciaAtual());
 aplicarFundo(lerFundo());
 aplicarTema(lerTema());
 aplicarDestaque(lerDestaque());

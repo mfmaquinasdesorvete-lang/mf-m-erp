@@ -33,9 +33,10 @@ export default {
       },
       borderColor: { DEFAULT: v("slate-200") },
       fontFamily: {
-        sans: ['"DM Sans Variable"', '"DM Sans"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        // a fonte vem da aparência da empresa (Sobre → Design); o padrão (DM Sans e Poppins) fica em index.css
+        sans: ["var(--fonte-texto)", '"DM Sans Variable"', '"DM Sans"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
         // títulos, números grandes, botões, abas e menu (design system: Poppins + DM Sans)
-        display: ["Poppins", '"DM Sans Variable"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["var(--fonte-titulos)", "Poppins", '"DM Sans Variable"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
       },
       // escala de letra (design system): 2xs 11px (etiquetas e chips), xs, sm, base, lg, xl, 2xl e 3xl — sem tamanhos soltos
       fontSize: { "2xs": "11px" },
