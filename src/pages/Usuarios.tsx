@@ -86,9 +86,10 @@ function AvatarEditavel({ u, foto }: { u: Usuario; foto?: string | null }) {
     } catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
   return (
-    <label className={`relative shrink-0 cursor-pointer ${ocupado ? "opacity-60" : ""}`} title={foto ? "Trocar a foto" : "Pôr foto"}>
+    <label className={`group relative shrink-0 cursor-pointer ${ocupado ? "opacity-60" : ""}`} title={foto ? "Trocar a foto" : "Pôr foto"}>
       <FotoUsuario nome={u.nome} foto={foto} tamanho={44} className="bg-slate-100 text-slate-700" />
-      <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-brand text-white ring-2 ring-surface"><Camera size={11} aria-hidden /></span>
+      {/* câmera cinza e discreta (não é sinal de "online" nem de acesso); no computador só aparece ao passar o mouse */}
+      <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-slate-600 text-white ring-2 ring-surface transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"><Camera size={11} aria-hidden /></span>
       <input type="file" accept="image/*" className="sr-only" disabled={ocupado} aria-label={`${foto ? "Trocar a foto" : "Pôr foto"} de ${u.nome}`}
         onChange={(e) => { trocar(e.target.files?.[0]); e.target.value = ""; }} />
     </label>
