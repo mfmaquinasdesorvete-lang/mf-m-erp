@@ -352,6 +352,18 @@ export const PROCESSOS: Processo[] = [
     ],
   },
   {
+    id: "conserto", area: "assistencia", nome: "Máquina que vem para conserto", resumo: "A máquina do cliente entra com nota, é consertada e volta com nota de retorno; o conserto é cobrado à parte.",
+    passos: [
+      { titulo: "Abrir a OS", quem: "assistencia", tela: "/assistencia", nota: "oficina, com a série" },
+      { titulo: "Nota de ida", quem: "cliente", nota: "com IE: ele emite a 5915" },
+      { titulo: "Sem IE: entrada", quem: "fiscal", tela: "/assistencia", nota: "OS → Notas: 1915" },
+      { titulo: "Conserto", quem: "tecnico", tela: "/assistencia" },
+      { titulo: "Cobrar o conserto", quem: "financeiro", tela: "/assistencia", nota: "serviço e peças" },
+      { titulo: "Nota de volta", quem: "fiscal", tela: "/assistencia", nota: "OS → Notas: 5916" },
+      { titulo: "Entregar", quem: "logistica", tela: "/assistencia", nota: "DANFE junto" },
+    ],
+  },
+  {
     id: "os-celular", area: "assistencia", nome: "OS pelo celular do técnico", resumo: "O técnico na bancada ou no cliente, com a OS no celular, sem o menu do ERP.",
     passos: [
       { titulo: "Abrir o app", quem: "tecnico", nota: "instalado no celular" },

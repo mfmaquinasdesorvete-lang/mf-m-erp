@@ -33,6 +33,7 @@ import { usePerfil } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
+import { NotasConsertoOS } from "@/components/nfe/NotasConsertoOS";
 import { DocumentosExcluidos, ExcluirDocumento } from "@/components/ExcluirDocumento";
 import { pixCopiaECola } from "@/lib/cobranca";
 import { CONDICAO_REMOTA, EQUIPAMENTO_A_CONFIRMAR, deCampoHora, passoVideo, termoVideo, paraCampoHora, quandoAgendado, valorVideo } from "@/lib/osVideo";
@@ -510,7 +511,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     { value: "fotos", label: `Fotos (${o.fotos?.length ?? 0})` },
     { value: "pecas", label: "Peças e valores" },
     { value: "entrega", label: "Assinaturas" },
-    ...(o.id ? [{ value: "nota" as const, label: faturada ? "Nota de serviço ✓" : "Nota de serviço" }] : []),
+    ...(o.id ? [{ value: "nota" as const, label: faturada ? "Notas ✓" : "Notas" }] : []),
   ];
 
   return (
@@ -797,6 +798,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
         )}
 
         {aba === "nota" && <NfseOS os={o} telefone={cliente?.whatsapp ?? cliente?.telefone} />}
+        {aba === "nota" && o.atendimento !== "video" && <NotasConsertoOS os={o} cliente={cliente} />}
 
         {aba === "entrega" && (
           <div className="grid gap-5 md:grid-cols-2">

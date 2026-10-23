@@ -25,9 +25,12 @@ import { ClienteBusca } from "@/components/ClienteBusca";
 
 const COM_NOTA = ["autorizada", "processando", "contingencia"];
 
-export function EmitirNfeModal({ onClose }: { onClose: () => void }) {
+/** Nota direta já preenchida (ex.: a OS abre a nota de entrada ou de volta da máquina do conserto). */
+export type InicialNota = { operacao?: string; unidade_id?: string | null; cliente_id?: string; itens?: Item[]; obs?: string; chave?: string };
+
+export function EmitirNfeModal({ onClose, inicial }: { onClose: () => void; inicial?: InicialNota }) {
   const [forma, setForma] = useState<"direta" | "pedido">("direta");
-  return forma === "direta" ? <NotaDireta onClose={onClose} trocar={() => setForma("pedido")} /> : <DoPedido onClose={onClose} trocar={() => setForma("direta")} />;
+  return forma === "direta" ? <NotaDireta onClose={onClose} trocar={() => setForma("pedido")} inicial={inicial} /> : <DoPedido onClose={onClose} trocar={() => setForma("direta")} />;
 }
 
 function Escolha({ forma, trocar }: { forma: "direta" | "pedido"; trocar: () => void }) {
@@ -72,7 +75,7 @@ export function Conferencia({ titulo, pendencias, onVoltar, onEmitir }: { titulo
 }
 
 /** NF-e direta: sem pedido. Cliente, operação (venda, remessa, garantia… ou uma entrada) e itens. */
-function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => void }) {
+function NotaDireta({ onClose, trocar, inicial }: { onClose: () => void; trocar: () => void; inicial?: InicialNota }) {
   const { unidades, padrao } = useUnidade();
   const invalidar = useInvalidate();
   const ambiente = useAmbiente();
@@ -83,16 +86,16 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
   const { data: notasCliente = [] } = useRows<{ id: string; numero: string | null; serie: string | null; chave: string | null; created_at: string; valor_total: number; cliente_id: string | null; status: string; tipo_operacao: string | null; destinatario_doc: string | null }>("notas_fiscais", {
     select: "id, numero, serie, chave, created_at, valor_total, cliente_id, status, tipo_operacao, destinatario_doc", order: "created_at", ascending: false,
   });
-  const [unidadeId, setUnidadeId] = useState<string | null>(padrao);
-  const [clienteId, setClienteId] = useState("");
-  const [operacao, setOperacao] = useState("venda");
+  const [unidadeId, setUnidadeId] = useState<string | null>(inicial?.unidade_id ?? padrao);
+  const [clienteId, setClienteId] = useState(inicial?.cliente_id ?? "");
+  const [operacao, setOperacao] = useState(inicial?.operacao ?? "venda");
   const [natureza, setNatureza] = useState("");
-  const [itens, setItens] = useState<Item[]>([]);
+  const [itens, setItens] = useState<Item[]>(inicial?.itens ?? []);
   const [desconto, setDesconto] = useState("");
   const [frete, setFrete] = useState("");
   const [modalidade, setModalidade] = useState(9);
-  const [obs, setObs] = useState("");
-  const [chaveRef, setChaveRef] = useState("");
+  const [obs, setObs] = useState(inicial?.obs ?? "");
+  const [chaveRef, setChaveRef] = useState(inicial?.chave ?? "");
   const [conferindo, setConferindo] = useState<Pendencia[] | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const op = operacaoNota(operacao)!;
