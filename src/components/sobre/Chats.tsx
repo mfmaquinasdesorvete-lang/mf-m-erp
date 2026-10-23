@@ -9,7 +9,7 @@ import { useRows } from "@/lib/data";
 import { copiar } from "./Guardanapo";
 import { CentralChats } from "./CentralChats";
 
-type Chat = { id: string; ordem: number; nome: string; faz: string; exemplos: string | null; sessao: string; cor: string; ativo: boolean };
+type Chat = { id: string; ordem: number; sigla: string | null; nome: string; faz: string; exemplos: string | null; sessao: string; cor: string; ativo: boolean };
 
 const CORES: Record<string, string> = {
   slate: "from-fixo-slate-600 to-fixo-slate-800", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
@@ -25,7 +25,7 @@ export function Chats() {
   const [busca, setBusca] = useState("");
   const ativos = data.filter((c) => c.ativo);
   const termo = semAcento(busca.trim());
-  const visiveis = ativos.filter((c) => !termo || semAcento(`${c.nome} ${c.faz} ${c.exemplos ?? ""}`).includes(termo));
+  const visiveis = ativos.filter((c) => !termo || semAcento(`${c.sigla ?? ""} ${c.nome} ${c.faz} ${c.exemplos ?? ""}`).includes(termo));
 
   return (
     <div className="space-y-4">
@@ -33,11 +33,12 @@ export function Chats() {
       <p className="text-sm text-slate-600">
         Cada chat cuida só do seu assunto e todos seguem as mesmas regras (só um publica por vez, tudo entra em Pedidos).
         Para chegar rápido: toque em <b>Abrir chat</b>. No app do Claude, os chats ficam em <b>Code</b>, com o mesmo nome.
-        Não sabe para qual chat levar? Escreva no chat principal.
+        Não sabe para qual chat levar? Escreva no chat principal (ELO, o CEO dos chats). Cada chat tem um nome de 3 letras e
+        uma skill que lembra o que ele faz e as regras da casa.
       </p>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input aria-label="Procurar chat por assunto" className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar por assunto (ex.: nota, Tiny, extrato)" />
+        <input aria-label="Procurar chat por assunto" className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar por assunto ou sigla (ex.: nota, Tiny, FIS)" />
       </div>
 
       {isLoading && <p className="py-6 text-center text-slate-500">Carregando…</p>}
@@ -46,7 +47,10 @@ export function Chats() {
         {visiveis.map((c) => (
           <Card key={c.id} className="flex flex-col overflow-hidden">
             <div className={`bg-gradient-to-r ${CORES[c.cor] ?? CORES.slate} px-4 py-3 text-white`}>
-              <h3 className="font-bold">{c.nome.replace(/^ERP Line – /, "")}</h3>
+              <h3 className="flex items-center gap-2 font-bold">
+                {c.sigla && <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider" title="Nome de 3 letras do chat">{c.sigla}</span>}
+                {c.nome.replace(/^ERP Line – /, "")}
+              </h3>
               <span className="text-xs opacity-90">{c.nome}</span>
             </div>
             <div className="flex flex-1 flex-col gap-2 p-4">

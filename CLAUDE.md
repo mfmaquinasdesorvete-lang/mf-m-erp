@@ -27,35 +27,39 @@
   Não cobrado) entram com o mesmo nome.
 - Chats por assunto (cada um cuida só do seu; se o assunto aparecer no chat errado, avisar a usuária para levar
   para o certo):
-  - "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
+  - FIS "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
     parcelamentos, contador.
-  - "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) da MF.
-  - "ERP Line – My Frost": tudo da My Frost (empresa anterior): base antiga, clientes e máquinas dela, notas e XML,
+  - TIN "ERP Line – Importações do Tiny": tudo o que vem do Tiny (API, planilhas, backups) da MF.
+  - MYF "ERP Line – My Frost": tudo da My Frost (empresa anterior): base antiga, clientes e máquinas dela, notas e XML,
     propostas, advogado, auditoria fiscal das notas dela e a separação MF × My Frost.
-  - "ERP Line – My Frost Sorveterias e Yozzy": as lojas My Frost Sorveterias (licenciadas e próprias) e as Yozzy:
+  - SOR "ERP Line – My Frost Sorveterias e Yozzy": as lojas My Frost Sorveterias (licenciadas e próprias) e as Yozzy:
     unidades, contratos, sócios, máquinas das lojas, custos, pagamentos, licenças e o plano fiscal delas.
-  - "ERP Line – Marketplaces": vendas da MF no Mercado Livre, Google Shopping e outros canais online (anúncios,
+  - MKT "ERP Line – Marketplaces": vendas da MF no Mercado Livre, Google Shopping e outros canais online (anúncios,
     estoque e preço, pedidos que entram sozinhos, NF do pedido, envio, perguntas, pós-venda e custos por canal).
     Compras feitas em marketplaces ficam no "continuação".
-  - "ERP Line – Transportadoras": transportadoras e fretes (cadastro, cotação, coleta, etiquetas, rastreio, CT-e e
+  - TRA "ERP Line – Transportadoras": transportadoras e fretes (cadastro, cotação, coleta, etiquetas, rastreio, CT-e e
     faturas das transportadoras, integrações como a Rodonaves). Crédito fiscal do CT-e fica no "Fiscal e contábil".
-  - "ERP Line – Técnicos": técnicos próprios e parceiros (cadastro, região, app do técnico, OS que eles atendem,
+  - TEC "ERP Line – Técnicos": técnicos próprios e parceiros (cadastro, região, app do técnico, OS que eles atendem,
     pagamentos e comunicação). O resto da assistência e das máquinas fica no "continuação".
-  - "ERP Line – Cadastro de clientes": o cadastro de clientes da MF (dados completos e certos, conferência com a Receita,
+  - CLI "ERP Line – Cadastro de clientes": o cadastro de clientes da MF (dados completos e certos, conferência com a Receita,
     IE baixada, repetidos e unificação, endereços, marcadores, cliente desde, Ficha 360). Importação do Tiny fica no
     "Importações do Tiny"; clientes da My Frost no "My Frost".
-  - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
-  - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
-  - "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
+  - DSG "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
+  - SEG "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
+  - CAR "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
     gastos pessoais e o encontro de contas com as empresas. Dados pessoais não saem desse chat.
-  - "ERP Line – Entradas nas contas da MF": de onde veio cada entrada nos bancos da MF (vendas, clientes,
+  - ENT "ERP Line – Entradas nas contas da MF": de onde veio cada entrada nos bancos da MF (vendas, clientes,
     licenciados, cartão, Olist, InfinitePay, Inter, Mercado Pago) e a ligação com pedido, nota ou conta a receber.
-  - "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
-  - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
-  - "ERP Line – Conferência dos pedidos": confere se o que foi pedido a cada chat deu certo e está no ar, cobra os
+  - IAD "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
+  - GER "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
+  - CNF "ERP Line – Conferência dos pedidos": confere se o que foi pedido a cada chat deu certo e está no ar, cobra os
     chats parados e mostra o painel. Quando ele cobrar, responder a ele com send_message (o que deu certo, o que falta).
-  - "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
+  - DOC "ERP Line – Documentos (.md)": documentos em Markdown na pasta docs/ (módulos, processos, guias), gerados a partir
     do código e sem dados da empresa (o repositório é público).
-  - O chat principal (anterior) organiza os outros.
-  - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, o que faz, exemplos, sessao =
-    "session_…", cor), que aparece em Sobre → Chats; chat encerrado fica com ativo = false.
+  - ELO "ERP Line – chat principal": o CEO dos chats; organiza os outros e escreve as skills deles (agente em
+    `.claude/agents/elo.md`).
+  - Cada chat tem um nome de 3 letras (a sigla, na frente de cada linha acima) e a sua skill em
+    `.claude/skills/<sigla minúscula>/SKILL.md` (o que faz, o que leva para outro chat, regras e cuidados). Ao começar um
+    pedido, ler a skill do próprio chat; ao descobrir uma armadilha nova do assunto, acrescentar em "Cuidados conhecidos".
+  - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, sigla, o que faz, exemplos, sessao =
+    "session_…", cor), que aparece em Sobre → Chats, e pedir ao ELO a skill dele; chat encerrado fica com ativo = false.

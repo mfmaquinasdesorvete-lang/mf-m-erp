@@ -1557,14 +1557,14 @@ function renegociacaoDemo(db: Db) {
 
 /** Chats do Claude e publicações (exemplos para a Central dos chats; no sistema real: chats_claude e publicacoes) */
 function chatsDemo(db: Db) {
-  const chat = (ordem: number, nome: string, faz: string, cor: string) => ({ id: `ch${ordem}`, ordem, nome: `ERP Line – ${nome}`, faz, exemplos: null, sessao: `session_demo${ordem}`, cor, ativo: true, criado_em: quando(-5) });
+  const chat = (ordem: number, sigla: string, nome: string, faz: string, cor: string) => ({ id: `ch${ordem}`, ordem, sigla, nome: `ERP Line – ${nome}`, faz, exemplos: null, sessao: `session_demo${ordem}`, cor, ativo: true, criado_em: quando(-5) });
   db.chats_claude = [
-    chat(1, "chat principal", "Organiza os outros chats.", "slate"),
-    chat(2, "continuação", "Vendas, máquinas, cadastros, financeiro e produção.", "azul"),
-    chat(3, "Fiscal e contábil", "Impostos, notas fiscais e contador.", "verde"),
-    chat(4, "Importações do Tiny", "Tudo o que vem do Tiny.", "ambar"),
-    chat(5, "Design system", "O visual do ERP.", "violeta"),
-    chat(6, "Segurança", "Permissões, login e testes de segurança.", "vermelho"),
+    chat(1, "ELO", "chat principal", "Organiza os outros chats.", "slate"),
+    chat(2, "GER", "continuação", "Vendas, máquinas, cadastros, financeiro e produção.", "azul"),
+    chat(3, "FIS", "Fiscal e contábil", "Impostos, notas fiscais e contador.", "verde"),
+    chat(4, "TIN", "Importações do Tiny", "Tudo o que vem do Tiny.", "ambar"),
+    chat(5, "DSG", "Design system", "O visual do ERP.", "violeta"),
+    chat(6, "SEG", "Segurança", "Permissões, login e testes de segurança.", "vermelho"),
   ];
   const h = (horas: number) => new Date(Date.now() - horas * 3600e3).toISOString();
   db.publicacoes = [
