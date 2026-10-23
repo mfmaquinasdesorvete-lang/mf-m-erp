@@ -53,3 +53,6 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
 - A chave fica só no secret do Supabase (`ANTHROPIC_API_KEY`), nunca no código.
 - Sem a IA (chave ausente ou fora do ar) a tela continua funcionando do jeito manual.
 - No pedido à IA, mandar só o necessário; nada da carteira pessoal.
+- iPhone/iPad com o ERP aberto pelo ícone da tela inicial: a Apple não libera o reconhecimento de fala do navegador
+  (o microfone liga e não volta texto). `vozBloqueada()` em `src/lib/anotacoesVoz.ts` detecta e a janela usa o ditado do
+  teclado; no Safari normal funciona.
