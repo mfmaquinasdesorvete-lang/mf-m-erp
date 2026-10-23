@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   AlertTriangle, ArrowDown, ArrowUp, Ban, CheckCircle2, ClipboardCopy, FileSearch, GitCommitVertical, HelpCircle, Paperclip, Pencil, Plus, RotateCcw, Search, Trash2, Waypoints,
 } from "lucide-react";
-import { Button, Card, Field, Modal, Stat } from "@/components/ui";
+import { Button, Card, chip, Field, Modal, Stat } from "@/components/ui";
 import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { pedirTexto } from "@/components/Dialogos";
 import { usePerfil } from "@/lib/auth";
@@ -72,7 +72,7 @@ export function CadeiaCausas() {
             {lista.map((c) => (
               <li key={c.id}>
                 <button type="button" onClick={() => setAberta(c.id)} aria-pressed={atual?.id === c.id}
-                  className={`w-full rounded-xl p-3 text-left transition ${atual?.id === c.id ? "bg-modulo/10 ring-1 ring-modulo" : "hover:bg-slate-50"}`}>
+                  className={`linha-clicavel p-3 ${atual?.id === c.id ? "bg-modulo/10 ring-1 ring-modulo" : ""}`}>
                   <span className="block text-sm font-bold leading-snug text-fg">{c.titulo}</span>
                   <span className="mt-1 flex flex-wrap gap-1.5">
                     <span className={`rounded-full px-2 py-0.5 text-2xs font-bold ${COR_SITUACAO[c.situacao]}`}>{ROTULO_SITUACAO_CADEIA[c.situacao]}</span>
@@ -245,15 +245,15 @@ function EditorCadeia({ cadeia, onClose, onSalva }: { cadeia: Cadeia | null; onC
                 <div className="flex gap-1" role="group" aria-label={`Elo ${k + 1}: fato ou hipótese`}>
                   {(["fato", "hipotese"] as const).map((t) => (
                     <button key={t} type="button" aria-pressed={e.tipo === t} onClick={() => muda(k, { tipo: t, ...(t === "hipotese" && e.ligacao === "comprovada" ? { ligacao: "provavel" as const } : {}) })}
-                      className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${e.tipo === t ? (t === "fato" ? "border-slate-300 bg-ink text-white" : "border-amber-500 bg-amber-400 text-amber-950") : "border-slate-200 text-slate-600"}`}>
+                      className={chip(e.tipo === t, t === "fato" ? "border-slate-300 bg-ink text-white" : "border-amber-500 bg-amber-400 text-amber-950")}>
                       {ROTULO_TIPO[t]}
                     </button>
                   ))}
                 </div>
                 <span className="ml-auto flex gap-1">
-                  <button type="button" disabled={k === 0} onClick={() => move(k, -1)} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30" aria-label="Subir"><ArrowUp size={15} /></button>
-                  <button type="button" disabled={k === elos.length - 1} onClick={() => move(k, 1)} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30" aria-label="Descer"><ArrowDown size={15} /></button>
-                  <button type="button" disabled={elos.length === 1} onClick={() => setElos((l) => l.filter((_, n) => n !== k))} className="rounded p-1 text-red-600 hover:bg-red-50 disabled:opacity-30" aria-label="Tirar o elo"><Trash2 size={15} /></button>
+                  <button type="button" disabled={k === 0} onClick={() => move(k, -1)} className="botao-icone p-1" aria-label="Subir"><ArrowUp size={15} /></button>
+                  <button type="button" disabled={k === elos.length - 1} onClick={() => move(k, 1)} className="botao-icone p-1" aria-label="Descer"><ArrowDown size={15} /></button>
+                  <button type="button" disabled={elos.length === 1} onClick={() => setElos((l) => l.filter((_, n) => n !== k))} className="botao-icone-perigo p-1 disabled:opacity-30" aria-label="Tirar o elo"><Trash2 size={15} /></button>
                 </span>
               </div>
               <input className="input mt-2" value={e.texto} onChange={(ev) => muda(k, { texto: ev.target.value })} maxLength={300} placeholder="O que aconteceu" aria-label={`Elo ${k + 1}: o que aconteceu`} />

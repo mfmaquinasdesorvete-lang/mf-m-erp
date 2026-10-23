@@ -69,10 +69,9 @@ export function Chaves({ lista }: { lista: Vencimento[] }) {
           <p className="mb-2 text-xs font-semibold text-slate-700">{lista.length ? "Ainda falta cadastrar:" : "Comece por estes (você só preenche a data de vencimento):"}</p>
           <div className="flex flex-wrap gap-1.5">
             {faltam.map((s) => (
-              <button key={s.nome} type="button" onClick={() => setForm({ ...VAZIO, ...s, avisar_dias: String(s.avisar_dias) })}
-                className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100">
+              <Button key={s.nome} type="button" tamanho="mini" tom="fiscal" onClick={() => setForm({ ...VAZIO, ...s, avisar_dias: String(s.avisar_dias) })}>
                 <Plus size={12} aria-hidden /> {s.nome}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

@@ -105,7 +105,7 @@ export function MinhasEmpresas({ meusNomes }: { meusNomes: string[] }) {
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${CHIP[tom]}`}>{m.situacao ?? "a conferir"}{m.data_situacao && tom !== "ativa" ? ` em ${dataBR(m.data_situacao)}` : ""}</span>
                     </div>
                     <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-                      <Linha rotulo="CNPJ"><button type="button" className="inline-flex items-center gap-1 font-mono hover:underline" onClick={() => copiar(cnpjFormatado(m.cnpj))}>{cnpjFormatado(m.cnpj)} <Copy size={12} aria-hidden /></button></Linha>
+                      <Linha rotulo="CNPJ"><button type="button" className="link-discreto inline-flex items-center gap-1 font-mono" onClick={() => copiar(cnpjFormatado(m.cnpj))}>{cnpjFormatado(m.cnpj)} <Copy size={12} aria-hidden /></button></Linha>
                       {m.abertura && <Linha rotulo="Abertura">{dataBR(m.abertura)}</Linha>}
                       {(m.municipio || m.uf) && <Linha rotulo="Cidade">{[m.municipio, m.uf].filter(Boolean).join(" / ")}</Linha>}
                       {m.capital_social != null && <Linha rotulo="Capital social">{brl(m.capital_social)}</Linha>}
@@ -129,8 +129,8 @@ export function MinhasEmpresas({ meusNomes }: { meusNomes: string[] }) {
                               <span className="font-mono">{cnpjFormatado(f.cnpj)}</span>
                               <span>{[f.municipio, f.uf].filter(Boolean).join(" / ")}</span>
                               <span className={`rounded-full px-1.5 font-semibold ${CHIP[tomSituacao(f.situacao)]}`}>{f.situacao ?? "a conferir"}</span>
-                              <button type="button" className="text-slate-500 hover:text-fg" onClick={() => conferir(f)} aria-label={`Conferir a filial ${cnpjFormatado(f.cnpj)} na Receita`}>{conferindo === f.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}</button>
-                              <button type="button" className="text-red-600" onClick={() => tirar(f)} aria-label={`Tirar a filial ${cnpjFormatado(f.cnpj)}`}><Trash2 size={12} /></button>
+                              <button type="button" className="botao-icone p-0.5" onClick={() => conferir(f)} aria-label={`Conferir a filial ${cnpjFormatado(f.cnpj)} na Receita`}>{conferindo === f.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}</button>
+                              <button type="button" className="botao-icone-perigo p-0.5" onClick={() => tirar(f)} aria-label={`Tirar a filial ${cnpjFormatado(f.cnpj)}`}><Trash2 size={12} /></button>
                             </li>
                           ))}
                         </ul>

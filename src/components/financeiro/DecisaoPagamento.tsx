@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { confirmar } from "@/components/Dialogos";
 import { Ban, CalendarClock, Check, CheckCheck, Wallet, X } from "lucide-react";
-import { BotaoAtalho, Button, COR_ATALHO, Field, Modal } from "@/components/ui";
+import { BotaoAtalho, Button, chip, COR_ATALHO, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje as hojeISO, pl } from "@/lib/format";
 import { somarDias } from "@/lib/financeiro";
@@ -126,7 +126,7 @@ export function ModalAgendar({ contas, onClose }: { contas: Conta[]; onClose: ()
         <div className="flex flex-wrap gap-1.5">
           {atalhos.map(([r, d]) => (
             <button key={r} type="button" onClick={() => setDia(d)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${dia === d ? "border-solido-azul bg-solido-azul text-white" : "border-slate-300 text-slate-700 hover:border-sky-500"}`}>
+              className={chip(dia === d, "border-solido-azul bg-solido-azul text-white")}>
               {r} <span className="font-normal opacity-90">{dataBR(d).slice(0, 5)}</span>
             </button>
           ))}
@@ -162,7 +162,7 @@ export function ModalNaoPagar({ contas, onClose }: { contas: Conta[]; onClose: (
         <div className="flex flex-wrap gap-1.5">
           {MOTIVOS.map((m) => (
             <button key={m} type="button" onClick={() => setMotivo(m)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${motivo === m ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300 text-slate-700 hover:border-slate-500"}`}>{m}</button>
+              className={chip(motivo === m, "border-slate-700 bg-slate-700 text-white")}>{m}</button>
           ))}
         </div>
         <Field label="Por quê? (fica no histórico)"><input className="input" value={motivo} onChange={(e) => setMotivo(e.target.value)} required minLength={3} autoFocus /></Field>

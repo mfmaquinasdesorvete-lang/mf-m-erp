@@ -4,7 +4,7 @@
 // mesmas funções da conciliação de uma linha (conciliar_em_lote), e a linha que uma trava recusar fica pendente.
 import { useMemo, useState, type FormEvent } from "react";
 import { Ban, Check, ChevronDown, ChevronUp, ListChecks, Receipt, Search, Users } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, chip, Field, Modal } from "@/components/ui";
 import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, pl } from "@/lib/format";
@@ -218,7 +218,7 @@ function LoteModal({ grupo, acaoInicial, regra, cadastro, ligacao, onClose }: {
           <div className="flex flex-wrap gap-1">
             {([["lancar", saida ? "Lançar como despesa" : "Lançar como receita", Receipt], ["ignorar", "Ignorar", Ban]] as const).map(([v, l, I]) => (
               <button key={v} type="button" onClick={() => setAcao(v)} aria-pressed={acao === v}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${acao === v ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}><I size={14} /> {l}</button>
+                className={chip(acao === v)}><I size={14} /> {l}</button>
             ))}
           </div>
           {acao === "lancar" ? (

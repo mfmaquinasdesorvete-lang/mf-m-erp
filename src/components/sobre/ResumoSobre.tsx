@@ -24,7 +24,7 @@ function Bloco({ titulo, icone: Icone, cor, abrir, rotuloAbrir, children }: {
       <div className="mb-3 flex items-center gap-2.5">
         <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${cor} text-white shadow-sm`} aria-hidden><Icone size={16} /></span>
         <h2 className="min-w-0 flex-1 truncate text-base font-bold text-fg">{titulo}</h2>
-        <button type="button" onClick={abrir} className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-modulo-texto hover:underline">
+        <button type="button" onClick={abrir} className="link-modulo inline-flex shrink-0 items-center gap-1 text-xs">
           {rotuloAbrir} <ArrowRight size={13} aria-hidden />
         </button>
       </div>

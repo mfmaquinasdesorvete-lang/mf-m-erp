@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, Ban, Check, ChevronDown, ChevronRight, ClipboardCopy, CreditCard, FileCheck2, Hourglass, Info, Link2, Receipt, User, X,
 } from "lucide-react";
-import { Button, Modal } from "@/components/ui";
+import { Button, chip, Modal } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
@@ -175,7 +175,7 @@ function BarrasCategoria({ linhas, total, ativa, onEscolher }: { linhas: ReturnT
           <li key={l.categoria}>
             {onEscolher ? (
               <button type="button" aria-pressed={ativa === l.categoria} onClick={() => onEscolher(ativa === l.categoria ? null : l.categoria)}
-                className={`flex w-full items-center gap-2 rounded-lg px-1.5 py-0.5 text-left ${ativa === l.categoria ? "bg-brand/10 ring-1 ring-brand" : "hover:bg-slate-50"}`}>{conteudo}</button>
+                className={`linha-clicavel flex items-center gap-2 px-1.5 py-0.5 ${ativa === l.categoria ? "bg-brand/10 ring-1 ring-brand" : ""}`}>{conteudo}</button>
             ) : <div className="flex items-center gap-2 px-1.5">{conteudo}</div>}
           </li>
         );
@@ -224,7 +224,7 @@ function CartaoDetalhe({ cartao: c, inicial, soFalta, onClose }: { cartao: Carta
           <div className="flex flex-wrap gap-1" role="tablist" aria-label="Período">
             {PERIODOS_CARTAO.map((p) => (
               <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${periodo === p.id ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{p.rotulo}</button>
+                className={chip(periodo === p.id)}>{p.rotulo}</button>
             ))}
           </div>
           <span className="text-xs text-slate-500">{dataBR(intervalo.de)}{intervalo.ate !== intervalo.de ? ` a ${dataBR(intervalo.ate)}` : ""}{c.extrato_ate && c.extrato_ate < intervalo.ate ? ` · extrato até ${dataBR(c.extrato_ate)}` : ""}</span>
@@ -257,7 +257,7 @@ function CartaoDetalhe({ cartao: c, inicial, soFalta, onClose }: { cartao: Carta
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Mostrar">
           {([["todos", "Todas"], ["falta", "Falta nota"], ["ok", "Com nota"]] as [Filtro, string][]).map(([v, r]) => (
             <button key={v} type="button" role="tab" aria-selected={filtro === v} onClick={() => setFiltro(v)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${filtro === v ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{r}</button>
+              className={chip(filtro === v, "border-slate-800 bg-slate-800 text-white")}>{r}</button>
           ))}
         </div>
 
@@ -303,7 +303,7 @@ function LinhaGasto({ g, cat, est, casada, aberto, onAbrir, onMarcar }: {
   return (
     <li className="p-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={onAbrir} aria-expanded={aberto} aria-label={aberto ? "Fechar detalhes" : "Abrir detalhes"} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">
+        <button type="button" onClick={onAbrir} aria-expanded={aberto} aria-label={aberto ? "Fechar detalhes" : "Abrir detalhes"} className="botao-icone h-7 w-7">
           {aberto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         <div className="min-w-0 flex-1 basis-40">

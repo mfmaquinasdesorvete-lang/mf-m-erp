@@ -8,7 +8,7 @@ import {
   AlarmClock, Ban, Bot, Briefcase, Check, CheckCircle2, ClipboardCopy, Code2, Database, FileText, Flag, Globe, Hourglass, Lightbulb, ListTodo, Pencil, Play,
   Plus, RotateCcw, Scale, Store, Truck, UserRound, X, type LucideIcon,
 } from "lucide-react";
-import { Button, Card, Modal } from "@/components/ui";
+import { Button, Card, chip, Modal } from "@/components/ui";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
@@ -152,7 +152,7 @@ export function Handoff({ versao, onIrAba }: { versao: { numero: string; hash: s
                 if (r && !n && resp !== r) return null;
                 return (
                   <button key={r || "todos"} type="button" aria-pressed={resp === r} onClick={() => setResp(r)}
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${resp === r ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                    className={chip(resp === r, "border-transparent bg-modulo-escuro text-white")}>
                     {r ? ROTULO_RESPONSAVEL[r] : "Todos"} <span className="num opacity-80">{n}</span>
                   </button>
                 );
@@ -225,7 +225,7 @@ function LinhaPendencia({ i, dia, mostrarQuem, onEditar }: { i: ItemProjeto; dia
             {i.detalhe}
           </p>
         )}
-        {longo && <button type="button" onClick={() => setAberto((v) => !v)} className="text-xs font-semibold text-modulo-texto">{aberto ? "menos" : "ver tudo"}</button>}
+        {longo && <button type="button" onClick={() => setAberto((v) => !v)} className="link-modulo text-xs">{aberto ? "menos" : "ver tudo"}</button>}
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {i.situacao !== "aberta" && <ChipSituacao i={i} />}
           {mostrarQuem && i.responsavel && <ChipResponsavel r={i.responsavel} />}
@@ -286,12 +286,12 @@ function OQueE({ onIdeias }: { onIdeias: () => void }) {
   const [aberta, setAbertaState] = useState(() => { try { return localStorage.getItem(CHAVE) !== "fechada"; } catch { return true; } });
   const setAberta = (v: boolean) => { setAbertaState(v); try { localStorage.setItem(CHAVE, v ? "aberta" : "fechada"); } catch { /* sem armazenamento */ } };
   if (!aberta) {
-    return <button type="button" onClick={() => setAberta(true)} className="text-sm font-semibold text-modulo-texto hover:underline">O que é o Handoff e como usar?</button>;
+    return <button type="button" onClick={() => setAberta(true)} className="link-modulo text-sm">O que é o Handoff e como usar?</button>;
   }
   const tipos: { icone: LucideIcon; cor: string; titulo: string; texto: ReactNode; exemplo: string }[] = [
     { icone: ListTodo, cor: "from-sky-500 to-blue-700", titulo: "Pendência", texto: "Algo que precisa ser feito, com quem faz, prioridade e, se tiver, prazo.", exemplo: "Ex.: emitir a NF-e da venda #3 (empresa, alta)" },
     { icone: Scale, cor: "from-emerald-500 to-teal-700", titulo: "Decisão", texto: "Algo que já foi combinado e vale daqui para frente. Leia antes de mudar alguma coisa.", exemplo: "Ex.: o site só é publicado com o ok da empresa" },
-    { icone: Lightbulb, cor: "from-amber-500 to-orange-600", titulo: "Ideia", texto: <>Ainda não é trabalho: vai para <button type="button" onClick={onIdeias} className="font-semibold text-modulo-texto hover:underline">Ideias</button>, é votada e, se aprovada, vira pendência.</>, exemplo: "Ex.: avisar o cliente quando a máquina sair do conserto" },
+    { icone: Lightbulb, cor: "from-amber-500 to-orange-600", titulo: "Ideia", texto: <>Ainda não é trabalho: vai para <button type="button" onClick={onIdeias} className="link-modulo">Ideias</button>, é votada e, se aprovada, vira pendência.</>, exemplo: "Ex.: avisar o cliente quando a máquina sair do conserto" },
   ];
   const passos = [
     ["Comece pelos próximos passos", "são as pendências mais urgentes, já na ordem certa"],
@@ -301,7 +301,7 @@ function OQueE({ onIdeias }: { onIdeias: () => void }) {
   ];
   return (
     <Card className="relative p-4 sm:p-5">
-      <button type="button" onClick={() => setAberta(false)} aria-label="Fechar a explicação" title="Fechar a explicação" className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-fg"><X size={16} /></button>
+      <button type="button" onClick={() => setAberta(false)} aria-label="Fechar a explicação" title="Fechar a explicação" className="botao-icone absolute right-3 top-3"><X size={16} /></button>
       <h2 className="pr-8 text-base font-bold text-fg">O que é o Handoff</h2>
       <p className="text-sm text-slate-600">O caderno de trabalho do ERP: <b>onde ele está, o que falta e quem faz</b>, para qualquer pessoa (ou um chat novo do Claude) continuar sem perder nada.</p>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -331,7 +331,7 @@ function OQueE({ onIdeias }: { onIdeias: () => void }) {
 
 /** Como o ERP funciona, em linhas gerais (para quem vai continuar o trabalho). */
 function ComoFunciona({ onIrAba }: { onIrAba: (aba: "modulos" | "atualizacoes" | "ideias") => void }) {
-  const link = "font-semibold text-modulo-texto underline-offset-2 hover:underline";
+  const link = "link-modulo underline-offset-2";
   return (
     <Card className="p-4 sm:p-5">
       <h2 className="text-base font-bold text-fg">Como o ERP funciona</h2>

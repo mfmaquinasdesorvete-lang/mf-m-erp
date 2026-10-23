@@ -17,7 +17,7 @@ import {
   Receipt, Repeat, Search, ShieldCheck, ShoppingBag, ShoppingCart, Siren, Tag, TrendingUp, Undo2, Users, UtensilsCrossed, Wallet, X,
   type LucideIcon,
 } from "lucide-react";
-import { Button, Card, Field, MaisAcoes, Modal, nomeMes, PageHeader, Tabs } from "@/components/ui";
+import { Button, Card, chip, Field, MaisAcoes, Modal, nomeMes, PageHeader, Tabs } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { RegrasCards } from "@/components/pessoal/RegrasCards";
 import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
@@ -340,9 +340,9 @@ export default function Pessoal() {
             </div>
             {passo ? (
               <div className="flex items-center gap-1">
-                <button type="button" className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="Período anterior" onClick={() => setMes(somarMesPessoal(mes, -passo))}><ChevronLeft size={18} /></button>
+                <button type="button" className="botao-icone h-9 w-9" aria-label="Período anterior" onClick={() => setMes(somarMesPessoal(mes, -passo))}><ChevronLeft size={18} /></button>
                 <span className="min-w-0 text-sm font-bold text-fg">{rotuloPeriodo}</span>
-                <button type="button" className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40" aria-label="Próximo período"
+                <button type="button" className="botao-icone h-9 w-9" aria-label="Próximo período"
                   disabled={somarMesPessoal(mes, passo) > hoje().slice(0, 7) && periodo !== "ano"} onClick={() => setMes(somarMesPessoal(mes, passo))}><ChevronRight size={18} /></button>
                 {mes !== hoje().slice(0, 7) && <button type="button" className="link-acao ml-1 text-xs" onClick={() => setMes(hoje().slice(0, 7))}>Hoje</button>}
               </div>
@@ -566,9 +566,9 @@ export default function Pessoal() {
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: corDe(nomeConta(l.conta_id)?.cor) }} aria-hidden />
                     <span className="min-w-0 flex-1 truncate text-fg">{l.descricao}</span>
                     <span className={`num shrink-0 font-semibold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</span>
-                    <button type="button" onClick={() => pagar(l)} className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" title="Já foi pago ou recebido">
+                    <Button type="button" tamanho="mini" tom="enviar" onClick={() => pagar(l)} title="Já foi pago ou recebido">
                       <Check size={13} className="inline" aria-hidden /> Feito
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -599,7 +599,7 @@ export default function Pessoal() {
             <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label={`${g.nome} por tipo`}>
               {g.partes.map((pt) => (
                 <button key={pt.nome} type="button" aria-pressed={parte === pt.nome} onClick={() => setParte(parte === pt.nome ? "" : pt.nome)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${parte === pt.nome ? "border-brand bg-brand text-white" : pt.nome.includes("atraso") ? "border-red-200 bg-red-50 text-red-800" : "border-slate-200 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+                  className={parte === pt.nome ? chip(true) : pt.nome.includes("atraso") ? "chip border-red-200 bg-red-50 text-red-800" : chip(false)}>
                   {pt.nome} · {brl(pt.total)} <span className="font-normal opacity-80">({pt.qtd})</span>
                 </button>
               ))}
@@ -640,8 +640,7 @@ export default function Pessoal() {
                             <span className={`num shrink-0 font-bold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</span>
                             <span className="flex shrink-0 items-center gap-1">
                               {card?.naMF && l.valor < 0 && !l.anulado && (
-                                <button type="button" onClick={() => lancarNaMF(l, card)} title="Gasto da MF pago daqui: abre Contas a pagar da empresa já preenchido"
-                                  className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">Lançar na MF</button>
+                                <Button type="button" tamanho="mini" tom="logistica" onClick={() => lancarNaMF(l, card)} title="Gasto da MF pago daqui: abre Contas a pagar da empresa já preenchido">Lançar na MF</Button>
                               )}
                               <button type="button" className="botao-icone h-8 w-8" title="Sempre colocar lançamentos como este num card"
                                 onClick={() => setRegrasAbertas({ texto: textoSugerido(l.descricao), sentido: l.valor < 0 ? "saida" : "entrada", ativa: true, da_empresa: false, card: cl?.card && !cl.card.startsWith("meu:") ? cl.card : undefined })}

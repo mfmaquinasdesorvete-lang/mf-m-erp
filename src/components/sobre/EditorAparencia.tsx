@@ -174,7 +174,7 @@ export function EditorAparencia() {
               <div className="flex items-center gap-2">
                 <input className="input h-9" value={m.nome} placeholder="Nome da marca ou da sorveteria" onChange={(e) => mudarMarca(m.id, { nome: e.target.value })} aria-label="Nome" />
                 {!MARCAS_PADRAO.some((p) => p.id === m.id) && (
-                  <button type="button" onClick={() => mudar({ marcas: marcas.filter((x) => x.id !== m.id) })} title="Tirar este logo" aria-label="Tirar este logo" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600"><Trash2 size={16} /></button>
+                  <button type="button" onClick={() => mudar({ marcas: marcas.filter((x) => x.id !== m.id) })} title="Tirar este logo" aria-label="Tirar este logo" className="botao-icone-perigo p-2"><Trash2 size={16} /></button>
                 )}
               </div>
               <EnviarImagem rotulo="Logo" dica="PNG com fundo transparente." url={m.url} nome={`marca-${m.id}`} pasta={PASTA} onUrl={(u) => mudarMarca(m.id, { url: u })} />

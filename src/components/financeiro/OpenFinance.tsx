@@ -243,7 +243,7 @@ function ConectarBanco({ contas, ocupadas, existentes, onClose, onPronto }: {
             {externas.contas.map((a) => (
               <li key={a.id}>
                 <button type="button" disabled={ocupado} onClick={async () => { setOcupado(true); try { await ligar(item, a.id); } catch (e) { notifyError(e); } finally { setOcupado(false); } }}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-left hover:border-brand">
+                  className="cartao flex w-full items-center justify-between gap-3 p-3 text-left hover:border-brand">
                   <span><b className="text-fg">{a.nome}</b><span className="block text-xs text-slate-500">{a.tipo === "CREDIT" ? "Cartão de crédito" : "Conta"}</span></span>
                   {a.saldo != null && <span className="num font-semibold">{brl(a.saldo)}</span>}
                 </button>

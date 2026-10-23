@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Boxes, ChevronsDownUp, ChevronsUpDown, ExternalLink, Eye, IceCreamCone, Info, LayoutGrid, Lightbulb, Lock, Search, Settings, Wallet } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { Button, Card, chip, Stat } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { grupos, grupoDaRota, itensForaDoMenu, useVisivel, type Item } from "@/lib/menu";
 import { ONDE_ABRE, PAGINAS_POR_LINK, SOBRE_AREAS, SOBRE_TELAS } from "@/lib/modulos";
@@ -78,15 +78,14 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
         <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600">
           <input type="checkbox" checked={soMeu} onChange={(e) => setSoMeu(e.target.checked)} /> Só as que eu abro
         </label>
-        <button type="button" onClick={() => { setTudoAberto((v) => !v); setAbertos(new Set()); }} aria-pressed={tudoAberto}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+        <Button type="button" variant="secondary" className="h-10" onClick={() => { setTudoAberto((v) => !v); setAbertos(new Set()); }} aria-pressed={tudoAberto}>
           {tudoAberto ? <ChevronsDownUp size={16} aria-hidden /> : <ChevronsUpDown size={16} aria-hidden />} {tudoAberto ? "Fechar tudo" : "Abrir tudo"}
-        </button>
+        </Button>
       </div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Área">
         {[{ id: "", titulo: "Todas" }, ...todosBlocos].map((b) => (
           <button key={b.id || "todas"} type="button" aria-pressed={area === b.id} onClick={() => setArea(b.id)}
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${area === b.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+            className={chip(area === b.id, "border-transparent bg-modulo-escuro text-white")}>
             {b.titulo}
           </button>
         ))}
@@ -163,12 +162,12 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2">
         {d && (
           <button type="button" onClick={onAlternar} aria-expanded={aberto} aria-controls={idPartes}
-            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline">
+            className="link-acao inline-flex items-center gap-1 text-xs">
             {aberto ? "Mostrar menos" : "Saiba mais"} <ArrowRight size={14} className={`transition ${aberto ? "-rotate-90" : ""}`} aria-hidden />
           </button>
         )}
         {pode && <Link to={item.to} className="text-xs font-semibold text-slate-600 hover:text-fg hover:underline">Abrir a tela</Link>}
-        <button type="button" onClick={onIdeia} className="ml-auto grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600"
+        <button type="button" onClick={onIdeia} className="botao-icone ml-auto h-7 w-7"
           title={`Anotar ideia sobre ${item.label}`} aria-label={`Anotar ideia sobre ${item.label}`}><Lightbulb size={15} /></button>
       </div>
     </article>

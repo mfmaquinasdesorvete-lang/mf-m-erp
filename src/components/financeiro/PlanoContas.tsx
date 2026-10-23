@@ -100,7 +100,7 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
                 <li key={`${u.tipo}|${u.nome}`} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <b>{rotuloCategoria(u.nome)}</b>
                   <span className="text-xs">({u.tipo}) · {u.n} conta{u.n > 1 ? "s" : ""} · {brl(u.total)}</span>
-                  {podeEditar && <button type="button" className="ml-auto text-xs font-semibold underline" onClick={() => cadastrar(u)}>Cadastrar</button>}
+                  {podeEditar && <button type="button" className="link-acao ml-auto text-xs" onClick={() => cadastrar(u)}>Cadastrar</button>}
                 </li>
               ))}
               {semCategoria.receita > 0 && <li>{semCategoria.receita} conta{semCategoria.receita > 1 ? "s" : ""} a receber sem categoria</li>}
@@ -293,7 +293,7 @@ function LucroRealResumo({ cats, uso, podeEditar, criar }: {
             {faltam.map((c) => (
               <li key={c.nome} className="flex flex-wrap items-center gap-x-2">
                 <b>{rotuloCategoria(c.nome)}</b><span className="text-xs text-slate-500">{c.porque}</span>
-                {podeEditar && <button type="button" className="ml-auto text-xs font-semibold text-brand underline" onClick={() => criar(c.nome, c.grupo)}>Criar</button>}
+                {podeEditar && <button type="button" className="link-acao ml-auto text-xs" onClick={() => criar(c.nome, c.grupo)}>Criar</button>}
               </li>
             ))}
           </ul>

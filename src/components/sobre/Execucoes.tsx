@@ -3,7 +3,7 @@
 // próxima ação. Só o administrador vê e anota. Nada é apagado: o que não foi adiante fica "bloqueada".
 import { useMemo, useState, type FormEvent } from "react";
 import { ArrowRight, ClipboardList, Pencil, Plus } from "lucide-react";
-import { Button, Card, Field, Modal } from "@/components/ui";
+import { Button, Card, chip, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { pl } from "@/lib/format";
@@ -103,7 +103,7 @@ export function RegistroExecucoes({ onNova }: { onNova: (i: InicialExecucao) => 
         <div className="flex flex-wrap gap-1.5 px-4 pt-3" role="group" aria-label="Comando">
           {["", ...comandos].map((c) => (
             <button key={c || "todos"} type="button" aria-pressed={comando === c} onClick={() => setComando(c)}
-              className={`rounded-full px-3 py-1 font-mono text-xs font-semibold ring-1 ${comando === c ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>
+              className={`${chip(comando === c)} font-mono`}>
               {c || "Todos"} <span className="opacity-70">{c ? data.filter((e) => e.comando === c).length : data.length}</span>
             </button>
           ))}

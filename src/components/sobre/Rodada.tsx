@@ -8,7 +8,7 @@ import {
   AlertTriangle, ArrowDown, ArrowRight, Ban, CheckCircle2, CircleDashed, CircleDot, Code2, Database, FlaskConical, Globe, Hammer,
   HelpCircle, Lock, MessageSquare, OctagonX, ShieldCheck, Sparkles, Users, Wrench,
 } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { Button, Card, chip, Stat } from "@/components/ui";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { useRows } from "@/lib/data";
 import { brl, pl } from "@/lib/format";
@@ -110,7 +110,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
 
       <nav className="flex flex-wrap gap-1.5" aria-label="Partes da rodada">
         {SECOES.map(([id, nome]) => (
-          <button key={id} type="button" onClick={() => ir(id)} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">{nome}</button>
+          <button key={id} type="button" onClick={() => ir(id)} className={chip(false)}>{nome}</button>
         ))}
       </nav>
 
@@ -145,8 +145,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${f.quem === "contador" ? "bg-purple-100 text-purple-800" : "bg-sky-100 text-sky-800"}`}>{f.quem === "contador" ? "Contador" : "Você"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-slate-600"><Lock size={12} aria-hidden /> Segura: {f.bloqueia}</div>
-                <button type="button" onClick={() => onPendencia({ titulo: f.pergunta.slice(0, 160), detalhe: `Segura: ${f.bloqueia}`, responsavel: f.quem, prioridade: "alta", area: "geral" })}
-                  className="mt-auto w-fit rounded-lg bg-surface px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">Anotar no Handoff</button>
+                <Button type="button" tamanho="mini" variant="secondary" className="mt-auto w-fit" onClick={() => onPendencia({ titulo: f.pergunta.slice(0, 160), detalhe: `Segura: ${f.bloqueia}`, responsavel: f.quem, prioridade: "alta", area: "geral" })}>Anotar no Handoff</Button>
               </li>
             ))}
           </ul>
@@ -198,10 +197,10 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
       <section>
         <Titulo id="suposicoes" Icone={HelpCircle} sub="o que eu supus, o que acontece se estiver errado e como conferir">Suposições</Titulo>
         <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Risco">
-          <button type="button" aria-pressed={!risco} onClick={() => setRisco("")} className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${!risco ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200"}`}>Todas {R.suposicoes.length}</button>
+          <button type="button" aria-pressed={!risco} onClick={() => setRisco("")} className={chip(!risco)}>Todas {R.suposicoes.length}</button>
           {(["alto", "medio", "baixo"] as const).map((r) => (
             <button key={r} type="button" aria-pressed={risco === r} onClick={() => setRisco(risco === r ? "" : r)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${risco === r ? `${RISCO[r].chip} ring-2` : "bg-surface text-slate-700 ring-slate-200"}`}>{RISCO[r].nome} {R.suposicoes.filter((s) => s.risco === r).length}</button>
+              className={chip(risco === r, `border-transparent ${RISCO[r].chip} ring-2 ring-inset`)}>{RISCO[r].nome} {R.suposicoes.filter((s) => s.risco === r).length}</button>
           ))}
         </div>
         <ul className="space-y-2">

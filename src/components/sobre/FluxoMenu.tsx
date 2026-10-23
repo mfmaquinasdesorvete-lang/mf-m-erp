@@ -114,7 +114,7 @@ export function FluxoMenu() {
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${COR_GRAV[foco.gravidade].ponto}`} aria-hidden />
               <span className="min-w-0 flex-1"><b>Em destaque:</b> {foco.titulo}</span>
-              <button type="button" onClick={() => setFoco(null)} className="shrink-0 text-slate-500 hover:text-fg" aria-label="Tirar o destaque"><X size={16} /></button>
+              <button type="button" onClick={() => setFoco(null)} className="botao-icone p-0.5" aria-label="Tirar o destaque"><X size={16} /></button>
             </div>
           )}
           <div className="grid gap-3 border-t-2 border-slate-300 pt-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -2,7 +2,7 @@
 // Cada quadro filtra a lista de lançamentos. Sem mês escolhido, mostra também mês a mês.
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Fuel, Receipt, ShoppingBag, User } from "lucide-react";
-import { Card, nomeMes } from "@/components/ui";
+import { Button, Card, nomeMes } from "@/components/ui";
 import { brl, pl } from "@/lib/format";
 import { resumoPorMes, resumoPorTipo, TIPOS_LANC, type LancResumo, type TipoLanc } from "@/lib/extratoTipos";
 
@@ -85,8 +85,8 @@ export function AvisoContasRepetidas({ pares, nome, onEditar }: {
           </div>
           {onEditar && (
             <div className="flex shrink-0 gap-1">
-              <button type="button" className="rounded-lg border border-amber-300 bg-surface px-2 py-1 text-xs font-semibold hover:bg-amber-100" onClick={() => onEditar(p.a)}>Abrir “{nome(p.a)}”</button>
-              <button type="button" className="rounded-lg border border-amber-300 bg-surface px-2 py-1 text-xs font-semibold hover:bg-amber-100" onClick={() => onEditar(p.b)}>Abrir “{nome(p.b)}”</button>
+              <Button type="button" tamanho="mini" tom="logistica" onClick={() => onEditar(p.a)}>Abrir “{nome(p.a)}”</Button>
+              <Button type="button" tamanho="mini" tom="logistica" onClick={() => onEditar(p.b)}>Abrir “{nome(p.b)}”</Button>
             </div>
           )}
         </div>

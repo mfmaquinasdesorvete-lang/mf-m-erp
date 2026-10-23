@@ -141,7 +141,7 @@ export function LinkPagamentoModal({ conta, links, taxas, onClose }: { conta: Co
         {conta.status === "aberto" && !pago && (
           <div className="flex flex-wrap items-center justify-between gap-2">
             {aberto
-              ? <button type="button" className="text-xs text-slate-500 hover:underline" onClick={() => descartar(aberto.id)}>Tirar este link da conta</button>
+              ? <button type="button" className="link-discreto text-xs" onClick={() => descartar(aberto.id)}>Tirar este link da conta</button>
               : <span className="text-xs text-slate-500">{cartaoNoMP
                   ? "Cartão (até 12x) pelo Checkout do Mercado Pago; Pix pela InfinitePay."
                   : "O cliente escolhe Pix ou cartão (em até 12x) na página da InfinitePay."}

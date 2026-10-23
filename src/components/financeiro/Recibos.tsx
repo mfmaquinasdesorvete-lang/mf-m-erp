@@ -106,7 +106,7 @@ function BuscarContaPaga({ tipo, onEscolher }: { tipo: "recebimento" | "pagament
       <ul className="mt-1.5 max-h-44 space-y-1 overflow-y-auto">
         {lista.map((c) => (
           <li key={c.id}>
-            <button type="button" onClick={() => onEscolher(c)} className="flex w-full items-center gap-2 rounded-lg bg-surface px-2.5 py-1.5 text-left text-xs hover:bg-cyan-100">
+            <button type="button" onClick={() => onEscolher(c)} className="linha-clicavel flex items-center gap-2 bg-surface px-2.5 py-1.5 text-xs hover:bg-cyan-100">
               <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-fg">{nomeTerceiro(c) || c.descricao}</span><span className="block truncate text-xs text-slate-500">{c.descricao}</span></span>
               <span className="shrink-0 text-right"><span className="num block font-semibold">{brl(Number(c.valor_pago ?? c.valor))}</span><span className="num block text-xs text-slate-500">{c.data_pagamento ? `pago ${dataBR(c.data_pagamento)}` : ""}</span></span>
               {comRecibo.has(c.id) && <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 text-2xs font-bold text-emerald-800" title="Esta conta já tem recibo">tem recibo</span>}

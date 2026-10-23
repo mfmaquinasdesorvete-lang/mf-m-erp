@@ -86,7 +86,7 @@ function CartaoEmpresa({ s, onVerComprovante }: { s: SaldoEmpresa; onVerComprova
                 <span className="text-2xs text-slate-500">{NOME_TIPO_ENCONTRO[i.tipo]}</span>
               </span>
               {i.lanc.comprovante
-                ? <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-slate-500 hover:bg-slate-100" onClick={() => onVerComprovante(i.lanc.comprovante!)} aria-label={`Ver o comprovante de ${i.lanc.descricao}`}><Paperclip size={13} /></button>
+                ? <button type="button" className="botao-icone h-7 w-7" onClick={() => onVerComprovante(i.lanc.comprovante!)} aria-label={`Ver o comprovante de ${i.lanc.descricao}`}><Paperclip size={13} /></button>
                 : i.tipo !== "prolabore" && <span className="shrink-0 rounded bg-amber-100 px-1 text-2xs font-semibold text-amber-800">sem comprovante</span>}
               <span className="num ml-auto shrink-0 font-bold text-fg">{brl(i.valor)}</span>
             </li>

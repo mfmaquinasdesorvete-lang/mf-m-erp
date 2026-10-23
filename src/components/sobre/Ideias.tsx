@@ -2,7 +2,7 @@
 // administrador (avaliar, planejar, feita ou descartar com o motivo); a ideia aprovada vira pendência do Handoff.
 import { useMemo, useState, type FormEvent } from "react";
 import { Ban, CheckCircle2, ClipboardList, Columns3, Lightbulb, List, ListChecks, Pencil, RotateCcw, Sparkles, ThumbsUp, Zap, type LucideIcon } from "lucide-react";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, chip } from "@/components/ui";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { MenuAcoes } from "@/components/MenuAcoes";
@@ -211,7 +211,7 @@ function AnotarRapido({ onDetalhes }: { onDetalhes: (inicial: InicialItem) => vo
           {AREAS.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
         </select>
         <Button type="submit" disabled={salvando || titulo.trim().length < 3}><Lightbulb size={16} /> Anotar</Button>
-        <button type="button" onClick={() => onDetalhes({ titulo, area })} className="text-sm font-semibold text-modulo-texto hover:underline">mais detalhes</button>
+        <button type="button" onClick={() => onDetalhes({ titulo, area })} className="link-modulo text-sm">mais detalhes</button>
       </form>
     </Card>
   );
@@ -230,7 +230,7 @@ function LinhaIdeia({ i, dia, meu, votei, admin, podePendencia, compacta, onEdit
   const corImpacto = i.prioridade === "alta" ? "bg-red-50 text-red-700 ring-red-200" : i.prioridade === "media" ? "bg-amber-50 text-amber-800 ring-amber-200" : "bg-slate-100 text-slate-600 ring-slate-200";
   const voto = (
     <button type="button" onClick={() => votar(i)} aria-pressed={votei} title={votei ? "Tirar meu voto" : "Votar nesta ideia"}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1 text-xs font-bold transition ${votei ? "border-brand/40 bg-brand/10 text-brand" : "border-slate-200 text-slate-600 hover:border-slate-400"}`}>
+      className={chip(votei, "border-brand/40 bg-brand/10 text-brand")}>
       <ThumbsUp size={13} aria-hidden /><span className="num">{i.votos.length}</span>
       <span className="sr-only">{pl(i.votos.length, "voto", "votos")}</span>
     </button>

@@ -1,7 +1,7 @@
 // Peças comuns do Handoff e das Ideias (Sobre o ERP Line): leitura dos itens, janela de anotar/editar,
 // mudança de situação (com motivo quando descarta ou aguarda), voto e as etiquetas coloridas.
 import { useState, type FormEvent } from "react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, chip as classeChip, Field, Modal } from "@/components/ui";
 import { pedirTexto } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { grupos } from "@/lib/menu";
@@ -81,7 +81,7 @@ function Escolha<T extends string>({ valor, onChange, opcoes, rotulo }: { valor:
     <div className="flex flex-wrap gap-1.5" role="group" aria-label={rotulo}>
       {opcoes.map(([v, l]) => (
         <button key={v} type="button" aria-pressed={valor === v} onClick={() => onChange(v)}
-          className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${valor === v ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}>
+          className={classeChip(valor === v)}>
           {l}
         </button>
       ))}

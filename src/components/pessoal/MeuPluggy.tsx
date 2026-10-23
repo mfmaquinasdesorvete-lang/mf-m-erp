@@ -134,7 +134,7 @@ export function MeuPluggy({ contas, ultimoDe, onClose }: { contas: ContaPessoal[
                     <span className="block text-xs text-slate-500">{c.sincronizado_em ? `última busca ${dataHoraBR(c.sincronizado_em)} · ${c.ultimas_novas ?? 0} novos` : "ainda não buscou"}{c.saldo_banco != null && ` · no banco: ${brl(c.saldo_banco)}`}</span>
                     {c.erro && <span className="block text-xs text-red-700">{c.erro}</span>}</span>
                   <button type="button" className="link-acao text-xs" onClick={() => buscar(c.id)} disabled={!!ocupado || !c.ativa}>Buscar</button>
-                  <button type="button" className="text-xs font-semibold text-slate-600 hover:underline" onClick={() => ligarDesligar(c)}>{c.ativa ? "Desligar" : "Ligar de novo"}</button>
+                  <button type="button" className="link-discreto text-xs" onClick={() => ligarDesligar(c)}>{c.ativa ? "Desligar" : "Ligar de novo"}</button>
                 </li>
               ))}
             </ul>

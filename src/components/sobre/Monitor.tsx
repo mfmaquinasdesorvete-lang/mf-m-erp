@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, ClipboardPlus, DatabaseBackup, Inbox, RefreshCw, Server } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { Button, Card, Stat } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { pl } from "@/lib/format";
 import {
@@ -83,9 +83,9 @@ export function Monitor() {
           <Card className="flex flex-wrap items-center gap-2 p-4 text-sm text-slate-700">
             <span className="min-w-0 flex-1">O resumo do que está parado, as chaves e certificados e as filas que travam o trabalho ficam em Gestão → Painel gerencial.</span>
             <Link to="/gerencial" className="inline-flex items-center gap-1 font-semibold text-sky-700 hover:underline">Abrir <ArrowRight size={12} aria-hidden /></Link>
-            <button type="button" onClick={registrarVerificacao} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+            <Button type="button" tamanho="mini" variant="secondary" onClick={registrarVerificacao}>
               <ClipboardPlus size={14} aria-hidden /> Registrar verificação
-            </button>
+            </Button>
           </Card>
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

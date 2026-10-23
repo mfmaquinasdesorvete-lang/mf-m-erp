@@ -60,7 +60,7 @@ export function TorreCaixa() {
       </div>
 
       <button type="button" onClick={() => setAberto(!aberto)} aria-expanded={aberto}
-        className="flex w-full items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-left hover:bg-slate-50">
+        className="linha-clicavel flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
         <span className="flex min-w-0 items-center gap-2 text-sm">
           <TriangleAlert size={16} className="shrink-0 text-amber-600" />
           <span><b>No banco sem lançamento (90 dias):</b> {r.furo.saidas.n} saídas ({brl(r.furo.saidas.total)}) e {r.furo.entradas.n} entradas ({brl(r.furo.entradas.total)})</span>

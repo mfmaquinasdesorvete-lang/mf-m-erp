@@ -3,7 +3,7 @@
 // "Sua vez de aprovar". As regras continuam no banco (revisar_contas); aqui só mostra e chama.
 import { useMemo, useState, type ReactNode } from "react";
 import { Check, CheckCheck, ClipboardCheck, RotateCcw, Undo2, X } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, chip, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
 import { usePerfil } from "@/lib/auth";
@@ -80,8 +80,7 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
     if (!i || c.status !== "aberto") return null;
     if (c.revisao === "devolvido") {
       return podeAgir ? (
-        <button type="button" disabled={ocupado} onClick={() => executar("reenviar", [c], null)} title={c.revisao_comentario ? `Motivo: ${c.revisao_comentario}` : undefined}
-          className={`${BTN} border border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100`}><RotateCcw size={15} aria-hidden /> Já corrigi: reenviar</button>
+        <Button type="button" tom="desfazer" disabled={ocupado} onClick={() => executar("reenviar", [c], null)} title={c.revisao_comentario ? `Motivo: ${c.revisao_comentario}` : undefined}><RotateCcw size={15} aria-hidden /> Já corrigi: reenviar</Button>
       ) : c.revisao_comentario ? <span className="text-xs text-orange-900">Motivo: {c.revisao_comentario}</span> : null;
     }
     if (!i.pode) {
@@ -92,8 +91,7 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
       <span className="inline-flex gap-1.5">
         <button type="button" disabled={ocupado} onClick={() => aprovar(c)} title={dica} aria-label={`Aprovar ${nome(c)}`}
           className={`${BTN} bg-solido-verde text-white hover:brightness-110`}><Check size={16} aria-hidden /> Aprovar</button>
-        <button type="button" disabled={ocupado} onClick={() => setJanela({ tipo: "nao", contas: [c] })} title="Devolver para corrigir ou rejeitar, com o motivo" aria-label={`Não aprovar ${nome(c)}`}
-          className={`${BTN} border border-red-300 bg-surface text-red-700 hover:bg-red-50`}><X size={16} aria-hidden /> Não</button>
+        <Button type="button" tom="perigo" disabled={ocupado} onClick={() => setJanela({ tipo: "nao", contas: [c] })} title="Devolver para corrigir ou rejeitar, com o motivo" aria-label={`Não aprovar ${nome(c)}`}><X size={16} aria-hidden /> Não</Button>
       </span>
     );
   }
@@ -151,7 +149,7 @@ function ModalNao({ conta, ocupado, onClose, onConfirmar }: { conta: ContaAprova
         </fieldset>
         <div className="flex flex-wrap gap-1.5" aria-label="Motivos prontos">
           {MOTIVOS_NAO.map((m) => (
-            <button key={m} type="button" onClick={() => setMotivo(m)} className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${motivo === m ? "border-fg bg-fg text-surface" : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-100"}`}>{m}</button>
+            <button key={m} type="button" onClick={() => setMotivo(m)} className={chip(motivo === m, "border-fg bg-fg text-surface")}>{m}</button>
           ))}
         </div>
         <Field label="Motivo (quem lançou vê e fica no histórico)">

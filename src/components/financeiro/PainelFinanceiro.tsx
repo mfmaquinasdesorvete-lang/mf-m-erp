@@ -144,7 +144,7 @@ export function PainelFinanceiro() {
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4" aria-label="Saldo de hoje das contas">
           {filtrar(saldosTodos).map((b) => (
             <button key={b.conta_id} type="button" onClick={() => navigate("/conciliacao")}
-              className="min-w-0 rounded-xl border border-slate-200 bg-surface px-3 py-2 text-left shadow-card transition hover:border-slate-300">
+              className="cartao min-w-0 px-3 py-2 text-left transition hover:border-slate-300">
               <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
                 <span className="truncate">{b.nome}</span>
                 {unidades.length > 1 && <span className="shrink-0 rounded bg-slate-100 px-1 text-2xs font-bold text-slate-600">{unidades.find((u) => u.id === b.unidade_id)?.codigo}</span>}
@@ -282,7 +282,7 @@ export function PainelFinanceiro() {
             return (
               <li key={d.dia}>
                 <button type="button" disabled={vazio} onClick={() => setLista({ titulo: `Contas de ${nomeDia(d.dia, dia).toLowerCase()}`, tipo: d.pag.length && !d.rec.length ? "pagar" : "receber", contas: [...d.rec, ...d.pag] })}
-                  className="flex w-full items-center gap-3 py-2.5 text-left disabled:opacity-50">
+                  className="linha-clicavel flex items-center gap-3 py-2.5 disabled:opacity-50">
                   <span className={`w-20 shrink-0 text-sm font-semibold ${d.dia === dia ? "text-brand" : "text-fg"}`}>{nomeDia(d.dia, dia)}</span>
                   <span className="num min-w-0 flex-1 whitespace-nowrap text-right text-sm text-emerald-700">{e ? `+${brl(e)}` : ""}</span>
                   <span className="num min-w-0 flex-1 whitespace-nowrap text-right text-sm text-red-700">{s ? `−${brl(s)}` : ""}</span>
@@ -319,7 +319,7 @@ function Linha({ icone: Icone, cor, titulo, valor, sub, alerta, onClick }: {
   icone: typeof Landmark; cor: string; titulo: string; valor: string; sub: string; alerta?: boolean; onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50 active:bg-slate-100">
+    <button type="button" onClick={onClick} className="linha-clicavel flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 active:bg-slate-100">
       <Icone size={20} className={`shrink-0 ${cor}`} aria-hidden />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
@@ -338,7 +338,7 @@ function Tile({ icone: Icone, cor, titulo, valor, sub, alerta, onClick }: {
 }) {
   return (
     <button type="button" onClick={onClick}
-      className={`flex min-w-0 flex-col rounded-2xl border bg-surface p-4 text-left shadow-card transition active:scale-[0.98] ${alerta ? "border-red-200" : "border-slate-200"}`}>
+      className={`cartao flex min-w-0 flex-col p-4 text-left transition active:scale-[0.98] ${alerta ? "border-red-200" : ""}`}>
       <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-600"><Icone size={17} className={cor} /> {titulo}</span>
       <span className={`num mt-1 truncate text-[clamp(1.05rem,4.6vw,1.5rem)] font-bold ${alerta ? "text-red-700" : "text-fg"}`}>{brl(valor)}</span>
       <span className="truncate text-xs text-slate-500">{sub}</span>

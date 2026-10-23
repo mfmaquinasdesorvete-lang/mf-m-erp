@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ResultadosBusca } from "@/components/BuscaGeral";
 import { ArrowRight, CheckCircle2, CircleDashed, CircleDot, ClipboardPlus, Layers, Lightbulb, PackageCheck, Terminal } from "lucide-react";
-import { Card, Stat } from "@/components/ui";
+import { Button, Card, chip, Stat } from "@/components/ui";
 import { dataBR, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { ETAPAS } from "@/lib/monitor";
@@ -37,10 +37,10 @@ export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Situação do módulo">
         <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}
-          className={`rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${!filtro ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>Todos</button>
+          className={chip(!filtro)}>Todos</button>
         {SITUACOES.map((s) => (
           <button key={s.id} type="button" aria-pressed={filtro === s.id} onClick={() => setFiltro(filtro === s.id ? "" : s.id)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${filtro === s.id ? `${s.cor} ring-2` : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>
+            className={chip(filtro === s.id, `border-transparent ${s.cor} ring-2`)}>
             <span className={`h-2.5 w-2.5 rounded-full ${s.ponto}`} aria-hidden />{s.nome} <span className="text-xs opacity-70">{conta(s.id)}</span>
           </button>
         ))}
@@ -80,10 +80,9 @@ export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
                         </Link>
                       ))}
                       {m.situacao !== "tem" && (
-                        <button type="button" onClick={() => onIdeia({ titulo: `${s.id} · ${m.nome}: `, detalhe: m.texto, area: "geral" })}
-                          className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100">
+                        <Button type="button" tamanho="mini" tom="logistica" onClick={() => onIdeia({ titulo: `${s.id} · ${m.nome}: `, detalhe: m.texto, area: "geral" })}>
                           <Lightbulb size={12} aria-hidden /> Anotar o que falta
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </li>
@@ -203,8 +202,7 @@ function LinhaDeComando() {
             <p className="mt-1 text-sm text-fg"><b>Entrega:</b> {c.entrega}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {c.alvos.map((a) => (
-                <button key={a.alvo} type="button" onClick={() => rodar(`${c.verbo} ${a.alvo}`)}
-                  className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs font-semibold text-slate-700 hover:bg-violet-100 hover:text-violet-800">{c.verbo} {a.alvo}</button>
+                <Button key={a.alvo} type="button" tamanho="mini" variant="secondary" className="font-mono" onClick={() => rodar(`${c.verbo} ${a.alvo}`)}>{c.verbo} {a.alvo}</Button>
               ))}
             </div>
           </li>

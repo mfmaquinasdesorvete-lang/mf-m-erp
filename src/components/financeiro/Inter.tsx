@@ -231,7 +231,7 @@ function LigarInter({ contas, conexao, onClose, onPronto, onNovaConta }: { conta
         </Field>
         {!contas.length && (
           <p className="text-amber-800">Cadastre primeiro a conta (banco "Banco Inter") com a unidade certa (SC ou SP).
-            {onNovaConta && <> <button type="button" className="font-semibold underline" onClick={() => { onClose(); onNovaConta(); }}>Cadastrar agora</button></>}
+            {onNovaConta && <> <button type="button" className="link-acao" onClick={() => { onClose(); onNovaConta(); }}>Cadastrar agora</button></>}
           </p>
         )}
         <Field label={`Client ID${troca ? " (deixe em branco para manter)" : ""}`}>

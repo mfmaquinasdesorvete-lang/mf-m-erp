@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardCopy, Download, FileArchive, FileDown, Link2 } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, chip } from "@/components/ui";
 import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { AREAS_ESQUEMA, COR_QUEM, PROCESSOS, ROTULO_QUEM, processosVisiveis, posicoes, quebrar, textoProcesso, type Processo, type Quem } from "@/lib/esquemas";
@@ -177,7 +177,7 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
                 <div className="flex flex-wrap gap-1.5">
                   {lista.map((x) => (
                     <button key={x.id} type="button" aria-pressed={x.id === p.id} onClick={() => onProcesso(x.id)} title={x.resumo}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${x.id === p.id ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      className={chip(x.id === p.id, "border-transparent bg-modulo-escuro text-white")}>
                       {x.nome}
                     </button>
                   ))}

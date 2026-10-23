@@ -3,7 +3,7 @@
 // (e não montar botão, cartão ou selo à mão). Trocar a área pinta a vitrine com a cor dela; o tema vem do menu.
 import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle, CalendarClock, ClipboardCheck, FileText, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, TrendingUp, Truck, Users, Wrench } from "lucide-react";
-import { Badge, BotaoAtalho, Button, Card, COR_ATALHO, Field, Indicador, Modal, Section, Stat, Table, Tabs, type TomAcao } from "@/components/ui";
+import { Badge, BotaoAtalho, Button, Card, chip, COR_ATALHO, Field, Indicador, Modal, Section, Stat, Table, Tabs, type TomAcao } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, Funil, type Periodo as PeriodoPainel } from "@/components/painel/Painel";
 import { AnelEscuro, LinhaEscura, NumeroEscuro, QuadroEscuro, type FatiaAnel, TOM_ESCURO } from "@/components/painel/PainelEscuro";
 import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
@@ -92,8 +92,7 @@ export function DesignSystem() {
         <div className="faixa-chips mt-3" role="group" aria-label="Cor da área">
           {AREAS.map((a) => (
             <button key={a.id} type="button" aria-pressed={area === a.id} onClick={() => setArea(a.id)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition
-                ${area === a.id ? "border-modulo bg-modulo-escuro text-white" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+              className={chip(area === a.id, "border-modulo bg-modulo-escuro text-white")}>
               <span className="h-2.5 w-2.5 rounded-full ring-1 ring-white/60" style={{ background: corAreas[a.id] ?? `rgb(${a.cor})` }} aria-hidden />{a.rotulo}
             </button>
           ))}

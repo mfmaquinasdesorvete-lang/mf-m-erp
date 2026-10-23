@@ -3,7 +3,7 @@
 // áudios (gravados aqui ou do WhatsApp), prints e arquivos. Os arquivos ficam no bucket privado "documentos".
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FileText, Handshake, Image as Imagem, Mic, Paperclip, Square, StickyNote, Trash2, Wallet } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, chip, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -157,7 +157,7 @@ export function PainelRenegociadas({ contas, onAbrir, rodape }: { contas: Conta[
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Situação da negociação">
         {([["andamento", "Em andamento"], ["quitada", "Quitadas"], ["cancelada", "Canceladas"], ["todas", "Todas"]] as const).map(([f, r]) => (
           <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
-            className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${filtro === f ? "border-transparent text-fixo-teal-950 shadow-card" : "border-slate-200 bg-surface text-slate-600 hover:border-slate-300"}`}
+            className={chip(filtro === f, "border-transparent text-fixo-teal-950 shadow-card")}
             style={filtro === f ? { background: COR_RENEGOCIADA.fundo } : undefined}>
             {r} <span className="num opacity-80">{contagem(f)}</span>
           </button>
@@ -394,7 +394,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
                       const Icone = ICONE_EVENTO[t];
                       return (
                         <button key={t} type="button" role="radio" aria-checked={tipo === t} title={TIPOS_EVENTO[t].dica} onClick={() => setTipo(t)}
-                          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold ${tipo === t ? "border-teal-600 bg-teal-600 text-white" : "border-slate-200 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+                          className={chip(tipo === t, "border-teal-600 bg-teal-600 text-white")}>
                           <Icone size={13} aria-hidden /> {TIPOS_EVENTO[t].rotulo}
                         </button>
                       );
@@ -435,7 +435,7 @@ export function HistoricoNegociacao({ id, contas, onClose }: { id: string; conta
                         {it.texto && (!e?.arquivo_caminho || it.texto !== e.arquivo_nome) && <p className="whitespace-pre-line text-fg">{it.texto}</p>}
                         {e && <ArquivoEvento e={e} />}
                       </div>
-                      {meu && e.tipo !== "acordo" && <button type="button" onClick={() => apagar(e)} className="self-start rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Apagar este registro" aria-label="Apagar este registro"><Trash2 size={15} /></button>}
+                      {meu && e.tipo !== "acordo" && <button type="button" onClick={() => apagar(e)} className="botao-icone-perigo self-start p-1" title="Apagar este registro" aria-label="Apagar este registro"><Trash2 size={15} /></button>}
                     </li>
                   );
                 })}
