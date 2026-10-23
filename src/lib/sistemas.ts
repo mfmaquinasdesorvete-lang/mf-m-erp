@@ -183,6 +183,10 @@ export const ECL: ComandoEcl[] = [
       { alvo: "parcelamentos", palavras: ["parcelamentos", "parcelamento", "parcelas", "dividas", "pgfn", "refis"], destinos: [{ rotulo: "Parcelamentos de impostos", to: "/parcelamentos" }] },
       { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque", "pecas"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }, { rotulo: "Marketplace e anúncios", to: "/estoque?aba=auditoria" }] },
       { alvo: "menu", palavras: ["menu", "telas", "erp", "sistema"], destinos: [{ rotulo: "Auditoria do menu", to: "/sobre?aba=esquemas" }] },
+      { alvo: "estoque", palavras: ["estoque", "contagem", "saldo", "giro"], destinos: [{ rotulo: "Contagem de estoque", to: "/estoque?aba=contagem" }, { rotulo: "Giro de estoque", to: "/estoque/giro" }] },
+      { alvo: "maquinas", palavras: ["maquinas", "maquina", "garantia", "preventiva", "serie"], destinos: [{ rotulo: "Garantias e preventivas", to: "/garantias" }, { rotulo: "Painel das máquinas", to: "/painel/maquinas" }] },
+      { alvo: "licenciados", palavras: ["licenciados", "licenciadas", "lojas", "sorveterias", "yozzy"], destinos: [{ rotulo: "My Frost Sorveterias", to: "/licenciados" }, { rotulo: "Painel das licenças", to: "/painel/licencas" }] },
+      { alvo: "pedidos", palavras: ["pedidos", "checklist", "parados", "pendentes"], destinos: [{ rotulo: "Pedidos ao ERP (checklist)", to: "/sobre?aba=pedidos" }, { rotulo: "Vendas", to: "/pedidos" }] },
     ],
   },
   {
@@ -193,6 +197,9 @@ export const ECL: ComandoEcl[] = [
       { alvo: "sistemas", palavras: ["sistemas", "capacidades", "modulos", "erp"], destinos: [{ rotulo: "Sistemas e capacidades", to: "/sobre?aba=sistemas" }] },
       { alvo: "processos", palavras: ["processos", "menu", "esquemas", "fluxo"], destinos: [{ rotulo: "Esquemas", to: "/sobre?aba=esquemas" }] },
       { alvo: "financeiro", palavras: ["financeiro", "dinheiro", "caixa"], destinos: [{ rotulo: "Painel do financeiro", to: "/painel/financeiro" }] },
+      { alvo: "producao", palavras: ["producao", "fabrica", "montagem", "op"], destinos: [{ rotulo: "Painel da produção", to: "/painel/producao" }] },
+      { alvo: "licenciados", palavras: ["licenciados", "licenciadas", "lojas", "sorveterias"], destinos: [{ rotulo: "Painel das licenças", to: "/painel/licencas" }] },
+      { alvo: "assistencia", palavras: ["assistencia", "os", "posvenda", "conserto"], destinos: [{ rotulo: "Painel da assistência", to: "/painel/posvenda" }] },
     ],
   },
   {
@@ -213,6 +220,8 @@ export const ECL: ComandoEcl[] = [
       { alvo: "filas", palavras: ["filas", "fila", "pendencias", "travado"], destinos: [{ rotulo: "Painel gerencial: filas e o que está parado", to: "/gerencial" }] },
       { alvo: "backup", palavras: ["backup", "copia", "copias"], destinos: [{ rotulo: "Monitor: backup", to: "/sobre?aba=monitor" }, { rotulo: "Configurações do backup", to: "/configuracoes" }] },
       { alvo: "integracoes", palavras: ["integracoes", "bancos", "funcoes", "mercado", "sefaz", "email"], destinos: [{ rotulo: "Monitor: funções", to: "/sobre?aba=monitor" }, { rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
+      { alvo: "certificados", palavras: ["certificados", "certificado", "chaves", "calibracao", "vencimentos"], destinos: [{ rotulo: "Painel gerencial: chaves e certificados", to: "/gerencial" }] },
+      { alvo: "notas", palavras: ["notas", "nfe", "nf", "rejeitadas", "sefaz"], destinos: [{ rotulo: "Notas fiscais", to: "/notas" }, { rotulo: "Painel gerencial: NF-e com erro", to: "/gerencial" }] },
     ],
   },
   {
@@ -224,6 +233,9 @@ export const ECL: ComandoEcl[] = [
       { alvo: "financeiro", palavras: ["financeiro", "bancos", "contas", "caixa"], destinos: [{ rotulo: "Auditoria financeira", to: "/auditoria" }, { rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
       { alvo: "fiscal", palavras: ["fiscal", "impostos", "notas"], destinos: [{ rotulo: "Analista fiscal", to: "/analista-fiscal" }] },
       { alvo: "produtos", palavras: ["produtos", "cadastro", "estoque"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }] },
+      { alvo: "vendas", palavras: ["vendas", "venda", "clientes", "abc"], destinos: [{ rotulo: "Painel de vendas", to: "/painel/vendas" }, { rotulo: "Painel gerencial", to: "/gerencial" }] },
+      { alvo: "assistencia", palavras: ["assistencia", "os", "conserto", "garantia"], destinos: [{ rotulo: "Assistência", to: "/assistencia" }, { rotulo: "Painel da assistência", to: "/painel/posvenda" }] },
+      { alvo: "compras", palavras: ["compras", "fornecedores", "oc"], destinos: [{ rotulo: "Compras", to: "/compras" }, { rotulo: "Avaliação de fornecedores", to: "/fornecedores/avaliacao" }] },
     ],
   },
   {
@@ -235,13 +247,89 @@ export const ECL: ComandoEcl[] = [
       { alvo: "lancamentos", palavras: ["lancamentos", "lancamento", "versoes", "mvp"], destinos: [{ rotulo: "Atualizações", to: "/sobre?aba=atualizacoes" }, { rotulo: "Rodada", to: "/sobre?aba=rodada" }] },
     ],
   },
+  {
+    verbo: "TRACE", nome: "Rastreia um item", texto: "Segue uma máquina pelo nº de série, um pedido, uma nota ou um cliente: de onde veio, para quem foi e tudo o que aconteceu com ele.",
+    entrega: "O item achado com quem comprou, a nota, a garantia, as preventivas e as OS, cada um com o link para abrir.",
+    alvos: [
+      { alvo: "maquina", palavras: ["maquina", "serie", "equipamento"], destinos: [{ rotulo: "Garantias e preventivas", to: "/garantias" }, { rotulo: "Teste do giga", to: "/teste-giga" }, { rotulo: "Assistência", to: "/assistencia" }] },
+      { alvo: "pedido", palavras: ["pedido", "venda", "proposta"], destinos: [{ rotulo: "Vendas", to: "/pedidos" }] },
+      { alvo: "nota", palavras: ["nota", "nf", "nfe"], destinos: [{ rotulo: "Notas fiscais", to: "/notas" }] },
+      { alvo: "cliente", palavras: ["cliente"], destinos: [{ rotulo: "Clientes", to: "/clientes" }, { rotulo: "Tudo do cliente", to: "/tudo-do-cliente" }] },
+    ],
+  },
+  {
+    verbo: "CHECK", nome: "Confere o que vence", texto: "Mostra o que vence nos próximos 30 dias e de quem é: preventivas, garantias e certificados.",
+    entrega: "A lista do que vence em 30 dias, com o dono de cada item e o que fazer.",
+    alvos: [
+      { alvo: "preventivas", palavras: ["preventivas", "preventiva", "manutencao"], destinos: [{ rotulo: "Garantias e preventivas", to: "/garantias" }, { rotulo: "Painel da assistência", to: "/painel/posvenda" }] },
+      { alvo: "garantias", palavras: ["garantias", "garantia"], destinos: [{ rotulo: "Garantias e preventivas", to: "/garantias" }] },
+      { alvo: "certificados", palavras: ["certificados", "certificado", "chaves", "calibracao"], destinos: [{ rotulo: "Painel gerencial: chaves e certificados", to: "/gerencial" }, { rotulo: "Calibração do giga", to: "/teste-giga" }] },
+    ],
+  },
+  {
+    verbo: "FORECAST", nome: "Previsão", texto: "Olha para a frente: o caixa das próximas semanas, o que vai faltar no estoque e a tendência das vendas.",
+    entrega: "A previsão com o número de hoje, o esperado e o ponto de atenção (quando o caixa aperta, o que acaba primeiro).",
+    alvos: [
+      { alvo: "caixa", palavras: ["caixa", "fluxo", "dinheiro", "saldo"], destinos: [{ rotulo: "Fluxo de caixa", to: "/fluxo" }] },
+      { alvo: "estoque", palavras: ["estoque", "falta", "compras", "giro"], destinos: [{ rotulo: "Giro de estoque", to: "/estoque/giro" }, { rotulo: "Compras", to: "/compras" }] },
+      { alvo: "vendas", palavras: ["vendas", "venda", "metas", "tendencia"], destinos: [{ rotulo: "Painel gerencial", to: "/gerencial?aba=tendencias" }, { rotulo: "Metas", to: "/metas" }] },
+    ],
+  },
+  {
+    verbo: "RECONCILE", nome: "Concilia", texto: "Mostra o que falta ligar entre o banco, o cartão e o marketplace e o que está no ERP.",
+    entrega: "Os lançamentos sem ligação, com a sugestão de conta, pedido ou nota para cada um.",
+    alvos: [
+      { alvo: "bancos", palavras: ["bancos", "banco", "extrato", "pix"], destinos: [{ rotulo: "Bancos e conciliação", to: "/conciliacao" }] },
+      { alvo: "cartao", palavras: ["cartao", "infinitepay", "maquininha", "taxas"], destinos: [{ rotulo: "Bancos e conciliação", to: "/conciliacao" }, { rotulo: "Impostos e tarifas", to: "/impostos-tarifas" }] },
+      { alvo: "marketplace", palavras: ["marketplace", "mercado", "livre", "ml", "olist"], destinos: [{ rotulo: "Mercado Livre", to: "/mercado-livre" }, { rotulo: "Margem por venda", to: "/margem" }] },
+    ],
+  },
+  {
+    verbo: "COMPARE", nome: "Compara", texto: "Põe lado a lado: SC × SP, este mês × o passado, este ano × o anterior.",
+    entrega: "Os números lado a lado, com quanto subiu ou caiu e o motivo mais provável.",
+    alvos: [
+      { alvo: "unidades", palavras: ["unidades", "unidade", "sc", "sp", "filial", "matriz"], destinos: [{ rotulo: "Painel gerencial (escolha a unidade no alto do menu)", to: "/gerencial" }, { rotulo: "Painel do financeiro", to: "/painel/financeiro" }] },
+      { alvo: "mes", palavras: ["mes", "mensal"], destinos: [{ rotulo: "Painel gerencial", to: "/gerencial" }] },
+      { alvo: "ano", palavras: ["ano", "anual"], destinos: [{ rotulo: "Painel gerencial", to: "/gerencial" }] },
+    ],
+  },
+  {
+    verbo: "PLAN", nome: "Planeja", texto: "Monta o que comprar e o que produzir pela necessidade da produção e das vendas.",
+    entrega: "A lista do que comprar (com fornecedor e prazo) ou do que produzir (com as peças que faltam).",
+    alvos: [
+      { alvo: "compras", palavras: ["compras", "comprar", "pecas", "fornecedores"], destinos: [{ rotulo: "Compras", to: "/compras" }] },
+      { alvo: "producao", palavras: ["producao", "produzir", "montagem", "op", "fabrica"], destinos: [{ rotulo: "Produção", to: "/producao" }, { rotulo: "Painel da produção", to: "/painel/producao" }] },
+    ],
+  },
+  {
+    verbo: "CLEAN", nome: "Limpa cadastros", texto: "Acha cadastros repetidos, CNPJ errado ou vencido na Receita e o que falta preencher.",
+    entrega: "Os cadastros para unificar, corrigir ou completar, com o botão de cada correção.",
+    alvos: [
+      { alvo: "clientes", palavras: ["clientes", "cliente"], destinos: [{ rotulo: "Clientes", to: "/clientes" }, { rotulo: "Painel dos cadastros", to: "/painel/cadastros" }] },
+      { alvo: "produtos", palavras: ["produtos", "produto", "pecas", "ncm"], destinos: [{ rotulo: "Qualidade do cadastro", to: "/estoque?aba=qualidade" }] },
+      { alvo: "fornecedores", palavras: ["fornecedores", "fornecedor"], destinos: [{ rotulo: "Fornecedores", to: "/fornecedores" }, { rotulo: "Painel dos cadastros", to: "/painel/cadastros" }] },
+    ],
+  },
+  {
+    verbo: "REPORT", nome: "Relatório pronto", texto: "Junta o resumo para mandar: ao contador, aos sócios ou o da semana.",
+    entrega: "O resumo pronto para enviar, com os números e o que precisa de decisão.",
+    alvos: [
+      { alvo: "contador", palavras: ["contador", "contabilidade", "fechamento"], destinos: [{ rotulo: "Painel do contador", to: "/contador" }] },
+      { alvo: "socios", palavras: ["socios", "socio", "diretoria", "gestao"], destinos: [{ rotulo: "Painel gerencial", to: "/gerencial" }, { rotulo: "Painel do financeiro", to: "/painel/financeiro" }] },
+      { alvo: "semana", palavras: ["semana", "semanal", "resumo"], destinos: [{ rotulo: "Relatórios", to: "/relatorios" }, { rotulo: "Painel gerencial", to: "/gerencial" }] },
+    ],
+  },
 ];
 
 const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 export type Interpretacao =
-  | { ok: true; comando: ComandoEcl; alvo: string | null; destinos: Destino[] }
+  /** argumento: o que vem depois do alvo (ex.: o nº de série em "TRACE maquina 050626366-01") */
+  | { ok: true; comando: ComandoEcl; alvo: string | null; destinos: Destino[]; argumento?: string }
   | { ok: false; motivo: string };
+
+/** O texto digitado a partir da palavra n (mantém maiúsculas e acentos do nº de série ou do nome). */
+const textoOriginal = (texto: string, n: number) => texto.trim().split(/\s+/).slice(n).join(" ");
 
 /** Lê "AUDIT financeiro" (ou "audit", "improve produtos"…): sem alvo, devolve todos os destinos do verbo. */
 export function interpretarEcl(texto: string): Interpretacao {
@@ -251,7 +339,12 @@ export function interpretarEcl(texto: string): Interpretacao {
   if (!comando) return { ok: false, motivo: `Comando "${verbo.toUpperCase()}" não existe. Use ${ECL.map((c) => c.verbo).join(" ou ")}.` };
   const alvoTexto = resto.join(" ");
   if (!alvoTexto) return { ok: true, comando, alvo: null, destinos: comando.alvos.flatMap((a) => a.destinos) };
-  const alvo = comando.alvos.find((a) => a.palavras.some((p) => alvoTexto.includes(p)));
+  const alvo = comando.alvos.find((a) => sem(a.alvo) === resto[0])
+    ?? comando.alvos.find((a) => a.palavras.some((p) => resto[0] === p))
+    ?? comando.alvos.find((a) => a.palavras.some((p) => alvoTexto.includes(p)));
+  // TRACE sem alvo conhecido ("TRACE 554", "TRACE padaria"): procura o texto em tudo
+  if (!alvo && comando.verbo === "TRACE") return { ok: true, comando, alvo: null, destinos: comando.alvos.flatMap((a) => a.destinos), argumento: textoOriginal(texto, 1) };
   if (!alvo) return { ok: false, motivo: `${comando.verbo} funciona com: ${comando.alvos.map((a) => a.alvo).join(", ")}.` };
-  return { ok: true, comando, alvo: alvo.alvo, destinos: alvo.destinos };
+  const argumento = sem(alvo.alvo) === resto[0] || alvo.palavras.includes(resto[0] ?? "") ? textoOriginal(texto, 2) : "";
+  return { ok: true, comando, alvo: alvo.alvo, destinos: alvo.destinos, ...(argumento ? { argumento } : {}) };
 }

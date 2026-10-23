@@ -4,10 +4,13 @@
 // mostra a entrega que se pode cobrar e o administrador registra a execução em 6 etapas (vai para Sobre → Monitor).
 // A caixa do comando é escura nos dois temas (cores fixas: as "slate" do Tailwind se invertem no tema escuro).
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { ResultadosBusca } from "@/components/BuscaGeral";
 import { ArrowRight, CheckCircle2, CircleDashed, CircleDot, ClipboardPlus, Layers, Lightbulb, PackageCheck, Terminal } from "lucide-react";
 import { Card, Stat } from "@/components/ui";
-import { pl } from "@/lib/format";
+import { dataBR, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { ETAPAS } from "@/lib/monitor";
 import { CICLO_INOVACAO, DIMENSOES_ANALISE, ECL, interpretarEcl, SISTEMAS, SITUACOES, type Interpretacao, type Situacao } from "@/lib/sistemas";
@@ -94,6 +97,47 @@ export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
   );
 }
 
+/** TRACE maquina <série>: a máquina com quem comprou, garantia e preventiva, e as OS com esse nº de série. */
+function RastroMaquina({ serie }: { serie: string }) {
+  const navigate = useNavigate();
+  const termo = serie.trim();
+  const q = useQuery({
+    queryKey: ["ecl_trace_maquina", termo],
+    enabled: termo.length >= 3,
+    queryFn: async () => {
+      const [eq, os] = await Promise.all([
+        supabase.from("equipamentos").select("id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, origem, cliente:clientes(nome)").ilike("numero_serie", `%${termo}%`).limit(5),
+        supabase.from("ordens_servico").select("id, numero, status, data_entrada, defeito_relatado").ilike("numero_serie", `%${termo}%`).order("numero", { ascending: false }).limit(8),
+      ]);
+      if (eq.error) throw eq.error;
+      if (os.error) throw os.error;
+      return { maquinas: (eq.data ?? []) as any[], oss: (os.data ?? []) as any[] };
+    },
+  });
+  if (termo.length < 3) return <p className="mb-2 text-xs text-[#fcd34d]">Escreva pelo menos 3 letras ou números do nº de série.</p>;
+  if (q.isLoading) return <p className="mb-2 text-xs text-[#94a3b8]">Procurando a máquina…</p>;
+  if (q.isError) return <p className="mb-2 text-xs text-[#fca5a5]">Não deu para procurar: {(q.error as Error).message}</p>;
+  const { maquinas = [], oss = [] } = q.data ?? {};
+  return (
+    <div className="mb-2 space-y-1.5 rounded-lg bg-white/[0.04] p-2 ring-1 ring-white/10">
+      {!maquinas.length && <p className="text-xs text-[#94a3b8]">Nenhuma máquina com o nº de série "{termo}".</p>}
+      {maquinas.map((m) => (
+        <div key={m.id} className="text-[#e2e8f0]">
+          <b className="text-[#ffffff]">{m.descricao}</b> <span className="font-mono text-xs text-[#94a3b8]">{m.numero_serie}</span>
+          <div className="text-xs text-[#cbd5e1]">{[m.cliente?.nome ?? "sem cliente", m.data_venda ? `comprada em ${dataBR(m.data_venda)}` : "sem data da compra",
+            m.garantia_ate ? `garantia até ${dataBR(m.garantia_ate)}` : "sem garantia marcada", m.proxima_preventiva ? `preventiva ${dataBR(m.proxima_preventiva)}` : "sem preventiva", m.origem].filter(Boolean).join(" · ")}</div>
+        </div>
+      ))}
+      {oss.length > 0 && <div className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#94a3b8]">Ordens de serviço</div>}
+      {oss.map((o) => (
+        <button key={o.id} type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })} className="block w-full rounded px-1 py-0.5 text-left text-xs text-[#e2e8f0] hover:bg-white/5">
+          <b>OS #{o.numero}</b> · {String(o.status).replace(/_/g, " ")}{o.data_entrada ? ` · ${dataBR(o.data_entrada)}` : ""}{o.defeito_relatado ? ` · ${o.defeito_relatado}` : ""}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** Enterprise Command Language: VERBO + alvo, e o ERP mostra onde fazer. */
 function LinhaDeComando() {
   const ehAdmin = usePerfil().papel === "admin";
@@ -114,6 +158,8 @@ function LinhaDeComando() {
           <span className="text-[#64748b]"> · verbos:</span> {ECL.map((c) => c.verbo).join(" | ")}
           <span className="text-[#64748b]"> · alvos:</span> {[...new Set(ECL.flatMap((c) => c.alvos.map((a) => a.alvo)))].join(" | ")}
         </p>
+        <p className="mb-3 text-xs text-[#94a3b8]"><span className="text-[#64748b]">no chat do Claude, o comando vira o trabalho feito (auditoria, análise ou rastreio completo):</span>{" "}
+          {["AUDIT pedidos", "ANALYZE erp", "TRACE cliente <nome>"].map((c) => <code key={c} className="mr-1.5 rounded bg-[#1e293b] px-1.5 py-0.5 font-mono text-[#a7f3d0]">{c}</code>)}</p>
         <form onSubmit={enviar} className="flex items-center gap-2 rounded-lg bg-[#1e293b] px-3 ring-1 ring-[#334155] focus-within:ring-[#34d399]">
           <span className="font-mono text-[#34d399]" aria-hidden>&gt;</span>
           <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="AUDIT financeiro" aria-label="Comando ECL" autoComplete="off" spellCheck={false}
@@ -128,6 +174,9 @@ function LinhaDeComando() {
                 <p className="mb-2 flex items-start gap-1.5 text-[#e2e8f0]"><PackageCheck size={16} className="mt-0.5 shrink-0 text-[#6ee7b7]" aria-hidden /><span><b className="text-[#a7f3d0]">Entrega:</b> {res.comando.entrega}</span></p>
                 {res.comando.verbo === "ANALYZE" && <Passos titulo="Os 6 pontos" itens={DIMENSOES_ANALISE.map((d) => ({ nome: d.nome, texto: d.pergunta }))} />}
                 {res.comando.verbo === "INNOVATE" && <Passos titulo="O ciclo" itens={CICLO_INOVACAO} />}
+                {res.comando.verbo === "TRACE" && (res.argumento
+                  ? (res.alvo === "maquina" ? <RastroMaquina serie={res.argumento} /> : <div className="mb-2"><ResultadosBusca termo={res.argumento} onIr={() => undefined} /></div>)
+                  : <p className="mb-2 text-xs text-[#fcd34d]">Escreva o que procurar depois do alvo, por exemplo: TRACE maquina 050626366-01, TRACE pedido 554 ou TRACE cliente padaria.</p>)}
                 <div className="flex flex-wrap gap-2">
                   {res.destinos.map((d) => (
                     <Link key={d.to + d.rotulo} to={d.to} className="inline-flex items-center gap-1 rounded-lg bg-[#10b981]/15 px-3 py-1.5 font-semibold text-[#a7f3d0] ring-1 ring-[#34d399]/40 hover:bg-[#10b981]/25">

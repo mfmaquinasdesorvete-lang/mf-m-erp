@@ -2205,6 +2205,7 @@ class Query {
   neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
   gt(c: string, v: any) { this.filtros.push((r) => r[c] != null && r[c] > v); return this; }
   like(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
+  ilike(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", "i"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
   /** "col.ilike.%x%,col.eq.y,col.is.null": basta um bater (como no PostgREST). */
   or(expr: string) {

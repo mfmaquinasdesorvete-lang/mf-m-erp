@@ -50,3 +50,28 @@ describe("sistemas", () => {
     expect(!y.ok && y.motivo).toMatch(/funciona com/);
   });
 });
+
+describe("ECL: comandos novos", () => {
+  it("TRACE maquina guarda o nº de série como foi digitado", () => {
+    const r = interpretarEcl("TRACE maquina 050626366-01");
+    expect(r.ok && r.alvo).toBe("maquina");
+    expect(r.ok && r.argumento).toBe("050626366-01");
+  });
+  it("TRACE sem alvo procura o texto em tudo", () => {
+    const r = interpretarEcl("trace Padaria Central");
+    expect(r.ok && r.alvo).toBe(null);
+    expect(r.ok && r.argumento).toBe("Padaria Central");
+  });
+  it("verbos novos e alvos novos", () => {
+    for (const t of ["CHECK preventivas", "FORECAST caixa", "RECONCILE cartao", "COMPARE unidades", "PLAN producao", "CLEAN fornecedores", "REPORT socios",
+      "AUDIT maquinas", "VISUALIZE licenciados", "ANALYZE compras", "MONITOR notas"]) {
+      const r = interpretarEcl(t);
+      expect(r.ok, t).toBe(true);
+      expect(r.ok && r.alvo, t).toBe(t.split(" ")[1]);
+    }
+  });
+  it("o alvo é a primeira palavra quando ela existe (MONITOR notas não vira outro alvo)", () => {
+    const r = interpretarEcl("AUDIT estoque");
+    expect(r.ok && r.alvo).toBe("estoque");
+  });
+});
