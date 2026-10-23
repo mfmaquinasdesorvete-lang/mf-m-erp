@@ -19,7 +19,7 @@ import { usePerfil } from "@/lib/auth";
 import { useUnidade } from "@/lib/unidade";
 import { buscarCep } from "@/lib/cep";
 import type { Transportadora } from "@/lib/types";
-import { integracaoApi } from "@/lib/transportadoras";
+import { combinaNome, integracaoApi } from "@/lib/transportadoras";
 import {
   MODALIDADES, PAGADORES, RESTRICOES, STATUS_ENVIO, TIPOS_ADICIONAL, TIPOS_EXCECAO, TIPOS_OCORRENCIA, TIPOS_SERVICO,
   analisarAprovacao, cotacaoVencida, diferencaFrete, ehMaquina, faltandoParaCotar, maisBarataValida, mensagemCotacao, rotuloAdicional, rotuloServico,
@@ -571,6 +571,36 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
     }
   }
 
+  // Melhor Envio: várias transportadoras de uma vez; cada serviço com preço vira uma cotação (a transportadora do
+  // cadastro quando o nome bate, senão o nome que veio), para comparar e aprovar como as outras
+  const me = transportadoras.find((x) => x.ativo && !x.matriz_id && integracaoApi(x) === "melhorenvio");
+  const [cotandoMe, setCotandoMe] = useState(false);
+  async function cotarMelhorEnvio() {
+    if (!me) return;
+    if (incompletos.length) return notify(`Cotação sem medidas não é comparável. Complete e salve: ${incompletos.join("; ")}`, "erro");
+    setCotandoMe(true);
+    try {
+      const r = await callFunction<{ servicos: { servico: string; empresa: string; valor: number; prazo: number | null }[]; sem: { servico: string; empresa: string; motivo: string }[] }>("melhorenvio", { acao: "cotar", envio_id: envio.id });
+      if (!r.servicos.length) return notify(`Melhor Envio: nenhum serviço atende este envio${r.sem.length ? ` (${r.sem.slice(0, 3).map((x) => `${x.empresa} ${x.servico}: ${x.motivo}`).join("; ")})` : ""}`, "erro");
+      const marcas = transportadoras.filter((x) => x.ativo && !x.matriz_id);
+      const daEmpresa = (empresa: string) => marcas.find((x) => combinaNome(x, empresa));
+      const { error } = await supabase.from("envio_cotacoes").insert(r.servicos.map((s) => {
+        const t = daEmpresa(s.empresa);
+        return {
+          envio_id: envio.id, transportadora_id: t?.id ?? null, transportadora_nome: t ? null : s.empresa, valor: s.valor, prazo_dias: s.prazo, validade: somarDias(1),
+          tipo_servico: "padrao", tabela_versao: "Melhor Envio", adicionais: [], observacoes: `Melhor Envio · ${s.empresa} ${s.servico} (etiqueta comprada no Melhor Envio)`,
+        };
+      }));
+      if (error) throw error;
+      notify(`Melhor Envio: ${r.servicos.length} ${pl(r.servicos.length, "opção", "opções")}, a partir de ${brl(r.servicos[0].valor)}`);
+      atualizar();
+    } catch (err) {
+      notifyError(err);
+    } finally {
+      setCotandoMe(false);
+    }
+  }
+
   function abrirNova() {
     setNova({ transportadora_id: "", transportadora_nome: "", valor: "", prazo_dias: "", validade: somarDias(7), observacoes: "", tipo_servico: "padrao", tabela_versao: "", adicionais: [] });
   }
@@ -638,6 +668,10 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
             {rte && (
               <Button type="button" variant="secondary" disabled={cotandoRte || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Simula o frete na API da Rodonaves e registra a cotação"}
                 onClick={cotarRodonaves}><Zap size={14} /> {cotandoRte ? "Cotando na Rodonaves…" : "Cotar na Rodonaves (API)"}</Button>
+            )}
+            {me && (
+              <Button type="button" variant="secondary" disabled={cotandoMe || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Cota no Melhor Envio (Correios, Jadlog, Loggi, J&T, Azul, LATAM, Buslog) e registra cada opção"}
+                onClick={cotarMelhorEnvio}><Zap size={14} /> {cotandoMe ? "Cotando no Melhor Envio…" : "Cotar no Melhor Envio"}</Button>
             )}
           </div>
           {falta.length > 0 && <p className="mb-2 text-xs text-amber-800">Salve antes os dados que faltam ({falta.join(", ")}) para a cotação sair completa.</p>}

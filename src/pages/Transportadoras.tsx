@@ -410,15 +410,21 @@ function Internet({ t, podeEditar, onConferir }: { t: Transportadora; podeEditar
   );
 }
 
-/** Integração pronta no ERP: confere se o usuário e a senha da API (secrets do Supabase) entram. */
+/** Integração pronta no ERP: confere se o acesso da API (secrets do Supabase) entra. */
 function TestarApi({ t }: { t: Transportadora }) {
   const [estado, setEstado] = useState<{ ok: boolean; texto: string } | null>(null);
   const [testando, setTestando] = useState(false);
+  const qual = integracaoApi(t);
   async function testar() {
     setTestando(true);
     try {
-      const r = await callFunction<{ servidor: string }>("rodonaves", { acao: "testar" });
-      setEstado({ ok: true, texto: `Conectado (servidor ${r.servidor}). A cotação aparece no envio: Fretes → envio → Cotações → "Cotar na Rodonaves (API)".` });
+      if (qual === "melhorenvio") {
+        const r = await callFunction<{ conta: string; sandbox: boolean }>("melhorenvio", { acao: "testar" });
+        setEstado({ ok: true, texto: `Conectado na conta ${r.conta}${r.sandbox ? " (sandbox, preços de teste)" : ""}. A cotação aparece no envio: Fretes → envio → Cotações → "Cotar no Melhor Envio".` });
+      } else {
+        const r = await callFunction<{ servidor: string }>("rodonaves", { acao: "testar" });
+        setEstado({ ok: true, texto: `Conectado (servidor ${r.servidor}). A cotação aparece no envio: Fretes → envio → Cotações → "Cotar na Rodonaves (API)".` });
+      }
     } catch (e) {
       setEstado({ ok: false, texto: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -429,7 +435,11 @@ function TestarApi({ t }: { t: Transportadora }) {
     <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <PlugZap size={16} className="text-emerald-700" aria-hidden />
-        <span className="min-w-0 flex-1 text-sm">Cotação pela API de {nomeCurto(t)} ligada no ERP. O usuário e a senha ficam nos secrets do Supabase, nunca no cadastro.</span>
+        <span className="min-w-0 flex-1 text-sm">
+          {qual === "melhorenvio"
+            ? "Cotação pelo Melhor Envio ligada no ERP (Correios, Jadlog, Loggi, J&T, Azul Cargo, LATAM e Buslog de uma vez). O token fica nos secrets do Supabase, nunca no cadastro."
+            : `Cotação pela API de ${nomeCurto(t)} ligada no ERP. O usuário e a senha ficam nos secrets do Supabase, nunca no cadastro.`}
+        </span>
         <Button type="button" variant="secondary" className="!min-h-0 !py-1 text-xs" disabled={testando} onClick={testar}>{testando ? "Testando…" : "Testar conexão"}</Button>
       </div>
       {estado && <p className={`mt-1.5 text-xs ${estado.ok ? "text-emerald-800" : "text-red-700"}`}>{estado.texto}</p>}

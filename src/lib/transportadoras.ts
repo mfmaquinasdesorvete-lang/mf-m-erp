@@ -149,6 +149,19 @@ export function filtrar(lista: Marca[], f: FiltroMarca, usos?: Map<string, numbe
 }
 
 /** Integração pela API já pronta no ERP (hoje só a Rodonaves/RTE: cotação). */
-export function integracaoApi(t: Pick<Transportadora, "nome" | "nome_fantasia" | "site">): "rodonaves" | null {
-  return /rodonaves|\brte\b|rte\.com\.br/i.test([t.nome, t.nome_fantasia, t.site].filter(Boolean).join(" ")) ? "rodonaves" : null;
+/** A empresa que veio de uma plataforma (ex.: "Azul Cargo Express", "LATAM Cargo") é esta marca do cadastro?
+ *  Compara a 1ª palavra do nome, sem acento e sem símbolos ("J&T Express" → "jt"). */
+export function combinaNome(t: Pick<Transportadora, "nome" | "nome_fantasia">, empresa: string) {
+  const limpa = (x: string) => sem(x).replace(/[^a-z0-9]/g, "");
+  const primeira = limpa(sem(empresa).trim().split(/\s+/)[0] ?? "");
+  if (primeira.length < 2) return false;
+  return [t.nome, t.nome_fantasia].some((v) => v && limpa(v).startsWith(primeira));
+}
+
+export type IntegracaoApi = "rodonaves" | "melhorenvio";
+export function integracaoApi(t: Pick<Transportadora, "nome" | "nome_fantasia" | "site">): IntegracaoApi | null {
+  const txt = [t.nome, t.nome_fantasia, t.site].filter(Boolean).join(" ");
+  if (/rodonaves|\brte\b|rte\.com\.br/i.test(txt)) return "rodonaves";
+  if (/melhor\s*envio|melhorenvio\.com/i.test(txt)) return "melhorenvio";
+  return null;
 }
