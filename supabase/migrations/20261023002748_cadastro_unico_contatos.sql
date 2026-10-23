@@ -2,8 +2,7 @@
 -- cadastro só e o histórico de cada empresa continua separado (vendas da MF; notas, compras e propostas da My Frost).
 -- Para a importação de contatos da MF não misturar: cadastro que veio da My Frost (id_externo "myfrost:…") só ganha o
 -- que está vazio, sem trocar nome, endereço, telefone nem o código da My Frost; cadastro unificado vale o que ficou.
--- Ordens de compra do Tiny: ID e nº do Tiny em campo próprio (antes só no texto das observações), preenchidos sozinhos
--- quando a OC entra pelo backup; um índice impede a mesma OC do Tiny duas vezes. Só acréscimos; nenhum dado muda aqui.
+-- As ordens de compra do Tiny estão em 20261023002705_oc_tiny_ids.sql. Só acréscimos; nenhum dado muda aqui.
 
 create or replace function public.importar_contatos(p_itens jsonb)
 returns jsonb
@@ -199,22 +198,3 @@ begin
   return jsonb_build_object('clientes', v_cli, 'fornecedores', v_forn, 'transportadoras', v_transp, 'atualizados', v_atual,
                             'protegidos_my_frost', v_protegidos);
 end $$;
-
-alter table public.pedidos_compra add column if not exists id_externo text;
-alter table public.pedidos_compra add column if not exists numero_externo text;
-create unique index if not exists pedidos_compra_id_externo_uniq on public.pedidos_compra (id_externo) where id_externo is not null;
-
--- OC que entra com o texto da importação do Tiny ("Importado do Tiny: ordem de compra nº 181 de 23/10/2025 … (Tiny 922767703)")
-create or replace function public.trg_oc_tiny_ids()
-returns trigger language plpgsql set search_path = public as $$
-begin
-  if coalesce(new.observacoes, '') like 'Importado do Tiny%' then
-    new.id_externo := coalesce(new.id_externo, 'tiny:oc:' || substring(new.observacoes from '\(Tiny (\d+)\)'));
-    new.numero_externo := coalesce(new.numero_externo, substring(new.observacoes from 'ordem de compra nº (\d+)'));
-    -- a OC do Tiny entra com a data do Tiny na criação; o campo Data tem hoje como padrão, então vale a do Tiny
-    new.data := (new.created_at at time zone 'America/Sao_Paulo')::date;
-  end if;
-  return new;
-end $$;
-drop trigger if exists trg_oc_tiny_ids on public.pedidos_compra;
-create trigger trg_oc_tiny_ids before insert on public.pedidos_compra for each row execute function public.trg_oc_tiny_ids();
