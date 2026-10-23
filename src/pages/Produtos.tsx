@@ -320,7 +320,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     return c > 0 && v > 0 ? Math.round(((v - c) / v) * 100) : null;
   };
   /** Celular: nome (com o NCM pequeno ao lado) e foto em cima; custo, venda, estoque e vendidos em 3 meses numa faixa
-   *  baixa embaixo (eram 4 caixas grandes, 23/10). Serviço não tem NCM nem estoque: esses dois não aparecem. */
+   *  baixa embaixo (eram 4 caixas grandes, 23/10). Serviço não tem NCM nem estoque: no lugar do estoque vai a margem. */
   const cartaoProduto = (r: Produto, abrir: () => void) => {
     const e = estoque(r), c = custo(r), m = margem(r), v = vendidos3m.get(r.id);
     const ncm = String(r.ncm ?? "").replace(/\D/g, "");
@@ -357,7 +357,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         {(r.ativo === false || r.fora_de_linha || r.no_catalogo || naProducao.has(r.id) || (cadastro === "componentes" && r.tipo !== "insumo")) && (
           <div className="mt-2 flex flex-wrap items-center gap-1">{selos(r)}</div>
         )}
-        <dl className={`mt-2.5 grid divide-x divide-slate-100 rounded-cartao border border-slate-100 py-1.5 text-center ${servico ? "grid-cols-3" : "grid-cols-4"}`}>
+        <dl className="mt-2.5 grid grid-cols-4 divide-x divide-slate-100 rounded-cartao border border-slate-100 py-1.5 text-center">
           <div className="min-w-0 px-1">
             <dt className="text-2xs text-slate-500">Custo</dt>
             <dd className={`truncate text-xs font-bold tabular-nums ${c ? "" : "text-amber-600"}`}>{c ? brl(c) : "sem custo"}</dd>
@@ -365,9 +365,15 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           <div className="min-w-0 px-1">
             <dt className="text-2xs text-slate-500">Venda</dt>
             <dd className="truncate text-xs font-bold tabular-nums">{brl(r.preco_venda)}</dd>
-            {m !== null && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>{m}%</dd>}
+            {m !== null && !servico && <dd className={`text-2xs ${m < 0 ? "font-semibold text-red-600" : "text-slate-500"}`}>{m}%</dd>}
           </div>
-          {!servico && (
+          {/* serviço não tem estoque: no lugar dele, a margem (a faixa fica com 4 números, como nas peças) */}
+          {servico ? (
+            <div className="min-w-0 px-1">
+              <dt className="text-2xs text-slate-500">Margem</dt>
+              <dd className={`truncate text-xs font-bold tabular-nums ${m !== null && m < 0 ? "text-red-600" : ""}`}>{m !== null ? `${m}%` : "—"}</dd>
+            </div>
+          ) : (
             <div className="min-w-0 px-1">
               <dt className="text-2xs text-slate-500">Estoque</dt>
               <dd className={`truncate text-xs font-bold tabular-nums ${e.alerta ? "text-red-600" : ""}`}>{e.texto}</dd>
