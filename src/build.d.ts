@@ -4,3 +4,4 @@ declare const __ERP_HISTORICO__: import("./lib/atualizacoes").DiaHistorico[];
 declare const __ERP_TELAS__: import("./lib/atualizacoes").AlteracaoTela[];
 declare const __ERP_CODIGO__: import("./lib/codigoErp").TecnicaCodigo[];
 declare const __ERP_ENTREGAS_CHATS__: import("./lib/chatsEntregas").EntregaChat[];
+declare const __ERP_HORAS__: import("./lib/codigoErp").HorasProjeto;

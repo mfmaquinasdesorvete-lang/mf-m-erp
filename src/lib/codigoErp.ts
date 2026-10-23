@@ -37,3 +37,22 @@ export function contarCodigo(arquivos: { caminho: string; linhas: number }[]): T
 
 /** Linhas de um texto (a última linha sem quebra também conta). */
 export const linhasDoTexto = (t: string) => (t ? t.split("\n").length - (t.endsWith("\n") ? 1 : 0) : 0);
+
+export type HorasProjeto = { horas: number; periodos: number; dias: number; desde: string | null };
+
+/**
+ * Horas de trabalho no projeto, estimadas pelos horários dos envios do código (git): envios com menos de 1h30 de
+ * intervalo são o mesmo período de trabalho, e cada período ganha 30 min pelo começo (antes do 1º envio).
+ */
+export function horasNoProjeto(datas: string[], pausaMin = 90, inicioMin = 30): HorasProjeto {
+  const t = datas.map((d) => Date.parse(d)).filter((x) => !Number.isNaN(x)).sort((a, b) => a - b);
+  if (!t.length) return { horas: 0, periodos: 0, dias: 0, desde: null };
+  let ms = 0, periodos = 1, ini = t[0], ant = t[0];
+  for (const x of t.slice(1)) {
+    if (x - ant > pausaMin * 60_000) { ms += ant - ini + inicioMin * 60_000; periodos++; ini = x; }
+    ant = x;
+  }
+  ms += ant - ini + inicioMin * 60_000;
+  const dias = new Set(t.map((x) => new Date(x).toISOString().slice(0, 10))).size;
+  return { horas: Math.round(ms / 3_600_000), periodos, dias, desde: new Date(t[0]).toISOString() };
+}
