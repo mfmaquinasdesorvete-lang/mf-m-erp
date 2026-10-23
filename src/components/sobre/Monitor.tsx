@@ -1,6 +1,6 @@
-// Sobre → Monitor (só o administrador): a saúde do ERP de relance — o backup, as chaves e certificados que vencem, as
-// automações agendadas (rodou na hora? falhou?), as respostas das funções, as filas que travam o trabalho — e o
-// registro das execuções dos comandos.
+// Sobre → Monitor (só o administrador): a saúde do ERP de relance — o backup, as automações agendadas (rodou na hora?
+// falhou?), as respostas das funções — e o registro das execuções dos comandos. O resumo do que está parado, as chaves e
+// certificados e as filas que travam o trabalho ficam no Painel gerencial (SaudeGerencial).
 // O vigia (pg_cron erp-vigiar-sistema) confere o mesmo de hora em hora e avisa no sino; esta tela mostra o porquê.
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -25,12 +25,43 @@ const haQuanto = (iso: string | null, agora: string) => {
   return `há ${Math.round(min / 1440)} dias`;
 };
 
-export function Monitor() {
-  const q = useQuery({
+/** A saúde do sistema (só o administrador lê): a mesma leitura no Monitor e no Painel gerencial. */
+function useSaude() {
+  return useQuery({
     queryKey: ["saude_sistema"],
     queryFn: async () => { const { data, error } = await supabase.rpc("saude_sistema"); if (error) throw error; return data as Saude; },
     refetchInterval: 60_000,
   });
+}
+
+/**
+ * Gestão → Painel gerencial (só o administrador): o que está parado ("Tem coisa parada"), as chaves e certificados que
+ * vencem e as filas que travam o trabalho. Saíram do Sobre → Monitor, que ficou com as automações e o backup.
+ */
+export function SaudeGerencial() {
+  const q = useSaude();
+  const [execucao, setExecucao] = useState<InicialExecucao | null>(null);
+  const s = q.data;
+  const resumo = useMemo(() => (s ? resumoSaude(s, s.agora) : null), [s]);
+  if (q.isError) return <Card className="mb-5 p-4 text-sm text-red-800">Não deu para ler a saúde do sistema: {(q.error as Error).message}</Card>;
+  if (!s || !resumo) return <Card className="mb-5 p-4 text-sm text-slate-500">Conferindo o que está parado…</Card>;
+  const registrarVerificacao = () => setExecucao({
+    comando: "MONITOR", alvo: "automacoes", situacao: "em_andamento",
+    entrada: "MONITOR automações (verificação no Painel gerencial)",
+    diagnostico: diagnosticoMonitor(s, s.agora),
+  });
+  return (
+    <div className="mb-5 space-y-4">
+      <Semaforo nivel={resumo.nivel} problemas={resumo.problemas} onAtualizar={() => q.refetch()} atualizando={q.isFetching} onRegistrar={registrarVerificacao} />
+      <Chaves lista={s.vencimentos ?? []} />
+      <Filas s={s} />
+      {execucao && <ExecucaoModal inicial={execucao} onClose={() => setExecucao(null)} />}
+    </div>
+  );
+}
+
+export function Monitor() {
+  const q = useSaude();
   const [execucao, setExecucao] = useState<InicialExecucao | null>(null);
   const s = q.data;
   const resumo = useMemo(() => (s ? resumoSaude(s, s.agora) : null), [s]);
@@ -49,7 +80,13 @@ export function Monitor() {
       {q.isError && <Card className="p-4 text-sm text-red-800">Não deu para ler a saúde do sistema: {(q.error as Error).message}</Card>}
       {!s || !resumo ? (!q.isError && <Card className="p-4 text-sm text-slate-500">Conferindo as automações…</Card>) : (
         <>
-          <Semaforo nivel={resumo.nivel} problemas={resumo.problemas} onAtualizar={() => q.refetch()} atualizando={q.isFetching} onRegistrar={registrarVerificacao} />
+          <Card className="flex flex-wrap items-center gap-2 p-4 text-sm text-slate-700">
+            <span className="min-w-0 flex-1">O resumo do que está parado, as chaves e certificados e as filas que travam o trabalho ficam em Gestão → Painel gerencial.</span>
+            <Link to="/gerencial" className="inline-flex items-center gap-1 font-semibold text-sky-700 hover:underline">Abrir <ArrowRight size={12} aria-hidden /></Link>
+            <button type="button" onClick={registrarVerificacao} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+              <ClipboardPlus size={14} aria-hidden /> Registrar verificação
+            </button>
+          </Card>
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Automações em dia" valor={`${resumo.contagem.ok} de ${s.automacoes.length}`} icon={Activity}
@@ -64,8 +101,6 @@ export function Monitor() {
           </div>
 
           <BackupCartao s={s} />
-
-          <Chaves lista={s.vencimentos ?? []} />
 
           <Card className="overflow-hidden">
             <div className="flex items-center gap-2 border-b border-slate-100 p-4">
@@ -108,39 +143,44 @@ export function Monitor() {
             </ul>
           </Card>
 
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-slate-100 p-4">
-              <Inbox size={18} className="text-sky-700" aria-hidden />
-              <h2 className="font-bold text-fg">Filas que travam o trabalho</h2>
-            </div>
-            <ul className="divide-y divide-slate-100">
-              {s.filas.map((f) => {
-                const def = FILAS[f.chave];
-                const cor = !f.qtd ? "bg-emerald-500" : def?.grave ? "bg-red-500" : "bg-amber-500";
-                return (
-                  <li key={f.chave} className="flex flex-wrap items-center gap-3 p-4">
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${cor}`} aria-hidden />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-fg">{def?.nome ?? f.chave}</div>
-                      <div className="text-xs text-slate-600">{def?.texto}{f.qtd && f.desde ? ` · a mais antiga ${haQuanto(f.desde, s.agora)}` : ""}</div>
-                    </div>
-                    <div className="num text-right text-lg font-bold text-fg">
-                      {f.qtd}{f.chave === "extrato" && f.total ? <span className="block text-xs font-normal text-slate-600">de {f.total} ({Math.round((f.qtd / f.total) * 100)}%)</span> : null}
-                    </div>
-                    {def?.tela && f.qtd > 0 && <Link to={def.tela} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Resolver <ArrowRight size={12} aria-hidden /></Link>}
-                  </li>
-                );
-              })}
-            </ul>
-            {s.chamadas?.ultimo_erro && <p className="border-t border-slate-100 p-4 text-xs text-slate-600">Último erro de função: <span className="font-mono">{s.chamadas.ultimo_erro}</span></p>}
-            <p className="border-t border-slate-100 p-4 text-xs text-slate-500">Histórico do agendador: {s.historico_linhas.toLocaleString("pt-BR")} linhas guardadas.</p>
-          </Card>
         </>
       )}
 
       <RegistroExecucoes onNova={setExecucao} />
       {execucao && <ExecucaoModal inicial={execucao} onClose={() => setExecucao(null)} />}
     </div>
+  );
+}
+
+function Filas({ s }: { s: Saude }) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+        <Inbox size={18} className="text-sky-700" aria-hidden />
+        <h2 className="font-bold text-fg">Filas que travam o trabalho</h2>
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {s.filas.map((f) => {
+          const def = FILAS[f.chave];
+          const cor = !f.qtd ? "bg-emerald-500" : def?.grave ? "bg-red-500" : "bg-amber-500";
+          return (
+            <li key={f.chave} className="flex flex-wrap items-center gap-3 p-4">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${cor}`} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-fg">{def?.nome ?? f.chave}</div>
+                <div className="text-xs text-slate-600">{def?.texto}{f.qtd && f.desde ? ` · a mais antiga ${haQuanto(f.desde, s.agora)}` : ""}</div>
+              </div>
+              <div className="num text-right text-lg font-bold text-fg">
+                {f.qtd}{f.chave === "extrato" && f.total ? <span className="block text-xs font-normal text-slate-600">de {f.total} ({Math.round((f.qtd / f.total) * 100)}%)</span> : null}
+              </div>
+              {def?.tela && f.qtd > 0 && <Link to={def.tela} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Resolver <ArrowRight size={12} aria-hidden /></Link>}
+            </li>
+          );
+        })}
+      </ul>
+      {s.chamadas?.ultimo_erro && <p className="border-t border-slate-100 p-4 text-xs text-slate-600">Último erro de função: <span className="font-mono">{s.chamadas.ultimo_erro}</span></p>}
+      <p className="border-t border-slate-100 p-4 text-xs text-slate-500">Histórico do agendador: {s.historico_linhas.toLocaleString("pt-BR")} linhas guardadas.</p>
+    </Card>
   );
 }
 

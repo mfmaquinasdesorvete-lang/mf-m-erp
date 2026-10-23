@@ -22,6 +22,8 @@ import { SELECT_CLIENTES_VENDAS, SELECT_NOTAS_VENDAS, SELECT_PEDIDOS_VENDAS } fr
 import { useAbaUrl } from "@/lib/abaUrl";
 import { PainelMetas } from "@/components/metas/PainelMetas";
 import { PedidoNotaBanco } from "@/components/gerencial/PedidoNotaBanco";
+import { SaudeGerencial } from "@/components/sobre/Monitor";
+import { usePerfil } from "@/lib/auth";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const rotuloMes = (am: string) => `${MESES[Number(am.slice(5)) - 1]}/${am.slice(2, 4)}`;
@@ -42,6 +44,7 @@ function Variacao({ c, base }: { c: Comparacao; base: string }) {
 
 export default function Gerencial() {
   const { filtrar } = useUnidade();
+  const { papel } = usePerfil();
   const [aba, setAba] = useAbaUrl<Aba>("abc_produtos", ["abc_produtos", "abc_clientes", "clientes", "tendencias", "parado", "metas", "conferencia"] as const);
   const [ficha, setFicha] = useState<Cliente | null>(null);
   const [verTodos, setVerTodos] = useState(false);
@@ -99,6 +102,8 @@ export default function Gerencial() {
             onClick: parados.length ? () => setAba("clientes") : undefined },
         ] as Cartao[]).map((c) => <CartaoPainel key={c.id} c={c} />)}
       </div>
+
+      {papel === "admin" && <SaudeGerencial />}
 
       <Section title="Onde a operação está travando" className="mb-5">
         {!r.gargalos.length ? <p className="text-sm text-slate-500">Nada travado agora.</p> : (
