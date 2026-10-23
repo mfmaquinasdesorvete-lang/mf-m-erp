@@ -14,8 +14,10 @@ export type Documento = { id: string; entidade: string; entidade_id: string | nu
 export const ENTIDADES: Record<string, string> = {
   pedido: "Pedido / proposta", os: "Ordem de serviço", cliente: "Cliente", fornecedor: "Fornecedor", produto: "Produto",
   conta_receber: "Conta a receber", conta_pagar: "Conta a pagar", nfe_recebida: "NF-e de fornecedor", pedido_compra: "Pedido de compra",
-  equipamento: "Máquina vendida", geral: "Empresa (geral)", fechamento: "Fechamento (contador)",
+  equipamento: "Máquina vendida", geral: "Empresa (geral)", fechamento: "Fechamento (contador)", my_frost: "My Frost (empresa anterior)",
 };
+/** Documentos da My Frost (empresa anterior) ficam num registro só, à parte da MF; só a conta master vê. */
+export const ID_MY_FROST = "00000000-0000-4000-8000-00000000f057";
 const LIMITE = 20 * 1024 * 1024;
 export const tamanhoArquivo = (n: number | null) => !n ? "" : n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
 

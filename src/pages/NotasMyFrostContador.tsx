@@ -3,10 +3,12 @@
 //   das notas e a planilha para mandar a ele. Vem do backup de XML da My Frost (notas_legado).
 // - Propostas de compra: as propostas do Tiny da My Frost, guardadas aqui (em Vendas ficam só as da MF). Continuam ligadas
 //   ao cliente: aparecem na ficha dele junto com as da MF.
+// - Documentos: arquivos da My Frost (contabilidade, guias, parcelamentos, balanços). Só a conta master vê (o banco confere).
 import { useMemo, useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { Button, Card, PageHeader, Table, Tabs } from "@/components/ui";
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
+import { Anexos, ID_MY_FROST } from "@/components/Anexos";
 import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -20,13 +22,14 @@ const COR: Record<Grupo, string> = {
 };
 
 export default function NotasMyFrostContador() {
-  const [vista, setVista] = useState<"notas" | "propostas">("notas");
+  const [vista, setVista] = useState<"notas" | "propostas" | "documentos">("notas");
   return (
     <div>
       <PageHeader title="My Frost (empresa anterior)"
         subtitle="CNPJ 32.584.697/0001-81. Notas fiscais e propostas de compra da My Frost, guardadas à parte da MF. Os clientes são os mesmos: na ficha do cliente aparece tudo junto." />
-      <Tabs value={vista} onChange={setVista} options={[{ value: "notas", label: "Notas fiscais (contador)" }, { value: "propostas", label: "Propostas de compra" }]} />
-      {vista === "notas" ? <NotasContador /> : <PropostasTiny empresaFixa="my_frost" />}
+      <Tabs value={vista} onChange={setVista} options={[{ value: "notas", label: "Notas fiscais (contador)" }, { value: "propostas", label: "Propostas de compra" }, { value: "documentos", label: "Documentos" }]} />
+      {vista === "notas" ? <NotasContador /> : vista === "propostas" ? <PropostasTiny empresaFixa="my_frost" />
+        : <Anexos entidade="my_frost" id={ID_MY_FROST} titulo="Documentos da My Frost (contabilidade, guias, parcelamentos, balanços)" />}
     </div>
   );
 }
