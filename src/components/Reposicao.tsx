@@ -7,6 +7,7 @@ import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra } from "@/lib/itens";
 import { supabase } from "@/lib/supabase";
 import { brl, hoje, pl } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { notify, notifyError } from "@/lib/notify";
 import { porFornecedor, sugerirReposicao, type AbertoCompra, type MovimentoRep, type VinculoFornecedor } from "@/lib/reposicao";
 import type { Fornecedor, Produto } from "@/lib/types";
@@ -31,7 +32,7 @@ export function Reposicao({ podeComprar, aoGerar, aoCotar }: { podeComprar: bool
   const [fora, setFora] = useState<Set<string>>(new Set());
   const [ocupado, setOcupado] = useState<string | null>(null);
   const nomeForn = (id: string | null) => (id ? fornecedores.find((f) => f.id === id)?.nome ?? "Fornecedor" : "Sem fornecedor definido");
-  const quant = (id: string, padrao: number) => Number(String(qtd[id] ?? padrao).replace(",", ".")) || 0;
+  const quant = (id: string, padrao: number) => lerValor(String(qtd[id] ?? padrao)) || 0; // "1.500" é mil e quinhentos
 
   async function gerar(fornecedorId: string | null, itens: typeof sugestoes) {
     const escolhidos = itens.filter((s) => !fora.has(s.produto.id) && quant(s.produto.id, s.sugerido) > 0);

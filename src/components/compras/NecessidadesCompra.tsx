@@ -16,6 +16,7 @@ import { useInvalidate, useRows, semUnificados } from "@/lib/data";
 import { criarComItens, desfazerCompra } from "@/lib/itens";
 import { supabase } from "@/lib/supabase";
 import { brl, hoje, pl, somarDias } from "@/lib/format";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { notify, notifyError } from "@/lib/notify";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
@@ -80,7 +81,8 @@ const FIXA_PROD = "sticky left-10 z-acima shadow-[1px_0_0_rgb(var(--slate-200))]
 const POR_VEZ = 200;
 
 const fmt = (v: number, casas = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: casas });
-const num = (v: string) => Number(String(v).trim().replace(",", "."));
+// "1.500" é mil e quinhentos (antes virava 1,5); vazio é 0 e texto inválido é NaN, como antes
+const num = (v: string) => (String(v).trim() === "" ? 0 : lerValor(v) ?? NaN);
 /** número no campo do jeito brasileiro (2,5) */
 const noCampo = (v: number) => String(v).replace(".", ",");
 

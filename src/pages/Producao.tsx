@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -324,7 +324,11 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const produtoOP = produtos.find((p) => p.id === o.produto_id);
   const set = (p: Partial<OrdemProducao>) => setO((x) => ({ ...x, ...p }));
 
-  async function executar(acao: () => Promise<unknown>, ok: string, fechar = true) {
+  // trava na hora do clique (o "ocupado" só desabilita o botão no próximo desenho da tela)
+  const travado = useRef(false);
+  async function executar(acao: () => Promise<unknown>, ok: string, fechar = true, jaTravado = false) {
+    if (travado.current && !jaTravado) return;
+    travado.current = true;
     setOcupado(true);
     try {
       await acao();
@@ -334,6 +338,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     } catch (e) {
       notifyError(e);
     } finally {
+      travado.current = false;
       setOcupado(false);
     }
   }
@@ -343,17 +348,31 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     executar(async () => {
       const { produto: _p, numero: _n, created_at: _c, ...row } = o as any;
       const dados = limpar({ ...row, quantidade: Number(row.quantidade) });
-      const { data, error } = dados.id
-        ? await supabase.from("ordens_producao").update(dados).eq("id", dados.id).select("id, numero").single()
-        : await supabase.from("ordens_producao").insert(dados).select("id, numero").single();
+      if (!dados.id) {
+        const { data, error } = await supabase.from("ordens_producao").insert(dados).select("id, numero").single();
+        if (error) throw error;
+        set({ id: data.id, numero: data.numero });
+        return;
+      }
+      // OP já gravada: o Salvar só manda o que se edita na janela (situação, etapas, conclusão e custo mudam pelos
+      // botões e pelo app). Com a janela aberta há tempo, gravar tudo voltava uma OP concluída para "planejada" e ela
+      // podia ser concluída de novo (peças baixadas duas vezes).
+      const { status: _s, etapas: _e, concluida_em: _ce, custo_total: _ct, custo_unitario: _cu, excluida_em: _x1, excluida_por: _x2,
+        excluida_motivo: _x3, excluida_status: _x4, ...editavel } = dados;
+      const { data, error } = await supabase.from("ordens_producao").update(editavel).eq("id", dados.id)
+        .in("status", ["planejada", "em_producao"]).select("id, numero").maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Esta OP já foi concluída ou cancelada (talvez por outra pessoa): feche e abra de novo para ver como está.");
       set({ id: data.id, numero: data.numero });
     }, "Ordem de produção salva", false);
   };
 
+  // só muda se a OP ainda estiver aberta no banco (outra pessoa pode ter concluído enquanto a janela estava aberta)
   const mudarStatus = (status: string, ok: string) => executar(async () => {
-    const { error } = await supabase.from("ordens_producao").update({ status }).eq("id", o.id!);
+    const { data, error } = await supabase.from("ordens_producao").update({ status }).eq("id", o.id!)
+      .in("status", ["planejada", "em_producao"]).select("id").maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error("Esta OP já foi concluída ou cancelada (talvez por outra pessoa): feche e abra de novo para ver como está.");
   }, ok);
 
   const etapas = (Array.isArray(o.etapas) ? o.etapas : []) as EtapaOp[];
@@ -362,7 +381,11 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   const faltamEtapas = etapas.filter((e) => !e.feita).length;
   /** Marca ou desmarca uma etapa e grava na hora (quem e quando ficam registrados). */
   async function marcarEtapa(i: number) {
-    const novas = etapas.map((e, j) => (j === i ? { ...e, feita: !e.feita, por: !e.feita ? perfil.nome : null, em: !e.feita ? new Date().toISOString() : null } : e));
+    // relê as etapas do banco antes de marcar (outra pessoa pode ter marcado outra pelo app no meio), como o app faz
+    const { data: atual, error: e1 } = await supabase.from("ordens_producao").select("etapas").eq("id", o.id!).single();
+    if (e1) return notifyError(e1);
+    const base = (Array.isArray(atual?.etapas) ? atual!.etapas : etapas) as EtapaOp[];
+    const novas = base.map((e, j) => (j === i ? { ...e, feita: !e.feita, por: !e.feita ? perfil.nome : null, em: !e.feita ? new Date().toISOString() : null } : e));
     const { error } = await supabase.from("ordens_producao").update({ etapas: novas }).eq("id", o.id!);
     if (error) return notifyError(error);
     set({ etapas: novas });
@@ -377,14 +400,21 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
   }
 
   const concluir = async () => {
-    if (faltamEtapas && !(await confirmar(`Faltam ${faltamEtapas} ${pl(faltamEtapas, "etapa", "etapas")} da conferência. Concluir a produção mesmo assim?`))) return;
-    // teste do giga (REG-006): só avisa, não bloqueia
-    const aviso = ehMaquina ? await avisoGigaDaOp(o.numeros_serie) : null;
-    if (aviso && !(await confirmar(`${aviso} Concluir a produção mesmo assim? O teste pode ser lançado depois.`,
-      { titulo: "Teste do giga (REG-006)", ok: "Concluir mesmo assim", perigo: false }))) return;
-    return concluirAgora();
+    // trava já no clique: as perguntas abaixo demoram e um 2º clique mandaria a conclusão duas vezes
+    if (travado.current) return;
+    travado.current = true;
+    let seguiu = false;
+    try {
+      if (faltamEtapas && !(await confirmar(`Faltam ${faltamEtapas} ${pl(faltamEtapas, "etapa", "etapas")} da conferência. Concluir a produção mesmo assim?`))) return;
+      // teste do giga (REG-006): só avisa, não bloqueia
+      const aviso = ehMaquina ? await avisoGigaDaOp(o.numeros_serie) : null;
+      if (aviso && !(await confirmar(`${aviso} Concluir a produção mesmo assim? O teste pode ser lançado depois.`,
+        { titulo: "Teste do giga (REG-006)", ok: "Concluir mesmo assim", perigo: false }))) return;
+      seguiu = true;
+      await concluirAgora(true);
+    } finally { if (!seguiu) travado.current = false; }
   };
-  const concluirAgora = () => executar(async () => {
+  const concluirAgora = (jaTravado = false) => executar(async () => {
     // os números de série entram na conclusão pelo que está gravado: sem gravar, não conclui
     if (o.numeros_serie !== undefined) {
       const { error: e1 } = await supabase.from("ordens_producao").update({ numeros_serie: o.numeros_serie }).eq("id", o.id!);
@@ -392,7 +422,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
     }
     const { error } = await supabase.rpc("concluir_producao", { p_ordem: o.id });
     if (error) throw error;
-  }, "Produção concluída: peças baixadas e máquinas no estoque");
+  }, "Produção concluída: peças baixadas e máquinas no estoque", true, jaTravado);
 
   /** Ficha de montagem impressa: uma folha por máquina (nº de série), peças para conferir, etapas, giga e assinaturas. */
   async function gerarFicha() {
@@ -717,6 +747,9 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
       frete: Number(cab.frete || 0), desconto: Number(cab.desconto || 0), outras_despesas: Number(cab.outras_despesas || 0),
       parcelas: cab.parcelas?.length ? cab.parcelas.map((x: { vencimento: string; valor: number; observacao?: string | null }) => ({ vencimento: x.vencimento, valor: Number(x.valor || 0), observacao: x.observacao || null })) : null,
       ...(status ? { status, ...(status === "enviado" ? { enviado_em: new Date().toISOString() } : {}) } : {}) });
+    // OC já gravada: a situação só muda pelos botões (enviar, receber…); a janela aberta há tempo não volta uma OC
+    // recebida para "enviada"
+    if (dados.id && !status) delete (dados as any).status;
     const { data, error } = dados.id
       ? await supabase.from("pedidos_compra").update(dados).eq("id", dados.id).select("id, numero").single()
       : await supabase.from("pedidos_compra").insert(dados).select("id, numero").single();

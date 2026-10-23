@@ -2124,7 +2124,8 @@ const VIEWS: Record<string, () => Row[]> = {
     // mesma regra do banco: explode a estrutura em todos os níveis (subconjunto com estoque próprio é consumido pronto)
     const fichas = db.produto_componentes as LinhaFicha[];
     const consumo = (o: Row) => consumoEstrutura(fichas, db.produtos as any, o.produto_id, Number(o.quantidade), (db.kit_componentes ?? []) as any);
-    return db.ordens_producao.flatMap((op) => [...consumo(op)].map(([componente_id, necessario]) => {
+    // só OPs abertas; serviço da ficha (mão de obra, carga de gás) não é peça (igual à view do banco)
+    return abertas.flatMap((op) => [...consumo(op)].filter(([id]) => db.produtos.find((x) => x.id === id)?.tipo !== "servico").map(([componente_id, necessario]) => {
       const p: Row = { ...db.produtos.find((x) => x.id === componente_id)!, estoque_atual: saldoUn(componente_id, op.unidade_id) };
       const reservado = abertas.filter((o) => o.id !== op.id && o.created_at < op.created_at && o.unidade_id === op.unidade_id)
         .reduce((s, o) => s + (consumo(o).get(componente_id) ?? 0), 0);
