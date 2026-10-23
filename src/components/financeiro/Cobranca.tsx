@@ -11,14 +11,14 @@ import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
-import { filaCobranca, pixDaConta, preencherMensagem, situacaoClientes, type ContaCobranca, type Envio, type Etapa } from "@/lib/cobranca";
+import { cobraDoCliente, filaCobranca, marcarForaDaCobranca, pixDaConta, preencherMensagem, situacaoClientes, type ContaCobranca, type Envio, type Etapa } from "@/lib/cobranca";
 import type { Cliente } from "@/lib/types";
 import { PainelCobranca } from "@/components/financeiro/PainelCobranca";
 import { MensagensWhatsapp, useStatusWhatsapp, type EtapaWa } from "@/components/financeiro/WhatsappOficial";
 
 type ContaR = ContaCobranca & { cliente?: Cliente | null; forma_pagamento?: string };
 
-export function Cobranca({ contas }: { contas: ContaR[] }) {
+export function Cobranca({ contas: todas }: { contas: ContaR[] }) {
   const { unidades } = useUnidade();
   const invalidate = useInvalidate();
   const dia = hoje();
@@ -34,6 +34,19 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
       return (data ?? []) as Envio[];
     },
   });
+  // pedido cancelado ou sem NF de venda: o banco diz quais contas em aberto não se cobram do cliente
+  const { data: fora } = useQuery({
+    queryKey: ["contas_receber", "fora_cobranca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("contas_receber_fora_cobranca");
+      if (error) throw error;
+      // função que devolve uma lista de ids: vem como ["id", …] (ou [{ contas_receber_fora_cobranca: "id" }])
+      return new Set(((data ?? []) as unknown[]).map((x) => String(x && typeof x === "object" ? Object.values(x)[0] : x)));
+    },
+  });
+  const contas = useMemo(() => marcarForaDaCobranca(todas, fora ?? new Set<string>()), [todas, fora]);
+  // o painel soma só o que se cobra do cliente (cartão, pedido cancelado e sem NF de venda ficam de fora)
+  const contasPainel = useMemo(() => contas.filter((c) => c.status !== "aberto" || cobraDoCliente(c)), [contas]);
   const { data: cfg } = useQuery({ queryKey: ["configuracoes", "site_url"], queryFn: async () => (await supabase.from("configuracoes").select("site_url, nome_fantasia, razao_social").eq("id", 1).maybeSingle()).data });
   const fila = useMemo(() => filaCobranca(contas, etapas, envios, dia)
     .filter(({ conta: c, etapa: e }) => !(automatica(e as EtapaWa) && (c.cliente?.whatsapp || c.cliente?.telefone))),
@@ -62,7 +75,7 @@ export function Cobranca({ contas }: { contas: ContaR[] }) {
 
   return (
     <div className="space-y-5">
-      <PainelCobranca contas={contas} sit={sit} />
+      <PainelCobranca contas={contasPainel} sit={sit} />
 
       <Card className="p-4">
         <h2 className="mb-1 flex items-center gap-2 font-bold"><MessageCircle size={18} className="text-emerald-600" /> Mandar hoje pelo WhatsApp ({fila.length})</h2>

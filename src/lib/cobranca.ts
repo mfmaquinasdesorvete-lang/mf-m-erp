@@ -10,13 +10,22 @@ export type Etapa = {
 export type ContaCobranca = {
   id: string; cliente_id: string | null; descricao: string; valor: number; valor_pago?: number | null; vencimento: string; status: string;
   data_pagamento?: string | null; created_at?: string; unidade_id?: string | null; forma_pagamento?: string | null;
+  /** marcada pelo banco (contas_receber_fora_cobranca): pedido cancelado ou sem NF de venda */
+  fora_da_cobranca?: boolean;
 };
 export type Envio = { conta_receber_id: string; etapa_id: string; canal: string };
 
 const somar = (d: string, n: number) => new Date(Date.parse(d.slice(0, 10) + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 
-/** Parcela que o cliente paga (no cartão quem paga é a maquininha: não entra em lembrete nem cobrança ao cliente). */
-export const cobraDoCliente = (c: Pick<ContaCobranca, "forma_pagamento">) => c.forma_pagamento !== "cartao";
+/**
+ * Conta que se cobra do cliente. Fica fora: parcela no cartão (quem paga é a maquininha) e a que o banco marcou
+ * (pedido cancelado, ou sem NF de venda: sem pagamento a mercadoria não foi, ou foi só com NF de transporte).
+ */
+export const cobraDoCliente = (c: Pick<ContaCobranca, "forma_pagamento" | "fora_da_cobranca">) => c.forma_pagamento !== "cartao" && !c.fora_da_cobranca;
+
+/** Marca as contas que o banco tirou da cobrança (ids de contas_receber_fora_cobranca). */
+export const marcarForaDaCobranca = <C extends ContaCobranca>(contas: C[], fora: ReadonlySet<string>): C[] =>
+  fora.size ? contas.map((c) => (fora.has(c.id) ? { ...c, fora_da_cobranca: true } : c)) : contas;
 
 /** Dia em que a etapa vale para a conta (null se a etapa não se aplica a ela). */
 export function dataDaEtapa(e: Etapa, c: ContaCobranca): string | null {

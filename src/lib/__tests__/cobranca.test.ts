@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataDaEtapa, filaCobranca, resumoCobranca, type ContaCobranca, type Etapa } from "../cobranca";
+import { cobraDoCliente, dataDaEtapa, filaCobranca, marcarForaDaCobranca, resumoCobranca, situacaoClientes, type ContaCobranca, type Etapa } from "../cobranca";
 
 describe("resumoCobranca", () => {
   const conta = (p: Partial<ContaCobranca>): ContaCobranca => ({ id: Math.random().toString(), cliente_id: "a", descricao: "x", valor: 100, vencimento: "2026-10-01", status: "aberto", ...p });
@@ -33,5 +33,16 @@ describe("parcela no cartão", () => {
   it("boleto e Pix continuam na régua; o obrigado do pagamento vale para o cartão", () => {
     expect(dataDaEtapa(etapa("vencimento"), conta({ forma_pagamento: "boleto" }))).toBe("2026-10-20");
     expect(dataDaEtapa(etapa("pagamento"), conta({ forma_pagamento: "cartao", status: "pago", data_pagamento: "2026-10-21" }))).toBe("2026-10-21");
+  });
+});
+
+describe("só cobra de quem deve", () => {
+  const etapa: Etapa = { id: "v", evento: "vencimento", dias: 0, nome: "v", canal_email: true, canal_whatsapp: true, assunto: "", mensagem: "", ativo: true, ordem: 1 };
+  const conta = (id: string): ContaCobranca => ({ id, cliente_id: "a", descricao: "x", valor: 100, vencimento: "2026-10-20", status: "aberto" });
+  it("conta marcada pelo banco (pedido cancelado ou sem NF de venda) sai da fila e não deixa o cliente atrasado", () => {
+    const contas = marcarForaDaCobranca([conta("cancelado"), conta("os")], new Set(["cancelado"]));
+    expect(filaCobranca(contas, [etapa], [], "2026-10-20").map((x) => x.conta.id)).toEqual(["os"]);
+    expect(cobraDoCliente(contas[0])).toBe(false);
+    expect(situacaoClientes([contas[0]], "2026-10-25").atrasado).toBe(0);
   });
 });

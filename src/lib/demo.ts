@@ -4811,6 +4811,12 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       reaberturas: [...(o.reaberturas ?? []), { em: quando(0), nome: "Você (prévia)", motivo: String(p_motivo).trim(), concluida_em: o.concluida_em, voltou_para: p_status }] });
     return { data: null, error: null };
   },
+  // como no banco: conta em aberto de pedido cancelado ou sem NF de venda autorizada (o cartão a tela já tira)
+  contas_receber_fora_cobranca: () => ({ error: null, data: db.contas_receber.filter((c) => {
+    if (c.status !== "aberto" || !c.pedido_id) return false;
+    const p = db.pedidos.find((x) => x.id === c.pedido_id);
+    return !p || p.status === "cancelado" || !db.notas_fiscais.some((n) => n.pedido_id === p.id && n.status === "autorizada");
+  }).map((c) => c.id) }),
   contas_da_oc: ({ p_pedido }) => {
     const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
     if (!pc) return { data: [], error: null };
