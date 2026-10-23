@@ -17,7 +17,7 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
   `src/lib/rastreio.ts`, `src/lib/coleta.ts`, `src/lib/cte.ts`, `src/lib/correios.ts`, `src/lib/etiquetas.ts`,
   `src/lib/etiquetaDados.ts`, `src/lib/zebra.ts`.
 - Funções: `supabase/functions/rodonaves`, `supabase/functions/ssw`, `supabase/functions/melhorenvio`,
-  `supabase/functions/braspress`
+  `supabase/functions/braspress`, `supabase/functions/frete-cotar` (cotação por CEP e produtos: equipe e loja)
   (e `_shared/cte-recebidas.ts`, `_shared/cte-xml.ts`).
 - Tabelas: `transportadoras`, `envios`, `cotacoes_frete`, `envio_cotacoes`, `envio_ocorrencias`, `envio_excecoes`,
   `etiquetas_envio`, `coleta_frequencias`, `embalagens`, `ctes`, `cte_faturas`.
@@ -64,3 +64,8 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
   com API própria (usuário e senha da MF). Chamada nova à API do Tiny passa pelo chat TIN.
 - Braspress: cotação e rastreio pela API própria (Basic com usuário e senha da Braspress); o rastreio grava nos mesmos
   campos `rastreio_*` do envio com a fonte "Braspress".
+- Cotação por CEP e produtos (`frete-cotar`): volumes saem do peso do produto e das medidas da embalagem (ou do
+  produto, ou do padrão em `configuracoes.frete_regras`); o pedido da loja usa o valor gravado em `frete_consultas`,
+  nunca o que o navegador manda. As chamadas às transportadoras ficam em `_shared/*-api.ts` (uma só vez).
+- O caminho do `execute_sql`/`apply_migration` às vezes recusa (dá "timed out" sem chegar ao banco) textos com
+  `drop policy` ou ponto e vírgula dentro de texto entre aspas: aplicar comando a comando e registrar com uma parte.
