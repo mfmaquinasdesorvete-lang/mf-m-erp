@@ -1,5 +1,6 @@
-// Etiquetas coloridas das máquinas do cliente: modelo + mês/ano da venda (e "usada"), para ver de relance na lista
-// de clientes e na ficha. Cada modelo tem a sua cor; vale para as vendidas pela MF e pela My Frost (empresa anterior).
+// Etiquetas coloridas das máquinas do cliente: modelo + mês/ano da venda (e "usada"), em letra maior e forte para
+// ver de relance na lista de clientes e na ficha. Cada modelo tem a sua cor; vale para as vendidas pela MF e pela
+// My Frost (empresa anterior).
 import { useMemo } from "react";
 import { Snowflake } from "lucide-react";
 import { useRows } from "@/lib/data";
@@ -45,6 +46,16 @@ export function corMaquina(rotulo: string) {
   return OUTRAS[h % OUTRAS.length];
 }
 
+// a mesma cor do modelo no painel escuro da ficha: tom forte e o "neon" que aparece sobre o fundo azul-escuro
+const HEX: Record<string, { cor: string; neon: string }> = {
+  sky: { cor: "#0ea5e9", neon: "#7dd3fc" }, purple: { cor: "#a855f7", neon: "#d8b4fe" }, emerald: { cor: "#10b981", neon: "#6ee7b7" },
+  amber: { cor: "#f59e0b", neon: "#fcd34d" }, indigo: { cor: "#6366f1", neon: "#a5b4fc" }, orange: { cor: "#f97316", neon: "#fdba74" },
+  red: { cor: "#ef4444", neon: "#fca5a5" }, slate: { cor: "#64748b", neon: "#cbd5e1" },
+};
+export function corMaquinaHex(rotulo: string) {
+  return HEX[/text-(\w+)-/.exec(corMaquina(rotulo))?.[1] ?? "slate"] ?? HEX.slate;
+}
+
 const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : "");
 
 /**
@@ -57,11 +68,11 @@ export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: Maqui
   const ordem = [...maquinas].sort((a, b) => (b.data_venda ?? "").localeCompare(a.data_venda ?? ""));
   const resto = ordem.length - max;
   return (
-    <div className="mt-0.5 flex flex-wrap gap-1">
+    <div className="mt-1 flex flex-wrap gap-1">
       {soCadastro && (
         <span title={`Comprou máquina em ${mesAnoCompra(compra)} (data do cadastro do cliente; modelo não informado)`}
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-300 bg-surface px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
-          <Snowflake size={11} aria-hidden /> Máquina · {mesAnoCompra(compra)}
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 bg-surface px-2 py-0.5 text-xs font-bold text-slate-700">
+          <Snowflake size={13} aria-hidden /> Máquina · {mesAnoCompra(compra)}
         </span>
       )}
       {ordem.slice(0, max).map((m) => {
@@ -70,12 +81,12 @@ export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: Maqui
         const titulo = [m.descricao, m.origem ? `vendida pela ${m.origem}` : "vendida pela MF", m.data_venda ? `em ${dataBR(m.data_venda)}` : "data não informada", m.usada ? "máquina usada" : ""]
           .filter(Boolean).join(" · ");
         return (
-          <span key={m.id} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-2xs font-semibold ${corMaquina(r)}`}>
-            <Snowflake size={11} aria-hidden /> {r}{m.usada ? " usada" : ""}{quando ? ` · ${quando}` : ""}
+          <span key={m.id} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg border px-2 py-0.5 text-xs font-bold shadow-sm ${corMaquina(r)}`}>
+            <Snowflake size={13} aria-hidden /> {r}{m.usada ? " usada" : ""}{quando ? <span className="font-semibold opacity-80"> · {quando}</span> : ""}
           </span>
         );
       })}
-      {resto > 0 && <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
+      {resto > 0 && <span className="whitespace-nowrap rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
     </div>
   );
 }

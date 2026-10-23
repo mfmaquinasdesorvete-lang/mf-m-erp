@@ -1,6 +1,6 @@
 // Sobre o ERP Line (aberta pela versão no fim do menu): o que faz cada módulo, os sistemas (finance-os, analytics-os,
 // ops-os, innovation-os, capability-showcase e a linguagem de comandos ECL), o Monitor (saúde das automações, filas,
-// backup e o registro das execuções — só o administrador), a rodada de trabalho em curso (VISUALIZE), as versões dia a
+// backup e o registro das execuções — só o administrador), a Segurança (o que é auditado e como está — só o administrador), a rodada de trabalho em curso (VISUALIZE), as versões dia a
 // dia, o checklist dos pedidos (com quantas vezes cada tela mudou), esquemas para explicar à equipe (processos, fluxograma do menu com auditoria, cadeia de causas), as ideias e o handoff.
 // Cada aba começa pelos indicadores, depois os filtros e as ações.
 import { useMemo, useState } from "react";
@@ -21,16 +21,18 @@ import { Esquemas } from "@/components/sobre/Esquemas";
 import { Sistemas } from "@/components/sobre/Sistemas";
 import { Rodada } from "@/components/sobre/Rodada";
 import { Monitor } from "@/components/sobre/Monitor";
+import { Seguranca } from "@/components/sobre/Seguranca";
 import { PedidosChecklist } from "@/components/sobre/PedidosChecklist";
 import { TelasAlteradas } from "@/components/sobre/TelasAlteradas";
 import { CodigoErp } from "@/components/sobre/CodigoErp";
+import { DesignSystem } from "@/components/sobre/DesignSystem";
 import { ItemModal, type InicialItem } from "@/components/sobre/ItemProjeto";
 import { copiar } from "@/components/sobre/Guardanapo";
 
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
 const HISTORICO = typeof __ERP_HISTORICO__ !== "undefined" ? __ERP_HISTORICO__ : [];
 
-const ABAS = ["modulos", "sistemas", "monitor", "rodada", "pedidos", "telas", "codigo", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
+const ABAS = ["modulos", "sistemas", "monitor", "seguranca", "rodada", "pedidos", "telas", "codigo", "design", "atualizacoes", "esquemas", "ideias", "handoff"] as const;
 type Aba = (typeof ABAS)[number];
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -39,9 +41,9 @@ export default function Sobre() {
   const { tem, papel } = usePerfil();
   const podeHandoff = tem("financeiro", "contador");
   const ehAdmin = papel === "admin";
-  // Rodada e Handoff falam de finanças e decisões da empresa: financeiro, contador e administrador. Monitor: só o administrador
+  // Rodada e Handoff falam de finanças e decisões da empresa: financeiro, contador e administrador. Monitor e Segurança: só o administrador
   const [aba, setAba] = useAbaUrl<Aba>("modulos", ABAS.filter((a) =>
-    (podeHandoff || (a !== "handoff" && a !== "rodada")) && (ehAdmin || a !== "monitor")));
+    (podeHandoff || (a !== "handoff" && a !== "rodada")) && (ehAdmin || (a !== "monitor" && a !== "seguranca"))));
   const [ideia, setIdeia] = useState<InicialItem | null>(null);
   const [pendencia, setPendencia] = useState<InicialItem | null>(null);
   return (
@@ -50,18 +52,20 @@ export default function Sobre() {
         subtitle={VERSAO ? `Versão ${VERSAO.numero}, de ${VERSAO.quando}. O que faz cada módulo, os sistemas, a saúde do ERP, o que mudou, esquemas para a equipe, ideias e o handoff.` : "O que faz cada módulo, os sistemas, a saúde do ERP, o que mudou, esquemas para a equipe, ideias e o handoff."}
         actions={<Button variant="secondary" onClick={() => setIdeia({})}><Lightbulb size={16} /> Anotar ideia</Button>} />
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, ...(ehAdmin ? [{ value: "monitor" as const, label: "Monitor" }] : []),
+        { value: "modulos", label: "Módulos" }, { value: "sistemas", label: "Sistemas" }, ...(ehAdmin ? [{ value: "monitor" as const, label: "Monitor" }, { value: "seguranca" as const, label: "Segurança" }] : []),
         ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }] : []),
-        { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
+        { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }, { value: "design", label: "Design" }, { value: "atualizacoes", label: "Atualizações" }, { value: "esquemas", label: "Esquemas" },
         { value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "handoff" as const, label: "Handoff" }] : []),
       ]} />
       {aba === "modulos" && <ModulosCartoes onIdeia={setIdeia} onAuditoria={() => setAba("esquemas")} />}
       {aba === "sistemas" && <Sistemas onIdeia={setIdeia} />}
       {aba === "monitor" && ehAdmin && <Monitor />}
+      {aba === "seguranca" && ehAdmin && <Seguranca />}
       {aba === "rodada" && podeHandoff && <Rodada versao={VERSAO} onIdeia={setIdeia} onPendencia={setPendencia} />}
       {aba === "pedidos" && <PedidosChecklist />}
       {aba === "telas" && <TelasAlteradas />}
       {aba === "codigo" && <CodigoErp />}
+      {aba === "design" && <DesignSystem />}
       {aba === "atualizacoes" && <Atualizacoes />}
       {aba === "esquemas" && <Esquemas />}
       {aba === "ideias" && <Ideias />}

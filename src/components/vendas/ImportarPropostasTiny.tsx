@@ -1,7 +1,7 @@
 // Vendas → Propostas do Tiny → Importar: lê a planilha de propostas exportada do Tiny (.xls/.xlsx/.csv, um ou vários
 // arquivos) ou o backup da My Frost, mostra o que entra e só grava com a confirmação do administrador.
-// MF: com valores, desconto, frete e condições; quem não é cliente vira cadastro. My Frost (empresa anterior): sem
-// valores e só de quem já é cliente do ERP (o banco confere as duas regras de novo). O backup da My Frost traz também as
+// MF: com valores, desconto, frete e condições; quem não é cliente vira cadastro. My Frost (empresa anterior): também com
+// valores (desde 22/10), mas só de quem já é cliente do ERP e sem ligar ao produto da MF (o banco confere de novo). O backup da My Frost traz também as
 // notas fiscais dela (número, data, tipo e valor da nota): entram as dos clientes do ERP, para saber por quanto compraram.
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, FileSpreadsheet } from "lucide-react";
@@ -185,7 +185,7 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
                   <b>{EMPRESA_PROPOSTA[e]}</b>
                   <span className="block text-slate-600">{e === "mf"
                     ? "Do Tiny atual da MF. Entram com valores, desconto, frete, prazo e condições. Quem ainda não é cliente vira cadastro."
-                    : "Do Tiny antigo. Entram só data, situação, vendedor e itens (sem valores, sem condições) e só de quem já é cliente do ERP."}</span>
+                    : "Do Tiny antigo. Entram com valores, desconto, frete, prazo e condições, só de quem já é cliente do ERP. Reimportar atualiza as que já estão no ERP."}</span>
                 </span>
               </label>
             ))}
@@ -213,8 +213,8 @@ export function ImportarPropostasTiny({ onClose }: { onClose: () => void }) {
               <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
                 <span>
-                  A My Frost é outra empresa. As propostas dela entram só como histórico de atendimento: sem valores, sem desconto, frete
-                  ou condições. {resumo.com} são de clientes do ERP e entram; {resumo.sem} ficam de fora
+                  A My Frost é outra empresa. As propostas dela entram como histórico de atendimento, com os valores da My Frost na época
+                  (separadas das vendas da MF). {resumo.com} são de clientes do ERP e entram; {resumo.sem} ficam de fora
                   {resumo.sem > 0 ? " (importe antes a Base da My Frost, em Clientes, se o advogado liberar)" : ""}.
                 </span>
               </p>

@@ -21,6 +21,8 @@ type Filtro = (q: any) => any;
 const aplicar = (q: any, filtro?: Filtro) => (filtro ? filtro(q) : q);
 
 const PAGINA = 1000;
+/** Depois da 1ª página, as próximas são pedidas de 3 em 3 ao mesmo tempo (lista de 3 mil linhas: 2 esperas em vez de 3). */
+const LOTE = 3;
 
 /** Resultado de uma consulta do Supabase; se deu erro, lança (a tela mostra o aviso em vez de "lista vazia"). */
 export async function ler<T>(consulta: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
@@ -31,16 +33,24 @@ export async function ler<T>(consulta: PromiseLike<{ data: T | null; error: unkn
 
 /** Lê a tabela inteira de 1000 em 1000 (desempate pelo id para nenhuma linha repetir ou faltar entre as páginas). */
 async function todasAsPaginas(table: string, select: string, order: string, ascending: boolean, filtro?: Filtro) {
-  const todas: unknown[] = [];
-  let desempate = true;
-  for (let de = 0; ; de += PAGINA) {
+  const pagina = (de: number, desempate: boolean) => {
     let q = aplicar(supabase.from(table).select(select), filtro).order(order, { ascending });
     if (desempate) q = q.order("id", { ascending: true });
-    const { data, error } = await q.range(de, de + PAGINA - 1);
-    if (error && desempate && de === 0) { desempate = false; de -= PAGINA; continue; } // tabela sem coluna id
-    if (error) throw error;
-    todas.push(...(data ?? []));
-    if ((data?.length ?? 0) < PAGINA) return todas;
+    return q.range(de, de + PAGINA - 1) as PromiseLike<{ data: unknown[] | null; error: unknown }>;
+  };
+  let desempate = true;
+  let primeira = await pagina(0, true);
+  if (primeira.error) { desempate = false; primeira = await pagina(0, false); } // tabela sem coluna id
+  if (primeira.error) throw primeira.error;
+  const todas: unknown[] = [...(primeira.data ?? [])];
+  if (todas.length < PAGINA) return todas;
+  for (let de = PAGINA; ; de += PAGINA * LOTE) {
+    const lote = await Promise.all(Array.from({ length: LOTE }, (_, i) => pagina(de + i * PAGINA, desempate)));
+    for (const { data, error } of lote) {
+      if (error) throw error;
+      todas.push(...(data ?? []));
+      if ((data?.length ?? 0) < PAGINA) return todas;
+    }
   }
 }
 

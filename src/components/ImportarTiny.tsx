@@ -6,6 +6,7 @@ import { notify } from "@/lib/notify";
 import { callFunction } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
 import { pl } from "@/lib/format";
+import { DecidirRecebidasTiny } from "@/components/DecidirRecebidasTiny";
 
 type Estado = {
   etapa: string; pagina: number; indice: number; unidade_id: string | null;
@@ -47,6 +48,7 @@ export function ImportarTiny() {
   const [erro, setErro] = useState("");
   const [datas, setDatas] = useState<ProgressoDatas | null>(null);
   const [recebidas, setRecebidas] = useState<ProgressoRecebidas | null>(null);
+  const [abaRecebidas, setAbaRecebidas] = useState<"buscar" | "decidir">("buscar");
   const ativo = useRef(true);
 
   useEffect(() => {
@@ -276,6 +278,15 @@ export function ImportarTiny() {
             cliente. Aí a conciliação do extrato acha o Pix ou o depósito de cada uma — inclusive o sinal e o saldo das máquinas — e mostra em
             “Com sugestão” para aprovar. Pode rodar de novo: nada é duplicado, e venda que já tem conta no ERP fica como está.
           </p>
+          <div className="mb-3 flex gap-1" role="tablist" aria-label="Recebimentos do Tiny">
+            {([["buscar", "Buscar"], ["decidir", "Decidir"]] as const).map(([id, rotulo]) => (
+              <button key={id} type="button" role="tab" aria-selected={abaRecebidas === id} onClick={() => setAbaRecebidas(id)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${abaRecebidas === id ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          {abaRecebidas === "decidir" ? <DecidirRecebidasTiny /> : <>
           {recebidas && (
             <div className="mb-2 rounded-lg bg-slate-50 p-3 text-slate-700">
               <p>
@@ -313,6 +324,7 @@ export function ImportarTiny() {
               Buscar recebimentos do Tiny
             </Button>
           </div>
+          </>}
         </div>
       )}
     </Card>
