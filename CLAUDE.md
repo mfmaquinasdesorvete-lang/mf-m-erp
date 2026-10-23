@@ -50,7 +50,8 @@
     importação do Tiny no "Importações do Tiny"; anúncios no "Marketplaces".
   - FUN "ERP Line – Funcionários (RH)": os funcionários da MF (cadastro, pasta de documentos de cada um, admissão e
     desligamento, salários e pagamentos lançados, férias e ponto, a área de Funcionários no menu). A parte fiscal da folha
-    (eSocial, INSS, FGTS, DCTFWeb) fica no "Fiscal e contábil". Dados dos funcionários não saem do ERP.
+    (eSocial, INSS, FGTS, DCTFWeb) fica no "Fiscal e contábil"; funcionários das lojas My Frost Sorveterias e Yozzy ficam no
+    "My Frost Sorveterias e Yozzy". Dados dos funcionários não saem do ERP.
   - DSG "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
   - SEG "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - CAR "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,

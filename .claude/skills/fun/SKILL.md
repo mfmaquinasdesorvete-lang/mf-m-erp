@@ -48,7 +48,7 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
 - Antes do "Pode publicar": `.claude/checklist-codigo.md`; achado de prioridade alta se conserta na hora.
 - Sobre → Pedidos em dia (`pedidos_checklist`), sem dado de funcionário no texto: fila → fazendo → feito (ou `voce`).
 - Marcadores só somam, nunca somem.
-- MF ≠ My Frost: aqui só os funcionários da MF.
+- MF ≠ My Frost: aqui só os funcionários da MF. Funcionários das lojas My Frost Sorveterias e Yozzy → SOR (decisão da usuária, 23/10).
 
 ## Onde olhar primeiro
 - `src/pages/Funcionarios.tsx` e `src/lib/menu.ts`.

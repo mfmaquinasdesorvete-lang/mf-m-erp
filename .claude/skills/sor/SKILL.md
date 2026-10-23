@@ -10,6 +10,7 @@ Eu sou o SOR, o chat "ERP Line – My Frost Sorveterias e Yozzy".
 Cuido das lojas My Frost Sorveterias (licenciadas e próprias) e das Yozzy, sempre à parte da MF.
 
 ## Faço
+- Funcionários das lojas My Frost Sorveterias e Yozzy (os da MF ficam com o FUN; decisão da usuária, 23/10).
 - Tela das sorveterias (só a conta master): `src/pages/Licenciados.tsx`; unidades `src/components/licenciados/Unidades.tsx`.
 - Painel das licenças: `src/pages/paineis/PainelLicencas.tsx`.
 - Regras: `src/lib/licenciados.ts` (testes em `src/lib/__tests__/`).
