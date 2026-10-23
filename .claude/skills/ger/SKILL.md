@@ -71,3 +71,5 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   do banco, não só na tela.
 - OC lança o contas a pagar (`lancar_oc_contas_pagar`, contas com `pedido_compra_id`); recebimento e nota do fornecedor
   usam `contas_da_oc` para não lançar em dobro. OC recebida (e as do Tiny) não lança por esse botão.
+- Pelo MCP do Supabase, UPDATE/INSERT com texto longo costuma travar (60 s e nada grava): fazer dentro de um bloco
+  `do $$ begin … end $$;` (com `concat(...)` no texto), que passa na hora.
