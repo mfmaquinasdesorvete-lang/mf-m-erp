@@ -15,6 +15,9 @@
      depois publicar na Hostinger e conferir o index.html. Funções do Supabase: o GitHub Actions já põe em fila.
   3. Soltar a trava: `select public.publicacao_terminar('<id>');` (também se der erro no meio).
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
+- Marcadores são da usuária e não se perdem: importação (Tiny ou outra), unificação de cadastros e correções
+  automáticas só somam marcadores, nunca tiram; os marcadores que vierem do Tiny (ex.: Em garantia, Fora de garantia,
+  Não cobrado) entram com o mesmo nome.
 - Chats por assunto (cada um cuida só do seu; se o assunto aparecer no chat errado, avisar a usuária para levar
   para o certo):
   - "ERP Line – Fiscal e contábil": impostos, apuração, notas fiscais, configuração da NF/NFS-e/CT-e,
