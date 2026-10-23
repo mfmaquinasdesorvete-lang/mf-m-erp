@@ -20,3 +20,8 @@ begin
   return v_id;
 end $$;
 revoke all on function public.aviso_claude(text, text) from public, anon, authenticated;
+
+-- o tipo "claude" entra na lista de tipos de notificação
+alter table public.notificacoes drop constraint if exists notificacoes_tipo_check;
+alter table public.notificacoes add constraint notificacoes_tipo_check
+  check (tipo = any (array['pagamento', 'pedido_loja', 'email', 'proposta', 'outro', 'claude'])) not valid;
