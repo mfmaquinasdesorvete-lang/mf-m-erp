@@ -16,7 +16,8 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - Regras: `src/lib/fretes.ts`, `src/lib/freteSugestao.ts`, `src/lib/freteHistorico.ts`, `src/lib/transportadoras.ts`,
   `src/lib/rastreio.ts`, `src/lib/coleta.ts`, `src/lib/cte.ts`, `src/lib/correios.ts`, `src/lib/etiquetas.ts`,
   `src/lib/etiquetaDados.ts`, `src/lib/zebra.ts`.
-- Funções: `supabase/functions/rodonaves`, `supabase/functions/ssw`, `supabase/functions/melhorenvio`
+- Funções: `supabase/functions/rodonaves`, `supabase/functions/ssw`, `supabase/functions/melhorenvio`,
+  `supabase/functions/braspress`
   (e `_shared/cte-recebidas.ts`, `_shared/cte-xml.ts`).
 - Tabelas: `transportadoras`, `envios`, `cotacoes_frete`, `envio_cotacoes`, `envio_ocorrencias`, `envio_excecoes`,
   `etiquetas_envio`, `coleta_frequencias`, `embalagens`, `ctes`, `cte_faturas`.
@@ -42,7 +43,8 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - Antes do "Pode publicar": `.claude/checklist-codigo.md`.
 - Sobre → Pedidos em dia (`pedidos_checklist`): fila → fazendo → feito (ou `voce`), commit em `versao`.
 - Marcadores só somam, nunca somem (também ao unificar transportadoras).
-- Usuário, senha e token das transportadoras só nos secrets do Supabase (ex.: `RODONAVES_USUARIO`, `MELHORENVIO_TOKEN`).
+- Usuário, senha e token das transportadoras só nos secrets do Supabase (ex.: `RODONAVES_USUARIO`, `MELHORENVIO_TOKEN`,
+  `BRASPRESS_USUARIO`).
 
 ## Onde olhar primeiro
 - `src/pages/Fretes.tsx` e `src/components/fretes/EnvioForm.tsx`.
@@ -57,3 +59,9 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - O SSW rastreia pela chave da NF-e, sem senha, só para as transportadoras que usam o SSW.
 - A leitura da planilha de CT-e segue o modelo de uma transportadora (`src/lib/cte.ts`): outra pode ter outras colunas.
 - Zebra: PDF pelo driver funciona em qualquer uma; direto (ZPL) só com o Browser Print instalado.
+- A São Miguel não usa o SSW (tem sistema próprio); Aceville, MIR e Norte Brasil responderam no SSW.
+- A Rodonaves é contratada pelo Olist Envios (cadastro com "Olist Envios" em integrações): sem a API direta
+  (`integracaoApi` devolve null); rastreio dela pelo SSW. O frete do Olist Envios sai do repasse da Olist, não aparece
+  no extrato. A API v2 do Tiny não faz cotação nem etiqueta; chamada nova à API do Tiny passa pelo chat TIN.
+- Braspress: cotação e rastreio pela API própria (Basic com usuário e senha da Braspress); o rastreio grava nos mesmos
+  campos `rastreio_*` do envio com a fonte "Braspress".
