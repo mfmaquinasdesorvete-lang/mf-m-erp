@@ -23,7 +23,7 @@ import { ImportarPropostasTiny } from "./ImportarPropostasTiny";
 import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { noPeriodoOuPendente, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
+import { noPeriodoOuPendente, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 
 const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf, tags)";
 
@@ -74,8 +74,9 @@ export function PropostasTiny({ onNovoOrcamento, empresaFixa }: {
   // só os clientes licenciados da My Frost Sorveterias (etiqueta do cadastro)
   const [soLicenciados, setSoLicenciados] = useState(false);
   const [busca, setBusca] = useState("");
-  // abre na semana, como as vendas; proposta ainda em aberto de antes continua aparecendo
-  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
+  // abre com todas: é o histórico do Tiny (nenhuma proposta nova entra mais por lá), aberto na semana a lista vinha
+  // vazia e as concluídas pareciam ter sumido; o período continua no filtro para quem quiser recortar
+  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [importar, setImportar] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
