@@ -3,17 +3,17 @@
 // atende a região dele. Parceiros Dr. Frost: convidados, com anúncio no site de técnicos (cadastro completo do
 // anúncio); os demais são contatos (já atenderam ou vieram da internet).
 import { useState } from "react";
-import { BookOpen, ExternalLink, List, MapPin, Users } from "lucide-react";
+import { BookOpen, ExternalLink, List, MessageCircle, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { CrudPage, type CampoForm, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { Badge, Button, chip } from "@/components/ui";
-import { CartaoCadastro, Contato, ContatoBotoes } from "@/components/Contato";
+import { Contato } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
-import { dataBR, pl } from "@/lib/format";
+import { dataBR, pl, whatsappLink } from "@/lib/format";
 
 export type Tecnico = {
   id: string; nome: string; tipo: "interno" | "parceiro"; whatsapp: string | null; telefone: string | null; email: string | null;
@@ -55,30 +55,31 @@ function Atende({ t }: { t: Tecnico }) {
 const ufsAtende = (t: Tecnico) =>
   [...new Set([...(t.ufs ?? []), ...(t.cidades ?? []).map((c) => c.split("/")[1]?.trim().toUpperCase()), t.uf?.toUpperCase()].filter((u): u is string => !!u && UFS.includes(u)))].sort();
 
-/** Cartão do guia: logo, nome e selo, onde fica, onde atende, o que atende e os botões de contato. */
-function CartaoGuia({ t, abrir }: { t: Tecnico; abrir: () => void }) {
-  const base = t.municipio ? `${t.municipio}${t.uf ? `/${t.uf}` : ""}` : t.uf ?? null;
-  const servicos = t.servicos?.length ? t.servicos : (t.especialidades ?? "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
-  const tipo = t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato";
+/** Cartão do guia, enxuto: foto, nome, a sigla do estado e o WhatsApp; embaixo, quantos clientes já atendeu.
+ *  O resto (descrição, máquinas, e-mail, anúncio) fica no cadastro, ao abrir o técnico. */
+function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; clientes: number }) {
+  const uf = t.uf?.toUpperCase() || (t.cidades?.[0]?.split("/")[1] ?? "").toUpperCase() || (t.ufs?.length === 1 ? t.ufs[0] : null);
   return (
-    <CartaoCadastro onAbrir={abrir} avatar={<LogoTecnico t={t} tamanho={52} />}
-      titulo={<span className="inline-flex flex-wrap items-center gap-1">{t.nome_fantasia || t.nome} <SeloDrFrost t={t} />
-        {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</span>}
-      subtitulo={[t.nome_fantasia && t.nome_fantasia !== t.nome ? t.nome : null, tipo, desde(t) ? `desde ${dataBR(desde(t))}` : null].filter(Boolean).join(" · ")}
-      meta={<span className="flex items-center gap-1 text-sm text-slate-600"><MapPin size={13} aria-hidden className="shrink-0" />{base ?? "cidade não informada"}</span>}
-      selos={<>
-        <div className="w-full">
-          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-rotulo text-slate-500">Atende</span>
-          <Atende t={t} />
-        </div>
-        {servicos.slice(0, 5).map((x) => <span key={x} className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-700">{x}</span>)}
-        {servicos.length > 5 && <span className="px-1 text-2xs text-slate-500">+{servicos.length - 5}</span>}
-        {t.apresentacao && <p className="line-clamp-2 w-full text-xs text-slate-600">{t.apresentacao}</p>}
-      </>}
-      contato={<div className="flex flex-wrap items-center gap-2">
-        <ContatoBotoes r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />
-        {t.drfrost_url && <a href={t.drfrost_url} target="_blank" rel="noreferrer" className="link-acao inline-flex items-center gap-1 text-sm"><ExternalLink size={13} aria-hidden /> Ver anúncio</a>}
-      </div>} />
+    <div className="flex items-center gap-3 pr-7">{/* pr-7: o canto direito é da caixinha de seleção */}
+      <button type="button" onClick={abrir} className="linha-clicavel flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left">
+        <LogoTecnico t={t} tamanho={48} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-base font-bold text-fg">{t.nome_fantasia || t.nome}</span>
+            {uf && <span className="shrink-0 rounded-md bg-indigo-600 px-1.5 py-0.5 text-xs font-extrabold tracking-wide text-white">{uf}</span>}
+            {!t.ativo && <span className="shrink-0 rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}
+          </span>
+          <span className="mt-0.5 block text-xs text-slate-500">{clientes ? `${clientes} ${pl(clientes, "cliente atendido", "clientes atendidos")}` : "nenhum cliente ligado"}</span>
+        </span>
+      </button>
+      {t.whatsapp && (
+        <a href={whatsappLink(t.whatsapp, `Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`)} target="_blank" rel="noreferrer"
+          title="Chamar no WhatsApp" aria-label={`Chamar ${t.nome} no WhatsApp`}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
+          <MessageCircle size={20} aria-hidden />
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -187,6 +188,10 @@ export default function Tecnicos() {
   const invalidar = useInvalidate();
   const { data: tecnicos = [] } = useRows<Tecnico>("tecnicos", { order: "nome", ascending: true });
   const [ocupado, setOcupado] = useState(false);
+  // clientes ligados a cada técnico (clientes.tecnico_id, escolhido na ficha do cliente → Assistência)
+  const { data: ligados = [] } = useRows<{ tecnico_id: string }>("clientes", { select: "tecnico_id", order: "tecnico_id", key: ["tecnicos-clientes"], filtro: (q) => q.not("tecnico_id", "is", null) });
+  const clientesPor = new Map<string, number>();
+  for (const c of ligados) clientesPor.set(c.tecnico_id, (clientesPor.get(c.tecnico_id) ?? 0) + 1);
   const podeEditar = tem("tecnico", "financeiro");
   const [visao, setVisao] = useState(lerVisao);
   const trocarVisao = (v: "guia" | "lista") => { setVisao(v); try { localStorage.setItem(CHAVE_VISAO, v); } catch { /* vale só nesta visita */ } };
@@ -246,7 +251,7 @@ export default function Tecnicos() {
         { label: "Atende", render: (t) => <Atende t={t} /> },
         { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
-      cartaoCelular={(t, abrir) => <CartaoGuia t={t} abrir={abrir} />}
+      cartaoCelular={(t, abrir) => <CartaoGuia t={t} abrir={abrir} clientes={clientesPor.get(t.id) ?? 0} />}
     />
   );
 }
