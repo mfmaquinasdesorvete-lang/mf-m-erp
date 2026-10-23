@@ -5,6 +5,10 @@ on:
   push:
     branches: [main, paineis-no-ar]
 
+# o token do GitHub só lê o código (nenhum passo precisa gravar no repositório)
+permissions:
+  contents: read
+
 jobs:
   frontend:
     runs-on: ubuntu-latest

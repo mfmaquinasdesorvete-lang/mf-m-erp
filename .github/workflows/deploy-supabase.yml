@@ -20,6 +20,10 @@ concurrency:
   group: publicar-supabase
   cancel-in-progress: false
 
+# o token do GitHub só lê o código (nenhum passo precisa gravar no repositório)
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
