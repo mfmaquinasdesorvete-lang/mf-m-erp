@@ -101,6 +101,8 @@ type Props<T> = {
   formulario?: (registro: Record<string, any>, fechar: () => void) => ReactNode;
   /** Celular: cartão próprio no lugar da tabela empilhada (os botões e a seleção o CrudPage põe). */
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
+  /** Os cartões também no computador (em colunas, como um guia), no lugar da tabela. */
+  cartoesNoPc?: boolean;
   /** Marcadores coloridos (os mesmos das notas): chips na lista, filtro, botão na linha e em lote. Nome: ["cliente", "clientes"]. */
   marcadores?: [string, string];
   /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
@@ -431,18 +433,18 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
 
       {avisoBusca}
       {props.cartaoCelular && (
-        <div className="md:hidden">
+        <div className={props.cartoesNoPc ? "" : "md:hidden"}>
           {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="cartao p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
-          <ul className="space-y-2">
+          <ul className={props.cartoesNoPc ? "grid gap-3 md:grid-cols-2 2xl:grid-cols-3" : "space-y-2"}>
             {filtrados.slice(0, limite).map((row) => (
-              <li key={row.id} className={`relative rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>
+              <li key={row.id} className={`relative flex flex-col rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>
                 {selecionavel && (
                   <input type="checkbox" className="absolute right-3 top-3 h-5 w-5" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" />
                 )}
                 {/* o cartão reserva o canto de cima à direita para a caixinha de seleção */}
                 {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
                 {marcadores && <div className="mt-1.5">{tags(row)}</div>}
-                <div className="mt-3 flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
+                <div className="mt-auto flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
                   {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                   {rowActions?.(row)}
                   {!readOnly && <Button variant="secondary" className="!min-h-0 !px-3 !py-1.5 text-sm" onClick={() => abrir({ ...row })}><Pencil size={15} /> Editar</Button>}
@@ -452,7 +454,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           </ul>
         </div>
       )}
-      <div className={props.cartaoCelular ? "hidden md:block" : ""}>
+      <div className={props.cartaoCelular ? (props.cartoesNoPc ? "hidden" : "hidden md:block") : ""}>
       <Table
         limite={limite}
         empty={!isLoading && filtrados.length === 0 && !avisoBusca}

@@ -3,10 +3,10 @@
 // atende a região dele. Parceiros Dr. Frost: convidados, com anúncio no site de técnicos (cadastro completo do
 // anúncio); os demais são contatos (já atenderam ou vieram da internet).
 import { useState } from "react";
-import { ExternalLink, Users } from "lucide-react";
+import { BookOpen, ExternalLink, List, MapPin, Users } from "lucide-react";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { EnviarImagem } from "@/components/EnviarImagem";
-import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
+import { CrudPage, type CampoForm, type FiltroCrud, type OrdemCrud } from "@/components/CrudPage";
 import { Badge, Button, chip } from "@/components/ui";
 import { CartaoCadastro, Contato, ContatoBotoes } from "@/components/Contato";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -48,6 +48,37 @@ function Atende({ t }: { t: Tecnico }) {
       {ufs.map((u) => <span key={u} className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-xs font-extrabold tracking-wide text-white">{u}</span>)}
       {cidades.length > 0 && <span className="text-xs text-slate-600">{cidades.slice(0, 3).join(", ")}{cidades.length > 3 ? ` +${cidades.length - 3}` : ""}</span>}
     </div>
+  );
+}
+
+/** Estados em que o técnico atende: os inteiros, os das cidades e o da base. */
+const ufsAtende = (t: Tecnico) =>
+  [...new Set([...(t.ufs ?? []), ...(t.cidades ?? []).map((c) => c.split("/")[1]?.trim().toUpperCase()), t.uf?.toUpperCase()].filter((u): u is string => !!u && UFS.includes(u)))].sort();
+
+/** Cartão do guia: logo, nome e selo, onde fica, onde atende, o que atende e os botões de contato. */
+function CartaoGuia({ t, abrir }: { t: Tecnico; abrir: () => void }) {
+  const base = t.municipio ? `${t.municipio}${t.uf ? `/${t.uf}` : ""}` : t.uf ?? null;
+  const servicos = t.servicos?.length ? t.servicos : (t.especialidades ?? "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  const tipo = t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato";
+  return (
+    <CartaoCadastro onAbrir={abrir} avatar={<LogoTecnico t={t} tamanho={52} />}
+      titulo={<span className="inline-flex flex-wrap items-center gap-1">{t.nome_fantasia || t.nome} <SeloDrFrost t={t} />
+        {!t.ativo && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</span>}
+      subtitulo={[t.nome_fantasia && t.nome_fantasia !== t.nome ? t.nome : null, tipo, desde(t) ? `desde ${dataBR(desde(t))}` : null].filter(Boolean).join(" · ")}
+      meta={<span className="flex items-center gap-1 text-sm text-slate-600"><MapPin size={13} aria-hidden className="shrink-0" />{base ?? "cidade não informada"}</span>}
+      selos={<>
+        <div className="w-full">
+          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-rotulo text-slate-500">Atende</span>
+          <Atende t={t} />
+        </div>
+        {servicos.slice(0, 5).map((x) => <span key={x} className="rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-700">{x}</span>)}
+        {servicos.length > 5 && <span className="px-1 text-2xs text-slate-500">+{servicos.length - 5}</span>}
+        {t.apresentacao && <p className="line-clamp-2 w-full text-xs text-slate-600">{t.apresentacao}</p>}
+      </>}
+      contato={<div className="flex flex-wrap items-center gap-2">
+        <ContatoBotoes r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />
+        {t.drfrost_url && <a href={t.drfrost_url} target="_blank" rel="noreferrer" className="link-acao inline-flex items-center gap-1 text-sm"><ExternalLink size={13} aria-hidden /> Ver anúncio</a>}
+      </div>} />
   );
 }
 
@@ -135,9 +166,21 @@ const FILTROS: FiltroCrud<Tecnico>[] = [
   { label: "Origem", opcoes: [{ label: "Parceiros Dr. Frost (convidados)", teste: (t) => !!t.drfrost }, { label: "Verificados no site", teste: (t) => !!t.drfrost && !!t.verificado },
     { label: "Contatos (já atenderam ou da internet)", teste: (t) => !t.drfrost }] },
   { label: "Tipo", opcoes: [{ label: "Da equipe", teste: (t) => t.tipo === "interno" }, { label: "Parceiros", teste: (t) => t.tipo === "parceiro" }] },
-  { label: "Estado", valor: (t) => t.uf },
+  { label: "Atende o estado", valores: ufsAtende },
+  { label: "Cidade da base", valor: (t) => t.municipio ? `${t.municipio}${t.uf ? `/${t.uf}` : ""}` : null },
   { label: "Situação", opcoes: [{ label: "Ativos", teste: (t) => t.ativo }, { label: "Inativos", teste: (t) => !t.ativo }] },
 ];
+
+/** No guia, os parceiros Dr. Frost (destaque e verificados primeiro) vêm antes dos contatos. */
+const peso = (t: Tecnico) => (t.ativo ? 0 : 8) + (t.drfrost ? 0 : 4) + (t.destaque ? 0 : 2) + (t.verificado ? 0 : 1);
+const ORDENS: OrdemCrud<Tecnico>[] = [
+  { label: "Guia (Dr. Frost primeiro)", comparar: (a, b) => peso(a) - peso(b) || a.nome.localeCompare(b.nome, "pt-BR") },
+  { label: "Nome", comparar: (a, b) => a.nome.localeCompare(b.nome, "pt-BR") },
+  { label: "Cidade", comparar: (a, b) => `${a.uf ?? "~"}${a.municipio ?? "~"}`.localeCompare(`${b.uf ?? "~"}${b.municipio ?? "~"}`, "pt-BR") },
+];
+
+const CHAVE_VISAO = "tecnicos.visao";
+const lerVisao = (): "guia" | "lista" => { try { return localStorage.getItem(CHAVE_VISAO) === "lista" ? "lista" : "guia"; } catch { return "guia"; } };
 
 export default function Tecnicos() {
   const { tem, papel } = usePerfil();
@@ -145,6 +188,8 @@ export default function Tecnicos() {
   const { data: tecnicos = [] } = useRows<Tecnico>("tecnicos", { order: "nome", ascending: true });
   const [ocupado, setOcupado] = useState(false);
   const podeEditar = tem("tecnico", "financeiro");
+  const [visao, setVisao] = useState(lerVisao);
+  const trocarVisao = (v: "guia" | "lista") => { setVisao(v); try { localStorage.setItem(CHAVE_VISAO, v); } catch { /* vale só nesta visita */ } };
 
   /** Traz os funcionários marcados "faz assistência" que ainda não estão aqui. */
   async function trazerEquipe() {
@@ -173,8 +218,16 @@ export default function Tecnicos() {
       defaults={{ nome: "", tipo: "parceiro", ativo: true, ufs: [], cidades: [], drfrost: false, verificado: false, destaque: false, servicos: [], diferenciais: [] }}
       searchKeys={["nome", "nome_fantasia", "municipio", "uf", "especialidades", "whatsapp", "email", "instagram", "area_atuacao"]}
       filtros={FILTROS}
+      ordens={ORDENS}
+      cartoesNoPc={visao === "guia"}
       beforeSave={(r) => ({ ...r, uf: r.uf ? String(r.uf).toUpperCase() : null, ufs: r.ufs ?? [], cidades: r.cidades ?? [], servicos: r.servicos ?? [], diferenciais: r.diferenciais ?? [] })}
-      extraActions={podeEditar && <Button variant="secondary" disabled={ocupado} onClick={trazerEquipe}><Users size={16} /> Trazer da equipe</Button>}
+      extraActions={<>
+        <div className="inline-flex rounded-lg border border-slate-300 p-0.5" role="group" aria-label="Ver como">
+          <button type="button" aria-pressed={visao === "guia"} onClick={() => trocarVisao("guia")} className={`${chip(visao === "guia")} gap-1`}><BookOpen size={14} aria-hidden /> Guia</button>
+          <button type="button" aria-pressed={visao === "lista"} onClick={() => trocarVisao("lista")} className={`${chip(visao === "lista")} gap-1`}><List size={14} aria-hidden /> Lista</button>
+        </div>
+        {podeEditar && <Button variant="secondary" disabled={ocupado} onClick={trazerEquipe}><Users size={16} /> Trazer da equipe</Button>}
+      </>}
       fields={fields}
       columns={[
         { label: "Técnico", render: (t) => (
@@ -193,14 +246,7 @@ export default function Tecnicos() {
         { label: "Atende", render: (t) => <Atende t={t} /> },
         { label: "Contato", render: (t) => <Contato r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
-      cartaoCelular={(t, abrir) => (
-        <CartaoCadastro onAbrir={abrir} avatar={<LogoTecnico t={t} tamanho={40} />}
-          titulo={<span className="inline-flex flex-wrap items-center gap-1">{t.nome} <SeloDrFrost t={t} /></span>}
-          subtitulo={[t.tipo === "interno" ? "Da equipe" : t.drfrost ? "Parceiro Dr. Frost" : "Contato", desde(t) ? `desde ${dataBR(desde(t))}` : null].filter(Boolean).join(" · ")}
-          meta={[t.municipio && `${t.municipio}${t.uf ? `/${t.uf}` : ""}`, t.especialidades].filter(Boolean).join(" · ") || undefined}
-          selos={<><Atende t={t} />{!t.ativo && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-2xs font-semibold text-slate-700">inativo</span>}</>}
-          contato={<ContatoBotoes r={t} mensagem={`Olá, ${t.nome.split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
-      )}
+      cartaoCelular={(t, abrir) => <CartaoGuia t={t} abrir={abrir} />}
     />
   );
 }
