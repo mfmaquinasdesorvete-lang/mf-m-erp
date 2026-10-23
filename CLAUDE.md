@@ -11,6 +11,8 @@
 - Quando precisar da usuária (autorizar publicação, confirmar dados, responder pergunta, situação "precisa de você"),
   avisar no ERP antes de perguntar: `select public.aviso_claude('<nome do chat>', '<resumo curto do que ela precisa
   fazer, em 1 ou 2 frases simples>');`. Aparece no meio da tela com som e a voz lê o resumo; o botão abre o chat.
+  E mandar também a notificação no celular dela (ferramenta PushNotification, carregar com ToolSearch), começando
+  pelo nome do chat: "<chat>: <o que ela precisa fazer>" (até 200 letras, sem valores nem dados pessoais).
 - Um chat publica por vez (vários chats trabalham ao mesmo tempo). Depois do "Pode publicar":
   1. Pegar a trava: `select public.publicacao_comecar('<nome do chat>', '<o que vai ao ar>');` (guarda o id).
      Se der "Outro chat está publicando", esperar uns 3 minutos e tentar de novo; não publicar sem a trava.
