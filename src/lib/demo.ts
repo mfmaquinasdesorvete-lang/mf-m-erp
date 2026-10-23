@@ -2207,12 +2207,16 @@ class Query {
   like(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
   ilike(c: string, v: string) { const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", "i"); this.filtros.push((r) => rx.test(String(r[c] ?? ""))); return this; }
   in(c: string, v: any[]) { this.filtros.push((r) => v.includes(r[c])); return this; }
-  /** "col.ilike.%x%,col.eq.y,col.is.null": basta um bater (como no PostgREST). */
+  /** "col.ilike.%x%,col.eq.y,col.is.null,col.in.(a,b),col.not.in.(a,b),col.gte.2026-01-01": basta um bater (como no PostgREST). */
   or(expr: string) {
-    const testes = expr.split(",").map((p) => {
+    const lista = (v: string) => v.replace(/^\(|\)$/g, "").split(",");
+    const testes = expr.split(/,(?![^(]*\))/).map((p) => {
       const [c, op, ...resto] = p.split("."); const v = resto.join(".");
       if (op === "is") return (r: Row) => (r[c] ?? null) === null;
       if (op === "eq") return (r: Row) => String(r[c] ?? "") === v;
+      if (op === "gte") return (r: Row) => r[c] != null && String(r[c]) >= v;
+      if (op === "in") return (r: Row) => lista(v).includes(String(r[c] ?? ""));
+      if (op === "not" && v.startsWith("in.")) return (r: Row) => r[c] != null && !lista(v.slice(3)).includes(String(r[c]));
       const rx = new RegExp("^" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", op === "ilike" ? "i" : "");
       return (r: Row) => rx.test(String(r[c] ?? ""));
     });

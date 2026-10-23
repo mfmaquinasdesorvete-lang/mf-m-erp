@@ -14,7 +14,7 @@ import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
 import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, PedidoCompra, Produto } from "@/lib/types";
-import { SELECT_NOTAS_VENDA, vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
+import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -51,6 +51,14 @@ function intervalos(p: Periodo) {
   return { atual: [somarDias(-(n - 1)), fim], anterior: [somarDias(-(2 * n - 1)), somarDias(-n)] };
 }
 const dentro = (data: string | null | undefined, [a, b]: string[]) => !!data && data.slice(0, 10) >= a && data.slice(0, 10) <= b;
+/** 1º dia do 6º mês para trás: cobre o gráfico de 6 meses e o período anterior de todos os filtros (com folga). */
+function desde6Meses() {
+  const d = new Date(hoje() + "T12:00:00Z");
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 6, 1)).toISOString().slice(0, 10);
+}
+const SELECT_CONTAS_INICIO = "id, status, valor, valor_pago, vencimento, data_pagamento, unidade_id";
+/** Só o que a venda pela nota precisa para valor e data (sem o cliente). */
+const SELECT_NOTAS_INICIO = "id, created_at, status, ambiente, pedido_id, unidade_id, tipo_operacao, finalidade, excluida_em, payload, valor_total, chave, chave_referenciada, nota_referenciada_id";
 
 type Acao = { label: string; icon: LucideIcon; to: string; state?: unknown; cor: string; aviso?: number };
 type Kpi = { id: string; label: string; valor: string | number; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
@@ -109,27 +117,46 @@ function PainelGeral() {
   const escolher = (p: Periodo) => { setPeriodo(p); try { localStorage.setItem("mf-erp-periodo2", p); } catch { /* sem armazenamento */ } };
 
   const { filtrar } = useUnidade();
-  const { data: pedidosTodos = [], isLoading: carregandoPedidos } = useRows<Pedido>("pedidos");
+  // O Início baixa só as colunas que usa e só o que entra nas contas (os 6 meses do gráfico, o que está aberto e o que
+  // ainda vai ser entregue), não as tabelas inteiras: era o que deixava a primeira tela pesada.
+  const corte = desde6Meses();
+  const { data: pedidosTodos = [], isLoading: carregandoPedidos } = useRows<Pedido>("pedidos", {
+    select: "id, status, created_at, valor_total, unidade_id", key: ["inicio", corte],
+    filtro: (q) => q.or(`status.in.(orcamento,aprovado,faturado),created_at.gte.${corte}`) });
   const pedidos = filtrar(pedidosTodos);
-  const { data: ordensTodos = [] } = useRows<OrdemServico>("ordens_servico");
+  const { data: ordensTodos = [] } = useRows<OrdemServico>("ordens_servico", {
+    select: "id, status, data_entrada, previsao, unidade_id", key: ["inicio", corte],
+    filtro: (q) => q.or(`status.not.in.(entregue,cancelada),data_entrada.gte.${corte}`) });
   const ordens = filtrar(ordensTodos);
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  // vendas que só têm a nota fiscal (emitidas no Tiny ou direto, sem pedido no ERP) também contam, como nos Relatórios
-  const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", { select: SELECT_NOTAS_VENDA });
-  const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, produtos).pedidos) as unknown as Pedido[], [notasTodas, produtos, filtrar]);
-  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Conta>("contas_receber");
+  const { data: produtos = [] } = useRows<Produto>("produtos", {
+    select: "id, ativo, estoque_minimo, estoque_atual", order: "descricao", ascending: true, key: ["inicio"],
+    filtro: (q) => q.eq("ativo", true).gt("estoque_minimo", 0) });
+  // vendas que só têm a nota fiscal (emitidas no Tiny ou direto, sem pedido no ERP) também contam, como nos Relatórios;
+  // aqui só entram o valor e a data (o custo dos itens não aparece no Início, por isso sem a lista de produtos)
+  const { data: notasTodas = [] } = useRows<NotaVenda>("notas_fiscais", {
+    select: SELECT_NOTAS_INICIO, key: ["inicio", corte], filtro: (q) => q.gte("created_at", corte) });
+  const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, []).pedidos) as unknown as Pedido[], [notasTodas, filtrar]);
+  const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Conta>("contas_receber", {
+    select: SELECT_CONTAS_INICIO, key: ["inicio", corte],
+    filtro: (q) => q.or(`status.eq.aberto,data_pagamento.gte.${corte}`) });
   const receber = filtrar(receberTodos);
-  const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Conta>("contas_pagar");
+  const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Conta>("contas_pagar", {
+    select: SELECT_CONTAS_INICIO, key: ["inicio", corte],
+    filtro: (q) => q.or(`status.eq.aberto,data_pagamento.gte.${corte}`) });
   const pagar = filtrar(pagarTodos);
   // enquanto carrega não dá para dizer "tudo em dia" (falha de leitura aparece no aviso vermelho)
   const carregando = carregandoPedidos || carregandoReceber || carregandoPagar;
-  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda" });
-  const { data: recebidasTodos = [] } = useRows<{ processamento: string }>("nfe_recebidas", { select: "processamento" });
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", {
+    select: "id, data_venda, garantia_ate, proxima_preventiva", order: "data_venda", key: ["inicio"] });
+  const { data: recebidasTodos = [] } = useRows<{ processamento: string }>("nfe_recebidas", {
+    select: "id, processamento, unidade_id", key: ["inicio"], filtro: (q) => q.in("processamento", ["aguardando_vinculo", "revisao"]) });
   const recebidas = filtrar(recebidasTodos);
   const { data: lembretes = [] } = useRows<{ id: string }>("lembretes_manutencao", { select: "id", order: "id" });
-  const { data: opsTodos = [] } = useRows<OrdemProducao>("ordens_producao");
+  const { data: opsTodos = [] } = useRows<OrdemProducao>("ordens_producao", {
+    select: "id, status, quantidade, unidade_id", key: ["inicio"], filtro: (q) => q.in("status", ["planejada", "em_producao"]) });
   const ops = filtrar(opsTodos);
-  const { data: comprasTodos = [] } = useRows<PedidoCompra>("pedidos_compra");
+  const { data: comprasTodos = [] } = useRows<PedidoCompra>("pedidos_compra", {
+    select: "id, status, previsao_entrega, unidade_id", key: ["inicio"], filtro: (q) => q.in("status", ["cotacao", "enviado", "parcial"]) });
   const compras = filtrar(comprasTodos);
   const { data: necessidade = [] } = useRows<Necessidade>("necessidade_producao", { order: "descricao" });
 
