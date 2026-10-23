@@ -31,6 +31,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - Mercado Livre, Google Shopping e loja online → MKT. Transportadoras e fretes → TRA. Técnicos → TEC.
 - My Frost (empresa anterior) → MYF. My Frost Sorveterias e Yozzy → SOR.
 - Visual → DSG. Permissões e login → SEG. Docs `.md` → DOC. Ideias de IA → IAD.
+- Funcionários (cadastro, documentos, salários lançados, férias, área no menu) → FUN.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".

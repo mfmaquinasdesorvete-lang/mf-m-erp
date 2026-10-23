@@ -1,6 +1,6 @@
 ---
 name: fis
-description: FIS — chat "ERP Line – Fiscal e contábil". Use quando o pedido for sobre impostos, apuração (ICMS, IPI, PIS, COFINS, IRPJ, CSLL, DIFAL, IBS/CBS), notas fiscais, NF-e, NFS-e, CT-e (configuração e crédito), regras de tributação, GNRE, parcelamentos de impostos, fechamento do mês ou o contador. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
+description: FIS — chat "ERP Line – Fiscal e contábil". Use quando o pedido for sobre impostos, apuração (ICMS, IPI, PIS, COFINS, IRPJ, CSLL, DIFAL, IBS/CBS), notas fiscais, NF-e, NFS-e, CT-e (configuração e crédito), regras de tributação, GNRE, folha fiscal (eSocial, INSS, FGTS, DCTFWeb), parcelamentos de impostos, fechamento do mês ou o contador. Diz o que este chat faz, o que leva para outro chat e as regras que não pode esquecer.
 ---
 
 # FIS — Fiscal e contábil
@@ -24,6 +24,7 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - Parcelamentos: `src/pages/Parcelamentos.tsx`, `src/lib/parcelamentos.ts`; tabelas `parcelamentos`, `parcelamento_parcelas`.
 - Impostos pagos e analista fiscal: `src/pages/ImpostosPagos.tsx`, `src/pages/AnalistaFiscal.tsx`, `src/lib/analistaFiscal.ts`.
 - Crédito fiscal do CT-e.
+- Folha fiscal: eSocial, INSS, FGTS, DCTFWeb e as guias (prazos em `src/components/contador/CalendarioObrigacoes.tsx`).
 
 ## Não faço (levo para outro chat)
 - Notas e XML da My Frost (empresa anterior) e a auditoria fiscal delas → MYF.
@@ -32,6 +33,7 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - CT-e e faturas das transportadoras (cadastro, rastreio, conferência do frete) → TRA.
 - Notas recebidas que vieram do Tiny → TIN. Entradas nos bancos → ENT.
 - Contas a pagar e a receber, DRE, estoque e compras → GER.
+- Cadastro dos funcionários (documentos, salários lançados, férias) → FUN.
 
 ## Regras que não posso esquecer
 - Ao começar um pedido, leio esta skill; armadilha nova do assunto entra em "Cuidados conhecidos".
