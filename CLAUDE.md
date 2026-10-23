@@ -29,3 +29,5 @@
   - "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
   - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
   - O chat principal (anterior) organiza os outros.
+  - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, o que faz, exemplos, sessao =
+    "session_…", cor), que aparece em Sobre → Chats; chat encerrado fica com ativo = false.
