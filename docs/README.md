@@ -8,3 +8,4 @@ Documentos em português simples para a equipe ler e compartilhar. Todos saem do
 - [Guia rápido por perfil](guia-por-perfil.md): Para cada função: as telas que abre, o que pode criar ou alterar, os atalhos do celular e os processos em que entra.
 - [Perguntas frequentes](perguntas-frequentes.md): As dúvidas do dia a dia (vendas, clientes, entrega, assistência, fábrica, financeiro, notas e o ERP) com o passo a passo.
 - [Como dar acesso a alguém novo](acesso-novo.md): Quem cria o acesso, qual perfil escolher, o primeiro acesso, o representante externo e o que fazer quando a pessoa esquece a senha ou sai.
+- [Glossário do ERP Line](glossario.md): As siglas e palavras do ERP (OS, OP, NF-e, CFOP, conciliação, preventiva…) em palavras simples, com as telas onde aparecem.

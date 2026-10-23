@@ -12,10 +12,11 @@ import { gerarModulos } from "./docs/modulos.mjs";
 import { gerarGuiaPorPerfil } from "./docs/guia-por-perfil.mjs";
 import { gerarPerguntasFrequentes } from "./docs/perguntas-frequentes.mjs";
 import { gerarAcessoNovo } from "./docs/acesso-novo.mjs";
+import { gerarGlossario } from "./docs/glossario.mjs";
 
 const modulos = gerarModulos();
 const guia = gerarGuiaPorPerfil(modulos);
-const docs = [modulos, guia, gerarPerguntasFrequentes(modulos), gerarAcessoNovo(modulos, guia)];
+const docs = [modulos, guia, gerarPerguntasFrequentes(modulos), gerarAcessoNovo(modulos, guia), gerarGlossario(modulos)];
 
 const pasta = join(RAIZ, "docs");
 mkdirSync(pasta, { recursive: true });

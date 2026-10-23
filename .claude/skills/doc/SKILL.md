@@ -49,3 +49,9 @@ Cuido dos documentos em Markdown da pasta `docs/`, gerados a partir do código e
 - `docs/modulos.md` não se edita à mão: muda-se o texto no código e gera de novo.
 - O `menu.ts` usa React e ícones, então o gerador o lê como texto: mudança no formato do menu pode quebrar a leitura.
 - Depois de gerar, conferir no diff que não entrou dado da empresa vindo de algum texto do código.
+- O gerador ficou em partes: `scripts/gerar-docs.mjs` chama `scripts/docs/*.mjs` (um por documento) e todos usam
+  `scripts/docs/base.mjs`. Documento novo = arquivo novo em `scripts/docs/` + linha na lista do `gerar-docs.mjs`
+  (o `docs/README.md` sai sozinho).
+- Perguntas frequentes, acesso novo e glossário citam telas, partes e processos pelo nome: se um deles mudar ou sumir
+  no código, o gerador para com erro e a pergunta ou o termo precisa ser revisto (não é para tirar a conferência).
+- Conferir os links entre os documentos depois de gerar (âncora no jeito do GitHub; título repetido ganha -1).
