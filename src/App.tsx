@@ -15,6 +15,7 @@ import { AnotarPorVoz } from "@/components/voz/AnotarPorVoz";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
 import { PortaoRosto } from "@/components/Rosto";
+import { useSessaoDerrubada } from "@/lib/sair";
 import { abrirNoApp, CHAVE_APP } from "@/lib/appFinanceiro";
 import { abrirAppCelular, abrirAppVendas, CHAVE_APP_VENDAS } from "@/lib/appVendas";
 import { CHAVE_APP_ASSISTENCIA, CHAVE_APP_EXPEDICAO, CHAVE_APP_PRODUCAO } from "@/lib/appCelular";
@@ -229,6 +230,7 @@ export default function App() {
       setPerfil(data?.ativo ? { ...data, email: session?.user.email ?? "" } as Perfil : null);
     });
   }, [userId, tentativa]); // eslint-disable-line react-hooks/exhaustive-deps
+  useSessaoDerrubada(!!userId);
 
   // Vitrine pública: abre sem login (é o link dos produtos no catálogo do WhatsApp)
   // Apresentação do ERP Line para empresas e contadores (venda por indicação), sem login

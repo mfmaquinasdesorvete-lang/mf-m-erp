@@ -2,7 +2,7 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ScanFace, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, LogOut, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ScanFace, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { useNotificacoes } from "@/components/Notificacoes";
 import { PainelAcessos } from "@/components/usuarios/Acessos";
@@ -132,7 +132,7 @@ export default function Usuarios() {
 
   return (
     <div>
-      <PageHeader title="Usuários e permissões" actions={<Button onClick={() => setEditando("novo")}><Plus size={16} aria-hidden /> Novo usuário</Button>} />
+      <PageHeader title="Usuários e permissões" actions={<><DerrubarTodas /><Button onClick={() => setEditando("novo")}><Plus size={16} aria-hidden /> Novo usuário</Button></>} />
       <Tabs value={aba} onChange={setAba} options={[{ value: "usuarios", label: `Usuários (${ativos.length})` }, { value: "permissoes", label: "Perfis: o que cada um vê" }]} />
 
       {aba === "permissoes" ? <MatrizPermissoes /> : (
@@ -444,6 +444,7 @@ function SenhaModal({ usuario, onClose }: { usuario: Usuario; onClose: () => voi
             <Button>Salvar senha</Button>
           </div>
           {!souEu && usaRosto(usuario.papel, usuario.papeis_extras) && <ApagarRosto usuario={usuario} />}
+          {!souEu && <DerrubarSessoes usuario={usuario} />}
         </form>
       )}
     </Modal>
@@ -468,6 +469,47 @@ function ApagarRosto({ usuario }: { usuario: Usuario }) {
       {feito !== null
         ? <p className="mt-2 text-xs font-semibold text-emerald-700">{feito ? `${feito === 1 ? "1 aparelho apagado" : `${feito} aparelhos apagados`}.` : "Não havia rosto cadastrado."}</p>
         : <Button type="button" variant="secondary" className="mt-2" disabled={apagando} onClick={apagar}><ScanFace size={15} aria-hidden /> {apagando ? "Apagando…" : "Apagar o rosto"}</Button>}
+    </div>
+  );
+}
+
+/** Derruba as entradas de todo mundo (suspeita de invasão): todos entram de novo com a senha; quem clicou continua dentro. */
+function DerrubarTodas() {
+  const [derrubando, setDerrubando] = useState(false);
+  async function derrubar() {
+    if (!window.confirm("Derrubar as sessões de todo mundo? Todos saem do ERP (no celular e no computador) e entram de novo com a senha. Você continua dentro.")) return;
+    setDerrubando(true);
+    try {
+      const { data, error } = await supabase.rpc("derrubar_sessoes", {});
+      if (error) throw error;
+      notify(data ? `${data === 1 ? "1 sessão derrubada" : `${data} sessões derrubadas`}.` : "Não havia outra sessão aberta.");
+    } catch (err) { notifyError(err); }
+    finally { setDerrubando(false); }
+  }
+  return <Button variant="secondary" disabled={derrubando} onClick={derrubar}><LogOut size={16} aria-hidden /> {derrubando ? "Derrubando…" : "Derrubar todas as sessões"}</Button>;
+}
+
+/** Celular roubado ou a pessoa saiu da empresa: encerra na hora as entradas dela em todos os aparelhos. */
+function DerrubarSessoes({ usuario }: { usuario: Usuario }) {
+  const [feito, setFeito] = useState<number | null>(null);
+  const [derrubando, setDerrubando] = useState(false);
+  async function derrubar() {
+    if (!window.confirm(`Derrubar as sessões de ${usuario.nome}? A pessoa sai do ERP em todos os aparelhos e entra de novo com a senha.`)) return;
+    setDerrubando(true);
+    try {
+      const { data, error } = await supabase.rpc("derrubar_sessoes", { p_usuario: usuario.user_id });
+      if (error) throw error;
+      setFeito(data ?? 0);
+    } catch (err) { notifyError(err); }
+    finally { setDerrubando(false); }
+  }
+  return (
+    <div className="mt-2 rounded-lg border border-slate-200 p-3 text-sm">
+      <p className="font-semibold text-fg">Celular roubado ou saiu da empresa?</p>
+      <p className="text-xs text-slate-600">Derrube as sessões: {usuario.nome.split(" ")[0]} sai do ERP na hora, em todos os aparelhos. Se a senha vazou, troque a senha acima também.</p>
+      {feito !== null
+        ? <p className="mt-2 text-xs font-semibold text-emerald-700">{feito ? `${feito === 1 ? "1 sessão derrubada" : `${feito} sessões derrubadas`}.` : "Não havia sessão aberta."}</p>
+        : <Button type="button" variant="secondary" className="mt-2" disabled={derrubando} onClick={derrubar}><LogOut size={15} aria-hidden /> {derrubando ? "Derrubando…" : "Derrubar as sessões"}</Button>}
     </div>
   );
 }
