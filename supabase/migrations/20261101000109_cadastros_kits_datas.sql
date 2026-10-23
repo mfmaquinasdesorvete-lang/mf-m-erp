@@ -16,10 +16,11 @@ begin
      and kit_escolha @> jsonb_build_array(jsonb_build_object('componente_id', old.id::text));
   return null;
 end $$;
-drop trigger if exists trg_produto_unificado_kit_escolha on public.produtos;
-create trigger trg_produto_unificado_kit_escolha after update of unificado_em on public.produtos
-  for each row when (old.unificado_em is null and new.unificado_em is not null)
-  execute function public.trg_produto_unificado_kit_escolha();
+-- O gatilho em produtos não foi criado (23/10): criar gatilho na tabela de produtos trava pela API do Supabase.
+-- Fica a função pronta; ligar quando der (hoje nenhum item de pedido usa escolha de componentes):
+--   create trigger trg_produto_unificado_kit_escolha after update of unificado_em on public.produtos
+--     for each row when (old.unificado_em is null and new.unificado_em is not null)
+--     execute function public.trg_produto_unificado_kit_escolha();
 
 create or replace function public.importar_kits_tiny(p_kits jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public' as $$
