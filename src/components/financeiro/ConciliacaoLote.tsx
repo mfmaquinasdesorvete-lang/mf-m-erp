@@ -119,7 +119,7 @@ export function PorFavorecido({ linhas, deFora, regras, nomeConta, podeEditar }:
                         <tr key={l.id}>
                           <td className="whitespace-nowrap px-2 py-1.5">{dataBR(l.data)}</td>
                           <td className="hidden whitespace-nowrap px-2 py-1.5 text-slate-500 sm:table-cell">{nomeConta(l.conta_bancaria_id)}</td>
-                          <td className="min-w-[10rem] break-words px-2 py-1.5 text-slate-700">{l.descricao}</td>
+                          <td className="min-w-40 break-words px-2 py-1.5 text-slate-700">{l.descricao}</td>
                           <td className={`whitespace-nowrap px-2 py-1.5 text-right font-semibold ${l.valor < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(l.valor)}</td>
                         </tr>
                       ))}

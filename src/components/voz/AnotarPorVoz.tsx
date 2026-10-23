@@ -28,7 +28,7 @@ export function AnotarPorVoz() {
   return (
     <>
       <button type="button" onClick={() => setAberto(true)} aria-label="Anotar por voz" title="Anotar por voz"
-        className="fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand text-brand-fg shadow-pop ring-4 ring-white/70 transition hover:scale-105 active:scale-95 md:bottom-20 md:right-5 md:h-12 md:w-12">
+        className="fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-4 z-gaveta grid h-14 w-14 place-items-center rounded-full bg-brand text-brand-fg shadow-pop ring-4 ring-white/70 transition hover:scale-105 active:scale-95 md:bottom-20 md:right-5 md:h-12 md:w-12">
         <Mic className="h-6 w-6 md:h-5 md:w-5" />
       </button>
       {aberto && <JanelaVoz onClose={() => setAberto(false)} />}

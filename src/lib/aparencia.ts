@@ -3,6 +3,7 @@
 // numa cópia no aparelho, para a tela de entrada e o primeiro desenho já saírem com ela.
 // De cada cor escolhida saem os tons que o ERP usa, com a letra sempre legível no tema claro e no escuro.
 import { useSyncExternalStore } from "react";
+import { RAIO } from "@/design/tokens.js";
 
 export type LogoMarca = { id: string; nome: string; url: string | null };
 export type Aparencia = {
@@ -18,7 +19,30 @@ export type Aparencia = {
   icones_areas?: Record<string, string>;
   /** logos das marcas e das sorveterias My Frost */
   marcas?: LogoMarca[];
+  /** cantos de botões, cartões e painéis (os tokens de raio de src/design/tokens.js) */
+  cantos?: Cantos | null;
 };
+
+// ---- cantos: multiplica a escala de raio dos tokens (retos = metade, redondos = uma vez e meia)
+export type Cantos = "retos" | "padrao" | "redondos";
+export const CANTOS: { id: Cantos; nome: string; fator: number }[] = [
+  { id: "retos", nome: "Mais retos", fator: 0.5 },
+  { id: "padrao", nome: "Padrão", fator: 1 },
+  { id: "redondos", nome: "Mais redondos", fator: 1.5 },
+];
+/** Variáveis de raio para os cantos escolhidos (vazio = padrão). */
+export function raiosDosCantos(cantos: Cantos | null | undefined): Record<string, string> {
+  const fator = CANTOS.find((c) => c.id === cantos)?.fator ?? 1;
+  if (fator === 1) return {};
+  const vars: Record<string, string> = {};
+  for (const [k, x] of Object.entries(RAIO.escala)) {
+    if (k === "none" || k === "full") continue;
+    const m = /^([\d.]+)(rem|px)$/.exec(x);
+    if (m) vars[`raio-${k === "DEFAULT" ? "padrao" : k}`] = `${+(Number(m[1]) * fator).toFixed(4)}${m[2]}`;
+  }
+  vars["raio-linha-celular"] = `${Math.round(parseFloat(RAIO.linhaCelular) * fator)}px`;
+  return vars;
+}
 
 // ---- fontes (lista pronta; cada uma só é baixada quando escolhida)
 export type Fonte = { id: string; nome: string; familia: string; carregar?: () => Promise<unknown> };
@@ -115,6 +139,9 @@ export function cssDaAparencia(a: Aparencia): string {
     css.push(bloco(sel, { modulo: t.modulo, "modulo-2": t["modulo-2"], "modulo-texto": t["modulo-texto"] }));
     css.push(bloco(id === "inicio" ? ':root[data-theme="dark"], :root[data-theme="dark"][data-modulo="inicio"]' : `:root[data-theme="dark"][data-modulo="${id}"]`, { "modulo-texto": t["modulo-texto-escuro"] }));
   }
+  // :root repetido para valer por cima dos cantos do fundo "App" (index.css), que têm mais peso que :root
+  const raios = raiosDosCantos(a.cantos);
+  if (Object.keys(raios).length) css.push(bloco(":root:root:root:root:root", raios));
   css.push(bloco(":root", { "fonte-titulos": familia(a.fonte_titulos, FONTE_TITULOS_PADRAO), "fonte-texto": familia(a.fonte_texto, FONTE_TEXTO_PADRAO) }));
   return css.join("\n");
 }

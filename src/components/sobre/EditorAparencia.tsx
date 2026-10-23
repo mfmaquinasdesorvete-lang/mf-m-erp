@@ -4,7 +4,7 @@
 // configuracoes.aparencia e vale para toda a equipe. Sair sem salvar volta ao que estava.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Palette, Plus, RotateCcw, Save, Trash2, Undo2 } from "lucide-react";
-import { Button, Card } from "@/components/ui";
+import { chip, Button, Card } from "@/components/ui";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { confirmar } from "@/components/Dialogos";
 import { useConfig } from "@/lib/useConfig";
@@ -16,6 +16,7 @@ import { PASTA_MARCA } from "@/lib/marca";
 import {
   aplicarAparencia, CORES_AREAS_PADRAO, corValida, FONTE_TEXTO_PADRAO, FONTE_TITULOS_PADRAO, FONTES, MARCAS_PADRAO,
   type Aparencia, type LogoMarca,
+  CANTOS,
 } from "@/lib/aparencia";
 
 const PASTA = `${PASTA_MARCA}/aparencia`;
@@ -36,6 +37,7 @@ function limparAparencia(a: Aparencia): Aparencia {
     fonte_texto: a.fonte_texto && a.fonte_texto !== FONTE_TEXTO_PADRAO ? a.fonte_texto : null,
     logo_erp: a.logo_erp || null,
     icones_areas: icones,
+    cantos: a.cantos && a.cantos !== "padrao" ? a.cantos : null,
     marcas: (a.marcas ?? []).filter((m) => m.nome.trim() || m.url).map((m) => ({ ...m, nome: m.nome.trim() })),
   };
 }
@@ -146,6 +148,21 @@ export function EditorAparencia() {
                 </select>
                 <span className={`mt-2 block truncate rounded-lg bg-slate-50 px-3 py-2 text-fg ${chave === "fonte_titulos" ? "text-xl font-bold" : "text-base"}`} style={{ fontFamily: fonte.familia }}>{exemplo}</span>
               </label>
+            );
+          })}
+        </div>
+      </Parte>
+
+      <Parte titulo="Cantos" texto="O arredondado de botões, campos, cartões e painéis em todo o ERP (sai dos tokens do design system).">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cantos">
+          {CANTOS.map((c) => {
+            const ativo = (a.cantos ?? "padrao") === c.id;
+            return (
+              <button key={c.id} type="button" role="radio" aria-checked={ativo} onClick={() => mudar({ cantos: c.id })}
+                className={`${chip(ativo, "border-brand bg-brand-light text-fg")} gap-2 px-3 py-2 text-sm`}
+                style={{ borderRadius: `${0.75 * c.fator}rem` }}>
+                <span className="h-5 w-7 border-2 border-current" style={{ borderRadius: `${0.375 * c.fator}rem` }} aria-hidden /> {c.nome}
+              </button>
             );
           })}
         </div>

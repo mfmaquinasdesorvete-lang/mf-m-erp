@@ -106,7 +106,7 @@ export function ContasFixas({ contas }: { contas?: (ContaDecisao & { data_pagame
   return (
     <>
       <div className="mb-3 flex flex-wrap items-end gap-2">
-        <p className="min-w-[16rem] flex-1 text-sm text-slate-600">
+        <p className="min-w-64 flex-1 text-sm text-slate-600">
           O ERP lança cada conta fixa sozinho, com antecedência, e ela já entra no fluxo de caixa previsto.
           Por mês: <b className="text-red-700">{brl(totais.pagar)}</b> a pagar e <b className="text-emerald-700">{brl(totais.receber)}</b> a receber.
         </p>

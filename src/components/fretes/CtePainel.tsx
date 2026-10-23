@@ -162,17 +162,17 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
     <div className="space-y-4">
       <BuscaSefaz />
       <div className="cartao flex flex-wrap items-end gap-2 p-3">
-        <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
+        <label className="block min-w-36 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
           <input className="input" type="date" value={de} onChange={(e) => setDe(e.target.value)} /></label>
-        <label className="block min-w-[9rem] flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
+        <label className="block min-w-36 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
           <input className="input" type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></label>
         {transpComCte.length > 1 && (
-          <label className="block min-w-[10rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Transportadora</span>
+          <label className="block min-w-40 flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Transportadora</span>
             <select className="input" value={transp} onChange={(e) => setTransp(e.target.value)}>
               <option value="">Todas</option>{transpComCte.map((id) => <option key={id} value={id}>{nomeTransportadora(porId.get(id))}</option>)}
             </select></label>
         )}
-        <label className="block min-w-[12rem] flex-[2]"><span className="mb-1 block text-xs font-semibold text-slate-600">Buscar</span>
+        <label className="block min-w-48 flex-[2]"><span className="mb-1 block text-xs font-semibold text-slate-600">Buscar</span>
           <span className="relative block"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input className="input pl-9" placeholder="Nº do CT-e, nota, fornecedor, cliente, cidade" value={busca} onChange={(e) => setBusca(e.target.value)} /></span></label>
         {filtros > 0 && <Button variant="ghost" onClick={limpar}><X size={15} /> Limpar</Button>}
@@ -266,7 +266,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
                   {c.chave && <span title="CT-e conferido na SEFAZ (chave de acesso)" className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 text-2xs font-bold text-emerald-800"><BadgeCheck size={11} aria-hidden />SEFAZ</span>}
                   <span className="block text-xs text-slate-500">{dataBR(c.emissao)}</span><SeloSentido s={c.sentido} />
                   {!valido(c) && <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-2xs font-semibold text-red-800">{c.situacao}</span>}</td>
-                <td className="td min-w-[14rem] text-sm"><span className="block">{c.remetente_nome ?? "—"}</span>
+                <td className="td min-w-56 text-sm"><span className="block">{c.remetente_nome ?? "—"}</span>
                   <span className="block text-slate-600">→ {c.destinatario_nome ?? "—"}</span>
                   <span className="block text-xs text-slate-500">{[c.ag_origem, c.ag_destino].filter(Boolean).join(" → ")}{c.volumes ? ` · ${c.volumes} vol.` : ""}{c.peso ? ` · ${String(c.peso).replace(".", ",")} ${c.peso_tipo === "M3" ? "m³" : "kg"}` : ""}</span></td>
                 <td className="td whitespace-nowrap text-sm">{c.nf_numero ? <>

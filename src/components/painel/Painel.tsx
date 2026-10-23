@@ -107,7 +107,7 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur" aria-hidden><Icone size={24} /></span>
           <div className="min-w-0">
-            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/75">Painel · {area}</p>
+            <p className="text-2xs font-bold uppercase tracking-rotulo text-white/75">Painel · {area}</p>
             <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">{titulo}</h1>
             {resumo && <p className="mt-1 max-w-2xl text-sm leading-snug text-white/90">{resumo}</p>}
           </div>

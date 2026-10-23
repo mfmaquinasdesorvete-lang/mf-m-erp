@@ -193,7 +193,7 @@ export function SelectMarcador({ valor, onChange, todos, className = "" }: { val
   const ativos = todos.filter((m) => m.ativo);
   if (!ativos.length) return null;
   return (
-    <select className={`input w-auto max-w-[14rem] ${valor ? "!border-brand" : ""} ${className}`} aria-label="Filtrar por marcador" value={valor} onChange={(e) => onChange(e.target.value)}>
+    <select className={`input w-auto max-w-56 ${valor ? "!border-brand" : ""} ${className}`} aria-label="Filtrar por marcador" value={valor} onChange={(e) => onChange(e.target.value)}>
       <option value="">Marcador: todos</option>
       {ativos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
     </select>

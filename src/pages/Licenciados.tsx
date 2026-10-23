@@ -548,7 +548,7 @@ function LojaModal({ loja, comPagamento, onClose, onGravar }: { loja: Partial<Lo
             ))}
           </div>
         </Field>
-        <Field label="Observações"><textarea className="input min-h-[4rem]" value={l.observacoes ?? ""} onChange={(e) => set("observacoes", e.target.value)} maxLength={1000} /></Field>
+        <Field label="Observações"><textarea className="input min-h-16" value={l.observacoes ?? ""} onChange={(e) => set("observacoes", e.target.value)} maxLength={1000} /></Field>
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit">Salvar</Button></div>
       </form>
     </Modal>

@@ -75,8 +75,8 @@ type Filtros = { categoria: string; tipo: string; fornecedor: string; soPrecisa:
 const FILTROS_PADRAO: Filtros = { categoria: "", tipo: "", fornecedor: "", soPrecisa: true, zerados: false, inativos: false, criticos: false };
 const PERIODO_PADRAO = 90;
 // a caixinha e o nome do produto ficam parados ao rolar a tabela para o lado (as colunas de compra ficam à direita)
-const FIXA_SEL = "sticky left-0 z-[1] w-10 min-w-[2.5rem] max-w-[2.5rem] !px-3";
-const FIXA_PROD = "sticky left-10 z-[1] shadow-[1px_0_0_rgb(var(--slate-200))]";
+const FIXA_SEL = "sticky left-0 z-acima w-10 min-w-10 max-w-10 !px-3";
+const FIXA_PROD = "sticky left-10 z-acima shadow-[1px_0_0_rgb(var(--slate-200))]";
 const POR_VEZ = 200;
 
 const fmt = (v: number, casas = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -441,7 +441,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
       <div className="flex flex-wrap items-center gap-2">
         <input className="input min-w-0 flex-1 basis-56 md:max-w-md" placeholder="Buscar por descrição, SKU ou GTIN…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produto" />
         <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
-          className={`inline-flex min-h-[42px] shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
+          className={`inline-flex min-h-toque shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
           <SlidersHorizontal size={16} aria-hidden /> {painel ? "Fechar filtros" : "Filtros"}
           {filtrosAtivos > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-white">{filtrosAtivos}</span>}
         </button>
@@ -562,10 +562,10 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
               return (
                 <tr key={p.id} className={sel.has(p.id) ? "bg-brand-light" : "bg-surface hover:bg-slate-50"}>
                   <td className={`td bg-inherit ${FIXA_SEL}`}><input type="checkbox" className="h-4 w-4" checked={sel.has(p.id)} onChange={() => marcar(p.id)} aria-label={`Marcar ${p.descricao}`} /></td>
-                  <td className={`td min-w-[14rem] max-w-[20rem] bg-inherit ${FIXA_PROD}`}><span className={`font-medium ${l.critico ? "text-red-700" : "text-fg"}`}>{p.descricao}</span>{selos(l)}</td>
+                  <td className={`td min-w-56 max-w-80 bg-inherit ${FIXA_PROD}`}><span className={`font-medium ${l.critico ? "text-red-700" : "text-fg"}`}>{p.descricao}</span>{selos(l)}</td>
                   <td className="td whitespace-nowrap text-xs text-slate-600">{p.sku || "—"}</td>
                   <td className="td whitespace-nowrap text-xs text-slate-600">{p.codigo_barras || "—"}</td>
-                  <td className="td max-w-[12rem] text-xs">{fornecedorTexto(l)}</td>
+                  <td className="td max-w-48 text-xs">{fornecedorTexto(l)}</td>
                   <td className="td text-xs text-slate-600">{p.unidade}</td>
                   <td className="td num whitespace-nowrap text-right">{brl(l.custo)}<span className="block text-2xs text-slate-500">{l.origemCusto === "compras" ? "compras 12 meses" : "cadastro"}</span></td>
                   <td className="td num text-right">{botaoNumero(l, l.entradas, "text-emerald-700", "entradas")}

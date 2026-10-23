@@ -360,7 +360,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
               return (
                 <label key={f.label} className={`min-w-0 ${g === 0 ? "md:contents" : ""}`}>
                   <span className={`mb-1 block truncate text-xs font-semibold text-slate-500 ${g === 0 ? "md:hidden" : ""}`}>{f.label}</span>
-                  <select className={`input min-w-0 ${g === 0 ? "md:!w-auto md:max-w-[12rem]" : ""} ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
+                  <select className={`input min-w-0 ${g === 0 ? "md:!w-auto md:max-w-48" : ""} ${escolhas[f.label] ? "!border-brand" : ""}`} aria-label={f.label}
                     value={escolhas[f.label] ?? ""} onChange={(e) => setEscolhas((x) => ({ ...x, [f.label]: e.target.value }))}>
                     <option value="">{celular || g === 1 ? "Todos" : `${f.label}: todos`}</option>
                     {"opcoes" in f
@@ -396,7 +396,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         )}
       </div>
 
-      <div className="mb-2 flex min-h-[2.25rem] flex-wrap items-center gap-2 text-sm text-slate-500">
+      <div className="mb-2 flex min-h-9 flex-wrap items-center gap-2 text-sm text-slate-500">
         <span>{filtrados.length === data.length ? `${data.length} ${pl(data.length, singularDe(plural), plural)}` : `${filtrados.length} de ${data.length} ${plural}`}</span>
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-1 text-fg">

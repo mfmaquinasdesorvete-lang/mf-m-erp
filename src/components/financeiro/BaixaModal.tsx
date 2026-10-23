@@ -59,7 +59,7 @@ export function BaixaModal({ conta, tabela, onClose, valorInicial, dataInicial }
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Esta conta ainda não foi aprovada. O pagamento só pode ser registrado depois da aprovação.</p>
         <div className="mt-3 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Fechar</Button>
-          <Link to="/aprovacoes" onClick={onClose} className="inline-flex min-h-[42px] items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg sm:min-h-0 sm:py-2">Abrir Aprovações</Link>
+          <Link to="/aprovacoes" onClick={onClose} className="inline-flex min-h-toque items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg sm:min-h-0 sm:py-2">Abrir Aprovações</Link>
         </div>
       </Modal>
     );

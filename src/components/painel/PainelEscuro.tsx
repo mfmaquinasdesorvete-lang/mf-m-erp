@@ -38,9 +38,9 @@ export function QuadroEscuro({ titulo, destaque, rotulo, acoes, filtro, classNam
 }) {
   return (
     <section aria-label={rotulo}
-      className={`relative overflow-hidden rounded-2xl border border-[#1d3b66] bg-[radial-gradient(120%_90%_at_50%_0%,#123463_0%,#0a1f3d_45%,#06132a_100%)] p-4 text-white shadow-pop sm:p-5 ${className}`}>
+      className={`relative overflow-hidden rounded-painel border border-[#1d3b66] bg-[radial-gradient(120%_90%_at_50%_0%,#123463_0%,#0a1f3d_45%,#06132a_100%)] p-4 text-white shadow-pop sm:p-5 ${className}`}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="text-base font-bold uppercase tracking-[.12em] sm:text-lg">
+        <h2 className="text-base font-bold uppercase tracking-titulo sm:text-lg">
           {titulo}{destaque && <> <span className="bg-gradient-to-r from-fixo-rose-400 to-fixo-amber-400 bg-clip-text text-transparent">{destaque}</span></>}
         </h2>
         {acoes}
@@ -84,7 +84,7 @@ export function AnelEscuro<T extends string>({ fatias, escolhida, onEscolher, ce
         })}
       </svg>
       <div className="cartao-fit absolute inset-[19%] flex flex-col items-center justify-center text-center">
-        <span className="max-w-full truncate text-2xs font-bold uppercase tracking-[.14em] text-white/75">{centro.rotulo}</span>
+        <span className="max-w-full truncate text-2xs font-bold uppercase tracking-rotulo text-white/75">{centro.rotulo}</span>
         {/* valor comprido ("R$ 289.000,00") diminui para caber inteiro; curto fica no tamanho cheio */}
         <span className="num valor-fit w-full font-bold leading-tight text-white [--valor-max:2.1rem]"
           style={{ "--valor-cq": `${Math.min(14, 165 / Math.max(1, centro.valor.length)).toFixed(1)}cqi` } as CSSProperties}>{centro.valor}</span>

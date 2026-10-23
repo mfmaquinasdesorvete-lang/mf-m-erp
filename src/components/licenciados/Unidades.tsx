@@ -345,7 +345,7 @@ function MaquinasDaLoja({ loja: l, anotadas, onEditarAnotada }: { loja: Loja; an
             <Button key={c.id} variant="secondary" disabled={gravando} onClick={() => ligar(c.id)}>Ligar a {c.codigo ? `${c.codigo} · ` : ""}{c.nome} (mesmo CPF/CNPJ)</Button>
           ))}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="min-w-[16rem] flex-1"><ClienteBusca clientes={clientes} carregando={isLoading} value={escolha} onChange={(id) => setEscolha(id)} placeholder="Procurar o cliente pelo nome, CNPJ ou cidade" /></div>
+            <div className="min-w-64 flex-1"><ClienteBusca clientes={clientes} carregando={isLoading} value={escolha} onChange={(id) => setEscolha(id)} placeholder="Procurar o cliente pelo nome, CNPJ ou cidade" /></div>
             <Button disabled={!escolha || gravando} onClick={() => ligar(escolha)}>Ligar</Button>
             {!sugeridos.length && <Button variant="secondary" disabled={gravando} onClick={criarCliente}><Plus size={15} /> Criar cliente com os dados da unidade</Button>}
           </div>

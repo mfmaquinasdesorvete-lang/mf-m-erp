@@ -292,7 +292,7 @@ export function Dre({ lancamentos, extrato = [], fora, carregando, notas, carreg
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-slate-50/80">
             <tr>
-              <th className="th sticky left-0 z-10 min-w-[13rem] bg-slate-50">Linha</th>
+              <th className="th sticky left-0 z-10 min-w-52 bg-slate-50">Linha</th>
               {meses.map((m, k) => (
                 <th key={m} data-mes={m} className={`th text-right ${k === i ? "bg-modulo/15" : ""}`}>
                   <button type="button" className="uppercase hover:underline" aria-pressed={k === i} onClick={() => setFoco(m)}>{rotuloMes(m)}</button>
@@ -376,7 +376,7 @@ function Grafico({ meses, receitas, lucros, temDados, foco, onFoco }: {
       {meses.map((m, k) => (
         <button key={m} type="button" aria-pressed={k === foco} onClick={() => onFoco(m)}
           aria-label={`${rotuloMesLongo(m)}: ${temDados[k] ? `receita ${brl(receitas[k])}, ${lucros[k] >= 0 ? "lucro" : "prejuízo"} ${brl(Math.abs(lucros[k]))}` : "sem contas"}`}
-          className={`flex min-w-[2.75rem] flex-1 flex-col items-center gap-1 rounded-lg px-1 pb-1 pt-2 transition ${k === foco ? "bg-modulo/15 ring-2 ring-modulo" : "hover:bg-slate-100"}`}>
+          className={`flex min-w-11 flex-1 flex-col items-center gap-1 rounded-lg px-1 pb-1 pt-2 transition ${k === foco ? "bg-modulo/15 ring-2 ring-modulo" : "hover:bg-slate-100"}`}>
           <span className="flex h-20 items-end gap-0.5" aria-hidden>
             {temDados[k] ? (
               <>

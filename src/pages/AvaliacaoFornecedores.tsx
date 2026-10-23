@@ -100,7 +100,7 @@ export default function AvaliacaoFornecedores() {
       <div className="mb-3 flex flex-wrap items-end gap-2">
         <Field label="De" className="w-36"><input type="date" className="input" value={inicio} onChange={(e) => setInicio(e.target.value)} /></Field>
         <Field label="Até" className="w-36"><input type="date" className="input" value={fim} onChange={(e) => setFim(e.target.value)} /></Field>
-        <Field label="Buscar" className="min-w-[10rem] flex-1"><input className="input" value={busca} placeholder="Nome do fornecedor" onChange={(e) => setBusca(e.target.value)} /></Field>
+        <Field label="Buscar" className="min-w-40 flex-1"><input className="input" value={busca} placeholder="Nome do fornecedor" onChange={(e) => setBusca(e.target.value)} /></Field>
       </div>
       <div className="faixa-chips mb-3">
         {FILTROS.map((x) => (

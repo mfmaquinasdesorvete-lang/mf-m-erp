@@ -403,7 +403,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   const pctNovo = completude(c);
 
   if (modo !== "abas") return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 backdrop-blur-[2px] sm:p-6"
+    <div className="fixed inset-0 z-janela flex items-start justify-center overflow-y-auto bg-ink/50 backdrop-blur-[2px] sm:p-6"
       role="dialog" aria-modal="true" aria-label={modo === "pronto" ? `${nomeTopo} cadastrado` : "Novo cliente"}>
       <div className="flex min-h-full w-full max-w-3xl flex-col bg-canvas shadow-pop sm:min-h-0 sm:rounded-2xl">
         {modo === "pronto" ? (
@@ -662,7 +662,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
 
   // ------------------------------------------------------------------ tela
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 backdrop-blur-[2px] sm:p-6"
+    <div className="fixed inset-0 z-janela flex items-start justify-center overflow-y-auto bg-ink/50 backdrop-blur-[2px] sm:p-6"
       role="dialog" aria-modal="true" aria-label={c.id ? `Cadastro de ${nomeTopo}` : "Novo cliente"}>
       <div className="flex min-h-full w-full max-w-5xl flex-col bg-canvas shadow-pop sm:min-h-0 sm:rounded-2xl">
         {/* topo: quem é + quanto falta */}
@@ -724,7 +724,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                 <button key={a.id} type="button" onClick={() => setAba(a.id)} aria-current={ativa ? "page" : undefined}
                   className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition ${ativa ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
                   <a.Icon size={16} /> {a.label}
-                  {n > 0 && <span className={`grid h-4 min-w-[1rem] place-items-center rounded-full px-1 text-2xs font-bold ${ativa ? "bg-white/25" : "bg-amber-100 text-amber-800"}`}>{n}</span>}
+                  {n > 0 && <span className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-2xs font-bold ${ativa ? "bg-white/25" : "bg-amber-100 text-amber-800"}`}>{n}</span>}
                 </button>
               );
             })}

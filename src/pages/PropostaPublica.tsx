@@ -216,7 +216,7 @@ function Responder({ token, aprovar, cor, total, pagarDepois, onClose, onFeito }
     onFeito();
   }
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-3 print:hidden" onClick={onClose}>
+    <div className="fixed inset-0 z-janela grid place-items-center bg-slate-900/50 p-3 print:hidden" onClick={onClose}>
       <form onSubmit={enviar} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 text-slate-800 shadow-2xl">
         <h2 className="text-xl font-bold text-slate-900">{aprovar ? "Aprovar a proposta" : "Que pena! Pode contar o motivo?"}</h2>
         {aprovar && <p className="text-sm text-slate-600">Ao aprovar, o pedido de {brl(total)} é confirmado com as condições acima. {pagarDepois ? "Em seguida você já pode pagar por Pix ou cartão aqui mesmo." : "A equipe entra em contato para combinar a entrega."}</p>}

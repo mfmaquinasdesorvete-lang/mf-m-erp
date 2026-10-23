@@ -67,7 +67,7 @@ export function TesteGigaDaOp({ numerosSerie, produtoId, opId }: { numerosSerie:
             const falta = s?.aprovado_numero == null;
             return (
               <li key={n} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                <span className="num min-w-[5rem] font-semibold text-fg">{n}</span>
+                <span className="num min-w-20 font-semibold text-fg">{n}</span>
                 {isLoading ? <span className="text-xs text-slate-500">carregando…</span> : <SeloTesteGiga s={s} />}
                 {s?.aprovado_operador && <span className="text-xs text-slate-500">{s.aprovado_operador}</span>}
                 <span className="flex-1" />

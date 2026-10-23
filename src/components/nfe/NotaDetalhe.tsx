@@ -335,7 +335,7 @@ function CorrigirNota({ nota, onClose }: { nota: NotaEmitida; onClose: (ok: bool
               </tbody>
             </table>
           </div>
-          <Field label="Informações complementares"><textarea className="input min-h-[4rem]" value={info} onChange={(e) => setInfo(e.target.value)} /></Field>
+          <Field label="Informações complementares"><textarea className="input min-h-16" value={info} onChange={(e) => setInfo(e.target.value)} /></Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => onClose(false)}>Voltar</Button>
             <Button disabled={ocupado}><Send size={16} /> {ocupado ? "Enviando…" : "Salvar e reenviar"}</Button>

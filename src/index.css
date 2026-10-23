@@ -91,16 +91,16 @@
   border-color: rgb(255 255 255 / 0.07);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 10px 30px -12px rgb(0 0 0 / 0.6);
 }
-:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .rounded-xl { border-radius: 1rem; }
-:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .rounded-2xl { border-radius: 1.35rem; }
+/* cantos (tokens de src/design/tokens.js): no fundo "App" escuro, cartões e painéis mais redondos */
+:root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) { --raio-xl: 1rem; --raio-2xl: 1.35rem; --raio-linha-celular: 18px; }
 @media (max-width: 767px) {
   :root[data-theme="dark"]:not([data-fundo="grafite"]):not([data-fundo="marinho"]) .tabela.tabela > tbody > tr {
     border-color: rgb(255 255 255 / 0.07) !important; border-left-color: rgb(var(--modulo)) !important;
-    border-radius: 18px; box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.6);
+    box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.6);
   }
 }
 /* claro: cantos um pouco mais redondos e sombra mais macia, também com cara de app */
-:root:not([data-theme="dark"]) .rounded-2xl { border-radius: 1.25rem; }
+:root:not([data-theme="dark"]) { --raio-2xl: 1.25rem; }
 :root:not([data-theme="dark"]) .shadow-card { box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12); }
 
 /* Cor de destaque (escolhida em Aparência). --brand-nav é o tom usado no menu lateral navy. */
@@ -160,21 +160,21 @@ h1, h2, h3 { text-wrap: balance; }
 @layer components {
   /* peças únicas do design system (Sobre → Design): cartão, link de texto e botões só de ícone. Mudar aqui muda o ERP
      inteiro; as classes de tamanho e espaço ficam em cada tela (ex.: "cartao p-4", "botao-icone h-8 w-8"). */
-  .cartao { @apply rounded-xl border border-slate-200/80 bg-surface shadow-card; }
+  .cartao { @apply rounded-cartao border border-slate-200/80 bg-surface shadow-card; }
   .link-acao { @apply font-semibold text-brand hover:underline; }
-  .botao-icone { @apply grid shrink-0 place-items-center rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-fg disabled:opacity-30; }
-  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
+  .botao-icone { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-fg disabled:opacity-30; }
+  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-botao p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
   .link-modulo { @apply font-semibold text-modulo-texto hover:underline; }
   .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline; }
   /* botão pequeno (ações dentro de linhas e cartões); as cores vêm de Button (variant/tom) ou de .botao-mini-neutro */
-  .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-botao px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
   .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50; }
   /* chip de filtro ou de escolha (o mesmo de ChipsSituacao): .chip + .chip-ativo, .chip-neutro ou uma cor própria */
-  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60; }
+  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60; }
   .chip-ativo { @apply border-brand bg-brand text-brand-fg; }
   .chip-neutro { @apply border-slate-200 bg-surface text-slate-600 hover:border-slate-300 hover:text-fg; }
   /* linha de lista que abre algo ao tocar (cliente, conta, item) */
-  .linha-clicavel { @apply w-full rounded-lg text-left transition hover:bg-slate-50; }
+  .linha-clicavel { @apply w-full rounded-botao text-left transition hover:bg-slate-50; }
   /* chips/abas de filtro: no celular uma linha só que rola para o lado (antes quebravam em 3 ou 4 linhas no topo) */
   .faixa-chips {
     @apply -mx-4 flex flex-nowrap gap-1.5 overflow-x-auto px-4 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0;
@@ -185,11 +185,11 @@ h1, h2, h3 { text-wrap: balance; }
   /* janelas: a linha Cancelar/Salvar do fim do formulário fica presa no pé da tela quando a janela é mais alta que a tela
      (notebook com tela baixa não via o Salvar sem rolar) */
   .modal-corpo form > div:last-child:has(> button[type="submit"], > button:not([type])) {
-    @apply sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-slate-100 bg-surface px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5 rounded-b-2xl;
+    @apply sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-slate-100 bg-surface px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5 rounded-b-painel;
   }
   /* 16px no celular evita o zoom automático do iPhone ao tocar no campo */
   .input {
-    @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-campo px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
+    @apply w-full min-w-0 max-w-full rounded-campo border border-slate-300 bg-campo px-3 py-2.5 text-[16px] shadow-sm sm:py-2 sm:text-sm
            placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20
            disabled:bg-slate-50 disabled:text-slate-500;
   }
@@ -242,7 +242,7 @@ select option { background: rgb(var(--campo)); color: rgb(var(--fg)); }
   .tabela.tabela > tbody > tr {
     border-style: solid !important; border-width: 1px 1px 1px 4px !important;
     border-color: rgb(var(--slate-200)) !important; border-left-color: rgb(var(--modulo)) !important;
-    border-radius: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / var(--sombra));
+    border-radius: var(--raio-linha-celular); box-shadow: 0 1px 2px rgb(0 0 0 / var(--sombra));
   }
   /* :where = sem peso, para a cor de "selecionado" da linha continuar valendo */
   :where(.tabela > tbody > tr) { background-color: rgb(var(--surface)); }

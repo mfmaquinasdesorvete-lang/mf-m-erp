@@ -30,7 +30,7 @@ export function MotivoAcao({ titulo, children, rotulo = "Confirmar", perigo, min
       <form onSubmit={enviar} className="space-y-3">
         {children && <div className="space-y-2 text-sm text-slate-600">{children}</div>}
         <Field label={campo}>
-          <textarea className="input min-h-[5rem]" autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)}
+          <textarea className="input min-h-20" autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ex.: vendedor não tinha sido informado" />
         </Field>
         {motivo.trim().length > 0 && !ok && <p className="text-xs text-amber-700">Escreva pelo menos {minimo} letras.</p>}

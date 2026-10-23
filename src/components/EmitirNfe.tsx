@@ -203,7 +203,7 @@ function NotaDireta({ onClose, trocar }: { onClose: () => void; trocar: () => vo
         <Field label={op.exige_referencia ? "NF de remessa (obrigatória)" : "NF referenciada (opcional)"} className="sm:col-span-2">
           <div className="flex flex-col gap-2 sm:flex-row">
             {notasDoCliente.length > 0 && (
-              <select className="input sm:max-w-[16rem]" value={notasDoCliente.find((x) => x.chave === chaveDigitos)?.chave ?? ""} onChange={(e) => setChaveRef(e.target.value)}>
+              <select className="input sm:max-w-64" value={notasDoCliente.find((x) => x.chave === chaveDigitos)?.chave ?? ""} onChange={(e) => setChaveRef(e.target.value)}>
                 <option value="">Notas deste cliente…</option>
                 {notasDoCliente.map((x) => <option key={x.id} value={x.chave!}>NF {x.numero ?? "—"} · {dataBR(x.created_at)} · {brl(x.valor_total)}{x.tipo_operacao === "entrada" ? " · entrada" : ""}</option>)}
               </select>

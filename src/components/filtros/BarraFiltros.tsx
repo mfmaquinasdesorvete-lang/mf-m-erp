@@ -41,7 +41,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} title={`${rotuloData}: ${rotuloPeriodo(periodo!, hoje())}`}
             className={`${botao(ativoPeriodo, painel === "periodo")} min-w-0 !shrink`}>
             <CalendarDays size={16} className="shrink-0" aria-hidden />
-            <span className="max-w-[13rem] truncate">{rotuloData}{ativoPeriodo ? `: ${rotuloPeriodo(periodo!, hoje())}` : <span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span>}</span>
+            <span className="max-w-52 truncate">{rotuloData}{ativoPeriodo ? `: ${rotuloPeriodo(periodo!, hoje())}` : <span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span>}</span>
           </button>
         )}
         {filtros && (

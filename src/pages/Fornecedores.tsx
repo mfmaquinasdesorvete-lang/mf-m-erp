@@ -299,7 +299,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
               const cp = comprasDo.get(r.id);
               const cats = [...new Set([...(categoriasDo.get(r.id) ?? []), ...(cp?.grupos ?? [])])].slice(0, 2);
               if (!cats.length && !cp) return <span className="text-xs text-slate-400">sem notas</span>;
-              return <div className="max-w-[15rem]">
+              return <div className="max-w-60">
                 {cats.length > 0 && <div className="flex flex-wrap gap-1">{cats.map((c) => <span key={c} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">{c}</span>)}</div>}
                 {cp && <div className="mt-0.5 text-2xs text-slate-500">{brl(Number(cp.total))} em {cp.notas} {pl(Number(cp.notas), "nota", "notas")}{cp.ultima ? ` · última ${dataBR(cp.ultima)}` : ""}</div>}
               </div>;

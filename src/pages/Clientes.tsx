@@ -188,7 +188,7 @@ export default function Clientes() {
       podeExcluir={papel === "admin"}
       plural="clientes"
       extraActions={<>
-        <Link to="/painel/cadastros" className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><LayoutDashboard size={16} /> Painel dos clientes</Link>
+        <Link to="/painel/cadastros" className="inline-flex min-h-toque items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-surface px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:min-h-0"><LayoutDashboard size={16} /> Painel dos clientes</Link>
         {podeArrumar && <Button variant="secondary" onClick={() => setArrumar(true)} title="WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores na lista"><Wrench size={16} /> Arrumar cadastro</Button>}
         {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><FileSpreadsheet size={16} /> Importar</Button>}
         {papel === "admin" && <Button variant="secondary" onClick={() => setMyFrost(true)} title="Clientes, máquinas e peças da My Frost Máquinas (empresa anterior), do backup do Tiny"><Archive size={16} /> Base da My Frost</Button>}

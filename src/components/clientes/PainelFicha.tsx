@@ -70,7 +70,7 @@ export function PainelFicha({ r, compras, maquinas, compraCadastro, hoje }: {
         </div>
 
         <div className="order-3 min-w-0">
-          <p className="mb-1.5 text-2xs font-bold uppercase tracking-[.14em] text-white/75">
+          <p className="mb-1.5 text-2xs font-bold uppercase tracking-rotulo text-white/75">
             {ordem.length ? `${ordem.length} ${pl(ordem.length, "máquina", "máquinas")}` : "Máquinas"}
           </p>
           {!ordem.length && !soCadastro ? <p className="rounded-2xl border border-white/[.07] bg-white/[.04] p-3 text-sm text-white/70">Nenhuma máquina registrada.</p> : (

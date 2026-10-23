@@ -668,7 +668,7 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
             <div key={c.id} className={`rounded-xl border p-3 ${c.escolhida ? "border-emerald-200 bg-emerald-50" : vencida ? "border-slate-200 bg-slate-50" : "border-slate-200"}`}>
               <div className="flex flex-wrap items-center gap-3">
                 <Truck size={18} className="hidden shrink-0 text-slate-400 sm:block" />
-                <div className="min-w-[14rem] flex-1">
+                <div className="min-w-56 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 font-semibold text-fg">
                     {nome(c)}
                     <span className="rounded-full bg-purple-50 px-2 py-0.5 text-2xs font-semibold text-purple-800">{rotuloServico(c.tipo_servico)}</span>

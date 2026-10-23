@@ -162,7 +162,7 @@ export default function GiroEstoque() {
       )}
 
       <div className="mb-2 flex flex-wrap items-end gap-2">
-        <Field label="Buscar" className="min-w-[10rem] flex-1"><input className="input" value={busca} placeholder="Produto ou SKU" onChange={(e) => setBusca(e.target.value)} /></Field>
+        <Field label="Buscar" className="min-w-40 flex-1"><input className="input" value={busca} placeholder="Produto ou SKU" onChange={(e) => setBusca(e.target.value)} /></Field>
         <Field label="Ordenar" className="w-52">
           <select className="input" value={ordem} onChange={(e) => setOrdem(e.target.value as keyof typeof ORDENS)}>
             {Object.entries(ORDENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

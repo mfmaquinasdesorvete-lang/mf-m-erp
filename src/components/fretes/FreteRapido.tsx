@@ -147,7 +147,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
             <input className="input mt-1 w-36 text-right" inputMode="decimal" disabled={disabled} value={freteTxt} placeholder="0,00"
               onChange={(e) => { const t = e.target.value.replace(/[^\d,.]/g, ""); setFreteTxt(t); onChange({ frete: paraNum(t), modalidade_frete: 0 }); }} />
           </label>
-          <label className="flex w-full flex-col text-xs font-semibold text-slate-600 sm:w-auto sm:min-w-[12rem] sm:max-w-xs sm:flex-1">Transportadora
+          <label className="flex w-full flex-col text-xs font-semibold text-slate-600 sm:w-auto sm:min-w-48 sm:max-w-xs sm:flex-1">Transportadora
             <select className="input mt-1" disabled={disabled} value={pedido.transportadora_id ?? ""} onChange={(e) => onChange({ transportadora_id: e.target.value || null })}>
               <option value="">—</option>{ativas.map((t) => <option key={t.id} value={t.id}>{t.nome_fantasia?.trim() || t.nome}</option>)}
             </select>

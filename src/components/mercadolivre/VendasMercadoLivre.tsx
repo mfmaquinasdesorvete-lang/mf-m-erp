@@ -23,7 +23,7 @@ function Selo({ e }: { e: Etiqueta }) {
   return (
     <span className="block">
       <span className={`inline-flex max-w-full rounded-full px-2 py-0.5 text-left text-xs font-semibold sm:whitespace-nowrap ${COR_TOM[e.tom]}`}>{e.texto}</span>
-      {e.detalhe && <span className="mt-0.5 block max-w-[16rem] break-words text-xs text-slate-500">{e.detalhe}</span>}
+      {e.detalhe && <span className="mt-0.5 block max-w-64 break-words text-xs text-slate-500">{e.detalhe}</span>}
     </span>
   );
 }
@@ -158,8 +158,8 @@ export function VendasMercadoLivre({ conta }: { conta: ContaML | null }) {
                 <td className="td">
                   <span className="font-semibold text-fg">{v.pedidos?.numero ? `Pedido #${v.pedidos.numero}` : "Sem pedido no ERP"}</span>
                   <span className="num block text-xs text-slate-500">ML {v.ml_pack_id || v.ml_order_id} · {quando(v.data_venda)}{v.total != null ? ` · ${brl(v.total)}` : ""}</span>
-                  {v.comprador && <span className="block max-w-[16rem] truncate text-xs text-slate-500">{v.comprador}</span>}
-                  {(v.situacao === "pendente" || v.situacao === "erro") && <span className="mt-0.5 block max-w-[16rem] text-xs text-amber-800">{v.pendencia ?? "A venda não entrou no ERP"}</span>}
+                  {v.comprador && <span className="block max-w-64 truncate text-xs text-slate-500">{v.comprador}</span>}
+                  {(v.situacao === "pendente" || v.situacao === "erro") && <span className="mt-0.5 block max-w-64 text-xs text-amber-800">{v.pendencia ?? "A venda não entrou no ERP"}</span>}
                   {(v.situacao === "pendente" || v.situacao === "erro") && !v.pedido_id && /anúncio/i.test(v.pendencia ?? "") && (
                     <Button type="button" className="mt-1 !min-h-0 !py-1 text-xs" disabled={ocupado === v.id} onClick={() => ligarDaVenda(v)}>
                       {ocupado === v.id ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />} Ligar anúncio a um produto

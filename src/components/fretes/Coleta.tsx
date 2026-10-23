@@ -95,7 +95,7 @@ export function AgendarColeta({ envio, transportadoras, podeAgendar, pendente, n
                   {!d.disponivel && <span className="text-2xs leading-tight">{d.motivo === "não coleta" ? "não coleta" : "feriado"}</span>}
                 </button>
               ))}
-              <label className="grid min-w-[8rem] content-center rounded-xl border border-slate-300 bg-surface px-2 py-1 text-2xs font-semibold text-slate-500">
+              <label className="grid min-w-32 content-center rounded-xl border border-slate-300 bg-surface px-2 py-1 text-2xs font-semibold text-slate-500">
                 Outra data
                 <input type="date" className="bg-transparent text-sm text-fg outline-none" min={dia} value={dias.some((d) => d.data === data) ? "" : data} onChange={(x) => setData(x.target.value)} />
               </label>

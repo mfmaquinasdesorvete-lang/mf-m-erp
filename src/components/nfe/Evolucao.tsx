@@ -100,7 +100,7 @@ export function LinhaDoTempo({ e }: { e: Evolucao }) {
         return (
           <li key={x.id} className="relative flex gap-3 pb-3 last:pb-0">
             {i < e.etapas.length - 1 && <span className="absolute left-3 top-6 h-[calc(100%-1.5rem)] w-px bg-slate-200" aria-hidden />}
-            <span className={`relative z-[1] grid h-6 w-6 shrink-0 place-items-center rounded-full border ${COR[x.estado]}`}><I size={13} aria-hidden /></span>
+            <span className={`relative z-acima grid h-6 w-6 shrink-0 place-items-center rounded-full border ${COR[x.estado]}`}><I size={13} aria-hidden /></span>
             <div className="min-w-0 text-sm">
               <span className="font-semibold text-fg">{x.rotulo}</span>
               <span className={`ml-2 text-xs font-semibold ${x.estado === "ok" ? "text-emerald-700" : x.estado === "problema" ? "text-red-700" : x.estado === "andamento" ? "text-sky-700" : "text-slate-500"}`}>{NOME_ESTADO[x.estado]}</span>

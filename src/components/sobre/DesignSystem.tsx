@@ -13,6 +13,7 @@ import { brl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { useAparencia } from "@/lib/aparencia";
 import { EditorAparencia } from "@/components/sobre/EditorAparencia";
+import { TokensDesign } from "@/components/sobre/TokensDesign";
 
 // cor de cada área (o --modulo de index.css), para o ponto da escolha
 const AREAS = [
@@ -142,6 +143,11 @@ export function DesignSystem() {
           </div>
         </Bloco>
       </div>
+
+      <Bloco titulo="Tokens" peca="src/design/tokens.js"
+        texto="Os valores do visual com nome: cores, letras, espaços, cantos, bordas, sombras e camadas. Tela nova escolhe pelo nome (rounded-cartao, text-sm, z-janela), não por valor solto como rounded-[14px] ou text-[13px].">
+        <TokensDesign />
+      </Bloco>
 
       <Bloco titulo="Botões" peca="<Button variant | tom>"
         texto="Um botão cheio por tela, para a ação principal. As outras ações usam o tom do assunto: o mesmo tipo de ação tem a mesma cor em todo o ERP.">

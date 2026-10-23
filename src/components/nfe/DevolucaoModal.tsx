@@ -125,7 +125,7 @@ export function DevolucaoModal({ origem, onClose }: { origem: { tipo: "emitida" 
           </div>
 
           <Field label="Motivo da devolução (vai nas informações da nota)">
-            <textarea className="input min-h-[4rem]" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+            <textarea className="input min-h-16" value={motivo} onChange={(e) => setMotivo(e.target.value)}
               placeholder={previa.tipo === "venda" ? "Ex.: cliente devolveu 1 motor com defeito de fabricação" : "Ex.: peças enviadas diferentes do pedido de compra"} />
           </Field>
           <p className="text-xs text-slate-500">

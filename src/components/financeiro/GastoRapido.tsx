@@ -97,7 +97,7 @@ export function GastoRapido({ onClose }: { onClose: () => void }) {
 
   const campo = "w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-noite-texto placeholder:text-fixo-gray-500";
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Lançar gasto">
+    <div className="fixed inset-0 z-janela flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Lançar gasto">
       <form onSubmit={salvar} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0f1420] p-5 text-noite-texto sm:rounded-3xl"
         style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mb-4 flex items-center justify-between">

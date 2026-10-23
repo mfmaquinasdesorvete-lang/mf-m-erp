@@ -207,7 +207,7 @@ function Notas({ lista, propostas }: { lista: Nota[]; propostas: Proposta[] }) {
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-slate-950">{n.tipo} nº {n.numero ?? "—"}{n.serie ? `/${n.serie}` : ""}{n.devolucao && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs font-semibold text-amber-900">devolução</span>}</div>
                 <div className="text-xs font-medium text-slate-700">Emitida em {dataBR(n.data)}</div>
-                {n.chave && <div className="mt-0.5 select-all break-all font-mono text-[11px] text-slate-600">{n.chave}</div>}
+                {n.chave && <div className="mt-0.5 select-all break-all font-mono text-2xs text-slate-600">{n.chave}</div>}
               </div>
               {n.valor != null && <b className="whitespace-nowrap text-slate-950">{brl(Number(n.valor))}</b>}
               {n.danfe && <a href={n.danfe} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-publico-petroleo px-3 py-1.5 text-xs font-bold text-white print:hidden">DANFE</a>}

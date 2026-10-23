@@ -164,7 +164,7 @@ export function RiscosParaDespachar() {
           <li key={x.pedido_id}>
             <button type="button" onClick={() => setAberto(x)}
               className="flex items-center gap-2 rounded-lg border border-amber-300 bg-surface px-2.5 py-1.5 text-left text-sm hover:border-amber-500">
-              <b>#{x.numero}</b><span className="max-w-[12rem] truncate">{x.cliente ?? "—"}</span><span className="num">{brl(x.valor)}</span>
+              <b>#{x.numero}</b><span className="max-w-48 truncate">{x.cliente ?? "—"}</span><span className="num">{brl(x.valor)}</span>
               {x.situacao === "recusada" ? <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-800">recusado</span> : <SeloRisco nivel={x.nivel} pontos={x.pontos} />}
             </button>
           </li>

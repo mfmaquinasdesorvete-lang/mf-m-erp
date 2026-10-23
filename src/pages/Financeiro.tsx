@@ -735,7 +735,7 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
             <span className="block text-base font-bold leading-tight">{pagarHoje.length} {pl(pagarHoje.length, "conta", "contas")} para pagar hoje · <span className="num whitespace-nowrap">{brl(somaDe(pagarHoje))}</span></span>
             <span className="mt-0.5 block text-xs leading-snug">Pague no banco e registre aqui: o ERP dá baixa em todas de uma vez.</span>
           </span>
-          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl bg-fixo-yellow-950 px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
+          <button type="button" onClick={() => setLotePagarHoje(true)} className="inline-flex min-h-toque w-full items-center justify-center gap-1.5 rounded-xl bg-fixo-yellow-950 px-4 text-sm font-bold text-white hover:brightness-125 sm:w-auto">
             <CheckCheck size={16} aria-hidden /> Registrar o pagamento de todas
           </button>
         </div>

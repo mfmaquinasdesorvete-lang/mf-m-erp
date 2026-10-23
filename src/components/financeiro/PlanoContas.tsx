@@ -133,7 +133,7 @@ export function PlanoContas({ lancamentos = [] }: { lancamentos?: LancDre[] }) {
               return (
                 <section key={o.grupo} aria-labelledby={`dre-${o.grupo}`}>
                   <div className="flex items-center gap-2">
-                    <span className={`min-w-[1.75rem] rounded-md px-1.5 py-0.5 text-center text-xs font-bold ${COR_SINAL[o.sinal]}`} aria-hidden>{o.sinal}</span>
+                    <span className={`min-w-7 rounded-md px-1.5 py-0.5 text-center text-xs font-bold ${COR_SINAL[o.sinal]}`} aria-hidden>{o.sinal}</span>
                     <h3 id={`dre-${o.grupo}`} className="font-semibold">{o.rotulo}</h3>
                     <span className="text-xs text-slate-500">{lista.length || ""}</span>
                   </div>

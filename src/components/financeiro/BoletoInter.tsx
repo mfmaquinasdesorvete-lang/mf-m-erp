@@ -136,7 +136,7 @@ export function BoletoInterModal({ conta, boletos, onClose }: { conta: Conta; bo
                   </Button>
                   {conta.cliente?.whatsapp && atual.linha_digitavel && (
                     <a href={whatsappLink(conta.cliente.whatsapp, mensagem(atual))} target="_blank" rel="noreferrer"
-                      className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 sm:min-h-0"><MessageCircle size={15} /> Enviar no WhatsApp</a>
+                      className="inline-flex min-h-toque items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 sm:min-h-0"><MessageCircle size={15} /> Enviar no WhatsApp</a>
                   )}
                   <Button type="button" variant="ghost" disabled={!!ocupado} onClick={() => atualizar(atual)}>
                     {ocupado === "atualizar" ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Atualizar

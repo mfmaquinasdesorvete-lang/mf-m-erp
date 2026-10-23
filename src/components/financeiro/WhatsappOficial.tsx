@@ -122,7 +122,7 @@ export function WhatsappOficial({ etapas }: { etapas: EtapaWa[] }) {
               const s = situacaoModelo(e);
               return (
                 <li key={e.id} className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-[9rem] font-medium">{e.nome}</span>
+                  <span className="min-w-36 font-medium">{e.nome}</span>
                   <span className={`rounded border px-1.5 text-xs ${s.cor}`}>{s.texto}</span>
                   {e.wa_erro && <span className="text-xs text-red-700">{e.wa_erro}</span>}
                 </li>
@@ -190,7 +190,7 @@ function Mensagens() {
           <ul className="mt-2 divide-y divide-slate-100 text-sm">
             {enviadas.slice(0, 100).map((m) => (
               <li key={m.id} className="flex flex-wrap items-start gap-x-3 gap-y-1 py-2">
-                <div className="min-w-[12rem] flex-1 basis-60">
+                <div className="min-w-48 flex-1 basis-60">
                   <div className="font-medium">{nomeCli(m)} <span className="text-xs font-normal text-slate-500">{quando(m.created_at)}</span></div>
                   <p className="line-clamp-2 whitespace-pre-line text-xs text-slate-600">{m.texto ?? m.modelo}</p>
                   {m.erro && <p className="text-xs text-red-700">{m.erro}</p>}

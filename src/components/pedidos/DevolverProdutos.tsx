@@ -104,7 +104,7 @@ function DevolucaoSemNf({ pedido, aguardar, onClose }: { pedido: PedidoDev; agua
           </div>
 
           <Field label="Motivo da devolução">
-            <textarea className="input min-h-[4rem]" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: cliente devolveu 1 copo, veio trincado" />
+            <textarea className="input min-h-16" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: cliente devolveu 1 copo, veio trincado" />
           </Field>
           <p className="text-xs text-slate-500">Devolver o dinheiro ou dar crédito ao cliente: lance em Contas a pagar (ou ajuste a parcela em Contas a receber).</p>
           <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-3">

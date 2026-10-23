@@ -169,7 +169,7 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
             <option value="tudo">Todas</option>
           </select>
         </label>
-        <label className="col-span-2 block sm:min-w-[16rem] sm:flex-1">
+        <label className="col-span-2 block sm:min-w-64 sm:flex-1">
           <span className="mb-1 block text-xs font-semibold text-slate-600">Buscar</span>
           <span className="relative block">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />

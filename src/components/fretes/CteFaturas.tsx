@@ -221,7 +221,7 @@ export function MontarFatura({ ctes, transportadoras, inicial, numeroInicial, ve
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-2">
             {ids.length > 1 && (
-              <Field label="Transportadora" className="min-w-[12rem] flex-1">
+              <Field label="Transportadora" className="min-w-48 flex-1">
                 <select className="input" value={transp} onChange={(e) => trocarTransp(e.target.value)}>
                   {ids.map((id) => <option key={id} value={id}>{nomeTransportadora(transportadoras.find((t) => t.id === id))}</option>)}
                 </select>

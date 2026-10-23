@@ -308,7 +308,7 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
           <tbody className="divide-y divide-slate-100">
             {visiveis.slice(0, 300).map(({ p, a }) => (
               <tr key={p.id}>
-                <td className="p-2"><span className={`num inline-block min-w-[2.5rem] rounded-lg px-2 py-1 text-center text-sm font-bold ${corNota(a.nota)}`}>{a.nota}</span></td>
+                <td className="p-2"><span className={`num inline-block min-w-10 rounded-lg px-2 py-1 text-center text-sm font-bold ${corNota(a.nota)}`}>{a.nota}</span></td>
                 <td className="p-2"><div className="font-medium text-fg">{p.descricao}</div>
                   <div className="text-xs text-slate-500">{p.titulo_anuncio ? <>“{p.titulo_anuncio}” · {p.titulo_anuncio.length}/60</> : "sem título de anúncio"}</div></td>
                 <td className="p-2"><div className="flex flex-wrap gap-1">{a.pendencias.map((x) => (

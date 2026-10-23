@@ -107,7 +107,7 @@ function VerMidia({ m, onClose }: { m: Midia; onClose: () => void }) {
   useFecharComEsc(true, onClose);
   const url = urlMidia(m.caminho);
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/85 p-3" role="dialog" aria-modal="true" aria-label={m.tipo === "video" ? "Vídeo" : "Foto"} onClick={onClose}>
+    <div className="fixed inset-0 z-alerta grid place-items-center bg-black/85 p-3" role="dialog" aria-modal="true" aria-label={m.tipo === "video" ? "Vídeo" : "Foto"} onClick={onClose}>
       <button type="button" onClick={onClose} className="absolute right-3 top-3 rounded-full bg-white/15 p-2 text-white hover:bg-white/25" aria-label="Fechar"><X size={20} /></button>
       <div onClick={(e) => e.stopPropagation()} className="max-h-full max-w-full">
         {m.tipo === "video"

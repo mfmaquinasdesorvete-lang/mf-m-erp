@@ -29,7 +29,7 @@ export const TOM_ACAO: Record<TomAcao, string> = {
   desfazer: "border border-orange-200 bg-orange-50 text-orange-800 shadow-sm hover:bg-orange-100",
   perigo: "border border-red-200 bg-red-50 text-red-800 shadow-sm hover:bg-red-100",
 };
-export const CLASSE_BOTAO = "inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
+export const CLASSE_BOTAO = "inline-flex min-h-toque items-center justify-center gap-1.5 rounded-botao px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões. */
 export function Button({
@@ -56,7 +56,7 @@ export function Field({ label, children, className = "" }: { label: string; chil
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-slate-200/80 bg-surface shadow-card ${className}`}>{children}</div>;
+  return <div className={`cartao ${className}`}>{children}</div>;
 }
 
 /** compacto: uma linha só (ícone menor, sem a explicação embaixo — ela fica no título ao passar o mouse) e as ações ao lado. */
@@ -172,7 +172,7 @@ const coresCartao: Record<CorCartao, { brilho: string; icone: string; valor: str
   indigo: { brilho: "#6366f1", icone: "bg-indigo-100 text-indigo-700", valor: "text-fg" },
   laranja: { brilho: "var(--kpi-laranja)", icone: "bg-orange-100 text-orange-700", valor: "text-fg" },
 };
-const caixaCartao = "relative min-w-0 overflow-hidden rounded-xl border";
+const caixaCartao = "relative min-w-0 overflow-hidden rounded-cartao border";
 
 /**
  * Para o .valor-fit: a letra diminui conforme o tamanho do texto, para o valor caber inteiro no cartão; número curto
@@ -385,10 +385,10 @@ export function Modal({
   // Centralizada com mx-auto (não com flex): se algo ficar mais largo, nunca some para a esquerda; e o fundo
   // não desliza para os lados (overflow-x-hidden), só rola para baixo.
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-contain bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
+    <div className="fixed inset-0 z-janela overflow-y-auto overflow-x-hidden overscroll-contain bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
       onSubmit={(e) => e.stopPropagation()}>
       <div ref={caixa} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
-        className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-2xl bg-surface shadow-pop focus:outline-none`}>
+        className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-painel bg-surface shadow-pop focus:outline-none`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
           <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>
           <button type="button" onClick={onClose} className="botao-icone p-2" aria-label="Fechar">
@@ -611,9 +611,9 @@ export function MaisAcoes({ children, rotulo = "Mais" }: { children: ReactNode; 
         setPos({ top: r.bottom + 4, left: Math.max(16, Math.min(r.right - largura, window.innerWidth - largura - 16)), width: largura });
         setAberto((a) => !a);
       }}><MoreHorizontal size={16} /> <span className="hidden sm:inline">{rotulo}</span></Button>
-      {aberto && <div className="fixed inset-0 z-40" aria-hidden onClick={() => setAberto(false)} />}
+      {aberto && <div className="fixed inset-0 z-gaveta" aria-hidden onClick={() => setAberto(false)} />}
       <div role="menu" onClick={() => setAberto(false)} style={pos ? { top: pos.top, left: pos.left, width: pos.width } : undefined}
-        className={`${aberto ? "flex" : "hidden"} fixed z-50 max-h-[70vh] flex-col gap-1 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
+        className={`${aberto ? "flex" : "hidden"} fixed z-janela max-h-[70vh] flex-col gap-1 overflow-y-auto rounded-xl border border-slate-200 bg-surface p-2 shadow-pop [&>*]:w-full [&>*]:justify-start`}>
         {children}
       </div>
     </div>

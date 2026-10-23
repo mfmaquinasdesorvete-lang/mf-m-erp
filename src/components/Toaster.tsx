@@ -15,7 +15,7 @@ export function Toaster() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
+    <div className="fixed bottom-4 right-4 z-flutuante flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
       {avisos.map((a) => (
         <div
           key={a.id}

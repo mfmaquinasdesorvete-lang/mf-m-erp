@@ -47,7 +47,7 @@ export function AvisoVersao() {
   }, []);
   if (!nova) return null;
   return (
-    <div role="status" className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center gap-3 bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-lg">
+    <div role="status" className="fixed inset-x-0 top-0 z-alerta flex items-center justify-center gap-3 bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-lg">
       <Sparkles size={16} className="shrink-0" />
       <span className="min-w-0">Nova versão do ERP. Salve o que estiver fazendo e atualize.</span>
       <button type="button" onClick={() => window.location.reload()}

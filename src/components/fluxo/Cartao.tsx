@@ -57,7 +57,7 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
   if (s.acao === "cobrar_whatsapp" && p.cliente?.whatsapp) {
     botao = (
       <a href={whatsappLink(p.cliente.whatsapp, mensagemCobranca(p))} target="_blank" rel="noreferrer" onClick={parar}
-        className={`inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition sm:min-h-0 ${
+        className={`inline-flex min-h-toque flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition sm:min-h-0 ${
           s.alerta ? "bg-solido-verde text-white hover:opacity-90" : "border border-emerald-600 text-emerald-700 hover:bg-emerald-50"}`}>
         <MessageCircle size={15} /> {s.alerta ? "Cobrar resposta no WhatsApp" : "Falar no WhatsApp"}
       </a>

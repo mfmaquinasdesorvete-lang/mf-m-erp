@@ -20,6 +20,9 @@ function contar(rx: RegExp) {
   return { total: Object.values(por).reduce((s, n) => s + n, 0), por };
 }
 
+/** Canto, letra, espaço entre letras ou camada com valor solto (rounded-[14px], text-[13px], tracking-[.1em], z-[60]) */
+const TOKEN_SOLTO = /(?<![\w-])(?:[a-z]+:)*-?(?:rounded(?:-[a-z]+)?|text|tracking|leading|z)-\[(?![#]|var\(|clamp)[^\]"'` ]+\]/g;
+
 /** Cada `<button …>` das telas (anda até o ">" que fecha a tag, pulando o que está dentro de {…}, como `() => …`) */
 function botoes(txt: string) {
   const achados: string[] = [];
@@ -49,6 +52,11 @@ describe("design system", () => {
   it("cor solta nas classes não volta a crescer (antes da padronização eram 608)", () => {
     const { total, por } = contar(COR_SOLTA);
     expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(36);
+  });
+
+  it("canto, letra e camada usam os tokens (src/design/tokens.js), não valor solto", () => {
+    const { total, por } = contar(TOKEN_SOLTO);
+    expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(7);
   });
 
   it("botão feito à mão não volta a crescer (antes da padronização eram 697 de 801)", () => {

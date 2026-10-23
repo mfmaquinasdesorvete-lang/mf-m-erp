@@ -443,7 +443,7 @@ export default function Pdv() {
                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
                       </span>
                       {i.tipo === "maquina" && (
-                        <input className="input min-w-0 flex-1 py-1.5 text-sm sm:max-w-[14rem]" placeholder="Nº de série (garantia)" value={i.numero_serie}
+                        <input className="input min-w-0 flex-1 py-1.5 text-sm sm:max-w-56" placeholder="Nº de série (garantia)" value={i.numero_serie}
                           onChange={(e) => mudar(k, { numero_serie: e.target.value })} aria-label={`Número de série de ${i.descricao}`} />
                       )}
                       <Button type="button" variant="ghost" className="!min-h-0 ml-auto !px-2" aria-label={`Tirar ${i.descricao}`} onClick={() => tirar(k)}><Trash2 size={16} aria-hidden /></Button>

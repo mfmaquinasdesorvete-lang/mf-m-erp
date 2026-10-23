@@ -42,7 +42,7 @@ export function MenuAcoes({ itens, rotulo = "Mais ações", extra }: { itens: (I
       </button>
       {pos && createPortal(
         <div ref={menu} role="menu" style={{ position: "fixed", top: pos.top, bottom: pos.bottom, right: pos.right }}
-          className="z-[60] min-w-[13rem] overflow-hidden rounded-xl border border-slate-200 bg-surface py-1 shadow-pop">
+          className="z-flutuante min-w-52 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1 shadow-pop">
           {lista.map((i) => (
             <button key={i.rotulo} type="button" role="menuitem" disabled={i.disabled} title={i.dica}
               onClick={() => { fechar(); i.onClick(); }}

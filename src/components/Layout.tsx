@@ -71,7 +71,7 @@ function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
       <span className={`${compacta ? "hidden min-[380px]:inline" : ""} whitespace-nowrap leading-tight`}>
         <span className="block text-lg font-bold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
-        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-[0.16em] text-nav-fraco`}>MF Máquinas</span>
+        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-selo text-nav-fraco`}>MF Máquinas</span>
       </span>
     </Link>
   );
@@ -400,9 +400,9 @@ export function Layout() {
       <AvisoVersao />
 
       {/* Celular: barra flutuante embaixo, ao alcance do polegar, com o "+" no meio (criar venda, OS, conta, NF-e…) */}
-      {criar && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setCriar(false)} />}
+      {criar && <div className="fixed inset-0 z-gaveta bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setCriar(false)} />}
       {criar && (
-        <div role="dialog" aria-label="Criar" className="fixed inset-x-3 z-50 rounded-3xl border border-white/10 bg-ink-soft/95 p-3 shadow-2xl backdrop-blur-xl md:hidden"
+        <div role="dialog" aria-label="Criar" className="fixed inset-x-3 z-janela rounded-3xl border border-white/10 bg-ink-soft/95 p-3 shadow-2xl backdrop-blur-xl md:hidden"
           style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom, 0px))", animation: "entrar .18s ease-out" }}>
           <p className="px-2 pb-2 pt-1 text-2xs font-semibold uppercase tracking-wider text-nav-fraco">Criar agora</p>
           <div className="grid grid-cols-2 gap-2">
@@ -424,7 +424,7 @@ export function Layout() {
           </div>
         </div>
       )}
-      <nav className="fixed inset-x-3 z-40 flex items-center rounded-[1.75rem] border border-white/10 bg-ink/85 px-1.5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.6)] backdrop-blur-xl md:hidden"
+      <nav className="fixed inset-x-3 z-gaveta flex items-center rounded-[1.75rem] border border-white/10 bg-ink/85 px-1.5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.6)] backdrop-blur-xl md:hidden"
         style={{ bottom: "calc(0.6rem + env(safe-area-inset-bottom, 0px))" }}>
         {atalhos.map(({ to, curto, icon: Icon }, i) => (
           <div key={to} className="flex min-w-0 flex-1" style={{ order: i < meioBarra ? 0 : 2 }}>

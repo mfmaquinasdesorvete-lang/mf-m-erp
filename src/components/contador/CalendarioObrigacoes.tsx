@@ -82,7 +82,7 @@ export function CalendarioObrigacoes() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => mudarMes(-1)} aria-label="Mês anterior" className="botao-icone h-9 w-9 border border-slate-200"><ChevronLeft size={18} /></button>
-            <h2 className="min-w-[11rem] text-center text-lg font-bold text-fg">{nomeDoMes(mes)}</h2>
+            <h2 className="min-w-44 text-center text-lg font-bold text-fg">{nomeDoMes(mes)}</h2>
             <button type="button" onClick={() => mudarMes(1)} aria-label="Próximo mês" className="botao-icone h-9 w-9 border border-slate-200"><ChevronRight size={18} /></button>
             {mes !== hoje.slice(0, 7) && <button type="button" onClick={() => setMes(hoje.slice(0, 7))} className="link-acao ml-1 px-2 text-sm">Hoje</button>}
           </div>

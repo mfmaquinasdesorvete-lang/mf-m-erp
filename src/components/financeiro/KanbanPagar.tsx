@@ -70,7 +70,7 @@ export function KanbanPagar<T extends ContaQuadro>({ contas, podeDecidir, situac
                 ${arrastando && ok === false ? "opacity-60" : ""}`}>
               <header className="rounded-t-2xl px-3 py-2.5" style={{ background: col.fundo, color: col.tinta }} title={`${col.explica} ${col.fazer}`}>
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 min-w-[1.5rem] shrink-0 place-items-center rounded-full px-1 text-xs font-bold" style={{ background: "rgba(255,255,255,.3)" }} aria-hidden>{col.passo}</span>
+                  <span className="grid h-6 min-w-6 shrink-0 place-items-center rounded-full px-1 text-xs font-bold" style={{ background: "rgba(255,255,255,.3)" }} aria-hidden>{col.passo}</span>
                   <h3 className="min-w-0 flex-1 truncate text-sm font-bold">{col.rotulo}</h3>
                   <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-[#0d1b2e]">{col.lista.length}</span>
                 </div>

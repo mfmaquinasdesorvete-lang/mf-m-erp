@@ -141,7 +141,7 @@ function CartaoEquipe({ time, ativo, eu, sprints, itens, hoje, onClick }: {
   const ideias = itens.filter((i) => i.time_id === time.id && i.ideia_id && i.status !== "feito").length;
   return (
     <button type="button" onClick={onClick} aria-pressed={ativo}
-      className={`flex min-w-[13rem] shrink-0 flex-col gap-1.5 rounded-2xl border bg-surface p-3 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0 ${ativo ? "ring-2" : "border-slate-200"}`}
+      className={`flex min-w-52 shrink-0 flex-col gap-1.5 rounded-2xl border bg-surface p-3 text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop md:min-w-0 ${ativo ? "ring-2" : "border-slate-200"}`}
       style={ativo ? { borderColor: time.cor, boxShadow: `0 0 0 2px ${time.cor}` } : undefined}>
       <span className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: time.cor }} aria-hidden />

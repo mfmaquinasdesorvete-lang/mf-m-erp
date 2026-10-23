@@ -92,7 +92,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
                 <div className="flex items-center gap-1.5 font-bold text-fg">{i + 1}. {e.nome} {e.ok ? <CheckCircle2 size={15} className="text-emerald-600" aria-label="pronto" /> : <CircleDashed size={15} className="text-amber-600" aria-label="pendente" />}</div>
                 <div className="text-xs text-slate-500">{e.sub}</div>
               </div>
-              {i < etapas.length - 1 && <ArrowRight size={16} className="absolute -right-2 top-1/2 z-[1] hidden -translate-y-1/2 text-slate-400 lg:block" aria-hidden />}
+              {i < etapas.length - 1 && <ArrowRight size={16} className="absolute -right-2 top-1/2 z-acima hidden -translate-y-1/2 text-slate-400 lg:block" aria-hidden />}
             </li>
           ))}
         </ol>

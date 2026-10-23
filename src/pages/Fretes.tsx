@@ -138,7 +138,7 @@ export default function Fretes() {
   }
 
   const filtroSelect = (label: string, chave: keyof FiltrosPainel, opcoes: [string, string][]) => (
-    <label className="block min-w-[9rem] flex-1">
+    <label className="block min-w-36 flex-1">
       <span className="mb-1 block text-xs font-semibold text-slate-600">{label}</span>
       <select className="input" value={filtros[chave] ?? ""} onChange={(x) => setFiltros({ ...filtros, [chave]: x.target.value || undefined })}>
         <option value="">Todos</option>{opcoes.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
@@ -169,7 +169,7 @@ export default function Fretes() {
           rotuloData="Data"
           filtros={<>
             {aba === "indicadores" && (
-              <label className="block min-w-[12rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Mês</span>
+              <label className="block min-w-48 flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Mês</span>
                 <select className="input" value={mes} onChange={(x) => setMes(x.target.value)}>
                   {meses.map((m) => <option key={m} value={m}>{rotuloDoMes(m)}</option>)}
                 </select></label>

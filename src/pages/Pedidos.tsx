@@ -379,7 +379,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         )}
         {lista.map((p) => (
           <div key={p.id} className={`relative rounded-xl border bg-surface shadow-card ${selecao.tem(p.id) ? "border-brand" : "border-slate-200"}`}>
-          <input type="checkbox" className="absolute right-3 top-3 z-[1] h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
+          <input type="checkbox" className="absolute right-3 top-3 z-acima h-5 w-5" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar o pedido ${p.numero}`} />
           {/* celular: nº e etiquetas numa linha, o cliente na linha de baixo (até 2 linhas), a situação em fila e o valor à direita da data */}
           <button type="button" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })}
             className="linha-clicavel flex gap-3 p-3 pb-1.5 active:bg-slate-50">
@@ -444,7 +444,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
             <td className="td whitespace-nowrap">{info.get(p.id)?.nf ? <span className="num font-semibold text-fg" title="NF-e autorizada">{info.get(p.id)!.nf}</span>
               : p.nf_outra_numero ? <SeloNfOutra p={p} /> : <NotaDaLista p={p} />}
               {info.get(p.id) && <div className="mt-1"><SinaisVenda s={info.get(p.id)!.sinais} /></div>}</td>
-            <td className="td min-w-[7.5rem] max-w-[12rem]">{info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} />}</td>
+            <td className="td min-w-[7.5rem] max-w-48">{info.get(p.id) && <IconeEnvio envio={info.get(p.id)!.envio} />}</td>
             {/* marcadores e a seta de abrir na mesma coluna (a linha inteira abre a venda) */}
             <td className="td whitespace-nowrap pl-0 text-right"><span className="inline-flex items-center gap-1">
               <span onClick={(e) => e.stopPropagation()}><BotaoMarcadores tabela="pedidos" registro={p} nome={["venda", "vendas"]} /></span>

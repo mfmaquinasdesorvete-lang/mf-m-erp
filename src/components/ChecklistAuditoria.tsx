@@ -73,7 +73,7 @@ export function ChecklistAuditoria({ dados, verExcecoes }: { dados: DadosExcecoe
         <div className="flex items-center gap-2 text-sm text-slate-600">Competência
           <CampoMes value={comp} onChange={(v) => v && setComp(v)} rotulo="Competência" />
         </div>
-        <div className="min-w-[12rem] flex-1">
+        <div className="min-w-48 flex-1">
           <div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${(conferidos / ITENS_CHECKLIST.length) * 100}%` }} /></div>
           <p className="mt-1 text-xs text-slate-500">
             {conferidos} de {ITENS_CHECKLIST.length} conferidos{naoConformes ? <> · <b className="text-red-600">{naoConformes} {naoConformes === 1 ? "não conforme" : "não conformes"}</b> (estão em Exceções)</> : null}

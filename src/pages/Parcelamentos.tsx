@@ -174,7 +174,7 @@ export default function Parcelamentos({ embutido }: { embutido?: boolean } = {})
           <ChipsSituacao<Filtro> rotulo="Quais parcelamentos" valor={filtro} onChange={setFiltro}
             opcoes={([["ativos", "Ativos"], ["risco", "Atrasados ou vencendo"], ["encerrados", "Quitados e encerrados"], ["todos", "Todos"]] as const).map(([value, label]) => ({ value, label, n: conta(value).length }))}
             cores={{ ativos: { ponto: "bg-solido-azul", ativo: "bg-solido-azul" }, risco: { ponto: "bg-solido-vermelho", ativo: "bg-solido-vermelho" }, encerrados: { ponto: "bg-solido-cinza", ativo: "bg-solido-cinza" } }} />
-          <select className="input mb-3 w-auto max-w-[14rem] py-1 text-xs" value={orgao} onChange={(e) => setOrgao(e.target.value as Orgao | "")} aria-label="Órgão">
+          <select className="input mb-3 w-auto max-w-56 py-1 text-xs" value={orgao} onChange={(e) => setOrgao(e.target.value as Orgao | "")} aria-label="Órgão">
             <option value="">Todos os órgãos</option>
             {LISTA_ORGAOS.filter((o) => daUnidade.some((p) => p.orgao === o)).map((o) => <option key={o} value={o}>{ORGAOS[o].nome}</option>)}
           </select>
@@ -529,7 +529,7 @@ function ParcelamentoModal({ inicial, existentes, onClose, onSalvo }: {
             <span>Recalcular as datas e os valores das parcelas em aberto pela regra acima (as pagas não mudam). Diminuir a quantidade anula as parcelas em aberto que sobrarem.</span>
           </label>
         )}
-        <Field label="Observações"><textarea className="input min-h-[4rem]" value={f.observacoes} onChange={(e) => set("observacoes", e.target.value)} maxLength={2000} placeholder="Débitos incluídos, períodos, o que o contador disse…" /></Field>
+        <Field label="Observações"><textarea className="input min-h-16" value={f.observacoes} onChange={(e) => set("observacoes", e.target.value)} maxLength={2000} placeholder="Débitos incluídos, períodos, o que o contador disse…" /></Field>
 
         {previa.length > 0 && (
           <div className="rounded-xl border border-slate-200 p-3 text-sm">
@@ -556,7 +556,7 @@ function MensagemContador({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Pedir a lista de parcelamentos ao contador">
       <div className="space-y-3">
         <p className="text-sm text-slate-600">O contador tem acesso ao e-CAC, ao Regularize e às SEFAZ. Peça a lista e os PDFs; não é preciso passar senha nem certificado para ninguém.</p>
-        <textarea className="input min-h-[14rem] w-full text-sm" readOnly value={MENSAGEM_CONTADOR} onFocus={(e) => e.currentTarget.select()} aria-label="Mensagem" />
+        <textarea className="input min-h-56 w-full text-sm" readOnly value={MENSAGEM_CONTADOR} onFocus={(e) => e.currentTarget.select()} aria-label="Mensagem" />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Fechar</Button>
           <Button onClick={copiar}><ClipboardCopy size={16} /> Copiar a mensagem</Button>

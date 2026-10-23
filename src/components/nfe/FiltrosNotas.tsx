@@ -19,7 +19,7 @@ export function BotaoFiltros({ f, aberto, onAbrir }: { f: FiltroNota; aberto: bo
   const n = filtrosEmUso(f);
   return (
     <button type="button" onClick={onAbrir} aria-expanded={aberto}
-      className={`inline-flex min-h-[42px] items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition sm:min-h-0 sm:py-2 ${n ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`}>
+      className={`inline-flex min-h-toque items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition sm:min-h-0 sm:py-2 ${n ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`}>
       <SlidersHorizontal size={16} /> Data, número e valor{n ? ` (${n})` : ""}
     </button>
   );

@@ -33,7 +33,7 @@ export function DiagnosticoNfe() {
   return (
     <Card className="mb-4 p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[14rem] flex-1">
+        <div className="min-w-56 flex-1">
           <h2 className="flex items-center gap-2 font-semibold"><Stethoscope size={18} className="text-brand" /> Diagnóstico da emissão</h2>
           <p className="text-sm text-slate-600">Confere o ambiente (produção ou teste), se a Focus aceita o token de cada CNPJ, o cadastro fiscal, a numeração e as últimas notas. Não emite nada.</p>
         </div>

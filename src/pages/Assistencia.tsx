@@ -793,7 +793,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
             {(o.diagnostico || encerrada) && <Button type="button" variant="ghost" className="border border-slate-200 sm:border-0" onClick={() => gerarPdf("laudo")}><FileDown size={16} /> Laudo<span className="hidden sm:inline"> / entrega</span></Button>}
             {o.id && cliente?.whatsapp && (
               <a href={whatsappLink(cliente.whatsapp, mensagem)} target="_blank" rel="noreferrer"
-                className="col-span-2 inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 sm:min-h-0">
+                className="col-span-2 inline-flex min-h-toque items-center justify-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 sm:min-h-0">
                 <MessageCircle size={16} /> Avisar cliente
               </a>
             )}

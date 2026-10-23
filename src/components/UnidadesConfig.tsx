@@ -175,7 +175,7 @@ function UnidadeModal({ unidade, onClose }: { unidade: Unidade; onClose: () => v
                 {campo("cnae_principal", "CNAE principal")}
                 {campo("cnae_principal_descricao", "Descrição", "sm:col-span-3")}
                 <Field label="CNAEs secundários (um por linha: código e descrição)" className="sm:col-span-4">
-                  <textarea className="input min-h-[6rem]" value={secundarios} onChange={(e) => setSecundarios(e.target.value)} placeholder="3314-7/12 Manutenção e reparação de máquinas" />
+                  <textarea className="input min-h-24" value={secundarios} onChange={(e) => setSecundarios(e.target.value)} placeholder="3314-7/12 Manutenção e reparação de máquinas" />
                 </Field>
               </div>
             </div>

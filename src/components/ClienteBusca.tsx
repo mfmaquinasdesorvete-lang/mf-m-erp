@@ -85,7 +85,7 @@ export function ClienteBusca<T extends ClienteBuscavel>({ clientes, carregando: 
       {aberto && (
         // o campo costuma estar dentro de um <label> (Field): sem o preventDefault, o clique na lista volta o foco
         // para o campo, que reabre a busca vazia e parece que o cliente não foi escolhido
-        <div className="cartao absolute left-0 right-0 z-40 mt-1 overflow-hidden shadow-pop"
+        <div className="cartao absolute left-0 right-0 z-gaveta mt-1 overflow-hidden shadow-pop"
           onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
           {achados.length === 0 && carregando ? (
             <p className="px-3 py-3 text-sm text-slate-500">Carregando os clientes… a busca aparece em instantes.</p>

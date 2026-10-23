@@ -74,7 +74,7 @@ export default function EntradasGrandes() {
             <td className="td whitespace-nowrap">{dataBR(l.data)}<div className="text-xs text-slate-500">{nomeConta(l.conta_bancaria_id)}</div></td>
             <td className="td">{l.descricao}{l.conta_receber_id && <div className="text-xs text-emerald-700">ligada a uma conta a receber</div>}</td>
             <td className="td whitespace-nowrap text-right font-semibold">{brl(Number(l.valor))}</td>
-            <td className="td min-w-[16rem]"><Anotacao linha={l} /></td>
+            <td className="td min-w-64"><Anotacao linha={l} /></td>
           </tr>
         ))}
       </Table>

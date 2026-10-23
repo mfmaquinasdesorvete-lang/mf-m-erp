@@ -68,7 +68,7 @@ export function ConvitePortal({ vendedor, usuarios, vinculados, onClose }: {
             try { await navigator.clipboard.writeText(pronto); setCopiado(true); } catch { notifyError(new Error("não deu para copiar: selecione o texto e copie")); }
           }}>{copiado ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />} {copiado ? "Copiado" : "Copiar"}</Button>}
           {pronto && telefone.replace(/\D/g, "").length >= 10 && (
-            <a className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg bg-solido-verde px-4 py-2 text-sm font-semibold text-white sm:min-h-0" href={whatsappLink(telefone, pronto)} target="_blank" rel="noreferrer">
+            <a className="inline-flex min-h-toque items-center gap-1.5 rounded-lg bg-solido-verde px-4 py-2 text-sm font-semibold text-white sm:min-h-0" href={whatsappLink(telefone, pronto)} target="_blank" rel="noreferrer">
               <MessageCircle size={15} aria-hidden /> Enviar pelo WhatsApp
             </a>
           )}

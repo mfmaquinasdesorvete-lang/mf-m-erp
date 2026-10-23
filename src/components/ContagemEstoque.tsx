@@ -37,7 +37,7 @@ export function ContagemEstoque({ produtos, podeEditar }: { produtos: Produto[];
     <div className="space-y-4">
       <PainelInventario produtos={produtos} contagens={contagens} podeEditar={podeEditar} onAberta={setAbertaId} />
       <Card className="flex flex-wrap items-center gap-4 p-4">
-        <p className="min-w-[14rem] flex-1 text-sm text-slate-600">
+        <p className="min-w-56 flex-1 text-sm text-slate-600">
           Conte uma parte do estoque por vez (uma categoria, uma prateleira). A contagem é <b>às cegas</b>: o saldo do sistema só aparece
           depois de contar. Cada diferença precisa de justificativa, e o ajuste entra no histórico do produto com o número da contagem.
         </p>
@@ -190,7 +190,7 @@ function FolhaContagem({ contagem: c, produtos, podeEditar, onVoltar }: { contag
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={onVoltar}>← Contagens</Button>
-        <div className="min-w-[12rem] flex-1">
+        <div className="min-w-48 flex-1">
           <div className="font-semibold">Contagem nº {c.numero} · {nome(c.unidade_id)} <Badge value={c.status} /></div>
           <div className="text-sm text-slate-500">{c.escopo} · {contados} de {itens.length} contados{c.dupla ? ` · dupla contagem${recontar.length ? ` (${recontar.length} a conferir)` : ""}` : ""}{revelar ? ` · ${divergentes.length} ${pl(divergentes.length, "divergência", "divergências")}` : ""}</div>
         </div>

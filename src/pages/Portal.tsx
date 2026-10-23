@@ -90,7 +90,7 @@ export default function Portal() {
 
       {/* Celular: atalhos fixos embaixo, ao alcance do polegar */}
       {acesso?.vinculado && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-line bg-ink/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} aria-label="Portal">
+        <nav className="fixed inset-x-0 bottom-0 z-gaveta grid grid-cols-5 border-t border-ink-line bg-ink/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} aria-label="Portal">
           {MENU.map(({ to, label, icon: Icon, end, destaque }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-2xs font-semibold ${isActive ? "text-brand-ice" : "text-nav-fraco"}`}>

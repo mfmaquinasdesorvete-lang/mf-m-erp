@@ -306,7 +306,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* Pop-ups do canto (normal) */}
-      <div className="pointer-events-none fixed inset-x-3 top-[70px] z-[60] flex flex-col items-end gap-2 md:inset-x-auto md:right-5 md:top-5" aria-live="assertive">
+      <div className="pointer-events-none fixed inset-x-3 top-[70px] z-flutuante flex flex-col items-end gap-2 md:inset-x-auto md:right-5 md:top-5" aria-live="assertive">
         {popups.map((n) => {
           const e = estiloDe(n);
           return (
@@ -340,7 +340,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
           : NIVEL[atual.urgencia ?? "importante"];
         const urgente = atual.urgencia === "urgente";
         return (
-          <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
+          <div className="fixed inset-0 z-alerta grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
             <div className="relative w-full max-w-md">
             {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
             {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
@@ -372,7 +372,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
 
       {/* Histórico */}
       {painel && (
-        <div className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
+        <div className="fixed inset-0 z-sobre-janela bg-ink/40 backdrop-blur-[1px]" onClick={() => setPainel(false)}>
           <div className="cartao absolute inset-x-3 top-[70px] max-h-[75vh] overflow-y-auto p-3 shadow-pop md:left-auto md:right-5 md:top-5 md:w-96"
             onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-2 px-1">
