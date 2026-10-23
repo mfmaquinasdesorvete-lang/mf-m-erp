@@ -63,6 +63,7 @@ const PUBLICAS: Record<string, string> = {
   proposta_publica: "cliente abre a proposta pelo token",
   proposta_responder: "cliente aprova ou recusa a proposta pelo token",
   loja_dados: "vitrine da loja (produtos e preços públicos)",
+  loja_frete_ligado: "loja: sim/não, o \"Calcule o frete\" está ligado nas regras de frete",
   erp_sem_usuarios: "tela de login: diz só se o ERP ainda não tem usuário (primeira instalação)",
   erp_interesse: "página /conheca: o visitante deixa o contato (só grava, com limite por hora)",
 };

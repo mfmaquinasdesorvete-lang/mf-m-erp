@@ -15,6 +15,7 @@ import {
 import { DEMO, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, somarDias, whatsappLink } from "@/lib/format";
+import { CalcularFrete, useFreteLigado, type EscolhaFrete } from "@/components/loja/CalcularFrete";
 import { buscarCep } from "@/lib/cep";
 import { buscarCnpj, preencherVazios } from "@/lib/cnpj";
 import { DISPONIBILIDADE, urlFotoProduto, urlLoja, type DadosLoja, type ProdutoLoja } from "@/lib/catalogo";
@@ -213,6 +214,7 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
               </button>
             </div>
           )}
+          {disponivel && <CalcularFrete itens={[{ produto_id: p.id, quantidade: qtd }]} whatsapp={empresa.whatsapp} />}
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             {empresa.whatsapp && (
               <a href={whatsappLink(empresa.whatsapp, `Olá! Tenho interesse em: ${p.nome}${p.sku ? ` (cód. ${p.sku})` : ""}.\n${urlLoja(p.id)}`)} target="_blank" rel="noreferrer"
@@ -246,7 +248,9 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
   const navigate = useNavigate();
   const [obs, setObs] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [feito, setFeito] = useState<{ numero: number; total: number } | null>(null);
+  const [feito, setFeito] = useState<{ numero: number; total: number; frete?: number } | null>(null);
+  const [frete, setFrete] = useState<EscolhaFrete | null>(null);
+  const freteLigado = useFreteLigado();
   const cadastro = useCadastro(sessao);
   const linhas = carrinho.itens.map((i) => ({ ...i, p: dados.produtos.find((p) => p.id === i.id) })).filter((l) => l.p) as (ItemCarrinho & { p: ProdutoLoja })[];
   const total = linhas.reduce((s, l) => s + l.quantidade * l.p.preco, 0);
@@ -256,9 +260,13 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
     if (!cadastro.data) return navigate("/loja/conta", { state: { voltar: "/loja/carrinho" } });
     setEnviando(true);
     try {
-      const { data, error } = await supabase.rpc("loja_criar_pedido", { p_itens: linhas.map((l) => ({ produto_id: l.id, quantidade: l.quantidade })), p_observacoes: obs || null });
+      const p_itens = linhas.map((l) => ({ produto_id: l.id, quantidade: l.quantidade }));
+      // com o frete escolhido, o pedido leva o valor gravado na consulta (o servidor confere o CEP do cadastro)
+      const { data, error } = frete
+        ? await supabase.rpc("loja_criar_pedido_frete", { p_itens, p_observacoes: obs || null, p_consulta: frete.consulta_id, p_opcao: frete.opcao.id })
+        : await supabase.rpc("loja_criar_pedido", { p_itens, p_observacoes: obs || null });
       if (error) throw error;
-      setFeito(data as { numero: number; total: number });
+      setFeito(data as { numero: number; total: number; frete?: number });
       carrinho.limpar();
     } catch (e) { notifyError(e); } finally { setEnviando(false); }
   }
@@ -268,7 +276,9 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
       <div className="mx-auto max-w-lg py-10 text-center">
         <CheckCircle2 size={56} className="mx-auto text-emerald-600" />
         <h1 className="mt-3 text-2xl font-bold">Pedido #{feito.numero} recebido!</h1>
-        <p className="mt-2 text-base text-slate-600">Total dos produtos: <b className="num text-fg">{brl(feito.total)}</b>. Nossa equipe vai confirmar o frete e a forma de pagamento com você pelo WhatsApp.</p>
+        <p className="mt-2 text-base text-slate-600">{feito.frete != null
+          ? <>Total com o frete: <b className="num text-fg">{brl(feito.total)}</b>. Nossa equipe vai confirmar a forma de pagamento com você pelo WhatsApp.</>
+          : <>Total dos produtos: <b className="num text-fg">{brl(feito.total)}</b>. Nossa equipe vai confirmar o frete e a forma de pagamento com você pelo WhatsApp.</>}</p>
         <div className="mt-6 flex flex-col gap-2">
           {dados.empresa.whatsapp && (
             <a href={whatsappLink(dados.empresa.whatsapp, `Olá! Acabei de fazer o pedido #${feito.numero} pelo site.`)} target="_blank" rel="noreferrer"
@@ -305,9 +315,19 @@ function PaginaCarrinho({ dados, carrinho, sessao }: { dados: DadosLoja; carrinh
             <span className="mb-1.5 block text-sm font-semibold text-slate-600">Observações (voltagem, prazo, endereço de entrega diferente…)</span>
             <textarea className="input" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
           </label>
+          <CalcularFrete itens={linhas.map((l) => ({ produto_id: l.id, quantidade: l.quantidade }))} cepInicial={cadastro.data?.cep ?? null}
+            whatsapp={dados.empresa.whatsapp} onEscolha={setFrete} escolhida={frete?.opcao.id ?? null} />
           <div className="cartao mt-4 p-4">
             <div className="flex items-baseline justify-between"><span className="text-slate-600">Produtos</span><span className="num text-2xl font-bold">{brl(total)}</span></div>
-            <p className="mt-1 text-sm text-slate-500">Frete e forma de pagamento são combinados com a nossa equipe depois do pedido.</p>
+            {frete ? (
+              <>
+                <div className="mt-1 flex items-baseline justify-between text-sm"><span className="text-slate-600">Frete ({frete.opcao.transportadora})</span><span className="num font-semibold">{frete.opcao.valor_cliente === 0 ? "grátis" : brl(frete.opcao.valor_cliente)}</span></div>
+                <div className="mt-1 flex items-baseline justify-between border-t border-slate-100 pt-1"><span className="font-semibold">Total</span><span className="num text-xl font-bold">{brl(Math.round((total + frete.opcao.valor_cliente) * 100) / 100)}</span></div>
+                <p className="mt-1 text-sm text-slate-500">A forma de pagamento é combinada com a nossa equipe depois do pedido.</p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-slate-500">{freteLigado.data ? "Calcule e escolha o frete acima, ou finalize e a nossa equipe combina o frete com você." : "Frete e forma de pagamento são combinados com a nossa equipe depois do pedido."}</p>
+            )}
             {sessao && cadastro.data === null && <p className="mt-2 text-sm font-semibold text-amber-700">Falta completar o seu cadastro (CPF/CNPJ e endereço).</p>}
             <button type="button" disabled={enviando} onClick={finalizar}
               className="mt-4 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-base font-bold text-brand-fg disabled:opacity-60">

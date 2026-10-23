@@ -211,7 +211,7 @@ function SituacaoTransportadora({ e, podeEditar, transportadora }: { e: Envio; p
             : e.rastreio_em ? (fonte === "braspress" ? "A Braspress ainda não achou a nota." : "O SSW não achou a nota (a transportadora pode não usar o SSW).") : "Ainda não rastreado pela nota."}
         </span>
         {eventos.length > 1 && (
-          <button type="button" onClick={() => setAberto(!aberto)} className="inline-flex items-center gap-0.5 font-semibold text-modulo-texto hover:underline" aria-expanded={aberto}>
+          <button type="button" onClick={() => setAberto(!aberto)} className="link-acao inline-flex items-center gap-0.5" aria-expanded={aberto}>
             {aberto ? "esconder" : `ver ${eventos.length} ocorrências`} <ChevronDown size={12} className={aberto ? "rotate-180" : ""} aria-hidden />
           </button>
         )}

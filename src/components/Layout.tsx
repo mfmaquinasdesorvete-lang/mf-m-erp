@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ModuloContext, type Modulo } from "@/lib/modulo";
@@ -26,6 +26,8 @@ import { MeuRosto } from "./Rosto";
 import { usaRosto } from "@/lib/rosto";
 import { ResultadosBusca } from "./BuscaGeral";
 import { PerguntarIA, parecePergunta } from "./PerguntarIA";
+// cotação rápida de frete (o cliente liga perguntando): abre por cima de qualquer tela, carregada só quando abre
+const CotacaoRapida = lazy(() => import("./fretes/CotacaoRapida").then((m) => ({ default: m.CotacaoRapida })));
 import { NotificacoesProvider, Sino } from "./Notificacoes";
 import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
@@ -137,6 +139,7 @@ export function Layout() {
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [aparencia, setAparencia] = useState(false);
   const [meusAvisos, setMeusAvisos] = useState(false);
+  const [cotarFrete, setCotarFrete] = useState(false);
   const [meuRosto, setMeuRosto] = useState(false);
   const iniciais = perfil.nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   // foto do usuário (Configurações → Usuários); cada um lê a própria
@@ -398,6 +401,7 @@ export function Layout() {
               ...(engrenagem ? [["Configurações", Settings, () => { setAberto(false); navigate(engrenagem); }] as const] : []),
               // cadeado: Retaguarda (carteira pessoal, My Frost, usuários, configurações), só a conta master
               ...(perfil.master ? [["Retaguarda", Lock, () => { setAberto(false); navigate("/retaguarda"); }] as const] : []),
+              ...(perfil.tem("vendas", "financeiro", "expedicao") ? [["Cotação rápida de frete", Truck, () => setCotarFrete(true)] as const] : []),
               ["Meus avisos", Bell, () => setMeusAvisos(true)],
               ["Aparência", Palette, () => setAparencia(true)],
               ["Trocar senha", KeyRound, () => setTrocarSenha(true)],
@@ -488,6 +492,11 @@ export function Layout() {
       {trocarSenha && <AlterarSenha onClose={() => setTrocarSenha(false)} />}
       {aparencia && <Aparencia onClose={() => setAparencia(false)} />}
       {meusAvisos && <MeusAvisos onClose={() => setMeusAvisos(false)} />}
+      {cotarFrete && (
+        <Modal open title="Cotação rápida de frete" onClose={() => setCotarFrete(false)} wide>
+          <Suspense fallback={<p className="text-sm text-slate-500">Carregando…</p>}><CotacaoRapida /></Suspense>
+        </Modal>
+      )}
       {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
       {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
       {pergunta !== null && <PerguntarIA inicial={pergunta} onClose={() => { setPergunta(null); setBusca(""); setAberto(false); }} />}

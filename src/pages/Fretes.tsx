@@ -1,6 +1,9 @@
 // Fretes e envios: painel operacional (cada número abre a lista dos envios que o compõem), filtros por período,
 // transportadora, região, vendedor, status e tipo de máquina, os indicadores do mês por tipo de serviço e a lista
 // completa de envios.
+import { CotacaoRapida } from "@/components/fretes/CotacaoRapida";
+import { FreteRegras } from "@/components/fretes/FreteRegras";
+import { PesoMedidas } from "@/components/fretes/PesoMedidas";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, ClipboardList, PackageCheck, Plus, Truck, X } from "lucide-react";
 import { Button, PageHeader, Table, Tabs } from "@/components/ui";
@@ -66,7 +69,7 @@ export default function Fretes() {
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useAbaUrl<"painel" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas">("painel", ["painel", "rastreio", "indicadores", "envios", "cte", "faturas"] as const);
+  const [aba, setAba] = useAbaUrl<"painel" | "cotacao" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas" | "medidas" | "regras">("painel", ["painel", "cotacao", "rastreio", "indicadores", "envios", "cte", "faturas", "medidas", "regras"] as const);
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);
@@ -153,8 +156,12 @@ export default function Fretes() {
       {aberto && <EnvioForm envioId={aberto.id} onClose={() => { setAberto(null); invalidar("envios", "envio_ocorrencias", "envio_cotacoes", "documentos"); }} />}
 
       <Tabs value={aba} onChange={(v) => { setAba(v); setIndicador(null); }}
-        options={[{ value: "painel", label: "Painel" }, { value: "rastreio", label: rastreio.atencao ? `Rastreio (${rastreio.atencao})` : "Rastreio" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
-          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }]} />
+        options={[{ value: "painel", label: "Painel" }, { value: "cotacao", label: "Cotação rápida" }, { value: "rastreio", label: rastreio.atencao ? `Rastreio (${rastreio.atencao})` : "Rastreio" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
+          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }, { value: "medidas", label: "Peso e medidas" }, { value: "regras", label: "Regras de frete" }]} />
+
+      {aba === "cotacao" && <CotacaoRapida />}
+      {aba === "medidas" && <PesoMedidas podeEditar={podeEditar} />}
+      {aba === "regras" && <FreteRegras />}
 
       {aba === "rastreio" && <RastreioEntregas envios={envios} transportadoras={transportadoras} podeEditar={podeEditar}
         numeroPedido={(id) => pedidoDe(id)?.numero ?? null} />}
@@ -162,7 +169,7 @@ export default function Fretes() {
       {aba === "faturas" && <CteFaturas transportadoras={transportadoras} />}
 
       {/* filtros compactos: botão de data e botão "Filtros" (os campos só aparecem ao tocar) */}
-      {aba !== "cte" && aba !== "faturas" && aba !== "rastreio" && (
+      {aba !== "cte" && aba !== "faturas" && aba !== "rastreio" && aba !== "cotacao" && aba !== "medidas" && aba !== "regras" && (
         <BarraFiltros
           periodo={aba === "indicadores" ? undefined : { de: filtros.de ?? "", ate: filtros.ate ?? "" }}
           onPeriodo={aba === "indicadores" ? undefined : (p) => setFiltros({ ...filtros, de: p.de || undefined, ate: p.ate || undefined })}

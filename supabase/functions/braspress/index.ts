@@ -8,28 +8,10 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { resumoEvento } from "../_shared/ssw.ts";
-import { BASE_BRASPRESS, basicBraspress, corpoCotacaoBp, faltaParaCotarBp, lerCotacaoBp, lerRastreioBp, mensagemBp } from "../_shared/braspress.ts";
+import { faltaParaCotarBp, lerRastreioBp, mensagemBp } from "../_shared/braspress.ts";
+import { chamarBp as chamar, cotarBp, homologacaoBp } from "../_shared/braspress-api.ts";
 
 type Db = ReturnType<typeof adminClient>;
-
-function acesso() {
-  const usuario = Deno.env.get("BRASPRESS_USUARIO"), senha = Deno.env.get("BRASPRESS_SENHA");
-  if (!usuario || !senha) throw new HttpError(400, "Faltam os secrets BRASPRESS_USUARIO e BRASPRESS_SENHA no Supabase (Edge Functions → Secrets). O acesso à API é pedido ao comercial da Braspress.");
-  return basicBraspress(usuario, senha);
-}
-
-async function chamar(caminho: string, init: RequestInit = {}) {
-  const base = Deno.env.get("BRASPRESS_HOMOLOGACAO") === "1" ? BASE_BRASPRESS.homologacao : BASE_BRASPRESS.producao;
-  const r = await fetch(`${base}${caminho}`, {
-    ...init, signal: AbortSignal.timeout(25_000),
-    headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: acesso() },
-  });
-  const texto = await r.text();
-  let corpo: unknown = null;
-  try { corpo = texto ? JSON.parse(texto) : null; } catch { corpo = { message: texto.slice(0, 200) }; }
-  if (r.status === 401 || r.status === 403) throw new HttpError(401, "A Braspress recusou o usuário e a senha da API. Confira os secrets BRASPRESS_USUARIO e BRASPRESS_SENHA.");
-  return { status: r.status, corpo };
-}
 
 /** Envio + CNPJ da unidade + documento do cliente + nº da nota autorizada do pedido. */
 async function dadosDoEnvio(db: Db, envioId: string) {
@@ -75,17 +57,14 @@ Deno.serve(async (req) => {
       const { data: un } = await db.from("unidades").select("cnpj").not("cnpj", "is", null).limit(1).maybeSingle();
       const r = await chamar(`/v3/tracking/byNf/${onlyDigits(un?.cnpj ?? "") || "0"}/1/json`);
       if (r.status >= 500) throw new HttpError(502, `A Braspress não respondeu (HTTP ${r.status}).`);
-      return json({ ok: true, homologacao: Deno.env.get("BRASPRESS_HOMOLOGACAO") === "1" });
+      return json({ ok: true, homologacao: homologacaoBp() });
     }
 
     if (body.acao === "cotar") {
       const d = await dadosDoEnvio(db, body.envio_id);
       const falta = faltaParaCotarBp(d.envio, d.cnpj, d.doc);
       if (falta.length) throw new HttpError(400, `Para cotar na Braspress falta: ${falta.join(", ")}. Complete e salve o envio.`);
-      const r = await chamar("/v1/cotacao/calcular/json", { method: "POST", body: JSON.stringify(corpoCotacaoBp(d.envio, d.cnpj, d.doc)) });
-      const c = lerCotacaoBp(r.corpo);
-      if ("erro" in c) throw new HttpError(400, `Braspress: ${c.erro}`);
-      return json({ ok: true, ...c });
+      return json({ ok: true, ...(await cotarBp(d.envio, d.cnpj, d.doc)) });
     }
 
     if (body.acao === "rastrear" && body.envio_id) return json(await rastrearEnvio(db, body.envio_id));
