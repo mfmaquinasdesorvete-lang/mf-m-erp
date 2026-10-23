@@ -133,3 +133,19 @@ export const dadosDaChave = (chave: string) => ({
   modelo: chave.slice(20, 22), serie: chave.slice(22, 25).replace(/^0+(?=\d)/, ""), numero: chave.slice(25, 34).replace(/^0+(?=\d)/, ""),
   emitente_cnpj: chave.slice(6, 20),
 });
+
+/** Dados para salvar_cte_sefaz a partir do XML lido (busca da SEFAZ e XML enviado na tela). */
+export function dadosSalvarCte(lido: CteXml, xml: string, situacao: "autorizado" | "cancelado" | "denegado") {
+  return {
+    completo: true, chave: lido.chave, modelo: lido.modelo, numero: lido.numero, serie: lido.serie, tipo: lido.tipo, emissao: lido.emissao,
+    cfop: lido.cfop, uf_inicio: lido.uf_inicio, municipio_inicio: lido.municipio_inicio, uf_fim: lido.uf_fim, municipio_fim: lido.municipio_fim,
+    emitente_cnpj: lido.emitente.cnpj, emitente_nome: lido.emitente.nome,
+    remetente_cnpj: lido.remetente?.cnpj, remetente_nome: lido.remetente?.nome,
+    destinatario_cnpj: lido.destinatario?.cnpj, destinatario_nome: lido.destinatario?.nome,
+    tomador: lido.tomador, tomador_cnpj: lido.tomador_cnpj, tomador_nome: lido.tomador_nome,
+    valor: lido.valor, valor_carga: lido.valor_carga, produto: lido.produto, peso_kg: lido.peso_kg, volumes: lido.volumes, icms: lido.icms,
+    nfe_chaves: lido.nfe_chaves, nf_numeros: lido.nf_numeros, prev_entrega: lido.prev_entrega, cobranca: lido.cobranca, xml,
+    // o cancelamento é um evento à parte (não vem no XML do CT-e)
+    situacao: lido.situacao === "denegado" ? "denegado" : situacao,
+  };
+}

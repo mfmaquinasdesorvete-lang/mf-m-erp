@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, CircleDollarSign, Clock, FileSpreadsheet, Link2, PackageCheck, Receipt, RefreshCw, Search, Truck, Upload, X } from "lucide-react";
 import { Badge, Button, Field, Modal, Section, Stat, Table, nomeMes, chip } from "@/components/ui";
+import { ImportarCteXml } from "@/components/fretes/ImportarCteXml";
 import { MontarFatura } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -150,9 +151,9 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
     <>
       <BuscaSefaz vazio />
       <Section title="CT-e das transportadoras" className="mt-4">
-        <p className="text-sm text-slate-600">Nenhum CT-e ainda. Os da SEFAZ chegam sozinhos; os mais antigos que 3 meses: baixe no site da transportadora a planilha de CT-e do período (CSV) e importe aqui: o ERP
+        <p className="text-sm text-slate-600">Nenhum CT-e ainda. Os da SEFAZ chegam sozinhos; os mais antigos que 3 meses: envie os XML (ou o ZIP) do portal da transportadora ou do contador, ou importe a planilha de CT-e do período (CSV): o ERP
           separa o frete das compras, das vendas e das transferências, liga cada CT-e à nota e monta a fatura para conferir.</p>
-        {podeImportar && <Button className="mt-3" onClick={() => setImportar(true)}><Upload size={16} /> Importar planilha de CT-e</Button>}
+        {podeImportar && <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => setImportar(true)}><Upload size={16} /> Importar planilha de CT-e</Button><ImportarCteXml /></div>}
       </Section>
       {importar && <ImportarCtes transportadoras={transportadoras} usadas={[]} onClose={() => setImportar(false)} />}
     </>
@@ -178,6 +179,7 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
         {filtros > 0 && <Button variant="ghost" onClick={limpar}><X size={15} /> Limpar</Button>}
         <div className="ml-auto flex flex-wrap gap-2">
           {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar planilha</Button>}
+          {podeImportar && <ImportarCteXml />}
           {podeFaturar && <Button onClick={() => setFatura({ ids: marcadosLista.map((c) => c.id) })}><Receipt size={16} /> Montar fatura{marcadosLista.length ? ` (${marcadosLista.length})` : ""}</Button>}
         </div>
       </div>

@@ -7,7 +7,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { onlyDigits } from "./supabase.ts";
 import { codigoUnidade, erroDeToken, focus, recebidasDisponiveis } from "./focusnfe.ts";
-import { lerCte, situacaoFocus } from "./cte-xml.ts";
+import { dadosSalvarCte, lerCte, situacaoFocus } from "./cte-xml.ts";
 
 export type CteFocus = {
   chave: string; nome_emitente: string; documento_emitente: string; valor_total: string | number; data_emissao: string;
@@ -102,18 +102,8 @@ export async function completarCtes(db: SupabaseClient, limite = 30) {
       continue;
     }
     const { error } = await db.rpc("salvar_cte_sefaz", {
-      p_dados: {
-        completo: true, chave: lido.chave, modelo: lido.modelo, numero: lido.numero, serie: lido.serie, tipo: lido.tipo, emissao: lido.emissao,
-        cfop: lido.cfop, uf_inicio: lido.uf_inicio, municipio_inicio: lido.municipio_inicio, uf_fim: lido.uf_fim, municipio_fim: lido.municipio_fim,
-        emitente_cnpj: lido.emitente.cnpj, emitente_nome: lido.emitente.nome,
-        remetente_cnpj: lido.remetente?.cnpj, remetente_nome: lido.remetente?.nome,
-        destinatario_cnpj: lido.destinatario?.cnpj, destinatario_nome: lido.destinatario?.nome,
-        tomador: lido.tomador, tomador_cnpj: lido.tomador_cnpj, tomador_nome: lido.tomador_nome,
-        valor: lido.valor, valor_carga: lido.valor_carga, produto: lido.produto, peso_kg: lido.peso_kg, volumes: lido.volumes, icms: lido.icms,
-        nfe_chaves: lido.nfe_chaves, nf_numeros: lido.nf_numeros, prev_entrega: lido.prev_entrega, cobranca: lido.cobranca, xml,
-        // a situação é a da lista da Focus (o cancelamento é um evento à parte, não vem no XML)
-        situacao: lido.situacao === "denegado" ? "denegado" : p.situacao,
-      },
+      // a situação é a da lista da Focus (o cancelamento é um evento à parte, não vem no XML)
+      p_dados: dadosSalvarCte(lido, xml ?? "", p.situacao),
       p_unidade: p.unidade_id,
     });
     if (error) await db.from("ctes").update({ xml_tentativas: (p.xml_tentativas ?? 0) + 1 }).eq("id", p.id);
