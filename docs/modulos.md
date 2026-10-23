@@ -1,9 +1,9 @@
 # Módulos do ERP Line
 
-> Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude os textos no código
-> (src/lib/modulos.ts, src/lib/modulosDetalhe.ts e src/lib/esquemas.ts) e gere de novo.
+> Documento gerado a partir do código do ERP com o comando `npx tsx scripts/gerar-docs.mjs`. Não edite à mão: mude o texto
+> na fonte (src/lib/modulos.ts, src/lib/modulosDetalhe.ts e src/lib/esquemas.ts) e gere de novo.
 
-**Atualizado em:** 23/10/2026 · **10 áreas**, **60 telas** e **31 processos**.
+**Atualizado em:** 23/10/2026 · **10 áreas**, **62 telas** e **32 processos**.
 
 Este documento explica, em português simples, o que cada tela do ERP Line faz, na mesma ordem do menu, e quem pode abrir cada uma. No fim estão os principais processos da empresa, passo a passo, com quem faz cada passo e em qual tela.
 
@@ -11,16 +11,16 @@ Este documento explica, em português simples, o que cada tela do ERP Line faz, 
 
 - [Perfis de acesso](#perfis-de-acesso)
 - Áreas e telas
-  - [Início](#início) (3 telas)
-  - [Vendas](#vendas) (7 telas)
+  - [Início](#início) (2 telas)
+  - [Vendas](#vendas) (6 telas)
   - [Cadastros](#cadastros) (6 telas)
   - [Logística](#logística) (6 telas)
-  - [Assistência](#assistência) (3 telas)
-  - [Fábrica e estoque](#fábrica-e-estoque) (11 telas)
+  - [Assistência](#assistência) (6 telas)
+  - [Fábrica e estoque](#fábrica-e-estoque) (8 telas)
   - [Financeiro](#financeiro) (8 telas)
-  - [Fiscal](#fiscal) (6 telas)
+  - [Fiscal](#fiscal) (8 telas)
   - [Gestão](#gestão) (4 telas)
-  - [Configurações](#configurações) (6 telas)
+  - [Configurações](#configurações) (8 telas)
 - [Páginas abertas por link](#páginas-abertas-por-link)
 - [Processos passo a passo](#processos-passo-a-passo)
   - [Vendas](#vendas-processos)
@@ -52,7 +52,7 @@ Algumas telas pessoais da conta master (que ficam na Retaguarda) não entram nes
 
 O resumo do dia, a caixa de e-mail da empresa e os documentos (todos os anexos num lugar só).
 
-Telas: [Início](#início-1) · [Caixa de e-mail](#caixa-de-e-mail) · [Scrum das equipes](#scrum-das-equipes)
+Telas: [Início](#início-1) · [Caixa de e-mail](#caixa-de-e-mail)
 
 ### Início
 
@@ -113,41 +113,11 @@ O que a tela faz:
 - **Configuração:** o administrador liga a caixa em Configurações → Caixa de e-mail; a senha fica guardada no cofre do sistema.
 - **Quem vê:** vendas, financeiro e administrador; dar entrada na nota e importar o extrato, só quem cuida disso.
 
-### Scrum das equipes
-
-**Cada equipe entrega um pouco toda semana, sem perder o foco.**
-
-Scrum de cada equipe (ERP Line, Produção, Assistência, Vendas e Financeiro): backlog na ordem de prioridade, sprints de 1 ou 2 semanas com objetivo, quadro A fazer → Fazendo → Revisão → Feito, daily com impedimentos, revisão e retrospectiva ao encerrar, e painel com burndown, velocidade e pontos por pessoa. As Ideias do Sobre o ERP Line viram itens do backlog do ERP Line. No item, o assistente preenche os campos, detalha a descrição, monta tarefas, critérios de aceite, cenários e casos de teste, mostra o que já existe parecido e resume os comentários.
-
-- **Tags:** SCRUM · SPRINT · EQUIPES
-- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Expedição, Marketplaces e Compras
-
-O que a tela faz:
-
-- **Equipes lado a lado:** ERP Line, Produção, Assistência, Vendas e Financeiro, com a sprint, pontos feitos, ritmo e backlog.
-- **Ritmo da sprint:** no ritmo, adiantada, atrasada ou sem pontos; a equipe da pessoa aparece como "minha".
-- **Faixa da equipe:** sprint em andamento, datas, dias úteis que restam e o objetivo.
-- **Como usar o Scrum:** passo a passo em palavras simples e exemplos prontos de cada equipe que vão para o backlog com um toque.
-- **Quadro:** A fazer → Fazendo → Revisão → Feito; arrastar no computador e usar as setas no celular.
-- **Backlog:** tudo o que falta fazer, na ordem de prioridade; anotar rápido, subir, descer e mandar para a sprint.
-- **Trazer das Ideias:** na equipe ERP Line, as Ideias do Sobre o ERP Line viram itens do backlog.
-- **Item:** título, tipo (história, tarefa, problema ou melhoria), pontos de esforço, responsável, situação, descrição e critério de pronto.
-- **Assistente do item:** Preencher (completa tipo, pontos, responsável, descrição e critério vazios pelo histórico das equipes), Detalhar (descrição organizada a partir do título), Tarefas, Critérios de aceite, Cenários (Dado / Quando / Então) e Casos de teste com passou/falhou; tudo é rascunho, com Desfazer, e só grava no Salvar.
-- **Parecidos:** enquanto se escreve o título, mostra itens de qualquer equipe, Ideias e entregas das Atualizações que já tratam do mesmo assunto, para não repetir trabalho.
-- **Comentários da equipe no item, com "Resumir a conversa":** o que foi decidido, o que está travado, as perguntas sem resposta e os próximos passos.
-- **Sprints:** planejar com objetivo, datas e itens; iniciar; e ver o histórico das anteriores.
-- **Encerrar a sprint:** revisão do que foi entregue e retrospectiva (bom, melhorar, ações); o que não terminou volta ao backlog.
-- **Daily:** cada pessoa diz o que fez, o que vai fazer e o que a impede; mostra quem respondeu, quem falta e os impedimentos.
-- **Painel:** pontos da sprint, ritmo, dias úteis restantes, velocidade média, backlog em pontos e impedimentos abertos.
-- **Gráficos:** burndown da sprint, velocidade planejado × feito e pontos por pessoa.
-- **Equipe:** membros, dono do produto, scrum master, tamanho da sprint (1 ou 2 semanas) e cor; só o administrador muda.
-- **Quem vê:** todos da empresa, menos o contador e o representante externo.
-
 ## Vendas
 
 Do orçamento à venda: peças, máquinas, PDV, Mercado Livre, comissões e metas.
 
-Telas: [Painel de vendas](#painel-de-vendas) · [Venda de Peças](#venda-de-peças) · [Venda de Máquinas](#venda-de-máquinas) · [Mercado Livre](#mercado-livre) · [Comissões](#comissões) · [Metas de vendas](#metas-de-vendas) · [PDV (venda de balcão)](#pdv-venda-de-balcão)
+Telas: [Painel de vendas](#painel-de-vendas) · [Venda de Peças](#venda-de-peças) · [Venda de Máquinas](#venda-de-máquinas) · [Loja online e marketplace](#loja-online-e-marketplace) · [Gestão de preços](#gestão-de-preços) · [PDV (venda de balcão)](#pdv-venda-de-balcão)
 
 ### Painel de vendas
 
@@ -228,7 +198,7 @@ Propostas da MF e da My Frost e vendas de máquinas, ligadas ao pedido, à ordem
 O que a tela faz:
 
 - **Separação automática:** a venda que tem máquina aparece aqui; a de peças fica em Venda de Peças.
-- **Abas:** Propostas e vendas (feitas no ERP) e Propostas do Tiny (da MF e da My Frost, a empresa anterior).
+- **Abas:** Propostas e vendas (feitas no ERP) e Propostas do Tiny da MF; as da My Frost (empresa anterior) ficam na Retaguarda.
 - **Quadro Kanban:** 1 Orçamentos, 2 Aprovados, 3 Faturados, 4 Entregues e Cancelados, com a contagem, o total e o que fazer em cada passo.
 - **Lista:** nº e data, cliente, situação, ordem de produção (OP) ligada e a situação dela, pagamento, total, NF e envio.
 - **Licenciados My Frost:** botão que mostra só as vendas para as lojas licenciadas, com o selo ao lado do nome.
@@ -239,24 +209,25 @@ O que a tela faz:
 - **Pagamento:** link InfinitePay ou Mercado Pago com baixa sozinha, Pix com QR Code e conciliação com o extrato do banco.
 - **NF-e:** emissão pela Focus NF-e com conferência do cadastro antes; aviso quando a nota foi cancelada e falta emitir de novo.
 - **Abrir OS:** instalação, entrega técnica ou garantia, já com o cliente, a máquina e o nº do pedido.
-- **Propostas do Tiny:** filtro por empresa (MF ou My Frost), licenciados, situação e vendedor, e busca por nº, cliente, cidade ou item.
+- **Propostas do Tiny:** filtro por licenciados, situação e vendedor, e busca por nº, cliente, cidade ou item.
 - **Resumo do Tiny:** quantas propostas da MF viraram venda e quantas estão em aberto, com os totais.
 - **Proposta antiga vira orçamento:** "Novo orçamento com estes itens" abre um orçamento novo com os itens e os preços dela.
 - **Importar do Tiny:** o administrador traz a planilha de propostas; dá para exportar e pôr marcadores em várias de uma vez.
 - **Rodapé e lote:** soma das vendas, recebido e a receber; marcar várias para conciliar, lançar contas, exportar ou excluir.
 - **Quem vê:** vendas, financeiro e administrador.
 
-### Mercado Livre
+### Loja online e marketplace
 
-**Anúncios com estoque e preço certos e vendas que entram sozinhas.**
+**Cadastros prontos para anunciar e o Mercado Livre em dia.**
 
-Conta do Mercado Livre ligada ao ERP: as vendas pagas entram sozinhas e o estoque e o preço do ERP vão para os anúncios.
+Loja online e marketplace: na aba Marketplace, os cadastros prontos para anunciar (repetidos, nomes fora do padrão, EAN); no Mercado Livre, as vendas pagas entram sozinhas e o estoque e o preço do ERP vão para os anúncios.
 
-- **Tags:** MERCADO LIVRE · ANÚNCIOS · ESTOQUE
+- **Tags:** LOJA ONLINE · MARKETPLACE · MERCADO LIVRE
 - **Quem pode abrir:** Administrador, Vendas, Financeiro e Marketplaces
 
 O que a tela faz:
 
+- **Aba Marketplace:** cadastros repetidos para unificar, nomes fora do padrão, códigos EAN e quantos produtos estão prontos para marketplace (antes era a aba Anúncios de Produtos).
 - **Vendas automáticas:** cada venda paga no Mercado Livre entra sozinha no ERP como pedido, pelo aviso que o Mercado Livre manda.
 - **Abas:** Anúncios, Vendas e notas, Envio de estoque e preço e Conta (ou Conectar a conta).
 - **Anúncios:** cada anúncio com o produto ligado, estoque e preço no ERP x último enviado e a situação (em dia, na fila, aguardando, erro).
@@ -279,61 +250,23 @@ O que a tela faz:
 - **Conectar:** passo a passo para criar o aplicativo no Mercado Livre; as chaves vão direto para o cofre do sistema.
 - **Quem vê:** vendas, financeiro, marketplaces e administrador; ajustes, financeiro e marketplaces; conectar e ligar a NF-e, só o administrador.
 
-### Comissões
+### Gestão de preços
 
-**Comissão certa, calculada sozinha e paga sem planilha.**
+**Os preços num lugar só: o que revisar, as regras e as tabelas.**
 
-Comissões de vendedores e representantes: % por vendedor, por categoria e por linha de produtos, calculadas item a item.
+Gestão de preços: os preços para revisar quando o custo muda, as regras de margem e despesas e as tabelas de preço (atacado, revenda…).
 
-- **Tags:** COMISSÃO · VENDEDORES · REPRESENTANTES
-- **Quem pode abrir:** Administrador, Vendas e Financeiro
-
-O que a tela faz:
-
-- **Abas:** Comissões, Vendedores e representantes, % por categoria e Linhas de produtos (as três últimas, só para o financeiro).
-- **Comissão automática:** escolhido o vendedor no pedido, a comissão sai sozinha, item a item, pelas regras dele.
-- **Quando sai:** no recebimento (a cada parcela paga), no faturamento (na aprovação) ou misto (uma parte na aprovação e o resto nas parcelas).
-- **Cartões por vendedor:** quanto cada um tem a pagar e quanto já recebeu; tocar filtra a lista.
-- **Lista:** data, vendedor, pedido e cliente, base, %, valor e situação (a pagar, no contas a pagar, paga ou cancelada).
-- **Filtros:** vendedor, situação e mês das comissões.
-- **Pagar:** marcar as comissões de um vendedor e gerar uma conta a pagar com vencimento; ao dar baixa nela, as comissões ficam pagas.
-- **Imprimir e Exportar:** relatório em PDF e planilha com os filtros escolhidos.
-- **Cancelamento:** pedido cancelado cancela a comissão ainda não paga; mudar vendedor ou % num pedido aprovado refaz as não pagas.
-- **Cadastro do vendedor:** dados, endereço pelo CEP, contato, unidade, % geral, quando libera e se paga ou não sobre o frete.
-- **Terceirizado:** com "pagar só com a NF dele", a conta da comissão só é paga com o nº da NF; a chave Pix já vai junto.
-- **Login e portal:** o vendedor ligado ao seu usuário vê as próprias comissões; o administrador cria o acesso do representante ao portal.
-- **% por categoria:** % para todos ou exceção de um vendedor; em branco herda, e a subcategoria usa o % da categoria-mãe.
-- **Ordem das regras:** vendedor na categoria, depois linha do produto, depois categoria e, por fim, o % geral; o % digitado no pedido vale acima de tudo.
-- **Linhas de produtos:** comissão fixa, comissão que cai conforme o desconto dado (por faixas) ou linha só para agrupar.
-- **Quem vê:** vendas (só as próprias comissões), financeiro e administrador (todas, com o pagamento).
-
-### Metas de vendas
-
-**Saber cedo se a meta do mês vai ser batida e quanto falta.**
-
-Metas de vendas por vendedor, estado e região, com projeção do mês e ranking.
-
-- **Tags:** METAS · RANKING · PROJEÇÃO
-- **Quem pode abrir:** Administrador, Vendas e Financeiro
+- **Tags:** PREÇOS · MARGEM · TABELAS
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
 
 O que a tela faz:
 
-- **Mês e unidade:** escolhe o mês e a unidade (ou todas juntas) para ver as metas.
-- **Meta da empresa:** cartões com a meta, o realizado, o % atingido e a projeção do mês.
-- **De onde vem a meta:** cadastrada ou somada dos vendedores, dos estados ou das regiões.
-- **Comparação com o ano anterior:** o realizado mostra se subiu ou caiu contra o mesmo período do ano passado.
-- **Barra colorida:** vermelho abaixo de 70%, amarelo de 70% a 99% e verde com a meta batida.
-- **Projeção:** o ritmo até hoje levado aos dias úteis do mês, com quanto falta vender por dia útil.
-- **Ranking dos vendedores:** cada um com a barra da meta e a projeção do mês.
-- **Meta x realizado mês a mês:** gráfico dos últimos 12 meses da empresa.
-- **Regiões e estados:** cada região com a sua barra e os estados com o realizado e a meta.
-- **Cadastrar metas:** empresa, cada vendedor, cada região e cada estado; em R$, com metas opcionais de máquinas e de margem.
-- **Copiar do mês anterior:** traz as metas do mês passado com um % de aumento.
-- **Exportar:** planilha com uma aba para cada quadro da tela.
-- **Como é contado:** vendas aprovadas no dia da aprovação e notas sem pedido; devoluções descontam e cancelados ficam fora.
-- **Regras do vendedor:** venda sem vendedor fica com o da carteira do cliente; o estado é o do destino da nota ou do cliente.
-- **Visão do vendedor:** vê só a própria meta, o realizado, a projeção, quanto falta por dia útil e a evolução mês a mês.
-- **Quem vê:** vendas (só a própria meta), financeiro e administrador (todas, e cadastram).
+- **Preços para revisar:** quando o custo muda (nota do fornecedor, compra ou produção), o ERP calcula o preço pela margem desejada; nada muda sem a sua aprovação.
+- **Regras do preço:** margem desejada por tipo, despesas que saem do preço, arredondamento e o aviso de preço abaixo do sugerido.
+- **Taxa por forma de pagamento:** Pix, maquininha e link, com o exemplo do preço em cada uma.
+- **Tabelas de preço:** listas de preço por cliente ou canal (atacado, revenda…).
+- **Revisar todos os preços:** refaz a conta de todos os produtos com as regras de agora.
+- Antes ficava nas abas de Produtos; agora tem o espaço próprio em Vendas.
 
 ### PDV (venda de balcão)
 
@@ -710,7 +643,7 @@ O que a tela faz:
 
 Ordens de serviço, garantias e preventivas das máquinas dos clientes.
 
-Telas: [Painel da assistência](#painel-da-assistência) · [Ordens de serviço](#ordens-de-serviço) · [Garantias e preventivas](#garantias-e-preventivas)
+Telas: [Painel da assistência](#painel-da-assistência) · [Ordens de serviço](#ordens-de-serviço) · [Garantias e preventivas](#garantias-e-preventivas) · [Máquinas](#máquinas) · [Teste do giga (REG-006)](#teste-do-giga-reg-006) · [Produção](#produção)
 
 ### Painel da assistência
 
@@ -804,78 +737,6 @@ O que a tela faz:
 - **Celular:** uma máquina por cartão, com os botões de WhatsApp, histórico, abrir OS e editar.
 - **Quem vê:** vendas, financeiro, técnico e administrador; cadastrar máquina: vendas, técnico e administrador; abrir OS: técnico e administrador.
 
-## Fábrica e estoque
-
-Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.
-
-Telas: [Painel da fábrica](#painel-da-fábrica) · [Produtos e estoque](#produtos-e-estoque) · [Máquinas](#máquinas) · [Teste do giga (REG-006)](#teste-do-giga-reg-006) · [Produção](#produção) · [Compras e cotações](#compras-e-cotações) · [Transferências SC ↔ SP](#transferências-sc--sp) · [Painel das máquinas](#painel-das-máquinas) · [Painel dos produtos](#painel-dos-produtos) · [Peças de reposição](#peças-de-reposição) · [Componentes de produção](#componentes-de-produção)
-
-### Painel da fábrica
-
-**Veja a fábrica de relance: o que monta, o que falta e o que comprar.**
-
-Indicadores da fábrica: ordens de produção, peças faltando, estoque mínimo e compras.
-
-- **Tags:** FÁBRICA · PRODUÇÃO · ESTOQUE
-- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico e Compras
-
-O que a tela faz:
-
-- **Resumo:** máquinas em montagem, OPs esperando peça e máquinas prontas no período, comparando com o período anterior.
-- **Período:** hoje, 7 dias, 30 dias, mês ou ano.
-- **Cartão Em produção:** máquinas nas OPs abertas e quantas OPs estão com peça faltando; tocar abre a Produção.
-- **Cartão Máquinas prontas:** OPs concluídas no período, com tendência.
-- **Cartão Compras a caminho:** valor dos pedidos de compra enviados, quantos são e quantos estão atrasados (só para quem compra).
-- **Dinheiro no estoque:** valor a preço de custo e quantos itens estão no mínimo, da unidade escolhida ou das duas.
-- **OPs abertas:** as próximas pela data prevista, com "falta peça" ou "peças ok", responsável e atraso em vermelho.
-- **Precisa de atenção:** OPs com peça faltando ou atrasadas, compras atrasadas ou em cotação, itens no mínimo e transferências SC ↔ SP em trânsito.
-- **Gráfico de máquinas prontas:** no período (mês a mês no ano).
-- **Peças que faltam para as OPs:** soma de todas as OPs, com o que há livre no estoque e quanto custa comprar.
-- **Compras a caminho por fornecedor:** ranking pelo valor; tocar abre as ordens de compra.
-- **Onde está o dinheiro do estoque:** rosca por tipo (máquinas, peças, acessórios, componentes); tocar filtra a lista do mínimo.
-- **No estoque mínimo:** os itens mais críticos primeiro, com a barra do quanto resta em relação ao mínimo.
-- **Pedir peças:** botão no topo que abre uma ordem de compra nova.
-- **Atalhos:** OP, reposição de estoque, ordens de compra, ficha técnica, produtos e transferências, com os avisos em número.
-- **Quem vê:** financeiro, técnico, compras, vendas e administrador; os números de compras só para quem compra ou recebe mercadoria.
-
-### Produtos e estoque
-
-**Cadastro limpo, estoque certo em SC e SP e preço com margem.**
-
-Produtos e estoque por unidade: NCM, EAN, custos, preços, kits, tabelas de preço, formação de preço e contagem. Em Qualidade, as correções sugeridas pelo ERP (NCM, custo, categoria, marca) para aplicar com um toque.
-
-- **Tags:** PRODUTOS · ESTOQUE · PREÇOS
-- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
-
-O que a tela faz:
-
-- **Cadastros separados:** Peças de reposição, Componentes, Serviços e Todos, com a quantidade (as máquinas têm tela própria) e o botão Painel dos produtos.
-- **Lista:** foto, nome, códigos, marca, categoria, venda com custo e margem, estoque total e por unidade, vendidos em 3 meses e NCM.
-- **Selos:** não vende, usada na produção, também vende, inativo, fora de linha e situação no catálogo (falta foto ou preço).
-- **Filtros:** tipo, categoria, marca, linha, fornecedor, estoque, situação, cadastro incompleto, frete (sem peso ou medidas) e fiscal (sem NCM, preço ou custo).
-- **Avisos no topo:** preços para revisar (o custo subiu e a margem caiu) e itens no estoque mínimo ou abaixo.
-- **Preencher com IA (no cadastro, seção Anúncio):** do nome, da foto e do PDF do fornecedor saem título, palavras-chave, textos de venda, categoria, marca, modelo, campos técnicos e canais; você marca o que entra e salva.
-- **Cadastro completo:** códigos (SKU, fabricante, EAN, alternativos), unidade, categoria, local, garantia, compra e reposição, peso e medidas com desenho.
-- **Conferências ao cadastrar:** avisa produto parecido já cadastrado, confere o código de barras e sugere o NCM pelas notas de fornecedor.
-- **Custo e preço:** preço sugerido pela margem desejada e margem bruta; mudar custo, preço ou código já preenchido pede o motivo, que fica no histórico.
-- **Mínimo sugerido:** calcula o estoque mínimo pelo consumo dos últimos 180 dias e o prazo do fornecedor.
-- **Catálogo e anúncio:** catálogo do WhatsApp e vitrine, galeria de fotos e vídeos, título e textos para marketplace e Google, com nota de 0 a 100.
-- **Dados fiscais:** NCM, CEST, CFOP, CST e origem da mercadoria para a NF-e.
-- **Ficha do produto:** tudo numa janela, em abas: geral, fornecedores, anúncios (inclusive o que vai para o Mercado Livre) e custos com as compras.
-- **Movimentar estoque:** entrada ou ajuste por unidade, com motivo; saída que não é venda vai pela baixa com motivo fiscal (perda, quebra, uso interno…).
-- **Histórico:** quem mudou o quê no cadastro, com o motivo, e todas as movimentações de estoque com documento e série.
-- **Kits:** o kit mostra quantos dá para montar pelos componentes; o botão de componentes define o que sai do estoque na venda.
-- **Aba Qualidade:** correções sugeridas pelo ERP (NCM, custo, categoria, marca…) para aplicar ou ignorar com um toque, e a revisão da base com exportação.
-- **Aba Anúncios:** cadastros repetidos para unificar, nomes fora do padrão, códigos EAN errados e quem está pronto para marketplace.
-- **Aba Categorias:** categorias e subcategorias com quantos produtos cada uma tem; renomear troca em todos os produtos.
-- **Aba Preços:** aprovar o preço sugerido quando o custo muda, revisar todos e as regras de margem por tipo e categoria (financeiro e administrador).
-- **Aba Tabelas de preço:** Marketplace, Revenda, Atacado… com % sobre o preço de venda, arredondamento e preço fixo por produto.
-- **Aba Contagem:** inventário às cegas (o saldo fica escondido), mostra as divergências, pede justificativa e só então ajusta o estoque.
-- **Ações em lote:** ativar, inativar, mover de cadastro (com motivo), unificar repetidos, definir linha de comissão e exportar para planilha.
-- **Importações:** produtos e kits do Tiny por planilha e "Itens das notas de fornecedor", que liga cada item comprado ao produto do ERP.
-- **Sugestão de separação:** peças marcadas "não vende" aparecem para conferir e mover para Componentes de produção.
-- **Quem vê:** vendas, financeiro, técnico, compras, marketplaces e administrador; o perfil Marketplaces mexe só no anúncio, sem preço, custo nem estoque.
-
 ### Máquinas
 
 **Cada modelo de máquina completo: peças, custo, manuais e clientes.**
@@ -960,6 +821,78 @@ O que a tela faz:
 - **Estrutura em vários níveis:** subconjuntos dentro da máquina, montados junto ou com estoque próprio; as peças da OP já somam tudo.
 - **Marcadores, cancelar e excluir:** etiquetas coloridas, cancelar a OP e excluir com motivo (fica em "Excluídas"; OP concluída não sai).
 - **Quem usa:** financeiro, técnico e administrador criam e mexem; vendas consulta; o perfil Compras não vê esta tela.
+
+## Fábrica e estoque
+
+Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.
+
+Telas: [Painel da fábrica](#painel-da-fábrica) · [Produtos e estoque](#produtos-e-estoque) · [Compras e cotações](#compras-e-cotações) · [Transferências SC ↔ SP](#transferências-sc--sp) · [Painel das máquinas](#painel-das-máquinas) · [Painel dos produtos](#painel-dos-produtos) · [Peças de reposição](#peças-de-reposição) · [Componentes de produção](#componentes-de-produção)
+
+### Painel da fábrica
+
+**Veja a fábrica de relance: o que monta, o que falta e o que comprar.**
+
+Indicadores da fábrica: ordens de produção, peças faltando, estoque mínimo e compras.
+
+- **Tags:** FÁBRICA · PRODUÇÃO · ESTOQUE
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico e Compras
+
+O que a tela faz:
+
+- **Resumo:** máquinas em montagem, OPs esperando peça e máquinas prontas no período, comparando com o período anterior.
+- **Período:** hoje, 7 dias, 30 dias, mês ou ano.
+- **Cartão Em produção:** máquinas nas OPs abertas e quantas OPs estão com peça faltando; tocar abre a Produção.
+- **Cartão Máquinas prontas:** OPs concluídas no período, com tendência.
+- **Cartão Compras a caminho:** valor dos pedidos de compra enviados, quantos são e quantos estão atrasados (só para quem compra).
+- **Dinheiro no estoque:** valor a preço de custo e quantos itens estão no mínimo, da unidade escolhida ou das duas.
+- **OPs abertas:** as próximas pela data prevista, com "falta peça" ou "peças ok", responsável e atraso em vermelho.
+- **Precisa de atenção:** OPs com peça faltando ou atrasadas, compras atrasadas ou em cotação, itens no mínimo e transferências SC ↔ SP em trânsito.
+- **Gráfico de máquinas prontas:** no período (mês a mês no ano).
+- **Peças que faltam para as OPs:** soma de todas as OPs, com o que há livre no estoque e quanto custa comprar.
+- **Compras a caminho por fornecedor:** ranking pelo valor; tocar abre as ordens de compra.
+- **Onde está o dinheiro do estoque:** rosca por tipo (máquinas, peças, acessórios, componentes); tocar filtra a lista do mínimo.
+- **No estoque mínimo:** os itens mais críticos primeiro, com a barra do quanto resta em relação ao mínimo.
+- **Pedir peças:** botão no topo que abre uma ordem de compra nova.
+- **Atalhos:** OP, reposição de estoque, ordens de compra, ficha técnica, produtos e transferências, com os avisos em número.
+- **Quem vê:** financeiro, técnico, compras, vendas e administrador; os números de compras só para quem compra ou recebe mercadoria.
+
+### Produtos e estoque
+
+**Cadastro limpo, estoque certo em SC e SP e preço com margem.**
+
+Produtos e estoque por unidade: NCM, EAN, custos, preços, kits, tabelas de preço, formação de preço e contagem. Em Qualidade, as correções sugeridas pelo ERP (NCM, custo, categoria, marca) para aplicar com um toque.
+
+- **Tags:** PRODUTOS · ESTOQUE · PREÇOS
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Marketplaces e Compras
+
+O que a tela faz:
+
+- **Cadastros separados:** Peças de reposição, Componentes, Serviços e Todos, com a quantidade (as máquinas têm tela própria) e o botão Painel dos produtos.
+- **Lista:** foto, nome, códigos, marca, categoria, venda com custo e margem, estoque total e por unidade, vendidos em 3 meses e NCM.
+- **Selos:** não vende, usada na produção, também vende, inativo, fora de linha e situação no catálogo (falta foto ou preço).
+- **Filtros:** tipo, categoria, marca, linha, fornecedor, estoque, situação, cadastro incompleto, frete (sem peso ou medidas) e fiscal (sem NCM, preço ou custo).
+- **Avisos no topo:** preços para revisar (o custo subiu e a margem caiu) e itens no estoque mínimo ou abaixo.
+- **Preencher com IA (no cadastro, seção Anúncio):** do nome, da foto e do PDF do fornecedor saem título, palavras-chave, textos de venda, categoria, marca, modelo, campos técnicos e canais; você marca o que entra e salva.
+- **Cadastro completo:** códigos (SKU, fabricante, EAN, alternativos), unidade, categoria, local, garantia, compra e reposição, peso e medidas com desenho.
+- **Conferências ao cadastrar:** avisa produto parecido já cadastrado, confere o código de barras e sugere o NCM pelas notas de fornecedor.
+- **Custo e preço:** preço sugerido pela margem desejada e margem bruta; mudar custo, preço ou código já preenchido pede o motivo, que fica no histórico.
+- **Mínimo sugerido:** calcula o estoque mínimo pelo consumo dos últimos 180 dias e o prazo do fornecedor.
+- **Catálogo e anúncio:** catálogo do WhatsApp e vitrine, galeria de fotos e vídeos, título e textos para marketplace e Google, com nota de 0 a 100.
+- **Dados fiscais:** NCM, CEST, CFOP, CST e origem da mercadoria para a NF-e.
+- **Ficha do produto:** tudo numa janela, em abas: geral, fornecedores, anúncios (inclusive o que vai para o Mercado Livre) e custos com as compras.
+- **Movimentar estoque:** entrada ou ajuste por unidade, com motivo; saída que não é venda vai pela baixa com motivo fiscal (perda, quebra, uso interno…).
+- **Histórico:** quem mudou o quê no cadastro, com o motivo, e todas as movimentações de estoque com documento e série.
+- **Kits:** o kit mostra quantos dá para montar pelos componentes; o botão de componentes define o que sai do estoque na venda.
+- **Aba Qualidade:** correções sugeridas pelo ERP (NCM, custo, categoria, marca…) para aplicar ou ignorar com um toque, e a revisão da base com exportação.
+- **Aba Anúncios:** cadastros repetidos para unificar, nomes fora do padrão, códigos EAN errados e quem está pronto para marketplace.
+- **Aba Categorias:** categorias e subcategorias com quantos produtos cada uma tem; renomear troca em todos os produtos.
+- **Aba Preços:** aprovar o preço sugerido quando o custo muda, revisar todos e as regras de margem por tipo e categoria (financeiro e administrador).
+- **Aba Tabelas de preço:** Marketplace, Revenda, Atacado… com % sobre o preço de venda, arredondamento e preço fixo por produto.
+- **Aba Contagem:** inventário às cegas (o saldo fica escondido), mostra as divergências, pede justificativa e só então ajusta o estoque.
+- **Ações em lote:** ativar, inativar, mover de cadastro (com motivo), unificar repetidos, definir linha de comissão e exportar para planilha.
+- **Importações:** produtos e kits do Tiny por planilha e "Itens das notas de fornecedor", que liga cada item comprado ao produto do ERP.
+- **Sugestão de separação:** peças marcadas "não vende" aparecem para conferir e mover para Componentes de produção.
+- **Quem vê:** vendas, financeiro, técnico, compras, marketplaces e administrador; o perfil Marketplaces mexe só no anúncio, sem preço, custo nem estoque.
 
 ### Compras e cotações
 
@@ -1378,7 +1311,7 @@ O que a tela faz:
 
 Notas fiscais emitidas e recebidas, painel fiscal, painel do contador e analista fiscal.
 
-Telas: [Painel fiscal](#painel-fiscal) · [Notas fiscais](#notas-fiscais) · [Painel do contador](#painel-do-contador) · [Analista fiscal](#analista-fiscal) · [Impostos pagos](#impostos-pagos) · [Parcelamentos de impostos](#parcelamentos-de-impostos)
+Telas: [Painel fiscal](#painel-fiscal) · [Notas fiscais](#notas-fiscais) · [Painel do contador](#painel-do-contador) · [Analista fiscal](#analista-fiscal) · [Impostos pagos](#impostos-pagos) · [Parcelamentos de impostos](#parcelamentos-de-impostos) · [Relatórios](#relatórios) · [Margem de contribuição](#margem-de-contribuição)
 
 ### Painel fiscal
 
@@ -1564,39 +1497,6 @@ O que a tela faz:
 - **Nada é apagado:** parcela que sobra fica anulada e parcelamento encerrado só muda de situação.
 - **Quem vê:** financeiro e administrador cadastram e registram; o contador consulta.
 
-## Gestão
-
-Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.
-
-Telas: [Painel gerencial](#painel-gerencial) · [Relatórios](#relatórios) · [Margem de contribuição](#margem-de-contribuição) · [Funcionários](#funcionários)
-
-### Painel gerencial
-
-**Veja onde a empresa cresce, onde trava e o que fazer.**
-
-Painel para decidir: curva ABC, clientes parados, tendências, gargalos e metas.
-
-- **Tags:** DECISÃO · CURVA ABC · METAS
-- **Quem pode abrir:** Administrador e Financeiro
-
-O que a tela faz:
-
-- **Vendas juntas:** soma as vendas do ERP e as notas antigas do Tiny, sem testes, devoluções, remessas e transferências.
-- **Vendas do mês:** até hoje, contra o mesmo período do mês passado e o mesmo mês do ano passado.
-- **Vendas no ano e últimos 12 meses:** comparação com o período anterior, número de vendas e ticket médio.
-- **Clientes que compraram:** nos últimos 12 meses, com quantos são novos, quantos estão em risco e quantos estão inativos.
-- **Onde a operação está travando:** orçamentos parados, vendas sem nota, pedidos parados na expedição, OS antigas e compras atrasadas.
-- **Mais gargalos:** cotações paradas, contas a receber e a pagar vencidas, produtos abaixo do mínimo e estoque parado; cada um abre a tela.
-- **Gráfico:** vendas mês a mês dos últimos 12 meses contra o mesmo mês do ano anterior.
-- **Curva ABC de produtos:** classes A, B e C pelo que mais vende, no período de 3 meses a todo o histórico, com exportar para Excel.
-- **Curva ABC de clientes:** quem mais compra, no mesmo período, com exportar e o botão para abrir a ficha do cliente.
-- **Clientes parados:** em risco (demorando a voltar) ou inativos (mais de 1 ano sem comprar), com o total já comprado e a última compra.
-- **Tendências:** produtos em alta e em queda nos últimos 90 dias contra os 90 anteriores.
-- **Estoque parado:** produtos sem venda há 6 meses, com o valor a custo e a data da última venda.
-- **Metas:** meta x realizado da empresa, ranking dos vendedores, regiões e estados, projeção pelos dias úteis e o cadastro das metas.
-- **Unidade:** o seletor do menu mostra só SC, só SP ou as duas juntas.
-- **Quem vê:** administrador e financeiro.
-
 ### Relatórios
 
 **Os números do período prontos para ver e exportar.**
@@ -1648,6 +1548,95 @@ O que a tela faz:
 - **Exportar:** planilha do Excel com a visão escolhida.
 - **Quem vê:** administrador e financeiro.
 
+## Gestão
+
+Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.
+
+Telas: [Painel gerencial](#painel-gerencial) · [Comissões](#comissões) · [Metas de vendas](#metas-de-vendas) · [Funcionários](#funcionários)
+
+### Painel gerencial
+
+**Veja onde a empresa cresce, onde trava e o que fazer.**
+
+Painel para decidir: curva ABC, clientes parados, tendências, gargalos e metas.
+
+- **Tags:** DECISÃO · CURVA ABC · METAS
+- **Quem pode abrir:** Administrador e Financeiro
+
+O que a tela faz:
+
+- **Vendas juntas:** soma as vendas do ERP e as notas antigas do Tiny, sem testes, devoluções, remessas e transferências.
+- **Vendas do mês:** até hoje, contra o mesmo período do mês passado e o mesmo mês do ano passado.
+- **Vendas no ano e últimos 12 meses:** comparação com o período anterior, número de vendas e ticket médio.
+- **Clientes que compraram:** nos últimos 12 meses, com quantos são novos, quantos estão em risco e quantos estão inativos.
+- **Onde a operação está travando:** orçamentos parados, vendas sem nota, pedidos parados na expedição, OS antigas e compras atrasadas.
+- **Mais gargalos:** cotações paradas, contas a receber e a pagar vencidas, produtos abaixo do mínimo e estoque parado; cada um abre a tela.
+- **Gráfico:** vendas mês a mês dos últimos 12 meses contra o mesmo mês do ano anterior.
+- **Curva ABC de produtos:** classes A, B e C pelo que mais vende, no período de 3 meses a todo o histórico, com exportar para Excel.
+- **Curva ABC de clientes:** quem mais compra, no mesmo período, com exportar e o botão para abrir a ficha do cliente.
+- **Clientes parados:** em risco (demorando a voltar) ou inativos (mais de 1 ano sem comprar), com o total já comprado e a última compra.
+- **Tendências:** produtos em alta e em queda nos últimos 90 dias contra os 90 anteriores.
+- **Estoque parado:** produtos sem venda há 6 meses, com o valor a custo e a data da última venda.
+- **Metas:** meta x realizado da empresa, ranking dos vendedores, regiões e estados, projeção pelos dias úteis e o cadastro das metas.
+- **Unidade:** o seletor do menu mostra só SC, só SP ou as duas juntas.
+- **Quem vê:** administrador e financeiro.
+
+### Comissões
+
+**Comissão certa, calculada sozinha e paga sem planilha.**
+
+Comissões de vendedores e representantes: % por vendedor, por categoria e por linha de produtos, calculadas item a item.
+
+- **Tags:** COMISSÃO · VENDEDORES · REPRESENTANTES
+- **Quem pode abrir:** Administrador, Vendas e Financeiro
+
+O que a tela faz:
+
+- **Abas:** Comissões, Vendedores e representantes, % por categoria e Linhas de produtos (as três últimas, só para o financeiro).
+- **Comissão automática:** escolhido o vendedor no pedido, a comissão sai sozinha, item a item, pelas regras dele.
+- **Quando sai:** no recebimento (a cada parcela paga), no faturamento (na aprovação) ou misto (uma parte na aprovação e o resto nas parcelas).
+- **Cartões por vendedor:** quanto cada um tem a pagar e quanto já recebeu; tocar filtra a lista.
+- **Lista:** data, vendedor, pedido e cliente, base, %, valor e situação (a pagar, no contas a pagar, paga ou cancelada).
+- **Filtros:** vendedor, situação e mês das comissões.
+- **Pagar:** marcar as comissões de um vendedor e gerar uma conta a pagar com vencimento; ao dar baixa nela, as comissões ficam pagas.
+- **Imprimir e Exportar:** relatório em PDF e planilha com os filtros escolhidos.
+- **Cancelamento:** pedido cancelado cancela a comissão ainda não paga; mudar vendedor ou % num pedido aprovado refaz as não pagas.
+- **Cadastro do vendedor:** dados, endereço pelo CEP, contato, unidade, % geral, quando libera e se paga ou não sobre o frete.
+- **Terceirizado:** com "pagar só com a NF dele", a conta da comissão só é paga com o nº da NF; a chave Pix já vai junto.
+- **Login e portal:** o vendedor ligado ao seu usuário vê as próprias comissões; o administrador cria o acesso do representante ao portal.
+- **% por categoria:** % para todos ou exceção de um vendedor; em branco herda, e a subcategoria usa o % da categoria-mãe.
+- **Ordem das regras:** vendedor na categoria, depois linha do produto, depois categoria e, por fim, o % geral; o % digitado no pedido vale acima de tudo.
+- **Linhas de produtos:** comissão fixa, comissão que cai conforme o desconto dado (por faixas) ou linha só para agrupar.
+- **Quem vê:** vendas (só as próprias comissões), financeiro e administrador (todas, com o pagamento).
+
+### Metas de vendas
+
+**Saber cedo se a meta do mês vai ser batida e quanto falta.**
+
+Metas de vendas por vendedor, estado e região, com projeção do mês e ranking.
+
+- **Tags:** METAS · RANKING · PROJEÇÃO
+- **Quem pode abrir:** Administrador, Vendas e Financeiro
+
+O que a tela faz:
+
+- **Mês e unidade:** escolhe o mês e a unidade (ou todas juntas) para ver as metas.
+- **Meta da empresa:** cartões com a meta, o realizado, o % atingido e a projeção do mês.
+- **De onde vem a meta:** cadastrada ou somada dos vendedores, dos estados ou das regiões.
+- **Comparação com o ano anterior:** o realizado mostra se subiu ou caiu contra o mesmo período do ano passado.
+- **Barra colorida:** vermelho abaixo de 70%, amarelo de 70% a 99% e verde com a meta batida.
+- **Projeção:** o ritmo até hoje levado aos dias úteis do mês, com quanto falta vender por dia útil.
+- **Ranking dos vendedores:** cada um com a barra da meta e a projeção do mês.
+- **Meta x realizado mês a mês:** gráfico dos últimos 12 meses da empresa.
+- **Regiões e estados:** cada região com a sua barra e os estados com o realizado e a meta.
+- **Cadastrar metas:** empresa, cada vendedor, cada região e cada estado; em R$, com metas opcionais de máquinas e de margem.
+- **Copiar do mês anterior:** traz as metas do mês passado com um % de aumento.
+- **Exportar:** planilha com uma aba para cada quadro da tela.
+- **Como é contado:** vendas aprovadas no dia da aprovação e notas sem pedido; devoluções descontam e cancelados ficam fora.
+- **Regras do vendedor:** venda sem vendedor fica com o da carteira do cliente; o estado é o do destino da nota ou do cliente.
+- **Visão do vendedor:** vê só a própria meta, o realizado, a projeção, quanto falta por dia útil e a evolução mês a mês.
+- **Quem vê:** vendas (só a própria meta), financeiro e administrador (todas, e cadastram).
+
 ### Funcionários
 
 **A equipe organizada, com contratos, salários e documentos.**
@@ -1681,7 +1670,7 @@ O que a tela faz:
 
 Pela engrenagem no fim do menu: empresa e marca, usuários e permissões, importação de dados e categorias.
 
-Telas: [Configurações](#configurações-1) · [Documentos](#documentos) · [Importar dados](#importar-dados) · [Troca do Tiny](#troca-do-tiny) · [Usuários e permissões](#usuários-e-permissões) · [Categorias e marcadores](#categorias-e-marcadores)
+Telas: [Configurações](#configurações-1) · [Documentos](#documentos) · [Importar dados](#importar-dados) · [Troca do Tiny](#troca-do-tiny) · [Scrum das equipes](#scrum-das-equipes) · [Automações](#automações) · [Usuários e permissões](#usuários-e-permissões) · [Categorias e marcadores](#categorias-e-marcadores)
 
 ### Configurações
 
@@ -1790,6 +1779,55 @@ O que a tela faz:
 - **Mudar prazos e responsáveis:** o administrador edita a data e quem faz cada etapa.
 - **Importar dados:** atalho para trazer planilhas, XML e contas do Tiny.
 - **Quem vê:** administrador e financeiro.
+
+### Scrum das equipes
+
+**Cada equipe entrega um pouco toda semana, sem perder o foco.**
+
+Scrum de cada equipe (ERP Line, Produção, Assistência, Vendas e Financeiro): backlog na ordem de prioridade, sprints de 1 ou 2 semanas com objetivo, quadro A fazer → Fazendo → Revisão → Feito, daily com impedimentos, revisão e retrospectiva ao encerrar, e painel com burndown, velocidade e pontos por pessoa. As Ideias do Sobre o ERP Line viram itens do backlog do ERP Line. No item, o assistente preenche os campos, detalha a descrição, monta tarefas, critérios de aceite, cenários e casos de teste, mostra o que já existe parecido e resume os comentários.
+
+- **Tags:** SCRUM · SPRINT · EQUIPES
+- **Quem pode abrir:** Administrador, Vendas, Financeiro, Técnico, Expedição, Marketplaces e Compras
+
+O que a tela faz:
+
+- **Equipes lado a lado:** ERP Line, Produção, Assistência, Vendas e Financeiro, com a sprint, pontos feitos, ritmo e backlog.
+- **Ritmo da sprint:** no ritmo, adiantada, atrasada ou sem pontos; a equipe da pessoa aparece como "minha".
+- **Faixa da equipe:** sprint em andamento, datas, dias úteis que restam e o objetivo.
+- **Como usar o Scrum:** passo a passo em palavras simples e exemplos prontos de cada equipe que vão para o backlog com um toque.
+- **Quadro:** A fazer → Fazendo → Revisão → Feito; arrastar no computador e usar as setas no celular.
+- **Backlog:** tudo o que falta fazer, na ordem de prioridade; anotar rápido, subir, descer e mandar para a sprint.
+- **Trazer das Ideias:** na equipe ERP Line, as Ideias do Sobre o ERP Line viram itens do backlog.
+- **Item:** título, tipo (história, tarefa, problema ou melhoria), pontos de esforço, responsável, situação, descrição e critério de pronto.
+- **Assistente do item:** Preencher (completa tipo, pontos, responsável, descrição e critério vazios pelo histórico das equipes), Detalhar (descrição organizada a partir do título), Tarefas, Critérios de aceite, Cenários (Dado / Quando / Então) e Casos de teste com passou/falhou; tudo é rascunho, com Desfazer, e só grava no Salvar.
+- **Parecidos:** enquanto se escreve o título, mostra itens de qualquer equipe, Ideias e entregas das Atualizações que já tratam do mesmo assunto, para não repetir trabalho.
+- **Comentários da equipe no item, com "Resumir a conversa":** o que foi decidido, o que está travado, as perguntas sem resposta e os próximos passos.
+- **Sprints:** planejar com objetivo, datas e itens; iniciar; e ver o histórico das anteriores.
+- **Encerrar a sprint:** revisão do que foi entregue e retrospectiva (bom, melhorar, ações); o que não terminou volta ao backlog.
+- **Daily:** cada pessoa diz o que fez, o que vai fazer e o que a impede; mostra quem respondeu, quem falta e os impedimentos.
+- **Painel:** pontos da sprint, ritmo, dias úteis restantes, velocidade média, backlog em pontos e impedimentos abertos.
+- **Gráficos:** burndown da sprint, velocidade planejado × feito e pontos por pessoa.
+- **Equipe:** membros, dono do produto, scrum master, tamanho da sprint (1 ou 2 semanas) e cor; só o administrador muda.
+- **Quem vê:** todos da empresa, menos o contador e o representante externo.
+
+### Automações
+
+**Tudo o que o ERP faz sozinho, por área, e se está em dia.**
+
+Tudo o que o ERP faz sozinho, por área (financeiro, notas, vendas, cadastros, avisos, equipe e IA, sistema): quando roda, se está em dia e as próximas automações na fila.
+
+- **Tags:** AUTOMÁTICO · IA · SAÚDE
+- **Quem pode abrir:** Só a conta master
+
+O que a tela faz:
+
+- **Indicadores:** quantas automações rodam sozinhas, quantas estão em dia, com problema (falhou ou atrasada) e desligadas.
+- **Por área:** financeiro e bancos, notas e impostos, vendas e Mercado Livre, cadastros, avisos e cobrança, equipe e IA, sistema e segurança.
+- **Cada automação:** o que faz em português, quando roda (horário de Brasília), quando rodou pela última vez e as falhas das últimas 24 horas.
+- **Atalho Abrir:** leva à tela onde aparece o resultado da automação (extrato, notas, anúncios, anotações).
+- **Conferir agora:** lê de novo a situação de todas, na hora.
+- **Próximas automações:** o que já foi pedido para a IA do dia a dia e está na fila ou sendo feito (Sobre → Pedidos).
+- Detalhes técnicos (erros, funções e backup) continuam no Sobre → Monitor; a carteira pessoal só aparece para a conta master.
 
 ### Usuários e permissões
 
@@ -1962,11 +2000,11 @@ Quando a unidade não tinha como emitir e a empresa ligada emitiu a nota da vend
 A venda paga entra sozinha, a nota e o rastreio voltam para o Mercado Livre e o dinheiro é conciliado.
 
 1. **Cliente compra** (no anúncio do ML) — Cliente
-2. **Venda entra no ERP** (cliente e itens prontos) — O ERP sozinho · tela Mercado Livre
+2. **Venda entra no ERP** (cliente e itens prontos) — O ERP sozinho · tela Loja online e marketplace
 3. **NF-e emitida** — Fiscal · tela Notas fiscais
-4. **NF vai para o ML** (sozinha, a cada 10 min) — O ERP sozinho · tela Mercado Livre
+4. **NF vai para o ML** (sozinha, a cada 10 min) — O ERP sozinho · tela Loja online e marketplace
 5. **Separar e etiquetar** — Expedição · tela Separação e embalagem
-6. **Rastreio** — O ERP sozinho · tela Mercado Livre
+6. **Rastreio** — O ERP sozinho · tela Loja online e marketplace
 7. **Dinheiro liberado** (Mercado Pago) — Financeiro · tela Contas a pagar e receber
 8. **Conciliado no banco** — Financeiro · tela Bancos e conciliação
 
@@ -2215,6 +2253,18 @@ Depois da venda: o ERP lembra a preventiva e cuida da garantia de cada máquina.
 4. **Agendar o técnico** (da região do cliente) — Assistência · tela Ordens de serviço
 5. **OS da preventiva** — Técnico · tela Ordens de serviço
 6. **Próxima data** — O ERP sozinho · tela Garantias e preventivas
+
+#### Máquina que vem para conserto
+
+A máquina do cliente entra com nota, é consertada e volta com nota de retorno; o conserto é cobrado à parte.
+
+1. **Abrir a OS** (oficina, com a série) — Assistência · tela Ordens de serviço
+2. **Nota de ida** (com IE: ele emite a 5915) — Cliente
+3. **Sem IE: entrada** (OS → Notas: 1915) — Fiscal · tela Ordens de serviço
+4. **Conserto** — Técnico · tela Ordens de serviço
+5. **Cobrar o conserto** (serviço e peças) — Financeiro · tela Ordens de serviço
+6. **Nota de volta** (OS → Notas: 5916) — Fiscal · tela Ordens de serviço
+7. **Entregar** (DANFE junto) — Logística · tela Ordens de serviço
 
 #### OS pelo celular do técnico
 
