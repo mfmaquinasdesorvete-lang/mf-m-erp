@@ -10,9 +10,10 @@ import { join } from "node:path";
 import { COMANDO, RAIZ, documento } from "./docs/base.mjs";
 import { gerarModulos } from "./docs/modulos.mjs";
 import { gerarGuiaPorPerfil } from "./docs/guia-por-perfil.mjs";
+import { gerarPerguntasFrequentes } from "./docs/perguntas-frequentes.mjs";
 
 const modulos = gerarModulos();
-const docs = [modulos, gerarGuiaPorPerfil(modulos)];
+const docs = [modulos, gerarGuiaPorPerfil(modulos), gerarPerguntasFrequentes(modulos)];
 
 const pasta = join(RAIZ, "docs");
 mkdirSync(pasta, { recursive: true });

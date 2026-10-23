@@ -85,7 +85,7 @@ export const item = (to) => {
 /** Caminho para chegar na tela: "Vendas → Venda de Peças" ou o botão que a abre. */
 export function ondeFica(to) {
   const i = item(to);
-  if (ONDE_ABRE[to]) return `${ONDE_ABRE[to]} (ou pela busca do menu)`;
+  if (ONDE_ABRE[to]) return `${ONDE_ABRE[to]}; também pela busca do menu`;
   const a = areaDoItem(to);
   return a && a.id !== "inicio" ? `menu ${a.titulo} → ${i.label}` : `menu → ${i.label}`;
 }
