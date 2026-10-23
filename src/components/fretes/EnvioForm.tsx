@@ -571,6 +571,29 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
     }
   }
 
+  // Braspress com API ligada no ERP: a marca (cartão) ativa
+  const bp = transportadoras.find((x) => x.ativo && !x.matriz_id && integracaoApi(x) === "braspress");
+  const [cotandoBp, setCotandoBp] = useState(false);
+  async function cotarBraspress() {
+    if (!bp) return;
+    if (incompletos.length) return notify(`Cotação sem medidas não é comparável. Complete e salve: ${incompletos.join("; ")}`, "erro");
+    setCotandoBp(true);
+    try {
+      const r = await callFunction<{ valor: number; prazo: number | null; id: string | null }>("braspress", { acao: "cotar", envio_id: envio.id });
+      const { error } = await supabase.from("envio_cotacoes").insert({
+        envio_id: envio.id, transportadora_id: bp.id, valor: r.valor, prazo_dias: r.prazo, validade: somarDias(7), tipo_servico: "padrao", tabela_versao: "API", adicionais: [],
+        observacoes: `Cotação pela API da Braspress${r.id ? ` nº ${r.id}` : ""}; confira adicionais e validade na proposta`,
+      });
+      if (error) throw error;
+      notify(`Braspress: ${brl(r.valor)}${r.prazo != null ? `, ${r.prazo} ${pl(r.prazo, "dia", "dias")}` : ""}`);
+      atualizar();
+    } catch (err) {
+      notifyError(err);
+    } finally {
+      setCotandoBp(false);
+    }
+  }
+
   // Melhor Envio: várias transportadoras de uma vez; cada serviço com preço vira uma cotação (a transportadora do
   // cadastro quando o nome bate, senão o nome que veio), para comparar e aprovar como as outras
   const me = transportadoras.find((x) => x.ativo && !x.matriz_id && integracaoApi(x) === "melhorenvio");
@@ -668,6 +691,10 @@ function Cotacoes({ envio, transportadoras, podeEditar, podeAdicional, pedidoOrc
             {rte && (
               <Button type="button" variant="secondary" disabled={cotandoRte || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Simula o frete na API da Rodonaves e registra a cotação"}
                 onClick={cotarRodonaves}><Zap size={14} /> {cotandoRte ? "Cotando na Rodonaves…" : "Cotar na Rodonaves (API)"}</Button>
+            )}
+            {bp && (
+              <Button type="button" variant="secondary" disabled={cotandoBp || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Cota o frete na API da Braspress e registra a cotação"}
+                onClick={cotarBraspress}><Zap size={14} /> {cotandoBp ? "Cotando na Braspress…" : "Cotar na Braspress (API)"}</Button>
             )}
             {me && (
               <Button type="button" variant="secondary" disabled={cotandoMe || falta.length > 0} title={falta.length ? `Falta: ${falta.join(", ")}` : "Cota no Melhor Envio (Correios, Jadlog, Loggi, J&T, Azul, LATAM, Buslog) e registra cada opção"}

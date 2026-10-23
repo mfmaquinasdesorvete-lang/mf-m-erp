@@ -421,6 +421,9 @@ function TestarApi({ t }: { t: Transportadora }) {
       if (qual === "melhorenvio") {
         const r = await callFunction<{ conta: string; sandbox: boolean }>("melhorenvio", { acao: "testar" });
         setEstado({ ok: true, texto: `Conectado na conta ${r.conta}${r.sandbox ? " (sandbox, preços de teste)" : ""}. A cotação aparece no envio: Fretes → envio → Cotações → "Cotar no Melhor Envio".` });
+      } else if (qual === "braspress") {
+        const r = await callFunction<{ homologacao: boolean }>("braspress", { acao: "testar" });
+        setEstado({ ok: true, texto: `Conectado na Braspress${r.homologacao ? " (ambiente de teste)" : ""}. A cotação aparece no envio (Cotações → "Cotar na Braspress (API)") e o rastreio em Fretes → Rastreio.` });
       } else {
         const r = await callFunction<{ servidor: string }>("rodonaves", { acao: "testar" });
         setEstado({ ok: true, texto: `Conectado (servidor ${r.servidor}). A cotação aparece no envio: Fretes → envio → Cotações → "Cotar na Rodonaves (API)".` });

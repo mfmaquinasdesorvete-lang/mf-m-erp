@@ -11,7 +11,7 @@ import { callFunction, supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { dataBR, dataHoraBR, hoje, pl, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
-import { linkRastreio } from "@/lib/transportadoras";
+import { integracaoApi, linkRastreio } from "@/lib/transportadoras";
 import { grupoRastreio, mensagemAtraso, mensagemChegando, mensagemRastreio, type GrupoRastreio } from "@/lib/rastreio";
 import type { Envio } from "@/lib/fretes";
 import type { Transportadora } from "@/lib/types";
@@ -126,7 +126,7 @@ function CartaoRastreio({ e, grupo, cor, cliente, transportadora, pedido, podeEd
           <Button type="submit" disabled={salvando || !codigo.trim()}>{salvando ? "Salvando…" : "Salvar"}</Button>
         </form>
       ) : <p className="text-xs text-amber-800">Falta o código de rastreio.</p>}
-      <SituacaoTransportadora e={e} podeEditar={podeEditar} />
+      <SituacaoTransportadora e={e} podeEditar={podeEditar} transportadora={transportadora} />
       {grupo === "atrasado" && podeEditar && <MotivoAtraso e={e} />}
       {(grupo === "chegando" || grupo === "atrasado") && (
         <AvisoCliente e={e} tipo={grupo} zap={zap} texto={grupo === "chegando"
@@ -172,7 +172,10 @@ function AvisoCliente({ e, tipo, zap, texto }: { e: Envio; tipo: "chegando" | "a
 
 /** O que a transportadora informou (SSW, pela chave da nota): última ocorrência, todas as ocorrências, atualizar agora
  *  e, quando ela informa a entrega, "Confirmar entrega" (data do comprovante = a da transportadora). */
-function SituacaoTransportadora({ e, podeEditar }: { e: Envio; podeEditar: boolean }) {
+function SituacaoTransportadora({ e, podeEditar, transportadora }: { e: Envio; podeEditar: boolean; transportadora?: Transportadora }) {
+  // Braspress tem rastreio pela API própria; as outras tentam o SSW pela chave da nota
+  const fonte = transportadora && integracaoApi(transportadora) === "braspress" ? "braspress" : "ssw";
+  const rotulo = fonte === "braspress" ? "Braspress" : "SSW";
   const invalidar = useInvalidate();
   const [aberto, setAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -180,9 +183,9 @@ function SituacaoTransportadora({ e, podeEditar }: { e: Envio; podeEditar: boole
   async function atualizar() {
     setOcupado(true);
     try {
-      const r = await callFunction<{ ok: boolean; erro?: string; entregue?: boolean }>("ssw", { acao: "rastrear", envio_id: e.id });
-      if (r.ok) notify(r.entregue ? "A transportadora informou a entrega" : "Rastreio atualizado pelo SSW");
-      else notify(`SSW: ${r.erro}`);
+      const r = await callFunction<{ ok: boolean; erro?: string; entregue?: boolean }>(fonte, { acao: "rastrear", envio_id: e.id });
+      if (r.ok) notify(r.entregue ? "A transportadora informou a entrega" : `Rastreio atualizado pela ${rotulo}`);
+      else notify(`${rotulo}: ${r.erro}`);
       invalidar("envios");
     } catch (err) { notifyError(err); } finally { setOcupado(false); }
   }
@@ -205,7 +208,7 @@ function SituacaoTransportadora({ e, podeEditar }: { e: Envio; podeEditar: boole
         <span className="min-w-0 flex-1">
           {e.rastreio_situacao
             ? <><b>Transportadora:</b> {e.rastreio_situacao}{eventos.length ? ` · ${eventos[eventos.length - 1].em ? dataHoraBR(eventos[eventos.length - 1].em!) : ""}` : ""}</>
-            : e.rastreio_em ? "O SSW não achou a nota (a transportadora pode não usar o SSW)." : "Ainda não rastreado pela nota."}
+            : e.rastreio_em ? (fonte === "braspress" ? "A Braspress ainda não achou a nota." : "O SSW não achou a nota (a transportadora pode não usar o SSW).") : "Ainda não rastreado pela nota."}
         </span>
         {eventos.length > 1 && (
           <button type="button" onClick={() => setAberto(!aberto)} className="inline-flex items-center gap-0.5 font-semibold text-modulo-texto hover:underline" aria-expanded={aberto}>
@@ -213,8 +216,8 @@ function SituacaoTransportadora({ e, podeEditar }: { e: Envio; podeEditar: boole
           </button>
         )}
         {podeEditar && e.status !== "entregue" && (
-          <Button type="button" tamanho="mini" variant="secondary" onClick={atualizar} disabled={ocupado} aria-label="Atualizar o rastreio pelo SSW">
-            <RefreshCw size={12} className={ocupado ? "animate-spin" : ""} aria-hidden /> SSW
+          <Button type="button" tamanho="mini" variant="secondary" onClick={atualizar} disabled={ocupado} aria-label={`Atualizar o rastreio pela ${rotulo}`}>
+            <RefreshCw size={12} className={ocupado ? "animate-spin" : ""} aria-hidden /> {rotulo}
           </Button>
         )}
       </div>
