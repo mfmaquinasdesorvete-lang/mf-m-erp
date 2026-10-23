@@ -24,6 +24,8 @@
   - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
     gastos pessoais e o encontro de contas com as empresas. Dados pessoais não saem desse chat.
+  - "ERP Line – Entradas nas contas da MF": de onde veio cada entrada nos bancos da MF (vendas, clientes,
+    licenciados, cartão, Olist, InfinitePay, Inter, Mercado Pago) e a ligação com pedido, nota ou conta a receber.
   - "ERP Line – IA do dia a dia (ideias)": as ideias da usuária para a IA do trabalho do dia a dia.
   - "ERP Line – continuação (22/10)": todo o resto (vendas, máquinas, cadastros, financeiro, produção, banco).
   - O chat principal (anterior) organiza os outros.
