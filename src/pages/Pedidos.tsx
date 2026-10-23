@@ -456,7 +456,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       </>}
 
       {/* quantidade e soma do que está na lista (valor da venda, não o da NF), como no Tiny; com seleção, as ações em lote */}
-      <RodapeLista quantidade={naTela.length} nome={["pedido", "pedidos"]} total={somar(naTela, (p) => p.valor_total)} rotuloTotal="valor das vendas" dica={quadro ? null : undefined}
+      <RodapeLista quantidade={naTela.length} nome={["pedido", "pedidos"]} total={somar(naTela.filter((p) => p.status !== "cancelado"), (p) => p.valor_total)} rotuloTotal={naTela.some((p) => p.status === "cancelado") ? "valor das vendas (sem os cancelados)" : "valor das vendas"} dica={quadro ? null : undefined}
         extras={vePagamento ? [{ valor: recebidoLista, rotulo: "recebido", cor: "text-emerald-700" }, { valor: aReceberLista, rotulo: "a receber", cor: "text-sky-700" }].filter((x) => x.valor > 0) : undefined}
         selecionados={selecionados.length} totalSelecionados={somar(selecionados, (p) => p.valor_total)} onLimparSelecao={selecao.limpar}
         acoes={<>
@@ -708,6 +708,8 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
       precoListaDe: (id) => { const prod = produtos.find((x) => x.id === id); return prod ? precoNaTabela(tabelaDe((p as any).tabela_preco_id), prod, precosFixos).preco : null; },
       descontoPedido: Number(p.desconto || 0),
     });
+  // mesma base do banco (lancar_comissao): o total, sem o frete só quando o vendedor tem "descontar frete"
+  const baseComissao = vendedores.find((v) => v.id === p.vendedor_id)?.descontar_frete === false ? total : Math.max(total - Number(p.frete || 0), 0);
   const set = (patch: Partial<Pedido>) => setP((x) => ({ ...x, ...patch }));
   const tabelaAtual = tabelaDe((p as any).tabela_preco_id);
   const precoDe = (prod: Produto, tabela = tabelaAtual) => precoNaTabela(tabela, prod, precosFixos).preco;
@@ -1075,7 +1077,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
                 onChange={(e) => set({ comissao_percentual: e.target.value === "" ? null : Number(e.target.value.replace(",", ".")) })} />
               {comissaoPrevista && subtotal > 0 && (
                 <span className="mt-1 block text-xs text-slate-600" title="Em branco: % por categoria de cada item (regras em Comissões)">
-                  ≈ {brl((subtotal - Number(p.desconto || 0)) * comissaoPrevista.pct / 100)}
+                  ≈ {brl(baseComissao * comissaoPrevista.pct / 100)}
                   {comissaoPrevista.faixas.length > 1 && ` · ${comissaoPrevista.faixas.map((f) => `${f.categorias.slice(0, 2).join(", ") || "outros"} ${pctTexto(f.pct)}`).join(" · ")}`}
                 </span>
               )}
