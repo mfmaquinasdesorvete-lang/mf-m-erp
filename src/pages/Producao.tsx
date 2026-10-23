@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { BarraFiltros, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, ShoppingBag, Trash2, Truck, Wrench, XCircle,
+  CheckCircle2, ClipboardList, Factory, FileDown, History, Layers, MessageCircle, PackageCheck, PackageSearch, Play, Plus, Receipt, ShoppingBag, Trash2, Truck, Wrench, XCircle,
 } from "lucide-react";
 import { Badge, CelulaAbrir, Button, Card, chip, Field, Modal, PageHeader, Stat, Table, Tabs } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
@@ -19,6 +19,8 @@ import { useConfig } from "@/lib/useConfig";
 import { textoPadrao } from "@/lib/textosPadrao";
 import { UltimasCompras } from "@/components/compras/UltimasCompras";
 import { NotasDaOc } from "@/components/compras/NotasDaOc";
+import { ContasDaOc, lancarContasOc, useContasDaOc } from "@/components/compras/ContasDaOc";
+import { podeLancarOc } from "@/lib/contasOc";
 import { DadosOc, ObservacoesOc, PagamentoOc, TotaisDaOc, TransporteOc } from "@/components/compras/CamposOc";
 import { totaisOc } from "@/lib/ordemCompra";
 import { Historico } from "@/components/Historico";
@@ -617,8 +619,9 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
   const { data: cfgTextos } = useConfig();
   // OC nova feita à mão: já vem com as observações padrão (Configurações → Textos dos documentos)
   const novaOC = () => ({ status: "cotacao", frete: 0, itens: [], observacoes: textoPadrao(cfgTextos, "oc_observacoes") || null });
-  const { pode } = usePerfil();
+  const { pode, tem } = usePerfil();
   const { filtrar } = useUnidade();
+  const invalidate = useInvalidate();
   const { data: pcsTodos = [], isLoading } = useRows<PedidoCompra>("pedidos_compra", { select: "*, fornecedor:fornecedores(*), itens:pedido_compra_itens(*)" });
   const pcs = filtrar(pcsTodos);
   const [aberto, setAberto] = useState<(Partial<PedidoCompra> & { itens: ItemCompra[] }) | null>(null);
@@ -637,12 +640,37 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
   const lista = pcs.filter((p) => (mostrarTodos || !["recebido", "cancelado"].includes(p.status)) && naData(p));
   // quadro por etapas (como o Fluxo de pedidos) ou a lista; a escolha fica no aparelho
   const [modo, setModoState] = useState<"quadro" | "lista">(() => { try { return localStorage.getItem("erp.oc.modo") === "lista" ? "lista" : "quadro"; } catch { return "quadro"; } });
-  const setModo = (m: "quadro" | "lista") => { setModoState(m); try { localStorage.setItem("erp.oc.modo", m); } catch { /* sem armazenamento */ } };
+  const setModo = (m: "quadro" | "lista") => { setModoState(m); selecao.limpar(); try { localStorage.setItem("erp.oc.modo", m); } catch { /* sem armazenamento */ } };
   const noQuadro = useMemo(() => pcs.filter(naData).flatMap((p) => {
     const s = situacaoOC(p, hoje());
     return s ? [{ id: p.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: Number(p.valor_total || 0), p, s }] : [];
   }), [pcs, periodoOc]); // eslint-disable-line react-hooks/exhaustive-deps
   const abrirOC = (p: PedidoCompra) => setAberto({ ...p, itens: p.itens ?? [] });
+
+  // marcar várias OC na lista e lançar as contas de todas de uma vez
+  const selecao = useSelecao();
+  const selecionadas = lista.filter((p) => selecao.tem(p.id));
+  const [lancando, setLancando] = useState(false);
+  async function lancarSelecionadas() {
+    const prontas = selecionadas.filter((p) => podeLancarOc(p, false));
+    const fora = selecionadas.length - prontas.length;
+    if (!prontas.length) return notify("Nenhuma das OC marcadas está enviada ao fornecedor (e ainda sem receber), com fornecedor e valor", "erro");
+    if (!(await confirmar(`Lançar no contas a pagar ${prontas.length} ${pl(prontas.length, "OC", "OC")} (${brl(prontas.reduce((s, p) => s + Number(p.valor_total || 0), 0))}), cada uma pelas parcelas combinadas?` +
+      (fora ? ` ${fora} ${pl(fora, "fica de fora", "ficam de fora")} (em cotação, já recebida, cancelada ou sem fornecedor).` : "") + " A OC que já tem as contas lançadas é pulada.",
+      { titulo: "Lançar no contas a pagar", ok: "Lançar" }))) return;
+    setLancando(true);
+    let contas = 0, ocs = 0;
+    const pulos: string[] = [];
+    for (const p of prontas) {
+      try { contas += await lancarContasOc(p.id); ocs++; }
+      catch (e) { pulos.push(`#${p.numero}: ${(e as Error).message}`); }
+    }
+    setLancando(false);
+    invalidate("contas_pagar", "contas_pagar_origem", "pedidos_compra");
+    if (ocs) notify(`${contas} ${pl(contas, "conta lançada", "contas lançadas")} de ${ocs} ${pl(ocs, "OC", "OC")}`);
+    if (pulos.length) notify(`Não lançadas: ${pulos.join(" · ")}`, "erro");
+    selecao.limpar();
+  }
   const atrasados = pcs.filter((p) => ["enviado", "parcial"].includes(p.status) && p.previsao_entrega && p.previsao_entrega < hoje()).length;
 
   return (
@@ -689,9 +717,10 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
           )} />
       ) : (
       <Table empty={!isLoading && !lista.length}
-        head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
+        head={<><th className="th w-10"><input type="checkbox" className="h-4 w-4" aria-label="Marcar todas da lista" checked={lista.length > 0 && lista.every((p) => selecao.tem(p.id))} onChange={() => selecao.alternarTodos(lista.map((p) => p.id))} /></th><th className="th">Nº</th><th className="th">Data</th><th className="th">Fornecedor</th><th className="th">Itens</th><th className="th">Situação</th><th className="th">Entrega</th><th className="th text-right">Total</th><th className="th"><span className="sr-only">Ações</span></th><th className="th" /></>}>
         {lista.map((p) => (
-          <tr key={p.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50" onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto({ ...p, itens: p.itens ?? [] }); } }}>
+          <tr key={p.id} className={`cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50 ${selecao.tem(p.id) ? "bg-brand/5" : ""}`} onClick={() => setAberto({ ...p, itens: p.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberto({ ...p, itens: p.itens ?? [] }); } }}>
+            <td className="td sel w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="h-4 w-4" checked={selecao.tem(p.id)} onChange={() => selecao.alternar(p.id)} aria-label={`Marcar a OC ${p.numero}`} /></td>
             <td className="td font-bold text-fg">#{p.numero}{p.numero_fornecedor && <span className="block text-xs font-normal text-slate-500">nº forn. {p.numero_fornecedor}</span>}</td>
             <td className="td num whitespace-nowrap">{dataBR(p.data ?? p.created_at?.slice(0, 10))}</td>
             <td className="td">{p.fornecedor?.nome ?? <span className="text-amber-700">a definir</span>}
@@ -708,6 +737,11 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
           </tr>
         ))}
       </Table>
+      )}
+      {modo === "lista" && (
+        <RodapeLista quantidade={lista.length} nome={["ordem de compra", "ordens de compra"]} total={lista.filter((p) => p.status !== "cancelado").reduce((s, p) => s + Number(p.valor_total || 0), 0)}
+          selecionados={selecionadas.length} totalSelecionados={selecionadas.reduce((s, p) => s + Number(p.valor_total || 0), 0)} onLimparSelecao={selecao.limpar}
+          acoes={tem("financeiro", "compras") ? <Button disabled={lancando} onClick={lancarSelecionadas}><Receipt size={15} /> {lancando ? "Lançando…" : "Lançar no contas a pagar"}</Button> : undefined} />
       )}
       {aberto && <PCModal inicial={aberto} onClose={() => setAberto(null)} />}
       {verExcluidas && <DocumentosExcluidos tabela="pedidos_compra" onClose={() => setVerExcluidas(false)} />}
@@ -889,6 +923,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
           <TransporteOc p={p} set={set} editavel={editavel} />
         </div>
         <ObservacoesOc p={p} set={set} editavel={editavel} />
+        {p.id && <ContasDaOc p={p} />}
         {p.id && p.status && ["enviado", "parcial", "recebido"].includes(p.status) && (
           <NotasDaOc pedido={{ id: p.id, numero: Number(p.numero), status: p.status, itens: p.itens }} onBaixa={onClose} />
         )}
@@ -933,6 +968,9 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
   const primeira = !pc.itens.some((i) => Number(i.quantidade_recebida ?? 0) > 0);
   const tudo = pc.itens.every((i) => (qtd[i.id!] ?? 0) >= i.quantidade - Number(i.quantidade_recebida ?? 0));
   const pelasParcelas = primeira && tudo && !!pc.parcelas?.length;
+  // a OC já lançou as contas (Lançar no contas a pagar): o recebimento não lança de novo
+  const { data: contasOc = [] } = useContasDaOc(pc.id);
+  const jaLancadas = contasOc.length > 0;
 
   async function confirmar() {
     if (travado.current) return;
@@ -941,7 +979,7 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
     try {
       const { data, error } = await supabase.rpc("receber_pedido_compra", {
         p_pedido: pc.id, p_itens: Object.entries(qtd).map(([item_id, quantidade]) => ({ item_id, quantidade })),
-        p_gerar_conta: gerarConta, p_vencimento: vencimento,
+        p_gerar_conta: gerarConta && !jaLancadas, p_vencimento: vencimento,
       });
       if (error) throw error;
       notify(data === "recebido" ? "Mercadoria recebida sem nota e lançada no estoque" : "Recebimento parcial (sem nota) registrado");
@@ -974,7 +1012,11 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
           );
         })}
       </div>
-      <Card className="mt-4 p-3">
+      {jaLancadas ? (
+        <Card className="mt-4 p-3 text-sm text-slate-700">
+          As contas desta OC já estão no contas a pagar ({contasOc.length} {pl(contasOc.length, "conta", "contas")}, {brl(contasOc.reduce((s, c) => s + Number(c.valor || 0), 0))}): o recebimento não lança de novo.
+        </Card>
+      ) : <Card className="mt-4 p-3">
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={gerarConta} onChange={(e) => setGerarConta(e.target.checked)} /> Lançar em contas a pagar</label>
         {gerarConta && pelasParcelas && (
           <p className="mt-2 text-sm text-slate-700">
@@ -983,7 +1025,7 @@ function ReceberModal({ pc, onClose, onFeito }: { pc: PedidoCompra & { itens: It
         )}
         {gerarConta && !pelasParcelas && <Field label="Vencimento" className="mt-2 max-w-[200px]"><input className="input" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} /></Field>}
         <p className="mt-2 text-xs text-slate-500">Se depois chegar a nota destes itens, o estoque não entra de novo; só confira se a conta a pagar não ficou em dobro.</p>
-      </Card>
+      </Card>}
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>Voltar</Button>
         <Button onClick={confirmar} disabled={ocupado}><PackageCheck size={16} /> Confirmar recebimento</Button>

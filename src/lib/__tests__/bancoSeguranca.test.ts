@@ -84,7 +84,6 @@ const AJUDANTES: Record<string, string> = {
   pendencias_conta_dados: "pendências de uma conta antes da aprovação",
   preco_sugerido: "preço sugerido pelo custo e pela margem",
   preco_tabela: "preço do produto na tabela",
-  produto_vigente: "id do produto que ficou depois da unificação (só o id)",
   rateio_valido: "sim/não: o rateio fecha 100%",
   rosto_vigente: "sim/não: o login com o rosto já é obrigatório (data em configuracoes)",
   sessao_viva: "sim/não: a sessão de quem chama ainda existe (o administrador pode derrubar)",

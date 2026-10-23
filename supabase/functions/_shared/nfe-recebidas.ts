@@ -83,8 +83,29 @@ export async function carregarItens(db: SupabaseClient, nfe: { id: string; chave
 }
 
 /** Lança as duplicatas da nota em contas a pagar (ou parcela única no vencimento informado). */
-export async function lancarContaPagar(db: SupabaseClient, nfe: any, duplicatas: Duplicata[], vencimentoPadrao?: string) {
+export async function lancarContaPagar(db: SupabaseClient, nfe: any, duplicatas: Duplicata[], vencimentoPadrao?: string, manual = false) {
   if (nfe.conta_pagar_id) return 0;
+  // a OC já lançou as contas (OC → Lançar no contas a pagar): a nota usa as dela em vez de lançar de novo
+  const { data: vinculos } = await db.from("nfe_oc_vinculos").select("pedido_compra_id").eq("nfe_id", nfe.id).eq("ativo", true);
+  const ocs = (vinculos ?? []).map((v: any) => v.pedido_compra_id);
+  if (ocs.length) {
+    const { data: daOc } = await db.from("contas_pagar").select("id").in("pedido_compra_id", ocs).neq("status", "cancelado").order("vencimento");
+    if (daOc?.length) {
+      await db.from("contas_pagar").update({ nfe_recebida_id: nfe.id }).in("id", daOc.map((c: any) => c.id)).is("nfe_recebida_id", null);
+      await db.from("nfe_recebidas").update({ conta_pagar_id: daOc[0].id }).eq("id", nfe.id);
+      nfe.conta_pagar_id = daOc[0].id;
+      return 0;
+    }
+  } else if (nfe.fornecedor_id) {
+    // nota ainda sem OC ligada, mas o fornecedor tem OC com contas lançadas esperando a nota: não lança (duplicaria)
+    const { data: esperando } = await db.from("contas_pagar").select("pedido_compra:pedidos_compra(numero)")
+      .eq("fornecedor_id", nfe.fornecedor_id).not("pedido_compra_id", "is", null).is("nfe_recebida_id", null).neq("status", "cancelado").limit(1);
+    if (esperando?.length) {
+      const n = (esperando[0] as any).pedido_compra?.numero;
+      if (manual) throw new HttpError(409, `A OC #${n} deste fornecedor já lançou as contas a pagar: ligue a nota à OC (Notas fiscais → Recebidas → Ordem de compra) em vez de lançar de novo.`);
+      return 0;
+    }
+  }
   let parcelas = duplicatas;
   if (!parcelas.length) {
     if (!vencimentoPadrao) return 0;

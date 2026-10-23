@@ -4811,6 +4811,38 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
       reaberturas: [...(o.reaberturas ?? []), { em: quando(0), nome: "Você (prévia)", motivo: String(p_motivo).trim(), concluida_em: o.concluida_em, voltou_para: p_status }] });
     return { data: null, error: null };
   },
+  contas_da_oc: ({ p_pedido }) => {
+    const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
+    if (!pc) return { data: [], error: null };
+    return { data: db.contas_pagar.filter((c) => c.status !== "cancelado" && (c.pedido_compra_id === pc.id
+      || (!c.pedido_compra_id && c.documento === `PC ${pc.numero}` && c.fornecedor_id === pc.fornecedor_id))), error: null };
+  },
+  lancar_oc_contas_pagar: ({ p_pedido }) => {
+    const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
+    if (!pc) return erro("ordem de compra não encontrada");
+    if (!["enviado", "parcial"].includes(pc.status)) return erro(`OC #${pc.numero}: só a OC enviada ao fornecedor (ou recebida em parte) lança as contas por aqui`);
+    if (!pc.fornecedor_id) return erro(`OC #${pc.numero} sem fornecedor`);
+    if (db.contas_pagar.some((c) => c.status !== "cancelado" && (c.pedido_compra_id === pc.id || (!c.pedido_compra_id && c.documento === `PC ${pc.numero}`)))) {
+      return erro(`as contas da OC #${pc.numero} já estão lançadas no contas a pagar`);
+    }
+    const total = r2(Number(pc.valor_total || 0));
+    if (total <= 0) return erro(`OC #${pc.numero} sem valor`);
+    const base = { fornecedor_id: pc.fornecedor_id, unidade_id: pc.unidade_id, categoria: pc.categoria || "fornecedores", documento: `PC ${pc.numero}`,
+      status: "aberto", forma_pagamento_id: pc.forma_pagamento_id ?? null, pedido_compra_id: pc.id };
+    const parc = (pc.parcelas ?? []) as { vencimento: string; valor: number }[];
+    if (!parc.length) {
+      db.contas_pagar.push({ id: uid(), ...base, descricao: `Pedido de compra #${pc.numero}`, valor: total, vencimento: dias(30) });
+      return { data: 1, error: null };
+    }
+    const soma = parc.reduce((t, x) => t + Number(x.valor || 0), 0);
+    let usado = 0;
+    parc.forEach((x, k) => {
+      const v = k === parc.length - 1 ? r2(total - usado) : r2(soma > 0 ? total * Number(x.valor || 0) / soma : total / parc.length);
+      usado += v;
+      db.contas_pagar.push({ id: uid(), ...base, descricao: `Pedido de compra #${pc.numero} (${k + 1}/${parc.length})`, valor: v, vencimento: x.vencimento || dias(30 * (k + 1)) });
+    });
+    return { data: parc.length, error: null };
+  },
   receber_pedido_compra: ({ p_pedido, p_itens, p_gerar_conta, p_vencimento }) => {
     const pc = db.pedidos_compra.find((x) => x.id === p_pedido);
     if (!pc || ["recebido", "cancelado"].includes(pc.status)) return erro("pedido já finalizado");
@@ -4831,7 +4863,8 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (completo) pc.recebido_em = quando(0);
     if (completo) valor += Number(pc.frete || 0) + Number(pc.outras_despesas || 0) - Number(pc.desconto || 0);
     const base = { fornecedor_id: pc.fornecedor_id, unidade_id: pc.unidade_id, categoria: pc.categoria || "fornecedores", documento: `PC ${pc.numero}`, status: "aberto", forma_pagamento_id: pc.forma_pagamento_id ?? null };
-    if (p_gerar_conta && valor > 0) {
+    const jaLancadas = db.contas_pagar.some((c) => c.status !== "cancelado" && c.pedido_compra_id === pc.id);
+    if (p_gerar_conta && valor > 0 && !jaLancadas) {
       const parc = (pc.parcelas ?? []) as { vencimento: string; valor: number }[];
       if (parc.length && completo && primeira) {
         // como no banco: uma conta por parcela, a última acerta os centavos

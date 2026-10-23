@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
           duplicatas = (await itensDaNota(db, nfe)).duplicatas;
         } catch (_) { /* sem XML ainda: parcela única */ }
         const contas = await lancarContaPagar(db, nfe, duplicatas,
-          body.vencimento ?? new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10));
+          body.vencimento ?? new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10), true);
         return json({ ok: true, contas });
       }
 

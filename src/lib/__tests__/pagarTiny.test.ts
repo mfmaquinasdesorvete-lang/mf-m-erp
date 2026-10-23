@@ -7,6 +7,7 @@ describe("contas a pagar como no Tiny", () => {
   it("origem com o número do documento e entrando na busca", () => {
     expect(rotuloOrigem(origem({ origem: "nf", nf_numero: "1234" }))).toBe("NF 1234");
     expect(rotuloOrigem(origem({ origem: "oc", oc_numero: "56" }))).toBe("OC 56");
+    expect(rotuloOrigem(origem({ origem: "nf", nf_numero: "910", oc_numero: "56" }))).toBe("NF 910 · OC 56");
     expect(rotuloOrigem(origem({ origem: "frete", envio_numero: "12" }))).toBe("Envio 12");
     expect(rotuloOrigem(origem({ origem: "cte", fatura_numero: "789" }))).toBe("Fatura 789");
     expect(rotuloOrigem(origem({ origem: "extrato" }))).toBe("Extrato");

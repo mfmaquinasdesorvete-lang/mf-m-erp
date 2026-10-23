@@ -1,6 +1,7 @@
 // OC - Ordem de Compra com os campos do Tiny: dados do pedido (data, nº no fornecedor, categoria), totais (produtos,
 // IPI, ICMS ST, frete, outras despesas e desconto), pagamento com parcelas, transporte e observações (a do fornecedor e a
-// interna). As parcelas viram as contas a pagar quando a mercadoria chega (receber_pedido_compra).
+// interna). As parcelas viram as contas a pagar no "Lançar no contas a pagar" (lancar_oc_contas_pagar) ou, se ainda não
+// lançou, quando a mercadoria chega (receber_pedido_compra).
 import { CalendarClock, Plus, Trash2, Truck, Wallet } from "lucide-react";
 import { Button, Field } from "@/components/ui";
 import { useRows } from "@/lib/data";
@@ -131,7 +132,7 @@ export function PagamentoOc({ p, set, editavel, totais }: Props & { totais: Tota
           </Button>
         </div>
       )}
-      <p className="text-xs text-slate-500">As parcelas viram as contas a pagar quando a mercadoria chegar (recebida de uma vez). Sem parcelas, sai uma conta só com o vencimento escolhido no recebimento.</p>
+      <p className="text-xs text-slate-500">Depois de mandar a OC, toque em <b>Lançar no contas a pagar</b> (embaixo): cada parcela vira uma conta, ligada a esta OC. Se não lançar antes, as contas saem quando a mercadoria chegar.</p>
     </section>
   );
 }

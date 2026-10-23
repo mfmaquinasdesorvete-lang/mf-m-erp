@@ -31,7 +31,8 @@ export const ORIGENS: Record<CodigoOrigem, { sigla: string; rotulo: string; cor:
 export function rotuloOrigem(o: OrigemConta | null | undefined): string | null {
   if (!o) return null;
   const s = ORIGENS[o.origem]?.sigla ?? "Outra";
-  if (o.origem === "nf" && o.nf_numero) return `NF ${o.nf_numero}`;
+  // conta lançada pela OC e depois ligada à nota do fornecedor: mostra as duas
+  if (o.origem === "nf" && o.nf_numero) return o.oc_numero ? `NF ${o.nf_numero} · OC ${o.oc_numero}` : `NF ${o.nf_numero}`;
   if (o.origem === "st" && o.nf_numero) return `NFS-e ${o.nf_numero}`;
   if (o.origem === "gnre" && o.nf_numero) return `GNRE NF ${o.nf_numero}`;
   if (o.origem === "dv" && o.nf_numero) return `DV NF ${o.nf_numero}`;
