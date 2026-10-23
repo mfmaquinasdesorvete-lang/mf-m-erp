@@ -433,7 +433,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
             {pl(criadas.length, "Ordem de compra criada", "Ordens de compra criadas")} em cotação: {criadas.map((c) => `#${c.numero ?? "?"}${c.fornecedor ? ` (${c.fornecedor})` : ""}`).join(", ")}.
           </span>
           <Button variant="secondary" onClick={aoGerar}>Ver pedidos de compra</Button>
-          <button type="button" className="rounded-lg p-1.5 hover:bg-emerald-100" aria-label="Fechar aviso" onClick={() => setCriadas(null)}><X size={16} aria-hidden /></button>
+          <button type="button" className="botao-icone p-1.5" aria-label="Fechar aviso" onClick={() => setCriadas(null)}><X size={16} aria-hidden /></button>
         </Card>
       )}
 
@@ -502,7 +502,7 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
                   <option value="prioridade">Prioridade (críticos primeiro)</option>
                   {(Object.keys(DICAS) as ChaveOrdem[]).map((k) => <option key={k} value={k}>{DICAS[k][0]}</option>)}
                 </select>
-                <button type="button" className="shrink-0 rounded-lg border border-slate-300 px-2 text-slate-600 hover:bg-slate-50" onClick={() => setOrdem((o) => ({ ...o, asc: !o.asc }))}
+                <button type="button" className="botao-icone border border-slate-300 px-2" onClick={() => setOrdem((o) => ({ ...o, asc: !o.asc }))}
                   aria-label={ordem.asc ? "Ordem crescente: trocar para decrescente" : "Ordem decrescente: trocar para crescente"}>
                   {ordem.asc ? <ArrowUp size={16} aria-hidden /> : <ArrowDown size={16} aria-hidden />}
                 </button>

@@ -226,7 +226,7 @@ export default function PainelMaquinas() {
               return (
                 <li key={m.p.id}>
                   <button type="button" onClick={() => filtrarModelo(m.p.id)} aria-pressed={ativo}
-                    className={`grid w-full grid-cols-4 items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50 md:grid-cols-[minmax(0,2.2fr)_repeat(5,minmax(0,1fr))] ${ativo ? "bg-modulo/10 ring-1 ring-modulo/30" : ""}`}>
+                    className={`linha-clicavel grid grid-cols-4 items-center gap-x-3 gap-y-1.5 px-2 py-2.5 md:grid-cols-[minmax(0,2.2fr)_repeat(5,minmax(0,1fr))] ${ativo ? "bg-modulo/10 ring-1 ring-modulo/30" : ""}`}>
                     <span className="col-span-4 min-w-0 md:col-span-1">
                       <span className="block truncate text-sm font-semibold text-fg">{m.nome}</span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
@@ -260,10 +260,10 @@ export default function PainelMaquinas() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Section title="Garantias a vencer (30 dias)" actions={<button type="button" onClick={() => navigate("/garantias")} className="text-sm font-semibold text-modulo-texto hover:underline">Ver todas</button>}>
+        <Section title="Garantias a vencer (30 dias)" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
           <ListaMaquinas lista={k.venceLogo} data={(e) => e.garantia_ate} rotulo="vence" vazio="Nenhuma garantia vencendo." onAbrir={() => navigate("/garantias")} />
         </Section>
-        <Section title="Preventivas atrasadas" actions={<button type="button" onClick={() => navigate("/garantias")} className="text-sm font-semibold text-modulo-texto hover:underline">Ver todas</button>}>
+        <Section title="Preventivas atrasadas" actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Ver todas</button>}>
           <ListaMaquinas lista={k.prevAtrasada} data={(e) => e.proxima_preventiva} rotulo="era em" vazio="Nenhuma preventiva atrasada." onAbrir={() => navigate("/garantias")} />
         </Section>
         <Section title="Voltam para a assistência (12 meses)" className="md:col-span-2 xl:col-span-1">
@@ -311,7 +311,7 @@ function ListaMaquinas({ lista, data, rotulo, vazio, onAbrir }: {
     <ul className="divide-y divide-slate-100">
       {lista.slice(0, 6).map((e) => (
         <li key={e.id}>
-          <button type="button" onClick={onAbrir} className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-slate-50">
+          <button type="button" onClick={onAbrir} className="linha-clicavel flex items-center gap-3 px-1 py-2">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><ShieldCheck size={17} /></span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-fg">{e.cliente?.nome_fantasia || e.cliente?.nome || "Cliente"}</span>

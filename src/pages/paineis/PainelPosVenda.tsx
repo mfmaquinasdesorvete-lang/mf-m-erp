@@ -160,7 +160,7 @@ export default function PainelPosVenda() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title={etapaAtiva ? `OS · ${etapaAtiva.rotulo}` : "OS na oficina (pela data prometida)"} className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/assistencia")} className="text-sm font-semibold text-modulo-texto hover:underline">Ver todas</button>}>
+          actions={<button type="button" onClick={() => navigate("/assistencia")} className="link-modulo text-sm">Ver todas</button>}>
           {listaAbertas.length ? (
             <ul className="divide-y divide-slate-100">
               {listaAbertas.map((o) => {
@@ -168,7 +168,7 @@ export default function PainelPosVenda() {
                 return (
                   <li key={o.id}>
                     <button type="button" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })}
-                      className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left transition hover:bg-slate-50">
+                      className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${atrasada ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Wrench size={17} /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-fg">#{o.numero} · {o.cliente?.nome_fantasia || o.cliente?.nome}</span>
@@ -202,7 +202,7 @@ export default function PainelPosVenda() {
           <p className="mt-2 text-xs text-slate-500">Modelos que entraram para conserto no período: ajuda a ver defeito de fábrica.</p>
         </Section>
         <Section title="Garantias e preventivas" className="md:col-span-2 xl:col-span-1"
-          actions={<button type="button" onClick={() => navigate("/garantias")} className="text-sm font-semibold text-modulo-texto hover:underline">Abrir</button>}>
+          actions={<button type="button" onClick={() => navigate("/garantias")} className="link-modulo text-sm">Abrir</button>}>
           <div className="grid grid-cols-2 gap-2">
             {[
               { icone: ShieldCheck, cor: "var(--kpi-verde)", rotulo: "Em garantia", n: g.em, state: undefined },

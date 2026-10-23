@@ -3,7 +3,7 @@
 import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, CircleDashed, Lightbulb, MessageSquare, Plus, Rocket, Send, Sparkles, Trash2, X, XCircle } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, chip } from "@/components/ui";
 import { confirmar } from "@/components/Dialogos";
 import { useItensProjeto } from "@/components/sobre/ItemProjeto";
 import { DESTAQUES } from "@/lib/atualizacoes";
@@ -83,7 +83,7 @@ export function ListaTarefas({ tarefas, onChange }: { tarefas: Tarefa[]; onChang
                 onChange={() => onChange(tarefas.map((x, j) => (j === k ? { ...x, feito: !x.feito } : x)))} />
               <span className={`min-w-0 flex-1 text-sm ${t.feito ? "text-slate-400 line-through" : "text-fg"}`}>{t.texto}</span>
               <button type="button" aria-label={`Tirar a tarefa ${t.texto}`} onClick={() => onChange(tarefas.filter((_, j) => j !== k))}
-                className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-red-700"><X size={14} /></button>
+                className="botao-icone-perigo p-0.5"><X size={14} /></button>
             </li>
           ))}
         </ul>
@@ -112,11 +112,11 @@ export function ListaTestes({ testes, onChange }: { testes: CasoTeste[]; onChang
             <span className="min-w-0 flex-1 text-sm font-bold text-fg">{k + 1}. {t.nome}</span>
             <span className="sr-only">{ROTULO_OK(t.ok)}</span>
             <button type="button" aria-pressed={t.ok === true} onClick={() => marcar(k, true)}
-              className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-bold ${t.ok === true ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 text-emerald-700"}`}><CheckCircle2 size={13} aria-hidden /> Passou</button>
+              className={chip(t.ok === true, "border-emerald-600 bg-emerald-600 text-white")}><CheckCircle2 size={13} aria-hidden /> Passou</button>
             <button type="button" aria-pressed={t.ok === false} onClick={() => marcar(k, false)}
-              className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-bold ${t.ok === false ? "border-red-600 bg-red-600 text-white" : "border-slate-300 text-red-700"}`}><XCircle size={13} aria-hidden /> Falhou</button>
+              className={chip(t.ok === false, "border-red-600 bg-red-600 text-white")}><XCircle size={13} aria-hidden /> Falhou</button>
             <button type="button" aria-label={`Tirar o caso ${t.nome}`} onClick={() => onChange(testes.filter((_, j) => j !== k))}
-              className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-700"><X size={14} /></button>
+              className="botao-icone-perigo p-1"><X size={14} /></button>
           </div>
           <div className="mt-1.5 grid gap-2 text-xs sm:grid-cols-2">
             <div className="min-w-0">
@@ -193,7 +193,7 @@ export function Comentarios({ item, pessoas }: { item: ItemScrum; pessoas: Pesso
               <p className="flex items-center gap-2 text-2xs text-slate-500">
                 <b className="text-slate-700">{nomeDe(pessoas, c.user_id)}</b> {dataHoraBR(c.created_at)}
                 {(c.user_id === user_id || papel === "admin") && (
-                  <button type="button" onClick={() => apagar(c)} aria-label="Apagar o comentário" className="ml-auto rounded p-0.5 text-slate-400 hover:text-red-700"><Trash2 size={13} /></button>
+                  <button type="button" onClick={() => apagar(c)} aria-label="Apagar o comentário" className="botao-icone-perigo ml-auto p-0.5"><Trash2 size={13} /></button>
                 )}
               </p>
               <p className="whitespace-pre-wrap text-fg">{c.texto}</p>

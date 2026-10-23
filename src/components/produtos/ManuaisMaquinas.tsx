@@ -70,7 +70,7 @@ export function ManuaisMaquinas({ produtos, podeEditar, aoFicha }: { produtos: P
                       </li>
                     ))}
                   </ul>
-                  <button type="button" onClick={() => aoFicha(m.id)} className="-ml-2 mt-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-light">
+                  <button type="button" onClick={() => aoFicha(m.id)} className="link-acao mt-1 inline-flex items-center gap-1 py-1 text-xs">
                     <ListTree size={14} aria-hidden /> Ver a ficha técnica
                   </button>
                 </div>

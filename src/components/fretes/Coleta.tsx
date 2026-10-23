@@ -3,7 +3,7 @@
 // função agendar_coleta (mesma regra de src/lib/coleta.ts). FrequenciaColeta edita os dias e períodos por unidade.
 import { useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, Check, ClipboardCopy, ExternalLink, MapPin, MessageCircle, Sun, Sunset, X } from "lucide-react";
-import { Button, Field } from "@/components/ui";
+import { Button, Field, chip } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { hoje, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -217,12 +217,12 @@ function LinhaFrequencia({ unidade, transportadoraId, atual, podeEditar, onSalvo
       <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Dias de coleta em ${unidade.nome}`}>
         {SIGLAS.map((s, i) => (
           <button key={s} type="button" disabled={!podeEditar} aria-pressed={f.dias.includes(i)} onClick={() => alternar(i)}
-            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${f.dias.includes(i) ? "border-emerald-600 bg-emerald-50 text-emerald-800" : "border-slate-300 text-slate-500"}`}>{s}</button>
+            className={chip(f.dias.includes(i), "border-emerald-600 bg-emerald-50 text-emerald-800")}>{s}</button>
         ))}
         <span className="mx-1 w-px self-stretch bg-slate-200" aria-hidden />
         {(Object.keys(PERIODOS) as PeriodoColeta[]).map((p) => (
           <button key={p} type="button" disabled={!podeEditar} aria-pressed={f[p]} onClick={() => setF((x) => ({ ...x, [p]: !x[p] }))}
-            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${f[p] ? "border-amber-500 bg-amber-50 text-amber-900" : "border-slate-300 text-slate-500"}`}>{PERIODOS[p].rotulo} {PERIODOS[p].faixa}</button>
+            className={chip(f[p], "border-amber-500 bg-amber-50 text-amber-900")}>{PERIODOS[p].rotulo} {PERIODOS[p].faixa}</button>
         ))}
       </div>
       {podeEditar && (

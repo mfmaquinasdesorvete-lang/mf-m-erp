@@ -84,7 +84,7 @@ export function ClienteRapido({ inicial, clientes, onClose, onCriado }: {
                 onChange={(e) => set("cpf_cnpj", gravar("doc", e.target.value))} placeholder="000.000.000-00" />
               {doc.length === 14 && (
                 <button type="button" onClick={(e) => { e.preventDefault(); buscarCnpj(); }} title="Buscar o CNPJ na Receita" aria-label="Buscar o CNPJ na Receita"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-brand hover:bg-brand-light">
+                  className="botao-icone absolute right-1.5 top-1/2 -translate-y-1/2">
                   <Search size={16} className={buscando === "cnpj" ? "animate-pulse" : ""} />
                 </button>
               )}

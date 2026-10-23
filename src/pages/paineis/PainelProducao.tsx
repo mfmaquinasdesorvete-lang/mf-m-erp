@@ -132,7 +132,7 @@ export default function PainelProducao() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title="Ordens de produção abertas (pela data prevista)" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/producao")} className="text-sm font-semibold text-modulo-texto hover:underline">Ver todas</button>}>
+          actions={<button type="button" onClick={() => navigate("/producao")} className="link-modulo text-sm">Ver todas</button>}>
           {k.lista.length ? (
             <ul className="divide-y divide-slate-100">
               {k.lista.map((o) => {
@@ -140,7 +140,7 @@ export default function PainelProducao() {
                 const semPeca = k.comFalta.has(o.id);
                 return (
                   <li key={o.id}>
-                    <button type="button" onClick={() => navigate("/producao")} className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left transition hover:bg-slate-50">
+                    <button type="button" onClick={() => navigate("/producao")} className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${semPeca ? "bg-red-50 text-red-600" : "bg-modulo/10 text-modulo-texto"}`}><Factory size={17} /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-fg">OP #{o.numero} · {o.quantidade}× {o.produto?.descricao ?? "produto"}</span>
@@ -187,7 +187,7 @@ export default function PainelProducao() {
             : <p className="py-10 text-center text-sm text-slate-500">Sem estoque com custo cadastrado.</p>}
         </Section>
         <Section title={fTipo ? `No estoque mínimo · ${fTipo}` : "No estoque mínimo (os mais críticos primeiro)"} className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/estoque")} className="text-sm font-semibold text-modulo-texto hover:underline">Abrir estoque</button>}>
+          actions={<button type="button" onClick={() => navigate("/estoque")} className="link-modulo text-sm">Abrir estoque</button>}>
           {fTipo && <div className="mb-3"><FiltrosAtivos filtros={[{ rotulo: "Tipo", valor: fTipo, limpar: () => setFTipo(null) }]} onLimpar={() => setFTipo(null)} /></div>}
           {abaixoFiltrado.length ? (
             <ul className="space-y-2.5">

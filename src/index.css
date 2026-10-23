@@ -163,14 +163,14 @@ h1, h2, h3 { text-wrap: balance; }
   .cartao { @apply rounded-xl border border-slate-200/80 bg-surface shadow-card; }
   .link-acao { @apply font-semibold text-brand hover:underline; }
   .botao-icone { @apply grid shrink-0 place-items-center rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-fg disabled:opacity-30; }
-  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600; }
+  .botao-icone-perigo { @apply grid shrink-0 place-items-center rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30; }
   .link-modulo { @apply font-semibold text-modulo-texto hover:underline; }
   .link-discreto { @apply font-semibold text-slate-500 hover:text-fg hover:underline; }
   /* botão pequeno (ações dentro de linhas e cartões); as cores vêm de Button (variant/tom) ou de .botao-mini-neutro */
   .botao-mini { @apply inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
   .botao-mini-neutro { @apply border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50; }
   /* chip de filtro ou de escolha (o mesmo de ChipsSituacao): .chip + .chip-ativo, .chip-neutro ou uma cor própria */
-  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition; }
+  .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60; }
   .chip-ativo { @apply border-brand bg-brand text-brand-fg; }
   .chip-neutro { @apply border-slate-200 bg-surface text-slate-600 hover:border-slate-300 hover:text-fg; }
   /* linha de lista que abre algo ao tocar (cliente, conta, item) */

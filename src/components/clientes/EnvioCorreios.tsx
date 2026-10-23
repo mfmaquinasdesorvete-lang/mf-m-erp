@@ -2,7 +2,7 @@
 // a declaração de conteúdo no modelo dos Correios (sem NF) ou só a etiqueta com o nº da NF (com NF). Nada é gravado.
 import { useState } from "react";
 import { AlertTriangle, FileText, Plus, Trash2 } from "lucide-react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Button, Field, Modal, chip } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
 import { useUnidade } from "@/lib/unidade";
 import { notifyError } from "@/lib/notify";
@@ -66,7 +66,7 @@ export function EnvioCorreios({ cliente, onClose }: { cliente: ClienteEnvio; onC
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Vai com nota fiscal?">
           {[[true, "Com nota fiscal"], [false, "Sem nota (declaração de conteúdo)"]].map(([v, rot]) => (
             <button key={String(v)} type="button" role="radio" aria-checked={comNota === v} onClick={() => setComNota(v as boolean)}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold ${comNota === v ? "border-brand bg-brand/10 text-brand" : "border-slate-200 text-slate-600"}`}>{rot as string}</button>
+              className={chip(comNota === v)}>{rot as string}</button>
           ))}
         </div>
 
@@ -97,7 +97,7 @@ export function EnvioCorreios({ cliente, onClose }: { cliente: ClienteEnvio; onC
                   onChange={(e) => setItens((l) => l.map((x, j) => (j === k ? { ...x, quantidade: e.target.value } : x)))} />
                 <input className="input" inputMode="decimal" aria-label="Valor unitário (R$)" placeholder="R$ un." value={i.valor}
                   onChange={(e) => setItens((l) => l.map((x, j) => (j === k ? { ...x, valor: e.target.value } : x)))} />
-                <button type="button" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" aria-label="Tirar item" disabled={itens.length === 1}
+                <button type="button" className="botao-icone-perigo p-2 disabled:opacity-30" aria-label="Tirar item" disabled={itens.length === 1}
                   onClick={() => setItens((l) => l.filter((_, j) => j !== k))}><Trash2 size={16} /></button>
               </li>
             ))}

@@ -82,7 +82,7 @@ export function PessoasContato({ pessoas, onChange, disabled }: { pessoas: Pesso
             {!disabled && (
               <div className="flex shrink-0 gap-1">
                 <button type="button" title="Editar" aria-label={`Editar ${p.nome}`} onClick={() => abrir(p)} className="botao-icone p-2"><Pencil size={15} /></button>
-                <button type="button" title="Excluir" aria-label={`Excluir ${p.nome}`} onClick={() => remover(p)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={15} /></button>
+                <button type="button" title="Excluir" aria-label={`Excluir ${p.nome}`} onClick={() => remover(p)} className="botao-icone-perigo p-2"><Trash2 size={15} /></button>
               </div>
             )}
           </li>

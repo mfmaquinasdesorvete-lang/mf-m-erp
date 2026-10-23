@@ -304,7 +304,7 @@ function TaxasPorMeio({ form, setForm, podeEditar }: { form: ConfigPreco; setFor
         <p className="mt-2 text-xs text-slate-600">
           Nos extratos, a InfinitePay descontou em média <b>{pctTxt(medida.mediana)}</b> por venda ({medida.n} {pl(medida.n, "venda", "vendas")}, já com parcelamento e antecipação).
           {podeEditar && form.taxas_meio.link !== medida.mediana && (
-            <button type="button" className="ml-1 font-semibold text-brand underline" onClick={() => setForm((f) => ({ ...f, taxas_meio: { ...f.taxas_meio, link: medida.mediana } }))}>Usar no link</button>
+            <button type="button" className="link-acao ml-1" onClick={() => setForm((f) => ({ ...f, taxas_meio: { ...f.taxas_meio, link: medida.mediana } }))}>Usar no link</button>
           )}
         </p>
       )}

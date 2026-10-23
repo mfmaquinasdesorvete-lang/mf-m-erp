@@ -154,7 +154,7 @@ export default function PainelCadastros() {
             <ul className="divide-y divide-slate-100">
               {k.recentes.map(({ c, d }) => (
                 <li key={c.id}>
-                  <button type="button" onClick={() => setFicha(c)} className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-slate-50">
+                  <button type="button" onClick={() => setFicha(c)} className="linha-clicavel flex items-center gap-3 px-1 py-2">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-sm font-bold text-modulo-texto">{nomeDe(c).slice(0, 1).toUpperCase()}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-fg">{nomeDe(c)}</span>
@@ -188,7 +188,7 @@ export default function PainelCadastros() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title="Cadastro dos produtos: o que falta" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/estoque?aba=qualidade")} className="text-sm font-semibold text-modulo-texto hover:underline">Corrigir</button>}>
+          actions={<button type="button" onClick={() => navigate("/estoque?aba=qualidade")} className="link-modulo text-sm">Corrigir</button>}>
           {/* tocar numa linha abre a Qualidade do cadastro já naquele problema */}
           <Ranking cor="var(--kpi-rosa)" formatar={(v) => `${v} ${pl(v, "item", "itens")}`} vazio="Nenhum problema nos produtos ativos. ✅" onClicar={(i) => navigate(`/estoque?aba=qualidade&problema=${k.problemas[i]?.id ?? ""}`)}
             itens={k.problemas.map((p) => ({ rotulo: p.rotulo, valor: p.lista.length, detalhe: p.lista.slice(0, 3).map((x) => x.descricao).join(" · ") + (p.lista.length > 3 ? "…" : "") }))} />

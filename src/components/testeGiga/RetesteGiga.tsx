@@ -158,7 +158,7 @@ function LigarTeste({ linha, ctx, jaLigados, onClose, onLigar }: {
         <ul className="max-h-[50vh] space-y-1.5 overflow-y-auto">
           {opcoes.map((t) => (
             <li key={t.id}>
-              <button type="button" onClick={() => onLigar(t.id)} className="flex w-full flex-wrap items-center gap-x-3 rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50">
+              <button type="button" onClick={() => onLigar(t.id)} className="linha-clicavel flex flex-wrap items-center gap-x-3 border border-slate-200 px-3 py-2 text-sm">
                 <b>Nº {t.numero}</b><span>{dataHoraBR(t.testado_em)}</span><span>{ctx.nomeMaquina(t.produto_id)}</span><span>NS {t.numero_serie}</span>
                 <span className={resultadoDe(t) === "aprovada" ? "text-emerald-700" : "font-semibold text-red-700"}>
                   {resultadoDe(t) === "aprovada" ? <><CheckCircle2 size={13} className="inline" aria-hidden /> aprovada</> : "reprovada"}

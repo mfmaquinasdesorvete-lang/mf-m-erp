@@ -116,7 +116,7 @@ export function AssistenteIA({ row, setCampo, produtos, garantiaPadrao }: {
                     )}
                     <input ref={inFoto} type="file" accept={TIPOS_IMAGEM.join(",")} className="hidden" onChange={(e) => escolher(e.target.files?.[0], "foto")} />
                     <Button type="button" variant="secondary" onClick={() => inFoto.current?.click()}>{foto ? "Trocar foto" : "Enviar outra foto"}</Button>
-                    {foto && <button type="button" className="text-xs font-semibold text-slate-500 hover:underline" onClick={() => setFoto(null)}>tirar</button>}
+                    {foto && <button type="button" className="link-discreto text-xs" onClick={() => setFoto(null)}>tirar</button>}
                   </div>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-3">
@@ -125,7 +125,7 @@ export function AssistenteIA({ row, setCampo, produtos, garantiaPadrao }: {
                   <input ref={inPdf} type="file" accept="application/pdf" className="hidden" onChange={(e) => escolher(e.target.files?.[0], "pdf")} />
                   <div className="flex gap-2">
                     <Button type="button" variant="secondary" onClick={() => inPdf.current?.click()}>{pdf ? "Trocar PDF" : "Enviar PDF"}</Button>
-                    {pdf && <button type="button" className="text-xs font-semibold text-slate-500 hover:underline" onClick={() => setPdf(null)}>tirar</button>}
+                    {pdf && <button type="button" className="link-discreto text-xs" onClick={() => setPdf(null)}>tirar</button>}
                   </div>
                 </div>
               </div>

@@ -109,7 +109,7 @@ export function PagamentoOc({ p, set, editavel, totais }: Props & { totais: Tota
                 <input className="input col-span-2 col-start-3 row-start-2 min-w-0 py-1.5 sm:col-span-1 sm:col-start-auto sm:row-start-auto" placeholder="Observação" value={x.observacao ?? ""}
                   maxLength={120} disabled={!editavel} aria-label={`Observação da parcela ${k + 1}`} onChange={(e) => muda(k, { observacao: e.target.value || null })} />
                 <span className="col-start-4 row-start-1 sm:col-start-auto sm:row-start-auto">
-                  {editavel && <button type="button" className="rounded p-1 text-red-600 hover:bg-red-50" aria-label={`Tirar a parcela ${k + 1}`}
+                  {editavel && <button type="button" className="botao-icone-perigo p-1" aria-label={`Tirar a parcela ${k + 1}`}
                     onClick={() => mudar(parcelas.filter((_, j) => j !== k))}><Trash2 size={15} /></button>}
                 </span>
               </div>

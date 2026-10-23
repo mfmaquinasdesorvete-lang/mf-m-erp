@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { notifyError } from "@/lib/notify";
+import { Button } from "@/components/ui";
 
 type Sugestao = { ncm: string; fonte: string; detalhe: string | null; pontos: number };
 const ncmFmt = (v: string) => v.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1.$2.$3");
@@ -27,10 +28,9 @@ export function CampoNcm({ valor, onChange, produtoId, disabled }: { valor: stri
       <div className="flex gap-2">
         <input className="input num min-w-0 flex-1" inputMode="numeric" maxLength={10} value={valor ?? ""} disabled={disabled}
           onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="8 dígitos" aria-label="NCM" />
-        <button type="button" onClick={sugerir} disabled={!produtoId || buscando || disabled} title={produtoId ? "Sugerir o NCM pelas notas de fornecedor e pelos produtos parecidos" : "Salve o produto para sugerir"}
-          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-brand/40 px-2.5 text-xs font-semibold text-brand hover:bg-brand/10 disabled:opacity-50">
+        <Button type="button" tamanho="mini" variant="secondary" onClick={sugerir} disabled={!produtoId || buscando || disabled} title={produtoId ? "Sugerir o NCM pelas notas de fornecedor e pelos produtos parecidos" : "Salve o produto para sugerir"}>
           {buscando ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Sugerir
-        </button>
+        </Button>
       </div>
       {lista && (
         lista.length === 0

@@ -93,7 +93,7 @@ export default function PainelLicencas() {
             <ul className="divide-y divide-slate-100">
               {[...resumo].sort((a, b) => Number(funcionando(b.loja)) - Number(funcionando(a.loja)) || b.total - a.total).map((r) => (
                 <li key={r.loja.id}>
-                  <button type="button" onClick={() => navigate("/licenciados")} className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2 text-left hover:bg-slate-50">
+                  <button type="button" onClick={() => navigate("/licenciados")} className="linha-clicavel grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2">
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold text-fg">{r.loja.nome}</span>
                       <span className="block truncate text-xs text-slate-500">

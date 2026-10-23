@@ -107,7 +107,7 @@ export function ComoUsar({ time, backlog, todos, aberto, onAberto, irPara }: {
               <li key={p.titulo} className="rounded-xl border border-slate-200 p-2.5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <b className="text-sm text-fg">{p.titulo}</b>
-                  <button type="button" onClick={() => irPara(p.aba)} className="text-xs font-semibold text-modulo-texto hover:underline">abrir {p.aba === "quadro" ? "o Quadro" : p.aba === "daily" ? "a Daily" : p.aba === "painel" ? "o Painel" : p.aba === "sprints" ? "as Sprints" : "o Backlog"} →</button>
+                  <button type="button" onClick={() => irPara(p.aba)} className="link-modulo text-xs">abrir {p.aba === "quadro" ? "o Quadro" : p.aba === "daily" ? "a Daily" : p.aba === "painel" ? "o Painel" : p.aba === "sprints" ? "as Sprints" : "o Backlog"} →</button>
                 </div>
                 <p className="mt-0.5 text-sm text-slate-600">{p.texto}</p>
                 <p className="mt-1 text-xs text-slate-500">Exemplo: {p.exemplo}</p>

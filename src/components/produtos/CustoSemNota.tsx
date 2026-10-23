@@ -74,7 +74,7 @@ export function CustoSemNota({ produtos, podeEditar }: { produtos: Produto[]; po
   if (!semCusto.length) return null;
   return (
     <Card className="overflow-hidden">
-      <button type="button" onClick={() => setAberto(!aberto)} aria-expanded={aberto} className="flex w-full items-center gap-3 p-4 text-left hover:bg-slate-50">
+      <button type="button" onClick={() => setAberto(!aberto)} aria-expanded={aberto} className="linha-clicavel flex items-center gap-3 p-4">
         <Receipt size={20} className="shrink-0 text-amber-600" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-fg">Sem custo: {semCusto.length} {pl(semCusto.length, "produto", "produtos")}</span>

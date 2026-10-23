@@ -191,7 +191,7 @@ export default function PainelProdutos() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Section title="Mais vendidos" className="xl:col-span-3" actions={<button type="button" onClick={() => navigate("/margem")} className="text-sm font-semibold text-modulo-texto hover:underline">Margem completa</button>}>
+        <Section title="Mais vendidos" className="xl:col-span-3" actions={<button type="button" onClick={() => navigate("/margem")} className="link-modulo text-sm">Margem completa</button>}>
           <Ranking cor="var(--serie-1)" vazio="Nenhuma venda no período."
             itens={k.vendidos.map((v) => ({ rotulo: v.nome, valor: v.valor, detalhe: `${qtdTxt(v.quantidade)} un.${v.margem != null ? ` · margem ${Math.round(v.margem)}%` : " · sem custo no cadastro"}` }))} />
         </Section>
@@ -233,7 +233,7 @@ export default function PainelProdutos() {
           ) : <p className="py-10 text-center text-sm text-slate-500">Sem vendas nos últimos 12 meses.</p>}
         </Section>
         <Section title="Vai acabar antes da reposição chegar" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/compras", { state: { aba: "reposicao" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Repor</button>}>
+          actions={<button type="button" onClick={() => navigate("/compras", { state: { aba: "reposicao" } })} className="link-modulo text-sm">Repor</button>}>
           {k.vaiFaltar.length ? (
             <ul className="space-y-2.5">
               {k.vaiFaltar.slice(0, 7).map((x) => {
@@ -257,7 +257,7 @@ export default function PainelProdutos() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Section title="Parados há 6 meses (mais dinheiro primeiro)" actions={<button type="button" onClick={() => navigate("/estoque")} className="text-sm font-semibold text-modulo-texto hover:underline">Estoque</button>}>
+        <Section title="Parados há 6 meses (mais dinheiro primeiro)" actions={<button type="button" onClick={() => navigate("/estoque")} className="link-modulo text-sm">Estoque</button>}>
           {k.parados.length ? (
             <ul className="divide-y divide-slate-100">
               {k.parados.slice(0, 7).map((x) => (
@@ -273,7 +273,7 @@ export default function PainelProdutos() {
             </ul>
           ) : <p className="py-8 text-center text-sm text-slate-500">Nenhum produto parado. ✅</p>}
         </Section>
-        <Section title="Cadastro: o que está preenchido" actions={<button type="button" onClick={() => navigate("/estoque")} className="text-sm font-semibold text-modulo-texto hover:underline">Arrumar</button>}>
+        <Section title="Cadastro: o que está preenchido" actions={<button type="button" onClick={() => navigate("/estoque")} className="link-modulo text-sm">Arrumar</button>}>
           <Ranking cor="var(--serie-3)" formatar={(v) => `${v}%`} vazio="Nenhum produto ativo." onClicar={() => navigate("/estoque")}
             itens={k.qualidade.map((q) => ({ rotulo: q.rotulo, valor: q.pct, detalhe: `${q.n.toLocaleString("pt-BR")} de ${q.base.toLocaleString("pt-BR")}` }))} />
         </Section>

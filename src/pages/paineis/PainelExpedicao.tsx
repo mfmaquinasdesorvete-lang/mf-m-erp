@@ -7,7 +7,7 @@ import {
   Square, Timer, Truck, Users, Volume2, VolumeX,
 } from "lucide-react";
 import { tocar } from "@/components/Notificacoes";
-import { Section } from "@/components/ui";
+import { Section, Button } from "@/components/ui";
 import { CabecalhoPainel, CartaoPainel, ListaAtencao, type Cartao, type ItemAtencao } from "@/components/painel/Painel";
 import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao";
 import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
@@ -246,10 +246,9 @@ export default function PainelExpedicao() {
           <div className="flex flex-wrap items-center gap-2">
             <p className="min-w-0 flex-1 text-sm text-slate-600">{atual.frase}</p>
             {etapa === "embalar" || etapa === "despachar" ? lista.length > 0 && (
-              <button type="button" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm font-semibold text-fg hover:border-modulo disabled:opacity-50">
+              <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir(lista.map((l) => ({ tipo: "pedido" as const, pedido_id: l.p.id })))}>
                 <Printer size={16} /> Etiquetas de todos
-              </button>
+              </Button>
             ) : null}
           </div>
           {isLoading ? <p className="py-10 text-center text-slate-500">Carregando pedidos…</p> : lista.length ? (
@@ -292,10 +291,10 @@ export default function PainelExpedicao() {
                         </a>
                       )}
                       {(etapa === "embalar" || etapa === "despachar") && (
-                        <button type="button" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }])}
-                          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-fg hover:border-modulo disabled:opacity-50">
+                        <Button type="button" variant="secondary" disabled={etiquetas.ocupado} onClick={() => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }])}
+                          className="min-h-[44px]">
                           <Printer size={16} /> Etiquetas
-                        </button>
+                        </Button>
                       )}
                       {podeExpedir && (
                         <button type="button" disabled={acoes.ocupado === l.p.id || lote || (etapa === "despachar" && !l.nota)} onClick={() => agir(l)}
@@ -319,7 +318,7 @@ export default function PainelExpedicao() {
         <div className="space-y-4 xl:col-span-2">
           {etapa === "separar" && (
             <Section title={`Lista de separação · ${aSeparar.length} ${pl(aSeparar.length, "pedido", "pedidos")}`}
-              actions={separacao.length > 0 && <button type="button" onClick={imprimirSeparacao} className="inline-flex items-center gap-1 text-sm font-semibold text-modulo-texto hover:underline"><Printer size={15} /> Imprimir</button>}>
+              actions={separacao.length > 0 && <button type="button" onClick={imprimirSeparacao} className="link-modulo inline-flex items-center gap-1 text-sm"><Printer size={15} /> Imprimir</button>}>
               {separacao.length ? (
                 <>
                   <ul className="divide-y divide-slate-100">

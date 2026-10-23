@@ -125,7 +125,7 @@ export function RegistrosGiga({ ctx, filtroInicial, onReteste }: { ctx: Contexto
       <ul className="space-y-2 md:hidden">
         {lista.map((t) => (
           <li key={t.id}>
-            <button type="button" onClick={() => setAberto(t)} className={`w-full rounded-xl border border-slate-200/80 bg-surface p-3 text-left shadow-card ${t.anulado_em ? "opacity-60" : ""}`}>
+            <button type="button" onClick={() => setAberto(t)} className={`cartao w-full p-3 text-left ${t.anulado_em ? "opacity-60" : ""}`}>
               <span className="flex items-start justify-between gap-2">
                 <span className="min-w-0">
                   <span className="num block font-bold text-fg">{t.numero_serie}</span>
@@ -261,7 +261,7 @@ function DetalheTeste({ t, ctx, onClose, onTrocar, onReteste, numeroOp }: {
               {todosDoNs.map((x) => (
                 <li key={x.id}>
                   <button type="button" onClick={() => onTrocar(x)} aria-current={x.id === t.id}
-                    className={`flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-slate-50 ${x.id === t.id ? "bg-slate-50 font-semibold" : ""} ${x.anulado_em ? "opacity-60" : ""}`}>
+                    className={`linha-clicavel flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 ${x.id === t.id ? "bg-slate-50 font-semibold" : ""} ${x.anulado_em ? "opacity-60" : ""}`}>
                     <span className="num w-12 text-slate-500">nº {x.numero}</span>
                     <span className="num">{dataHoraBR(x.testado_em)}</span>
                     <SeloResultado t={x} />

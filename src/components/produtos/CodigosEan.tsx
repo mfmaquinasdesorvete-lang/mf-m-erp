@@ -247,9 +247,9 @@ export function CodigosEan({ produtos, podeEditar, onAbrir }: { produtos: Produt
                     )}
                     {podeEditar && !editando && (
                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
-                        <button type="button" className="text-brand hover:underline" onClick={() => { setAberto(p.id); setRascunho(""); }}>{atual ? "Trocar código" : "Informar código"}</button>
-                        {!p.gtin_isento && <button type="button" className="text-slate-600 hover:underline" onClick={() => preparar("sem_gtin", [p.id])}>Sem GTIN</button>}
-                        {prefixo && proprio && !atual.replace(/^0/, "").startsWith(prefixo) && <button type="button" className="text-slate-600 hover:underline" onClick={() => preparar("gerar", [p.id])}>Gerar da faixa GS1</button>}
+                        <button type="button" className="link-acao" onClick={() => { setAberto(p.id); setRascunho(""); }}>{atual ? "Trocar código" : "Informar código"}</button>
+                        {!p.gtin_isento && <button type="button" className="link-discreto" onClick={() => preparar("sem_gtin", [p.id])}>Sem GTIN</button>}
+                        {prefixo && proprio && !atual.replace(/^0/, "").startsWith(prefixo) && <button type="button" className="link-discreto" onClick={() => preparar("gerar", [p.id])}>Gerar da faixa GS1</button>}
                       </div>
                     )}
                   </div>

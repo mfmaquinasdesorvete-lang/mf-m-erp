@@ -2,7 +2,7 @@
 // Cada número e cada item abre a lista certa já filtrada (ex.: "Exclusões" abre o histórico só com as exclusões).
 import { useMemo, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, ClipboardCheck, History, ShieldAlert, Trash2 } from "lucide-react";
-import { nomeMes, Section, Stat } from "@/components/ui";
+import { nomeMes, Section, Stat, Button } from "@/components/ui";
 import { Ranking } from "@/components/Charts";
 import { ROTULO_CAMPO } from "@/components/Historico";
 import { useRows } from "@/lib/data";
@@ -91,7 +91,7 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
           <ul className="mt-3">
             {ck.areas.map((a) => (
               <li key={a.id}>
-                <button type="button" onClick={checklist} className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm hover:bg-slate-50">
+                <button type="button" onClick={checklist} className="linha-clicavel flex items-center gap-3 px-1 py-1.5 text-sm">
                   <span className="min-w-0 flex-1 leading-snug text-slate-700">{a.titulo}</span>
                   <span className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-slate-200 sm:w-28" aria-hidden>
                     <span className="block h-full bg-emerald-500" style={{ width: `${((a.total - a.faltam) / a.total) * 100}%` }} />
@@ -120,10 +120,10 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <button type="button" onClick={() => exc({ ver: "prazo_vencido" })} className={`hover:underline ${ex.prazoVencido ? "font-semibold text-red-600" : "text-slate-600"}`}>
+            <button type="button" onClick={() => exc({ ver: "prazo_vencido" })} className={ex.prazoVencido ? "font-semibold text-red-600 hover:underline" : "link-discreto"}>
               {ex.prazoVencido} com prazo vencido
             </button>
-            <button type="button" onClick={() => exc({ ver: "confirmadas" })} className="text-slate-600 hover:underline">
+            <button type="button" onClick={() => exc({ ver: "confirmadas" })} className="link-discreto">
               {ex.confirmadas} {pl(ex.confirmadas, "erro confirmado", "erros confirmados")}
             </button>
           </div>
@@ -158,10 +158,9 @@ export function PainelAuditoria({ dados, nomeRegistro, abrir }: {
         actions={(
           <div className="flex flex-wrap gap-1.5">
             {([["hoje", "Hoje", h.hoje], ["7d", "7 dias", h.ultimos7], ["30d", "30 dias", h.ultimos30]] as const).map(([p, r, n]) => (
-              <button key={p} type="button" onClick={() => hist({ periodo: p })}
-                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+              <Button key={p} type="button" tamanho="mini" variant="secondary" onClick={() => hist({ periodo: p })}>
                 {r}: <span className="num">{carregando ?? contagem(n)}</span>
-              </button>
+              </Button>
             ))}
           </div>
         )}>
@@ -240,7 +239,7 @@ function Aviso({ tom, onClick, children }: { tom: "ruim" | "neutro"; onClick: ()
 /** Linha clicável das listas do painel: título, detalhe embaixo e valor à direita. */
 function ItemLista({ titulo, detalhe, valor, onClick }: { titulo: ReactNode; detalhe: ReactNode; valor?: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50">
+    <button type="button" onClick={onClick} className="linha-clicavel flex items-start gap-2 px-2 py-1.5">
       <span className="min-w-0 flex-1">
         <span className="block break-words text-sm font-medium text-fg">{titulo}</span>
         <span className="block break-words text-xs text-slate-500">{detalhe}</span>

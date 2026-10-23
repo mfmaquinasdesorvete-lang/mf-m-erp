@@ -2,7 +2,7 @@
 // máquinas aguardando reteste, aprovadas × reprovadas mês a mês, por modelo e por operador. Tocar num modelo filtra.
 import { useMemo, useState } from "react";
 import { AlertTriangle, BadgeCheck, ClipboardCheck, RotateCcw, XCircle } from "lucide-react";
-import { Section } from "@/components/ui";
+import { Section, Button } from "@/components/ui";
 import { Colunas, Ranking } from "@/components/Charts";
 import { CartaoPainel, dentro, FiltrosAtivos, intervalos, PERIODOS, usePeriodo, variacao, type Cartao } from "@/components/painel/Painel";
 import { pl } from "@/lib/format";
@@ -118,9 +118,9 @@ export function PainelGiga({ ctx, onReteste, onVerRegistros }: {
                     </span>
                   </span>
                   {ctx.podeLancar && (
-                    <button type="button" onClick={() => onReteste(s.ultimo)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-semibold text-fg hover:bg-slate-50">
+                    <Button type="button" tamanho="mini" variant="secondary" onClick={() => onReteste(s.ultimo)}>
                       <RotateCcw size={14} aria-hidden /> Lançar reteste
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}

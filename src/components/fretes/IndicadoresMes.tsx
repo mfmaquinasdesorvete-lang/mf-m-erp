@@ -2,7 +2,7 @@
 // total à parte; abaixo, o recorte escolhido por destino, por transportadora e por rota.
 // As contas ficam em src/lib/fretes.ts (funções puras, testadas).
 import { useState, type ReactNode } from "react";
-import { Table } from "@/components/ui";
+import { Table, chip } from "@/components/ui";
 import { brl, pl } from "@/lib/format";
 import {
   doServico, indicadoresPorServico, porDestino, porRota, porTransportadora, rotuloServico,
@@ -98,7 +98,7 @@ export function IndicadoresMes({ envios, dados, nomeTransp, rotuloMes }: { envio
         <span className="text-xs font-semibold text-slate-600">Detalhar:</span>
         {[{ chave: "todos", rotulo: "Todos os serviços", n: r.total.envios }, ...r.servicos.map((s) => ({ chave: s.chave, rotulo: s.rotulo, n: s.m.envios }))].map((s) => (
           <button key={s.chave} type="button" onClick={() => setServico(s.chave)}
-            className={`rounded-full border px-3 py-1 text-sm font-semibold ${(atual ? servico : "todos") === s.chave ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600 hover:bg-slate-100"}`}>
+            className={chip((atual ? servico : "todos") === s.chave)}>
             {s.rotulo} ({s.n})
           </button>
         ))}

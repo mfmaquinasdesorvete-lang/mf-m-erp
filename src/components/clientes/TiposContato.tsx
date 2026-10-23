@@ -148,7 +148,7 @@ export function CategoriasContato({ open, onClose, podeEditar }: { open: boolean
                 {t.nome}
                 {podeEditar && (
                   <button type="button" disabled={ocupado} title="Voltar para a lista" onClick={() => atualizar(t.chave, { ativo: true })}
-                    className="rounded-full p-1 hover:bg-slate-100"><Undo2 size={12} /></button>
+                    className="botao-icone p-1"><Undo2 size={12} /></button>
                 )}
               </li>
             ))}

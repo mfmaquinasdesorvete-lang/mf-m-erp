@@ -215,13 +215,13 @@ export default function PainelVendas() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Section title="Últimos pedidos e orçamentos" className="xl:col-span-3"
-          actions={<button type="button" onClick={() => navigate("/pedidos")} className="text-sm font-semibold text-modulo-texto hover:underline">Ver todos</button>}>
+          actions={<button type="button" onClick={() => navigate("/pedidos")} className="link-modulo text-sm">Ver todos</button>}>
           {k.recentes.length ? (
             <ul className="divide-y divide-slate-100">
               {k.recentes.map((p) => (
                 <li key={p.id}>
                   <button type="button" onClick={() => navigate("/pedidos", { state: { abrir: p.id } })}
-                    className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left transition hover:bg-slate-50">
+                    className="linha-clicavel flex items-center gap-3 px-1 py-2.5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo/10 text-modulo-texto"><ClipboardList size={17} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-fg">#{p.numero} · {p.cliente?.nome_fantasia || p.cliente?.nome}</span>

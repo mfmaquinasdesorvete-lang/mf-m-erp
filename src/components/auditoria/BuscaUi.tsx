@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { destacar, type Termo } from "@/lib/auditoriaBusca";
+import { chip } from "@/components/ui";
 
 /** Texto com o que a busca achou marcado em amarelo (sem acento e maiúscula; valor e documento de qualquer jeito). */
 export function Destaque({ texto, termos }: { texto: string | null | undefined; termos: Termo[] }) {
@@ -28,7 +29,7 @@ export function CampoBusca({ value, onChange, placeholder, rotulo = "Buscar" }: 
         onKeyDown={(e) => e.key === "Escape" && value && (e.preventDefault(), onChange(""))} />
       {value && (
         <button type="button" onClick={() => onChange("")} aria-label="Apagar a busca" title="Apagar a busca"
-          className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">
+          className="botao-icone absolute right-1.5 top-1/2 h-8 w-8 -translate-y-1/2">
           <X size={16} />
         </button>
       )}
@@ -40,7 +41,7 @@ export function CampoBusca({ value, onChange, placeholder, rotulo = "Buscar" }: 
 export function Pilula({ ativo, onClick, children, title }: { ativo: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={ativo} title={title}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:py-1 ${ativo ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+      className={chip(ativo)}>
       {children}
     </button>
   );
@@ -52,7 +53,7 @@ export function FiltroAtivo({ children, onRemover }: { children: ReactNode; onRe
     <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-surface py-0.5 pl-2.5 pr-1 text-xs text-slate-700">
       <span className="min-w-0 truncate">{children}</span>
       <button type="button" onClick={onRemover} aria-label="Tirar este filtro" title="Tirar este filtro"
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100"><X size={13} /></button>
+        className="botao-icone h-6 w-6 p-0"><X size={13} /></button>
     </span>
   );
 }

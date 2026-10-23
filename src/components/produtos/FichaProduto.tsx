@@ -322,7 +322,7 @@ function AbaClientes({ p }: { p: ProdutoFicha }) {
                   <span className="flex flex-wrap gap-1">
                     {fone && <a href={whatsappLink(fone, mensagemMaquina(nome, p.descricao, e.token))} target="_blank" rel="noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700"><MessageCircle size={13} /> Manuais</a>}
-                    <button type="button" onClick={() => copiar(e.token!)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Copy size={12} /> Link</button>
+                    <Button type="button" tamanho="mini" variant="secondary" onClick={() => copiar(e.token!)}><Copy size={12} /> Link</Button>
                   </span>
                 ) : "—"}
               </td>

@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, CircleDollarSign, Clock, FileSpreadsheet, Link2, PackageCheck, Receipt, RefreshCw, Search, Truck, Upload, X } from "lucide-react";
-import { Badge, Button, Field, Modal, Section, Stat, Table, nomeMes } from "@/components/ui";
+import { Badge, Button, Field, Modal, Section, Stat, Table, nomeMes, chip } from "@/components/ui";
 import { MontarFatura } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -241,12 +241,12 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
           <span className="text-sm text-slate-500">{lista.length} de {doPeriodo.length}</span>
           {(["", "entrada", "saida", "transferencia", "outro"] as const).map((s) => (
             <button key={s || "todos"} type="button" aria-pressed={sentido === s} onClick={() => setSentido(s)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${sentido === s ? "bg-modulo-escuro text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+              className={chip(sentido === s, "border-transparent bg-modulo-escuro text-white")}>
               {s ? SENTIDOS[s].rotulo : "Todos"}
             </button>
           ))}
-          {soSemFatura && <button type="button" onClick={() => setSoSemFatura(false)} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">sem fatura <X size={12} /></button>}
-          {soAtraso && <button type="button" onClick={() => setSoAtraso(false)} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">com atraso <X size={12} /></button>}
+          {soSemFatura && <button type="button" onClick={() => setSoSemFatura(false)} className={chip(true, "border-amber-200 bg-amber-100 text-amber-800")}>sem fatura <X size={12} /></button>}
+          {soAtraso && <button type="button" onClick={() => setSoAtraso(false)} className={chip(true, "border-amber-200 bg-amber-100 text-amber-800")}>com atraso <X size={12} /></button>}
           {podeFaturar && marcadosLista.length > 0 && <span className="ml-auto text-sm font-semibold">{marcadosLista.length} marcados · {brl(totalMarcado)}</span>}
         </div>
         <Table empty={!lista.length}

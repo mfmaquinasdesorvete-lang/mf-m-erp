@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CheckCheck, Link2, Loader2, PackagePlus, Search, Sparkles, Undo2, X } from "lucide-react";
-import { Button, Field, Modal } from "../ui";
+import { Button, Field, Modal, chip } from "../ui";
 import { ProdutoBusca } from "../ProdutoBusca";
 import { confirmar } from "../Dialogos";
 import { callFunction, supabase } from "@/lib/supabase";
@@ -180,7 +180,7 @@ export function ConferirItensNotas({ onClose }: { onClose: () => void }) {
       <div className="faixa-chips mb-3" role="tablist" aria-label="Situação dos itens">
         {FILTROS.map((f) => (
           <button key={f.id} type="button" role="tab" aria-selected={filtro === f.id} onClick={() => { setFiltro(f.id); setLimite(POR_VEZ); setSel(new Set()); }}
-            className={`rounded-full border px-3 py-1 text-sm font-semibold transition ${filtro === f.id ? "border-transparent bg-modulo-escuro text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            className={chip(filtro === f.id, "border-transparent bg-modulo-escuro text-white")}>
             {f.rotulo} <span className="num opacity-80">{f.n}</span>
           </button>
         ))}

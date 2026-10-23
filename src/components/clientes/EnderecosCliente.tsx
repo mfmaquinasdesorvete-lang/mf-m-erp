@@ -2,7 +2,7 @@
 // e o aviso "Cadastro unificado" com o que veio de cada cadastro juntado a este.
 import { useState } from "react";
 import { MapPinned, Merge, Plus, Trash2 } from "lucide-react";
-import { Field } from "../ui";
+import { Field, chip } from "../ui";
 import { CampoMascara } from "../CrudPage";
 import { completarPorCep } from "@/lib/cadastro";
 import { dataBR, digitos, docFormat } from "@/lib/format";
@@ -44,7 +44,7 @@ export function EtiquetaEndereco({ valor, onChange, disabled }: { valor: string 
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Etiqueta do endereço">
       {ETIQUETAS_ENDERECO.map((t) => (
         <button key={t} type="button" aria-pressed={valor === t} disabled={disabled} onClick={() => onChange(valor === t ? null : t)}
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${valor === t ? "bg-brand text-brand-fg shadow-sm" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+          className={chip(valor === t)}>
           {t}
         </button>
       ))}
@@ -92,7 +92,7 @@ export function EnderecosExtras({ lista, onChange, disabled }: { lista: Endereco
             )}
             {!disabled && (
               <button type="button" onClick={() => onChange(lista.filter((_, j) => j !== i))} title="Tirar este endereço" aria-label={`Tirar o endereço ${i + 2}`}
-                className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+                className="botao-icone-perigo p-1.5"><Trash2 size={15} /></button>
             )}
           </div>
           <div className="mb-3"><EtiquetaEndereco valor={e.etiqueta} disabled={disabled} onChange={(v) => mudar(i, { etiqueta: v })} /></div>

@@ -90,8 +90,8 @@ export function Backlog({ time, itens, destino, media, pessoas, onAbrir }: {
               <Card className="flex items-center gap-2 p-2.5 sm:gap-3 sm:p-3">
                 <span className="num w-7 shrink-0 text-center text-sm font-bold text-slate-400">{k + 1}</span>
                 <div className="flex shrink-0 flex-col">
-                  <button type="button" onClick={() => mover(i.id, -1)} disabled={k === 0} aria-label="Subir prioridade" className="rounded p-0.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp size={15} /></button>
-                  <button type="button" onClick={() => mover(i.id, 1)} disabled={k === lista.length - 1} aria-label="Descer prioridade" className="rounded p-0.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown size={15} /></button>
+                  <button type="button" onClick={() => mover(i.id, -1)} disabled={k === 0} aria-label="Subir prioridade" className="botao-icone p-0.5"><ArrowUp size={15} /></button>
+                  <button type="button" onClick={() => mover(i.id, 1)} disabled={k === lista.length - 1} aria-label="Descer prioridade" className="botao-icone p-0.5"><ArrowDown size={15} /></button>
                 </div>
                 <button type="button" onClick={() => onAbrir(i)} className="min-w-0 flex-1 text-left">
                   <span className="line-clamp-2 text-sm font-semibold text-fg">{i.titulo}</span>

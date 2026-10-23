@@ -81,10 +81,10 @@ export function Quadro({ time, sprint, itens, pessoas, onAbrir, onNovo }: {
                     </button>
                     {/* celular: setas no lugar do arrastar */}
                     <div className="mt-2 flex justify-between border-t border-slate-100 pt-1.5 md:hidden">
-                      <button type="button" disabled={k === 0} onClick={() => mover(i, COLUNAS[k - 1]!.id)} aria-label={`Voltar para ${COLUNAS[k - 1]?.titulo ?? ""}`}
-                        className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 disabled:opacity-30"><ChevronLeft size={14} aria-hidden />{COLUNAS[k - 1]?.titulo ?? ""}</button>
-                      <button type="button" disabled={k === COLUNAS.length - 1} onClick={() => mover(i, COLUNAS[k + 1]!.id)} aria-label={`Passar para ${COLUNAS[k + 1]?.titulo ?? ""}`}
-                        className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-semibold text-modulo-texto disabled:opacity-30">{COLUNAS[k + 1]?.titulo ?? ""}<ChevronRight size={14} aria-hidden /></button>
+                      <Button type="button" tamanho="mini" variant="ghost" disabled={k === 0} onClick={() => mover(i, COLUNAS[k - 1]!.id)} aria-label={`Voltar para ${COLUNAS[k - 1]?.titulo ?? ""}`}
+                        className="gap-0.5 disabled:opacity-30"><ChevronLeft size={14} aria-hidden />{COLUNAS[k - 1]?.titulo ?? ""}</Button>
+                      <Button type="button" tamanho="mini" variant="ghost" disabled={k === COLUNAS.length - 1} onClick={() => mover(i, COLUNAS[k + 1]!.id)} aria-label={`Passar para ${COLUNAS[k + 1]?.titulo ?? ""}`}
+                        className="gap-0.5 disabled:opacity-30">{COLUNAS[k + 1]?.titulo ?? ""}<ChevronRight size={14} aria-hidden /></Button>
                     </div>
                   </article>
                 ))}

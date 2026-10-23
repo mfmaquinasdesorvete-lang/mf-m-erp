@@ -234,7 +234,7 @@ export default function PainelFinanceiroArea() {
       </div>
 
       {k.porConta.length > 0 && (
-        <Section title="Contas bancárias" actions={<button type="button" onClick={() => navigate("/conciliacao")} className="text-sm font-semibold text-modulo-texto hover:underline">Abrir bancos</button>}>
+        <Section title="Contas bancárias" actions={<button type="button" onClick={() => navigate("/conciliacao")} className="link-modulo text-sm">Abrir bancos</button>}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-3">Conta</th><th className="py-1 pr-3 text-right">Entrou · {per.rotulo.toLowerCase()}</th>{vePagar && <th className="py-1 pr-3 text-right">Saiu</th>}<th className="py-1 text-right">Saldo</th></tr></thead>
@@ -254,7 +254,7 @@ export default function PainelFinanceiroArea() {
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Section title="Quem está devendo" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="text-sm font-semibold text-modulo-texto hover:underline">Cobrar</button>}>
+        <Section title="Quem está devendo" actions={<button type="button" onClick={() => navigate("/financeiro", { state: { aba: "cobranca" } })} className="link-modulo text-sm">Cobrar</button>}>
           <Ranking cor="var(--kpi-rosa)" vazio="Nenhum cliente com parcela vencida."
             onClicar={() => navigate("/financeiro", { state: { aba: "cobranca" } })}
             itens={k.devedores.map((d) => ({ rotulo: d.nome, valor: d.valor, detalhe: `${d.qtd} ${pl(d.qtd, "parcela", "parcelas")} · a mais antiga venceu há ${diasEntre(d.maisAntiga, dia)} ${pl(diasEntre(d.maisAntiga, dia), "dia", "dias")}` }))} />

@@ -200,7 +200,7 @@ export function DocumentosMaquina({ produtoId, podeEditar, tipos = TIPOS_DOC }: 
                 <span className="block truncate font-semibold text-fg">{m.titulo || NOME_MIDIA[m.tipo]}</span>
                 <span className="text-xs text-slate-500">{NOME_MIDIA[m.tipo]}{ehLinkCalameo(m.caminho) ? " · Calameo" : /^https?:/.test(m.caminho) ? " · link" : ""}{m.tamanho ? ` · ${tamanhoTexto(m.tamanho)}` : ""}</span>
               </a>
-              {podeEditar && <button type="button" onClick={() => tirar(m)} className="rounded p-1 text-red-600 hover:bg-red-50" aria-label={`Tirar ${m.titulo ?? "documento"}`}><Trash2 size={15} /></button>}
+              {podeEditar && <button type="button" onClick={() => tirar(m)} className="botao-icone-perigo p-1" aria-label={`Tirar ${m.titulo ?? "documento"}`}><Trash2 size={15} /></button>}
             </li>
           ))}
         </ul>

@@ -108,7 +108,7 @@ export function SecaoRedes({ clientes }: { clientes: Cliente[] }) {
                 <div className="text-xs"><ListaRedes r={c.redes_sugeridas as Redes} /></div>
               </div>
               <Button type="button" variant="secondary" disabled={!!ocupado} onClick={() => decidir([c.id], true, c.id)}><CheckCircle2 size={15} /> Aprovar</Button>
-              <button type="button" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Não é desta empresa: descartar"
+              <button type="button" className="botao-icone-perigo p-2" title="Não é desta empresa: descartar"
                 aria-label="Descartar" disabled={!!ocupado} onClick={() => decidir([c.id], false, c.id)}><X size={16} /></button>
             </li>
           ))}

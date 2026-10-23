@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, History, MessageCircle, Plus, Truck, X } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, chip } from "@/components/ui";
 import { useRows, ler } from "@/lib/data";
 import { brl, dataBR, whatsappLink, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -133,7 +133,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Como fica o frete">
           {MODOS.map((m) => (
             <button key={m.value} type="button" role="radio" aria-checked={modo === m.value} disabled={disabled} title={m.dica} onClick={() => escolherModo(m.value)}
-              className={`rounded-full border px-3 py-1 text-sm font-semibold disabled:opacity-60 ${modo === m.value ? "border-modulo bg-modulo-escuro text-white" : "border-slate-200 text-slate-700 hover:bg-slate-100"}`}>
+              className={`${chip(modo === m.value, "border-modulo bg-modulo-escuro text-white")} disabled:opacity-60`}>
               {m.label}
             </button>
           ))}
@@ -170,11 +170,11 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
                     {t ? ` · mais usada: ${nomeT(t.transportadora_id)}` : ""}
                   </span>
                   <span className="flex gap-1.5">
-                    <button type="button" className="rounded-lg border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold hover:bg-slate-50"
-                      onClick={() => usar(r.ultimo.transportadora_id, r.ultimo.frete, null)}>Usar o último {brl(r.ultimo.frete)}</button>
+                    <Button type="button" tamanho="mini" variant="secondary"
+                      onClick={() => usar(r.ultimo.transportadora_id, r.ultimo.frete, null)}>Usar o último {brl(r.ultimo.frete)}</Button>
                     {r.quantas > 2 && r.mediana !== r.ultimo.frete && (
-                      <button type="button" className="rounded-lg border border-slate-200 bg-surface px-2 py-1 text-xs font-semibold hover:bg-slate-50"
-                        onClick={() => usar(t?.transportadora_id ?? null, r.mediana, null)}>Usar o típico {brl(r.mediana)}</button>
+                      <Button type="button" tamanho="mini" variant="secondary"
+                        onClick={() => usar(t?.transportadora_id ?? null, r.mediana, null)}>Usar o típico {brl(r.mediana)}</Button>
                     )}
                   </span>
                 </li>
@@ -195,7 +195,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
             <div className="mb-2 flex flex-wrap gap-1.5">
               {salvas.map((c) => (
                 <button key={c.id} type="button" onClick={() => usar(c.transportadora_id, Number(c.valor), c.prazo_dias, c.transportadora_nome ?? undefined)}
-                  className={`rounded-lg border px-2 py-1 text-xs ${c.escolhida ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-surface"}`}>
+                  className={chip(!!c.escolhida, "border-emerald-300 bg-emerald-50 text-emerald-800")}>
                   {c.escolhida && <Check size={12} className="mr-1 inline" aria-hidden />}{nomeT(c.transportadora_id) || c.transportadora_nome} {brl(c.valor)}{c.prazo_dias ? ` · ${c.prazo_dias}d` : ""}
                 </button>
               ))}
@@ -215,7 +215,7 @@ export function FreteRapido({ pedido, cliente, produtos, disabled, podeCotar, on
                   <span className="flex items-center justify-end gap-1">
                     {zap ? <a className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" href={whatsappLink(zap, mensagem)} target="_blank" rel="noreferrer"><MessageCircle size={14} aria-hidden /> Pedir</a>
                       : <span className="px-2 text-xs text-slate-400">sem WhatsApp</span>}
-                    {extra && <button type="button" aria-label={`Tirar ${t.nome} da lista`} className="rounded p-1 text-slate-400 hover:bg-slate-100" onClick={() => setExtras((x) => x.filter((id) => id !== t.id))}><X size={14} aria-hidden /></button>}
+                    {extra && <button type="button" aria-label={`Tirar ${t.nome} da lista`} className="botao-icone p-1" onClick={() => setExtras((x) => x.filter((id) => id !== t.id))}><X size={14} aria-hidden /></button>}
                   </span>
                   <span className="col-span-2 flex items-center gap-2">
                     <input className="input w-28 py-1 text-right" inputMode="decimal" placeholder="R$" aria-label={`Valor do frete na ${t.nome}`} value={v.valor}

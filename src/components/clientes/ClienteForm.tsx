@@ -11,7 +11,7 @@ import {
   ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CircleCheck, ClipboardList, Copy, Globe, HandCoins, IdCard, Landmark, LayoutList, Mail, MapPin, MapPinned,
   MessageCircle, Package, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, Wrench, X, type LucideIcon,
 } from "lucide-react";
-import { Button, Field, useFecharComEsc } from "../ui";
+import { Button, Field, useFecharComEsc, chip } from "../ui";
 import { CampoMascara } from "../CrudPage";
 import { Anexos } from "../Anexos";
 import { VendedorSelect } from "../VendedorSelect";
@@ -409,7 +409,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
         {modo === "pronto" ? (
           // ---------------------------------------------------------- cadastrado: próximos passos
           <div className="flex flex-1 flex-col items-center px-4 py-8 text-center sm:px-8">
-            <button type="button" onClick={onClose} className="self-end rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar"><X size={20} /></button>
+            <button type="button" onClick={onClose} className="botao-icone self-end p-2" aria-label="Fechar"><X size={20} /></button>
             <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15"><CircleCheck size={36} /></span>
             <h2 className="mt-3 text-balance text-xl font-bold text-fg sm:text-2xl">{nomeTopo} está cadastrado</h2>
             <p className="mt-1 text-sm text-slate-500">{c.codigo ? `Cliente nº ${c.codigo} · ` : ""}ficha {pct}% completa</p>
@@ -551,7 +551,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                       const on = (c.tags ?? []).includes(t.chave);
                       return (
                         <button key={t.chave} type="button" aria-pressed={on} onClick={() => toggleTag(t.chave)}
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? corTipo(t.cor).chip : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                          className={chip(on, corTipo(t.cor).chip)}>
                           {on ? <CircleCheck size={15} /> : <span className="text-base leading-none">+</span>} {t.nome}
                         </button>
                       );
@@ -563,7 +563,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Status no CRM">
                     {STATUS_CRM.map((x) => (
                       <button key={x.value} type="button" role="radio" aria-checked={c.status_crm === x.value} onClick={() => set("status_crm", c.status_crm === x.value ? null : x.value)}
-                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${c.status_crm === x.value ? `${x.cor} shadow-sm ring-1 ring-black/10` : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                        className={chip(c.status_crm === x.value, `border-transparent ${x.cor} shadow-sm ring-1 ring-black/10`)}>
                         {x.label}
                       </button>
                     ))}
@@ -583,7 +583,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {CONDICOES.map((x) => (
                       <button key={x} type="button" onClick={() => set("condicao_pagamento", x)}
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.condicao_pagamento === x ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{x}</button>
+                        className={chip(c.condicao_pagamento === x)}>{x}</button>
                     ))}
                   </div>
                 </div>
@@ -645,10 +645,10 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           {/* rodapé: voltar, ver tudo em abas, próximo / cadastrar */}
           <div className="sticky bottom-0 z-10 flex items-center gap-2 border-t border-slate-200 bg-surface/95 px-3 py-3 backdrop-blur sm:rounded-b-2xl sm:px-6">
             <Button type="button" variant="ghost" disabled={n === 0} onClick={() => irPara(n - 1)}><ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span></Button>
-            <button type="button" onClick={() => { setAba(n < 4 ? (["gerais", "contato", "endereco", "complementares"] as Aba[])[n] : "gerais"); setModo("abas"); }}
-              title="Ver o cadastro completo, com todas as abas" className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-fg">
+            <Button type="button" tamanho="mini" variant="ghost" onClick={() => { setAba(n < 4 ? (["gerais", "contato", "endereco", "complementares"] as Aba[])[n] : "gerais"); setModo("abas"); }}
+              title="Ver o cadastro completo, com todas as abas">
               <LayoutList size={14} /> <span className="hidden sm:inline">Ver tudo em abas</span><span className="sm:hidden">Abas</span>
-            </button>
+            </Button>
             <div className="flex-1" />
             {passo === "revisao"
               ? <Button type="button" disabled={salvando} onClick={salvar}><Save size={16} /> {salvando ? "Cadastrando…" : "Cadastrar cliente"}</Button>
@@ -771,10 +771,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
             <Secao icone={Tags} titulo="Tipo de contato" cor="purple"
               sub={c.id && podeMover ? "O que ele é para a MF. Desmarque Cliente para mandar o cadastro para Fornecedores" : "Além de cliente, o que mais ele é para a MF"}
               acao={podeMover ? (
-                <button type="button" onClick={() => setGerirTipos(true)} title="Criar, renomear e trocar a cor das categorias"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                <Button type="button" tamanho="mini" variant="ghost" onClick={() => setGerirTipos(true)} title="Criar, renomear e trocar a cor das categorias">
                   <Pencil size={13} /> <span className="hidden sm:inline">Editar categorias</span>
-                </button>
+                </Button>
               ) : undefined}>
               <div className="flex flex-wrap gap-2">
                 <button type="button" aria-pressed={!deixaCliente} disabled={!c.id || !podeMover} onClick={() => setDeixaCliente((v) => !v)}
@@ -789,7 +788,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   return (
                     <button key={t.chave} type="button" aria-pressed={on} disabled={!podeEditar} onClick={() => toggleTag(t.chave)}
                       title={t.ativo ? undefined : "Categoria fora da lista: desmarque para tirar a etiqueta"}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? corTipo(t.cor).chip : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                      className={chip(on, corTipo(t.cor).chip)}>
                       {on ? <CircleCheck size={15} /> : <span className="text-base leading-none">+</span>} {t.nome}
                     </button>
                   );
@@ -908,7 +907,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     {STATUS_CRM.map((s) => (
                       <button key={s.value} type="button" role="radio" aria-checked={c.status_crm === s.value} disabled={!podeEditar}
                         onClick={() => set("status_crm", c.status_crm === s.value ? null : s.value)}
-                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${c.status_crm === s.value ? `${s.cor} shadow-sm ring-1 ring-black/10` : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+                        className={chip(c.status_crm === s.value, `border-transparent ${s.cor} shadow-sm ring-1 ring-black/10`)}>
                         {s.label}
                       </button>
                     ))}
@@ -929,7 +928,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {CONDICOES.map((x) => (
                         <button key={x} type="button" onClick={() => set("condicao_pagamento", x)}
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.condicao_pagamento === x ? "bg-brand text-brand-fg" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{x}</button>
+                          className={chip(c.condicao_pagamento === x)}>{x}</button>
                       ))}
                     </div>
                   )}

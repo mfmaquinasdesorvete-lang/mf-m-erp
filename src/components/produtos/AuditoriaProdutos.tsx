@@ -2,7 +2,7 @@
 // repetidos, sem código) e o que falta para anunciar em marketplace (nota de 0 a 100, pendências e preenchimento automático).
 import { useMemo, useState } from "react";
 import { AlertTriangle, Barcode, CheckCircle2, Copy, Sparkles, Store, Type, Wand2 } from "lucide-react";
-import { Button, Card, Modal } from "@/components/ui";
+import { Button, Card, Modal, chip } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -294,10 +294,10 @@ function Marketplace({ itens, todos, podeEditar, onAbrir }: {
         {podeEditar && <Button disabled={!!ocupado || !automaticos.length} onClick={completar}><Wand2 size={15} /> {ocupado ? `Gravando ${ocupado}…` : `Completar automaticamente (${automaticos.length})`}</Button>}
       </Card>
       <div className="flex flex-wrap gap-1.5">
-        <button type="button" onClick={() => setFiltro("")} className={`rounded-full px-3 py-1 text-xs font-semibold ${!filtro ? "bg-brand text-brand-fg" : "border border-slate-300 text-slate-600"}`}>Todos ({itens.length})</button>
-        <button type="button" onClick={() => setFiltro("prontos")} className={`rounded-full px-3 py-1 text-xs font-semibold ${filtro === "prontos" ? "bg-brand text-brand-fg" : "border border-slate-300 text-slate-600"}`}>Prontos ({itens.filter((x) => x.a.nota >= 90).length})</button>
+        <button type="button" onClick={() => setFiltro("")} className={chip(!filtro)}>Todos ({itens.length})</button>
+        <button type="button" onClick={() => setFiltro("prontos")} className={chip(filtro === "prontos")}>Prontos ({itens.filter((x) => x.a.nota >= 90).length})</button>
         {contagem.map(([id, n]) => (
-          <button key={id} type="button" onClick={() => setFiltro(id)} className={`rounded-full px-3 py-1 text-xs font-semibold ${filtro === id ? "bg-brand text-brand-fg" : "border border-slate-300 text-slate-600"}`}>
+          <button key={id} type="button" onClick={() => setFiltro(id)} className={chip(filtro === id)}>
             Falta {ROTULO_PEND[id] ?? id} ({n})
           </button>
         ))}

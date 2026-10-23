@@ -3,7 +3,7 @@
 // observação. Salvar já abre o próximo, com a mesma máquina, OP, operador e giga.
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { AlertTriangle, CalendarClock, CheckCircle2, CircleDashed, Info, RotateCcw, Save, XCircle } from "lucide-react";
-import { Button, Field } from "@/components/ui";
+import { Button, Field, chip } from "@/components/ui";
 import { CampoUnidade, useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate } from "@/lib/data";
@@ -197,7 +197,7 @@ export function LancarTeste({ ctx, inicial, onVerRegistros }: { ctx: ContextoGig
               <div className="flex flex-wrap gap-1.5">
                 {sugestoesNs.map((s) => (
                   <button key={`${s.op.id}-${s.ns}`} type="button" onClick={() => escolherNs(s.ns, s.op)} aria-pressed={ns === s.ns}
-                    className={`num inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${ns === s.ns ? "border-transparent bg-modulo-escuro text-white" : "border-slate-300 bg-surface text-fg hover:bg-slate-50"}`}>
+                    className={`num ${chip(ns === s.ns, "border-transparent bg-modulo-escuro text-white")}`}>
                     {s.ns} <span className={`text-2xs font-normal ${ns === s.ns ? "text-white/80" : "text-slate-500"}`}>OP #{s.op.numero}{s.h?.length ? " · reteste" : ""}</span>
                   </button>
                 ))}

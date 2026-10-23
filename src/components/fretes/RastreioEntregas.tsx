@@ -110,9 +110,9 @@ function CartaoRastreio({ e, grupo, cor, cliente, transportadora, pedido, podeEd
       </div>
       {cod ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          <button type="button" onClick={copiar} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-fg hover:bg-slate-200" aria-label={`Copiar o código ${cod}`}>
+          <Button type="button" tamanho="mini" variant="secondary" onClick={copiar} className="font-mono" aria-label={`Copiar o código ${cod}`}>
             {cod} <Copy size={12} aria-hidden />
-          </button>
+          </Button>
           {link && <a href={link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-modulo-texto hover:underline"><ExternalLink size={13} aria-hidden /> Rastrear</a>}
           {!link && transportadora?.rastreio_url && <a href={transportadora.rastreio_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-modulo-texto hover:underline"><ExternalLink size={13} aria-hidden /> Site de rastreio</a>}
           <span className="ml-auto text-2xs text-slate-500">{temEmail ? "e-mail automático ✓" : "cliente sem e-mail"}</span>

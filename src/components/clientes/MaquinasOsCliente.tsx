@@ -73,7 +73,7 @@ export function MaquinasOsCliente({ clienteId, salvarAntes, podeEditar }: { clie
           <ul className="divide-y divide-slate-100 rounded-xl text-sm ring-1 ring-slate-200">
             {doCliente.map((o) => (
               <li key={o.id}>
-                <button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left hover:bg-slate-50" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })}>
+                <button type="button" className="linha-clicavel flex items-center justify-between gap-3 px-4 py-2" onClick={() => navigate("/assistencia", { state: { abrir: o.id } })}>
                   <span className="min-w-0"><b>OS #{o.numero}</b> · {o.equipamento ?? "—"}{o.data_entrada ? ` · ${dataBR(o.data_entrada)}` : ""}
                     {o.defeito_relatado && <span className="block truncate text-xs text-slate-500">{o.defeito_relatado}</span>}</span>
                   <span className="shrink-0 text-right text-xs"><span className="rounded-md bg-slate-200 px-2 py-0.5 font-semibold capitalize text-slate-700">{o.status.replace(/_/g, " ")}</span>

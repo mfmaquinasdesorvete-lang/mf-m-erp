@@ -153,10 +153,9 @@ export function ItemModal({ time, item, sprintInicial, sprints, itensDoTime, tod
             <span className="font-normal text-indigo-800">— rascunhos pelo título e pelo histórico das equipes; confira antes de salvar</span></p>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Assistente do item">
             {ACOES.map(({ id, rotulo, dica, Icone }) => (
-              <button key={id} type="button" onClick={() => usar(id)} title={dica} aria-label={`${rotulo}: ${dica}`}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-surface px-2.5 text-xs font-semibold text-indigo-900 transition hover:bg-indigo-100">
+              <Button key={id} type="button" tamanho="mini" variant="secondary" onClick={() => usar(id)} title={dica} aria-label={`${rotulo}: ${dica}`} className="h-9">
                 <Icone size={15} aria-hidden /> {rotulo}
-              </button>
+              </Button>
             ))}
           </div>
           <FluxoBdd r={r} item={item} todosItens={todosItens} pessoas={todasPessoas} onAbrir={onAbrir}
@@ -168,9 +167,9 @@ export function ItemModal({ time, item, sprintInicial, sprints, itensDoTime, tod
           {aviso && (
             <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface p-2 text-xs text-slate-700" role="status">
               <ul className="min-w-0 flex-1 space-y-0.5">{aviso.linhas.map((l, k) => <li key={k}>{l}</li>)}</ul>
-              <button type="button" onClick={() => { setR(aviso.antes); setAviso(null); }} className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-indigo-800 hover:bg-indigo-100">
+              <Button type="button" tamanho="mini" tom="desfazer" onClick={() => { setR(aviso.antes); setAviso(null); }}>
                 <Undo2 size={13} aria-hidden /> Desfazer
-              </button>
+              </Button>
             </div>
           )}
         </div>

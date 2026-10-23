@@ -2,6 +2,7 @@
 // produção, que viram a lista de conferência de cada OP.
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export type Especificacao = { nome: string; valor: string };
 
@@ -24,7 +25,7 @@ export function EditorEspecificacoes({ valor, onChange, disabled, sugestoes = SU
             <li key={i} className="flex gap-2">
               <input className="input w-2/5 min-w-0" value={e.nome} disabled={disabled} maxLength={60} placeholder="Ex.: Voltagem" aria-label={`Nome da especificação ${i + 1}`} onChange={(x) => mudar(i, { nome: x.target.value })} />
               <input className="input min-w-0 flex-1" value={e.valor} disabled={disabled} maxLength={160} placeholder="Ex.: 220 V monofásica" aria-label={`Valor de ${e.nome || `especificação ${i + 1}`}`} onChange={(x) => mudar(i, { valor: x.target.value })} />
-              {!disabled && <button type="button" onClick={() => onChange(itens.filter((_, j) => j !== i))} className="rounded p-2 text-red-600 hover:bg-red-50" aria-label={`Tirar ${e.nome || "especificação"}`}><Trash2 size={15} /></button>}
+              {!disabled && <button type="button" onClick={() => onChange(itens.filter((_, j) => j !== i))} className="botao-icone-perigo p-2" aria-label={`Tirar ${e.nome || "especificação"}`}><Trash2 size={15} /></button>}
             </li>
           ))}
         </ul>
@@ -32,11 +33,9 @@ export function EditorEspecificacoes({ valor, onChange, disabled, sugestoes = SU
       {!disabled && (
         <div className="flex flex-wrap gap-1.5">
           {faltam.map((s) => (
-            <button key={s} type="button" onClick={() => onChange([...itens, { nome: s, valor: "" }])}
-              className="rounded-full border border-slate-300 px-2.5 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">+ {s}</button>
+            <Button key={s} type="button" tamanho="mini" variant="secondary" onClick={() => onChange([...itens, { nome: s, valor: "" }])}>+ {s}</Button>
           ))}
-          <button type="button" onClick={() => onChange([...itens, { nome: "", valor: "" }])}
-            className="inline-flex items-center gap-1 rounded-full border border-brand/40 px-2.5 py-0.5 text-xs font-semibold text-brand hover:bg-brand/10"><Plus size={12} /> Outra</button>
+          <Button type="button" tamanho="mini" variant="secondary" onClick={() => onChange([...itens, { nome: "", valor: "" }])}><Plus size={12} /> Outra</Button>
         </div>
       )}
     </div>
@@ -57,9 +56,9 @@ export function EditorEtapas({ valor, onChange, disabled }: { valor: unknown; on
               <span className="num w-6 shrink-0 text-xs font-bold text-slate-400">{i + 1}</span>
               <span className="min-w-0 flex-1 font-medium text-fg">{e}</span>
               {!disabled && (<>
-                <button type="button" disabled={i === 0} onClick={() => mover(i, -1)} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30" aria-label={`Subir ${e}`}><ArrowUp size={14} /></button>
-                <button type="button" disabled={i === etapas.length - 1} onClick={() => mover(i, 1)} className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30" aria-label={`Descer ${e}`}><ArrowDown size={14} /></button>
-                <button type="button" onClick={() => onChange(etapas.filter((_, j) => j !== i))} className="rounded p-1 text-red-600 hover:bg-red-50" aria-label={`Tirar ${e}`}><Trash2 size={14} /></button>
+                <button type="button" disabled={i === 0} onClick={() => mover(i, -1)} className="botao-icone p-1" aria-label={`Subir ${e}`}><ArrowUp size={14} /></button>
+                <button type="button" disabled={i === etapas.length - 1} onClick={() => mover(i, 1)} className="botao-icone p-1" aria-label={`Descer ${e}`}><ArrowDown size={14} /></button>
+                <button type="button" onClick={() => onChange(etapas.filter((_, j) => j !== i))} className="botao-icone-perigo p-1" aria-label={`Tirar ${e}`}><Trash2 size={14} /></button>
               </>)}
             </li>
           ))}
@@ -69,9 +68,9 @@ export function EditorEtapas({ valor, onChange, disabled }: { valor: unknown; on
         <div className="flex flex-wrap gap-2">
           <input className="input min-w-0 flex-1" value={nova} maxLength={120} placeholder="Nova etapa (ex.: Teste de produção)" aria-label="Nova etapa"
             onChange={(e) => setNova(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); incluir(); } }} />
-          <button type="button" onClick={incluir} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Plus size={14} /> Incluir</button>
+          <Button type="button" variant="secondary" onClick={incluir}><Plus size={14} /> Incluir</Button>
           {!etapas.length && (
-            <button type="button" onClick={() => onChange(ETAPAS_PADRAO)} className="rounded-xl border border-brand/40 px-3 text-sm font-semibold text-brand hover:bg-brand/10">Usar as etapas padrão</button>
+            <Button type="button" variant="secondary" onClick={() => onChange(ETAPAS_PADRAO)}>Usar as etapas padrão</Button>
           )}
         </div>
       )}
