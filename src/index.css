@@ -99,6 +99,66 @@
     box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.6);
   }
 }
+/* ---- Fundo "Aurora 2026" (padrão do escuro desde 23/10; quadro de tendências 2026 da usuária) ----
+   Linguagem: noite violeta com auroras rosa/violeta/azul, superfícies de vidro (translúcidas com desfoque), cantos
+   maiores e brilho só no que é ação. A cor da marca continua sendo a do botão principal; o degradê só a puxa para o
+   violeta. Seletor com :root repetido para valer por cima do fundo "App" (que tem mais peso).
+   Tokens: canvas/surface/campo/ink/slate (fundo, superfície, texto, borda), raios e sombras abaixo. */
+:root:root:root[data-theme="dark"][data-fundo="aurora"] {
+  --sombra: 0.5;
+  --canvas: 13 8 32;
+  --surface: 33 24 70;
+  --campo: 20 14 46;
+  --ink: 16 10 40; --ink-soft: 38 28 82; --ink-line: 58 44 110;
+  --fg: 245 243 255;
+  --slate-50: 41 31 84; --slate-100: 50 38 98; --slate-200: 66 52 122; --slate-300: 92 76 152; --slate-400: 166 156 210;
+  --slate-500: 176 168 216; --slate-600: 204 198 236; --slate-700: 222 218 246; --slate-800: 236 233 252; --slate-900: 247 245 255;
+  --grade: #2c2158; --eixo: #46377f; --eixo-texto: #b0a8d8; --hover: #2a1f5a;
+  --raio-lg: 0.75rem; --raio-xl: 1.25rem; --raio-2xl: 1.6rem; --raio-linha-celular: 20px;
+  /* vidro: quanto a superfície deixa ver do fundo */
+  --vidro: 0.58;
+}
+:root:root:root[data-theme="dark"][data-fundo="aurora"] body {
+  background-color: rgb(var(--canvas));
+  background-image:
+    radial-gradient(760px 520px at 0% -8%, rgb(236 72 153 / 0.28), transparent 62%),
+    radial-gradient(900px 600px at 100% 0%, rgb(124 58 237 / 0.32), transparent 64%),
+    radial-gradient(900px 700px at 60% 110%, rgb(37 99 235 / 0.26), transparent 62%);
+  background-attachment: fixed;
+}
+/* superfícies de vidro: cartões (só os de fundo neutro; cartões coloridos guardam a cor deles). Janelas ficam opacas:
+   por cima de uma tela cheia de texto, o vidro deixava ler o que estava atrás */
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .cartao, :root:root:root[data-theme="dark"][data-fundo="aurora"] .bg-surface.shadow-card {
+  background-color: rgb(var(--surface) / var(--vidro));
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+:root:root:root[data-theme="dark"][data-fundo="aurora"] [role="dialog"].bg-surface { background-color: rgb(var(--surface)); }
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .shadow-card {
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 40px -20px rgb(8 4 30 / 0.85);
+}
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .shadow-pop { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 30px 70px -20px rgb(8 4 30 / 0.9); }
+/* menu lateral e barra do celular de vidro escuro */
+:root:root:root[data-theme="dark"][data-fundo="aurora"] aside.bg-ink { background-color: rgb(var(--ink) / 0.72); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); }
+/* ação principal: a cor da marca puxada para o violeta, com brilho (só ela brilha, para não competir) */
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .bg-brand {
+  background-image: linear-gradient(135deg, rgb(var(--brand)) 0%, color-mix(in srgb, rgb(var(--brand)) 45%, #a855f7) 100%);
+  box-shadow: 0 10px 26px -10px color-mix(in srgb, rgb(var(--brand)) 70%, #a855f7);
+}
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .bg-brand:hover { filter: brightness(1.08); }
+:root:root:root[data-theme="dark"][data-fundo="aurora"] .input { border-color: rgb(255 255 255 / 0.12); }
+@media (max-width: 767px) {
+  :root:root:root[data-theme="dark"][data-fundo="aurora"] .tabela.tabela > tbody > tr {
+    background-color: rgb(var(--surface) / var(--vidro)) !important;
+    border-color: rgb(255 255 255 / 0.1) !important; border-left-color: rgb(var(--modulo)) !important;
+  }
+}
+/* desfoque é caro em aparelho fraco e quem pede menos movimento costuma pedir menos efeito: vidro fica opaco */
+@media (prefers-reduced-transparency: reduce) {
+  :root:root:root[data-theme="dark"][data-fundo="aurora"] .cartao, :root:root:root[data-theme="dark"][data-fundo="aurora"] .bg-surface.shadow-card, :root:root:root[data-theme="dark"][data-fundo="aurora"] aside.bg-ink { background-color: rgb(var(--surface)); backdrop-filter: none; }
+}
+
 /* claro: cantos um pouco mais redondos e sombra mais macia, também com cara de app */
 :root:not([data-theme="dark"]) { --raio-2xl: 1.25rem; }
 :root:not([data-theme="dark"]) .shadow-card { box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12); }

@@ -14,22 +14,23 @@ export function lerTema(): Tema {
 export function aplicarTema(t: Tema) {
   // páginas públicas (área do cliente, página da máquina) ficam sempre claras; a escolha só é guardada
   document.documentElement.dataset.theme = t === "escuro" && document.documentElement.dataset.publica !== "1" ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "claro" ? "#f4f6f9" : { marinho: "#061226", grafite: "#101216", app: "#0a0b1a" }[lerFundo()]);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "claro" ? "#f4f6f9" : { marinho: "#061226", grafite: "#101216", app: "#0a0b1a", aurora: "#0d0820" }[lerFundo()]);
   try { localStorage.setItem(CHAVE, t); } catch { /* navegação privada: só não lembra a escolha */ }
 }
 
-/** Fundo do tema escuro: "app" (padrão: azul-noite com brilho e cartões de vidro, jeito de aplicativo),
- *  grafite neutro ou o azul-marinho de antes. Chave nova: todo mundo começa no visual de aplicativo. */
-export type Fundo = "app" | "grafite" | "marinho";
-const CHAVE_FUNDO = "mf-erp-fundo2";
-const FUNDOS: Fundo[] = ["app", "grafite", "marinho"];
+/** Fundo do tema escuro: "aurora" (padrão desde 23/10: tendências 2026 — vidro, degradês rosa/violeta/azul e brilho),
+ *  "app" (azul-noite com brilho, o de antes), grafite neutro ou o azul-marinho antigo.
+ *  Chave nova (fundo3): todo mundo começa no Aurora e pode voltar ao de antes em Aparência. */
+export type Fundo = "aurora" | "app" | "grafite" | "marinho";
+const CHAVE_FUNDO = "mf-erp-fundo3";
+const FUNDOS: Fundo[] = ["aurora", "app", "grafite", "marinho"];
 
 export function lerFundo(): Fundo {
   try {
     const v = localStorage.getItem(CHAVE_FUNDO) as Fundo | null;
-    return v && FUNDOS.includes(v) ? v : "app";
+    return v && FUNDOS.includes(v) ? v : "aurora";
   } catch {
-    return "app";
+    return "aurora";
   }
 }
 
@@ -72,8 +73,8 @@ export function aplicarDestaque(d: Destaque) {
 
 /** Aplica a aparência salva no perfil do usuário (vale em qualquer aparelho). */
 export function aplicarPreferencias(p: { tema?: string; destaque?: string; fundo?: string } | null | undefined) {
-  // fundo2: a escolha feita depois do visual de aplicativo (o "fundo" antigo era sempre grafite por padrão)
-  const f = (p as { fundo2?: string } | null | undefined)?.fundo2;
+  // fundo3: a escolha feita depois do visual Aurora (fundo2 era a do visual de aplicativo, antes do Aurora)
+  const f = (p as { fundo3?: string } | null | undefined)?.fundo3;
   if (f && FUNDOS.includes(f as Fundo)) aplicarFundo(f as Fundo);
   if (p?.tema === "claro" || p?.tema === "escuro") aplicarTema(p.tema);
   if (p?.destaque && DESTAQUES.some((d) => d.value === p.destaque)) aplicarDestaque(p.destaque as Destaque);

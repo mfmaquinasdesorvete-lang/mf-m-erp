@@ -512,7 +512,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
   const salvar = (p: Record<string, string>) => { supabase.rpc("salvar_preferencias", { p }).then(() => null); };
   const escolherTema = (t: Tema) => { aplicarTema(t); setTema(t); salvar({ tema: t }); };
   const escolherCor = (d: Destaque) => { aplicarDestaque(d); setCor(d); salvar({ destaque: d }); };
-  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo2: f }); };
+  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo3: f }); };
 
   return (
     <Modal open onClose={onClose} title="Aparência">
@@ -532,7 +532,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
           <div>
             <div className="mb-2 text-sm font-bold text-fg">Fundo do tema escuro</div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {([["app", "App", "azul-noite com brilho, jeito de aplicativo", "#191b33", "#0a0b1a"], ["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
+              {([["aurora", "Aurora 2026", "vidro, degradês e brilho (padrão)", "#3b1d6e", "#120a2a"], ["app", "App", "azul-noite com brilho, o de antes", "#191b33", "#0a0b1a"], ["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
                 <button key={v} type="button" onClick={() => escolherFundo(v)}
                   className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${fundo === v ? "border-brand" : "border-slate-200 hover:border-slate-300"}`}>
                   <span className="relative flex">
