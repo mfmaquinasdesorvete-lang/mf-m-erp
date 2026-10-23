@@ -65,3 +65,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
 - Clonar venda não leva número, nota, rastreio nem marcadores (`src/lib/clonarVenda.ts`).
 - OS: o Salvar grava só o que mudou desde que a OS foi aberta (o técnico mexe pelo app ao mesmo tempo); fotos sempre
   relidas do banco antes de juntar; vídeo chamada paga por Pix guarda `video_valor_pago` e a `concluir_os` não cobra de novo.
+- Cobrança do cliente (régua WhatsApp/e-mail): só entra a conta que passa em `public.conta_receber_cobravel`
+  (fora: parcela no cartão, pedido cancelado ou excluído, pedido sem NF de venda autorizada). A tela usa a mesma regra
+  pela rpc `contas_receber_fora_cobranca` (`marcarForaDaCobranca` em `src/lib/cobranca.ts`). Regra nova vai na função
+  do banco, não só na tela.
+- OC lança o contas a pagar (`lancar_oc_contas_pagar`, contas com `pedido_compra_id`); recebimento e nota do fornecedor
+  usam `contas_da_oc` para não lançar em dobro. OC recebida (e as do Tiny) não lança por esse botão.
