@@ -2,6 +2,7 @@
 // de outro sistema ou do próprio ERP (botão Exportar) e converte para importar_contatos.
 // As colunas são reconhecidas pelo nome do cabeçalho, sem depender da ordem.
 import { dataDoCodigo } from "../../supabase/functions/_shared/compra-maquina";
+import { etiquetasTiny, soPessoalInterno } from "../../supabase/functions/_shared/etiquetas-tiny";
 import { abrirPlanilha } from "./planilha";
 
 export type TipoContato = "cliente" | "fornecedor" | "transportadora";
@@ -9,6 +10,8 @@ export type ContatoImportado = {
   id_externo: string; nome: string; fantasia: string; tipo_pessoa: string; cpf_cnpj: string; ie: string; contribuinte: string;
   email: string; fone: string; celular: string; cep: string; endereco: string; numero: string; complemento: string;
   bairro: string; cidade: string; uf: string; obs: string; tipos: TipoContato[];
+  /** tags do Tiny (tipos de contato que a empresa criou, como "Garantia"): viram marcadores no cadastro */
+  etiquetas: string[];
   /** mês/ano da compra da máquina (AAAA-MM-DD); no Tiny ficava no "Código" do contato */
   compra_maquina: string;
   /** campos do cadastro do Tiny que antes ficavam de fora (vazio = a planilha não tinha) */
@@ -142,6 +145,9 @@ function crt(v: unknown): string {
   return /normal|real|presumido/.test(s) ? "3" : "";
 }
 
+/** "Cliente | Garantia, Fornecedor" -> cada tipo (o Tiny separa por vírgula ou por barra). */
+const listaTipos = (v: unknown) => String(v ?? "").split(/[|,;]/).map(txt).filter(Boolean);
+
 export function tiposDoTexto(v: unknown, padrao: TipoContato): TipoContato[] | null {
   const s = sem(v);
   if (!s) return [padrao];
@@ -150,7 +156,9 @@ export function tiposDoTexto(v: unknown, padrao: TipoContato): TipoContato[] | n
     /fornec/.test(s) && "fornecedor",
     /transport/.test(s) && "transportadora",
   ].filter(Boolean) as TipoContato[];
-  return tipos.length ? tipos : null; // só vendedor/funcionário etc.: não entra
+  if (tipos.length) return tipos;
+  // só vendedor/funcionário: não entra; só tags da empresa (ex.: "Garantia"): entra como o padrão da tela
+  return soPessoalInterno(listaTipos(v)) ? null : [padrao];
 }
 
 /** "08/2023 - 05/2023": no Tiny alguém pôs datas (mês/ano) no nome fantasia; isso não é nome. */
@@ -199,7 +207,7 @@ export function converterContatos(linhas: unknown[][], padrao: TipoContato): Lei
       fone: txt(col(r, "fone")), celular: txt(col(r, "celular")),
       cep: digitos(col(r, "cep"), [8]), endereco: txt(col(r, "endereco")), numero: txt(col(r, "numero")).replace(/\.0+$/, ""),
       complemento: txt(col(r, "complemento")), bairro: txt(col(r, "bairro")), cidade: txt(col(r, "cidade")),
-      uf: uf(col(r, "uf")), tipos,
+      uf: uf(col(r, "uf")), tipos, etiquetas: etiquetasTiny(listaTipos(col(r, "tipos"))),
       obs: [txt(col(r, "obs")), datasFantasia && `Datas que estavam no nome fantasia (vindas do Tiny): ${datasFantasia}`].filter(Boolean).join("\n"),
       compra_maquina: dataDoCodigo(col(r, "compra_maquina")),
       cadastro_em: dataPlanilha(col(r, "cadastro_em")), site: txt(col(r, "site")), fone2: txt(col(r, "fone2")),

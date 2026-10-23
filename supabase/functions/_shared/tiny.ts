@@ -3,6 +3,7 @@
 // O Tiny limita as consultas por minuto (o limite vem no header x-limit-api): as chamadas são espaçadas.
 
 import { dataDoCodigo } from "./compra-maquina.ts";
+import { etiquetasTiny, soPessoalInterno } from "./etiquetas-tiny.ts";
 
 const BASE = "https://api.tiny.com.br/api2/";
 
@@ -161,16 +162,29 @@ export function produtoParaItem(p: any, saldo: number | null) {
   };
 }
 
-/** Tipos do contato no Tiny -> onde ele entra no ERP. Sem tipo informado = cliente; só vendedor/funcionário = não entra. */
+/** Nomes dos tipos de contato do Tiny (Cliente, Fornecedor e os que a empresa cria, como "Garantia"). */
+const nomesTipos = (c: any): string[] => (c?.tipos_contato ?? []).map((t: any) => txt(t?.tipo ?? t)).filter(Boolean);
+
+/**
+ * Tipos do contato no Tiny -> onde ele entra no ERP. Sem tipo informado = cliente; só vendedor/funcionário = não entra;
+ * só tags da empresa (ex.: "Garantia", sem "Cliente") = cliente.
+ */
 export function tiposContato(c: any): string[] | null {
-  const lista = (c?.tipos_contato ?? []).map((t: any) => txt(t?.tipo ?? t)).filter(Boolean);
+  const lista = nomesTipos(c);
   if (!lista.length) return ["cliente"];
   const tipos = [
     lista.some((t: string) => /cliente/i.test(t)) && "cliente",
     lista.some((t: string) => /fornecedor/i.test(t)) && "fornecedor",
     lista.some((t: string) => /transport/i.test(t)) && "transportadora",
   ].filter(Boolean) as string[];
-  return tipos.length ? tipos : null;
+  return tipos.length ? tipos : soPessoalInterno(lista) ? null : ["cliente"];
+}
+
+/** Tags do contato no Tiny: os tipos que a empresa criou e os marcadores (viram marcadores no ERP). */
+export function etiquetasContato(c: any): string[] {
+  const marcadores = (Array.isArray(c?.marcadores) ? c.marcadores : [])
+    .map((m: any) => txt(m?.marcador?.descricao ?? m?.descricao ?? m?.nome ?? m));
+  return etiquetasTiny([...nomesTipos(c), ...marcadores]);
 }
 
 /** Contato do Tiny (contato.obter ou da pesquisa) -> item de importar_contatos. null = não entra. */
@@ -184,7 +198,7 @@ export function contatoParaItem(c: any) {
     cpf_cnpj: digitos(c.cpf_cnpj), ie: txt(c.ie), contribuinte: txt(c.contribuinte),
     email: txt(c.email).split(/[;, ]+/)[0] ?? "", fone: txt(c.fone), celular: txt(c.celular),
     cep: txt(c.cep), endereco: txt(c.endereco), numero: txt(c.numero), complemento: txt(c.complemento),
-    bairro: txt(c.bairro), cidade: txt(c.cidade), uf: txt(c.uf), obs: txt(c.obs), tipos,
+    bairro: txt(c.bairro), cidade: txt(c.cidade), uf: txt(c.uf), obs: txt(c.obs), tipos, etiquetas: etiquetasContato(c),
     // no Tiny o "Código" do contato guardava o mês/ano da compra da máquina (ex.: 10/2020)
     compra_maquina: dataDoCodigo(c.codigo),
     // demais campos do cadastro do Tiny (mesmos nomes da importação por planilha)
