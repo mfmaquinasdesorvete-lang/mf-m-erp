@@ -14,6 +14,8 @@ import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, pl } from "@/lib/format";
 import { diaLocal } from "@/lib/filtroLista";
+import { certidoesUrgentes } from "@/lib/certidoes";
+import { nomeLinhaCertidao, textoPrazoCertidao, useCertidoes } from "@/components/contador/Certidoes";
 import {
   chaveRegistro, configDaUnidade, CPR_SP, iso, obrigacoesUrgentes, ocorrenciasNoPeriodo, rotuloCompetencia, ROTULO_SITUACAO, situacaoDe, somarMes, textoPrazo,
   type ConfigCalendario, type ConfigUnidade, type Ocorrencia, type RegistroObrigacao, type Situacao, type UnidadeCal,
@@ -427,11 +429,12 @@ export function AlertaObrigacoes() {
   const chave = `mf-erp-alerta-obrigacoes-${hoje}`;
   const [fechado, setFechado] = useState(() => { try { return localStorage.getItem(chave) === "1"; } catch { return false; } });
   const urgentes = obrigacoesUrgentes(lista, hoje, cfg.inicio);
-  if (!pode || fechado || !urgentes.length) return null;
+  const certidoes = certidoesUrgentes(useCertidoes().linhas);
+  if (!pode || fechado || !(urgentes.length + certidoes.length)) return null;
   const fechar = () => { try { localStorage.setItem(chave, "1"); } catch { /* sem armazenamento: volta a avisar */ } setFechado(true); };
   const atrasadas = urgentes.filter((o) => o.situacao === "atrasada").length;
   return (
-    <Modal open onClose={fechar} title={atrasadas ? "Obrigação fiscal atrasada" : "Obrigação fiscal vencendo"}>
+    <Modal open onClose={fechar} title={atrasadas ? "Obrigação fiscal atrasada" : urgentes.length ? "Obrigação fiscal vencendo" : "Certidão vencendo"}>
       <p className="mb-3 text-sm text-slate-600">
         {atrasadas ? `${atrasadas} ${pl(atrasadas, "obrigação atrasada", "obrigações atrasadas")}: multa e juros correm a cada dia. ` : ""}
         Confira com o contador e marque como feita no calendário.
@@ -443,9 +446,16 @@ export function AlertaObrigacoes() {
             <span className="text-xs font-semibold">{textoPrazo(o.vencimento!, hoje)} ({dataBR(o.vencimento!).slice(0, 5)})</span>
           </li>
         ))}
+        {certidoes.map((l) => (
+          <li key={l.chave} className={`flex flex-wrap items-center gap-x-2 rounded-lg px-2 py-1.5 text-sm ${l.prazo === "vencida" || l.atual?.situacao === "positiva" ? COR.atrasada : COR.proxima}`}>
+            <b className="min-w-0 flex-1">Certidão {nomeLinhaCertidao(l)}</b>
+            <span className="text-xs font-semibold">{l.atual?.situacao === "positiva" && l.prazo === "valida" ? "positiva (com débito)" : textoPrazoCertidao(l, hoje)}</span>
+          </li>
+        ))}
       </ul>
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="secondary" onClick={fechar}>Lembrar amanhã</Button>
+        {certidoes.length > 0 && <Button variant="secondary" onClick={() => { fechar(); navigate("/contador?aba=certidoes"); }}>Abrir as certidões</Button>}
         <Button onClick={() => { fechar(); navigate("/contador?aba=calendario"); }}><CalendarDays size={16} /> Abrir o calendário</Button>
       </div>
     </Modal>

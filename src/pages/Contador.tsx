@@ -22,6 +22,7 @@ import type { LancExtratoDre } from "@/lib/dreExtrato";
 import { useAbaUrl } from "@/lib/abaUrl";
 import { CalendarioObrigacoes } from "@/components/contador/CalendarioObrigacoes";
 import { Contabilidade } from "@/components/contador/Contabilidade";
+import { Certidoes } from "@/components/contador/Certidoes";
 
 type Fechamento = { id: string; unidade_id: string; competencia: string; status: string; enviado_em: string | null; fechado_em: string | null; arquivo_caminho: string | null; observacoes: string | null };
 type Nota = { id: string; unidade_id: string | null; status: string; numero: string | null; serie: string | null; valor_total: number; created_at: string; pedido_id?: string | null; payload?: { items?: Record<string, any>[] } | null };
@@ -44,7 +45,7 @@ export default function Contador() {
   const [unid, setUnid] = useState<string>("");
   useEffect(() => { if (!unid && unidades.length) setUnid(unidades.find((u) => u.matriz)?.id ?? unidades[0].id); }, [unidades, unid]);
   const contador = papel === "contador";
-  const [aba, setAba] = useAbaUrl<"fechamento" | "calendario" | "contabilidade">("fechamento", ["fechamento", "calendario", "contabilidade"]);
+  const [aba, setAba] = useAbaUrl<"fechamento" | "calendario" | "certidoes" | "contabilidade">("fechamento", ["fechamento", "calendario", "certidoes", "contabilidade"]);
 
   return (
     <div>
@@ -52,8 +53,9 @@ export default function Contador() {
         ? "Tudo o que você precisa para o fechamento: notas, XML, planilhas e conversa com o financeiro da MF."
         : `Fechamento mensal com o contador${cfg?.contador_nome ? ` (${cfg.contador_nome})` : ""}. ${cfg?.contador_envio_auto ? `Envio automático todo dia ${cfg.contador_envio_dia}.` : "Envio automático desligado (Configurações → Contador)."}`} />
       <Tabs value={aba} onChange={setAba} options={[{ value: "fechamento", label: "Fechamento do mês" }, { value: "calendario", label: "Calendário de obrigações" },
+        { value: "certidoes", label: "Certidões" },
         ...(contador ? [] : [{ value: "contabilidade" as const, label: "Contabilidade" }])]} />
-      {aba === "contabilidade" && !contador ? <Contabilidade /> : aba === "calendario" ? <CalendarioObrigacoes /> : <>
+      {aba === "contabilidade" && !contador ? <Contabilidade /> : aba === "calendario" ? <CalendarioObrigacoes /> : aba === "certidoes" ? <Certidoes /> : <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <CampoMes rotulo="Competência" value={comp} max={new Date().toISOString().slice(0, 7)} onChange={(v) => v && setComp(v)} />
         <div className="flex gap-1.5">
