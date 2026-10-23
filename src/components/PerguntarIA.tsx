@@ -1,6 +1,7 @@
 // Perguntar à IA (Buscar do menu): a pessoa escreve a pergunta em português ("máquinas vendidas em SP com a preventiva
 // vencida") e a função ia-busca devolve como a IA entendeu, os filtros e o que achou, com o login de quem perguntou.
 // Tocar num resultado abre o registro na tela dele; "Exportar" baixa a lista em Excel.
+// Perguntas prontas (vendido hoje e na semana, saldo, peças faltando, frete demorando): respondem na hora, sem a IA.
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileDown, Sparkles } from "lucide-react";
@@ -9,6 +10,8 @@ import { callFunction } from "@/lib/supabase";
 import { brl, dataBR } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
+import { ORDEM_PRONTAS, PRONTAS, reconhecer, type Pronta } from "@/lib/respostasProntas";
+import { RespostaPronta } from "./RespostaPronta";
 
 type Achado = { tipo: string; id: string; titulo: string; sub: string | null; valor: number | null; data: string | null };
 type Resposta = { filtros: { entendi: string; nao_deu: string | null; entidade: string }; etiquetas: string[]; resultados: Achado[] };
@@ -42,9 +45,14 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
   const [resposta, setResposta] = useState<Resposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [pronta, setPronta] = useState<Pronta | null>(null);
 
   async function perguntar(texto = pergunta) {
     if (texto.trim().length < 4) return;
+    // pergunta que o ERP já sabe responder: na hora, sem chamar a IA
+    const conhecida = reconhecer(texto);
+    setPronta(conhecida);
+    if (conhecida) { setResposta(null); setErro(null); return; }
     setOcupado(true); setErro(null);
     try {
       setResposta(await callFunction<Resposta>("ia-busca", { pergunta: texto }));
@@ -78,10 +86,21 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
       </form>
       {!resposta && !erro && !ocupado && (
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+          <span className="text-slate-500">Na hora:</span>
+          {ORDEM_PRONTAS.map((x) => (
+            <Button key={x} type="button" tamanho="mini" variant={pronta === x ? "primary" : "secondary"} onClick={() => { setPergunta(PRONTAS[x].rotulo); setPronta(x); setResposta(null); setErro(null); }}>
+              {PRONTAS[x].emoji} {PRONTAS[x].rotulo}
+            </Button>
+          ))}
+        </div>
+      )}
+      {!pronta && !resposta && !erro && !ocupado && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
           <span className="text-slate-500">Exemplos:</span>
           {EXEMPLOS.map((x) => <Button key={x} type="button" tamanho="mini" variant="secondary" onClick={() => { setPergunta(x); perguntar(x); }}>{x}</Button>)}
         </div>
       )}
+      {pronta && <RespostaPronta key={pronta} tipo={pronta} onIr={onClose} />}
       {erro && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{erro}</p>}
       {resposta && (
         <div className="mt-4 space-y-3" aria-live="polite">
