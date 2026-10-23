@@ -196,10 +196,23 @@ export default function Pessoal() {
     setParte("");
     if (novo) setTimeout(() => document.getElementById("lancamentos-pessoais")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
-  // gasto da MF pago daqui: abre Contas a pagar da empresa já preenchida, para conferir e salvar
-  const lancarNaMF = (l: LancPessoal, c: CardPessoal) => navigate("/financeiro", { state: { aba: "pagar", nova: true, tipo: c.naMF?.tipo ?? "outros", inicial: {
-    descricao: l.descricao.slice(0, 200), valor: Math.abs(Number(l.valor)), vencimento: l.data, categoria: c.naMF?.categoria ?? "outros", observacoes: `${NA_EMPRESA} Pago em ${dataBR(l.data)}.`,
-  } } });
+  // gasto da MF pago daqui: abre Contas a pagar da empresa já preenchida (e já paga), para conferir e salvar. A conta leva
+  // a marca do lançamento pessoal (id_externo "pessoal:<id>", a mesma da importação da carteira): se ele já está na
+  // empresa, abre a conta que existe em vez de criar outra (antes cada clique virava uma cópia aberta).
+  async function lancarNaMF(l: LancPessoal, c: CardPessoal) {
+    const marca = `pessoal:${l.id}`;
+    const { data: ja, error } = await supabase.from("contas_pagar").select("id, descricao, status").eq("id_externo", marca).maybeSingle();
+    if (error) return notifyError(error);
+    if (ja) {
+      notify("Este gasto já está nas contas a pagar da MF: abrindo a conta que existe.");
+      return navigate("/financeiro", { state: { aba: "pagar", destaque: { ids: [ja.id], titulo: `Já lançada: ${ja.descricao}`, origem: "Painel pessoal" } } });
+    }
+    const valor = Math.abs(Number(l.valor));
+    navigate("/financeiro", { state: { aba: "pagar", nova: true, tipo: c.naMF?.tipo ?? "outros", inicial: {
+      descricao: l.descricao.slice(0, 200), valor, vencimento: l.data, categoria: c.naMF?.categoria ?? "outros", observacoes: `${NA_EMPRESA} Pago em ${dataBR(l.data)}.`,
+      id_externo: marca, status: "pago", data_pagamento: l.data, valor_pago: valor,
+    } } });
+  }
   async function anularRepetidos() {
     const total = repetidos.reduce((t, l) => t + Math.abs(Number(l.valor)), 0);
     if (!(await confirmar(`Anular ${repetidos.length} ${pl(repetidos.length, "cópia", "cópias")} (${brl(total)})? Fica a linha do arquivo do banco (OFX); a do PDF vira anulada e dá para trazer de volta.`, { ok: "Anular as cópias" }))) return;
