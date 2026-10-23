@@ -81,6 +81,17 @@ export const saidaDeVenda = (n: NotaSaida) => {
   return !(itens.length && itens.every((i) => transferencia(i.cfop)));
 };
 
+/** Quanto da nota é venda: a nota toda quando todos os itens têm CFOP de venda, nada quando nenhum tem
+ *  (transferência, remessa de conserto, comodato, demonstração, devolução) e a soma dos itens de venda quando mistura. */
+export function valorDeVenda(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">) {
+  if (n.transferencia_id || (n.tipo_operacao ?? "saida") === "entrada") return 0;
+  const itens = n.payload?.items ?? [];
+  if (!itens.length) return Number(n.valor_total ?? 0);
+  const vendas = itens.filter((i) => cfopDeVenda(i.cfop));
+  if (vendas.length === itens.length) return Number(n.valor_total ?? 0);
+  return r2(vendas.reduce((s, i) => s + Number(i.valor_bruto ?? i.valor_total ?? 0) - Number(i.valor_desconto ?? 0), 0));
+}
+
 /** Receita (só itens com CFOP de venda) e impostos destacados em todas as saídas apuráveis. */
 export function impostosDasNotas(notas: NotaSaida[]) {
   const t = { ...ZERO, receita: 0, notas: 0, producao: 0, ipiProducao: 0 };
