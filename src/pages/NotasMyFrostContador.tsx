@@ -90,7 +90,8 @@ export default function NotasMyFrostContador() {
           const g = grupoDaNota(n);
           return (
             <tr key={n.id} className={g === "Canceladas" ? "text-slate-400" : ""}>
-              <td className="td whitespace-nowrap">{dataBR(n.data)}<div className="text-xs text-slate-500">NF {n.numero} · {n.tipo === "entrada" ? "entrada" : "saída"}</div></td>
+              <td className="td whitespace-nowrap">{dataBR(n.data)}<div className="text-xs text-slate-500">NF {n.numero} · {n.tipo === "entrada" ? "entrada" : "saída"}</div>
+                {n.chave && <div className="select-all font-mono text-2xs text-slate-400" title="Chave de acesso (44 números)">{n.chave}</div>}</td>
               <td className="td"><span className={`font-semibold ${COR[g]}`}>{g === "Canceladas" ? "Cancelada" : g.replace(/s$/, "").replace(/õe$/, "ão")}</span>
                 <div className="text-xs text-slate-500">{n.natureza}{n.cartas_correcao ? ` · ${n.cartas_correcao} carta(s) de correção` : ""}</div></td>
               <td className="td">{n.dest_nome || n.cliente_nome || "—"}<div className="text-xs text-slate-500">{n.dest_doc ?? ""}</div></td>
