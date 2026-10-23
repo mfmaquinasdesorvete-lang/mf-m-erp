@@ -91,5 +91,6 @@ export function gerarGuiaPorPerfil({ ancoras }) {
     d.push("Não entra no ERP: tem um login próprio só para o portal.", "");
     if (portal) d.push(`- **O que vê:** ${portal.texto}`, `- **Como ganha o acesso:** ${portal.onde}`, "");
   }
-  return { arquivo: "guia-por-perfil.md", titulo: "Guia rápido por perfil", sobre: "Para cada função: as telas que abre, o que pode criar ou alterar, os atalhos do celular e os processos em que entra.", texto: d.texto() };
+  const ancorasPerfil = Object.fromEntries([...perfis.map((p) => [p.value, p.ancora]), ...(repr ? [[repr.value, ancRepr]] : [])]);
+  return { ancorasPerfil, arquivo: "guia-por-perfil.md", titulo: "Guia rápido por perfil", sobre: "Para cada função: as telas que abre, o que pode criar ou alterar, os atalhos do celular e os processos em que entra.", texto: d.texto() };
 }

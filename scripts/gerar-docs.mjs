@@ -11,9 +11,11 @@ import { COMANDO, RAIZ, documento } from "./docs/base.mjs";
 import { gerarModulos } from "./docs/modulos.mjs";
 import { gerarGuiaPorPerfil } from "./docs/guia-por-perfil.mjs";
 import { gerarPerguntasFrequentes } from "./docs/perguntas-frequentes.mjs";
+import { gerarAcessoNovo } from "./docs/acesso-novo.mjs";
 
 const modulos = gerarModulos();
-const docs = [modulos, gerarGuiaPorPerfil(modulos), gerarPerguntasFrequentes(modulos)];
+const guia = gerarGuiaPorPerfil(modulos);
+const docs = [modulos, guia, gerarPerguntasFrequentes(modulos), gerarAcessoNovo(modulos, guia)];
 
 const pasta = join(RAIZ, "docs");
 mkdirSync(pasta, { recursive: true });
