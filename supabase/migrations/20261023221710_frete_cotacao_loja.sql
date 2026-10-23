@@ -4,7 +4,8 @@
 --  * frete_consultas: cada consulta com as opções cotadas (o pedido da loja usa o valor gravado aqui);
 --  * loja_frete_ligado(): a loja mostra o "Calcule o frete" só quando ligado;
 --  * loja_criar_pedido_frete(): cria o pedido da loja (loja_criar_pedido) e grava o frete escolhido na consulta.
--- Só acrescenta.
+-- Só acrescenta. Aplicada em partes em 23/10/2026 (o registro 20261023221710 guarda só os comentários; o resto foi
+-- aplicado comando a comando com o mesmo conteúdo deste arquivo).
 alter table public.configuracoes add column if not exists frete_regras jsonb;
 comment on column public.configuracoes.frete_regras is 'Regras de frete da loja e da cotação rápida (Fretes → Regras de frete)';
 
@@ -57,7 +58,7 @@ begin
   select o into v_op from jsonb_array_elements(v_c.opcoes) o where o->>'id' = p_opcao;
   if v_op is null then raise exception 'escolha uma das opções de frete'; end if;
   -- o frete foi calculado para o CEP do cadastro de quem está comprando
-  select regexp_replace(coalesce(c.cep, ''), '\D', '', 'g') into v_cep
+  select regexp_replace(coalesce(c.cep, ''), '[^0-9]', '', 'g') into v_cep
     from loja_clientes l join clientes c on c.id = l.cliente_id where l.user_id = auth.uid();
   if v_cep is distinct from v_c.cep and p_opcao <> 'retirada' then
     raise exception 'o frete foi calculado para outro CEP: calcule de novo com o CEP do seu cadastro';
