@@ -15,6 +15,9 @@
 // Fase A (depois da venda):
 //  POST { acao: "pos_venda" }               (vendas, financeiro ou agendamento de 10 min) → manda as NF-e autorizadas e o
 //       rastreio dos envios por conta própria; a situação do envio (enviado, entregue…) chega junto com cada venda.
+// Histórico (painel da primeira aba):
+//  POST { acao: "historico" }               (vendas, financeiro ou marketplaces) → busca para trás tudo o que já foi
+//       vendido na conta e as datas de envio (tabela ml_historico, sem criar pedido); a sincronização também avança.
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -24,12 +27,14 @@ import { enderecoSite } from "../_shared/site.ts";
 import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizarPedido, parPkce, pedirToken, situacaoEnvio } from "../_shared/mercadolivre.ts";
 import { buscarAnuncios, enviarAnuncios, mudarSituacao } from "./anuncios.ts";
 import { enviarNotas, enviarRastreios } from "./posvenda.ts";
+import { gravarHistorico, puxarHistorico } from "./historico.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 type Conta = {
   id: string; ml_user_id: number; apelido: string | null; status: string; token_expira_em: string | null;
   sincronizado_em: string | null; importar_desde: string;
+  historico_ate?: string | null; historico_fonte?: string | null; historico_completo?: boolean | null;
 };
 type Segredos = { ml_client_id?: string; ml_client_secret?: string; ml_access_token?: string; ml_refresh_token?: string };
 
@@ -76,6 +81,11 @@ Deno.serve(async (req) => {
         await requireErpUser(req, ["financeiro", "marketplace"]);
         const conta = await contaLigada(db);
         return json({ ok: true, resultado: await mudarSituacao(db, body.itens, body.status, await tokenValido(db, conta)) });
+      }
+      case "historico": {
+        await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await puxarHistorico(db, conta, await tokenValido(db, conta)) });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
@@ -186,6 +196,7 @@ async function sincronizar(db: SupabaseClient, conta: Conta) {
   for (let pagina = 0; pagina < 10; pagina++) {
     const r = await chamarML(`/orders/search?seller=${conta.ml_user_id}&order.date_last_updated.from=${encodeURIComponent(desde)}&sort=date_asc&limit=50&offset=${offset}`, token);
     const lista: any[] = r?.results ?? [];
+    try { await gravarHistorico(db, conta.id, lista); } catch (e) { console.error("mercadolivre:", e instanceof Error ? e.message : e); }
     for (const o of lista) {
       try {
         const res = await importar(db, conta, token, String(o.id));
@@ -201,6 +212,12 @@ async function sincronizar(db: SupabaseClient, conta: Conta) {
   }
   await db.from("ml_contas").update({ sincronizado_em: new Date().toISOString(), ultimas_novas: resumo.importada ?? 0, status: "ativa", erro: null })
     .eq("id", conta.id);
+  // o histórico do painel avança um pouco a cada sincronização (e as datas de envio ficam em dia)
+  try {
+    const { data: c } = await db.from("ml_contas").select("*").eq("id", conta.id).single();
+    const h = await puxarHistorico(db, c as Conta, token, 25_000);
+    resumo.historico = h.vendas;
+  } catch (e) { console.error("mercadolivre: histórico", e instanceof Error ? e.message : e); }
   return resumo;
 }
 
