@@ -56,3 +56,13 @@ describe("empresa do Melhor Envio no cadastro", () => {
     expect(combinaNome(t("Jamef"), "Jadlog")).toBe(false);
   });
 });
+
+describe("integração ligada no ERP", () => {
+  it("Rodonaves pelo Olist Envios fica sem a API direta", async () => {
+    const { integracaoApi } = await import("../transportadoras");
+    expect(integracaoApi({ nome: "Rodonaves", nome_fantasia: null, site: null })).toBe("rodonaves");
+    expect(integracaoApi({ nome: "Rodonaves", nome_fantasia: null, site: null, integracoes: ["SSW", "Olist Envios"] })).toBeNull();
+    expect(integracaoApi({ nome: "Braspress", nome_fantasia: null, site: null })).toBe("braspress");
+    expect(integracaoApi({ nome: "Melhor Envio", nome_fantasia: null, site: null })).toBe("melhorenvio");
+  });
+});

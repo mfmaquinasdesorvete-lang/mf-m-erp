@@ -159,9 +159,10 @@ export function combinaNome(t: Pick<Transportadora, "nome" | "nome_fantasia">, e
 }
 
 export type IntegracaoApi = "rodonaves" | "melhorenvio" | "braspress";
-export function integracaoApi(t: Pick<Transportadora, "nome" | "nome_fantasia" | "site">): IntegracaoApi | null {
+export function integracaoApi(t: Pick<Transportadora, "nome" | "nome_fantasia" | "site"> & Partial<Pick<Transportadora, "integracoes">>): IntegracaoApi | null {
   const txt = [t.nome, t.nome_fantasia, t.site].filter(Boolean).join(" ");
-  if (/rodonaves|\brte\b|rte\.com\.br/i.test(txt)) return "rodonaves";
+  // contratada pelo Olist Envios: sem a API direta (cotação e etiqueta passam pelo Olist; rastreio pelo SSW)
+  if (/rodonaves|\brte\b|rte\.com\.br/i.test(txt)) return (t.integracoes ?? []).includes("Olist Envios") ? null : "rodonaves";
   if (/melhor\s*envio|melhorenvio\.com/i.test(txt)) return "melhorenvio";
   if (/braspress/i.test(txt)) return "braspress";
   return null;
