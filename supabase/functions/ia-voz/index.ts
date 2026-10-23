@@ -1,16 +1,18 @@
 // Anotar por voz (botão do microfone no ERP): recebe o texto que o celular transcreveu, o Claude entende o tipo e as
 // pistas (ver _shared/ia-voz.ts) e a função procura no ERP os registros que combinam (OS da vídeo chamada, envio da
 // coleta, OP, compra, cliente, teste do giga, pessoa da equipe). Só entende: quem falou escolhe o registro e confirma,
-// e a anotação é gravada pelo banco (anotar_por_voz). A chave fica no secret ANTHROPIC_API_KEY do Supabase.
+// e a anotação é gravada pelo banco (anotar_por_voz). A busca roda com o login de quem falou: cada pessoa só vê o que
+// já pode ver nas telas. A chave fica no secret ANTHROPIC_API_KEY do Supabase.
 // POST { fala } -> { entendido, candidatos: Candidato[], pessoas: { id, nome }[], modelo }
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { conferirIaLigada, registrarIa } from "../_shared/ia-controle.ts";
 import { ESQUEMA_VOZ, INSTRUCOES_VOZ, LIMITE_FALA, montarPedidoVoz, normalizarVoz, termosBusca, type EntendidoVoz } from "../_shared/ia-voz.ts";
 
 const MODELO = "claude-opus-5-5";
-type Db = ReturnType<typeof adminClient>;
+type Db = SupabaseClient;
 type Candidato = { tabela: string; id: string; rotulo: string; detalhe: string | null; link: string; valor: number | null };
 
 const nomeDe = (c: { nome?: string | null; nome_fantasia?: string | null } | null | undefined) =>
@@ -166,7 +168,11 @@ Deno.serve(async (req) => {
     try { bruta = JSON.parse(texto); } catch { throw new HttpError(502, "A resposta da IA veio num formato inesperado: tente de novo."); }
     const entendido = normalizarVoz(bruta, fala);
 
-    const lista = unicos(await candidatos(db, entendido)).slice(0, 8);
+    // a busca roda com o login de quem falou: as regras de acesso do banco valem como em qualquer tela
+    const comoQuemFalou = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: req.headers.get("Authorization")! } }, auth: { persistSession: false },
+    });
+    const lista = unicos(await candidatos(comoQuemFalou, entendido)).slice(0, 8);
     // lembrete: a pessoa da equipe citada (as outras ficam para escolher na tela)
     const { data: equipe } = await db.from("usuarios_erp").select("user_id, nome").eq("ativo", true).neq("papel", "representante").order("nome");
     const pessoas = (equipe ?? []).map((u: { user_id: string; nome: string }) => ({ id: u.user_id, nome: u.nome }));
