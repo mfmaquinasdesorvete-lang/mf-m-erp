@@ -254,7 +254,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     partes: [
       "Lista: código, nome, CPF/CNPJ e cidade, e contato com botão do WhatsApp; no celular, cartões.",
       "Etiquetas no nome: situação no CRM, ficha assinada ou aguardando assinatura, \"do portal: conferir\" e outras categorias.",
-      "Máquinas do cliente: etiqueta colorida com o modelo e o mês/ano da compra (MF e My Frost), e se é usada.",
+      "Máquinas do cliente: etiqueta colorida grande, com o modelo e o mês/ano da compra (MF e My Frost), e se é usada; inclui as máquinas vendidas com NF-e.",
       "Busca: código, nome, fantasia, CPF/CNPJ, telefone (com ou sem DDD), e-mail ou cidade.",
       "CPF/CNPJ não achado: avisa se o número é inválido, mostra outras filiais da mesma empresa e oferece cadastrar.",
       "Filtros: estado, cidade, tipo, o que falta, Receita, WhatsApp, DDD, CRM, data, etiqueta, ficha, vendedor, portal, máquina e marcadores.",
@@ -267,7 +267,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Receita: o CNPJ preenche nome, inscrição estadual e endereço e mostra situação, Simples ou MEI, atividade e porte.",
       "Conferência automática: o ERP confere os CNPJs na Receita sozinho e marca CNPJ baixado, IE baixada ou endereço diferente.",
       "Assinatura da ficha: na hora, com o dedo, ou por link no WhatsApp ou e-mail (vale 15 dias), com comprovante.",
-      "Ficha 360°: total comprado, últimos 12 meses, ticket, última compra, em aberto, vencido e pontualidade, mais as abas do histórico.",
+      "Ficha 360° em painel escuro: total comprado no centro do anel (um pedaço por ano), últimos 12 meses, ticket, última compra e vencido, e as máquinas em etiquetas grandes com garantia e nº de série; embaixo compra a cada, em aberto e pontualidade, mais as abas do histórico.",
       "Abas da Ficha 360°: Compras, O que compra, Financeiro, Assistência e Atendimentos, com o que fazer agora com o cliente.",
       "Técnicos e atendimentos: a ficha liga um técnico, mostra os da região e registra cada contato com o próximo passo.",
       "Arrumar cadastro: WhatsApp pelo celular, conferência com a Receita, cadastros repetidos e fornecedores que estavam na lista.",

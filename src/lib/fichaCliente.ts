@@ -137,3 +137,21 @@ export const ROTULO_SITUACAO = {
   inativo: { rotulo: "Inativo há mais de 1 ano", cor: "text-red-700 bg-red-50" },
   sem_compras: { rotulo: "Ainda sem compras", cor: "text-slate-600 bg-slate-100" },
 } as const;
+
+/**
+ * Compras por ano (anel do resumo da ficha), do mais antigo ao mais novo: os `max` anos mais recentes com compra
+ * e o resto somado num pedaço "Até AAAA".
+ */
+export function comprasPorAno(compras: CompraCliente[], max = 5): { ano: string; rotulo: string; valor: number; n: number }[] {
+  const m = new Map<string, { valor: number; n: number }>();
+  for (const c of compras) {
+    const a = c.data.slice(0, 4), x = m.get(a) ?? { valor: 0, n: 0 };
+    m.set(a, { valor: r2(x.valor + c.valor), n: x.n + 1 });
+  }
+  const anos = [...m.keys()].sort();
+  const recentes = anos.slice(-max), antigos = anos.slice(0, -max);
+  const linhas = recentes.map((a) => ({ ano: a, rotulo: a, ...m.get(a)! }));
+  if (!antigos.length) return linhas;
+  const resto = antigos.reduce((s, a) => ({ valor: r2(s.valor + m.get(a)!.valor), n: s.n + m.get(a)!.n }), { valor: 0, n: 0 });
+  return [{ ano: "antes", rotulo: `Até ${antigos[antigos.length - 1]}`, ...resto }, ...linhas];
+}

@@ -3,7 +3,7 @@
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Receipt, Repeat, Save, TrendingUp, Wallet, Wrench, XCircle } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Receipt, Repeat, Save, Wrench, XCircle } from "lucide-react";
 import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
 import { Contato } from "@/components/Contato";
 import { DEMO, supabase } from "@/lib/supabase";
@@ -16,6 +16,7 @@ import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
 import { textoVenda } from "@/lib/garantia";
 import { MaquinasCliente } from "@/components/clientes/MaquinasCliente";
+import { PainelFicha } from "@/components/clientes/PainelFicha";
 import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
 import { DetalheProposta, SeloEmpresa, SeloSituacao } from "@/components/vendas/PropostasTiny";
@@ -168,7 +169,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar a ficha: {(error as Error).message}</p>}
       {data && calc && (
         <>
-          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} />}
+          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} compras={calc.compras} equipamentos={data.equipamentos} dia={dia} />}
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} notasMyFrost={data.notasMyFrost} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
@@ -184,7 +185,10 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 const corSituacao = (tom: "bom" | "ruim" | "atencao" | undefined, assunto: CorCartao): CorCartao =>
   tom === "ruim" ? "vermelho" : tom === "atencao" ? "ambar" : tom === "bom" ? "verde" : assunto;
 
-function Resumo({ c, r, sugestoes, pedidos }: { c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente>; pedidos: any[] }) {
+function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
+  c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente>; pedidos: any[];
+  compras: ReturnType<typeof comprasDoCliente>; equipamentos: any[]; dia: string;
+}) {
   const { pode } = usePerfil();
   const invalidate = useInvalidate();
   const [pref, setPref] = useState(c.preferencias ?? "");
@@ -207,17 +211,11 @@ function Resumo({ c, r, sugestoes, pedidos }: { c: Cliente; r: ReturnType<typeof
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Indicador rotulo="Total comprado" icon={Wallet} cor="azul" valor={brl(r.total)} sub={r.primeira ? `cliente desde ${dataBR(r.primeira)}` : "sem compras"} />
-        <Indicador rotulo="Últimos 12 meses" icon={TrendingUp} cor="indigo" valor={brl(r.ultimos12m)} sub={`${r.compras} ${pl(r.compras, "compra", "compras")} no total`} />
-        <Indicador rotulo="Ticket médio" icon={Receipt} cor="roxo" valor={brl(r.ticket)} />
-        <Indicador rotulo="Última compra" icon={CalendarDays} valor={r.ultima ? dataBR(r.ultima) : "—"} sub={r.semComprar !== null ? `há ${r.semComprar} dias` : undefined}
-          cor={corSituacao(r.situacao === "inativo" ? "ruim" : r.situacao === "em_risco" ? "atencao" : r.ultima ? "bom" : undefined, "neutro")} />
+      <PainelFicha r={r} compras={compras} maquinas={equipamentos} compraCadastro={c.compra_maquina_em} hoje={dia} />
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Indicador rotulo="Compra a cada" icon={Repeat} cor="neutro" valor={r.intervaloMedio ? `${r.intervaloMedio} dias` : "—"}
           sub={r.proximaPrevista ? `próxima prevista: ${dataBR(r.proximaPrevista)}` : "precisa de 2 compras ou mais"} />
         <Indicador rotulo="Em aberto" icon={Clock} cor={r.emAberto > 0 ? "laranja" : "neutro"} valor={brl(r.emAberto)} />
-        <Indicador rotulo="Vencido" icon={r.vencido > 0 ? AlertTriangle : BadgeCheck} valor={brl(r.vencido)} sub={r.vencidas ? `${r.vencidas} ${pl(r.vencidas, "parcela", "parcelas")}` : "nada vencido"}
-          cor={corSituacao(r.vencido > 0 ? "ruim" : "bom", "neutro")} />
         <Indicador rotulo="Pontualidade" icon={BadgeCheck} valor={r.pagas ? `${r.pagas - r.pagasComAtraso} de ${r.pagas} em dia` : "—"}
           sub={r.pagasComAtraso ? `atraso médio de ${r.atrasoMedio} dias` : undefined} cor={corSituacao(r.pagasComAtraso > 1 ? "atencao" : r.pagas ? "bom" : undefined, "neutro")} />
       </div>
