@@ -79,7 +79,7 @@ export default function Garantias() {
       state: {
         novaOS: {
           cliente_id: e.cliente_id, produto_id: e.produto_id, equipamento_id: e.id, equipamento: e.descricao,
-          numero_serie: e.numero_serie, em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
+          numero_serie: e.numero_serie, em_garantia: !e.origem && situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
         },
       },
     });
@@ -235,9 +235,15 @@ export function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipa
     const prod = produtos.find((p) => p.id === produtoId);
     if (!dataVenda || !cfg) return {};
     const base = new Date(dataVenda + "T12:00:00");
-    const somaMeses = (m: number) => new Date(base.getFullYear(), base.getMonth() + m, base.getDate()).toISOString().slice(0, 10);
+    // soma meses sem passar do fim do mês (31/08 + 6 meses = 28/02) e sem virar o dia pelo fuso
+    const somaMeses = (m: number) => {
+      const fim = new Date(base.getFullYear(), base.getMonth() + m + 1, 0).getDate();
+      const d = new Date(base.getFullYear(), base.getMonth() + m, Math.min(base.getDate(), fim));
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    // máquina vendida por outra empresa (ex.: My Frost) não tem garantia da MF: só sugere a preventiva
     return {
-      garantia_ate: somaMeses(prod?.garantia_meses ?? cfg.garantia_meses_padrao),
+      ...(e.origem ? {} : { garantia_ate: somaMeses(prod?.garantia_meses ?? cfg.garantia_meses_padrao) }),
       proxima_preventiva: somaMeses(cfg.preventiva_meses),
     };
   }

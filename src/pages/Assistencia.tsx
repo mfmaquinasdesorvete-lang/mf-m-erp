@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente, SEM_PERIODO, semanaAtual, type Periodo } from "@/lib/filtroLista";
 import { SeloCidade } from "@/components/SeloCidade";
@@ -15,6 +15,8 @@ import { PdfViewer } from "@/components/PdfViewer";
 import { HistoricoModal } from "@/pages/Garantias";
 import { limpar, useInvalidate, useRows, ler } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
+import { soMudou } from "@/lib/soMudou";
+import { lerValor, valorBR } from "@/lib/auditoriaBusca";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
@@ -255,6 +257,9 @@ type Aba = "atendimento" | "checklist" | "fotos" | "pecas" | "entrega" | "nota";
 function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const { padrao, unidades } = useUnidade();
   const [o, setO] = useState({ ...inicial, unidade_id: (inicial as any).unidade_id ?? padrao });
+  // a OS como está gravada: o Salvar manda só o que mudou desde então (não apaga fotos, situação ou marcadores
+  // que o técnico mudou pelo app enquanto a tela estava aberta)
+  const gravado = useRef<Record<string, unknown> | null>(inicial.id ? { ...inicial } : null);
   const [aba, setAba] = useState<Aba>("atendimento");
   const [ocupado, setOcupado] = useState(false);
   const [pdf, setPdf] = useState<{ blob: Blob; nome: string; titulo: string } | null>(null);
@@ -308,7 +313,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
     if (!e) return set({ equipamento_id: null });
     set({
       equipamento_id: e.id, produto_id: e.produto_id, equipamento: e.descricao, numero_serie: e.numero_serie,
-      em_garantia: situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
+      em_garantia: !e.origem && situacaoGarantia(e.garantia_ate) !== "fora_garantia", maquina_origem: e.origem ?? null,
     });
   }
 
@@ -327,14 +332,21 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   }
 
   async function gravar(): Promise<string> {
-    const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, reaberturas: _r, ...cab } = o as any;
+    const { itens, cliente: _c, numero: _n, valor_pecas: _vp, valor_total: _vt, created_at: _ca, reaberturas: _r, fotos: _f, ...cab } = o as any;
     // vídeo chamada sem a máquina escolhida: grava "a confirmar" (o equipamento é obrigatório no banco)
     if (cab.atendimento === "video" && !String(cab.equipamento ?? "").trim()) cab.equipamento = EQUIPAMENTO_A_CONFIRMAR;
-    const dados = limpar({ ...cab, valor_mao_obra: Number(cab.valor_mao_obra || 0), maquina_origem: origem });
-    const { data, error } = dados.id
-      ? await supabase.from("ordens_servico").update(dados).eq("id", dados.id).select("id, numero").single()
-      : await supabase.from("ordens_servico").insert(dados).select("id, numero").single();
+    const dados = limpar({ ...cab, valor_mao_obra: Math.round(Number(cab.valor_mao_obra || 0) * 100) / 100, maquina_origem: origem });
+    const antes = dados.id && gravado.current?.id === dados.id ? limpar({ ...gravado.current }) : null;
+    const mudou = antes ? soMudou(dados, antes) : dados;
+    const { data, error } = !dados.id
+      ? await supabase.from("ordens_servico").insert(dados).select("id, numero").single()
+      : mudou
+        ? await supabase.from("ordens_servico").update(mudou).eq("id", dados.id).select("id, numero").single()
+        : await supabase.from("ordens_servico").select("id, numero").eq("id", dados.id).single();
     if (error) throw error;
+    // guarda o id na hora: se as peças falharem, o próximo Salvar atualiza esta OS em vez de abrir outra
+    gravado.current = { ...(gravado.current ?? {}), ...dados, id: data.id };
+    set({ id: data.id, numero: data.numero });
     let comId = itens as Item[];
     if (!somenteLeitura) {
       // atualiza o que continua, grava o que entrou e só no fim tira o que saiu (nada some se a internet cair)
@@ -394,7 +406,9 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
       const id = o.id ?? (await gravar());
       const novas: FotoOS[] = [];
       for (const f of Array.from(arquivos)) novas.push({ caminho: await enviarFotoOS(id, f), criado_em: new Date().toISOString() });
-      const fotos = [...(o.fotos ?? []), ...novas];
+      // relê as fotos gravadas (o técnico pode ter mandado outras pelo app) antes de juntar
+      const atuais = ((await ler(supabase.from("ordens_servico").select("fotos").eq("id", id).single())) as { fotos: FotoOS[] | null } | null)?.fotos ?? [];
+      const fotos = [...atuais, ...novas];
       const { error } = await supabase.from("ordens_servico").update({ fotos }).eq("id", id);
       if (error) throw error;
       set({ fotos });
@@ -404,8 +418,9 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   async function removerFoto(caminho: string) {
     // a foto de entrada é prova em garantia: pergunta antes e só apaga o arquivo depois que a OS deixou de apontar para ele
     if (!(await confirmar("Apagar esta foto da OS? Não dá para desfazer.", { perigo: true }))) return;
-    const fotos = (o.fotos ?? []).filter((f) => f.caminho !== caminho);
     await executar(async () => {
+      const atuais = ((await ler(supabase.from("ordens_servico").select("fotos").eq("id", o.id!).single())) as { fotos: FotoOS[] | null } | null)?.fotos ?? [];
+      const fotos = atuais.filter((f) => f.caminho !== caminho);
       const { error } = await supabase.from("ordens_servico").update({ fotos }).eq("id", o.id!);
       if (error) throw error;
       set({ fotos });
@@ -437,22 +452,25 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   function mudarAtendimento(a: "oficina" | "video") {
     if (a === "oficina") return set({ atendimento: "oficina" });
     const horas = Number(o.horas_tecnicas) || 1;
-    set({ atendimento: "video", horas_tecnicas: horas, valor_mao_obra: valorVideo(horas, taxaDiagnostico, !!o.em_garantia),
+    set({ atendimento: "video", horas_tecnicas: horas, valor_mao_obra: valorVideo(horas, taxaDiagnostico),
       condicao_entrada: o.condicao_entrada || CONDICAO_REMOTA });
   }
   function mudarHoras(v: string) {
-    const horas = v === "" ? null : Number(v);
-    set({ horas_tecnicas: horas, valor_mao_obra: valorVideo(horas, taxaDiagnostico, !!o.em_garantia) });
+    const horas = v === "" ? null : lerValor(v);
+    // mantém o serviço que foi somado à mão de obra; muda só a parte das horas
+    const servico = Math.max(0, Number(o.valor_mao_obra || 0) - valorVideo(o.horas_tecnicas, taxaDiagnostico));
+    set({ horas_tecnicas: horas, valor_mao_obra: Math.round((valorVideo(horas, taxaDiagnostico) + servico) * 100) / 100 });
   }
 
   // termo da vídeo chamada (aceite + Pix antes de agendar)
   const unidadeOS = unidades.find((u) => u.id === (o as any).unidade_id) ?? padrao;
-  const valorVideoOS = valorVideo(o.horas_tecnicas, taxaDiagnostico, !!o.em_garantia);
+  // o que o cliente paga na vídeo chamada é a mão de obra da OS (horas + serviço), o mesmo valor do painel e da cobrança
+  const valorVideoOS = o.em_garantia ? 0 : Math.round(Number(o.valor_mao_obra || 0) * 100) / 100;
   const pixVideo = video && valorVideoOS > 0 && (unidadeOS as any)?.pix_chave
     ? pixCopiaECola({ chave: (unidadeOS as any).pix_chave, nome: (unidadeOS as any).pix_nome || (unidadeOS as any).razao_social || (unidadeOS as any).nome || "",
         cidade: (unidadeOS as any).pix_cidade || (unidadeOS as any).municipio || "", valor: valorVideoOS, txid: o.numero ? `OS${o.numero}` : "***" })
     : null;
-  const termo = termoVideo({ numero: o.numero, horas: o.horas_tecnicas, valorHora: taxaDiagnostico, emGarantia: !!o.em_garantia,
+  const termo = termoVideo({ numero: o.numero, horas: o.horas_tecnicas, valorHora: taxaDiagnostico, emGarantia: !!o.em_garantia, valor: valorVideoOS,
     nome: cliente?.nome.split(" ")[0], pix: pixVideo, outraEmpresa: origem || null });
   const passo = passoVideo({ aceito: !!o.orcamento_aprovado_em, pago: !!o.video_pago_em, agendado: !!o.agendado_em, emGarantia: !!o.em_garantia });
 
@@ -568,7 +586,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     <span className="block text-xs">{o.em_garantia ? "Na garantia: sem cobrança." : o.video_pago_em ? `Pago em ${dataBR(o.video_pago_em.slice(0, 10))} (${brl(valorVideoOS)})` : pixVideo ? `${brl(valorVideoOS)} — o Pix vai junto com o termo.` : `${brl(valorVideoOS)} — cadastre a chave Pix da unidade para ir junto.`}</span>
                     {!somenteLeitura && !o.em_garantia && (
                       <Button type="button" tom="servico" tamanho="mini" className="mt-1.5"
-                        onClick={() => set({ video_pago_em: o.video_pago_em ? null : new Date().toISOString() })}>{o.video_pago_em ? "Desfazer" : "Pix recebido"}</Button>
+                        onClick={() => set(o.video_pago_em ? { video_pago_em: null, video_valor_pago: null } : { video_pago_em: new Date().toISOString(), video_valor_pago: valorVideoOS })}>{o.video_pago_em ? "Desfazer" : "Pix recebido"}</Button>
                     )}
                   </li>
                   <li className={`rounded-lg border p-2 ${o.agendado_em ? "border-emerald-200 bg-emerald-50 text-emerald-900" : passo === 3 ? "border-purple-300 bg-surface text-fg" : "border-slate-200 bg-surface text-slate-500"}`}>
@@ -585,7 +603,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
                     onChange={(e) => mudarHoras(e.target.value)} />
                 </Field>
                 <div className="text-sm text-purple-900 sm:self-end sm:pb-2">
-                  {o.em_garantia ? "Na garantia: sem cobrança da hora técnica." : <>Mão de obra: <b>{brl(valorVideo(o.horas_tecnicas, taxaDiagnostico))}</b> <span className="text-xs">({String(o.horas_tecnicas ?? 0).replace(".", ",")} h × {brl(taxaDiagnostico)})</span></>}
+                  {o.em_garantia ? "Na garantia: sem cobrança da hora técnica." : <>Mão de obra: <b>{brl(valorVideoOS)}</b> <span className="text-xs">({String(o.horas_tecnicas ?? 0).replace(".", ",")} h × {brl(taxaDiagnostico)})</span></>}
                 </div>
                 <p className="text-xs text-purple-900 sm:col-span-3">A máquina não vem à MF. Escolha a máquina do cliente abaixo, se souber; senão fica "a confirmar". O agendamento vai na mensagem do WhatsApp.</p>
               </div>
@@ -716,7 +734,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Field label="Mão de obra (R$)">
-                <input className="input" type="number" step="0.01" min={0} value={o.valor_mao_obra} disabled={somenteLeitura} onChange={(e) => set({ valor_mao_obra: Number(e.target.value) })} />
+                <CampoValor valor={Number(o.valor_mao_obra || 0)} disabled={somenteLeitura} onValor={(v) => set({ valor_mao_obra: v })} />
               </Field>
               <Field label="Garantia">
                 <label className="flex items-center gap-2 py-2 text-sm">
@@ -907,5 +925,23 @@ function ServicosOS({ onEscolher }: { onEscolher: (s: Produto) => void }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/** Campo de dinheiro em texto: aceita "1.500,00", "1500" ou "45,90" (o campo numérico do navegador lia "1.500" como 1,5) */
+function CampoValor({ valor, onValor, disabled }: { valor: number; onValor: (v: number) => void; disabled?: boolean }) {
+  const [texto, setTexto] = useState(valorBR(valor));
+  const [editando, setEditando] = useState(false);
+  useEffect(() => { if (!editando) setTexto(valorBR(valor)); }, [valor, editando]);
+  const invalido = editando && texto.trim() !== "" && lerValor(texto) == null;
+  return (
+    <input className={`input text-right ${invalido ? "border-red-500" : ""}`} inputMode="decimal" value={texto} disabled={disabled} aria-invalid={invalido}
+      onFocus={() => setEditando(true)}
+      onBlur={() => { setEditando(false); setTexto(valorBR(valor)); }}
+      onChange={(e) => {
+        setTexto(e.target.value);
+        const v = e.target.value.trim() === "" ? 0 : lerValor(e.target.value);
+        if (v != null && v >= 0) onValor(Math.round(v * 100) / 100);
+      }} />
   );
 }

@@ -62,14 +62,16 @@ export function osDoPedido(p: { id: string; numero: number; cliente_id: string; 
  * Termo da vídeo chamada mandado ao cliente pelo WhatsApp: o que é, o valor, que o Pix vem antes do agendamento e
  * que ele responde ACEITO (fica registrado na OS como o aceite). Com o Pix copia e cola quando a unidade tem chave.
  */
-export function termoVideo(o: { numero?: number | null; horas?: number | null; valorHora: number; emGarantia?: boolean; nome?: string; pix?: string | null; outraEmpresa?: string | null }) {
+export function termoVideo(o: { numero?: number | null; horas?: number | null; valorHora: number; emGarantia?: boolean; nome?: string; pix?: string | null; outraEmpresa?: string | null; valor?: number | null }) {
   const horas = Number(o.horas) || 1;
-  const valor = valorVideo(horas, o.valorHora, o.emGarantia);
+  const soHoras = valorVideo(horas, o.valorHora, o.emGarantia);
+  // o valor da OS (mão de obra) manda: pode ter serviço somado às horas
+  const valor = o.emGarantia ? 0 : o.valor != null && Number.isFinite(o.valor) ? o.valor : soHoras;
   const h = String(horas).replace(".", ",");
   return [
     `Olá${o.nome ? ` ${o.nome}` : ""}! Para a *assistência técnica por vídeo chamada* (OS #${o.numero ?? ""}):`,
     `• Um técnico da MF Máquinas orienta a instalação/conserto por vídeo; a máquina não precisa vir até nós.`,
-    o.emGarantia ? "• Atendimento coberto pela garantia: sem custo." : `• Valor: ${brl(valor)} (${h} h técnica × ${brl(o.valorHora)}).`,
+    o.emGarantia ? "• Atendimento coberto pela garantia: sem custo." : `• Valor: ${brl(valor)} (${h} h técnica × ${brl(o.valorHora)}${valor > soHoras ? " + serviço" : ""}).`,
     o.emGarantia ? "" : "• O pagamento é por Pix *antes* do agendamento; com o Pix confirmado, marcamos o dia e a hora.",
     "• Se precisar de peça ou de mais tempo, avisamos o valor antes.",
     o.outraEmpresa ? `• A MF Máquinas é uma empresa diferente da ${o.outraEmpresa} e responde só pelo serviço e pelas peças desta OS.` : "",

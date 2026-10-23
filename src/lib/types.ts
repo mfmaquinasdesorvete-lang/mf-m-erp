@@ -122,7 +122,7 @@ export type OrdemServico = {
   orcamento_aprovado_em?: string | null; orcamento_aprovado_por?: string | null;
   garantia_reparo_dias?: number | null; garantia_reparo_condicoes?: string | null;
   // vídeo chamada: hora técnica agendada (a máquina não vem à MF)
-  atendimento?: "oficina" | "video"; agendado_em?: string | null; horas_tecnicas?: number | null; video_pago_em?: string | null;
+  atendimento?: "oficina" | "video"; agendado_em?: string | null; horas_tecnicas?: number | null; video_pago_em?: string | null; video_valor_pago?: number | null;
   cliente?: Cliente; itens?: Item[];
 };
 

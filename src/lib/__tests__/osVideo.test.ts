@@ -54,4 +54,12 @@ describe("termo e passos da vídeo chamada", () => {
     expect(passoVideo({ aceito: true, emGarantia: true })).toBe(3);
     expect(passoVideo({ aceito: true, pago: true, agendado: true })).toBe(4);
   });
+
+  it("termo e Pix usam o valor da OS (horas + serviço), não só as horas", async () => {
+    const { termoVideo } = await import("../osVideo");
+    const t = termoVideo({ numero: 7, horas: 1, valorHora: 150, valor: 350, pix: "PIX" });
+    expect(t).toMatch(/R\$\s350,00/);
+    expect(t).toContain("+ serviço");
+    expect(termoVideo({ numero: 7, horas: 1, valorHora: 150, valor: 350, emGarantia: true })).toContain("sem custo");
+  });
 });
