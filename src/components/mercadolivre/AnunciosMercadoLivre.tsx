@@ -2,9 +2,10 @@
 // (em dia, na fila, aguardando aprovação, erro…), exceções (não mandar estoque ou preço), aprovar preço travado,
 // ligar a um produto e buscar os anúncios da conta. No celular a tabela vira cartões.
 import { useMemo, useState, type ReactNode } from "react";
-import { Download, ExternalLink, Link2, Loader2, Pause, Play, Search, Send } from "lucide-react";
+import { Download, ExternalLink, Link2, Loader2, Pause, Play, Send } from "lucide-react";
 import { Button, Card, Modal, Table } from "@/components/ui";
 import { ProdutoBusca } from "@/components/ProdutoBusca";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { confirmar } from "@/components/Dialogos";
 import { usePerfil } from "@/lib/auth";
 import { useInvalidate, useRows } from "@/lib/data";
@@ -195,6 +196,18 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
 
   return (
     <div className="space-y-3">
+      {/* a mesma barra das outras listas: busca, e ativos/pausados no botão Filtros; os chips da situação logo abaixo */}
+      <BarraFiltros busca={busca} onBusca={(v) => { setBusca(v); setLimite(POR_PAGINA); }} placeholder="Buscar: título, MLB, SKU ou produto"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">No Mercado Livre</span>
+          <select className="input w-auto" value={situacaoML} onChange={(e) => setSituacaoML(e.target.value as typeof situacaoML)}>
+            <option value="">Ativos e pausados</option><option value="active">Só ativos</option><option value="paused">Só pausados</option>
+          </select></label>}
+        nFiltros={(situacaoML ? 1 : 0) + (filtro ? 1 : 0)} onLimpar={() => { setBusca(""); setSituacaoML(""); setFiltro(""); setLimite(POR_PAGINA); }}
+        direita={conta && podeBuscar && (
+          <Button variant="secondary" onClick={buscar} disabled={ocupado === "buscar"} title="Traz os anúncios ativos e pausados da conta e liga pelo SKU">
+            {ocupado === "buscar" ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Buscar anúncios
+          </Button>
+        )} />
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar pela situação">
         <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}
           className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${!filtro ? "bg-modulo-escuro text-white ring-transparent" : "bg-surface text-slate-700 ring-slate-200 hover:bg-slate-50"}`}>
@@ -206,22 +219,6 @@ export function AnunciosMercadoLivre({ conta, anuncios, carregando, erro, podeMu
             {s.nome} <span className="num">{contagem.get(s.id)}</span>
           </button>
         ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-0 flex-1 basis-60">
-          <span className="sr-only">Buscar anúncio</span>
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" placeholder="Buscar: título, MLB, SKU ou produto" value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(POR_PAGINA); }} />
-        </label>
-        <select className="input w-auto" aria-label="Situação no Mercado Livre" value={situacaoML} onChange={(e) => setSituacaoML(e.target.value as typeof situacaoML)}>
-          <option value="">Ativos e pausados</option><option value="active">Só ativos</option><option value="paused">Só pausados</option>
-        </select>
-        {conta && podeBuscar && (
-          <Button variant="secondary" onClick={buscar} disabled={ocupado === "buscar"} title="Traz os anúncios ativos e pausados da conta e liga pelo SKU">
-            {ocupado === "buscar" ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Buscar anúncios
-          </Button>
-        )}
       </div>
 
       {!carregando && !anuncios.length ? (

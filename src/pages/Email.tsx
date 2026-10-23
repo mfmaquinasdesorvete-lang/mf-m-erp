@@ -4,8 +4,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, FileText, Inbox, Landmark, Mail, Paperclip, PenSquare, RefreshCw, Reply, Search, ShoppingCart, Truck, User } from "lucide-react";
+import { ArrowLeft, Download, FileText, Inbox, Landmark, Mail, Paperclip, PenSquare, RefreshCw, Reply, ShoppingCart, Truck, User } from "lucide-react";
 import { Button, Field, Modal, PageHeader } from "@/components/ui";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
 import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -61,6 +62,10 @@ export default function Email() {
       (!b || [e.assunto, e.de_nome, e.de_email, e.previa].some((v) => v?.toLowerCase().includes(b))));
   }, [emails, filtro, busca]);
   const naoLidos = emails.filter((e) => !e.lido).length;
+  const contagem = {
+    todos: emails.length, nao_lidos: naoLidos, clientes: emails.filter((e) => e.cliente_id).length,
+    nfe: emails.filter((e) => e.anexos.some((a) => a.nfe)).length, extratos: emails.filter((e) => e.anexos.some((a) => a.extrato)).length,
+  };
   // o e-mail aberto acompanha a lista (ex.: depois de importar o extrato anexo)
   const abertoAtual = aberto ? emails.find((x) => x.id === aberto.id) ?? aberto : null;
   const contaAtual = contas.find((c) => c.id === conta);
@@ -107,23 +112,16 @@ export default function Email() {
         </div>} />
       {contaAtual?.erro && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Última tentativa falhou: {contaAtual.erro}</p>}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {contas.length > 1 && (
-          <select className="input w-auto" value={conta} onChange={(e) => { setConta(e.target.value); setAberto(null); }}>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar assunto, remetente ou texto…"
+        direita={contas.length > 1 && (
+          <select className="input w-auto" aria-label="Caixa de e-mail" value={conta} onChange={(e) => { setConta(e.target.value); setAberto(null); }}>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
-        )}
-        <div className="flex gap-1 overflow-x-auto">
-          {([["todos", "Todos"], ["nao_lidos", `Não lidos${naoLidos ? ` (${naoLidos})` : ""}`], ["clientes", "De clientes"], ["nfe", "Com NF-e"], ["extratos", "Extratos"]] as const).map(([v, r]) => (
-            <button key={v} type="button" onClick={() => setFiltro(v)}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold ${filtro === v ? "bg-brand text-brand-fg" : "border border-slate-200 bg-surface text-slate-600"}`}>{r}</button>
-          ))}
-        </div>
-        <div className="relative ml-auto w-full sm:w-64">
-          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-          <input className="input pl-9" placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-      </div>
+          </select>)}
+        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setFiltro("todos"); }} />
+      <ChipsSituacao valor={filtro} onChange={setFiltro} rotulo="Mostrar" opcoes={[
+        { value: "todos", label: "Todos", n: contagem.todos }, { value: "nao_lidos", label: "Não lidos", n: contagem.nao_lidos },
+        { value: "clientes", label: "De clientes", n: contagem.clientes }, { value: "nfe", label: "Com NF-e", n: contagem.nfe }, { value: "extratos", label: "Extratos", n: contagem.extratos },
+      ]} />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[380px_1fr]">
         <ul className={`divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-surface ${aberto ? "hidden lg:block" : ""}`}>

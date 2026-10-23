@@ -1,10 +1,12 @@
 // Entradas grandes sem dono: o dinheiro acima de R$ 5 mil que entrou nas contas da MF e ainda não foi ligado a uma
 // conta a receber. A dona escreve de quem é e o que foi; a anotação fica na própria linha do extrato (observacao).
 import { useState } from "react";
-import { CheckCircle2, CircleHelp, Search } from "lucide-react";
+import { CheckCircle2, CircleHelp } from "lucide-react";
 import { Card, PageHeader, Table } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
-import { brl, dataBR } from "@/lib/format";
+import { brl, dataBR, hoje } from "@/lib/format";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 
@@ -28,8 +30,10 @@ export default function EntradasGrandes() {
   const [visao, setVisao] = useState<"falta" | "feitas" | "todas">("falta");
   const [conta, setConta] = useState("");
   const [busca, setBusca] = useState("");
+  // abre na semana; a entrada ainda sem dono continua aparecendo mesmo se for de antes
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
 
-  const daConta = linhas.filter((l) => !conta || l.conta_bancaria_id === conta);
+  const daConta = linhas.filter((l) => (!conta || l.conta_bancaria_id === conta) && noPeriodoOuPendente(l.data, periodo, !identificada(l)));
   const falta = daConta.filter((l) => !identificada(l));
   const feitas = daConta.filter(identificada);
   const termo = busca.trim().toLowerCase();
@@ -56,20 +60,17 @@ export default function EntradasGrandes() {
           </Card>
         </button>
       </div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select className="input w-auto" value={visao} onChange={(e) => setVisao(e.target.value as typeof visao)} aria-label="Situação">
-          <option value="falta">Falta identificar</option><option value="feitas">Já identificadas</option><option value="todas">Todas</option>
-        </select>
-        <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)} aria-label="Conta">
-          <option value="">Todas as contas</option>
-          {contas.filter((c) => linhas.some((l) => l.conta_bancaria_id === c.id)).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
-        <label className="relative">
-          <Search size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input w-56 pl-8" placeholder="Buscar nome ou anotação" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </label>
-        <span className="ml-auto text-sm text-slate-500">{lista.length} entradas · {brl(soma(lista))}</span>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nome ou anotação" periodo={periodo} onPeriodo={setPeriodo} rotuloData="Entrada"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Conta</span>
+          <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)}>
+            <option value="">Todas as contas</option>
+            {contas.filter((c) => linhas.some((l) => l.conta_bancaria_id === c.id)).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select></label>}
+        nFiltros={conta ? 1 : 0} onLimpar={() => { setBusca(""); setConta(""); setPeriodo(SEM_PERIODO); setVisao("falta"); }}
+        direita={<span className="text-sm text-slate-500">{lista.length} entradas · {brl(soma(lista))}</span>} />
+      <ChipsSituacao valor={visao} onChange={setVisao} opcoes={[
+        { value: "falta", label: "Falta identificar", n: falta.length }, { value: "feitas", label: "Já identificadas", n: feitas.length }, { value: "todas", label: "Todas", n: daConta.length },
+      ]} />
       <Table empty={!isLoading && !lista.length}
         head={<><th className="th">Data / conta</th><th className="th">Quem mandou (banco)</th><th className="th text-right">Valor</th><th className="th">De quem é e o que foi</th></>}>
         {lista.map((l) => (

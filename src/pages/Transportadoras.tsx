@@ -9,6 +9,7 @@ import {
   MapPinOff, PackageCheck, Phone, Plug, PlugZap, Plus, Search, SearchCheck, Truck, Unlink, Users,
 } from "lucide-react";
 import { Button, Field, Modal, PageHeader, Tabs } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Contato } from "@/components/Contato";
 import Fornecedores from "@/pages/Fornecedores";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
@@ -102,6 +103,17 @@ function PorMarca() {
       <PageHeader title="Transportadoras" subtitle="Cada marca com as filiais que atendem a MF; site, rastreio, API e contatos"
         actions={podeEditar && <Button onClick={() => setEditar({ registro: { nome: "", ativo: true, tipo: "transportadora" } })}><Plus size={16} /> Nova transportadora</Button>} />
 
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar por nome, CNPJ, cidade, contato…"
+        filtros={<>
+          <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Tipo</span>
+            <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Todos os tipos</option>
+              {Object.entries(TIPOS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select></label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-slate-600"><input type="checkbox" checked={inativas} onChange={(e) => setInativas(e.target.checked)} /> Mostrar inativas</label>
+        </>}
+        nFiltros={(tipo ? 1 : 0) + (inativas ? 1 : 0) + (filtro !== "todas" ? 1 : 0)}
+        onLimpar={() => { setBusca(""); setTipo(""); setInativas(false); setFiltro("todas"); }} />
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar marcas">
         {chips.map(({ v, rotulo, icone: I }) => {
           const n = filtrar(todas, v, usos).length;
@@ -113,18 +125,6 @@ function PorMarca() {
           );
         })}
       </div>
-      <div className="mb-3 flex flex-wrap items-end gap-2">
-        <label className="relative min-w-0 flex-1 basis-56">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" placeholder="Buscar por nome, CNPJ, cidade, contato…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar transportadora" />
-        </label>
-        <select className="input w-auto" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo">
-          <option value="">Todos os tipos</option>
-          {Object.entries(TIPOS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={inativas} onChange={(e) => setInativas(e.target.checked)} /> Mostrar inativas</label>
-      </div>
-
       {podeEditar && sugestoes.length > 0 && (
         <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
           <div className="mb-1.5 flex items-center gap-2 font-semibold"><Merge size={16} aria-hidden /> Cadastros que parecem ser da mesma empresa (mesmo CNPJ)</div>

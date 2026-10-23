@@ -20,6 +20,8 @@ import {
 import { ImportarPropostasTiny } from "./ImportarPropostasTiny";
 import { ListaNotasMyFrost, type NotaLegado } from "@/components/clientes/NotasMyFrost";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodoOuPendente, semanaAtual, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 
 const SELECT = "*, cliente:clientes(id, nome, nome_fantasia, codigo, cpf_cnpj, municipio, uf, tags)";
 
@@ -63,6 +65,8 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   // só os clientes licenciados da My Frost Sorveterias (etiqueta do cadastro)
   const [soLicenciados, setSoLicenciados] = useState(false);
   const [busca, setBusca] = useState("");
+  // abre na semana, como as vendas; proposta ainda em aberto de antes continua aparecendo
+  const [periodo, setPeriodo] = useState<Periodo>(() => semanaAtual(hoje()));
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [importar, setImportar] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -70,7 +74,8 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   const dia = hoje();
 
   const vendedores = useMemo(() => [...new Set(todas.map((p) => p.vendedor).filter(Boolean) as string[])].sort(), [todas]);
-  const daEmpresa = todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && (!soLicenciados || ehLicenciado(p.cliente)));
+  const daEmpresa = todas.filter((p) => (empresa === "todas" || p.empresa === empresa) && (!soLicenciados || ehLicenciado(p.cliente))
+    && noPeriodoOuPendente(p.data, periodo, grupoSituacao(p.situacao) === "aberta"));
   const contatar = (p: PropostaTiny) => { const c = contatoDaProposta(p, dia); return c === "atrasado" || c === "hoje"; };
   const abas = useMemo(() => {
     const n = (s: string) => daEmpresa.filter((p) => situacaoPadrao(p.situacao) === s).length;
@@ -79,7 +84,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
       { id: "contatar", rotulo: "Contatar hoje", n: daEmpresa.filter(contatar).length },
       ...SITUACOES_TINY.map((s) => ({ id: s as string, rotulo: ROTULO_ABA_SITUACAO[s], n: n(s) })),
     ].filter((x) => x.n > 0 || x.id === "todas" || x.id === aba);
-  }, [daEmpresa, aba, dia, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daEmpresa, aba, dia, soLicenciados, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => {
     const l = daEmpresa.filter((p) =>
       (aba === "todas" || (aba === "contatar" ? contatar(p) : situacaoPadrao(p.situacao) === aba)) &&
@@ -87,7 +92,7 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
       (!busca || combinaBusca([p.numero, nomeCliente(p), p.contato_nome, p.cliente?.cpf_cnpj, p.cliente?.municipio, p.vendedor, ...p.itens.map((i) => i.descricao)], busca)));
     // na aba "Contatar hoje", o contato mais atrasado primeiro
     return aba === "contatar" ? [...l].sort((x, y) => String(x.proximo_contato).localeCompare(String(y.proximo_contato))) : l;
-  }, [daEmpresa, aba, vendedor, marcador, busca, dia, soLicenciados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daEmpresa, aba, vendedor, marcador, busca, dia, soLicenciados, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
   const mf = lista.filter((p) => p.empresa === "mf");
   const fechadasMf = mf.filter((p) => grupoSituacao(p.situacao) === "fechada");
   const abertasMf = mf.filter((p) => grupoSituacao(p.situacao) === "aberta");
@@ -105,19 +110,23 @@ export function PropostasTiny({ onNovoOrcamento }: { onNovoOrcamento?: (clienteI
   return (
     <div>
       <div className="mb-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <input className="input max-w-md" placeholder="Buscar nº, cliente, CPF/CNPJ, cidade ou item…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          {vendedores.length > 1 && (
-            <select className="input w-auto" aria-label="Vendedor" value={vendedor} onChange={(e) => setVendedor(e.target.value)}>
-              <option value="">Todos os vendedores</option>
-              {vendedores.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          )}
-          <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
-          <span className="hidden flex-1 sm:block" />
-          <Button variant="secondary" disabled={!lista.length} onClick={() => exportar(lista)}><FileDown size={16} /> Exportar</Button>
-          {papel === "admin" && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar do Tiny</Button>}
-        </div>
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF/CNPJ, cidade ou item…" periodo={periodo} onPeriodo={setPeriodo} rotuloData="Data"
+          filtros={<>
+            {vendedores.length > 1 && (
+              <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Vendedor</span>
+                <select className="input w-auto" value={vendedor} onChange={(e) => setVendedor(e.target.value)}>
+                  <option value="">Todos os vendedores</option>
+                  {vendedores.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select></label>
+            )}
+            <SelectMarcador valor={marcador} onChange={setMarcador} todos={marcadores} />
+          </>}
+          nFiltros={(vendedor ? 1 : 0) + (marcador ? 1 : 0)}
+          onLimpar={() => { setBusca(""); setVendedor(""); setMarcador(""); setPeriodo(SEM_PERIODO); setEmpresa("todas"); setSoLicenciados(false); setAba("todas"); setSel(new Set()); }}
+          direita={<>
+            <Button variant="secondary" disabled={!lista.length} onClick={() => exportar(lista)}><FileDown size={16} /> Exportar</Button>
+            {papel === "admin" && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar do Tiny</Button>}
+          </>} />
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(["todas", "mf", "my_frost"] as const).map((e) => (
             <button key={e} type="button" className={chip(empresa === e)} onClick={() => setEmpresa(e)}>

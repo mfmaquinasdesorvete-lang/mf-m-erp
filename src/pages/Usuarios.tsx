@@ -2,13 +2,14 @@
 // senha provisória (troca obrigatória no primeiro acesso), vínculo com o cadastro de vendedor e o que cada papel pode.
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Camera, Check, Copy, KeyRound, Megaphone, MessageCircle, Minus, Pencil, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { FotoUsuario, reduzirFoto } from "@/components/FotoUsuario";
 import { useNotificacoes } from "@/components/Notificacoes";
 import { PainelAcessos } from "@/components/usuarios/Acessos";
 import { quandoAcesso, ultimoPorPessoa, type Acesso } from "@/lib/acessos";
 import { Button, Card, Field, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Historico } from "@/components/Historico";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { dataBR, whatsappLink } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -142,18 +143,10 @@ export default function Usuarios() {
               {admins === 1 && <span className="rounded-lg bg-sky-50 px-3 py-1.5 text-sky-900">Só 1 administrador ativo: vale ter um segundo, para não ficar sem acesso</span>}
             </div>
           )}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-auto sm:min-w-0 sm:max-w-sm sm:flex-1">
-              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-              <input className="input pl-9" placeholder="Buscar nome, e-mail, função…" aria-label="Buscar usuário" value={busca} onChange={(e) => setBusca(e.target.value)} />
-            </div>
-            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="group" aria-label="Situação">
-              {(["ativos", "inativos", "todos"] as const).map((f) => (
-                <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
-                  className={`rounded-md px-3 py-1 font-semibold ${filtro === f ? "bg-modulo-escuro text-white" : "text-slate-600 hover:bg-slate-100"}`}>{f}</button>
-              ))}
-            </div>
-          </div>
+          <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nome, e-mail, função…" onLimpar={() => { setBusca(""); setFiltro("ativos"); }} nFiltros={filtro !== "ativos" ? 1 : 0} />
+          <ChipsSituacao valor={filtro} onChange={setFiltro} opcoes={[
+            { value: "ativos", label: "Ativos", n: ativos.length }, { value: "inativos", label: "Inativos", n: usuarios.length - ativos.length }, { value: "todos", label: "Todos", n: usuarios.length },
+          ]} />
 
           <Card>
             {isLoading ? <p className="p-6 text-center text-sm text-slate-500">Carregando…</p> : !lista.length ? <p className="p-6 text-center text-sm text-slate-500">Nenhum usuário {filtro !== "todos" ? filtro.slice(0, -1) : ""}.</p> : (

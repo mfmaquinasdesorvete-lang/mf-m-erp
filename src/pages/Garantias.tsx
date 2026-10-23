@@ -2,7 +2,7 @@ import { bicosDoModelo, proximaPreventiva6m, serieMF } from "@/lib/serieMaquina"
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, Search, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
+import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { Badge, Button, Field, Modal, PageHeader, Stat, Table } from "@/components/ui";
 import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
@@ -14,6 +14,8 @@ import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, Produto } from "@/lib/types";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { TesteGigaDoNs } from "@/components/testeGiga/SeloGiga";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { noPeriodo, SEM_PERIODO, type Periodo } from "@/lib/filtroLista";
 
 type Filtro = "todos" | "em_garantia" | "vence_logo" | "fora_garantia" | "prev_atrasada" | "prev_proxima";
 
@@ -23,6 +25,8 @@ export default function Garantias() {
   const { data: equipamentos = [], isLoading } = useRows<Equipamento>("equipamentos", { select: "*, cliente:clientes(*)", order: "data_venda" });
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busca, setBusca] = useState("");
+  // período pela data da venda: abre sem período (a lista de garantias é de todas as máquinas, não da semana)
+  const [periodo, setPeriodo] = useState<Periodo>(SEM_PERIODO);
   const [editando, setEditando] = useState<Partial<Equipamento> | null>(null);
   const [historico, setHistorico] = useState<Equipamento | null>(null);
   const [fila, setFila] = useState(false);
@@ -52,8 +56,8 @@ export default function Garantias() {
     const ok = filtro === "todos" || filtro === g || (filtro === "em_garantia" && g === "vence_logo")
       || (filtro === "prev_atrasada" && p === "atrasada") || (filtro === "prev_proxima" && p === "proxima");
     const b = busca.trim().toLowerCase();
-    return ok && (!b || `${e.descricao} ${e.numero_serie ?? ""} ${e.cliente?.nome ?? ""}`.toLowerCase().includes(b));
-  }), [equipamentos, filtro, busca]);
+    return ok && noPeriodo(e.data_venda, periodo) && (!b || `${e.descricao} ${e.numero_serie ?? ""} ${e.cliente?.nome ?? ""}`.toLowerCase().includes(b));
+  }), [equipamentos, filtro, busca, periodo]);
 
   const alternar = (f: Filtro) => setFiltro(filtro === f ? "todos" : f);
 
@@ -105,13 +109,9 @@ export default function Garantias() {
           sub={filtro === "prev_proxima" ? "filtrando ✓" : "agende com antecedência"} onClick={() => alternar("prev_proxima")} />
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-sm">
-          <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-          <input className="input pl-9" placeholder="Buscar por série, máquina ou cliente…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        {filtro !== "todos" && <Button variant="ghost" onClick={() => setFiltro("todos")}>Limpar filtro</Button>}
-      </div>
+      {/* a situação (garantia, preventiva) se escolhe tocando nos cartões acima; aqui a busca e o período da venda */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar por série, máquina ou cliente…" periodo={periodo} onPeriodo={setPeriodo} rotuloData="Venda"
+        nFiltros={filtro !== "todos" ? 1 : 0} onLimpar={() => { setBusca(""); setPeriodo(SEM_PERIODO); setFiltro("todos"); }} />
 
       {/* Celular: um cartão por máquina */}
       <div className="space-y-3 md:hidden">
