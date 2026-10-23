@@ -24,6 +24,7 @@ import { MeuPluggy } from "@/components/pessoal/MeuPluggy";
 import { MinhasEmpresas } from "@/components/pessoal/MinhasEmpresas";
 import { MeusEnderecos } from "@/components/pessoal/MeusEnderecos";
 import { GastoPessoal } from "@/components/pessoal/GastoPessoal";
+import { ContasDoMes } from "@/components/pessoal/ContasDoMes";
 import { ExtratosRecebidos } from "@/components/pessoal/ExtratosRecebidos";
 import { ResumoCarteira } from "@/components/pessoal/ResumoCarteira";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -359,6 +360,7 @@ export default function Pessoal() {
           </p>
         </Card>
 
+        <ContasDoMes contasBanco={ativas} onVerComprovante={verComprovante} />
         <ResumoCarteira rotulo={rotuloPeriodo} entrou={resumo.entrou} saiu={resumo.saiu} resultado={resumo.resultado} disponivel={disponivel} cartoes={cartoes}
           encontro={encontro} grupos={separados} visual={visualDo} onAbrirCard={escolherGrupo} onBaixar={baixarContador} onVerComprovante={verComprovante} />
 

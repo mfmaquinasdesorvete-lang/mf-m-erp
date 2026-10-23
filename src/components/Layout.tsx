@@ -33,6 +33,7 @@ import { useUnidade } from "@/lib/unidade";
 import { AvisoVersao, ErroTela } from "./ErroTela";
 import { Trilha } from "@/components/Trilha";
 import { AlertaObrigacoes } from "@/components/contador/CalendarioObrigacoes";
+import { AlertaContasDoMes } from "@/components/pessoal/ContasDoMes";
 
 // versão gravada na montagem do site (vite.config.ts); na prévia sem git fica vazia
 const VERSAO = typeof __ERP_VERSAO__ !== "undefined" ? __ERP_VERSAO__ : null;
@@ -499,6 +500,7 @@ export function Layout() {
       )}
       {meuRosto && <MeuRosto onClose={() => setMeuRosto(false)} />}
       {(perfil.tem("financeiro") || perfil.papel === "contador") && <AlertaObrigacoes />}
+      {perfil.master && <AlertaContasDoMes />}
       {pergunta !== null && <PerguntarIA inicial={pergunta} onClose={() => { setPergunta(null); setBusca(""); setAberto(false); }} />}
     </div>
     </NotificacoesProvider>

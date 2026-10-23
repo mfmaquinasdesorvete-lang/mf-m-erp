@@ -246,6 +246,10 @@ function seed(): Db {
       { id: "pr3", texto: "pag boleto itau", card: "cartoes", rotulo: null, sentido: "saida", da_empresa: false, observacao: "Cartões do banco cancelados", meta_total: null, parcelas: null, ativa: true, ordem: 3 },
     ],
     pessoal_conexoes: [],
+    // contas do mês do painel pessoal (exemplo inventado: o DAS de um MEI, vence no dia 20 e se refere ao mês anterior)
+    pessoal_mensais: [{ id: "pm1", nome: "DAS do MEI", dia_vencimento: 20, mes_anterior: true, valor: 80.9, conta_id: null, avisar_dias: 5, observacao: null,
+      desde: quando(-75).slice(0, 7), ativa: true, ordem: 0, criado_em: quando(-75) }],
+    pessoal_mensais_pagos: [],
     pessoal_enderecos: [
       { id: "pe1", endereco: "Rua Exemplo, 100 – Centro – Cidade Exemplo/SC", lembranca: null, periodo: null, atual: true, ordem: 0 },
       { id: "pe2", endereco: "Avenida Teste, 200 – Bairro Antigo – Cidade Exemplo/SC", lembranca: "Primeira casa e onde nasceu a primeira empresa", periodo: "2015 a 2019", atual: false, ordem: 1 },
