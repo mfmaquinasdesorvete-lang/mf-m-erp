@@ -4,7 +4,8 @@
 //  POST { acao: "status" }                                (vendas/financeiro) → configuração (sem segredos) e endereço do webhook
 //  POST { acao: "configurar", numero_id, waba_id, token?, app_secret? }  (admin) → confere na Meta e guarda (segredos no cofre)
 //  POST { acao: "automatico", ligado }                    (financeiro) → liga/desliga o envio automático da régua
-//  POST { acao: "modelos" }                               (financeiro) → manda para aprovação os modelos novos/alterados e atualiza a situação
+//  POST { acao: "modelos" }                               (financeiro) → manda para aprovação os modelos novos/alterados (régua e
+//                                                          avisos da equipe) e atualiza a situação
 //  POST { acao: "enviar" }                                (agendamento ou financeiro) → manda a fila
 //  POST { acao: "responder", telefone, texto }            (vendas/financeiro) → resposta livre (até 24 h depois da mensagem do cliente)
 //  POST { acao: "teste", telefone }                       (admin) → modelo hello_world da Meta, para conferir o número
@@ -14,6 +15,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { pixCopiaECola } from "../_shared/cobranca.ts";
+import { MODELO_WHATSAPP_EQUIPE } from "../_shared/avisos-modelos.ts";
 import { EXEMPLOS_WHATSAPP, modeloDaMensagem, nomeModelo, parametro, preencherModelo, valoresCobranca } from "../_shared/whatsapp-modelos.ts";
 
 const VERSAO = Deno.env.get("WHATSAPP_API_VERSAO") ?? "v23.0";
@@ -162,10 +164,27 @@ async function modelos(db: SupabaseClient, cfg: Config, token: string) {
       else { await db.from("regua_cobranca").update({ wa_erro: msg }).eq("id", e.id); erros.push(`${e.nome}: ${msg}`); }
     }
   }
+  // modelo dos avisos da equipe (um só para todos os avisos; ver _shared/avisos-modelos.ts)
+  const { data: c } = await db.from("configuracoes").select("whatsapp_modelo_equipe").eq("id", 1).single();
+  if (!c?.whatsapp_modelo_equipe || c.whatsapp_modelo_equipe === "REJECTED") {
+    try {
+      const r = await meta<{ status?: string }>(token, "POST", `/${cfg.whatsapp_waba_id}/message_templates`, {
+        name: MODELO_WHATSAPP_EQUIPE.nome, language: "pt_BR", category: "UTILITY",
+        components: [{ type: "BODY", text: MODELO_WHATSAPP_EQUIPE.texto, example: { body_text: [MODELO_WHATSAPP_EQUIPE.exemplo] } }],
+      });
+      await db.from("configuracoes").update({ whatsapp_modelo_equipe: r.status ?? "PENDING" }).eq("id", 1);
+      enviados++;
+    } catch (er) {
+      const msg = (er as Error).message;
+      if (!/already exists|já existe|2388024/i.test(msg)) erros.push(`Avisos da equipe: ${msg}`);
+    }
+  }
   // situação de todos os modelos do ERP na Meta
   const lista = await meta<{ data: { name: string; status: string; rejected_reason?: string }[] }>(token, "GET",
     `/${cfg.whatsapp_waba_id}/message_templates?fields=name,status,rejected_reason&limit=200`);
   const porNome = new Map((lista.data ?? []).map((t) => [t.name, t]));
+  const equipe = porNome.get(MODELO_WHATSAPP_EQUIPE.nome);
+  if (equipe) await db.from("configuracoes").update({ whatsapp_modelo_equipe: equipe.status }).eq("id", 1);
   const { data: atuais } = await db.from("regua_cobranca").select("id, wa_modelo").not("wa_modelo", "is", null);
   for (const e of atuais ?? []) {
     const t = porNome.get(e.wa_modelo);

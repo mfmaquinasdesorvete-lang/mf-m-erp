@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
         webhook = info.url === urlWebhook();
         erro = info.last_error_message ?? null;
       } catch (e) {
-        erro = (e as Error).message;
+        const m = (e as Error).message;
+        // sem token, ou token de robô que não existe: o Telegram responde 404 "Not Found" (ou 401)
+        erro = /TELEGRAM_BOT_TOKEN|Not Found|Unauthorized/i.test(m)
+          ? "Robô do Telegram ainda não criado ou chave errada: siga os passos acima."
+          : m;
       }
       return json({ ok: true, robo, webhook, conectados: count ?? 0, erro, email: await envioConfigurado() });
     }

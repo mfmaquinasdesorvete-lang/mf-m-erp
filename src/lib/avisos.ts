@@ -5,7 +5,7 @@ export type AvisoTipo = {
   tipo: string; publico: "equipe" | "cliente"; titulo: string; descricao: string; papeis: string[]; ativo: boolean; ordem: number;
 };
 export type Aviso = {
-  id: number; tipo: string; canal: "telegram" | "email"; destino: string; usuario_id: string | null; cliente_id: string | null;
+  id: number; tipo: string; canal: "telegram" | "email" | "whatsapp"; destino: string; usuario_id: string | null; cliente_id: string | null;
   dados: Record<string, unknown>; status: "pendente" | "enviando" | "enviado" | "erro"; tentativas: number; erro: string | null;
   created_at: string; enviado_em: string | null;
 };

@@ -4489,6 +4489,15 @@ const rpcs: Record<string, (a: any) => { data: any; error: any }> = {
     if (u) u.telegram_chat_id = null;
     return { data: null, error: null };
   },
+  salvar_meu_canal_avisos: ({ p_canal, p_whatsapp }) => {
+    const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
+    let d = String(p_whatsapp ?? "").replace(/\D/g, "");
+    if (/^\d{10,11}$/.test(d)) d = `55${d}`;
+    if (d && !/^55\d{10,11}$/.test(d)) return { data: null, error: { message: "WhatsApp inválido: use DDD + número (ex.: 47 99999-9999)." } };
+    if (p_canal !== "telegram" && !d) return { data: null, error: { message: "Informe o número do WhatsApp." } };
+    if (u) { u.avisos_canal = p_canal; u.avisos_whatsapp = d || null; }
+    return { data: d || null, error: null };
+  },
   salvar_meus_avisos: ({ p_avisos }) => {
     const u = db.usuarios_erp.find((x) => x.user_id === sessao?.user.id);
     if (u) u.avisos = p_avisos;

@@ -26,7 +26,7 @@ export const SECOES: Secao[] = [
   { id: "pedidos", grupo: "Operação", titulo: "Pedidos e expedição", resumo: "O que acontece sozinho na venda, etiquetas e impressora Zebra", icone: Package, cor: "from-[#f97316] to-[#c2410c]" },
   { id: "notas", grupo: "Operação", titulo: "Notas fiscais", resumo: "NF-e geral, Focus NFe, notas de fornecedores e impostos", icone: FileText, cor: "from-[#06b6d4] to-[#0e7490]" },
   { id: "cobranca", grupo: "Comunicação", titulo: "Cobrança automática", resumo: "Régua de cobrança por e-mail e WhatsApp (antes, no dia e depois do vencimento) e o WhatsApp oficial", icone: MessageCircle, cor: "from-[#22c55e] to-[#15803d]" },
-  { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram da equipe e e-mails para os clientes", icone: Bell, cor: "from-[#eab308] to-[#a16207]" },
+  { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram ou WhatsApp da equipe e e-mails para os clientes", icone: Bell, cor: "from-[#eab308] to-[#a16207]" },
   { id: "email", grupo: "Comunicação", titulo: "Caixa de e-mail", resumo: "E-mail da empresa (IMAP/SMTP) para enviar e receber pelo ERP", icone: Mail, cor: "from-[#3b82f6] to-[#1d4ed8]" },
   { id: "contador", grupo: "Comunicação", titulo: "Contador", resumo: "Envio automático do fechamento do mês", icone: Calculator, cor: "from-[#8b5cf6] to-[#5b21b6]" },
   { id: "cadastros", grupo: "Cadastros", titulo: "Categorias e marcadores", resumo: "Categorias dos produtos e os marcadores coloridos de todos os cadastros", icone: FolderTree, cor: "from-[#a855f7] to-[#6d28d9]" },

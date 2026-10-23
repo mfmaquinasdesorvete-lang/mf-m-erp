@@ -1,7 +1,7 @@
-// Avisos automáticos: "Meus avisos" (cada pessoa conecta o Telegram) e o painel do admin em Configurações.
+// Avisos automáticos: "Meus avisos" (cada pessoa escolhe Telegram, WhatsApp ou os dois) e o painel do admin em Configurações.
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, ExternalLink, Mail, RefreshCw, Send, Smartphone } from "lucide-react";
+import { Bell, Check, ExternalLink, Mail, MessageCircle, RefreshCw, Send, Smartphone } from "lucide-react";
 import { Badge, Button, Field, Modal, Tabs } from "@/components/ui";
 import { usePerfil } from "@/lib/auth";
 import { callFunction, DEMO, supabase } from "@/lib/supabase";
@@ -33,6 +33,20 @@ function useEmpresa() {
     },
   });
 }
+
+/** O WhatsApp só leva avisos da equipe com o número da empresa ligado na Meta e o modelo mf_aviso_equipe aprovado. */
+const whatsappPronto = (c: Record<string, any> | undefined) => !!c?.whatsapp_numero_id && c?.whatsapp_modelo_equipe === "APPROVED";
+
+/** 5547999998888 → (47) 99999-8888 */
+const foneBR = (v: string | null | undefined) => {
+  const d = String(v ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}` : d;
+};
+
+type Canal = "telegram" | "whatsapp" | "ambos";
+const CANAIS: { value: Canal; label: string }[] = [
+  { value: "telegram", label: "Telegram" }, { value: "whatsapp", label: "WhatsApp" }, { value: "ambos", label: "Os dois" },
+];
 
 const empresaDe = (c: Record<string, any> | undefined): Empresa => ({
   nome: c?.nome_fantasia || c?.razao_social || "MF Máquinas", telefone: c?.telefone, whatsapp: c?.whatsapp,
@@ -85,14 +99,27 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
     queryFn: async () => {
       const { data, error } = await supabase.from("usuarios_erp").select("*").eq("user_id", perfil.user_id).single();
       if (error) throw error;
-      return data as { telegram_chat_id: number | null; avisos: Record<string, boolean> | null };
+      return data as { telegram_chat_id: number | null; avisos: Record<string, boolean> | null; avisos_canal: Canal | null; avisos_whatsapp: string | null; telefone: string | null };
     },
     refetchInterval: (q) => (esperando && !q.state.data?.telegram_chat_id ? 3000 : false),
   });
   const [prefs, setPrefs] = useState<Record<string, boolean>>({});
   const [previa, setPrevia] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  useEffect(() => { if (eu.data) setPrefs(eu.data.avisos ?? {}); }, [eu.data]);
+  const [canal, setCanal] = useState<Canal>("telegram");
+  const [fone, setFone] = useState("");
+  useEffect(() => {
+    if (!eu.data) return;
+    setPrefs(eu.data.avisos ?? {});
+    setCanal(eu.data.avisos_canal ?? "telegram");
+    setFone(foneBR(eu.data.avisos_whatsapp ?? eu.data.telefone)); // sugere o telefone do cadastro
+  }, [eu.data]);
+  const waPronto = whatsappPronto(cfg);
+  const salvoCanal = eu.data?.avisos_canal ?? "telegram";
+  const salvoFone = foneBR(eu.data?.avisos_whatsapp);
+  const mudouCanal = canal !== salvoCanal || (canal !== "telegram" && fone !== salvoFone);
+  // o Telegram aparece para quem escolheu Telegram ou os dois, e para quem escolheu WhatsApp enquanto ele não funciona
+  const mostraTelegram = canal !== "whatsapp" || !waPronto;
   const conectado = !!eu.data?.telegram_chat_id;
   useEffect(() => { if (conectado && esperando) { setEsperando(false); notify("Telegram conectado!"); } }, [conectado, esperando]);
 
@@ -121,6 +148,15 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
     try { await callFunction("avisos-config", { acao: "telegram_teste" }); notify("Mensagem de teste enviada: veja no Telegram"); }
     catch (e) { notifyError(e); } finally { setOcupado(false); }
   }
+  async function salvarCanal() {
+    setOcupado(true);
+    try {
+      const { error } = await supabase.rpc("salvar_meu_canal_avisos", { p_canal: canal, p_whatsapp: canal === "telegram" ? (eu.data?.avisos_whatsapp ?? null) : fone });
+      if (error) throw error;
+      await eu.refetch();
+      notify(canal === "telegram" ? "Avisos pelo Telegram" : canal === "whatsapp" ? "Avisos pelo WhatsApp" : "Avisos pelo Telegram e pelo WhatsApp");
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
   async function alternar(tipo: string, v: boolean) {
     const novo = { ...prefs, [tipo]: v };
     setPrefs(novo);
@@ -131,7 +167,23 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="Meus avisos no celular">
       <div className="space-y-5">
-        <div className={`rounded-2xl border p-4 ${conectado ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+        <div className="rounded-2xl border border-slate-200 p-4">
+          <div className="mb-2 text-sm font-bold text-fg">Por onde quero receber</div>
+          <Tabs value={canal} onChange={setCanal} options={CANAIS} />
+          {canal !== "telegram" && (
+            <Field label="Meu WhatsApp (DDD + número)" className="mt-3">
+              <input className="input" inputMode="tel" autoComplete="tel" placeholder="(47) 99999-9999" value={fone} onChange={(e) => setFone(e.target.value)} />
+            </Field>
+          )}
+          {canal !== "telegram" && !waPronto && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              O WhatsApp da empresa ainda não está ligado para os avisos. Até ficar pronto, eles chegam pelo Telegram: conecte abaixo.
+            </p>
+          )}
+          {mudouCanal && <Button type="button" className="mt-3" disabled={ocupado || (canal !== "telegram" && !fone.trim())} onClick={salvarCanal}><Check size={16} /> Salvar</Button>}
+        </div>
+
+        {mostraTelegram && <div className={`rounded-2xl border p-4 ${conectado ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
           <div className="flex items-start gap-3">
             <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${conectado ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"}`}>
               {conectado ? <Check size={22} /> : <Send size={20} />}
@@ -162,7 +214,7 @@ export function MeusAvisos({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
         <div>
           <div className="mb-2 text-sm font-bold text-fg">O que eu quero receber</div>
@@ -280,9 +332,9 @@ export function AvisosConfig() {
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-semibold"><Bell size={18} className="text-brand" /> Avisos automáticos</h2>
-      <p className="mb-3 text-sm text-slate-600">A equipe recebe no <b>Telegram</b> (cada um só o do seu setor) e os clientes recebem por <b>e-mail</b>.</p>
+      <p className="mb-3 text-sm text-slate-600">A equipe recebe no <b>Telegram</b> ou no <b>WhatsApp</b> (cada pessoa escolhe em <b>Meus avisos</b> e só recebe o do seu setor) e os clientes recebem por <b>e-mail</b>.</p>
       <Tabs value={aba} onChange={setAba} options={[
-        { value: "equipe", label: "Equipe (Telegram)" }, { value: "clientes", label: "Clientes (e-mail)" }, { value: "historico", label: "Histórico" },
+        { value: "equipe", label: "Equipe (Telegram e WhatsApp)" }, { value: "clientes", label: "Clientes (e-mail)" }, { value: "historico", label: "Histórico" },
       ]} />
 
       {aba === "equipe" && (
@@ -303,6 +355,7 @@ export function AvisosConfig() {
               </>
             )}
           </div>
+          <WhatsappEquipe cfg={cfg} />
           {lista("equipe")}
         </div>
       )}
@@ -351,6 +404,51 @@ export function AvisosConfig() {
   );
 }
 
+/** Situação do WhatsApp para os avisos da equipe: número da empresa na Meta, modelo aprovado e quem escolheu. */
+function WhatsappEquipe({ cfg }: { cfg: Record<string, any> | undefined }) {
+  const qc = useQueryClient();
+  const [ocupado, setOcupado] = useState(false);
+  const { data: escolhas = [] } = useQuery({
+    queryKey: ["usuarios_erp", "canais"],
+    queryFn: async () => ((await ler(supabase.from("usuarios_erp").select("user_id, avisos_canal, avisos_whatsapp").eq("ativo", true))) ?? []) as { avisos_canal: Canal | null; avisos_whatsapp: string | null }[],
+  });
+  const noWhats = escolhas.filter((u) => u.avisos_canal && u.avisos_canal !== "telegram" && u.avisos_whatsapp).length;
+  const modelo: string | null = cfg?.whatsapp_modelo_equipe ?? null;
+  async function mandarModelo() {
+    setOcupado(true);
+    try {
+      const r = await callFunction<{ erros: string[] }>("whatsapp", { acao: "modelos" });
+      const erro = r.erros.find((e) => e.startsWith("Avisos da equipe"));
+      if (erro) notifyError(new Error(erro)); else notify("Modelo enviado para a Meta aprovar");
+      qc.invalidateQueries({ queryKey: ["configuracoes"] });
+    } catch (e) { notifyError(e); } finally { setOcupado(false); }
+  }
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+      <div className="flex items-start gap-3">
+        <MessageCircle size={20} className="mt-0.5 shrink-0 text-[#15803d]" aria-hidden />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {!cfg?.whatsapp_numero_id ? (
+            <p className="text-slate-700"><b>WhatsApp:</b> falta ligar o número da empresa na Meta (Configurações → <b>Cobrança automática</b> → WhatsApp oficial). Até lá, quem escolher WhatsApp recebe pelo Telegram.</p>
+          ) : whatsappPronto(cfg) ? (
+            <p className="text-emerald-700"><b>WhatsApp ligado ✓</b>{cfg.whatsapp_numero ? ` · sai do número ${cfg.whatsapp_numero}` : ""}</p>
+          ) : modelo && modelo !== "REJECTED" ? (
+            <p className="text-slate-700"><b>WhatsApp:</b> o modelo dos avisos está em análise na Meta (costuma levar de minutos a um dia). Até lá, os avisos vão pelo Telegram.</p>
+          ) : (
+            <>
+              <p className="text-slate-700"><b>WhatsApp:</b> {modelo === "REJECTED" ? "a Meta recusou o modelo dos avisos: mande de novo." : "falta mandar o modelo dos avisos para a Meta aprovar (uma vez só)."}</p>
+              <Button type="button" variant="secondary" disabled={ocupado} onClick={mandarModelo}><Send size={15} /> Mandar o modelo para aprovação</Button>
+            </>
+          )}
+          <p className="text-slate-500">
+            {noWhats} {pl(noWhats, "pessoa escolheu", "pessoas escolheram")} WhatsApp. O Telegram é grátis; no WhatsApp a Meta cobra cada conversa que a empresa começa (centavos por aviso).
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Historico({ tipos, enviarAgora, ocupado }: { tipos: AvisoTipo[]; enviarAgora: () => void; ocupado: boolean }) {
   const qc = useQueryClient();
   const { data: avisos = [] } = useQuery({
@@ -383,8 +481,9 @@ function Historico({ tipos, enviarAgora, ocupado }: { tipos: AvisoTipo[]; enviar
         <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
           {avisos.map((a) => (
             <li key={a.id} className="flex items-start gap-3 p-3">
-              <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${a.canal === "email" ? "bg-purple-50 text-purple-700" : "bg-sky-50 text-sky-700"}`}>
-                {a.canal === "email" ? <Mail size={16} /> : <Send size={15} />}
+              <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${a.canal === "email" ? "bg-purple-50 text-purple-700" : a.canal === "whatsapp" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}
+                title={a.canal === "email" ? "E-mail" : a.canal === "whatsapp" ? "WhatsApp" : "Telegram"}>
+                {a.canal === "email" ? <Mail size={16} /> : a.canal === "whatsapp" ? <MessageCircle size={16} /> : <Send size={15} />}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

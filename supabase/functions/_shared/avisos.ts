@@ -1,6 +1,6 @@
-// Entrega da fila public.avisos (Telegram para a equipe, e-mail para clientes).
+// Entrega da fila public.avisos (Telegram ou WhatsApp para a equipe, e-mail para clientes).
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
-import { type Empresa, htmlEmail, mensagemCliente, textoEmail, textoTelegram } from "./avisos-modelos.ts";
+import { avisoWhatsapp, type Empresa, htmlEmail, mensagemCliente, MODELO_WHATSAPP_EQUIPE, textoEmail, textoTelegram } from "./avisos-modelos.ts";
 import { chatPerdido, enviarTelegram } from "./telegram.ts";
 import { enviarEmail } from "./email.ts";
 import { prepararCobranca } from "./cobranca.ts";
@@ -23,6 +23,29 @@ export const logoEmail = (empresa: Empresa) => (empresa.site ? `${empresa.site.r
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+class ErroWhatsapp extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+/** Aviso da equipe pelo WhatsApp oficial (modelo aprovado mf_aviso_equipe), com o número e o token da empresa. */
+async function enviarWhatsapp(db: SupabaseClient, para: string, titulo: string, texto: string) {
+  const { data: c } = await db.from("configuracoes").select("whatsapp_numero_id").eq("id", 1).single();
+  const token = ((await db.rpc("whatsapp_segredos")).data ?? {}).whatsapp_token;
+  if (!c?.whatsapp_numero_id || !token) throw new ErroWhatsapp(400, "WhatsApp da empresa não está ligado (Financeiro → Cobrança)");
+  const versao = Deno.env.get("WHATSAPP_API_VERSAO") ?? "v23.0";
+  const r = await fetch(`https://graph.facebook.com/${versao}/${c.whatsapp_numero_id}/messages`, {
+    method: "POST", signal: AbortSignal.timeout(20_000),
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp", to: para, type: "template",
+      template: { name: MODELO_WHATSAPP_EQUIPE.nome, language: { code: "pt_BR" },
+        components: [{ type: "body", parameters: [{ type: "text", text: titulo }, { type: "text", text: texto }] }] },
+    }),
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new ErroWhatsapp(r.status, `WhatsApp (${r.status}): ${j?.error?.error_user_msg || j?.error?.error_data?.details || j?.error?.message || "erro"}`);
+}
+
 export async function entregarFila(db: SupabaseClient, limite = 40) {
   const { data: lote, error } = await db.rpc("avisos_reservar", { p_limite: limite });
   if (error) throw new Error(error.message);
@@ -33,7 +56,7 @@ export async function entregarFila(db: SupabaseClient, limite = 40) {
   const idsUsuarios = [...new Set(avisos.map((a) => a.usuario_id).filter(Boolean))];
   const idsClientes = [...new Set(avisos.map((a) => a.cliente_id).filter(Boolean))];
   const { data: usuarios } = idsUsuarios.length
-    ? await db.from("usuarios_erp").select("user_id, nome, papel, ativo, telegram_chat_id").in("user_id", idsUsuarios)
+    ? await db.from("usuarios_erp").select("user_id, nome, papel, ativo, telegram_chat_id, avisos_whatsapp").in("user_id", idsUsuarios)
     : { data: [] };
   const { data: clientes } = idsClientes.length
     ? await db.from("clientes").select("id, avisos_email, email_token").in("id", idsClientes)
@@ -48,6 +71,11 @@ export async function entregarFila(db: SupabaseClient, limite = 40) {
         const u = usuario.get(a.usuario_id);
         if (!u?.ativo || String(u.telegram_chat_id) !== a.destino) throw new Desistir("pessoa desconectou o Telegram ou foi desativada");
         await enviarTelegram(a.destino, textoTelegram(a.tipo, a.dados, { nome: u.nome, papel: u.papel, site: empresa.site }));
+      } else if (a.canal === "whatsapp") {
+        const u = usuario.get(a.usuario_id);
+        if (!u?.ativo || u.avisos_whatsapp !== a.destino) throw new Desistir("pessoa trocou o número do WhatsApp ou foi desativada");
+        const m = avisoWhatsapp(textoTelegram(a.tipo, a.dados, { nome: u.nome, papel: u.papel, site: empresa.site }));
+        await enviarWhatsapp(db, a.destino, m.titulo, m.texto);
       } else {
         const c = cliente.get(a.cliente_id);
         if (!c?.avisos_email) throw new Desistir("cliente pediu para não receber e-mails");
@@ -63,11 +91,20 @@ export async function entregarFila(db: SupabaseClient, limite = 40) {
       enviados++;
     } catch (e) {
       erros++;
-      const definitivo = e instanceof Desistir || chatPerdido(e);
+      // 4xx da Meta (número sem WhatsApp, modelo não aprovado…) não melhora tentando de novo; 429 = limite, tenta depois
+      const definitivo = e instanceof Desistir || chatPerdido(e) || (e instanceof ErroWhatsapp && e.status >= 400 && e.status < 500 && e.status !== 429);
       if (chatPerdido(e)) await db.from("usuarios_erp").update({ telegram_chat_id: null }).eq("telegram_chat_id", a.destino);
       await db.from("avisos").update({
         status: "erro", erro: (e as Error).message.slice(0, 500), ...(definitivo ? { tentativas: 99 } : {}),
       }).eq("id", a.id);
+      // o WhatsApp falhou de vez: o aviso vai pelo Telegram, se a pessoa tiver, para não se perder
+      if (definitivo && a.canal === "whatsapp" && !(e instanceof Desistir)) {
+        const u = usuario.get(a.usuario_id);
+        if (u?.ativo && u.telegram_chat_id) {
+          await db.from("avisos").upsert({ tipo: a.tipo, canal: "telegram", destino: String(u.telegram_chat_id), usuario_id: a.usuario_id, dados: a.dados, chave: a.chave },
+            { onConflict: "chave,canal,destino", ignoreDuplicates: true });
+        }
+      }
     }
   }
   return { enviados, erros };

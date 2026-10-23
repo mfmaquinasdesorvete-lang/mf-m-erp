@@ -300,3 +300,28 @@ export function textoEmail(m: MensagemEmail, empresa: Empresa, descadastro?: str
     ...(descadastro ? ["", `Não quer mais receber estes avisos? ${descadastro}`] : []),
   ].join("\n");
 }
+
+// ---------------------------------------------------------------------
+// WhatsApp (equipe): a Meta só deixa a empresa puxar conversa com modelo aprovado, então todos os avisos da equipe
+// usam um modelo só, com o título e o texto do aviso de Telegram como parâmetros ({{1}} e {{2}}).
+// ---------------------------------------------------------------------
+export const MODELO_WHATSAPP_EQUIPE = {
+  nome: "mf_aviso_equipe",
+  texto: "🔔 *{{1}}*\n\n{{2}}\n\nAviso automático do ERP da MF Máquinas.",
+  exemplo: ["Venda aprovada · Pedido #1234", "Maria Sorvetes · *R$ 12.500,00* · Pix · Vendedor: João · Abrir no ERP: https://erp.myfrost.ai/pedidos"],
+};
+
+const desfazerHtml = (t: string) =>
+  t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+
+/** O aviso da equipe como título e texto do modelo de WhatsApp (sem quebra de linha, até 1000 letras). */
+export function avisoWhatsapp(textoDoTelegram: string): { titulo: string; texto: string } {
+  const t = textoDoTelegram
+    .replace(/<a href="([^"]*)">([^<]*?)\s*→?<\/a>/g, (_m, url, rotulo) => `${rotulo.trim()}: ${url}`)
+    .replace(/<\/?b>/g, "*").replace(/<\/?i>/g, "_").replace(/<[^>]+>/g, "");
+  const linhas = desfazerHtml(t).split("\n").map((l) => l.replace(/[ \t]{2,}/g, " ").trim()).filter(Boolean);
+  const titulo = (linhas.shift() ?? "Aviso do ERP").replace(/\*/g, "").slice(0, 200);
+  const texto = linhas.join(" · ").slice(0, 1000) || "Abra o ERP para ver.";
+  return { titulo, texto };
+}
+
