@@ -16,7 +16,8 @@ import { HistoricoModal } from "@/pages/Garantias";
 import { limpar, useInvalidate, useRows, ler } from "@/lib/data";
 import { sincronizarItens } from "@/lib/itens";
 import { soMudou } from "@/lib/soMudou";
-import { lerValor, valorBR } from "@/lib/auditoriaBusca";
+import { lerValor } from "@/lib/auditoriaBusca";
+import { CampoNumero } from "@/components/CampoNumero";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
 import { avisoOutraEmpresa, CONDICOES_REPARO_PADRAO, faltaParaConcluirOutraEmpresa, situacaoGarantia } from "@/lib/garantia";
@@ -56,7 +57,9 @@ const CHECKLIST_PADRAO = [
   "Painel e botões sem trincas", "Batedor / pás do cilindro", "Equipamento limpo (sem calda)", "Acessórios entregues junto",
 ];
 
-const SELECT = "*, cliente:clientes(*), itens:os_itens(*)";
+// a lista não traz as assinaturas (imagens) nem o cadastro inteiro do cliente; a OS completa vem ao abrir
+const SELECT = "id,numero,cliente_id,produto_id,equipamento,numero_serie,defeito_relatado,diagnostico,solucao,status,em_garantia,tecnico,valor_mao_obra,valor_pecas,valor_total,data_entrada,previsao,concluida_em,estoque_baixado,observacoes,created_at,equipamento_id,checklist,fotos,entregue_em,recebido_por,unidade_id,faturada_em,nfse_id,maquina_origem,condicao_entrada,orcamento_aprovado_em,orcamento_aprovado_por,garantia_reparo_dias,garantia_reparo_condicoes,marcadores,tecnico_id,reaberturas,pedido_id,atendimento,agendado_em,horas_tecnicas,video_pago_em,video_valor_pago, cliente:clientes(id,nome,whatsapp,municipio,uf), itens:os_itens(*)";
+const SELECT_COMPLETA = "*, cliente:clientes(*), itens:os_itens(*)";
 type Reabertura = { em: string; nome?: string | null; motivo: string; concluida_em?: string | null; voltou_para?: string };
 type OSX = OrdemServico & {
   equipamento_id?: string | null; checklist?: ItemChecklist[]; fotos?: FotoOS[];
@@ -76,7 +79,7 @@ export default function Assistencia() {
   const navigate = useNavigate();
   const { filtrar } = useUnidade();
   const { data: ordensTodos = [], isLoading } = useRows<OSX>("ordens_servico", { select: SELECT });
-  const ordens = filtrar(ordensTodos);
+  const ordens = useMemo(() => filtrar(ordensTodos), [ordensTodos, filtrar]);
   const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [busca, setBusca] = useState("");
   const [marcador, setMarcador] = useState("");
@@ -104,7 +107,7 @@ export default function Assistencia() {
     const abrirId = (location.state as any)?.abrir;
     const o = abrirId && ordensTodos.find((x) => x.id === abrirId);
     if (o) {
-      setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] });
+      abrirOS(o);
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, ordensTodos.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -122,7 +125,15 @@ export default function Assistencia() {
       (!busca || `${o.numero} ${o.cliente?.nome} ${o.equipamento} ${o.numero_serie ?? ""}`.toLowerCase().includes(busca.toLowerCase())))
       .flatMap((o) => { const s = situacaoOS(o, dia); return s ? [{ id: o.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: o.em_garantia ? 0 : Number(o.valor_total || 0), o, s }] : []; });
   }, [ordens, busca, marcador, periodo]); // eslint-disable-line react-hooks/exhaustive-deps
-  const abrirOS = (o: OSX) => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] });
+  // abre com a OS completa (assinaturas e cliente inteiro), lida na hora
+  async function abrirOS(o: OSX) {
+    try {
+      const c = ((await ler(supabase.from("ordens_servico").select(SELECT_COMPLETA).eq("id", o.id).single())) as OSX | null) ?? o;
+      setAberta({ ...c, checklist: c.checklist ?? [], fotos: c.fotos ?? [], itens: (c as OS).itens ?? [] });
+    } catch (e) {
+      notifyError(e);
+    }
+  }
   async function avancar(o: OSX, acao: AcaoOS) {
     const status = proximoStatus(acao);
     if (!status) return abrirOS(o);
@@ -224,7 +235,7 @@ export default function Assistencia() {
         head={<><th className="th">OS</th><th className="th">Entrada</th><th className="th">Cliente</th><th className="th">Equipamento</th><th className="th">Situação</th><th className="th">Previsão</th><th className="th text-right">Valor</th><th className="th"><span className="sr-only">Marcadores</span></th><th className="th" /></>}
       >
         {lista.map((o) => (
-          <tr key={o.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50/70" onClick={() => setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] })} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setAberta({ ...o, checklist: o.checklist ?? [], fotos: o.fotos ?? [], itens: o.itens ?? [] }); } }}>
+          <tr key={o.id} className="cursor-pointer focus-visible:bg-slate-50 hover:bg-slate-50/70" onClick={() => abrirOS(o)} tabIndex={0} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); abrirOS(o); } }}>
             <td className="td font-bold text-fg">#{o.numero}<EtiquetaUnidade id={(o as any).unidade_id} /></td>
             <td className="td num">{dataBR(o.data_entrada)}</td>
             <td className="td">{o.cliente?.nome}<SeloCidade cliente={o.cliente} /><div className="mt-1"><ChipsMarcadores ids={o.marcadores} todos={marcadores} pequeno /></div></td>
@@ -267,8 +278,11 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
   const [reabrir, setReabrir] = useState(false);
   const { data: notasOS = [] } = useNfsesDaOS(o.id);
   const { data: clientes = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda" });
+  // só os modelos de máquina e só as máquinas deste cliente (não o cadastro inteiro)
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: "id,descricao,tipo", order: "descricao", ascending: true,
+    key: ["maquinas"], filtro: (q) => q.eq("tipo", "maquina") });
+  const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", { order: "data_venda", key: ["cliente", o.cliente_id],
+    enabled: !!o.cliente_id, filtro: (q) => q.eq("cliente_id", o.cliente_id) });
   const { data: cfg } = useConfig();
   const invalidate = useInvalidate();
   const { pode } = usePerfil();
@@ -326,9 +340,12 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
       em_garantia: naGarantia(m, hoje()), maquina_origem: m.origem ?? null,
     });
   }
-  function cobrarDiagnostico() {
-    set({ em_garantia: false, valor_mao_obra: Number(o.valor_mao_obra || 0) || taxaDiagnostico });
-    notify(`Diagnóstico por vídeo chamada (${brl(taxaDiagnostico)}) lançado na mão de obra: veja a aba Peças e valores`);
+  async function cobrarDiagnostico() {
+    const ja = Number(o.valor_mao_obra || 0);
+    if (ja > 0 && !(await confirmar(`A OS já tem ${brl(ja)} de mão de obra. Somar a taxa do diagnóstico (${brl(taxaDiagnostico)})?`))) return;
+    const novo = Math.round((ja + taxaDiagnostico) * 100) / 100;
+    set({ em_garantia: false, valor_mao_obra: novo });
+    notify(`Taxa do diagnóstico (${brl(taxaDiagnostico)}) somada: mão de obra ${brl(novo)}. Veja a aba Peças e valores`);
   }
 
   async function gravar(): Promise<string> {
@@ -734,7 +751,7 @@ function OSModal({ os: inicial, onClose }: { os: OS; onClose: () => void }) {
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Field label="Mão de obra (R$)">
-                <CampoValor valor={Number(o.valor_mao_obra || 0)} disabled={somenteLeitura} onValor={(v) => set({ valor_mao_obra: v })} />
+                <CampoNumero aria-label="Mão de obra" valor={Number(o.valor_mao_obra || 0)} disabled={somenteLeitura} onValor={(v) => set({ valor_mao_obra: v })} />
               </Field>
               <Field label="Garantia">
                 <label className="flex items-center gap-2 py-2 text-sm">
@@ -911,8 +928,9 @@ function FotosOS({ fotos, podeEditar, ocupado, onEnviar, onRemover }: {
 
 /** Serviços do cadastro (carga de gás, limpeza…): tocar soma o preço na mão de obra e escreve no serviço executado. */
 function ServicosOS({ onEscolher }: { onEscolher: (s: Produto) => void }) {
-  const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
-  const servicos = produtos.filter((p) => p.tipo === "servico" && p.ativo !== false);
+  const { data: produtos = [] } = useRows<Produto>("produtos", { select: "id,descricao,tipo,ativo,preco_venda", order: "descricao", ascending: true,
+    key: ["servicos"], filtro: (q) => q.eq("tipo", "servico") });
+  const servicos = produtos.filter((p) => p.ativo !== false);
   if (!servicos.length) return null;
   return (
     <div className="rounded-xl border border-slate-200 p-3">
@@ -925,23 +943,5 @@ function ServicosOS({ onEscolher }: { onEscolher: (s: Produto) => void }) {
         ))}
       </div>
     </div>
-  );
-}
-
-/** Campo de dinheiro em texto: aceita "1.500,00", "1500" ou "45,90" (o campo numérico do navegador lia "1.500" como 1,5) */
-function CampoValor({ valor, onValor, disabled }: { valor: number; onValor: (v: number) => void; disabled?: boolean }) {
-  const [texto, setTexto] = useState(valorBR(valor));
-  const [editando, setEditando] = useState(false);
-  useEffect(() => { if (!editando) setTexto(valorBR(valor)); }, [valor, editando]);
-  const invalido = editando && texto.trim() !== "" && lerValor(texto) == null;
-  return (
-    <input className={`input text-right ${invalido ? "border-red-500" : ""}`} inputMode="decimal" value={texto} disabled={disabled} aria-invalid={invalido}
-      onFocus={() => setEditando(true)}
-      onBlur={() => { setEditando(false); setTexto(valorBR(valor)); }}
-      onChange={(e) => {
-        setTexto(e.target.value);
-        const v = e.target.value.trim() === "" ? 0 : lerValor(e.target.value);
-        if (v != null && v >= 0) onValor(Math.round(v * 100) / 100);
-      }} />
   );
 }

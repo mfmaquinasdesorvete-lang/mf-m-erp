@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { Badge, Button, Field, Modal, PageHeader, Stat, Table, TOM_ACAO } from "@/components/ui";
-import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
+import { ler, limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { dataBR, hoje, somarDias, whatsappLink, pl } from "@/lib/format";
 import { diasAte, situacaoGarantia, situacaoPreventiva, textoVenda } from "@/lib/garantia";
 import { notify, notifyError } from "@/lib/notify";
@@ -320,10 +320,13 @@ export function HistoricoModal({ equipamento, onClose }: { equipamento: { id?: s
   const { data: ordens = [], isLoading, error: erroHistorico } = useQuery({
     queryKey: ["ordens_servico", "historico", equipamento.id, equipamento.numero_serie],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ordens_servico").select("*").order("data_entrada", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).filter((o: any) =>
-        (equipamento.id && o.equipamento_id === equipamento.id) || (equipamento.numero_serie && o.numero_serie === equipamento.numero_serie));
+      // só as OS desta máquina, filtradas no servidor (sem as assinaturas); erro aparece em vez de "nenhum atendimento"
+      const ou = [equipamento.id && `equipamento_id.eq.${equipamento.id}`,
+        equipamento.numero_serie && `numero_serie.eq."${equipamento.numero_serie.replace(/"/g, "")}"`].filter(Boolean).join(",");
+      if (!ou) return [];
+      return (await ler(supabase.from("ordens_servico")
+        .select("id,numero,status,data_entrada,concluida_em,equipamento,numero_serie,defeito_relatado,diagnostico,solucao,tecnico,em_garantia,valor_total,equipamento_id")
+        .or(ou).order("data_entrada", { ascending: false }))) ?? [];
     },
   });
 

@@ -2214,7 +2214,7 @@ class Query {
   or(expr: string) {
     const lista = (v: string) => v.replace(/^\(|\)$/g, "").split(",");
     const testes = expr.split(/,(?![^(]*\))/).map((p) => {
-      const [c, op, ...resto] = p.split("."); const v = resto.join(".");
+      const [c, op, ...resto] = p.split("."); const v = resto.join(".").replace(/^"(.*)"$/, "$1");
       if (op === "is") return (r: Row) => (r[c] ?? null) === null;
       if (op === "eq") return (r: Row) => String(r[c] ?? "") === v;
       if (op === "gte") return (r: Row) => r[c] != null && String(r[c]) >= v;
