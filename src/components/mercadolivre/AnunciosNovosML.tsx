@@ -11,6 +11,7 @@ import { brl, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { callFunction, supabase } from "@/lib/supabase";
 import { linkAnuncio } from "@/lib/mlAnuncios";
+import { lerValor } from "@/lib/auditoriaBusca";
 import { liquido } from "../../../supabase/functions/_shared/ml-novos";
 
 type Proposta = {
@@ -58,8 +59,9 @@ export function AnunciosNovosML({ podeMudar, semAnuncio }: { podeMudar: boolean;
   }
 
   async function salvarPreco(p: Proposta) {
-    const v = Number(String(precos[p.id] ?? "").replace(/\./g, "").replace(",", "."));
-    if (!(v > 0) || Math.abs(v - Number(p.preco)) < 0.005) return;
+    const v = lerValor(precos[p.id]);
+    if (v == null || !(v > 0)) return notify("Preço inválido: use, por exemplo, 45,90.", "erro");
+    if (Math.abs(v - Number(p.preco)) < 0.005) return;
     const { error } = await supabase.rpc("ml_proposta_preco", { p_id: p.id, p_preco: v });
     if (error) return notifyError(error);
     setPrecos((x) => { const n = { ...x }; delete n[p.id]; return n; });
@@ -110,7 +112,7 @@ export function AnunciosNovosML({ podeMudar, semAnuncio }: { podeMudar: boolean;
           <th className="th text-right">Tarifa e frete</th><th className="th text-right">A MF recebe</th><th className="th">Situação</th>
         </>}>
           {abertas.map((p) => {
-            const preco = Number(precos[p.id] !== undefined ? String(precos[p.id]).replace(",", ".") : p.preco) || 0;
+            const preco = (precos[p.id] !== undefined ? lerValor(precos[p.id]) : Number(p.preco)) || 0;
             const pct = Number(p.tarifa_pct) || 0, frete = Number(p.frete_gratis) || 0;
             const recebe = preco ? liquido(preco, pct, frete) : 0;
             const margem = p.custo ? recebe - Number(p.custo) : null;
