@@ -1,8 +1,8 @@
 // Esquema de guardanapo (napkin sketch): o processo desenhado à mão, em poucos passos, com quem faz e a tela do
-// ERP de cada passo. Sai como imagem (PNG), link ou texto para mandar à equipe. O papel é sempre claro, de propósito.
+// ERP de cada passo. Sai como imagem (PNG), link ou texto para mandar à equipe; todos de uma vez em PDF ou ZIP. O papel é sempre claro, de propósito.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ClipboardCopy, Download, Link2 } from "lucide-react";
+import { ClipboardCopy, Download, FileArchive, FileDown, Link2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { notify, notifyError } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
@@ -46,8 +46,8 @@ function useLargura<T extends HTMLElement>() {
   return [ref, w] as const;
 }
 
-/** Baixa o desenho como PNG (o dobro do tamanho, para ficar nítido no WhatsApp). */
-export async function baixarSvgPng(svg: SVGSVGElement, nome: string) {
+/** Desenha o SVG num canvas (o dobro do tamanho, para ficar nítido no WhatsApp e no PDF). */
+async function svgParaCanvas(svg: SVGSVGElement) {
   const vb = svg.viewBox.baseVal;
   const xml = new XMLSerializer().serializeToString(svg);
   const url = URL.createObjectURL(new Blob([xml.includes("xmlns=") ? xml : xml.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"')], { type: "image/svg+xml" }));
@@ -59,12 +59,85 @@ export async function baixarSvgPng(svg: SVGSVGElement, nome: string) {
     const ctx = c.getContext("2d")!;
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(img, 0, 0, c.width, c.height);
-    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/png"));
-    if (!blob) throw new Error("não deu para gerar a imagem");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = `${nome}.png`; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    return c;
   } finally { URL.revokeObjectURL(url); }
+}
+
+async function canvasPng(c: HTMLCanvasElement) {
+  const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/png"));
+  if (!blob) throw new Error("não deu para gerar a imagem");
+  return blob;
+}
+
+function baixarArquivo(blob: Blob, nome: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/** Baixa o desenho como PNG. */
+export async function baixarSvgPng(svg: SVGSVGElement, nome: string) {
+  baixarArquivo(await canvasPng(await svgParaCanvas(svg)), `${nome}.png`);
+}
+
+/** Um esquema por página (A4 deitado), centralizado e do maior tamanho que couber. */
+async function montarPdf(telas: HTMLCanvasElement[]) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const PW = 297, PH = 210, MG = 8;
+  telas.forEach((c, k) => {
+    if (k) doc.addPage("a4", "landscape");
+    const escala = Math.min((PW - MG * 2) / c.width, (PH - MG * 2) / c.height);
+    const w = c.width * escala, h = c.height * escala;
+    doc.addImage(c.toDataURL("image/jpeg", 0.9), "JPEG", (PW - w) / 2, (PH - h) / 2, w, h);
+  });
+  return doc.output("blob");
+}
+
+/** Botões para baixar todos os esquemas que a pessoa vê: um PDF (um por página) ou um ZIP (imagem de cada um + o PDF). */
+function BaixarTodos({ lista }: { lista: Processo[] }) {
+  const [formato, setFormato] = useState<"pdf" | "zip" | null>(null);
+  const caixa = useRef<HTMLDivElement>(null);
+  const nada = useRef<SVGSVGElement>(null);
+  const rodando = useRef(false);
+  useEffect(() => {
+    if (!formato || rodando.current) return;
+    rodando.current = true;
+    (async () => {
+      try {
+        await document.fonts?.ready;
+        const svgs = [...(caixa.current?.querySelectorAll<SVGSVGElement>(":scope > div > svg") ?? [])];
+        const telas: HTMLCanvasElement[] = [];
+        for (const s of svgs) telas.push(await svgParaCanvas(s));
+        const pdf = await montarPdf(telas);
+        if (formato === "pdf") baixarArquivo(pdf, "esquemas-erp-line.pdf");
+        else {
+          const { zipSync } = await import("fflate");
+          const arquivos: Record<string, Uint8Array> = { "esquemas-erp-line.pdf": new Uint8Array(await pdf.arrayBuffer()) };
+          for (let k = 0; k < telas.length; k++) {
+            arquivos[`${String(k + 1).padStart(2, "0")}-${lista[k].id}.png`] = new Uint8Array(await (await canvasPng(telas[k])).arrayBuffer());
+          }
+          baixarArquivo(new Blob([zipSync(arquivos, { level: 0 })], { type: "application/zip" }), "esquemas-erp-line.zip");
+        }
+        notify(`${telas.length} esquemas baixados`);
+      } catch (e) { notifyError(e); } finally { rodando.current = false; setFormato(null); }
+    })();
+  }, [formato, lista]);
+  return (
+    <>
+      <Button variant="secondary" disabled={!!formato} onClick={() => setFormato("pdf")} title="Um PDF com todos os esquemas, um por página">
+        <FileDown size={16} /> {formato === "pdf" ? "Montando…" : "Todos em PDF"}
+      </Button>
+      <Button variant="secondary" disabled={!!formato} onClick={() => setFormato("zip")} title="Um ZIP com a imagem de cada esquema e o PDF com todos">
+        <FileArchive size={16} /> {formato === "zip" ? "Montando…" : "Todos em ZIP"}
+      </Button>
+      {formato && (
+        <div ref={caixa} aria-hidden style={{ position: "fixed", left: -20000, top: 0, width: 1200, pointerEvents: "none" }}>
+          {lista.map((x) => <div key={x.id}><Desenho p={x} colunas={4} svgRef={nada} /></div>)}
+        </div>
+      )}
+    </>
+  );
 }
 
 export async function copiar(texto: string, aviso: string) {
@@ -117,6 +190,7 @@ export function Guardanapo({ processoId, onProcesso }: { processoId: string; onP
           <Button variant="secondary" onClick={() => copiar(textoProcesso(p, nomeTela), "Passos copiados")}><ClipboardCopy size={16} /> Copiar texto</Button>
           <Button variant="secondary" onClick={() => copiar(link, "Link copiado")}><Link2 size={16} /> Copiar link</Button>
           <Button onClick={baixar}><Download size={16} /> Baixar imagem</Button>
+          <BaixarTodos lista={visiveis} />
         </div>
       </div>
       <div ref={ref} className="min-w-0">
