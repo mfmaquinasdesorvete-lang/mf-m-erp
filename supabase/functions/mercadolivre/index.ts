@@ -18,6 +18,10 @@
 // Histórico (painel da primeira aba):
 //  POST { acao: "historico" }               (vendas, financeiro ou marketplaces) → busca para trás tudo o que já foi
 //       vendido na conta e as datas de envio (tabela ml_historico, sem criar pedido); a sincronização também avança.
+// Anúncios novos (produtos da loja que não estão no Mercado Livre):
+//  POST { acao: "preparar_anuncios", produtos?: [ids] } (vendas, financeiro ou marketplaces) → monta as propostas
+//       (categoria, atributos, preço que deixa o valor da loja, conferência do Mercado Livre), sem publicar
+//  POST { acao: "publicar_anuncios", propostas: [ids] }  (financeiro ou marketplaces) → publica só as escolhidas
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -28,6 +32,7 @@ import { buscarVenda, chamarML, ErroML, idDoRecurso, linkAutorizacao, normalizar
 import { buscarAnuncios, enviarAnuncios, mudarSituacao } from "./anuncios.ts";
 import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 import { gravarHistorico, puxarHistorico } from "./historico.ts";
+import { prepararAnuncios, publicarAnuncios } from "./novos.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -86,6 +91,18 @@ Deno.serve(async (req) => {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
         const conta = await contaLigada(db);
         return json({ ok: true, resultado: await puxarHistorico(db, conta, await tokenValido(db, conta)) });
+      }
+      case "preparar_anuncios": {
+        // só monta propostas (não publica): o agendamento também pode pedir
+        if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        const ids = Array.isArray(body.produtos) ? body.produtos.map(String) : undefined;
+        return json({ ok: true, resultado: await prepararAnuncios(db, conta as any, await tokenValido(db, conta), ids) });
+      }
+      case "publicar_anuncios": {
+        const { userId } = await requireErpUser(req, ["financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await publicarAnuncios(db, conta as any, await tokenValido(db, conta), body.propostas, userId) });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);

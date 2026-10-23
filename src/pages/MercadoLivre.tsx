@@ -84,7 +84,7 @@ export default function MercadoLivre() {
       ]} />
       {atual === "marketplace" && <AuditoriaProdutos produtos={produtos} podeEditar={pode("editar_produtos")} onAbrir={(p) => navigate(`/estoque?editar=${p.id}`)} />}
       {atual === "painel" && veVendas && <PainelMercadoLivre conta={conta} irConta={() => setAba("conta")} />}
-      {atual === "produtos" && <ProdutosLojaML />}
+      {atual === "produtos" && <ProdutosLojaML podeMudar={podeMudar} />}
       {atual === "anuncios" && <AnunciosMercadoLivre conta={conta} anuncios={anuncios} carregando={carregando} erro={erro} podeMudar={podeMudar} />}
       {atual === "vendas" && veVendas && <VendasMercadoLivre conta={conta} />}
       {atual === "envio" && <EnvioEstoquePreco conta={conta} podeMudar={podeMudar} irConta={() => setAba("conta")} />}

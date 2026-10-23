@@ -8,6 +8,7 @@ import { brl, pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { DISPONIBILIDADE, urlFotoProduto } from "@/lib/catalogo";
 import { linkAnuncio } from "@/lib/mlAnuncios";
+import { AnunciosNovosML } from "./AnunciosNovosML";
 
 type AnuncioProduto = {
   anuncio_id: string; ml_item_id: string; variation_id: string | null; titulo: string | null; quantidade: number;
@@ -28,7 +29,7 @@ const STATUS: Record<string, { texto: string; cor: string }> = {
 };
 const sem = (s: string | null | undefined) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export function ProdutosLojaML() {
+export function ProdutosLojaML({ podeMudar = false }: { podeMudar?: boolean }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const q = useQuery({
@@ -65,6 +66,8 @@ export function ProdutosLojaML() {
           ))}
         </div>
       </div>
+
+      <AnunciosNovosML podeMudar={podeMudar} semAnuncio={produtos.length - com} />
 
       <Table empty={!q.isLoading && !lista.length} head={<>
         <th className="th">Produto na loja</th><th className="th text-right">Preço na loja</th><th className="th">No Mercado Livre</th>
