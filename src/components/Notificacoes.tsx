@@ -2,10 +2,12 @@
 // e os avisos entre usuários. Aviso normal aparece no canto; importante e urgente aparecem no meio da tela e pedem "Ciente"
 // (o urgente toca de novo até a pessoa confirmar). Quem mandou vê quem já deu ciente. Aviso de uma pessoa pode ser
 // respondido: a resposta vai para quem participa da conversa, com a mesma escolha de urgência.
+// Aviso dos chats do Claude (tipo "claude", só para a conta master): no meio da tela em roxo, com som próprio que
+// repete até o "Ciente", a voz lê o resumo do que é preciso fazer e o botão abre o chat.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Bell, BellRing, Check, FileSignature, Mail, Megaphone, Reply, Send, ShoppingBag, Siren, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, Bot, Check, FileSignature, Mail, Megaphone, Reply, Send, ShoppingBag, Siren, Speaker, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
@@ -25,6 +27,7 @@ const ESTILO: Record<string, { icon: LucideIcon; cor: string }> = {
   pedido_loja: { icon: ShoppingBag, cor: "var(--kpi-ciano)" },
   email: { icon: Mail, cor: "var(--kpi-roxo)" },
   proposta: { icon: FileSignature, cor: "var(--kpi-ciano)" },
+  claude: { icon: Bot, cor: "var(--kpi-roxo)" },
   outro: { icon: BellRing, cor: "var(--kpi-laranja)" },
 };
 const NIVEL: Record<Urgencia, { rotulo: string; ajuda: string; icon: LucideIcon; cor: string; faixa: string }> = {
@@ -32,7 +35,8 @@ const NIVEL: Record<Urgencia, { rotulo: string; ajuda: string; icon: LucideIcon;
   importante: { rotulo: "Importante", ajuda: "No meio da tela, com som; a pessoa confirma que leu", icon: AlertTriangle, cor: "var(--kpi-laranja)", faixa: "from-[#f59e0b] to-[#ea580c]" },
   urgente: { rotulo: "Urgente", ajuda: "No meio da tela, em vermelho; o som repete até a pessoa clicar em Ciente", icon: Siren, cor: "var(--kpi-rosa)", faixa: "from-[#ef4444] to-[#b91c1c]" },
 };
-const estiloDe = (n: Notificacao) => n.remetente_id ? { icon: NIVEL[n.urgencia ?? "normal"].icon, cor: NIVEL[n.urgencia ?? "normal"].cor } : ESTILO[n.tipo] ?? ESTILO.outro;
+const ehClaude = (n: Notificacao) => n.tipo === "claude";
+const estiloDe = (n: Notificacao) => ehClaude(n) ? ESTILO.claude : n.remetente_id ? { icon: NIVEL[n.urgencia ?? "normal"].icon, cor: NIVEL[n.urgencia ?? "normal"].cor } : ESTILO[n.tipo] ?? ESTILO.outro;
 
 type Ctx = { lista: Notificacao[]; naoVistas: number; abrirPainel: () => void; novoAviso: (para?: string[]) => void };
 const NotifCtx = createContext<Ctx>({ lista: [], naoVistas: 0, abrirPainel: () => {}, novoAviso: () => {} });
@@ -63,6 +67,41 @@ export function tocar(nivel: Urgencia = "normal", sempre = false) {
   } catch { /* navegador sem áudio */ }
 }
 
+const CHAVE_VOZ = "erp.avisos.voz";
+const vozLigada = () => { try { return localStorage.getItem(CHAVE_VOZ) !== "off"; } catch { return true; } };
+
+/** Som dos avisos dos chats do Claude: um carrilhão que sobe e desce (diferente dos outros avisos). */
+export function tocarClaude() {
+  try {
+    const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const notas = [523, 659, 784, 1047, 784, 1047];
+    notas.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * 0.18;
+      o.frequency.value = f; o.type = "triangle";
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.55);
+    });
+    setTimeout(() => ac.close().catch(() => {}), 2000);
+  } catch { /* navegador sem áudio */ }
+}
+
+/** Lê o texto em voz alta (português). O navegador só fala depois de a pessoa ter tocado na tela ao menos uma vez. */
+export function falar(texto: string) {
+  try {
+    if (!("speechSynthesis" in window) || !vozLigada()) return;
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = "pt-BR"; u.rate = 1;
+    const voz = window.speechSynthesis.getVoices().find((v) => v.lang?.toLowerCase().startsWith("pt"));
+    if (voz) u.voice = voz;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch { /* sem voz */ }
+}
+const falarAviso = (n: Notificacao) => falar(`${n.titulo}. ${n.texto ?? ""}`);
+const ehExterno = (link: string | null) => !!link && /^https?:\/\//.test(link);
+
 export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const perfil = usePerfil();
   const eu = perfil.user_id;
@@ -74,6 +113,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const [compor, setCompor] = useState<string[] | null>(null); // aberto: para quem (vazio = escolher)
   const [responderA, setResponderA] = useState<Notificacao | null>(null);
   const [som, setSom] = useState(somLigado);
+  const [voz, setVoz] = useState(vozLigada);
   const vistos = useRef(new Set<number>());
   const pendentesVistos = useRef(false);
 
@@ -118,8 +158,21 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     pendentesVistos.current = true;
     const limite = new Date(Date.now() - 7 * 864e5).toISOString();
     const pendentes = lista.filter((n) => n.exige_ciencia && paraMim(n) && !(meu(n) && !n.destinatarios?.includes(eu)) && !jaCiente(n) && n.created_at > limite);
-    if (pendentes.length) { setCentro(pendentes.reverse()); tocar(pendentes.some((n) => n.urgencia === "urgente") ? "urgente" : "importante"); }
+    if (pendentes.length) {
+      setCentro(pendentes.reverse());
+      const claude = pendentes.find(ehClaude);
+      if (claude) { tocarClaude(); falarAviso(claude); } else tocar(pendentes.some((n) => n.urgencia === "urgente") ? "urgente" : "importante");
+    }
   }, [todas, cienciasLidas, eu]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // aviso de um chat do Claude: o carrilhão repete a cada 30 segundos (até 5 minutos) enquanto não clicar em Ciente
+  const claudeAberto = !!centro[0] && ehClaude(centro[0]);
+  useEffect(() => {
+    if (!claudeAberto) return;
+    let n = 0;
+    const t = setInterval(() => { if (++n > 10) clearInterval(t); else tocarClaude(); }, 30_000);
+    return () => clearInterval(t);
+  }, [claudeAberto, centro[0]?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // urgente: a sirene repete a cada 4 segundos (até 2 minutos) enquanto não clicar em Ciente
   const urgenteAberto = centro[0]?.urgencia === "urgente";
@@ -135,7 +188,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     vistos.current.add(n.id);
     if (!paraMim(n) || (meu(n) && !n.destinatarios?.includes(eu))) return; // o próprio aviso para os outros não aparece para quem mandou
     const nivel = n.urgencia ?? "normal";
-    if (nivel !== "normal") {
+    if (ehClaude(n)) {
+      setCentro((c) => [n, ...c.filter((x) => x.id !== n.id)]);
+      tocarClaude();
+      falarAviso(n);
+    } else if (nivel !== "normal") {
       setCentro((c) => [...c.filter((x) => x.id !== n.id), n]);
       tocar(nivel);
     } else {
@@ -146,7 +203,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
       setTimeout(() => setPopups((p) => p.filter((x) => x.id !== n.id)), celular ? 6_000 : 12_000);
     }
     if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-      try { new Notification(n.titulo, { body: [n.remetente_nome && `De ${n.remetente_nome}`, n.texto].filter(Boolean).join(" · "), icon: "/logo-192.png", tag: `erp-${n.id}`, requireInteraction: nivel === "urgente" }); } catch { /* sem suporte */ }
+      try { new Notification(n.titulo, { body: [n.remetente_nome && `De ${n.remetente_nome}`, n.texto].filter(Boolean).join(" · "), icon: "/logo-192.png", tag: `erp-${n.id}`, requireInteraction: nivel === "urgente" || ehClaude(n) }); } catch { /* sem suporte */ }
     }
   }
 
@@ -170,15 +227,22 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     await supabase.rpc("marcar_notificacoes_vistas");
     setTimeout(() => qc.invalidateQueries({ queryKey: ["usuarios_erp", "vistas"] }), 1500);
   }
-  const abrir = (n: Notificacao) => { setPopups((p) => p.filter((x) => x.id !== n.id)); setPainel(false); if (n.link) navigate(n.link); };
-  async function ciente(n: Notificacao, irPara?: boolean) {
+  const irPara = (link: string) => (ehExterno(link) ? window.open(link, "_blank", "noopener") : navigate(link));
+  const abrir = (n: Notificacao) => { setPopups((p) => p.filter((x) => x.id !== n.id)); setPainel(false); if (n.link) irPara(n.link); };
+  async function ciente(n: Notificacao, abrirLink?: boolean) {
     setCentro((c) => c.filter((x) => x.id !== n.id));
     if (n.exige_ciencia) {
       const { error } = await supabase.rpc("ciente_aviso", { p_id: n.id });
       if (error) notifyError(error);
       qc.invalidateQueries({ queryKey: ["notificacoes_ciencia"] });
     }
-    if (irPara && n.link) { setPainel(false); navigate(n.link); }
+    if (abrirLink && n.link) { setPainel(false); irPara(n.link); }
+  }
+  function alternarVoz() {
+    const nova = !voz;
+    try { localStorage.setItem(CHAVE_VOZ, nova ? "on" : "off"); } catch { /* sem armazenamento */ }
+    setVoz(nova);
+    if (nova) falar("Voz dos avisos dos chats ligada.");
   }
   function alternarSom() {
     const novo = !som;
@@ -221,14 +285,17 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
 
       {/* Importante e urgente: no meio da tela, até clicar em Ciente */}
       {atual && (() => {
-        const nv = NIVEL[atual.urgencia ?? "importante"];
+        const claude = ehClaude(atual);
+        const nv = claude
+          ? { rotulo: "Chat do Claude", icon: Bot, faixa: "from-[#8b5cf6] to-[#6d28d9]" }
+          : NIVEL[atual.urgencia ?? "importante"];
         const urgente = atual.urgencia === "urgente";
         return (
           <div className="fixed inset-0 z-[70] grid place-items-center bg-ink/60 p-4 backdrop-blur-[3px]" role="alertdialog" aria-modal="true" aria-labelledby="aviso-titulo" aria-describedby="aviso-texto">
             <div className="relative w-full max-w-md">
             {/* no urgente pisca só a borda vermelha em volta; o cartão fica sempre nítido */}
             {urgente && <span className="pointer-events-none absolute -inset-2 rounded-[30px] ring-4 ring-red-500/70 motion-safe:animate-pulse" aria-hidden />}
-            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-2xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : "ring-2 ring-amber-400/60"}`}>
+            <div className={`relative w-full animate-[entrar_.3s_ease-out] overflow-hidden rounded-2xl bg-surface shadow-pop ${urgente ? "ring-2 ring-red-500" : claude ? "ring-2 ring-violet-400/70" : "ring-2 ring-amber-400/60"}`}>
               <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
@@ -240,11 +307,13 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
               <div className="space-y-4 p-5">
                 {atual.texto && <p id="aviso-texto" className="whitespace-pre-wrap text-sm leading-relaxed text-fg [overflow-wrap:anywhere]">{atual.texto}</p>}
                 <div className="flex flex-wrap justify-end gap-2">
-                  {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>Abrir</Button>}
+                  {claude && <Button variant="secondary" onClick={() => falarAviso(atual)}><Speaker size={16} /> Ouvir de novo</Button>}
+                  {atual.link && <Button variant="secondary" onClick={() => ciente(atual, true)}>{claude ? "Abrir o chat" : "Abrir"}</Button>}
                   {respondivel(atual) && <Button variant="secondary" onClick={() => { ciente(atual); setResponderA(atual); }}><Reply size={16} /> Responder</Button>}
                   <Button onClick={() => ciente(atual)} autoFocus><Check size={16} /> Ciente</Button>
                 </div>
                 {urgente && <p className="text-center text-xs text-slate-500">O som repete até você clicar em Ciente.</p>}
+                {claude && <p className="text-center text-xs text-slate-500">O som repete a cada 30 segundos até você clicar em Ciente.</p>}
               </div>
             </div>
             </div>
@@ -263,6 +332,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                 <button type="button" onClick={alternarSom} title={som ? "Som dos avisos ligado (o urgente toca sempre)" : "Som dos avisos desligado (o urgente toca sempre)"}
                   aria-label={som ? "Desligar o som dos avisos" : "Ligar o som dos avisos"} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
                   {som ? <Volume2 size={17} /> : <VolumeX size={17} />}
+                </button>
+                <button type="button" onClick={alternarVoz} title={voz ? "Voz dos avisos dos chats ligada" : "Voz dos avisos dos chats desligada"}
+                  aria-label={voz ? "Desligar a voz dos avisos dos chats" : "Ligar a voz dos avisos dos chats"} aria-pressed={voz}
+                  className={`rounded-lg p-1.5 hover:bg-slate-100 ${voz ? "text-violet-600" : "text-slate-400"}`}>
+                  <Speaker size={17} />
                 </button>
                 <button type="button" aria-label="Fechar" onClick={() => setPainel(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
               </span>
