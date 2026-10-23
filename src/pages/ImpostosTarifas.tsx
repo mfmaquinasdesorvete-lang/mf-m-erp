@@ -4,11 +4,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Car, CreditCard, Download, Landmark, MapPin, Receipt, ShoppingCart, User, Users, type LucideIcon } from "lucide-react";
-import { Button, CampoMes, Card, nomeMes, PageHeader, Table, Tabs } from "@/components/ui";
+import { Button, Card, nomeMes, PageHeader, Table, Tabs } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { useAbaUrl } from "@/lib/abaUrl";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { baixarPlanilha } from "@/lib/exportar";
 import { ESFERAS } from "@/lib/extratoTipos";
 import { ABAS_GASTO, linhasGasto, porMesGasto, porTipoGasto, raioXInfinitePay, SEM_GRUPO, type RecebidaGasto, totalPorGrupo, type AbaGasto, type ContaGasto, type LancGasto } from "@/lib/impostosTarifas";
@@ -46,7 +48,9 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
   const { data: funcionariosTodos = [] } = useRows<Funcionario>("funcionarios", { select: "id, nome, apelido, ativo", order: "nome", ascending: true, key: ["nomes"] });
   const funcionarios = funcionariosTodos.filter((f) => f.ativo !== false);
 
-  const [mes, setMes] = useState("");
+  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  const mes = mesDoPeriodo(faixa);
   const [conta, setConta] = useState("");
   const [grupo, setGrupo] = useState("");
   const [busca, setBusca] = useState("");
@@ -64,7 +68,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
 
   const casa = (texto: string) => !busca.trim() || sem(texto).includes(sem(busca.trim()));
   const doFiltro = todas.filter((l) => (!conta || l.conta_bancaria_id === conta) && (casa(l.descricao) || casa(l.grupo)));
-  const doPeriodo = doFiltro.filter((l) => !mes || l.data.startsWith(mes));
+  const doPeriodo = doFiltro.filter((l) => noPeriodo(l.data, faixa));
   const lista = doPeriodo.filter((l) => !grupo || l.grupo === grupo);
   const total = lista.reduce((s, l) => s + l.valor, 0);
   const porGrupo = totalPorGrupo(doPeriodo);
@@ -84,14 +88,14 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
     return [...fixos, ...extras];
   }, [aba, funcionarios, doPeriodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const raioX = useMemo(() => raioXInfinitePay(lancamentos.filter((l) => idsContas.has(l.conta_bancaria_id) && (!mes || l.data.startsWith(mes))), recebidas),
-    [lancamentos, idsContas, recebidas, mes]);
+  const raioX = useMemo(() => raioXInfinitePay(lancamentos.filter((l) => idsContas.has(l.conta_bancaria_id) && noPeriodo(l.data, faixa)), recebidas),
+    [lancamentos, idsContas, recebidas, faixa]);
 
   const def = ABAS_GASTO.find((a) => a.id === aba)!;
-  const periodo = mes ? nomeMes(mes) : "todo o extrato importado";
+  const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todo o extrato importado";
   const contasComExtrato = contas.filter((c) => lancamentos.some((l) => l.conta_bancaria_id === c.id)).map((c) => c.nome);
 
-  const exportar = () => baixarPlanilha(`${aba}${mes ? `-${mes}` : ""}`, [{
+  const exportar = () => baixarPlanilha(`${aba}${mes ? `-${mes}` : faixa.de ? `-${faixa.de}` : ""}`, [{
     nome: def.rotulo,
     linhas: lista.map((l) => ({
       Data: dataBR(l.data), [aba === "impostos" ? "Esfera" : aba === "tarifas" ? "Quem cobrou" : "Funcionário"]: l.grupo,
@@ -108,15 +112,14 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
         <Tabs value={aba} onChange={trocarAba} options={ABAS_GASTO.map((a) => ({ value: a.id, label: a.rotulo }))} />
       </>}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
-        <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)} aria-label="Conta">
-          <option value="">Todas as contas</option>
-          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
-        <input className="input w-full sm:w-64" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar na descrição" aria-label="Buscar" />
-        <Button type="button" variant="secondary" onClick={exportar} disabled={!lista.length}><Download size={16} aria-hidden /> Exportar</Button>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar na descrição" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Conta</span>
+          <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)}>
+            <option value="">Todas as contas</option>
+            {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select></label>}
+        nFiltros={(conta ? 1 : 0) + (grupo ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        direita={<Button type="button" variant="secondary" onClick={exportar} disabled={!lista.length}><Download size={16} aria-hidden /> Exportar</Button>} />
 
       {aba === "funcionarios" && !funcionarios.length && (
         <Card className="mb-4 border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -157,7 +160,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
 
       {aba === "tarifas" && raioX.n > 0 && (
         <Card className="mb-4 border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-bold">Raio-X da InfinitePay{mes ? ` · ${nomeMes(mes)}` : ""}</p>
+          <p className="font-bold">Raio-X da InfinitePay{temPeriodo(faixa) ? ` · ${periodo}` : ""}</p>
           <p>
             Das vendas no cartão e no link, a InfinitePay ficou com <b>{String(raioX.pct).replace(".", ",")}%</b>: {brl(raioX.taxa)} de {brl(raioX.venda)} em {raioX.n} {pl(raioX.n, "venda", "vendas")} (taxa
             da maquininha + juros do parcelamento + antecipação). É a maior tarifa da MF: vale cobrar a diferença no preço do cartão e do link
@@ -202,7 +205,7 @@ export default function ImpostosTarifas({ aba: abaFixa }: { aba?: AbaGasto } = {
             <ul className="space-y-1.5">
               {porMes.map(([m, x]) => (
                 <li key={m}>
-                  <button type="button" onClick={() => setMes(mes === m ? "" : m)} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(m)}</span><span className="num whitespace-nowrap">{brl(x.total)} · {x.n} {pl(x.n, "pagamento", "pagamentos")}</span></div>
                     <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }} /></div>
                   </button>

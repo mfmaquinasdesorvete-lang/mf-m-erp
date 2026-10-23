@@ -42,6 +42,17 @@ export function noPeriodoOuPendente(data: string | null | undefined, p: Periodo,
 
 const br = (d: string) => d.split("-").reverse().join("/");
 
+/** O mês inteiro "AAAA-MM" como período (do dia 1º ao último dia). */
+export function periodoDoMes(ym: string): Periodo {
+  const [y, m] = ym.split("-").map(Number);
+  return { de: `${ym}-01`, ate: new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10) };
+}
+
+/** Mês "AAAA-MM" quando o período é um mês só (começa no dia 1º e termina no mesmo mês, como "Este mês"); senão "". */
+export function mesDoPeriodo(p: Periodo): string {
+  return p.de.endsWith("-01") && p.ate && p.ate.slice(0, 7) === p.de.slice(0, 7) ? p.de.slice(0, 7) : "";
+}
+
 /** "Este mês", "01/09/2026 a 30/09/2026", "Desde 01/09/2026", "Até 30/09/2026" ou "Qualquer data". */
 export function rotuloPeriodo(p: Periodo, hoje: string): string {
   if (!temPeriodo(p)) return "Qualquer data";

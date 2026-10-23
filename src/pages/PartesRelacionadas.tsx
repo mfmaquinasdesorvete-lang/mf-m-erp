@@ -4,11 +4,13 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeftRight, Building2, Download, Pencil, Plus, User, Users } from "lucide-react";
-import { Button, CampoMes, Card, Field, Modal, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { Button, Card, Field, Modal, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { limpar, useRows, useSave } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import { semRepetidos, transferenciasInternas } from "@/lib/extratoTipos";
@@ -32,7 +34,9 @@ export default function PartesRelacionadas() {
   const { data: unidades = [] } = useRows<Unidade>("unidades", { select: "id, razao_social, cnpj", order: "nome", ascending: true, key: ["partes"] });
   const { data: partes = [], error: erroPartes } = useRows<Parte>("partes_relacionadas", { order: "nome", ascending: true });
 
-  const [mes, setMes] = useState("");
+  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  const mes = mesDoPeriodo(faixa);
   const [grupo, setGrupo] = useState(""); // "" = todos, ENTRE ou o id da parte
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Partial<Parte> | null>(null);
@@ -60,7 +64,7 @@ export default function PartesRelacionadas() {
   }, [lancamentos, contas, unidades, partes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const casa = (l: Linha) => !busca.trim() || sem(l.descricao).includes(sem(busca.trim())) || sem(nomeConta(l.conta_bancaria_id)).includes(sem(busca.trim()));
-  const doPeriodo = todas.filter((l) => (!mes || l.data.startsWith(mes)) && casa(l));
+  const doPeriodo = todas.filter((l) => noPeriodo(l.data, faixa) && casa(l));
   const filtradas = doPeriodo.filter((l) => !grupo || chave(l.achado) === grupo);
 
   const grupos = useMemo(() => {
@@ -83,10 +87,10 @@ export default function PartesRelacionadas() {
   }, [todas, grupo, busca]); // eslint-disable-line react-hooks/exhaustive-deps
   const maiorMes = Math.max(1, ...porMes.map(([, x]) => Math.max(x.entrou, x.saiu)));
 
-  const periodo = mes ? nomeMes(mes) : "todo o extrato importado";
+  const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todo o extrato importado";
   const t = totais(filtradas);
 
-  const exportar = () => baixarPlanilha(`partes-relacionadas${mes ? `-${mes}` : ""}`, [{
+  const exportar = () => baixarPlanilha(`partes-relacionadas${mes ? `-${mes}` : faixa.de ? `-${faixa.de}` : ""}`, [{
     nome: "Lançamentos",
     linhas: filtradas.map((l) => ({
       Data: dataBR(l.data), Conta: nomeConta(l.conta_bancaria_id), Quem: nomeGrupo(l.achado), "Como identificou": COMO[l.achado.como],
@@ -99,11 +103,9 @@ export default function PartesRelacionadas() {
       <PageHeader title="Entre contas, sócios e empresas ligadas"
         subtitle="O dinheiro que vai e vem entre as contas da MF, os sócios e as empresas ligadas, separado do resto (vem dos extratos dos bancos)" />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
-        <input className="input w-full sm:w-64" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar na descrição ou conta" aria-label="Buscar" />
-        <Button type="button" variant="secondary" onClick={exportar} disabled={!filtradas.length}><Download size={16} aria-hidden /> Exportar</Button>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar na descrição ou conta" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
+        nFiltros={grupo ? 1 : 0} onLimpar={() => { setBusca(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        direita={<Button type="button" variant="secondary" onClick={exportar} disabled={!filtradas.length}><Download size={16} aria-hidden /> Exportar</Button>} />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {grupos.map((g) => {
@@ -132,7 +134,7 @@ export default function PartesRelacionadas() {
 
       {grupo === ENTRE && Math.abs(t.saldo) > 0.01 && (
         <Card className="mb-4 border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Entre as contas da MF o que sai de uma entra na outra: a diferença de {brl(t.saldo)} {periodo === "todo o extrato importado" ? "" : `em ${periodo} `}
+          Entre as contas da MF o que sai de uma entra na outra: a diferença de {brl(t.saldo)} {periodo === "todo o extrato importado" ? "" : `(${periodo}) `}
           costuma ser extrato que falta importar (a outra ponta está num banco sem extrato no ERP) ou Pix para uma conta da MF que não está cadastrada.
         </Card>
       )}
@@ -144,7 +146,7 @@ export default function PartesRelacionadas() {
             <ul className="space-y-2">
               {porMes.map(([m, x]) => (
                 <li key={m}>
-                  <button type="button" onClick={() => setMes(mes === m ? "" : m)} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex flex-wrap justify-between gap-x-3"><span className="font-semibold text-fg">{nomeMes(m)}</span>
                       <span className="num whitespace-nowrap"><span className="text-emerald-700">+{brl(x.entrou)}</span> · <span className="text-red-600">−{brl(x.saiu)}</span></span></div>
                     <div className="mt-1 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-emerald-500" style={{ width: `${Math.max(1, (x.entrou / maiorMes) * 100)}%` }} /></div>

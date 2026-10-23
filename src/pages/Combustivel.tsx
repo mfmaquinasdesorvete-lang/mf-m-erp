@@ -4,10 +4,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Fuel, Receipt, Store, TrendingUp } from "lucide-react";
-import { CampoMes, Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { ehCombustivel, ehPosto, estabelecimento, semRepetidos, tipoLancamento } from "@/lib/extratoTipos";
 
 type Conta = { id: string; nome: string; unidade_id: string; ativo: boolean };
@@ -27,7 +29,9 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
   const { data: notas = [] } = useRows<NotaPosto>("nfe_recebidas", { select: "id, emitente_nome, emitente_cnpj, valor_total, data_emissao, unidade_id", order: "data_emissao", key: ["postos"] });
   const { data: fornecedores = [] } = useRows<Fornecedor>("fornecedores", { select: "id, nome, nome_fantasia, cnpj, municipio, uf, receita", order: "nome", ascending: true, key: ["postos"] });
 
-  const [mes, setMes] = useState("");
+  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  const mes = mesDoPeriodo(faixa);
   const [conta, setConta] = useState("");
   const [busca, setBusca] = useState("");
 
@@ -40,11 +44,11 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
     .filter((l) => idsContas.has(l.conta_bancaria_id) && (!conta || l.conta_bancaria_id === conta))
     .filter((l) => Number(l.valor) < 0 && tipoLancamento(l.descricao, Number(l.valor)) === "combustivel")
     .filter((l) => casa(l.descricao))), [lancamentos, contas, conta, busca]); // eslint-disable-line react-hooks/exhaustive-deps
-  const doPeriodo = todos.filter((l) => !mes || l.data.startsWith(mes));
+  const doPeriodo = todos.filter((l) => noPeriodo(l.data, faixa));
   const total = -doPeriodo.reduce((s, l) => s + Number(l.valor), 0);
 
   const notasPostos = notas.filter((n) => ehCombustivel(n.emitente_nome) && (!n.unidade_id || contas.some((c) => c.unidade_id === n.unidade_id)) && casa(n.emitente_nome));
-  const notasPeriodo = notasPostos.filter((n) => !mes || (n.data_emissao ?? "").startsWith(mes));
+  const notasPeriodo = notasPostos.filter((n) => noPeriodo(n.data_emissao, faixa));
   const totalNotas = notasPeriodo.reduce((s, n) => s + Number(n.valor_total ?? 0), 0);
   const postosCadastro = fornecedores.filter((f) => ehPosto(f) && (casa(f.nome) || casa(f.nome_fantasia)));
 
@@ -66,19 +70,18 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
     return [...m].sort((a, b) => b[1].total - a[1].total);
   }, [doPeriodo]);
 
-  const periodo = mes ? nomeMes(mes) : "todo o extrato importado";
+  const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todo o extrato importado";
   return (
     <div>
       {!embutido && <PageHeader title="Combustível" subtitle="Gastos em postos separados do resto: abastecimentos pagos (extratos dos bancos e cartões), notas dos postos e postos no cadastro" />}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
-        <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)} aria-label="Conta">
-          <option value="">Todas as contas e cartões</option>
-          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
-        <input className="input w-full sm:w-64" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar posto" aria-label="Buscar posto" />
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar posto" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Conta ou cartão</span>
+          <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)}>
+            <option value="">Todas as contas e cartões</option>
+            {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select></label>}
+        nFiltros={conta ? 1 : 0} onLimpar={() => { setBusca(""); setConta(""); setFaixa(SEM_PERIODO); }} />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={`Gasto com combustível · ${periodo}`} valor={brl(total)} icon={Fuel} tom="atencao" />
@@ -101,7 +104,7 @@ export default function Combustivel({ embutido }: { embutido?: boolean } = {}) {
             <ul className="space-y-1.5">
               {porMes.map(([m, x]) => (
                 <li key={m}>
-                  <button type="button" onClick={() => setMes(mes === m ? "" : m)} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === m ? SEM_PERIODO : periodoDoMes(m))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === m ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(m)}</span><span className="num whitespace-nowrap">{brl(x.total)} · {x.n} {pl(x.n, "vez", "vezes")}</span></div>
                     <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }} /></div>
                   </button>

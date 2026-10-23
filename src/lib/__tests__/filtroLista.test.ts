@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diaLocal, noPeriodo, rotuloPeriodo, SEM_PERIODO, somar } from "../filtroLista";
+import { diaLocal, mesDoPeriodo, noPeriodo, periodoDoMes, rotuloPeriodo, SEM_PERIODO, somar } from "../filtroLista";
 
 describe("período das listas", () => {
   it("usa o dia de Brasília para data e hora", () => {
@@ -51,5 +51,20 @@ describe("listas abrem na semana", () => {
     expect(noPeriodoOuPendente("2026-10-10", p, false)).toBe(false);
     expect(noPeriodoOuPendente("2026-11-10", p, true)).toBe(false);
     expect(noPeriodoOuPendente("2026-10-21", p, false)).toBe(true);
+  });
+});
+
+describe("período de um mês", () => {
+  it("periodoDoMes vai do dia 1º ao último dia", () => {
+    expect(periodoDoMes("2026-02")).toEqual({ de: "2026-02-01", ate: "2026-02-28" });
+    expect(periodoDoMes("2024-02")).toEqual({ de: "2024-02-01", ate: "2024-02-29" });
+    expect(periodoDoMes("2026-12")).toEqual({ de: "2026-12-01", ate: "2026-12-31" });
+  });
+  it("mesDoPeriodo reconhece o mês inteiro e o \"Este mês\" até hoje", () => {
+    expect(mesDoPeriodo(periodoDoMes("2026-09"))).toBe("2026-09");
+    expect(mesDoPeriodo({ de: "2026-10-01", ate: "2026-10-23" })).toBe("2026-10");
+    expect(mesDoPeriodo({ de: "2026-10-02", ate: "2026-10-23" })).toBe("");
+    expect(mesDoPeriodo({ de: "2026-09-01", ate: "2026-10-23" })).toBe("");
+    expect(mesDoPeriodo({ de: "", ate: "" })).toBe("");
   });
 });

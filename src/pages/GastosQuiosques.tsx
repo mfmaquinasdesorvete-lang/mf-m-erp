@@ -5,12 +5,14 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Hammer, PaintBucket, Receipt, Store, Wallet } from "lucide-react";
-import { Button, CampoMes, Card, nomeMes, Stat, Table } from "@/components/ui";
+import { Button, Card, nomeMes, Stat, Table } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useMarcadores } from "@/components/nfe/Marcadores";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { notifyError } from "@/lib/notify";
 import { baixarPlanilha } from "@/lib/exportar";
 import { estabelecimento, semRepetidos } from "@/lib/extratoTipos";
@@ -42,7 +44,9 @@ export default function GastosQuiosques() {
   const contas = filtrar(contasTodas);
   const { data: lancamentos = [] } = useRows<Lanc>("extrato_lancamentos", { order: "data", ascending: false });
 
-  const [mes, setMes] = useState("");
+  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  const mes = mesDoPeriodo(faixa);
   const [grupo, setGrupo] = useState<GrupoQuiosque | "">("");
   const [busca, setBusca] = useState("");
 
@@ -91,7 +95,7 @@ export default function GastosQuiosques() {
   ), [pagamentos, notas]);
   const notaPorId = new Map(notas.map((n) => [n.id, n]));
 
-  const doMes = (d: string | null | undefined) => !mes || String(d ?? "").startsWith(mes);
+  const doMes = (d: string | null | undefined) => noPeriodo(d, faixa);
   const casa = (...t: unknown[]) => !busca.trim() || t.some((x) => sem(x).includes(sem(busca.trim())));
   const textoItens = (id: string) => (itensDe.get(id) ?? []).map((i) => i.descricao ?? "").join(" ");
   const notasVis = notas.filter((n) => doMes(n.data_emissao) && (!grupo || somaGrupos(n.id)[grupo] > 0) && casa(n.emitente_nome, n.numero, textoItens(n.id)));
@@ -106,7 +110,7 @@ export default function GastosQuiosques() {
   const totalPags = -pagsVis.reduce((s, p) => s + Number(p.valor), 0);
   const semNota = pagsVis.filter((p) => !ligacao.has(p.id));
   const maiorGrupo = Math.max(1, ...porGrupo.map((g) => g.total));
-  const periodo = mes ? nomeMes(mes) : "todas as datas";
+  const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todas as datas";
 
   // mês a mês (itens das notas), em segmentos por grupo
   const porMes = useMemo(() => {
@@ -139,7 +143,7 @@ export default function GastosQuiosques() {
   const estado = (ids: string[], titulo: string) => ({ aba: "recebidas", destaque: { ids, titulo, origem: "Gastos com quiosques" } });
 
   function exportar() {
-    baixarPlanilha(`gastos-quiosques${mes ? `-${mes}` : ""}`, [
+    baixarPlanilha(`gastos-quiosques${mes ? `-${mes}` : faixa.de ? `-${faixa.de}` : ""}`, [
       { nome: "Notas", linhas: notasVis.map((n) => { const s = somaGrupos(n.id); return {
         Data: dataBR(n.data_emissao), NF: n.numero, Loja: n.emitente_nome ?? "", [NOME_GRUPO.mdf]: s.mdf, [NOME_GRUPO.tinta]: s.tinta, [NOME_GRUPO.ferragens]: s.ferragens,
         "Frete e impostos": Number(n.valor_total ?? 0) - s.mdf - s.tinta - s.ferragens, "Valor da nota": Number(n.valor_total ?? 0) }; }) },
@@ -161,11 +165,9 @@ export default function GastosQuiosques() {
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
-        <input className="input w-full sm:w-72" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar loja, item ou nº da nota" aria-label="Buscar gasto com quiosque" />
-        <Button variant="secondary" onClick={exportar} disabled={!notasVis.length && !pagsVis.length} className="sm:ml-auto"><Download size={16} /> Exportar</Button>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar loja, item ou nº da nota" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
+        nFiltros={grupo ? 1 : 0} onLimpar={() => { setBusca(""); setGrupo(""); setFaixa(SEM_PERIODO); }}
+        direita={<Button variant="secondary" onClick={exportar} disabled={!notasVis.length && !pagsVis.length}><Download size={16} /> Exportar</Button>} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Grupo de material">
         <button type="button" aria-pressed={!grupo} onClick={() => setGrupo("")}
           className={`rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${!grupo ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>Tudo</button>
@@ -214,7 +216,7 @@ export default function GastosQuiosques() {
             <ul className="space-y-1.5">
               {porMes.map((x) => (
                 <li key={x.mes}>
-                  <button type="button" onClick={() => setMes(mes === x.mes ? "" : x.mes)} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(x.mes)}</span><span className="num whitespace-nowrap">{brl(x.total)}</span></div>
                     <div className="mt-1 flex h-2.5 overflow-hidden rounded-full bg-slate-100" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }}>
                       {GRUPOS_QUIOSQUE.filter((g) => x.partes[g.id] > 0).map((g) => <div key={g.id} className={g.barra} style={{ width: `${(x.partes[g.id] / x.total) * 100}%` }} title={`${g.nome}: ${brl(x.partes[g.id])}`} />)}

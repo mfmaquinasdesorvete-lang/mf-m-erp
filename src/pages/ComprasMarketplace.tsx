@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Package, Receipt, ShoppingBag, Store, Wallet } from "lucide-react";
-import { CampoMes, Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { Card, nomeMes, PageHeader, Stat, Table } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { mesDoPeriodo, noPeriodo, periodoDoAtalho, periodoDoMes, rotuloPeriodo, SEM_PERIODO, temPeriodo, type Periodo } from "@/lib/filtroLista";
 import { useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { useUnidade } from "@/lib/unidade";
-import { brl, dataBR, pl } from "@/lib/format";
+import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { estabelecimento, semRepetidos } from "@/lib/extratoTipos";
 import { useComprasMarketplace } from "@/lib/comprasMarketplace";
 import { casarPagamentos, formatarCnpj, marketplaceDaNota, marketplaceDoExtrato, MARKETPLACES, NOME_MARKETPLACE, type Marketplace } from "@/lib/marketplaces";
@@ -51,7 +53,9 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
     },
   });
 
-  const [mes, setMes] = useState("");
+  // abre no mês atual; tocar num mês do "Mês a mês" escolhe o mês inteiro
+  const [faixa, setFaixa] = useState<Periodo>(() => periodoDoAtalho("mes", hoje()));
+  const mes = mesDoPeriodo(faixa);
   const [qual, setQual] = useState<Marketplace | "">("");
   const [conta, setConta] = useState("");
   const [busca, setBusca] = useState("");
@@ -90,7 +94,7 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
     return n ? { ...p, marketplace: n.marketplace } : p;
   });
 
-  const doMes = (d: string | null | undefined) => !mes || String(d ?? "").startsWith(mes);
+  const doMes = (d: string | null | undefined) => noPeriodo(d, faixa);
   const notasVis = notas.filter((n) => doMes(n.data_emissao) && (!qual || n.marketplace === qual) && casa(n.emitente_nome, n.loja_usuario, n.pedido, n.numero, textoItens(n.id)));
   const pagsVis = pagamentos.filter((p) => doMes(p.data) && (!qual || p.marketplace === qual) && casa(p.descricao));
   const totalNotas = notasVis.reduce((s, n) => s + Number(n.valor_total ?? 0), 0);
@@ -135,21 +139,20 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
   }, [notasVis]);
 
   const outrosCnpjs = [...new Set(notas.filter((n) => n.marketplace === "outro" && n.intermediador).map((n) => formatarCnpj(n.intermediador)))];
-  const periodo = mes ? nomeMes(mes) : "todas as datas";
+  const periodo = mes ? nomeMes(mes) : temPeriodo(faixa) ? rotuloPeriodo(faixa, hoje()).toLowerCase() : "todas as datas";
   const estado = (ids: string[], titulo: string) => ({ aba: "recebidas", destaque: { ids, titulo, origem: "Compras em marketplaces" } });
 
   return (
     <div>
       {!embutido && <PageHeader title="Compras em marketplaces" subtitle="Mercado Livre, TikTok Shop, Shopee e Amazon separados do resto: notas das lojas (o marketplace vem na nota) e pagamentos nos extratos" />}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">Mês <CampoMes value={mes} onChange={setMes} vazio="Todos os meses" rotulo="Mês" /></div>
-        <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)} aria-label="Conta dos pagamentos">
-          <option value="">Pagamentos de todas as contas</option>
-          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
-        <input className="input w-full sm:w-72" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar loja, produto, pedido ou nº da nota" aria-label="Buscar compra" />
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar loja, produto, pedido ou nº da nota" periodo={faixa} onPeriodo={setFaixa} rotuloData="Data"
+        filtros={<label className="text-sm"><span className="mb-1 block text-xs font-semibold text-slate-600">Conta dos pagamentos</span>
+          <select className="input w-auto" value={conta} onChange={(e) => setConta(e.target.value)}>
+            <option value="">Pagamentos de todas as contas</option>
+            {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select></label>}
+        nFiltros={(conta ? 1 : 0) + (qual ? 1 : 0)} onLimpar={() => { setBusca(""); setConta(""); setQual(""); setFaixa(SEM_PERIODO); }} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Marketplace">
         <button type="button" aria-pressed={!qual} onClick={() => setQual("")}
           className={`rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${!qual ? "bg-brand text-white ring-brand" : "bg-surface text-slate-700 ring-slate-200 hover:ring-slate-300"}`}>Todos</button>
@@ -208,7 +211,7 @@ export default function ComprasMarketplace({ embutido }: { embutido?: boolean } 
             <ul className="space-y-1.5">
               {porMes.map((x) => (
                 <li key={x.mes}>
-                  <button type="button" onClick={() => setMes(mes === x.mes ? "" : x.mes)} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
+                  <button type="button" onClick={() => setFaixa(mes === x.mes ? SEM_PERIODO : periodoDoMes(x.mes))} className={`w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-slate-50 ${mes === x.mes ? "ring-2 ring-brand/40" : ""}`}>
                     <div className="flex justify-between gap-2"><span className="font-semibold text-fg">{nomeMes(x.mes)}</span><span className="num whitespace-nowrap">{brl(x.total)}</span></div>
                     <div className="mt-1 flex h-2.5 overflow-hidden rounded-full bg-slate-100" style={{ width: `${Math.max(2, (x.total / maiorMes) * 100)}%` }}>
                       {x.partes.map(([mk, v]) => <div key={mk} className={ESTILO[mk].barra} style={{ width: `${(v / x.total) * 100}%` }} title={`${NOME_MARKETPLACE[mk]}: ${brl(v)}`} />)}
