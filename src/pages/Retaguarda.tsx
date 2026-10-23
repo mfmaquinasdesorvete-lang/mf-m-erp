@@ -1,7 +1,7 @@
 // Retaguarda: o que só a conta master (a dona) abre. Os outros administradores tocam a operação inteira, mas não
 // veem a carteira pessoal, a My Frost Sorveterias, os usuários e permissões nem as configurações da empresa.
 import { Link } from "react-router-dom";
-import { BadgeDollarSign, ChevronRight, Database, IceCreamCone, Landmark, Lock, Settings, ShieldAlert, Upload, UserCog, Wallet, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, ChevronRight, Database, FileText, IceCreamCone, Landmark, Lock, Settings, ShieldAlert, Upload, UserCog, Wallet, type LucideIcon } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { VendasDoAno } from "@/components/gerencial/PainelVendasAno";
 
@@ -13,6 +13,7 @@ export const ATALHOS_RETAGUARDA: { grupo: string; itens: Atalho[] }[] = [
     itens: [
       { to: "/pessoal", titulo: "Painel pessoal", texto: "Suas contas, cartões, gastos e empresas, separados da MF", icone: Wallet, cor: "from-[#f59e0b] to-[#b45309]" },
       { to: "/retaguarda/entradas", titulo: "Entradas acima de R$ 5 mil", texto: "Dinheiro grande que entrou nas contas da MF e ainda não tem dono: escreva de quem é e o que foi", icone: BadgeDollarSign, cor: "from-[#22c55e] to-[#15803d]" },
+      { to: "/retaguarda/notas-my-frost", titulo: "Notas da My Frost para o contador", texto: "Empresa anterior: notas por ano e tipo (vendas, remessas, devoluções e canceladas) e a planilha para o contador", icone: FileText, cor: "from-[#0ea5e9] to-[#0369a1]" },
       { to: "/licenciados", titulo: "My Frost Sorveterias", texto: "Lojas licenciadas, máquinas, contratos e pagamentos", icone: IceCreamCone, cor: "from-[#ec4899] to-[#be185d]" },
     ],
   },

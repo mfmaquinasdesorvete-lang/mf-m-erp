@@ -83,6 +83,7 @@ const Sobre = lazy(() => import("@/pages/Sobre"));
 const Anotacoes = lazy(() => import("@/pages/Anotacoes"));
 const Pessoal = lazy(() => import("@/pages/Pessoal"));
 const EntradasGrandes = lazy(() => import("@/pages/EntradasGrandes"));
+const NotasMyFrostContador = lazy(() => import("@/pages/NotasMyFrostContador"));
 const Licenciados = lazy(() => import("@/pages/Licenciados"));
 const Retaguarda = lazy(() => import("@/pages/Retaguarda"));
 const TudoDoCliente = lazy(() => import("@/pages/TudoDoCliente"));
@@ -378,6 +379,7 @@ function RotasERP() {
         {master && <Route path="retaguarda" element={<Retaguarda />} />}
         {master && <Route path="pessoal" element={<Pessoal />} />}
         {master && <Route path="retaguarda/entradas" element={<EntradasGrandes />} />}
+        {master && <Route path="retaguarda/notas-my-frost" element={<NotasMyFrostContador />} />}
         {master && <Route path="licenciados" element={<Licenciados />} />}
         {master && <Route path="painel/licencas" element={<PainelLicencas />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
