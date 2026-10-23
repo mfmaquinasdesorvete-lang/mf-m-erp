@@ -1,10 +1,15 @@
 import { ehErroDeVersao, MSG_VERSAO } from "./versao";
 
-export type Aviso = { id: number; texto: string; tipo: "ok" | "erro" };
+/** Botão dentro do aviso para recuperar ou repetir (ex.: "Desfazer", "Tentar de novo"). */
+export type AcaoAviso = { rotulo: string; fazer: () => void };
+export type Aviso = { id: number; texto: string; tipo: "ok" | "erro"; acao?: AcaoAviso };
 
-export function notify(texto: string, tipo: Aviso["tipo"] = "ok") {
-  window.dispatchEvent(new CustomEvent<Aviso>("erp-aviso", { detail: { id: Date.now() + Math.random(), texto, tipo } }));
+export function notify(texto: string, tipo: Aviso["tipo"] = "ok", acao?: AcaoAviso) {
+  window.dispatchEvent(new CustomEvent<Aviso>("erp-aviso", { detail: { id: Date.now() + Math.random(), texto, tipo, acao } }));
 }
+
+/** Aviso de que deu certo com o botão "Desfazer" (fica mais tempo na tela para dar tempo de voltar atrás). */
+export const notifyDesfazer = (texto: string, desfazer: () => void) => notify(texto, "ok", { rotulo: "Desfazer", fazer: desfazer });
 
 const ultimoAviso = new Map<string, number>();
 
@@ -29,11 +34,14 @@ export function notifyLeitura(e: unknown) {
   notify(texto, "erro");
 }
 
-export const notifyError = (e: unknown) => {
+export const notifyError = (e: unknown, tentarDeNovo?: () => void) => {
   // arquivo de uma versão que já saiu do servidor (aba aberta antes da atualização)
   if (ehErroDeVersao(e)) {
     window.dispatchEvent(new Event("erp-versao-nova"));
     return notify(MSG_VERSAO, "erro");
   }
-  notify(e instanceof Error ? e.message : (e as any)?.message ?? String(e), "erro");
+  const texto = ehErroDeRede(e)
+    ? "Sem conexão com o servidor: nada foi perdido do que está na tela. Confira a internet e tente de novo."
+    : e instanceof Error ? e.message : (e as any)?.message ?? String(e);
+  notify(texto, "erro", tentarDeNovo && { rotulo: "Tentar de novo", fazer: tentarDeNovo });
 };

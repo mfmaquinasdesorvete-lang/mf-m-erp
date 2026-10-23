@@ -173,6 +173,8 @@ h1, h2, h3 { text-wrap: balance; }
   .chip { @apply inline-flex shrink-0 items-center gap-1.5 rounded-chip border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60; }
   .chip-ativo { @apply border-brand bg-brand text-brand-fg; }
   .chip-neutro { @apply border-slate-200 bg-surface text-slate-600 hover:border-slate-300 hover:text-fg; }
+  /* botão sobre fundo escuro ou colorido (avisos, painéis escuros, apps do celular): vidro branco */
+  .botao-claro { @apply inline-flex shrink-0 items-center justify-center gap-1.5 rounded-botao bg-white/15 font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-50; }
   /* linha de lista que abre algo ao tocar (cliente, conta, item) */
   .linha-clicavel { @apply w-full rounded-botao text-left transition hover:bg-slate-50; }
   /* chips/abas de filtro: no celular uma linha só que rola para o lado (antes quebravam em 3 ou 4 linhas no topo) */
@@ -219,6 +221,10 @@ h1, h2, h3 { text-wrap: balance; }
   font-size: clamp(var(--valor-min, .95rem), var(--valor-cq, 12cqi), var(--valor-max, 1.75rem));
 }
 :focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
+/* campo com erro: borda vermelha quando o Field manda erro (aria-invalid) ou, depois que a pessoa mexeu, quando o
+   navegador acha o valor inválido (obrigatório vazio, e-mail sem @…); antes o erro só aparecia num aviso no canto */
+.input[aria-invalid="true"], .input:user-invalid { border-color: rgb(var(--red-500)); }
+.input[aria-invalid="true"]:focus, .input:user-invalid:focus { --tw-ring-color: rgb(var(--red-500) / 0.2); }
 select option { background: rgb(var(--campo)); color: rgb(var(--fg)); }
 @keyframes entrar { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactElement, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { achatar, celulasDa, ordenarLinhas, sentidoNatural, temInterativo, textoDoNo, valorDaCelula } from "@/lib/ordenarColunas";
 import { useModulo } from "@/lib/modulo";
 
@@ -31,26 +31,49 @@ export const TOM_ACAO: Record<TomAcao, string> = {
 };
 export const CLASSE_BOTAO = "inline-flex min-h-toque items-center justify-center gap-1.5 rounded-botao px-4 py-2 text-sm font-semibold sm:min-h-0 transition disabled:cursor-not-allowed disabled:opacity-50";
 
-/** Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões. */
+/**
+ * Botão padrão do ERP; `tamanho="mini"` é o pequeno das ações dentro de linhas e cartões.
+ * `carregando`: enquanto salva/envia, o botão gira, fica travado (não dá para clicar duas vezes) e avisa o leitor de tela.
+ */
 export function Button({
-  variant = "primary", tom, tamanho, className = "", ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; tom?: TomAcao; tamanho?: "mini" }) {
+  variant = "primary", tom, tamanho, carregando, className = "", disabled, children, ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; tom?: TomAcao; tamanho?: "mini"; carregando?: boolean }) {
   return (
     <button
-      className={`${tamanho === "mini" ? "botao-mini" : CLASSE_BOTAO} ${tom ? TOM_ACAO[tom] : variants[variant]} ${className}`}
+      className={`${tamanho === "mini" ? "botao-mini" : CLASSE_BOTAO} ${tom ? TOM_ACAO[tom] : variants[variant]} ${carregando ? "cursor-wait" : ""} ${className}`}
+      disabled={disabled || carregando} aria-busy={carregando || undefined}
       {...props}
-    />
+    >
+      {carregando && <Loader2 size={tamanho === "mini" ? 13 : 16} className="shrink-0 animate-spin" aria-hidden />}
+      {children}
+    </button>
   );
 }
 
 /** Classe do chip de filtro/escolha: `chip(ativo)` ou `chip(ativo, "bg-… text-…")` para a cor própria quando escolhido. */
 export const chip = (ativo: boolean, corAtiva = "chip-ativo") => `chip ${ativo ? corAtiva : "chip-neutro"}`;
 
-export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
+/**
+ * Campo com o nome em cima. `obrigatorio` marca com * ; `dica` explica o que pôr (antes de errar); `erro` aparece em
+ * vermelho embaixo e o campo fica marcado como inválido para o leitor de tela (o campo de dentro recebe aria-invalid e
+ * aria-describedby sozinho).
+ */
+export function Field({ label, children, className = "", obrigatorio, dica, erro }: {
+  label: string; children: ReactNode; className?: string; obrigatorio?: boolean; dica?: ReactNode; erro?: ReactNode | false | null;
+}) {
+  const id = useId();
+  const descr = [dica && `${id}-dica`, erro && `${id}-erro`].filter(Boolean).join(" ") || undefined;
+  const campo = isValidElement(children) && descr
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, { "aria-describedby": descr, "aria-invalid": erro ? true : undefined })
+    : children;
   return (
     <label className={`block min-w-0 ${className}`}>
-      <span className="mb-1.5 block text-xs font-semibold text-slate-600">{label}</span>
-      {children}
+      <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+        {label}{obrigatorio && <span className="ml-0.5 text-red-600" aria-hidden>*</span>}{obrigatorio && <span className="sr-only"> (obrigatório)</span>}
+      </span>
+      {campo}
+      {dica && !erro && <span id={`${id}-dica`} className="mt-1 block text-xs text-slate-500">{dica}</span>}
+      {erro && <span id={`${id}-erro`} className="mt-1 block text-xs font-semibold text-red-600" role="alert">{erro}</span>}
     </label>
   );
 }
@@ -365,6 +388,9 @@ export function useFecharComEsc(open: boolean, onClose: () => void) {
   }, [open]);
 }
 
+/** O que recebe o foco pelo Tab. */
+const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Modal({
   open, onClose, title, children, wide,
 }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
@@ -378,6 +404,15 @@ export function Modal({
     if (caixa.current && !caixa.current.contains(document.activeElement)) caixa.current.focus({ preventScroll: true });
     return () => { if (antes && document.contains(antes)) antes.focus({ preventScroll: true }); };
   }, [open]);
+  // Tab e Shift+Tab ficam dentro da janela (antes o foco ia para a tela de trás, que nem se via)
+  const prenderTab = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab" || !caixa.current) return;
+    const focaveis = [...caixa.current.querySelectorAll<HTMLElement>(FOCAVEIS)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (!focaveis.length) return;
+    const [primeiro, ultimo] = [focaveis[0], focaveis[focaveis.length - 1]];
+    if (e.shiftKey && (document.activeElement === primeiro || document.activeElement === caixa.current)) { e.preventDefault(); ultimo.focus(); }
+    else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+  };
 
   if (!open) return null;
   // Portal: a janela fica fora do formulário que a abriu (formulário dentro de formulário recarregava a página),
@@ -387,7 +422,7 @@ export function Modal({
   return createPortal(
     <div className="fixed inset-0 z-janela overflow-y-auto overflow-x-hidden overscroll-contain bg-ink/50 p-2 backdrop-blur-[2px] sm:p-6"
       onSubmit={(e) => e.stopPropagation()}>
-      <div ref={caixa} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
+      <div ref={caixa} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1} onKeyDown={prenderTab}
         className={`mx-auto w-full min-w-0 ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-painel bg-surface shadow-pop focus:outline-none`}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
           <h2 id={tituloId} className="min-w-0 text-base font-bold text-fg">{title}</h2>

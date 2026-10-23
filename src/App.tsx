@@ -10,6 +10,7 @@ import { aplicarPreferencias } from "@/lib/tema";
 import { ehRepresentante, podeVer, type Tela } from "@/lib/permissoes";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/Toaster";
+import { NaoEncontrada } from "@/components/NaoEncontrada";
 import { AnotarPorVoz } from "@/components/voz/AnotarPorVoz";
 import { Button, Card } from "@/components/ui";
 import Login, { NovaSenha } from "@/pages/Login";
@@ -385,7 +386,7 @@ function RotasERP() {
         {master && <Route path="retaguarda/notas-my-frost" element={<NotasMyFrostContador />} />}
         {master && <Route path="licenciados" element={<Licenciados />} />}
         {master && <Route path="painel/licencas" element={<PainelLicencas />} />}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NaoEncontrada />} />
       </Route>
     </Routes>
     {/* botão do microfone (Anotar por voz) em todas as telas, inclusive nos apps do celular */}

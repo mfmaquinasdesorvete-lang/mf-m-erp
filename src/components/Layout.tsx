@@ -138,6 +138,18 @@ export function Layout() {
   });
 
   useEffect(() => { setAberto(false); setBusca(""); }, [location.pathname]);
+  // Ctrl+K (ou ⌘K) leva à busca do menu de qualquer tela; no celular abre o menu antes
+  const buscaRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const atalho = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "k") return;
+      e.preventDefault();
+      setAberto(true);
+      requestAnimationFrame(() => buscaRef.current?.focus());
+    };
+    window.addEventListener("keydown", atalho);
+    return () => window.removeEventListener("keydown", atalho);
+  }, []);
   // PDV sempre em outra aba: também os links de dentro das telas (painéis, Sobre…) que apontam para ele
   useEffect(() => {
     const clique = (e: MouseEvent) => {
@@ -204,6 +216,8 @@ export function Layout() {
 
   return (
     <NotificacoesProvider>
+    {/* primeiro Tab da página: pula o menu e vai direto ao conteúdo da tela */}
+    <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-alerta focus:rounded-botao focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-fg">Pular para o conteúdo</a>
     <div className="min-h-screen md:flex">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-white/5 bg-ink/85 px-4 py-2.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top, 0px))" }}>
         <Marca compacta onIr={() => setAberto(false)} />
@@ -225,8 +239,8 @@ export function Layout() {
         }}>
           <label className="relative block">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-nav-fraco" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setBusca("")}
-              placeholder="Buscar tela, cliente, venda, nota…" aria-label="Buscar no menu"
+            <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setBusca("")}
+              placeholder="Buscar tela, cliente, venda, nota…" aria-label="Buscar no menu (Ctrl+K)" aria-keyshortcuts="Control+K"
               className="w-full rounded-lg border border-ink-line bg-ink-soft py-1.5 pl-9 pr-3 text-sm text-white placeholder:text-nav-fraco focus:border-brand-ice focus:outline-none" />
           </label>
         </form>
@@ -380,7 +394,7 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="fundo-modulo relative min-w-0 flex-1 px-4 pb-32 pt-3 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
+      <main id="conteudo" tabIndex={-1} className="fundo-modulo relative min-w-0 flex-1 focus:outline-none px-4 pb-32 pt-3 md:px-6 md:pb-10 md:pt-8 2xl:px-8">
         {/* assinatura das empresas desde 2009 */}
         <span className="assinatura pointer-events-none absolute right-4 top-1.5 hidden select-none text-xl text-modulo-texto/70 md:block 2xl:right-8" aria-hidden>Sopro Divino</span>
         <ModuloContext.Provider value={modulo}>
