@@ -21,7 +21,7 @@
 // Anúncios novos (produtos da loja que não estão no Mercado Livre):
 //  POST { acao: "preparar_anuncios", produtos?: [ids] } (vendas, financeiro ou marketplaces) → monta as propostas
 //       (categoria, atributos, preço que deixa o valor da loja, conferência do Mercado Livre), sem publicar
-//  POST { acao: "publicar_anuncios", propostas: [ids] }  (financeiro ou marketplaces) → publica só as escolhidas
+//  POST { acao: "publicar_anuncios", propostas: [ids] }  (financeiro, marketplaces ou o banco) → publica só as escolhidas
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -100,7 +100,8 @@ Deno.serve(async (req) => {
         return json({ ok: true, resultado: await prepararAnuncios(db, conta as any, await tokenValido(db, conta), ids) });
       }
       case "publicar_anuncios": {
-        const { userId } = await requireErpUser(req, ["financeiro", "marketplace"]);
+        // pela tela (financeiro ou marketplaces) ou pelo banco, com a lista que ela aprovou
+        const userId = (await chamadaDoAgendamento(req)) ? null : (await requireErpUser(req, ["financeiro", "marketplace"])).userId;
         const conta = await contaLigada(db);
         return json({ ok: true, resultado: await publicarAnuncios(db, conta as any, await tokenValido(db, conta), body.propostas, userId) });
       }

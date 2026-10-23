@@ -196,7 +196,7 @@ export async function prepararAnuncios(db: SupabaseClient, conta: Conta, token: 
   return resumo;
 }
 
-export async function publicarAnuncios(db: SupabaseClient, conta: Conta, token: string, ids: unknown, userId: string) {
+export async function publicarAnuncios(db: SupabaseClient, conta: Conta, token: string, ids: unknown, userId: string | null) {
   const lista = (Array.isArray(ids) ? ids : []).map(String).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 60);
   if (!lista.length) throw new Error("escolha os anúncios para publicar");
   const { data } = await db.from("ml_propostas").select("*").in("id", lista).in("situacao", ["proposta", "erro"]);
