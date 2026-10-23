@@ -35,6 +35,10 @@
   - "ERP Line – Marketplaces": vendas da MF no Mercado Livre, Google Shopping e outros canais online (anúncios,
     estoque e preço, pedidos que entram sozinhos, NF do pedido, envio, perguntas, pós-venda e custos por canal).
     Compras feitas em marketplaces ficam no "continuação".
+  - "ERP Line – Transportadoras": transportadoras e fretes (cadastro, cotação, coleta, etiquetas, rastreio, CT-e e
+    faturas das transportadoras, integrações como a Rodonaves). Crédito fiscal do CT-e fica no "Fiscal e contábil".
+  - "ERP Line – Técnicos": técnicos próprios e parceiros (cadastro, região, app do técnico, OS que eles atendem,
+    pagamentos e comunicação). O resto da assistência e das máquinas fica no "continuação".
   - "ERP Line – Design system": visual (cores, letras, painéis, filtros, cartões).
   - "ERP Line – Segurança": segurança do site, do banco e do código (permissões, login, senhas, testes de segurança).
   - "ERP Line – Minha carteira (pessoal)": a carteira pessoal da usuária (Retaguarda → Pessoal), comprovantes,
