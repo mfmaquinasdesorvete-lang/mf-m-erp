@@ -24,15 +24,8 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Número digitado: "1.250,90", "285,72", "285.72", "1.250" (milhar), "R$ 10", "65%". Vazio ou inválido = null. */
-export function numeroBR(t: string | number | null | undefined): number | null {
-  if (typeof t === "number") return Number.isFinite(t) ? t : null;
-  const s = String(t ?? "").trim().replace(/\s|R\$|%/g, "");
-  if (!s) return null;
-  const v = s.includes(",") ? Number(s.replace(/\./g, "").replace(",", "."))
-    : Number(/^-?\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s);
-  return Number.isFinite(v) ? v : null;
-}
+/** Número digitado ("1.250,90", "285,72", "R$ 10"): a mesma conversão de lib/format. */
+export { numeroBR } from "./format";
 
 /** Variação do custo em % (null sem custo atual). */
 export function variacaoPct(atual: number | null | undefined, novo: number | null | undefined): number | null {

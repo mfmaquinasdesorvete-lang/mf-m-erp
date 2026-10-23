@@ -1,5 +1,5 @@
 import { bicosDoModelo, proximaPreventiva6m, serieMF } from "@/lib/serieMaquina";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlarmClock, BellRing, CalendarCheck, CalendarClock, Clock, History, MessageCircle, Plus, ShieldAlert, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
@@ -317,10 +317,11 @@ export function EquipamentoModal({ inicial, onClose }: { inicial: Partial<Equipa
 
 /** Todas as OS da máquina (pelo vínculo ou pelo nº de série). */
 export function HistoricoModal({ equipamento, onClose }: { equipamento: { id?: string; numero_serie?: string | null; descricao: string }; onClose: () => void }) {
-  const { data: ordens = [], isLoading } = useQuery({
+  const { data: ordens = [], isLoading, error: erroHistorico } = useQuery({
     queryKey: ["ordens_servico", "historico", equipamento.id, equipamento.numero_serie],
     queryFn: async () => {
-      const { data } = await supabase.from("ordens_servico").select("*").order("data_entrada", { ascending: false });
+      const { data, error } = await supabase.from("ordens_servico").select("*").order("data_entrada", { ascending: false });
+      if (error) throw error;
       return (data ?? []).filter((o: any) =>
         (equipamento.id && o.equipamento_id === equipamento.id) || (equipamento.numero_serie && o.numero_serie === equipamento.numero_serie));
     },
@@ -329,7 +330,9 @@ export function HistoricoModal({ equipamento, onClose }: { equipamento: { id?: s
   return (
     <Modal open onClose={onClose} title={`Histórico · ${equipamento.descricao}${equipamento.numero_serie ? ` (${equipamento.numero_serie})` : ""}`} wide>
       <TesteGigaDoNs ns={equipamento.numero_serie} rotulo="Teste na fábrica (REG-006):" className="mb-4" />
-      {isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : !ordens.length ? (
+      {isLoading ? <p className="text-sm text-slate-500">Carregando…</p> : erroHistorico ? (
+        <p className="py-6 text-center text-sm text-red-600">Não deu para carregar o histórico: {(erroHistorico as Error).message}</p>
+      ) : !ordens.length ? (
         <p className="py-6 text-center text-sm text-slate-500">Nenhum atendimento registrado para esta máquina.</p>
       ) : (
         <ol className="relative space-y-4 border-l-2 border-slate-200 pl-5">
@@ -360,8 +363,18 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
   const invalidate = useInvalidate();
   const [agendando, setAgendando] = useState<string | null>(null);
   const [data, setData] = useState(somarDias(3));
+  // Máquinas com uma ação rodando: o ref trava o clique duplo na hora (antes de a tela redesenhar), o estado apaga os botões.
+  const rodando = useRef(new Set<string>());
+  const [ocupados, setOcupados] = useState<Set<string>>(new Set());
+  const marcar = (id: string, on: boolean) => {
+    if (on) rodando.current.add(id); else rodando.current.delete(id);
+    setOcupados(new Set(rodando.current));
+  };
 
-  async function registrar(e: Lembrete, resultado: string, proximo: string | null, agendada?: string) {
+  /** Registra o contato e tira a máquina da fila. Devolve true se deu certo; com erro, avisa e a máquina continua na fila. */
+  async function registrar(e: Lembrete, resultado: string, proximo: string | null, agendada?: string): Promise<boolean> {
+    if (rodando.current.has(e.id)) return false;
+    marcar(e.id, true);
     try {
       const { error } = await supabase.from("contatos_cliente").insert({
         cliente_id: e.cliente_id, equipamento_id: e.id, tipo: "preventiva", canal: "whatsapp", resultado, proximo_contato: proximo,
@@ -369,10 +382,17 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
       if (error) throw error;
       const patch: Record<string, unknown> = { ultimo_contato: hoje() };
       if (agendada) patch.preventiva_agendada = agendada;
-      await supabase.from("equipamentos").update(patch).eq("id", e.id);
-      invalidate("lembretes_manutencao", "equipamentos");
+      const { error: erroMaquina } = await supabase.from("equipamentos").update(patch).eq("id", e.id);
+      if (erroMaquina) throw erroMaquina;
+      notify("Contato registrado");
+      return true;
     } catch (err) {
       notifyError(err);
+      return false;
+    } finally {
+      // Atualiza a fila também no erro: se o contato entrou e só a máquina falhou, a tela mostra o que ficou gravado.
+      invalidate("lembretes_manutencao", "equipamentos");
+      marcar(e.id, false);
     }
   }
 
@@ -388,6 +408,7 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
         <ul className="space-y-2">
           {lembretes.map((e) => {
             const atrasada = (e.proxima_preventiva ?? "") < hoje();
+            const ocupado = ocupados.has(e.id);
             return (
               <li key={e.id} className="rounded-xl border border-slate-200 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -403,20 +424,26 @@ function FilaLembretes({ lembretes, mensagem, onClose }: { lembretes: Lembrete[]
                 <div className="mt-3 flex flex-wrap gap-2">
                   {e.cliente_whatsapp ? (
                     <a href={whatsappLink(e.cliente_whatsapp, mensagem({ ...e, cliente: { nome: e.cliente_nome } as Cliente }))} target="_blank" rel="noreferrer"
-                      onClick={() => registrar(e, "mensagem enviada pelo WhatsApp", somarDias(7))}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-publico-sucesso px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
+                      aria-disabled={ocupado}
+                      onClick={(ev) => {
+                        // Clique duplo: não abre o WhatsApp de novo nem grava o contato duas vezes.
+                        if (rodando.current.has(e.id)) { ev.preventDefault(); return; }
+                        registrar(e, "mensagem enviada pelo WhatsApp", somarDias(7));
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-lg bg-publico-sucesso px-3 py-2 text-sm font-semibold text-white hover:opacity-90 ${ocupado ? "pointer-events-none opacity-50" : ""}`}>
                       <MessageCircle size={16} /> Enviar lembrete
                     </a>
                   ) : <span className="self-center text-sm text-amber-700">Cliente sem WhatsApp no cadastro</span>}
                   {agendando === e.id ? (
                     <span className="flex items-center gap-2">
                       <input aria-label="Data da preventiva" className="input w-auto" type="date" value={data} onChange={(x) => setData(x.target.value)} />
-                      <Button variant="secondary" onClick={() => { registrar(e, `agendou a preventiva para ${dataBR(data)}`, null, data); setAgendando(null); }}>Confirmar</Button>
+                      <Button variant="secondary" disabled={ocupado || !data}
+                        onClick={async () => { if (await registrar(e, `agendou a preventiva para ${dataBR(data)}`, null, data)) setAgendando(null); }}>Confirmar</Button>
                     </span>
                   ) : (
-                    <Button variant="secondary" onClick={() => setAgendando(e.id)}><CalendarCheck size={16} /> Agendou</Button>
+                    <Button variant="secondary" disabled={ocupado} onClick={() => setAgendando(e.id)}><CalendarCheck size={16} /> Agendou</Button>
                   )}
-                  <Button variant="ghost" onClick={() => registrar(e, "pediu para lembrar depois", somarDias(30))}><Clock size={16} /> Lembrar em 30 dias</Button>
+                  <Button variant="ghost" disabled={ocupado} onClick={() => registrar(e, "pediu para lembrar depois", somarDias(30))}><Clock size={16} /> Lembrar em 30 dias</Button>
                 </div>
               </li>
             );

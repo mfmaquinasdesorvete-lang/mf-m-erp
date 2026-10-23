@@ -1,6 +1,23 @@
 export const brl = (v: number | string | null | undefined) =>
   Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Número digitado: "1.250,90", "285,72", "285.72", "1.250" (milhar), "R$ 10", "65%". Vazio ou inválido = null. */
+export function numeroBR(t: string | number | null | undefined): number | null {
+  if (typeof t === "number") return Number.isFinite(t) ? t : null;
+  const s = String(t ?? "").trim().replace(/\s|R\$|%/g, "");
+  if (!s) return null;
+  const v = s.includes(",") ? Number(s.replace(/\./g, "").replace(",", "."))
+    : Number(/^-?\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s);
+  return Number.isFinite(v) ? v : null;
+}
+
+/** Número para mostrar num campo de digitação: 12.5 → "12,5"; 1250 → "1250" (sem milhar, para editar). */
+export const numeroParaCampo = (v: number | string | null | undefined, casas = 4) => {
+  const n = typeof v === "number" ? v : numeroBR(v);
+  if (n == null || !Number.isFinite(n)) return "";
+  return String(Math.round(n * 10 ** casas) / 10 ** casas).replace(".", ",");
+};
+
 export const dataBR = (v: string | null | undefined) => {
   if (!v) return "—";
   const d = v.length === 10 ? new Date(v + "T12:00:00") : new Date(v);

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Boxes, Trash2 } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, numeroBR, numeroParaCampo } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import type { EscolhaKit, Item, KitComponente, Produto } from "@/lib/types";
 import { composicao, estoqueKit } from "@/lib/kits";
@@ -59,7 +59,7 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, preco
                 <tr key={idx}>
                   <td className="td it-largo" data-label="Item">
                     <input aria-label="Descrição do item" className="input" value={it.descricao} disabled={disabled} onChange={(e) => atualizar(idx, { descricao: e.target.value })} />
-                    {estoque !== undefined && Number(estoque) < it.quantidade && !disabled && (
+                    {estoque !== undefined && Number(estoque) < numItem(it.quantidade) && !disabled && (
                       <p className="mt-1 text-xs text-red-600">{prod?.kit ? "Kits que dá para montar" : "Estoque disponível"}: {Number(estoque)}</p>
                     )}
                     {ehKit(it.produto_id) && (
@@ -77,14 +77,12 @@ export function ItensEditor({ itens, onChange, disabled, filtro, comSerie, preco
                     </td>
                   )}
                   <td className="td" data-label="Qtd">
-                    <input aria-label="Quantidade" className="input text-right" type="number" min={0.001} step="any" value={it.quantidade} disabled={disabled}
-                      onChange={(e) => atualizar(idx, { quantidade: Number(e.target.value) })} />
+                    <CampoNumero rotulo="Quantidade" valor={it.quantidade} disabled={disabled} onChange={(quantidade) => atualizar(idx, { quantidade })} />
                   </td>
                   <td className="td" data-label="Unitário">
-                    <input aria-label="Valor unitário" className="input text-right" type="number" min={0} step="0.01" value={it.valor_unitario} disabled={disabled}
-                      onChange={(e) => atualizar(idx, { valor_unitario: Number(e.target.value) })} />
+                    <CampoNumero rotulo="Valor unitário" valor={it.valor_unitario} casas={2} disabled={disabled} onChange={(valor_unitario) => atualizar(idx, { valor_unitario })} />
                   </td>
-                  <td className="td it-total pt-4 text-right" data-label="Total">{brl(it.quantidade * it.valor_unitario)}</td>
+                  <td className="td it-total pt-4 text-right" data-label="Total">{brl(totalItem(it))}</td>
                   <td className="td it-acao">
                     {!disabled && (
                       <Button type="button" variant="ghost" onClick={() => onChange(itens.filter((_, i) => i !== idx))} aria-label="Remover">
@@ -170,5 +168,35 @@ function EscolhaKitModal({ kitId, comps, escolha, nome, saldo, onClose, onSalvar
   );
 }
 
-export const totalItens = (itens: Item[]) =>
-  itens.reduce((s, i) => s + Math.round(i.quantidade * i.valor_unitario * 100) / 100, 0);
+/** Quantidade ou valor de um item como número (itens antigos podem ter vindo como texto, ex.: "12,50"); inválido = 0. */
+export const numItem = (v: unknown) => numeroBR(v as string | number | null | undefined) ?? 0;
+
+/** Total de uma linha, arredondado em centavos. */
+export const totalItem = (i: Pick<Item, "quantidade" | "valor_unitario">) =>
+  Math.round(numItem(i.quantidade) * numItem(i.valor_unitario) * 100) / 100;
+
+export const totalItens = (itens: Item[]) => itens.reduce((s, i) => s + totalItem(i), 0);
+
+/**
+ * Campo de número com vírgula ("12,50"): guarda o texto enquanto digita e manda para fora só o número.
+ * Campo vazio ou inválido vira 0 (o total nunca fica NaN); ao sair do campo, mostra o número arrumado.
+ */
+function CampoNumero({ rotulo, valor, onChange, disabled, casas = 4 }: {
+  rotulo: string; valor: number | string | null | undefined; onChange: (n: number) => void; disabled?: boolean; casas?: number;
+}) {
+  const [texto, setTexto] = useState(() => numeroParaCampo(valor, casas));
+  const [editando, setEditando] = useState(false);
+  // O valor mudou por fora (preço da tabela, outro item removido): acompanha, menos enquanto digita.
+  useEffect(() => { if (!editando) setTexto(numeroParaCampo(valor, casas)); }, [valor, casas, editando]);
+  return (
+    <input aria-label={rotulo} className="input text-right" inputMode="decimal" value={texto} disabled={disabled}
+      onFocus={() => setEditando(true)}
+      onChange={(e) => {
+        const t = e.target.value.replace(/[^\d,.-]/g, "");
+        setTexto(t);
+        const n = numeroBR(t);
+        onChange(n != null && n >= 0 ? n : 0);
+      }}
+      onBlur={() => { setEditando(false); setTexto(numeroParaCampo(numItem(valor), casas)); }} />
+  );
+}

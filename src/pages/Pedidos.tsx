@@ -15,7 +15,7 @@ import { useConfig } from "@/lib/useConfig";
 import { Badge, Button, chip, Field, Modal, PageHeader, Table, Tabs, CLASSE_BOTAO, TOM_ACAO } from "@/components/ui";
 import { osDoPedido } from "@/lib/osVideo";
 import { BotaoMarcadores, ChipsMarcadores, SelectMarcador, useMarcadores } from "@/components/nfe/Marcadores";
-import { ItensEditor, totalItens } from "@/components/ItensEditor";
+import { ItensEditor, totalItem, totalItens } from "@/components/ItensEditor";
 import { limpar, useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { brl, dataBR, hoje, pl, somarDias, whatsappLink } from "@/lib/format";
@@ -926,7 +926,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   };
 
   const mensagemWhats = () => {
-    const linhas = p.itens.map((i) => `• ${i.quantidade}x ${i.descricao} — ${brl(i.quantidade * i.valor_unitario)}`);
+    const linhas = p.itens.map((i) => `• ${i.quantidade}x ${i.descricao} — ${brl(totalItem(i))}`);
     return [
       `Olá ${cliente?.nome.split(" ")[0] ?? ""}! Segue ${p.status === "orcamento" ? "o orçamento" : "o pedido"}${p.numero ? ` #${p.numero}` : ""} da *MF Máquinas*:`,
       "", ...linhas, "",
