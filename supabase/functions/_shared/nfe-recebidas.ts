@@ -173,13 +173,15 @@ async function marcarDevolucao(db: SupabaseClient, id: string) {
 
 type Config = {
   entrada_automatica_estoque: boolean; conta_pagar_automatica: boolean;
+  /** a compra só entra no estoque quando chega (CT-e entregue ou "Chegou" na nota); até lá fica "a caminho" */
+  entrada_so_na_entrega?: boolean;
   /** regras de preço (configuracoes.precificacao): custo_nota e finalidade_nota dizem como calcular o custo pela nota */
   precificacao?: unknown;
   /** Notas de fornecedor emitidas antes desta data já foram lançadas no sistema anterior: não entram sozinhas. */
   recebidas_processar_desde?: string | null;
 };
 /** Campos de configuracoes usados no processamento automático. */
-export const CONFIG_RECEBIDAS = "entrada_automatica_estoque, conta_pagar_automatica, recebidas_processar_desde, precificacao";
+export const CONFIG_RECEBIDAS = "entrada_automatica_estoque, conta_pagar_automatica, entrada_so_na_entrega, recebidas_processar_desde, precificacao";
 
 /**
  * Processa uma NF-e recebida: ciência -> XML -> contas a pagar -> entrada no estoque.
@@ -235,6 +237,9 @@ export async function processarNota(db: SupabaseClient, nfe: any, cfg: Config) {
 
     if (!itens.some((i) => i.produto_id)) {
       return await marcar("concluido", "Só itens de uso e consumo, bens da empresa ou serviço: a nota não entra no estoque.");
+    }
+    if (cfg.entrada_so_na_entrega && !nfe.chegou_em) {
+      return await marcar("a_caminho", "A caminho: entra no estoque quando a transportadora marcar entregue ou quando quem recebeu apertar \"Chegou\".");
     }
     // Custo completo pela nota (a mesma conta da tela, em nota-custo.ts): frete, seguro e outras despesas rateados,
     // desconto, IPI, ICMS-ST e os créditos do custo líquido, dividido pelo fator. A conta fica em nfe_custos_itens.

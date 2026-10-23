@@ -1,5 +1,5 @@
 // Situação das notas fiscais com ícone, cor e texto (a cor nunca vem sozinha), e as abas das listas.
-import { Ban, CircleCheck, CircleX, Clock, FlaskConical, Hourglass, LoaderCircle, TriangleAlert, Undo2, type LucideIcon } from "lucide-react";
+import { Ban, CircleCheck, CircleX, Clock, FlaskConical, Hourglass, LoaderCircle, PackageSearch, TriangleAlert, Truck, Undo2, type LucideIcon } from "lucide-react";
 
 export type Situacao = { chave: string; rotulo: string; Icone: LucideIcon; cor: string };
 
@@ -21,10 +21,14 @@ export function situacaoEmitida(n: NotaEmitidaBase): Situacao {
   }
 }
 
-export function situacaoRecebida(n: { situacao: string; processamento: string }): Situacao {
+export function situacaoRecebida(n: { situacao: string; processamento: string; chegou_em?: string | null; conferencia?: string | null }): Situacao {
   if (n.situacao === "cancelada") return S("cancelada", "Cancelada pelo fornecedor", CircleX, "text-slate-500");
   switch (n.processamento) {
-    case "concluido": return S("concluido", "Lançada", CircleCheck, "text-emerald-600");
+    case "concluido":
+      if (aConferir(n)) return S("a_conferir", "Chegou: conferir", PackageSearch, "text-indigo-600");
+      if (n.conferencia === "divergencia") return S("divergencia", "Chegou com problema", TriangleAlert, "text-red-600");
+      return S("concluido", "Lançada", CircleCheck, "text-emerald-600");
+    case "a_caminho": return S("a_caminho", "A caminho", Truck, "text-sky-600");
     case "ignorada": return S("ignorada", "Histórico / ignorada", Clock, "text-slate-500");
     case "aguardando_vinculo": return S("aguardando_vinculo", "Falta vincular produto", TriangleAlert, "text-amber-600");
     case "revisao": return S("revisao", "Conferir", TriangleAlert, "text-orange-600");
@@ -46,9 +50,17 @@ export const ABAS_EMITIDAS: { valor: string; rotulo: string; filtro: (n: NotaEmi
   { valor: "teste", rotulo: "Teste", filtro: (n) => n.ambiente === "homologacao" },
 ];
 
-export const ABAS_RECEBIDAS: { valor: string; rotulo: string; filtro: (n: { situacao: string; processamento: string; finalidade?: string | null }) => boolean }[] = [
+/** Entrou no estoque pela chegada (CT-e entregue, "Chegou" ou entrada à mão) e ninguém respondeu o "Conferiu?". */
+export const aConferir = (n: { processamento: string; chegou_em?: string | null; conferencia?: string | null }) =>
+  n.processamento === "concluido" && !!n.chegou_em && !n.conferencia;
+
+type RecebidaAba = { situacao: string; processamento: string; finalidade?: string | null; chegou_em?: string | null; conferencia?: string | null };
+
+export const ABAS_RECEBIDAS: { valor: string; rotulo: string; filtro: (n: RecebidaAba) => boolean }[] = [
   { valor: "todas", rotulo: "Todas", filtro: () => true },
   { valor: "pendentes", rotulo: "A resolver", filtro: (n) => n.situacao !== "cancelada" && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento) },
+  { valor: "a_caminho", rotulo: "A caminho", filtro: (n) => n.situacao !== "cancelada" && n.processamento === "a_caminho" },
+  { valor: "conferir", rotulo: "Chegou: conferir", filtro: (n) => aConferir(n) || n.conferencia === "divergencia" },
   { valor: "lancadas", rotulo: "Lançadas", filtro: (n) => n.processamento === "concluido" },
   { valor: "historico", rotulo: "Histórico", filtro: (n) => n.processamento === "ignorada" && n.situacao !== "cancelada" },
   { valor: "devolucoes", rotulo: "Devoluções", filtro: (n) => n.finalidade === "devolucao" },

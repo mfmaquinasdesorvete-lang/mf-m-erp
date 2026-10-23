@@ -11,7 +11,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import {
-  baixarXml, carregarItens, lancarContaPagar, manifestar, processarNota, processarPendentes,
+  baixarXml, CONFIG_RECEBIDAS, carregarItens, lancarContaPagar, manifestar, processarNota, processarPendentes,
   importarXml, sincronizarRecebidas, vincularItens,
 } from "../_shared/nfe-recebidas.ts";
 import { sincronizarCtes } from "../_shared/cte-recebidas.ts";
@@ -58,8 +58,7 @@ Deno.serve(async (req) => {
       case "processar": {
         if (!body.nfe_id) return json({ ok: true, automaticas: await processarPendentes(db) });
         const nfe = await carregarNota();
-        const { data: cfg } = await db.from("configuracoes")
-          .select("entrada_automatica_estoque, conta_pagar_automatica, precificacao").eq("id", 1).single();
+        const { data: cfg } = await db.from("configuracoes").select(CONFIG_RECEBIDAS).eq("id", 1).single();
         await db.from("nfe_recebidas").update({ tentativas: 0 }).eq("id", nfe.id);
         await processarNota(db, { ...nfe, tentativas: 0 }, cfg!);
         const { data } = await db.from("nfe_recebidas").select("processamento, processamento_msg").eq("id", nfe.id).single();

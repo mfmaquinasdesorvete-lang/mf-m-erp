@@ -73,7 +73,7 @@ function seed(): Db {
       inscricao_estadual: "261770233", uf: "SC", municipio: "São José", whatsapp: "4833755280",
       regime_tributario: 1, natureza_operacao: "Venda de mercadoria", cfop_padrao: "5102", icms_situacao_padrao: "102",
       pis_situacao_padrao: "49", cofins_situacao_padrao: "49", presenca_comprador: 9, dias_vencimento_boleto: 3,
-      multa_percentual: 2, juros_percentual_mes: 1, entrada_automatica_estoque: true, conta_pagar_automatica: true,
+      multa_percentual: 2, juros_percentual_mes: 1, entrada_automatica_estoque: true, entrada_so_na_entrega: true, conta_pagar_automatica: true,
       endereco: "Rua Leonel Felisbino da Silva, S/N, Q 4 - L 9 - Galpão 6, Areias - CEP 88113-837", telefone: "(48) 3375-5280", email: "mfmaquinasdesorvete@gmail.com",
       catalogo_texto: "Máquinas de sorvete soft, expresso e milk shake com garantia, peças e assistência técnica própria.",
       telegram_bot: "MFMaquinasAvisosBot", avisos_email_ativo: true, email_responder_para: "comercial@mfmaquinas.com.br",

@@ -302,6 +302,7 @@ const badgeColors: Record<string, string> = {
   enviando: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
   pendente: "bg-slate-100 text-slate-700",
   aguardando_xml: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
+  a_caminho: "bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200",
   aguardando_vinculo: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
   revisao: "bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-200",
   concluido: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
@@ -341,7 +342,7 @@ const badgeColors: Record<string, string> = {
 const badgeLabel: Record<string, string> = {
   em_transito: "em trânsito",
   orcamento: "orçamento", em_diagnostico: "em diagnóstico", aguardando_aprovacao: "aguardando aprovação",
-  aguardando_peca: "aguardando peça", concluida: "concluída", aguardando_xml: "aguardando XML",
+  aguardando_peca: "aguardando peça", concluida: "concluída", aguardando_xml: "aguardando XML", a_caminho: "a caminho",
   aguardando_vinculo: "aguardando vínculo", revisao: "revisão", concluido: "concluído",
   em_garantia: "em garantia", vence_logo: "garantia vence em breve", fora_garantia: "fora da garantia",
   em_producao: "em produção", pc_cotacao: "em cotação", pc_enviado: "pedido enviado", pc_parcial: "recebido em parte",

@@ -4,13 +4,13 @@
 // produtos e ordem de compra (fornecedor/NotaFornecedorAbas).
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, PackagePlus, RefreshCw, ShieldCheck, Tags, Trash2, Undo2 } from "lucide-react";
+import { CircleCheck, Copy, Download, PackageCheck, PackagePlus, RefreshCw, ShieldCheck, Tags, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { Button, Field, Modal, Tabs } from "@/components/ui";
 import { callFunction, supabase } from "@/lib/supabase";
 import { brl, dataBR, docFormat, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
 import { useInvalidate } from "@/lib/data";
-import { numeroDaChave, situacaoRecebida } from "@/lib/notas";
+import { aConferir, numeroDaChave, situacaoRecebida } from "@/lib/notas";
 import { MotivoAcao } from "@/components/MotivoAcao";
 import { Historico } from "@/components/Historico";
 import { AplicarMarcadores, ChipsMarcadores, useMarcadores } from "./Marcadores";
@@ -29,7 +29,10 @@ export type Recebida = {
   situacao: string; manifestacao: string | null; conta_pagar_id: string | null; estoque_lancado: boolean; processamento: string;
   processamento_msg: string | null; origem?: string; unidade_id?: string | null; marcadores?: string[]; observacao_interna?: string | null;
   finalidade?: string | null; nfe_completa?: boolean | null; fornecedor_id?: string | null;
+  chegou_em?: string | null; chegou_como?: string | null; conferencia?: string | null; conferencia_obs?: string | null;
 };
+
+const CHEGOU_COMO: Record<string, string> = { transportadora: "pela transportadora (entregue)", recebido: "marcado na nota", entrada_manual: "entrada à mão" };
 
 export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida; leitura?: boolean; onClose: () => void }) {
   const { data: marcadores = [] } = useMarcadores();
@@ -95,6 +98,29 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
     invalidate("nfe_recebidas");
   }
 
+  // compra a caminho: quem recebeu marca a chegada e o processamento dá a entrada no estoque na hora
+  async function chegou() {
+    if (!(await confirmar(`A compra de ${n.emitente_nome} chegou? A entrada no estoque é feita agora.`))) return;
+    setOcupado(true);
+    const { error } = await supabase.rpc("marcar_chegada_compra", { p_nfe: n.id });
+    setOcupado(false);
+    if (error) return notifyError(error);
+    await executar({ acao: "processar", nfe_id: n.id }, (r) => r.processamento === "concluido" ? "Chegou: entrada no estoque feita" : `Chegou. Situação: ${String(r.processamento).replace(/_/g, " ")}`, true);
+  }
+
+  async function conferir(ok: boolean) {
+    let obs: string | null = null;
+    if (!ok) {
+      obs = await pedirTexto("O que faltou ou veio errado?");
+      if (!obs?.trim()) return;
+    }
+    const { error } = await supabase.rpc("conferir_compra_recebida", { p_nfe: n.id, p_ok: ok, p_obs: obs });
+    if (error) return notifyError(error);
+    notify(ok ? "Conferido: tudo ok" : "Anotado: compras e financeiro foram avisados");
+    invalidate("nfe_recebidas");
+    onClose();
+  }
+
   const ativa = n.situacao !== "cancelada";
   return (
     <Modal open onClose={onClose} title={`NF ${numeroDaChave(n.chave)} · ${n.emitente_nome}`} wide>
@@ -115,6 +141,17 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
         )}
         {aba === "resumo" && <>
         {n.processamento_msg && n.processamento !== "concluido" && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{n.processamento_msg}</div>}
+        {aConferir(n) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900">
+            <span className="mr-auto font-semibold">Chegou a compra de {n.emitente_nome}. Conferiu?</span>
+            {!leitura && <>
+              <Button type="button" variant="secondary" onClick={() => conferir(true)}><CircleCheck size={15} /> Tudo ok</Button>
+              <Button type="button" variant="secondary" onClick={() => conferir(false)}><TriangleAlert size={15} /> Faltou ou veio errado</Button>
+            </>}
+          </div>
+        )}
+        {n.conferencia === "divergencia" && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"><b>Chegou com problema:</b> {n.conferencia_obs}</div>}
+        {n.chegou_em && <p className="text-xs text-slate-500">Chegou em {dataBR(n.chegou_em)} · {CHEGOU_COMO[n.chegou_como ?? ""] ?? ""}{n.conferencia === "ok" ? " · conferido: tudo ok" : ""}</p>}
 
         <div className="grid gap-3 text-sm sm:grid-cols-3">
           <Info rotulo="Emissão" valor={dataBR(n.data_emissao)} />
@@ -169,6 +206,7 @@ export function RecebidaDetalhe({ nota: n, leitura, onClose }: { nota: Recebida;
             {ativa && ["pendente", "aguardando_xml", "aguardando_vinculo", "revisao"].includes(n.processamento) && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "processar", nfe_id: n.id }, (r) => `Situação: ${String(r.processamento).replace(/_/g, " ")}`, true)}><RefreshCw size={15} /> Processar de novo</Button>
             )}
+            {ativa && n.processamento === "a_caminho" && <Button type="button" disabled={ocupado} onClick={chegou}><PackageCheck size={15} /> Chegou</Button>}
             {ativa && !n.estoque_lancado && <Button type="button" variant="secondary" disabled={ocupado} onClick={() => irPara("itens")}><PackagePlus size={15} /> Entrada no estoque</Button>}
             {ativa && fin && !n.conta_pagar_id && n.finalidade !== "devolucao" && (
               <Button type="button" variant="secondary" disabled={ocupado} onClick={() => executar({ acao: "lancar_conta", nfe_id: n.id }, (r) => `${r.contas} ${pl(r.contas, "parcela", "parcelas")} ${pl(r.contas, "lançada", "lançadas")} em contas a pagar`, true)}>Lançar a pagar</Button>

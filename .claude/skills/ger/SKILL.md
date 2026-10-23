@@ -74,3 +74,9 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   usam `contas_da_oc` para não lançar em dobro. OC recebida (e as do Tiny) não lança por esse botão.
 - Pelo MCP do Supabase, UPDATE/INSERT com texto longo costuma travar (60 s e nada grava): fazer dentro de um bloco
   `do $$ begin … end $$;` (com `concat(...)` no texto), que passa na hora.
+- Nota de compra só entra no estoque quando chega (configuracoes.entrada_so_na_entrega, 23/10): o processamento para em
+  `a_caminho`; a chegada vem do CT-e com ocorrência de entrega (gatilho trg_cte_entregue) ou do botão "Chegou"
+  (marcar_chegada_compra), que devolve a nota para `pendente`. Depois da entrada sai o aviso "Conferiu?"
+  (conferir_compra_recebida). As contas a pagar continuam saindo quando a nota aparece na SEFAZ.
+- Pelo MCP, `create trigger` junto com outros comandos (ou com `set lock_timeout`) trava em 60 s sem gravar: mandar
+  cada `create trigger` sozinho.

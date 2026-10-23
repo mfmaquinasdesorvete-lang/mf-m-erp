@@ -10,7 +10,7 @@ import { notify } from "@/lib/notify";
 import { usePerfil } from "@/lib/auth";
 import { BotaoSalvar, Bloco, CabecalhoSecao, Opcao, secaoPorId, useCfgPagina } from "./comum";
 
-const CHAVES = ["presenca_comprador", "entrada_automatica_estoque", "conta_pagar_automatica"];
+const CHAVES = ["presenca_comprador", "entrada_automatica_estoque", "entrada_so_na_entrega", "conta_pagar_automatica"];
 
 export function ConfigNotas() {
   const s = secaoPorId("notas")!;
@@ -43,6 +43,9 @@ export function ConfigNotas() {
           <Bloco titulo="Notas de fornecedores (automático)" descricao="Quando chega uma NF-e de compra, o ERP dá ciência, lê o XML e faz o que estiver marcado. Remessas (ex.: máquina enviada para conserto) não entram: ficam em revisão para você decidir.">
             <Opcao ligado={!!cfg.entrada_automatica_estoque} onChange={(v) => mudar({ entrada_automatica_estoque: v })}>
               Dar entrada no estoque automaticamente (itens já ligados a um produto ou com o mesmo código de barras)
+            </Opcao>
+            <Opcao ligado={!!cfg.entrada_so_na_entrega} onChange={(v) => mudar({ entrada_so_na_entrega: v })}>
+              Só dar a entrada quando a compra chegar: até a transportadora marcar entregue ou alguém apertar "Chegou" na nota, ela fica "a caminho"
             </Opcao>
             <Opcao ligado={!!cfg.conta_pagar_automatica} onChange={(v) => mudar({ conta_pagar_automatica: v })}>
               Lançar as parcelas (duplicatas) da nota em contas a pagar automaticamente

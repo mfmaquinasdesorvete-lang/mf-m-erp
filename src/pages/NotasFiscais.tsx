@@ -40,7 +40,7 @@ import { FILTRO_VAZIO, passaFiltro } from "@/lib/filtroNotas";
 import { useComprasMarketplace } from "@/lib/comprasMarketplace";
 import { NOME_MARKETPLACE, OPCOES_FILTRO_MARKETPLACE, passaMarketplace } from "@/lib/marketplaces";
 
-const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade";
+const CAMPOS_RECEBIDA = "id, chave, emitente_nome, emitente_cnpj, valor_total, data_emissao, situacao, manifestacao, nfe_completa, fornecedor_id, conta_pagar_id, estoque_lancado, processamento, processamento_msg, unidade_id, origem, marcadores, observacao_interna, finalidade, chegou_em, chegou_como, conferencia, conferencia_obs";
 const POR_VEZ = 200;
 const sem = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
