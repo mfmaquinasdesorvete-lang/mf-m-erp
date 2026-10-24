@@ -28,11 +28,12 @@ type Produto = {
   preco_venda: number | null; estoque_atual: number | null; sob_encomenda: boolean | null; prazo_reposicao_dias: number | null; kit: boolean | null;
 };
 
-export function ResponderWhatsApp({ cliente: c, onClose }: { cliente: ClienteResposta; onClose: () => void }) {
-  const [aba, setAba] = useState<Aba>("nota");
+export function ResponderWhatsApp({ cliente: c, onClose, escrever }: { cliente: ClienteResposta; onClose: () => void; escrever?: string }) {
+  // "escrever": já abre no "Escrever com IA" com o que falar (vem da ação preparada pela IA)
+  const [aba, setAba] = useState<Aba>(escrever ? "ia" : "nota");
   const [texto, setTexto] = useState("");
   const [escolhido, setEscolhido] = useState<string | null>(null);
-  const [pedidoIA, setPedidoIA] = useState("");
+  const [pedidoIA, setPedidoIA] = useState(escrever ?? "");
   const [msgCliente, setMsgCliente] = useState("");
   const [tom, setTom] = useState<Tom>("cordial");
   const [escrevendo, setEscrevendo] = useState(false);

@@ -28,6 +28,8 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   `supabase/functions/_shared/ia-resumo.ts`, tabela `ia_resumos_documentos`.
 - Busca nos documentos (Documentos → "Achar pelo assunto"): `src/components/BuscaDocumentosIA.tsx`,
   `supabase/functions/ia-busca-docs`, `supabase/functions/_shared/ia-busca-docs.ts` (usa os resumos de `ia_resumos_documentos`).
+- IA prepara ações (Perguntar à IA → "⚡ Pedir uma ação"): `src/components/PedirAcaoIA.tsx`, `supabase/functions/ia-acao`,
+  `supabase/functions/_shared/ia-acao.ts`. Só baixa de conta (abre o BaixaModal) e mensagem (abre Responder no WhatsApp).
 - Controle das IAs: Configurações → Inteligência artificial `src/components/config/Ia.tsx`;
   `configuracoes.ia_ligada`, tabela `ia_registros`, `supabase/functions/_shared/ia-controle.ts`.
 
@@ -77,3 +79,5 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
 - Perguntar à IA: a unidade (SC/SP) vale nas vendas, OS, contas, notas e máquinas (a pedida na pergunta ou a da tela);
   máquinas da My Frost pela coluna `origem`; nenhuma consulta lê CPF/CNPJ, telefone, e-mail, salário ou carteira
   (teste em `iaBusca.test.ts`). Exportar baixa só o que está na tela (até 50).
+- IA que prepara ação nunca grava: só acha a conta/cliente com o login de quem pediu e abre a tela de sempre preenchida;
+  ação nova entra em `ACOES` e reaproveita a tela que já tem as regras (permissão, aprovação, histórico).
