@@ -283,8 +283,9 @@ export default function PainelProdutos() {
         <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Ir para</h2>
         <AtalhosArea itens={[
           { rotulo: "Todos os produtos", icone: Boxes, to: "/estoque", aviso: k.negativo.length, tela: "estoque" },
-          { rotulo: "Peças de reposição", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
-          { rotulo: "Componentes", icone: Package, to: "/produtos/componentes", tela: "estoque" },
+          { rotulo: "Peças à venda", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
+            { rotulo: "Tornearia", icone: Wrench, to: "/produtos/tornearia", tela: "estoque" },
+          { rotulo: "Insumos", icone: Package, to: "/produtos/componentes", tela: "estoque" },
           { rotulo: "Reposição", icone: PackageX, to: "/compras", state: { aba: "reposicao" }, aviso: k.vaiFaltar.length, tela: "producao" },
           { rotulo: "Margem", icone: PieChart, to: "/margem", tela: "margem" },
           { rotulo: "Painel gerencial", icone: Barcode, to: "/gerencial", tela: "relatorios" },

@@ -116,10 +116,12 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "painel/maquinas", tela: "estoque", element: <PainelMaquinas /> },
   { path: "painel/produtos", tela: "estoque", element: <PainelProdutos /> },
   { path: "assistencia", tela: "assistencia", element: <Assistencia /> },
-  { path: "estoque", tela: "estoque", element: <Produtos /> },
+  { path: "estoque", tela: "estoque", element: <Produtos key="pecas" cadastroFixo="pecas" /> },
   { path: "estoque/giro", tela: "estoque", element: <GiroEstoque /> },
   { path: "produtos/maquinas", tela: "estoque", element: <Produtos key="maquinas" cadastroFixo="maquinas" /> },
   { path: "produtos/pecas", tela: "estoque", element: <Produtos key="pecas" cadastroFixo="pecas" /> },
+  { path: "produtos/tornearia", tela: "estoque", element: <Produtos key="tornearia" cadastroFixo="tornearia" /> },
+  { path: "produtos/todos", tela: "estoque", element: <Produtos key="todos" cadastroFixo="todos" /> },
   { path: "produtos/componentes", tela: "estoque", element: <Produtos key="componentes" cadastroFixo="componentes" /> },
   { path: "produtos/servicos", tela: "estoque", element: <Produtos key="servicos" cadastroFixo="servicos" /> },
   // registro de qualidade REG-006 (teste das máquinas na bancada)

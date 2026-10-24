@@ -161,8 +161,9 @@ export const itensForaDoMenu: Item[] = [
   { to: "/configuracoes/cadastros", tela: "configuracoes", label: "Categorias e marcadores", curto: "Categ.", icon: FolderTree, busca: "categoria subcategoria marcador etiqueta tag cor organizar cadastro" },
   { to: "/painel/maquinas", tela: "estoque", label: "Painel das máquinas", curto: "Pn. máq.", icon: LayoutDashboard, busca: "máquina modelo vendidas estoque montagem garantia" },
   { to: "/painel/produtos", tela: "estoque", label: "Painel dos produtos", curto: "Pn. prod.", icon: LayoutDashboard, busca: "produto peça mais vendidos curva abc parado giro margem reposição vai faltar" },
-  { to: "/produtos/pecas", tela: "estoque", label: "Peças de reposição", curto: "Peças", icon: Wrench, busca: "peça reposição catálogo cliente compra" },
-  { to: "/produtos/componentes", tela: "estoque", label: "Componentes de produção", curto: "Compon.", icon: Package, busca: "componente produção insumo matéria-prima ficha técnica fábrica" },
+  { to: "/produtos/pecas", tela: "estoque", label: "Peças à venda", curto: "Peças", icon: Wrench, busca: "peça reposição à venda catálogo cliente compra" },
+  { to: "/produtos/tornearia", tela: "estoque", label: "Tornearia (usinadas)", curto: "Torno", icon: Wrench, busca: "tornearia usinada usinagem torno cubo eixo flange separador" },
+  { to: "/produtos/componentes", tela: "estoque", label: "Insumos", curto: "Insumos", icon: Package, busca: "insumo componente produção matéria-prima ficha técnica fábrica" },
 ];
 
 /** Área de uma rota (para abrir o bloco certo). */

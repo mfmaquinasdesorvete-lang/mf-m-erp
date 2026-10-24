@@ -739,8 +739,20 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Onde abre: cartão \"Peças de reposição\" em Produtos e estoque.",
     ],
   },
+  "/produtos/tornearia": {
+    tags: ["TORNEARIA", "USINADAS", "FÁBRICA"],
+    destaque: "As peças usinadas na tornearia, numa lista só.",
+    partes: [
+      "Quem entra: os produtos com o marcador \"Tornearia\" (cubos, eixos, flanges, separadores, peças da chave extratora, cilindros…).",
+      "Marcar ou tirar: pelo marcador no cadastro do produto ou pela ação em lote; o marcador é da usuária e nunca some sozinho.",
+      "Também vende: a usinada que o cliente compra aparece aqui e em Peças à venda.",
+      "Lista: nome, códigos (nosso SKU e o de cada fornecedor), custo, estoque em SC e SP, vendidos em 3 meses e NCM.",
+      "Botões da linha: ficha do produto, movimentar estoque e histórico, como nas outras abas.",
+      "Onde abre: cartão \"Tornearia (usinadas)\" em Produtos e estoque.",
+    ],
+  },
   "/produtos/componentes": {
-    tags: ["COMPONENTES", "FICHA TÉCNICA", "FÁBRICA"],
+    tags: ["INSUMOS", "COMPONENTES", "FICHA TÉCNICA", "FÁBRICA"],
     destaque: "O que vai dentro das máquinas, separado do que se vende.",
     partes: [
       "Só componentes de produção: o que vai dentro das máquinas e não se vende avulso (não aparece no pedido nem no catálogo).",
@@ -754,7 +766,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Ações em lote: mover para Peças ou Máquinas, ativar, inativar, unificar repetidos e exportar.",
       "Abas: Qualidade, Anúncios, Categorias, Preços, Tabelas de preço e Contagem, como em Produtos e estoque.",
       "Botões da linha: ficha do produto, movimentar estoque (com baixa fiscal) e histórico de alterações e movimentações.",
-      "Onde abre: cartão \"Componentes de produção\" em Produtos e estoque.",
+      "Onde abre: cartão \"Insumos\" em Produtos e estoque.",
     ],
   },
   "/teste-giga": {

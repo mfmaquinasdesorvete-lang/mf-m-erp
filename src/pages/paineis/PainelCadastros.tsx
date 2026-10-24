@@ -199,8 +199,9 @@ export default function PainelCadastros() {
           <AtalhosArea colunas="grid-cols-3" itens={[
             { rotulo: "Clientes", icone: Users, to: "/clientes", aviso: k.irregulares.length, tela: "clientes" },
             { rotulo: "Máquinas", icone: Factory, to: "/produtos/maquinas", tela: "estoque" },
-            { rotulo: "Peças de reposição", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
-            { rotulo: "Componentes", icone: Package, to: "/produtos/componentes", tela: "estoque" },
+            { rotulo: "Peças à venda", icone: Wrench, to: "/produtos/pecas", tela: "estoque" },
+            { rotulo: "Tornearia", icone: Wrench, to: "/produtos/tornearia", tela: "estoque" },
+            { rotulo: "Insumos", icone: Package, to: "/produtos/componentes", tela: "estoque" },
             { rotulo: "Fornecedores", icone: Store, to: "/fornecedores", tela: "fornecedores" },
             { rotulo: "Transportadoras", icone: Truck, to: "/transportadoras", tela: "fornecedores" },
             ...(podeVer("funcionarios") ? [{ rotulo: "Funcionários", icone: IdCard, to: "/funcionarios" }] : []),

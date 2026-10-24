@@ -20,8 +20,9 @@ export const ONDE_ABRE: Record<string, string> = {
   "/pdv": "Cartão rosa \"PDV\" no alto do menu (abre em outra aba)",
   "/painel/maquinas": "Botão \"Painel das máquinas\" na tela Máquinas",
   "/painel/produtos": "Botão \"Painel dos produtos\" em Produtos e estoque",
-  "/produtos/pecas": "Cartão \"Peças de reposição\" em Produtos e estoque",
-  "/produtos/componentes": "Cartão \"Componentes de produção\" em Produtos e estoque",
+  "/produtos/pecas": "Cartão \"Peças à venda\" em Produtos e estoque",
+  "/produtos/componentes": "Cartão \"Insumos\" em Produtos e estoque",
+  "/produtos/tornearia": "Cartão \"Tornearia (usinadas)\" em Produtos e estoque",
   "/formas-pagamento": "Engrenagem no fim do menu → Configurações",
   "/usuarios": "Engrenagem no fim do menu → Configurações",
   "/importar": "Engrenagem no fim do menu → Configurações",
@@ -93,10 +94,11 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/painel/cadastros": "Clientes novos e sumidos e a qualidade dos cadastros.",
   "/painel/maquinas": "Como estão as máquinas: quantas vendemos e de quais modelos, quanto há pronto e em montagem (e para quantos meses dá no ritmo de venda), onde estão as vendidas, garantias a vencer, preventivas atrasadas e os modelos que mais voltam para a assistência. Tocar num modelo filtra o painel inteiro.",
   "/painel/produtos": "Produtos mais vendidos, curva ABC, parados, margem e o que vai faltar.",
-  "/produtos/pecas": "Peças de reposição: o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.",
+  "/produtos/pecas": "Peças à venda (a tela que abre em Produtos e estoque): o que o cliente compra. Vão para o catálogo, os pedidos, o PDV e os anúncios, com preço, estoque em SC e SP, foto, código do fabricante e NCM.",
   "/pessoal": "Painel pessoal do dono (só o administrador): contas pessoais de banco, cartão e investimento, gastos por tipo, extrato automático e o que mostrar ao contador, separados da empresa.",
   "/licenciados": "My Frost Sorveterias (só o administrador, pelo botão rosa no fim do menu): as unidades licenciadas com endereço, contrato e arquivos, máquinas com a data da compra, quanto custou montar e o que cada uma pagou, fora da MF e do contador.",
-  "/produtos/componentes": "Componentes de produção: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta \"também vende\".",
+  "/produtos/tornearia": "Tornearia: as peças usinadas, com o marcador \"Tornearia\". A usinada que também vende aparece aqui e em Peças à venda.",
+  "/produtos/componentes": "Insumos: o que vai dentro das máquinas e não se vende avulso. Entram na ficha técnica, nas ordens de produção e nas necessidades de compra; a peça de reposição que também é usada na fábrica aparece com a etiqueta \"também vende\".",
 };
 
 /** Exemplo real que dá para abrir de dentro do ERP (o código do link vem do banco; aberto pela equipe não conta como visto). */

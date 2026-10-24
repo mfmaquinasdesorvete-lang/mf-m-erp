@@ -7,6 +7,7 @@ import { DefinirLinha } from "@/components/comissoes/LinhasProduto";
 import type { LinhaProduto } from "@/lib/comissao";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
+import { useMarcadores } from "@/components/nfe/Marcadores";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje, pl, somarDias } from "@/lib/format";
@@ -61,13 +62,15 @@ const tipos = [
 const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Peças de reposição", acessorio: "Acessórios", insumo: "Componentes de produção", servico: "Serviços" };
 
 /** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
-export type Cadastro = "maquinas" | "pecas" | "componentes" | "servicos" | "todos";
+export type Cadastro = "maquinas" | "pecas" | "tornearia" | "componentes" | "servicos" | "todos";
 const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
   { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-fixo-emerald-500 to-fixo-emerald-600",
     padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
-  { id: "pecas", titulo: "Peças de reposição", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-fixo-sky-500 to-fixo-blue-600",
+  { id: "pecas", titulo: "Peças à venda", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-fixo-sky-500 to-fixo-blue-600",
     padrao: { tipo: "peca", vendavel: true, no_catalogo: true } },
-  { id: "componentes", titulo: "Componentes de produção", ajuda: "O que vai dentro das máquinas (ficha técnica). Peça de reposição que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-fixo-orange-500 to-fixo-red-600",
+  { id: "tornearia", titulo: "Tornearia (usinadas)", ajuda: "Peças usinadas na tornearia, com o marcador \"Tornearia\". A usinada que também vende aparece aqui e em Peças à venda.", cor: "from-fixo-violet-500 to-fixo-purple-600",
+    padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
+  { id: "componentes", titulo: "Insumos", ajuda: "O que vai dentro das máquinas e é consumido na fábrica (ficha técnica). Peça à venda que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-fixo-orange-500 to-fixo-red-600",
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
   { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-fixo-teal-500 to-fixo-cyan-700",
     padrao: { tipo: "servico", vendavel: true, no_catalogo: false, unidade: "UN", ncm: "00000000", gtin_isento: true } },
@@ -126,7 +129,7 @@ async function situacaoProdutos(ids: string[], ativo: boolean) {
 }
 
 /** Rota de cada cadastro no menu (Cadastros → Máquinas, Peças de reposição, Componentes de produção). */
-export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/produtos/pecas", componentes: "/produtos/componentes", servicos: "/produtos/servicos", todos: "/estoque" };
+export const ROTA_CADASTRO: Record<Cadastro, string> = { maquinas: "/produtos/maquinas", pecas: "/estoque", tornearia: "/produtos/tornearia", componentes: "/produtos/componentes", servicos: "/produtos/servicos", todos: "/produtos/todos" };
 
 export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } = {}) {
   const { data: produtosTodos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -210,7 +213,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const { data: comps = [] } = useRows<KitComponente>("kit_componentes", { order: "kit_id" });
   const { data: fichas = [] } = useRows<{ produto_id: string; componente_id: string }>("produto_componentes", { select: "produto_id, componente_id", order: "produto_id" });
   // cada cadastro tem a sua entrada no menu; "Todos" (/estoque) mostra tudo
-  const cadastro: Cadastro = cadastroFixo ?? "todos";
+  // a tela de abertura (Produtos e estoque) é a das peças à venda
+  const cadastro: Cadastro = cadastroFixo ?? "pecas";
   const escolherCadastro = (c: Cadastro) => navigate(ROTA_CADASTRO[c]);
   const [verSugestao, setVerSugestao] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
@@ -259,18 +263,22 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   }, [pedidos3m, notas3m, produtos, atual, desde3m]);
   // componentes da ficha técnica das máquinas: são da produção (mesmo os que também vendemos como reposição)
   const naProducao = useMemo(() => new Set(fichas.map((f) => f.componente_id)), [fichas]);
+  const { data: marcadoresTodos = [] } = useMarcadores();
+  const idTornearia = useMemo(() => marcadoresTodos.find((m) => m.ativo !== false && m.nome.trim().toLowerCase() === "tornearia")?.id, [marcadoresTodos]);
   const doCadastro = useMemo(() => ({
     maquinas: (r: Produto) => r.tipo === "maquina",
     pecas: (r: Produto) => r.tipo === "peca" || r.tipo === "acessorio",
+    tornearia: (r: Produto) => !!idTornearia && (r.marcadores ?? []).includes(idTornearia),
     componentes: (r: Produto) => r.tipo === "insumo" || (r.tipo !== "maquina" && r.tipo !== "servico" && naProducao.has(r.id)),
     servicos: (r: Produto) => r.tipo === "servico",
     // as máquinas têm tela própria (Máquinas): ficam fora de "Todos"
     todos: (r: Produto) => r.tipo !== "maquina",
-  }), [naProducao]);
-  const contagens = useMemo(() => Object.fromEntries((Object.keys(doCadastro) as Cadastro[]).map((c) => [c, produtos.filter(doCadastro[c]).length])) as Record<Cadastro, number>,
-    [produtos, doCadastro]);
+  }), [naProducao, idTornearia]);
   const contagem = (c: Cadastro) => contagens[c];
   const [verInativos, setVerInativos] = useState(false);
+  // a contagem da aba é do que a lista mostra (sem os inativos, a não ser que se peça para vê-los)
+  const contagens = useMemo(() => Object.fromEntries((Object.keys(doCadastro) as Cadastro[]).map((c) => [c, produtos.filter((p) => doCadastro[c](p) && (verInativos || p.ativo !== false)).length])) as Record<Cadastro, number>,
+    [produtos, doCadastro, verInativos]);
   const inativos = produtos.filter((p) => doCadastro[cadastro](p) && p.ativo === false).length;
   const ehMaquinas = cadastro === "maquinas";
   const atualCad = CADASTROS.find((c) => c.id === cadastro)!;
