@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Copy, MessageCircle, Settings2, SkipForward } from "lucide-react";
+import { ChevronRight, Copy, HeartHandshake, MessageCircle, Settings2, SkipForward } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
@@ -73,44 +73,55 @@ export function Cobranca({ contas: todas }: { contas: ContaR[] }) {
     invalidate("cobranca_envios", "contatos_cliente", "ficha_cliente");
   }
 
+  // obrigado pelo pagamento (conta paga) num quadro à parte: não é cobrança (pedido de 24/10)
+  const cobrar = fila.filter((f) => f.conta.status !== "pago");
+  const agradecer = fila.filter((f) => f.conta.status === "pago");
+  const linha = ({ conta: c, etapa: e, data }: (typeof fila)[number]) => {
+    const texto = mensagem(c, e);
+    const zap = c.cliente?.whatsapp || c.cliente?.telefone;
+    const pago = c.status === "pago";
+    return (
+      <li key={c.id + e.id} className="flex flex-wrap items-center gap-3 py-2.5">
+        <div className="min-w-48 flex-1">
+          <div className="font-medium">{c.cliente?.nome_fantasia?.trim() || c.cliente?.nome || "—"}
+            {pago && <span className="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-800">pago</span>}</div>
+          <div className="text-xs text-slate-500">{c.descricao} · {brl(pago ? c.valor_pago ?? c.valor : c.valor)} · {pago ? `pago em ${dataBR(c.data_pagamento ?? "")}` : `vence ${dataBR(c.vencimento)}`}</div>
+          <div className="text-xs font-semibold text-slate-600">{e.nome}{data < dia && <span className="text-amber-700"> · era para {dataBR(data)}</span>}</div>
+        </div>
+        <div className="flex gap-1">
+          <Button variant="ghost" title="Copiar a mensagem" onClick={() => navigator.clipboard.writeText(texto).then(() => notify("Mensagem copiada"))}><Copy size={15} /></Button>
+          <Button variant="ghost" title="Pular esta etapa para esta conta" onClick={() => registrar(c, e, "pulado")}><SkipForward size={15} /></Button>
+          {zap ? (
+            <a href={whatsappLink(zap, texto)} target="_blank" rel="noreferrer" onClick={() => registrar(c, e, "enviado")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-solido-verde px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
+              <MessageCircle size={15} /> Enviar
+            </a>
+          ) : <span className="text-xs text-red-700">cliente sem WhatsApp</span>}
+        </div>
+      </li>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <PainelCobranca contas={contasPainel} sit={sit} />
 
       <Card className="p-4">
-        <h2 className="mb-1 flex items-center gap-2 font-bold"><MessageCircle size={18} className="text-emerald-600" /> Mandar hoje pelo WhatsApp ({fila.length})</h2>
+        <h2 className="mb-1 flex items-center gap-2 font-bold"><MessageCircle size={18} className="text-emerald-600" /> Cobrar hoje pelo WhatsApp ({cobrar.length})</h2>
         <p className="mb-3 text-sm text-slate-600">{wa?.ativo
           ? <>As etapas com modelo aprovado saem sozinhas pelo WhatsApp oficial. Aqui ficam só as que precisam de você (modelo ainda não aprovado). Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta.</>
-          : <>Etapas da régua com WhatsApp ligado. Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta (com Pix) e a cobrança fica registrada na ficha do cliente.</>}</p>
+          : <>Contas em aberto, nas etapas da régua com WhatsApp ligado. Toque em <b>Enviar</b>: abre a conversa com a mensagem pronta (com Pix) e a cobrança fica registrada na ficha do cliente.</>}</p>
         {semPix.length > 0 && <p className="mb-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Sem chave Pix em {semPix.map((u) => u.nome).join(", ")}: cadastre em Configurações → Unidades para a mensagem levar o Pix copia e cola.</p>}
-        {!fila.length ? <p className="text-sm text-slate-500">Nada para mandar hoje. 🎉</p> : (
-          <ul className="divide-y divide-slate-100">
-            {fila.map(({ conta: c, etapa: e, data }) => {
-              const texto = mensagem(c, e);
-              const zap = c.cliente?.whatsapp || c.cliente?.telefone;
-              return (
-                <li key={c.id + e.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                  <div className="min-w-48 flex-1">
-                    <div className="font-medium">{c.cliente?.nome_fantasia?.trim() || c.cliente?.nome || "—"}</div>
-                    <div className="text-xs text-slate-500">{c.descricao} · {brl(c.status === "pago" ? c.valor_pago ?? c.valor : c.valor)} · vence {dataBR(c.vencimento)}</div>
-                    <div className="text-xs font-semibold text-slate-600">{e.nome}{data < dia && <span className="text-amber-700"> · era para {dataBR(data)}</span>}</div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" title="Copiar a mensagem" onClick={() => navigator.clipboard.writeText(texto).then(() => notify("Mensagem copiada"))}><Copy size={15} /></Button>
-                    <Button variant="ghost" title="Pular esta etapa para esta conta" onClick={() => registrar(c, e, "pulado")}><SkipForward size={15} /></Button>
-                    {zap ? (
-                      <a href={whatsappLink(zap, texto)} target="_blank" rel="noreferrer" onClick={() => registrar(c, e, "enviado")}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-solido-verde px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
-                        <MessageCircle size={15} /> Enviar
-                      </a>
-                    ) : <span className="text-xs text-red-700">cliente sem WhatsApp</span>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        {!cobrar.length ? <p className="text-sm text-slate-500">Nada para cobrar hoje. 🎉</p> : <ul className="divide-y divide-slate-100">{cobrar.map(linha)}</ul>}
       </Card>
+
+      {agradecer.length > 0 && (
+        <Card className="p-4">
+          <h2 className="mb-1 flex items-center gap-2 font-bold"><HeartHandshake size={18} className="text-emerald-600" /> Agradecer pagamento ({agradecer.length})</h2>
+          <p className="mb-3 text-sm text-slate-600">Clientes que já pagaram: não é cobrança, é a mensagem de obrigado (etapa da régua no pagamento).</p>
+          <ul className="divide-y divide-slate-100">{agradecer.map(linha)}</ul>
+        </Card>
+      )}
 
       <MensagensWhatsapp />
 
