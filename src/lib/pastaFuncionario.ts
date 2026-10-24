@@ -6,6 +6,7 @@ export const PASTAS = [
   { value: "ferias", label: "Férias", dica: "Aviso e recibo de férias" },
   { value: "holerites", label: "Holerites", dica: "Recibos de pagamento do mês" },
   { value: "atestados", label: "Atestados", dica: "Atestados médicos e declarações" },
+  { value: "ponto", label: "Ponto", dica: "Folha de ponto do mês" },
   { value: "outros", label: "Outros", dica: "Documentos pessoais, certificados e o que mais precisar" },
 ] as const;
 export type Pasta = (typeof PASTAS)[number]["value"];

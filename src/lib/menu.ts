@@ -130,6 +130,7 @@ export const grupos: Grupo[] = [
       { to: "/funcionarios", tela: "funcionarios", label: "Equipe", curto: "Equipe", icon: IdCard, busca: "funcionário funcionários rh equipe colaborador salário folha admissão desligamento experiência técnico cargo setor aniversariante foto" },
       { to: "/funcionarios-pasta", tela: "funcionarios", label: "Pasta de documentos", curto: "Pasta", icon: FolderOpen, busca: "funcionário rh pasta documentos contrato exame aso férias holerite recibo atestado arquivo" },
       { to: "/funcionarios-admissao", tela: "funcionarios", label: "Admissão e saída", curto: "Admissão", icon: ClipboardCheck, busca: "funcionário rh admissão admissional desligamento demissão saída rescisão pendência falta documento cpf pis ctps aso" },
+      { to: "/funcionarios-ferias", tela: "funcionarios", label: "Férias e ponto", curto: "Férias", icon: CalendarClock, busca: "funcionário rh férias ferias período aquisitivo concessivo vencida vencendo abono vender dias ponto folha de ponto horas" },
       { to: "/funcionarios-pagamentos", tela: "funcionarios", label: "Pagamentos da equipe", curto: "Pagos", icon: HandCoins, busca: "funcionário rh pagamento pagamentos salário pix extrato" },
     ],
   },

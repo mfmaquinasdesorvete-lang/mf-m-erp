@@ -23,6 +23,7 @@ import { PastaFuncionario } from "@/components/funcionarios/PastaFuncionario";
 import { GRUPOS_EQUIPE, contarGrupos, noGrupo, type GrupoEquipe } from "@/lib/grupoFuncionarios";
 import { PastaDaEquipe } from "@/components/funcionarios/PastaDaEquipe";
 import { AdmissaoSaida } from "@/components/funcionarios/AdmissaoSaida";
+import { FeriasEquipe } from "@/components/funcionarios/FeriasEquipe";
 
 // pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
 const ImpostosTarifas = lazy(() => import("./ImpostosTarifas"));
@@ -104,8 +105,8 @@ const VISUAL_GRUPO: Record<GrupoEquipe, { icon: typeof Users; cor: "azul" | "neu
   sem_carteira: { icon: Users, cor: "ambar" }, inss: { icon: HeartPulse, cor: "vermelho" },
 };
 
-export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "pagamentos";
-export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", pagamentos: "/funcionarios-pagamentos" };
+export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "ferias" | "pagamentos";
+export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", ferias: "/funcionarios-ferias", pagamentos: "/funcionarios-pagamentos" };
 
 export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios }) {
   const { papel, pode } = usePerfil();
@@ -200,9 +201,10 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   // link antigo (?aba=pagamentos) vai para a tela nova
   if (params.get("aba") === "pagamentos") return <Navigate to={ROTA_FUNCIONARIOS.pagamentos} replace />;
   const abas = <Tabs value={aba} onChange={(v) => navegar(ROTA_FUNCIONARIOS[v])}
-    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "pagamentos", label: "Pagamentos" }]} />;
+    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "ferias", label: "Férias e ponto" }, { value: "pagamentos", label: "Pagamentos" }]} />;
   if (aba === "pasta") return <div>{abas}<PastaDaEquipe lista={lista} /></div>;
   if (aba === "admissao") return <div>{abas}<AdmissaoSaida lista={lista} /></div>;
+  if (aba === "ferias") return <div>{abas}<FeriasEquipe lista={lista} /></div>;
   if (aba === "pagamentos") return (
     <div>
       {abas}

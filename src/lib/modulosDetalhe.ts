@@ -1393,7 +1393,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     destaque: "A pasta de cada funcionário, com tudo guardado e separado.",
     partes: [
       "Quadro da equipe: cada pessoa numa linha e quantos documentos ela tem em cada divisão.",
-      "Divisões: contrato, exames, férias, holerites, atestados e outros.",
+      "Divisões: contrato, exames, férias, holerites, atestados, ponto e outros.",
       "Sem contrato: avisa quantas pessoas da equipe ainda não têm o contrato guardado.",
       "Abrir a pasta: clicar na pessoa mostra as divisões dela para guardar, abrir ou apagar arquivos.",
       "Guardar: arrastar o arquivo para a divisão ou usar Guardar (PDF, fotos, planilhas; até 20 MB cada).",
@@ -1413,6 +1413,19 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Saída (desligados): data de saída, motivo e documentos de saída na pasta.",
       "Só quem tem pendência: mostra primeiro quem tem mais coisas faltando; desmarque para ver todos.",
       "Completar: na ficha da pessoa (Equipe) ou guardando o documento na Pasta de documentos.",
+    ],
+  },
+  "/funcionarios-ferias": {
+    tags: ["RH", "FÉRIAS", "PONTO"],
+    destaque: "As férias de cada um em dia e a folha de ponto guardada.",
+    partes: [
+      "Quem aparece: quem tem carteira assinada (CLT, experiência, estágio, aprendiz, temporário); desligados com Mostrar desligados.",
+      "Períodos: a cada 12 meses de casa, 30 dias de férias para tirar nos 12 meses seguintes.",
+      "Situação de cada período: em aquisição, a tirar, vence logo (até 60 dias do limite), vencida ou tirada.",
+      "Primeiro da lista: quem tem o limite mais perto.",
+      "Lançar férias: período, início, dias de férias e dias vendidos (até 10), sem passar do saldo; mostra a volta ao trabalho.",
+      "Apagar: tira as férias lançadas por engano, depois de confirmar.",
+      "Ponto: a folha de ponto do mês fica na divisão Ponto da Pasta de documentos.",
     ],
   },
   "/funcionarios-pagamentos": {
