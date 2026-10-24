@@ -26,6 +26,8 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   `supabase/functions/_shared/ia-titulos.ts`, tabela `ia_pareceres_pagar` (só a função grava; financeiro lê).
 - Resumo de documentos (anexos → ✨ Resumir com IA): `src/components/ResumoDocumento.tsx`, `supabase/functions/ia-resumo`,
   `supabase/functions/_shared/ia-resumo.ts`, tabela `ia_resumos_documentos`.
+- Busca nos documentos (Documentos → "Achar pelo assunto"): `src/components/BuscaDocumentosIA.tsx`,
+  `supabase/functions/ia-busca-docs`, `supabase/functions/_shared/ia-busca-docs.ts` (usa os resumos de `ia_resumos_documentos`).
 - Controle das IAs: Configurações → Inteligência artificial `src/components/config/Ia.tsx`;
   `configuracoes.ia_ligada`, tabela `ia_registros`, `supabase/functions/_shared/ia-controle.ts`.
 

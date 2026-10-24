@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { ChevronRight, FileCheck2, FileText, FolderOpen, Info, KeyRound, Landmark, Paperclip, ReceiptText, ShieldCheck, Trash2, Upload, type LucideIcon } from "lucide-react";
 import { Button, Card, Modal, PageHeader, Table, Tabs } from "@/components/ui";
 import { BotaoResumir } from "@/components/ResumoDocumento";
+import { BuscaDocumentosIA } from "@/components/BuscaDocumentosIA";
 import { Anexos, ENTIDADES, IconeArquivo, abrirDocumento, apagarDocumento, enviarDocumentos, tamanhoArquivo, type Documento } from "@/components/Anexos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl, somarDias } from "@/lib/format";
@@ -185,6 +186,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
           )}
         </Quadro>
 
+        <BuscaDocumentosIA docs={docs} />
         <TodosOsAnexos docs={docs} carregando={isLoading} podeApagar={podeApagar} />
       </div>
 
