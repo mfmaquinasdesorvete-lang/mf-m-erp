@@ -841,6 +841,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem usa: o perfil Compras abre direto aqui; financeiro e administrador também; o técnico pede peças; receber: Compras e financeiro.",
     ],
   },
+  "/acompanhamento-compras": {
+    tags: ["COMPRAS", "OC", "NF-E", "TRANSPORTE"],
+    destaque: "Cada peça pedida: ordem de compra, nota, transporte e chegada.",
+    partes: [
+      "Uma linha por peça pedida, com as etapas lado a lado: ordem de compra, nota fiscal, transporte e chegada (verde = feito, amarelo = agora, vermelho = atrasado).",
+      "Cartões no topo que filtram a lista: em cotação, pedidas sem nota, nota emitida, em transporte, atrasadas e as que chegaram nos últimos 30 dias.",
+      "Transporte pelo CT-e da transportadora (ocorrência e previsão de entrega) ou pela nota marcada a caminho; sem CT-e, vale a previsão da OC.",
+      "Aviso quando o fornecedor já emitiu uma nota que ainda não foi ligada à OC.",
+      "Tocar na linha abre a ordem de compra em Compras.",
+      "Busca por peça, código, fornecedor, número da OC ou da nota; quem é técnico vê a lista sem os valores.",
+    ],
+  },
   "/transferencias": {
     tags: ["TRANSFERÊNCIA", "NF-E", "SC ↔ SP"],
     destaque: "Mande máquinas e peças entre SC e SP com nota e estoque certos.",

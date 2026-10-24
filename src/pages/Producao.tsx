@@ -68,6 +68,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
   const verCompras = pode("editar_producao") || pode("receber_compras");
   const [aba, setAba] = useAbaUrl<Aba>(ABAS_DA_AREA[area][0], ABAS_DA_AREA[area]);
   const [novaCompra, setNovaCompra] = useState(false);
+  const [abrirOc, setAbrirOc] = useState<string | null>(null);
   // OP pedida de fora (app da produção no celular: "Concluir"): abre a janela dela
   const [abrirOp, setAbrirOp] = useState<string | null>(null);
   // aba da outra tela (link antigo "/producao?aba=compras", aviso de cotação respondida…): vai para a tela certa
@@ -88,6 +89,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
       return;
     }
     if (st?.novaCompra) setNovaCompra(true);
+    if (st?.abrirOc) setAbrirOc(st.abrirOc);
     if (st?.abrirOp) { setAbrirOp(st.abrirOp); if (aba !== "producao") setAba("producao"); }
     if (st) navigate({ pathname: location.pathname, search: st.aba ? buscaDaAba(st.aba, ABAS_DA_AREA[area][0]) : location.search }, { replace: true, state: null });
   }, [location.state, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -111,7 +113,7 @@ export default function Producao({ area = "producao" }: { area?: Area } = {}) {
         aoCotar={(itens) => { setCotarItens(itens); setAba("cotacoes"); }} />}
       {aba === "cotacoes" && verCompras && <Cotacoes podeEditar={pode("editar_producao")} inicial={cotarItens}
         aoGerarPedidos={() => { setCotarItens(null); setAba("compras"); }} />}
-      {aba === "compras" && verCompras && <PedidosCompra abrirNovo={novaCompra} onAberto={() => setNovaCompra(false)} />}
+      {aba === "compras" && verCompras && <PedidosCompra abrirNovo={novaCompra} onAberto={() => setNovaCompra(false)} abrirId={abrirOc} onAbertaId={() => setAbrirOc(null)} />}
       {aba === "ficha" && <FichaTecnica />}
     </div>
   );
@@ -615,7 +617,7 @@ function OPModal({ inicial, onClose, irParaCompras }: { inicial: Partial<OrdemPr
 
 /* ============================== Pedidos de compra ============================== */
 
-function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: () => void }) {
+function PedidosCompra({ abrirNovo, onAberto, abrirId, onAbertaId }: { abrirNovo: boolean; onAberto: () => void; abrirId?: string | null; onAbertaId?: () => void }) {
   const { data: cfgTextos } = useConfig();
   // OC nova feita à mão: já vem com as observações padrão (Configurações → Textos dos documentos)
   const novaOC = () => ({ status: "cotacao", frete: 0, itens: [], observacoes: textoPadrao(cfgTextos, "oc_observacoes") || null });
@@ -646,6 +648,11 @@ function PedidosCompra({ abrirNovo, onAberto }: { abrirNovo: boolean; onAberto: 
     return s ? [{ id: p.id, etapa: s.etapa, nivel: s.nivel, alerta: s.alerta, desde: s.desde, valor: Number(p.valor_total || 0), p, s }] : [];
   }), [pcs, periodoOc]); // eslint-disable-line react-hooks/exhaustive-deps
   const abrirOC = (p: PedidoCompra) => setAberto({ ...p, itens: p.itens ?? [] });
+  // vindo do Acompanhamento de compras: abre a OC tocada
+  useEffect(() => {
+    const p = abrirId ? pcsTodos.find((x) => x.id === abrirId) : null;
+    if (p) { abrirOC(p); onAbertaId?.(); }
+  }, [abrirId, pcsTodos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // marcar várias OC na lista e lançar as contas de todas de uma vez
   const selecao = useSelecao();

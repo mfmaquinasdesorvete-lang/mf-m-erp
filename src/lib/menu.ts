@@ -84,6 +84,7 @@ export const grupos: Grupo[] = [
       { to: "/painel/producao", tela: "producao", label: "Painel da fábrica", curto: "Painel", icon: LayoutDashboard, busca: "dashboard indicadores gráficos produção estoque mínimo peça faltando compras" },
       { to: "/estoque", tela: "estoque", label: "Produtos e estoque", curto: "Produtos", icon: Boxes, busca: "produto máquina peça de reposição componente insumo inventário ncm categoria kit contagem estoque painel das máquinas painel dos produtos" },
       { to: "/compras", tela: "producao", label: "Compras e cotações", curto: "Compras", icon: ShoppingBag, busca: "pedido de compra ordem de compra oc cotação fornecedor reposição de estoque necessidades de compra estoque virtual mínimo máximo whatsapp sc sp" },
+      { to: "/acompanhamento-compras", tela: "producao", label: "Acompanhamento de compras", curto: "Chegando", icon: Truck, busca: "pedido de peças peça pedida ordem de compra oc nota do fornecedor transporte transportadora ct-e rastreio a caminho chegou atrasada" },
       { to: "/transferencias", tela: "estoque", label: "Transferências SC ↔ SP", curto: "Transf.", icon: ArrowLeftRight, busca: "matriz filial" },
     ],
   },

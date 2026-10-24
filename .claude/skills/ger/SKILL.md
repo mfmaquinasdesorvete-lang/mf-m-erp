@@ -84,3 +84,8 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   total = nota com impostos/frete em outras despesas, sem estoque nem contas) e 165 notas ligadas às OC do Tiny (96 com
   o marcador "Comprado por valor divergente"). Item de OC pode ficar sem produto (`produto_id` nulo, chip "sem
   cadastro", `codigo_fornecedor` guardado): quem soma itens de OC por produto precisa ignorar os sem produto.
+- Acompanhamento de compras (Fábrica e estoque → /acompanhamento-compras, 24/10): uma linha por item de OC, etapas
+  cotação → pedida → nota emitida → em transporte → chegou, pela função `acompanhamento_compras(p_dias)` (nota = só as
+  ligadas em `nfe_oc_vinculos`; transporte = CT-e mais novo que cita a nota por `nfe_recebida_id` ou `nfe_chaves`).
+  Regra das etapas em `src/lib/acompanhamentoCompras.ts` (com teste). Nota do fornecedor sem OC aparece como "ligue na
+  OC": a peça só passa de "pedida" quando a nota está ligada. A linha abre a OC em Compras (`state.abrirOc`).

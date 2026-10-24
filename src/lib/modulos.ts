@@ -61,6 +61,7 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/teste-giga": "Registro de qualidade REG-006: teste de cada máquina na bancada, com histórico e reteste.",
   "/producao": "Ordens de produção planejadas, em produção, prontas e atrasadas, com as peças que faltam.",
   "/compras": "Pedidos de compra, cotações por e-mail com resposta online, necessidades de compra e reposição para SC ou SP.",
+  "/acompanhamento-compras": "Onde está cada peça pedida: ordem de compra, nota do fornecedor, transporte e chegada.",
   "/transferencias": "Transferência de estoque entre a matriz (SC) e a filial (SP), com a NF-e de transferência.",
   "/painel/financeiro": "Quanto tem, quanto entra e quanto sai: saldos, contas da semana, inadimplência e despesas por categoria.",
   "/financeiro": "Contas a pagar e a receber, contas fixas, recibos, boletos, régua de cobrança, plano de contas e DRE.",
