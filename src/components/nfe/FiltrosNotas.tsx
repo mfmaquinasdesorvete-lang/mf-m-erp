@@ -108,15 +108,15 @@ export function CartoesNotas({ notas, ativo, periodo, tipo }: {
   const atencao = notas.filter((x) => ["erro", "denegada", "processando", "contingencia", "pendente", "aguardando_vinculo", "revisao"].includes(x.situacao)).length;
   const quando = periodo.de && periodo.ate ? (periodo.de.slice(0, 7) === periodo.ate.slice(0, 7) && periodo.de.endsWith("-01") ? nomeDoMes(periodo.de) : `${dataCurta(periodo.de)} a ${dataCurta(periodo.ate)}`) : "todas as datas";
   const cards: [string, string, string, string][] = [
-    [tipo === "emitidas" ? "Notas emitidas" : "Notas recebidas", String(notas.length), quando, "from-sky-500/15 to-sky-500/5 text-sky-700"],
-    [soVendas ? "Vendas" : "Valor", brl(total), soVendas && outras > 0.005 ? `+ ${brl(outras)} em transferências, remessas e devoluções` : semCanceladas, "from-emerald-500/15 to-emerald-500/5 text-emerald-700"],
-    ["Ticket médio", deVenda.length ? brl(total / deVenda.length) : "—", `${deVenda.length} ${soVendas ? pl(deVenda.length, "nota de venda", "notas de venda") : pl(deVenda.length, "nota válida", "notas válidas")}`, "from-violet-500/15 to-violet-500/5 text-violet-700"],
-    ["Pedem atenção", String(atencao), atencao ? (tipo === "emitidas" ? "rejeitadas, na fila ou processando" : "conferir ou vincular produto") : "tudo certo", atencao ? "from-red-500/15 to-red-500/5 text-red-700" : "from-slate-500/10 to-slate-500/5 text-slate-500"],
+    [tipo === "emitidas" ? "Notas emitidas" : "Notas recebidas", String(notas.length), quando, "bg-sky-500/10 text-sky-700"],
+    [soVendas ? "Vendas" : "Valor", brl(total), soVendas && outras > 0.005 ? `+ ${brl(outras)} em transferências, remessas e devoluções` : semCanceladas, "bg-emerald-500/10 text-emerald-700"],
+    ["Ticket médio", deVenda.length ? brl(total / deVenda.length) : "—", `${deVenda.length} ${soVendas ? pl(deVenda.length, "nota de venda", "notas de venda") : pl(deVenda.length, "nota válida", "notas válidas")}`, "bg-violet-500/10 text-violet-700"],
+    ["Pedem atenção", String(atencao), atencao ? (tipo === "emitidas" ? "rejeitadas, na fila ou processando" : "conferir ou vincular produto") : "tudo certo", atencao ? "bg-red-500/10 text-red-700" : "bg-slate-500/10 text-slate-500"],
   ];
   return (
     <div className="mb-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
       {cards.map(([rot, valor, sub, cor]) => (
-        <div key={rot} className={`rounded-2xl border border-slate-200 bg-gradient-to-br p-3 ${cor}`}>
+        <div key={rot} className={`rounded-2xl border border-slate-200 p-3 ${cor}`}>
           <p className="text-2xs font-semibold uppercase opacity-80">{rot}</p>
           <p className="num text-xl font-bold text-fg">{valor}</p>
           <p className="truncate text-2xs opacity-80">{sub}</p>

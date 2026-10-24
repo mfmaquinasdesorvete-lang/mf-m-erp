@@ -108,26 +108,27 @@ export const PASSOS_PAGAR: {
 }[] = [
   { id: "decidir", passo: "1", rotulo: "A decidir", cor: "#f97316", dica: "Aprovar (quando pede) e escolher: pagar, agendar ou não pagar",
     explica: "Conta nova ou sem dia marcado. A aprovação vem junto.", fazer: "Aprovar e decidir",
-    fundo: "linear-gradient(135deg,#fdba74 0%,#fb923c 50%,#f97316 100%)", tinta: "#431407", corpo: "bg-orange-50/60" },
+    fundo: "#fb923c", tinta: "#431407", corpo: "bg-orange-50/60" },
   { id: "programadas", passo: "2", rotulo: "Programadas", cor: "#2563eb", dica: "Aprovadas para um dia que ainda não chegou",
     explica: "Aprovadas e com o dia do pagamento marcado.", fazer: "Esperar o dia",
-    fundo: "linear-gradient(135deg,#2563eb 0%,#1d4ed8 60%,#1e40af 100%)", tinta: "#ffffff", corpo: "bg-blue-50/60" },
+    fundo: "#1d4ed8", tinta: "#ffffff", corpo: "bg-blue-50/60" },
   { id: "hoje", passo: "2.1", rotulo: "Pagar hoje", cor: "#facc15", dica: "O dia chegou: pagar e registrar o pagamento",
     explica: "O dia de pagar é hoje.", fazer: "Pagar e registrar",
-    fundo: "linear-gradient(135deg,#fef08a 0%,#fde047 50%,#facc15 100%)", tinta: "#422006", corpo: "bg-amber-50/60" },
+    fundo: "#fde047", tinta: "#422006", corpo: "bg-amber-50/60" },
   { id: "atrasadas", passo: "2.2", rotulo: "Atrasadas", cor: "#dc2626", dica: "O dia programado passou e o pagamento não foi registrado",
     explica: "O dia programado passou e ninguém registrou o pagamento.", fazer: "Pagar ou mudar o dia",
-    fundo: "linear-gradient(135deg,#dc2626 0%,#b91c1c 60%,#991b1b 100%)", tinta: "#ffffff", corpo: "bg-red-50/60" },
+    fundo: "#b91c1c", tinta: "#ffffff", corpo: "bg-red-50/60" },
   { id: "nao_pagar", passo: "2.3", rotulo: "Não pagar", cor: "#3b0764", dica: "Seguradas com motivo, ou fornecedor marcado como golpe",
     explica: "Seguradas com motivo, ou fornecedor golpe.", fazer: "Retomar quando resolver",
-    fundo: "linear-gradient(135deg,#581c87 0%,#4c1d95 50%,#3b0764 100%)", tinta: "#ffffff", corpo: "bg-purple-50/60" },
+    fundo: "#4c1d95", tinta: "#ffffff", corpo: "bg-purple-50/60" },
   { id: "pagas", passo: "3", rotulo: "Pagas", cor: "#22c55e", dica: "Pagamento registrado",
     explica: "Pagamento registrado (no quadro, os últimos 30 dias).", fazer: "Recibo no cartão",
-    fundo: "linear-gradient(135deg,#86efac 0%,#4ade80 45%,#22c55e 100%)", tinta: "#052e16", corpo: "bg-emerald-50/60" },
+    fundo: "#4ade80", tinta: "#052e16", corpo: "bg-emerald-50/60" },
 ];
 
 /** Renegociadas: turquesa + laranja */
-export const COR_RENEGOCIADA = { fundo: "linear-gradient(135deg,#2dd4bf 0%,#14b8a6 55%,#fb923c 100%)", tinta: "#042f2e" };
+// cores lisas (24/10, diretrizes de design: sem degradê)
+export const COR_RENEGOCIADA = { fundo: "#14b8a6", tinta: "#042f2e" };
 
 export const VISOES_PAGAR: { v: VisaoPagar; rotulo: string }[] = [
   ...PASSOS_PAGAR.map((p) => ({ v: p.id, rotulo: `${p.passo} · ${p.rotulo}` })),

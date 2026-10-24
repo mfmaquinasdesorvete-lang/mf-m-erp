@@ -71,12 +71,12 @@ export function PainelConfig() {
 
   const grupos = [...new Set(SECOES.map((s) => s.grupo))];
   const outras = [
-    { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "from-fixo-slate-500 to-fixo-slate-700" },
-    { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "from-fixo-sky-500 to-fixo-blue-600" },
-    { to: "/implantacao", tela: "implantacao" as const, titulo: "Troca do Tiny", resumo: "Etapas, prazos e uso do ERP na virada do Tiny para o ERP Line", icone: ClipboardCheck, cor: "from-fixo-teal-500 to-fixo-teal-700" },
-    { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "from-fixo-amber-500 to-fixo-amber-700" },
+    { to: "/usuarios", tela: "usuarios" as const, titulo: "Usuários e permissões", resumo: "Quem entra no ERP, o papel de cada um e o que cada perfil vê", icone: UserCog, cor: "bg-fixo-slate-700" },
+    { to: "/importar", tela: "importar" as const, titulo: "Importar dados", resumo: "Tiny, planilhas, XML de notas, extrato do banco e base da My Frost num lugar só", icone: Upload, cor: "bg-fixo-blue-600" },
+    { to: "/implantacao", tela: "implantacao" as const, titulo: "Troca do Tiny", resumo: "Etapas, prazos e uso do ERP na virada do Tiny para o ERP Line", icone: ClipboardCheck, cor: "bg-fixo-teal-700" },
+    { to: "/formas-pagamento", tela: "financeiro" as const, titulo: "Formas de pagamento", resumo: "Pix, boleto, cartão: parcelas, prazo e taxa de cada uma", icone: CreditCard, cor: "bg-fixo-amber-700" },
     // saiu do Início do menu (é mais de uso pessoal): fica aqui e na busca do menu
-    { to: "/documentos", tela: "documentos" as const, titulo: "Documentos (Docs)", resumo: "Os anexos de pedidos, OS, clientes, fornecedores, contas e produtos num lugar só", icone: Paperclip, cor: "from-fixo-indigo-500 to-fixo-indigo-700" },
+    { to: "/documentos", tela: "documentos" as const, titulo: "Documentos (Docs)", resumo: "Os anexos de pedidos, OS, clientes, fornecedores, contas e produtos num lugar só", icone: Paperclip, cor: "bg-fixo-indigo-700" },
   ].filter((o) => vis.ve(o.tela, o.to));
   return (
     <div className="max-w-6xl">
@@ -99,7 +99,7 @@ export function PainelConfig() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {outras.map((o) => (
                 <Link key={o.to} to={o.to} className="cartao group flex gap-3 p-4 transition hover:-translate-y-0.5 hover:border-brand">
-                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${o.cor} text-white shadow-card`} aria-hidden><o.icone size={22} /></span>
+                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${o.cor} text-white shadow-card`} aria-hidden><o.icone size={22} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2 font-semibold text-fg">{o.titulo}<ChevronRight size={16} className="shrink-0 text-slate-400 group-hover:text-brand" aria-hidden /></span>
                     <span className="block text-sm text-slate-500">{o.resumo}</span>

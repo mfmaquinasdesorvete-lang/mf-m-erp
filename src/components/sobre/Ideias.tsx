@@ -204,7 +204,7 @@ function AnotarRapido({ onDetalhes }: { onDetalhes: (inicial: InicialItem) => vo
   return (
     <Card className="p-4 sm:p-5">
       <form onSubmit={anotar} className="flex flex-wrap items-center gap-2">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm" aria-hidden><Sparkles size={19} /></span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-fixo-orange-500 text-white shadow-sm" aria-hidden><Sparkles size={19} /></span>
         <input className="input h-10 min-w-0 flex-1 basis-60" value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={160}
           placeholder="Anote uma ideia para o ERP (ex.: avisar o cliente quando a máquina sair do conserto)" aria-label="Nova ideia" />
         <select className="input h-10 w-auto" aria-label="Área da ideia" value={area} onChange={(e) => setArea(e.target.value)}>

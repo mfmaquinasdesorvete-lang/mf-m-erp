@@ -59,7 +59,7 @@ export function PaginasPorLink({ filtro }: { filtro: (p: (typeof PAGINAS_POR_LIN
   return (
     <Card className="min-w-0 p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fixo-sky-500 to-fixo-cyan-700 text-white shadow-sm" aria-hidden><ExternalLink size={19} /></span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-fixo-cyan-700 text-white shadow-sm" aria-hidden><ExternalLink size={19} /></span>
         <div className="min-w-0">
           <h2 className="text-base font-bold text-fg">Páginas por link</h2>
           <p className="text-sm text-slate-600">

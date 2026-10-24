@@ -97,7 +97,7 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
   const urlSessao = (s: string) => (/^session_[A-Za-z0-9]+$/.test(s) ? `https://claude.ai/code/${s}` : null);
 
   return (
-    <div className="overflow-hidden rounded-2xl text-fixo-slate-200 shadow-pop" style={{ background: "radial-gradient(120% 90% at 50% 0%, #1e1b4b 0%, #0b1020 55%, #05070f 100%)" }}>
+    <div className="overflow-hidden rounded-2xl text-fixo-slate-200 shadow-pop" style={{ background: "#1e1b4b" }}>
       <style>{`
         @keyframes cc-pulso { 0%,100% { opacity: .35; transform: scale(1) } 50% { opacity: .9; transform: scale(1.35) } }
         @keyframes cc-fluxo { to { stroke-dashoffset: -24 } }
@@ -205,7 +205,7 @@ export function CentralChats({ chats }: { chats: ChatCentral[] }) {
             const pb = sel.minhas.filter((y) => noPeriodo(y.inicio));
             const url = urlSessao(sel.c.sessao);
             return (
-              <section aria-live="polite" className="rounded-2xl border p-4" style={{ borderColor: `${cor}66`, background: `linear-gradient(140deg, ${cor}26, transparent 70%)` }}>
+              <section aria-live="polite" className="rounded-2xl border p-4" style={{ borderColor: `${cor}66`, background: `${cor}1a` }}>
                 <div className="flex items-start gap-3">
                   <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: cor, boxShadow: `0 0 12px ${cor}` }} aria-hidden />
                   <div className="min-w-0 flex-1">

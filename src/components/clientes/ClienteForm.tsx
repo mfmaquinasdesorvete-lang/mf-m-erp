@@ -438,7 +438,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
           </div>
         ) : (<>
           {/* topo: a pergunta do passo e a trilha */}
-          <div className="bg-gradient-to-br from-ink via-ink-soft to-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
+          <div className="bg-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <div className="text-2xs font-semibold uppercase tracking-wider text-sky-200">Novo cliente · passo {n + 1} de {PASSOS.length}</div>
@@ -678,9 +678,9 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
       role="dialog" aria-modal="true" aria-label={c.id ? `Cadastro de ${nomeTopo}` : "Novo cliente"}>
       <div className="flex min-h-full w-full max-w-5xl flex-col bg-canvas shadow-pop sm:min-h-0 sm:rounded-2xl">
         {/* topo: quem é + quanto falta */}
-        <div className="bg-gradient-to-br from-ink via-ink-soft to-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
+        <div className="bg-ink px-4 pb-4 pt-4 text-white sm:rounded-t-2xl sm:px-6 sm:pt-5">
           <div className="flex items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-emerald-500 text-lg font-bold shadow-lg sm:h-14 sm:w-14">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-fixo-sky-600 text-lg font-bold shadow-card sm:h-14 sm:w-14">
               {c.id || nomeTopo ? iniciais(nomeTopo) : <UserRound size={24} />}
             </span>
             <div className="min-w-0 flex-1">

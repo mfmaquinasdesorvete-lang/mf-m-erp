@@ -216,7 +216,7 @@ function CartaoParcelamento({ p, parcelas, dia, unidade, aberto, onAbrir, onParc
   const valorParcela = p.valor_parcela ?? r.proxima?.valor ?? null;
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-start gap-3 p-4 text-white" style={{ background: `linear-gradient(135deg, ${o.cor}, #0f172a)` }}>
+      <div className="flex items-start gap-3 p-4 text-white" style={{ background: o.cor }}>
         <div className="min-w-0 flex-1">
           <div className="text-xs font-semibold uppercase tracking-wide opacity-85">{o.nome}{unidade && ` · ${unidade}`}</div>
           <div className="truncate text-lg font-bold">{p.modalidade || "Parcelamento"}</div>

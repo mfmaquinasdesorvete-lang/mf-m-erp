@@ -112,7 +112,7 @@ export default function AnalistaFiscal() {
       {/* o "funcionário" */}
       <Card className="relative overflow-hidden p-4 sm:p-5">
         <div className="flex items-start gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden><Scale size={24} /></span>
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-modulo text-white shadow-card" aria-hidden><Scale size={24} /></span>
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold text-fg">Olá! Sou o analista fiscal da MF.</p>
             <p className="mt-0.5 text-sm text-slate-600">

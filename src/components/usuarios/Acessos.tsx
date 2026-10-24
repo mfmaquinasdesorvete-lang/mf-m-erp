@@ -45,7 +45,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
   return (
     <div className="mb-4 space-y-3">
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-fixo-teal-700 via-fixo-blue-700 to-fixo-violet-600 p-4 text-white sm:p-5">
+        <div className="bg-fixo-teal-700 p-4 text-white sm:p-5">
           <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Acessos · agora</div>
           <h2 className="text-xl font-bold [text-wrap:balance]">
             {isLoading ? "Carregando…" : onlineIds.length ? `${onlineIds.length} ${pl(onlineIds.length, "pessoa usando", "pessoas usando")} o ERP agora` : "Ninguém com o ERP aberto agora"}
@@ -57,7 +57,7 @@ export function PainelAcessos({ usuarios, fotos, ultimo }: { usuarios: Pessoa[];
                 return (
                   <li key={id} className="flex items-center gap-2 rounded-full bg-white/15 py-1 pl-1 pr-3 text-sm">
                     <span className="relative"><FotoUsuario nome={nome(id, a)} foto={fotos?.get(id)} tamanho={26} className="bg-white/30 text-white" />
-                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-fixo-blue-700" aria-hidden /></span>
+                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-fixo-teal-700" aria-hidden /></span>
                     <span className="font-semibold">{nome(id, a).split(" ")[0]}</span>
                     <span className="text-xs opacity-80">{a.dispositivo ?? ""}</span>
                   </li>

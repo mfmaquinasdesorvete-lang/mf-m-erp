@@ -13,6 +13,9 @@ import { PAPEIS_INTERNOS, acoesDoPapel, itemVisivel, type MenuOculto, type Papel
 import { auditarMenu, auditarNavegacao, menuDoPerfil, ROTULO_GRAVIDADE, textoAuditoria, type Achado, type Gravidade, type PerfilAud } from "@/lib/auditoriaMenu";
 import { copiar } from "./Guardanapo";
 
+/** Cor lisa da área: a mais escura do degradê do menu ("from-[#10b981] to-[#059669]" → "#059669"), para a letra branca. */
+const corEscura = (degrade?: string) => degrade?.match(/#[0-9a-f]{6}/gi)?.pop();
+
 const COR_GRAV: Record<Gravidade, { ponto: string; caixa: string; icone: typeof AlertTriangle }> = {
   alta: { ponto: "bg-red-500", caixa: "border-red-200 bg-red-50 text-red-800", icone: AlertTriangle },
   media: { ponto: "bg-amber-500", caixa: "border-amber-200 bg-amber-50 text-amber-900", icone: Wrench },
@@ -57,8 +60,8 @@ export function FluxoMenu() {
   const mostra = (i: Item) => (!soVe || como.ve(i)) && (!termo || semAcento(`${i.label} ${i.busca ?? ""}`).includes(termo));
 
   const colunas = [
-    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", cor: g.cor ?? "from-fixo-slate-500 to-fixo-slate-700", Icone: g.icone ?? LayoutGrid, itens: g.itens, fora: false })),
-    { id: "fora", titulo: "Fora do menu", cor: "from-fixo-slate-400 to-fixo-slate-500", Icone: Boxes, itens: itensForaDoMenu, fora: true },
+    ...grupos.map((g) => ({ id: g.id, titulo: g.titulo || "Início", fundo: corEscura(g.cor) ?? "#334155", Icone: g.icone ?? LayoutGrid, itens: g.itens, fora: false })),
+    { id: "fora", titulo: "Fora do menu", fundo: "#64748b", Icone: Boxes, itens: itensForaDoMenu, fora: true },
   ].map((c) => ({ ...c, visiveis: c.itens.filter(mostra) })).filter((c) => c.visiveis.length || (!termo && !soVe));
 
   return (
@@ -123,7 +126,7 @@ export function FluxoMenu() {
               return (
                 <div key={c.id} className="relative min-w-0">
                   <span className="absolute -top-4 left-1/2 h-4 w-0.5 -translate-x-1/2 bg-slate-300" aria-hidden />
-                  <div className={`flex items-center gap-2 rounded-xl bg-gradient-to-br ${c.cor} px-3 py-2 text-white shadow-sm ${c.fora ? "opacity-80" : ""} ${area && !area.itens.length ? "opacity-40" : ""}`}>
+                  <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-white shadow-sm ${c.fora ? "opacity-80" : ""} ${area && !area.itens.length ? "opacity-40" : ""}`} style={{ background: c.fundo }}>
                     <c.Icone size={16} aria-hidden /><span className="min-w-0 flex-1 truncate text-sm font-bold">{c.titulo}</span>
                     {area?.mais && <span className="rounded-md bg-white/25 px-1.5 text-2xs font-bold">+ {area.mais}</span>}
                     <span className="num rounded-full bg-white/25 px-1.5 text-xs font-bold" title={`${como.nome} vê ${area ? area.itens.length : c.itens.filter(como.ve).length} de ${c.itens.length}`}>

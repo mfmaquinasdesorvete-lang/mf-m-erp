@@ -259,7 +259,7 @@ export default function Fornecedores({ tipo: aba }: { tipo: "fornecedores" | "tr
             <button type="button" onClick={() => setReceita(r)}
               title={r.receita_em ? "O que a Receita diz deste fornecedor (e os dois endereços, se forem diferentes)" : "Conferir este CNPJ na Receita agora"}
               aria-label="Receita" className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg p-1.5 text-xs font-semibold transition ${r.receita_em
-                ? "bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-sm hover:brightness-110"
+                ? "bg-fixo-indigo-500 text-white shadow-sm hover:brightness-110"
                 : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
               <Building2 size={15} aria-hidden /><span className="sr-only">Receita</span>
             </button>

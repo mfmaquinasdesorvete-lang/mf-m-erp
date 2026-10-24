@@ -114,8 +114,7 @@ export default function TudoDoCliente() {
       {/* Hero: a proposta da página e a busca no centro (antes era só um campo solto e a tela parecia vazia) */}
       <section aria-labelledby="tudo-titulo"
         className="relative overflow-hidden rounded-painel border border-modulo/25 p-5 shadow-card sm:p-7"
-        style={{ background: "linear-gradient(135deg, color-mix(in srgb, rgb(var(--modulo)) 16%, rgb(var(--surface))) 0%, rgb(var(--surface)) 65%)" }}>
-        <span className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-modulo opacity-20 blur-3xl" aria-hidden />
+        style={{ background: "color-mix(in srgb, rgb(var(--modulo)) 10%, rgb(var(--surface)))" }}>
         <div className="relative max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-rotulo text-modulo-texto">Cadastros · Tudo do cliente</p>
           <h1 id="tudo-titulo" className="mt-1 text-2xl font-bold text-fg sm:text-3xl">Tudo de um cliente numa página só</h1>

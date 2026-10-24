@@ -46,15 +46,15 @@ type Grupo = { id: string; titulo: string; texto: string; icone: LucideIcon; cor
 /** Os grupos do menu do Sobre, só com as abas que a pessoa pode abrir (grupo sem aba some). */
 function gruposDoSobre(ehAdmin: boolean, podeHandoff: boolean): Grupo[] {
   const g: Grupo[] = [
-    { id: "resumo", titulo: "Resumo", texto: "Tudo de relance: chats, pendências, pedidos, ideias e o que mudou", icone: LayoutDashboard, cor: "from-cyan-500 to-sky-700",
+    { id: "resumo", titulo: "Resumo", texto: "Tudo de relance: chats, pendências, pedidos, ideias e o que mudou", icone: LayoutDashboard, cor: "bg-fixo-sky-700",
       abas: [{ value: "resumo", label: "Resumo" }] },
-    { id: "conhecer", titulo: "Conhecer o ERP", texto: "O que cada tela faz e os processos desenhados", icone: BookOpen, cor: "from-sky-500 to-blue-700",
+    { id: "conhecer", titulo: "Conhecer o ERP", texto: "O que cada tela faz e os processos desenhados", icone: BookOpen, cor: "bg-fixo-sky-700",
       abas: [{ value: "modulos", label: "Módulos" }, { value: "esquemas", label: "Esquemas" }, { value: "sistemas", label: "Sistemas" }, { value: "design", label: "Design" }] },
-    { id: "chats", titulo: "Chats e saúde", texto: "Chats do Claude, automações e segurança", icone: Activity, cor: "from-violet-500 to-purple-700",
+    { id: "chats", titulo: "Chats e saúde", texto: "Chats do Claude, automações e segurança", icone: Activity, cor: "bg-fixo-purple-700",
       abas: ehAdmin ? [{ value: "chats", label: "Chats" }, { value: "monitor", label: "Monitor" }, { value: "seguranca", label: "Segurança" }] : [] },
-    { id: "mudou", titulo: "O que mudou", texto: "Versões, pedidos e cada tela alterada", icone: History, cor: "from-emerald-500 to-teal-700",
+    { id: "mudou", titulo: "O que mudou", texto: "Versões, pedidos e cada tela alterada", icone: History, cor: "bg-fixo-teal-700",
       abas: [{ value: "atualizacoes", label: "Atualizações" }, { value: "pedidos", label: "Pedidos" }, { value: "telas", label: "Telas alteradas" }, { value: "codigo", label: "Código" }] },
-    { id: "equipe", titulo: "Equipe e ideias", texto: "Ideias, a rodada de trabalho e o handoff", icone: Lightbulb, cor: "from-amber-500 to-orange-600",
+    { id: "equipe", titulo: "Equipe e ideias", texto: "Ideias, a rodada de trabalho e o handoff", icone: Lightbulb, cor: "bg-fixo-orange-600",
       abas: [{ value: "ideias", label: "Ideias" }, ...(podeHandoff ? [{ value: "rodada" as const, label: "Rodada" }, { value: "handoff" as const, label: "Handoff" }] : [])] },
   ];
   return g.filter((x) => x.abas.length);
@@ -83,7 +83,7 @@ export default function Sobre() {
           return (
             <button key={x.id} type="button" aria-pressed={ativo} onClick={() => !ativo && setAba(x.abas[0].value)}
               className={`cartao flex min-w-0 items-start gap-3 p-3 text-left transition ${ativo ? "border-modulo bg-modulo/10 ring-1 ring-modulo" : "hover:border-slate-300"}`}>
-              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${x.cor} text-white shadow-sm`} aria-hidden><x.icone size={18} /></span>
+              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${x.cor} text-white shadow-sm`} aria-hidden><x.icone size={18} /></span>
               <span className="min-w-0">
                 <span className="block text-sm font-bold text-fg">{x.titulo}</span>
                 <span className="hidden text-xs leading-snug text-slate-600 sm:block">{x.texto}</span>
@@ -145,7 +145,7 @@ function Atualizacoes() {
   return (
     <div className="space-y-4">
       <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4 sm:p-5">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card" aria-hidden><Sparkles size={21} /></span>
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-modulo text-white shadow-card" aria-hidden><Sparkles size={21} /></span>
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wider text-modulo-texto">Versão em uso</p>
           <p className="num text-2xl font-bold text-fg">{VERSAO?.numero ?? "prévia"}</p>

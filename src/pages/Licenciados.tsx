@@ -40,7 +40,7 @@ const sem = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,
 const r2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 const NENHUM = "00000000-0000-0000-0000-000000000000";
 // rosa e turquesa da marca My Frost (fundo forte, letra branca: iguais nos dois temas)
-const ROSA = "#c2185b", ROSA_ESCURO = "#6d0d33", TURQUESA = "#67e8e2";
+const ROSA = "#c2185b", TURQUESA = "#67e8e2";
 const nomeProprio = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 type Aba = "unidades" | "custos" | "maquinas" | "pagamentos" | "quiosques";
 // montagem dos quiosques (MDF, tinta, ferragens): era a aba Quiosques de Gastos separados, no Financeiro
@@ -233,8 +233,8 @@ export default function Licenciados() {
           O que caiu na InfinitePay da MF continua lá como "recebido por conta de terceiros" (acerto entre as empresas: confirmar com o contador).</span>
       </div>
 
-      {/* a carteira: rosa e turquesa da marca */}
-      <div className="mb-4 overflow-hidden rounded-2xl text-white shadow-card" style={{ background: `linear-gradient(135deg, ${ROSA}, ${ROSA_ESCURO})` }}>
+      {/* a carteira: rosa e turquesa da marca (rosa lisa, sem degradê) */}
+      <div className="mb-4 overflow-hidden rounded-2xl text-white shadow-card" style={{ background: ROSA }}>
         <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15"><IceCreamCone size={30} aria-hidden /></span>
           <div className="min-w-0 flex-1">

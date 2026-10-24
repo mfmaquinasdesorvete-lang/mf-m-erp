@@ -100,7 +100,7 @@ export function useAprovarPagar<T extends ContaAprovar>(contas: T[], tipoDe: (c:
   function faixa(onVer: () => void): ReactNode {
     if (!minhaVez.length) return null;
     return (
-      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-4 text-white shadow-pop sm:p-4" style={{ background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 50%,#4c1d95 100%)" }}>
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-fixo-violet-600 p-4 text-white shadow-card sm:p-4">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20"><ClipboardCheck size={22} aria-hidden /></span>
         <span className="mr-auto min-w-0">
           <span className="block text-base font-bold leading-tight">Sua vez de aprovar: {minhaVez.length} {pl(minhaVez.length, "conta", "contas")} · <span className="num whitespace-nowrap">{brl(soma(minhaVez))}</span></span>

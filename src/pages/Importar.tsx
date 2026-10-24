@@ -24,18 +24,18 @@ export default function Importar() {
   const fechar = () => setAberto(null);
   const admin = papel === "admin";
   const cartoes: Cartao[] = [
-    { id: "nfe_emitidas", grupo: "Notas fiscais", titulo: "Notas emitidas no Tiny", resumo: "XML ou .zip das NF-e de venda emitidas no sistema anterior (histórico)", vaiPara: "Notas fiscais → emitidas", icone: FileText, cor: "from-fixo-sky-500 to-fixo-blue-600", pode: pode("nfe_recebidas") },
-    { id: "nfe_recebidas", grupo: "Notas fiscais", titulo: "Notas de fornecedores", resumo: "XML ou .zip que o fornecedor mandou (quando a nota não veio pela SEFAZ)", vaiPara: "Notas fiscais → recebidas", icone: FileUp, cor: "from-fixo-cyan-500 to-fixo-cyan-700", pode: pode("nfe_recebidas") },
-    { id: "clientes", grupo: "Cadastros", titulo: "Clientes", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Vendas → Clientes", icone: Users, cor: "from-fixo-emerald-500 to-fixo-emerald-600", pode: tem("financeiro") },
-    { id: "fornecedores", grupo: "Cadastros", titulo: "Fornecedores", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Fábrica e estoque → Fornecedores", icone: Building2, cor: "from-fixo-orange-500 to-fixo-red-600", pode: tem("financeiro") },
-    { id: "transportadoras", grupo: "Cadastros", titulo: "Transportadoras", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Logística → Transportadoras", icone: Truck, cor: "from-fixo-purple-500 to-fixo-violet-700", pode: tem("financeiro") },
-    { id: "produtos", grupo: "Produtos", titulo: "Produtos do Tiny", resumo: "Planilha de produtos (descrição, códigos, NCM, preços)", vaiPara: "Fábrica e estoque → Produtos e estoque", icone: Package, cor: "from-fixo-amber-500 to-fixo-amber-700", pode: pode("editar_produtos") },
-    { id: "kits", grupo: "Produtos", titulo: "Kits do Tiny", resumo: "Composição dos kits (o que vai dentro de cada um)", vaiPara: "Produtos e estoque → kits", icone: Boxes, cor: "from-fixo-pink-500 to-fixo-pink-700", pode: pode("editar_produtos") },
-    { id: "propostas", grupo: "Vendas", titulo: "Propostas do Tiny", resumo: "Planilhas de propostas comerciais (histórico de MF e My Frost)", vaiPara: "Venda de Máquinas → Propostas do Tiny", icone: ScrollText, cor: "from-fixo-emerald-500 to-fixo-emerald-700", pode: admin },
-    { id: "pedidos_tiny", grupo: "Vendas", titulo: "Pedidos de venda do Tiny", resumo: "Todos os pedidos de venda, com itens, direto da API do Tiny (histórico completo, ligado às notas)", vaiPara: "Venda de Peças e Venda de Máquinas", icone: Cloud, cor: "from-fixo-sky-500 to-fixo-emerald-700", pode: admin },
-    { id: "extrato", grupo: "Bancos", titulo: "Extrato do banco", resumo: "Arquivo OFX ou CSV do banco para conferir com as contas", vaiPara: "Financeiro → Bancos e conciliação", icone: Landmark, cor: "from-fixo-amber-500 to-fixo-orange-600", pode: pode("editar_financeiro") },
-    { id: "myfrost", grupo: "Bases antigas", titulo: "Base da My Frost", resumo: "Clientes, máquinas e peças da empresa anterior, do backup do Tiny", vaiPara: "Clientes (com etiqueta da máquina)", icone: Archive, cor: "from-fixo-slate-500 to-fixo-slate-700", pode: admin },
-    { id: "tiny_api", grupo: "Bases antigas", titulo: "Tiny pela API", resumo: "Cadastros, produtos com estoque e contas em aberto direto da API do Tiny (precisa do token nos segredos do Supabase)", vaiPara: "Vários cadastros", icone: Cloud, cor: "from-fixo-slate-600 to-fixo-slate-900", pode: admin },
+    { id: "nfe_emitidas", grupo: "Notas fiscais", titulo: "Notas emitidas no Tiny", resumo: "XML ou .zip das NF-e de venda emitidas no sistema anterior (histórico)", vaiPara: "Notas fiscais → emitidas", icone: FileText, cor: "bg-fixo-blue-600", pode: pode("nfe_recebidas") },
+    { id: "nfe_recebidas", grupo: "Notas fiscais", titulo: "Notas de fornecedores", resumo: "XML ou .zip que o fornecedor mandou (quando a nota não veio pela SEFAZ)", vaiPara: "Notas fiscais → recebidas", icone: FileUp, cor: "bg-fixo-cyan-700", pode: pode("nfe_recebidas") },
+    { id: "clientes", grupo: "Cadastros", titulo: "Clientes", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Vendas → Clientes", icone: Users, cor: "bg-fixo-emerald-600", pode: tem("financeiro") },
+    { id: "fornecedores", grupo: "Cadastros", titulo: "Fornecedores", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Fábrica e estoque → Fornecedores", icone: Building2, cor: "bg-fixo-red-600", pode: tem("financeiro") },
+    { id: "transportadoras", grupo: "Cadastros", titulo: "Transportadoras", resumo: "Planilha de contatos exportada do Tiny", vaiPara: "Logística → Transportadoras", icone: Truck, cor: "bg-fixo-violet-700", pode: tem("financeiro") },
+    { id: "produtos", grupo: "Produtos", titulo: "Produtos do Tiny", resumo: "Planilha de produtos (descrição, códigos, NCM, preços)", vaiPara: "Fábrica e estoque → Produtos e estoque", icone: Package, cor: "bg-fixo-amber-700", pode: pode("editar_produtos") },
+    { id: "kits", grupo: "Produtos", titulo: "Kits do Tiny", resumo: "Composição dos kits (o que vai dentro de cada um)", vaiPara: "Produtos e estoque → kits", icone: Boxes, cor: "bg-fixo-pink-700", pode: pode("editar_produtos") },
+    { id: "propostas", grupo: "Vendas", titulo: "Propostas do Tiny", resumo: "Planilhas de propostas comerciais (histórico de MF e My Frost)", vaiPara: "Venda de Máquinas → Propostas do Tiny", icone: ScrollText, cor: "bg-fixo-emerald-700", pode: admin },
+    { id: "pedidos_tiny", grupo: "Vendas", titulo: "Pedidos de venda do Tiny", resumo: "Todos os pedidos de venda, com itens, direto da API do Tiny (histórico completo, ligado às notas)", vaiPara: "Venda de Peças e Venda de Máquinas", icone: Cloud, cor: "bg-fixo-emerald-700", pode: admin },
+    { id: "extrato", grupo: "Bancos", titulo: "Extrato do banco", resumo: "Arquivo OFX ou CSV do banco para conferir com as contas", vaiPara: "Financeiro → Bancos e conciliação", icone: Landmark, cor: "bg-fixo-orange-600", pode: pode("editar_financeiro") },
+    { id: "myfrost", grupo: "Bases antigas", titulo: "Base da My Frost", resumo: "Clientes, máquinas e peças da empresa anterior, do backup do Tiny", vaiPara: "Clientes (com etiqueta da máquina)", icone: Archive, cor: "bg-fixo-slate-700", pode: admin },
+    { id: "tiny_api", grupo: "Bases antigas", titulo: "Tiny pela API", resumo: "Cadastros, produtos com estoque e contas em aberto direto da API do Tiny (precisa do token nos segredos do Supabase)", vaiPara: "Vários cadastros", icone: Cloud, cor: "bg-fixo-slate-900", pode: admin },
   ];
   const visiveis = cartoes.filter((c) => c.pode);
   const grupos = [...new Set(visiveis.map((c) => c.grupo))];
@@ -51,7 +51,7 @@ export default function Importar() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {visiveis.filter((c) => c.grupo === g).map((c) => (
                 <div key={c.id} className="cartao flex gap-3 p-4">
-                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${c.cor} text-white shadow-card`} aria-hidden><c.icone size={22} /></span>
+                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${c.cor} text-white shadow-card`} aria-hidden><c.icone size={22} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-fg">{c.titulo}</div>
                     <p className="text-sm text-slate-500">{c.resumo}</p>

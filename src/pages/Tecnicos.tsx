@@ -82,7 +82,7 @@ function CartaoGuia({ t, abrir, clientes }: { t: Tecnico; abrir: () => void; cli
       </button>
       {insta && (
         <a href={insta} target="_blank" rel="noreferrer" title="Abrir o Instagram" aria-label={`Instagram de ${t.nome}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 text-white hover:opacity-90">
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-fixo-rose-500 text-white hover:opacity-90">
           <Instagram size={20} aria-hidden />
         </a>
       )}

@@ -83,7 +83,7 @@ export default function AppVendas() {
     <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-emerald-500 to-fixo-cyan-400 font-bold text-noite-fundo">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-fixo-emerald-500 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-noite-fraco">Olá{primeiro ? `, ${primeiro}` : ""}</p>
             <p className="truncate font-bold tracking-wide">Vendas MF</p>
@@ -95,7 +95,7 @@ export default function AppVendas() {
 
         {aba === "inicio" && (
           <>
-            <section className="rounded-3xl border border-fixo-emerald-500/25 bg-gradient-to-br from-[#0b1f1a] via-fixo-gray-900 to-[#0e1a2b] p-5 shadow-[0_0_40px_-12px_rgba(16,185,129,.45)]">
+            <section className="rounded-3xl border border-fixo-emerald-500/25 bg-noite-cartao p-5 shadow-card">
               <p className="text-xs font-semibold uppercase tracking-wider text-noite-fraco">{meuVendedor ? "Minhas vendas no mês" : "Vendas no mês"}</p>
               <p className="num mt-1 text-4xl font-bold">{brl(r.valor)}</p>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-noite-medio">

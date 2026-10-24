@@ -51,7 +51,7 @@ describe("design system", () => {
 
   it("cor solta nas classes não volta a crescer (antes da padronização eram 608)", () => {
     const { total, por } = contar(COR_SOLTA);
-    expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(36);
+    expect(total, JSON.stringify(por, null, 1)).toBeLessThanOrEqual(33);
   });
 
   it("canto, letra e camada usam os tokens (src/design/tokens.js), não valor solto", () => {

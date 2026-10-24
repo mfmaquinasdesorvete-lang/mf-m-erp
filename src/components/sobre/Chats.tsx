@@ -12,9 +12,9 @@ import { CentralChats } from "./CentralChats";
 type Chat = { id: string; ordem: number; sigla: string | null; nome: string; faz: string; exemplos: string | null; sessao: string; cor: string; ativo: boolean };
 
 const CORES: Record<string, string> = {
-  slate: "from-fixo-slate-600 to-fixo-slate-800", azul: "from-blue-500 to-blue-700", verde: "from-emerald-500 to-emerald-700",
-  teal: "from-teal-500 to-teal-700", ambar: "from-amber-500 to-orange-600", rosa: "from-pink-500 to-rose-600",
-  violeta: "from-violet-500 to-purple-700", vermelho: "from-red-500 to-red-700", indigo: "from-indigo-500 to-indigo-700",
+  slate: "bg-fixo-slate-800", azul: "bg-fixo-sky-700", verde: "bg-fixo-emerald-700",
+  teal: "bg-fixo-teal-700", ambar: "bg-fixo-orange-600", rosa: "bg-fixo-rose-600",
+  violeta: "bg-fixo-purple-700", vermelho: "bg-fixo-red-700", indigo: "bg-fixo-indigo-700",
 };
 
 const link = (sessao: string) => `https://claude.ai/code/${sessao}`;
@@ -46,7 +46,7 @@ export function Chats() {
       <div className="grid gap-3 md:grid-cols-2">
         {visiveis.map((c) => (
           <Card key={c.id} className="flex flex-col overflow-hidden">
-            <div className={`bg-gradient-to-r ${CORES[c.cor] ?? CORES.slate} px-4 py-3 text-white`}>
+            <div className={`${CORES[c.cor] ?? CORES.slate} px-4 py-3 text-white`}>
               <h3 className="flex items-center gap-2 font-bold">
                 {c.sigla && <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider" title="Nome de 3 letras do chat">{c.sigla}</span>}
                 {c.nome.replace(/^ERP Line – /, "")}

@@ -292,7 +292,7 @@ function FaixaGs1({ prefixo, usados, podeEditar, onSalvar, onPlanilha }: { prefi
   return (
     <Card className="p-3 sm:p-4">
       <div className="flex flex-wrap items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fixo-sky-500 to-fixo-blue-600 text-white" aria-hidden><Barcode size={20} /></span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-fixo-blue-600 text-white" aria-hidden><Barcode size={20} /></span>
         <div className="min-w-0 flex-1 text-sm">
           <div className="font-semibold text-fg">Faixa da empresa na GS1 Brasil</div>
           {prefixo && !editar

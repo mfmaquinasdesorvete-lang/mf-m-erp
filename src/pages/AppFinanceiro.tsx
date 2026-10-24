@@ -80,7 +80,7 @@ export default function AppFinanceiro() {
     <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-cyan-400 to-fixo-purple-500 font-bold text-noite-fundo">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-fixo-cyan-400 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-noite-fraco">Olá{primeiro ? `, ${primeiro}` : ""}</p>
             <p className="truncate font-bold tracking-wide">Financeiro MF</p>
@@ -98,7 +98,7 @@ export default function AppFinanceiro() {
               <Receipt size={20} /> Lançar gasto (falar ou foto do cupom)
             </button>
             {/* saldo nas contas */}
-            <section className="rounded-3xl border border-fixo-cyan-400/25 bg-gradient-to-br from-[#0e1a2b] via-fixo-gray-900 to-[#1e1033] p-5 shadow-[0_0_40px_-12px_rgba(34,211,238,.45)]">
+            <section className="rounded-3xl border border-fixo-cyan-400/25 bg-noite-cartao p-5 shadow-card">
               <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-noite-fraco"><Wallet size={14} /> Saldo nas contas</p>
               <p className="num mt-1 text-4xl font-bold">{v(caixa.total)}</p>
               <div className="mt-4 grid grid-cols-2 gap-2">

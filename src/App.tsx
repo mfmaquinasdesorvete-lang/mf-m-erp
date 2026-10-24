@@ -410,7 +410,7 @@ function RotasERP() {
 
 function SemConexao({ detalhe, onTentar }: { detalhe: string; onTentar: () => void }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-ink p-4">
       <Card className="max-w-sm p-6 text-center">
         <h1 className="mb-2 text-lg font-semibold" role="alert">Sem conexão com o ERP</h1>
         <p className="mb-2 text-sm text-slate-600">Não foi possível falar com o servidor. Confira a internet e tente de novo.</p>
@@ -426,7 +426,7 @@ function SemConexao({ detalhe, onTentar }: { detalhe: string; onTentar: () => vo
 
 function SemAcesso({ email }: { email: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink bg-[radial-gradient(ellipse_at_top,_rgb(var(--brand-nav)/0.22)_0%,_#071528_60%)] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-ink p-4">
       <Card className="max-w-sm p-6 text-center">
         <h1 className="mb-2 text-lg font-semibold">Acesso não liberado</h1>
         <p className="mb-5 text-sm text-slate-600">

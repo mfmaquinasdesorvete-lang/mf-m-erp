@@ -187,11 +187,11 @@ function Filas({ s }: { s: Saude }) {
 function Semaforo({ nivel, problemas, onAtualizar, atualizando, onRegistrar }: {
   nivel: "ok" | "atencao" | "critico"; problemas: string[]; onAtualizar: () => void; atualizando: boolean; onRegistrar: () => void;
 }) {
-  const estilo = nivel === "critico" ? "from-fixo-rose-600 to-fixo-rose-800" : nivel === "atencao" ? "from-fixo-amber-500 to-fixo-amber-700" : "from-fixo-emerald-500 to-fixo-emerald-700";
+  const estilo = nivel === "critico" ? "bg-fixo-rose-800" : nivel === "atencao" ? "bg-fixo-amber-700" : "bg-fixo-emerald-700";
   const Icone = nivel === "ok" ? CheckCircle2 : AlertTriangle;
   return (
     <Card className="overflow-hidden">
-      <div className={`flex flex-wrap items-start gap-3 bg-gradient-to-r ${estilo} p-4 text-white sm:p-5`}>
+      <div className={`flex flex-wrap items-start gap-3 ${estilo} p-4 text-white sm:p-5`}>
         <Icone size={28} className="shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold">{nivel === "ok" ? "Tudo rodando" : nivel === "critico" ? "Tem coisa parada" : "Atenção"}</h2>

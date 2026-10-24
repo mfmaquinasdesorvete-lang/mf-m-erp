@@ -423,8 +423,8 @@ export function CustosAba({ dados, onAbrir }: { dados: Dados; onAbrir: (l: Loja)
   const cats = CATEGORIAS_CUSTO.map((k) => ({ ...k, valor: validos.filter((c) => c.categoria === k.id).reduce((t, c) => t + Number(c.valor), 0) })).filter((k) => k.valor > 0);
   return (
     <div className="space-y-4">
-      {/* rosa da marca com letra branca: igual nos dois temas */}
-      <div className="rounded-2xl p-4 text-white shadow-card" style={{ background: `linear-gradient(135deg, ${ROSA}, #6d0d33)` }}>
+      {/* rosa da marca, lisa, com letra branca: igual nos dois temas */}
+      <div className="rounded-2xl p-4 text-white shadow-card" style={{ background: ROSA }}>
         <div className="text-sm font-semibold opacity-90">Quanto custou montar as unidades</div>
         <div className="num text-2xl font-bold">{brl(total)}</div>
         <div className="mt-2 flex flex-wrap gap-1.5">{cats.map((k) => <span key={k.id} className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">{k.nome} <span className="num">{brl(k.valor)}</span></span>)}</div>

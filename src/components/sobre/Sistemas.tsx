@@ -17,6 +17,8 @@ import { CICLO_INOVACAO, DIMENSOES_ANALISE, ECL, interpretarEcl, SISTEMAS, SITUA
 import type { InicialItem } from "./ItemProjeto";
 import { ExecucaoModal, type InicialExecucao } from "./Execucoes";
 
+/** Cor lisa do sistema: a mais escura do degradê ("from-[#f59e0b] to-[#b45309]" → "#b45309"), para a letra branca. */
+const corEscura = (degrade: string) => degrade.match(/#[0-9a-f]{6}/gi)?.pop() ?? "#334155";
 const SIT = Object.fromEntries(SITUACOES.map((s) => [s.id, s])) as Record<Situacao, (typeof SITUACOES)[number]>;
 
 export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
@@ -52,7 +54,7 @@ export function Sistemas({ onIdeia }: { onIdeia: (i: InicialItem) => void }) {
         const prontos = s.modulos.filter((m) => m.situacao === "tem").length;
         return (
           <Card key={s.id} className="overflow-hidden">
-            <div className={`flex flex-wrap items-center gap-3 bg-gradient-to-r ${s.cor} p-4 text-white sm:p-5`}>
+            <div className="flex flex-wrap items-center gap-3 p-4 text-white sm:p-5" style={{ background: corEscura(s.cor) }}>
               <div className="min-w-0 flex-1">
                 <div className="font-mono text-xs font-semibold uppercase tracking-wider opacity-80">{s.id}</div>
                 <h2 className="text-lg font-bold">{s.nome}</h2>

@@ -762,10 +762,10 @@ function ContasPagar({ contas, novaAoAbrir = false, contaInicial, onNovaAberta, 
           icone={Handshake} rotulo="Renegociadas" n={negAndamento} fundo={COR_RENEGOCIADA.fundo} tinta={COR_RENEGOCIADA.tinta}
           dica="Contas renegociadas com o fornecedor: o acordo, as parcelas pagas e o histórico (áudios, prints e arquivos)" />
         <BotaoExtra ativo={visao === "fixas"} onClick={() => { setVisao(visao === "fixas" ? "decidir" : "fixas"); setSel(new Set()); }}
-          icone={Repeat} rotulo="Contas fixas" n={nVisao("fixas")} fundo="linear-gradient(135deg,#e0e7ff 0%,#c7d2fe 100%)" tinta="#1e1b4b"
+          icone={Repeat} rotulo="Contas fixas" n={nVisao("fixas")} fundo="#e0e7ff" tinta="#1e1b4b"
           dica="Aluguel, salários, mensalidades: o ERP lança cada uma sozinho, com antecedência" />
         {modo === "lista" && <BotaoExtra ativo={visao === "todas"} onClick={() => { setVisao("todas"); setSel(new Set()); }}
-          icone={Layers} rotulo="Todas" n={nVisao("todas")} fundo="linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%)" tinta="#0f172a" dica="Todas as contas (menos as canceladas)" />}
+          icone={Layers} rotulo="Todas" n={nVisao("todas")} fundo="#f1f5f9" tinta="#0f172a" dica="Todas as contas (menos as canceladas)" />}
       </>} />
       {visao === "renegociadas" ? (
         <PainelRenegociadas contas={contas} onAbrir={setNegociacao} />

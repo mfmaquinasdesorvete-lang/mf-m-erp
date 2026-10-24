@@ -14,10 +14,10 @@ import type { ResultadoCard } from "@/lib/pessoalCards";
 type Visual = (id: string) => { icone: LucideIcon; cor: string };
 const COR_TIPO: Record<TipoEncontro, string> = { enviou: "#7c3aed", pagou: "#c2410c", recebeu: "#0284c7", prolabore: "#047857" };
 
-/** Um número grande do alto, em cartão colorido (fundo forte e texto branco: igual nos dois temas). */
-function Grande({ rotulo, valor, sub, icone: Icone, de, ate }: { rotulo: string; valor: number; sub?: string; icone: LucideIcon; de: string; ate: string }) {
+/** Um número grande do alto, em cartão de cor lisa (fundo forte e texto branco: igual nos dois temas). */
+function Grande({ rotulo, valor, sub, icone: Icone, cor }: { rotulo: string; valor: number; sub?: string; icone: LucideIcon; cor: string }) {
   return (
-    <div className="min-w-0 rounded-2xl p-3 text-white shadow-card sm:p-4" style={{ background: `linear-gradient(135deg, ${de}, ${ate})` }}>
+    <div className="min-w-0 rounded-2xl p-3 text-white shadow-card sm:p-4" style={{ background: cor }}>
       <div className="flex items-center justify-between gap-2 text-xs font-semibold opacity-90"><span className="min-w-0 leading-tight">{rotulo}</span><Icone size={18} aria-hidden className="shrink-0" /></div>
       <div className="num mt-1 break-words text-lg font-bold leading-tight tracking-tight sm:text-2xl">{brl(valor)}</div>
       {sub && <div className="mt-0.5 text-xs leading-snug opacity-85">{sub}</div>}
@@ -119,10 +119,10 @@ export function ResumoCarteira({ rotulo, entrou, saiu, resultado, disponivel, ca
     <div className="mb-4 space-y-4">
       {/* 1. os números do período */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Grande rotulo="Disponível hoje" valor={disponivel} icone={Wallet} de="#0f766e" ate="#134e4a" sub={cartoes ? `cartões em aberto: ${brl(-cartoes)}` : "nas contas, sem os cartões"} />
-        <Grande rotulo="Entrou no período" valor={entrou} icone={ArrowUpCircle} de="#047857" ate="#064e3b" sub={rotulo} />
-        <Grande rotulo="Saiu no período" valor={saiu} icone={ArrowDownCircle} de="#b91c1c" ate="#7f1d1d" sub={entrou ? `${Math.round((saiu / entrou) * 100)}% do que entrou` : rotulo} />
-        <Grande rotulo={resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={resultado} icone={PiggyBank} de={resultado >= 0 ? "#1d4ed8" : "#c2410c"} ate={resultado >= 0 ? "#1e3a8a" : "#7c2d12"} sub={resultado >= 0 ? "entrou mais do que saiu" : "saiu mais do que entrou"} />
+        <Grande rotulo="Disponível hoje" valor={disponivel} icone={Wallet} cor="#0f766e" sub={cartoes ? `cartões em aberto: ${brl(-cartoes)}` : "nas contas, sem os cartões"} />
+        <Grande rotulo="Entrou no período" valor={entrou} icone={ArrowUpCircle} cor="#047857" sub={rotulo} />
+        <Grande rotulo="Saiu no período" valor={saiu} icone={ArrowDownCircle} cor="#b91c1c" sub={entrou ? `${Math.round((saiu / entrou) * 100)}% do que entrou` : rotulo} />
+        <Grande rotulo={resultado >= 0 ? "Sobrou no período" : "Faltou no período"} valor={resultado} icone={PiggyBank} cor={resultado >= 0 ? "#1d4ed8" : "#c2410c"} sub={resultado >= 0 ? "entrou mais do que saiu" : "saiu mais do que entrou"} />
       </div>
 
       {/* 2. o encontro de contas com as empresas */}

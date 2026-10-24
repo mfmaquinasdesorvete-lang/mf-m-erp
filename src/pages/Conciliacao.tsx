@@ -46,8 +46,8 @@ type Conta = {
 
 /** Cor do cartão de cada banco (faixa colorida com o saldo). */
 const COR_BANCO: Record<string, string> = {
-  infinitepay: "from-fixo-emerald-500 to-fixo-emerald-700", nubank: "from-fixo-purple-500 to-fixo-violet-700", inter: "from-fixo-orange-500 to-fixo-orange-700",
-  unicred: "from-fixo-green-500 to-fixo-green-800", caixa: "from-fixo-slate-500 to-fixo-slate-700", outro: "from-fixo-sky-500 to-fixo-indigo-600",
+  infinitepay: "bg-fixo-emerald-700", nubank: "bg-fixo-violet-700", inter: "bg-fixo-orange-700",
+  unicred: "bg-fixo-green-800", caixa: "bg-fixo-slate-700", outro: "bg-fixo-indigo-600",
 };
 const somarMesIso = (ym: string, n: number) => { const [a, m] = ym.split("-").map(Number); const t = a * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
 
@@ -246,7 +246,7 @@ export default function Conciliacao() {
               return (
                 <button key={b.id} onClick={() => setContaSel(contaSel === b.id ? "" : b.id)}
                   className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-left shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${contaSel === b.id ? "border-brand ring-2 ring-brand/40" : "border-slate-200/80"} ${b.ativo ? "" : "opacity-60"}`}>
-                  <div className={`w-full bg-gradient-to-br ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-4 text-white`}>
+                  <div className={`w-full ${COR_BANCO[b.banco] ?? COR_BANCO.outro} px-4 pb-3 pt-4 text-white`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 font-bold"><Landmark size={15} className="shrink-0 opacity-80" /> <span className="truncate">{b.nome}</span></div>

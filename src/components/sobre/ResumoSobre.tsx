@@ -22,7 +22,7 @@ function Bloco({ titulo, icone: Icone, cor, abrir, rotuloAbrir, children }: {
   return (
     <Card className="flex min-w-0 flex-col p-4">
       <div className="mb-3 flex items-center gap-2.5">
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${cor} text-white shadow-sm`} aria-hidden><Icone size={16} /></span>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${cor} text-white shadow-sm`} aria-hidden><Icone size={16} /></span>
         <h2 className="min-w-0 flex-1 truncate text-base font-bold text-fg">{titulo}</h2>
         <button type="button" onClick={abrir} className="link-modulo inline-flex shrink-0 items-center gap-1 text-xs max-md:-my-2 max-md:py-2">
           {rotuloAbrir} <ArrowRight size={13} aria-hidden />
@@ -70,7 +70,7 @@ export function ResumoSobre({ ehAdmin, podeHandoff, ultima, onIrAba }: {
 
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {podeHandoff && (
-          <Bloco titulo="Próximos passos" icone={ListChecks} cor="from-sky-500 to-blue-700" abrir={() => onIrAba("handoff")} rotuloAbrir="Handoff">
+          <Bloco titulo="Próximos passos" icone={ListChecks} cor="bg-fixo-sky-700" abrir={() => onIrAba("handoff")} rotuloAbrir="Handoff">
             <div className="mb-3 grid grid-cols-4 gap-1.5">
               <Numero rotulo="abertas" valor={ind.abertas} />
               <Numero rotulo="alta prioridade" valor={ind.alta} tom={ind.alta ? "critico" : "neutro"} icone={Flag} />
@@ -98,7 +98,7 @@ export function ResumoSobre({ ehAdmin, podeHandoff, ultima, onIrAba }: {
           </Bloco>
         )}
 
-        <Bloco titulo="Pedidos" icone={ClipboardList} cor="from-emerald-500 to-teal-700" abrir={() => onIrAba("pedidos")} rotuloAbrir="Checklist">
+        <Bloco titulo="Pedidos" icone={ClipboardList} cor="bg-fixo-teal-700" abrir={() => onIrAba("pedidos")} rotuloAbrir="Checklist">
           <p className="mb-2 text-xs text-slate-500">{diaPedidos ? `Do dia ${dataBR(diaPedidos)}: ${doDia.length} ${pl(doDia.length, "pedido", "pedidos")}` : "Nenhum pedido ainda."}</p>
           <div className="mb-3 grid grid-cols-4 gap-1.5">
             <Numero rotulo="feitos" valor={conta("feito")} tom="bom" icone={CheckCircle2} />
@@ -121,7 +121,7 @@ export function ResumoSobre({ ehAdmin, podeHandoff, ultima, onIrAba }: {
           )}
         </Bloco>
 
-        <Bloco titulo="Ideias" icone={Lightbulb} cor="from-amber-500 to-orange-600" abrir={() => onIrAba("ideias")} rotuloAbrir="Ver ideias">
+        <Bloco titulo="Ideias" icone={Lightbulb} cor="bg-fixo-orange-600" abrir={() => onIrAba("ideias")} rotuloAbrir="Ver ideias">
           <div className="mb-3 grid grid-cols-4 gap-1.5">
             <Numero rotulo="novas" valor={ideias.novas} tom={ideias.novas ? "atencao" : "neutro"} />
             <Numero rotulo="em avaliação" valor={ideias.avaliando} tom="info" />
@@ -139,7 +139,7 @@ export function ResumoSobre({ ehAdmin, podeHandoff, ultima, onIrAba }: {
         </Bloco>
 
         {podeHandoff && (
-          <Bloco titulo="Rodada atual" icone={Rocket} cor="from-indigo-500 to-violet-700" abrir={() => onIrAba("rodada")} rotuloAbrir="Rodada">
+          <Bloco titulo="Rodada atual" icone={Rocket} cor="bg-fixo-violet-700" abrir={() => onIrAba("rodada")} rotuloAbrir="Rodada">
             <p className="font-semibold leading-snug text-fg">{RODADA_ATUAL.titulo}</p>
             <p className="mt-1 line-clamp-3 text-sm text-slate-600">{RODADA_ATUAL.resumo}</p>
             <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
@@ -150,7 +150,7 @@ export function ResumoSobre({ ehAdmin, podeHandoff, ultima, onIrAba }: {
         )}
 
         {ultima && (
-          <Bloco titulo="O que mudou" icone={History} cor="from-teal-500 to-cyan-700" abrir={() => onIrAba("atualizacoes")} rotuloAbrir="Atualizações">
+          <Bloco titulo="O que mudou" icone={History} cor="bg-fixo-cyan-700" abrir={() => onIrAba("atualizacoes")} rotuloAbrir="Atualizações">
             <p className="text-sm text-slate-600"><b className="text-fg">Versão {ultima.numero}</b> · {dataBR(ultima.dia)} · {ultima.mudancas.length} {pl(ultima.mudancas.length, "mudança", "mudanças")} no dia</p>
             {ultima.titulo && <p className="mt-1 text-sm font-semibold text-fg">{ultima.titulo}</p>}
             <ul className="mt-2 space-y-1">

@@ -98,7 +98,7 @@ export function ModulosCartoes({ onIdeia, onAuditoria }: { onIdeia: (i: InicialI
         return (
           <section key={id} aria-labelledby={`area-${id}`} className="space-y-3">
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-sm" style={{ background: `linear-gradient(135deg, ${clara}, ${escura})` }} aria-hidden><Icone size={19} /></span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-sm" style={{ background: escura }} aria-hidden><Icone size={19} /></span>
               <div className="min-w-0">
                 <h2 id={`area-${id}`} className="text-lg font-bold text-fg">{titulo} <span className="num text-sm font-semibold text-slate-500">· {itens.length} {pl(itens.length, "tela", "telas")}</span></h2>
                 {texto && <p className="text-sm text-slate-600">{texto}</p>}
@@ -127,8 +127,7 @@ function CartaoTela({ item, clara, escura, pode, aberto, onAlternar, onIdeia }: 
   const idPartes = `partes-${item.to.replace(/\W+/g, "-")}`;
   return (
     // compacto: ícone ao lado do nome, etiquetas numa linha e a explicação em até 3 linhas (o "Saiba mais" mostra tudo)
-    <article className="cartao relative flex min-w-0 flex-col p-3.5"
-      style={{ backgroundImage: `radial-gradient(120% 70% at 100% 0%, ${clara}14, transparent 60%)` }}>
+    <article className="cartao relative flex min-w-0 flex-col p-3.5">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${clara}26`, color: tinta(escura) }} aria-hidden><Icon size={18} /></span>
         <div className="min-w-0">

@@ -66,17 +66,17 @@ const TIPOS_PRODUTO: Record<string, string> = { maquina: "Máquinas", peca: "Pe�
 /** Os três cadastros: máquinas, peças de reposição (catálogo, o cliente compra) e componentes para fabricar as máquinas. */
 export type Cadastro = "maquinas" | "pecas" | "tornearia" | "componentes" | "servicos" | "todos";
 const CADASTROS: { id: Cadastro; titulo: string; ajuda: string; cor: string; padrao: Record<string, unknown> }[] = [
-  { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "from-fixo-emerald-500 to-fixo-emerald-600",
+  { id: "maquinas", titulo: "Máquinas", ajuda: "As máquinas que a MF fabrica e vende.", cor: "bg-fixo-emerald-600",
     padrao: { tipo: "maquina", vendavel: true, no_catalogo: false } },
-  { id: "pecas", titulo: "Peças à venda", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "from-fixo-sky-500 to-fixo-blue-600",
+  { id: "pecas", titulo: "Peças à venda", ajuda: "O que o cliente compra: vai para o catálogo e para os pedidos.", cor: "bg-fixo-blue-600",
     padrao: { tipo: "peca", vendavel: true, no_catalogo: true } },
-  { id: "tornearia", titulo: "Tornearia (usinadas)", ajuda: "Peças usinadas na tornearia, com o marcador \"Tornearia\". A usinada que também vende aparece aqui e em Peças à venda.", cor: "from-fixo-violet-500 to-fixo-purple-600",
+  { id: "tornearia", titulo: "Tornearia (usinadas)", ajuda: "Peças usinadas na tornearia, com o marcador \"Tornearia\". A usinada que também vende aparece aqui e em Peças à venda.", cor: "bg-fixo-purple-600",
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
-  { id: "componentes", titulo: "Insumos", ajuda: "O que vai dentro das máquinas e é consumido na fábrica (ficha técnica). Peça à venda que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "from-fixo-orange-500 to-fixo-red-600",
+  { id: "componentes", titulo: "Insumos", ajuda: "O que vai dentro das máquinas e é consumido na fábrica (ficha técnica). Peça à venda que também é usada na fábrica aparece aqui com a etiqueta \"também vende\".", cor: "bg-fixo-red-600",
     padrao: { tipo: "insumo", vendavel: false, no_catalogo: false } },
-  { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "from-fixo-teal-500 to-fixo-cyan-700",
+  { id: "servicos", titulo: "Serviços", ajuda: "Carga de gás, limpeza e lavagem, troca de compressor, reparo em mecânica… Não controlam estoque; na OS entram como mão de obra.", cor: "bg-fixo-cyan-700",
     padrao: { tipo: "servico", vendavel: true, no_catalogo: false, unidade: "UN", ncm: "00000000", gtin_isento: true } },
-  { id: "todos", titulo: "Todos", ajuda: "Peças, componentes e serviços juntos. As máquinas ficam na tela Máquinas (menu Fábrica e estoque).", cor: "from-fixo-slate-500 to-fixo-slate-700", padrao: {} },
+  { id: "todos", titulo: "Todos", ajuda: "Peças, componentes e serviços juntos. As máquinas ficam na tela Máquinas (menu Fábrica e estoque).", cor: "bg-fixo-slate-700", padrao: {} },
 ];
 const txt = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "pt-BR", { sensitivity: "base" });
 const FILTROS_PRODUTO: FiltroCrud<Produto>[] = [
@@ -484,7 +484,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           {!ehMaquinas && <div className="faixa-chips mb-2 sm:mb-3 sm:gap-2" role="tablist" aria-label="Cadastro de produtos">
             {CADASTROS.filter((c) => c.id !== "maquinas").map((c) => (
               <button key={c.id} type="button" role="tab" aria-selected={cadastro === c.id} onClick={() => escolherCadastro(c.id)}
-                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm ${cadastro === c.id ? "border-transparent bg-gradient-to-br text-white shadow-card " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm ${cadastro === c.id ? "border-transparent text-white shadow-card " + c.cor : "border-slate-200 bg-surface text-fg hover:border-slate-300"}`}>
                 {c.titulo}
                 <span className={`num rounded-full px-1.5 text-xs leading-5 ${cadastro === c.id ? "bg-white/25" : "bg-slate-100 text-slate-600"}`}>{contagem(c.id)}</span>
               </button>

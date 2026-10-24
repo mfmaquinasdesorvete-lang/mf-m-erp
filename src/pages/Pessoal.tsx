@@ -396,7 +396,7 @@ export default function Pessoal() {
             const saldo = saldos.get(c.id) ?? 0;
             const ultimo = ultimoLancamento(lancs, c.id);
             return (
-              <div key={c.id} className={`overflow-hidden rounded-2xl text-white shadow-card ${c.ativa ? "" : "opacity-60"}`} style={{ background: `linear-gradient(135deg, ${corDe(c.cor)}, #0f172a)` }}>
+              <div key={c.id} className={`overflow-hidden rounded-2xl text-white shadow-card ${c.ativa ? "" : "opacity-60"}`} style={{ background: corDe(c.cor) }}>
                 <button type="button" onClick={() => setConta(conta === c.id ? "" : c.id)} aria-pressed={conta === c.id}
                   className={`block w-full p-4 text-left ${conta === c.id ? "ring-4 ring-inset ring-white/60" : ""}`}>
                   <div className="flex items-start justify-between gap-2">

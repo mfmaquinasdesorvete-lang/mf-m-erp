@@ -79,7 +79,7 @@ export function Rodada({ versao, onIdeia, onPendencia }: { versao: InfoVersao | 
     <div className="space-y-6">
       {/* onde a rodada está */}
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-fixo-teal-700 via-fixo-blue-700 to-fixo-violet-600 p-4 text-white sm:p-5">
+        <div className="bg-fixo-teal-700 p-4 text-white sm:p-5">
           <div className="text-xs font-semibold uppercase tracking-wider opacity-80">Rodada atual · VISUALIZE</div>
           <h2 className="text-xl font-bold [text-wrap:balance]">{R.titulo}</h2>
           <p className="mt-1 max-w-3xl text-sm opacity-90">{R.resumo}</p>

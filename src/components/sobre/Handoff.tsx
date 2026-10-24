@@ -289,9 +289,9 @@ function OQueE({ onIdeias }: { onIdeias: () => void }) {
     return <button type="button" onClick={() => setAberta(true)} className="link-modulo text-sm">O que é o Handoff e como usar?</button>;
   }
   const tipos: { icone: LucideIcon; cor: string; titulo: string; texto: ReactNode; exemplo: string }[] = [
-    { icone: ListTodo, cor: "from-sky-500 to-blue-700", titulo: "Pendência", texto: "Algo que precisa ser feito, com quem faz, prioridade e, se tiver, prazo.", exemplo: "Ex.: emitir a NF-e da venda #3 (empresa, alta)" },
-    { icone: Scale, cor: "from-emerald-500 to-teal-700", titulo: "Decisão", texto: "Algo que já foi combinado e vale daqui para frente. Leia antes de mudar alguma coisa.", exemplo: "Ex.: o site só é publicado com o ok da empresa" },
-    { icone: Lightbulb, cor: "from-amber-500 to-orange-600", titulo: "Ideia", texto: <>Ainda não é trabalho: vai para <button type="button" onClick={onIdeias} className="link-modulo">Ideias</button>, é votada e, se aprovada, vira pendência.</>, exemplo: "Ex.: avisar o cliente quando a máquina sair do conserto" },
+    { icone: ListTodo, cor: "bg-fixo-sky-700", titulo: "Pendência", texto: "Algo que precisa ser feito, com quem faz, prioridade e, se tiver, prazo.", exemplo: "Ex.: emitir a NF-e da venda #3 (empresa, alta)" },
+    { icone: Scale, cor: "bg-fixo-teal-700", titulo: "Decisão", texto: "Algo que já foi combinado e vale daqui para frente. Leia antes de mudar alguma coisa.", exemplo: "Ex.: o site só é publicado com o ok da empresa" },
+    { icone: Lightbulb, cor: "bg-fixo-orange-600", titulo: "Ideia", texto: <>Ainda não é trabalho: vai para <button type="button" onClick={onIdeias} className="link-modulo">Ideias</button>, é votada e, se aprovada, vira pendência.</>, exemplo: "Ex.: avisar o cliente quando a máquina sair do conserto" },
   ];
   const passos = [
     ["Comece pelos próximos passos", "são as pendências mais urgentes, já na ordem certa"],
@@ -308,7 +308,7 @@ function OQueE({ onIdeias }: { onIdeias: () => void }) {
         {tipos.map((t) => (
           <div key={t.titulo} className="min-w-0 rounded-xl border border-slate-200 p-3">
             <div className="flex items-center gap-2">
-              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${t.cor} text-white`} aria-hidden><t.icone size={16} /></span>
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${t.cor} text-white`} aria-hidden><t.icone size={16} /></span>
               <b className="text-fg">{t.titulo}</b>
             </div>
             <p className="mt-2 text-sm leading-snug text-slate-600">{t.texto}</p>

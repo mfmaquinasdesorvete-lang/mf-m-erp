@@ -83,7 +83,7 @@ export default function AppAssistencia() {
     <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-teal-500 to-fixo-violet-500 font-bold text-noite-fundo">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-fixo-teal-500 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-noite-fraco">Olá{primeiro ? `, ${primeiro}` : ""}</p>
             <p className="truncate font-bold tracking-wide">Assistência MF</p>

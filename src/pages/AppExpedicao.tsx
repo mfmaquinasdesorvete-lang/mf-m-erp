@@ -104,7 +104,7 @@ export default function AppExpedicao() {
     <div className="min-h-screen bg-noite-fundo pb-28 text-noite-texto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="mx-auto max-w-md px-4">
         <header className="flex items-center gap-3 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-fixo-sky-400 to-fixo-emerald-400 font-bold text-noite-fundo">MF</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-fixo-sky-400 font-bold text-noite-fundo">MF</div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-noite-fraco">{despachadosHoje} {pl(despachadosHoje, "despachado", "despachados")} hoje</p>
             <p className="truncate font-bold tracking-wide">Expedição MF</p>

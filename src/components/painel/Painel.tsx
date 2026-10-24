@@ -102,9 +102,8 @@ export function CabecalhoPainel({ icone: Icone, area, titulo, resumo, periodo, o
   icone: LucideIcon; area: string; titulo: string; resumo?: ReactNode; periodo?: Periodo; onPeriodo?: (p: Periodo) => void; acoes?: ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-modulo to-modulo-escuro p-4 text-white shadow-card sm:p-6">
-      <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" aria-hidden />
-      <span className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-black/10 blur-2xl" aria-hidden />
+    // cor lisa da área (24/10, diretrizes de design: sem degradê nem brilho)
+    <div className="relative overflow-hidden rounded-2xl bg-modulo p-4 text-white shadow-card sm:p-6">
       <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur" aria-hidden><Icone size={24} /></span>

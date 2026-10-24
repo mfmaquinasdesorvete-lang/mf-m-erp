@@ -15,15 +15,15 @@ export const COLUNAS_VENDA: {
   id: ColunaVenda; passo: number | null; rotulo: string; explica: string; fazer: string; fundo: string; tinta: string; cor: string; corpo: string;
 }[] = [
   { id: "orcamento", passo: 1, rotulo: "Orçamentos", cor: "#7c3aed", explica: "Proposta feita, esperando o cliente.", fazer: "Aprovar quando o cliente fechar.",
-    fundo: "linear-gradient(135deg,#8b5cf6 0%,#7c3aed 55%,#6d28d9 100%)", tinta: "#ffffff", corpo: "bg-purple-50/50" },
+    fundo: "#7c3aed", tinta: "#ffffff", corpo: "bg-purple-50/50" },
   { id: "aprovado", passo: 2, rotulo: "Aprovados", cor: "#0ea5e9", explica: "O cliente fechou; falta a nota.", fazer: "Emitir a NF-e e separar.",
-    fundo: "linear-gradient(135deg,#67e8f9 0%,#38bdf8 50%,#0ea5e9 100%)", tinta: "#062c43", corpo: "bg-sky-50/50" },
+    fundo: "#67e8f9", tinta: "#062c43", corpo: "bg-sky-50/50" },
   { id: "faturado", passo: 3, rotulo: "Faturados", cor: "#4338ca", explica: "Nota emitida; falta chegar ao cliente.", fazer: "Despachar e marcar entregue.",
-    fundo: "linear-gradient(135deg,#6366f1 0%,#4f46e5 55%,#4338ca 100%)", tinta: "#ffffff", corpo: "bg-indigo-50/50" },
+    fundo: "#4f46e5", tinta: "#ffffff", corpo: "bg-indigo-50/50" },
   { id: "entregue", passo: 4, rotulo: "Entregues", cor: "#10b981", explica: "Chegou ao cliente.", fazer: "Conferir se o pagamento entrou.",
-    fundo: "linear-gradient(135deg,#6ee7b7 0%,#34d399 45%,#10b981 100%)", tinta: "#022c1e", corpo: "bg-emerald-50/50" },
+    fundo: "#6ee7b7", tinta: "#022c1e", corpo: "bg-emerald-50/50" },
   { id: "cancelado", passo: null, rotulo: "Cancelados", cor: "#e11d48", explica: "Não vai seguir.", fazer: "Nada a fazer (o motivo fica na venda).",
-    fundo: "linear-gradient(135deg,#e11d48 0%,#be123c 55%,#9f1239 100%)", tinta: "#ffffff", corpo: "bg-red-50/50" },
+    fundo: "#e11d48", tinta: "#ffffff", corpo: "bg-red-50/50" },
 ];
 
 /** Quantos cartões cada coluna mostra (as vendas mais novas); o resto fica na lista. */

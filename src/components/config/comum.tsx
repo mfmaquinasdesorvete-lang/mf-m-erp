@@ -15,30 +15,30 @@ export type SecaoId = "empresa" | "unidades" | "recebimentos" | "bancos" | "orca
 export type Secao = { id: SecaoId; titulo: string; resumo: string; icone: LucideIcon; cor: string; grupo: string };
 
 export const SECOES: Secao[] = [
-  { id: "empresa", grupo: "Empresa", titulo: "Empresa e marca", resumo: "Dados gerais, logo, ícone, cores e o cabeçalho dos PDFs", icone: Palette, cor: "from-fixo-purple-500 to-fixo-violet-700" },
-  { id: "unidades", grupo: "Empresa", titulo: "Unidades", resumo: "Matriz e filial: CNPJ, IE, endereço e série da NF-e", icone: Building2, cor: "from-fixo-slate-500 to-fixo-slate-700" },
-  { id: "recebimentos", grupo: "Empresa", titulo: "Recebimentos e taxas", resumo: "Pix, banco e InfinitePay de cada unidade, taxas, multa e juros", icone: BadgePercent, cor: "from-fixo-emerald-500 to-fixo-emerald-700" },
-  { id: "bancos", grupo: "Empresa", titulo: "Bancos e extratos", resumo: "Extrato automático (Open Finance), API do Inter e extrato OFX por e-mail", icone: Landmark, cor: "from-fixo-sky-500 to-fixo-indigo-600" },
-  { id: "orcamentos", grupo: "Vendas", titulo: "Orçamentos e garantia", resumo: "Validade, prazos, layout da proposta, garantia e laudo da OS", icone: FileText, cor: "from-fixo-sky-500 to-fixo-blue-600" },
-  { id: "descontos", grupo: "Vendas", titulo: "Descontos", resumo: "Máximo por tipo de venda e senha de aprovação do administrador", icone: Percent, cor: "from-fixo-red-500 to-fixo-red-700" },
-  { id: "comissoes", grupo: "Vendas", titulo: "Comissões", resumo: "Percentual padrão e regras por vendedor e categoria", icone: HandCoins, cor: "from-fixo-amber-500 to-fixo-amber-700" },
-  { id: "catalogo", grupo: "Vendas", titulo: "Catálogo e vitrine", resumo: "Catálogo do WhatsApp, vitrine do site e loja virtual", icone: ShoppingBag, cor: "from-fixo-pink-500 to-fixo-pink-700" },
-  { id: "pedidos", grupo: "Operação", titulo: "Pedidos e expedição", resumo: "O que acontece sozinho na venda, etiquetas e impressora Zebra", icone: Package, cor: "from-fixo-orange-500 to-fixo-orange-700" },
-  { id: "notas", grupo: "Operação", titulo: "Notas fiscais", resumo: "NF-e geral, Focus NFe, notas de fornecedores e impostos", icone: FileText, cor: "from-fixo-cyan-500 to-fixo-cyan-700" },
-  { id: "cobranca", grupo: "Comunicação", titulo: "Cobrança automática", resumo: "Régua de cobrança por e-mail e WhatsApp (antes, no dia e depois do vencimento) e o WhatsApp oficial", icone: MessageCircle, cor: "from-fixo-green-500 to-fixo-green-700" },
-  { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram ou WhatsApp da equipe e e-mails para os clientes", icone: Bell, cor: "from-fixo-yellow-500 to-fixo-yellow-700" },
-  { id: "email", grupo: "Comunicação", titulo: "Caixa de e-mail", resumo: "E-mail da empresa (IMAP/SMTP) para enviar e receber pelo ERP", icone: Mail, cor: "from-fixo-blue-500 to-fixo-blue-700" },
-  { id: "contador", grupo: "Comunicação", titulo: "Contador", resumo: "Envio automático do fechamento do mês", icone: Calculator, cor: "from-fixo-violet-500 to-fixo-violet-800" },
-  { id: "cadastros", grupo: "Cadastros", titulo: "Categorias e marcadores", resumo: "Categorias dos produtos e os marcadores coloridos de todos os cadastros", icone: FolderTree, cor: "from-fixo-purple-500 to-fixo-violet-700" },
-  { id: "ia", grupo: "Dados", titulo: "Inteligência artificial", resumo: "Desligar todas as IAs na hora e o registro de cada uso da IA", icone: Bot, cor: "from-fixo-cyan-500 to-fixo-violet-600" },
-  { id: "dados", grupo: "Dados", titulo: "Dados e backup", resumo: "Backup diário, exportar tudo e apagar dados de teste", icone: Database, cor: "from-fixo-slate-600 to-fixo-slate-900" },
+  { id: "empresa", grupo: "Empresa", titulo: "Empresa e marca", resumo: "Dados gerais, logo, ícone, cores e o cabeçalho dos PDFs", icone: Palette, cor: "bg-fixo-violet-700" },
+  { id: "unidades", grupo: "Empresa", titulo: "Unidades", resumo: "Matriz e filial: CNPJ, IE, endereço e série da NF-e", icone: Building2, cor: "bg-fixo-slate-700" },
+  { id: "recebimentos", grupo: "Empresa", titulo: "Recebimentos e taxas", resumo: "Pix, banco e InfinitePay de cada unidade, taxas, multa e juros", icone: BadgePercent, cor: "bg-fixo-emerald-700" },
+  { id: "bancos", grupo: "Empresa", titulo: "Bancos e extratos", resumo: "Extrato automático (Open Finance), API do Inter e extrato OFX por e-mail", icone: Landmark, cor: "bg-fixo-indigo-600" },
+  { id: "orcamentos", grupo: "Vendas", titulo: "Orçamentos e garantia", resumo: "Validade, prazos, layout da proposta, garantia e laudo da OS", icone: FileText, cor: "bg-fixo-blue-600" },
+  { id: "descontos", grupo: "Vendas", titulo: "Descontos", resumo: "Máximo por tipo de venda e senha de aprovação do administrador", icone: Percent, cor: "bg-fixo-red-700" },
+  { id: "comissoes", grupo: "Vendas", titulo: "Comissões", resumo: "Percentual padrão e regras por vendedor e categoria", icone: HandCoins, cor: "bg-fixo-amber-700" },
+  { id: "catalogo", grupo: "Vendas", titulo: "Catálogo e vitrine", resumo: "Catálogo do WhatsApp, vitrine do site e loja virtual", icone: ShoppingBag, cor: "bg-fixo-pink-700" },
+  { id: "pedidos", grupo: "Operação", titulo: "Pedidos e expedição", resumo: "O que acontece sozinho na venda, etiquetas e impressora Zebra", icone: Package, cor: "bg-fixo-orange-700" },
+  { id: "notas", grupo: "Operação", titulo: "Notas fiscais", resumo: "NF-e geral, Focus NFe, notas de fornecedores e impostos", icone: FileText, cor: "bg-fixo-cyan-700" },
+  { id: "cobranca", grupo: "Comunicação", titulo: "Cobrança automática", resumo: "Régua de cobrança por e-mail e WhatsApp (antes, no dia e depois do vencimento) e o WhatsApp oficial", icone: MessageCircle, cor: "bg-fixo-green-700" },
+  { id: "avisos", grupo: "Comunicação", titulo: "Avisos automáticos", resumo: "Telegram ou WhatsApp da equipe e e-mails para os clientes", icone: Bell, cor: "bg-fixo-yellow-700" },
+  { id: "email", grupo: "Comunicação", titulo: "Caixa de e-mail", resumo: "E-mail da empresa (IMAP/SMTP) para enviar e receber pelo ERP", icone: Mail, cor: "bg-fixo-blue-700" },
+  { id: "contador", grupo: "Comunicação", titulo: "Contador", resumo: "Envio automático do fechamento do mês", icone: Calculator, cor: "bg-fixo-violet-800" },
+  { id: "cadastros", grupo: "Cadastros", titulo: "Categorias e marcadores", resumo: "Categorias dos produtos e os marcadores coloridos de todos os cadastros", icone: FolderTree, cor: "bg-fixo-violet-700" },
+  { id: "ia", grupo: "Dados", titulo: "Inteligência artificial", resumo: "Desligar todas as IAs na hora e o registro de cada uso da IA", icone: Bot, cor: "bg-fixo-violet-600" },
+  { id: "dados", grupo: "Dados", titulo: "Dados e backup", resumo: "Backup diário, exportar tudo e apagar dados de teste", icone: Database, cor: "bg-fixo-slate-900" },
 ];
 export const secaoPorId = (id?: string | null) => SECOES.find((s) => s.id === id) ?? null;
 
 /** Ícone da seção no quadrado colorido (painel e cabeçalho). */
 export function IconeSecao({ s, tamanho = 22 }: { s: Secao; tamanho?: number }) {
   const I = s.icone;
-  return <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${s.cor} text-white shadow-card`} aria-hidden><I size={tamanho} /></span>;
+  return <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${s.cor} text-white shadow-card`} aria-hidden><I size={tamanho} /></span>;
 }
 
 /** Cabeçalho das páginas: voltar ao painel, ícone, título e o que a página faz. */
