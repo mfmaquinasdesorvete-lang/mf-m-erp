@@ -61,3 +61,32 @@ export async function atualizarAnuncios(db: SupabaseClient, token: string, itens
   }
   return r;
 }
+
+const TIPOS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+/**
+ * Fotos de produto que ainda são link externo (ex.: exportadas do Canva para a loja e os anúncios): copia para o
+ * ERP (bucket produtos-fotos) antes que o link vença. O mesmo que a função produtos-fotos faz pela tela.
+ */
+export async function copiarFotos(db: SupabaseClient) {
+  const { data } = await db.from("produtos").select("id, foto_caminho").like("foto_caminho", "https://%").limit(25);
+  const r = { copiadas: 0, falharam: 0 };
+  for (const p of (data ?? []) as { id: string; foto_caminho: string }[]) {
+    try {
+      const resp = await fetch(p.foto_caminho, { redirect: "follow", signal: AbortSignal.timeout(15000) });
+      const tipo = (resp.headers.get("content-type") ?? "").split(";")[0].trim();
+      if (!resp.ok || !TIPOS[tipo]) throw new Error(`resposta ${resp.status} ${tipo}`);
+      const bytes = new Uint8Array(await resp.arrayBuffer());
+      if (bytes.byteLength > 5 * 1024 * 1024) throw new Error("foto maior que 5 MB");
+      const caminho = `${crypto.randomUUID()}.${TIPOS[tipo]}`;
+      const { error } = await db.storage.from("produtos-fotos").upload(caminho, bytes, { contentType: tipo });
+      if (error) throw error;
+      await db.from("produtos").update({ foto_caminho: caminho }).eq("id", p.id).eq("foto_caminho", p.foto_caminho);
+      r.copiadas++;
+    } catch (e) {
+      console.warn("mercadolivre: foto", p.id, msg(e));
+      r.falharam++;
+    }
+  }
+  return r;
+}
