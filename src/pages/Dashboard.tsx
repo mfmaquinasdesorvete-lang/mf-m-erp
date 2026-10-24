@@ -20,6 +20,7 @@ import type { Equipamento, Necessidade, OrdemProducao, OrdemServico, Pedido, Ped
 import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import { ordenarAtencao, type ItemAtencao } from "@/lib/prioridadeInicio";
 import { AcessoRapido } from "@/components/painel/AcessoRapido";
+import { ResumoDono, veResumoDono } from "@/components/painel/ResumoDono";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -85,7 +86,7 @@ const VISOES: Record<Visao, [string, string]> = { geral: ["Painel geral", "Geral
  * cada um pode trocar e a escolha fica lembrada (por papel, para quem divide o computador).
  */
 export default function Dashboard() {
-  const { papel, podeVer, tem, master } = usePerfil();
+  const { papel, podeVer, tem, master, nome } = usePerfil();
   const opcoes: Visao[] = papel === "vendas" ? ["fluxo", "geral"]
     : [ "geral" as const, ...(tem("financeiro") ? ["financeiro" as const] : []), ...(podeVer("fluxo") ? ["fluxo" as const] : [])];
   const padrao: Visao = papel === "vendas" ? "fluxo" : papel === "financeiro" ? "financeiro" : "geral";
@@ -114,6 +115,8 @@ export default function Dashboard() {
       )}
       {master && <AtalhoGastoPessoal />}
       </div>}
+      {/* entrada do Fabiano: o resumo do dono no alto, em qualquer painel */}
+      {veResumoDono(nome) && <ResumoDono />}
       {atual === "financeiro" ? <PainelFinanceiro />
         : atual === "fluxo" ? <Suspense fallback={<div className="p-8 text-slate-500">Carregando…</div>}><Fluxo /></Suspense>
         : <PainelGeral />}
@@ -323,8 +326,8 @@ function PainelGeral() {
 
       {/* 0a. Celular (24/10, modelo enviado pela usuária): um cartão azul liso com os 4 números do período, lado a lado;
           tocar num número abre a tela dele. No computador continuam os cartões coloridos mais abaixo. */}
-      <ResumoCelular titulo={`Resumo ${per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "de 30 dias"}`}
-        periodo={periodo} onPeriodo={escolher} itens={kpis} onAbrir={(c) => navigate(c.to, { state: c.state })} />
+      {!veResumoDono(nome) && <ResumoCelular titulo={`Resumo ${per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "de 30 dias"}`}
+        periodo={periodo} onPeriodo={escolher} itens={kpis} onAbrir={(c) => navigate(c.to, { state: c.state })} />}
 
       {/* 0b. Acesso rápido (23/10): as telas do dia a dia numa faixa de bolinhas que rola para o lado */}
       <AcessoRapido avisos={{ "/notas": k.nfeConferir, "/financeiro": k.qtdReceberVencido, "/estoque": k.estoqueBaixo.length, "/garantias": lembretes.length, "/assistencia": k.osAtrasadas }} />
