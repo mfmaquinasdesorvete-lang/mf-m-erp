@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CircleCheck, ClipboardList, Copy, Globe, HandCoins, IdCard, Landmark, LayoutList, Mail, MapPin, MapPinned,
   MessageCircle, Package, Paperclip, PenLine, Pencil, Phone, Receipt, Save, ShoppingCart, StickyNote, Tags, TriangleAlert, Truck, UserPlus, UserRound, Users, Wallet, Wrench, X, type LucideIcon,
+  Sparkles,
 } from "lucide-react";
 import { Button, Field, useFecharComEsc, chip } from "../ui";
 import { CampoMascara } from "../CrudPage";
@@ -39,6 +40,7 @@ import { confirmar } from "@/components/Dialogos";
 import { FONTE_DESDE, useClienteDesde } from "@/lib/clienteDesde";
 import { EnvioCorreios } from "./EnvioCorreios";
 import { RedesBusca } from "./RedesClientes";
+import { PreencherClienteIA } from "./PreencherClienteIA";
 
 /** Campos preenchidos pela Receita ao digitar o CNPJ. */
 export const CAMPOS_RECEITA = ["nome", "nome_fantasia", "email", "telefone", "cep", "logradouro", "numero", "complemento", "bairro", "municipio", "uf", "inscricao_estadual"];
@@ -123,6 +125,8 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
   /** Desmarcou "Cliente": ao salvar, vai para Fornecedores e sai da lista de clientes. */
   const [deixaCliente, setDeixaCliente] = useState(false);
   const [correios, setCorreios] = useState(false);
+  /** "Preencher com IA": conversa do WhatsApp ou foto do cartão de visita */
+  const [ia, setIa] = useState(false);
   const tagsAntes = useRef<string[]>(registro.tags ?? []);
   const { data: formas = [] } = useFormasPagamento();
   const { data: tabelasPreco = [] } = useRows<{ id: string; nome: string; ajuste_percentual: number; ativo: boolean }>("tabelas_preco", { order: "nome", ascending: true });
@@ -372,8 +376,8 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
     }
     irPara(Math.min(n + 1, PASSOS.length - 1));
   }
-  async function abrirRepetido() {
-    const { data, error } = await supabase.from("clientes").select("*").eq("id", repetido!.id).single();
+  async function abrirRepetido(id = repetido!.id) {
+    const { data, error } = await supabase.from("clientes").select("*").eq("id", id).single();
     if (error) return notifyError(error);
     const existente = { cobranca_diferente: false, tags: [], ...data };
     base.current = JSON.stringify(existente);
@@ -465,6 +469,14 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
               if (e.key === "Enter" && !e.defaultPrevented && t.tagName === "INPUT" && (t as HTMLInputElement).type !== "checkbox" && passo !== "revisao") { e.preventDefault(); avancar(); }
             }}>
             {passo === "quem" && (<>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand/30 bg-brand-light px-3 py-2 text-sm">
+                <span className="min-w-0 flex-1 text-slate-700">Tem a conversa do WhatsApp ou o cartão de visita? A IA preenche para você.</span>
+                <Button type="button" onClick={() => setIa(true)}><Sparkles size={16} /> Preencher com IA</Button>
+              </div>
+              {ia && (
+                <PreencherClienteIA atual={c} onClose={() => setIa(false)} onAbrirRepetido={(id) => { setIa(false); abrirRepetido(id); }}
+                  onAplicar={(campos) => setC((r) => ({ ...r, ...campos }))} />
+              )}
               <div role="radiogroup" aria-label="Tipo de cliente" className="grid grid-cols-2 gap-2">
                 {([["PJ", "Empresa", "Tem CNPJ: sorveteria, açaiteria, revenda", Building2], ["PF", "Pessoa física", "Compra no CPF", UserRound]] as const).map(([v, l, sub, Icon]) => (
                   <button key={v} type="button" role="radio" aria-checked={c.tipo_pessoa === v} onClick={() => set("tipo_pessoa", v)}
@@ -480,7 +492,7 @@ export function ClienteForm({ registro, onClose }: { registro: Record<string, an
                   <div className="col-span-1 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-12">
                     <TriangleAlert size={18} className="shrink-0" />
                     <span className="min-w-0 flex-1">Já cadastrado: <b>{repetido.nome_fantasia || repetido.nome}</b>{repetido.codigo ? ` (nº ${repetido.codigo})` : ""}{repetido.arquivado_em ? ", arquivado" : ""}.</span>
-                    <Button type="button" variant="secondary" onClick={abrirRepetido}>Abrir esse cadastro</Button>
+                    <Button type="button" variant="secondary" onClick={() => abrirRepetido()}>Abrir esse cadastro</Button>
                   </div>
                 )}
                 {campo("nome", pj ? "Razão social" : "Nome completo", { span: 12, obrigatorio: true })}
