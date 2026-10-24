@@ -5,7 +5,7 @@
 // "Lançar salários" cria as contas a pagar do mês (uma por pessoa), sem repetir as que já foram lançadas.
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { lerValorOuErro } from "@/lib/auditoriaBusca";
-import { CalendarClock, Cake, HandCoins, Users, Wallet } from "lucide-react";
+import { CalendarClock, Cake, HandCoins, HeartPulse, Briefcase, UserCheck, UserX, Users, Wallet } from "lucide-react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button, CampoMes, Indicador, Modal } from "@/components/ui";
@@ -20,6 +20,7 @@ import { completarPorCep } from "@/lib/cadastro";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { Tabs } from "@/components/ui";
 import { PastaFuncionario } from "@/components/funcionarios/PastaFuncionario";
+import { GRUPOS_EQUIPE, contarGrupos, noGrupo, type GrupoEquipe } from "@/lib/grupoFuncionarios";
 import { PastaDaEquipe } from "@/components/funcionarios/PastaDaEquipe";
 
 // pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
@@ -44,7 +45,7 @@ const VINCULOS = [
   { value: "autonomo", label: "Autônomo" }, { value: "socio", label: "Sócio (pró-labore)" },
 ];
 const SITUACOES = [
-  { value: "ativo", label: "Ativo" }, { value: "ferias", label: "Em férias" }, { value: "afastado", label: "Afastado" }, { value: "desligado", label: "Desligado" },
+  { value: "ativo", label: "Ativo" }, { value: "ferias", label: "Em férias" }, { value: "afastado", label: "Afastado (INSS)" }, { value: "desligado", label: "Desligado" },
 ];
 const SETORES = ["Produção", "Assistência técnica", "Vendas", "Financeiro e administrativo", "Expedição e logística", "Compras", "Diretoria", "Outro"];
 const rotuloVinculo = (v: string) => VINCULOS.find((x) => x.value === v)?.label ?? v;
@@ -97,6 +98,11 @@ const FILTROS: FiltroCrud<Funcionario>[] = [
   { label: "Técnicos", opcoes: [{ label: "Faz assistência técnica", teste: (f) => f.faz_assistencia }] },
 ];
 
+const VISUAL_GRUPO: Record<GrupoEquipe, { icon: typeof Users; cor: "azul" | "neutro" | "indigo" | "ambar" | "vermelho" }> = {
+  equipe: { icon: UserCheck, cor: "azul" }, ex: { icon: UserX, cor: "neutro" }, prestador: { icon: Briefcase, cor: "indigo" },
+  sem_carteira: { icon: Users, cor: "ambar" }, inss: { icon: HeartPulse, cor: "vermelho" },
+};
+
 export type AbaFuncionarios = "equipe" | "pasta" | "pagamentos";
 export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", pagamentos: "/funcionarios-pagamentos" };
 
@@ -109,6 +115,9 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   const [lancar, setLancar] = useState(false);
   const navegar = useNavigate();
   const [params] = useSearchParams();
+  // cartão de abertura escolhido: filtra a lista (tocar de novo mostra todos)
+  const [grupo, setGrupo] = useState<GrupoEquipe | null>(null);
+  const contagem = useMemo(() => contarGrupos(lista), [lista]);
 
   const equipe = ativos(lista);
   const mes = hoje().slice(5, 7);
@@ -201,9 +210,20 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   return (
     <div>
       {abas}
-      <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Indicador rotulo="Na equipe" icon={Users} cor="azul" valor={String(equipe.length)}
-          sub={`${equipe.filter((f) => f.faz_assistencia).length} ${pl(equipe.filter((f) => f.faz_assistencia).length, "técnico", "técnicos")} · ${equipe.filter((f) => f.situacao === "ferias").length} em férias`} />
+      <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {GRUPOS_EQUIPE.map((g) => {
+          const { icon, cor } = VISUAL_GRUPO[g.id];
+          return (
+            <button key={g.id} type="button" aria-pressed={grupo === g.id} onClick={() => setGrupo(grupo === g.id ? null : g.id)}
+              title={grupo === g.id ? "Mostrar todos" : `Mostrar só: ${g.rotulo.toLowerCase()}`}
+              className={`rounded-cartao text-left transition ${grupo === g.id ? "ring-2 ring-modulo" : "hover:brightness-110"}`}>
+              <Indicador rotulo={g.rotulo} icon={icon} cor={cor} valor={String(contagem[g.id])}
+                sub={g.id === "equipe" ? `${equipe.filter((f) => f.faz_assistencia).length} ${pl(equipe.filter((f) => f.faz_assistencia).length, "técnico", "técnicos")} · ${equipe.filter((f) => f.situacao === "ferias").length} em férias` : g.dica} />
+            </button>
+          );
+        })}
+      </div>
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Indicador rotulo="Salários (bruto/mês)" icon={Wallet} cor="laranja" valor={brl(folha)} sub="soma dos salários da equipe" />
         <Indicador rotulo="Aniversariantes do mês" icon={Cake} cor="roxo" valor={String(aniversariantes.length)}
           sub={aniversariantes.length ? aniversariantes.map((f) => `${nomeCurto(f)} (${f.data_nascimento!.slice(8)})`).join(", ") : "ninguém este mês"} />
@@ -221,6 +241,7 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
         defaults={{ nome: "", vinculo: "clt", situacao: "ativo", unidade_id: padrao, faz_assistencia: false, ativo: true, dia_pagamento: 5 }}
         searchKeys={["nome", "apelido", "cargo", "setor", "cpf", "whatsapp", "email", "municipio"]}
         filtros={FILTROS}
+        filtroBase={grupo ? (f) => noGrupo(f, grupo) : undefined}
         ordens={[
           { label: "Nome", comparar: (a, b) => a.nome.localeCompare(b.nome) },
           { label: "Mais tempo de casa", comparar: (a, b) => (a.data_admissao ?? "9999").localeCompare(b.data_admissao ?? "9999") },

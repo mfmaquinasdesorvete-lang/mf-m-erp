@@ -1357,7 +1357,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
     tags: ["RH", "EQUIPE", "SALÁRIOS"],
     destaque: "A equipe organizada, com contratos, salários e documentos.",
     partes: [
-      "Na equipe: quantas pessoas, quantos técnicos e quantos estão em férias.",
+      "Cartões de abertura: Funcionários (na ativa, com técnicos e férias), Ex-funcionários, Prestadores de serviço (PJ/MEI), Sem carteira (autônomos) e No INSS (afastados); tocar no cartão filtra a lista.",
       "Salários: soma dos salários brutos da equipe por mês.",
       "Aniversariantes do mês: quem faz aniversário e em que dia.",
       "Experiência vencendo: avisa o fim dos 45 e dos 90 dias de experiência que caem nos próximos 15 dias.",
