@@ -36,6 +36,7 @@ import { parecidos, resumoMovimentos, sugerirMinimo, UNIDADES, type Movimento } 
 import { vendidosPorProduto } from "@/lib/gerencial";
 import { custoUnitario, margemBruta } from "@/lib/margem";
 import { usePrecosPendentes } from "@/components/produtos/FormacaoPreco";
+import { ListaImpostosMaquinas, QuadroImpostosVenda } from "@/components/produtos/ImpostosVenda";
 import { configPreco, margemAlvo, precoSugerido } from "@/lib/precificacao";
 import { pedirTexto } from "@/components/Dialogos";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -156,9 +157,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   // Máquinas ganham as abas Ficha técnica e Manuais (?aba=ficha&maquina=<id> abre a ficha daquela máquina)
   // Preços e Tabelas de preço foram para a Gestão de preços (/precos) e Anúncios para a Loja online e marketplace
   // (/mercado-livre?aba=marketplace) em 23/10; os endereços antigos levam para lá.
-  type AbaProdutos = "produtos" | "ficha" | "manuais" | "qualidade" | "contagem" | "categorias";
+  type AbaProdutos = "produtos" | "ficha" | "manuais" | "impostos" | "qualidade" | "contagem" | "categorias";
   const abasValidas: readonly AbaProdutos[] = cadastroFixo === "maquinas"
-    ? ["produtos", "ficha", "manuais", "qualidade", "contagem", "categorias"]
+    ? ["produtos", "ficha", "manuais", "impostos", "qualidade", "contagem", "categorias"]
     : ["produtos", "qualidade", "contagem", "categorias"];
   const [aba, setAba] = useAbaUrl<AbaProdutos>("produtos", abasValidas);
   useEffect(() => {
@@ -421,7 +422,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   };
   const abasProdutos = [
     { value: "produtos" as const, label: ehMaquinas ? "Máquinas" : "Produtos" },
-    ...(ehMaquinas ? [{ value: "ficha" as const, label: "Ficha técnica" }, { value: "manuais" as const, label: "Manuais" }] : []),
+    ...(ehMaquinas ? [{ value: "ficha" as const, label: "Ficha técnica" }, { value: "manuais" as const, label: "Manuais" }, { value: "impostos" as const, label: "Impostos" }] : []),
     { value: "qualidade" as const, label: "Qualidade" },
     { value: "categorias" as const, label: "Categorias" },
     ...(pode("movimentar_estoque") ? [{ value: "contagem" as const, label: "Contagem" }] : []),
@@ -442,6 +443,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         <FichaTecnica inicial={fichaDe} />
       ) : aba === "manuais" ? (
         <ManuaisMaquinas produtos={produtosTodos} podeEditar={pode("editar_produtos") || tem("tecnico")} aoFicha={(id) => { setFichaDe(id); setAba("ficha"); }} />
+      ) : aba === "impostos" ? (
+        <ListaImpostosMaquinas produtos={produtos.filter((p) => p.tipo === "maquina")} custo={custo} />
       ) : aba === "categorias" ? (
         <CategoriasProdutos produtos={produtos} podeEditar={pode("editar_produtos")} />
       ) : aba === "qualidade" ? (
@@ -704,6 +707,12 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
               if (m == null) return <span className="text-xs text-slate-500">—</span>;
               return <span className={`text-sm font-semibold ${m < 0 ? "text-red-600" : m < 20 ? "text-amber-700" : "text-emerald-700"}`}>{m.toFixed(1).replace(".", ",")}%</span>;
             },
+          },
+          {
+            name: "impostos_venda", label: "Impostos na venda (previsão por destino)", type: "custom", span: 4,
+            render: (_v, _s, row) => ["servico", "insumo"].includes(row.tipo)
+              ? <span className="text-xs text-slate-500">não se aplica (não é vendido)</span>
+              : <QuadroImpostosVenda produto={row} preco={Number(row.preco_venda || 0)} custo={custo(row as Produto)} />,
           },
           {
             name: "motivo_alteracao", label: "Motivo da alteração (obrigatório ao mudar código, unidade, tipo, custo ou preço já preenchidos)", type: "custom", span: 4,
