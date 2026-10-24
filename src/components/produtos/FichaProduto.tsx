@@ -22,7 +22,7 @@ import { DesenhoMedidas } from "./DesenhoMedidas";
 import { DocumentosMaquina, GaleriaProduto } from "./GaleriaProduto";
 import type { Especificacao } from "./EditoresMaquina";
 import type { Produto } from "@/lib/types";
-import { custoMedioCompras, linkMaquina, mensagemMaquina, pecasEmGarantia } from "@/lib/maquinas";
+import { custoMedioCompras, linkMaquina, mensagemMaquina, pecasEmGarantia, ultimasCompras } from "@/lib/maquinas";
 import { margemBruta } from "@/lib/margem";
 
 type Aba = "geral" | "fornecedores" | "anuncios" | "custos" | "maquina" | "clientes" | "assistencia";
@@ -142,6 +142,7 @@ function AbaGeral({ p, podeEditar, custo }: { p: ProdutoFicha; podeEditar: boole
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
           <Dado rotulo="Preço de venda" valor={brl(Number(p.preco_venda || 0))} num />
           <Dado rotulo="Custo" valor={brl(Number(p.preco_custo || 0))} num />
+          {p.tipo !== "servico" && <Dado rotulo="2 últimas compras" valor={<UltimasCompras produtoId={p.id} />} />}
           <Dado rotulo="Margem bruta" valor={margem == null ? null : <span className={margem < 0 ? "text-red-600" : margem < 20 ? "text-amber-700" : "text-emerald-700"}>{margem.toFixed(1).replace(".", ",")}%</span>} />
           {p.tipo !== "servico" && <Dado rotulo="Estoque" valor={`${Number(p.estoque_atual || 0).toLocaleString("pt-BR")} ${p.unidade}`} num />}
           {p.tipo !== "servico" && <Dado rotulo="Mínimo / máximo" valor={`${Number(p.estoque_minimo || 0)} / ${Number(p.estoque_maximo || 0)}`} num />}
@@ -254,24 +255,45 @@ function AbaAnuncios({ p }: { p: ProdutoFicha }) {
   );
 }
 
-function AbaCustos({ p }: { p: ProdutoFicha }) {
-  const { data = [], isLoading, error } = useQuery({
-    queryKey: ["historico_custos", p.id],
+/** Histórico de custos do produto (compras pelas notas e mudanças no cadastro); a ficha e a aba Custos dividem a mesma leitura. */
+function useHistoricoCustos(produtoId: string) {
+  return useQuery({
+    queryKey: ["historico_custos", produtoId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("historico_custos", { p_produto: p.id });
+      const { data, error } = await supabase.rpc("historico_custos", { p_produto: produtoId });
       if (error) throw error;
       return (data ?? []) as LinhaCusto[];
     },
   });
+}
+
+/** As 2 últimas compras (valor, data e fornecedor), para comparar com o custo do cadastro. */
+export function UltimasCompras({ produtoId }: { produtoId: string }) {
+  const { data = [], isLoading, error } = useHistoricoCustos(produtoId);
+  if (isLoading) return <span className="font-normal text-slate-400">lendo…</span>;
+  if (error) return <span className="font-normal text-red-600">não deu para ler</span>;
+  const ult = ultimasCompras(data);
+  if (!ult.length) return <span className="font-normal text-slate-400">sem compra pelas notas</span>;
+  return (
+    <span className="block whitespace-normal font-normal">
+      {ult.map((c) => <span key={`${c.data}|${c.detalhe}`} className="block"><b className="num">{brl(c.valor)}</b> <span className="text-xs text-slate-500">{dataBR(c.data)} · {c.detalhe.replace(/^NF \S* · /, "")}</span></span>)}
+    </span>
+  );
+}
+
+function AbaCustos({ p }: { p: ProdutoFicha }) {
+  const { data = [], isLoading, error } = useHistoricoCustos(p.id);
   const umAno = useMemo(() => `${Number(hoje().slice(0, 4)) - 1}${hoje().slice(4)}`, []); // um ano antes de hoje (Brasília)
   const ano = custoMedioCompras(data, umAno), tudo = custoMedioCompras(data);
   const ultima = data.find((l) => l.evento === "compra" && Number(l.valor_unitario) > 0);
+  const penultima = ultimasCompras(data)[1];
   if (error) return <p className="text-sm text-red-600">Não deu para ler o histórico de custos: {(error as Error).message}</p>;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Cartao rotulo="Custo no cadastro" valor={brl(Number(p.preco_custo || 0))} />
-        <Cartao rotulo="Última compra" valor={ultima ? brl(Number(ultima.valor_unitario)) : "—"} ajuda={ultima ? dataBR(String(ultima.data).slice(0, 10)) : "sem compra pelas notas"} />
+        <Cartao rotulo="Última compra" valor={ultima ? brl(Number(ultima.valor_unitario)) : "—"} ajuda={ultima ? `${dataBR(String(ultima.data).slice(0, 10))} · ${String(ultima.detalhe ?? "").replace(/^NF \S* · /, "")}` : "sem compra pelas notas"} />
+        <Cartao rotulo="Penúltima compra" valor={penultima ? brl(penultima.valor) : "—"} ajuda={penultima ? `${dataBR(penultima.data)} · ${penultima.detalhe.replace(/^NF \S* · /, "")}` : "só uma compra pelas notas"} />
         <Cartao rotulo="Custo médio (12 meses)" valor={ano ? brl(ano.medio) : "—"} ajuda={ano ? `${ano.compras} ${pl(ano.compras, "compra", "compras")} · ${ano.quantidade.toLocaleString("pt-BR")} ${p.unidade}` : "sem compra no último ano"} />
         <Cartao rotulo="Menor / maior pago" valor={tudo ? `${brl(tudo.menor)} / ${brl(tudo.maior)}` : "—"} />
       </div>

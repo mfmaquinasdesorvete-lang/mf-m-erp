@@ -47,7 +47,7 @@ import { AssistenteIA } from "@/components/produtos/AssistenteIA";
 import { DesenhoMedidas } from "@/components/produtos/DesenhoMedidas";
 import { CampoNcm } from "@/components/produtos/SugerirNcm";
 import { EditorEspecificacoes, EditorEtapas, SUGESTOES_ESPEC, SUGESTOES_PECA, type Especificacao } from "@/components/produtos/EditoresMaquina";
-import { FichaProduto } from "@/components/produtos/FichaProduto";
+import { FichaProduto, UltimasCompras } from "@/components/produtos/FichaProduto";
 import { ModelosMaquinas } from "@/components/produtos/ModelosMaquinas";
 import { ManuaisMaquinas } from "@/components/produtos/ManuaisMaquinas";
 import { FichaTecnica } from "@/components/producao/FichaTecnica";
@@ -675,6 +675,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             options: [{ value: "", label: "— sem embalagem —" }, ...embalagens.filter((e) => e.ativo).map((e) => ({ value: e.id, label: e.descricao }))] },
           { name: "secao_preco", label: "Custo e preço", type: "secao", ajuda: "Custo de compra = valor do item na NF do fornecedor (atualizado na entrada). Alterar custo ou preço já preenchido pede o motivo, que fica no histórico." },
           { name: "preco_custo", label: "Custo de compra", type: "number" },
+          { name: "ultimas_compras", label: "2 últimas compras (pelas notas)", type: "custom", span: 2,
+            render: (_v, _s, row) => row.id ? <UltimasCompras produtoId={row.id} /> : <span className="text-xs text-slate-500">aparece depois de salvar</span> },
           {
             // componente de produção que não se vende: venda = custo (o banco também garante)
             name: "preco_venda", label: "Preço de venda", type: "custom", span: 1,
