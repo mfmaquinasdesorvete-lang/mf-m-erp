@@ -71,5 +71,5 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 - Documentos da My Frost (contabilidade, guias) ficam na aba Documentos da mesma tela, entidade `my_frost`, só master.
 - Fretes e protestos da My Frost ficam em `my_frost_fretes` e `my_frost_protestos` (só master; aba Fretes e protestos).
   CT-e não repete pela chave; fatura e CT-e do mesmo frete têm o mesmo valor, então a soma usa o CT-e.
-- No checklist (`pedidos_checklist`), o `update` pelo execute_sql fica esperando uma confirmação que não chega à
-  usuária; o `insert` passa. Para registrar algo novo num pedido que já existe, gravar uma linha nova ligada a ele.
+- No checklist (`pedidos_checklist`), gravar uma coisa por chamada: `update ... where id = '<id>'` sozinho passa;
+  várias instruções juntas ou `update` com outro filtro ficam esperando uma confirmação que não chega à usuária.
