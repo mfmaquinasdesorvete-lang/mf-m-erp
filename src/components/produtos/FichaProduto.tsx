@@ -46,6 +46,7 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: 
   ];
   return (
     <Modal open onClose={onClose} title={produto.descricao} wide>
+      {produto.subtitulo && <p className="-mt-1 mb-2 text-sm text-slate-600">{produto.subtitulo}</p>}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">{NOME_TIPO[produto.tipo] ?? produto.tipo}</span>
         {produto.sku && <span className="num rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">SKU {produto.sku}</span>}

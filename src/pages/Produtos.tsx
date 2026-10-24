@@ -348,6 +348,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 </span>
               )}
             </span>
+            {r.subtitulo && <span className="block text-xs text-slate-600 [overflow-wrap:anywhere]">{r.subtitulo}</span>}
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
               {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
@@ -575,6 +576,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ] : [
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
           { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
+          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas My Frost Top 200 e Top 300" },
           {
             name: "conferencia", label: "Já cadastrados parecidos", type: "custom", span: 4,
             render: (_v, _s, row) => {

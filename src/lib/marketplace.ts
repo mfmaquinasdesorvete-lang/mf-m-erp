@@ -93,6 +93,8 @@ export function nomePadrao(descricao: string): string {
   let t = String(descricao ?? "").replace(/\s+/g, " ").trim();
   for (let i = 0; i < 2 && SUFIXO_UNIDADE.test(t) && t.replace(SUFIXO_UNIDADE, "").trim().length >= 3; i++) t = t.replace(SUFIXO_UNIDADE, "").trim();
   // hífen com espaço de um lado é separador (" - "); colado dos dois lados é parte do código (A-269, 2205-2RS)
+  // anel o-ring escrito de vários jeitos (oring, o ring, Oring's) vira O-Ring / O-Rings
+  t = t.replace(/\bo[\s-]?ring('?s)?\b/gi, (_, pl: string | undefined) => (pl ? "O-Rings" : "O-Ring"));
   t = t.replace(/\s+[-–]\s*|\s*[-–]\s+/g, " - ").replace(/–/g, "-")
     .replace(/\s+,/g, ",").replace(/,(?=\p{L})/gu, ", ").replace(/([!?.]){2,}/g, "$1")
     .replace(/\s*-\s*$/, "").replace(/^\s*-\s*/, "").replace(/\s+/g, " ").trim();
@@ -111,11 +113,13 @@ export function nomePadrao(descricao: string): string {
     if (/^[A-Za-z]$/.test(p)) {
       const conjuncao = /^[aeo]$/i.test(p);
       // entre números: "6 a 10A"; as outras letras ficam como vieram (3P T: terra)
-      if (/^\d/.test(tokens[i - 1] ?? "")) return conjuncao ? p.toLowerCase() : p;
+      // "a" depois de número: entre dois números é faixa (63 a 220 V); sem número depois é ampère (10 A, 80 A Monofásico)
+      if (/^\d/.test(tokens[i - 1] ?? "")) return /^a$/i.test(p) && !/^\d/.test(tokens[i + 1] ?? "") ? "A" : conjuncao ? p.toLowerCase() : p;
       // antes de número é modelo (A 200), a não ser que tenha vindo minúscula ("antiga e 3 sabores")
       if (/^\d/.test(tokens[i + 1] ?? "") || /^(tipo|modelo|classe|linha)$/i.test(tokens[i - 1] ?? "")) return conjuncao && p === p.toLowerCase() ? p : p.toUpperCase();
       if (!conjuncao && p === p.toUpperCase()) return p;
     }
+    if (/^O-Rings?$/.test(p)) return p;
     // código do produto (maiúsculas e números com barra, ponto ou hífen) fica como está: FS/4-350, 2205-2RS, BF117-1D
     if (/^[A-Z0-9]+([/.-][A-Z0-9]+)+$/.test(p) && /\d/.test(p) && /[A-Z]/.test(p)) return unidadesNoCodigo(p);
     return p.split(/([-/])/).map((s, k) => (s === "-" || s === "/" ? s : palavra(s, primeira && k === 0, todoMaiusculo))).join("");
@@ -139,6 +143,22 @@ function cortar(t: string, max: number) {
 }
 
 /** Título do anúncio: nome padronizado + "para Máquina de Sorvete" quando é peça e o nome não diz para que serve. */
+/** "… - Compatível com Máquinas My Frost" no fim do nome (do jeito que veio do Tiny). */
+const COMPATIVEL = /\s*[-–,]?\s*\(?\s*compat[ií]vel\s+com\s+(?:as\s+)?m[aá]quinas\s+my\s*frost\s*\)?\s*$/i;
+/** Modelos das máquinas My Frost que aparecem no nome das peças. */
+const MODELOS = /\b(A ?100|A ?200(?: (?:Nova|Antiga))?|P ?313|P ?386|P ?765|Top ?200|Top ?300(?: Antiga)?|Prime(?: 4\.[02])?|Queen|Slim(?: Antigas?)?|Italianinha)\b/gi;
+
+/** Separa o nome limpo (padrão do Google e dos marketplaces) do subtítulo "Compatível com máquinas My Frost …".
+ *  Os modelos citados no nome entram no subtítulo; o nome não perde nada além da frase de compatibilidade. */
+export function separarCompatibilidade(descricao: string): { nome: string; subtitulo: string | null } {
+  const original = String(descricao ?? "");
+  const nome = nomePadrao(original.replace(COMPATIVEL, ""));
+  if (!COMPATIVEL.test(original)) return { nome, subtitulo: null };
+  const modelos = [...new Set([...nome.matchAll(MODELOS)].map((m) => nomePadrao(m[1].replace(/^([AP])(\d)/i, "$1 $2").replace(/^(Top)(\d)/i, "$1 $2"))))];
+  const lista = modelos.length > 1 ? `${modelos.slice(0, -1).join(", ")} e ${modelos[modelos.length - 1]}` : modelos[0];
+  return { nome, subtitulo: lista ? `Compatível com máquinas My Frost ${lista}` : "Compatível com máquinas My Frost" };
+}
+
 export function tituloAnuncio(p: ProdutoAnuncio): string {
   let t = nomePadrao(p.descricao);
   const s = semAcento(t.toLowerCase());

@@ -2,6 +2,8 @@
 // (Google Shopping). Arquivo sem dependências: usado pela função catalogo-feed e pelo ERP (resumo em Configurações).
 export type ProdutoLoja = {
   id: string; sku?: string | null; nome: string; descricao?: string | null; tipo: string; preco: number;
+  /** linha abaixo do nome (ex.: Compatível com máquinas My Frost Top 200) */
+  subtitulo?: string | null;
   foto?: string | null; disponibilidade: string; garantia_meses?: number | null; marca?: string | null;
   /** título do anúncio (cadastro → marketplace), código de barras, categoria, peso e prazo de envio de quem é sob encomenda */
   titulo?: string | null; gtin?: string | null; categoria?: string | null; peso_kg?: number | null; prazo_dias?: number | null;
@@ -22,8 +24,18 @@ export function pendenciaCatalogo(p: Pick<ProdutoLoja, "foto" | "preco">): strin
   return "";
 }
 
+/** Título para o Google (até 150 letras): o título do anúncio ou o nome, com o subtítulo quando couber. */
+export function tituloCatalogo(p: ProdutoLoja) {
+  const base = ((p.titulo ?? "").trim() || p.nome).trim();
+  const sub = (p.subtitulo ?? "").trim();
+  const junto = sub && !base.toLowerCase().includes(sub.toLowerCase()) ? `${base} - ${sub}` : base;
+  return (junto.length <= 150 ? junto : base).slice(0, 150);
+}
+
 export function descricaoCatalogo(p: ProdutoLoja) {
-  const base = ((p.descricao ?? "").trim() || p.nome).replace(/\s*\n+\s*/g, " ");
+  const texto = ((p.descricao ?? "").trim() || p.nome).replace(/\s*\n+\s*/g, " ");
+  const sub = (p.subtitulo ?? "").trim().replace(/[.!?]$/, "");
+  const base = sub && !texto.toLowerCase().includes(sub.toLowerCase()) ? `${sub}. ${texto}` : texto;
   const comPonto = /[.!?]$/.test(base) ? base : `${base}.`;
   const garantia = p.tipo === "maquina" && p.garantia_meses && !/garantia/i.test(base) ? ` Garantia de ${p.garantia_meses} meses.` : "";
   return (comPonto + garantia).slice(0, 9999);
@@ -86,7 +98,7 @@ export function feedGoogleXml(produtos: ProdutoLoja[], o: {
     return [
       "<item>",
       campo("id", p.sku || p.id),
-      campo("title", ((p.titulo ?? "").trim() || p.nome).slice(0, 150)),
+      campo("title", tituloCatalogo(p)),
       campo("description", descricaoCatalogo(p).slice(0, 5000)),
       campo("link", o.linkProduto(p.id)),
       campo("image_link", /^https?:\/\//.test(p.foto!) ? p.foto : o.urlFoto(p.foto!)),

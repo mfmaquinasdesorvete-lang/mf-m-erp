@@ -145,6 +145,7 @@ export default function Loja() {
                     <div className="flex flex-1 flex-col p-3 sm:p-4">
                       <Disponivel p={p} />
                       <Link to={`/loja/${p.id}`} className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug hover:underline">{p.nome}</Link>
+                      {p.subtitulo && <div className="mt-0.5 line-clamp-1 text-xs text-slate-500">{p.subtitulo}</div>}
                       <div className="num mt-auto pt-2 text-lg font-bold">{brl(p.preco)}</div>
                       {p.disponibilidade !== "out of stock" && (
                         <button type="button" onClick={() => { carrinho.adicionar(p.id); notify("Adicionado ao carrinho"); }}
@@ -194,6 +195,7 @@ function PaginaProduto({ p, empresa, carrinho }: { p: ProdutoLoja; empresa: Dado
         <div>
           <Disponivel p={p} />
           <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{p.nome}</h1>
+          {p.subtitulo && <p className="mt-1 text-base text-slate-600">{p.subtitulo}</p>}
           {p.sku && <div className="mt-1 text-sm text-slate-500">Código {p.sku}</div>}
           <div className="num mt-4 text-3xl font-bold">{brl(p.preco)}</div>
           {p.disponibilidade === "available for order" && p.prazo_dias ? (

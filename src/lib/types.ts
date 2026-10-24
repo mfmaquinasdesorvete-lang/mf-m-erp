@@ -63,6 +63,8 @@ export type Produto = {
   estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean; margem_desejada?: number | null;
   modelo?: string | null; codigo_fabricante?: string | null; codigos_alternativos?: string | null; fora_de_linha?: boolean;
   prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
+  /** linha curta abaixo do nome (ex.: Compatível com máquinas My Frost Top 200) */
+  subtitulo?: string | null;
   titulo_anuncio?: string | null; slug?: string | null; meta_descricao?: string | null; palavras_chave?: string[] | null;
   descricao_anuncio?: string | null; gtin_isento?: boolean; unificado_em?: string | null; unificado_quando?: string | null;
   /** ficha técnica / campos adicionais (nome e valor) */
