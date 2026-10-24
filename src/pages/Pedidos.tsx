@@ -8,7 +8,7 @@ import { FreteVenda } from "@/components/FreteVenda";
 import { FreteRapido } from "@/components/fretes/FreteRapido";
 import { OcorrenciasPedido } from "@/components/fretes/OcorrenciasPedido";
 import { OcorrenciasVenda } from "@/components/vendas/OcorrenciasVenda";
-import { CheckCircle2, ChevronRight, Copy, Send, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Undo2, Wrench, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Copy, Send, Sparkles, FileCheck2, FileDown, FileText, Landmark, List, MessageCircle, Pencil, Plus, Printer, Receipt, RotateCcw, SquareKanban, Tags, Trash2, Truck, Undo2, Wrench, XCircle } from "lucide-react";
 import { ConciliarVendas } from "@/components/vendas/ConciliarVendas";
 import { PdfViewer } from "@/components/PdfViewer";
 import { comUnidade, pdfOrcamento } from "@/lib/pdf";
@@ -69,6 +69,7 @@ import { UltimasVendas } from "@/components/pedidos/AtalhosCliente";
 import { MenuAcoes } from "@/components/MenuAcoes";
 import { NfOutraModal, NfOutraPainel, SeloNfOutra } from "@/components/vendas/NfOutraEmpresa";
 import { rotuloNfOutra } from "@/lib/nfOutra";
+import { MontarOrcamentoIA, type OrcamentoIA } from "@/components/vendas/MontarOrcamentoIA";
 
 /** "#12 (motivo), #15 (motivo)…" dos pedidos que a ação em lote deixou de fora. */
 /** Vendas que não foram excluídas, agrupadas pelo motivo em português claro: "3 já faturadas (#36, #429, #550)…" */
@@ -653,6 +654,7 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
   // a venda saiu com a NF de outra empresa (ex.: empresa ligada): registrar a nota no pedido
   const [nfOutra, setNfOutra] = useState(false);
   const [rastreio, setRastreio] = useState(false);
+  const [montarIA, setMontarIA] = useState(false);
   // devolução de produtos: NF de devolução (com NF-e) ou volta ao estoque pelo pedido (sem NF)
   const [devolver, setDevolver] = useState(false);
   const invalidate = useInvalidate();
@@ -728,6 +730,20 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
       if (avisar && itens.length) notify(`Preços dos itens: ${t ? t.nome : "preço de venda"}`);
       return { ...x, ...base, tabela_preco_id: id, itens } as typeof x;
     });
+  }
+  // "Montar com IA": itens com o preço da tabela do pedido (a IA não dá preço), observações juntas e o cliente por último
+  // (a tabela do cliente, se tiver, reprecifica os itens)
+  function usarOrcamentoIA(o: OrcamentoIA) {
+    const novos = o.itens.flatMap((i) => {
+      const prod = produtos.find((x) => x.id === i.produto_id);
+      return prod ? [{ produto_id: prod.id, descricao: prod.descricao, quantidade: i.quantidade, valor_unitario: precoDe(prod) } as Item] : [];
+    });
+    setP((x) => ({
+      ...x, itens: [...(x.itens ?? []), ...novos],
+      observacoes: o.observacao ? [x.observacoes, o.observacao].filter(Boolean).join("\n") : x.observacoes,
+    }));
+    if (o.cliente_id && !p.cliente_id) escolherCliente(o.cliente_id);
+    if (novos.length) notify(`${novos.length} ${pl(novos.length, "item entrou", "itens entraram")} com o preço ${tabelaAtual ? `da tabela ${tabelaAtual.nome}` : "de venda"}: confira`);
   }
   // desconto digitado em %; o pedido guarda o valor em R$. Pedido já salvo só muda se o % for digitado
   // (e aí acompanha a troca de itens).
@@ -1090,6 +1106,12 @@ function PedidoModal({ pedido: inicial, onClose, onClonar }: { pedido: Partial<P
           )}
         </div>
 
+        {editavel && (
+          <div className="flex justify-end">
+            <Button type="button" variant="secondary" onClick={() => setMontarIA(true)}><Sparkles className="h-4 w-4" /> Montar com IA</Button>
+          </div>
+        )}
+        {montarIA && <MontarOrcamentoIA temCliente={!!p.cliente_id} onClose={() => setMontarIA(false)} onAplicar={usarOrcamentoIA} />}
         <ItensEditor itens={p.itens} onChange={(itens) => set({ itens } as any)} disabled={!editavel} comSerie filtro={(x) => x.vendavel !== false} precoDe={(x) => precoDe(x)} />
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
