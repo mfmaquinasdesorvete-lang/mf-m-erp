@@ -36,8 +36,9 @@ revoke all on function public.config_ajuste_salvar(text, numeric, text, text) fr
 grant execute on function public.config_ajuste_salvar(text, numeric, text, text) to authenticated;
 
 -- Leitura no banco: o número que ela gravou ou o padrão (o MESMO de ajustes.ts; o teste ajustes.test.ts confere).
+-- Sem security definer: quem chama lê pela regra da tabela (usuário do ERP); funções do servidor leem como service_role.
 create or replace function public.cfg_num(p_chave text, p_padrao numeric)
-returns numeric language sql stable security definer set search_path = public as $$
+returns numeric language sql stable set search_path = public as $$
   select coalesce((select valor from public.config_ajustes where chave = p_chave), p_padrao)
 $$;
 revoke all on function public.cfg_num(text, numeric) from public, anon;
