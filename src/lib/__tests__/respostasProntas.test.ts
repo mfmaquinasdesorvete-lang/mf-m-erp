@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { freteDemorando, inicioDaSemana, pecasFaltando, reconhecer, somar } from "../respostasProntas";
+import { ehPergunta, freteDemorando, inicioDaSemana, pecasFaltando, reconhecer, somar } from "../respostasProntas";
 
 describe("perguntas prontas", () => {
   it("reconhece as perguntas da equipe", () => {
@@ -38,5 +38,16 @@ describe("perguntas prontas", () => {
   });
   it("soma em centavos certos", () => {
     expect(somar([0.1, 0.2, "10.005", null])).toBe(10.31);
+  });
+});
+
+describe("ehPergunta", () => {
+  it("pergunta vai para o Perguntar à IA; acontecimento vira anotação", () => {
+    expect(ehPergunta("e oque entrou nas contas destes pedidos")).toBe(true);
+    expect(ehPergunta("Quanto vendi de pás em setembro")).toBe(true);
+    expect(ehPergunta("tem cliente sem pagar")).toBe(true);
+    expect(ehPergunta("clientes que não compram desde abril?")).toBe(true);
+    expect(ehPergunta("A cliente Maria pagou a vídeo chamada")).toBe(false);
+    expect(ehPergunta("A Braspress coletou a máquina do pedido 1520")).toBe(false);
   });
 });

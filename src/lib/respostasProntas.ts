@@ -67,3 +67,10 @@ export function freteDemorando(e: EnvioPrazo, hojeDia: string): { motivo: string
 
 /** Soma em reais com centavos certos. */
 export const somar = (valores: (number | string | null | undefined)[]) => Math.round(valores.reduce<number>((s, v) => s + (Number(v) || 0), 0) * 100) / 100;
+
+/** Fala ou texto que é pergunta (e não acontecimento para anotar): termina com "?" ou começa como pergunta. */
+export function ehPergunta(texto: string) {
+  const t = sem(texto).trim().replace(/^(e|e ai|entao|me diz|me diga|ia)[,\s]+/, "");
+  if (texto.trim().endsWith("?")) return true;
+  return /^(o que|oque|que|quanto|quantos|quantas|quanta|qual|quais|quem|onde|quando|como|por que|porque|tem |existe|ha |mostra|me mostra|lista|listar|mostrar|cade)\b/.test(t);
+}

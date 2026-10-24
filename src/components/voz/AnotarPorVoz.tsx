@@ -17,7 +17,8 @@ import { notify, notifyError } from "@/lib/notify";
 import {
   acharPessoa, ouvir, suportaVoz, TIPOS, tiposPermitidos, vozBloqueada, type CandidatoVoz, type RespostaVoz, type TipoVoz,
 } from "@/lib/anotacoesVoz";
-import { reconhecer, type Pronta } from "@/lib/respostasProntas";
+import { ehPergunta, reconhecer, type Pronta } from "@/lib/respostasProntas";
+import { PerguntarIA } from "@/components/PerguntarIA";
 import { RespostaPronta } from "@/components/RespostaPronta";
 
 type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando" | "resposta";
@@ -48,6 +49,7 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
   const usarVoz = suportaVoz() && !bloqueada;
   const [etapa, setEtapa] = useState<Etapa>(usarVoz ? "ouvindo" : "texto");
   const [pronta, setPronta] = useState<Pronta | null>(null);
+  const [perguntaLivre, setPerguntaLivre] = useState<string | null>(null);
   const [fala, setFala] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [semIa, setSemIa] = useState(false);
@@ -88,6 +90,8 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
     // pergunta rápida: responde na hora, sem a IA e sem anotar
     const pergunta = reconhecer(texto);
     if (pergunta) { setErro(null); setPronta(pergunta); setEtapa("resposta"); return; }
+    // outra pergunta ("o que entrou nas contas destes pedidos?"): vai para o Perguntar à IA, não vira anotação
+    if (ehPergunta(texto)) { setErro(null); setPerguntaLivre(texto); return; }
     setErro(null); setEtapa("entendendo");
     try {
       aplicar(await callFunction<RespostaVoz>("ia-voz", { fala: texto }));
@@ -113,6 +117,8 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
+  // pergunta livre: a janela vira o Perguntar à IA com o que foi dito
+  if (perguntaLivre) return <PerguntarIA inicial={perguntaLivre} onClose={onClose} />;
   const ouvindo = etapa === "ouvindo";
   return (
     <Modal open onClose={() => { microfone.current?.cancelar(); onClose(); }} title="Anotar ou perguntar por voz">
@@ -124,7 +130,8 @@ function JanelaVoz({ onClose }: { onClose: () => void }) {
           </p>
           {bloqueada && (
             <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
-              No app do iPhone a Apple não deixa o ERP ouvir direto. Toque no campo abaixo e use o <b>🎤 do teclado</b> para ditar; depois toque em Entender.
+              No app do iPhone a Apple não deixa o ERP ouvir direto. Toque no campo abaixo e use o <b>🎤 do teclado</b> (no canto de baixo, perto do espaço) para ditar; depois toque em Entender.
+              <span className="mt-1 block text-xs">Sem o 🎤 no teclado? No iPhone: Ajustes → Geral → Teclado → ligue <b>Ativar Ditado</b>.</span>
             </p>
           )}
           <div className="flex justify-center">
