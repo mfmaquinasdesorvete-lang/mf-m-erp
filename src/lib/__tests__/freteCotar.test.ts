@@ -57,3 +57,15 @@ describe("regras de frete", () => {
     expect(m).toMatch(/Correios SEDEX: R\$\s?30,00 · 2 dias úteis/);
   });
 });
+
+describe("estado pelo CEP", () => {
+  it("usa as faixas dos Correios", async () => {
+    const { ufDoCep } = await import("../../../supabase/functions/_shared/frete-cotar");
+    expect(ufDoCep("01310-100")).toBe("SP");
+    expect(ufDoCep("88113837")).toBe("SC");
+    expect(ufDoCep("95010000")).toBe("RS");
+    expect(ufDoCep("70040010")).toBe("DF");
+    expect(ufDoCep("69918000")).toBe("AC");
+    expect(ufDoCep("00000000")).toBeNull();
+  });
+});

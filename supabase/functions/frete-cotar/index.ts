@@ -8,7 +8,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, onlyDigits, requireErpUser } from "../_shared/supabase.ts";
-import { aplicarRegras, lerRegras, volumesDosItens, type OpcaoFrete, type ProdutoFrete } from "../_shared/frete-cotar.ts";
+import { aplicarRegras, lerRegras, ufDoCep, volumesDosItens, type OpcaoFrete, type ProdutoFrete } from "../_shared/frete-cotar.ts";
 import { cotarMe, temAcessoMe } from "../_shared/melhorenvio-api.ts";
 import { cotarBp, temAcessoBp } from "../_shared/braspress-api.ts";
 import { cotarRte, temAcessoRte } from "../_shared/rodonaves-api.ts";
@@ -60,12 +60,22 @@ async function tabelasVigentes(db: ReturnType<typeof adminClient>, unidadeId: st
   });
 }
 
+/** Cidade e estado do CEP: ViaCEP, senão BrasilAPI; sem nenhum, o estado pelo começo do CEP. */
 async function cidadeDoCep(cep: string) {
   try {
-    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: AbortSignal.timeout(8_000) });
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: AbortSignal.timeout(5_000) });
     const x = await r.json() as { localidade?: string; uf?: string; erro?: boolean };
-    return x.erro ? null : { cidade: x.localidade ?? null, uf: x.uf ?? null };
-  } catch { return null; }
+    if (!x.erro && x.uf) return { cidade: x.localidade ?? null, uf: x.uf };
+  } catch { /* tenta a outra */ }
+  try {
+    const r = await fetch(`https://brasilapi.com.br/api/cep/v1/${cep}`, { signal: AbortSignal.timeout(5_000) });
+    if (r.ok) {
+      const x = await r.json() as { city?: string; state?: string };
+      if (x.state) return { cidade: x.city ?? null, uf: x.state };
+    }
+  } catch { /* fica com o estado do CEP */ }
+  const uf = ufDoCep(cep);
+  return uf ? { cidade: null, uf } : null;
 }
 
 Deno.serve(async (req) => {
