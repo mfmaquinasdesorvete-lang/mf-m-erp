@@ -92,12 +92,43 @@ export function atributosDoProduto(p: ProdutoNovo, categoria: AtributoCategoria[
   if (Number(p.largura_cm) > 0) poe("SELLER_PACKAGE_WIDTH", `${Number(p.largura_cm)} cm`);
   if (Number(p.profundidade_cm) > 0) poe("SELLER_PACKAGE_LENGTH", `${Number(p.profundidade_cm)} cm`);
   if (Number(p.peso_kg) > 0) poe("SELLER_PACKAGE_WEIGHT", `${Math.round(Number(p.peso_kg) * 1000)} g`);
+  // obrigatórios com lista de valores: escolhe pelo nome, modelo e marca do produto (ex.: "220 V" → elétrico,
+  // "estado sólido" → relé de estado sólido); sem certeza, fica faltando
+  const texto = semAcento([p.descricao, p.titulo_anuncio, p.modelo, p.marca].filter(Boolean).join(" "));
+  for (const c of categoria) {
+    if (!(c.tags?.required || c.tags?.catalog_required) || c.tags?.read_only || a.some((x) => x.id === c.id) || !c.values?.length) continue;
+    const v = valorPeloTexto(c, texto);
+    if (v) a.push({ id: c.id, value_id: v.id });
+  }
   const preenchidos = new Set(a.map((x) => x.id));
   const faltando = categoria
     .filter((c) => (c.tags?.required || c.tags?.catalog_required) && !c.tags?.read_only && !preenchidos.has(c.id))
     .filter((c) => !(c.id === "GTIN" && preenchidos.has("EMPTY_GTIN_REASON")) && !(c.id === "EMPTY_GTIN_REASON" && preenchidos.has("GTIN")))
     .map((c) => c.name || c.id);
   return { atributos: a, faltando };
+}
+
+const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Valor de um atributo da categoria que o texto do produto indica (nome do valor no texto, ou as pistas abaixo). */
+export function valorPeloTexto(c: AtributoCategoria, texto: string): { id: string; name: string } | null {
+  const valores = c.values ?? [];
+  const achar = (rx: RegExp) => valores.find((v) => rx.test(semAcento(v.name))) ?? null;
+  if (c.id === "POWER_SUPPLY_TYPE") {
+    if (/\b\d{3}\s?v\b|volt|motor|eletric|compressor|ventilador/.test(texto)) return achar(/eletric/);
+    return null;
+  }
+  if (c.id === "CONTACTOR_AND_RELAY_TYPE" || /rele|contator/.test(semAcento(c.name ?? ""))) {
+    if (/estado solido|\bssr\b/.test(texto)) return achar(/solid/);
+    return null;
+  }
+  if (c.id === "VOLTAGE") {
+    const m = /\b(110|127|220|380)\s?v\b/.exec(texto);
+    return m ? achar(new RegExp(`\\b${m[1]}\\s?v`)) : null;
+  }
+  // genérico: um único valor da lista que aparece inteiro no texto do produto
+  const achados = valores.filter((v) => { const n = semAcento(v.name); return n.length >= 4 && texto.includes(n); });
+  return achados.length === 1 ? achados[0] : null;
 }
 
 /** "AxLxP,g" para a consulta do frete; sem as medidas, uma caixa média (o aviso diz que é estimado). */
