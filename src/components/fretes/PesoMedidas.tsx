@@ -54,9 +54,13 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
     if (salvando) return;
     setSalvando(true);
     try {
-      const { error } = await supabase.from("produtos").update({
+      // só o que mudou (regra do cadastro de produtos); peso da peça embalada, em kg
+      const novo: Record<string, number | string | null> = {
         peso_kg: num(c.peso_kg), largura_cm: num(c.largura_cm), altura_cm: num(c.altura_cm), profundidade_cm: num(c.profundidade_cm), embalagem_id: c.embalagem_id || null,
-      }).eq("id", p.id);
+      };
+      const mud = Object.fromEntries(Object.entries(novo).filter(([k, v]) => v !== (p[k as keyof ProdutoMedidas] ?? null)));
+      if (!Object.keys(mud).length) { setEdit((x) => { const y = { ...x }; delete y[p.id]; return y; }); return; }
+      const { error } = await supabase.from("produtos").update(mud).eq("id", p.id);
       if (error) throw error;
       setEdit((x) => { const y = { ...x }; delete y[p.id]; return y; });
       notify("Salvo");
@@ -94,7 +98,7 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-600"><Package size={15} className="mr-1 inline" aria-hidden />
-        A cotação de frete usa o <b>peso</b> do produto e as <b>medidas da embalagem</b> (ou do próprio produto). Faltam em <b>{faltando}</b> de {produtos.length} produtos ativos.</p>
+        A cotação de frete usa o <b>peso da peça embalada</b> (kg, ex.: 0,350) e as <b>medidas da embalagem</b> (cm). Faltam em <b>{faltando}</b> de {produtos.length} produtos ativos.</p>
       <div className="flex flex-wrap items-end gap-2">
         <select className="input w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Quais produtos">
           <option value="faltando">Faltando peso ou medidas</option><option value="loja">Produtos da loja</option><option value="todos">Todos os ativos</option>
@@ -121,7 +125,7 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
           <thead>
             <tr className="text-left text-xs text-slate-500">
               {podeEditar && <th className="py-1"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(lista.map((p) => p.id)))} aria-label="Marcar todos da lista" /></th>}
-              <th>Produto</th><th>Peso (kg)</th><th>Larg.</th><th>Alt.</th><th>Prof. (cm)</th><th>Embalagem</th><th />
+              <th>Produto</th><th title="Peso da peça embalada, como vai no envio">Peso embalado (kg)</th><th>Larg.</th><th>Alt.</th><th>Prof. (cm)</th><th>Embalagem</th><th />
             </tr>
           </thead>
           <tbody>

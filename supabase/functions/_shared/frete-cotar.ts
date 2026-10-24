@@ -1,7 +1,7 @@
 // Cotação de frete por CEP e produtos (cotação rápida da equipe e "Calcule o frete" da loja). Funções puras, testadas
 // no Vitest; as chamadas às transportadoras ficam em functions/frete-cotar.
-// Cada item vira um volume: medidas da embalagem do produto (ou do próprio produto, ou o padrão das regras) e o peso do
-// produto mais o da embalagem. O preço para o cliente segue as regras de frete (Configurações → Fretes → Regras da loja).
+// Cada item vira um volume: medidas da embalagem do produto (ou as do cadastro, que já são da embalagem, ou o padrão das
+// regras) e o peso do cadastro (da peça embalada). O preço para o cliente segue as regras de frete (Configurações → Fretes → Regras da loja).
 
 export type ProdutoFrete = {
   id: string; descricao: string; preco_venda?: number | string | null;
@@ -69,7 +69,8 @@ export function volumesDosItens(itens: { produto: ProdutoFrete; quantidade: numb
     const doProduto = n(p.largura_cm) > 0 && n(p.altura_cm) > 0 && n(p.profundidade_cm) > 0
       ? { largura_cm: n(p.largura_cm), altura_cm: n(p.altura_cm), comprimento_cm: n(p.profundidade_cm) } : null;
     const medidas = daEmbalagem ?? doProduto ?? regras.medidas_padrao;
-    const peso = n(p.peso_kg) > 0 ? n(p.peso_kg) + n(e?.peso_kg) : regras.peso_padrao_kg;
+    // peso_kg do cadastro já é o da peça embalada (regra do cadastro de produtos): não soma o da embalagem
+    const peso = n(p.peso_kg) > 0 ? n(p.peso_kg) : regras.peso_padrao_kg;
     if (!medidas || !peso) { faltam.push(p.descricao); continue; }
     volumes.push({ quantidade: qtd, peso_kg: Math.round(peso * 1000) / 1000, ...medidas });
   }

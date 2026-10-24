@@ -9,10 +9,10 @@ describe("volumes dos itens", () => {
   it("usa a embalagem, o produto ou o padrão", () => {
     const r = volumesDosItens([{ produto: borracha, quantidade: 2 }, { produto: maquina, quantidade: 1 }], REGRAS_PADRAO);
     expect(r.volumes).toEqual([
-      { quantidade: 2, peso_kg: 0.15, largura_cm: 20, altura_cm: 5, comprimento_cm: 15 },
+      { quantidade: 2, peso_kg: 0.1, largura_cm: 20, altura_cm: 5, comprimento_cm: 15 },
       { quantidade: 1, peso_kg: 180, largura_cm: 70, altura_cm: 160, comprimento_cm: 80 },
     ]);
-    expect(r.peso_total).toBe(180.3);
+    expect(r.peso_total).toBe(180.2);
     expect(r.valor_produtos).toBe(15050);
     expect(r.faltam).toEqual([]);
   });
