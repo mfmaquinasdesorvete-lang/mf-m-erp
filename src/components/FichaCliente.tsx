@@ -73,7 +73,7 @@ function useFicha(c: Cliente) {
         supabase.from("ordens_servico").select("id, numero, equipamento, numero_serie, defeito_relatado, status, em_garantia, valor_total, data_entrada, tecnico, " +
           "itens:os_itens(descricao, quantidade, produto:produtos(preco_custo))")
           .eq("cliente_id", c.id).order("data_entrada", { ascending: false }),
-        supabase.from("equipamentos").select("id, cliente_id, produto_id, token, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem, usada")
+        supabase.from("equipamentos").select("id, cliente_id, produto_id, token, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, preventiva_agendada, origem, usada, proposta_tiny_id, nota_legado_id, valor_negociado, ligacao_venda")
           .eq("cliente_id", c.id).order("data_venda", { ascending: false, nullsFirst: false }),
         supabase.from("contatos_cliente").select("id, tipo, canal, resultado, proximo_contato, created_at, created_by")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),

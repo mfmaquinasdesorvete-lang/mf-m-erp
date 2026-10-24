@@ -25,6 +25,22 @@ const Origem = ({ myFrost }: { myFrost: boolean }) => (
 const Chave = ({ chave }: { chave: string | null }) =>
   chave ? <div className="select-all font-mono text-2xs text-slate-500 [overflow-wrap:anywhere]" title="Chave de acesso: copie para consultar a nota na Receita">{chave}</div> : null;
 
+// Máquina da My Frost ligada à proposta e à nota que a venderam (ligação feita pelo nome do cliente, o modelo e a data,
+// porque o backup dos XML não existe mais): valor negociado, valor que saiu na nota e a chave, e como foi ligada.
+function VendaDaMaquina({ e, proposta, nota }: { e: any; proposta?: PropostaTiny; nota?: NotaMyFrost }) {
+  if (!e.ligacao_venda) return null;
+  return (
+    <div className="w-full rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-600">
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {e.valor_negociado != null && <span>Negociado: <b className="text-fg">{brl(Number(e.valor_negociado))}</b>{proposta ? ` (proposta #${proposta.numero ?? "—"}, ${dataBR(proposta.data)})` : ""}</span>}
+        {nota && <span>Na nota: <b className="text-fg">{brl(Number(nota.valor ?? 0))}</b> (NF {nota.numero}, {dataBR(nota.data)})</span>}
+      </div>
+      {nota && <Chave chave={nota.chave} />}
+      <div className="text-2xs text-slate-400">Ligação {e.ligacao_venda}</div>
+    </div>
+  );
+}
+
 function Secao({ titulo, n, children }: { titulo: string; n: number; children: ReactNode }) {
   return (
     <section>
@@ -72,6 +88,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
               {e.usada && <span className="text-xs text-slate-500">usada</span>}
               {e.numero_serie && <span className="text-xs text-slate-500">série {e.numero_serie}</span>}
               <span className="ml-auto whitespace-nowrap text-slate-500">{e.data_venda ? `venda ${dataBR(e.data_venda)}` : "data da venda não registrada"}</span>
+              <VendaDaMaquina e={e} proposta={propostasTiny.find((p) => p.id === e.proposta_tiny_id)} nota={notasMyFrost.find((n) => n.id === e.nota_legado_id)} />
             </li>
           ))}
         </ul>
