@@ -4,13 +4,15 @@
 // As notas da My Frost chegam pela função notas_my_frost_do_cliente (a tabela continua só da conta master).
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info } from "lucide-react";
+import { FileText, Info, ShoppingCart, Snowflake, Wrench, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { DEMO, supabase } from "@/lib/supabase";
 import { brl, dataBR } from "@/lib/format";
 import { SeloEmpresa, SeloSituacao } from "@/components/vendas/PropostasTiny";
 import { SeloTipoNota } from "@/components/clientes/NotasMyFrost";
 import type { PropostaTiny } from "@/lib/propostasTiny";
+import { BlocoFicha, type CorBloco } from "@/components/clientes/BlocoFicha";
+import { EtiquetaMaquina } from "@/components/clientes/MaquinasCliente";
 
 type NotaMyFrost = { id: string; numero: string; data: string | null; valor: number | null; natureza: string | null; chave: string | null; situacao: string };
 
@@ -41,12 +43,11 @@ function VendaDaMaquina({ e, proposta, nota }: { e: any; proposta?: PropostaTiny
   );
 }
 
-function Secao({ titulo, n, children }: { titulo: string; n: number; children: ReactNode }) {
+function Secao({ titulo, n, icone, cor, children }: { titulo: string; n: number; icone: LucideIcon; cor: CorBloco; children: ReactNode }) {
   return (
-    <section>
-      <h3 className="mb-1.5 text-sm font-semibold">{titulo} ({n})</h3>
+    <BlocoFicha titulo={titulo} n={n} icone={icone} cor={cor}>
       {n ? children : <p className="text-sm text-slate-500">Nada registrado.</p>}
-    </section>
+    </BlocoFicha>
   );
 }
 
@@ -72,20 +73,20 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
   ].sort((a, b) => (b.data ?? "").localeCompare(a.data ?? ""));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {temMyFrost && (
         <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> {TARJA_MY_FROST}
         </p>
       )}
 
-      <Secao titulo="Máquinas" n={equipamentos.length}>
+      <Secao titulo="Máquinas" n={equipamentos.length} icone={Snowflake} cor="azul">
         <ul className="divide-y divide-slate-100 text-sm">
           {equipamentos.map((e) => (
-            <li key={e.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5">
+            <li key={e.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2">
+              <EtiquetaMaquina m={e} tamanho="grande" />
               <Origem myFrost={!!e.origem} />
-              <span className="font-semibold">{e.descricao}</span>
-              {e.usada && <span className="text-xs text-slate-500">usada</span>}
+              <span className="min-w-0 text-slate-600 [overflow-wrap:anywhere]">{e.descricao}</span>
               {e.numero_serie && <span className="text-xs text-slate-500">série {e.numero_serie}</span>}
               <span className="ml-auto whitespace-nowrap text-slate-500">{e.data_venda ? `venda ${dataBR(e.data_venda)}` : "data da venda não registrada"}</span>
               <VendaDaMaquina e={e} proposta={propostasTiny.find((p) => p.id === e.proposta_tiny_id)} nota={notasMyFrost.find((n) => n.id === e.nota_legado_id)} />
@@ -94,7 +95,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
         </ul>
       </Secao>
 
-      <Secao titulo="Notas fiscais" n={listaNotas.length}>
+      <Secao titulo="Notas fiscais" n={listaNotas.length} icone={FileText} cor="roxo">
         <p className="mb-1.5 text-xs text-slate-500">O valor é o que saiu na nota. A chave de 44 dígitos serve para consultar a nota no site da Receita.</p>
         <ul className="divide-y divide-slate-100 text-sm">
           {listaNotas.map((n) => (
@@ -113,7 +114,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
         </ul>
       </Secao>
 
-      <Secao titulo="Pedidos e propostas" n={vendas.length + propostasTiny.length}>
+      <Secao titulo="Pedidos e propostas" n={vendas.length + propostasTiny.length} icone={ShoppingCart} cor="verde">
         <p className="mb-1.5 text-xs text-slate-500">Valor negociado e condição de pagamento, quando foram registrados.</p>
         <ul className="divide-y divide-slate-100 text-sm">
           {vendas.map((p) => (
@@ -135,7 +136,7 @@ export function MaquinasComprasFicha({ clienteId, equipamentos, notas, pedidos, 
         </ul>
       </Secao>
 
-      <Secao titulo="Ordens de serviço" n={oss.length}>
+      <Secao titulo="Ordens de serviço" n={oss.length} icone={Wrench} cor="laranja">
         <ul className="divide-y divide-slate-100 text-sm">
           {oss.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5">

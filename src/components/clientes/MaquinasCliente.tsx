@@ -63,31 +63,41 @@ const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : 
  * compra: data de compra da máquina guardada no cadastro do cliente (no Tiny ficava no "Código"); vira uma etiqueta
  * quando nenhuma máquina registrada é daquele mês.
  */
+// tamanho das etiquetas: "lista" na lista de clientes e no alto da ficha, "grande" dentro das abas da ficha
+const TAMANHO = {
+  lista: { caixa: "gap-1 px-2.5 py-1 text-sm", icone: 15 },
+  grande: { caixa: "gap-1.5 px-3 py-1.5 text-base", icone: 17 },
+} as const;
+type Tamanho = keyof typeof TAMANHO;
+
+/** Uma máquina: modelo na cor dele, "usada" e o mês/ano da venda. */
+export function EtiquetaMaquina({ m, tamanho = "lista" }: { m: Pick<MaquinaResumo, "descricao" | "data_venda" | "usada" | "origem">; tamanho?: Tamanho }) {
+  const r = rotuloMaquina(m.descricao), t = TAMANHO[tamanho];
+  const quando = mesAno(m.data_venda);
+  const titulo = [m.descricao, m.origem ? `vendida pela ${m.origem}` : "vendida pela MF", m.data_venda ? `em ${dataBR(m.data_venda)}` : "data não informada", m.usada ? "máquina usada" : ""]
+    .filter(Boolean).join(" · ");
+  return (
+    <span title={titulo} className={`inline-flex items-center whitespace-nowrap rounded-lg border font-bold leading-tight shadow-sm ${t.caixa} ${corMaquina(r)}`}>
+      <Snowflake size={t.icone} aria-hidden /> {r}{m.usada ? " usada" : ""}{quando ? <span className="font-semibold opacity-80"> · {quando}</span> : ""}
+    </span>
+  );
+}
+
 export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: MaquinaResumo[]; compra?: string | null; max?: number }) {
   const soCadastro = !!compra && !maquinas.some((m) => (m.data_venda ?? "").slice(0, 7) === compra.slice(0, 7));
   if (!maquinas.length && !soCadastro) return null;
   const ordem = [...maquinas].sort((a, b) => (b.data_venda ?? "").localeCompare(a.data_venda ?? ""));
   const resto = ordem.length - max;
   return (
-    <div className="mt-1 flex flex-wrap gap-1">
+    <div className="mt-1 flex flex-wrap gap-1.5">
       {soCadastro && (
         <span title={`Comprou máquina em ${mesAnoCompra(compra)} (data do cadastro do cliente; modelo não informado)`}
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 bg-surface px-2 py-0.5 text-xs font-bold text-slate-700">
-          <Snowflake size={13} aria-hidden /> Máquina · {mesAnoCompra(compra)}
+          className={`inline-flex items-center whitespace-nowrap rounded-lg border border-slate-300 bg-surface font-bold leading-tight text-slate-700 ${TAMANHO.lista.caixa}`}>
+          <Snowflake size={TAMANHO.lista.icone} aria-hidden /> Máquina · {mesAnoCompra(compra)}
         </span>
       )}
-      {ordem.slice(0, max).map((m) => {
-        const r = rotuloMaquina(m.descricao);
-        const quando = mesAno(m.data_venda);
-        const titulo = [m.descricao, m.origem ? `vendida pela ${m.origem}` : "vendida pela MF", m.data_venda ? `em ${dataBR(m.data_venda)}` : "data não informada", m.usada ? "máquina usada" : ""]
-          .filter(Boolean).join(" · ");
-        return (
-          <span key={m.id} title={titulo} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg border px-2 py-0.5 text-xs font-bold shadow-sm ${corMaquina(r)}`}>
-            <Snowflake size={13} aria-hidden /> {r}{m.usada ? " usada" : ""}{quando ? <span className="font-semibold opacity-80"> · {quando}</span> : ""}
-          </span>
-        );
-      })}
-      {resto > 0 && <span className="whitespace-nowrap rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600" title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
+      {ordem.slice(0, max).map((m) => <EtiquetaMaquina key={m.id} m={m} />)}
+      {resto > 0 && <span className={`whitespace-nowrap rounded-lg border border-slate-200 font-bold leading-tight text-slate-600 ${TAMANHO.lista.caixa}`} title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
     </div>
   );
 }

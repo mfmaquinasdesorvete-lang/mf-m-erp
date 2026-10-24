@@ -3,7 +3,7 @@
 // preferências e o que fazer agora (cobrar, chamar de volta, oferecer reposição, agendar preventiva).
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Receipt, Repeat, Save, Wrench, XCircle } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, FileText, History, Info, Lightbulb, Link2, MessageCircle, MessageSquarePlus, Package, Receipt, Repeat, Save, ShieldCheck, ShoppingCart, Snowflake, StickyNote, Truck, Wallet, Wrench, XCircle } from "lucide-react";
 import { Badge, Button, Field, Indicador, Modal, Tabs, type CorCartao } from "@/components/ui";
 import { ResponderWhatsApp } from "@/components/atendimento/ResponderWhatsApp";
 import { Contato } from "@/components/Contato";
@@ -16,7 +16,8 @@ import { useInvalidate } from "@/lib/data";
 import { usePerfil } from "@/lib/auth";
 import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, sugestoesCliente } from "@/lib/fichaCliente";
 import { textoVenda } from "@/lib/garantia";
-import { MaquinasCliente } from "@/components/clientes/MaquinasCliente";
+import { EtiquetaMaquina, MaquinasCliente } from "@/components/clientes/MaquinasCliente";
+import { BlocoFicha } from "@/components/clientes/BlocoFicha";
 import { PainelFicha } from "@/components/clientes/PainelFicha";
 import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
@@ -226,8 +227,7 @@ function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
 
       <ReceitaCliente c={c} />
 
-      <div>
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb size={16} className="text-amber-500" /> O que fazer com este cliente</h3>
+      <BlocoFicha titulo="O que fazer com este cliente" icone={Lightbulb} cor="laranja" n={sugestoes.length || undefined}>
         {!sugestoes.length ? <p className="text-sm text-slate-500">Nada pendente: cliente em dia.</p> : (
           <ul className="space-y-1.5">
             {sugestoes.map((s, i) => {
@@ -236,8 +236,9 @@ function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
             })}
           </ul>
         )}
-      </div>
+      </BlocoFicha>
 
+      <BlocoFicha titulo="Preferências e observações" icone={StickyNote} cor="azul">
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Preferências (como gosta de ser atendido, forma de pagamento, linhas que trabalha…)">
           <textarea className="input min-h-[90px]" value={pref} onChange={(e) => setPref(e.target.value)} disabled={!podeEditar}
@@ -245,9 +246,10 @@ function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
         </Field>
         <div>
           <span className="mb-1.5 block text-xs font-semibold text-slate-600">Observações do cadastro</span>
-          <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700 [overflow-wrap:anywhere]">{c.observacoes || "—"}</p>
+          <p className="whitespace-pre-wrap rounded-lg bg-surface p-3 text-sm text-slate-700 [overflow-wrap:anywhere]">{c.observacoes || "—"}</p>
         </div>
       </div>
+      </BlocoFicha>
       <ObsPedidos pedidos={pedidos} />
       {podeEditar && pref !== (c.preferencias ?? "") && (
         <Button type="button" onClick={salvar} disabled={salvando}><Save size={16} /> {salvando ? "Salvando…" : "Salvar preferências"}</Button>
@@ -261,17 +263,16 @@ function ObsPedidos({ pedidos }: { pedidos: any[] }) {
   const obs = pedidos.filter((p) => (p.observacoes ?? "").trim());
   if (!obs.length) return null;
   return (
-    <div>
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Receipt size={16} className="text-indigo-500" /> Observações dos pedidos ({obs.length})</h3>
+    <BlocoFicha titulo="Observações dos pedidos" icone={Receipt} cor="roxo" n={obs.length}>
       <ul className="max-h-72 space-y-1.5 overflow-y-auto">
         {obs.map((p) => (
-          <li key={p.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm">
+          <li key={p.id} className="rounded-lg border border-slate-200 bg-surface p-2.5 text-sm">
             <span className="mb-0.5 block text-xs font-semibold text-slate-500">Pedido #{p.numero} · {dataBR(p.created_at)}{p.origem ? ` · ${p.origem}` : ""}</span>
             <span className="whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{p.observacoes.trim()}</span>
           </li>
         ))}
       </ul>
-    </div>
+    </BlocoFicha>
   );
 }
 
@@ -281,7 +282,8 @@ function Compras({ compras, pedidos, propostasTiny }: {
   const orcamentos = pedidos.filter((p) => ["orcamento", "cancelado"].includes(p.status));
   const [proposta, setProposta] = useState<PropostaTiny | null>(null);
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
+      <BlocoFicha titulo="Compras" icone={ShoppingCart} cor="verde" n={compras.length}>
       {!compras.length ? <p className="text-sm text-slate-500">Nenhuma compra registrada (pedidos aprovados ou notas de venda).</p> : (<>
         <ul className="divide-y divide-slate-100 text-sm sm:hidden">
           {compras.map((x, i) => (
@@ -308,9 +310,9 @@ function Compras({ compras, pedidos, propostasTiny }: {
           </table>
         </div>
       </>)}
+      </BlocoFicha>
       {orcamentos.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold">Orçamentos e propostas que não viraram venda</h3>
+        <BlocoFicha titulo="Orçamentos e propostas que não viraram venda" icone={XCircle} cor="rosa" n={orcamentos.length}>
           <ul className="space-y-1.5 text-sm">
             {orcamentos.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-2">
@@ -321,11 +323,10 @@ function Compras({ compras, pedidos, propostasTiny }: {
               </li>
             ))}
           </ul>
-        </div>
+        </BlocoFicha>
       )}
       {propostasTiny.length > 0 && (
-        <div>
-          <h3 className="mb-1 text-sm font-semibold">Propostas do Tiny ({propostasTiny.length})</h3>
+        <BlocoFicha titulo="Propostas do Tiny" icone={FileText} cor="roxo" n={propostasTiny.length}>
           <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) não são vendas da MF. As notas da My Frost estão na aba Máquinas e compras.</p>
           <ul className="space-y-1.5 text-sm">
             {propostasTiny.map((p) => (
@@ -339,7 +340,7 @@ function Compras({ compras, pedidos, propostasTiny }: {
               </li>
             ))}
           </ul>
-        </div>
+        </BlocoFicha>
       )}
       {proposta && <DetalheProposta p={proposta} onClose={() => setProposta(null)} />}
     </div>
@@ -348,7 +349,7 @@ function Compras({ compras, pedidos, propostasTiny }: {
 
 function Produtos({ produtos }: { produtos: ReturnType<typeof produtosDoCliente> }) {
   if (!produtos.length) return <p className="text-sm text-slate-500">Ainda sem produtos comprados.</p>;
-  return (<>
+  return (<BlocoFicha titulo="O que compra" icone={Package} cor="ciano" n={produtos.length}>
     <ul className="divide-y divide-slate-100 text-sm sm:hidden">
       {produtos.map((p, i) => (
         <li key={i} className="py-2">
@@ -375,7 +376,7 @@ function Produtos({ produtos }: { produtos: ReturnType<typeof produtosDoCliente>
         </tbody>
       </table>
     </div>
-  </>);
+  </BlocoFicha>);
 }
 
 function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoCliente> }) {
@@ -387,6 +388,7 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
         <Indicador rotulo="Pagas com atraso" icon={Receipt} valor={`${r.pagasComAtraso} de ${r.pagas}`} cor={corSituacao(r.pagasComAtraso > 1 ? "atencao" : undefined, "azul")} />
         <Indicador rotulo="Atraso médio" icon={CalendarDays} cor="neutro" valor={r.atrasoMedio ? `${r.atrasoMedio} dias` : "—"} />
       </div>
+      <BlocoFicha titulo="Contas a receber" icone={Wallet} cor="verde" n={contas.length}>
       {!contas.length ? <p className="text-sm text-slate-500">Nenhuma conta a receber deste cliente.</p> : (<>
         <ul className="divide-y divide-slate-100 text-sm sm:hidden">
           {contas.map((x) => (
@@ -417,6 +419,7 @@ function Financeiro({ contas, r }: { contas: any[]; r: ReturnType<typeof resumoC
           </table>
         </div>
       </>)}
+      </BlocoFicha>
     </div>
   );
 }
@@ -442,7 +445,7 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
     try { await navigator.clipboard.writeText(linkMaquina(token)); notify("Link da máquina copiado"); } catch { notify(linkMaquina(token)); }
   }
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Indicador rotulo="Ordens de serviço" valor={String(oss.length)} cor="azul" />
         <Indicador rotulo="Em garantia" valor={String(oss.filter((o) => o.em_garantia).length)} cor="verde" />
@@ -451,9 +454,8 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
       </div>
       {consertos.length > 0 && <ConsertosPelasNotas consertos={consertos} />}
       {garantia.pecas.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold">Peças trocadas em garantia</h3>
-          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+        <BlocoFicha titulo="Peças trocadas em garantia" icone={ShieldCheck} cor="verde" n={garantia.pecas.length}>
+          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-surface text-sm">
             {garantia.pecas.map((x) => (
               <li key={x.descricao} className="flex flex-wrap gap-x-3 px-3 py-1.5 [overflow-wrap:anywhere]">
                 <span className="min-w-0 flex-1">{x.quantidade.toLocaleString("pt-BR")} × {x.descricao}</span>
@@ -461,15 +463,14 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
               </li>
             ))}
           </ul>
-        </div>
+        </BlocoFicha>
       )}
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Equipamentos do cliente</h3>
+      <BlocoFicha titulo="Equipamentos do cliente" icone={Snowflake} cor="azul" n={equipamentos.length}>
         {!equipamentos.length ? <p className="text-sm text-slate-500">Nenhum equipamento registrado.</p> : (
           <ul className="space-y-1.5 text-sm">
             {equipamentos.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 [overflow-wrap:anywhere]">
-                <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
+                <EtiquetaMaquina m={e} tamanho="grande" /> <b>{e.descricao}</b>{e.numero_serie && <span className="text-slate-500">série {e.numero_serie}</span>}
                 {giga && e.numero_serie && !e.origem && <SeloTesteGiga s={giga.get(normalizarNs(e.numero_serie))} />}
                 {semEnsaio?.has(e.id) && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-2xs font-semibold text-amber-800" title="Testar no giga na próxima preventiva ou OS">giga: sem ensaio registrado</span>}
                 <span className={e.origem ? "text-amber-800" : ""}>{textoVenda(e)}</span>
@@ -494,13 +495,12 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
             garantia de fábrica: responde só pelo serviço e pelas peças que fornecer, com OS e orçamento aprovado.
           </p>
         )}
-      </div>
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Ordens de serviço</h3>
+      </BlocoFicha>
+      <BlocoFicha titulo="Ordens de serviço" icone={Wrench} cor="laranja" n={oss.length}>
         {!oss.length ? <p className="text-sm text-slate-500">Nenhuma OS deste cliente.</p> : (
           <ul className="space-y-2 text-sm">
             {oss.map((o) => (
-              <li key={o.id} className="rounded-lg border border-slate-200 p-2.5">
+              <li key={o.id} className="rounded-lg border border-slate-200 bg-surface p-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <b>OS #{o.numero}</b> <span className="text-slate-500">{dataBR(o.data_entrada)}</span> <Badge value={o.status} />
                   {o.em_garantia && <span className="text-xs font-semibold text-emerald-700">garantia</span>}
@@ -511,11 +511,10 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
             ))}
           </ul>
         )}
-      </div>
+      </BlocoFicha>
       <TecnicosRegiao cliente={cliente} equipamentos={equipamentos} />
       {legado.length > 0 && (
-        <div>
-          <h3 className="mb-1 text-sm font-semibold">Compras na My Frost (empresa anterior)</h3>
+        <BlocoFicha titulo="Compras na My Frost (empresa anterior)" icone={History} cor="cinza" n={legado.length}>
           <p className="mb-2 text-xs text-slate-500">Do backup do Tiny da My Frost: ajuda a saber que peças essa máquina já usou. Não são vendas da MF.</p>
           <ul className="space-y-1 text-sm">
             {legado.map((x) => (
@@ -526,7 +525,7 @@ function Assistencia({ cliente, oss, equipamentos, legado, notas }: { cliente: C
               </li>
             ))}
           </ul>
-        </div>
+        </BlocoFicha>
       )}
     </div>
   );
@@ -542,11 +541,9 @@ type TecnicoRegiao = { id: string; nome: string; tipo: string; whatsapp: string 
 function ConsertosPelasNotas({ consertos }: { consertos: ReturnType<typeof consertosDasNotas> }) {
   const naMF = consertos.filter((c) => c.entrada && !c.retorno).length;
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold">
-        Máquinas que vieram para conserto ({consertos.filter((c) => c.entrada).length}){naMF > 0 && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{naMF} na MF</span>}
-      </h3>
-      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
+    <BlocoFicha titulo="Máquinas que vieram para conserto" icone={Truck} cor="ciano" n={consertos.filter((c) => c.entrada).length}
+      extra={naMF > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{naMF} na MF</span>}>
+      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-surface text-sm">
         {consertos.map((c) => (
           <li key={(c.entrada ?? c.retorno)!.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 [overflow-wrap:anywhere]">
             <span className="min-w-0 flex-1 basis-56">
@@ -561,7 +558,7 @@ function ConsertosPelasNotas({ consertos }: { consertos: ReturnType<typeof conse
         ))}
       </ul>
       <p className="mt-1 text-xs text-slate-500">Pelas notas fiscais: entrada para conserto (CFOP 1915/2915) e retorno (5916/6916), ligados pela nota referenciada.</p>
-    </div>
+    </BlocoFicha>
   );
 }
 
@@ -758,10 +755,11 @@ function Atendimentos({ cliente, contatos, nomes }: { cliente: Cliente; contatos
           <div className="md:col-span-4"><Button type="submit" disabled={salvando}><MessageSquarePlus size={16} /> {salvando ? "Registrando…" : "Registrar atendimento"}</Button></div>
         </form>
       )}
+      <BlocoFicha titulo="Atendimentos registrados" icone={MessageCircle} cor="rosa" n={contatos.length}>
       {!contatos.length ? <p className="text-sm text-slate-500">Nenhum atendimento registrado ainda.</p> : (
         <ol className="space-y-2">
           {contatos.map((x) => (
-            <li key={x.id} className="rounded-lg border border-slate-200 p-2.5 text-sm">
+            <li key={x.id} className="rounded-lg border border-slate-200 bg-surface p-2.5 text-sm">
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span className="font-semibold text-fg">{TIPOS[x.tipo] ?? x.tipo}</span>
                 <span>{CANAIS[x.canal] ?? x.canal}</span>
@@ -774,6 +772,7 @@ function Atendimentos({ cliente, contatos, nomes }: { cliente: Cliente; contatos
           ))}
         </ol>
       )}
+      </BlocoFicha>
     </div>
   );
 }
