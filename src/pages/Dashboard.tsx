@@ -10,6 +10,9 @@ import { estiloBrilho, Luz, Section } from "@/components/ui";
 import { Area, Rosca } from "@/components/Charts";
 import { useUnidade, EtiquetaUnidade, CampoUnidade } from "@/lib/unidade";
 import { useRows } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { cobraDoCliente } from "@/lib/cobranca";
 import { brl, hoje, somarDias, pl } from "@/lib/format";
 import { situacaoGarantia, situacaoPreventiva } from "@/lib/garantia";
 import { usePerfil } from "@/lib/auth";
@@ -20,7 +23,10 @@ import { AcessoRapido } from "@/components/painel/AcessoRapido";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
-type Conta = { valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null };
+type Conta = {
+  id: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
+  cliente_id?: string | null; forma_pagamento?: string | null; decisao?: string | null;
+};
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes";
@@ -59,6 +65,9 @@ function desde6Meses() {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 6, 1)).toISOString().slice(0, 10);
 }
 const SELECT_CONTAS_INICIO = "id, status, valor, valor_pago, vencimento, data_pagamento, unidade_id";
+/** a receber: quem e como paga (cartão e pedido sem NF não se cobram do cliente); a pagar: a decisão ("não pagar" fica fora) */
+const SELECT_RECEBER_INICIO = `${SELECT_CONTAS_INICIO}, cliente_id, forma_pagamento`;
+const SELECT_PAGAR_INICIO = `${SELECT_CONTAS_INICIO}, decisao`;
 /** Só o que a venda pela nota precisa para valor e data (sem o cliente). */
 const SELECT_NOTAS_INICIO = "id, created_at, status, ambiente, pedido_id, unidade_id, tipo_operacao, finalidade, excluida_em, payload, valor_total, chave, chave_referenciada, nota_referenciada_id";
 
@@ -138,13 +147,22 @@ function PainelGeral() {
     select: SELECT_NOTAS_INICIO, key: ["inicio", corte], filtro: (q) => q.gte("created_at", corte) });
   const vendasNotas = useMemo(() => filtrar(vendasDasNotas(notasTodas, []).pedidos) as unknown as Pedido[], [notasTodas, filtrar]);
   const { data: receberTodos = [], isLoading: carregandoReceber } = useRows<Conta>("contas_receber", {
-    select: SELECT_CONTAS_INICIO, key: ["inicio", corte],
+    select: SELECT_RECEBER_INICIO, key: ["inicio", corte],
     filtro: (q) => q.or(`status.eq.aberto,data_pagamento.gte.${corte}`) });
   const receber = filtrar(receberTodos);
   const { data: pagarTodos = [], isLoading: carregandoPagar } = useRows<Conta>("contas_pagar", {
-    select: SELECT_CONTAS_INICIO, key: ["inicio", corte],
+    select: SELECT_PAGAR_INICIO, key: ["inicio", corte],
     filtro: (q) => q.or(`status.eq.aberto,data_pagamento.gte.${corte}`) });
   const pagar = filtrar(pagarTodos);
+  // pedido cancelado ou sem NF de venda: o banco diz quais contas em aberto não se cobram do cliente (como na Cobrança)
+  const { data: foraCobranca } = useQuery({
+    queryKey: ["contas_receber", "fora_cobranca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("contas_receber_fora_cobranca");
+      if (error) throw error;
+      return new Set(((data ?? []) as unknown[]).map((x) => String(x && typeof x === "object" ? Object.values(x)[0] : x)));
+    },
+  });
   // enquanto carrega não dá para dizer "tudo em dia" (falha de leitura aparece no aviso vermelho)
   const carregando = carregandoPedidos || carregandoReceber || carregandoPagar;
   const { data: equipamentos = [] } = useRows<Equipamento>("equipamentos", {
@@ -194,6 +212,10 @@ function PainelGeral() {
     const valor = (l: Pedido[]) => l.reduce((s, p) => s + Number(p.valor_total), 0);
     const osNovas = (r: string[]) => ordens.filter((o) => dentro(o.data_entrada, r)).length;
     const abertos = receber.filter((c) => c.status === "aberto");
+    // cobrança vencida: só o que se cobra do cliente (sem cartão, pedido cancelado ou sem NF de venda)
+    const vencidasCobrar = abertos.filter((c) => c.vencimento < h && cobraDoCliente({ forma_pagamento: c.forma_pagamento ?? null, fora_da_cobranca: !!foraCobranca?.has(c.id) }));
+    // a pagar: a marcada "não pagar" não é dívida em atraso
+    const pagarAberto = (c: Conta) => c.status === "aberto" && c.decisao !== "nao_pagar";
 
     return {
       serie,
@@ -206,12 +228,13 @@ function PainelGeral() {
       osAbertas: osAbertas.length,
       osAtrasadas: osAbertas.filter((o) => o.previsao && o.previsao < h).length,
       osProntas: ordens.filter((o) => o.status === "concluida").length,
-      receberVencido: soma(abertos, (c) => c.vencimento < h),
-      qtdReceberVencido: abertos.filter((c) => c.vencimento < h).length,
+      receberVencido: soma(vencidasCobrar, () => true),
+      qtdReceberVencido: vencidasCobrar.length,
+      clientesVencidos: new Set(vencidasCobrar.map((c) => c.cliente_id ?? c.id)).size,
       receber30: soma(abertos, (c) => c.vencimento >= h && c.vencimento <= somarDias(30)),
       receberDepois: soma(abertos, (c) => c.vencimento > somarDias(30)),
-      pagarVencido: soma(pagar, (c) => c.status === "aberto" && c.vencimento < h),
-      pagar7: soma(pagar, (c) => c.status === "aberto" && c.vencimento >= h && c.vencimento <= somarDias(7)),
+      pagarVencido: soma(pagar, (c) => pagarAberto(c) && c.vencimento < h),
+      pagar7: soma(pagar, (c) => pagarAberto(c) && c.vencimento >= h && c.vencimento <= somarDias(7)),
       estoqueBaixo: produtos.filter((p) => p.ativo && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) <= Number(p.estoque_minimo)),
       emGarantia: equipamentos.filter((e) => situacaoGarantia(e.garantia_ate) !== "fora_garantia").length,
       garantiaVence: equipamentos.filter((e) => situacaoGarantia(e.garantia_ate) === "vence_logo").length,
@@ -230,7 +253,7 @@ function PainelGeral() {
         { rotulo: "Pronta p/ retirar", valor: ordens.filter((o) => o.status === "concluida").length, cor: "var(--serie-3)" },
       ],
     };
-  }, [periodo, pedidos, vendasNotas, ordens, produtos, receber, pagar, equipamentos, recebidas, ops, compras, necessidade]);
+  }, [periodo, pedidos, vendasNotas, ordens, produtos, receber, pagar, equipamentos, recebidas, ops, compras, necessidade, foraCobranca]);
 
   const per = PERIODOS.find((p) => p.id === periodo)!;
 
@@ -239,7 +262,7 @@ function PainelGeral() {
     podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "venda", "vendas")} (pedidos e notas)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
     podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
     { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
-    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.qtdReceberVencido ? `${k.qtdReceberVencido} ${pl(k.qtdReceberVencido, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro", state: { aba: "cobranca" } },
+    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.clientesVencidos ? `${k.clientesVencidos} ${pl(k.clientesVencidos, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro", state: { aba: "cobranca" } },
     podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos", state: { status: "orcamento" } },
     podeVer("producao") && { id: "prod", label: "Em produção", valor: `${k.maquinasEmProducao} máq.`, sub: k.opsComFalta ? `${k.opsComFalta} OP com peça faltando` : "peças ok", icon: Factory, cor: "var(--kpi-azul)", to: "/producao" },
     { id: "garantia", label: "Em garantia", valor: k.emGarantia, sub: `${k.garantiaVence} vencem em 30 dias`, icon: ShieldCheck, cor: "var(--kpi-verde)", to: "/garantias" },

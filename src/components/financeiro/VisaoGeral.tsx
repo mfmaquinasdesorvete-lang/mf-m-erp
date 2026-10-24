@@ -32,7 +32,8 @@ export function VisaoGeral({ receber, pagar, vePagar, veSaldo, podeBaixar }: {
   const [baixa, setBaixa] = useState<{ conta: ContaFin; tabela: "contas_receber" | "contas_pagar" } | null>(null);
   const iv = intervalo(periodo, dia);
   const rec = useMemo(() => contasDoPeriodo(receber, iv.de, iv.ate, dia), [receber, iv.de, iv.ate, dia]);
-  const pag = useMemo(() => contasDoPeriodo(pagar, iv.de, iv.ate, dia), [pagar, iv.de, iv.ate, dia]);
+  // "não pagar" fica fora e a agendada conta na data marcada (como no fluxo)
+  const pag = useMemo(() => contasDoPeriodo(paraFluxo(pagar as (ContaFin & ContaDecisao)[]), iv.de, iv.ate, dia), [pagar, iv.de, iv.ate, dia]);
   const saldoPeriodo = rec.total - (vePagar ? pag.total : 0);
 
   return (

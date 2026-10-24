@@ -74,8 +74,9 @@ export function PainelFinanceiro() {
     const pagoAte = <T extends ContaFin>(l: T[], m: string, ate: string) => l.filter((c) => c.status === "pago" && (c.data_pagamento ?? "").startsWith(m) && (c.data_pagamento ?? "") <= ate);
     return {
       recHoje: ar.filter((c) => c.vencimento === dia), pagHoje: ap.filter((c) => c.vencimento === dia),
-      recVencidas: ar.filter((c) => c.vencimento < dia).sort((a, b) => b.valor - a.valor),
-      pagVencidas: ap.filter((c) => c.vencimento < dia).sort((a, b) => a.vencimento.localeCompare(b.vencimento)),
+      // cartão é a maquininha que paga (não é inadimplência); "não pagar" não é dívida em atraso
+      recVencidas: ar.filter((c) => c.vencimento < dia && c.forma_pagamento !== "cartao").sort((a, b) => b.valor - a.valor),
+      pagVencidas: ap.filter((c) => c.vencimento < dia && (c as { decisao?: string | null }).decisao !== "nao_pagar").sort((a, b) => a.vencimento.localeCompare(b.vencimento)),
       semana: semana.map((d) => ({ dia: d, rec: ar.filter((c) => c.vencimento === d), pag: ap.filter((c) => c.vencimento === d) })),
       entra7: soma(ar.filter((c) => c.vencimento >= dia && c.vencimento <= ate7)),
       sai7: soma(ap.filter((c) => c.vencimento >= dia && c.vencimento <= ate7)),
@@ -98,7 +99,7 @@ export function PainelFinanceiro() {
     const bancos = saldosTodos.filter((b) => b.unidade_id === u.id);
     const abertas = rec.filter((c) => c.status === "aberto" && daUnidade(c, u.id));
     const emDia = abertas.filter((c) => c.vencimento >= dia).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
-    const vencidas = abertas.filter((c) => c.vencimento < dia).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+    const vencidas = abertas.filter((c) => c.vencimento < dia && c.forma_pagamento !== "cartao").sort((a, b) => a.vencimento.localeCompare(b.vencimento));
     return {
       u, bancos, tem: bancos.reduce((s2, b) => s2 + Number(b.saldo), 0),
       emDia, vaiEntrar: soma(emDia), entra7: soma(emDia.filter((c) => c.vencimento <= somarDias(dia, 6))), entra30: soma(emDia.filter((c) => c.vencimento <= somarDias(dia, 29))),

@@ -58,7 +58,7 @@ export default function Gerencial() {
   const { data: oss = [] } = useRows<any>("ordens_servico", { select: "status, data_entrada, unidade_id", key: ["gerencial"] });
   const { data: compras = [] } = useRows<any>("pedidos_compra", { select: "status, created_at, previsao_entrega, valor_total, unidade_id", key: ["gerencial"] });
   const { data: receber = [] } = useRows<any>("contas_receber", { select: "status, vencimento, valor, unidade_id", key: ["gerencial"] });
-  const { data: pagar = [] } = useRows<any>("contas_pagar", { select: "status, vencimento, valor, unidade_id", key: ["gerencial"] });
+  const { data: pagar = [] } = useRows<any>("contas_pagar", { select: "status, vencimento, valor, unidade_id, decisao", key: ["gerencial"] });
   const { data: produtos = [] } = useRows<any>("produtos", { select: "id, sku, descricao, ativo, kit, fora_de_linha, sob_encomenda, estoque_atual, estoque_minimo, preco_custo, created_at", key: ["gerencial"] });
 
   const r = useMemo(() => {

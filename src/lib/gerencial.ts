@@ -246,7 +246,7 @@ type DadosGargalo = {
   oss: { status: string; data_entrada: string }[];
   compras: { status: string; created_at: string; previsao_entrega?: string | null; valor_total?: number }[];
   receber: { status: string; vencimento: string; valor: number }[];
-  pagar: { status: string; vencimento: string; valor: number }[];
+  pagar: { status: string; vencimento: string; valor: number; decisao?: string | null }[];
   produtos: ProdutoG[];
   parado: ReturnType<typeof estoqueParado>;
 };
@@ -286,7 +286,8 @@ export function gargalos(d: DadosGargalo, hoje: string): Gargalo[] {
 
   const rec = d.receber.filter((c) => c.status === "aberto" && c.vencimento < hoje);
   add({ chave: "receber", titulo: "Contas a receber vencidas", qtd: rec.length, valor: total(rec), rota: "/financeiro", nivel: "erro", detalhe: "Cobrança atrasada." });
-  const pag = d.pagar.filter((c) => c.status === "aberto" && c.vencimento < hoje);
+  // a marcada "não pagar" (decisão do financeiro) não é dívida em atraso
+  const pag = d.pagar.filter((c) => c.status === "aberto" && c.vencimento < hoje && c.decisao !== "nao_pagar");
   add({ chave: "pagar", titulo: "Contas a pagar vencidas", qtd: pag.length, valor: total(pag), rota: "/financeiro", nivel: "erro", detalhe: "Pague ou registre o pagamento para evitar juros." });
 
   const abaixo = d.produtos.filter((p) => p.ativo && !p.kit && !p.fora_de_linha && !p.sob_encomenda && Number(p.estoque_minimo) > 0 && Number(p.estoque_atual) < Number(p.estoque_minimo));

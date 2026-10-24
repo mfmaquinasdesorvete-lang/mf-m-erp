@@ -90,7 +90,8 @@ export default function PainelFinanceiroArea() {
     const recebido = entrou(atual), recebidoAnt = entrou(anterior);
     const pago = saiu(atual), pagoAnt = saiu(anterior);
     const ar = rec.filter((c) => c.status === "aberto"), ap = pag.filter((c) => c.status === "aberto");
-    const vencidas = ar.filter((c) => c.vencimento < dia);
+    // parcela no cartão quem paga é a maquininha: não entra como vencida para cobrar
+    const vencidas = ar.filter((c) => c.vencimento < dia && (c as { forma_pagamento?: string | null }).forma_pagamento !== "cartao");
 
     // para onde foi o dinheiro: saídas do período por categoria (a da conta a pagar ligada, senão o tipo do extrato)
     const contaPag = new Map(pag.map((c) => [c.id, c]));
@@ -138,7 +139,7 @@ export default function PainelFinanceiroArea() {
       devedores: [...devedores.values()].sort((a, b) => b.valor - a.valor).slice(0, 6),
       atraso: FAIXAS_ATRASO.map(([rotulo, de, ate]) => ({ rotulo, valores: [somaAberto(vencidas.filter((c) => { const n = diasEntre(c.vencimento, dia); return n >= de && n <= ate; }))] })),
       proximos, entra7: proximos.reduce((s, d) => s + d.valores[0], 0), sai7: proximos.reduce((s, d) => s + d.valores[1], 0),
-      pagVencidas: ap.filter((c) => c.vencimento < dia), decidir: aDecidir(ap),
+      pagVencidas: ap.filter((c) => c.vencimento < dia && (c as { decisao?: string | null }).decisao !== "nao_pagar"), decidir: aDecidir(ap),
     };
   }, [periodo, rec, pag, dia, fCategoria, mov, usaExtrato, saldos]); // eslint-disable-line react-hooks/exhaustive-deps
 
