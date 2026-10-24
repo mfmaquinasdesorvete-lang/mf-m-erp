@@ -58,3 +58,8 @@ Cuido de tudo o que vem do Tiny da MF (API, planilhas e backups) e entra no ERP 
 - Token só no secret do Supabase (`TINY_API_TOKEN`), nunca no código.
 - Kit: componente achado pelo código do Tiny, depois SKU, por último descrição (só se der um único produto).
 - Datas das planilhas no horário de Brasília; valores pt-BR lidos com `lerValor` (`src/lib/auditoriaBusca.ts`).
+- Vendedor com nome antigo no Tiny (o Tiny guarda nomes que a pessoa já usou): gravar sempre o nome padrão do cadastro
+  de funcionários/vendedores do ERP, nunca o do Tiny. Não escrever nomes de pessoas no repositório (é público); a troca
+  é feita no banco e confirmada com a usuária.
+- Categoria e marcador vindos das duas bases (24/10): "Vendeu a máquina" é categoria de cliente (`tipos_contato`
+  chave `vendeu_maquina`, em `clientes.tags`); "Comprou usada" é marcador. Importação nova só soma os dois.
