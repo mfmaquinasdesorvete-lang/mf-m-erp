@@ -117,6 +117,8 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   const [params] = useSearchParams();
   // cartão de abertura escolhido: filtra a lista (tocar de novo mostra todos)
   const [grupo, setGrupo] = useState<GrupoEquipe | null>(null);
+  // a lista começa fechada (pedido de 24/10); abre ao tocar, ao escolher um cartão, buscar ou filtrar
+  const [listaAberta, setListaAberta] = useState(false);
   const contagem = useMemo(() => contarGrupos(lista), [lista]);
 
   const equipe = ativos(lista);
@@ -214,7 +216,7 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
         {GRUPOS_EQUIPE.map((g) => {
           const { icon, cor } = VISUAL_GRUPO[g.id];
           return (
-            <button key={g.id} type="button" aria-pressed={grupo === g.id} onClick={() => setGrupo(grupo === g.id ? null : g.id)}
+            <button key={g.id} type="button" aria-pressed={grupo === g.id} onClick={() => { setGrupo(grupo === g.id ? null : g.id); setListaAberta(true); }}
               title={grupo === g.id ? "Mostrar todos" : `Mostrar só: ${g.rotulo.toLowerCase()}`}
               className={`rounded-cartao text-left transition ${grupo === g.id ? "ring-2 ring-modulo" : "hover:brightness-110"}`}>
               <Indicador rotulo={g.rotulo} icon={icon} cor={cor} valor={String(contagem[g.id])}
@@ -242,6 +244,7 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
         searchKeys={["nome", "apelido", "cargo", "setor", "cpf", "whatsapp", "email", "municipio"]}
         filtros={FILTROS}
         filtroBase={grupo ? (f) => noGrupo(f, grupo) : undefined}
+        listaRecolhida={{ aberta: listaAberta, mudar: (v) => { setListaAberta(v); if (!v) setGrupo(null); } }}
         ordens={[
           { label: "Nome", comparar: (a, b) => a.nome.localeCompare(b.nome) },
           { label: "Mais tempo de casa", comparar: (a, b) => (a.data_admissao ?? "9999").localeCompare(b.data_admissao ?? "9999") },

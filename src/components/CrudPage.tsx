@@ -113,6 +113,8 @@ type Props<T> = {
   marcadores?: [string, string];
   /** A busca não achou nada: aviso próprio no lugar de "Nenhum registro encontrado" (ex.: cadastrar com o CNPJ digitado). */
   semResultado?: (busca: string) => ReactNode;
+  /** Lista recolhida até pedir (título, Novo, busca e filtros ficam à vista); buscar ou filtrar também abre. */
+  listaRecolhida?: { aberta: boolean; mudar: (aberta: boolean) => void };
 };
 
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
@@ -186,6 +188,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   useEffect(() => { setSel((s) => (s.size ? new Set([...s].filter((id) => data.some((r) => r.id === id))) : s)); }, [data]);
 
   const filtrosAtivos = Object.values(escolhas).filter(Boolean).length;
+  const recolhida = !!props.listaRecolhida && !props.listaRecolhida.aberta && !busca.trim() && filtrosAtivos === 0;
   const temFiltros = filtros.length > 0 || ordens.length > 1;
   // no computador: os primeiros filtros à vista; os outros e a ordem no painel do botão "Filtros"
   const maisFiltros = filtros.length > VISIVEIS_PC || ordens.length > 1;
@@ -445,7 +448,17 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         )}
       </div>
 
+      {recolhida ? (
+        <button type="button" onClick={() => props.listaRecolhida!.mudar(true)}
+          className="cartao flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-semibold text-fg hover:bg-slate-50">
+          <span>Mostrar a lista · {data.length} {pl(data.length, singularDe(plural), plural)}</span>
+          <ChevronDown size={18} className="shrink-0 text-slate-500" aria-hidden />
+        </button>
+      ) : <>
       <div className="mb-2 flex min-h-9 flex-wrap items-center gap-2 text-sm text-slate-500">
+        {props.listaRecolhida && !busca.trim() && filtrosAtivos === 0 && (
+          <button type="button" className="link-acao" onClick={() => props.listaRecolhida!.mudar(false)}>Fechar a lista</button>
+        )}
         <span>{filtrados.length === data.length ? `${data.length} ${pl(data.length, singularDe(plural), plural)}` : `${filtrados.length} de ${data.length} ${plural}`}</span>
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-1 text-fg">
@@ -537,6 +550,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           </Button>
         </div>
       )}
+      </>}
 
       {marcandoLote && marcadores && (
         <AplicarMarcadores tabela={table as TabelaMarcavel} nome={marcadores}
