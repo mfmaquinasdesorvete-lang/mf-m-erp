@@ -83,3 +83,9 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
 - Gatilho `trg_funcionarios_atualizado` (24/10): a data de saída automática só entra ao desligar numa alteração, no dia
   de Brasília; ex-funcionário cadastrado depois fica sem data quando não se sabe.
 - Documento de saúde que não é atestado de trabalho (perícia, exame pessoal) não vai para a pasta.
+- Abas da área (24/10): Equipe (cartões `src/lib/grupoFuncionarios.ts`; lista fechada pela opção `listaRecolhida` do
+  CrudPage), Pasta, Admissão e saída (`src/lib/admissaoFuncionario.ts`), Férias e ponto (`src/lib/ferias.ts`, tabela
+  `funcionario_ferias`, só o que foi tirado; o período sai da admissão) e Pagamentos. "Sem carteira" = autônomo na ativa;
+  "No INSS" = situação afastado. Férias só para registrados; mostra o período em aquisição e os 2 últimos completos
+  (os mais antigos sem registro ficam fora, para não acusar vencida o que foi tirado antes do ERP).
+- Atualizar `pedidos_checklist` sempre pelo `id` (update com `like` no item fica esperando confirmação da usuária).
