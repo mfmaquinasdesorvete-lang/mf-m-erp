@@ -32,3 +32,15 @@ describe("gastos com frete", () => {
     expect(gastosPorTransportadora(contas, ctes).map((t) => [t.nome, t.total, t.qtd_ctes])).toEqual([["Rodonaves", 130, 3], ["Braspress", 50.5, 0], ["Jadlog", 0, 1]]);
   });
 });
+
+describe("produto que a MF vende", () => {
+  it("peça, máquina e acessório vendáveis; fora uso interno, insumo e serviço", async () => {
+    const { produtoQueVende } = await import("../fretes");
+    expect(produtoQueVende({ tipo: "peca", vendavel: null })).toBe(true);
+    expect(produtoQueVende({ tipo: "maquina", vendavel: true })).toBe(true);
+    expect(produtoQueVende({ tipo: "acessorio" })).toBe(true);
+    expect(produtoQueVende({ tipo: "peca", vendavel: false })).toBe(false);
+    expect(produtoQueVende({ tipo: "insumo" })).toBe(false);
+    expect(produtoQueVende({ tipo: "servico" })).toBe(false);
+  });
+});

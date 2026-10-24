@@ -469,3 +469,8 @@ export function somarMes(mes: string, n: number) {
   const d = new Date(Date.UTC(a, m - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
+
+/** Produto que a MF vende (entra na cotação de frete e na lista de "falta peso e medidas"): vendável e peça, máquina ou
+ *  acessório; uso interno, insumo e serviço ficam de fora (mesma regra do painel e da auditoria de produtos). */
+export const produtoQueVende = (p: { vendavel?: boolean | null; tipo?: string | null }) =>
+  p.vendavel !== false && ["peca", "maquina", "acessorio"].includes(p.tipo ?? "");
