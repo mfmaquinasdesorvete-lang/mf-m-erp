@@ -41,6 +41,8 @@ export function InterPainel({ contas, onNovaConta }: { contas: ContaErp[]; onNov
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [form, setForm] = useState<{ conexao?: ConexaoInter } | null>(null);
   const [regras, setRegras] = useState<ConexaoInter | null>(null);
+  const [pagos, setPagos] = useState<ConexaoInter | null>(null);
+  const fin = tem("financeiro");
   const nomeErp = (id: string) => contas.find((b) => b.id === id)?.nome ?? "—";
 
   async function atualizar(c: ConexaoInter) {
@@ -146,6 +148,7 @@ export function InterPainel({ contas, onNovaConta }: { contas: ContaErp[]; onNov
                   <Button variant="secondary" disabled={ocupado === c.id} onClick={() => atualizar(c)}>
                     {ocupado === c.id ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Atualizar agora
                   </Button>
+                  {fin && <Button variant="ghost" disabled={ocupado === c.id} onClick={() => setPagos(c)} title="Boletos pagos ou agendados pela conta no Inter: dá baixa nas contas a pagar que casarem"><Barcode size={15} /> Boletos pagos no Inter</Button>}
                   {admin && <Button variant="ghost" disabled={ocupado === c.id} onClick={() => setForm({ conexao: c })}><KeyRound size={15} /> Trocar credenciais</Button>}
                   {admin && <Button variant="ghost" title="Desligar o Inter nesta conta" aria-label="Desligar" disabled={ocupado === c.id} onClick={() => desligar(c)}><Unplug size={15} /></Button>}
                 </div>
@@ -155,6 +158,7 @@ export function InterPainel({ contas, onNovaConta }: { contas: ContaErp[]; onNov
         </ul>
       )}
 
+      {pagos && <PagamentosInter conexao={pagos} nome={nomeErp(pagos.conta_bancaria_id)} onClose={() => { setPagos(null); invalidar("contas_pagar", "extrato_lancamentos"); }} />}
       {regras && <RegrasBoleto conexao={regras} nome={nomeErp(regras.conta_bancaria_id)} onClose={() => setRegras(null)} />}
       {form && <LigarInter contas={form.conexao ? contas.filter((b) => b.id === form.conexao!.conta_bancaria_id) : livres} conexao={form.conexao} onNovaConta={onNovaConta}
         onClose={() => setForm(null)} onPronto={() => { setForm(null); invalidar("inter_conexoes", "extrato_lancamentos", "contas_receber", "contas_pagar"); }} />}
@@ -304,6 +308,59 @@ function RegrasBoleto({ conexao, nome, onClose }: { conexao: ConexaoInter; nome:
           <Button disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar"}</Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+type PagamentoInter = {
+  codigo: string; valor: number; vencimento: string | null; pago_em: string | null; situacao: "pago" | "agendado"; beneficiario: string;
+  conta_id: string | null; conta: string | null; por: "codigo" | "valor" | null; ambiguo: boolean; baixa: string | null;
+};
+
+/** Boletos pagos ou agendados pela conta no Inter (a API não traz o DDA): baixa nas contas a pagar que casam. */
+function PagamentosInter({ conexao, nome, onClose }: { conexao: ConexaoInter; nome: string; onClose: () => void }) {
+  const [r, setR] = useState<{ periodo: { de: string; ate: string }; pagamentos: PagamentoInter[] } | null>(null);
+  const [erro, setErro] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  async function buscar() {
+    setBuscando(true); setErro("");
+    try { setR(await callFunction("inter", { acao: "pagamentos_boleto", conexao_id: conexao.id, dias: 60 })); }
+    catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setBuscando(false); }
+  }
+  const grupos = r ? [
+    { titulo: "Baixadas agora", itens: r.pagamentos.filter((p) => p.baixa === "baixada") },
+    { titulo: "Agendadas no Inter (ligadas a uma conta)", itens: r.pagamentos.filter((p) => p.situacao === "agendado" && p.conta_id) },
+    { titulo: "Pagas, mas a baixa não foi feita", itens: r.pagamentos.filter((p) => p.baixa && p.baixa !== "baixada") },
+    { titulo: "Sem conta a pagar no ERP", itens: r.pagamentos.filter((p) => !p.conta_id) },
+  ] : [];
+  return (
+    <Modal open onClose={onClose} title={`Boletos pagos no Inter · ${nome}`} wide>
+      <div className="space-y-3 text-sm">
+        <p className="text-slate-600">Busca no Inter os boletos pagos ou agendados por esta conta nos últimos 60 dias (e os agendados para frente), casa com as contas a pagar em aberto pelo código de barras ou pelo valor e vencimento, e dá a baixa nas pagas. A API do Inter não traz o DDA (boletos ainda não pagos).</p>
+        {!r && <Button onClick={buscar} disabled={buscando}>{buscando ? <Loader2 size={15} className="animate-spin" /> : <Barcode size={15} />} Buscar no Inter</Button>}
+        {erro && <div className="flex items-start gap-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900"><AlertTriangle size={15} className="mt-0.5 shrink-0" /> {erro}</div>}
+        {r && !r.pagamentos.length && <p className="text-slate-500">Nenhum boleto pago ou agendado no Inter de {dataBR(r.periodo.de)} a {dataBR(r.periodo.ate)}.</p>}
+        {grupos.filter((g) => g.itens.length).map((g) => (
+          <section key={g.titulo}>
+            <h3 className="mb-1 text-xs font-bold uppercase text-slate-500">{g.titulo} ({g.itens.length})</h3>
+            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+              {g.itens.map((p, k) => (
+                <li key={p.codigo || k} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-2">
+                  <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                    <b className="text-fg">{p.beneficiario || "Beneficiário"}</b>
+                    {p.conta && <span className="block text-xs text-slate-500">Conta: {p.conta}{p.por === "valor" ? " (pelo valor e vencimento)" : ""}</span>}
+                    {p.ambiguo && <span className="block text-xs text-amber-700">Mais de uma conta com esse valor: dê a baixa à mão.</span>}
+                    {p.baixa && p.baixa !== "baixada" && <span className="block text-xs text-red-700">{p.baixa}</span>}
+                  </span>
+                  <span className="tabular-nums">{brl(p.valor)}</span>
+                  <span className="text-xs text-slate-500">{p.situacao === "pago" ? `pago ${dataBR(p.pago_em ?? "")}` : `agendado ${dataBR(p.pago_em ?? p.vencimento ?? "")}`}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        {r && <div className="flex justify-end"><Button variant="secondary" onClick={buscar} disabled={buscando}><RefreshCw size={15} /> Buscar de novo</Button></div>}
+      </div>
     </Modal>
   );
 }

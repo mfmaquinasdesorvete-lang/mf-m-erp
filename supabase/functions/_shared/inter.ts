@@ -37,12 +37,14 @@ export function conferirCertificado(cert: string, key: string) {
 }
 
 /** Mensagem em português para cada recusa do Inter. */
-function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta", boleto = false, pix = false) {
+function explicar(status: number, corpo: Record<string, unknown>, etapa: "token" | "consulta", boleto = false, pix = false, pagBoleto = false) {
   const violacoes = Array.isArray(corpo.violacoes)
     ? (corpo.violacoes as Record<string, unknown>[]).map((v) => [texto(v.propriedade), texto(v.razao)].filter(Boolean).join(": ")).filter(Boolean).join("; ")
     : "";
   const det = [texto(corpo.title ?? corpo.detail ?? corpo.message ?? corpo.error_description ?? corpo.error), violacoes].filter(Boolean).join(" — ").slice(0, 300);
-  const permissao = pix
+  const permissao = pagBoleto
+    ? 'O app do Inter não tem a permissão de consultar pagamentos: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Consultar pagamentos" (pagamento de boletos).'
+    : pix
     ? 'O app do Inter não tem a permissão de pagar Pix: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Pagamento Pix" (e "Consultar pagamentos Pix").'
     : boleto
     ? 'O app do Inter não tem a permissão de boletos: edite o app no Internet Banking (Soluções para sua empresa → Integrações) e marque "Emitir e cancelar boletos" e "Consultar boletos".'
@@ -78,7 +80,8 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
   }
   // um acesso por grupo de permissões (extrato; boletos), guardado durante a chamada da função
   const tokens = new Map<string, string>();
-  const ehBoleto = (escopo: string) => escopo.includes("boleto");
+  const ehBoleto = (escopo: string) => escopo.includes("boleto-cobranca");
+  const ehPagBoleto = (escopo: string) => escopo.includes("pagamento-boleto");
   const ehPix = (escopo: string) => escopo.includes("pagamento-pix");
 
   async function chamar(url: string, init: RequestInit): Promise<Response> {
@@ -95,7 +98,7 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
       body: new URLSearchParams({ client_id: ch.client_id, client_secret: ch.client_secret, grant_type: "client_credentials", scope: escopo }),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token", ehBoleto(escopo), ehPix(escopo)));
+    if (!r.ok || !j.access_token) throw new ErroInter(r.status === 200 ? 502 : r.status, explicar(r.status, j, "token", ehBoleto(escopo), ehPix(escopo), ehPagBoleto(escopo)));
     tokens.set(escopo, String(j.access_token));
   }
 
@@ -108,7 +111,7 @@ export function clienteInter(ch: ChavesInter, contaCorrente?: string | null) {
     const r = await chamar(`${BASE}${caminho}`, { method: metodo, headers, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
     if (r.status === 202 || r.status === 204) return {} as T;
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta", ehBoleto(escopo), ehPix(escopo)));
+    if (!r.ok) throw new ErroInter(r.status, explicar(r.status, j, "consulta", ehBoleto(escopo), ehPix(escopo), ehPagBoleto(escopo)));
     return j as T;
   }
   const get = <T>(caminho: string) => pedir<T>("GET", caminho);

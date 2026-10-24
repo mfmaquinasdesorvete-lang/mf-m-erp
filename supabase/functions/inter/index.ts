@@ -8,6 +8,8 @@
 //       (financeiro ou vendas), boleto_cancelar (financeiro) e o aviso do Inter (lista de cobranças, sem login).
 //  Pix de saída (pix.ts): pix_pagar { conta_id, conexao_id, chave } e pix_consultar { id } (financeiro); na sincronização,
 //       os Pix que ficaram esperando são conferidos no Inter sozinhos (conferirPixAbertos) e o financeiro é avisado.
+//  Boletos pagos/agendados (pagamentos.ts): pagamentos_boleto { conexao_id, dias? } (financeiro) → casa com as contas a
+//       pagar e dá a baixa nas pagas (a API não traz o DDA).
 // Deploy com --no-verify-jwt: o agendamento não manda login de usuário; o resto confere aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -15,6 +17,7 @@ import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
 import { chamadaDoAgendamento } from "../_shared/cron.ts";
 import { type ChavesInter, clienteInter, conferirCertificado, ErroInter, hojeSP, linhasInter, somarDias } from "../_shared/inter.ts";
 import { conferirPixAbertos, consultarPix, pagarPix } from "./pix.ts";
+import { buscarPagamentosBoleto } from "./pagamentos.ts";
 import { atualizarBoleto, avisoBoletos, cancelarBoleto, conferirAbertos, desligarBoletos, emitirBoleto, ligarBoletos, pdfBoleto } from "./boletos.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -60,6 +63,10 @@ Deno.serve(async (req) => {
     if (body.acao === "pix_consultar") {
       await requireErpUser(req, ["financeiro"]);
       return json(await consultarPix(req, db, String(body.id ?? ""), chaves));
+    }
+    if (body.acao === "pagamentos_boleto") {
+      await requireErpUser(req, ["financeiro"]);
+      return json(await buscarPagamentosBoleto(req, db, body, chaves));
     }
     if (body.acao === "ligar") {
       await requireErpUser(req, []);
