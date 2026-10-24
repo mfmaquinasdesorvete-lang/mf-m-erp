@@ -29,6 +29,8 @@ type Conta = {
 };
 /** Valor curto para o resumo dos blocos fechados no celular ("R$ 40,4 mil") */
 const brlCurto = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 }).format(v);
+/** Número curto sem o "R$" ("14,5 mil"), para o resumo azul do celular, onde o "R$" vai pequeno na frente */
+const numCurto = (v: number) => new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes";
@@ -73,7 +75,7 @@ const SELECT_PAGAR_INICIO = `${SELECT_CONTAS_INICIO}, decisao`;
 /** Só o que a venda pela nota precisa para valor e data (sem o cliente). */
 const SELECT_NOTAS_INICIO = "id, created_at, status, ambiente, pedido_id, unidade_id, tipo_operacao, finalidade, excluida_em, payload, valor_total, chave, chave_referenciada, nota_referenciada_id";
 
-type Kpi = { id: string; label: string; valor: string | number; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
+type Kpi = { id: string; label: string; valor: string | number; curto?: string | number; moeda?: boolean; sub?: string; icon: LucideIcon; cor: string; delta?: number | null; to: string; state?: unknown };
 
 type Visao = "geral" | "financeiro" | "fluxo";
 const VISOES: Record<Visao, [string, string]> = { geral: ["Painel geral", "Geral"], financeiro: ["Painel financeiro", "Financeiro"], fluxo: ["Fluxo de pedidos", "Fluxo"] };
@@ -261,10 +263,10 @@ function PainelGeral() {
 
   // Cartões coloridos: os 4 primeiros que o papel pode ver
   const kpis = ([
-    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), sub: `${k.qtdVendas} ${pl(k.qtdVendas, "venda", "vendas")} (pedidos e notas)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
-    podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
-    { id: "os", label: "OS em andamento", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
-    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), sub: k.clientesVencidos ? `${k.clientesVencidos} ${pl(k.clientesVencidos, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro", state: { aba: "cobranca" } },
+    podeVer("pedidos") && { id: "vendas", label: "Vendas", valor: brl(k.vendas), curto: numCurto(k.vendas), moeda: true, sub: `${k.qtdVendas} ${pl(k.qtdVendas, "venda", "vendas")} (pedidos e notas)`, icon: TrendingUp, cor: "var(--kpi-ciano)", delta: k.dVendas, to: "/pedidos" },
+    podeVer("financeiro") && { id: "recebido", label: "Recebido", valor: brl(k.recebido), curto: numCurto(k.recebido), moeda: true, sub: `${brl(k.receber30)} a receber em 30 dias`, icon: Wallet, cor: "var(--kpi-verde)", delta: k.dRecebido, to: "/financeiro" },
+    { id: "os", label: "OS abertas", valor: k.osAbertas, sub: `${k.osNovas} ${pl(k.osNovas, "entrou", "entraram")} · ${k.osProntas} ${pl(k.osProntas, "pronta", "prontas")}`, icon: Wrench, cor: "var(--kpi-laranja)", to: "/assistencia" },
+    podeVer("financeiro") && { id: "vencido", label: "Cobranças vencidas", valor: brl(k.receberVencido), curto: numCurto(k.receberVencido), moeda: true, sub: k.clientesVencidos ? `${k.clientesVencidos} ${pl(k.clientesVencidos, "cliente", "clientes")} para cobrar` : "ninguém atrasado", icon: AlertTriangle, cor: "var(--kpi-rosa)", to: "/financeiro", state: { aba: "cobranca" } },
     podeVer("pedidos") && { id: "orc", label: "Orçamentos abertos", valor: k.orcamentos, sub: `${k.aEntregar} ${pl(k.aEntregar, "pedido", "pedidos")} a entregar`, icon: ClipboardList, cor: "var(--kpi-roxo)", to: "/pedidos", state: { status: "orcamento" } },
     podeVer("producao") && { id: "prod", label: "Em produção", valor: `${k.maquinasEmProducao} máq.`, sub: k.opsComFalta ? `${k.opsComFalta} OP com peça faltando` : "peças ok", icon: Factory, cor: "var(--kpi-azul)", to: "/producao" },
     { id: "garantia", label: "Em garantia", valor: k.emGarantia, sub: `${k.garantiaVence} vencem em 30 dias`, icon: ShieldCheck, cor: "var(--kpi-verde)", to: "/garantias" },
@@ -319,6 +321,11 @@ function PainelGeral() {
         </p>
       </div>
 
+      {/* 0a. Celular (24/10, modelo enviado pela usuária): um cartão azul liso com os 4 números do período, lado a lado;
+          tocar num número abre a tela dele. No computador continuam os cartões coloridos mais abaixo. */}
+      <ResumoCelular titulo={`Resumo ${per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "de 30 dias"}`}
+        periodo={periodo} onPeriodo={escolher} itens={kpis} onAbrir={(c) => navigate(c.to, { state: c.state })} />
+
       {/* 0b. Acesso rápido (23/10): as telas do dia a dia numa faixa de bolinhas que rola para o lado */}
       <AcessoRapido avisos={{ "/notas": k.nfeConferir, "/financeiro": k.qtdReceberVencido, "/estoque": k.estoqueBaixo.length, "/garantias": lembretes.length, "/assistencia": k.osAtrasadas }} />
 
@@ -354,7 +361,7 @@ function PainelGeral() {
         )}
 
         {/* 2. Números do período: o período só vale para estes cartões, por isso fica junto deles */}
-        <section aria-label="Números do período" className={temAtencao ? "xl:col-span-3" : "xl:col-span-5"}>
+        <section aria-label="Números do período" className={`max-sm:hidden ${temAtencao ? "xl:col-span-3" : "xl:col-span-5"}`}>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Números {per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "dos últimos 30 dias"}</h2>
             {periodoTabs}
@@ -369,7 +376,7 @@ function PainelGeral() {
       {/* 4. Tendência: os últimos 6 meses e o que está para entrar */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {podeVer("pedidos") && (
-          <Section title="Vendas x Recebido" className="xl:col-span-3" recolhivel resumo={`${brlCurto(k.serie[5]?.valores[0] ?? 0)} no mês`}
+          <Section title="Vendas x Recebido" className="xl:col-span-3" recolhivel resumo={brlCurto(k.serie[5]?.valores[0] ?? 0)}
             actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Relatórios</Link>}>
             <Area dados={k.serie} series={podeVer("financeiro")
               ? [{ nome: "Vendas", cor: "var(--serie-1)" }, { nome: "Recebido", cor: "var(--serie-3)" }]
@@ -417,6 +424,34 @@ function PainelGeral() {
         </Section>
       </div>
     </div>
+  );
+}
+
+/** Resumo do celular: cartão azul liso (sem manchas), 4 números lado a lado com divisórias e a escolha do período. */
+function ResumoCelular({ titulo, periodo, onPeriodo, itens, onAbrir }: {
+  titulo: string; periodo: Periodo; onPeriodo: (p: Periodo) => void; itens: Kpi[]; onAbrir: (c: Kpi) => void;
+}) {
+  if (!itens.length) return null;
+  return (
+    <section aria-label={titulo} className="rounded-painel bg-gradient-to-br from-fixo-blue-700 via-fixo-blue-600 to-fixo-sky-500 p-3 text-white shadow-pop sm:hidden">
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <h2 className="text-sm font-semibold">{titulo}</h2>
+        <select value={periodo} onChange={(e) => onPeriodo(e.target.value as Periodo)} aria-label="Período"
+          className="rounded-full border-0 bg-white/15 py-1 pl-3 pr-7 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-white/60">
+          {PERIODOS.map((p) => <option key={p.id} value={p.id}>{p.rotulo}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-flow-col auto-cols-fr divide-x divide-white/15">
+        {itens.map((c) => (
+          <button key={c.id} type="button" onClick={() => onAbrir(c)} title={c.sub ? `${c.label}: ${c.valor} · ${c.sub}` : `${c.label}: ${c.valor}`}
+            className="flex min-w-0 flex-col items-center gap-1 rounded-cartao px-1 py-1.5 text-center transition active:scale-95 active:bg-white/10">
+            <c.icon size={19} className="text-white/85" aria-hidden />
+            <span className="num max-w-full truncate text-base font-bold leading-tight">{c.moeda && <span className="mr-0.5 text-2xs font-semibold text-white/80">R$</span>}{c.curto ?? c.valor}</span>
+            <span className="line-clamp-2 text-2xs leading-tight text-white/85">{c.label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

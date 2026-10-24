@@ -47,13 +47,13 @@ const combina = (m: Item, termo: string) => {
 
 /** Botões coloridos do acesso rápido (3 por linha). */
 /** E-mail ao lado do sino (saiu da fileira Início · E-mail · Scrum do menu, pedido de 23/10). */
-function BotaoEmail({ onIr }: { onIr?: () => void }) {
+function BotaoEmail({ onIr, claro }: { onIr?: () => void; claro?: boolean }) {
   const vis = useVisivel();
   const item = todosItens.find((i) => i.to === "/email");
   if (!item || !vis.item(item)) return null;
   return (
     <NavLink to="/email" onClick={onIr} title="Caixa de e-mail" aria-label="Caixa de e-mail"
-      className={({ isActive }) => `grid h-9 w-9 place-items-center rounded-full transition ${isActive ? "bg-white/15 text-white" : "text-nav-texto hover:bg-white/10 hover:text-white"}`}>
+      className={({ isActive }) => `grid h-9 w-9 place-items-center rounded-full transition ${claro ? (isActive ? "bg-brand/15 text-brand" : "text-slate-600 hover:bg-slate-100 hover:text-fg") : isActive ? "bg-white/15 text-white" : "text-nav-texto hover:bg-white/10 hover:text-white"}`}>
       <Inbox size={19} aria-hidden />
     </NavLink>
   );
@@ -73,16 +73,16 @@ function BotaoPdv({ ve, onIr }: { ve: (i: Item) => boolean; onIr: () => void }) 
 }
 
 /** Logo do topo: tocar volta ao início (a tela inicial do perfil). */
-function Marca({ compacta, onIr }: { compacta?: boolean; onIr?: () => void }) {
+function Marca({ compacta, claro, onIr }: { compacta?: boolean; claro?: boolean; onIr?: () => void }) {
   const logoErp = useAparencia().logo_erp;
   return (
     <Link to="/" onClick={() => { onIr?.(); window.scrollTo({ top: 0 }); }} aria-label="ERP Line: voltar ao início" title="Voltar ao início"
       className={`flex shrink-0 items-center rounded-xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-ice ${compacta ? "gap-2" : "gap-3"}`}>
-      <img src={logoErp || logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl object-cover ring-1 ring-white/10`} />
+      <img src={logoErp || logo} alt="" className={`${compacta ? "h-9 w-9" : "h-10 w-10"} rounded-xl object-cover ring-1 ${claro ? "ring-slate-200" : "ring-white/10"}`} />
       {/* celular estreito (menos de 380 px): só o logo, para o cabeçalho não passar da tela */}
-      <span className={`${compacta ? "hidden min-[440px]:inline" : ""} whitespace-nowrap leading-tight`}>
-        <span className="block text-lg font-bold tracking-tight text-white">ERP <span className="text-brand-ice">Line</span></span>
-        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-selo text-nav-fraco`}>MF Máquinas</span>
+      <span className={`${compacta && !claro ? "hidden min-[440px]:inline" : ""} whitespace-nowrap leading-tight`}>
+        <span className={`block font-bold tracking-tight ${claro ? "text-base text-fg" : "text-lg text-white"}`}>ERP <span className={claro ? "text-brand" : "text-brand-ice"}>Line</span></span>
+        <span className={`${compacta ? "hidden min-[420px]:block" : "block"} text-2xs font-semibold uppercase tracking-selo ${claro ? "text-slate-500" : "text-nav-fraco"}`}>MF Máquinas</span>
       </span>
     </Link>
   );
@@ -95,10 +95,10 @@ function SeletorUnidade({ compacto }: { compacto?: boolean }) {
   const opcoes = [{ id: null as string | null, rotulo: "Todas", titulo: "Ver as duas unidades" },
     ...unidades.map((u) => ({ id: u.id as string | null, rotulo: compacto ? u.codigo : u.nome, titulo: u.nome }))];
   return (
-    <div role="radiogroup" aria-label="Unidade" className={`flex gap-0.5 p-0.5 ${compacto ? "rounded-full bg-white/10" : "w-full rounded-xl bg-ink-soft"}`}>
+    <div role="radiogroup" aria-label="Unidade" className={`flex gap-0.5 p-0.5 ${compacto ? "rounded-full bg-slate-100" : "w-full rounded-xl bg-ink-soft"}`}>
       {opcoes.map((o) => (
         <button key={o.id ?? "todas"} type="button" role="radio" aria-checked={atual === o.id} title={o.titulo} onClick={() => setAtual(o.id)}
-          className={`flex-1 whitespace-nowrap font-bold transition ${compacto ? "rounded-full px-2.5 py-1 text-2xs" : "rounded-lg px-2 py-1.5 text-xs"} ${atual === o.id ? "bg-brand-ice text-ink" : "text-nav-texto hover:text-white"}`}>
+          className={`flex-1 whitespace-nowrap font-bold transition ${compacto ? "rounded-full px-2.5 py-1 text-2xs" : "rounded-lg px-2 py-1.5 text-xs"} ${compacto ? (atual === o.id ? "bg-brand text-brand-fg shadow-sm" : "text-slate-600 hover:text-fg") : atual === o.id ? "bg-brand-ice text-ink" : "text-nav-texto hover:text-white"}`}>
           {o.rotulo}
         </button>
       ))}
@@ -232,20 +232,18 @@ export function Layout() {
     {/* primeiro Tab da página: pula o menu e vai direto ao conteúdo da tela */}
     <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-alerta focus:rounded-botao focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-fg">Pular para o conteúdo</a>
     <div className="min-h-screen md:flex">
-      {/* topo do celular (24/10): cartão flutuante de vidro com aurora, como a barra de baixo — logo, unidade e botões redondos */}
-      <header className="sticky top-0 z-30 px-3 pb-1.5 md:hidden" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}>
-        <div className="relative flex items-center gap-1.5 overflow-hidden rounded-painel border border-white/10 bg-ink/90 py-1.5 pl-1.5 pr-1.5 shadow-[0_12px_32px_-14px_rgb(0_0_0/0.55)] backdrop-blur-xl">
-          <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(120deg, rgb(168 85 247 / 0.30) 0%, rgb(236 72 153 / 0.12) 50%, rgb(37 99 235 / 0.22) 100%)" }} />
-          <span className="relative"><Marca compacta onIr={() => setAberto(false)} /></span>
-          <div className="relative ml-auto flex items-center gap-1"><SeletorUnidade compacto /><BotaoEmail onIr={() => setAberto(false)} /><Sino /></div>
-          <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"}
-            className="relative grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
-            {aberto ? <X size={19} /> : <Menu size={19} />}
-          </button>
-        </div>
+      {/* topo do celular (24/10, modelo enviado pela usuária): barra limpa na cor da superfície (sem manchas de aurora),
+          menu à esquerda, marca e, à direita, unidade, e-mail e sino — tudo nas cores do tema (claro e escuro) */}
+      <header className="sticky top-0 z-30 flex items-center gap-1 border-b border-slate-200/70 bg-surface/90 px-2 py-1.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.375rem, env(safe-area-inset-top, 0px))" }}>
+        <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-700 transition hover:bg-slate-100">
+          {aberto ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <Marca compacta claro onIr={() => setAberto(false)} />
+        <div className="ml-auto flex items-center gap-0.5"><SeletorUnidade compacto /><BotaoEmail claro onIr={() => setAberto(false)} /><Sino claro /></div>
       </header>
 
-      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[64px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
+      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[53px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
         {/* topo do menu (23/10): cartão de vidro com aurora — marca, e-mail e sino; a unidade e o PDV embaixo */}
         <div className="hidden px-3 pb-3 pt-3 md:block">
           <div className="relative overflow-hidden rounded-painel border border-white/10 p-3 shadow-lg"
@@ -474,14 +472,14 @@ export function Layout() {
           </div>
         </div>
       )}
-      <nav className="fixed inset-x-3 z-gaveta flex items-center rounded-[1.75rem] border border-white/10 bg-ink/85 px-1.5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.6)] backdrop-blur-xl md:hidden"
+      <nav className="fixed inset-x-3 z-gaveta flex items-center rounded-[1.75rem] border border-slate-200/80 bg-surface/95 px-1.5 shadow-pop backdrop-blur-xl md:hidden"
         style={{ bottom: "calc(0.6rem + env(safe-area-inset-bottom, 0px))" }}>
         {atalhos.map(({ to, curto, icon: Icon }, i) => (
           <div key={to} className="flex min-w-0 flex-1" style={{ order: i < meioBarra ? 0 : 2 }}>
             <NavLink to={to} end={to === "/"} onClick={() => { setAberto(false); setCriar(false); }} {...alvoDoLink(to)}
-              className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-2xs font-semibold ${isActive ? "text-white" : "text-nav-fraco"}`}>
+              className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-2xs font-semibold ${isActive ? "text-brand" : "text-slate-500"}`}>
               {({ isActive }) => (<>
-                <span className={`grid h-8 w-12 place-items-center rounded-full transition ${isActive ? "bg-modulo/25 text-modulo" : ""}`}><Icon size={20} /></span>
+                <span className={`grid h-9 w-9 place-items-center rounded-full transition ${isActive ? "bg-brand text-brand-fg shadow-card" : ""}`}><Icon size={19} /></span>
                 <span className="max-w-full truncate">{curto}</span>
               </>)}
             </NavLink>
