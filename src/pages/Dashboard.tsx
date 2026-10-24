@@ -27,6 +27,8 @@ type Conta = {
   id: string; valor: number; vencimento: string; status: string; data_pagamento: string | null; valor_pago: number | null;
   cliente_id?: string | null; forma_pagamento?: string | null; decisao?: string | null;
 };
+/** Valor curto para o resumo dos blocos fechados no celular ("R$ 40,4 mil") */
+const brlCurto = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 }).format(v);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 type Periodo = "hoje" | "semana" | "7d" | "30d" | "mes";
@@ -305,10 +307,10 @@ function PainelGeral() {
   );
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 0. Saudação e o resumo em uma linha */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-fg sm:text-3xl">{saudacao}, {nome.split(" ")[0]} 👋</h1>
+        <h1 className="text-xl font-bold tracking-tight text-fg sm:text-3xl">{saudacao}, {nome.split(" ")[0]} 👋</h1>
         <p className="mt-0.5 text-sm text-slate-500">
           {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
           {" · "}{carregando ? "conferindo…" : temAtencao
@@ -323,7 +325,7 @@ function PainelGeral() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {/* 1. Para resolver agora: o primeiro lugar do olhar (urgentes primeiro, poucos de cada vez) */}
         {temAtencao && (
-          <section id="resolver" aria-label="Para resolver agora" className="cartao scroll-mt-20 p-4 sm:p-5 xl:col-span-2"
+          <section id="resolver" aria-label="Para resolver agora" className="cartao scroll-mt-20 p-3 sm:p-5 xl:col-span-2"
             style={fila.urgentes ? { borderColor: "rgb(var(--red-200))" } : undefined}>
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-sm font-bold text-fg">
@@ -331,13 +333,13 @@ function PainelGeral() {
               </h2>
               <span className="num text-xs font-semibold text-slate-500">{atencao.length}</span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {(verTudo ? fila.ordem : fila.visiveis).map((a) => (
                 <li key={a.texto}>
                   <Link to={a.to} state={a.state}
-                    className={`group flex items-center gap-3 rounded-cartao border p-3 transition hover:bg-slate-50 ${a.nivel === "urgente" ? "border-red-200 border-l-4 border-l-[rgb(var(--red-500))]" : "border-slate-100 hover:border-slate-200"}`}>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-cartao" style={{ background: `color-mix(in srgb, ${a.cor} 16%, transparent)`, color: a.cor }}><a.icon size={18} /></span>
-                    <span className={`flex-1 text-sm leading-snug ${a.nivel === "urgente" ? "font-semibold text-fg" : "text-slate-700"}`}>{a.texto}</span>
+                    className={`group flex items-center gap-2.5 rounded-cartao border px-2.5 py-2 transition hover:bg-slate-50 active:scale-[.99] sm:gap-3 sm:p-3 ${a.nivel === "urgente" ? "border-red-200 border-l-4 border-l-[rgb(var(--red-500))]" : "border-slate-100 hover:border-slate-200"}`}>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-cartao sm:h-9 sm:w-9" style={{ background: `color-mix(in srgb, ${a.cor} 16%, transparent)`, color: a.cor }}><a.icon size={16} /></span>
+                    <span className={`flex-1 text-xs leading-snug sm:text-sm ${a.nivel === "urgente" ? "font-semibold text-fg" : "text-slate-700"}`}>{a.texto}</span>
                     <ArrowRight size={16} className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand" />
                   </Link>
                 </li>
@@ -357,7 +359,7 @@ function PainelGeral() {
             <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />Números {per.id === "hoje" ? "de hoje" : per.id === "mes" ? "do mês" : per.id === "semana" ? "da semana" : "dos últimos 30 dias"}</h2>
             {periodoTabs}
           </div>
-          <div className={`grid grid-cols-2 gap-3 lg:gap-4 ${temAtencao ? "" : "lg:grid-cols-4"}`}>
+          <div className={`grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 ${temAtencao ? "" : "lg:grid-cols-4"}`}>
             {kpis.map((c) => <KpiCard key={c.id} c={c} anterior={per.anterior} onClick={() => navigate(c.to, { state: c.state })} />)}
           </div>
           {kpis.some((c) => c.delta !== undefined) && <p className="mt-2 text-xs text-slate-500 sm:hidden">% comparado com {per.anterior}</p>}
@@ -367,7 +369,7 @@ function PainelGeral() {
       {/* 4. Tendência: os últimos 6 meses e o que está para entrar */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         {podeVer("pedidos") && (
-          <Section title="Vendas x Recebido · 6 meses" className="xl:col-span-3"
+          <Section title="Vendas x Recebido" className="xl:col-span-3" recolhivel resumo={`${brlCurto(k.serie[5]?.valores[0] ?? 0)} no mês`}
             actions={podeVer("relatorios") && <Link to="/relatorios" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Relatórios</Link>}>
             <Area dados={k.serie} series={podeVer("financeiro")
               ? [{ nome: "Vendas", cor: "var(--serie-1)" }, { nome: "Recebido", cor: "var(--serie-3)" }]
@@ -377,7 +379,7 @@ function PainelGeral() {
         )}
 
         {podeVer("financeiro") ? (
-          <Section title="Contas a receber" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"}
+          <Section title="Contas a receber" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"} recolhivel resumo={brlCurto(k.receber30 + k.receberDepois + k.receberVencido)}
             actions={<Link to="/financeiro" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Em aberto" fatias={[
               { rotulo: "Vence em 30 dias", valor: k.receber30, cor: "var(--serie-1)" },
@@ -386,7 +388,7 @@ function PainelGeral() {
             ]} />
           </Section>
         ) : (
-          <Section title="Assistência técnica agora" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"}
+          <Section title="Assistência técnica agora" className={podeVer("pedidos") ? "xl:col-span-2" : "xl:col-span-5"} recolhivel resumo={`${k.osAbertas} OS`}
             actions={<Link to="/assistencia" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir</Link>}>
             <Rosca total="Ordens" fatias={k.osPorSituacao} formatar={(v) => `${v} OS`} />
           </Section>
@@ -397,7 +399,7 @@ function PainelGeral() {
       <div className={`grid grid-cols-1 gap-4 ${podeVer("producao") ? "xl:grid-cols-2" : ""}`}>
         {podeVer("producao") && (
           <Section title="Fábrica" actions={<Link to="/producao" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Abrir produção</Link>}>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-2 sm:gap-2">
               <Mini icon={Factory} cor="var(--kpi-azul)" label="OPs abertas" valor={k.opsAbertas} sub={`${k.maquinasEmProducao} ${pl(k.maquinasEmProducao, "máquina", "máquinas")}`} onClick={() => navigate("/producao")} />
               <Mini icon={PackageSearch} cor={k.opsComFalta ? "var(--kpi-rosa)" : "var(--kpi-verde)"} label="Peça faltando" valor={k.opsComFalta} onClick={() => navigate("/producao")} />
               <Mini icon={ClipboardList} cor="var(--kpi-roxo)" label="Em cotação" valor={k.comprasCotacao} onClick={() => navigate("/compras", { state: { aba: "compras" } })} />
@@ -406,7 +408,7 @@ function PainelGeral() {
           </Section>
         )}
         <Section title="Garantias das máquinas vendidas" actions={<Link to="/garantias" className="link-acao text-sm max-md:-my-1.5 max-md:inline-block max-md:py-1.5">Ver todas</Link>}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-2 sm:gap-2">
             <Mini icon={ShieldCheck} cor="var(--kpi-verde)" label="Em garantia" valor={k.emGarantia} onClick={() => navigate("/garantias")} />
             <Mini icon={ShieldCheck} cor="var(--kpi-laranja)" label="Vencem em 30 dias" valor={k.garantiaVence} onClick={() => navigate("/garantias")} />
             <Mini icon={ShieldOff} cor="var(--kpi-roxo)" label="Fora da garantia" valor={k.foraGarantia} onClick={() => navigate("/garantias")} />
@@ -418,42 +420,44 @@ function PainelGeral() {
   );
 }
 
-/** Cartão de indicador colorido (o brilho é a peça comum estiloBrilho/Luz): ícone grande e variação vs período anterior. */
+/** Cartão de indicador colorido (o brilho é a peça comum estiloBrilho/Luz). Compacto no celular (24/10): ícone pequeno
+ *  ao lado do nome, número e uma linha de apoio; tocar abre a tela do número. */
 function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: () => void }) {
   const subiu = (c.delta ?? 0) >= 0;
   return (
     <button onClick={onClick} style={estiloBrilho(c.cor)}
-      className="group relative flex min-h-[132px] flex-col overflow-hidden rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 sm:p-5">
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-cartao border p-3 text-left transition hover:-translate-y-0.5 active:scale-[.98] sm:min-h-[132px] sm:rounded-2xl sm:p-5">
       <Luz cor={c.cor} />
-      <span className="flex items-start justify-between gap-2">
-        <span className="text-xs font-semibold leading-tight text-slate-600 sm:text-sm">{c.label}</span>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11"
+      <span className="flex items-center gap-2 sm:items-start sm:justify-between">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg sm:order-2 sm:h-11 sm:w-11 sm:rounded-xl"
           style={{ background: `color-mix(in srgb, ${c.cor} 22%, transparent)`, color: c.cor }}>
-          <c.icon size={20} />
+          <c.icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </span>
+        <span className="min-w-0 truncate text-xs font-semibold leading-tight text-slate-600 sm:whitespace-normal sm:text-sm">{c.label}</span>
       </span>
-      <span className="num mt-auto block pt-2 text-xl font-bold leading-none tracking-tight text-fg sm:text-2xl">{c.valor}</span>
-      <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+      <span className="num mt-2 block truncate text-lg font-bold leading-none tracking-tight text-fg sm:mt-auto sm:pt-2 sm:text-2xl">{c.valor}</span>
+      <span className="mt-1 flex min-w-0 items-center gap-x-1.5 text-2xs text-slate-500 sm:mt-1.5 sm:flex-wrap sm:gap-y-0.5 sm:text-xs">
         {c.delta !== undefined && (
           c.delta === null
-            ? <span className="font-semibold text-emerald-600">novo</span>
-            : <span className={`inline-flex items-center font-bold ${subiu ? "text-emerald-600" : "text-red-600"}`} title={`comparado a ${anterior}`}>
-                {subiu ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(Math.round(c.delta))}%<span className="ml-1 hidden font-normal text-slate-500 sm:inline">vs {anterior}</span>
+            ? <span className="shrink-0 font-semibold text-emerald-600">novo</span>
+            : <span className={`inline-flex shrink-0 items-center font-bold ${subiu ? "text-emerald-600" : "text-red-600"}`} title={`comparado a ${anterior}`}>
+                {subiu ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{Math.abs(Math.round(c.delta))}%<span className="ml-1 hidden font-normal text-slate-500 sm:inline">vs {anterior}</span>
               </span>
         )}
-        {c.sub && <span className="line-clamp-2 w-full">{c.sub}</span>}
+        {c.sub && <span className="min-w-0 truncate sm:line-clamp-2 sm:w-full sm:whitespace-normal">{c.sub}</span>}
       </span>
     </button>
   );
 }
 
+/** Quadradinho de número (Fábrica, Garantias): no celular 4 por linha, ícone em cima, número e nome curto embaixo. */
 function Mini({ icon: Icon, cor, label, valor, sub, onClick }: { icon: LucideIcon; cor: string; label: string; valor: number | string; sub?: string; onClick: () => void }) {
   return (
-    // ícone e número na mesma linha; o nome embaixo na largura toda (ao lado do ícone ficava com 66 px no celular)
-    <button onClick={onClick} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-100 p-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon size={18} /></span>
-      <span className="num block truncate text-xl font-bold leading-none text-fg">{valor}</span>
-      <span className="col-span-2 block text-xs leading-snug text-slate-600">{label}{sub ? ` · ${sub}` : ""}</span>
+    <button onClick={onClick} title={sub ? `${label} · ${sub}` : label}
+      className="flex min-w-0 flex-col items-center gap-1 rounded-cartao border border-slate-100 px-1 py-2 text-center transition hover:border-slate-200 hover:bg-slate-50 active:scale-[.97] sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-x-2.5 sm:gap-y-1 sm:p-3 sm:text-left">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg sm:h-9 sm:w-9 sm:rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" /></span>
+      <span className="num block max-w-full truncate text-base font-bold leading-none text-fg sm:text-xl">{valor}</span>
+      <span className="line-clamp-2 block text-2xs leading-tight text-slate-600 sm:col-span-2 sm:text-xs sm:leading-snug">{label}<span className="hidden sm:inline">{sub ? ` · ${sub}` : ""}</span></span>
     </button>
   );
 }

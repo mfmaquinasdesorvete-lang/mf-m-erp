@@ -95,10 +95,10 @@ function SeletorUnidade({ compacto }: { compacto?: boolean }) {
   const opcoes = [{ id: null as string | null, rotulo: "Todas", titulo: "Ver as duas unidades" },
     ...unidades.map((u) => ({ id: u.id as string | null, rotulo: compacto ? u.codigo : u.nome, titulo: u.nome }))];
   return (
-    <div role="radiogroup" aria-label="Unidade" className={`flex gap-0.5 rounded-xl bg-ink-soft p-0.5 ${compacto ? "" : "w-full"}`}>
+    <div role="radiogroup" aria-label="Unidade" className={`flex gap-0.5 p-0.5 ${compacto ? "rounded-full bg-white/10" : "w-full rounded-xl bg-ink-soft"}`}>
       {opcoes.map((o) => (
         <button key={o.id ?? "todas"} type="button" role="radio" aria-checked={atual === o.id} title={o.titulo} onClick={() => setAtual(o.id)}
-          className={`flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-bold transition ${atual === o.id ? "bg-brand-ice text-ink" : "text-nav-texto hover:text-white"}`}>
+          className={`flex-1 whitespace-nowrap font-bold transition ${compacto ? "rounded-full px-2.5 py-1 text-2xs" : "rounded-lg px-2 py-1.5 text-xs"} ${atual === o.id ? "bg-brand-ice text-ink" : "text-nav-texto hover:text-white"}`}>
           {o.rotulo}
         </button>
       ))}
@@ -232,15 +232,20 @@ export function Layout() {
     {/* primeiro Tab da página: pula o menu e vai direto ao conteúdo da tela */}
     <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-alerta focus:rounded-botao focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-fg">Pular para o conteúdo</a>
     <div className="min-h-screen md:flex">
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-white/5 bg-ink/85 px-4 py-2.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top, 0px))" }}>
-        <Marca compacta onIr={() => setAberto(false)} />
-        <div className="ml-auto flex items-center gap-1"><SeletorUnidade compacto /><BotaoEmail onIr={() => setAberto(false)} /><Sino /></div>
-        <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} className="rounded-lg p-2 text-white hover:bg-white/10">
-          {aberto ? <X /> : <Menu />}
-        </button>
+      {/* topo do celular (24/10): cartão flutuante de vidro com aurora, como a barra de baixo — logo, unidade e botões redondos */}
+      <header className="sticky top-0 z-30 px-3 pb-1.5 md:hidden" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}>
+        <div className="relative flex items-center gap-1.5 overflow-hidden rounded-painel border border-white/10 bg-ink/90 py-1.5 pl-1.5 pr-1.5 shadow-[0_12px_32px_-14px_rgb(0_0_0/0.55)] backdrop-blur-xl">
+          <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(120deg, rgb(168 85 247 / 0.30) 0%, rgb(236 72 153 / 0.12) 50%, rgb(37 99 235 / 0.22) 100%)" }} />
+          <span className="relative"><Marca compacta onIr={() => setAberto(false)} /></span>
+          <div className="relative ml-auto flex items-center gap-1"><SeletorUnidade compacto /><BotaoEmail onIr={() => setAberto(false)} /><Sino /></div>
+          <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"}
+            className="relative grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+            {aberto ? <X size={19} /> : <Menu size={19} />}
+          </button>
+        </div>
       </header>
 
-      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[61px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
+      <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[64px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
         {/* topo do menu (23/10): cartão de vidro com aurora — marca, e-mail e sino; a unidade e o PDV embaixo */}
         <div className="hidden px-3 pb-3 pt-3 md:block">
           <div className="relative overflow-hidden rounded-painel border border-white/10 p-3 shadow-lg"

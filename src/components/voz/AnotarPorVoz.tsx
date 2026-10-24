@@ -19,6 +19,7 @@ import {
 } from "@/lib/anotacoesVoz";
 import { ehPergunta, reconhecer, type Pronta } from "@/lib/respostasProntas";
 import { PerguntarIA } from "@/components/PerguntarIA";
+import { MascoteIA } from "./MascoteIA";
 import { RespostaPronta } from "@/components/RespostaPronta";
 
 type Etapa = "ouvindo" | "texto" | "entendendo" | "confirmar" | "gravando" | "resposta";
@@ -28,13 +29,20 @@ export function AnotarPorVoz() {
   const { papel } = usePerfil();
   const { pathname } = useLocation();
   const [aberto, setAberto] = useState(false);
+  const [rotulo, setRotulo] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setRotulo(false), 6000); return () => clearTimeout(t); }, []);
   // PDV (caixa) e contador ficam sem o botão
   if (papel === "contador" || pathname.startsWith("/pdv")) return null;
   return (
     <>
-      <button type="button" onClick={() => setAberto(true)} aria-label="Anotar ou perguntar por voz" title="Anotar ou perguntar por voz"
-        className="fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-3 z-gaveta grid h-11 w-11 place-items-center rounded-full bg-brand text-brand-fg shadow-pop ring-2 ring-white/50 transition hover:scale-105 active:scale-95 md:bottom-20 md:right-5 md:h-12 md:w-12">
-        <Mic className="h-6 w-6 md:h-5 md:w-5" />
+      {/* ajuda de IA (24/10): o bonequinho com o nome "Ajuda IA" ao lado; o nome aparece ao abrir a tela e some depois
+          de uns segundos para não tapar a tela (volta ao passar o mouse) */}
+      <button type="button" onClick={() => setAberto(true)} aria-label="Ajuda de IA: anotar ou perguntar por voz" title="Ajuda de IA: anotar ou perguntar por voz"
+        className="group fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-3 z-gaveta flex items-center rounded-full border border-slate-200 bg-surface p-1 shadow-pop transition hover:scale-[1.03] active:scale-95 md:bottom-20 md:right-5">
+        <span className={`overflow-hidden whitespace-nowrap text-xs font-bold text-fg transition-all duration-300 group-hover:max-w-24 group-hover:pl-2.5 group-hover:pr-1.5 ${rotulo ? "max-w-24 pl-2.5 pr-1.5" : "max-w-0"}`}>
+          Ajuda IA
+        </span>
+        <MascoteIA className="h-11 w-11 md:h-12 md:w-12" />
       </button>
       {aberto && <JanelaVoz onClose={() => setAberto(false)} />}
     </>

@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactElement, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { achatar, celulasDa, ordenarLinhas, sentidoNatural, temInterativo, textoDoNo, valorDaCelula } from "@/lib/ordenarColunas";
 import { useModulo } from "@/lib/modulo";
 
@@ -155,14 +155,32 @@ export function PageHeader({ title, subtitle, actions, compacto, logo }: { title
 }
 
 /** Seção com título dentro de um card. */
-export function Section({ title, actions, children, className = "" }: { title: string; actions?: ReactNode; children: ReactNode; className?: string }) {
+/**
+ * Cartão com título de seção. `recolhivel` (24/10): o título vira um botão que abre e fecha o conteúdo; no celular
+ * começa fechado mostrando só o `resumo` (um número), no computador começa aberto. Para gráficos e detalhes que
+ * ocupavam a tela inteira do celular.
+ */
+export function Section({ title, actions, children, className = "", recolhivel, resumo }: {
+  title: string; actions?: ReactNode; children: ReactNode; className?: string; recolhivel?: boolean; resumo?: ReactNode;
+}) {
+  const [aberto, setAberto] = useState(() => !recolhivel || typeof window === "undefined" || window.matchMedia?.("(min-width: 768px)").matches !== false);
+  const titulo = <><span className="h-4 w-1 shrink-0 rounded-full bg-modulo" aria-hidden />{title}</>;
   return (
     <Card className={`p-4 sm:p-5 ${className}`}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><span className="h-4 w-1 rounded-full bg-modulo" aria-hidden />{title}</h2>
+      <div className={`flex flex-wrap items-center justify-between gap-2 ${aberto ? "mb-3" : ""}`}>
+        {recolhivel ? (
+          <h2 className="flex min-w-0 flex-1">
+            <button type="button" onClick={() => setAberto((v) => !v)} aria-expanded={aberto}
+              className="linha-clicavel -mx-1.5 flex min-w-0 items-center gap-2 px-1.5 py-1 text-sm font-bold text-fg">
+              {titulo}
+              {!aberto && resumo != null && <span className="num ml-auto truncate pl-2 text-sm font-semibold text-slate-600">{resumo}</span>}
+              <ChevronDown size={16} aria-hidden className={`shrink-0 text-slate-400 transition ${aberto ? "rotate-180" : ""} ${aberto || resumo == null ? "ml-auto" : ""}`} />
+            </button>
+          </h2>
+        ) : <h2 className="flex items-center gap-2 text-sm font-bold text-fg">{titulo}</h2>}
         {actions}
       </div>
-      {children}
+      {aberto && children}
     </Card>
   );
 }
