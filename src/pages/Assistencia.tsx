@@ -30,6 +30,7 @@ import { comUnidade, pdfOS } from "@/lib/pdf";
 import { useConfig } from "@/lib/useConfig";
 import type { Cliente, Equipamento, FotoOS, Item, ItemChecklist, OrdemServico, Produto } from "@/lib/types";
 import { usePerfil } from "@/lib/auth";
+import { DuvidaManutencao } from "@/components/DuvidaManutencao";
 import { useQuery } from "@tanstack/react-query";
 import { ClienteBusca } from "@/components/ClienteBusca";
 import { NfseOS, useNfsesDaOS } from "@/components/nfse/NfseOS";
@@ -76,6 +77,7 @@ const nova = (extra: Partial<OS> = {}): OS => ({
 
 export default function Assistencia() {
   const { pode } = usePerfil();
+  const [duvida, setDuvida] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { filtrar } = useUnidade();
@@ -179,10 +181,12 @@ export default function Assistencia() {
 
   return (
     <div>
+      {duvida && <DuvidaManutencao onClose={() => setDuvida(false)} />}
       <PageHeader
         title="Ordens de serviço"
         subtitle="Recepção com checklist e fotos, laudo, peças, assinatura do cliente e histórico por nº de série."
         actions={<>
+          <Button variant="secondary" onClick={() => setDuvida(true)} title="A IA ajuda a achar o defeito pelas OS antigas, peças e dicas"><Stethoscope size={16} /> Dúvida de manutenção</Button>
           {pode("editar_os") && <Button onClick={() => setAberta(nova())}><Plus size={16} /> Nova OS</Button>}
           {/* exportar e excluídas ficam no "Mais": o topo fica com uma linha só */}
           <MaisAcoes>

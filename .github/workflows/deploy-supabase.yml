@@ -47,7 +47,7 @@ jobs:
         run: |
           # com o campo "funcoes" preenchido, publica só as que estão nele
           quer() { [ -z "$SO" ] || [[ " $SO " == *" $1 "* ]]; }
-          for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse cotacao-enviar rodonaves melhorenvio frete-cotar ia-produto ia-voz ia-busca; do
+          for fn in nfe-emitir nfe-consultar nfe-recebidas-sync focus-config usuarios-admin avisos-config produtos-fotos proposta-enviar tiny-importar nfse cotacao-enviar rodonaves melhorenvio frete-cotar ia-produto ia-voz ia-busca ia-manutencao; do
             quer "$fn" || continue
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
           done

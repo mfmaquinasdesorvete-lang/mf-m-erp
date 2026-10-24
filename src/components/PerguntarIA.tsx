@@ -12,6 +12,7 @@ import { baixarPlanilha } from "@/lib/exportar";
 import { notifyError } from "@/lib/notify";
 import { ORDEM_PRONTAS, PRONTAS, reconhecer, type Pronta } from "@/lib/respostasProntas";
 import { RespostaPronta } from "./RespostaPronta";
+import { DuvidaManutencao } from "./DuvidaManutencao";
 
 type Achado = { tipo: string; id: string; titulo: string; sub: string | null; valor: number | null; data: string | null };
 type Resposta = { filtros: { entendi: string; nao_deu: string | null; entidade: string }; etiquetas: string[]; resultados: Achado[] };
@@ -46,6 +47,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [pronta, setPronta] = useState<Pronta | null>(null);
+  const [manutencao, setManutencao] = useState(false);
 
   async function perguntar(texto = pergunta) {
     if (texto.trim().length < 4) return;
@@ -92,8 +94,10 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
               {PRONTAS[x].emoji} {PRONTAS[x].rotulo}
             </Button>
           ))}
+          <Button type="button" tamanho="mini" variant="secondary" onClick={() => setManutencao(true)}>🛠️ Dúvida de manutenção</Button>
         </div>
       )}
+      {manutencao && <DuvidaManutencao inicial={pergunta} onClose={() => setManutencao(false)} />}
       {!pronta && !resposta && !erro && !ocupado && (
         <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
           <span className="text-slate-500">Exemplos:</span>
