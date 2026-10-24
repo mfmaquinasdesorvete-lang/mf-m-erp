@@ -1386,6 +1386,7 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Abrir a pasta: clicar na pessoa mostra as divisões dela para guardar, abrir ou apagar arquivos.",
       "Guardar: arrastar o arquivo para a divisão ou usar Guardar (PDF, fotos, planilhas; até 20 MB cada).",
       "Mudar de divisão: trocar a divisão de um arquivo guardado no lugar errado.",
+      "Importar pasta: escolher no computador uma pasta com uma subpasta por pessoa e, dentro, uma por divisão; mostra o resumo e guarda tudo de uma vez, sem repetir o que já está guardado.",
       "Desligados: a pasta de quem saiu continua guardada; marque Mostrar desligados para ver.",
       "Quem vê: administrador e financeiro; os arquivos ficam num lugar privado e abrem por link temporário.",
     ],

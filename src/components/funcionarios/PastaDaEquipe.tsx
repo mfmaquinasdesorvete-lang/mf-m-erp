@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { FolderOpen } from "lucide-react";
 import { PastaFuncionario } from "./PastaFuncionario";
+import { ImportarPasta } from "./ImportarPasta";
 import type { Documento } from "@/components/Anexos";
 import { useRows } from "@/lib/data";
 import { pl } from "@/lib/format";
@@ -24,7 +25,10 @@ export function PastaDaEquipe({ lista }: { lista: Pessoa[] }) {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
         <span>{semContrato ? `${semContrato} ${pl(semContrato, "pessoa", "pessoas")} da equipe sem contrato guardado.` : "Toda a equipe tem o contrato guardado."}</span>
-        <label className="flex items-center gap-1.5"><input type="checkbox" checked={comDesligados} onChange={(e) => setComDesligados(e.target.checked)} /> Mostrar desligados</label>
+        <span className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={comDesligados} onChange={(e) => setComDesligados(e.target.checked)} /> Mostrar desligados</label>
+          <ImportarPasta pessoas={lista} />
+        </span>
       </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-sm">
