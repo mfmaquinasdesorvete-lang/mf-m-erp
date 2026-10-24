@@ -20,6 +20,7 @@ export type PropostaLida = {
 };
 
 /** Como fica no ERP (tabela propostas_tiny). */
+export type DocumentoProposta = { titulo: string; url: string; origem: "drive" | "zapsign" | string; data?: string | null };
 export type PropostaTiny = {
   id: string; empresa: EmpresaProposta; tiny_id: string; numero: number | null; data: string | null; proximo_contato: string | null;
   situacao: string | null; vendedor: string | null; cliente_id: string | null; contato_nome: string | null; aos_cuidados: string | null;
@@ -27,6 +28,8 @@ export type PropostaTiny = {
   desconto: number | null; frete: number | null; total: number | null; itens: ItemPropostaTiny[];
   /** marcadores coloridos (public.marcadores) */
   marcadores?: string[] | null;
+  /** proposta assinada pelo cliente: link do PDF no Drive ou da verificação no ZapSign */
+  documentos?: DocumentoProposta[] | null;
   cliente?: { id: string; nome: string; nome_fantasia?: string | null; codigo?: number | null; cpf_cnpj?: string | null; municipio?: string | null; uf?: string | null; tags?: string[] | null } | null;
 };
 

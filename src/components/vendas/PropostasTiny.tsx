@@ -337,6 +337,19 @@ export function DetalheProposta({ p, onClose, onNovoOrcamento, notasMyFrost = fa
             <p className="mt-2 whitespace-pre-wrap text-slate-700">{p.observacoes}</p>
           </details>
         )}
+        {(p.documentos ?? []).length > 0 && (
+          <div className="rounded-xl border border-slate-200 p-3 text-sm">
+            <div className="font-semibold text-fg">Proposta assinada pelo cliente</div>
+            <ul className="mt-1 space-y-1">
+              {(p.documentos ?? []).map((d) => (
+                <li key={d.url} className="flex flex-wrap items-center gap-2">
+                  <a href={d.url} target="_blank" rel="noopener noreferrer" className="link-acao">{d.titulo}</a>
+                  <span className="text-xs text-slate-500">{d.origem === "zapsign" ? "ZapSign" : "Drive"}{d.data ? ` · ${dataBR(d.data)}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <DocumentosLigados p={p} notasMyFrost={notasMyFrost} />
         <div className="flex flex-wrap justify-end gap-2">
           {onNovoOrcamento && comProduto.length > 0 && (
