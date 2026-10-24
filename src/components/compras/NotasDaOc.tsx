@@ -14,6 +14,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { compararNotaOc, quantidadeErp, valorPorUnidadeErp, type ItemOc } from "@/lib/notaFornecedor";
 import type { ItemCompra } from "@/lib/types";
 import { ComparacaoOc } from "./ComparacaoOc";
+import { precoOrdemComprado } from "@/lib/precoOrdem";
 
 type NotaOc = {
   id: string; numero: string; emitente: string | null; data_emissao: string | null; valor_total: number | null; estoque_lancado: boolean;
@@ -22,7 +23,7 @@ type NotaOc = {
     produto_id: string | null; fator: number }[];
 };
 
-export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: number; status: string; itens: ItemCompra[] }; onBaixa?: () => void }) {
+export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: number; status: string; itens: ItemCompra[]; valor_total?: number | null }; onBaixa?: () => void }) {
   const { tem } = usePerfil();
   const podeMexer = tem("financeiro", "compras", "tecnico");
   const invalidate = useInvalidate();
@@ -40,8 +41,8 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
   const produtosOc = new Set(pedido.itens.map((i) => i.produto_id));
   const ligadas = data.filter((n) => n.ligada);
   const outras = data.filter((n) => !n.ligada && pedido.status !== "recebido");
-  const itensOc: ItemOc[] = pedido.itens.filter((i) => i.id).map((i) => ({
-    id: i.id!, pedido_compra_id: pedido.id, numero: pedido.numero, produto_id: i.produto_id, descricao: i.descricao,
+  const itensOc: ItemOc[] = pedido.itens.filter((i) => i.id && i.produto_id).map((i) => ({
+    id: i.id!, pedido_compra_id: pedido.id, numero: pedido.numero, produto_id: i.produto_id!, descricao: i.descricao,
     quantidade: Number(i.quantidade), quantidade_recebida: Number(i.quantidade_recebida ?? 0), custo_unitario: Number(i.custo_unitario),
   }));
   const comparar = (n: NotaOc) => compararNotaOc(n.itens.filter((i) => i.produto_id).map((i) => ({
@@ -95,6 +96,8 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
               </div>
               {n.baixado_em
                 ? <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={13} aria-hidden /> baixa na OC feita em {dataBR(n.baixado_em)}: o estoque entrou pela nota</p>
+                : pedido.status === "recebido" && !n.estoque_lancado
+                  ? <PrecoOrdem pedido={pedido} nota={n} />
                 : !n.estoque_lancado
                   ? <p className="mt-1 text-xs text-amber-800">A entrada no estoque desta nota ainda não foi feita (Notas fiscais → a nota → Itens e custos). A baixa da OC vai junto.</p>
                   : c && (
@@ -131,5 +134,39 @@ export function NotasDaOc({ pedido, onBaixa }: { pedido: { id: string; numero: n
         </details>
       )}
     </section>
+  );
+}
+
+/** OC já recebida ligada a uma nota antiga (sem entrada pelo ERP): preço da ordem × preço comprado, no total e por item. */
+function PrecoOrdem({ pedido, nota }: { pedido: { itens: ItemCompra[]; valor_total?: number | null }; nota: NotaOc }) {
+  if (nota.valor_total == null) return null;   // quem não vê o valor das notas
+  const ordem = Number(pedido.valor_total ?? pedido.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.custo_unitario), 0));
+  const dif = Math.round((Number(nota.valor_total) - ordem) * 100) / 100;
+  const linhas = precoOrdemComprado(pedido.itens.map((i) => ({ produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), custo_unitario: Number(i.custo_unitario) })),
+    nota.itens.map((i) => ({ produto_id: i.produto_id, descricao: i.descricao, quantidade: Number(i.quantidade), valor_unitario: i.valor_unitario, fator: i.fator })));
+  const diferentes = linhas.filter((l) => l.dif_pct !== 0);
+  return (
+    <div className="mt-1.5 text-xs">
+      <p className={Math.abs(dif) > 0.05 ? "font-semibold text-amber-800" : "text-emerald-700"}>
+        Preço da ordem {brl(ordem)} × preço comprado (nota) {brl(nota.valor_total)}
+        {Math.abs(dif) > 0.05 ? ` · diferença ${dif > 0 ? "+" : ""}${brl(dif)}` : " · confere"}
+      </p>
+      {Math.abs(dif) > 0.05 && diferentes.length > 0 && (
+        <details className="mt-1">
+          <summary className="cursor-pointer text-modulo-texto">Item a item ({diferentes.length})</summary>
+          <ul className="mt-1 space-y-0.5">
+            {diferentes.map((l, k) => (
+              <li key={k} className="flex flex-wrap justify-between gap-x-2 [overflow-wrap:anywhere]">
+                <span className="min-w-0 flex-1">{l.descricao}</span>
+                <span className="tabular-nums">
+                  ordem {l.preco_ordem != null ? `${l.qtd_ordem} × ${brl(l.preco_ordem)}` : "—"} · comprado {l.preco_nota != null ? `${l.qtd_nota} × ${brl(l.preco_nota)}` : "—"}
+                  {l.dif_pct != null && ` (${l.dif_pct > 0 ? "+" : ""}${l.dif_pct.toLocaleString("pt-BR")}%)`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }

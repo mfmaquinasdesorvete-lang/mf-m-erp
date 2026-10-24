@@ -881,6 +881,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
               {p.itens.map((i, k) => (
                 <tr key={k}>
                   <td className="td it-largo font-medium text-fg">{i.descricao}
+                    {!i.produto_id && <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Item da nota sem produto do cadastro (OC criada pela nota)">sem cadastro{i.codigo_fornecedor ? ` · cód. ${i.codigo_fornecedor}` : ""}</span>}
                     {editavel
                       ? <input className="input mt-1 py-1 text-xs font-normal" value={i.informacoes ?? ""} maxLength={300} placeholder="Informações do item (opcional)"
                           aria-label={`Informações de ${i.descricao}`} onChange={(e) => atualizarItem(k, { informacoes: e.target.value || null })} />
@@ -925,7 +926,7 @@ function PCModal({ inicial, onClose }: { inicial: Partial<PedidoCompra> & { iten
         <ObservacoesOc p={p} set={set} editavel={editavel} />
         {p.id && <ContasDaOc p={p} />}
         {p.id && p.status && ["enviado", "parcial", "recebido"].includes(p.status) && (
-          <NotasDaOc pedido={{ id: p.id, numero: Number(p.numero), status: p.status, itens: p.itens }} onBaixa={onClose} />
+          <NotasDaOc pedido={{ id: p.id, numero: Number(p.numero), status: p.status, itens: p.itens, valor_total: p.valor_total }} onBaixa={onClose} />
         )}
         {p.id && pode("receber_compras") && <Historico tabela="pedidos_compra" id={p.id} />}
 

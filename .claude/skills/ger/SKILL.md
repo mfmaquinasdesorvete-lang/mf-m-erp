@@ -80,3 +80,7 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   (conferir_compra_recebida). As contas a pagar continuam saindo quando a nota aparece na SEFAZ.
 - Pelo MCP, `create trigger` junto com outros comandos (ou com `set lock_timeout`) trava em 60 s sem gravar: mandar
   cada `create trigger` sozinho.
+- OC das compras de peças (23/10): 692 OC criadas pela nota (`oc_retroativa_da_nota`, data 1 dia antes, já recebidas,
+  total = nota com impostos/frete em outras despesas, sem estoque nem contas) e 165 notas ligadas às OC do Tiny (96 com
+  o marcador "Comprado por valor divergente"). Item de OC pode ficar sem produto (`produto_id` nulo, chip "sem
+  cadastro", `codigo_fornecedor` guardado): quem soma itens de OC por produto precisa ignorar os sem produto.

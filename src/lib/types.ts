@@ -244,7 +244,9 @@ export type Necessidade = {
   subconjunto?: boolean;
 };
 export type ItemCompra = {
-  id?: string; produto_id: string; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number;
+  /** sem produto só nas OC criadas pela nota (item com a descrição da nota; código do fornecedor guardado) */
+  id?: string; produto_id: string | null; descricao: string; quantidade: number; custo_unitario: number; quantidade_recebida?: number;
+  codigo_fornecedor?: string | null;
   /** IPI (%), ICMS ST (R$ da linha) e informações do item, como na OC do Tiny */
   ipi_aliquota?: number | null; icms_st_valor?: number | null; informacoes?: string | null;
 };
