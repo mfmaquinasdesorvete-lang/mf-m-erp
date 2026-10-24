@@ -66,3 +66,9 @@ Cuido do cadastro de produtos da MF: dados completos e certos, sem repetidos, co
 - Correção sugerida (`produto_sugestoes`) só muda o produto quando alguém aplica; NCM que não veio da nota do próprio
   fornecedor fica para confirmar com o contador.
 - Botão de gravar com trava `useRef` contra clique duplo.
+- `gruposRepetidos` deixa passar repetidos escritos com número colado ("1.5HP" × "1.5 HP", "2205-2RS" × "2205 2RS C3",
+  "Filtro DML 3/8" × "Filtro Secador Danfoss DML 3/8"): conferir também por código da peça antes de dar SKU novo.
+- Produto vindo da base antiga da My Frost (`id_externo` "myfrost:…") e sem uso na MF foi inativado em 24/10 (aprovado);
+  não reativar em massa.
+- Custo de peça feita aqui (chave extratora, vedações, pás) não vem de nota de fornecedor: pedir à usuária ou à ficha técnica.
+- SKU novo: próximo número livre contando `produtos.sku`, `produto_skus` e `codigos_alternativos` (SKU nunca se reaproveita).
