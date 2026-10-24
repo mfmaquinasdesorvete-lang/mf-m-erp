@@ -250,6 +250,8 @@ function seed(): Db {
     pessoal_mensais: [{ id: "pm1", nome: "DAS do MEI", dia_vencimento: 20, mes_anterior: true, valor: 80.9, conta_id: null, avisar_dias: 5, observacao: null,
       desde: quando(-75).slice(0, 7), ativa: true, ordem: 0, criado_em: quando(-75) }],
     pessoal_mensais_pagos: [],
+    // controle sem cobrança do painel pessoal (exemplo inventado)
+    pessoal_controle: [{ id: "pc1", pessoa: "Parente Exemplo", descricao: "Empréstimo · conserto do carro", valor: 800, data: quando(-20).slice(0, 10), origem: "minha conta", encerrado: false, criado_em: quando(-20) }],
     pessoal_enderecos: [
       { id: "pe1", endereco: "Rua Exemplo, 100 – Centro – Cidade Exemplo/SC", lembranca: null, periodo: null, atual: true, ordem: 0 },
       { id: "pe2", endereco: "Avenida Teste, 200 – Bairro Antigo – Cidade Exemplo/SC", lembranca: "Primeira casa e onde nasceu a primeira empresa", periodo: "2015 a 2019", atual: false, ordem: 1 },
