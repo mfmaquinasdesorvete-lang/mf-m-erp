@@ -162,6 +162,8 @@ const ROTAS: { path: string; tela: Tela; element: ReactNode }[] = [
   { path: "analista-fiscal", tela: "contador", element: <AnalistaFiscal /> },
   { path: "parcelamentos", tela: "contador", element: <Parcelamentos /> },
   { path: "funcionarios", tela: "funcionarios", element: <Funcionarios /> },
+  { path: "funcionarios-pasta", tela: "funcionarios", element: <Funcionarios aba="pasta" /> },
+  { path: "funcionarios-pagamentos", tela: "funcionarios", element: <Funcionarios aba="pagamentos" /> },
   { path: "documentos", tela: "documentos", element: <Documentos /> },
   { path: "conciliacao", tela: "conciliacao", element: <Conciliacao /> },
   { path: "gastos", tela: "financeiro", element: <GastosSeparados /> },

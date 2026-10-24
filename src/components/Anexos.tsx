@@ -10,7 +10,7 @@ import { dataBR, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { confirmar } from "@/components/Dialogos";
 
-export type Documento = { id: string; entidade: string; entidade_id: string | null; nome: string; caminho: string; tamanho: number | null; tipo: string | null; descricao: string | null; created_by: string | null; created_at: string };
+export type Documento = { id: string; entidade: string; entidade_id: string | null; nome: string; caminho: string; tamanho: number | null; tipo: string | null; descricao: string | null; pasta?: string | null; created_by: string | null; created_at: string };
 export const ENTIDADES: Record<string, string> = {
   pedido: "Pedido / proposta", os: "Ordem de serviço", cliente: "Cliente", fornecedor: "Fornecedor", produto: "Produto",
   conta_receber: "Conta a receber", conta_pagar: "Conta a pagar", nfe_recebida: "NF-e de fornecedor", pedido_compra: "Pedido de compra",
@@ -27,7 +27,7 @@ export async function abrirDocumento(d: Documento) {
   window.open(data.signedUrl, "_blank", "noopener");
 }
 
-export async function enviarDocumentos(entidade: string, entidadeId: string | null, arquivos: File[]) {
+export async function enviarDocumentos(entidade: string, entidadeId: string | null, arquivos: File[], pasta?: string) {
   let enviados = 0;
   for (const f of arquivos) {
     if (f.size > LIMITE) { notify(`${f.name}: maior que 20 MB`, "erro"); continue; }
@@ -35,7 +35,7 @@ export async function enviarDocumentos(entidade: string, entidadeId: string | nu
     const caminho = `${entidade}/${entidadeId ?? "geral"}/${crypto.randomUUID()}-${limpo}`;
     const { error } = await supabase.storage.from("documentos").upload(caminho, f, { contentType: f.type || "application/octet-stream" });
     if (error) { notifyError(error); continue; }
-    const { error: e2 } = await supabase.from("documentos").insert({ entidade, entidade_id: entidadeId, nome: f.name, caminho, tamanho: f.size, tipo: f.type || null });
+    const { error: e2 } = await supabase.from("documentos").insert({ entidade, entidade_id: entidadeId, nome: f.name, caminho, tamanho: f.size, tipo: f.type || null, ...(pasta ? { pasta } : {}) });
     if (e2) { await supabase.storage.from("documentos").remove([caminho]); notifyError(e2); continue; }
     enviados++;
   }

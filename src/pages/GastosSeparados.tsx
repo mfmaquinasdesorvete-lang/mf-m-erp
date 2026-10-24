@@ -19,7 +19,7 @@ export type AbaGastos = (typeof ABAS_GASTOS)[number]["value"];
 
 /** Abas que mudaram de lugar em 19/10: o endereço antigo (/gastos?aba=…) abre a tela nova. */
 export const NOVO_LUGAR: Record<string, string> = {
-  impostos: "/impostos-pagos", funcionarios: "/funcionarios?aba=pagamentos", quiosques: "/licenciados?aba=quiosques",
+  impostos: "/impostos-pagos", funcionarios: "/funcionarios-pagamentos", quiosques: "/licenciados?aba=quiosques",
 };
 
 export default function GastosSeparados() {

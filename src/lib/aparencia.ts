@@ -63,7 +63,7 @@ export const FONTE_TEXTO_PADRAO = "dm-sans";
 /** Cor de cada área como vem no ERP (o --modulo de index.css). */
 export const CORES_AREAS_PADRAO: Record<string, string> = {
   inicio: "#06b6d4", vendas: "#10b981", notas: "#3b82f6", financeiro: "#f59e0b", cadastros: "#a855f7",
-  logistica: "#65a30d", posvenda: "#14b8a6", producao: "#f97316", analises: "#6366f1", admin: "#64748b",
+  logistica: "#65a30d", posvenda: "#14b8a6", producao: "#f97316", analises: "#6366f1", rh: "#d946ef", admin: "#64748b",
 };
 
 /** Marcas com lugar para o logo (dá para acrescentar outras). */

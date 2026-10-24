@@ -21,7 +21,7 @@ const AREAS = [
   { id: "notas", rotulo: "Notas", cor: "59 130 246" }, { id: "financeiro", rotulo: "Financeiro", cor: "245 158 11" },
   { id: "cadastros", rotulo: "Cadastros", cor: "168 85 247" }, { id: "logistica", rotulo: "Logística", cor: "101 163 13" },
   { id: "posvenda", rotulo: "Pós-venda", cor: "20 184 166" }, { id: "producao", rotulo: "Produção", cor: "249 115 22" },
-  { id: "analises", rotulo: "Análises", cor: "99 102 241" }, { id: "admin", rotulo: "Admin", cor: "100 116 139" },
+  { id: "analises", rotulo: "Análises", cor: "99 102 241" }, { id: "rh", rotulo: "Funcionários", cor: "217 70 239" }, { id: "admin", rotulo: "Admin", cor: "100 116 139" },
 ];
 
 const LETRAS: { classe: string; px: string; uso: string; display?: boolean }[] = [

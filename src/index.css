@@ -188,6 +188,7 @@
 :root[data-modulo="posvenda"] { --modulo: 20 184 166; --modulo-2: 15 118 110; --modulo-texto: 15 118 110; }
 :root[data-modulo="producao"] { --modulo: 249 115 22; --modulo-2: 185 28 28; --modulo-texto: 172 56 10; }
 :root[data-modulo="analises"] { --modulo: 99 102 241; --modulo-2: 67 56 202; --modulo-texto: 79 70 229; }
+:root[data-modulo="rh"] { --modulo: 217 70 239; --modulo-2: 162 28 175; --modulo-texto: 162 28 175; }
 :root[data-modulo="admin"] { --modulo: 100 116 139; --modulo-2: 51 65 85; --modulo-texto: 71 85 105; }
 :root[data-theme="dark"], :root[data-theme="dark"][data-modulo="inicio"] { --modulo-texto: 34 211 238; }
 :root[data-theme="dark"][data-modulo="vendas"] { --modulo-texto: 52 211 153; }
@@ -198,6 +199,7 @@
 :root[data-theme="dark"][data-modulo="posvenda"] { --modulo-texto: 45 212 191; }
 :root[data-theme="dark"][data-modulo="producao"] { --modulo-texto: 251 146 60; }
 :root[data-theme="dark"][data-modulo="analises"] { --modulo-texto: 165 180 252; }
+:root[data-theme="dark"][data-modulo="rh"] { --modulo-texto: 232 121 249; }
 :root[data-theme="dark"][data-modulo="admin"] { --modulo-texto: 178 192 212; }
 /* um brilho suave da cor da área no alto da página */
 .fundo-modulo { background-image: radial-gradient(1100px 320px at 15% -120px, rgb(var(--modulo) / 0.13), transparent 70%); }

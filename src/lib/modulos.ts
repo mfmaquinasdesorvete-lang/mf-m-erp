@@ -11,7 +11,8 @@ export const SOBRE_AREAS: Record<string, string> = {
   producao: "Produtos e estoque das duas unidades, máquinas, produção, compras, teste do giga e transferências entre SC e SP.",
   financeiro: "Contas a pagar e a receber, aprovações, bancos e conciliação, gastos separados (combustível, marketplaces, impostos, tarifas, funcionários e quiosques) e o dinheiro entre contas e sócios.",
   notas: "Notas fiscais emitidas e recebidas, painel fiscal, painel do contador e analista fiscal.",
-  analises: "Decisões e organização: painel gerencial, relatórios, margem, troca do Tiny e funcionários.",
+  analises: "Decisões e organização: painel gerencial, relatórios, margem e troca do Tiny.",
+  rh: "Funcionários da MF: equipe, pasta de documentos de cada um e pagamentos.",
 };
 
 /** Telas fora da lista do menu: por onde se chega nelas (além da busca do menu). */
@@ -79,6 +80,8 @@ export const SOBRE_TELAS: Record<string, string> = {
   "/margem": "Margem de contribuição por venda, canal, produto, vendedor, cliente e unidade.",
   "/implantacao": "Plano da troca do Tiny: etapas, prazos, responsáveis e o uso do ERP.",
   "/funcionarios": "Funcionários: dados pessoais, contrato, salário, documentos e ligação com o usuário do ERP.",
+  "/funcionarios-pasta": "Pasta de documentos de cada funcionário: contrato, exames, férias, holerites, atestados e outros.",
+  "/funcionarios-pagamentos": "Pagamentos aos funcionários em todas as contas, reconhecidos pelo nome como aparece no Pix.",
   "/documentos": "Todos os anexos (pedidos, OS, clientes, contas, produtos) num lugar só.",
   "/scrum": "Scrum de cada equipe (ERP Line, Produção, Assistência, Vendas e Financeiro): backlog na ordem de prioridade, sprints de 1 ou 2 semanas com objetivo, quadro A fazer → Fazendo → Revisão → Feito, daily com impedimentos, revisão e retrospectiva ao encerrar, e painel com burndown, velocidade e pontos por pessoa. As Ideias do Sobre o ERP Line viram itens do backlog do ERP Line. No item, o assistente preenche os campos, detalha a descrição, monta tarefas, critérios de aceite, cenários e casos de teste, mostra o que já existe parecido e resume os comentários.",
   "/pdv": "Venda de balcão em outra aba, sem o menu do ERP, só com as peças de reposição. Abre na tela de entrada colorida (relógio, data, caixa aberto, vendas de hoje, vendedor F9 e cliente F8); bipar o primeiro produto abre a venda: bipa ou digita o produto (com foto), escolhe o cliente (ou cadastra na hora) e o vendedor, e recebe em dinheiro com troco, Pix, cartão ou dividido. Desconto acima do limite pede a senha do administrador. Ao finalizar, a venda fica entregue, o estoque da loja baixa, a conta entra recebida e sai o comprovante de 80 mm; link InfinitePay e \"a prazo\" deixam a conta em aberto.",

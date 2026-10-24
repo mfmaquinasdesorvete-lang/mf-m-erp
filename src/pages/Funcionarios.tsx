@@ -1,10 +1,12 @@
 // Funcionários (RH): cadastro da equipe com dados pessoais, contrato, salário e pagamento, documentos anexados
 // e a ligação com o usuário do ERP, o vendedor (comissões) e a assistência técnica (técnicos da OS).
+// Área própria no menu (23/10): Equipe (/funcionarios), Pasta de documentos (/funcionarios-pasta) e Pagamentos (/funcionarios-pagamentos).
 // Só admin e financeiro veem (salário, CPF e conta são dados sensíveis; o banco garante isso).
 // "Lançar salários" cria as contas a pagar do mês (uma por pessoa), sem repetir as que já foram lançadas.
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { lerValorOuErro } from "@/lib/auditoriaBusca";
 import { CalendarClock, Cake, HandCoins, Users, Wallet } from "lucide-react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { CrudPage, type CampoForm, type FiltroCrud } from "@/components/CrudPage";
 import { Badge, Button, CampoMes, Indicador, Modal } from "@/components/ui";
 import { Contato } from "@/components/Contato";
@@ -17,7 +19,8 @@ import { notify, notifyError } from "@/lib/notify";
 import { completarPorCep } from "@/lib/cadastro";
 import { EnviarImagem } from "@/components/EnviarImagem";
 import { Tabs } from "@/components/ui";
-import { useAbaUrl } from "@/lib/abaUrl";
+import { PastaFuncionario } from "@/components/funcionarios/PastaFuncionario";
+import { PastaDaEquipe } from "@/components/funcionarios/PastaDaEquipe";
 
 // pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
 const ImpostosTarifas = lazy(() => import("./ImpostosTarifas"));
@@ -94,14 +97,18 @@ const FILTROS: FiltroCrud<Funcionario>[] = [
   { label: "Técnicos", opcoes: [{ label: "Faz assistência técnica", teste: (f) => f.faz_assistencia }] },
 ];
 
-export default function Funcionarios() {
+export type AbaFuncionarios = "equipe" | "pasta" | "pagamentos";
+export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", pagamentos: "/funcionarios-pagamentos" };
+
+export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios }) {
   const { papel, pode } = usePerfil();
   const { unidades, codigo, padrao } = useUnidade();
   const { data: lista = [] } = useRows<Funcionario>("funcionarios", { order: "nome", ascending: true });
   const { data: vendedores = [] } = useRows<{ id: string; nome: string; ativo: boolean }>("vendedores", { order: "nome", ascending: true });
   const { data: usuarios = [] } = useRows<{ user_id: string; nome: string; ativo: boolean }>("usuarios_erp", { select: "user_id, nome, ativo", order: "nome", ascending: true });
   const [lancar, setLancar] = useState(false);
-  const [aba, setAba] = useAbaUrl<"equipe" | "pagamentos">("equipe", ["equipe", "pagamentos"]);
+  const navegar = useNavigate();
+  const [params] = useSearchParams();
 
   const equipe = ativos(lista);
   const mes = hoje().slice(5, 7);
@@ -173,9 +180,16 @@ export default function Funcionarios() {
     { name: "data_desligamento", label: "Data do desligamento", type: "date", span: 1 },
     { name: "motivo_desligamento", label: "Motivo", span: 3 },
     { name: "observacoes", label: "Observações", type: "textarea", span: 4 },
+
+    { name: "s_pasta", label: "Pasta de documentos", type: "secao", ajuda: "Contrato, exames, férias, holerites, atestados e outros, cada um na sua divisão." },
+    { name: "_pasta", label: "Pasta", type: "custom", span: 4, render: (_v, _set, row) => <PastaFuncionario id={row.id} /> },
   ];
 
-  const abas = <Tabs value={aba} onChange={setAba} options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pagamentos", label: "Pagamentos" }]} />;
+  // link antigo (?aba=pagamentos) vai para a tela nova
+  if (params.get("aba") === "pagamentos") return <Navigate to={ROTA_FUNCIONARIOS.pagamentos} replace />;
+  const abas = <Tabs value={aba} onChange={(v) => navegar(ROTA_FUNCIONARIOS[v])}
+    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "pagamentos", label: "Pagamentos" }]} />;
+  if (aba === "pasta") return <div>{abas}<PastaDaEquipe lista={lista} /></div>;
   if (aba === "pagamentos") return (
     <div>
       {abas}
@@ -203,7 +217,6 @@ export default function Funcionarios() {
         marcadores={["funcionário", "funcionários"]}
         order="nome"
         plural="funcionários"
-        anexos="funcionario"
         podeExcluir={papel === "admin"}
         defaults={{ nome: "", vinculo: "clt", situacao: "ativo", unidade_id: padrao, faz_assistencia: false, ativo: true, dia_pagamento: 5 }}
         searchKeys={["nome", "apelido", "cargo", "setor", "cpf", "whatsapp", "email", "municipio"]}
@@ -329,3 +342,4 @@ function LancarSalarios({ funcionarios, onClose }: { funcionarios: Funcionario[]
     </Modal>
   );
 }
+

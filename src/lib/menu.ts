@@ -1,6 +1,6 @@
 // Menu do ERP por área de trabalho (usado pelo menu lateral e pela escolha do que cada perfil vê, em Usuários).
 import {
-  ArrowLeftRight, BadgeCheck, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
+  ArrowLeftRight, BadgeCheck, FolderOpen, BarChart3, Boxes, CalendarClock, Calculator, ClipboardCheck, CreditCard, Factory, FileText, FolderTree, Gauge, HandCoins, Handshake, IceCreamCone, IdCard, Inbox, Landmark, LayoutDashboard, PlugZap,
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench, Zap,
   ScanSearch, Tags,
@@ -121,7 +121,15 @@ export const grupos: Grupo[] = [
       { to: "/gerencial", tela: "relatorios", label: "Painel gerencial", curto: "Gerencial", icon: Gauge, busca: "decisão curva abc clientes inativos parados tendência gargalos comparativo ano anterior metas objetivo ranking vendedor região" },
       { to: "/comissoes", tela: "comissoes", label: "Comissões", curto: "Comissões", icon: HandCoins, busca: "vendedor representante linha de produtos linhas comissionamento alíquota" },
       { to: "/metas", tela: "metas", label: "Metas de vendas", curto: "Metas", icon: Target, busca: "meta metas objetivo objetivos ranking vendedor vendedores região regiões estado uf projeção atingido cota dias úteis" },
-      { to: "/funcionarios", tela: "funcionarios", label: "Funcionários", curto: "Equipe", icon: IdCard, busca: "funcionário rh equipe colaborador salário folha admissão técnico cargo setor pagamento pagamentos pix foto" },
+    ],
+  },
+  {
+    // área própria desde 23/10 (antes ficava dentro de Gestão)
+    id: "rh", titulo: "Funcionários", cor: "from-[#d946ef] to-[#a21caf]", icone: IdCard, painel: "/funcionarios",
+    itens: [
+      { to: "/funcionarios", tela: "funcionarios", label: "Equipe", curto: "Equipe", icon: IdCard, busca: "funcionário funcionários rh equipe colaborador salário folha admissão desligamento experiência técnico cargo setor aniversariante foto" },
+      { to: "/funcionarios-pasta", tela: "funcionarios", label: "Pasta de documentos", curto: "Pasta", icon: FolderOpen, busca: "funcionário rh pasta documentos contrato exame aso férias holerite recibo atestado arquivo" },
+      { to: "/funcionarios-pagamentos", tela: "funcionarios", label: "Pagamentos da equipe", curto: "Pagos", icon: HandCoins, busca: "funcionário rh pagamento pagamentos salário pix extrato" },
     ],
   },
 ];
