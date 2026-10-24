@@ -24,6 +24,8 @@ import { GRUPOS_EQUIPE, contarGrupos, noGrupo, type GrupoEquipe } from "@/lib/gr
 import { PastaDaEquipe } from "@/components/funcionarios/PastaDaEquipe";
 import { AdmissaoSaida } from "@/components/funcionarios/AdmissaoSaida";
 import { FeriasEquipe } from "@/components/funcionarios/FeriasEquipe";
+import { CrownMoveis } from "@/components/funcionarios/CrownMoveis";
+import { soDaCrown } from "@/lib/crown";
 
 // pagamentos aos funcionários nos extratos (era a aba Funcionários de Gastos separados)
 const ImpostosTarifas = lazy(() => import("./ImpostosTarifas"));
@@ -38,7 +40,7 @@ export type Funcionario = {
   cnh: string | null; cnh_categoria: string | null; cnh_validade: string | null;
   banco: string | null; agencia: string | null; conta: string | null; pix: string | null;
   beneficios: string | null; contato_emergencia: string | null; faz_assistencia: boolean;
-  user_id: string | null; vendedor_id: string | null; observacoes: string | null; ativo: boolean; created_at: string; foto_url?: string | null;
+  user_id: string | null; vendedor_id: string | null; observacoes: string | null; ativo: boolean; created_at: string; foto_url?: string | null; epoca_crown?: boolean | null;
 };
 
 const VINCULOS = [
@@ -105,8 +107,8 @@ const VISUAL_GRUPO: Record<GrupoEquipe, { icon: typeof Users; cor: "azul" | "neu
   sem_carteira: { icon: Users, cor: "ambar" }, inss: { icon: HeartPulse, cor: "vermelho" },
 };
 
-export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "ferias" | "pagamentos";
-export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", ferias: "/funcionarios-ferias", pagamentos: "/funcionarios-pagamentos" };
+export type AbaFuncionarios = "equipe" | "pasta" | "admissao" | "ferias" | "crown" | "pagamentos";
+export const ROTA_FUNCIONARIOS: Record<AbaFuncionarios, string> = { equipe: "/funcionarios", pasta: "/funcionarios-pasta", admissao: "/funcionarios-admissao", ferias: "/funcionarios-ferias", crown: "/funcionarios-crown", pagamentos: "/funcionarios-pagamentos" };
 
 export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios }) {
   const { papel, pode } = usePerfil();
@@ -121,7 +123,9 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   const [grupo, setGrupo] = useState<GrupoEquipe | null>(null);
   // a lista começa fechada (pedido de 24/10); abre ao tocar, ao escolher um cartão, buscar ou filtrar
   const [listaAberta, setListaAberta] = useState(false);
-  const contagem = useMemo(() => contarGrupos(lista), [lista]);
+  // quem passou pela Crown e já saiu fica só na página Crown Móveis (pedido de 24/10)
+  const atuais = useMemo(() => lista.filter((f) => !soDaCrown(f)), [lista]);
+  const contagem = useMemo(() => contarGrupos(atuais), [atuais]);
 
   const equipe = ativos(lista);
   const mes = hoje().slice(5, 7);
@@ -201,10 +205,11 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
   // link antigo (?aba=pagamentos) vai para a tela nova
   if (params.get("aba") === "pagamentos") return <Navigate to={ROTA_FUNCIONARIOS.pagamentos} replace />;
   const abas = <Tabs value={aba} onChange={(v) => navegar(ROTA_FUNCIONARIOS[v])}
-    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "ferias", label: "Férias e ponto" }, { value: "pagamentos", label: "Pagamentos" }]} />;
-  if (aba === "pasta") return <div>{abas}<PastaDaEquipe lista={lista} /></div>;
-  if (aba === "admissao") return <div>{abas}<AdmissaoSaida lista={lista} /></div>;
-  if (aba === "ferias") return <div>{abas}<FeriasEquipe lista={lista} /></div>;
+    options={[{ value: "equipe", label: `Equipe · ${equipe.length}` }, { value: "pasta", label: "Pasta de documentos" }, { value: "admissao", label: "Admissão e saída" }, { value: "ferias", label: "Férias e ponto" }, { value: "crown", label: "Crown Móveis" }, { value: "pagamentos", label: "Pagamentos" }]} />;
+  if (aba === "pasta") return <div>{abas}<PastaDaEquipe lista={atuais} /></div>;
+  if (aba === "admissao") return <div>{abas}<AdmissaoSaida lista={atuais} /></div>;
+  if (aba === "ferias") return <div>{abas}<FeriasEquipe lista={atuais} /></div>;
+  if (aba === "crown") return <div>{abas}<CrownMoveis lista={lista} /></div>;
   if (aba === "pagamentos") return (
     <div>
       {abas}
@@ -247,7 +252,7 @@ export default function Funcionarios({ aba = "equipe" }: { aba?: AbaFuncionarios
         defaults={{ nome: "", vinculo: "clt", situacao: "ativo", unidade_id: padrao, faz_assistencia: false, ativo: true, dia_pagamento: 5 }}
         searchKeys={["nome", "apelido", "cargo", "setor", "cpf", "whatsapp", "email", "municipio"]}
         filtros={FILTROS}
-        filtroBase={grupo ? (f) => noGrupo(f, grupo) : undefined}
+        filtroBase={(f) => !soDaCrown(f) && (!grupo || noGrupo(f, grupo))}
         listaRecolhida={{ aberta: listaAberta, mudar: (v) => { setListaAberta(v); if (!v) setGrupo(null); } }}
         ordens={[
           { label: "Nome", comparar: (a, b) => a.nome.localeCompare(b.nome) },

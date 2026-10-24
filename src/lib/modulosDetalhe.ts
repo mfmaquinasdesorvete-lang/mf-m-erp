@@ -1440,6 +1440,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Ponto: a folha de ponto do mês fica na divisão Ponto da Pasta de documentos.",
     ],
   },
+  "/funcionarios-crown": {
+    tags: ["RH", "CROWN", "HISTÓRICO"],
+    destaque: "Quem trabalhou na Crown Móveis, antes de virar MF.",
+    partes: [
+      "Quem aparece: quem trabalhou na época da Crown (nome antigo da MF); quem já saiu fica só aqui, fora da equipe atual.",
+      "Cartões: pessoas, com carteira, sem carteira (tocar filtra) e o total pago.",
+      "Lista: cargo, com ou sem carteira, período e quanto cada um recebeu, do maior para o menor.",
+      "Abrir a pessoa: pagamentos mês a mês por tipo (salário, vale, por fora, rescisão, 13º, férias) e a pasta de documentos.",
+      "De onde vêm os valores: planilhas de salários, recibos e rescisões da época (os extratos do ERP começam em 2024).",
+      "Quem vê: administrador e financeiro.",
+    ],
+  },
   "/funcionarios-pagamentos": {
     tags: ["RH", "PAGAMENTOS", "EXTRATOS"],
     destaque: "O que foi pago a cada funcionário, em todas as contas.",

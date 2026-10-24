@@ -4,7 +4,7 @@ import {
   Package, PackageCheck, PackageSearch, Paperclip, PieChart, Receipt, Scale, ScanBarcode, Settings, ShieldAlert, ShieldCheck, ShoppingBag, ShoppingCart, SquareKanban, Store, Target, Truck,
   Upload, UserCog, Users, Wallet, Workflow, Wrench, Zap,
   ScanSearch, Tags,
-  MapPinned,
+  MapPinned, History,
 } from "lucide-react";
 import { usePerfil } from "./auth";
 import { useConfig } from "./useConfig";
@@ -132,6 +132,7 @@ export const grupos: Grupo[] = [
       { to: "/funcionarios-pasta", tela: "funcionarios", label: "Pasta de documentos", curto: "Pasta", icon: FolderOpen, busca: "funcionário rh pasta documentos contrato exame aso férias holerite recibo atestado arquivo" },
       { to: "/funcionarios-admissao", tela: "funcionarios", label: "Admissão e saída", curto: "Admissão", icon: ClipboardCheck, busca: "funcionário rh admissão admissional desligamento demissão saída rescisão pendência falta documento cpf pis ctps aso" },
       { to: "/funcionarios-ferias", tela: "funcionarios", label: "Férias e ponto", curto: "Férias", icon: CalendarClock, busca: "funcionário rh férias ferias período aquisitivo concessivo vencida vencendo abono vender dias ponto folha de ponto horas" },
+      { to: "/funcionarios-crown", tela: "funcionarios", label: "Crown Móveis (antes da MF)", curto: "Crown", icon: History, busca: "crown móveis moveis ex-funcionários antigos antes da mf época quanto recebeu salário por fora com carteira sem carteira" },
       { to: "/funcionarios-pagamentos", tela: "funcionarios", label: "Pagamentos da equipe", curto: "Pagos", icon: HandCoins, busca: "funcionário rh pagamento pagamentos salário pix extrato" },
     ],
   },

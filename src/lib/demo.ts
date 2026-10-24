@@ -1660,6 +1660,14 @@ function comercialDemo(db: Db) {
       data_admissao: "2021-06-01", salario: 4500, dia_pagamento: 10, pix: "fabiano@exemplo.com", user_id: "u-fin", faz_assistencia: false, ativo: true, created_at: quando(-1200) },
     { id: "fu6", nome: "João Pedro Alves", cargo: "Auxiliar de expedição", setor: "Expedição e logística", unidade_id: U_SC, vinculo: "clt", situacao: "desligado",
       data_admissao: "2024-02-05", data_desligamento: "2025-12-19", motivo_desligamento: "Pedido de demissão", salario: 1900, faz_assistencia: false, ativo: true, created_at: quando(-500) },
+    // exemplo da página Crown Móveis (época antes da MF): sem carteira, recebia por fora
+    { id: "fu7", nome: "Marcos Exemplo da Silva", cargo: "Marceneiro", setor: "Produção", unidade_id: U_SC, vinculo: "autonomo", situacao: "desligado", epoca_crown: true,
+      data_admissao: "2023-01-09", data_desligamento: "2023-06-30", motivo_desligamento: "Fim do serviço", salario: null, faz_assistencia: false, ativo: false, created_at: quando(-900) },
+  ];
+  db.funcionario_pagamentos = [
+    { id: "fp1", funcionario_id: "fu7", competencia: "2023-02-01", tipo: "por_fora", valor: 2200, origem: "exemplo" },
+    { id: "fp2", funcionario_id: "fu7", competencia: "2023-03-01", tipo: "por_fora", valor: 2200, origem: "exemplo" },
+    { id: "fp3", funcionario_id: "fu7", competencia: "2023-03-01", tipo: "adiantamento", valor: 400, origem: "exemplo" },
   ];
   // % por categoria: máquina paga menos, peças pagam mais; a Carla tem um % próprio em vedantes
   db.comissao_regras = [
