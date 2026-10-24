@@ -79,3 +79,38 @@ describe("ia-busca: as consultas montadas", () => {
     expect(r.map((x) => x.id)).toEqual(["a"]);
   });
 });
+
+describe("ia-busca: regras (unidade, My Frost, dados pessoais)", () => {
+  it("unidade só SC ou SP; empresa só mf ou my_frost; etiquetas mostram", () => {
+    const f = filtros({ entidade: "maquinas", unidade: "sp", empresa: "my_frost" });
+    expect(f.unidade).toBe("SP");
+    expect(f.empresa).toBe("my_frost");
+    expect(etiquetasBusca(f)).toEqual(["Filial SP", "só My Frost"]);
+    expect(filtros({ unidade: "RJ", empresa: "outra" }).unidade).toBeNull();
+  });
+  it("a unidade vale nas vendas, OS, contas, notas e máquinas; não nos clientes", async () => {
+    for (const entidade of ["vendas", "os", "receber", "pagar", "notas", "maquinas"]) {
+      const { db, urls } = clienteFalso();
+      await buscar(db, filtros({ entidade }), "u-sp");
+      expect(urls[urls.length - 1]).toContain("unidade_id=eq.u-sp");
+    }
+    const { db, urls } = clienteFalso();
+    await buscar(db, filtros({ entidade: "clientes" }), "u-sp");
+    expect(urls[0]).not.toContain("unidade_id");
+  });
+  it("máquinas da My Frost pela origem", async () => {
+    const a = clienteFalso();
+    await buscar(a.db, filtros({ entidade: "maquinas", empresa: "my_frost" }));
+    expect(a.urls[0]).toMatch(/origem=eq\.My[+ ]Frost/);
+    const b = clienteFalso();
+    await buscar(b.db, filtros({ entidade: "maquinas", empresa: "mf" }));
+    expect(b.urls[0]).toMatch(/or=\(origem\.is\.null,origem\.neq\.My[+ ]Frost\)/);
+  });
+  it("nenhuma consulta lê dado pessoal (CPF, telefone, e-mail, salário, carteira)", async () => {
+    for (const entidade of ["vendas", "clientes", "maquinas", "os", "receber", "pagar", "notas", "produtos"]) {
+      const { db, urls } = clienteFalso();
+      await buscar(db, filtros({ entidade, texto: "x" }));
+      for (const u of urls) expect(u.match(/select=([^&]*)/)?.[1] ?? "").not.toMatch(/cpf|cnpj|telefone|whatsapp|email|salario|pessoal/i);
+    }
+  });
+});

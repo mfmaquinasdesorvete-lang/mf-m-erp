@@ -37,8 +37,16 @@ const faixa = (q: any, f: FiltrosBusca, col: string) => {
   return q;
 };
 
-export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
+/** Colunas que a Perguntar à IA lê: nunca CPF/CNPJ, telefone, e-mail, salário nem a carteira pessoal (conferido nos testes). */
+export const SEM_DADOS_PESSOAIS = /cpf|cnpj|telefone|whatsapp|email|salario|pessoal/i;
+
+/**
+ * unidadeId: a unidade da MF (Matriz SC ou Filial SP) que vale nesta busca, a pedida na pergunta ou a escolhida na tela;
+ * null = todas. Vale para o que tem unidade (vendas, OS, contas, notas e máquinas); clientes e produtos são das duas.
+ */
+export async function buscar(db: Db, f: FiltrosBusca, unidadeId: string | null = null): Promise<Achado[]> {
   const hoje = hojeISO();
+  const daUnidade = (q: any) => (unidadeId ? q.eq("unidade_id", unidadeId) : q);
   const t = f.texto ? limpo(f.texto) : "";
   const local = !!(f.uf || f.cidade);
   const doLocal = (q: any, rel: string) => {
@@ -49,6 +57,7 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
 
   if (f.entidade === "vendas") {
     let q = db.from("pedidos").select(`id, numero, status, valor_total, created_at, cliente:clientes${t || local ? "!inner" : ""}(nome, nome_fantasia, municipio, uf)`).is("excluida_em", null);
+    q = daUnidade(q);
     if (t) q = q.or(`nome.ilike.%${t}%,nome_fantasia.ilike.%${t}%`, { referencedTable: "cliente" });
     q = doLocal(q, "cliente");
     if (f.situacao) q = q.eq("status", f.situacao);
@@ -85,7 +94,9 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
   }
 
   if (f.entidade === "maquinas") {
-    let q = db.from("equipamentos").select(`id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, cliente:clientes${local ? "!inner" : ""}(nome, nome_fantasia, municipio, uf)`);
+    let q = daUnidade(db.from("equipamentos").select(`id, descricao, numero_serie, data_venda, garantia_ate, proxima_preventiva, origem, cliente:clientes${local ? "!inner" : ""}(nome, nome_fantasia, municipio, uf)`));
+    if (f.empresa === "my_frost") q = q.eq("origem", "My Frost");
+    if (f.empresa === "mf") q = q.or("origem.is.null,origem.neq.My Frost");
     if (t) {
       const ids = await idsPorNome(db, "clientes", t);
       q = q.or([`descricao.ilike.%${t}%`, `numero_serie.ilike.%${t}%`, ids.length ? `cliente_id.in.(${ids.join(",")})` : ""].filter(Boolean).join(","));
@@ -102,7 +113,7 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
     if (error) throw error;
     return (data ?? []).map((e: any) => ({
       tipo: "maquina", id: e.id, titulo: `${e.descricao}${e.numero_serie ? ` · nº ${e.numero_serie}` : ""}`,
-      sub: juntar(nomeDe(e.cliente), ondeDe(e.cliente), e.garantia_ate && `garantia até ${e.garantia_ate.split("-").reverse().join("/")}`,
+      sub: juntar(e.origem === "My Frost" && "My Frost", nomeDe(e.cliente), ondeDe(e.cliente), e.garantia_ate && `garantia até ${e.garantia_ate.split("-").reverse().join("/")}`,
         e.proxima_preventiva ? `preventiva ${e.proxima_preventiva.split("-").reverse().join("/")}` : "sem preventiva"),
       valor: null, data: e.data_venda,
     }));
@@ -110,6 +121,7 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
 
   if (f.entidade === "os") {
     let q = db.from("ordens_servico").select(`id, numero, status, equipamento, numero_serie, data_entrada, valor_total, cliente:clientes${local ? "!inner" : ""}(nome, nome_fantasia, municipio, uf)`).is("excluida_em", null);
+    q = daUnidade(q);
     if (t) {
       const ids = await idsPorNome(db, "clientes", t);
       q = q.or([`equipamento.ilike.%${t}%`, `numero_serie.ilike.%${t}%`, ids.length ? `cliente_id.in.(${ids.join(",")})` : ""].filter(Boolean).join(","));
@@ -125,7 +137,7 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
   if (f.entidade === "receber" || f.entidade === "pagar") {
     const receber = f.entidade === "receber";
     const rel = receber ? "cliente:clientes(nome, nome_fantasia)" : "fornecedor:fornecedores(nome, nome_fantasia)";
-    let q = db.from(receber ? "contas_receber" : "contas_pagar").select(`id, descricao, valor, vencimento, status, data_pagamento, ${rel}`);
+    let q = daUnidade(db.from(receber ? "contas_receber" : "contas_pagar").select(`id, descricao, valor, vencimento, status, data_pagamento, ${rel}`));
     if (t) {
       const ids = await idsPorNome(db, receber ? "clientes" : "fornecedores", t);
       q = q.or([`descricao.ilike.%${t}%`, ids.length ? `${receber ? "cliente_id" : "fornecedor_id"}.in.(${ids.join(",")})` : ""].filter(Boolean).join(","));
@@ -143,6 +155,7 @@ export async function buscar(db: Db, f: FiltrosBusca): Promise<Achado[]> {
 
   if (f.entidade === "notas") {
     let q = db.from("notas_fiscais").select(`id, numero, status, valor_total, created_at, destinatario_nome, cliente:clientes${local ? "!inner" : ""}(nome, municipio, uf)`).is("excluida_em", null);
+    q = daUnidade(q);
     if (t) q = q.ilike("destinatario_nome", `%${t}%`);
     q = doLocal(q, "cliente");
     if (f.situacao) q = q.eq("status", f.situacao);

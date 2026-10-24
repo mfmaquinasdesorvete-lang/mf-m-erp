@@ -45,7 +45,7 @@ export function BuscaDocumentosIA({ docs }: { docs: Documento[] }) {
               <li key={d.id} className="flex items-start gap-2 py-2 text-sm">
                 <span className="mt-0.5"><IconeArquivo tipo={d.tipo} /></span>
                 <span className="min-w-0 flex-1">
-                  <button type="button" className="block max-w-full truncate text-left font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
+                  <button type="button" className="linha-clicavel block truncate font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
                   <span className="block text-xs text-slate-500">{motivo} · {dataBR(d.created_at)}</span>
                 </span>
                 <BotaoResumir d={d} />

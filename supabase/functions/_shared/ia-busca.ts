@@ -26,6 +26,10 @@ export type FiltrosBusca = {
   /** produtos: abaixo do mínimo | zerado */
   estoque: "abaixo_minimo" | "zerado" | null;
   ordem: "recentes" | "antigos" | "maior_valor" | "menor_valor" | null;
+  /** unidade da MF pedida na pergunta ("filial SP", "matriz SC"); sem isso vale a unidade escolhida na tela */
+  unidade: "SC" | "SP" | null;
+  /** máquinas: só as da MF ou só as da My Frost (empresa anterior); null = as duas, com a etiqueta */
+  empresa: "mf" | "my_frost" | null;
   /** como a IA entendeu, numa frase simples para mostrar na tela */
   entendi: string;
   /** o que não deu para filtrar (a busca segue com o resto) */
@@ -37,14 +41,14 @@ export const LIMITE_PERGUNTA = 500;
 const texto = { type: ["string", "null"] };
 export const ESQUEMA_BUSCA = {
   type: "object", additionalProperties: false,
-  required: ["entidade", "texto", "uf", "cidade", "de", "ate", "valor_min", "valor_max", "situacao", "garantia", "preventiva", "sem_compra_desde", "estoque", "ordem", "entendi", "nao_deu"],
+  required: ["entidade", "texto", "uf", "cidade", "de", "ate", "valor_min", "valor_max", "situacao", "garantia", "preventiva", "sem_compra_desde", "estoque", "ordem", "unidade", "empresa", "entendi", "nao_deu"],
   properties: {
     entidade: { type: "string", enum: ENTIDADES },
     texto, uf: texto, cidade: texto, de: texto, ate: texto,
     valor_min: { type: ["number", "null"] }, valor_max: { type: ["number", "null"] },
     situacao: texto,
     // os valores aceitos estão nas instruções; o que vier fora vira null em normalizarBusca
-    garantia: texto, preventiva: texto, sem_compra_desde: texto, estoque: texto, ordem: texto,
+    garantia: texto, preventiva: texto, sem_compra_desde: texto, estoque: texto, ordem: texto, unidade: texto, empresa: texto,
     entendi: { type: "string" },
     nao_deu: texto,
   },
@@ -67,6 +71,9 @@ Regras:
 - Modelos de máquina: Queen (5 sabores), Prime (7 sabores), Top 200, Top 300, P 765, Slim, Milk Shake; use o nome do modelo no texto.
 - garantia: vigente | vencida | vence_30. preventiva: vencida | sem | proximos_30. estoque: abaixo_minimo | zerado.
 - ordem: recentes | antigos | maior_valor | menor_valor ("os maiores" = maior_valor).
+- unidade: "SC" ou "SP" só quando a pergunta fala da unidade da MF ("filial SP", "matriz", "unidade de SC", "vendas de SP" no sentido da filial). Estado do cliente ("clientes de SP", "máquinas em SP") vai em uf, não em unidade.
+- empresa (só máquinas): "my_frost" quando a pergunta fala da My Frost (empresa anterior); "mf" quando pede só as da MF Máquinas; senão null.
+- Nunca procure dados pessoais (carteira pessoal, CPF, telefone, salário, funcionários): explique em nao_deu que a Perguntar à IA não mostra isso.
 - Use null em tudo que a pergunta não pediu. Não invente filtro.
 - "entendi": uma frase curta e simples dizendo o que vai ser procurado, em português do Brasil.
 - "nao_deu": o que a pergunta pede e estes filtros não conseguem (ex.: "comparar com o ano passado"), ou null.
@@ -98,6 +105,8 @@ export function normalizarBusca(b: Record<string, unknown>, pergunta: string): F
     sem_compra_desde: data(b.sem_compra_desde),
     estoque: um(b.estoque, ["abaixo_minimo", "zerado"] as const),
     ordem: um(b.ordem, ["recentes", "antigos", "maior_valor", "menor_valor"] as const),
+    unidade: um(str(b.unidade, 2)?.toUpperCase(), ["SC", "SP"] as const),
+    empresa: um(b.empresa, ["mf", "my_frost"] as const),
     entendi: str(b.entendi, 300) ?? `Procurando: ${pergunta.slice(0, 120)}`,
     nao_deu: str(b.nao_deu, 300),
   };
@@ -120,5 +129,7 @@ export function etiquetasBusca(f: FiltrosBusca): string[] {
     f.preventiva && { vencida: "preventiva vencida", sem: "sem preventiva marcada", proximos_30: "preventiva nos próximos 30 dias" }[f.preventiva],
     f.sem_compra_desde && `sem comprar desde ${dataBR(f.sem_compra_desde)}`,
     f.estoque && (f.estoque === "zerado" ? "estoque zerado" : "abaixo do mínimo"),
+    f.unidade && (f.unidade === "SP" ? "Filial SP" : "Matriz SC"),
+    f.empresa && (f.empresa === "my_frost" ? "só My Frost" : "só MF Máquinas"),
   ].filter((x): x is string => !!x);
 }

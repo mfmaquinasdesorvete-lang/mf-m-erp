@@ -13,6 +13,7 @@ import { notifyError } from "@/lib/notify";
 import { ORDEM_PRONTAS, PRONTAS, reconhecer, type Pronta } from "@/lib/respostasProntas";
 import { RespostaPronta } from "./RespostaPronta";
 import { DuvidaManutencao } from "./DuvidaManutencao";
+import { useUnidade } from "@/lib/unidade";
 
 type Achado = { tipo: string; id: string; titulo: string; sub: string | null; valor: number | null; data: string | null };
 type Resposta = { filtros: { entendi: string; nao_deu: string | null; entidade: string }; etiquetas: string[]; resultados: Achado[] };
@@ -43,6 +44,8 @@ export const parecePergunta = (t: string) => t.trim().endsWith("?") || t.trim().
 export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: () => void }) {
   const navigate = useNavigate();
   const [pergunta, setPergunta] = useState(inicial);
+  // unidade escolhida na tela (Matriz SC, Filial SP ou todas): a busca respeita, a não ser que a pergunta peça outra
+  const { atual: unidadeAtual } = useUnidade();
   const [resposta, setResposta] = useState<Resposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -57,7 +60,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
     if (conhecida) { setResposta(null); setErro(null); return; }
     setOcupado(true); setErro(null);
     try {
-      setResposta(await callFunction<Resposta>("ia-busca", { pergunta: texto }));
+      setResposta(await callFunction<Resposta>("ia-busca", { pergunta: texto, unidade_id: unidadeAtual }));
     } catch (e) {
       setResposta(null);
       setErro((e as Error).message);
@@ -116,7 +119,7 @@ export function PerguntarIA({ inicial, onClose }: { inicial: string; onClose: ()
           </div>
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="text-slate-600">{resposta.resultados.length ? `${resposta.resultados.length}${resposta.resultados.length >= 50 ? " (os 50 primeiros)" : ""} ${resposta.resultados.length === 1 ? "resultado" : "resultados"}` : "Nada encontrado com esses filtros."}</span>
-            {resposta.resultados.length > 0 && <Button variant="secondary" onClick={exportar}><FileDown size={16} aria-hidden /> Exportar</Button>}
+            {resposta.resultados.length > 0 && <Button variant="secondary" onClick={exportar} title="Baixa só o que está na tela (até 50 linhas)"><FileDown size={16} aria-hidden /> Exportar</Button>}
           </div>
           <ul className="max-h-[50vh] divide-y divide-slate-100 overflow-y-auto rounded-xl ring-1 ring-slate-200">
             {resposta.resultados.map((a) => (

@@ -1,7 +1,8 @@
 // Perguntar à IA (Buscar do menu): recebe a pergunta em português, o Claude devolve o que procurar e com quais filtros
 // (ver _shared/ia-busca.ts) e a função busca com o login de quem perguntou, então cada pessoa só vê o que já pode ver.
 // A IA não escreve SQL nem grava nada. A chave fica no secret ANTHROPIC_API_KEY do Supabase.
-// POST { pergunta } -> { filtros, etiquetas, resultados: Achado[], modelo }   ·   POST { acao: "situacao" } -> { configurada }
+// Unidade: a pedida na pergunta ("filial SP") ou, sem isso, a escolhida na tela (unidade_id; null = todas).
+// POST { pergunta, unidade_id? } -> { filtros, etiquetas, resultados: Achado[], modelo }   ·   POST { acao: "situacao" } -> { configurada }
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -60,9 +61,15 @@ Deno.serve(async (req) => {
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: req.headers.get("Authorization")! } }, auth: { persistSession: false },
     });
-    const resultados = await buscar(db, filtros);
+    const { data: unidades } = await db.from("unidades").select("id, codigo, nome");
+    const daTela = typeof body.unidade_id === "string" ? (unidades ?? []).find((u: any) => u.id === body.unidade_id) : null;
+    const pedida = filtros.unidade ? (unidades ?? []).find((u: any) => u.codigo === filtros.unidade) : null;
+    const unidade = pedida ?? daTela ?? null;
+    const resultados = await buscar(db, filtros, unidade?.id ?? null);
+    const etiquetas = etiquetasBusca(filtros);
+    if (!pedida && daTela) etiquetas.push(`${daTela.nome} (unidade da tela)`);
     await registrarIa(admin, userId, { funcao: "ia-busca", ...uso, resumo: `${pergunta} → ${resultados.length} resultado(s)`, modelo: resposta.model, ok: true });
-    return json({ filtros, etiquetas: etiquetasBusca(filtros), resultados, modelo: resposta.model });
+    return json({ filtros, etiquetas, resultados, modelo: resposta.model });
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     const msg = (e as { message?: string })?.message ?? String(e);

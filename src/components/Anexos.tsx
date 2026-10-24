@@ -90,7 +90,7 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
           {docs.map((d) => (
             <li key={d.id} className="flex items-center gap-2 py-1.5 text-sm">
               <IconeArquivo tipo={d.tipo} />
-              <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
+              <button type="button" className="linha-clicavel min-w-0 flex-1 truncate font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
               <span className="shrink-0 text-xs text-slate-500">{tamanhoArquivo(d.tamanho)} · {dataBR(d.created_at)}</span>
               <BotaoResumir d={d} />
               {(d.created_by === user_id || papel === "admin") && (

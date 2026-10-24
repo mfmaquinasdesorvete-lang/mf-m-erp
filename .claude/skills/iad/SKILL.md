@@ -74,3 +74,6 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   fornecedor, repetidas, nota, documento) o ERP calcula, a IA só pesa e escreve a frase. Nunca aprova nem bloqueia.
 - Resumo de documentos: a função lê o arquivo com o login de quem pediu (regras de documentos e do storage valem) e só
   aceita os tipos de anexo de `ENTIDADES_RESUMO`; funcionário e pessoal nunca vão para a IA.
+- Perguntar à IA: a unidade (SC/SP) vale nas vendas, OS, contas, notas e máquinas (a pedida na pergunta ou a da tela);
+  máquinas da My Frost pela coluna `origem`; nenhuma consulta lê CPF/CNPJ, telefone, e-mail, salário ou carteira
+  (teste em `iaBusca.test.ts`). Exportar baixa só o que está na tela (até 50).
