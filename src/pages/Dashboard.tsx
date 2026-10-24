@@ -433,13 +433,13 @@ function PainelGeral() {
   );
 }
 
-/** Resumo do celular: cartão azul liso (sem manchas), 4 números lado a lado com divisórias e a escolha do período. */
+/** Resumo do celular: cartão azul de cor lisa (sem degradê nem sombra forte, diretrizes de design), 4 números lado a lado com divisórias e a escolha do período. */
 function ResumoCelular({ titulo, periodo, onPeriodo, itens, onAbrir }: {
   titulo: string; periodo: Periodo; onPeriodo: (p: Periodo) => void; itens: Kpi[]; onAbrir: (c: Kpi) => void;
 }) {
   if (!itens.length) return null;
   return (
-    <section aria-label={titulo} className="rounded-painel bg-gradient-to-br from-fixo-blue-700 via-fixo-blue-600 to-fixo-sky-500 p-3 text-white shadow-pop sm:hidden">
+    <section aria-label={titulo} className="rounded-painel bg-fixo-blue-700 p-3 text-white shadow-card sm:hidden">
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
         <h2 className="text-sm font-semibold">{titulo}</h2>
         <select value={periodo} onChange={(e) => onPeriodo(e.target.value as Periodo)} aria-label="Período"

@@ -18,19 +18,21 @@ export function aplicarTema(t: Tema) {
   try { localStorage.setItem(CHAVE, t); } catch { /* navegação privada: só não lembra a escolha */ }
 }
 
-/** Fundo do tema escuro: "aurora" (padrão desde 23/10: tendências 2026 — vidro, degradês rosa/violeta/azul e brilho),
+/** Fundo do tema escuro: "app" liso (padrão desde 24/10, diretrizes de design: sem degradê nem brilho), "aurora"
+ *  (tendências 2026 — vidro, degradês rosa/violeta/azul e brilho, padrão de 23/10),
  *  "app" (azul-noite com brilho, o de antes), grafite neutro ou o azul-marinho antigo.
  *  Chave nova (fundo3): todo mundo começa no Aurora e pode voltar ao de antes em Aparência. */
 export type Fundo = "aurora" | "app" | "grafite" | "marinho";
-const CHAVE_FUNDO = "mf-erp-fundo3";
+// fundo4: escolha feita depois do escuro liso (todo mundo começa no liso; quem quiser volta ao Aurora em Aparência)
+const CHAVE_FUNDO = "mf-erp-fundo4";
 const FUNDOS: Fundo[] = ["aurora", "app", "grafite", "marinho"];
 
 export function lerFundo(): Fundo {
   try {
     const v = localStorage.getItem(CHAVE_FUNDO) as Fundo | null;
-    return v && FUNDOS.includes(v) ? v : "aurora";
+    return v && FUNDOS.includes(v) ? v : "app";
   } catch {
-    return "aurora";
+    return "app";
   }
 }
 
@@ -73,8 +75,8 @@ export function aplicarDestaque(d: Destaque) {
 
 /** Aplica a aparência salva no perfil do usuário (vale em qualquer aparelho). */
 export function aplicarPreferencias(p: { tema?: string; destaque?: string; fundo?: string } | null | undefined) {
-  // fundo3: a escolha feita depois do visual Aurora (fundo2 era a do visual de aplicativo, antes do Aurora)
-  const f = (p as { fundo3?: string } | null | undefined)?.fundo3;
+  // fundo4: a escolha feita depois do escuro liso (fundo3 era a do Aurora, fundo2 a do visual de aplicativo)
+  const f = (p as { fundo4?: string } | null | undefined)?.fundo4;
   if (f && FUNDOS.includes(f as Fundo)) aplicarFundo(f as Fundo);
   if (p?.tema === "claro" || p?.tema === "escuro") aplicarTema(p.tema);
   if (p?.destaque && DESTAQUES.some((d) => d.value === p.destaque)) aplicarDestaque(p.destaque as Destaque);

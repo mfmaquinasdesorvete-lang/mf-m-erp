@@ -246,9 +246,8 @@ export function Layout() {
       <aside className={`${aberto ? "fixed inset-x-0 bottom-0 top-[53px] z-30 flex flex-col pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : "hidden"} bg-ink text-nav-texto md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 2xl:w-72 md:flex-col md:border-r md:border-ink-line`}>
         {/* topo do menu (23/10): cartão de vidro com aurora — marca, e-mail e sino; a unidade e o PDV embaixo */}
         <div className="hidden px-3 pb-3 pt-3 md:block">
-          <div className="relative overflow-hidden rounded-painel border border-white/10 p-3 shadow-lg"
-            style={{ background: "linear-gradient(140deg, rgb(168 85 247 / 0.28) 0%, rgb(236 72 153 / 0.14) 45%, rgb(37 99 235 / 0.18) 100%)" }}>
-            <span className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-fixo-pink-500/30 blur-2xl" aria-hidden />
+          {/* cartão liso (24/10, diretrizes de design: sem degradê nem brilho) */}
+          <div className="relative overflow-hidden rounded-painel border border-white/10 bg-ink-soft p-3">
             <div className="relative flex items-center gap-1">
               <Marca />
               <span className="ml-auto flex items-center"><BotaoEmail /><Sino /></span>
@@ -487,7 +486,7 @@ export function Layout() {
         ))}
         <div className="flex shrink-0 justify-center px-1" style={{ order: 1 }}>
           <button type="button" onClick={() => { setAberto(false); setCriar(!criar); }} aria-expanded={criar} aria-label={criar ? "Fechar" : "Criar"}
-            className="-mt-7 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-fixo-violet-500 to-fixo-blue-500 text-white shadow-[0_10px_25px_-5px_rgb(124_58_237/0.7)] ring-4 ring-canvas transition active:scale-95">
+            className="-mt-7 grid h-14 w-14 place-items-center rounded-full bg-brand text-brand-fg shadow-card ring-4 ring-canvas transition active:scale-95">
             <Plus size={26} className={`transition ${criar ? "rotate-45" : ""}`} />
           </button>
         </div>
@@ -551,7 +550,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
   const salvar = (p: Record<string, string>) => { supabase.rpc("salvar_preferencias", { p }).then(() => null); };
   const escolherTema = (t: Tema) => { aplicarTema(t); setTema(t); salvar({ tema: t }); };
   const escolherCor = (d: Destaque) => { aplicarDestaque(d); setCor(d); salvar({ destaque: d }); };
-  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo3: f }); };
+  const escolherFundo = (f: Fundo) => { aplicarFundo(f); setFundo(f); salvar({ fundo4: f }); };
 
   return (
     <Modal open onClose={onClose} title="Aparência">
@@ -571,7 +570,7 @@ function Aparencia({ onClose }: { onClose: () => void }) {
           <div>
             <div className="mb-2 text-sm font-bold text-fg">Fundo do tema escuro</div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {([["aurora", "Aurora 2026", "vidro, degradês e brilho (padrão)", "#3b1d6e", "#120a2a"], ["app", "App", "azul-noite com brilho, o de antes", "#191b33", "#0a0b1a"], ["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
+              {([["app", "Escuro liso", "sem degradê, mais fácil de ler (padrão)", "#191b33", "#0a0b1a"], ["aurora", "Aurora 2026", "vidro, degradês e brilho", "#3b1d6e", "#120a2a"], ["grafite", "Grafite", "neutro, mais fácil de ler", "#1b1e24", "#101216"], ["marinho", "Azul-marinho", "o de antes", "#0c213e", "#050e1e"]] as const).map(([v, label, dica, c1, c2]) => (
                 <button key={v} type="button" onClick={() => escolherFundo(v)}
                   className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${fundo === v ? "border-brand" : "border-slate-200 hover:border-slate-300"}`}>
                   <span className="relative flex">

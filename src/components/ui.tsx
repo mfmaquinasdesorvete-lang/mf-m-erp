@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactElement, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Inbox, RotateCcw, Loader2, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { achatar, celulasDa, ordenarLinhas, sentidoNatural, temInterativo, textoDoNo, valorDaCelula } from "@/lib/ordenarColunas";
 import { useModulo } from "@/lib/modulo";
 
@@ -118,7 +118,7 @@ export function PageHeader({ title, subtitle, actions, compacto, logo }: { title
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2" title={subtitle}>
           {Icone && (
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-modulo to-modulo-escuro text-white" aria-hidden>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-modulo text-white" aria-hidden>
               <Icone size={17} />
             </span>
           )}
@@ -136,7 +136,7 @@ export function PageHeader({ title, subtitle, actions, compacto, logo }: { title
         {logo ? (
           <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain p-0.5 shadow-card sm:h-11 sm:w-11" />
         ) : Icone && (
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-modulo to-modulo-escuro text-white shadow-card sm:h-11 sm:w-11" aria-hidden>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-modulo text-white shadow-card sm:h-11 sm:w-11" aria-hidden>
             <Icone size={20} />
           </span>
         )}
@@ -203,14 +203,15 @@ export function Section({ title, actions, children, className = "", recolhivel, 
  * Brilho dos cartões de número (o mesmo da tela inicial): fundo em degradê com a cor do assunto, borda e sombra na
  * mesma cor e uma luz desfocada no canto. Uma peça só para todos os cartões de número do ERP.
  */
+// 24/10 (diretrizes de design): cartão de número liso — fundo da superfície, borda sutil com um toque da cor e uma
+// faixa fina da cor no alto; sem degradê, sem luz desfocada e sem sombra colorida. A cor fica no ícone e no número.
 export const estiloBrilho = (cor: string): CSSProperties => ({
-  background: `linear-gradient(140deg, color-mix(in srgb, ${cor} 20%, rgb(var(--surface))) 0%, rgb(var(--surface)) 70%)`,
-  borderColor: `color-mix(in srgb, ${cor} 38%, transparent)`,
-  boxShadow: `0 12px 28px -20px ${cor}`,
+  background: "rgb(var(--surface))",
+  borderColor: `color-mix(in srgb, ${cor} 22%, rgb(var(--slate-200)))`,
+  boxShadow: `inset 0 3px 0 ${cor}`,
 });
-/** A luz desfocada no canto do cartão (o cartão precisa de relative e overflow-hidden). */
-export const Luz = ({ cor }: { cor: string }) =>
-  <span className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-25 blur-2xl" style={{ background: cor }} aria-hidden />;
+/** Era a luz desfocada no canto do cartão; desligada pelas diretrizes de design (fica para não mexer nas telas). */
+export const Luz = (_: { cor: string }) => null;
 
 /**
  * Cores dos cartões de indicador: a cor do brilho, o ícone e o número. A cor diz o assunto (dinheiro, prazo,
@@ -565,7 +566,47 @@ export function RolagemLateral({ children, className = "", caixa = "" }: { child
 /** Colunas que dão nome ao registro: viram o título do cartão no celular. */
 const COLUNA_TITULO = /^(nome|cliente|fornecedor|produto|descri|transportadora|técnico|funcionário|vendedor|máquina|empresa|título|item|peça|conta)\b/i;
 
-export function Table({ head, children, empty, limite }: { head: ReactNode; children: ReactNode; empty?: boolean; limite?: number }) {
+/**
+ * Estados padrão das listas e painéis (24/10, diretrizes de design): carregando (blocos cinza no lugar do conteúdo),
+ * vazio (uma frase e, se fizer sentido, o botão do que fazer) e erro (a mensagem e "Tentar de novo"). Sempre iguais.
+ */
+export function Carregando({ linhas = 4, className = "" }: { linhas?: number; className?: string }) {
+  return (
+    <div className={`space-y-2 ${className}`} role="status" aria-label="Carregando">
+      {Array.from({ length: linhas }, (_, i) => (
+        <div key={i} className="cartao flex items-center gap-3 p-3 motion-safe:animate-pulse">
+          <span className="h-9 w-9 shrink-0 rounded-full bg-slate-100" />
+          <span className="min-w-0 flex-1 space-y-2"><span className="block h-3 w-2/3 rounded bg-slate-100" /><span className="block h-3 w-1/3 rounded bg-slate-100" /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function Vazio({ titulo = "Nenhum registro encontrado.", texto, acao, className = "" }: { titulo?: string; texto?: ReactNode; acao?: ReactNode; className?: string }) {
+  return (
+    <div className={`flex flex-col items-center gap-2 px-4 py-8 text-center ${className}`}>
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-400" aria-hidden><Inbox size={20} /></span>
+      <p className="text-sm font-semibold text-fg">{titulo}</p>
+      {texto && <p className="max-w-sm text-sm text-slate-500">{texto}</p>}
+      {acao && <div className="mt-1">{acao}</div>}
+    </div>
+  );
+}
+
+export function ErroLista({ erro, onTentar, className = "" }: { erro?: unknown; onTentar?: () => void; className?: string }) {
+  const msg = erro instanceof Error ? erro.message : typeof erro === "object" && erro && "message" in erro ? String((erro as { message: unknown }).message) : "";
+  return (
+    <div className={`cartao flex flex-col items-center gap-2 border-red-200 px-4 py-8 text-center ${className}`} role="alert">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-red-50 text-red-600" aria-hidden><AlertTriangle size={20} /></span>
+      <p className="text-sm font-semibold text-fg">Não deu para carregar.</p>
+      {msg && <p className="max-w-sm text-xs text-slate-500 [overflow-wrap:anywhere]">{msg}</p>}
+      {onTentar && <Button variant="secondary" tamanho="mini" onClick={onTentar}><RotateCcw size={13} aria-hidden /> Tentar de novo</Button>}
+    </div>
+  );
+}
+
+export function Table({ head, children, empty, limite, carregando }: { head: ReactNode; children: ReactNode; empty?: boolean; limite?: number; carregando?: boolean }) {
   const ref = useRef<HTMLTableElement>(null);
   const [ordem, setOrdem] = useState<{ col: number; crescente: boolean } | null>(null);
   const titulos = achatar(head).filter((t) => isValidElement(t)) as ReactElement<Record<string, unknown> & { children?: ReactNode }>[];
@@ -623,7 +664,7 @@ export function Table({ head, children, empty, limite }: { head: ReactNode; chil
           <tbody className="divide-y divide-slate-100">{mostradas}</tbody>
         </table>
       </RolagemLateral>
-      {empty && <p className="p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
+      {carregando ? <Carregando linhas={3} className="p-3 [&_.cartao]:border-0 [&_.cartao]:shadow-none" /> : empty && <Vazio />}
     </Card>
   );
 }

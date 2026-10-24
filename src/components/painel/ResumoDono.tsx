@@ -73,7 +73,7 @@ export function ResumoDono() {
     { rotulo: "Vai sair · 30 dias", valor: n.sai, icone: ArrowUpCircle, to: "/financeiro", dica: n.atrasado ? `contas a pagar dos próximos 30 dias, com ${brl(n.atrasado)} já vencidos` : "contas a pagar dos próximos 30 dias", tom: "text-fixo-rose-200" },
   ];
   return (
-    <section aria-label="Resumo" className="mb-4 rounded-painel bg-gradient-to-br from-fixo-blue-700 via-fixo-blue-600 to-fixo-sky-500 p-3 text-white shadow-pop sm:p-4">
+    <section aria-label="Resumo" className="mb-4 rounded-painel bg-fixo-blue-700 p-3 text-white shadow-card sm:p-4">
       <h2 className="mb-2 px-1 text-sm font-semibold">Resumo</h2>
       <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-5 sm:gap-2">
         {itens.map((x, i) => (

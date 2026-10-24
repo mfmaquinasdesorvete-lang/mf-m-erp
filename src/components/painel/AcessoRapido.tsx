@@ -87,9 +87,10 @@ export function AcessoRapido({ avisos = {} }: { avisos?: Record<string, number> 
                 className="group flex w-[4.5rem] flex-col items-center gap-1.5 rounded-cartao text-center focus-visible:outline-none">
                 <span className="relative grid h-16 w-16 place-items-center rounded-full transition group-hover:scale-105 group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-brand"
                   style={{
-                    background: `radial-gradient(circle at 30% 25%, color-mix(in srgb, ${a.cor} 38%, transparent), color-mix(in srgb, ${a.cor} 14%, transparent) 70%)`,
-                    color: `color-mix(in srgb, ${a.cor} 75%, white)`,
-                    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${a.cor} 45%, transparent), 0 10px 22px -14px ${a.cor}`,
+                    // cor lisa da área (diretrizes de design: sem degradê nem sombra colorida)
+                    background: `color-mix(in srgb, ${a.cor} 16%, transparent)`,
+                    color: a.cor,
+                    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${a.cor} 30%, transparent)`,
                   }}>
                   <a.icone size={26} aria-hidden />
                   {n > 0 && (

@@ -1,9 +1,8 @@
-// Bonequinho da ajuda de IA (24/10): um robozinho sorrindo dentro de uma bolha na cor da marca puxada para o violeta.
+// Bonequinho da ajuda de IA (24/10): um robozinho sorrindo dentro de uma bolha lisa na cor da marca.
 // Desenho próprio (SVG), sem imagem: acompanha a cor da marca escolhida na aparência.
 export function MascoteIA({ className = "" }: { className?: string }) {
   return (
-    <span className={`relative grid place-items-center rounded-full text-white shadow-pop ${className}`}
-      style={{ background: "linear-gradient(140deg, rgb(var(--brand)) 0%, color-mix(in srgb, rgb(var(--brand)) 40%, #a855f7) 100%)" }}>
+    <span className={`relative grid place-items-center rounded-full bg-brand text-white ${className}`}>
       <svg viewBox="0 0 32 32" className="h-[72%] w-[72%]" aria-hidden>
         {/* antena */}
         <line x1="16" y1="4.5" x2="16" y2="8.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

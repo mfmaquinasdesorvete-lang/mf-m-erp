@@ -293,7 +293,7 @@ export default function Clientes() {
           <button type="button" onClick={() => setFicha(r)}
             title={temHistorico ? "Ficha 360: compras, financeiro, assistência e atendimentos deste cliente" : "Ficha 360: este cliente ainda não tem compras, contas nem atendimentos"}
             className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold transition ${temHistorico
-              ? "bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-sm hover:brightness-110"
+              ? "bg-brand text-brand-fg shadow-sm hover:bg-brand-dark"
               : "border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"}`}>
             <IdCard size={15} /> Ficha 360
           </button>

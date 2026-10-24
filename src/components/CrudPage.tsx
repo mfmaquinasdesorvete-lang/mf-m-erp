@@ -4,7 +4,7 @@ import { limpar, useInvalidate, useRows, useSave } from "@/lib/data";
 import { soMudou } from "@/lib/soMudou";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
-import { Button, chip, Field, MaisAcoes, Modal, PageHeader, Table } from "./ui";
+import { Button, Carregando, chip, ErroLista, Field, MaisAcoes, Modal, PageHeader, Table, Vazio } from "./ui";
 import { baixarPlanilha, celula } from "@/lib/exportar";
 import { Anexos } from "./Anexos";
 import { erroCampo, gravar, mostrar, type Mascara } from "@/lib/mascaras";
@@ -135,7 +135,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
   const [marcandoLote, setMarcandoLote] = useState(false);
   const tags = (row: T) => marcadores ? <ChipsMarcadores ids={(row as { marcadores?: string[] | null }).marcadores} todos={todosMarcadores} pequeno /> : null;
   const selecionavel = podeExcluir || acoesLote.length > 0 || !!marcadores;
-  const { data: todos = [], isLoading } = useRows<T>(table, { order, ascending: order !== "created_at" });
+  const { data: todos = [], isLoading, error: erroLista, refetch } = useRows<T>(table, { order, ascending: order !== "created_at" });
   const filtroBase = props.filtroBase;
   // aberto por outra tela só com alguns registros (ex.: Analista fiscal → produtos sem NCM): mostra só eles,
   // mesmo fora do recorte da página, até clicar em "Ver todos"
@@ -491,7 +491,11 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       {avisoBusca}
       {props.cartaoCelular && (
         <div className={props.cartoesNoPc ? "" : "md:hidden"}>
-          {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="cartao p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
+          {/* estados padrão: erro, carregando e vazio (com o "Novo" quando a lista inteira está vazia) */}
+          {erroLista ? <ErroLista erro={erroLista} onTentar={() => refetch()} />
+            : isLoading ? <Carregando />
+            : filtrados.length === 0 && !avisoBusca && <div className="cartao"><Vazio titulo={todos.length ? "Nada com essa busca ou filtro." : "Nenhum registro ainda."}
+                acao={!todos.length && !readOnly && !props.semNovo ? <Button onClick={() => abrir({ ...defaults })}><Plus size={16} /> Novo</Button> : undefined} /></div>}
           <ul className={props.cartoesNoPc ? "grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" : "space-y-2"}>
             {filtrados.slice(0, limite).map((row) => (
               <li key={row.id} className={`relative flex flex-col rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}
@@ -520,9 +524,10 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         </div>
       )}
       <div className={props.cartaoCelular ? (props.cartoesNoPc ? "hidden" : "hidden md:block") : ""}>
+      {erroLista && <ErroLista className="mb-3" erro={erroLista} onTentar={() => refetch()} />}
       <Table
         limite={limite}
-        empty={!isLoading && filtrados.length === 0 && !avisoBusca}
+        empty={!isLoading && !erroLista && filtrados.length === 0 && !avisoBusca} carregando={isLoading}
         head={<>
           {selecionavel && (
             <th className="th w-10">

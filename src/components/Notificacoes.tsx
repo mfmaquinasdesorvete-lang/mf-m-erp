@@ -421,7 +421,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             </div>
             {voz && <EscolherVoz />}
             <button type="button" onClick={() => { setPainel(false); setCompor([]); }}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fixo-sky-500 to-fixo-indigo-500 px-3 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110">
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-3 py-2.5 text-sm font-bold text-brand-fg shadow-sm hover:brightness-110">
               <Send size={16} /> Enviar aviso para a equipe
             </button>
             {"Notification" in window && Notification.permission === "default" && (
