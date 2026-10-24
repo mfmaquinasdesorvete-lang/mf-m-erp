@@ -9,7 +9,7 @@ import { notify } from "@/lib/notify";
 import { urlFotoProduto } from "@/lib/catalogo";
 import { linhasDaSugestao, sugestaoLocal, valorParaForm, type LinhaAuto, type SugestaoIA } from "@/lib/autoFill";
 import type { ProdutoAnuncio } from "@/lib/marketplace";
-import { LIMITE_ARQUIVO, TIPOS_IMAGEM } from "../../../supabase/functions/_shared/ia-produto";
+import { CAMPOS_MEDIDA, LIMITE_ARQUIVO, TIPOS_IMAGEM } from "../../../supabase/functions/_shared/ia-produto";
 
 type Arquivo = { nome: string; tipo: string; base64: string; url?: string };
 type Resultado = { sugestao: SugestaoIA; origem: "ia" | "regras"; motivo?: string; modelo?: string };
@@ -65,6 +65,7 @@ export function AssistenteIA({ row, setCampo, produtos, garantiaPadrao }: {
       titulo_anuncio: row.titulo_anuncio, descricao_catalogo: row.descricao_catalogo, descricao_anuncio: row.descricao_anuncio,
       palavras_chave: Array.isArray(row.palavras_chave) ? row.palavras_chave : String(row.palavras_chave ?? "").split(",").map((x) => x.trim()).filter(Boolean),
       especificacoes: row.especificacoes, garantia_meses: row.garantia_meses === "" ? null : row.garantia_meses, no_catalogo: row.no_catalogo, vendavel: row.vendavel,
+      ncm: row.ncm || null, ...Object.fromEntries(CAMPOS_MEDIDA.map((c) => [c, row[c] === "" || row[c] == null ? null : Number(row[c])])),
     };
     let r: Resultado;
     try {
@@ -96,7 +97,7 @@ export function AssistenteIA({ row, setCampo, produtos, garantiaPadrao }: {
     <>
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2">
         <Sparkles size={18} className="shrink-0 text-violet-700" aria-hidden />
-        <span className="min-w-0 flex-1 text-sm text-violet-900">Escreveu o nome? A IA preenche palavras-chave, textos de venda, categoria e campos técnicos (pode mandar foto e PDF do fornecedor).</span>
+        <span className="min-w-0 flex-1 text-sm text-violet-900">Escreveu o nome? A IA preenche palavras-chave, textos de venda, categoria, campos técnicos, código do fabricante, NCM, peso e medidas (pode mandar foto e PDF do fornecedor).</span>
         <Button type="button" onClick={() => setAberto(true)} disabled={nome.length < 2} title={nome.length < 2 ? "Escreva o nome do produto primeiro" : undefined}>
           <Sparkles size={15} /> Preencher com IA
         </Button>

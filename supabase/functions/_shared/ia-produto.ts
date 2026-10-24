@@ -7,15 +7,21 @@ export type ProdutoEntrada = {
   codigo_fabricante?: string | null; titulo_anuncio?: string | null; descricao_catalogo?: string | null; descricao_anuncio?: string | null;
   palavras_chave?: string[] | null; especificacoes?: { nome: string; valor: string }[] | null; garantia_meses?: number | null;
   no_catalogo?: boolean | null; vendavel?: boolean | null;
+  ncm?: string | null; peso_kg?: number | null; altura_cm?: number | null; largura_cm?: number | null; profundidade_cm?: number | null;
 };
+
+/** Peso e medidas da embalagem para o frete (só o que estiver escrito no documento, na foto ou nos campos). */
+export type MedidasIA = { peso_kg: number | null; altura_cm: number | null; largura_cm: number | null; profundidade_cm: number | null };
+export const CAMPOS_MEDIDA = ["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"] as const;
 
 export type SugestaoIA = {
   titulo_anuncio: string; palavras_chave: string[]; meta_descricao: string; descricao_catalogo: string; descricao_anuncio: string;
   categoria: string | null; categoria_nova: boolean; marca: string | null; modelo: string | null;
   especificacoes: { nome: string; valor: string }[];
+  codigo_fabricante: string | null; ncm: string | null; medidas: MedidasIA;
   canais: { loja_e_whatsapp: boolean; pedido_e_pdv: boolean };
   status: "pronto" | "rascunho"; conferir: string[];
-  confianca: { categoria: "alta" | "media" | "baixa"; marca_modelo: "alta" | "media" | "baixa"; especificacoes: "alta" | "media" | "baixa" };
+  confianca: { categoria: "alta" | "media" | "baixa"; marca_modelo: "alta" | "media" | "baixa"; especificacoes: "alta" | "media" | "baixa"; ncm?: "alta" | "media" | "baixa" };
 };
 
 export const LIMITE_TITULO = 60;
@@ -26,7 +32,7 @@ const nivel = { type: "string", enum: ["alta", "media", "baixa"] };
 export const ESQUEMA_SUGESTAO = {
   type: "object", additionalProperties: false,
   required: ["titulo_anuncio", "palavras_chave", "meta_descricao", "descricao_catalogo", "descricao_anuncio", "categoria", "categoria_nova",
-    "marca", "modelo", "especificacoes", "canais", "status", "conferir", "confianca"],
+    "marca", "modelo", "especificacoes", "codigo_fabricante", "ncm", "medidas", "canais", "status", "conferir", "confianca"],
   properties: {
     titulo_anuncio: { type: "string" },
     palavras_chave: { type: "array", items: { type: "string" } },
@@ -38,10 +44,16 @@ export const ESQUEMA_SUGESTAO = {
     marca: { type: ["string", "null"] },
     modelo: { type: ["string", "null"] },
     especificacoes: { type: "array", items: { type: "object", additionalProperties: false, required: ["nome", "valor"], properties: { nome: { type: "string" }, valor: { type: "string" } } } },
+    codigo_fabricante: { type: ["string", "null"] },
+    ncm: { type: ["string", "null"] },
+    medidas: {
+      type: "object", additionalProperties: false, required: [...CAMPOS_MEDIDA],
+      properties: Object.fromEntries(CAMPOS_MEDIDA.map((c) => [c, { type: ["number", "null"] }])),
+    },
     canais: { type: "object", additionalProperties: false, required: ["loja_e_whatsapp", "pedido_e_pdv"], properties: { loja_e_whatsapp: { type: "boolean" }, pedido_e_pdv: { type: "boolean" } } },
     status: { type: "string", enum: ["pronto", "rascunho"] },
     conferir: { type: "array", items: { type: "string" } },
-    confianca: { type: "object", additionalProperties: false, required: ["categoria", "marca_modelo", "especificacoes"], properties: { categoria: nivel, marca_modelo: nivel, especificacoes: nivel } },
+    confianca: { type: "object", additionalProperties: false, required: ["categoria", "marca_modelo", "especificacoes", "ncm"], properties: { categoria: nivel, marca_modelo: nivel, especificacoes: nivel, ncm: nivel } },
   },
 } as const;
 
@@ -61,6 +73,9 @@ Regras:
 - meta_descricao: até ${LIMITE_META} letras, para o resultado do Google.
 - descricao_catalogo: 2 ou 3 frases curtas para o cliente ler no WhatsApp.
 - descricao_anuncio: texto puro para marketplace (sem HTML), com blocos ESPECIFICAÇÕES, GARANTIA, ENVIO e DÚVIDAS; nunca coloque telefone, e-mail, link, WhatsApp ou nome de outra loja (os marketplaces proíbem). Envio para todo o Brasil com nota fiscal. Garantia: use a informada; sem ela, escreva "garantia contra defeito de fabricação" sem número de meses.
+- codigo_fabricante: o código ou part number do fabricante, só se estiver escrito (na peça, na etiqueta ou no documento); senão null.
+- ncm: os 8 dígitos do NCM, só números. Use o que estiver no documento ou na nota; se não estiver, sugira o mais provável para a peça (máquinas de sorvete e peças delas costumam ser 8418.69.10 e 8418.99.00; borrachas e vedações 4016.93.00) com confianca.ncm "media" ou "baixa", e escreva em "conferir" para confirmar com o contador. Sem ideia: null.
+- medidas: peso_kg, altura_cm, largura_cm e profundidade_cm do produto com embalagem, para o frete, só se estiverem no documento, na foto ou nos campos (converta mm para cm e g para kg); senão null. Nunca estime medida.
 - canais: loja_e_whatsapp = vale mostrar na loja online e no catálogo do WhatsApp (peças de reposição, acessórios e máquinas sim; componentes internos de fabricação e insumos não); pedido_e_pdv = pode ser vendido em pedido e no balcão.
 - status: "pronto" só se nome, categoria, marca e um texto de venda completo forem possíveis sem conferir nada; senão "rascunho".
 - Mantenha o que já está bom: se um campo já veio preenchido e correto, devolva-o igual (ou melhorado, sem perder informação).
@@ -72,7 +87,8 @@ export function montarPedido(p: ProdutoEntrada, categorias: string[], extras: { 
     nome: p.descricao, tipo: p.tipo, sku: p.sku, marca: p.marca, modelo: p.modelo, categoria_atual: p.categoria, codigo_fabricante: p.codigo_fabricante,
     titulo_anuncio_atual: p.titulo_anuncio, texto_whatsapp_atual: p.descricao_catalogo, texto_anuncio_atual: p.descricao_anuncio,
     palavras_chave_atuais: p.palavras_chave, campos_tecnicos: p.especificacoes, garantia_meses: p.garantia_meses,
-    na_loja: p.no_catalogo, vende_em_pedido: p.vendavel,
+    na_loja: p.no_catalogo, vende_em_pedido: p.vendavel, ncm_atual: p.ncm,
+    peso_kg: p.peso_kg, altura_cm: p.altura_cm, largura_cm: p.largura_cm, profundidade_cm: p.profundidade_cm,
   };
   const limpo = Object.fromEntries(Object.entries(campos).filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && !v.length)));
   return [
@@ -91,6 +107,11 @@ const corta = (s: unknown, n: number) => {
   return (i > n * 0.6 ? c.slice(0, i) : t.slice(0, n)).replace(/[\s,.;:–-]+$/, "");
 };
 const CONTATO = /(\(?\d{2}\)?\s?9?\d{4}[-\s]?\d{4})|([\w.+-]+@[a-z0-9-]+\.[a-z]{2,})|(https?:\/\/|www\.)|\bwhats\s?app\b/gi;
+/** Número de medida aceitável (positivo e até o limite); texto "1,5" também vale. */
+const medida = (v: unknown, max: number) => {
+  const n = typeof v === "number" ? v : Number(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) && n > 0 && n <= max ? Math.round(n * 1000) / 1000 : null;
+};
 const nivelOk = (v: unknown) => (v === "alta" || v === "media" || v === "baixa" ? v : "baixa");
 
 /** Confere a resposta: limites de tamanho, sem contato no anúncio, categoria da lista e nada repetido. */
@@ -123,10 +144,16 @@ export function normalizarSugestao(bruta: Partial<SugestaoIA> | null | undefined
     marca: r.marca ? corta(r.marca, 60) : null,
     modelo: r.modelo ? corta(r.modelo, 80) : null,
     especificacoes,
+    codigo_fabricante: r.codigo_fabricante ? corta(r.codigo_fabricante, 60) || null : null,
+    ncm: /^\d{8}$/.test(String(r.ncm ?? "").replace(/\D/g, "")) ? String(r.ncm).replace(/\D/g, "") : null,
+    medidas: {
+      peso_kg: medida(r.medidas?.peso_kg, 2000), altura_cm: medida(r.medidas?.altura_cm, 500),
+      largura_cm: medida(r.medidas?.largura_cm, 500), profundidade_cm: medida(r.medidas?.profundidade_cm, 500),
+    },
     canais: { loja_e_whatsapp: !!r.canais?.loja_e_whatsapp, pedido_e_pdv: r.canais?.pedido_e_pdv !== false },
     status: r.status === "pronto" ? "pronto" : "rascunho",
     conferir: conferir.slice(0, 8),
-    confianca: { categoria: nivelOk(conf.categoria), marca_modelo: nivelOk(conf.marca_modelo), especificacoes: nivelOk(conf.especificacoes) },
+    confianca: { categoria: nivelOk(conf.categoria), marca_modelo: nivelOk(conf.marca_modelo), especificacoes: nivelOk(conf.especificacoes), ncm: nivelOk(conf.ncm) },
   };
 }
 

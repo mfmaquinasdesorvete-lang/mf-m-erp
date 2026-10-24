@@ -78,3 +78,27 @@ describe("resposta da IA conferida antes de mostrar", () => {
     expect(t).toContain("Veio uma foto");
   });
 });
+
+describe("NCM, código do fabricante e medidas", () => {
+  it("NCM só com 8 dígitos; medida fora do normal fica de fora; mm já vem convertido", () => {
+    const s = normalizarSugestao({
+      ncm: "8418.69.10", codigo_fabricante: " TYA2446ZES ",
+      medidas: { peso_kg: 1.5, altura_cm: -3, largura_cm: "12,5" as any, profundidade_cm: 9999 },
+      confianca: { categoria: "alta", marca_modelo: "alta", especificacoes: "alta", ncm: "media" },
+    }, []);
+    expect(s.ncm).toBe("84186910");
+    expect(s.codigo_fabricante).toBe("TYA2446ZES");
+    expect(s.medidas).toEqual({ peso_kg: 1.5, altura_cm: null, largura_cm: 12.5, profundidade_cm: null });
+    expect(normalizarSugestao({ ncm: "8418" }, []).ncm).toBeNull();
+  });
+  it("NCM nunca vem marcado; medida vazia vem marcada; mesma medida não aparece", () => {
+    const s = normalizarSugestao({
+      ncm: "84189900", medidas: { peso_kg: 2, altura_cm: 10, largura_cm: null, profundidade_cm: null },
+      confianca: { categoria: "alta", marca_modelo: "alta", especificacoes: "alta", ncm: "alta" },
+    }, []);
+    const linhas = linhasDaSugestao({ id: "x", descricao: "Pá", altura_cm: "10" }, s);
+    expect(linhas.find((l) => l.campo === "ncm")!.marcada).toBe(false);
+    expect(linhas.find((l) => l.campo === "peso_kg")!.marcada).toBe(true);
+    expect(linhas.some((l) => l.campo === "altura_cm")).toBe(false);
+  });
+});

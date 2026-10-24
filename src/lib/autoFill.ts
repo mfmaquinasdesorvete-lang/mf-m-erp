@@ -7,13 +7,14 @@ import type { SugestaoIA } from "../../supabase/functions/_shared/ia-produto";
 
 export type { SugestaoIA };
 export type CampoAuto = "titulo_anuncio" | "palavras_chave" | "meta_descricao" | "descricao_catalogo" | "descricao_anuncio" | "categoria" | "marca" | "modelo"
-  | "especificacoes" | "no_catalogo" | "vendavel";
+  | "especificacoes" | "no_catalogo" | "vendavel" | "codigo_fabricante" | "ncm" | "peso_kg" | "altura_cm" | "largura_cm" | "profundidade_cm";
 export type LinhaAuto = { campo: CampoAuto; nome: string; atual: unknown; sugerido: unknown; confianca?: "alta" | "media" | "baixa"; aviso?: string };
 
 export const NOMES_CAMPO: Record<CampoAuto, string> = {
   titulo_anuncio: "Título do anúncio", palavras_chave: "Palavras-chave", meta_descricao: "Descrição para o Google", descricao_catalogo: "Texto de venda (WhatsApp)",
   descricao_anuncio: "Texto do anúncio", categoria: "Categoria", marca: "Marca", modelo: "Modelo", especificacoes: "Campos adicionais",
   no_catalogo: "Mostrar na loja e no WhatsApp", vendavel: "Pode vender (pedido e PDV)",
+  codigo_fabricante: "Código do fabricante", ncm: "NCM", peso_kg: "Peso (kg)", altura_cm: "Altura (cm)", largura_cm: "Largura (cm)", profundidade_cm: "Profundidade (cm)",
 };
 
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -61,6 +62,7 @@ export function sugestaoLocal(p: ProdutoAnuncio & { especificacoes?: { nome: str
     categoria: cat?.categoria ?? null, categoria_nova: false,
     marca: p.marca ?? null, modelo: p.modelo ?? null,
     especificacoes: p.especificacoes ?? [],
+    codigo_fabricante: null, ncm: null, medidas: { peso_kg: null, altura_cm: null, largura_cm: null, profundidade_cm: null },
     canais: { loja_e_whatsapp: !interno, pedido_e_pdv: p.vendavel !== false && p.tipo !== "insumo" },
     status: nota.nota >= 90 && !conferir.length ? "pronto" : "rascunho",
     conferir: [...conferir, ...nota.pendencias.filter((x) => !x.automatica && !["categoria", "marca", "modelo"].includes(x.id)).map((x) => x.texto)].slice(0, 8),
@@ -68,7 +70,8 @@ export function sugestaoLocal(p: ProdutoAnuncio & { especificacoes?: { nome: str
   };
 }
 
-const igual = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const igual = (a: unknown, b: unknown) =>
+  typeof b === "number" && a != null && a !== "" ? Number(a) === b : JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const vazio = (v: unknown) => v == null || v === "" || (Array.isArray(v) && !v.length);
 
 /** Une os campos técnicos: os que já existem ficam; os novos (por nome) entram no fim. */
@@ -94,6 +97,10 @@ export function linhasDaSugestao(row: Record<string, any>, s: SugestaoIA): (Linh
     { campo: "marca", nome: NOMES_CAMPO.marca, atual: row.marca, sugerido: s.marca, confianca: s.confianca.marca_modelo },
     { campo: "modelo", nome: NOMES_CAMPO.modelo, atual: row.modelo, sugerido: s.modelo, confianca: s.confianca.marca_modelo },
     { campo: "especificacoes", nome: NOMES_CAMPO.especificacoes, atual: row.especificacoes ?? [], sugerido: especs, confianca: s.confianca.especificacoes },
+    { campo: "codigo_fabricante", nome: NOMES_CAMPO.codigo_fabricante, atual: row.codigo_fabricante, sugerido: s.codigo_fabricante, confianca: s.confianca.marca_modelo },
+    { campo: "ncm", nome: NOMES_CAMPO.ncm, atual: row.ncm ? String(row.ncm).replace(/\D/g, "") : row.ncm, sugerido: s.ncm, confianca: s.confianca.ncm ?? "baixa",
+      aviso: "NCM é fiscal: confira com o contador antes de usar" },
+    ...(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"] as const).map((c) => ({ campo: c, nome: NOMES_CAMPO[c], atual: row[c], sugerido: s.medidas?.[c] ?? null })),
     { campo: "no_catalogo", nome: NOMES_CAMPO.no_catalogo, atual: !!row.no_catalogo, sugerido: s.canais.loja_e_whatsapp },
     { campo: "vendavel", nome: NOMES_CAMPO.vendavel, atual: row.vendavel !== false, sugerido: s.canais.pedido_e_pdv },
   ];
@@ -101,7 +108,8 @@ export function linhasDaSugestao(row: Record<string, any>, s: SugestaoIA): (Linh
     .filter((l) => !vazio(l.sugerido) || typeof l.sugerido === "boolean")
     .filter((l) => !igual(l.atual, l.sugerido))
     // campo vazio: já vem marcado; o que alguém escreveu só muda se a pessoa marcar (e nunca com confiança baixa)
-    .map((l) => ({ ...l, marcada: (vazio(l.atual) && l.confianca !== "baixa") || (typeof l.sugerido === "boolean" && !row.id) }));
+    // NCM nunca vem marcado (é fiscal: a pessoa marca depois de conferir)
+    .map((l) => ({ ...l, marcada: l.campo !== "ncm" && ((vazio(l.atual) && l.confianca !== "baixa") || (typeof l.sugerido === "boolean" && !row.id)) }));
 }
 
 /** Valor a gravar no formulário para cada campo marcado. */
