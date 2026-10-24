@@ -90,3 +90,62 @@ export async function copiarFotos(db: SupabaseClient) {
   }
   return r;
 }
+
+/**
+ * Anúncio com título que não pode mais mudar (modelo novo do Mercado Livre): publica um igual (preço, estoque, fotos,
+ * atributos, envio) com o título do cadastro sem a marca, liga ao mesmo produto e só depois fecha o antigo.
+ */
+export async function republicarAnuncios(db: SupabaseClient, token: string, itens: unknown) {
+  const ids = [...new Set((Array.isArray(itens) ? itens : []).map((x) => String(x ?? "").trim().toUpperCase()).filter((x) => /^[A-Z]{3}\d+$/.test(x)))].slice(0, 20);
+  if (!ids.length) throw new Error("escolha os anúncios para publicar de novo");
+  const r = { republicados: [] as { antigo: string; novo: string; titulo: string }[], erros: [] as { id: string; erro: string }[] };
+  for (const id of ids) {
+    try {
+      const { data: liga } = await db.from("ml_anuncios").select("id, produto_id, produtos:produtos(descricao, titulo_anuncio)").eq("ml_item_id", id).eq("variation_id", "").maybeSingle();
+      const prod = (liga as any)?.produtos;
+      if (!liga?.produto_id || !prod) throw new Error("anúncio sem produto ligado");
+      const velho = await chamarML<any>(`/items/${id}`, token);
+      if (Number(velho?.sold_quantity) > 0) throw new Error("anúncio com venda: não fecho");
+      const titulo = tituloML(semMyFrost(prod.titulo_anuncio || prod.descricao));
+      const attrs = (velho.attributes ?? []).filter((a: any) => a?.id && (a.value_id || a.value_name))
+        .map((a: any) => (a.value_id ? { id: a.id, value_id: a.value_id } : { id: a.id, value_name: semMyFrost(a.value_name) }));
+      const corpo: Record<string, unknown> = {
+        title: titulo, family_name: titulo, category_id: velho.category_id, price: velho.price, currency_id: velho.currency_id ?? "BRL",
+        available_quantity: Math.max(1, Number(velho.available_quantity) || 1), buying_mode: velho.buying_mode ?? "buy_it_now",
+        listing_type_id: velho.listing_type_id, condition: velho.condition ?? "new",
+        pictures: (velho.pictures ?? []).map((p: any) => ({ source: p.secure_url || p.url })).filter((p: any) => p.source),
+        attributes: attrs, sale_terms: velho.sale_terms ?? [],
+        shipping: { mode: velho.shipping?.mode, free_shipping: !!velho.shipping?.free_shipping, local_pick_up: false },
+      };
+      let novo: any = null;
+      for (let t = 0; t < 3 && !novo; t++) {
+        try {
+          novo = await chamarML<any>("/items", token, { method: "POST", body: JSON.stringify(corpo), cabecalhos: json });
+        } catch (e) {
+          const campos = e instanceof ErroML ? (/fields?\s*\[([^\]]+)\]\s*(are|is) invalid/i.exec(e.message)?.[1] ?? "").split(/\s*,\s*/) : [];
+          const tirar = campos.filter((c) => c === "title" || c === "family_name");
+          if (!tirar.length) throw e;
+          for (const c of tirar) delete corpo[c];
+        }
+      }
+      const desc = await chamarML<any>(`/items/${id}/description`, token).catch(() => null);
+      if (desc?.plain_text) {
+        await chamarML(`/items/${novo.id}/description`, token, { method: "POST", body: JSON.stringify({ plain_text: semMyFrost(desc.plain_text) }), cabecalhos: json })
+          .catch((e) => r.erros.push({ id: novo.id, erro: `descrição: ${msg(e)}` }));
+      }
+      // o novo, ligado ao mesmo produto; o antigo sai do envio de estoque e preço e é fechado
+      const { data: novoReg } = await db.from("ml_anuncios").insert({ ml_item_id: novo.id, variation_id: "", titulo: novo.title ?? titulo, produto_id: liga.produto_id, ligado_em: new Date().toISOString() }).select("id").single();
+      if (novoReg?.id) await db.from("ml_anuncios_envio").insert({ anuncio_id: novoReg.id, preco_ml: novo.price, estoque_ml: novo.available_quantity, status_ml: novo.status, lido_em: new Date().toISOString() });
+      await db.from("ml_propostas").update({ ml_item_id: novo.id, atualizado_em: new Date().toISOString() }).eq("ml_item_id", id);
+      await chamarML(`/items/${id}`, token, { method: "PUT", body: JSON.stringify({ status: "closed" }), cabecalhos: json });
+      await db.from("ml_anuncios").update({ produto_id: null }).eq("id", liga.id);
+      await db.from("ml_anuncios_envio").update({ status_ml: "closed" }).eq("anuncio_id", liga.id);
+      r.republicados.push({ antigo: id, novo: novo.id, titulo: novo.title ?? titulo });
+      await pausa(300);
+    } catch (e) {
+      if (e instanceof ErroML && e.status === 401) throw e;
+      r.erros.push({ id, erro: msg(e) });
+    }
+  }
+  return r;
+}
