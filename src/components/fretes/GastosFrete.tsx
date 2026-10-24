@@ -49,7 +49,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
 
   const meses = useMemo(() => gastosPorMes(ano, contas, ctes, extrato), [ano, contas, ctes, extrato]);
   const porTransp = useMemo(() => gastosPorTransportadora(contas, ctes), [contas, ctes]);
-  const soma = (k: "contas" | "ctes_sem_conta" | "banco_sem_conta" | "total") => Math.round(meses.reduce((s, m) => s + m[k], 0) * 100) / 100;
+  const soma = (k: "contas" | "ctes_mf_paga" | "ctes_sem_conta" | "banco_sem_conta" | "total") => Math.round(meses.reduce((s, m) => s + m[k], 0) * 100) / 100;
   const qtdCtes = meses.reduce((s, m) => s + m.qtd_ctes, 0);
   const mesesSemCte = meses.filter((m) => m.mes <= new Date().toISOString().slice(0, 7) && !m.qtd_ctes).map((m) => NOMES[Number(m.mes.slice(5)) - 1]);
 
@@ -65,7 +65,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={`Gasto com frete em ${ano}`} valor={brl(soma("total"))} icon={Truck} tom="info" />
         <Stat label="Lançado no contas a pagar" valor={brl(soma("contas"))} icon={Receipt} />
-        <Stat label="CT-e sem conta (falta lançar)" valor={brl(soma("ctes_sem_conta"))} sub={`${qtdCtes} CT-e no ano`} icon={FileText} />
+        <Stat label="CT-e sem conta (falta lançar)" valor={brl(soma("ctes_sem_conta"))} sub={`${qtdCtes} CT-e no ano · ${brl(soma("ctes_mf_paga"))} pagos pela MF`} icon={FileText} />
         <Stat label="Pago no banco sem conta" valor={brl(soma("banco_sem_conta"))} icon={Banknote} />
       </div>
 
@@ -80,7 +80,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-slate-500">
             <th className="py-1">Mês</th><th className="text-right">Contas de frete</th><th className="text-right">Pagas</th><th className="text-right">CT-e</th>
-            <th className="text-right">CT-e sem conta</th><th className="text-right">Banco sem conta</th><th className="text-right">Total</th>
+            <th className="text-right">CT-e MF paga</th><th className="text-right">CT-e sem conta</th><th className="text-right">Banco sem conta</th><th className="text-right">Total</th>
           </tr></thead>
           <tbody>
             {meses.map((m) => (
@@ -89,6 +89,7 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
                 <td className="num text-right">{m.contas ? brl(m.contas) : "—"}</td>
                 <td className="num text-right text-slate-500">{m.contas_pagas ? brl(m.contas_pagas) : "—"}</td>
                 <td className="num text-right">{m.qtd_ctes || "—"}</td>
+                <td className="num text-right text-slate-500">{m.ctes_mf_paga ? brl(m.ctes_mf_paga) : "—"}</td>
                 <td className="num text-right">{m.ctes_sem_conta ? brl(m.ctes_sem_conta) : "—"}</td>
                 <td className="num text-right">{m.banco_sem_conta ? brl(m.banco_sem_conta) : "—"}</td>
                 <td className="num text-right font-semibold">{m.total ? brl(m.total) : "—"}</td>
@@ -117,7 +118,8 @@ export function GastosFrete({ podeImportar }: { podeImportar: boolean }) {
         </section>
       )}
       <p className="text-xs text-slate-500">Contas de frete: categoria "frete" ou descrição de frete, CT-e ou transportadora. Banco sem conta: saídas do extrato para
-        transportadoras sem conta a pagar ligada. CT-e com fatura já estão nas contas, por isso não somam de novo.</p>
+        transportadoras sem conta a pagar ligada. CT-e com fatura já estão nas contas, e os de antes de outubro de 2026 (planilha e e-mail) foram pagos
+        pelas contas importadas: aparecem em "CT-e MF paga" para conferir, sem somar no total.</p>
     </div>
   );
 }
