@@ -1,5 +1,5 @@
-// Cotação de frete por CEP e produtos, nas transportadoras ligadas ao ERP ao mesmo tempo (Melhor Envio, Braspress e
-// Rodonaves), com as regras de frete da loja. Serve a cotação rápida da equipe e o "Calcule o frete" da loja.
+// Cotação de frete por CEP e produtos, nas transportadoras ligadas ao ERP ao mesmo tempo (Mercado Envios pela conta do
+// Mercado Livre, Melhor Envio, Braspress e Rodonaves), com as regras de frete da loja. Serve a cotação rápida da equipe e o "Calcule o frete" da loja.
 // POST { cep, itens: [{ produto_id, quantidade }], cliente_id? }
 //  - equipe (login do ERP): todos os produtos ativos; mostra o custo e o motivo de cada transportadora que não cotou;
 //  - loja (sem login do ERP): só com a loja ligada nas regras, só produtos da loja, até 30 consultas por hora por
@@ -12,6 +12,8 @@ import { aplicarRegras, lerRegras, volumesDosItens, type OpcaoFrete, type Produt
 import { cotarMe, temAcessoMe } from "../_shared/melhorenvio-api.ts";
 import { cotarBp, temAcessoBp } from "../_shared/braspress-api.ts";
 import { cotarRte, temAcessoRte } from "../_shared/rodonaves-api.ts";
+import { chamarML } from "../_shared/mercadolivre.ts";
+import { lerOpcoesMl, pacoteMl } from "../_shared/ml-frete.ts";
 
 const LIMITE_HORA = 30;
 const MAX_ITENS = 20;
@@ -32,6 +34,15 @@ async function clienteDaLoja(req: Request, db: ReturnType<typeof adminClient>) {
   const { data } = await db.from("loja_clientes").select("cliente_id, clientes(cpf_cnpj)").eq("user_id", user.id).maybeSingle();
   const doc = (data as { clientes?: { cpf_cnpj?: string | null } | null } | null)?.clientes?.cpf_cnpj ?? null;
   return { user_id: user.id, cliente_id: (data as { cliente_id?: string } | null)?.cliente_id ?? null, doc: onlyDigits(doc) };
+}
+
+/** Conta do Mercado Livre ligada e com o token em dia (a rotina do Mercado Livre renova a cada 5 minutos). */
+async function acessoMl(db: ReturnType<typeof adminClient>) {
+  const { data: conta } = await db.from("ml_contas").select("ml_user_id, token_expira_em").eq("status", "ativa").limit(1).maybeSingle();
+  if (!conta?.ml_user_id || new Date(conta.token_expira_em ?? 0).getTime() < Date.now() + 60_000) return null;
+  const { data } = await db.rpc("ml_segredos");
+  const token = (data as { ml_access_token?: string } | null)?.ml_access_token;
+  return token ? { usuario: conta.ml_user_id as number, token } : null;
 }
 
 async function cidadeDoCep(cep: string) {
@@ -98,6 +109,11 @@ Deno.serve(async (req) => {
     if (carga.volumes.length && !carga.faltam.length && un?.cep) {
       const dados = { cep_origem: un.cep, cep_destino: cep, valor_mercadoria: carga.valor_produtos, peso_total_kg: carga.peso_total, volumes: carga.volumes, modalidade: "cif" };
       const tarefas: [string, Promise<void>][] = [];
+      const ml = await acessoMl(db);
+      const pacote = pacoteMl(carga.volumes);
+      if (ml && pacote) tarefas.push(["Mercado Envios", chamarML(`/users/${ml.usuario}/shipping_options?zip_code=${cep}&dimensions=${pacote}&item_price=${carga.valor_produtos.toFixed(2)}`, ml.token).then((r) => {
+        for (const o of lerOpcoesMl(r)) opcoes.push({ id: `ml:${o.metodo}`, transportadora: "Mercado Envios", servico: o.servico, prazo: o.prazo, valor: o.valor });
+      })]);
       if (temAcessoMe()) tarefas.push(["Melhor Envio", cotarMe(dados).then((r) => {
         for (const s of r.servicos) opcoes.push({ id: `me:${s.servico_id ?? s.servico}`, transportadora: s.empresa, servico: s.servico, prazo: s.prazo, valor: s.valor });
       })]);
@@ -106,7 +122,7 @@ Deno.serve(async (req) => {
         else if (equipe) avisos.push("Braspress: escolha o cliente (a Braspress pede o CPF/CNPJ de quem recebe)");
       }
       if (temAcessoRte() && un.cnpj) tarefas.push(["Rodonaves", cotarRte(dados, un.cnpj).then((r) => { opcoes.push({ id: "rte", transportadora: "Rodonaves", servico: null, prazo: r.prazo, valor: r.valor }); })]);
-      if (!tarefas.length) avisos.push("Nenhuma transportadora ligada: cadastre os acessos (Melhor Envio, Braspress, Rodonaves) nos secrets do Supabase");
+      if (!tarefas.length) avisos.push("Nenhuma transportadora ligada: conecte o Mercado Livre ou cadastre os acessos (Melhor Envio, Braspress, Rodonaves) nos secrets do Supabase");
       const fim = await Promise.allSettled(tarefas.map(([, t]) => t));
       fim.forEach((f, i) => { if (f.status === "rejected") avisos.push(`${tarefas[i][0]}: ${(f.reason as Error).message}`); });
     }
