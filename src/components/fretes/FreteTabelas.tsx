@@ -137,10 +137,16 @@ function TabelaEditor({ tabela, transportadoras, podeEditar, onClose }: { tabela
       const aviso = erros.length ? ` ${erros.length} linha(s) ficam de fora (${erros.slice(0, 3).join("; ")}${erros.length > 3 ? "…" : ""}).` : "";
       if (!(await confirmar(`Trocar os ${destinos.length} destinos desta tabela pelos ${novos.length} da planilha?${aviso}`, { ok: "Trocar destinos" }))) return;
       setSalvando(true);
-      const { error: e1 } = await supabase.from("frete_tabela_destinos").delete().eq("tabela_id", id);
-      if (e1) throw e1;
+      // grava os novos antes de apagar os antigos: se parar no meio, os antigos continuam e importar de novo acerta
+      const { data: antigos, error: e0 } = await supabase.from("frete_tabela_destinos").select("id").eq("tabela_id", id).limit(20000);
+      if (e0) throw e0;
       for (let i = 0; i < novos.length; i += 500) {
         const { error } = await supabase.from("frete_tabela_destinos").insert(novos.slice(i, i + 500).map((d) => ({ ...d, tabela_id: id })));
+        if (error) throw error;
+      }
+      const velhos = (antigos ?? []).map((a) => a.id);
+      for (let i = 0; i < velhos.length; i += 200) {
+        const { error } = await supabase.from("frete_tabela_destinos").delete().in("id", velhos.slice(i, i + 200));
         if (error) throw error;
       }
       notify(`${novos.length} destinos gravados`);
