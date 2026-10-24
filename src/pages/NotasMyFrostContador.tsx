@@ -1,4 +1,5 @@
 // My Frost (empresa anterior), só a conta master (Retaguarda), à parte da MF:
+// - Painel: a primeira aba, com os números de relance (vendas por ano, máquinas, negociado × nota, fretes e protestos).
 // - Notas fiscais para o contador: resumo por ano e por grupo (vendas, remessas, devoluções, estornos e canceladas), a lista
 //   das notas e a planilha para mandar a ele. Vem do backup de XML da My Frost (notas_legado).
 // - Propostas de compra: as propostas do Tiny da My Frost, guardadas aqui (em Vendas ficam só as da MF). Continuam ligadas
@@ -11,6 +12,7 @@ import { Button, Card, PageHeader, Table, Tabs } from "@/components/ui";
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { Anexos, ID_MY_FROST } from "@/components/Anexos";
 import { FretesProtestosMyFrost } from "@/components/myfrost/FretesProtestosMyFrost";
+import { PainelMyFrost } from "@/components/myfrost/PainelMyFrost";
 import { ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -24,13 +26,13 @@ const COR: Record<Grupo, string> = {
 };
 
 export default function NotasMyFrostContador() {
-  const [vista, setVista] = useState<"notas" | "propostas" | "fretes" | "documentos">("notas");
+  const [vista, setVista] = useState<"painel" | "notas" | "propostas" | "fretes" | "documentos">("painel");
   return (
     <div>
       <PageHeader title="My Frost (empresa anterior)"
         subtitle="CNPJ 32.584.697/0001-81. Notas fiscais e propostas de compra da My Frost, guardadas à parte da MF. Os clientes são os mesmos: na ficha do cliente aparece tudo junto." />
-      <Tabs value={vista} onChange={setVista} options={[{ value: "notas", label: "Notas fiscais (contador)" }, { value: "propostas", label: "Propostas de compra" }, { value: "fretes", label: "Fretes e protestos" }, { value: "documentos", label: "Documentos" }]} />
-      {vista === "notas" ? <NotasContador /> : vista === "propostas" ? <PropostasTiny empresaFixa="my_frost" />
+      <Tabs value={vista} onChange={setVista} options={[{ value: "painel", label: "Painel" }, { value: "notas", label: "Notas fiscais (contador)" }, { value: "propostas", label: "Propostas de compra" }, { value: "fretes", label: "Fretes e protestos" }, { value: "documentos", label: "Documentos" }]} />
+      {vista === "painel" ? <PainelMyFrost onAbrir={setVista} /> : vista === "notas" ? <NotasContador /> : vista === "propostas" ? <PropostasTiny empresaFixa="my_frost" />
         : vista === "fretes" ? <FretesProtestosMyFrost />
         : <Anexos entidade="my_frost" id={ID_MY_FROST} titulo="Documentos da My Frost (contabilidade, guias, parcelamentos, balanços)" />}
     </div>
