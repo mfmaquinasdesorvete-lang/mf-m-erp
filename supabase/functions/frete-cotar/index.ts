@@ -1,5 +1,5 @@
 // Cotação de frete por CEP e produtos, nas transportadoras ligadas ao ERP ao mesmo tempo (Mercado Envios pela conta do
-// Mercado Livre, Melhor Envio, Braspress e Rodonaves), com as regras de frete da loja. Serve a cotação rápida da equipe e o "Calcule o frete" da loja.
+// Mercado Livre, Melhor Envio, Braspress e Rodonaves, e as tabelas de frete negociadas das que não têm API), com as regras de frete da loja. Serve a cotação rápida da equipe e o "Calcule o frete" da loja.
 // POST { cep, itens: [{ produto_id, quantidade }], cliente_id? }
 //  - equipe (login do ERP): todos os produtos ativos; mostra o custo e o motivo de cada transportadora que não cotou;
 //  - loja (sem login do ERP): só com a loja ligada nas regras, só produtos da loja, até 30 consultas por hora por
@@ -14,6 +14,7 @@ import { cotarBp, temAcessoBp } from "../_shared/braspress-api.ts";
 import { cotarRte, temAcessoRte } from "../_shared/rodonaves-api.ts";
 import { chamarML } from "../_shared/mercadolivre.ts";
 import { lerOpcoesMl, pacoteMl } from "../_shared/ml-frete.ts";
+import { cotarPelaTabela, type DestinoTabela, type TabelaFrete } from "../_shared/frete-tabela.ts";
 
 const LIMITE_HORA = 30;
 const MAX_ITENS = 20;
@@ -43,6 +44,20 @@ async function acessoMl(db: ReturnType<typeof adminClient>) {
   const { data } = await db.rpc("ml_segredos");
   const token = (data as { ml_access_token?: string } | null)?.ml_access_token;
   return token ? { usuario: conta.ml_user_id as number, token } : null;
+}
+
+/** Tabelas de frete vigentes da unidade de origem, com os destinos do estado do CEP. */
+async function tabelasVigentes(db: ReturnType<typeof adminClient>, unidadeId: string, uf: string) {
+  const hoje = new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10);
+  const { data: tabs } = await db.from("frete_tabelas").select("*, transportadoras(nome, nome_fantasia)").eq("ativo", true)
+    .or(`unidade_id.is.null,unidade_id.eq.${unidadeId}`).or(`vigencia_inicio.is.null,vigencia_inicio.lte.${hoje}`).or(`vigencia_fim.is.null,vigencia_fim.gte.${hoje}`);
+  if (!tabs?.length) return [];
+  const { data: dests } = await db.from("frete_tabela_destinos").select("*").in("tabela_id", tabs.map((t) => t.id)).eq("uf", uf).limit(20000);
+  return tabs.map((t) => {
+    const tr = (t as { transportadoras?: { nome?: string; nome_fantasia?: string | null } | null }).transportadoras;
+    const tabela = { ...t, transportadora: tr?.nome_fantasia || tr?.nome || t.nome } as unknown as TabelaFrete;
+    return { tabela, destinos: (dests ?? []).filter((d) => d.tabela_id === t.id) as unknown as DestinoTabela[] };
+  });
 }
 
 async function cidadeDoCep(cep: string) {
@@ -122,7 +137,14 @@ Deno.serve(async (req) => {
         else if (equipe) avisos.push("Braspress: escolha o cliente (a Braspress pede o CPF/CNPJ de quem recebe)");
       }
       if (temAcessoRte() && un.cnpj) tarefas.push(["Rodonaves", cotarRte(dados, un.cnpj).then((r) => { opcoes.push({ id: "rte", transportadora: "Rodonaves", servico: null, prazo: r.prazo, valor: r.valor }); })]);
-      if (!tarefas.length) avisos.push("Nenhuma transportadora ligada: conecte o Mercado Livre ou cadastre os acessos (Melhor Envio, Braspress, Rodonaves) nos secrets do Supabase");
+      if (destino?.uf) {
+        for (const { tabela, destinos } of await tabelasVigentes(db, un.id, destino.uf)) {
+          const r = cotarPelaTabela(tabela, destinos, { volumes: carga.volumes, peso_kg: carga.peso_total, valor_nf: carga.valor_produtos }, { cep, cidade: destino.cidade, uf: destino.uf }, un.uf ?? "");
+          if (r) opcoes.push({ id: `tab:${tabela.id}`, transportadora: tabela.transportadora, servico: null, prazo: r.prazo, valor: r.valor });
+          else if (equipe && destinos.length) avisos.push(`${tabela.transportadora}: a tabela "${tabela.nome}" não tem preço para ${carga.peso_total} kg nesse destino`);
+        }
+      }
+      if (!tarefas.length && !opcoes.length) avisos.push("Nenhuma transportadora ligada: conecte o Mercado Livre ou cadastre os acessos (Melhor Envio, Braspress, Rodonaves) nos secrets do Supabase");
       const fim = await Promise.allSettled(tarefas.map(([, t]) => t));
       fim.forEach((f, i) => { if (f.status === "rejected") avisos.push(`${tarefas[i][0]}: ${(f.reason as Error).message}`); });
     }

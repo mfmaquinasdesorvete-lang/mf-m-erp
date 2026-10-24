@@ -3,6 +3,7 @@
 // completa de envios.
 import { CotacaoRapida } from "@/components/fretes/CotacaoRapida";
 import { FreteRegras } from "@/components/fretes/FreteRegras";
+import { FreteTabelas } from "@/components/fretes/FreteTabelas";
 import { GastosFrete } from "@/components/fretes/GastosFrete";
 import { PesoMedidas } from "@/components/fretes/PesoMedidas";
 import { useMemo, useState } from "react";
@@ -70,7 +71,7 @@ export default function Fretes() {
   const podeEditar = pode("cotar_frete") || pode("editar_financeiro");
   const { filtrar } = useUnidade();
   const invalidar = useInvalidate();
-  const [aba, setAba] = useAbaUrl<"painel" | "cotacao" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas" | "gastos" | "medidas" | "regras">("painel", ["painel", "cotacao", "rastreio", "indicadores", "envios", "cte", "faturas", "gastos", "medidas", "regras"] as const);
+  const [aba, setAba] = useAbaUrl<"painel" | "cotacao" | "rastreio" | "indicadores" | "envios" | "cte" | "faturas" | "gastos" | "medidas" | "tabelas" | "regras">("painel", ["painel", "cotacao", "rastreio", "indicadores", "envios", "cte", "faturas", "gastos", "medidas", "tabelas", "regras"] as const);
   const [filtros, setFiltros] = useState<FiltrosPainel>({});
   const [mes, setMes] = useState(mesAtual);
   const [indicador, setIndicador] = useState<string | null>(null);
@@ -158,11 +159,12 @@ export default function Fretes() {
 
       <Tabs value={aba} onChange={(v) => { setAba(v); setIndicador(null); }}
         options={[{ value: "painel", label: "Painel" }, { value: "cotacao", label: "Cotação rápida" }, { value: "rastreio", label: rastreio.atencao ? `Rastreio (${rastreio.atencao})` : "Rastreio" }, { value: "indicadores", label: "Indicadores do mês" }, { value: "envios", label: `Envios (${envios.length})` },
-          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }, { value: "gastos", label: "Gastos com frete" }, { value: "medidas", label: "Peso e medidas" }, { value: "regras", label: "Regras de frete" }]} />
+          { value: "cte", label: "CT-e" }, { value: "faturas", label: "Faturas de frete" }, { value: "gastos", label: "Gastos com frete" }, { value: "medidas", label: "Peso e medidas" }, { value: "tabelas", label: "Tabelas de frete" }, { value: "regras", label: "Regras de frete" }]} />
 
       {aba === "cotacao" && <CotacaoRapida />}
       {aba === "gastos" && <GastosFrete podeImportar={podeEditar} />}
       {aba === "medidas" && <PesoMedidas podeEditar={podeEditar} />}
+      {aba === "tabelas" && <FreteTabelas transportadoras={transportadoras} podeEditar={podeEditar} />}
       {aba === "regras" && <FreteRegras />}
 
       {aba === "rastreio" && <RastreioEntregas envios={envios} transportadoras={transportadoras} podeEditar={podeEditar}
@@ -171,7 +173,7 @@ export default function Fretes() {
       {aba === "faturas" && <CteFaturas transportadoras={transportadoras} />}
 
       {/* filtros compactos: botão de data e botão "Filtros" (os campos só aparecem ao tocar) */}
-      {aba !== "cte" && aba !== "faturas" && aba !== "rastreio" && aba !== "cotacao" && aba !== "gastos" && aba !== "medidas" && aba !== "regras" && (
+      {aba !== "cte" && aba !== "faturas" && aba !== "rastreio" && aba !== "cotacao" && aba !== "gastos" && aba !== "medidas" && aba !== "tabelas" && aba !== "regras" && (
         <BarraFiltros
           periodo={aba === "indicadores" ? undefined : { de: filtros.de ?? "", ate: filtros.ate ?? "" }}
           onPeriodo={aba === "indicadores" ? undefined : (p) => setFiltros({ ...filtros, de: p.de || undefined, ate: p.ate || undefined })}
