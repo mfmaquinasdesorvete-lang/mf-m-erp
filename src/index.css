@@ -243,6 +243,8 @@ h1, h2, h3 { text-wrap: balance; }
   /* botão sobre fundo escuro ou colorido (avisos, painéis escuros, apps do celular): vidro branco */
   .botao-claro { @apply inline-flex shrink-0 items-center justify-center gap-1.5 rounded-botao bg-white/15 font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-50; }
   /* linha de lista que abre algo ao tocar (cliente, conta, item) */
+  /* cartão, bolinha ou número que se toca (resumos do Início, acesso rápido, equipe): encolhe de leve ao tocar */
+  .botao-toque { @apply transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50; }
   .linha-clicavel { @apply w-full rounded-botao text-left transition hover:bg-slate-50; }
   /* chips/abas de filtro: no celular uma linha só que rola para o lado (antes quebravam em 3 ou 4 linhas no topo) */
   .faixa-chips {

@@ -42,7 +42,7 @@ function botoes(txt: string) {
   return achados;
 }
 /** As peças únicas de botão (src/index.css e ui.tsx) */
-const PECA = /\b(botao-icone|botao-icone-perigo|link-acao|link-modulo|link-discreto|botao-mini|botao-claro|chip|linha-clicavel|cartao|btn)\b|chip\(|classeChip\(|CLASSE_BOTAO/;
+const PECA = /\b(botao-icone|botao-icone-perigo|link-acao|link-modulo|link-discreto|botao-mini|botao-claro|botao-toque|chip|linha-clicavel|cartao|btn)\b|chip\(|classeChip\(|CLASSE_BOTAO/;
 
 describe("design system", () => {
   it("lê as telas", () => {

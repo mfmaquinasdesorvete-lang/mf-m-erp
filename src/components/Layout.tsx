@@ -236,7 +236,7 @@ export function Layout() {
           menu à esquerda, marca e, à direita, unidade, e-mail e sino — tudo nas cores do tema (claro e escuro) */}
       <header className="sticky top-0 z-30 flex items-center gap-1 border-b border-slate-200/70 bg-surface/90 px-2 py-1.5 backdrop-blur-xl md:hidden" style={{ paddingTop: "max(0.375rem, env(safe-area-inset-top, 0px))" }}>
         <button onClick={() => setAberto(!aberto)} aria-label={aberto ? "Fechar menu" : "Abrir menu"}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-700 transition hover:bg-slate-100">
+          className="botao-icone h-10 w-10 rounded-full text-slate-700">
           {aberto ? <X size={22} /> : <Menu size={22} />}
         </button>
         <Marca compacta claro onIr={() => setAberto(false)} />

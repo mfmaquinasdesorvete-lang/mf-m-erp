@@ -38,7 +38,7 @@ export function AnotarPorVoz() {
       {/* ajuda de IA (24/10): o bonequinho com o nome "Ajuda IA" ao lado; o nome aparece ao abrir a tela e some depois
           de uns segundos para não tapar a tela (volta ao passar o mouse) */}
       <button type="button" onClick={() => setAberto(true)} aria-label="Ajuda de IA: anotar ou perguntar por voz" title="Ajuda de IA: anotar ou perguntar por voz"
-        className="group fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-3 z-gaveta flex items-center rounded-full border border-slate-200 bg-surface p-1 shadow-pop transition hover:scale-[1.03] active:scale-95 md:bottom-20 md:right-5">
+        className="botao-toque group fixed bottom-[calc(100px+env(safe-area-inset-bottom,0px))] right-3 z-gaveta flex items-center rounded-full border border-slate-200 bg-surface p-1 shadow-pop hover:scale-[1.03] md:bottom-20 md:right-5">
         <span className={`overflow-hidden whitespace-nowrap text-xs font-bold text-fg transition-all duration-300 group-hover:max-w-24 group-hover:pl-2.5 group-hover:pr-1.5 ${rotulo ? "max-w-24 pl-2.5 pr-1.5" : "max-w-0"}`}>
           Ajuda IA
         </span>

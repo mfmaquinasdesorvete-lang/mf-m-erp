@@ -7,7 +7,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Bell, BellRing, Bot, Check, FileSignature, Mail, Megaphone, Reply, Send, ShoppingBag, Siren, Speaker, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, Bot, Check, CheckCheck, ChevronLeft, ChevronRight, FileSignature, Mail, Megaphone, Reply, Send, ShoppingBag, Siren, Speaker, Volume2, VolumeX, Wallet, X, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { usePerfil } from "@/lib/auth";
 import { notify, notifyError } from "@/lib/notify";
@@ -73,6 +73,7 @@ const vozLigada = () => { try { return localStorage.getItem(CHAVE_VOZ) !== "off"
 
 /** Som dos avisos dos chats do Claude: um carrilhão que sobe e desce (diferente dos outros avisos). */
 export function tocarClaude() {
+  if (!somLigado()) return; // "Desligar o som" na janela do aviso também cala o carrilhão dos chats
   try {
     const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
     const notas = [523, 659, 784, 1047, 784, 1047];
@@ -288,6 +289,17 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     }
     if (abrirLink && n.link) { setPainel(false); irPara(n.link); }
   }
+  // controle da fila do meio da tela (24/10): passar para o próximo ou o anterior sem fechar, e "Ciente em todos"
+  const proximo = () => setCentro((c) => (c.length > 1 ? [...c.slice(1), c[0]] : c));
+  const anterior = () => setCentro((c) => (c.length > 1 ? [c[c.length - 1], ...c.slice(0, -1)] : c));
+  async function cienteEmTodos() {
+    const todosAvisos = centro;
+    setCentro([]);
+    const erros = (await Promise.all(todosAvisos.filter((n) => n.exige_ciencia)
+      .map((n) => supabase.rpc("ciente_aviso", { p_id: n.id })))).filter((r) => r.error);
+    if (erros.length) notifyError(erros[0].error);
+    qc.invalidateQueries({ queryKey: ["notificacoes_ciencia"] });
+  }
   function alternarVoz() {
     const nova = !voz;
     try { localStorage.setItem(CHAVE_VOZ, nova ? "on" : "off"); } catch { /* sem armazenamento */ }
@@ -349,7 +361,13 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
               <div className={`bg-gradient-to-br ${nv.faixa} px-5 pb-4 pt-5 text-white`}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider"><nv.icon size={15} /> {nv.rotulo}</span>
-                  {centro.length > 1 && <span className="text-xs font-semibold text-white/85">1 de {centro.length}</span>}
+                  {centro.length > 1 && (
+                    <span className="flex items-center gap-0.5 text-xs font-semibold text-white/85">
+                      <button type="button" onClick={anterior} aria-label="Aviso anterior" className="botao-claro h-7 w-7 rounded-full"><ChevronLeft size={16} /></button>
+                      <span className="num px-1">1 de {centro.length}</span>
+                      <button type="button" onClick={proximo} aria-label="Próximo aviso" className="botao-claro h-7 w-7 rounded-full"><ChevronRight size={16} /></button>
+                    </span>
+                  )}
                 </div>
                 <h2 id="aviso-titulo" className="mt-3 text-xl font-bold leading-tight [overflow-wrap:anywhere]">{atual.titulo}</h2>
                 <p className="mt-1 text-sm text-white/85">{atual.remetente_nome ? `De ${atual.remetente_nome} · ` : ""}{new Date(atual.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
@@ -362,8 +380,18 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
                   {respondivel(atual) && <Button variant="secondary" onClick={() => { ciente(atual); setResponderA(atual); }}><Reply size={16} /> Responder</Button>}
                   <Button onClick={() => ciente(atual)} autoFocus><Check size={16} /> Ciente</Button>
                 </div>
-                {urgente && <p className="text-center text-xs text-slate-500">O som repete até você clicar em Ciente.</p>}
-                {claude && <p className="text-center text-xs text-slate-500">O som repete a cada 30 segundos até você clicar em Ciente.</p>}
+                {centro.length > 1 && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                    <span className="text-xs text-slate-500">Mais {centro.length - 1} {centro.length === 2 ? "aviso" : "avisos"} esperando</span>
+                    <Button variant="secondary" tamanho="mini" onClick={cienteEmTodos}><CheckCheck size={14} /> Ciente em todos ({centro.length})</Button>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-slate-500">
+                  {(urgente || claude) && <span>{urgente ? "O som de urgente repete até você clicar em Ciente." : !som ? "Som desligado." : "O som repete a cada 30 segundos até você clicar em Ciente."}</span>}
+                  <button type="button" onClick={alternarSom} className="link-discreto inline-flex items-center gap-1">
+                    {som ? <><VolumeX size={13} /> Desligar o som</> : <><Volume2 size={13} /> Ligar o som</>}
+                  </button>
+                </div>
               </div>
             </div>
             </div>
@@ -632,7 +660,7 @@ export function Sino({ claro }: { claro?: boolean }) {
   const { naoVistas, abrirPainel } = useNotificacoes();
   return (
     <button type="button" onClick={abrirPainel} aria-label={naoVistas ? `${naoVistas} notificações novas` : "Notificações"}
-      className={`relative grid h-9 w-9 place-items-center rounded-full ${claro ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"}`}>
+      className={`botao-icone relative h-9 w-9 rounded-full ${claro ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"}`}>
       <Bell size={19} />
       {naoVistas > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-solido-vermelho px-1 text-2xs font-bold text-white">{naoVistas > 9 ? "9+" : naoVistas}</span>}
     </button>

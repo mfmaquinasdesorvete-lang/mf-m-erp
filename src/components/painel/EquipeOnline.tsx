@@ -66,7 +66,7 @@ export function EquipeOnline() {
               <button type="button" onClick={() => navigate("/usuarios")}
                 title={`${p.nome}: ${p.on ? `online há ${p.min != null ? tempo(p.min) : "—"}${p.dispositivo ? ` · ${p.dispositivo}` : ""}` : p.min == null ? "nunca entrou" : `saiu há ${tempo(p.min)}`}`}
                 aria-label={`${p.nome}, ${p.on ? "online" : "offline"}, ${quando}`}
-                className={`flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 transition hover:bg-slate-50 ${p.on ? "border-emerald-200 bg-surface" : "border-slate-200 bg-surface opacity-70"}`}>
+                className={`botao-toque flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 transition hover:bg-slate-50 ${p.on ? "border-emerald-200 bg-surface" : "border-slate-200 bg-surface opacity-70"}`}>
                 <span className="relative">
                   <FotoUsuario nome={p.nome} foto={p.foto} tamanho={22} className="bg-slate-200 text-slate-600" />
                   <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-surface ${p.on ? "bg-fixo-emerald-500" : "bg-fixo-slate-400"}`} aria-hidden />

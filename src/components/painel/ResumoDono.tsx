@@ -78,7 +78,7 @@ export function ResumoDono() {
       <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-5 sm:gap-2">
         {itens.map((x, i) => (
           <button key={x.rotulo} type="button" onClick={() => navigate(x.to, { state: x.state })} title={`${x.rotulo}: ${brl(x.valor)} (${x.dica})`}
-            className={`flex min-w-0 flex-col items-center gap-1 rounded-cartao bg-white/10 px-1 py-2 text-center transition hover:bg-white/15 active:scale-95 sm:col-span-1 ${i < 3 ? "col-span-2" : "col-span-3"}`}>
+            className={`botao-toque flex min-w-0 flex-col items-center gap-1 rounded-cartao bg-white/10 px-1 py-2 text-center hover:bg-white/15 sm:col-span-1 ${i < 3 ? "col-span-2" : "col-span-3"}`}>
             <x.icone size={18} className={x.tom ?? "text-white/85"} aria-hidden />
             <span className="num max-w-full truncate text-base font-bold leading-tight sm:text-lg"><span className="mr-0.5 text-2xs font-semibold text-white/80">R$</span>{curto(x.valor)}</span>
             <span className="line-clamp-2 text-2xs leading-tight text-white/85 sm:text-xs">{x.rotulo}</span>

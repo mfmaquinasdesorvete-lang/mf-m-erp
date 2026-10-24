@@ -450,7 +450,7 @@ function ResumoCelular({ titulo, periodo, onPeriodo, itens, onAbrir }: {
       <div className="grid grid-flow-col auto-cols-fr divide-x divide-white/15">
         {itens.map((c) => (
           <button key={c.id} type="button" onClick={() => onAbrir(c)} title={c.sub ? `${c.label}: ${c.valor} · ${c.sub}` : `${c.label}: ${c.valor}`}
-            className="flex min-w-0 flex-col items-center gap-1 rounded-cartao px-1 py-1.5 text-center transition active:scale-95 active:bg-white/10">
+            className="botao-toque flex min-w-0 flex-col items-center gap-1 rounded-cartao px-1 py-1.5 text-center active:bg-white/10">
             <c.icon size={19} className="text-white/85" aria-hidden />
             <span className="num max-w-full truncate text-base font-bold leading-tight">{c.moeda && <span className="mr-0.5 text-2xs font-semibold text-white/80">R$</span>}{c.curto ?? c.valor}</span>
             <span className="line-clamp-2 text-2xs leading-tight text-white/85">{c.label}</span>
@@ -467,7 +467,7 @@ function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: 
   const subiu = (c.delta ?? 0) >= 0;
   return (
     <button onClick={onClick} style={estiloBrilho(c.cor)}
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-cartao border p-3 text-left transition hover:-translate-y-0.5 active:scale-[.98] sm:min-h-[132px] sm:rounded-2xl sm:p-5">
+      className="botao-toque group relative flex min-w-0 flex-col overflow-hidden rounded-cartao border p-3 text-left hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-2xl sm:p-5">
       <Luz cor={c.cor} />
       <span className="flex items-center gap-2 sm:items-start sm:justify-between">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg sm:order-2 sm:h-11 sm:w-11 sm:rounded-xl"
@@ -495,7 +495,7 @@ function KpiCard({ c, anterior, onClick }: { c: Kpi; anterior: string; onClick: 
 function Mini({ icon: Icon, cor, label, valor, sub, onClick }: { icon: LucideIcon; cor: string; label: string; valor: number | string; sub?: string; onClick: () => void }) {
   return (
     <button onClick={onClick} title={sub ? `${label} · ${sub}` : label}
-      className="flex min-w-0 flex-col items-center gap-1 rounded-cartao border border-slate-100 px-1 py-2 text-center transition hover:border-slate-200 hover:bg-slate-50 active:scale-[.97] sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-x-2.5 sm:gap-y-1 sm:p-3 sm:text-left">
+      className="botao-toque flex min-w-0 flex-col items-center gap-1 rounded-cartao border border-slate-100 px-1 py-2 text-center hover:border-slate-200 hover:bg-slate-50 sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-x-2.5 sm:gap-y-1 sm:p-3 sm:text-left">
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg sm:h-9 sm:w-9 sm:rounded-xl" style={{ background: `color-mix(in srgb, ${cor} 16%, transparent)`, color: cor }}><Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" /></span>
       <span className="num block max-w-full truncate text-base font-bold leading-none text-fg sm:text-xl">{valor}</span>
       <span className="line-clamp-2 block text-2xs leading-tight text-slate-600 sm:col-span-2 sm:text-xs sm:leading-snug">{label}<span className="hidden sm:inline">{sub ? ` · ${sub}` : ""}</span></span>
