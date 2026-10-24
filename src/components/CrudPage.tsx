@@ -104,6 +104,8 @@ type Props<T> = {
   formulario?: (registro: Record<string, any>, fechar: () => void) => ReactNode;
   /** Celular: cartão próprio no lugar da tabela empilhada (os botões e a seleção o CrudPage põe). */
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
+  /** Cor de fundo da linha e do cartão (ex.: clientes de uma rede, com uma cor fraquinha). */
+  fundoLinha?: (row: T) => string | undefined;
   /** Os cartões também no computador (em colunas, como um guia), no lugar da tabela; sem o rodapé de Editar (tocar abre). */
   cartoesNoPc?: boolean;
   /** Cadastro novo passo a passo (onboarding): cada seção do formulário vira um passo, com Voltar/Próximo e o
@@ -488,7 +490,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
           {!isLoading && filtrados.length === 0 && !avisoBusca && <p className="cartao p-8 text-center text-sm text-slate-500">Nenhum registro encontrado.</p>}
           <ul className={props.cartoesNoPc ? "grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" : "space-y-2"}>
             {filtrados.slice(0, limite).map((row) => (
-              <li key={row.id} className={`relative flex flex-col rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}>
+              <li key={row.id} className={`relative flex flex-col rounded-2xl border border-l-4 bg-surface p-3 shadow-card ${sel.has(row.id) ? "border-brand bg-brand-light/40" : "border-slate-200 border-l-modulo"}`}
+                style={!sel.has(row.id) && props.fundoLinha?.(row) ? { background: props.fundoLinha(row) } : undefined}>
                 {selecionavel && (
                   <input type="checkbox" className="absolute right-3 top-3 h-5 w-5" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" />
                 )}
@@ -522,7 +525,8 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
         </>}
       >
         {filtrados.map((row) => (
-          <tr key={row.id} className={`hover:bg-slate-50 ${sel.has(row.id) ? "bg-brand-light/40" : ""}`}>
+          <tr key={row.id} className={`hover:bg-slate-50 ${sel.has(row.id) ? "bg-brand-light/40" : ""}`}
+            style={!sel.has(row.id) && props.fundoLinha?.(row) ? { background: props.fundoLinha(row) } : undefined}>
             {selecionavel && (
               <td className="td sel w-10"><input type="checkbox" className="h-4 w-4" checked={sel.has(row.id)} onChange={() => marcar(row.id)} aria-label="Selecionar" /></td>
             )}

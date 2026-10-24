@@ -18,6 +18,7 @@ import { comprasDoCliente, produtosDoCliente, resumoCliente, ROTULO_SITUACAO, su
 import { textoVenda } from "@/lib/garantia";
 import { EtiquetaMaquina, MaquinasCliente } from "@/components/clientes/MaquinasCliente";
 import { BlocoFicha } from "@/components/clientes/BlocoFicha";
+import { ClientesDaRede, SelosRede, useRedes } from "@/components/clientes/RedeCliente";
 import { PainelFicha } from "@/components/clientes/PainelFicha";
 import type { Cliente } from "@/lib/types";
 import { ReceitaCliente } from "@/components/clientes/QualidadeClientes";
@@ -116,6 +117,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
   }, [data, dia]);
 
   const nome = c.nome_fantasia?.trim() || c.nome;
+  const redes = useRedes()(c);
   return (
     <Modal open onClose={onClose} title={`Ficha 360 · ${nome}`} wide>
       {responder && <ResponderWhatsApp cliente={c} onClose={() => setResponder(false)} />}
@@ -138,6 +140,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
               )}
             </div>
           )}
+          <SelosRede redes={redes} />
           {data && <MaquinasCliente maquinas={data.equipamentos} compra={c.compra_maquina_em} max={8} />}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
@@ -173,7 +176,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar a ficha: {(error as Error).message}</p>}
       {data && calc && (
         <>
-          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} compras={calc.compras} equipamentos={data.equipamentos} dia={dia} />}
+          {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} compras={calc.compras} equipamentos={data.equipamentos} dia={dia} redes={redes} />}
           {aba === "maquinas" && <MaquinasComprasFicha clienteId={c.id} equipamentos={data.equipamentos} notas={data.notas} pedidos={data.pedidos} propostasTiny={data.propostasTiny} oss={data.oss} />}
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
@@ -190,9 +193,9 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 const corSituacao = (tom: "bom" | "ruim" | "atencao" | undefined, assunto: CorCartao): CorCartao =>
   tom === "ruim" ? "vermelho" : tom === "atencao" ? "ambar" : tom === "bom" ? "verde" : assunto;
 
-function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
+function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia, redes }: {
   c: Cliente; r: ReturnType<typeof resumoCliente>; sugestoes: ReturnType<typeof sugestoesCliente>; pedidos: any[];
-  compras: ReturnType<typeof comprasDoCliente>; equipamentos: any[]; dia: string;
+  compras: ReturnType<typeof comprasDoCliente>; equipamentos: any[]; dia: string; redes: ReturnType<ReturnType<typeof useRedes>>;
 }) {
   const { pode } = usePerfil();
   const invalidate = useInvalidate();
@@ -226,6 +229,8 @@ function Resumo({ c, r, sugestoes, pedidos, compras, equipamentos, dia }: {
       </div>
 
       <ReceitaCliente c={c} />
+
+      <ClientesDaRede clienteId={c.id} redes={redes} />
 
       <BlocoFicha titulo="O que fazer com este cliente" icone={Lightbulb} cor="laranja" n={sugestoes.length || undefined}>
         {!sugestoes.length ? <p className="text-sm text-slate-500">Nada pendente: cliente em dia.</p> : (

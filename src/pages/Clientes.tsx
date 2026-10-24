@@ -26,6 +26,8 @@ import { confirmar } from "@/components/Dialogos";
 import { notifyError } from "@/lib/notify";
 import { cnpjValido } from "@/lib/compliance";
 import { ehLicenciado, tagsComLicenciado } from "@/components/clientes/Licenciado";
+import { SelosRede, useRedes } from "@/components/clientes/RedeCliente";
+import { fundoRede } from "@/lib/redesClientes";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
 const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
@@ -135,6 +137,7 @@ export default function Clientes() {
   const [abrirAgora, setAbrirAgora] = useState<Cliente | null>(null);
   const tipos = useTiposContato();
   const maquinas = useMaquinasPorCliente();
+  const redes = useRedes();
   const invalidar = useInvalidate();
   // mesma consulta da lista (fica em cache): para os repetidos e para unificar
   const { data: todos = [] } = useRows<Cliente>("clientes", { order: "nome", ascending: true });
@@ -248,6 +251,7 @@ export default function Clientes() {
       title="Clientes"
       table="clientes"
       marcadores={["cliente", "clientes"]}
+      fundoLinha={(r) => { const rede = redes(r)[0]; return rede ? fundoRede(rede.familia) : undefined; }}
       order="nome"
       defaults={{ tipo_pessoa: "PF", contribuinte_icms: 9, nome: "", avisos_email: true }}
       searchKeys={["codigo", "nome", "nome_fantasia", "cpf_cnpj", "whatsapp", "telefone", "telefone_adicional", "email", "email_nfe", "municipio", "condicao_pagamento"]}
@@ -316,6 +320,7 @@ export default function Clientes() {
                 )}
               </div>
               <EtiquetasCliente c={r} tipos={tipos} naLista />
+              <SelosRede redes={redes(r)} />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
             </ComAvatar>);
           },
@@ -334,6 +339,7 @@ export default function Clientes() {
             selos={<>
               {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
               <EtiquetasCliente c={r} tipos={tipos} naLista />
+              <SelosRede redes={redes(r)} />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
             </>}
             contato={<ContatoBotoes enxuto r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />} />

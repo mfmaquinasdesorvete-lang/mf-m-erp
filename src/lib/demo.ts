@@ -281,6 +281,9 @@ function seed(): Db {
       { id: "mk5", nome: "Enviado ao cliente", cor: "sky", icone: "send", ativo: true, ordem: 5 }, { id: "mk6", nome: "Garantia", cor: "slate", icone: "shield", ativo: true, ordem: 6 },
       { id: "mk7", nome: "Devolução", cor: "purple", icone: "undo-2", ativo: true, ordem: 7 }, { id: "mk8", nome: "Conferir", cor: "red", icone: "triangle-alert", ativo: true, ordem: 8 },
       { id: "mk9", nome: "Quiosques", cor: "amber", icone: "package", ativo: true, ordem: 9 },
+      // redes de clientes (como vieram do Tiny): o cartão do cliente ganha a cor da rede
+      { id: "mk10", nome: "F - Açaí Super - Lucas", cor: "slate", icone: "tag", ativo: true, ordem: 10 },
+      { id: "mk11", nome: "F - Milk Shake UP", cor: "slate", icone: "tag", ativo: true, ordem: 11 },
     ],
     regras_tributacao: [
       { id: "rt1", nome: "Venda para consumidor final de outro estado", ativo: true, prioridade: 50, operacao: "venda", destino: "interestadual", tipo_cliente: "nao_contribuinte",
@@ -1218,10 +1221,13 @@ function planoDemo(db: Db) {
     receita: { nome: "Doce Gelo Sorvetes Eireli", fantasia: "Doce Gelo", situacao: "ATIVA", email: null, telefones: [], fonte: "CNPJ.ws", inscricoes: [{ numero: "0012345670012", uf: "GO", ativa: false }],
       endereco: { cep: "74115050", logradouro: "Rua 9", numero: "1200", complemento: "Sala 4", bairro: "Setor Oeste", municipio: "Goiânia", uf: "GO" } } });
   Object.assign(db.clientes[4], { tags: ["cnpj_irregular"], receita_situacao: "BAIXADA", receita_em: quando(-1) });
+  // redes: dois clientes da Açaí Super e um da Milk Shake Up
+  Object.assign(db.clientes[1], { marcadores: ["mk10"] });
+  Object.assign(db.clientes[2], { marcadores: ["mk11"] });
   db.clientes.push(
-    { ...db.clientes[2], id: "c6", codigo: 6, cpf_cnpj: null, email: null, whatsapp: null, telefone: "34999112233", portal_token: "demo-portal-6", tags: [], receita: null },
+    { ...db.clientes[2], id: "c6", codigo: 6, cpf_cnpj: null, email: null, whatsapp: null, telefone: "34999112233", portal_token: "demo-portal-6", tags: [], receita: null, marcadores: [] },
     { id: "c7", codigo: 7, tipo_pessoa: "PJ", nome: "Refrigeração Andrade Ltda", cpf_cnpj: "11222333000181", contribuinte_icms: 1, telefone: "1132221100", municipio: "São Paulo", uf: "SP", avisos_email: true, portal_token: "demo-portal-7", tags: [] } as any,
-    { id: "c8", codigo: 8, tipo_pessoa: "PF", nome: "Marileia Prestes", cpf_cnpj: "98765432100", contribuinte_icms: 9, telefone: "5599864949", municipio: "Campina das Missões", uf: "RS", avisos_email: true, portal_token: "demo-portal-8", tags: [] } as any,
+    { id: "c8", codigo: 8, tipo_pessoa: "PF", nome: "Marileia Prestes", cpf_cnpj: "98765432100", contribuinte_icms: 9, telefone: "5599864949", municipio: "Campina das Missões", uf: "RS", avisos_email: true, portal_token: "demo-portal-8", tags: [], marcadores: ["mk10"] } as any,
   );
   db.configuracoes[0].site_url ??= null;
   // códigos EAN de exemplo: duas máquinas com o mesmo código inventado (777 é da GS1 Bolívia) e o kit com código de fora
