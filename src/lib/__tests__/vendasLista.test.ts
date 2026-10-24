@@ -67,3 +67,15 @@ it("sinais: estoque, contas, NF-e autorizada (fora a de teste) e proposta enviad
   expect(sinaisDaVenda({ estoque_baixado: true, notas: [{ status: "autorizada", ambiente: "homologacao" }] }, [])).toEqual({ estoque: true, contas: false, nfe: false, proposta: false });
   expect(sinaisDaVenda({ notas: [{ status: "autorizada", ambiente: "producao" }], proposta_enviada_em: "2026-10-01" }, [conta({})])).toEqual({ estoque: false, contas: true, nfe: true, proposta: true });
 });
+
+describe("banco em que a venda foi paga", () => {
+  it("usa as contas pagas e junta bancos diferentes", async () => {
+    const { bancoDaVenda } = await import("../vendasLista");
+    const nomes = new Map([["a", "Inter SC"], ["b", "Olist"]]);
+    const c = (status: string, conta: string | null, valor_pago: number | null = null) =>
+      ({ id: Math.random().toString(), status, valor: 100, valor_pago, vencimento: "2026-10-01", conta_bancaria_id: conta });
+    expect(bancoDaVenda([c("pago", "a"), c("aberto", "b")], nomes)).toBe("Inter SC");
+    expect(bancoDaVenda([c("pago", "a"), c("aberto", "b", 50)], nomes)).toBe("Inter SC + Olist");
+    expect(bancoDaVenda([c("aberto", "a")], nomes)).toBeNull();
+  });
+});

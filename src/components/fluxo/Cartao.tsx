@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { brl, whatsappLink } from "@/lib/format";
+import type { Pagamento } from "@/lib/vendasLista";
 import { EtiquetaUnidade } from "@/lib/unidade";
 import { CANAIS } from "@/lib/margem";
 import { linkProposta } from "@/lib/propostas";
@@ -43,8 +44,10 @@ const Etiqueta = ({ children, className = "" }: { children: ReactNode; className
   <span className={`inline-flex max-w-full items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-2xs font-semibold ${className}`}>{children}</span>
 );
 
-export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onEtiquetas }: {
+export function Cartao({ p, s, vendedor, pagamento, ocupado, podeAgir, onAbrir, onAcao, onEtiquetas }: {
   p: PedidoFluxo; s: Situacao; vendedor?: string | null; ocupado: boolean;
+  /** pago ou não (pelas contas a receber), com a forma e o banco quando pago */
+  pagamento?: (Pagamento & { meio?: string | null; banco?: string | null }) | null;
   /** a pessoa pode fazer a ação do cartão (ex.: emitir NF-e) */
   podeAgir: boolean;
   onAbrir: () => void; onAcao: (a: Acao) => void; onEtiquetas?: () => void;
@@ -89,6 +92,14 @@ export function Cartao({ p, s, vendedor, ocupado, podeAgir, onAbrir, onAcao, onE
         <Etiqueta className="bg-slate-100 text-slate-600">{CANAIS[p.origem] ?? p.origem}</Etiqueta>
         {s.nota && <Etiqueta className={TOM_NOTA[s.nota.tom]}><FileText size={11} className="shrink-0" />{s.nota.rotulo}</Etiqueta>}
         {vendedor && <Etiqueta className="bg-slate-100 text-slate-500"><User size={11} className="shrink-0" />{vendedor}</Etiqueta>}
+        {pagamento && pagamento.situacao !== "sem_conta" && (
+          <Etiqueta className={pagamento.situacao === "recebido" ? "bg-emerald-50 text-emerald-700" : pagamento.situacao === "parcial" ? "bg-amber-50 text-amber-800" : pagamento.situacao === "vencido" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}>
+            <span title={[pagamento.sub, pagamento.meio, pagamento.banco].filter(Boolean).join(" · ")}>
+              {pagamento.situacao === "recebido" ? "Pago" : pagamento.situacao === "parcial" ? "Pago em parte" : "Não pago"}
+              {[pagamento.situacao === "vencido" ? "vencido" : null, pagamento.meio, pagamento.situacao !== "a_receber" && pagamento.situacao !== "vencido" ? pagamento.banco : null].filter(Boolean).map((t) => ` · ${t}`).join("")}
+            </span>
+          </Etiqueta>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">

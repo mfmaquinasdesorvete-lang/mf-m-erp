@@ -6,7 +6,7 @@ import type { TipoTransportadora } from "./types";
 
 export type ContaVenda = {
   id: string; status: string; valor: number | string; valor_pago?: number | string | null; vencimento: string;
-  data_pagamento?: string | null; forma_pagamento?: string | null;
+  data_pagamento?: string | null; forma_pagamento?: string | null; conta_bancaria_id?: string | null;
 };
 
 export type SituacaoPagamento = "recebido" | "parcial" | "vencido" | "a_receber" | "sem_conta";
@@ -124,4 +124,11 @@ export function sinaisDaVenda(p: { estoque_baixado?: boolean | null; proposta_en
     nfe: (p.notas ?? []).some((n) => n.status === "autorizada" && n.ambiente !== "homologacao"),
     proposta: !!p.proposta_enviada_em,
   };
+}
+
+/** Banco (conta bancária) em que a venda foi recebida: o das contas pagas; mais de um banco vem juntos ("Inter SC + Olist"). */
+export function bancoDaVenda(contas: ContaVenda[], nomes: Map<string, string>): string | null {
+  const bancos = [...new Set(contas.filter((c) => (c.status === "pago" || num(c.valor_pago) > 0) && c.conta_bancaria_id)
+    .map((c) => nomes.get(c.conta_bancaria_id!) ?? "").filter(Boolean))];
+  return bancos.length ? bancos.join(" + ") : null;
 }

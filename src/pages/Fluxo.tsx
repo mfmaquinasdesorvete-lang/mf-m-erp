@@ -12,7 +12,8 @@ import { ExpedicaoModal, useAcoesExpedicao } from "@/components/fluxo/Expedicao"
 import { RiscosParaDespachar } from "@/components/fluxo/ConferenciaRisco";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade } from "@/lib/unidade";
-import { brl } from "@/lib/format";
+import { brl, hoje } from "@/lib/format";
+import { bancoDaVenda, contasDaVenda, meioDaVenda, pagamentoDaVenda } from "@/lib/vendasLista";
 import { useConfig } from "@/lib/useConfig";
 import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { CANAIS } from "@/lib/margem";
@@ -43,10 +44,15 @@ function useTelaLarga(q = "(min-width: 1024px)") {
   return ok;
 }
 
+const CONTA_FLUXO = "id,status,valor,valor_pago,vencimento,data_pagamento,forma_pagamento,conta_bancaria_id";
+
 export default function Fluxo() {
   const { filtrar } = useUnidade();
   const { papel, user_id, nome: nomeUsuario, pode, podeVer, tem } = usePerfil();
-  const { data: todos = [], isLoading } = useRows<P>("pedidos", { select: "*, cliente:clientes(*), itens:pedido_itens(*), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at)" });
+  // as contas a receber da venda (pelo pedido e pelas notas) dão o selo Pago / Não pago, a forma e o banco no cartão
+  const { data: todos = [], isLoading } = useRows<P>("pedidos", { select: `*, cliente:clientes(*), itens:pedido_itens(*), contas:contas_receber(${CONTA_FLUXO}), notas:notas_fiscais(id, status, numero, serie, chave, mensagem, ambiente, created_at, contas:contas_receber(${CONTA_FLUXO}))` });
+  const { data: bancos = [] } = useRows<{ id: string; nome: string }>("contas_bancarias", { select: "id, nome", order: "nome", ascending: true, key: ["fluxo"] });
+  const nomesBancos = useMemo(() => new Map(bancos.map((b) => [b.id, b.nome])), [bancos]);
   const { data: exps = [] } = useRows<Exp>("expedicoes", {});
   const { data: envios = [] } = useRows<EnvioFluxo>("envios", { select: "id, pedido_id, status, entrega_prevista, codigo_rastreio" });
   const { data: vendedores = [] } = useRows<Vendedor>("vendedores", { order: "nome", ascending: true });
@@ -150,8 +156,14 @@ export default function Fluxo() {
   }
   const podeAgir = (a?: Acao) => (a === "emitir_nfe" ? pode("emitir_nfe") : a === "enviar_proposta" || a === "abrir_pedido" || a === "corrigir_nfe" || a === "informar_rastreio" ? podeVer("pedidos") : true);
 
+  const pagamentoDe = (p: P) => {
+    const contas = contasDaVenda(p as never);
+    const pg = pagamentoDaVenda(p, contas, hoje());
+    if (!pg) return null;
+    return { ...pg, meio: meioDaVenda(p as never, contas)?.rotulo ?? null, banco: bancoDaVenda(contas, nomesBancos) };
+  };
   const cartao = (l: Linha) => (
-    <Cartao key={l.p.id} p={l.p} s={l.s} vendedor={filtroVendedor && filtroVendedor !== "sem" ? null : nomeVendedor(l.p)}
+    <Cartao key={l.p.id} p={l.p} s={l.s} pagamento={pagamentoDe(l.p)} vendedor={filtroVendedor && filtroVendedor !== "sem" ? null : nomeVendedor(l.p)}
       ocupado={acoes.ocupado === l.p.id} podeAgir={podeAgir(l.s.acao)} onAbrir={() => abrir(l)} onAcao={(a) => agir(l, a)}
       onEtiquetas={l.e && ["conferido", "embalado", "despachado"].includes(l.e.status) ? () => etiquetas.imprimir([{ tipo: "pedido", pedido_id: l.p.id }]) : undefined} />
   );
