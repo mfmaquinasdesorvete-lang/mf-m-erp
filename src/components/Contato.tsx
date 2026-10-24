@@ -14,9 +14,38 @@ export function NomeCadastro({ r }: { r: { nome: string; nome_fantasia?: string 
   );
 }
 
-/** WhatsApp pronto para clicar (abre a conversa) e telefone/e-mail formatados. */
-export function Contato({ r, mensagem }: { r: { whatsapp?: string | null; telefone?: string | null; email?: string | null }; mensagem: string }) {
+type ComContato = { whatsapp?: string | null; telefone?: string | null; email?: string | null };
+
+/** Só o ícone do e-mail: tocar abre o e-mail já endereçado (o endereço aparece ao passar o mouse). */
+function IconeEmail({ email, parar }: { email: string; parar?: (e: { stopPropagation: () => void }) => void }) {
+  return (
+    <a href={`mailto:${email}`} onClick={parar} title={`Mandar e-mail: ${email}`} aria-label={`Mandar e-mail para ${email}`}
+      className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-full border border-slate-300 bg-surface text-slate-600 transition hover:bg-slate-100 active:scale-[.98]">
+      <Mail size={16} aria-hidden />
+    </a>
+  );
+}
+
+/**
+ * WhatsApp pronto para clicar (abre a conversa) e telefone/e-mail formatados.
+ * enxuto (lista de clientes): só o WhatsApp e o ícone do e-mail; o telefone aparece só quando não tem WhatsApp.
+ */
+export function Contato({ r, mensagem, enxuto }: { r: ComContato; mensagem: string; enxuto?: boolean }) {
   if (!r.whatsapp && !r.telefone && !r.email) return <>—</>;
+  if (enxuto) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {r.whatsapp && (
+          <a href={whatsappLink(r.whatsapp, mensagem)} target="_blank" rel="noreferrer" title="Chamar no WhatsApp"
+            className="inline-flex items-center gap-1 whitespace-nowrap font-medium text-emerald-700 hover:underline">
+            <MessageCircle size={14} /> {formatarTelefone(r.whatsapp)}
+          </a>
+        )}
+        {!r.whatsapp && r.telefone && <span className="whitespace-nowrap text-slate-600">{formatarTelefone(r.telefone)}</span>}
+        {r.email && <IconeEmail email={r.email} />}
+      </div>
+    );
+  }
   return (
     <div className="space-y-0.5 text-sm">
       {r.whatsapp && (
@@ -35,12 +64,34 @@ export function Contato({ r, mensagem }: { r: { whatsapp?: string | null; telefo
 
 const so = (v?: string | null) => (v ?? "").replace(/\D/g, "");
 
-/** Botões grandes de contato para o celular: WhatsApp, ligar e e-mail, já prontos para tocar. */
-export function ContatoBotoes({ r, mensagem }: { r: { whatsapp?: string | null; telefone?: string | null; email?: string | null }; mensagem: string }) {
+/**
+ * Botões grandes de contato para o celular: WhatsApp, ligar e e-mail, já prontos para tocar.
+ * enxuto (lista de clientes): só o WhatsApp e o ícone do e-mail; o botão de ligar aparece só quando não tem WhatsApp.
+ */
+export function ContatoBotoes({ r, mensagem, enxuto }: { r: ComContato; mensagem: string; enxuto?: boolean }) {
   const tel = so(r.telefone) && so(r.telefone) !== so(r.whatsapp) ? r.telefone : null;
   if (!r.whatsapp && !tel && !r.email) return <p className="text-xs text-slate-400">sem contato cadastrado</p>;
   const pilula = "inline-flex min-h-[36px] min-w-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition active:scale-[.98]";
   const parar = (e: { stopPropagation: () => void }) => e.stopPropagation();
+  if (enxuto) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {r.whatsapp && (
+          <a href={whatsappLink(r.whatsapp, mensagem)} target="_blank" rel="noreferrer" onClick={parar} title={`WhatsApp ${formatarTelefone(r.whatsapp)}`}
+            className={`${pilula} bg-emerald-600 text-white hover:bg-emerald-700`}>
+            <MessageCircle size={15} aria-hidden /> {formatarTelefone(r.whatsapp)}
+          </a>
+        )}
+        {!r.whatsapp && tel && (
+          <a href={`tel:+55${so(tel)}`} onClick={parar} title={`Ligar ${formatarTelefone(tel)}`}
+            className={`${pilula} border border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100`}>
+            <Phone size={15} aria-hidden /> {formatarTelefone(tel)}
+          </a>
+        )}
+        {r.email && <IconeEmail email={r.email} parar={parar} />}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap gap-1.5">
       {r.whatsapp && (

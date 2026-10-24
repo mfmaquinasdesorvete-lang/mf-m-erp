@@ -315,14 +315,14 @@ export default function Clientes() {
                   </span>
                 )}
               </div>
-              <EtiquetasCliente c={r} tipos={tipos} />
+              <EtiquetasCliente c={r} tipos={tipos} naLista />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
             </ComAvatar>);
           },
         },
         // cidade embaixo do documento: uma coluna a menos para a lista caber no notebook
         { label: "CPF/CNPJ e cidade", render: (r) => <><span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span><div className="text-xs text-slate-500">{[r.municipio, r.uf].filter(Boolean).join("/")}</div></> },
-        { label: "Contato", render: (r) => <Contato r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
+        { label: "Contato", render: (r) => <Contato enxuto r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
       cartaoCelular={(r, abrir) => {
         const fantasia = r.nome_fantasia && r.nome_fantasia.trim().toLowerCase() !== r.nome.trim().toLowerCase() ? r.nome_fantasia : null;
@@ -333,10 +333,10 @@ export default function Clientes() {
             meta={[[r.municipio, r.uf].filter(Boolean).join("/"), docFormat(r.cpf_cnpj), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
             selos={<>
               {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
-              <EtiquetasCliente c={r} tipos={tipos} />
+              <EtiquetasCliente c={r} tipos={tipos} naLista />
               <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
             </>}
-            contato={<ContatoBotoes r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
+            contato={<ContatoBotoes enxuto r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
         );
       }}
     />

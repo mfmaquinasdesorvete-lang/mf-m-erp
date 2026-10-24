@@ -23,8 +23,11 @@ const ROTULO_IE: Record<string, string> = { ativa: "IE ativa", baixada: "IE baix
 
 /** Ícones ao lado do nome na lista (clientes e fornecedores). */
 const FIXAS = ["fornecedor", "revenda", "parceiro"];
+// na lista de clientes estas não aparecem: a etiqueta da máquina (modelo e data) já mostra quem comprou da My Frost
+// (o tipo continua no cadastro; só não ocupa espaço na lista)
+const FORA_DA_LISTA = ["my_frost", "dono_my_frost"];
 
-export function EtiquetasCliente({ c, tipos }: { c: ComEtiquetas; tipos?: TipoContato[] }) {
+export function EtiquetasCliente({ c, tipos, naLista }: { c: ComEtiquetas; tipos?: TipoContato[]; naLista?: boolean }) {
   const itens: { Icon: typeof ShieldAlert; texto: string; cor: string; titulo: string }[] = [];
   // nome que a MF deu à categoria (Configurações dos cadastros); sem a lista, o nome de sempre
   const nome = (chave: string, padrao: string) => tipos?.find((t) => t.chave === chave)?.nome.toLowerCase() ?? padrao;
@@ -35,7 +38,7 @@ export function EtiquetasCliente({ c, tipos }: { c: ComEtiquetas; tipos?: TipoCo
   if (tem(c, "revenda")) itens.push({ Icon: Store, texto: nome("revenda", "revenda"), cor: "bg-indigo-100 text-indigo-800", titulo: "Revende as máquinas e peças da MF" });
   if (tem(c, "parceiro")) itens.push({ Icon: Wrench, texto: nome("parceiro", "técnico parceiro"), cor: "bg-orange-100 text-orange-800", titulo: "Técnico parceiro da assistência" });
   for (const t of tipos ?? []) {
-    if (!FIXAS.includes(t.chave) && tem(c, t.chave)) itens.push({ Icon: Tags, texto: t.nome.toLowerCase(), cor: corTipo(t.cor).chip.replace(/border-\S+ /, ""), titulo: t.nome });
+    if (!FIXAS.includes(t.chave) && !(naLista && FORA_DA_LISTA.includes(t.chave)) && tem(c, t.chave)) itens.push({ Icon: Tags, texto: t.nome.toLowerCase(), cor: corTipo(t.cor).chip.replace(/border-\S+ /, ""), titulo: t.nome });
   }
   if (!itens.length) return null;
   return (
