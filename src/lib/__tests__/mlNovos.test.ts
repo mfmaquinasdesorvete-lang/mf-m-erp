@@ -62,3 +62,14 @@ describe("cadastro do anúncio novo", () => {
     expect(medidasFrete({ sku: null, descricao: "x" }).estimado).toBe(true);
   });
 });
+
+describe("sem a marca My Frost nos canais", () => {
+  it("troca 'máquinas My Frost' e tira o nome solto", async () => {
+    const { semMyFrost } = await import("../../../supabase/functions/_shared/ml-novos");
+    expect(semMyFrost("Sensor de Nível Boia - Compatível com Máquinas My Frost")).toBe("Sensor de Nível Boia - Compatível com Máquinas de sorvete expresso");
+    expect(semMyFrost("Batedor Milk Shake Profissional My Frost - Parede / Acoplado")).toBe("Batedor Milk Shake Profissional - Parede / Acoplado");
+    expect(semMyFrost("Kit exclusivo para máquinas MyFrost.")).toBe("Kit exclusivo para máquinas de sorvete expresso.");
+    expect(semMyFrost("Peça (My Frost)")).toBe("Peça");
+    expect(semMyFrost("Eixo da Mecânica")).toBe("Eixo da Mecânica");
+  });
+});

@@ -22,6 +22,9 @@
 //  POST { acao: "preparar_anuncios", produtos?: [ids] } (vendas, financeiro ou marketplaces) → monta as propostas
 //       (categoria, atributos, preço que deixa o valor da loja, conferência do Mercado Livre), sem publicar
 //  POST { acao: "publicar_anuncios", propostas: [ids] }  (financeiro, marketplaces ou o banco) → publica só as escolhidas
+// Anúncios no ar:
+//  POST { acao: "atualizar_anuncios", itens?: ["MLB…"] } (financeiro, marketplaces ou o banco) → título (sem a marca
+//       My Frost), foto principal e descrição iguais ao cadastro do produto ligado
 // Deploy com --no-verify-jwt: o Mercado Livre e o agendamento não mandam login; o resto confere o usuário aqui dentro.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -33,6 +36,7 @@ import { buscarAnuncios, enviarAnuncios, mudarSituacao } from "./anuncios.ts";
 import { enviarNotas, enviarRastreios } from "./posvenda.ts";
 import { gravarHistorico, puxarHistorico } from "./historico.ts";
 import { prepararAnuncios, publicarAnuncios } from "./novos.ts";
+import { atualizarAnuncios } from "./atualizar.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -104,6 +108,11 @@ Deno.serve(async (req) => {
         const userId = (await chamadaDoAgendamento(req)) ? null : (await requireErpUser(req, ["financeiro", "marketplace"])).userId;
         const conta = await contaLigada(db);
         return json({ ok: true, resultado: await publicarAnuncios(db, conta as any, await tokenValido(db, conta), body.propostas, userId) });
+      }
+      case "atualizar_anuncios": {
+        if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["financeiro", "marketplace"]);
+        const conta = await contaLigada(db);
+        return json({ ok: true, resultado: await atualizarAnuncios(db, await tokenValido(db, conta), body.itens) });
       }
       case "buscar_anuncios": {
         await requireErpUser(req, ["vendas", "financeiro", "marketplace"]);

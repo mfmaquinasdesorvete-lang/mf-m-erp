@@ -1,8 +1,10 @@
 // Copia para o ERP as fotos de produtos que ainda são links externos
 // (ex.: importadas do Tiny). Assim o catálogo não depende do sistema antigo.
 // POST {} -> copia até 25 fotos por chamada; responde { copiadas, falharam, restantes }
+// Chamada pela tela (financeiro) ou pelo banco (agendamento).
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
+import { chamadaDoAgendamento } from "../_shared/cron.ts";
 
 const TIPOS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const LIMITE = 5 * 1024 * 1024;
@@ -10,7 +12,8 @@ const LIMITE = 5 * 1024 * 1024;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    await requireErpUser(req, ["financeiro"]);
+    // pela tela (financeiro) ou pelo banco (ex.: fotos novas vindas do Canva por link)
+    if (!(await chamadaDoAgendamento(req))) await requireErpUser(req, ["financeiro"]);
     const db = adminClient();
     const { data: lista } = await db.from("produtos").select("id, foto_caminho").like("foto_caminho", "http%").limit(25);
     let copiadas = 0, falharam = 0;

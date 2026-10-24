@@ -7,7 +7,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import { anunciosDoItem, estoqueDisponivel } from "../_shared/ml-anuncios.ts";
-import { atributosDoProduto, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
+import { atributosDoProduto, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, semMyFrost, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
 
 type Conta = { id: string; ml_user_id: number; estoque_seguranca?: unknown; estoque_maximo?: unknown };
 type Produto = ProdutoNovo & {
@@ -73,7 +73,7 @@ async function estoques(db: SupabaseClient, conta: Conta, ids: string[]) {
 }
 
 function textoDescricao(p: Produto) {
-  const base = (p.descricao_anuncio || p.descricao_catalogo || p.descricao || "").trim();
+  const base = semMyFrost(p.descricao_anuncio || p.descricao_catalogo || p.descricao || "");
   const garantia = p.garantia_meses ? `\n\nGarantia de ${p.garantia_meses} ${p.garantia_meses === 1 ? "mês" : "meses"}.` : "";
   return `${base}${garantia}`.replace(/<[^>]+>/g, "").slice(0, 49_000);
 }
@@ -99,7 +99,7 @@ async function envioDaConta(db: SupabaseClient, conta: Conta, token: string) {
 async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Produto, estoque: number, modelo: ModeloEnvio = null) {
   const avisos: string[] = [];
   const faltando: string[] = [];
-  const titulo = tituloML(p.titulo_anuncio || p.descricao);
+  const titulo = tituloML(semMyFrost(p.titulo_anuncio || p.descricao));
   const cat = await categoria(token, p, titulo);
   if (!cat?.category_id) throw new Error("o Mercado Livre não sugeriu uma categoria para o título");
   const attrsCat = await ml<AtributoCategoria[]>(`/categories/${cat.category_id}/attributes`, token).catch(() => [] as AtributoCategoria[]);

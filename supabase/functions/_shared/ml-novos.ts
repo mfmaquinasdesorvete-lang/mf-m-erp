@@ -104,3 +104,21 @@ export function medidasFrete(p: ProdutoNovo): { texto: string; estimado: boolean
   const ok = al > 0 && la > 0 && pr > 0 && g > 0;
   return ok ? { texto: `${al}x${la}x${pr},${g}`, estimado: false } : { texto: `${al || 15}x${la || 15}x${pr || 15},${g || 500}`, estimado: true };
 }
+
+/**
+ * Tira a marca "My Frost" dos textos que vão para os canais (título, descrição): "compatível com máquinas My Frost"
+ * vira "compatível com máquinas de sorvete expresso"; o nome solto sai.
+ */
+export function semMyFrost(texto: string | null | undefined): string {
+  let t = String(texto ?? "");
+  t = t.replace(/\b(m[aá]quinas?)\s+my\s*frost\b/gi, (_m, maq: string) => `${maq} de sorvete expresso`);
+  t = t.replace(/\bmy\s*frost\b/gi, "");
+  return t
+    .replace(/\(\s*\)/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.;:)])/g, "$1")
+    .replace(/(^|\n)[ \t]*[-–]\s*/g, "$1")
+    .replace(/\s*[-–]\s*$/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
