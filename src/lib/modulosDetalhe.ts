@@ -1403,6 +1403,18 @@ export const DETALHE_TELAS: Record<string, DetalheTela> = {
       "Quem vê: administrador e financeiro; os arquivos ficam num lugar privado e abrem por link temporário.",
     ],
   },
+  "/funcionarios-admissao": {
+    tags: ["RH", "ADMISSÃO", "SAÍDA"],
+    destaque: "O que falta na admissão e na saída de cada funcionário.",
+    partes: [
+      "Admissão (na ativa): CPF, cargo, data de admissão, Pix ou conta, contato de emergência e contrato na pasta.",
+      "Registrados (CLT, experiência, estágio, aprendiz, temporário): também PIS, CTPS e ASO na pasta.",
+      "PJ, autônomo e sócio: sem PIS, CTPS nem ASO.",
+      "Saída (desligados): data de saída, motivo e documentos de saída na pasta.",
+      "Só quem tem pendência: mostra primeiro quem tem mais coisas faltando; desmarque para ver todos.",
+      "Completar: na ficha da pessoa (Equipe) ou guardando o documento na Pasta de documentos.",
+    ],
+  },
   "/funcionarios-pagamentos": {
     tags: ["RH", "PAGAMENTOS", "EXTRATOS"],
     destaque: "O que foi pago a cada funcionário, em todas as contas.",
