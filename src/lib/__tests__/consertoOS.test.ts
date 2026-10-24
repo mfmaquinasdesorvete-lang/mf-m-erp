@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clienteEmiteNota, notasDoConserto, type NotaMF } from "../consertoOS";
 
-const CHAVE = "42261046942855000132550010000004371497470059";
+const CHAVE = "42261011222333000181550010000004371497470059";
 const nota = (cfop: string, extra: Partial<NotaMF> = {}): NotaMF => ({
   id: cfop, numero: "1", chave: CHAVE, status: "autorizada", tipo_operacao: "saida", created_at: "2026-10-22T15:00:00Z", valor_total: 500,
   payload: { items: [{ cfop }] }, itens: [{ produto_id: "maq" }], ...extra,

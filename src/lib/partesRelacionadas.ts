@@ -17,7 +17,7 @@ const SUFIXOS = / (LTDA|ME|EPP|EIRELI|S A|SA|MEI)$/;
 const semSufixo = (n: string) => { let t = texto(n).trim(); while (SUFIXOS.test(t)) t = t.replace(SUFIXOS, "").trim(); return t; };
 
 /**
- * CPFs e CNPJs que aparecem na descrição: inteiros ("46.942.855/0001-32") ou mascarados pelo banco
+ * CPFs e CNPJs que aparecem na descrição: inteiros ("11.222.333/0001-81") ou mascarados pelo banco
  * ("•••.468.620-••", "***428550"). No mascarado ficam só os números à mostra (pelo menos 5).
  */
 export function documentosNaDescricao(descricao: string | null | undefined): { digitos: string; mascarado: boolean }[] {

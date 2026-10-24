@@ -13,7 +13,7 @@ export function formatarDoc(v: string | null | undefined, so?: "cnpj") {
     .replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
 }
 
-/** (48) 3375-5280, (48) 99999-1234, 0800 123 4567 ou +55 quando vier com DDI. */
+/** (48) 3000-0000, (48) 99999-1234, 0800 123 4567 ou +55 quando vier com DDI. */
 export function formatarTelefone(v: string | null | undefined) {
   let d = digitos(v);
   if (d.startsWith("0800")) return d.slice(0, 11).replace(/^(\d{4})(\d{0,3})(\d{0,4}).*/, (_m, a, b, c) => [a, b, c].filter(Boolean).join(" "));
@@ -66,7 +66,7 @@ export function erroCampo(m: Mascara | undefined, v: unknown): string | null {
       if (d.length === 14) return cnpjValido(d) ? null : "CNPJ inválido";
       return "Digite o CPF (11 números) ou o CNPJ (14)";
     case "cnpj": return d.length === 14 && cnpjValido(d) ? null : "CNPJ inválido";
-    case "telefone": case "whatsapp": return d.length >= 10 || d.startsWith("0800") ? null : "Telefone com DDD: (48) 3375-5280";
+    case "telefone": case "whatsapp": return d.length >= 10 || d.startsWith("0800") ? null : "Telefone com DDD: (48) 3000-0000";
     case "cep": return d.length === 8 ? null : "CEP com 8 números";
     case "email": return emailValido(s) ? null : "E-mail inválido";
     case "uf": return /^[A-Z]{2}$/.test(s.toUpperCase()) ? null : "UF com 2 letras";

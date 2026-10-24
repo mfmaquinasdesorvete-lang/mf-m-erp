@@ -149,7 +149,7 @@ Cada papel recebe só o que é dele (ex.: financeiro recebe "pagamento recebido"
 Só recebe quem tem e-mail no cadastro. Todo e-mail tem o link "Não quero mais receber"; quem clicar sai da lista (também dá para desmarcar no cadastro do cliente).
 
 ### 4d. Catálogo do WhatsApp e vitrine
-O catálogo de peças sai do WhatsApp Business **(48) 3375-5280** da matriz (já vem preenchido em Configurações e na Matriz SC). Esse mesmo número recebe os pedidos da vitrine pelo botão do WhatsApp.
+O catálogo de peças sai do WhatsApp Business da matriz (o número fica em Configurações e na Matriz SC). Esse mesmo número recebe os pedidos da vitrine pelo botão do WhatsApp.
 
 1. Em **Estoque**, edite cada produto que vai para o catálogo: marque **Mostrar no catálogo**, tire a **foto** e escreva o **texto de venda**. Sem foto ou sem preço o produto não vai (o ERP avisa).
 2. Em **Configurações → Catálogo do WhatsApp**, copie o link.

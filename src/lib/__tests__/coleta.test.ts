@@ -62,13 +62,13 @@ describe("dias de coleta (como no portal da Rodonaves)", () => {
 
 describe("Rodonaves: simulação de cotação", () => {
   const envio = {
-    cep_origem: "88113-837", cep_destino: "01001-000", valor_mercadoria: "12500,50", peso_total_kg: 0,
+    cep_origem: "88100-000", cep_destino: "01001-000", valor_mercadoria: "12500,50", peso_total_kg: 0,
     volumes: [{ quantidade: 1, peso_kg: 95, largura_cm: 60, altura_cm: 150, comprimento_cm: 70 }, { quantidade: 2, peso_kg: "2,5", largura_cm: 20, altura_cm: 20, comprimento_cm: 20 }],
   };
 
   it("monta o corpo como o simula-cotacao pede", () => {
     expect(corpoSimulacao(envio, "11.222.333/0001-81", 4500, 3550)).toEqual({
-      CustomerTaxIdRegistration: "11222333000181", OriginZipCode: "88113837", OriginCityId: 4500, DestinationZipCode: "01001000", DestinationCityId: 3550,
+      CustomerTaxIdRegistration: "11222333000181", OriginZipCode: "88100000", OriginCityId: 4500, DestinationZipCode: "01001000", DestinationCityId: 3550,
       EletronicInvoiceValue: 12500.5, TotalWeight: 100,
       Packs: [{ AmountPackages: 1, Weight: 95, Length: 70, Height: 150, Width: 60 }, { AmountPackages: 2, Weight: 2.5, Length: 20, Height: 20, Width: 20 }],
     });

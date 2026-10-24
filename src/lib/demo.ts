@@ -69,12 +69,12 @@ function seed(): Db {
       telegram_chat_id: ["u-fin", "u-tec"].includes(u.user_id) ? 5000 + i : null,
     })),
     configuracoes: [{
-      id: 1, aprovacao_revisor1: ["u-admin"], aprovacao_revisor2: ["u-fin"], aprovacao_alcada: 300, razao_social: "MF MÁQUINAS LTDA", nome_fantasia: "MF Máquinas", cnpj: "46942855000132",
-      inscricao_estadual: "261770233", uf: "SC", municipio: "São José", whatsapp: "4833755280",
+      id: 1, aprovacao_revisor1: ["u-admin"], aprovacao_revisor2: ["u-fin"], aprovacao_alcada: 300, razao_social: "MF MÁQUINAS LTDA", nome_fantasia: "MF Máquinas", cnpj: "11222333000181",
+      inscricao_estadual: "255555555", uf: "SC", municipio: "São José", whatsapp: "4899999999",
       regime_tributario: 1, natureza_operacao: "Venda de mercadoria", cfop_padrao: "5102", icms_situacao_padrao: "102",
       pis_situacao_padrao: "49", cofins_situacao_padrao: "49", presenca_comprador: 9, dias_vencimento_boleto: 3,
       multa_percentual: 2, juros_percentual_mes: 1, entrada_automatica_estoque: true, entrada_so_na_entrega: true, conta_pagar_automatica: true,
-      endereco: "Rua Leonel Felisbino da Silva, S/N, Q 4 - L 9 - Galpão 6, Areias - CEP 88113-837", telefone: "(48) 3375-5280", email: "mfmaquinasdesorvete@gmail.com",
+      endereco: "Rua Exemplo, S/N, Galpão 1, Areias - CEP 88100-000", telefone: "(48) 3000-0000", email: "contato@exemplo.com.br",
       catalogo_texto: "Máquinas de sorvete soft, expresso e milk shake com garantia, peças e assistência técnica própria.",
       telegram_bot: "MFMaquinasAvisosBot", avisos_email_ativo: true, email_responder_para: "comercial@mfmaquinas.com.br",
       ibs_cbs_ativo: true, cbs_aliquota: 0.9, ibs_uf_aliquota: 0.1, ibs_mun_aliquota: 0,
@@ -469,9 +469,9 @@ function seed(): Db {
     transf_icms_cst: "41", transf_pis_cofins_cst: "49", transf_destacar_ipi: true, transf_cbenef: null, transf_ipi_base: "custo", ativo: true, serie_nfe: 1,
     ipi_cst_aliquota_zero: "51", ibs_cbs_cst: "000", ibs_cbs_class_trib: "000001", transf_ibs_cbs_cst: "410", transf_ibs_cbs_class_trib: "410002", informacoes_complementares: null };
   db.unidades = [
-    { id: U_SC, codigo: "SC", nome: "Matriz SC", matriz: true, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "46942855000132", inscricao_estadual: "261770233",
-      logradouro: "Rua Leonel Felisbino da Silva", numero: "S/N", complemento: "Q 4 - L 9 - Galpão 6", bairro: "Areias", municipio: "São José", uf: "SC", cep: "88113837", telefone: "(48) 3375-5280", whatsapp: "4833755280", email: "mfmaquinasdesorvete@gmail.com", instrucoes_pagamento: "Pix (CNPJ): 46.942.855/0001-32", icms_aliquota_interna: 17, ...fiscal },
-    { id: U_SP, codigo: "SP", nome: "Filial SP", matriz: false, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "46942855000213", inscricao_estadual: "797123456110",
+    { id: U_SC, codigo: "SC", nome: "Matriz SC", matriz: true, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "11222333000181", inscricao_estadual: "255555555",
+      logradouro: "Rua Exemplo", numero: "S/N", complemento: "Galpão 1", bairro: "Areias", municipio: "São José", uf: "SC", cep: "88100000", telefone: "(48) 3000-0000", whatsapp: "4899999999", email: "contato@exemplo.com.br", instrucoes_pagamento: "Pix (CNPJ): 11.222.333/0001-81", icms_aliquota_interna: 17, ...fiscal },
+    { id: U_SP, codigo: "SP", nome: "Filial SP", matriz: false, fabrica: true, assistencia: true, razao_social: "MF MÁQUINAS LTDA", cnpj: "11222333000213", inscricao_estadual: "111111111111",
       logradouro: "Av. Dom Pedro I", numero: "2450", bairro: "Distrito Industrial", municipio: "Ribeirão Preto", uf: "SP", cep: "14079000", telefone: "(16) 3333-0000", whatsapp: "16999990000", email: "filial@mfmaquinas.com.br", instrucoes_pagamento: "Pix (CNPJ): 12.345.678/0002-71\nItaú · Ag. 0987 · C/C 12345-6", icms_aliquota_interna: 18, ...fiscal },
   ];
   db.icms_uf = [];
@@ -778,7 +778,7 @@ function fretesDemo(db: Db) {
   const cliPaga = paga ? db.clientes.find((c) => c.id === paga.cliente_id) : null;
   db.recibos = paga ? [{
     id: "rc1", numero: 1, tipo: "recebimento", unidade_id: U_SC, conta_receber_id: paga.id, conta_pagar_id: null,
-    pagador_nome: cliPaga?.nome ?? "Cliente", pagador_doc: cliPaga?.cpf_cnpj ?? null, recebedor_nome: "MF MAQUINAS LTDA", recebedor_doc: "46942855000132",
+    pagador_nome: cliPaga?.nome ?? "Cliente", pagador_doc: cliPaga?.cpf_cnpj ?? null, recebedor_nome: "MF MAQUINAS LTDA", recebedor_doc: "11222333000181",
     valor: Number(paga.valor_pago ?? paga.valor), referente: paga.descricao, forma_pagamento: "Boleto", data_pagamento: paga.data_pagamento ?? dias(-3), cidade: "São José/SC",
     observacoes: null, cancelado_em: null, cancelado_motivo: null, created_at: quando(-3),
   }] : [];
@@ -1083,7 +1083,7 @@ function planoDemo(db: Db) {
     { id: "wm4", direcao: "saida", telefone: "5511912345678", cliente_id: "c5", conta_receber_id: null, etapa_id: "rg3", modelo: "mf_regua_vencimento_0", status: "erro",
       erro: "Este número não tem WhatsApp.", texto: "Olá! Hoje vence *Pedido #105*…", created_at: quando(-3) },
   ];
-  for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "46.942.855/0001-32", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
+  for (const u of db.unidades) if (u.codigo === "SC") Object.assign(u, { pix_chave: "11.222.333/0001-81", pix_nome: "MF MAQUINAS LTDA", pix_cidade: "Sao Jose" });
   for (const u of db.unidades) u.infinitepay_tag ??= u.codigo === "SC" ? "myfrost" : "mf-maquinas";
   // chaves e certificados com data para vencer (exemplo; no sistema real: public.vencimentos_chaves, só o administrador)
   db.vencimentos_chaves = [
@@ -1209,7 +1209,7 @@ function planoDemo(db: Db) {
     nfseFora({ id: "nsi1", tipo: "emitida", unidade_id: U_SC, chave: "emitida:sc:r2426", rps: "2426", data_emissao: dias(-60), tomador_nome: "Sorveteria Franquia Ltda",
       valor_servicos: 6000, valor_pis: 39, valor_cofins: 180, valor_csll: 60, situacao: "sem_numero", origem: "tiny" }),
     nfseFora({ id: "nsi2", tipo: "tomada", unidade_id: U_SC, chave: "tomada:11222333000181:n55", numero: "55", data_emissao: dias(-10), prestador_doc: "11222333000181",
-      prestador_nome: "Escritório Contábil Exemplo", tomador_doc: "46942855000132", valor_servicos: 1500, valor_iss: 30, iss_retido: true, valor_ir: 22.5,
+      prestador_nome: "Escritório Contábil Exemplo", tomador_doc: "11222333000181", valor_servicos: 1500, valor_iss: 30, iss_retido: true, valor_ir: 22.5,
       valor_pis: 9.75, valor_cofins: 45, valor_csll: 15, valor_liquido: 1377.75, discriminacao: "Honorários contábeis", situacao: "normal", origem: "xml" }),
   ];
   // cadastro para arrumar: etiquetas da Receita, um repetido, um fornecedor na lista e celular no campo telefone
@@ -1785,11 +1785,11 @@ function comercialDemo(db: Db) {
     contador_dados: { razao: "Escritório Contábil Exemplo Ltda", telefone: "(19) 3000-1000", site: "www.escritorio-exemplo.com.br", instagram: "escritorioexemplo", endereco: "Rua Exemplo, 100 - Centro - Campinas - SP" } });
   // CT-e da transportadora (no sistema real: public.ctes e cte_faturas, pela planilha do site dela; nomes inventados)
   {
-    const MF = "46942855000132";
+    const MF = "11222333000181";
     const linha = (n: number, d: number, sentido: string, outro: string, outroCnpj: string, frete: "pago" | "a_pagar", valor: number, nf: number, prevAtraso = 0, fatura: string | null = null) => {
       const entrada = sentido === "entrada", transf = sentido === "transferencia";
       const rem = entrada ? [outroCnpj, outro] : [MF, "MF MAQUINAS LTDA"];
-      const dest = entrada ? [MF, "MF MAQUINAS LTDA"] : transf ? ["46942855000213", "MF MAQUINAS LTDA"] : [outroCnpj, outro];
+      const dest = entrada ? [MF, "MF MAQUINAS LTDA"] : transf ? ["11222333000213", "MF MAQUINAS LTDA"] : [outroCnpj, outro];
       const paga = (frete === "pago" && !entrada) || (frete === "a_pagar" && (entrada || transf));
       return { id: `cte${n}`, transportadora_id: "t7", transportadora_raiz: "00428307", numero: String(3100000 + n), tipo: "CT-e", emissao: dias(d),
         ag_origem: entrada ? "PORTO ALEGRE" : "PALHOCA", ag_destino: entrada ? "PALHOCA" : transf ? "AMERICANA" : "CURITIBA",
@@ -5146,7 +5146,7 @@ function ofxExemplo() {
 
 function xmlExemplo() {
   return `<?xml version="1.0" encoding="UTF-8"?><nfeProc><NFe><infNFe Id="NFe35261011222333000181550010000124001000000017" versao="4.00">
-<ide><nNF>12400</nNF><dhEmi>${new Date().toISOString()}</dhEmi></ide><emit><CNPJ>11222333000181</CNPJ><xNome>Refrigeração Andrade Ltda</xNome></emit><dest><CNPJ>46942855000132</CNPJ></dest>
+<ide><nNF>12400</nNF><dhEmi>${new Date().toISOString()}</dhEmi></ide><emit><CNPJ>11222333000181</CNPJ><xNome>Refrigeração Andrade Ltda</xNome></emit><dest><CNPJ>11222333000181</CNPJ></dest>
 <det nItem="1"><prod><cProd>CMP-1HP-404</cProd><cEAN>SEM GTIN</cEAN><xProd>COMPRESSOR HERMETICO 1HP R404A</xProd><NCM>84143019</NCM><CFOP>6102</CFOP><uCom>UN</uCom><qCom>3</qCom><vUnCom>1350.00</vUnCom><vProd>4050.00</vProd></prod></det>
 <total><ICMSTot><vNF>4050.00</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;
 }

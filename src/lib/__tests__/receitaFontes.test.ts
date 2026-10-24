@@ -10,7 +10,7 @@ const CNPJA = {
   address: { street: "Rua das Flores", number: "100", details: "Sala 2", district: "Centro", city: "São José", state: "SC", zip: "88101000" },
   phones: [{ area: "48", number: "999998888" }], emails: [{ address: "Contato@Exemplo.com.br" }],
   mainActivity: { id: 5611203, text: "Lanchonetes, casas de chá, de sucos e similares" },
-  registrations: [{ number: "261.770.233", state: "SC", enabled: true }, { number: "123456", state: "PR", enabled: false }],
+  registrations: [{ number: "255.555.555", state: "SC", enabled: true }, { number: "123456", state: "PR", enabled: false }],
 };
 
 describe("fontes da Receita", () => {
@@ -22,7 +22,7 @@ describe("fontes da Receita", () => {
     expect(r.endereco).toMatchObject({ logradouro: "Rua das Flores", municipio: "São José", uf: "SC", cep: "88101000" });
     expect(r.email).toBe("contato@exemplo.com.br");
     expect(r.telefones).toEqual(["48999998888"]);
-    expect(r.inscricoes).toEqual([{ numero: "261770233", uf: "SC", ativa: true }, { numero: "123456", uf: "PR", ativa: false }]);
+    expect(r.inscricoes).toEqual([{ numero: "255555555", uf: "SC", ativa: true }, { numero: "123456", uf: "PR", ativa: false }]);
     expect(r.simples).toEqual({ optante: true, desde: "2019-03-12" });
     expect(r.mei).toEqual({ optante: false, desde: null });
     expect(r.cnae).toEqual({ codigo: "5611-2/03", descricao: "Lanchonetes, casas de chá, de sucos e similares" });
@@ -33,7 +33,7 @@ describe("fontes da Receita", () => {
   it("CNPJá preenche a inscrição estadual ativa do estado e marca a baixada", () => {
     const r = doCnpja(CNPJA)!;
     const x = conciliarCliente({ nome: "Sorveteria Exemplo Ltda", uf: "SC" }, r);
-    expect(x.atualizar).toMatchObject({ inscricao_estadual: "261770233", contribuinte_icms: 1 });
+    expect(x.atualizar).toMatchObject({ inscricao_estadual: "255555555", contribuinte_icms: 1 });
     expect(x.ie_situacao).toBe("ativa");
     const y = conciliarCliente({ nome: "Sorveteria Exemplo Ltda", uf: "PR", inscricao_estadual: "123456" }, r);
     expect(y.ie_situacao).toBe("baixada");
