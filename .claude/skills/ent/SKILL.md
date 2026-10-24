@@ -58,3 +58,14 @@ Descubro de onde veio cada entrada nos bancos da MF e ligo ao pedido, à nota ou
 - O nome do pagador sai da descrição do banco, e cada banco escreve de um jeito (ver `src/lib/conciliacaoLote.ts`).
 - Valor digitado com `lerValor` (`src/lib/auditoriaBusca.ts`); centavos arredondados.
 - Datas no horário de Brasília (`hoje()` em `src/lib/format.ts`); o banco roda em UTC.
+- Nome da família no ERP: o que o ERP escrever (anotação, conta, cadastro) usa o nome padrão que a usuária definiu
+  (está no banco); o texto original do extrato e as regras que reconhecem os nomes antigos não mudam. Nomes antigos
+  não entram no repositório.
+- Par de transferência só pelo valor engana: confira que as duas pontas são da MF (nome ou CNPJ), não um terceiro
+  com o mesmo valor no mesmo dia.
+- O nome antigo da MF (mesmo CNPJ) aparece em extratos antigos: é a própria MF, não cliente.
+- Cartão adiantado cai no dia útil seguinte à venda; o depósito vem líquido (taxa de 3% a 15%). Procure a venda ou a OS
+  do dia anterior.
+- Pix de cliente pode vir de outra empresa ou do dono; valor exato ao centavo e data batendo é forte, mas confirme com
+  ela antes de ligar quando o nome não bate.
+- Gravação com anotação longa às vezes trava no Supabase (pede confirmação que não chega): use anotação curta.
