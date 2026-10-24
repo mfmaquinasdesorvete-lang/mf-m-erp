@@ -65,6 +65,9 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
 - Notas fiscais da My Frost (`notas_legado`) ficam isoladas na Retaguarda → My Frost (só a conta master, regra
   `notas_legado_so_master` no banco): não aparecem na ficha do cliente, no Tudo do cliente nem na proposta aberta fora
   da Retaguarda, e nunca somam com as notas da MF (pedido da usuária, 23/10).
+- Desde 24/10 (ok do advogado), a equipe vê na Ficha 360 → Máquinas e compras as notas da My Frost do cliente (valor e
+  chave) pela função `notas_my_frost_do_cliente`, sempre com a tarja "Dados fornecidos pela My Frost para fins de
+  manutenção e atendimento ao cliente". A tabela `notas_legado` continua só master; a ficha é do CLI (avisar antes).
 - Documentos da My Frost (contabilidade, guias) ficam na aba Documentos da mesma tela, entidade `my_frost`, só master.
 - Fretes e protestos da My Frost ficam em `my_frost_fretes` e `my_frost_protestos` (só master; aba Fretes e protestos).
   CT-e não repete pela chave; fatura e CT-e do mesmo frete têm o mesmo valor, então a soma usa o CT-e.

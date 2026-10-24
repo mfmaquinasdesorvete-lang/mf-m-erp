@@ -1,6 +1,6 @@
 // Notas fiscais da My Frost (empresa anterior) de um cliente: número, data, tipo e o valor da nota (o valor oficial,
-// para saber por quanto ele comprou). Ficam isoladas na Retaguarda → My Frost (só a conta master): aparecem só na
-// proposta da My Frost aberta lá, nunca na ficha do cliente nem nas telas da MF.
+// para saber por quanto ele comprou). A lista completa fica na Retaguarda → My Frost (só a conta master); na Ficha 360
+// a equipe vê as do cliente pela função notas_my_frost_do_cliente (aba Máquinas e compras, com a tarja da My Frost).
 import { brl, dataBR } from "@/lib/format";
 import { tipoDaNota } from "@/lib/notasMyFrost";
 

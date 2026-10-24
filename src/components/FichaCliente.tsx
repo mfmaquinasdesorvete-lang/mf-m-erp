@@ -27,8 +27,9 @@ import { useSituacaoGiga } from "@/lib/testeGigaDados";
 import { normalizarNs } from "@/lib/testeGiga";
 import { SeloDrFrost } from "@/components/tecnicos/SeloDrFrost";
 import { consertosDasNotas, type NotaConserto } from "@/lib/consertos";
+import { MaquinasComprasFicha } from "@/components/clientes/MaquinasComprasFicha";
 
-type Aba = "resumo" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
+type Aba = "resumo" | "maquinas" | "compras" | "produtos" | "financeiro" | "assistencia" | "atendimentos";
 
 const NOTA = "id, numero, serie, status, ambiente, finalidade, tipo_operacao, pedido_id, valor_total, created_at, payload, origem, chave, chave_referenciada";
 const TIPOS: Record<string, string> = { pos_venda: "Pós-venda", cobranca: "Cobrança", preventiva: "Preventiva", garantia: "Garantia", outro: "Atendimento" };
@@ -62,7 +63,7 @@ function useFicha(c: Cliente) {
       const doc = digitos(c.cpf_cnpj);
       const vazio = Promise.resolve({ data: [] as any[] });
       const [ped, notasC, notasD, contas, oss, equip, contatos, usuarios, legado, propostasTiny] = await Promise.all([
-        supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, observacoes, origem, " +
+        supabase.from("pedidos").select("id, numero, status, valor_total, created_at, aprovado_em, forma_pagamento, parcelas, vendedor, proposta_status, motivo_rejeicao, motivo_rejeicao_texto, observacoes, origem, " +
           "itens:pedido_itens(produto_id, descricao, quantidade, valor_unitario, produto:produtos(sku)), notas:notas_fiscais(id, numero, status, ambiente)")
           .eq("cliente_id", c.id).order("created_at", { ascending: false }),
         supabase.from("notas_fiscais").select(NOTA).eq("cliente_id", c.id),
@@ -159,6 +160,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
 
       <Tabs value={aba} onChange={setAba} options={[
         { value: "resumo", label: "Resumo" },
+        { value: "maquinas", label: "Máquinas e compras" },
         { value: "compras", label: `Compras${calc ? ` (${calc.compras.length})` : ""}` },
         { value: "produtos", label: "O que compra" },
         { value: "financeiro", label: "Financeiro" },
@@ -171,6 +173,7 @@ export function FichaCliente({ cliente: c, onClose }: { cliente: Cliente; onClos
       {data && calc && (
         <>
           {aba === "resumo" && <Resumo c={c} r={calc.resumo} sugestoes={calc.sugestoes} pedidos={data.pedidos} compras={calc.compras} equipamentos={data.equipamentos} dia={dia} />}
+          {aba === "maquinas" && <MaquinasComprasFicha clienteId={c.id} equipamentos={data.equipamentos} notas={data.notas} pedidos={data.pedidos} propostasTiny={data.propostasTiny} oss={data.oss} />}
           {aba === "compras" && <Compras compras={calc.compras} pedidos={data.pedidos} propostasTiny={data.propostasTiny} />}
           {aba === "produtos" && <Produtos produtos={calc.produtos} />}
           {aba === "financeiro" && <Financeiro contas={data.contas} r={calc.resumo} />}
@@ -323,7 +326,7 @@ function Compras({ compras, pedidos, propostasTiny }: {
       {propostasTiny.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-semibold">Propostas do Tiny ({propostasTiny.length})</h3>
-          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) não são vendas da MF. As notas fiscais da My Frost ficam só na Retaguarda → My Frost (empresa anterior).</p>
+          <p className="mb-2 text-xs text-slate-500">Histórico do Tiny. As da My Frost (empresa anterior) não são vendas da MF. As notas da My Frost estão na aba Máquinas e compras.</p>
           <ul className="space-y-1.5 text-sm">
             {propostasTiny.map((p) => (
               <li key={p.id}>
