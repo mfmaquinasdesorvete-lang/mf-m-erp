@@ -9,6 +9,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { dataBR, pl } from "@/lib/format";
 import { usePerfil } from "@/lib/auth";
 import { confirmar } from "@/components/Dialogos";
+import { BotaoResumir } from "./ResumoDocumento";
 
 export type Documento = { id: string; entidade: string; entidade_id: string | null; nome: string; caminho: string; tamanho: number | null; tipo: string | null; descricao: string | null; pasta?: string | null; created_by: string | null; created_at: string };
 export const ENTIDADES: Record<string, string> = {
@@ -91,6 +92,7 @@ export function Anexos({ entidade, id, titulo = "Documentos" }: { entidade: stri
               <IconeArquivo tipo={d.tipo} />
               <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" onClick={() => abrirDocumento(d)}>{d.nome}</button>
               <span className="shrink-0 text-xs text-slate-500">{tamanhoArquivo(d.tamanho)} · {dataBR(d.created_at)}</span>
+              <BotaoResumir d={d} />
               {(d.created_by === user_id || papel === "admin") && (
                 <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" disabled={apagando === d.id} aria-busy={apagando === d.id || undefined}
                   onClick={async () => { setApagando(d.id); try { if (await apagarDocumento(d)) invalidar("documentos"); } finally { setApagando(null); } }}><Trash2 size={15} /></button>

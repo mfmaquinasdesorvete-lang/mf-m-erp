@@ -6,6 +6,7 @@ import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from "react
 import { Link } from "react-router-dom";
 import { ChevronRight, FileCheck2, FileText, FolderOpen, Info, KeyRound, Landmark, Paperclip, ReceiptText, ShieldCheck, Trash2, Upload, type LucideIcon } from "lucide-react";
 import { Button, Card, Modal, PageHeader, Table, Tabs } from "@/components/ui";
+import { BotaoResumir } from "@/components/ResumoDocumento";
 import { Anexos, ENTIDADES, IconeArquivo, abrirDocumento, apagarDocumento, enviarDocumentos, tamanhoArquivo, type Documento } from "@/components/Anexos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, pl, somarDias } from "@/lib/format";
@@ -171,6 +172,7 @@ function DocsDaEmpresa({ veContas, onParcelamentos }: { veContas: boolean; onPar
                         <li key={d.id} className="flex items-center gap-2 py-1.5 text-sm">
                           <IconeArquivo tipo={d.tipo} />
                           <button type="button" className="min-w-0 flex-1 truncate text-left font-medium text-fg hover:underline" title={d.nome} onClick={() => abrirDocumento(d)}>{d.nome}</button>
+                          <BotaoResumir d={d} />
                           <span className="shrink-0 text-2xs text-slate-500">{dataBR(d.created_at)}</span>
                           {podeApagar(d) && <button type="button" aria-label="Apagar" className="botao-icone-perigo p-1" disabled={apagando === d.id} aria-busy={apagando === d.id || undefined} onClick={async () => { setApagando(d.id); try { if (await apagarDocumento(d)) invalidar("documentos"); } finally { setApagando(null); } }}><Trash2 size={14} /></button>}
                         </li>
@@ -255,7 +257,7 @@ function TodosOsAnexos({ docs, carregando, podeApagar }: { docs: Documento[]; ca
           <Table head={<><th className="th">Arquivo</th><th className="th">Onde</th><th className="th">Tamanho</th><th className="th">Data</th><th className="th" /></>}>
             {lista.map((d) => (
               <tr key={d.id}>
-                <td className="td"><button type="button" className="flex items-center gap-2 text-left font-medium hover:underline" onClick={() => abrirDocumento(d)}><IconeArquivo tipo={d.tipo} /> {d.nome}</button></td>
+                <td className="td"><div className="flex items-center gap-1"><button type="button" className="flex items-center gap-2 text-left font-medium hover:underline" onClick={() => abrirDocumento(d)}><IconeArquivo tipo={d.tipo} /> {d.nome}</button><BotaoResumir d={d} /></div></td>
                 <td className="td">{ENTIDADES[d.entidade] ?? d.entidade}</td>
                 <td className="td">{tamanhoArquivo(d.tamanho)}</td>
                 <td className="td">{dataBR(d.created_at)}</td>
