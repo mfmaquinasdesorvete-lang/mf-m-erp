@@ -57,3 +57,5 @@ Cuido do cadastro de clientes da MF: dados completos e certos, sem repetidos e s
 - "Cliente desde" é a data mais antiga de compra, nota, proposta ou OS, não a data em que o cadastro entrou no ERP.
 - Cadastro que veio da My Frost (`id_externo` "myfrost:…") só ganha o que está vazio.
 - Até 3 endereços por cliente, cada um com etiqueta.
+- Pelo MCP do Supabase, gravação com `where` por nome ou várias gravações juntas numa chamada pode ficar presa
+  pedindo confirmação (e cai por tempo). Gravar uma coisa por chamada, com `where id = …` ou `id in (…)`.
