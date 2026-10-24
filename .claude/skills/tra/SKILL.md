@@ -69,3 +69,8 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
   nunca o que o navegador manda. As chamadas às transportadoras ficam em `_shared/*-api.ts` (uma só vez).
 - O caminho do `execute_sql`/`apply_migration` às vezes recusa (dá "timed out" sem chegar ao banco) textos com
   `drop policy` ou ponto e vírgula dentro de texto entre aspas: aplicar comando a comando e registrar com uma parte.
+- CT-e antigos: a SEFAZ só dá os últimos 3 meses. Os da São Miguel (e outros) chegam por e-mail no Gmail da MF com a
+  chave, a data, o valor, o destinatário e a forma de pagamento no texto; 316 de 2025/2026 entraram assim
+  (`ctes_do_email`, origem "email"). Os da My Frost (CNPJ 32584697) ficam fora do ERP da MF (chat MYF).
+- Gastos com frete: CT-e de antes de 10/2026 não somam no total (o frete está nas contas importadas do Tiny).
+- Peso e medidas do produto são do chat PRD; a aba Fretes → Peso e medidas só ajuda a completar para o frete.
