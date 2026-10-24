@@ -5,11 +5,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle, ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpFromLine, Banknote, Barcode, CalendarClock, CheckCircle2, ChevronsDown, ChevronsUp, CircleDollarSign,
-  FileDown, Hash, History, Info, Package, PackageCheck, PackageX, Printer, Ruler, Save, Scale, ShoppingCart, SlidersHorizontal, Sparkles, Timer, TrendingDown, Truck, X,
+  FileDown, Hash, History, Info, Package, PackageCheck, PackageX, Printer, Ruler, Save, Scale, ShoppingCart, Sparkles, Timer, TrendingDown, Truck, X,
   type LucideIcon,
 } from "lucide-react";
 import { Button, Card, Field, MaisAcoes, Modal, Stat, Table } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Ranking, Rosca } from "@/components/Charts";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows, semUnificados } from "@/lib/data";
@@ -102,7 +103,6 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
 
   // ---- filtros (a unidade começa na escolhida no topo do ERP)
   const [busca, setBusca] = useState("");
-  const [painel, setPainel] = useState(false);
   const [f, setF] = useState<Filtros>(FILTROS_PADRAO);
   const [unidade, setUnidade] = useState<string | null>(atual);
   useEffect(() => setUnidade(atual), [atual]);
@@ -440,32 +440,9 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
       )}
 
       {/* busca, filtros e ações; no celular as secundárias ficam em "Mais" */}
-      <div className="flex flex-wrap items-center gap-2">
-        <input className="input min-w-0 flex-1 basis-56 md:max-w-md" placeholder="Buscar por descrição, SKU ou GTIN…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produto" />
-        <button type="button" onClick={() => setPainel((a) => !a)} aria-expanded={painel}
-          className={`inline-flex min-h-toque shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${painel || filtrosAtivos ? "border-brand text-brand" : "border-slate-300 text-fg"}`}>
-          <SlidersHorizontal size={16} aria-hidden /> {painel ? "Fechar filtros" : "Filtros"}
-          {filtrosAtivos > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-white">{filtrosAtivos}</span>}
-        </button>
-        <div className="hidden flex-1 md:block" />
-        <MaisAcoes>
-          <Button variant="secondary" onClick={sugerir} disabled={!podeMinMax} title={podeMinMax ? "Preenche mínimo e máximo pelo consumo (sem gravar), nos marcados ou na lista toda" : "Seu perfil não muda o cadastro de produtos"}>
-            <Sparkles size={16} aria-hidden /> Sugerir mínimo e máximo pelo consumo
-          </Button>
-          <Button variant="secondary" onClick={imprimir} disabled={!visiveis.length}><Printer size={16} aria-hidden /> Imprimir</Button>
-          <Button variant="secondary" onClick={exportar} disabled={!visiveis.length}><FileDown size={16} aria-hidden /> Baixar Excel</Button>
-        </MaisAcoes>
-        {podeComprar && (
-          <Button disabled={!marcados.length} onClick={() => setGerar(escolhidos())} title={marcados.length ? undefined : "Marque os produtos na lista"}>
-            <ShoppingCart size={16} aria-hidden /> <span className="sm:hidden">Gerar OC</span><span className="hidden sm:inline">Gerar ordem de compra dos selecionados</span>
-            {marcados.length > 0 && <span className="rounded-full bg-white/25 px-1.5 text-xs leading-5">{marcados.length}</span>}
-          </Button>
-        )}
-      </div>
-
-      {painel && (
-        <Card className="p-3">
-          <div className="grid grid-cols-2 gap-x-2 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-6">
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar por descrição, SKU ou GTIN…"
+        filtros={
+          <div className="w-full"><div className="grid grid-cols-2 gap-x-2 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-6">
             <Field label="Categoria">
               <select className="input" value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>
                 <option value="">Todas</option>
@@ -517,13 +494,26 @@ export function NecessidadesCompra({ podeComprar, aoGerar, aoCotar }: {
                 <input type="checkbox" className="h-4 w-4" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /> {r}
               </label>
             ))}
-            {filtrosAtivos > 0 && (
-              <button type="button" className="link-acao text-sm" onClick={() => { setF(FILTROS_PADRAO); setPeriodo(PERIODO_PADRAO); setUnidade(atual); }}>Limpar filtros</button>
-            )}
           </div>
-        </Card>
-      )}
-      {!painel && <p className="text-xs text-slate-500">{textoFiltros()}</p>}
+        </div>
+        }
+        nFiltros={filtrosAtivos} onLimpar={() => { setBusca(""); setF(FILTROS_PADRAO); setPeriodo(PERIODO_PADRAO); setUnidade(atual); }}
+        direita={<>
+          <MaisAcoes>
+            <Button variant="secondary" onClick={sugerir} disabled={!podeMinMax} title={podeMinMax ? "Preenche mínimo e máximo pelo consumo (sem gravar), nos marcados ou na lista toda" : "Seu perfil não muda o cadastro de produtos"}>
+              <Sparkles size={16} aria-hidden /> Sugerir mínimo e máximo pelo consumo
+            </Button>
+            <Button variant="secondary" onClick={imprimir} disabled={!visiveis.length}><Printer size={16} aria-hidden /> Imprimir</Button>
+            <Button variant="secondary" onClick={exportar} disabled={!visiveis.length}><FileDown size={16} aria-hidden /> Baixar Excel</Button>
+          </MaisAcoes>
+          {podeComprar && (
+            <Button disabled={!marcados.length} onClick={() => setGerar(escolhidos())} title={marcados.length ? undefined : "Marque os produtos na lista"}>
+              <ShoppingCart size={16} aria-hidden /> <span className="sm:hidden">Gerar OC</span><span className="hidden sm:inline">Gerar ordem de compra dos selecionados</span>
+              {marcados.length > 0 && <span className="rounded-full bg-white/25 px-1.5 text-xs leading-5">{marcados.length}</span>}
+            </Button>
+          )}
+        </>} />
+      <p className="text-xs text-slate-500">{textoFiltros()}</p>
 
       {(marcados.length > 0 || comPendencia.length > 0) && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-light px-3 py-2 text-sm text-fg">

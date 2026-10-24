@@ -2,13 +2,14 @@
 // (direto ou por kit, "4 Un") e o que o ERP leu de lá, ou "sem anúncio". Lê ml_produtos_loja.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, ImageOff, Search } from "lucide-react";
+import { ExternalLink, ImageOff } from "lucide-react";
 import { Card, Table, chip } from "@/components/ui";
 import { brl, pl } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { DISPONIBILIDADE, urlFotoProduto } from "@/lib/catalogo";
 import { linkAnuncio } from "@/lib/mlAnuncios";
 import { AnunciosNovosML } from "./AnunciosNovosML";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 
 type AnuncioProduto = {
   anuncio_id: string; ml_item_id: string; variation_id: string | null; titulo: string | null; quantidade: number;
@@ -55,12 +56,10 @@ export function ProdutosLojaML({ podeMudar = false }: { podeMudar?: boolean }) {
       <p className="text-sm text-slate-600">
         Os mesmos produtos da loja (ativos, no catálogo, com foto e preço). Ao lado, o anúncio do Mercado Livre de cada um.
       </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-[14rem] flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" placeholder="Buscar: nome, SKU ou MLB" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </label>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar produtos">
+      {/* a barra padrão das listas; os chips de anúncio ficam logo abaixo */}
+      <div>
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar: nome, SKU ou MLB" onLimpar={() => { setBusca(""); setFiltro("todos"); }} />
+        <div className="faixa-chips" role="group" aria-label="Filtrar produtos">
           {([["todos", `Todos ${produtos.length}`], ["com", `Anunciados ${com}`], ["sem", `Sem anúncio ${produtos.length - com}`]] as const).map(([v, t]) => (
             <button key={v} type="button" onClick={() => setFiltro(v)} aria-pressed={filtro === v} className={chip(filtro === v, "border-brand bg-brand-light text-brand")}>{t}</button>
           ))}

@@ -3,8 +3,9 @@
 // pagou). Só o dono vê (no banco, cada linha é de quem a criou) e os arquivos ficam na pasta licenciado/<dono>/…, que
 // ninguém mais do ERP abre. MF ≠ My Frost: nada daqui vai para o DRE, a conciliação ou o contador da MF.
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Search, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
+import { Ban, FileText, Image as Imagem, MapPin, Paperclip, Pencil, Phone, Plus, Store, Trash2, Undo2, User, Users, Wrench } from "lucide-react";
 import { Button, Field, Modal } from "@/components/ui";
+import { BarraFiltros, ChipsSituacao } from "@/components/filtros/BarraFiltros";
 import { confirmar } from "@/components/Dialogos";
 import { useInvalidate, useRows } from "@/lib/data";
 import { ClienteBusca } from "@/components/ClienteBusca";
@@ -49,25 +50,19 @@ export function UnidadesLista({ dados, onAbrir, onEditar, onNova }: { dados: Dad
   const n = (f: FiltroLoja) => dados.lojas.filter((l) => naFiltro(l.situacao, f)).length;
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Situação das unidades">
-          {FILTROS_LOJA.map(({ id: f, nome: r }) => (
-            <button key={f} type="button" aria-pressed={filtro === f} onClick={() => setFiltro(f)}
-              className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${filtro === f ? "bg-surface text-fg shadow-card" : "text-slate-600 hover:text-fg"}`}>{r} <span className="num opacity-70">{n(f)}</span></button>
-          ))}
-        </div>
-        {dados.lojas.some((l) => l.marca === "yozzy") && (
-          <select className="input w-auto" value={marca} onChange={(e) => setMarca(e.target.value as MarcaLoja | "")} aria-label="Marca">
-            <option value="">Todas as marcas</option>
-            {MARCAS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome} · {dados.lojas.filter((l) => (l.marca ?? "myfrost") === m.id).length}</option>)}
-          </select>
-        )}
-        <label className="relative min-w-0 flex-1 sm:max-w-xs">
-          <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input w-full pl-8" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar unidade, cidade ou responsável" aria-label="Buscar unidade" />
-        </label>
-        <Button className="ml-auto" onClick={onNova}><Store size={16} /> Nova unidade</Button>
-      </div>
+      {/* a marca só aparece quando há loja Yozzy; a situação fica nos chips abaixo */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar unidade, cidade ou responsável"
+        filtros={dados.lojas.some((l) => l.marca === "yozzy") ? (
+          <label className="text-xs font-semibold text-slate-600">Marca
+            <select className="input mt-0.5 h-9 w-auto" value={marca} onChange={(e) => setMarca(e.target.value as MarcaLoja | "")}>
+              <option value="">Todas as marcas</option>
+              {MARCAS_LOJA.map((m) => <option key={m.id} value={m.id}>{m.nome} · {dados.lojas.filter((l) => (l.marca ?? "myfrost") === m.id).length}</option>)}
+            </select></label>
+        ) : undefined}
+        nFiltros={marca ? 1 : 0} onLimpar={() => { setBusca(""); setMarca(""); }}
+        direita={<Button onClick={onNova}><Store size={16} /> Nova unidade</Button>} />
+      <ChipsSituacao rotulo="Situação das unidades" valor={filtro} onChange={setFiltro}
+        opcoes={FILTROS_LOJA.map(({ id, nome }) => ({ value: id, label: nome, n: n(id) }))} />
       {!lista.length && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Nenhuma unidade aqui.</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {lista.map((l) => {

@@ -1,8 +1,9 @@
 // Meus pedidos: lista com situação, NF-e e rastreio; detalhe com os itens (sem custo).
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, Copy, FileText, Search, Truck } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Copy, FileText, Truck } from "lucide-react";
 import { Badge, Card } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { brl, dataBR, pl } from "@/lib/format";
 import {
   etapaPedido, filtrarPedidos, ROTULO_SITUACAO, situacaoEntrega,
@@ -29,21 +30,21 @@ export function PortalPedidos() {
   return (
     <div className="space-y-3">
       <h1 className="text-xl font-bold text-fg">Meus pedidos</h1>
-      <label className="relative block">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-        <input className="input pl-9" type="search" placeholder="Nº, cliente, cidade ou nota" aria-label="Buscar pedido" value={busca} onChange={(e) => setBusca(e.target.value)} />
-      </label>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Situação">
-        {FILTROS.map((f) => {
-          const n = conta(f.value);
-          if (!n && f.value !== filtro && !["abertos", "todos"].includes(f.value)) return null;
-          return (
-            <button key={f.value} type="button" aria-pressed={filtro === f.value} onClick={() => setFiltro(f.value)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === f.value ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>
-              {f.label} <span className="num opacity-90">{n}</span>
-            </button>
-          );
-        })}
+      {/* barra padrão; as situações continuam nos botões logo abaixo */}
+      <div>
+        <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nº, cliente, cidade ou nota" onLimpar={() => setBusca("")} />
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Situação">
+          {FILTROS.map((f) => {
+            const n = conta(f.value);
+            if (!n && f.value !== filtro && !["abertos", "todos"].includes(f.value)) return null;
+            return (
+              <button key={f.value} type="button" aria-pressed={filtro === f.value} onClick={() => setFiltro(f.value)}
+                className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${filtro === f.value ? "border-brand bg-brand text-brand-fg" : "border-slate-200 bg-surface text-slate-600"}`}>
+                {f.label} <span className="num opacity-90">{n}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       {isLoading && <p className="py-8 text-center text-slate-500">Carregando…</p>}
       {error && <p className="py-8 text-center text-red-700" role="alert">{(error as Error).message}</p>}

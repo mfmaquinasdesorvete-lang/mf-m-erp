@@ -1,8 +1,9 @@
 // Meus clientes: só a carteira do representante, com a última compra e o total comprado no ano (vendas dele).
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FilePlus2, Search, UserPlus } from "lucide-react";
+import { FilePlus2, UserPlus } from "lucide-react";
 import { Button, Card } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { brl, dataBR, pl } from "@/lib/format";
 import type { ClientePortal } from "@/lib/portal";
 import { ClienteNovoModal } from "./ClienteNovo";
@@ -34,15 +35,15 @@ export function PortalClientes() {
         </div>
         <Button variant="secondary" onClick={() => setNovo(true)}><UserPlus size={16} aria-hidden /> Cliente novo</Button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <label className="relative min-w-0 flex-1 basis-56">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" type="search" placeholder="Nome ou cidade" aria-label="Buscar cliente" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </label>
-        <select className="input w-auto" aria-label="Ordem" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
-          <option value="nome">Nome</option><option value="total">Mais comprou no ano</option><option value="recente">Compra mais recente</option>
-        </select>
-      </div>
+      {/* barra padrão: a ordem fica no painel Filtros (conta como filtro quando não é por nome) */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nome ou cidade"
+        filtros={
+          <select className="input w-auto" aria-label="Ordem" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
+            <option value="nome">Nome</option><option value="total">Mais comprou no ano</option><option value="recente">Compra mais recente</option>
+          </select>
+        }
+        nFiltros={ordem !== "nome" ? 1 : 0}
+        onLimpar={() => { setBusca(""); setOrdem("nome"); }} />
       {isLoading && <p className="py-8 text-center text-slate-500">Carregando…</p>}
       {error && <p className="py-8 text-center text-red-700" role="alert">{(error as Error).message}</p>}
       {!isLoading && !error && !lista.length && <p className="py-8 text-center text-sm text-slate-500">{clientes.length ? "Nenhum cliente com essa busca." : "Sua carteira ainda está vazia."}</p>}

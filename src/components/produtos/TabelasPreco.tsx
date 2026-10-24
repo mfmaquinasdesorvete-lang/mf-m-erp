@@ -2,8 +2,9 @@
 // e pode ter preço fixo em produtos específicos. O cliente pode ter a sua tabela; o pedido usa a tabela escolhida.
 import { useMemo, useState, type FormEvent } from "react";
 import { lerValor } from "@/lib/auditoriaBusca";
-import { FileDown, Pencil, Plus, Search, Tags } from "lucide-react";
+import { FileDown, Pencil, Plus, Tags } from "lucide-react";
 import { Button, Card, Field, Modal } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { brl } from "@/lib/format";
@@ -158,13 +159,9 @@ function DetalheTabela({ tabela, produtos, fixos, podeEditar, onVoltar, onEditar
         <Button variant="secondary" onClick={exportar}><FileDown size={15} aria-hidden /> Exportar (Excel)</Button>
         {podeEditar && <Button variant="secondary" onClick={onEditar}><Pencil size={15} aria-hidden /> Editar tabela</Button>}
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" placeholder="Buscar produto, código, categoria…" aria-label="Buscar produto" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={soFixos} onChange={(e) => setSoFixos(e.target.checked)} /> Só os com preço fixo ({fixosDaTabela.length})</label>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar produto, código, categoria…"
+        filtros={<label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={soFixos} onChange={(e) => setSoFixos(e.target.checked)} /> Só os com preço fixo ({fixosDaTabela.length})</label>}
+        nFiltros={soFixos ? 1 : 0} onLimpar={() => { setBusca(""); setSoFixos(false); }} />
       <Card>
         <ul className="divide-y divide-slate-100">
           {lista.map((p) => {

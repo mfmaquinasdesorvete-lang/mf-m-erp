@@ -3,9 +3,10 @@
 // "Lembrar" guarda a regra: o extrato novo desse favorecido já chega em "Com sugestão". O banco faz cada linha pelas
 // mesmas funções da conciliação de uma linha (conciliar_em_lote), e a linha que uma trava recusar fica pendente.
 import { useMemo, useState, type FormEvent } from "react";
-import { Ban, Check, ChevronDown, ChevronUp, ListChecks, Receipt, Search, Users } from "lucide-react";
+import { Ban, Check, ChevronDown, ChevronUp, ListChecks, Receipt, Users } from "lucide-react";
 import { Button, chip, Field, Modal } from "@/components/ui";
 import { CampoCategoria } from "@/components/financeiro/CategoriaRateio";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, pl } from "@/lib/format";
 import { notify, notifyError } from "@/lib/notify";
@@ -67,17 +68,16 @@ export function PorFavorecido({ linhas, deFora, regras, nomeConta, podeEditar }:
         {emGrupos > 0 && <> · {emGrupos} estão em grupos de 3 ou mais</>}. Lance ou ignore o grupo inteiro; marque “lembrar” e o extrato novo do mesmo favorecido já chega com a sugestão.
         {deFora > 0 && <div className="mt-1 text-xs">{deFora} {pl(deFora, "linha ficou", "linhas ficaram")} de fora porque já {pl(deFora, "tem", "têm")} uma conta ou transferência sugerida: aprove em “Com sugestão” (lançar de novo duplicaria a conta).</div>}
       </div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <label className="relative min-w-0 flex-1 basis-56">
-          <span className="sr-only">Buscar favorecido</span>
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" placeholder="Buscar favorecido…" value={busca} onChange={(e) => { setBusca(e.target.value); setLimite(POR_PAGINA); }} />
-        </label>
-        <select className="input w-auto" value={sentido} onChange={(e) => setSentido(e.target.value as typeof sentido)} aria-label="Sentido">
-          <option value="">Entradas e saídas</option><option value="saida">Só saídas</option><option value="entrada">Só entradas</option>
-        </select>
-        <Button variant="secondary" onClick={() => setVerRegras(true)}><ListChecks size={16} /> Regras ({regras.filter((r) => r.ativo).length})</Button>
-      </div>
+      {/* barra padrão: o sentido fica no painel Filtros */}
+      <BarraFiltros busca={busca} onBusca={(v) => { setBusca(v); setLimite(POR_PAGINA); }} placeholder="Buscar favorecido…"
+        filtros={
+          <select className="input w-auto" value={sentido} onChange={(e) => setSentido(e.target.value as typeof sentido)} aria-label="Sentido">
+            <option value="">Entradas e saídas</option><option value="saida">Só saídas</option><option value="entrada">Só entradas</option>
+          </select>
+        }
+        nFiltros={sentido ? 1 : 0}
+        onLimpar={() => { setBusca(""); setSentido(""); setLimite(POR_PAGINA); }}
+        direita={<Button variant="secondary" onClick={() => setVerRegras(true)}><ListChecks size={16} /> Regras ({regras.filter((r) => r.ativo).length})</Button>} />
 
       {!grupos.length && <p className="cartao p-6 text-center text-sm text-slate-500">Nenhuma linha pendente {termo ? "com este nome" : "nestes filtros"}.</p>}
       <ul className="cartao divide-y divide-slate-100 overflow-hidden">

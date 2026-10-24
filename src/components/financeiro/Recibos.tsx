@@ -22,6 +22,7 @@ import { formatarTelefone } from "@/lib/mascaras";
 import type { Config } from "@/lib/types";
 import { confirmar, pedirTexto } from "@/components/Dialogos";
 import { Anexos } from "@/components/Anexos";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { Historico } from "@/components/Historico";
 import { ChipRenegociada, HistoricoNegociacao } from "@/components/financeiro/Renegociacao";
 
@@ -302,19 +303,24 @@ export function Recibos() {
     <div>
       {aberto && <ReciboModal rascunho={aberto} onClose={() => setAberto(null)} />}
       {historico && <HistoricoRecibo recibo={historico} conta={contaDe(historico)} todos={todos} onClose={() => setHistorico(null)} onAbrir={(x) => { setHistorico(null); setAberto(x); }} />}
-      <div className="mb-3 flex flex-wrap items-end gap-2">
-        <Field label="Buscar"><input className="input w-64 max-w-full" placeholder="Nº, nome, referência ou a conta" value={busca} onChange={(e) => setBusca(e.target.value)} /></Field>
-        <Field label="Tipo">
-          <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
-            <option value="">Todos</option><option value="recebimento">Recebimento</option><option value="pagamento">Pagamento</option>
-          </select>
-        </Field>
-        <Field label="Mês"><CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></Field>
-        <p className="mb-2 ml-auto text-sm text-slate-600">{lista.length} {pl(lista.length, "recibo", "recibos")} · <b>{brl(total)}</b></p>
-        {lista.length > 1 && <Button variant="secondary" disabled={gerando} onClick={pdfLote} title="Um PDF com todos os recibos da lista, um por página, para assinar de uma vez">
-          <FileText size={16} /> {gerando ? "Gerando…" : `PDF em lote (${lista.filter((r) => !r.cancelado_em).length})`}</Button>}
-        {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
-      </div>
+      {/* barra padrão: tipo e mês no painel Filtros; quantidade e botões à direita */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nº, nome, referência ou a conta"
+        filtros={<>
+          <Field label="Tipo">
+            <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
+              <option value="">Todos</option><option value="recebimento">Recebimento</option><option value="pagamento">Pagamento</option>
+            </select>
+          </Field>
+          <Field label="Mês"><CampoMes value={mes} onChange={setMes} vazio="Todos os meses" /></Field>
+        </>}
+        nFiltros={(tipo ? 1 : 0) + (mes ? 1 : 0)}
+        onLimpar={() => { setBusca(""); setTipo(""); setMes(""); }}
+        direita={<>
+          <p className="text-sm text-slate-600">{lista.length} {pl(lista.length, "recibo", "recibos")} · <b>{brl(total)}</b></p>
+          {lista.length > 1 && <Button variant="secondary" disabled={gerando} onClick={pdfLote} title="Um PDF com todos os recibos da lista, um por página, para assinar de uma vez">
+            <FileText size={16} /> {gerando ? "Gerando…" : `PDF em lote (${lista.filter((r) => !r.cancelado_em).length})`}</Button>}
+          {podeEmitir && <Button onClick={novo}><Plus size={16} /> Novo recibo</Button>}
+        </>} />
       {lote && <PdfViewer blob={lote.blob} nome={`recibos-${lote.n}.pdf`} titulo={`${lote.n} recibos em um PDF`} onClose={() => setLote(null)} />}
       <Table empty={!lista.length}
         head={<><th className="th">Nº</th><th className="th">Data</th><th className="th">Tipo</th><th className="th">Quem recebeu / pagou</th><th className="th">Referente a</th><th className="th text-right">Valor</th><th className="th" /></>}>

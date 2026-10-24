@@ -4,8 +4,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, CheckCheck, ExternalLink, Mic, Search, Wallet, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCheck, ExternalLink, Mic, Wallet, X } from "lucide-react";
 import { Button, Card, PageHeader, Stat, Tabs } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { usePerfil } from "@/lib/auth";
 import { useConfig } from "@/lib/useConfig";
 import { useAbaUrl } from "@/lib/abaUrl";
@@ -69,14 +70,12 @@ export default function Anotacoes() {
           sub={`${pagamentos.filter((a) => a.situacao === "conferido").length} conferidos com o banco`} />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* abas e, logo abaixo, a barra padrão de busca */}
+      <div>
         <Tabs value={aba} onChange={setAba} options={[
           { value: "conferir", label: `Para conferir (${pendentes.length})` }, { value: "feitas", label: "Conferidas" }, { value: "todas", label: "Todas" },
         ]} />
-        <label className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente, pedido, pessoa…" />
-        </label>
+        <div className="mt-2"><BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar cliente, pedido, pessoa…" onLimpar={() => setBusca("")} /></div>
       </div>
 
       {!confereTudo && <p className="text-sm text-slate-500">Você acompanha as anotações; quem confere é a responsável (e a retaguarda).</p>}

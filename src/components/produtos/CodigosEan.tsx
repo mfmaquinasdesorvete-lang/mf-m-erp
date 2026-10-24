@@ -3,8 +3,9 @@
 // O código trocado vai para "Códigos alternativos": a busca continua achando etiquetas antigas.
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Barcode, CheckCircle2, CircleAlert, FileSpreadsheet, Lightbulb, Search, Sparkles, XCircle } from "lucide-react";
+import { Barcode, CheckCircle2, CircleAlert, FileSpreadsheet, Lightbulb, Sparkles, XCircle } from "lucide-react";
 import { Button, Card, Modal } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { useInvalidate } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
@@ -174,13 +175,8 @@ export function CodigosEan({ produtos, podeEditar, onAbrir }: { produtos: Produt
       <FaixaGs1 prefixo={prefixo} usados={daFaixa} podeEditar={podeEditar} onSalvar={salvarPrefixo} onPlanilha={planilhaGs1} />
       <Dicas />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-0 flex-1">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, SKU ou código" aria-label="Buscar produto, SKU ou código" />
-        </label>
-        <Button variant="secondary" onClick={planilhaTudo}><FileSpreadsheet size={15} /> Planilha</Button>
-      </div>
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar produto, SKU ou código" onLimpar={() => setBusca("")}
+        direita={<Button variant="secondary" onClick={planilhaTudo}><FileSpreadsheet size={15} /> Planilha</Button>} />
 
       {podeEditar && visiveis.length > 0 && (
         <div className="sticky top-14 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-surface/95 p-2 text-sm shadow-card backdrop-blur md:top-2">

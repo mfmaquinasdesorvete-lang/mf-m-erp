@@ -4,9 +4,10 @@
 // o frete e as faturas para montar (CT-e sem fatura juntos por transportadora) que viram conta a pagar.
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, CircleDollarSign, Clock, FileSpreadsheet, Link2, PackageCheck, Receipt, RefreshCw, Search, Truck, Upload, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, CircleDollarSign, Clock, FileSpreadsheet, Link2, PackageCheck, Receipt, RefreshCw, Truck, Upload, X } from "lucide-react";
 import { Badge, Button, Field, Modal, Section, Stat, Table, nomeMes, chip } from "@/components/ui";
 import { ImportarCteXml } from "@/components/fretes/ImportarCteXml";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { MontarFatura } from "@/components/fretes/CteFaturas";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR } from "@/lib/format";
@@ -140,7 +141,6 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   const selecionaveis = lista.filter(faturavel);
   const marcadosLista = selecionaveis.filter((c) => marcados.has(c.id));
   const totalMarcado = marcadosLista.reduce((s, c) => s + Number(c.valor), 0);
-  const filtros = [de, ate, transp, sentido, busca, soSemFatura || "", soAtraso || ""].filter(Boolean).length;
   const sugeridas = faturasSugeridas(ctes);
 
   const marcar = (id: string) => setMarcados((m) => { const n = new Set(m); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -162,27 +162,21 @@ export function CtePainel({ transportadoras }: { transportadoras: Transportadora
   return (
     <div className="space-y-4">
       <BuscaSefaz />
-      <div className="cartao flex flex-wrap items-end gap-2 p-3">
-        <label className="block min-w-36 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">De</span>
-          <input className="input" type="date" value={de} onChange={(e) => setDe(e.target.value)} /></label>
-        <label className="block min-w-36 flex-1 sm:flex-none"><span className="mb-1 block text-xs font-semibold text-slate-600">Até</span>
-          <input className="input" type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></label>
-        {transpComCte.length > 1 && (
-          <label className="block min-w-40 flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Transportadora</span>
-            <select className="input" value={transp} onChange={(e) => setTransp(e.target.value)}>
+      {/* sentido, sem fatura e atraso têm os chips da lista, mas contam como filtro em uso para o Limpar */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Nº do CT-e, nota, fornecedor, cliente, cidade"
+        periodo={{ de, ate }} onPeriodo={(p) => { setDe(p.de); setAte(p.ate); }} rotuloData="Emissão"
+        filtros={transpComCte.length > 1 ? (
+          <label className="text-xs font-semibold text-slate-600">Transportadora
+            <select className="input mt-0.5 h-9 w-auto" value={transp} onChange={(e) => setTransp(e.target.value)}>
               <option value="">Todas</option>{transpComCte.map((id) => <option key={id} value={id}>{nomeTransportadora(porId.get(id))}</option>)}
             </select></label>
-        )}
-        <label className="block min-w-48 flex-[2]"><span className="mb-1 block text-xs font-semibold text-slate-600">Buscar</span>
-          <span className="relative block"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input pl-9" placeholder="Nº do CT-e, nota, fornecedor, cliente, cidade" value={busca} onChange={(e) => setBusca(e.target.value)} /></span></label>
-        {filtros > 0 && <Button variant="ghost" onClick={limpar}><X size={15} /> Limpar</Button>}
-        <div className="ml-auto flex flex-wrap gap-2">
+        ) : undefined}
+        nFiltros={[transp, sentido, soSemFatura, soAtraso].filter(Boolean).length} onLimpar={limpar}
+        direita={(podeImportar || podeFaturar) && <>
           {podeImportar && <Button variant="secondary" onClick={() => setImportar(true)}><Upload size={16} /> Importar planilha</Button>}
           {podeImportar && <ImportarCteXml />}
           {podeFaturar && <Button onClick={() => setFatura({ ids: marcadosLista.map((c) => c.id) })}><Receipt size={16} /> Montar fatura{marcadosLista.length ? ` (${marcadosLista.length})` : ""}</Button>}
-        </div>
-      </div>
+        </>} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Frete pago pela MF" icon={CircleDollarSign} valor={brl(resumo.fretePagoMF)}

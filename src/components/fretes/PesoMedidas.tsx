@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { Check, Package } from "lucide-react";
 import { Button } from "@/components/ui";
+import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { useInvalidate, useRows } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
@@ -102,15 +103,20 @@ export function PesoMedidas({ podeEditar }: { podeEditar: boolean }) {
     <div className="space-y-3">
       <p className="text-sm text-slate-600"><Package size={15} className="mr-1 inline" aria-hidden />
         A cotação de frete usa o <b>peso da peça embalada</b> (kg, ex.: 0,350) e as <b>medidas da embalagem</b> (cm). Faltam em <b>{faltando}</b> de {produtos.length} produtos que a MF vende (uso interno, insumo e serviço ficam de fora).</p>
-      <div className="flex flex-wrap items-end gap-2">
-        <select className="input w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Quais produtos">
-          <option value="faltando">Faltando peso ou medidas</option><option value="loja">Produtos da loja</option><option value="todos">Todos os que vendem</option>
-        </select>
-        <select className="input w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
-          <option value="">Todas as categorias</option>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <input className="input min-w-40 flex-1" type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto" aria-label="Buscar produto" />
-      </div>
+      {/* "faltando" é o padrão: só conta como filtro quando muda */}
+      <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar produto"
+        filtros={<>
+          <label className="text-xs font-semibold text-slate-600">Quais produtos
+            <select className="input mt-0.5 h-9 w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
+              <option value="faltando">Faltando peso ou medidas</option><option value="loja">Produtos da loja</option><option value="todos">Todos os que vendem</option>
+            </select></label>
+          <label className="text-xs font-semibold text-slate-600">Categoria
+            <select className="input mt-0.5 h-9 w-auto" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              <option value="">Todas as categorias</option>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select></label>
+        </>}
+        nFiltros={(filtro !== "faltando" ? 1 : 0) + (categoria ? 1 : 0)}
+        onLimpar={() => { setBusca(""); setCategoria(""); setFiltro("faltando"); }} />
 
       {podeEditar && marcados.size > 0 && (
         <div className="flex flex-wrap items-end gap-2 rounded-cartao bg-slate-50 p-3">
