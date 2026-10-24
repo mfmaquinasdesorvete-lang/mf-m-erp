@@ -49,7 +49,7 @@ Classifique em um tipo:
 - "etapa_montagem": terminou uma etapa da produção ou montagem de uma máquina (montagem, vácuo, teste de produção, acabamento, adesivação, placa).
 - "material_recebido": chegou material, peça ou compra de um fornecedor.
 - "conserto": chegou uma máquina de cliente para conserto/assistência/garantia.
-- "lembrete": pedido para lembrar alguém ou anotar um recado (ex.: "anota que o cliente pediu para ligar amanhã", "avisa a Évellem que...").
+- "lembrete": pedido para lembrar alguém ou anotar um recado (ex.: "anota que o cliente pediu para ligar amanhã", "avisa a secretária que...").
 - "giga_ok": o técnico confere e dá o ok no teste do giga (REG-006) de uma máquina, normalmente pelo número de série.
 - "outro": qualquer outra anotação.
 

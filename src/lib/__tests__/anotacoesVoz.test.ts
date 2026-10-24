@@ -32,10 +32,10 @@ describe("termosBusca", () => {
 });
 
 describe("acharPessoa", () => {
-  const equipe = [{ id: "1", nome: "Évellem Olmedo" }, { id: "2", nome: "Fabiano Castro" }, { id: "3", nome: "Técnico" }];
+  const equipe = [{ id: "1", nome: "Ana Souza" }, { id: "2", nome: "Bruno Lima" }, { id: "3", nome: "Técnico" }];
   it("acha pelo primeiro nome sem acento", () => {
-    expect(acharPessoa("evellem", equipe)?.id).toBe("1");
-    expect(acharPessoa("Fabiano", equipe)?.id).toBe("2");
+    expect(acharPessoa("ana", equipe)?.id).toBe("1");
+    expect(acharPessoa("Bruno", equipe)?.id).toBe("2");
     expect(acharPessoa("tecnico", equipe)?.id).toBe("3");
   });
   it("nome curto ou desconhecido não acha ninguém", () => {
