@@ -1,5 +1,6 @@
 // Barra de filtros única das listas: busca, período (atalhos ou de/até) e os outros filtros guardados num botão,
-// para a lista começar logo abaixo. Também: chips de situação compactos, rodapé com quantidade e total (como no
+// para a lista começar logo abaixo. No celular (24/10) a busca e os botões de período e filtros ficam numa linha só:
+// os botões viram ícones (com o número dos filtros em uso) e as ações da tela (`direita`) descem para a linha de baixo. Também: chips de situação compactos, rodapé com quantidade e total (como no
 // Tiny) e a seleção de várias linhas.
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { CalendarDays, Search, SlidersHorizontal, X } from "lucide-react";
@@ -26,12 +27,12 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
   const algo = !!busca || ativoPeriodo || nFiltros > 0;
   const alternar = (p: "periodo" | "filtros") => setPainel((x) => (x === p ? null : p));
   const botao = (ativo: boolean, aberto: boolean) =>
-    `inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition ${ativo ? "border-brand bg-brand/10 text-brand" : aberto ? "border-slate-400 bg-slate-50 text-fg" : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`;
+    `relative inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-sm font-semibold transition sm:px-3 ${ativo ? "border-brand bg-brand/10 text-brand" : aberto ? "border-slate-400 bg-slate-50 text-fg" : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"}`;
   return (
     <div className="mb-3 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         {onBusca && (
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-64 sm:max-w-md">
+          <div className="relative min-w-0 flex-1 basis-40 sm:basis-64 sm:max-w-md">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
             <input className="input h-10 pl-9" type="search" placeholder={placeholder} aria-label={placeholder} value={busca ?? ""} onChange={(e) => onBusca(e.target.value)} />
           </div>
@@ -41,15 +42,16 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
           <button type="button" onClick={() => alternar("periodo")} aria-expanded={painel === "periodo"} title={`${rotuloData}: ${rotuloPeriodo(periodo!, hoje())}`}
             className={`${botao(ativoPeriodo, painel === "periodo")} min-w-0 !shrink`}>
             <CalendarDays size={16} className="shrink-0" aria-hidden />
-            {/* celular com período escolhido: só o período ("Esta semana"), para o resto da barra caber na mesma linha */}
-            <span className="max-w-52 truncate">{ativoPeriodo
+            {/* celular: só o ícone (com o período escolhido, o período curto); o nome completo fica no título */}
+            <span className={`max-w-52 truncate ${ativoPeriodo ? "max-sm:max-w-24" : "max-sm:sr-only"}`}>{ativoPeriodo
               ? <><span className="hidden sm:inline">{rotuloData}: </span>{rotuloPeriodo(periodo!, hoje())}</>
               : <>{rotuloData}<span className="hidden sm:inline">: {rotuloPeriodo(periodo!, hoje())}</span></>}</span>
           </button>
         )}
         {filtros && (
           <button type="button" onClick={() => alternar("filtros")} aria-expanded={painel === "filtros"} className={botao(nFiltros > 0, painel === "filtros")}>
-            <SlidersHorizontal size={16} aria-hidden /> Filtros{nFiltros > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-brand-fg">{nFiltros}</span>}
+            <SlidersHorizontal size={16} aria-hidden /> <span className="max-sm:sr-only">Filtros</span>
+            {nFiltros > 0 && <span className="rounded-full bg-brand px-1.5 text-xs leading-5 text-brand-fg max-sm:absolute max-sm:-right-1.5 max-sm:-top-1.5">{nFiltros}</span>}
           </button>
         )}
         {algo && onLimpar && (
@@ -57,7 +59,7 @@ export function BarraFiltros({ busca, onBusca, placeholder = "Buscar…", period
             <X size={15} aria-hidden /> <span className="hidden sm:inline">Limpar</span>
           </button>
         )}
-        {direita && <div className="ml-auto flex flex-wrap items-center gap-2">{direita}</div>}
+        {direita && <div className="ml-auto flex flex-wrap items-center justify-end gap-2 max-sm:basis-full">{direita}</div>}
       </div>
       {painel === "periodo" && comPeriodo && <PainelPeriodo periodo={periodo!} onChange={onPeriodo!} rotulo={rotuloData} campoData={campoData} />}
       {painel === "filtros" && filtros && (

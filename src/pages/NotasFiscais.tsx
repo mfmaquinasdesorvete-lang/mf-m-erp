@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { type Destaque, lerDestaque } from "@/lib/destaque";
 import { FaixaDestaque } from "@/components/FaixaDestaque";
 import { ArrowLeft, Ban, CalendarClock, FileDown, FlaskConical, Lightbulb, ListChecks, RefreshCw, Scale, Search, Send, Settings2, ShieldCheck, Tags, Undo2, Upload } from "lucide-react";
-import { Button, CelulaAbrir, chip, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
+import { AcoesNoTopo, Button, CelulaAbrir, chip, MaisAcoes, PageHeader, Table, Tabs } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { useUnidade, EtiquetaUnidade } from "@/lib/unidade";
 import { brl, dataBR, docFormat, hoje, pl } from "@/lib/format";
@@ -263,8 +263,9 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
         periodo={aba === "excluidas" ? undefined : filtros.f} onPeriodo={aba === "excluidas" ? undefined : (p) => filtros.setF({ ...filtros.f, ...p })} rotuloData="Emissão"
         filtros={aba === "excluidas" ? undefined : <><FiltroMarcador valor={marcador} onChange={setMarcador} /><FiltroEtapa valor={etapa} onChange={setEtapa} opcoes={FILTROS_EMITIDAS} /><CamposNota f={filtros.f} onChange={filtros.setF} comUf /></>}
         nFiltros={(marcador ? 1 : 0) + (etapa ? 1 : 0) + camposEmUso(filtros.f)}
-        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); filtros.setF(FILTRO_VAZIO); }}
-        direita={<div className="flex flex-wrap gap-2">
+        onLimpar={() => { buscar(""); setMarcador(""); setEtapa(""); filtros.setF(FILTRO_VAZIO); }} />
+      {/* Emitir NF-e e o "Mais" ao lado do título da página (no celular a busca fica numa linha só) */}
+      <AcoesNoTopo>
           {!leitura && pode("emitir_nfe") && <Button className="md:order-last" onClick={() => setJanela("emitir")}><Send size={16} /> Emitir NF-e</Button>}
           <MaisAcoes>
             <Button variant="secondary" onClick={() => setValidarXml(true)} title="Conferir arquivos XML com as regras oficiais da SEFAZ"><ShieldCheck size={16} /> Validar XML</Button>
@@ -284,7 +285,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
               <Button variant="ghost" onClick={() => irPara("compliance")}><ShieldCheck size={16} /> Conferência fiscal</Button>
             </>}
           </MaisAcoes>
-        </div>} />
+        </AcoesNoTopo>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
       <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => ({ valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: valorDeVenda(n) }))} />

@@ -149,9 +149,23 @@ export function PageHeader({ title, subtitle, actions, compacto, logo }: { title
             onClick={(e) => e.currentTarget.classList.toggle("line-clamp-1")}>{subtitle}</p>}
         </div>
       </div>
-      <div className="ml-auto flex flex-wrap gap-2">{actions}</div>
+      {/* "acoes-topo": onde as ações de uma parte da tela aparecem ao lado do título (AcoesNoTopo) */}
+      <div className="ml-auto flex flex-wrap gap-2">{actions}<div id="acoes-topo" className="contents" /></div>
     </div>
   );
+}
+
+/**
+ * Ações de uma parte da tela (ex.: a aba de notas emitidas) ao lado do título da página, em vez de uma linha a mais
+ * embaixo da busca (24/10: no celular a busca e os filtros ficam numa linha e a lista começa logo depois).
+ * Sem o cabeçalho na tela, as ações aparecem onde o componente está.
+ */
+export function AcoesNoTopo({ children }: { children: ReactNode }) {
+  const [alvo, setAlvo] = useState<HTMLElement | null>(null);
+  const [procurou, setProcurou] = useState(false);
+  useLayoutEffect(() => { setAlvo(document.getElementById("acoes-topo")); setProcurou(true); }, []);
+  if (alvo) return createPortal(children, alvo);
+  return procurou ? <div className="mb-3 flex flex-wrap justify-end gap-2">{children}</div> : null;
 }
 
 /** Seção com título dentro de um card. */
