@@ -58,6 +58,9 @@ export function tituloML(texto: string | null | undefined, limite = 60): string 
   return r;
 }
 
+/** Marca que vai para o Mercado Livre quando o cadastro está sem marca (escolha da usuária em 23/10). */
+export const MARCA_PADRAO = "MF Máquinas";
+
 export type ProdutoNovo = {
   sku: string | null; descricao: string; titulo_anuncio?: string | null; marca?: string | null; modelo?: string | null;
   codigo_fabricante?: string | null; codigo_barras?: string | null; gtin_isento?: boolean | null;
@@ -74,7 +77,7 @@ export function atributosDoProduto(p: ProdutoNovo, categoria: AtributoCategoria[
   const a: AtributoML[] = [];
   const por = new Map(categoria.map((c) => [c.id, c]));
   const poe = (id: string, valor: unknown) => { if (temTexto(valor) && (por.size === 0 || por.has(id))) a.push({ id, value_name: String(valor).trim().slice(0, 255) }); };
-  poe("BRAND", p.marca);
+  poe("BRAND", semMyFrost(p.marca) || MARCA_PADRAO);
   poe("MODEL", p.modelo || p.sku);
   poe("PART_NUMBER", p.codigo_fabricante || p.sku);
   poe("SELLER_SKU", p.sku);

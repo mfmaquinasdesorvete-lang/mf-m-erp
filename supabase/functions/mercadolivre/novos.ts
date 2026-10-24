@@ -105,7 +105,6 @@ async function prepararUm(db: SupabaseClient, conta: Conta, token: string, p: Pr
   const attrsCat = await ml<AtributoCategoria[]>(`/categories/${cat.category_id}/attributes`, token).catch(() => [] as AtributoCategoria[]);
   const { atributos, faltando: obrigatorios } = atributosDoProduto(p, Array.isArray(attrsCat) ? attrsCat : []);
   faltando.push(...obrigatorios);
-  if (!p.marca && !faltando.includes("Marca")) faltando.push("Marca");
 
   const alvo = num(p.preco_venda);
   // tarifa da categoria (% do Clássico)

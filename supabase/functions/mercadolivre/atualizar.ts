@@ -3,7 +3,7 @@
 // não deixar mudar o título, vai só a foto e a descrição. Preço e estoque continuam pelo envio de estoque e preço.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
-import { semMyFrost, tituloML } from "../_shared/ml-novos.ts";
+import { MARCA_PADRAO, semMyFrost, tituloML } from "../_shared/ml-novos.ts";
 
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
@@ -108,7 +108,11 @@ export async function republicarAnuncios(db: SupabaseClient, token: string, iten
       if (Number(velho?.sold_quantity) > 0) throw new Error("anúncio com venda: não fecho");
       const titulo = tituloML(semMyFrost(prod.titulo_anuncio || prod.descricao));
       const attrs = (velho.attributes ?? []).filter((a: any) => a?.id && (a.value_id || a.value_name))
-        .map((a: any) => (a.value_id ? { id: a.id, value_id: a.value_id } : { id: a.id, value_name: semMyFrost(a.value_name) }));
+        .map((a: any) => (a.value_id && !/my\s*frost/i.test(String(a.value_name ?? "")) ? { id: a.id, value_id: a.value_id } : { id: a.id, value_name: semMyFrost(a.value_name) }))
+        .filter((a: any) => a.value_id || a.value_name);
+      // marca: a do anúncio sem "My Frost"; sem ela, a padrão
+      const marca = attrs.find((a: any) => a.id === "BRAND");
+      if (!marca) attrs.push({ id: "BRAND", value_name: MARCA_PADRAO });
       const corpo: Record<string, unknown> = {
         title: titulo, family_name: titulo, category_id: velho.category_id, price: velho.price, currency_id: velho.currency_id ?? "BRL",
         available_quantity: Math.max(1, Number(velho.available_quantity) || 1), buying_mode: velho.buying_mode ?? "buy_it_now",
