@@ -446,25 +446,23 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         passoAPasso
         // a tela começa pelo título; avisos, tipo de cadastro e sugestões vêm logo abaixo dele
         aposTitulo={<>
-          {podeMover && precosPendentes > 0 && (
-            <button type="button" onClick={() => navigate("/precos")}
-              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-left text-sm text-amber-800 sm:py-2">
-              <AlertTriangle size={16} className="shrink-0" />
-              <span className="min-w-0 flex-1 truncate sm:whitespace-normal"><b>{precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar</b><span className="hidden sm:inline">: o custo mudou e o preço ficou abaixo da margem desejada.</span></span>
-              <span className="shrink-0 font-semibold underline">Revisar</span>
-            </button>
-          )}
-          {baixos.length > 0 && (
-            <button type="button" onClick={() => navigate("/estoque?aba=qualidade&problema=abaixo_minimo")} title="Ver a lista dos itens no mínimo"
-              className="mb-2 flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-left text-sm text-amber-800 hover:border-amber-400 sm:mb-3 sm:items-start sm:py-2">
-              <AlertTriangle size={16} className="shrink-0 sm:mt-0.5" />
-              <span className="min-w-0 flex-1 truncate sm:whitespace-normal">
-                <b>{baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo ou abaixo</b>
-                <span className="hidden sm:inline">: {baixos.slice(0, 6).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}
-                  {baixos.length > 6 && "…"}</span>
-              </span>
-              <span className="ml-auto shrink-0 font-semibold underline">Ver</span>
-            </button>
+          {/* avisos discretos numa linha só (pedido de 24/10): tocar abre a lista */}
+          {((podeMover && precosPendentes > 0) || baixos.length > 0) && (
+            <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-800 sm:mb-3">
+              {podeMover && precosPendentes > 0 && (
+                <button type="button" onClick={() => navigate("/precos")} title="O custo mudou e o preço ficou abaixo da margem desejada"
+                  className="inline-flex items-center gap-1 hover:underline">
+                  <AlertTriangle size={13} aria-hidden /> {precosPendentes} {pl(precosPendentes, "preço", "preços")} para revisar
+                </button>
+              )}
+              {baixos.length > 0 && (
+                <button type="button" onClick={() => navigate("/estoque?aba=qualidade&problema=abaixo_minimo")}
+                  title={`${baixos.slice(0, 8).map((p) => `${p.descricao} (${Number(p.estoque_atual)})`).join(", ")}${baixos.length > 8 ? "…" : ""}`}
+                  className="inline-flex items-center gap-1 hover:underline">
+                  <AlertTriangle size={13} aria-hidden /> {baixos.length} {pl(baixos.length, "item", "itens")} no estoque mínimo
+                </button>
+              )}
+            </div>
           )}
 
           {!ehMaquinas && <div className="faixa-chips mb-2 sm:mb-3 sm:gap-2" role="tablist" aria-label="Cadastro de produtos">

@@ -20,6 +20,7 @@ import {
   type ContaRevisao, type Pendencia, type TipoConta,
 } from "@/lib/aprovacao";
 import { useAbaUrl } from "@/lib/abaUrl";
+import { ehGastoCartao } from "@/lib/gastosCartao";
 
 type Linha = { tipo: TipoConta; c: ContaRevisao; terceiro: string | null; pend: Pendencia[] };
 type Hist = { id: string; tabela: string; conta_id: string; acao: string; etapa: string | null; comentario: string | null; usuario_nome: string | null; created_at: string };
@@ -65,17 +66,31 @@ export default function Aprovacoes() {
     ];
   }, [pagarT, receberT, docs, categorias, filtrar]);
 
+  // compras do cartão (extrato do cartão, uma por linha) saem da lista: aqui só boletos, Pix e contas. Elas aparecem
+  // num bloco à parte, uma linha por dia, aprovadas de uma vez (pedido de 24/10)
+  const ehCartao = (l: Linha) => l.tipo === "pagar" && ehGastoCartao(l.c as never);
+  const cartaoDias = useMemo(() => {
+    const m = new Map<string, Linha[]>();
+    for (const l of linhas) {
+      if (!ehCartao(l) || l.c.revisao !== "em_revisao" || !quemPode(l.c, { id: eu.user_id, admin }, regras).pode) continue;
+      const d = (l.c as { data_pagamento?: string | null }).data_pagamento ?? l.c.vencimento;
+      m.set(d, [...(m.get(d) ?? []), l]);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [linhas, eu.user_id, admin, regras.revisor1.join(), regras.revisor2.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const k = useMemo(() => {
-    const emRevisao = linhas.filter((l) => l.c.revisao === "em_revisao");
+    const semCartao = linhas.filter((l) => !ehCartao(l));
+    const emRevisao = semCartao.filter((l) => l.c.revisao === "em_revisao");
     const minha = emRevisao.filter((l) => quemPode(l.c, { id: eu.user_id, admin }, regras).pode);
-    const aprovadasMes = linhas.filter((l) => l.c.revisao === "aprovado" && diaAprov(l.c).startsWith(mes));
+    const aprovadasMes = semCartao.filter((l) => l.c.revisao === "aprovado" && diaAprov(l.c).startsWith(mes));
     return {
       emRevisao, minha,
       segunda: emRevisao.filter((l) => l.c.revisao1_em),
       pendentes: emRevisao.filter((l) => !l.c.revisao1_em && l.pend.length),
-      devolvidas: linhas.filter((l) => l.c.revisao === "devolvido"),
+      devolvidas: semCartao.filter((l) => l.c.revisao === "devolvido"),
       aprovadasMes, validadasMes: aprovadasMes.filter((l) => l.c.contador_status === "validado"),
-      aprovadas: linhas.filter((l) => l.c.revisao === "aprovado").sort((a, b) => diaAprov(b.c).localeCompare(diaAprov(a.c))),
+      aprovadas: semCartao.filter((l) => l.c.revisao === "aprovado").sort((a, b) => diaAprov(b.c).localeCompare(diaAprov(a.c))),
     };
   }, [linhas, eu.user_id, admin, regras.revisor1.join(), regras.revisor2.join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,6 +159,21 @@ export default function Aprovacoes() {
                 </label>
               )}
             </div>
+          )}
+          {aba === "revisar" && podeAgir && cartaoDias.length > 0 && (
+            <details className="cartao mb-3 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold text-fg">Gastos cartão ({cartaoDias.reduce((s, [, ls]) => s + ls.length, 0)} compras em {cartaoDias.length} {pl(cartaoDias.length, "dia", "dias")}) · aprovar por dia</summary>
+              <ul className="mt-2 divide-y divide-slate-100">
+                {cartaoDias.map(([d, ls]) => (
+                  <li key={d} className="flex flex-wrap items-center gap-2 py-1.5">
+                    <span className="min-w-40 flex-1"><b>Gastos cartão {dataBR(d)}</b> <span className="text-xs text-slate-500">· {ls.length} {pl(ls.length, "compra", "compras")}</span></span>
+                    <span className="num font-semibold">{brl(ls.reduce((s, l) => s + Number(l.c.valor), 0))}</span>
+                    <Button type="button" variant="secondary" className="!min-h-0 !py-1" disabled={ocupado}
+                      onClick={() => executar("aprovar", ls, "Gastos do cartão do dia, aprovados juntos")}><Check size={14} /> Aprovar o dia</Button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           {lista.length ? (
             <ul className="space-y-2.5">

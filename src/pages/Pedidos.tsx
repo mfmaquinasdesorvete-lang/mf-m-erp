@@ -1,3 +1,4 @@
+import { AgradecerPagamentos } from "@/components/vendas/AgradecerPagamentos";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { SeloCidade } from "@/components/SeloCidade";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -317,6 +318,7 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
         } : undefined} />
       ) : <>
 
+      {vePagamento && !destaque && <AgradecerPagamentos />}
       {destaque && <FaixaDestaque destaque={destaque} mostrando={lista.length}
         onLimpar={() => { setDestaque(null); navigate(location.pathname, { replace: true, state: null }); }} />}
       <BarraFiltros busca={busca} onBusca={setBusca} placeholder="Buscar nº, cliente, CPF ou CNPJ…"

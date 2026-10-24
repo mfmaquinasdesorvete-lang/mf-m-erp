@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Copy, HeartHandshake, MessageCircle, Settings2, SkipForward } from "lucide-react";
+import { ChevronRight, Copy, MessageCircle, Settings2, SkipForward } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { brl, dataBR, hoje, whatsappLink, pl } from "@/lib/format";
@@ -73,9 +73,8 @@ export function Cobranca({ contas: todas }: { contas: ContaR[] }) {
     invalidate("cobranca_envios", "contatos_cliente", "ficha_cliente");
   }
 
-  // obrigado pelo pagamento (conta paga) num quadro à parte: não é cobrança (pedido de 24/10)
+  // o obrigado pelo pagamento (conta paga) não é cobrança: fica na página de Vendas (AgradecerPagamentos, pedido de 24/10)
   const cobrar = fila.filter((f) => f.conta.status !== "pago");
-  const agradecer = fila.filter((f) => f.conta.status === "pago");
   const linha = ({ conta: c, etapa: e, data }: (typeof fila)[number]) => {
     const texto = mensagem(c, e);
     const zap = c.cliente?.whatsapp || c.cliente?.telefone;
@@ -114,14 +113,6 @@ export function Cobranca({ contas: todas }: { contas: ContaR[] }) {
         {semPix.length > 0 && <p className="mb-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Sem chave Pix em {semPix.map((u) => u.nome).join(", ")}: cadastre em Configurações → Unidades para a mensagem levar o Pix copia e cola.</p>}
         {!cobrar.length ? <p className="text-sm text-slate-500">Nada para cobrar hoje. 🎉</p> : <ul className="divide-y divide-slate-100">{cobrar.map(linha)}</ul>}
       </Card>
-
-      {agradecer.length > 0 && (
-        <Card className="p-4">
-          <h2 className="mb-1 flex items-center gap-2 font-bold"><HeartHandshake size={18} className="text-emerald-600" /> Agradecer pagamento ({agradecer.length})</h2>
-          <p className="mb-3 text-sm text-slate-600">Clientes que já pagaram: não é cobrança, é a mensagem de obrigado (etapa da régua no pagamento).</p>
-          <ul className="divide-y divide-slate-100">{agradecer.map(linha)}</ul>
-        </Card>
-      )}
 
       <MensagensWhatsapp />
 

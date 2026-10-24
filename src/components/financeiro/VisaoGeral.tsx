@@ -12,6 +12,7 @@ import { brl, dataBR, hoje, pl } from "@/lib/format";
 import { useUnidade } from "@/lib/unidade";
 import { contasDoPeriodo, fluxoDoPeriodo, intervalo, situacao, somarDias, type ContaFin, type Periodo } from "@/lib/financeiro";
 import { paraFluxo, type ContaDecisao } from "@/lib/programacao";
+import { agruparGastosCartao } from "@/lib/gastosCartao";
 
 type Saldo = { conta_id: string; nome: string; unidade_id: string; saldo: number; data_base: string; origem: "extrato" | "cadastro" };
 type Horizonte = "mes" | "30" | "90";
@@ -71,7 +72,9 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
 }) {
   const [todas, setTodas] = useState(false);
   const cor = tipo === "receber" ? { texto: "text-emerald-700", barra: "bg-emerald-500" } : { texto: "text-red-700", barra: "bg-red-500" };
-  const lista = todas ? r.itens : r.itens.slice(0, 6);
+  // no A pagar, as compras do cartão viram uma linha por dia ("Gastos cartão dd/mm"); boletos e contas, uma por uma
+  const itens = useMemo(() => (tipo === "pagar" ? agruparGastosCartao(r.itens) : r.itens), [r.itens, tipo]);
+  const lista = todas ? itens : itens.slice(0, 6);
   const rotulo = { pago: tipo === "receber" ? "Recebido" : "Pago", vence_hoje: "Vence hoje", vencida: "Vencida", aberta: tipo === "receber" ? "A receber" : "A pagar" };
   return (
     <div className="p-4">
@@ -82,13 +85,14 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
         <div className={`h-full rounded-full ${cor.barra}`} style={{ width: `${r.pct * 100}%` }} />
       </div>
       <div className="text-xs text-slate-500">{brl(r.realizado)} {tipo === "receber" ? "recebidos" : "pagos"} · {brl(r.aberto)} {tipo === "receber" ? "a receber" : "a pagar"}</div>
-      {!r.itens.length ? <p className="mt-4 text-sm text-slate-500">Nada vence neste período.</p> : (
+      {!itens.length ? <p className="mt-4 text-sm text-slate-500">Nada vence neste período.</p> : (
         <ul className="mt-3 divide-y divide-slate-100">
           {lista.map((c) => {
             const s = situacao(c, dia);
-            const sub = s === "vencida" ? `Venceu ${dataBR(c.vencimento)}` : s === "vence_hoje" ? "Vence hoje" : s === "pago" && c.data_pagamento ? `${FORMA[c.forma_pagamento ?? ""] ?? (tipo === "receber" ? "Recebido" : "Pago")} · ${dm(c.data_pagamento)}`
+            const qtdCartao = "cartao" in c ? (c as { cartao: number }).cartao : 0;
+            const sub = qtdCartao ? `${qtdCartao} ${pl(qtdCartao, "compra", "compras")} no cartão` : s === "vencida" ? `Venceu ${dataBR(c.vencimento)}` : s === "vence_hoje" ? "Vence hoje" : s === "pago" && c.data_pagamento ? `${FORMA[c.forma_pagamento ?? ""] ?? (tipo === "receber" ? "Recebido" : "Pago")} · ${dm(c.data_pagamento)}`
               : `${FORMA[c.forma_pagamento ?? ""] ? FORMA[c.forma_pagamento!] + " · " : ""}vence ${dm(c.vencimento)}`;
-            const clicavel = !!onBaixa && c.status === "aberto";
+            const clicavel = !!onBaixa && c.status === "aberto" && !qtdCartao;
             const Tag = clicavel ? "button" : "div";
             return (
               <li key={c.id}>
@@ -109,7 +113,7 @@ function Coluna({ titulo, r, tipo, dia, onBaixa }: {
           })}
         </ul>
       )}
-      {r.itens.length > 6 && <button type="button" onClick={() => setTodas(!todas)} className="link-acao mt-1 text-sm">{todas ? "Mostrar menos" : `Ver todas (${r.itens.length})`}</button>}
+      {itens.length > 6 && <button type="button" onClick={() => setTodas(!todas)} className="link-acao mt-1 text-sm">{todas ? "Mostrar menos" : `Ver todas (${itens.length})`}</button>}
       {r.vencidasAntes.qtd > 0 && (
         <p className="mt-2 text-xs font-semibold text-red-700">+ {r.vencidasAntes.qtd} {pl(r.vencidasAntes.qtd, "conta", "contas")} {pl(r.vencidasAntes.qtd, "vencida", "vencidas")} antes deste período: {brl(r.vencidasAntes.valor)}</p>
       )}
