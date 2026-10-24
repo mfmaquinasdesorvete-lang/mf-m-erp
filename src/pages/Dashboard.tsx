@@ -21,6 +21,7 @@ import { vendasDasNotas, type NotaVenda } from "@/lib/vendasNotas";
 import { ordenarAtencao, type ItemAtencao } from "@/lib/prioridadeInicio";
 import { AcessoRapido } from "@/components/painel/AcessoRapido";
 import { ResumoDono, veResumoDono } from "@/components/painel/ResumoDono";
+import { EquipeOnline } from "@/components/painel/EquipeOnline";
 
 const Fluxo = lazy(() => import("@/pages/Fluxo"));
 
@@ -102,6 +103,8 @@ export default function Dashboard() {
   const atual = opcoes.includes(visao) ? visao : padrao;
   return (
     <>
+      {/* só a conta master: quem da equipe está com o ERP aberto e há quanto tempo */}
+      {master && <EquipeOnline />}
       {(opcoes.length > 1 || papel === "admin") && <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
       {opcoes.length > 1 && (
         <div className="cartao inline-flex max-w-full p-1" role="tablist" aria-label="O que ver no início">
