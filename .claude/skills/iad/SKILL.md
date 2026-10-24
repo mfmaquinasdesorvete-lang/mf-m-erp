@@ -22,6 +22,8 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   `supabase/functions/ia-orcamento`, `supabase/functions/_shared/ia-orcamento.ts`.
 - Texto para o cliente com IA (Ficha 360 → Responder no WhatsApp → "Escrever com IA"):
   `src/components/atendimento/ResponderWhatsApp.tsx`, `supabase/functions/ia-texto`, `supabase/functions/_shared/ia-texto.ts`.
+- IA nos títulos a pagar (Aprovações → "Analisar com IA"): `supabase/functions/ia-titulos`,
+  `supabase/functions/_shared/ia-titulos.ts`, tabela `ia_pareceres_pagar` (só a função grava; financeiro lê).
 - Controle das IAs: Configurações → Inteligência artificial `src/components/config/Ia.tsx`;
   `configuracoes.ia_ligada`, tabela `ia_registros`, `supabase/functions/_shared/ia-controle.ts`.
 
@@ -64,3 +66,5 @@ Recebo as ideias da usuária para a IA no trabalho do dia a dia e cuido das IAs 
   tabela do pedido (`precoDe`). Cliente só vem marcado quando bate CPF/CNPJ ou telefone; nome parecido a pessoa escolhe.
 - Texto para o cliente: a IA só usa os dados daquele cliente (pedidos, contas em aberto, OS); o que faltar vira aviso
   "confira antes de mandar". O envio é sempre da pessoa (Abrir no WhatsApp).
+- Parecer da IA nos títulos vale só enquanto a conta tem o mesmo valor e vencimento da análise; os fatos (média do
+  fornecedor, repetidas, nota, documento) o ERP calcula, a IA só pesa e escreve a frase. Nunca aprova nem bloqueia.

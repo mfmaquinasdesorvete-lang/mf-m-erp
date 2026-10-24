@@ -1,10 +1,11 @@
 // Aprovações: fluxo de revisão das contas a pagar e a receber antes do contador. 1ª revisão (responsável da área),
 // 2ª revisão (controladoria) pela alçada e nas exceções, pendências fora do pacote, devolução e rejeição com motivo.
-// As regras valem no banco (revisar_contas); esta tela só mostra e chama.
+// As regras valem no banco (revisar_contas); esta tela só mostra e chama. "Analisar com IA" (função ia-titulos) deixa um
+// parecer em cada conta a pagar em revisão (ok, atenção, conferir): só sugere, quem aprova decide.
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowUpCircle, BadgeCheck, Check, ClipboardCheck, FileWarning, History, Paperclip, RotateCcw, Settings2, Undo2, X,
+  AlertTriangle, ArrowDownCircle, Loader2, Sparkles, ArrowUpCircle, BadgeCheck, Check, ClipboardCheck, FileWarning, History, Paperclip, RotateCcw, Settings2, Undo2, X,
 } from "lucide-react";
 import { Button, Field, Indicador, Modal, PageHeader, Tabs } from "@/components/ui";
 import { Anexos } from "@/components/Anexos";
@@ -12,7 +13,7 @@ import { useInvalidate, useRows } from "@/lib/data";
 import { useConfig } from "@/lib/useConfig";
 import { useUnidade } from "@/lib/unidade";
 import { usePerfil } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { notify, notifyError } from "@/lib/notify";
 import { brl, dataBR, hoje, pl } from "@/lib/format";
 import {
@@ -23,6 +24,12 @@ import { useAbaUrl } from "@/lib/abaUrl";
 import { ehGastoCartao } from "@/lib/gastosCartao";
 
 type Linha = { tipo: TipoConta; c: ContaRevisao; terceiro: string | null; pend: Pendencia[] };
+type Parecer = { conta_id: string; sinal: "ok" | "atencao" | "conferir"; motivo: string; valor: number; vencimento: string | null; criado_em: string };
+const SINAL_IA: Record<Parecer["sinal"], { texto: string; cor: string }> = {
+  ok: { texto: "IA: ok", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  atencao: { texto: "IA: atenção", cor: "bg-amber-50 text-amber-900 ring-amber-200" },
+  conferir: { texto: "IA: conferir", cor: "bg-red-50 text-red-800 ring-red-200" },
+};
 type Hist = { id: string; tabela: string; conta_id: string; acao: string; etapa: string | null; comentario: string | null; usuario_nome: string | null; created_at: string };
 type Acao = "aprovar" | "devolver" | "rejeitar" | "reenviar";
 type Aba = "revisar" | "pendencias" | "aprovadas" | "regras";
@@ -45,6 +52,23 @@ export default function Aprovacoes() {
   const { data: docs = [] } = useRows<{ entidade: string; entidade_id: string }>("documentos", { select: "entidade, entidade_id" });
   const { data: categorias = [] } = useRows<{ nome: string; tipo: string; ativo: boolean }>("categorias_financeiras", { order: "ordem", ascending: true });
   const { data: historico = [] } = useRows<Hist>("revisoes_contas", { order: "created_at", ascending: false });
+  const { data: pareceres = [] } = useRows<Parecer>("ia_pareceres_pagar", { select: "conta_id, sinal, motivo, valor, vencimento, criado_em", order: "criado_em", enabled: podeAgir });
+  // parecer só vale enquanto a conta tem o mesmo valor e vencimento da análise
+  const parecerDe = (l: Linha) => {
+    if (l.tipo !== "pagar") return null;
+    const p = pareceres.find((x) => x.conta_id === l.c.id);
+    return p && Number(p.valor) === Number(l.c.valor) && (p.vencimento ?? "") === l.c.vencimento.slice(0, 10) ? p : null;
+  };
+  const [analisando, setAnalisando] = useState(false);
+  async function analisarIA() {
+    if (analisando) return;
+    setAnalisando(true);
+    try {
+      const r = await callFunction<{ analisadas: number; restantes: number }>("ia-titulos", {});
+      notify(r.analisadas ? `A IA analisou ${r.analisadas} ${pl(r.analisadas, "conta", "contas")}${r.restantes ? ` (faltam ${r.restantes}: toque de novo)` : ""}` : "Todas as contas em revisão já têm o parecer da IA");
+      invalidar("ia_pareceres_pagar");
+    } catch (e) { notifyError(e); } finally { setAnalisando(false); }
+  }
   const [aba, setAba] = useAbaUrl<Aba>("revisar", ["revisar", "pendencias", "aprovadas", "regras"] as const);
   const [soMinha, setSoMinha] = useState(true);
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -152,6 +176,11 @@ export default function Aprovacoes() {
                     className={`min-h-[36px] rounded-lg px-3 text-sm font-semibold ${soMinha === o.v ? "bg-modulo text-white" : "text-slate-600 hover:bg-slate-50"}`}>{o.t}</button>
                 ))}
               </div>
+              {podeAgir && (
+                <Button type="button" variant="secondary" disabled={analisando} onClick={analisarIA} title="A IA confere valor, repetidas, nota, documento e vencimento das contas a pagar em revisão">
+                  {analisando ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {analisando ? "Analisando…" : "Analisar com IA"}
+                </Button>
+              )}
               {podeAgir && marcaveis.length > 1 && (
                 <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
                   <input type="checkbox" className="h-5 w-5" checked={marcaveis.every((l) => sel.has(l.c.id))}
@@ -178,7 +207,7 @@ export default function Aprovacoes() {
           {lista.length ? (
             <ul className="space-y-2.5">
               {lista.map((l) => (
-                <LinhaConta key={`${l.tipo}-${l.c.id}`} l={l} eu={{ id: eu.user_id, admin }} regras={regras} podeAgir={podeAgir}
+                <LinhaConta key={`${l.tipo}-${l.c.id}`} l={l} parecer={parecerDe(l)} eu={{ id: eu.user_id, admin }} regras={regras} podeAgir={podeAgir}
                   marcavel={aba === "revisar" && marcaveis.includes(l)} marcada={sel.has(l.c.id)}
                   onMarcar={() => setSel((s) => { const n = new Set(s); if (n.has(l.c.id)) n.delete(l.c.id); else n.add(l.c.id); return n; })}
                   onAcao={(a) => pedir(a, [l])} onAnexos={() => setAnexos(l)} onHistorico={() => setVerHist(l)}
@@ -216,8 +245,8 @@ export default function Aprovacoes() {
   );
 }
 
-function LinhaConta({ l, eu, regras, podeAgir, marcavel, marcada, onMarcar, onAcao, onAnexos, onHistorico, onAbrir, ocupado }: {
-  l: Linha; eu: { id: string; admin: boolean }; regras: ReturnType<typeof regrasDe>; podeAgir: boolean; marcavel: boolean; marcada: boolean;
+function LinhaConta({ l, parecer, eu, regras, podeAgir, marcavel, marcada, onMarcar, onAcao, onAnexos, onHistorico, onAbrir, ocupado }: {
+  l: Linha; parecer: Parecer | null; eu: { id: string; admin: boolean }; regras: ReturnType<typeof regrasDe>; podeAgir: boolean; marcavel: boolean; marcada: boolean;
   onMarcar: () => void; onAcao: (a: Acao) => void; onAnexos: () => void; onHistorico: () => void; onAbrir: () => void; ocupado: boolean;
 }) {
   const { c, tipo, pend } = l;
@@ -260,6 +289,11 @@ function LinhaConta({ l, eu, regras, podeAgir, marcavel, marcada, onMarcar, onAc
             {c.revisao1_nome && <span className="text-2xs text-slate-500">1ª: {c.revisao1_nome}{c.revisao1_em ? ` em ${dataBR(c.revisao1_em.slice(0, 10))}` : ""}</span>}
             {c.revisao2_nome && <span className="text-2xs text-slate-500">· 2ª: {c.revisao2_nome}</span>}
           </div>
+          {parecer && (
+            <p className={`mt-2 flex items-start gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ring-1 ring-inset ${SINAL_IA[parecer.sinal].cor}`} title="Parecer da IA: só sugere, quem aprova decide">
+              <Sparkles size={14} className="mt-0.5 shrink-0" aria-hidden /> <span><b>{SINAL_IA[parecer.sinal].texto}</b> · {parecer.motivo}</span>
+            </p>
+          )}
           {c.revisao_comentario && (c.revisao === "devolvido" || c.revisao === "rejeitado" || c.revisao === "em_revisao") && (
             <p className={`mt-2 rounded-lg px-2.5 py-1.5 text-sm ${c.revisao === "devolvido" ? "bg-orange-50 text-orange-900" : "bg-slate-50 text-slate-700"}`}>“{c.revisao_comentario}”</p>
           )}
