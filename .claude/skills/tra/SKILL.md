@@ -52,6 +52,9 @@ Cuido das transportadoras e dos fretes: do cadastro e da cotação até a entreg
 - `supabase/functions/_shared/rodonaves.ts`, `ssw.ts`, `melhorenvio.ts`.
 
 ## Cuidados conhecidos
+- Mercado Envios na cotação (frete-cotar): GET /users/{id}/shipping_options?zip_code&dimensions=AxLxC,gramas com o token da conta do ML (ml_segredos; a rotina do MKT renova a cada 5 min). /items/{id}/shipping_options falha sem estoque. É o preço do ML para o comprador; a entrega de um pedido da loja não sai pelo Mercado Envios (só venda do ML), vai por outra transportadora.
+- São Miguel não tem API pública de cotação (só app de rastreio e CT-e); a cotação depende de a São Miguel liberar o acesso ou mandar a tabela.
+- Rodonaves: os secrets já existem, mas a Rodonaves responde "Login ou senha inválidos" (24/10): a usuária precisa conferir o usuário da API (não é o do site).
 - Transportadora é por marca, com as filiais dentro; repetidas se acham com `src/lib/repetidos.ts` e se unificam.
 - Frete cobra pelo maior entre o peso real e o cubado (medidas da embalagem em cm, peso em kg).
 - O e-mail de rastreio sai sozinho pelo banco quando o código é preenchido: não mandar de novo à mão.
