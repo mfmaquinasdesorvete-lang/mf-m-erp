@@ -8,7 +8,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
-import { conferirIaLigada, registrarIa } from "../_shared/ia-controle.ts";
+import { conferirIaLigada, registrarIa, mensagemPedidoRecusado } from "../_shared/ia-controle.ts";
 import { ESQUEMA_VOZ, INSTRUCOES_VOZ, LIMITE_FALA, montarPedidoVoz, normalizarVoz, termosBusca, type EntendidoVoz } from "../_shared/ia-voz.ts";
 
 const MODELO = "claude-opus-5-5";
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       if (e instanceof Anthropic.AuthenticationError) throw new HttpError(503, "A chave da IA (ANTHROPIC_API_KEY) foi recusada: confira o secret no Supabase.");
       if (e instanceof Anthropic.RateLimitError) throw new HttpError(429, "A IA está ocupada agora: tente de novo em um minuto.");
-      if (e instanceof Anthropic.BadRequestError) throw new HttpError(400, `A IA não aceitou o pedido: ${e.message}`);
+      if (e instanceof Anthropic.BadRequestError) throw new HttpError(400, mensagemPedidoRecusado(e.message));
       if (e instanceof Anthropic.APIError) throw new HttpError(502, `A IA não respondeu (erro ${e.status}): tente de novo.`);
       throw e;
     }

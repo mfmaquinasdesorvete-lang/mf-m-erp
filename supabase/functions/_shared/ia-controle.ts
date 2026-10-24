@@ -25,3 +25,11 @@ export async function registrarIa(db: SupabaseClient, userId: string | null, r: 
     });
   } catch { /* o registro nunca derruba a resposta */ }
 }
+
+/** Pedido recusado pela Anthropic (400) em português: sem crédito na conta vira o passo a passo para pôr crédito. */
+export function mensagemPedidoRecusado(mensagem: string) {
+  if (/credit balance|purchase credits|billing/i.test(mensagem)) {
+    return "A conta da IA está sem crédito: coloque crédito em console.anthropic.com → Plans & Billing (Buy credits). Depois é só tentar de novo.";
+  }
+  return `A IA não aceitou o pedido: ${mensagem}`;
+}

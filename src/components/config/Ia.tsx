@@ -11,7 +11,7 @@ import { notify, notifyError } from "@/lib/notify";
 import { Bloco, CabecalhoSecao, secaoPorId } from "./comum";
 
 type Registro = { id: number; criado_em: string; user_nome: string | null; funcao: string; acao: string; resumo: string | null; modelo: string | null; ok: boolean; erro: string | null };
-const NOME_IA: Record<string, string> = { "ia-produto": "Produtos e notas", "ia-voz": "Anotar por voz" };
+const NOME_IA: Record<string, string> = { "ia-produto": "Produtos e notas", "ia-voz": "Anotar por voz", "ia-busca": "Perguntar à IA" };
 
 export function ConfigIa() {
   const s = secaoPorId("ia")!;

@@ -5,7 +5,8 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.130.0";
 import { createClient } from "npm:@supabase/supabase-js@2.86.0";
 import { corsHeaders, json } from "../_shared/cors.ts";
-import { HttpError, requireErpUser } from "../_shared/supabase.ts";
+import { adminClient, HttpError, requireErpUser } from "../_shared/supabase.ts";
+import { conferirIaLigada, mensagemPedidoRecusado, registrarIa } from "../_shared/ia-controle.ts";
 import { ESQUEMA_BUSCA, etiquetasBusca, INSTRUCOES_BUSCA, LIMITE_PERGUNTA, montarPedidoBusca, normalizarBusca } from "../_shared/ia-busca.ts";
 import { buscar, hojeISO } from "../_shared/ia-busca-consulta.ts";
 
@@ -13,14 +14,20 @@ const MODELO = "claude-opus-5-5";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // interruptor "IA desligada" e registro de cada uso (Configurações → Inteligência artificial)
+  const admin = adminClient();
+  let userId: string | null = null;
+  let uso: { acao: string; resumo: string } | null = null;
   try {
-    await requireErpUser(req);
+    ({ userId } = await requireErpUser(req));
     const body = await req.json().catch(() => ({}));
     const chave = Deno.env.get("ANTHROPIC_API_KEY");
     if (body.acao === "situacao") return json({ configurada: !!chave });
     if (!chave) throw new HttpError(503, "IA não configurada: cadastre o secret ANTHROPIC_API_KEY no Supabase (Edge Functions → Secrets).");
     const pergunta = String(body.pergunta ?? "").replace(/\s+/g, " ").trim().slice(0, LIMITE_PERGUNTA);
     if (pergunta.length < 4) throw new HttpError(400, "Escreva a pergunta, por exemplo: máquinas vendidas em SP com a preventiva vencida.");
+    await conferirIaLigada(admin);
+    uso = { acao: "pergunta", resumo: pergunta };
 
     const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
     const client = new Anthropic({ apiKey: chave });
@@ -38,7 +45,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       if (e instanceof Anthropic.AuthenticationError) throw new HttpError(503, "A chave da IA (ANTHROPIC_API_KEY) foi recusada: confira o secret no Supabase.");
       if (e instanceof Anthropic.RateLimitError) throw new HttpError(429, "A IA está ocupada agora: tente de novo em um minuto.");
-      if (e instanceof Anthropic.BadRequestError) throw new HttpError(400, `A IA não aceitou o pedido: ${e.message}`);
+      if (e instanceof Anthropic.BadRequestError) throw new HttpError(400, mensagemPedidoRecusado(e.message));
       if (e instanceof Anthropic.APIError) throw new HttpError(502, `A IA não respondeu (erro ${e.status}): tente de novo.`);
       throw e;
     }
@@ -54,10 +61,12 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: req.headers.get("Authorization")! } }, auth: { persistSession: false },
     });
     const resultados = await buscar(db, filtros);
+    await registrarIa(admin, userId, { funcao: "ia-busca", ...uso, resumo: `${pergunta} → ${resultados.length} resultado(s)`, modelo: resposta.model, ok: true });
     return json({ filtros, etiquetas: etiquetasBusca(filtros), resultados, modelo: resposta.model });
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     const msg = (e as { message?: string })?.message ?? String(e);
+    if (uso) await registrarIa(admin, userId, { funcao: "ia-busca", ...uso, ok: false, erro: msg });
     return json({ error: msg }, status);
   }
 });
