@@ -59,3 +59,8 @@ Cuido das vendas da MF nos canais online: Mercado Livre, Google Shopping e os pr
   ou "anos" (nunca "1 mês"); o motivo da recusa vem em `error` e em `cause` (tipo error ou warning). Aviso
   ("Catalog has not mode me2", "Mandatory free shipping added") não trava: a conta envia por me2 (xd_drop_off e Full).
 - Estoque do ML sai da unidade da conta (`ml_contas.unidade_id`, SC desde 23/10) menos a reserva (`estoque_seguranca`, 1).
+- Nos canais nunca vai "My Frost" (nome nem logo): `semMyFrost` em `_shared/ml-novos.ts` limpa título e descrição. Fotos
+  sem logo: Canva da usuária, design "Peças" (fundo azul). Foto por link (export do Canva) vence em horas: copiar para o
+  bucket com a ação `copiar_fotos` da função mercadolivre (a produtos-fotos só aceita login de usuário).
+- Anúncio do ML no modelo novo (family_name): o título não muda depois de publicado (PUT recusa); foto e descrição mudam
+  (ação `atualizar_anuncios`). Para trocar título, só fechando e publicando de novo (com o ok dela).
