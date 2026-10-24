@@ -73,3 +73,13 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
   `modulosDetalhe.ts` (o teste de Módulos cobra o cartão completo).
 - Pasta: coluna `documentos.pasta` (contrato, exames, ferias, holerites, atestados, outros; vazio = outros), regra em
   `src/lib/pastaFuncionario.ts`; telas em `src/components/funcionarios/`. Coluna nova no banco vai ao ar antes do site.
+- Importar pasta (`ImportarPasta.tsx`, regra `planejarImportacao`): pasta do computador no formato <Pessoa>/<Divisão>/arquivos;
+  a pessoa é achada pelo nome do cadastro ou pelo apelido, sem acento; o que já está guardado (mesmo nome, pessoa e divisão)
+  não entra de novo. No iPhone não funciona (o navegador não deixa escolher pasta).
+- Este chat não grava arquivo no ERP (só tem a chave pública): arquivo entra pela tela, com a pessoa logada.
+- Documentos antigos podem estar no nome de outra empresa do grupo (empresa anterior ou nome antigo da MF) e com o nome
+  da pessoa escrito diferente do cadastro: conferir pelo documento antes de pôr na pasta. A outra indústria do grupo
+  fica fora do ERP.
+- Gatilho `trg_funcionarios_atualizado` (24/10): a data de saída automática só entra ao desligar numa alteração, no dia
+  de Brasília; ex-funcionário cadastrado depois fica sem data quando não se sabe.
+- Documento de saúde que não é atestado de trabalho (perícia, exame pessoal) não vai para a pasta.
