@@ -54,3 +54,8 @@ Cuido da carteira pessoal da usuária, separada da empresa. Dados pessoais não 
 - Pró-labore fica à parte no encontro de contas (não abate o que a empresa deve).
 - Exemplo em teste ou comentário: inventado, nunca copiado dos dados reais.
 - Datas no horário de Brasília (`hoje()` em `src/lib/format.ts`); valor digitado com `lerValor`.
+- A Soft Premium fica fora deste ERP (vai ter um ERP próprio): não buscar nem acompanhar nada dela (fiscal, notas,
+  certidões, PGFN). Ela só aparece como empresa em Minhas empresas e no encontro de contas.
+- Dinheiro de loja que caiu na conta de outra pessoa ou de outra empresa (ex.: maquininha no nome de um familiar,
+  repasse para a conta da MF): procurar também no extrato das contas da MF (`extrato_lancamentos`) antes de dizer
+  que não achou.
