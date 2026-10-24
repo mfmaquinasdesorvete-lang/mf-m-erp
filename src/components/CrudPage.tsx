@@ -106,6 +106,8 @@ type Props<T> = {
   cartaoCelular?: (row: T, abrir: () => void) => ReactNode;
   /** No rodapé do cartão do celular, à esquerda (ex.: WhatsApp e e-mail do cliente), na mesma linha do Editar. */
   rodapeCelular?: (row: T) => ReactNode;
+  /** Marcador que o cartão do celular não mostra porque já aparece de outro jeito (continua no registro e no botão). */
+  ocultarMarcadorNoCartao?: (row: T, nome: string) => boolean;
   /** Cor de fundo da linha e do cartão (ex.: clientes de uma rede, com uma cor fraquinha). */
   fundoLinha?: (row: T) => string | undefined;
   /** Os cartões também no computador (em colunas, como um guia), no lugar da tabela; sem o rodapé de Editar (tocar abre). */
@@ -499,10 +501,13 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
                 )}
                 {/* o cartão reserva o canto de cima à direita para a caixinha de seleção */}
                 {props.cartaoCelular!(row, () => { if (!readOnly) abrir({ ...row }); })}
-                {marcadores && <div className="mt-1">{tags(row)}</div>}
+                {marcadores && <div className="mt-1">
+                  <ChipsMarcadores ids={(row as { marcadores?: string[] | null }).marcadores} todos={todosMarcadores} pequeno
+                    ocultar={props.ocultarMarcadorNoCartao ? (nome) => props.ocultarMarcadorNoCartao!(row, nome) : undefined} />
+                </div>}
                 {/* no guia o cartão já abre o cadastro ao tocar: o rodapé só aparece quando tem o que mostrar */}
-                {(!props.cartoesNoPc || marcadores || rowActions) && <div className="mt-auto flex flex-wrap items-center justify-end gap-1 border-t border-slate-100 pt-2">
-                  {props.rodapeCelular && <div className="mr-auto flex min-w-0 items-center">{props.rodapeCelular(row)}</div>}
+                {(!props.cartoesNoPc || marcadores || rowActions) && <div className={`mt-auto flex items-center justify-end gap-1 border-t border-slate-100 pt-2 ${props.rodapeCelular ? "flex-nowrap" : "flex-wrap"}`}>
+                  {props.rodapeCelular && <div className="mr-auto flex min-w-0 shrink items-center">{props.rodapeCelular(row)}</div>}
                   {marcadores && <BotaoMarcadores tabela={table as TabelaMarcavel} registro={row as T & { marcadores?: string[] | null }} nome={marcadores} />}
                   {rowActions?.(row)}
                   {/* com o contato no rodapé (rodapeCelular) o Editar fica só no lápis, para tudo caber numa linha */}

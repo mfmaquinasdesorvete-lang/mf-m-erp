@@ -27,9 +27,10 @@ import { notifyError } from "@/lib/notify";
 import { cnpjValido } from "@/lib/compliance";
 import { ehLicenciado, tagsComLicenciado } from "@/components/clientes/Licenciado";
 import { SelosRede, useRedes } from "@/components/clientes/RedeCliente";
-import { fundoRede } from "@/lib/redesClientes";
+import { fundoRede, nomeRede } from "@/lib/redesClientes";
 
 const tag = (r: Cliente, t: string) => (r.tags ?? []).includes(t);
+const normal = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const temCnpj = (r: Cliente) => digitos(r.cpf_cnpj).length === 14;
 
 // Campos da planilha exportada (o formulário é o ClienteForm, em abas)
@@ -331,6 +332,16 @@ export default function Clientes() {
       ]}
       // WhatsApp e e-mail no rodapé do cartão, ao lado do Editar (24/10: uma linha a menos em cada cliente)
       rodapeCelular={(r) => <ContatoBotoes enxuto pequeno r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />}
+      // no cartão não repete o que já aparece de outro jeito (24/10): "F - rede" vira o selo da rede; "MF - A 200" e
+      // "My - Vendeu" já estão na etiqueta da máquina e na categoria. Os marcadores continuam no cadastro e no botão.
+      ocultarMarcadorNoCartao={(r, nome) => {
+        if (nomeRede(nome)) return true;
+        const m = /^\s*(MF|My)\s*-\s*(.+)$/i.exec(nome);
+        if (!m) return false;
+        const x = normal(m[2]);
+        const mostrados = [...(maquinas.get(r.id) ?? []).map((q) => rotuloMaquina(q.descricao)), ...tipos.filter((t) => tag(r, t.chave)).map((t) => t.nome)].map(normal);
+        return mostrados.some((v) => v === x || v.startsWith(`${x} `) || x.startsWith(`${v} `));
+      }}
       cartaoCelular={(r, abrir) => {
         const fantasia = r.nome_fantasia && r.nome_fantasia.trim().toLowerCase() !== r.nome.trim().toLowerCase() ? r.nome_fantasia : null;
         const crm = rotuloCrm(r.status_crm);

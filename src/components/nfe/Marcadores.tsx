@@ -32,8 +32,12 @@ export function TituloMarcadores() {
   return <span className="inline-flex items-center" title="Marcadores"><Tags size={14} aria-hidden /><span className="sr-only">Marcadores</span></span>;
 }
 
-export function ChipsMarcadores({ ids, todos, pequeno }: { ids?: string[] | null; todos: Marcador[]; pequeno?: boolean }) {
-  const lista = (ids ?? []).map((id) => todos.find((m) => m.id === id)).filter((m): m is Marcador => !!m && m.ativo);
+export function ChipsMarcadores({ ids, todos, pequeno, ocultar }: {
+  ids?: string[] | null; todos: Marcador[]; pequeno?: boolean;
+  /** só não mostra (o marcador continua no registro): ex. o que o cartão já mostra de outro jeito */
+  ocultar?: (nome: string) => boolean;
+}) {
+  const lista = (ids ?? []).map((id) => todos.find((m) => m.id === id)).filter((m): m is Marcador => !!m && m.ativo && !ocultar?.(m.nome));
   if (!lista.length) return null;
   return <span className="inline-flex flex-wrap gap-1">{lista.map((m) => <ChipMarcador key={m.id} m={m} pequeno={pequeno} />)}</span>;
 }

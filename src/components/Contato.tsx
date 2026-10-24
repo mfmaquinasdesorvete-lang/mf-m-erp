@@ -74,6 +74,26 @@ export function ContatoBotoes({ r, mensagem, enxuto, pequeno }: { r: ComContato;
   // pequeno (24/10): no rodapé do cartão do celular, ao lado do Editar
   const pilula = `inline-flex min-w-0 items-center gap-1.5 rounded-full font-semibold transition active:scale-[.98] ${pequeno ? "min-h-8 px-2.5 text-xs" : "min-h-[36px] px-3 text-sm"}`;
   const parar = (e: { stopPropagation: () => void }) => e.stopPropagation();
+  if (pequeno) {
+    const redondo = "inline-grid h-8 w-8 shrink-0 place-items-center rounded-full transition active:scale-95";
+    return (
+      <div className="flex items-center gap-1.5">
+        {r.whatsapp && (
+          <a href={whatsappLink(r.whatsapp, mensagem)} target="_blank" rel="noreferrer" onClick={parar} title={`WhatsApp ${formatarTelefone(r.whatsapp)}`}
+            aria-label={`WhatsApp ${formatarTelefone(r.whatsapp)}`} className={`${redondo} bg-emerald-600 text-white hover:bg-emerald-700`}>
+            <MessageCircle size={15} aria-hidden />
+          </a>
+        )}
+        {!r.whatsapp && tel && (
+          <a href={`tel:+55${so(tel)}`} onClick={parar} title={`Ligar ${formatarTelefone(tel)}`} aria-label={`Ligar ${formatarTelefone(tel)}`}
+            className={`${redondo} border border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100`}>
+            <Phone size={15} aria-hidden />
+          </a>
+        )}
+        {r.email && <IconeEmail email={r.email} parar={parar} pequeno />}
+      </div>
+    );
+  }
   if (enxuto) {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
