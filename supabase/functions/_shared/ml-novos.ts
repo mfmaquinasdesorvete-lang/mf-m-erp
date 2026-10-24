@@ -115,11 +115,18 @@ export function valorPeloTexto(c: AtributoCategoria, texto: string): { id: strin
   const valores = c.values ?? [];
   const achar = (rx: RegExp) => valores.find((v) => rx.test(semAcento(v.name))) ?? null;
   if (c.id === "POWER_SUPPLY_TYPE") {
-    if (/\b\d{3}\s?v\b|volt|motor|eletric|compressor|ventilador/.test(texto)) return achar(/eletric/);
+    // "Corrente doméstica" (127/220 V monofásico) ou "Energia industrial" (trifásico, 380 V); valor só elétrico
+    const eletrico = valores.filter((v) => !/gas|bateria/.test(semAcento(v.name)));
+    if (/trifasic|\b380\s?v\b/.test(texto)) return eletrico.find((v) => /^energia industrial$/.test(semAcento(v.name))) ?? null;
+    if (/\b\d{3}\s?v\b|volt|motor|eletric|compressor|ventilador|redutor/.test(texto))
+      return eletrico.find((v) => /^corrente domestica$/.test(semAcento(v.name))) ?? eletrico.find((v) => /eletric/.test(semAcento(v.name))) ?? null;
     return null;
   }
   if (c.id === "CONTACTOR_AND_RELAY_TYPE" || /rele|contator/.test(semAcento(c.name ?? ""))) {
-    if (/estado solido|\bssr\b/.test(texto)) return achar(/solid/);
+    if (/estado solido|\bssr\b/.test(texto) && achar(/solid/)) return achar(/solid/);
+    if (/contator/.test(texto)) return achar(/^contator$/);
+    if (/rele termico/.test(texto)) return achar(/^rele termico$/);
+    if (/\brele\b/.test(texto)) return achar(/^rele$/);
     return null;
   }
   if (c.id === "VOLTAGE") {

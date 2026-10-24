@@ -77,11 +77,15 @@ describe("sem a marca My Frost nos canais", () => {
 describe("atributos da categoria pelo texto do produto", () => {
   it("tipo de alimentação, tipo de relé e voltagem", async () => {
     const { valorPeloTexto } = await import("../../../supabase/functions/_shared/ml-novos");
-    const ali = { id: "POWER_SUPPLY_TYPE", name: "Tipo de alimentação", values: [{ id: "1", name: "Elétrico" }, { id: "2", name: "Manual" }] };
+    // nomes como vêm do Mercado Livre (categorias de motor e de redutor)
+    const ali = { id: "POWER_SUPPLY_TYPE", name: "Tipo de alimentação", values: [{ id: "1", name: "Corrente doméstica" }, { id: "2", name: "Energia industrial" }, { id: "3", name: "Corrente doméstica/Gás" }] };
     expect(valorPeloTexto(ali, "motor ventilador exaustor 350 mm 220 v")?.id).toBe("1");
+    expect(valorPeloTexto(ali, "redutor ibr q 050 mec. simples")?.id).toBe("1");
+    expect(valorPeloTexto(ali, "motor trifasico 380 v")?.id).toBe("2");
     expect(valorPeloTexto(ali, "cuba gn")).toBeNull();
-    const rele = { id: "CONTACTOR_AND_RELAY_TYPE", name: "Tipo de relé", values: [{ id: "a", name: "Relé de estado sólido" }, { id: "b", name: "Relé eletromecânico" }] };
-    expect(valorPeloTexto(rele, "rele de estado solido 40 a 80 a monofasico (ssr)")?.id).toBe("a");
+    const rele = { id: "CONTACTOR_AND_RELAY_TYPE", name: "Tipo de produto", values: [{ id: "a", name: "Contator" }, { id: "b", name: "Relé" }, { id: "c", name: "Relé térmico" }] };
+    expect(valorPeloTexto(rele, "rele de estado solido 40 a 80 a monofasico (ssr)")?.id).toBe("b");
+    expect(valorPeloTexto(rele, "rele sub sobretensao voltimetro 63a 220v")?.id).toBe("b");
     const volt = { id: "VOLTAGE", name: "Voltagem", values: [{ id: "x", name: "110V" }, { id: "y", name: "220V" }] };
     expect(valorPeloTexto(volt, "compressor 1/5 hp 220 v r134a")?.id).toBe("y");
   });
