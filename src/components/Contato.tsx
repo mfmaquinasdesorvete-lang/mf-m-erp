@@ -17,11 +17,11 @@ export function NomeCadastro({ r }: { r: { nome: string; nome_fantasia?: string 
 type ComContato = { whatsapp?: string | null; telefone?: string | null; email?: string | null };
 
 /** Só o ícone do e-mail: tocar abre o e-mail já endereçado (o endereço aparece ao passar o mouse). */
-function IconeEmail({ email, parar }: { email: string; parar?: (e: { stopPropagation: () => void }) => void }) {
+function IconeEmail({ email, parar, pequeno }: { email: string; parar?: (e: { stopPropagation: () => void }) => void; pequeno?: boolean }) {
   return (
     <a href={`mailto:${email}`} onClick={parar} title={`Mandar e-mail: ${email}`} aria-label={`Mandar e-mail para ${email}`}
-      className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-full border border-slate-300 bg-surface text-slate-600 transition hover:bg-slate-100 active:scale-[.98]">
-      <Mail size={16} aria-hidden />
+      className={`inline-grid shrink-0 place-items-center rounded-full border border-slate-300 bg-surface text-slate-600 transition hover:bg-slate-100 active:scale-[.98] ${pequeno ? "h-8 w-8" : "h-9 w-9"}`}>
+      <Mail size={pequeno ? 14 : 16} aria-hidden />
     </a>
   );
 }
@@ -68,10 +68,11 @@ const so = (v?: string | null) => (v ?? "").replace(/\D/g, "");
  * Botões grandes de contato para o celular: WhatsApp, ligar e e-mail, já prontos para tocar.
  * enxuto (lista de clientes): só o WhatsApp e o ícone do e-mail; o botão de ligar aparece só quando não tem WhatsApp.
  */
-export function ContatoBotoes({ r, mensagem, enxuto }: { r: ComContato; mensagem: string; enxuto?: boolean }) {
+export function ContatoBotoes({ r, mensagem, enxuto, pequeno }: { r: ComContato; mensagem: string; enxuto?: boolean; pequeno?: boolean }) {
   const tel = so(r.telefone) && so(r.telefone) !== so(r.whatsapp) ? r.telefone : null;
   if (!r.whatsapp && !tel && !r.email) return <p className="text-xs text-slate-400">sem contato cadastrado</p>;
-  const pilula = "inline-flex min-h-[36px] min-w-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition active:scale-[.98]";
+  // pequeno (24/10): no rodapé do cartão do celular, ao lado do Editar
+  const pilula = `inline-flex min-w-0 items-center gap-1.5 rounded-full font-semibold transition active:scale-[.98] ${pequeno ? "min-h-8 px-2.5 text-xs" : "min-h-[36px] px-3 text-sm"}`;
   const parar = (e: { stopPropagation: () => void }) => e.stopPropagation();
   if (enxuto) {
     return (
@@ -88,7 +89,7 @@ export function ContatoBotoes({ r, mensagem, enxuto }: { r: ComContato; mensagem
             <Phone size={15} aria-hidden /> {formatarTelefone(tel)}
           </a>
         )}
-        {r.email && <IconeEmail email={r.email} parar={parar} />}
+        {r.email && <IconeEmail email={r.email} parar={parar} pequeno={pequeno} />}
       </div>
     );
   }
@@ -131,10 +132,10 @@ export function Iniciais({ nome, tamanho = 40 }: { nome: string; tamanho?: numbe
 
 /** Cartão de cadastro do celular: iniciais (ou logo), nome em destaque, linha de apoio, selos e os botões de contato. */
 export function CartaoCadastro({ avatar, titulo, subtitulo, meta, selos, contato, onAbrir }: {
-  avatar: ReactNode; titulo: ReactNode; subtitulo?: ReactNode; meta?: ReactNode; selos?: ReactNode; contato: ReactNode; onAbrir: () => void;
+  avatar: ReactNode; titulo: ReactNode; subtitulo?: ReactNode; meta?: ReactNode; selos?: ReactNode; contato?: ReactNode; onAbrir: () => void;
 }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <button type="button" onClick={onAbrir} className="flex w-full items-start gap-3 pr-8 text-left">
         {avatar}
         <span className="min-w-0 flex-1">
@@ -143,7 +144,7 @@ export function CartaoCadastro({ avatar, titulo, subtitulo, meta, selos, contato
           {meta && <span className="mt-0.5 block text-xs text-slate-500">{meta}</span>}
         </span>
       </button>
-      {selos && <div className="flex flex-wrap gap-1">{selos}</div>}
+      {selos && <div className="flex flex-wrap items-center gap-1">{selos}</div>}
       {contato}
     </div>
   );

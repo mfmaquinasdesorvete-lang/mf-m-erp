@@ -329,20 +329,22 @@ export default function Clientes() {
         { label: "CPF/CNPJ e cidade", render: (r) => <><span className="whitespace-nowrap">{docFormat(r.cpf_cnpj) || "—"}</span><div className="text-xs text-slate-500">{[r.municipio, r.uf].filter(Boolean).join("/")}</div></> },
         { label: "Contato", render: (r) => <Contato enxuto r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} /> },
       ]}
+      // WhatsApp e e-mail no rodapé do cartão, ao lado do Editar (24/10: uma linha a menos em cada cliente)
+      rodapeCelular={(r) => <ContatoBotoes enxuto pequeno r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />}
       cartaoCelular={(r, abrir) => {
         const fantasia = r.nome_fantasia && r.nome_fantasia.trim().toLowerCase() !== r.nome.trim().toLowerCase() ? r.nome_fantasia : null;
         const crm = rotuloCrm(r.status_crm);
         return (
           <CartaoCadastro onAbrir={abrir} avatar={<Iniciais nome={fantasia ?? r.nome} />} titulo={fantasia ?? r.nome}
             subtitulo={fantasia ? r.nome : undefined}
-            meta={[[r.municipio, r.uf].filter(Boolean).join("/"), docFormat(r.cpf_cnpj), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
+            meta={<>{[[r.municipio, r.uf].filter(Boolean).join("/"), r.codigo != null ? `cód. ${r.codigo}` : null].filter(Boolean).join(" · ")}
+              {r.cpf_cnpj && <span className="num block">{docFormat(r.cpf_cnpj)}</span>}</>}
             selos={<>
               {crm && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-semibold ${crm.cor}`}>{crm.label.replace(/ \(.*\)$/, "")}</span>}
               <EtiquetasCliente c={r} tipos={tipos} naLista />
               <SelosRede redes={redes(r)} />
-              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} />
-            </>}
-            contato={<ContatoBotoes enxuto r={r} mensagem={`Olá, ${(r.nome_fantasia || r.nome).split(" ")[0]}! Aqui é da MF Máquinas.`} />} />
+              <MaquinasCliente maquinas={maquinas.get(r.id) ?? []} compra={r.compra_maquina_em} tamanho="mini" junto />
+            </>} />
         );
       }}
     />

@@ -65,6 +65,8 @@ const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : 
  */
 // tamanho das etiquetas: "lista" na lista de clientes e no alto da ficha, "grande" dentro das abas da ficha
 const TAMANHO = {
+  // mini (24/10): no cartão do celular, na mesma linha e do mesmo tamanho dos outros selos
+  mini: { caixa: "gap-1 rounded-full px-2 py-0.5 text-2xs", icone: 11 },
   lista: { caixa: "gap-1 px-2.5 py-1 text-sm", icone: 15 },
   grande: { caixa: "gap-1.5 px-3 py-1.5 text-base", icone: 17 },
 } as const;
@@ -83,23 +85,29 @@ export function EtiquetaMaquina({ m, tamanho = "lista" }: { m: Pick<MaquinaResum
   );
 }
 
-export function MaquinasCliente({ maquinas, compra, max = 4 }: { maquinas: MaquinaResumo[]; compra?: string | null; max?: number }) {
+export function MaquinasCliente({ maquinas, compra, max = 4, tamanho = "lista", junto }: {
+  maquinas: MaquinaResumo[]; compra?: string | null; max?: number; tamanho?: Tamanho;
+  /** sem a linha própria: as etiquetas entram na mesma fila dos outros selos (cartão do celular) */
+  junto?: boolean;
+}) {
   const soCadastro = !!compra && !maquinas.some((m) => (m.data_venda ?? "").slice(0, 7) === compra.slice(0, 7));
   if (!maquinas.length && !soCadastro) return null;
   const ordem = [...maquinas].sort((a, b) => (b.data_venda ?? "").localeCompare(a.data_venda ?? ""));
   const resto = ordem.length - max;
-  return (
-    <div className="mt-1 flex flex-wrap gap-1.5">
+  const t = TAMANHO[tamanho];
+  const itens = (
+    <>
       {soCadastro && (
         <span title={`Comprou máquina em ${mesAnoCompra(compra)} (data do cadastro do cliente; modelo não informado)`}
-          className={`inline-flex items-center whitespace-nowrap rounded-lg border border-slate-300 bg-surface font-bold leading-tight text-slate-700 ${TAMANHO.lista.caixa}`}>
-          <Snowflake size={TAMANHO.lista.icone} aria-hidden /> Máquina · {mesAnoCompra(compra)}
+          className={`inline-flex items-center whitespace-nowrap rounded-lg border border-slate-300 bg-surface font-bold leading-tight text-slate-700 ${t.caixa}`}>
+          <Snowflake size={t.icone} aria-hidden /> Máquina · {mesAnoCompra(compra)}
         </span>
       )}
-      {ordem.slice(0, max).map((m) => <EtiquetaMaquina key={m.id} m={m} />)}
-      {resto > 0 && <span className={`whitespace-nowrap rounded-lg border border-slate-200 font-bold leading-tight text-slate-600 ${TAMANHO.lista.caixa}`} title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
-    </div>
+      {ordem.slice(0, max).map((m) => <EtiquetaMaquina key={m.id} m={m} tamanho={tamanho} />)}
+      {resto > 0 && <span className={`whitespace-nowrap rounded-lg border border-slate-200 font-bold leading-tight text-slate-600 ${t.caixa}`} title={`mais ${resto} ${pl(resto, "máquina", "máquinas")}`}>+{resto}</span>}
+    </>
   );
+  return junto ? itens : <div className="mt-1 flex flex-wrap gap-1.5">{itens}</div>;
 }
 
 /** Máquinas de todos os clientes, agrupadas por cliente (uma consulta só para a lista inteira). */
