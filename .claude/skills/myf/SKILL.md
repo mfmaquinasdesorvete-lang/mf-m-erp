@@ -66,3 +66,7 @@ Cuido de tudo da My Frost Máquinas, a empresa anterior, e de manter a MF separa
   `notas_legado_so_master` no banco): não aparecem na ficha do cliente, no Tudo do cliente nem na proposta aberta fora
   da Retaguarda, e nunca somam com as notas da MF (pedido da usuária, 23/10).
 - Documentos da My Frost (contabilidade, guias) ficam na aba Documentos da mesma tela, entidade `my_frost`, só master.
+- Fretes e protestos da My Frost ficam em `my_frost_fretes` e `my_frost_protestos` (só master; aba Fretes e protestos).
+  CT-e não repete pela chave; fatura e CT-e do mesmo frete têm o mesmo valor, então a soma usa o CT-e.
+- No checklist (`pedidos_checklist`), o `update` pelo execute_sql fica esperando uma confirmação que não chega à
+  usuária; o `insert` passa. Para registrar algo novo num pedido que já existe, gravar uma linha nova ligada a ele.
