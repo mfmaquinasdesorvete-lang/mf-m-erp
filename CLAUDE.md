@@ -19,6 +19,9 @@
   2. Site: `scripts/publicar-site.sh` (monta da paineis-no-ar mais nova e junta o site.zip mais novo da branch site);
      depois publicar na Hostinger e conferir o index.html. Funções do Supabase: o GitHub Actions já põe em fila.
   3. Soltar a trava: `select public.publicacao_terminar('<id>');` (também se der erro no meio).
+  Só dizer "publicado" depois de conferir que o index.html da Hostinger aponta para o mesmo assets/index-….js do
+  site.zip da branch site. Se a Hostinger ou o Supabase estiverem desconectados no meio, soltar a trava, avisar a usuária
+  que ficou só montado (não no ar) e publicar de novo quando voltar.
   Antes de enviar commits: `git pull --rebase origin paineis-no-ar`, para não apagar o que outro chat enviou.
 - Antes de pedir "Pode publicar", conferir o que mudou com a lista `.claude/checklist-codigo.md` (conta certa, gravação
   segura, leve, fácil de mexer); achado de prioridade alta se conserta na hora.
