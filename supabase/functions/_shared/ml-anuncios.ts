@@ -12,6 +12,8 @@ export type ConfigEnvio = {
   estoque_seguranca?: number | string | null;
   /** o anúncio mostra no máximo isso (vazio = sem limite) */
   estoque_maximo?: number | string | null;
+  /** o anúncio de produto ativo mostra pelo menos isso, mesmo sem estoque (vazio = segue o estoque) */
+  estoque_minimo?: number | string | null;
   /** mudança de preço maior que isso (%) espera aprovação no ERP (0 ou vazio = sem trava) */
   trava_preco?: number | string | null;
 };
@@ -93,7 +95,7 @@ const inteiras = (v: number) => Math.max(0, Math.floor(v + 1e-6));
  */
 export function estoqueDisponivel(p: {
   saldo?: number | string | null; kit?: boolean | null; componentes?: AnuncioCalculo["componentes"]; ativo?: boolean | null;
-  seguranca?: number | string | null; maximo?: number | string | null;
+  seguranca?: number | string | null; maximo?: number | string | null; minimo?: number | string | null;
 }): number {
   if (p.ativo === false) return 0;
   let base: number;
@@ -106,6 +108,8 @@ export function estoqueDisponivel(p: {
   let q = Math.max(0, base - inteiras(num(p.seguranca)));
   const max = ou(p.maximo);
   if (max !== null && max > 0) q = Math.min(q, inteiras(max));
+  const min = ou(p.minimo);
+  if (min !== null && min > 0) q = Math.max(q, inteiras(min));
   return q;
 }
 
@@ -163,7 +167,7 @@ export function planejarEnvio(cfg: ConfigEnvio, a: AnuncioCalculo, opcoes: { for
     } else {
       plano.estoque = estoqueDisponivel({
         saldo: a.saldo, kit: a.kit, componentes: a.componentes, ativo: a.produto_ativo,
-        seguranca: cfg.estoque_seguranca, maximo: cfg.estoque_maximo,
+        seguranca: cfg.estoque_seguranca, maximo: cfg.estoque_maximo, minimo: cfg.estoque_minimo,
       });
       const ultimo = ou(a.ultimo_estoque);
       plano.enviarEstoque = forcar || ultimo === null || ultimo !== plano.estoque;
@@ -215,6 +219,7 @@ export function configDaConta(c: Partial<Record<keyof ConfigEnvio, unknown>> | n
     preco_ajuste: ou(c?.preco_ajuste) ?? 0,
     estoque_seguranca: ou(c?.estoque_seguranca) ?? 0,
     estoque_maximo: ou(c?.estoque_maximo),
+    estoque_minimo: ou(c?.estoque_minimo),
     trava_preco: ou(c?.trava_preco) ?? 0,
   };
 }

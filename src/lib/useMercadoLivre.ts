@@ -58,7 +58,7 @@ async function rpc<T = unknown>(nome: string, args: Record<string, unknown>): Pr
 
 export type AjustesEnvio = {
   enviar_estoque: boolean; enviar_preco: boolean; preco_tabela_id: string | null; preco_ajuste: number;
-  estoque_seguranca: number; estoque_maximo: number | null; trava_preco: number;
+  estoque_seguranca: number; estoque_maximo: number | null; estoque_minimo: number | null; trava_preco: number;
 };
 export const configurarEnvio = (contaId: string, ajustes: Partial<AjustesEnvio>) => rpc("ml_configurar_envio", { p_conta: contaId, p: ajustes });
 

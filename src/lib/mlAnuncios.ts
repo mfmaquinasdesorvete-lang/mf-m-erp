@@ -16,7 +16,7 @@ export type ContaML = {
   id: string; ml_user_id: number | null; apelido: string | null; unidade_id: string | null; status: "ativa" | "erro" | "desligada"; erro: string | null;
   token_expira_em: string | null; conectado_em: string; sincronizado_em: string | null; ultimas_novas: number;
   enviar_estoque?: boolean; enviar_preco?: boolean; preco_tabela_id?: string | null; preco_ajuste?: number | null;
-  estoque_seguranca?: number | null; estoque_maximo?: number | null; trava_preco?: number | null;
+  estoque_seguranca?: number | null; estoque_maximo?: number | null; estoque_minimo?: number | null; trava_preco?: number | null;
   /** o ERP emite a NF-e das vendas (e manda o XML para o Mercado Livre); falso enquanto outro sistema emite */
   emitir_nfe?: boolean;
 };

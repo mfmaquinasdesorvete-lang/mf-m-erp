@@ -9,7 +9,7 @@ import { chamarML, ErroML } from "../_shared/mercadolivre.ts";
 import { anunciosDoItem, estoqueDisponivel } from "../_shared/ml-anuncios.ts";
 import { atributosDoProduto, FRETE_GRATIS_DESDE, medidasFrete, precoParaReceber, semMyFrost, tituloML, type AtributoCategoria, type ProdutoNovo } from "../_shared/ml-novos.ts";
 
-type Conta = { id: string; ml_user_id: number; estoque_seguranca?: unknown; estoque_maximo?: unknown };
+type Conta = { id: string; ml_user_id: number; estoque_seguranca?: unknown; estoque_maximo?: unknown; estoque_minimo?: unknown };
 type Produto = ProdutoNovo & {
   id: string; preco_venda: number; preco_custo: number | null; foto_caminho: string; descricao_anuncio: string | null;
   descricao_catalogo: string | null; garantia_meses: number | null; tipo: string;
@@ -69,7 +69,7 @@ async function estoques(db: SupabaseClient, conta: Conta, ids: string[]) {
     ? await db.from("estoque_unidade").select("produto_id, quantidade").eq("unidade_id", u.unidade_id).in("produto_id", ids)
     : { data: [] };
   const saldo = new Map(((data ?? []) as { produto_id: string; quantidade: number }[]).map((e) => [e.produto_id, num(e.quantidade)]));
-  return (id: string) => estoqueDisponivel({ saldo: saldo.get(id) ?? 0, seguranca: conta.estoque_seguranca as number, maximo: conta.estoque_maximo as number });
+  return (id: string) => estoqueDisponivel({ saldo: saldo.get(id) ?? 0, seguranca: conta.estoque_seguranca as number, maximo: conta.estoque_maximo as number, minimo: conta.estoque_minimo as number });
 }
 
 function textoDescricao(p: Produto) {

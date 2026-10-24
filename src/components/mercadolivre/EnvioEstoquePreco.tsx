@@ -13,7 +13,7 @@ import { configurarEnvio } from "@/lib/useMercadoLivre";
 
 type Form = {
   enviar_estoque: boolean; enviar_preco: boolean; preco_tabela_id: string; preco_ajuste: string;
-  estoque_seguranca: string; estoque_maximo: string; trava_preco: string;
+  estoque_seguranca: string; estoque_maximo: string; estoque_minimo: string; trava_preco: string;
 };
 
 const texto = (v: number | null | undefined, padrao = "") => (v === null || v === undefined ? padrao : String(v).replace(".", ","));
@@ -25,7 +25,7 @@ const numero = (s: string) => {
 const formDe = (c: ContaML): Form => ({
   enviar_estoque: !!c.enviar_estoque, enviar_preco: !!c.enviar_preco, preco_tabela_id: c.preco_tabela_id ?? "",
   preco_ajuste: texto(c.preco_ajuste, "0"), estoque_seguranca: texto(c.estoque_seguranca, "0"),
-  estoque_maximo: texto(c.estoque_maximo), trava_preco: texto(c.trava_preco, "20"),
+  estoque_maximo: texto(c.estoque_maximo), estoque_minimo: texto(c.estoque_minimo), trava_preco: texto(c.trava_preco, "20"),
 });
 
 function Ajuda({ children }: { children: ReactNode }) {
@@ -68,17 +68,19 @@ function FormEnvio({ conta, podeMudar }: { conta: ContaML; podeMudar: boolean })
   const travado = !podeMudar;
 
   // exemplo com os números escolhidos (produto de 10 unidades e R$ 100,00)
-  const exEstoque = estoqueDisponivel({ saldo: 10, seguranca: numero(f.estoque_seguranca), maximo: numero(f.estoque_maximo) });
+  const exEstoque = estoqueDisponivel({ saldo: 10, seguranca: numero(f.estoque_seguranca), maximo: numero(f.estoque_maximo), minimo: numero(f.estoque_minimo) });
+  const exZerado = estoqueDisponivel({ saldo: 0, seguranca: numero(f.estoque_seguranca), maximo: numero(f.estoque_maximo), minimo: numero(f.estoque_minimo) });
   const tabela = tabelas.find((t) => t.id === f.preco_tabela_id);
   const exBase = tabela?.ativo ? arredondar(100 * (1 + Number(tabela.ajuste_percentual) / 100), tabela.arredondamento) : 100;
   const exPreco = precoAEnviar({ base: exBase, ajuste: numero(f.preco_ajuste) });
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
-    const ajuste = numero(f.preco_ajuste) ?? 0, seguranca = numero(f.estoque_seguranca) ?? 0, maximo = numero(f.estoque_maximo), trava = numero(f.trava_preco) ?? 0;
-    if (![ajuste, seguranca, trava].every(Number.isFinite) || (maximo !== null && !Number.isFinite(maximo))) return notify("Confira os números (use só algarismos e vírgula).", "erro");
+    const ajuste = numero(f.preco_ajuste) ?? 0, seguranca = numero(f.estoque_seguranca) ?? 0, maximo = numero(f.estoque_maximo), minimo = numero(f.estoque_minimo), trava = numero(f.trava_preco) ?? 0;
+    if (![ajuste, seguranca, trava].every(Number.isFinite) || (maximo !== null && !Number.isFinite(maximo)) || (minimo !== null && !Number.isFinite(minimo))) return notify("Confira os números (use só algarismos e vírgula).", "erro");
     if (ajuste < -50 || ajuste > 300) return notify("O ajuste do preço vai de −50% a +300%.", "erro");
-    if (seguranca < 0 || (maximo !== null && maximo < 0)) return notify("Estoque de segurança e limite não podem ser negativos.", "erro");
+    if (seguranca < 0 || (maximo !== null && maximo < 0) || (minimo !== null && minimo < 0)) return notify("Estoque de segurança, limite e mínimo não podem ser negativos.", "erro");
+    if (minimo && maximo && minimo > maximo) return notify("O mínimo no anúncio não pode passar do limite.", "erro");
     if (trava < 0 || trava > 100) return notify("A trava de preço vai de 0% (sem trava) a 100%.", "erro");
     if (f.enviar_preco && !conta.enviar_preco && !(await confirmar(
       `O ERP vai mudar o preço dos anúncios no Mercado Livre. ${trava > 0 ? `Mudança maior que ${texto(trava)}% espera aprovação na lista de anúncios.` : "Sem trava: toda mudança vai direto."} Preço zerado ou abaixo do custo nunca vai. Ligar?`,
@@ -88,7 +90,7 @@ function FormEnvio({ conta, podeMudar }: { conta: ContaML; podeMudar: boolean })
     try {
       await configurarEnvio(conta.id, {
         enviar_estoque: f.enviar_estoque, enviar_preco: f.enviar_preco, preco_tabela_id: f.preco_tabela_id || null,
-        preco_ajuste: ajuste, estoque_seguranca: Math.round(seguranca), estoque_maximo: maximo ? Math.round(maximo) : null, trava_preco: trava,
+        preco_ajuste: ajuste, estoque_seguranca: Math.round(seguranca), estoque_maximo: maximo ? Math.round(maximo) : null, estoque_minimo: minimo ? Math.round(minimo) : null, trava_preco: trava,
       });
       notify(f.enviar_estoque || f.enviar_preco ? "Ajustes salvos. Os anúncios entram na fila e são atualizados em até 5 minutos." : "Ajustes salvos. O envio está desligado.");
     } catch (err) { notifyError(err); } finally {
@@ -145,8 +147,12 @@ function FormEnvio({ conta, podeMudar }: { conta: ContaML; podeMudar: boolean })
             <input className="input" inputMode="numeric" placeholder="sem limite" value={f.estoque_maximo} disabled={travado} onChange={(e) => mudar({ estoque_maximo: e.target.value })} />
             <Ajuda>O anúncio mostra no máximo isso, mesmo com mais no estoque. Vazio = sem limite.</Ajuda>
           </Field>
+          <Field label="Mínimo no anúncio">
+            <input className="input" inputMode="numeric" placeholder="segue o estoque" value={f.estoque_minimo} disabled={travado} onChange={(e) => mudar({ estoque_minimo: e.target.value })} />
+            <Ajuda>O anúncio mostra pelo menos isso, mesmo sem estoque, e fica no ar (venda sem estoque: confira antes de despachar). Vazio = segue o estoque.</Ajuda>
+          </Field>
           <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600 md:col-span-2">
-            <b className="text-fg">Exemplo:</b> com 10 no estoque de {unidade}, o anúncio mostra <b className="num text-fg">{exEstoque}</b>. Sem estoque, o anúncio mostra 0 e o Mercado Livre pausa sozinho.
+            <b className="text-fg">Exemplo:</b> com 10 no estoque de {unidade}, o anúncio mostra <b className="num text-fg">{exEstoque}</b>. {exZerado > 0 ? <>Sem estoque, o anúncio mostra <b className="num text-fg">{exZerado}</b> e fica no ar.</> : "Sem estoque, o anúncio mostra 0 e o Mercado Livre pausa sozinho."}
           </div>
         </div>
       </Card>

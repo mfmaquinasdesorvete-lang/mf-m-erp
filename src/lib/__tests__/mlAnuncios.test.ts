@@ -13,6 +13,12 @@ describe("estoque que vai para o anúncio", () => {
   it("estoque da unidade menos o de segurança", () => {
     expect(estoqueDisponivel({ saldo: 12, seguranca: 2 })).toBe(10);
   });
+  it("mínimo no anúncio: produto ativo sem estoque fica com o mínimo; inativo não", () => {
+    expect(estoqueDisponivel({ saldo: 0, seguranca: 1, minimo: 1 })).toBe(1);
+    expect(estoqueDisponivel({ saldo: 8, seguranca: 1, minimo: 1 })).toBe(7);
+    expect(estoqueDisponivel({ saldo: 0, minimo: 1, ativo: false })).toBe(0);
+    expect(estoqueDisponivel({ saldo: 0, minimo: null })).toBe(0);
+  });
   it("nunca negativo", () => {
     expect(estoqueDisponivel({ saldo: 1, seguranca: 5 })).toBe(0);
     expect(estoqueDisponivel({ saldo: -3 })).toBe(0);
@@ -155,7 +161,7 @@ describe("situação do anúncio", () => {
   });
   it("ajustes da conta com valores vazios", () => {
     expect(configDaConta({ enviar_estoque: true, preco_ajuste: "5.5", estoque_maximo: null, trava_preco: null }))
-      .toEqual({ enviar_estoque: true, enviar_preco: false, preco_ajuste: 5.5, estoque_seguranca: 0, estoque_maximo: null, trava_preco: 0 });
+      .toEqual({ enviar_estoque: true, enviar_preco: false, preco_ajuste: 5.5, estoque_seguranca: 0, estoque_maximo: null, estoque_minimo: null, trava_preco: 0 });
   });
 });
 
