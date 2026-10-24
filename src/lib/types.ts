@@ -65,6 +65,8 @@ export type Produto = {
   prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
   /** linha curta abaixo do nome (ex.: Compatível com máquinas My Frost Top 200) */
   subtitulo?: string | null;
+  /** variações: o pai agrupa (não vende sozinho); a variação aponta para o pai e diz o que a diferencia */
+  agrupador?: boolean; produto_pai_id?: string | null; variacao?: string | null;
   titulo_anuncio?: string | null; slug?: string | null; meta_descricao?: string | null; palavras_chave?: string[] | null;
   descricao_anuncio?: string | null; gtin_isento?: boolean; unificado_em?: string | null; unificado_quando?: string | null;
   /** ficha técnica / campos adicionais (nome e valor) */

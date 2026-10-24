@@ -37,6 +37,22 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: 
   /** custo usado na margem (kit: soma dos componentes); sem ele, o do cadastro */ custo?: number }) {
   const maquina = produto.tipo === "maquina";
   const [aba, setAba] = useState<Aba>("geral");
+  // variações: no pai, as variações com SKU, preço e estoque; na variação, de qual pai ela é
+  const { data: familia } = useQuery({
+    queryKey: ["produtos", "variacoes", produto.id, produto.produto_pai_id],
+    enabled: !!produto.agrupador || !!produto.produto_pai_id,
+    queryFn: async () => {
+      if (produto.agrupador) {
+        const { data, error } = await supabase.from("produtos").select("id, sku, descricao, variacao, preco_venda, estoque_atual")
+          .eq("produto_pai_id", produto.id).eq("ativo", true).is("unificado_em", null).order("variacao");
+        if (error) throw error;
+        return { filhos: data ?? [], pai: null as string | null };
+      }
+      const { data, error } = await supabase.from("produtos").select("descricao").eq("id", produto.produto_pai_id!).maybeSingle();
+      if (error) throw error;
+      return { filhos: [], pai: data?.descricao ?? null };
+    },
+  });
   // código do item em cada fornecedor (das notas ligadas e dos fornecimentos), ao lado do nosso SKU
   const { data: codigosForn = [] } = useQuery({
     queryKey: ["fornecimentos", "codigos", produto.id],
@@ -67,6 +83,18 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: 
   return (
     <Modal open onClose={onClose} title={produto.descricao} wide>
       {produto.subtitulo && <p className="-mt-1 mb-2 text-sm text-slate-600">{produto.subtitulo}</p>}
+      {familia?.pai && <p className="mb-2 text-sm text-slate-600">Variação <b>{produto.variacao}</b> de <b>{familia.pai}</b></p>}
+      {produto.agrupador && (
+        <div className="mb-3 rounded-lg border border-slate-200 p-2 text-sm">
+          <div className="mb-1 font-semibold">Variações ({familia?.filhos.length ?? 0})</div>
+          {familia?.filhos.length ? familia.filhos.map((f) => (
+            <div key={f.id} className="flex justify-between gap-2 border-t border-slate-100 py-1 first:border-0">
+              <span className="min-w-0 truncate">{f.variacao || f.descricao} <span className="num text-xs text-slate-500">{f.sku}</span></span>
+              <span className="num shrink-0 text-xs text-slate-600">{brl(Number(f.preco_venda) || 0)} · estoque {Number(f.estoque_atual) || 0}</span>
+            </div>
+          )) : <span className="text-xs text-slate-500">Nenhuma ainda: no cadastro da variação, escolha este produto em "É variação de".</span>}
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">{NOME_TIPO[produto.tipo] ?? produto.tipo}</span>
         {produto.sku && <span className="num rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">SKU {produto.sku}</span>}

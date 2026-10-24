@@ -8,6 +8,7 @@ import type { LinhaProduto } from "@/lib/comissao";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { useMarcadores } from "@/components/nfe/Marcadores";
+import { opcoesPai, variacoesPorPai } from "@/lib/variacoes";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje, pl, somarDias } from "@/lib/format";
@@ -227,6 +228,10 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
     }
     return m;
   }, [codigosForn, fornecimentos]);
+  const variacoes = useMemo(() => variacoesPorPai(produtos), [produtos]);
+  const nomePai = useMemo(() => new Map(produtos.filter((p) => p.agrupador).map((p) => [p.id, p.descricao])), [produtos]);
+  const textoVariacao = (r: Produto) => r.agrupador ? `Pai · ${variacoes.get(r.id)?.length ?? 0} ${pl(variacoes.get(r.id)?.length ?? 0, "variação", "variações")}`
+    : r.produto_pai_id ? `Variação ${r.variacao ?? ""} de ${nomePai.get(r.produto_pai_id) ?? "outro produto"}`.replace("  ", " ") : "";
   const textoFornecedor = (r: Produto) => { const c = codigosFornecedor.get(r.id); return c?.length ? `Forn. ${c.join(", ")}` : ""; };
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
@@ -368,7 +373,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             </span>
             {r.subtitulo && <span className="block text-xs text-slate-600 [overflow-wrap:anywhere]">{r.subtitulo}</span>}
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
-              {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
+              {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, textoVariacao(r), r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
           </span>
         </button>
@@ -594,6 +599,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
           { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
           { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas My Frost Top 200 e Top 300" },
+          { name: "agrupador", label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
+          { name: "produto_pai_id", label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
+          { name: "variacao", label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },
           {
             name: "conferencia", label: "Já cadastrados parecidos", type: "custom", span: 4,
             render: (_v, _s, row) => {
@@ -818,7 +826,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 {r.foto_caminho && <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
-                  <div className="text-xs text-slate-500">{[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
+                  <div className="text-xs text-slate-500">{[r.sku, textoVariacao(r), r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
                   {r.vendavel === false && (
                     <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Não aparece no pedido">
                       <AlertTriangle size={12} /> não vende
