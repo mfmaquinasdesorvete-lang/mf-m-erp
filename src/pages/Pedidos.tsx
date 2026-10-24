@@ -32,6 +32,7 @@ import { useEtiquetas } from "@/components/etiquetas/EditorEtiquetas";
 import { conferirPedido, type Pendencia } from "@/lib/compliance";
 import { VendedorSelect } from "@/components/VendedorSelect";
 import { MotivoAcao } from "@/components/MotivoAcao";
+import { ExcluirComLigados } from "@/components/ExcluirComLigados";
 import { AuditoriaPedido } from "@/components/AuditoriaPedido";
 import { ambienteNfe, confirmarSeTeste } from "@/lib/ambienteNfe";
 import { ConferirNfe } from "@/components/nfe/ConferirNfe";
@@ -48,7 +49,7 @@ import { MEIOS_LINK, PagamentoPedido, useTemInfinitePay } from "@/components/fin
 import { PropostasTiny } from "@/components/vendas/PropostasTiny";
 import { AprovarDesconto } from "@/components/vendas/AprovarDesconto";
 import { maximoDesconto, rotuloRegra, type RegraDesconto } from "@/lib/descontos";
-import { confirmar, escolherConflito, pedirTexto } from "@/components/Dialogos";
+import { confirmar, escolherConflito } from "@/components/Dialogos";
 import { gravarSincronizado, NOME_CAMPO } from "@/lib/sincronizacao";
 import { ehLicenciado, SeloLicenciado } from "@/components/clientes/Licenciado";
 import { BarraFiltros, ChipsSituacao, RodapeLista, useSelecao } from "@/components/filtros/BarraFiltros";
@@ -285,20 +286,9 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
   const recebidoLista = somar(naTela, (p) => info.get(p.id)?.pg?.recebido ?? 0);
   const aReceberLista = somar(naTela, (p) => { const pg = info.get(p.id)?.pg; return pg && pg.situacao !== "sem_conta" ? pg.total - pg.recebido : 0; });
 
-  async function excluirSelecionados() {
-    const motivo = await pedirTexto(`Excluir ${selecionados.length} ${pl(selecionados.length, "pedido", "pedidos")}? Só orçamentos e vendas canceladas são excluídos `
-      + "(venda aprovada, faturada ou entregue: cancele antes). O pedido some das listas e fica na auditoria. Escreva o motivo:", "",
-      { titulo: "Excluir pedidos", ok: "Excluir", minimo: 5 });
-    if (!motivo) return;
-    try {
-      const { data, error } = await supabase.rpc("excluir_pedidos", { p_ids: selecionados.map((p) => p.id), p_motivo: motivo });
-      if (error) throw error;
-      const r = data as { excluidos: number; pulados: { numero: number; motivo: string }[] };
-      notify(`${r.excluidos} ${pl(r.excluidos, "pedido excluído", "pedidos excluídos")}.${r.pulados.length ? ` ${r.pulados.length} não ${pl(r.pulados.length, "foi excluído", "foram excluídos")}: ${resumoPulados(r.pulados)}` : ""}`, r.pulados.length ? "erro" : undefined);
-      selecao.limpar();
-      invalidate("pedidos", "auditoria");
-    } catch (e) { notifyError(e); }
-  }
+  // excluir em lote: abre a janela com o que sai junto (OS, separações, envios e contas em aberto dos pedidos)
+  const [excluindo, setExcluindo] = useState(false);
+  const excluirSelecionados = () => setExcluindo(true);
 
   return (
     <div>
@@ -476,6 +466,19 @@ export default function Pedidos({ area = "pecas" }: { area?: "pecas" | "maquinas
       {emitindoLote && <EmitirLote pedidos={selecionados as any} onClose={(ok) => { setEmitindoLote(false); if (ok) { selecao.limpar(); invalidate("pedidos", "notas_fiscais"); } }} />}
       {lancando && <LancarContasLote pedidos={selecionados} onClose={(ok) => { setLancando(false); if (ok) selecao.limpar(); }} />}
       {conciliando && <ConciliarVendas ids={selecionados.map((p) => p.id)} onClose={(ok) => { setConciliando(false); if (ok) selecao.limpar(); }} />}
+      {excluindo && (
+        <ExcluirComLigados tabela="pedidos" ids={selecionados.map((p) => p.id)} titulo={`Excluir ${selecionados.length} ${pl(selecionados.length, "pedido", "pedidos")}`}
+          onClose={() => setExcluindo(false)}
+          onFeito={(r) => {
+            const x = r.pedidos ?? { excluidos: 0, pulados: [] };
+            notify(`${x.excluidos} ${pl(x.excluidos, "pedido excluído", "pedidos excluídos")}${r.ligados ? ` (+${r.ligados} ${pl(r.ligados, "documento ligado", "documentos ligados")})` : ""}.`
+              + (x.pulados.length ? ` ${x.pulados.length} não ${pl(x.pulados.length, "foi excluído", "foram excluídos")}: ${resumoPulados(x.pulados)}` : ""), x.pulados.length ? "erro" : undefined);
+            selecao.limpar();
+            invalidate("pedidos", "auditoria", "ordens_servico", "contas_receber", "envios", "expedicoes");
+          }}>
+          <p>Só orçamentos e vendas canceladas são excluídos (venda aprovada, faturada ou entregue: cancele antes). O pedido some das listas e fica na auditoria.</p>
+        </ExcluirComLigados>
+      )}
       {ultimasDe && <UltimasVendas cliente={ultimasDe} onClose={() => setUltimasDe(null)} />}
       {aberto && <PedidoModal key={(aberto as any).id ?? (aberto as any).__clone ?? "novo"} pedido={aberto} onClose={() => setAberto(null)}
         onClonar={pode("editar_pedidos") ? (base) => setAberto({ ...clonarVenda(base), __clone: Date.now() } as any) : undefined} />}

@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { Button, Modal } from "./ui";
-import { MotivoAcao } from "./MotivoAcao";
+import { ExcluirComLigados } from "./ExcluirComLigados";
 import { supabase } from "@/lib/supabase";
 import { useInvalidate } from "@/lib/data";
 import { notify, notifyError } from "@/lib/notify";
@@ -15,7 +15,7 @@ const SIGLA: Record<TabelaExcluivel, string> = { pedidos_compra: "OC", ordens_pr
 const EFEITO: Record<TabelaExcluivel, ReactNode> = {
   pedidos_compra: null,
   ordens_producao: <p className="mt-2">As ordens de compra desta OP que ainda estão em cotação saem junto (e voltam junto se a OP for restaurada).</p>,
-  ordens_servico: <p className="mt-2">As peças que a OS tirou do estoque voltam e a conta a receber em aberto é cancelada. Se for restaurada, a OS volta em aberto.</p>,
+  ordens_servico: <p className="mt-2">As peças que a OS tirou do estoque voltam e a conta a receber em aberto é cancelada. Se for restaurada, a OS volta em aberto (e o pedido que saiu junto volta para a lista).</p>,
 };
 const RECARREGAR: Record<TabelaExcluivel, string[]> = {
   pedidos_compra: ["pedidos_compra", "pedido_compra_itens"],
@@ -33,17 +33,15 @@ export function ExcluirDocumento({ tabela, id, numero, onFeito }: { tabela: Tabe
         <Trash2 size={16} aria-hidden />
       </Button>
       {aberto && (
-        <MotivoAcao titulo={`Excluir a ${SIGLA[tabela]} #${numero ?? ""}`} rotulo="Excluir" perigo onClose={() => setAberto(false)}
-          onConfirmar={async (motivo) => {
-            const { error } = await supabase.rpc("excluir_documento", { p_tabela: tabela, p_id: id, p_motivo: motivo });
-            if (error) throw error;
-            notify(`${SIGLA[tabela]} #${numero ?? ""} excluída (fica guardada em "Excluídas")`);
-            invalidar(...RECARREGAR[tabela]);
+        <ExcluirComLigados tabela={tabela} ids={[id]} titulo={`Excluir a ${SIGLA[tabela]} #${numero ?? ""}`} onClose={() => setAberto(false)}
+          onFeito={(r) => {
+            notify(`${SIGLA[tabela]} #${numero ?? ""} excluída${r?.ligados ? ` com ${r.ligados} ${r.ligados === 1 ? "documento ligado" : "documentos ligados"}` : ""} (fica guardada em "Excluídas")`);
+            invalidar(...RECARREGAR[tabela], "pedidos", "contas_receber", "nfe_recebidas", "envios", "expedicoes");
             onFeito?.();
           }}>
           <p>A {NOME[tabela]} sai da lista e de todas as contas do ERP. Fica guardada com quem excluiu, quando e o motivo, e pode ser restaurada.</p>
           {EFEITO[tabela]}
-        </MotivoAcao>
+        </ExcluirComLigados>
       )}
     </>
   );
