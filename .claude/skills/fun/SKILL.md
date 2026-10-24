@@ -67,3 +67,9 @@ Cuido dos funcionários da MF: cadastro, documentos, admissão e saída, salári
 - Salvar só o que mudou: `src/lib/soMudou.ts` (o `CrudPage` já usa).
 - CPF é único entre os ativos (índice `funcionarios_cpf_unico`); desligar não apaga o cadastro.
 - Exemplo em teste ou comentário: inventado, nunca copiado dos dados reais.
+- Área própria no menu desde 24/10: grupo `rh` em `src/lib/menu.ts` (cor fúcsia; `data-modulo="rh"` em `src/index.css`,
+  `aparencia.ts`, `DesignSystem.tsx`), rotas `/funcionarios` (Equipe), `/funcionarios-pasta` e `/funcionarios-pagamentos`
+  (rotas separadas, não `?aba=`, porque o menu marca o item pelo caminho). Tela nova da área: rota + `modulos.ts` +
+  `modulosDetalhe.ts` (o teste de Módulos cobra o cartão completo).
+- Pasta: coluna `documentos.pasta` (contrato, exames, ferias, holerites, atestados, outros; vazio = outros), regra em
+  `src/lib/pastaFuncionario.ts`; telas em `src/components/funcionarios/`. Coluna nova no banco vai ao ar antes do site.
