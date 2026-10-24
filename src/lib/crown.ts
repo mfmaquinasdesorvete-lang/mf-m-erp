@@ -13,6 +13,8 @@ type PessoaCrown = { id: string; vinculo: string; situacao: string; ativo: boole
 /** Fica fora da equipe atual: passou pela Crown e já saiu. */
 export const soDaCrown = (f: PessoaCrown) => !!f.epoca_crown && desligada(f);
 
+/** Tipos que só existem na folha registrada. */
+const FOLHA: TipoPagamento[] = ["salario", "rescisao", "ferias"];
 const centavos = (v: number) => Math.round(v * 100) / 100;
 
 export function resumoCrown<P extends PessoaCrown>(pessoas: P[], pagamentos: PagamentoAntigo[]) {
@@ -23,7 +25,8 @@ export function resumoCrown<P extends PessoaCrown>(pessoas: P[], pagamentos: Pag
     for (const p of meus) porTipo[p.tipo] = centavos((porTipo[p.tipo] ?? 0) + Number(p.valor));
     const meses = [...new Set(meus.map((p) => p.competencia.slice(0, 7)))].sort();
     return {
-      f, comCarteira: registrado(f.vinculo), total: centavos(meus.reduce((s, p) => s + Number(p.valor), 0)), porTipo,
+      // com carteira: registrado hoje ou com folha naquela época (quem hoje é autônomo pode ter sido CLT na Crown)
+      f, comCarteira: registrado(f.vinculo) || meus.some((p) => FOLHA.includes(p.tipo)), total: centavos(meus.reduce((s, p) => s + Number(p.valor), 0)), porTipo,
       primeiro: meses[0] ?? null, ultimo: meses[meses.length - 1] ?? null, pagamentos: meus,
     };
   });

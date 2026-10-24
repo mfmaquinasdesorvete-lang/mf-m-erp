@@ -20,4 +20,12 @@ describe("época Crown", () => {
     expect(soDaCrown(p("r", "autonomo", true, "ativo"))).toBe(false);
     expect(soDaCrown(p("c", "clt", false))).toBe(false);
   });
+  it("autônomo hoje que teve folha na Crown conta como com carteira", () => {
+    const r = resumoCrown([p("r", "autonomo", true, "ativo"), p("l", "autonomo", true)], [
+      { funcionario_id: "r", competencia: "2023-01-01", tipo: "salario", valor: 2000 },
+      { funcionario_id: "l", competencia: "2023-10-01", tipo: "por_fora", valor: 1900 },
+      { funcionario_id: "l", competencia: "2023-11-01", tipo: "decimo", valor: 200 },
+    ]);
+    expect([r.comCarteira, r.semCarteira]).toEqual([1, 1]);
+  });
 });
