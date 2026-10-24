@@ -148,7 +148,7 @@ const COMPATIVEL = /\s*[-–,]?\s*\(?\s*compat[ií]vel\s+com\s+(?:as\s+)?m[aá]q
 /** Modelos das máquinas My Frost que aparecem no nome das peças. */
 const MODELOS = /\b(A ?100|A ?200(?: (?:Nova|Antiga))?|P ?313|P ?386|P ?765|Top ?200|Top ?300(?: Antiga)?|Prime(?: 4\.[02])?|Queen|Slim(?: Antigas?)?|Italianinha)\b/gi;
 
-/** Separa o nome limpo (padrão do Google e dos marketplaces) do subtítulo "Compatível com máquinas My Frost …".
+/** Separa o nome limpo (padrão do Google e dos marketplaces) do subtítulo "Compatível com máquinas de sorvete expresso …".
  *  Os modelos citados no nome entram no subtítulo; o nome não perde nada além da frase de compatibilidade. */
 export function separarCompatibilidade(descricao: string): { nome: string; subtitulo: string | null } {
   const original = String(descricao ?? "");
@@ -156,7 +156,8 @@ export function separarCompatibilidade(descricao: string): { nome: string; subti
   if (!COMPATIVEL.test(original)) return { nome, subtitulo: null };
   const modelos = [...new Set([...nome.matchAll(MODELOS)].map((m) => nomePadrao(m[1].replace(/^([AP])(\d)/i, "$1 $2").replace(/^(Top)(\d)/i, "$1 $2"))))];
   const lista = modelos.length > 1 ? `${modelos.slice(0, -1).join(", ")} e ${modelos[modelos.length - 1]}` : modelos[0];
-  return { nome, subtitulo: lista ? `Compatível com máquinas My Frost ${lista}` : "Compatível com máquinas My Frost" };
+  // sem o nome "My Frost" nos cadastros (pedido da usuária em 24/10): só o tipo de máquina e os modelos
+  return { nome, subtitulo: lista ? `Compatível com máquinas de sorvete expresso ${lista}` : "Compatível com máquinas de sorvete expresso" };
 }
 
 export function tituloAnuncio(p: ProdutoAnuncio): string {
@@ -286,7 +287,6 @@ export function correcaoAutomatica(p: ProdutoAnuncio, usados: Set<string>, garan
   if (!p.meta_descricao) novo.meta_descricao = metaDescricao(comTitulo);
   if (!p.palavras_chave?.length) novo.palavras_chave = palavrasChave(comTitulo);
   if (!(p.descricao_anuncio || "").trim()) novo.descricao_anuncio = descricaoAnuncio(comTitulo, garantiaPadrao);
-  if (!p.marca && /\bmy\s*frost\b/i.test(p.descricao)) novo.marca = "My Frost";
   return novo;
 }
 

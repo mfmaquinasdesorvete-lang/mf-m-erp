@@ -601,7 +601,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         ] : [
           { name: "descricao", label: "Descrição", span: 3, required: true, placeholder: "Tipo + marca + modelo + característica. Ex.: Motor do batedor WEG 1/2 CV 220V" },
           { name: "sku", label: "Meu código / SKU (único, não reaproveite)", span: 1 },
-          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas My Frost Top 200 e Top 300" },
+          { name: "subtitulo", label: "Subtítulo (aparece abaixo do nome)", span: 4, placeholder: "Ex.: Compatível com máquinas de sorvete expresso Top 200 e Top 300" },
           { name: "agrupador", label: "Produto pai (tem variações; não vende sozinho)", type: "checkbox", span: 2 },
           { name: "produto_pai_id", label: "É variação de", type: "select", span: 1, options: [{ value: "", label: "— não é variação —" }, ...opcoesPai(produtos)] },
           { name: "variacao", label: "Variação (o que muda)", span: 1, placeholder: "Ex.: 3 Sabores, A 200" },

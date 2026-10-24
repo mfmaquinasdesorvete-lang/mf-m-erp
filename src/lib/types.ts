@@ -63,7 +63,7 @@ export type Produto = {
   estoque_maximo?: number; sob_encomenda?: boolean; vendavel?: boolean; codigo_barras?: string | null; kit?: boolean; margem_desejada?: number | null;
   modelo?: string | null; codigo_fabricante?: string | null; codigos_alternativos?: string | null; fora_de_linha?: boolean;
   prazo_reposicao_dias?: number | null; compra_minima?: number | null; created_at?: string;
-  /** linha curta abaixo do nome (ex.: Compatível com máquinas My Frost Top 200) */
+  /** linha curta abaixo do nome (ex.: Compatível com máquinas de sorvete expresso Top 200) */
   subtitulo?: string | null;
   /** variações: o pai agrupa (não vende sozinho); a variação aponta para o pai e diz o que a diferencia */
   agrupador?: boolean; produto_pai_id?: string | null; variacao?: string | null;

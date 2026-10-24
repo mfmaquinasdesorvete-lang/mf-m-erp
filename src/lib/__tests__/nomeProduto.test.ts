@@ -16,10 +16,10 @@ describe("nomePadrao", () => {
 describe("separarCompatibilidade", () => {
   it("tira a frase do nome e põe no subtítulo com os modelos", () => {
     expect(separarCompatibilidade("Mecânica Dupla (2 Motores) - Top 300 / P 765 - Compatível com Máquinas My Frost")).toEqual({
-      nome: "Mecânica Dupla (2 Motores) - Top 300 / P 765", subtitulo: "Compatível com máquinas My Frost Top 300 e P 765",
+      nome: "Mecânica Dupla (2 Motores) - Top 300 / P 765", subtitulo: "Compatível com máquinas de sorvete expresso Top 300 e P 765",
     });
     expect(separarCompatibilidade("Manípulo de Alumínio da Chave Extratora - Compatível com Máquinas My Frost")).toEqual({
-      nome: "Manípulo de Alumínio da Chave Extratora", subtitulo: "Compatível com máquinas My Frost",
+      nome: "Manípulo de Alumínio da Chave Extratora", subtitulo: "Compatível com máquinas de sorvete expresso",
     });
   });
   it("nome sem a frase fica sem subtítulo", () => {
