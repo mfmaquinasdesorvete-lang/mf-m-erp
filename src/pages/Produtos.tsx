@@ -192,8 +192,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const [definindoLinha, setDefinindoLinha] = useState<{ ids: string[]; fim: (mensagem: string) => void } | null>(null);
   const { data: linhas = [] } = useRows<LinhaProduto>("linhas_produto", { order: "nome", ascending: true });
   // fornecedores de cada produto (como no Tiny): o padrão, os do cadastro de fornecimento e os das notas de entrada
-  const { data: fornecimentos = [] } = useRows<{ produto_id: string; fornecedor: { nome: string } | null }>(
-    "fornecimentos", { select: "produto_id, fornecedor:fornecedores(nome)", order: "produto_id" });
+  const { data: fornecimentos = [] } = useRows<{ produto_id: string; codigo_fornecedor: string | null; fornecedor: { nome: string } | null }>(
+    "fornecimentos", { select: "produto_id, codigo_fornecedor, fornecedor:fornecedores(nome)", order: "produto_id" });
   const fornecedoresDoProduto = useMemo(() => {
     const m = new Map<string, Set<string>>();
     const por = (id: string, nome?: string | null) => { if (!nome?.trim()) return; const s0 = m.get(id) ?? new Set<string>(); s0.add(nome.trim()); m.set(id, s0); };
@@ -214,6 +214,16 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
   const escolherCadastro = (c: Cadastro) => navigate(ROTA_CADASTRO[c]);
   const [verSugestao, setVerSugestao] = useState(false);
   const { data: produtos = [] } = useRows<Produto>("produtos", { order: "descricao", ascending: true });
+  // códigos de cada fornecedor (das notas ligadas e dos fornecimentos): aparecem na lista e entram na busca
+  const codigosFornecedor = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const f of [...codigosForn, ...fornecimentos]) {
+      const c = f.codigo_fornecedor?.trim();
+      if (c && !(m.get(f.produto_id) ?? []).includes(c)) m.set(f.produto_id, [...(m.get(f.produto_id) ?? []), c]);
+    }
+    return m;
+  }, [codigosForn, fornecimentos]);
+  const textoFornecedor = (r: Produto) => { const c = codigosFornecedor.get(r.id); return c?.length ? `Forn. ${c.join(", ")}` : ""; };
   const { unidades, atual } = useUnidade();
   const { data: saldos = [] } = useRows<{ produto_id: string; unidade_id: string; quantidade: number }>("estoque_unidade", { order: "produto_id" });
   const saldoPor = useMemo(() => new Map(saldos.map((s) => [`${s.produto_id}|${s.unidade_id}`, Number(s.quantidade)])), [saldos]);
@@ -350,7 +360,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             </span>
             {r.subtitulo && <span className="block text-xs text-slate-600 [overflow-wrap:anywhere]">{r.subtitulo}</span>}
             <span className="mt-0.5 block text-xs text-slate-500 [overflow-wrap:anywhere]">
-              {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
+              {[r.vendavel !== false && (NOME_CADASTRO[r.tipo] ?? r.tipo), r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ") || "sem código"}
             </span>
           </span>
         </button>
@@ -489,6 +499,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         order="descricao"
         defaults={{ tipo: "peca", unidade: "UN", origem: 0, preco_custo: 0, preco_venda: 0, estoque_minimo: 0, estoque_maximo: 0, ativo: true, vendavel: true, sob_encomenda: false, fora_de_linha: false, descricao: "", no_catalogo: false, ...atualCad.padrao }}
         searchKeys={["descricao", "sku", "ncm", "marca", "modelo", "categoria", "codigo_barras", "codigo_fabricante", "codigos_alternativos"]}
+        buscaExtra={textoFornecedor}
         editarAgora={editarAgora}
         filtros={filtrosProduto}
         ordens={ORDENS_PRODUTO}
@@ -801,7 +812,7 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
                 {r.foto_caminho && <img src={urlFotoProduto(r.foto_caminho)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
                 <div className="min-w-0">
                   <div className="font-medium">{r.descricao}</div>
-                  <div className="text-xs text-slate-500">{[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
+                  <div className="text-xs text-slate-500">{[r.sku, r.codigo_fabricante && `Fab. ${r.codigo_fabricante}`, textoFornecedor(r), r.marca, r.modelo, r.categoria].filter(Boolean).join(" · ")}</div>
                   {r.vendavel === false && (
                     <span className="my-0.5 mr-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800" title="Não aparece no pedido">
                       <AlertTriangle size={12} /> não vende

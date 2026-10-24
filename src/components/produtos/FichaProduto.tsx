@@ -37,6 +37,26 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: 
   /** custo usado na margem (kit: soma dos componentes); sem ele, o do cadastro */ custo?: number }) {
   const maquina = produto.tipo === "maquina";
   const [aba, setAba] = useState<Aba>("geral");
+  // código do item em cada fornecedor (das notas ligadas e dos fornecimentos), ao lado do nosso SKU
+  const { data: codigosForn = [] } = useQuery({
+    queryKey: ["fornecimentos", "codigos", produto.id],
+    queryFn: async () => {
+      const [a, b] = await Promise.all([
+        supabase.from("produto_fornecedor").select("codigo_fornecedor, fornecedor:fornecedores(nome)").eq("produto_id", produto.id),
+        supabase.from("fornecimentos").select("codigo_fornecedor, fornecedor:fornecedores(nome)").eq("produto_id", produto.id).eq("ativo", true),
+      ]);
+      if (a.error) throw a.error;
+      if (b.error) throw b.error;
+      const vistos = new Set<string>();
+      return [...(a.data ?? []), ...(b.data ?? [])].flatMap((x) => {
+        const cod = String(x.codigo_fornecedor ?? "").trim();
+        const nome = (x.fornecedor as { nome?: string } | null)?.nome ?? "fornecedor";
+        if (!cod || vistos.has(`${nome}|${cod}`)) return [];
+        vistos.add(`${nome}|${cod}`);
+        return [{ cod, nome }];
+      });
+    },
+  });
   const abas: { value: Aba; label: string }[] = [
     { value: "geral", label: "Geral" },
     ...(maquina ? [{ value: "maquina" as Aba, label: "Máquina" }, { value: "clientes" as Aba, label: "Clientes" }, { value: "assistencia" as Aba, label: "Assistência" }] : []),
@@ -50,6 +70,7 @@ export function FichaProduto({ produto, onClose, onEditar, podeEditar, custo }: 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">{NOME_TIPO[produto.tipo] ?? produto.tipo}</span>
         {produto.sku && <span className="num rounded-full bg-slate-100 px-2.5 py-0.5 font-semibold text-slate-700">SKU {produto.sku}</span>}
+        {codigosForn.map((c) => <span key={`${c.nome}|${c.cod}`} className="num rounded-full bg-sky-50 px-2.5 py-0.5 font-semibold text-sky-800" title={c.nome}>{c.nome.split(" ")[0]}: {c.cod}</span>)}
         {produto.ativo === false && <span className="rounded-full bg-red-100 px-2.5 py-0.5 font-semibold text-red-800">inativo</span>}
         {produto.fora_de_linha && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-800">fora de linha</span>}
         {onEditar && podeEditar && <Button variant="secondary" className="ml-auto" onClick={onEditar}><Pencil size={14} /> Editar cadastro</Button>}

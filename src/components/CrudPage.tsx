@@ -65,6 +65,8 @@ type Props<T> = {
   fields: CampoForm[];
   columns: Coluna<T>[];
   searchKeys: (keyof T)[];
+  /** texto a mais para a busca, que não é campo da linha (ex.: códigos dos fornecedores do produto) */
+  buscaExtra?: (row: T) => unknown;
   defaults: Record<string, any>;
   order?: string;
   rowActions?: (row: T) => ReactNode;
@@ -116,7 +118,7 @@ type Props<T> = {
 const spanClass = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
 
 export function CrudPage<T extends { id: string }>(props: Props<T>) {
-  const { title, table, fields, columns, searchKeys, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos,
+  const { title, table, fields, columns, searchKeys, buscaExtra, defaults, order = "created_at", rowActions, extraActions, beforeSave, onFieldChange, readOnly, exportExtra, anexos,
     filtros: filtrosPagina = [], ordens = [], podeExcluir = false, plural = "registros", acoesLote = [], marcadores } = props;
   const { data: todosMarcadores = [] } = useMarcadores();
   const filtros = useMemo(() => (marcadores && todosMarcadores.some((m) => m.ativo)
@@ -166,7 +168,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
     : [...new Set(data.flatMap((r) => valoresDaLinha(f, r)))].sort((a, b) => a.localeCompare(b, "pt-BR"))), [data, filtros]);
 
   const filtrados = useMemo(() => {
-    let lista = busca.trim() ? data.filter((r) => combinaBusca(searchKeys.map((k) => r[k]), busca)) : data;
+    let lista = busca.trim() ? data.filter((r) => combinaBusca([...searchKeys.map((k) => r[k]), buscaExtra?.(r)], busca)) : data;
     filtros.forEach((f) => {
       const v = escolhas[f.label];
       if (!v) return;
@@ -174,7 +176,7 @@ export function CrudPage<T extends { id: string }>(props: Props<T>) {
       else lista = lista.filter((r) => valoresDaLinha(f, r).includes(v));
     });
     return ordens[ordem] ? [...lista].sort(ordens[ordem].comparar) : lista;
-  }, [data, busca, searchKeys, filtros, escolhas, ordens, ordem]);
+  }, [data, busca, searchKeys, buscaExtra, filtros, escolhas, ordens, ordem]);
 
   // a busca não achou nada: a tela pode mostrar um aviso próprio (ex.: cadastrar com o CNPJ digitado)
   const avisoBusca = !isLoading && filtrados.length === 0 && busca.trim() ? props.semResultado?.(busca.trim()) ?? null : null;
