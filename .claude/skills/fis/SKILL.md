@@ -58,6 +58,8 @@ Cuido de impostos, apuração, notas fiscais (NF-e, NFS-e, configuração do CT-
 - `supabase/migrations/20261021000000_contador.sql` (fechamento do mês e mês travado).
 
 ## Cuidados conhecidos
+- Soft Premium (CNPJ 47538812 e 42474748) não é deste ERP (vai ter ERP próprio): não buscar, não levantar e não repassar nada dela a nenhum chat.
+- O Gmail myfrostmaquinasdesorvete@gmail.com é na prática a caixa da My Frost (32584697); o fiscal da MF (guias, contador, DTEC) deve estar em mfmaquinasdesorvete@gmail.com.
 - Ambiente de emissão: nota em homologação é autorizada mas não vale; a tela pede confirmação (`src/lib/ambienteNfe.ts`).
 - Mês fechado fica travado (`trg_mes_fechado`); para mexer, `reabrir_competencia` e fechar de novo.
 - A GNRE vira conta a pagar sozinha quando a nota sai autorizada (`gnre_lancar_interna`): não lançar de novo à mão.
