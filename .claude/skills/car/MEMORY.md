@@ -13,15 +13,17 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
   migração 20261101000101 (3f71515).
 - Contas do mês (pessoal_mensais e pessoal_mensais_pagos): marcar pago, comprovante, lançamento na conta e aviso
   no meio da tela antes de vencer (5695963). Primeira conta: o DAS de um MEI da família.
+- Trava de valor: a voz não lê telefone/documento como valor e o banco recusa |valor| ≥ 10 milhões
+  (14733e6, migração 20261101000162).
 - Cartão "Controle (não vou cobrar)" (pessoal_controle): valores só para acompanhar, fora dos saldos (e90d5a7).
 - Conta encerrada com as vendas por dia de uma loja que usou a maquininha de um familiar (dados, sem código novo).
 
 ## Em andamento
-- Trava de valor: a voz não sugere valor de 10 milhões ou mais (telefone/documento) e o banco recusa
-  lançamento assim (migração 20261101000162). Falta publicar a parte da voz.
+- Nada em código.
 
 ## Esperando a usuária
-- Anular as cópias de um extrato que entrou em duas contas em setembro/2026 (35 lançamentos em dobro).
+- Dizer o valor certo de um lançamento digitado que foi anulado na auditoria (aluguel com água e luz).
+- Dizer se uma conta antiga (extrato só de 2024) ainda existe, para encerrar ou acertar o saldo.
 - Dizer o que passou para a conta de um familiar em 23/09.
 - Importar extratos que faltam: conta da loja (março, setembro, outubro), conta do familiar (dez/jan/fev).
 - Cadastrar os secrets do Meu Pluggy no Supabase.
