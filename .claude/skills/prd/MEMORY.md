@@ -1,5 +1,5 @@
 # MEMORY — PRD (ERP Line – Cadastro de produtos)
-Atualizado em 25/10/2026.
+Atualizado em 25/10/2026 (variações no banco).
 
 ## Estado agora
 Cadastro limpo e no padrão do Google e dos marketplaces: sem repetidos conhecidos, sem "My Frost" nos textos, com
@@ -20,11 +20,11 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
   passadas para insumo.
 
 ## Em andamento
-- Variações (produto pai e variações): tela no ar (3b69c49), migração 20261101000140_produto_variacoes.sql ainda
-  NÃO aplicada. Até aplicar, mexer nos campos de variação dá erro ao salvar.
+- Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
+  Falta a regra em gatilho (20261101000140, não aplicada: gatilho em produtos pela API trava); a tela já impede o
+  pai de vender pelo campo, mas a checagem "pai tem de ser pai" ainda não existe no banco.
 
 ## Esperando a usuária
-- Confirmar a gravação da migração das variações (mudança de estrutura pede a confirmação dela no chat).
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).
 - Liberar no acesso à rede os sites dos fornecedores de refrigeração, para buscar peso e medidas.
 - Teste com 3 fotos no padrão (fundo branco, quadrada); as fotos sem logo do Canva ficam com o MKT.
@@ -45,8 +45,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Funções do Supabase: catalogo-feed (lista do Google e do WhatsApp).
 
 ## Próximos passos
-1. Aplicar a migração das variações com a confirmação dela; depois montar o pai "Kit de Borrachas O-Rings" e as
-   variações, mostrando antes.
+1. Montar o pai "Kit de Borrachas O-Rings" e as variações, mostrando antes; levar a regra do gatilho para a tela
+   (src/lib/variacoes.ts) ou aplicar por migração com calma.
 2. Completar o cadastro dos 4 produtos criados pelo GER a partir de notas (3 controladores e o ferro chato).
 3. Gravar custo, peso e foto quando a planilha voltar.
 4. Teste das 3 fotos no padrão.
