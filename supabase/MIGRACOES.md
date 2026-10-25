@@ -197,3 +197,4 @@ receberam a data real, de 10/10/2026 em diante. Por isso a ordem alfabética nã
 174. `20261024011540_produto_subtitulo.sql` (`produtos.subtitulo`: linha curta abaixo do nome, como "Compatível com máquinas My Frost Top 200"; `loja_dados` devolve o subtítulo para a loja e para a lista do Google)
 175. `20261025021635_produto_variacoes_campos.sql` (produtos com variações: `agrupador`, `produto_pai_id` e `variacao`)
 176. `20261025021646_produto_variacoes_indice.sql` (descrições dos campos e índice `produtos_pai`; a regra em gatilho está em `20261101000140_produto_variacoes.sql`, ainda não aplicada)
+177. `20261025184259_compra_a_vista_prazo.sql` (compra à vista ou a prazo: `nfe_recebidas.condicao_pagamento` e `prazo_dias`, escolhidos na entrada da nota; `condicao_compra()` usa o escolhido ou o XML (parcelas, Pix, cartão); `historico_custos` mostra a condição em cada compra)

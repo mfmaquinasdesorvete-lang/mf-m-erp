@@ -42,6 +42,12 @@ export function ultimasCompras(linhas: { evento: string; data: string; detalhe: 
   return out;
 }
 
+/** Última compra à vista (pela condição no detalhe da compra: "NF 1 · Fornecedor · à vista"): é o custo de referência
+ *  para a formação de preço, porque a compra a prazo sai mais cara. */
+export function ultimaAVista(linhas: { evento: string; data: string; detalhe: string | null; valor_unitario: number | null }[]) {
+  return ultimasCompras(linhas.filter((l) => /· à vista$/.test(l.detalhe ?? "")), 1)[0] ?? null;
+}
+
 export function custoMedioCompras(linhas: { evento: string; data: string; quantidade: number | null; valor_unitario: number | null }[], desde?: string) {
   const compras = linhas.filter((l) => l.evento === "compra" && Number(l.quantidade) > 0 && Number(l.valor_unitario) > 0 && (!desde || String(l.data).slice(0, 10) >= desde));
   const qtd = compras.reduce((s, l) => s + Number(l.quantidade), 0);

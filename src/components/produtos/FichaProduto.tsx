@@ -22,7 +22,7 @@ import { DesenhoMedidas } from "./DesenhoMedidas";
 import { DocumentosMaquina, GaleriaProduto } from "./GaleriaProduto";
 import type { Especificacao } from "./EditoresMaquina";
 import type { Produto } from "@/lib/types";
-import { custoMedioCompras, linkMaquina, mensagemMaquina, pecasEmGarantia, ultimasCompras } from "@/lib/maquinas";
+import { custoMedioCompras, linkMaquina, mensagemMaquina, pecasEmGarantia, ultimaAVista, ultimasCompras } from "@/lib/maquinas";
 import { margemBruta } from "@/lib/margem";
 
 type Aba = "geral" | "fornecedores" | "anuncios" | "custos" | "maquina" | "clientes" | "assistencia";
@@ -287,12 +287,14 @@ function AbaCustos({ p }: { p: ProdutoFicha }) {
   const ano = custoMedioCompras(data, umAno), tudo = custoMedioCompras(data);
   const ultima = data.find((l) => l.evento === "compra" && Number(l.valor_unitario) > 0);
   const penultima = ultimasCompras(data)[1];
+  const aVista = ultimaAVista(data);
   if (error) return <p className="text-sm text-red-600">Não deu para ler o histórico de custos: {(error as Error).message}</p>;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Cartao rotulo="Custo no cadastro" valor={brl(Number(p.preco_custo || 0))} />
         <Cartao rotulo="Última compra" valor={ultima ? brl(Number(ultima.valor_unitario)) : "—"} ajuda={ultima ? `${dataBR(String(ultima.data).slice(0, 10))} · ${String(ultima.detalhe ?? "").replace(/^NF \S* · /, "")}` : "sem compra pelas notas"} />
+        <Cartao rotulo="Última à vista" valor={aVista ? brl(aVista.valor) : "—"} ajuda={aVista ? `${dataBR(aVista.data)} · custo de referência` : "nenhuma compra à vista pelas notas"} />
         <Cartao rotulo="Penúltima compra" valor={penultima ? brl(penultima.valor) : "—"} ajuda={penultima ? `${dataBR(penultima.data)} · ${penultima.detalhe.replace(/^NF \S* · /, "")}` : "só uma compra pelas notas"} />
         <Cartao rotulo="Custo médio (12 meses)" valor={ano ? brl(ano.medio) : "—"} ajuda={ano ? `${ano.compras} ${pl(ano.compras, "compra", "compras")} · ${ano.quantidade.toLocaleString("pt-BR")} ${p.unidade}` : "sem compra no último ano"} />
         <Cartao rotulo="Menor / maior pago" valor={tudo ? `${brl(tudo.menor)} / ${brl(tudo.maior)}` : "—"} />
