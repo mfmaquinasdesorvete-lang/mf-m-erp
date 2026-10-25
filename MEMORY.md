@@ -53,6 +53,10 @@ Atualizado em 25/10/2026 pelo ELO.
   nem descrições. O texto original do extrato e da nota fica como veio, porque a conciliação depende dele.
 - WordPress não serve para o ERP. Pode servir no futuro só para o site institucional ou o blog.
 - O nome da empresa nos textos para o cliente vem de Configurações → Empresa, nunca escrito à mão.
+- Visual de toda tela nova, conforme as diretrizes da usuária de 24/10 (chat DSG):
+  - uma ação principal clara, com um botão cheio;
+  - cartões lisos com borda fina, sem degradê, brilho ou sombra pesada; o escuro liso é o padrão;
+  - para carregando, vazio e erro, usar as peças `Carregando`, `Vazio` e `ErroLista` de `src/components/ui.tsx`.
 
 ## Armadilhas conhecidas
 - "Feita" na fila de publicação não quer dizer que está no ar: em 24/10, três sites ficaram só montados. Conferir
