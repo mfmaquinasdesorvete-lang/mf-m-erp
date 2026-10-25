@@ -9,7 +9,7 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - Siglas e skills de todos os chats. PRD e FUN são os mais novos. Migração `20261101000118_chats_sigla`.
 - Regra "só dizer publicado depois de conferir o index.html da Hostinger" no CLAUDE.md (9f0df12).
 - Levantamento do que só muda pelo código, com 254 itens e a ordem de trabalho, em `.claude/configuravel/` (08d3f08).
-- Memória geral em `MEMORY.md` e modelo da memória de cada chat em `.claude/memoria-modelo.md`.
+- Memória geral em `MEMORY.md` e modelo em `.claude/memoria-modelo.md`. Os 19 chats já têm a sua `MEMORY.md` (25/10).
 
 ## Em andamento
 - Menos dependente do código. Ordem que a usuária escolheu:
@@ -18,11 +18,11 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
   3. o que mexe com dinheiro;
   4. prazos dos alertas;
   5. o resto.
-  O GER já gravou o catálogo e a tabela `config_ajustes` (881c944), mas a migração ainda não foi aplicada no banco.
+  O GER já gravou o catálogo e a tabela `config_ajustes` (881c944). A tabela só pode ser criada pela usuária no SQL Editor.
   O TRA e o TEC entram quando a base estiver no ar.
-- Cada chat escrevendo a própria `MEMORY.md`, pedido de 25/10.
 
 ## Esperando a usuária
+- GER: rodar no SQL Editor a criação da tabela `config_ajustes`, base de Prazos e padrões.
 - PRD: aprovar no chat do PRD a gravação da migração das variações de produto.
 - MKT: estoque na SC e dados de 5 peças para os anúncios novos.
 - IAD: "Pode publicar" do Resumir com IA dos documentos.
@@ -39,5 +39,5 @@ antes de dizer "publicado". O trabalho grande em curso é deixar o ERP menos dep
 - Telas: `src/components/sobre/Chats.tsx` e `CentralChats.tsx`.
 
 ## Próximos passos
-1. Conferir se os 18 chats criaram a `MEMORY.md` e se nenhuma tem dado da empresa.
+1. De tempos em tempos, conferir se as memórias continuam sem dados da empresa e trazer para a raiz o que vale para todos.
 2. Cobrar o GER pela base em Configurações e avisar o TRA e o TEC quando ela estiver no ar.
