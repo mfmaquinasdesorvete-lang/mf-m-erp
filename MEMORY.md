@@ -43,6 +43,8 @@ Atualizado em 25/10/2026 pelo ELO.
 
 ## Decisões da usuária que valem para todos
 - Marcadores são da usuária: importação, unificação e correção só somam, nunca tiram.
+- Importação e correção automática só preenchem campo vazio. Quando o cadastro foi unificado, gravam no que ficou
+  (`coalesce(unificado_em, id)`). Proposta ou pedido antigo não se apaga: fecha com a situação e fica no histórico.
 - Contas não são excluídas, só canceladas com motivo. O histórico de auditoria ninguém edita.
 - Menos dependente do código: regra de negócio (prazo, taxa, %, texto para o cliente, lista de opções) vai para
   Configurações, na base comum "Prazos e padrões" e "Mensagens ao cliente". A tabela é `config_ajustes` e o
@@ -61,6 +63,8 @@ Atualizado em 25/10/2026 pelo ELO.
   o número.
 - A gravação pelo Supabase (inclusive um UPDATE de texto) pode pedir a aprovação da usuária, e o cartão some em
   60 segundos. Se ela não aprovar a tempo, nada é gravado: conferir sempre com um select depois de gravar.
+- O MCP do Supabase às vezes trava em UPDATE simples e em ALTER pelo apply_migration. O que funciona:
+  `with u as (update … returning …) select …` e, para ALTER, `execute_sql` com `set lock_timeout = '10s'` antes.
 - Vários chats trabalham ao mesmo tempo:
   - antes de enviar commits, fazer `git pull --rebase origin paineis-no-ar`;
   - não mexer no arquivo de outro chat sem combinar (exemplo: a OS e a Assistência são do GER).
