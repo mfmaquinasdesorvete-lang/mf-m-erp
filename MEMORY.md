@@ -65,6 +65,19 @@ Atualizado em 25/10/2026 pelo ELO.
   60 segundos. Se ela não aprovar a tempo, nada é gravado: conferir sempre com um select depois de gravar.
 - O MCP do Supabase às vezes trava em UPDATE simples e em ALTER pelo apply_migration. O que funciona:
   `with u as (update … returning …) select …` e, para ALTER, `execute_sql` com `set lock_timeout = '10s'` antes.
+- Pelo MCP do Supabase:
+  - gravar uma coisa por chamada, com `where` pelo id e texto curto. Juntar gravações, filtrar pelo nome ou mandar
+    texto longo faz a chamada pedir confirmação e cair por tempo;
+  - criar ou apagar tabela pelo MCP trava. Peça à usuária para rodar o SQL no SQL Editor do Supabase;
+  - antes de gravar, avise a usuária para ficar com o chat aberto e tocar em "Permitir".
+- O push é recusado ("fetch first" ou "cannot lock ref") quando outro chat enviou antes. Repetir `pull --rebase` e
+  push até 3 vezes, com uma pausa curta entre as tentativas.
+- O teste `designSystemPadrao` tem um limite de botões feitos à mão que vale para o projeto todo. Botão novo deve usar
+  as peças prontas (`Button`, `chip`, `botao-icone`, `linha-clicavel`), senão o teste quebra para todos.
+- Transferência entre contas achada só pelo valor já juntou pares errados. Conferir que as duas pontas são contas
+  da MF.
+- O ViaCEP às vezes não responde. Quem precisa da cidade pelo CEP deve ter uma reserva: BrasilAPI, ou o estado pelo
+  começo do CEP (`ufDoCep` em `supabase/functions/_shared/frete-cotar.ts`).
 - Vários chats trabalham ao mesmo tempo:
   - antes de enviar commits, fazer `git pull --rebase origin paineis-no-ar`;
   - não mexer no arquivo de outro chat sem combinar (exemplo: a OS e a Assistência são do GER).
