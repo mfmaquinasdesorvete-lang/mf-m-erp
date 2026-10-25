@@ -73,5 +73,8 @@
   - Cada chat tem um nome de 3 letras (a sigla, na frente de cada linha acima) e a sua skill em
     `.claude/skills/<sigla minúscula>/SKILL.md` (o que faz, o que leva para outro chat, regras e cuidados). Ao começar um
     pedido, ler a skill do próprio chat; ao descobrir uma armadilha nova do assunto, acrescentar em "Cuidados conhecidos".
+  - Memória: `MEMORY.md` (o ERP todo) e `.claude/skills/<sigla minúscula>/MEMORY.md` (o estado do assunto do chat:
+    no ar, em andamento, esperando a usuária, decisões, próximos passos; modelo em `.claude/memoria-modelo.md`). Ler as
+    duas ao começar e atualizar a do chat no fim de cada pedido, no mesmo commit. Sem dados da empresa nem nomes de pessoas.
   - Ao abrir um chat novo, acrescentar a linha dele na tabela chats_claude (nome, sigla, o que faz, exemplos, sessao =
     "session_…", cor), que aparece em Sobre → Chats, e pedir ao ELO a skill dele; chat encerrado fica com ativo = false.
