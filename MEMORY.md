@@ -59,7 +59,8 @@ Atualizado em 25/10/2026 pelo ELO.
   site ficou só montado.
 - Migração aplicada pelo MCP ganha outro número em `schema_migrations`. Conferir se a tabela ou a função existe, não
   o número.
-- A gravação pelo Supabase pode pedir a aprovação da usuária, e o cartão some em 60 segundos.
+- A gravação pelo Supabase (inclusive um UPDATE de texto) pode pedir a aprovação da usuária, e o cartão some em
+  60 segundos. Se ela não aprovar a tempo, nada é gravado: conferir sempre com um select depois de gravar.
 - Vários chats trabalham ao mesmo tempo:
   - antes de enviar commits, fazer `git pull --rebase origin paineis-no-ar`;
   - não mexer no arquivo de outro chat sem combinar (exemplo: a OS e a Assistência são do GER).
