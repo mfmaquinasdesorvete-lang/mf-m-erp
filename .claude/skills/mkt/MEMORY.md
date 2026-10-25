@@ -21,6 +21,8 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
 
 ## Esperando a usuária
 - EAN do compressor 1/5 (a categoria exige); a Condensadora Arame precisa de outra categoria (caiu em peça de carro).
+- Foto nova do CLP: a logo My Frost está impressa no aparelho (as fotos do Canva têm a logo).
+- Prints de outras fotos com a logo, se ela achar (o Cachorrinho já foi trocado em 25/10).
 - Contar os anéis do pistão dos kits de vedação (kits 7, 11 e 15).
 - Notas fiscais das vendas antigas do Mercado Livre sem NF (ela importa os XML).
 
@@ -39,6 +41,7 @@ My Frost. Os outros canais (Google Shopping, WhatsApp, Shopee etc.) aparecem só
   republicar_anuncios, copiar_fotos, historico); partes puras em _shared/ml-anuncios.ts e _shared/ml-novos.ts
 
 ## Próximos passos
+0. Kits O-Rings com variações (PRD fez o pai e as variações): anúncio único com escolha só com o ok dela.
 1. Ler o motivo da pausa (sub_status) dos anúncios e mostrar na lista; ver os 7 pausados.
 2. Publicar o compressor e a condensadora quando o EAN e a categoria estiverem certos.
 3. Google Shopping: conferir se o feed está em dia; perguntas e pós-venda do Mercado Livre.
