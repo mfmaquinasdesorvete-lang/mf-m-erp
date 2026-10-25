@@ -8,7 +8,7 @@ import type { LinhaProduto } from "@/lib/comissao";
 import { FotoProduto } from "@/components/FotoProduto";
 import { FornecedoresProduto } from "@/components/FornecedoresProduto";
 import { useMarcadores } from "@/components/nfe/Marcadores";
-import { opcoesPai, variacoesPorPai } from "@/lib/variacoes";
+import { erroVariacao, opcoesPai, variacoesPorPai } from "@/lib/variacoes";
 import { pendenciaCatalogo, urlFotoProduto } from "@/lib/catalogo";
 import { Badge, Button, Field, Modal, Table, Tabs } from "@/components/ui";
 import { brl, hoje, pl, somarDias } from "@/lib/format";
@@ -551,6 +551,9 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
         beforeSave={(r) => {
           // estoque_atual só muda por movimentação, nunca pela edição do cadastro
           const { estoque_atual: _ignorado, fornecedores_produto: _preferido, ...resto } = r;
+          // variação: o pai tem de ser um produto pai (a regra fica aqui, não em gatilho no banco)
+          const erroVar = erroVariacao({ id: r.id, agrupador: !!r.agrupador, produto_pai_id: r.produto_pai_id || null }, produtosTodos);
+          if (erroVar) throw new Error(`Variação: ${erroVar}`);
           // código de barras: só dígitos; código novo tem que ser válido e de um produto só
           const ean = soDigitos(r.codigo_barras);
           if (ean && r.gtin_isento) throw new Error("Código de barras: informe o código ou marque \"Sem GTIN\", não os dois");
@@ -571,6 +574,8 @@ export default function Produtos({ cadastroFixo }: { cadastroFixo?: Cadastro } =
             margem_desejada: r.margem_desejada === "" || r.margem_desejada == null ? null : Number(String(r.margem_desejada).replace(",", ".")),
             ...Object.fromEntries(["peso_kg", "altura_cm", "largura_cm", "profundidade_cm"].map((k) => [k, r[k] === "" || r[k] == null ? null : Number(r[k])])),
             fornecedor_padrao_id: r.fornecedor_padrao_id || null,
+            produto_pai_id: r.produto_pai_id || null,
+            ...(r.agrupador ? { vendavel: false } : {}), // o produto pai não vende sozinho
             linha_id: r.linha_id || null,
             embalagem_id: r.embalagem_id || null,
             foto_caminho: r.foto_caminho || null,

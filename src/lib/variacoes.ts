@@ -20,6 +20,17 @@ export function nomeComVariacao(pai: Pick<ProdutoVariacao, "descricao"> | undefi
   return filho.descricao.toLowerCase().includes(v.toLowerCase()) ? filho.descricao : `${pai.descricao} - ${v}`;
 }
 
+/** Erro no cadastro da variação (vazio = está certo): não pode ser variação de si mesma, o pai tem de ser um produto
+ *  pai, e o produto pai não pode ser variação de outro. */
+export function erroVariacao(r: Pick<ProdutoVariacao, "id" | "agrupador" | "produto_pai_id">, produtos: ProdutoVariacao[]): string {
+  if (!r.produto_pai_id) return "";
+  if (r.produto_pai_id === r.id) return "o produto não pode ser variação dele mesmo";
+  if (r.agrupador) return "um produto pai não pode ser variação de outro";
+  const pai = produtos.find((p) => p.id === r.produto_pai_id);
+  if (!pai?.agrupador) return "escolha como pai um produto marcado \"Produto pai (tem variações)\"";
+  return "";
+}
+
 /** Pais que podem receber variações (para o campo "Variação de"). */
 export const opcoesPai = (produtos: ProdutoVariacao[]) =>
   produtos.filter((p) => p.agrupador && p.ativo !== false && !p.unificado_em).sort((a, b) => a.descricao.localeCompare(b.descricao, "pt-BR"))

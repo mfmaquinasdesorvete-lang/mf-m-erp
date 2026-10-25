@@ -21,8 +21,8 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 
 ## Em andamento
 - Variações (produto pai e variações): tela no ar (3b69c49) e campos no banco (20261025021635 e 20261025021646).
-  Falta a regra em gatilho (20261101000140, não aplicada: gatilho em produtos pela API trava); a tela já impede o
-  pai de vender pelo campo, mas a checagem "pai tem de ser pai" ainda não existe no banco.
+  A regra fica na tela (erroVariacao em src/lib/variacoes.ts); o gatilho 20261101000140 não foi aplicado (trava).
+  Pais criados em 25/10: PC-KIT-016 (kits completos 3, 5, 7 Sabores e A 200) e PC-KIT-017 (kits da chave extratora).
 
 ## Esperando a usuária
 - Planilha de custo, peso, medidas e foto das peças que vendem (mandada em 24/10).
@@ -45,8 +45,7 @@ subtítulo, códigos dos fornecedores, abas novas e as 2 últimas compras. As va
 - Funções do Supabase: catalogo-feed (lista do Google e do WhatsApp).
 
 ## Próximos passos
-1. Montar o pai "Kit de Borrachas O-Rings" e as variações, mostrando antes; levar a regra do gatilho para a tela
-   (src/lib/variacoes.ts) ou aplicar por migração com calma.
+1. Avisar o MKT dos pais (um anúncio com variações na loja e no ML é dele).
 2. Completar o cadastro dos 4 produtos criados pelo GER a partir de notas (3 controladores e o ferro chato).
 3. Gravar custo, peso e foto quando a planilha voltar.
 4. Teste das 3 fotos no padrão.

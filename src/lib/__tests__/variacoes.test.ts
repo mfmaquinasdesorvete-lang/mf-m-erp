@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nomeComVariacao, opcoesPai, variacoesPorPai } from "../variacoes";
+import { erroVariacao, nomeComVariacao, opcoesPai, variacoesPorPai } from "../variacoes";
 
 const pai = { id: "p", descricao: "Kit de Borrachas O-Rings", agrupador: true };
 const lista = [pai,
@@ -17,5 +17,14 @@ describe("variações", () => {
   });
   it("só produto pai ativo vira opção", () => {
     expect(opcoesPai(lista)).toEqual([{ value: "p", label: "Kit de Borrachas O-Rings" }]);
+  });
+});
+
+describe("erroVariacao", () => {
+  it("aceita variação de um pai e barra os erros", () => {
+    expect(erroVariacao({ id: "b", produto_pai_id: "p" }, lista)).toBe("");
+    expect(erroVariacao({ id: "p", produto_pai_id: "p" }, lista)).toMatch(/dele mesmo/);
+    expect(erroVariacao({ id: "b", produto_pai_id: "a" }, lista)).toMatch(/Produto pai/);
+    expect(erroVariacao({ id: "x", agrupador: true, produto_pai_id: "p" }, lista)).toMatch(/pai não pode/);
   });
 });
