@@ -1,11 +1,14 @@
 // Vitrine dos modelos de máquina no cadastro de Máquinas: foto, preço, estoque e quantas estão com clientes.
-// Tocar no cartão abre a ficha do produto (fotos, manuais, clientes, assistência, custos).
+// Tocar no cartão abre a ficha do produto (fotos, manuais, clientes, assistência, custos); tocar em "N clientes" abre
+// a lista de quem tem o modelo (ClientesDoModelo).
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { brl, hoje, pl } from "@/lib/format";
 import { urlFotoProduto } from "@/lib/catalogo";
 import type { Produto } from "@/lib/types";
+import { ClientesDoModelo } from "./ClientesDoModelo";
 
 /** "My Frost P 765 - Máquina de Sorvete…" vira "P 765" no gráfico. */
 const nomeCurto = (d: string) => d.replace(/^My Frost\s*/i, "").split(/\s[-–]\s/)[0].trim() || d;
@@ -27,6 +30,7 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
     },
   });
   const dia = hoje();
+  const [verClientes, setVerClientes] = useState<{ titulo: string; produtoId?: string; descricao?: string } | null>(null);
   const modelos = produtos.filter((p) => p.tipo === "maquina" && p.ativo !== false && !p.unificado_em);
   // modelos que só existem nas máquinas importadas da My Frost (P 313, S 430…): sem cadastro de produto, mas com clientes
   const antigos = [...base.filter((e) => !e.produto_id).reduce((m, e) => m.set(e.descricao, (m.get(e.descricao) ?? 0) + 1), new Map<string, number>())]
@@ -48,8 +52,10 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
         const espec = (p.especificacoes ?? []).length, etapas = (p.etapas_producao ?? []).length;
         const falta = [!espec && "especificações", !etapas && "etapas"].filter(Boolean).join(" e ");
         return (
-          <button key={p.id} type="button" onClick={() => aoAbrir(p)} aria-label={`Ficha de ${p.descricao}`}
-            className="cartao group flex min-w-0 items-center gap-3 p-2 text-left shadow-sm transition hover:border-brand hover:shadow-pop">
+          // o cartão abre a ficha; o selo "N clientes" é outro botão (botão dentro de botão não pode)
+          <div key={p.id} role="button" tabIndex={0} onClick={() => aoAbrir(p)} aria-label={`Ficha de ${p.descricao}`}
+            onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); aoAbrir(p); } }}
+            className="cartao group flex min-w-0 cursor-pointer items-center gap-3 p-2 text-left shadow-sm transition hover:border-brand hover:shadow-pop">
             <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
               {p.foto_caminho ? <img src={urlFotoProduto(p.foto_caminho)} alt="" loading="lazy" className="h-full w-full object-contain p-1" />
                 : <span className="text-2xs text-slate-400">sem foto</span>}
@@ -61,12 +67,17 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
                 <span className={`rounded-full px-1.5 py-0.5 font-semibold ${Number(p.estoque_atual) > 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
                   {Number(p.estoque_atual) > 0 ? `${Number(p.estoque_atual)} em estoque` : "sem estoque"}
                 </span>
-                {doModelo.length > 0 && <span className="rounded-lg bg-solido-azul px-2 py-0.5 text-xs font-black text-white shadow-sm" title="Máquinas deste modelo com clientes">{doModelo.length} {pl(doModelo.length, "cliente", "clientes")}</span>}
+                {doModelo.length > 0 && (
+                  <button type="button" className="rounded-lg bg-solido-azul px-2 py-0.5 text-xs font-black text-white shadow-sm hover:opacity-90" title="Ver os clientes com este modelo"
+                    onClick={(ev) => { ev.stopPropagation(); setVerClientes({ titulo: p.modelo?.trim() || p.descricao, produtoId: p.id }); }}>
+                    {doModelo.length} {pl(doModelo.length, "cliente", "clientes")}
+                  </button>
+                )}
                 {garantia > 0 && <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 font-semibold text-violet-800"><ShieldCheck size={10} aria-hidden /> {garantia} em garantia</span>}
                 {falta && <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title={`Falta ${falta} na ficha da máquina`}><FileText size={10} aria-hidden /> ficha incompleta</span>}
               </span>
             </span>
-          </button>
+          </div>
         );
       })}
       {antigos.length > 0 && (
@@ -76,13 +87,15 @@ export function ModelosMaquinas({ produtos, aoAbrir }: { produtos: Produto[]; ao
             {antigos.map(([d, n]) => (
               <span key={d} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-surface px-3 py-1.5 text-sm">
                 <b className="text-fg">{d.replace(/^My Frost\s*/i, "") || d}</b>
-                <span className="rounded-lg bg-solido-azul px-2 py-0.5 text-xs font-black text-white">{n} {pl(n, "cliente", "clientes")}</span>
+                <button type="button" className="rounded-lg bg-solido-azul px-2 py-0.5 text-xs font-black text-white hover:opacity-90" title="Ver os clientes com este modelo"
+                  onClick={() => setVerClientes({ titulo: d.replace(/^My Frost\s*/i, "") || d, descricao: d })}>{n} {pl(n, "cliente", "clientes")}</button>
               </span>
             ))}
           </div>
         </div>
       )}
     </section>
+    {verClientes && <ClientesDoModelo modelo={verClientes} onClose={() => setVerClientes(null)} />}
     </>
   );
 }

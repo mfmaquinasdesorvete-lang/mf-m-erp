@@ -6,6 +6,7 @@ Vendas, compras, financeiro, assistência e estoque funcionando no ar. O trabalh
 do código" (levar regras e mensagens para Configurações), parado esperando a tabela nova no banco.
 
 ## No ar
+- Máquinas: o selo "N clientes" do modelo abre a lista de quem tem a máquina, e o cliente abre a ficha (25/10).
 - Acompanhamento de compras (Fábrica e estoque): peça pedida → OC → nota → transporte → chegou (973698c,
   função `acompanhamento_compras`).
 - Compra só entra no estoque quando chega (CT-e entregue ou botão "Chegou") e pede conferência (migração 129).
