@@ -14,6 +14,7 @@ import { notify, notifyError } from "@/lib/notify";
 import {
   ALIQUOTA_COFINS, ALIQUOTA_PIS, FINALIDADES, ROTULO_ORIGEM, conferirTotal, numeroBR, variacaoPct, type ContaCusto, type Finalidade,
 } from "@/lib/notaFornecedor";
+import { CondicaoCompra, faltaCondicao, useCondicaoCompra } from "./CondicaoCompra";
 import { itensParaCusto, itensParaEstoque, opcoesParaBanco, type DadosNota, type LinhaItem, type NotaBase } from "./useNotaFornecedor";
 
 const qtd = (v: number) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -23,6 +24,7 @@ const r4 = (v: number) => Number(v ?? 0).toLocaleString("pt-BR", { style: "curre
 export function ItensCustos({ d, nota, podeEditar }: { d: DadosNota; nota: NotaBase; podeEditar: boolean }) {
   const [ocupado, setOcupado] = useState(false);
   const [trocando, setTrocando] = useState<number | null>(null);
+  const { data: condicao } = useCondicaoCompra(nota.id);
   const o = d.opcoes;
   if (!o) return null;
   const ligados = d.linhas.filter((l) => l.produto_id);
@@ -52,9 +54,11 @@ export function ItensCustos({ d, nota, podeEditar }: { d: DadosNota; nota: NotaB
     const comPreco = d.modo === "nenhum" ? 0 : custos.filter((c) => c.preco_novo != null).length;
     const nCustos = custos.filter((c) => c.atualizar_custo).length;
     const ocs = [...new Set(baixas.map((b) => `#${b.numero}`))];
+    if (faltaCondicao(condicao)) return notifyError(new Error("Escolha se a compra foi à vista ou a prazo (em \"Como calcular o custo\"): só a compra à vista muda o custo do produto."));
     const texto = [
       `Dar entrada no estoque de ${itens.length} ${pl(itens.length, "item", "itens")}${semProduto ? ` (${semProduto} sem produto ${pl(semProduto, "fica", "ficam")} de fora)` : ""}.`,
-      `Atualizar o custo de ${nCustos} ${pl(nCustos, "produto", "produtos")} (${o!.descontarCreditos ? "custo líquido, sem os créditos" : "custo cheio"}).`,
+      condicao && !condicao.atualiza_custo ? "Compra a prazo: o custo dos produtos não muda (fica no histórico)."
+        : `Atualizar o custo de ${nCustos} ${pl(nCustos, "produto", "produtos")} (${o!.descontarCreditos ? "custo líquido, sem os créditos" : "custo cheio"}).`,
       comPreco ? `${comPreco} ${pl(comPreco, "preço novo", "preços novos")} ${d.modo === "direto" ? "aplicados já" : "para aprovação"}.` : "",
       ocs.length ? `Baixa na ordem de compra ${ocs.join(", ")} (${baixas.length} ${pl(baixas.length, "item", "itens")}).` : "Sem ordem de compra ligada.",
     ].filter(Boolean).join(" ");
@@ -87,7 +91,8 @@ export function ItensCustos({ d, nota, podeEditar }: { d: DadosNota; nota: NotaB
       {/* Opções do custo */}
       <section className="rounded-xl border border-slate-200 p-3">
         <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-fg"><Calculator size={16} className="text-modulo-texto" aria-hidden /> Como calcular o custo</h3>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <CondicaoCompra nfeId={nota.id} podeEditar={podeEditar && !nota.estoque_lancado} />
           <Field label="Para que é a compra">
             <select className="input" value={o.finalidade} disabled={!podeEditar} onChange={(e) => d.setOpcoes({ ...o, finalidade: e.target.value as Finalidade })}>
               {FINALIDADES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}

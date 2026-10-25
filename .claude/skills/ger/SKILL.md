@@ -89,3 +89,8 @@ Cuido de todo o resto do ERP: vendas, máquinas, cadastros, financeiro, produç�
   ligadas em `nfe_oc_vinculos`; transporte = CT-e mais novo que cita a nota por `nfe_recebida_id` ou `nfe_chaves`).
   Regra das etapas em `src/lib/acompanhamentoCompras.ts` (com teste). Nota do fornecedor sem OC aparece como "ligue na
   OC": a peça só passa de "pedida" quando a nota está ligada. A linha abre a OC em Compras (`state.abrirOc`).
+- Custo só pela compra à vista (25/10, decisão da usuária via PRD): `compra_atualiza_custo(nota)` = à vista ou cartão
+  (escolhido em "Condição de pagamento" ou lido do XML por `condicao_compra`). `lancar_estoque_nfe_core` e
+  `nf_custos_core` só mudam `produtos.preco_custo` quando ela é verdadeira; a prazo e "não informado" entram no estoque
+  e ficam no histórico sem mudar o custo. A tela pede a escolha quando o XML não diz (a maioria das notas com tPag 99).
+  A migração 157 troca só o trecho do custo no texto atual das duas funções (se o trecho mudar, ela para com erro).

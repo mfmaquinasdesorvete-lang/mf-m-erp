@@ -32,6 +32,7 @@ do código" (levar regras e mensagens para Configurações), parado esperando a 
 - Pagamentos de um prestador esperam a planilha do Tiny (TIN).
 
 ## Decisões da usuária
+- Custo do produto só pela compra à vista; a compra a prazo fica no histórico e não muda o custo (25/10).
 - Pedido pago sem NF = retirado ou enviado por fora: vira "entregue" e sai da fila da NF-e.
 - Pedido sem pagamento vindo do Tiny não aprovado não existiu.
 - Compras: entrada no estoque só na entrega; Aprovações mostra boletos e Pix, e o cartão vai num quadro só por dia.
