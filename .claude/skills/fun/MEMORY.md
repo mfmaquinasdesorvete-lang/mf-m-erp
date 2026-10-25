@@ -1,0 +1,45 @@
+# MEMORY — FUN (ERP Line – Funcionários (RH))
+Atualizado em 25/10/2026.
+
+## Estado agora
+Funcionários é uma área própria do menu, com 6 abas no ar. O cadastro tem a equipe atual e os ex-funcionários
+das épocas anteriores. Falta a usuária importar os documentos do Drive (a pasta já está montada).
+
+## No ar
+- Área própria no menu, fora de Gestão (b983c28).
+- Pasta de documentos por pessoa, com divisões; coluna `documentos.pasta` (b983c28).
+- Importar pasta: guarda de uma vez uma pasta <Pessoa>/<Divisão>/arquivos (337cb32).
+- Data de saída automática só ao desligar numa alteração (3edf65d).
+- Cartões de abertura que filtram a lista (54a7f38) e lista que começa fechada (f22deb5).
+- Admissão e saída: o que falta no cadastro e na pasta (ede120d).
+- Férias e ponto: períodos, vencimento e lançamento; divisão Ponto (9fcc2f0).
+- Página Crown Móveis: época antes da MF, com/sem carteira e pagamentos antigos (450481e).
+
+## Em andamento
+- Nada em código.
+
+## Esperando a usuária
+- Baixar no computador a pasta "ERP – Pastas dos funcionários" do Drive da MF e usar Importar pasta.
+  Depois, conferir no banco quantos arquivos entraram por pessoa.
+- Pagamentos da época Crown com meses sem documento; os extratos daquela época no Drive podem completar.
+
+## Decisões da usuária
+- O chat cuida só dos funcionários da MF; os das lojas ficam com o SOR; a outra indústria do grupo fica fora do ERP.
+- Documentos antigos no nome da empresa anterior entram na pasta da pessoa assim mesmo.
+- Ex-funcionários da Crown (nome antigo da MF) ficam numa página só deles, fora da equipe atual.
+- Cartões: "Sem carteira" = autônomo na ativa; "No INSS" = situação afastado.
+- Férias e ponto no modo simples: períodos e lançamento das férias; folha de ponto na pasta.
+- Use sempre o nome do cadastro (inclusive o nome social) nas pastas e nos títulos.
+
+## Onde está
+- Telas: `src/pages/Funcionarios.tsx` e `src/components/funcionarios/` (PastaFuncionario, PastaDaEquipe,
+  ImportarPasta, AdmissaoSaida, FeriasEquipe, CrownMoveis).
+- Regras: `src/lib/pastaFuncionario.ts`, `grupoFuncionarios.ts`, `admissaoFuncionario.ts`, `ferias.ts`, `crown.ts`.
+- Rotas: /funcionarios, -pasta, -admissao, -ferias, -crown, -pagamentos.
+- Banco: `funcionarios` (+ `epoca_crown`), `documentos` (+ `pasta`), `funcionario_ferias`,
+  `funcionario_pagamentos`; gatilho `trg_funcionarios_atualizado`. Acesso só de admin e financeiro.
+- Funções do Supabase: nenhuma.
+
+## Próximos passos
+1. Quando a usuária importar a pasta, conferir os arquivos por pessoa.
+2. Se ela quiser, completar os meses da época Crown pelos extratos daquela época.
