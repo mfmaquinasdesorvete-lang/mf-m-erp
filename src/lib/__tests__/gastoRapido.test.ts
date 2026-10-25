@@ -39,3 +39,10 @@ describe("gasto rápido falado ou digitado", () => {
     expect(chaveDoQrCode("texto sem chave")).toBeNull();
   });
 });
+
+describe("valorDoTexto com número longo", () => {
+  it("telefone ou documento não vira valor", () => {
+    expect(valorDoTexto("parte do aluguel 48991902050")).toBeNull();
+    expect(valorDoTexto("aluguel 1.500,00")).toBe(1500);
+  });
+});

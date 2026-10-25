@@ -1,5 +1,5 @@
 # MEMORY — CAR (ERP Line – Minha carteira (pessoal))
-Atualizado em 25/10/2026.
+Atualizado em 25/10/2026 (auditoria).
 
 ## Estado agora
 Painel pessoal (Retaguarda → Pessoal, só a conta master) completo: resumo, encontro de contas, extratos por mês,
@@ -17,7 +17,8 @@ contas do mês, controle sem cobrança e a ficha das empresas. O que falta depen
 - Conta encerrada com as vendas por dia de uma loja que usou a maquininha de um familiar (dados, sem código novo).
 
 ## Em andamento
-- Nada em código.
+- Trava de valor: a voz não sugere valor de 10 milhões ou mais (telefone/documento) e o banco recusa
+  lançamento assim (migração 20261101000162). Falta publicar a parte da voz.
 
 ## Esperando a usuária
 - Anular as cópias de um extrato que entrou em duas contas em setembro/2026 (35 lançamentos em dobro).

@@ -44,7 +44,8 @@ export function valorDoTexto(texto: string): number | null {
   const bruto = comMoeda?.[1] ?? comMoeda?.[2] ?? solto?.[1];
   if (bruto) {
     const n = Number(bruto.replace(/\./g, "").replace(",", "."));
-    return Number.isFinite(n) && n > 0 ? n : null;
+    // 10 milhões ou mais é telefone, documento ou código lido como valor: não sugere nada
+    return Number.isFinite(n) && n > 0 && n < 1e7 ? n : null;
   }
   // por extenso: soma as palavras de número ("cento e vinte e cinco" = 125; "dois mil" = 2000)
   let total = 0, parcial = 0, achou = false;

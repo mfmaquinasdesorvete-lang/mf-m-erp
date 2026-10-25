@@ -59,3 +59,5 @@ Cuido da carteira pessoal da usuária, separada da empresa. Dados pessoais não 
 - Dinheiro de loja que caiu na conta de outra pessoa ou de outra empresa (ex.: maquininha no nome de um familiar,
   repasse para a conta da MF): procurar também no extrato das contas da MF (`extrato_lancamentos`) antes de dizer
   que não achou.
+- Número longo no texto falado (telefone, documento) já virou valor de bilhões: o banco recusa |valor| ≥ 10 milhões
+  em pessoal_lancamentos; ao auditar, comece por `abs(valor) > 100000`.
