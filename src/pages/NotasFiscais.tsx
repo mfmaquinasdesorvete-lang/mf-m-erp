@@ -33,7 +33,7 @@ import { FILTROS_EMITIDAS, FILTROS_RECEBIDAS, evolucaoEmitida, evolucaoRecebida,
 import { operacaoNota } from "../../supabase/functions/_shared/nfe-operacoes";
 import { buscaDaAba, useAbaUrl } from "@/lib/abaUrl";
 import { CamposNota, camposEmUso, CartoesNotas, useFiltrosNotas } from "@/components/nfe/FiltrosNotas";
-import { valorDeVenda } from "@/lib/analistaFiscal";
+import { partesDaSaida } from "@/lib/analistaFiscal";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { noPeriodoOuPendente } from "@/lib/filtroLista";
 import { FILTRO_VAZIO, passaFiltro } from "@/lib/filtroNotas";
@@ -288,7 +288,7 @@ function Emitidas({ leitura = false, irPara, emitirAgora = false, onEmitirAberto
         </AcoesNoTopo>
       {destaque && onLimparDestaque && <FaixaDestaque destaque={destaque} mostrando={daAba.length} onLimpar={onLimparDestaque} />}
       <AbasContagem abas={abas} valor={aba} onChange={(v) => { setAba(v); setSel(new Set()); }} />
-      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => ({ valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: valorDeVenda(n) }))} />
+      <CartoesNotas tipo="emitidas" ativo={aba !== "excluidas"} periodo={filtros.f} notas={filtrada.map((n) => { const p = partesDaSaida(n); return { valor: Number(n.valor_total ?? 0), situacao: situacaoEmitida(n).chave, venda: p.venda, transferencia: p.transferencia }; })} />
       <div className="mb-2"><LegendaEvolucao tipo="emitidas" /></div>
       {data.some((n) => n.status === "contingencia") && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

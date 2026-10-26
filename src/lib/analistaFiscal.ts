@@ -92,6 +92,20 @@ export function valorDeVenda(n: Pick<NotaSaida, "valor_total" | "transferencia_i
   return r2(vendas.reduce((s, i) => s + Number(i.valor_bruto ?? i.valor_total ?? 0) - Number(i.valor_desconto ?? 0), 0));
 }
 
+/** A nota emitida dividida em venda, transferência entre as unidades (x15x) e o resto (remessa, comodato,
+ *  demonstração, conserto, garantia, devolução a fornecedor), para o cartão "Vendas" não misturar nada. */
+export function partesDaSaida(n: Pick<NotaSaida, "valor_total" | "transferencia_id" | "tipo_operacao" | "payload">) {
+  const total = Number(n.valor_total ?? 0);
+  if ((n.tipo_operacao ?? "saida") === "entrada") return { venda: 0, transferencia: 0, outras: total };
+  if (n.transferencia_id) return { venda: 0, transferencia: total, outras: 0 };
+  const venda = valorDeVenda(n);
+  const itens = n.payload?.items ?? [];
+  const valorItem = (i: (typeof itens)[number]) => Number(i.valor_bruto ?? i.valor_total ?? 0) - Number(i.valor_desconto ?? 0);
+  const transf = itens.length && itens.every((i) => transferencia(i.cfop)) ? total - venda
+    : r2(itens.filter((i) => transferencia(i.cfop)).reduce((s, i) => s + valorItem(i), 0));
+  return { venda, transferencia: transf, outras: r2(Math.max(0, total - venda - transf)) };
+}
+
 /** Receita (só itens com CFOP de venda) e impostos destacados em todas as saídas apuráveis. */
 export function impostosDasNotas(notas: NotaSaida[]) {
   const t = { ...ZERO, receita: 0, notas: 0, producao: 0, ipiProducao: 0 };

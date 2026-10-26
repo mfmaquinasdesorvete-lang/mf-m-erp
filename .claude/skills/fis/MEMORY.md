@@ -1,5 +1,5 @@
 # MEMORY — FIS (ERP Line – Fiscal e contábil)
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 A emissão da NF-e, o DIFAL, as certidões e a previsão de imposto por máquina estão no ar. O que falta depende
@@ -12,7 +12,8 @@ guias e os parcelamentos que estão no e-mail do contador.
 - Regras de tributação do retorno de conserto 5916/6916 (iguais a uma nota de retorno já autorizada).
 - Painel do contador → Certidões, com validade e aviso antes de vencer (6000486; migração certidoes_mf).
 - Impostos na venda de cada máquina: quadro no cadastro e Máquinas → Impostos (d9913d8).
-- Cartão "Vendas" nas Notas sem misturar transferência e remessa; Documentos → impostos.
+- Cartão "Vendas" nas Notas emitidas: soma só a venda e mostra à parte as transferências SC↔SP e as remessas e
+  devoluções a fornecedor (as devoluções emitidas são de compra, não abatem venda). Documentos → impostos.
 - Marcador "Rever com o contador" nas notas de conserto antigas (5915/6915 para cliente), na nota de conserto
   emitida como venda e nas notas de pedidos do Tiny com valor menor que a venda.
 
