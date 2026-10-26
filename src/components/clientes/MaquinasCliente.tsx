@@ -11,6 +11,7 @@ import { TOM_ESCURO } from "@/components/painel/PainelEscuro";
 
 export type MaquinaResumo = {
   id: string; cliente_id: string; descricao: string; data_venda: string | null; usada?: boolean | null; origem?: string | null;
+  ligacao_venda?: string | null; nota_legado_id?: string | null; proposta_tiny_id?: string | null;
 };
 
 // só as cores que mudam com o tema (claro/escuro): cheia para os modelos mais comuns, contorno para os outros
@@ -61,9 +62,15 @@ export function corMaquinaHex(rotulo: string) {
  * A mesma máquina registrada duas vezes: uma veio da base da My Frost sem data e a outra veio da nota, com data e o
  * mesmo modelo. Fica só a que tem data (a sem data some da lista; o registro continua no banco).
  */
-export function semMaquinaRepetida<T extends { descricao: string; data_venda?: string | null; origem?: string | null; numero_serie?: string | null }>(lista: T[]): T[] {
-  const comData = new Set(lista.filter((m) => m.data_venda).map((m) => rotuloMaquina(m.descricao)));
-  return lista.filter((m) => m.data_venda || !m.origem || m.numero_serie || !comData.has(rotuloMaquina(m.descricao)));
+export function semMaquinaRepetida<T extends {
+  descricao: string; data_venda?: string | null; origem?: string | null; numero_serie?: string | null;
+  ligacao_venda?: string | null; nota_legado_id?: string | null; proposta_tiny_id?: string | null;
+}>(lista: T[]): T[] {
+  // o par "com data" é a máquina da nota da MF (sem origem); duas da própria My Frost podem ser duas máquinas
+  const comData = new Set(lista.filter((m) => m.data_venda && !m.origem).map((m) => rotuloMaquina(m.descricao)));
+  // máquina da My Frost ligada à nota ou à proposta é uma venda de verdade, nunca repetição
+  const temVenda = (m: T) => !!(m.ligacao_venda || m.nota_legado_id || m.proposta_tiny_id);
+  return lista.filter((m) => m.data_venda || !m.origem || m.numero_serie || temVenda(m) || !comData.has(rotuloMaquina(m.descricao)));
 }
 
 const mesAno = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : "");
@@ -121,7 +128,7 @@ export function MaquinasCliente({ maquinas, compra, max = 4, tamanho = "lista", 
 
 /** Máquinas de todos os clientes, agrupadas por cliente (uma consulta só para a lista inteira). */
 export function useMaquinasPorCliente() {
-  const { data = [] } = useRows<MaquinaResumo>("equipamentos", { select: "id, cliente_id, descricao, data_venda, usada, origem", order: "data_venda", key: ["etiquetas"] });
+  const { data = [] } = useRows<MaquinaResumo>("equipamentos", { select: "id, cliente_id, descricao, data_venda, usada, origem, ligacao_venda, nota_legado_id, proposta_tiny_id", order: "data_venda", key: ["etiquetas"] });
   return useMemo(() => {
     const m = new Map<string, MaquinaResumo[]>();
     for (const e of data) m.set(e.cliente_id, [...(m.get(e.cliente_id) ?? []), e]);

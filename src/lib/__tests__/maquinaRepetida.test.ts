@@ -18,4 +18,16 @@ describe("máquina repetida (base da My Frost sem data × nota com data)", () =>
     ];
     expect(semMaquinaRepetida(l).map((m) => m.id)).toEqual(["a", "b", "c", "d"]);
   });
+  it("não esconde máquina da My Frost com nota/proposta, nem quando o par com data também é da My Frost", () => {
+    const l = [
+      { id: "a", descricao: "My Frost Queen", data_venda: null, origem: "My Frost", ligacao_venda: "pelo nome" },
+      { id: "b", descricao: "My Frost Queen", data_venda: "2025-11-12", origem: null },
+    ];
+    expect(semMaquinaRepetida(l).map((m) => m.id)).toEqual(["a", "b"]);
+    const l2 = [
+      { id: "a", descricao: "My Frost Queen", data_venda: null, origem: "My Frost" },
+      { id: "b", descricao: "My Frost Queen", data_venda: "2022-03-01", origem: "My Frost" },
+    ];
+    expect(semMaquinaRepetida(l2).map((m) => m.id)).toEqual(["a", "b"]);
+  });
 });
