@@ -1,5 +1,5 @@
 # MEMORY — CLI (ERP Line – Cadastro de clientes)
-Atualizado em 25/10/2026.
+Atualizado em 26/10/2026.
 
 ## Estado agora
 Cadastro de clientes limpo nas IEs (nenhum cliente ativo como contribuinte com IE baixada ou não encontrada).
@@ -16,9 +16,12 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
   "My Frost (histórico)" e "Dono de máquina My Frost" (8162211).
 - Redes de clientes: fundo fraquinho no cartão e na linha, selo da rede e, na ficha, os outros clientes da mesma
   rede (c5a5300).
+- Repetidos pelo nome unificados com o ok dela: 58 grupos (pessoa CPF + empresa CNPJ, ou um sem documento), fica o
+  cadastro com CNPJ (dados, 26/10). "Compra da máquina" preenchida com a data da máquina mais recente onde estava
+  vazia (dados, 26/10).
 
 ## Em andamento
-- Nada.
+- Regra no banco para preencher "Compra da máquina" sozinha (migração 20261101000171): espera o "Pode publicar".
 
 ## Esperando a usuária
 - Levantamento da qualidade do cadastro (sem CPF/CNPJ, sem cidade/UF, sem telefone, repetidos): só com números,
@@ -31,6 +34,9 @@ Ficha 360 e lista de clientes mais coloridas e enxutas, com as redes de clientes
 - Etiquetas da My Frost (histórico e dono de máquina) não aparecem na lista: a etiqueta da máquina já mostra.
 - Redes: milk shake amarelo, açaí roxo, My Frost Sorveterias rosa. A rede vem do marcador "F - …" do Tiny ou da
   categoria Licenciado My Frost.
+- Repetidos: unificar só mesmo nome na mesma cidade (pessoa + empresa vale). Ficam separados: só o primeiro nome,
+  cidades diferentes, dois CNPJs (filiais) ou dois CPFs diferentes.
+- "Compra da máquina" do cadastro acompanha a data das máquinas do cliente.
 - Marcadores nunca são tirados; unificar, inativar ou corrigir em lote só depois de mostrar a lista e ter o ok.
 
 ## Onde está
