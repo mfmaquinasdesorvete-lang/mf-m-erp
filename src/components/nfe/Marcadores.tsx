@@ -1,7 +1,10 @@
 // Marcadores coloridos com ícone (como no Tiny): nas notas fiscais e em todos os cadastros e documentos.
 // Mostrar, aplicar (em um ou vários registros) e cadastrar.
 import { useState, type FormEvent } from "react";
-import { Check, Minus, Pencil, Plus, Settings2, Tags } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Check, Merge, Minus, Pencil, Plus, Settings2, Tags, Trash2 } from "lucide-react";
+import { confirmar } from "@/components/Dialogos";
+import { usePerfil } from "@/lib/auth";
 import { Button, Field, Modal } from "@/components/ui";
 import { useInvalidate, useRows } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
@@ -99,10 +102,46 @@ export function AplicarMarcadores({ tabela, notas, onClose, nome = ["nota", "not
   );
 }
 
+/** Marcadores que o ERP põe sozinho pelo nome (o banco não deixa excluir nem juntar em outro: marcador_do_sistema). */
+const DO_SISTEMA = new Set(["devolução", "comprado por valor divergente"]);
+
 export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
   const { data: todos = [] } = useMarcadores();
   const [editando, setEditando] = useState<Partial<Marcador> | null>(null);
+  const [juntando, setJuntando] = useState<Marcador | null>(null);
   const invalidate = useInvalidate();
+  const { tem } = usePerfil();
+  const admin = tem();
+  // quantos registros (clientes, produtos, vendas, contas, notas…) usam cada marcador (pedido de 26/10)
+  const { data: uso } = useQuery({
+    queryKey: ["marcadores", "uso"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("marcadores_uso");
+      if (error) throw error;
+      return new Map(((data ?? []) as { id: string; registros: number }[]).map((u) => [u.id, Number(u.registros)]));
+    },
+  });
+  const nUso = (m: Marcador) => uso?.get(m.id) ?? 0;
+
+  async function excluir(m: Marcador) {
+    const n = nUso(m);
+    if (!(await confirmar(n ? `Excluir o marcador "${m.nome}"? Ele sai de ${n} ${n === 1 ? "registro" : "registros"} e não volta.` : `Excluir o marcador "${m.nome}"? Nenhum registro usa.`,
+      { titulo: "Excluir marcador", ok: "Excluir", perigo: true }))) return;
+    const { error } = await supabase.rpc("marcador_excluir", { p_id: m.id });
+    if (error) return notifyError(error);
+    notify(`Marcador "${m.nome}" excluído`);
+    invalidate("marcadores");
+  }
+  async function juntar(de: Marcador, para: Marcador) {
+    const n = nUso(de);
+    if (!(await confirmar(`Juntar "${de.nome}" em "${para.nome}"? ${n ? `Os ${n} ${n === 1 ? "registro passa" : "registros passam"} a ter "${para.nome}" e ` : ""}"${de.nome}" deixa de existir.`,
+      { titulo: "Juntar marcadores", ok: "Juntar" }))) return;
+    const { error } = await supabase.rpc("marcador_juntar", { p_de: de.id, p_para: para.id });
+    if (error) return notifyError(error);
+    notify(`"${de.nome}" juntado em "${para.nome}"`);
+    setJuntando(null);
+    invalidate("marcadores");
+  }
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -126,10 +165,28 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
               <li key={m.id} className="flex items-center gap-2 px-3 py-2">
                 <span className={m.ativo ? "" : "opacity-90"}><ChipMarcador m={m} /></span>
                 {!m.ativo && <span className="text-xs text-slate-500">desativado</span>}
-                <Button type="button" variant="ghost" className="ml-auto" onClick={() => setEditando(m)}><Pencil size={15} /> Editar</Button>
+                <span className="num text-xs text-slate-500" title="Registros com este marcador">{uso ? `${nUso(m)} ${nUso(m) === 1 ? "uso" : "usos"}` : ""}</span>
+                <span className="ml-auto flex gap-0.5">
+                  <Button type="button" variant="ghost" title="Editar nome, cor e ícone" onClick={() => setEditando(m)}><Pencil size={15} /><span className="hidden sm:inline"> Editar</span></Button>
+                  {admin && !DO_SISTEMA.has(m.nome.trim().toLowerCase()) && <>
+                    <Button type="button" variant="ghost" title="Juntar com outro marcador (os registros passam para o outro)" onClick={() => setJuntando(m)}><Merge size={15} /><span className="hidden sm:inline"> Juntar</span></Button>
+                    <Button type="button" variant="ghost" className="text-red-700" title="Excluir o marcador" onClick={() => excluir(m)}><Trash2 size={15} /></Button>
+                  </>}
+                </span>
               </li>
             ))}
           </ul>
+          {juntando && (
+            <div className="mt-3 rounded-lg border border-slate-200 p-3">
+              <p className="mb-2 text-sm text-slate-700">Juntar <ChipMarcador m={juntando} pequeno /> em qual? Toque no marcador que fica.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {todos.filter((m) => m.id !== juntando.id).map((m) => (
+                  <button key={m.id} type="button" onClick={() => juntar(juntando, m)} className="rounded-full hover:ring-2 hover:ring-brand"><ChipMarcador m={m} /></button>
+                ))}
+              </div>
+              <Button type="button" variant="ghost" className="mt-2" onClick={() => setJuntando(null)}>Cancelar</Button>
+            </div>
+          )}
           <div className="mt-4 flex justify-between">
             <Button type="button" variant="secondary" onClick={() => setEditando({ cor: "slate", icone: "tag", ativo: true })}><Plus size={16} /> Novo marcador</Button>
             <Button type="button" onClick={onClose}>Fechar</Button>
