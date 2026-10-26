@@ -19,7 +19,7 @@ revoke insert, update, delete on public.config_ajustes from anon, authenticated;
 create or replace function public.config_ajuste_salvar(p_chave text, p_valor numeric default null, p_assunto text default null, p_texto text default null)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if not public.tem_papel() then raise exception 'só o administrador muda as configurações'; end if;
+  if not public.is_erp_admin() then raise exception 'só o administrador muda as configurações'; end if;
   if p_chave is null or p_chave !~ '^[a-z0-9_]+$' then raise exception 'ajuste inválido'; end if;
   if length(coalesce(p_texto, '')) > 4000 or length(coalesce(p_assunto, '')) > 200 then raise exception 'texto grande demais'; end if;
   if p_valor is null and nullif(trim(coalesce(p_assunto, '')), '') is null and nullif(trim(coalesce(p_texto, '')), '') is null then

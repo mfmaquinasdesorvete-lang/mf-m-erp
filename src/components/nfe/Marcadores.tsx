@@ -125,7 +125,7 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
 
   async function excluir(m: Marcador) {
     const n = nUso(m);
-    if (!(await confirmar(n ? `Excluir o marcador "${m.nome}"? Ele sai de ${n} ${n === 1 ? "registro" : "registros"} e não volta.` : `Excluir o marcador "${m.nome}"? Nenhum registro usa.`,
+    if (!(await confirmar(n ? `Excluir o marcador "${m.nome}"? Ele sai de ${n} ${n === 1 ? "registro" : "registros"} e fica escondido na lista (desativado).` : `Excluir o marcador "${m.nome}"? Nenhum registro usa; ele fica escondido na lista (desativado).`,
       { titulo: "Excluir marcador", ok: "Excluir", perigo: true }))) return;
     const { error } = await supabase.rpc("marcador_excluir", { p_id: m.id });
     if (error) return notifyError(error);
@@ -134,7 +134,7 @@ export function GerenciarMarcadores({ onClose }: { onClose: () => void }) {
   }
   async function juntar(de: Marcador, para: Marcador) {
     const n = nUso(de);
-    if (!(await confirmar(`Juntar "${de.nome}" em "${para.nome}"? ${n ? `Os ${n} ${n === 1 ? "registro passa" : "registros passam"} a ter "${para.nome}" e ` : ""}"${de.nome}" deixa de existir.`,
+    if (!(await confirmar(`Juntar "${de.nome}" em "${para.nome}"? ${n ? `Os ${n} ${n === 1 ? "registro passa" : "registros passam"} a ter "${para.nome}" e ` : ""}"${de.nome}" fica escondido (desativado).`,
       { titulo: "Juntar marcadores", ok: "Juntar" }))) return;
     const { error } = await supabase.rpc("marcador_juntar", { p_de: de.id, p_para: para.id });
     if (error) return notifyError(error);
